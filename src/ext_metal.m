@@ -9,6 +9,7 @@
 #include "event.h"
 #include "timer.h"
 #include "ext_metal.h"
+#include "requirements.h"
 
 #include <sys/sysctl.h>
 #include <objc/message.h>
@@ -1866,10 +1867,11 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
     // those kernels back under whatever the limit is, and it also cuts the time a kernel that did
     // build takes to compile.
 
-    // optimizationLevel arrived in the macOS 13 SDK, so an older SDK has to build without it.
+    // optimizationLevel arrived in the macOS 13 SDK, so an older SDK has to build without it. That
+    // is the same version the backend refuses to use Metal below, so it comes from the same place.
 
     #ifdef MAC_OS_VERSION_13_0
-    if (@available (macOS 13.0, *))
+    if (@available (HC_MIN_MACOS, *))
     {
       compileOptions.optimizationLevel = MTLLibraryOptimizationLevelSize;
     }

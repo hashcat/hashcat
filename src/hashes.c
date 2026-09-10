@@ -299,7 +299,7 @@ typedef struct hash_gather
 
 } hash_gather_t;
 
-static void *apply_permutation_thread (void *p)
+static HC_THREAD_FUNC apply_permutation_thread (void *p)
 {
   hash_gather_t *param = (hash_gather_t *) p;
 
@@ -355,7 +355,7 @@ static void *apply_permutation_thread (void *p)
     }
   }
 
-  return NULL;
+  return 0;
 }
 
 #define HASH_GATHER_CHUNK_MIN (256 * 1024)
@@ -471,7 +471,7 @@ typedef struct radix_part
 
 } radix_part_t;
 
-static void *radix_sort_thread (void *p)
+static HC_THREAD_FUNC radix_sort_thread (void *p)
 {
   radix_part_t *param = (radix_part_t *) p;
 
@@ -493,7 +493,7 @@ static void *radix_sort_thread (void *p)
       indices[i] = i;
     }
 
-    return NULL;
+    return 0;
   }
 
   const int shift = param->byte_pos * 8;
@@ -509,7 +509,7 @@ static void *radix_sort_thread (void *p)
       param->counts[(u8) (keys[i] >> shift)]++;
     }
 
-    return NULL;
+    return 0;
   }
 
   if (param->phase == 1)
@@ -534,7 +534,7 @@ static void *radix_sort_thread (void *p)
       indices_out[pos] = indices[i];
     }
 
-    return NULL;
+    return 0;
   }
 
   for (u32 b = param->bucket_from; b < param->bucket_to; b++)
@@ -545,7 +545,7 @@ static void *radix_sort_thread (void *p)
     }
   }
 
-  return NULL;
+  return 0;
 }
 
 static void radix_sort_run (radix_part_t *params, hc_thread_t *threads, const int threads_cnt, const int phase)
@@ -1206,7 +1206,7 @@ static u64 salt_sort_key (const salt_t *salt, const int key_kind)
   return (((u64) salt->salt_buf[0]) << 32) | (u64) salt->salt_buf[1];
 }
 
-static void *salt_sort_thread (void *p)
+static HC_THREAD_FUNC salt_sort_thread (void *p)
 {
   salt_sort_t *param = (salt_sort_t *) p;
 
@@ -1225,7 +1225,7 @@ static void *salt_sort_thread (void *p)
       if (salt->salt_iter != first->salt_iter) param->salt_iter_varies = true;
     }
 
-    return NULL;
+    return 0;
   }
 
   if (param->phase == 1)
@@ -1241,7 +1241,7 @@ static void *salt_sort_thread (void *p)
       indices[i] = i;
     }
 
-    return NULL;
+    return 0;
   }
 
   if (param->phase == 2)
@@ -1260,7 +1260,7 @@ static void *salt_sort_thread (void *p)
       keys[i] = ((u64) d[dgst_pos3] << 32) | (u64) d[dgst_pos2];
     }
 
-    return NULL;
+    return 0;
   }
 
   if (param->phase == 3)
@@ -1347,7 +1347,7 @@ static void *salt_sort_thread (void *p)
       }
     }
 
-    return NULL;
+    return 0;
   }
 
   hash_t *dst_hashes = param->dst_hashes;
@@ -1359,7 +1359,7 @@ static void *salt_sort_thread (void *p)
     dst_hashes[i] = hashes_buf[indices[i]];
   }
 
-  return NULL;
+  return 0;
 }
 
 static void salt_sort_run (salt_sort_t *params, hc_thread_t *threads, const int threads_cnt, const int phase)
@@ -2583,7 +2583,7 @@ static void hashlist_error_report (hashcat_ctx_t *hashcat_ctx, const hashlist_er
   hcfree (tmp_line_buf);
 }
 
-static void *hashlist_parse_thread (void *p)
+static HC_THREAD_FUNC hashlist_parse_thread (void *p)
 {
   hashlist_chunk_t *chunk = (hashlist_chunk_t *) p;
 
@@ -2597,7 +2597,7 @@ static void *hashlist_parse_thread (void *p)
 
     chunk->got = 0;
 
-    if (hc_fseek (fp, (off_t) chunk->file_from, SEEK_SET) == -1) return NULL;
+    if (hc_fseek (fp, (off_t) chunk->file_from, SEEK_SET) == -1) return 0;
 
     const u64 want = chunk->file_to - chunk->file_from;
 
@@ -2610,7 +2610,7 @@ static void *hashlist_parse_thread (void *p)
       chunk->got += got;
     }
 
-    return NULL;
+    return 0;
   }
 
   if (chunk->phase == 3)
@@ -2619,7 +2619,7 @@ static void *hashlist_parse_thread (void *p)
 
     chunk->lines_seen = hc_memcount ((const u8 *) buf + pos, '\n', chunk->to - pos);
 
-    return NULL;
+    return 0;
   }
 
   if (chunk->phase == 0)
@@ -2639,7 +2639,7 @@ static void *hashlist_parse_thread (void *p)
 
     chunk->lines = lines;
 
-    return NULL;
+    return 0;
   }
 
   hashcat_ctx_t *hashcat_ctx = chunk->hashcat_ctx;
@@ -2741,7 +2741,7 @@ static void *hashlist_parse_thread (void *p)
 
   chunk->parsed = slot - chunk->slot;
 
-  return NULL;
+  return 0;
 }
 
 static void hashlist_chunks_run (hashlist_chunk_t *chunks, hc_thread_t *threads, const int chunks_cnt, const int phase)
@@ -4662,7 +4662,7 @@ static bool hashes_same (const hashconfig_t *hashconfig, const hash_t *h1, const
   return (sort_by_digest_p0p1 (h1->digest, h2->digest, (void *) hashconfig) == 0);
 }
 
-static void *hashes_group_thread (void *p)
+static HC_THREAD_FUNC hashes_group_thread (void *p)
 {
   hashes_group_t *param = (hashes_group_t *) p;
 
@@ -4679,7 +4679,7 @@ static void *hashes_group_thread (void *p)
       marks[i] = ((i == 0) || (hashes_same (hashconfig, &hashes_buf[i], &hashes_buf[i - 1]) == false)) ? 1 : 0;
     }
 
-    return NULL;
+    return 0;
   }
 
   if (param->phase == 1)
@@ -4691,7 +4691,7 @@ static void *hashes_group_thread (void *p)
       marks[i] = ((i == 0) || (sort_by_salt (hashes_buf[i].salt, hashes_buf[i - 1].salt) != 0)) ? 1 : 0;
     }
 
-    return NULL;
+    return 0;
   }
 
   const u32 *offsets = param->offsets;
@@ -4767,7 +4767,7 @@ static void *hashes_group_thread (void *p)
     if (param->hash_info != NULL) param->hash_info[i] = hashes_buf[i].hash_info;
   }
 
-  return NULL;
+  return 0;
 }
 
 static void hashes_group_run (const hashes_group_t *tmpl, const u32 count, const int phase)

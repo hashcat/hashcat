@@ -19,7 +19,7 @@ static const char CL_VENDOR_APPLE_USE_INTEL[]   = "Intel";
 static const char CL_VENDOR_APPLE_USE_INTEL2[]  = "Intel Inc.";
 static const char CL_VENDOR_INTEL_BEIGNET[]     = "Intel";
 static const char CL_VENDOR_INTEL_SDK[]         = "Intel(R) Corporation";
-static const char CL_VENDOR_MESA[]              = "Mesa";
+static const char CL_VENDOR_MESA[]              = "Mesa/X.org";
 static const char CL_VENDOR_NV[]                = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]              = "The pocl project";
 static const char CL_VENDOR_MICROSOFT[]         = "Microsoft";
@@ -109,12 +109,7 @@ int run_copy                                (hashcat_ctx_t *hashcat_ctx, hc_devi
 int pcfg_seed_cells                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt);
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD hook12_thread (void *p);
-HC_API_CALL DWORD hook23_thread (void *p);
-#else
-HC_API_CALL void *hook12_thread (void *p);
-HC_API_CALL void *hook23_thread (void *p);
-#endif
+HC_THREAD_FUNC hook12_thread (void *p);
+HC_THREAD_FUNC hook23_thread (void *p);
 
 #endif // HC_BACKEND_H

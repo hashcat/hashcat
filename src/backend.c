@@ -25,6 +25,7 @@
 #include "hashes.h"
 #include "emu_inc_hash_md5.h"
 #include "event.h"
+#include "requirements.h"
 #include "dynloader.h"
 #include "feed_ctx.h"
 #include "backend.h"
@@ -6340,43 +6341,78 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((rc_cuda_init == 0) && (rc_nvrtc_init == 0))
     {
+      // A CUDA install this build cannot use disables CUDA and nothing else. It used to end the
+      // process, so a machine with an old toolkit and a working OpenCL device could not run at all,
+      // while the same situation on HIP or Metal only costs that backend. There is no --force for
+      // this either, so the user had no way past it. Whatever else the machine has is still worth
+      // running on, and the warning says which backend went away.
+
+      // The floor is CUDA 12.0, which is what Ubuntu 24.04 delivers from its own archive: the
+      // toolkit there is nvidia-cuda-toolkit 12.0.140 and the oldest driver it offers is 535, which
+      // carries CUDA 12.2. A user on that distribution with nothing but its own packages meets it.
+
+      bool cuda_usable = true;
+
       // nvrtc version
 
       int nvrtc_major = 0;
       int nvrtc_minor = 0;
 
-      if (hc_nvrtcVersion (hashcat_ctx, &nvrtc_major, &nvrtc_minor) == -1) return -1;
-
-      int nvrtc_driver_version = (nvrtc_major * 1000) + (nvrtc_minor * 10);
-
-      backend_ctx->nvrtc_driver_version = nvrtc_driver_version;
-
-      if (nvrtc_driver_version < 9000)
+      if (hc_nvrtcVersion (hashcat_ctx, &nvrtc_major, &nvrtc_minor) == -1)
       {
-        event_log_error (hashcat_ctx, "Outdated NVIDIA NVRTC driver version '%d' detected!", nvrtc_driver_version);
+        cuda_usable = false;
+      }
+      else
+      {
+        int nvrtc_driver_version = (nvrtc_major * 1000) + (nvrtc_minor * 10);
 
-        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
-        event_log_warning (hashcat_ctx, NULL);
+        backend_ctx->nvrtc_driver_version = nvrtc_driver_version;
 
-        return -1;
+        if (nvrtc_driver_version < HC_MIN_CUDA_VERSION)
+        {
+          event_log_warning (hashcat_ctx, "Outdated NVIDIA NVRTC driver version '%d' detected! Falling back to OpenCL...", nvrtc_driver_version);
+          event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          cuda_usable = false;
+        }
       }
 
       // cuda version
 
-      int cuda_driver_version = 0;
-
-      if (hc_cuDriverGetVersion (hashcat_ctx, &cuda_driver_version) == -1) return -1;
-
-      backend_ctx->cuda_driver_version = cuda_driver_version;
-
-      if (cuda_driver_version < 9000)
+      if (cuda_usable == true)
       {
-        event_log_error (hashcat_ctx, "Outdated NVIDIA CUDA driver version '%d' detected!", cuda_driver_version);
+        int cuda_driver_version = 0;
 
-        event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
-        event_log_warning (hashcat_ctx, NULL);
+        if (hc_cuDriverGetVersion (hashcat_ctx, &cuda_driver_version) == -1)
+        {
+          cuda_usable = false;
+        }
+        else
+        {
+          backend_ctx->cuda_driver_version = cuda_driver_version;
 
-        return -1;
+          if (cuda_driver_version < HC_MIN_CUDA_VERSION)
+          {
+            event_log_warning (hashcat_ctx, "Outdated NVIDIA CUDA driver version '%d' detected! Falling back to OpenCL...", cuda_driver_version);
+            event_log_warning (hashcat_ctx, "See hashcat.net for officially supported NVIDIA CUDA Toolkit versions.");
+            event_log_warning (hashcat_ctx, NULL);
+
+            cuda_usable = false;
+          }
+        }
+      }
+
+      if (cuda_usable == false)
+      {
+        rc_cuda_init  = -1;
+        rc_nvrtc_init = -1;
+
+        backend_ctx->rc_cuda_init  = rc_cuda_init;
+        backend_ctx->rc_nvrtc_init = rc_nvrtc_init;
+
+        cuda_close  (hashcat_ctx);
+        nvrtc_close (hashcat_ctx);
       }
     }
     else
@@ -6447,11 +6483,28 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       backend_ctx->hip_runtimeVersion = hip_runtimeVersion;
 
-      #if defined (_WIN)
-      // 404 is ok
-      if (hip_runtimeVersion < 404)
+      // One floor on both platforms, 6.2.0, which AMD publishes for Ubuntu 24.04 as 6.2.4, so the
+      // floor distribution can reach it. Windows had 404 and Linux had this, and the two were not
+      // even the same scale: HIP reports a packed value like 70260201 for 7.2.60201, so 404 was a
+      // number no modern runtime could fall below and the Windows check passed everything. hashcat
+      // has seen both scales, which is why the version is decoded the way the status display decodes
+      // it rather than assumed.
+
+      if (hip_runtimeVersion < HC_MIN_HIP_VERSION)
       {
-        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d' detected! Falling back to OpenCL...", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+        if (hip_runtimeVersion > 1000)
+        {
+          const int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+          const int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+          const int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+
+          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
+        }
+        else
+        {
+          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d' detected! Falling back to OpenCL...", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+        }
+
         event_log_warning (hashcat_ctx, NULL);
 
         rc_hip_init    = -1;
@@ -6463,37 +6516,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         backend_ctx->hip    = NULL;
         backend_ctx->hiprtc = NULL;
 
-        backend_ctx->hip = NULL;
-
         // if we call this, opencl stops working?! so we just zero the pointer
         // this causes a memleak and an open filehandle but what can we do?
         // hip_close    (hashcat_ctx);
         // hiprtc_close (hashcat_ctx);
       }
-      #else
-      if (hip_runtimeVersion < 60200000)
-      {
-        int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
-        int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
-        int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
-
-        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
-        event_log_warning (hashcat_ctx, NULL);
-
-        rc_hip_init    = -1;
-        rc_hiprtc_init = -1;
-
-        backend_ctx->rc_hip_init    = rc_hip_init;
-        backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
-
-        backend_ctx->hip = NULL;
-
-        // if we call this, opencl stops working?! so we just zero the pointer
-        // this causes a memleak and an open filehandle but what can we do?
-        // hip_close    (hashcat_ctx);
-        // hiprtc_close (hashcat_ctx);
-      }
-      #endif
     }
     else
     {
@@ -6529,25 +6556,66 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (rc_metal_init == 0)
     {
-      size_t version_len = 0;
+      // What Metal needs is a macOS version, and macOS is willing to say what it is. The check used to
+      // read a build number out of Metal.framework's own version.plist and refuse anything under 200.
+      // That number is 373.7 on macOS 26.6 and it tracks neither a Metal feature set nor an OS
+      // release, so it could not express the requirement and nobody reading it could tell what was
+      // being asked for.
+      //
+      // macOS 13 is the real floor. MTLCompileOptions.optimizationLevel arrived there and the Metal
+      // backend sets it, so an older system cannot build kernels the way this one does.
 
-      if (hc_mtlRuntimeGetVersionString (hashcat_ctx, NULL, &version_len) == -1) return -1;
+      bool metal_usable = true;
 
-      if (version_len == 0) return -1;
-
-      backend_ctx->metal_runtimeVersionStr = (char *) hcmalloc (version_len + 1);
-
-      if (hc_mtlRuntimeGetVersionString (hashcat_ctx, backend_ctx->metal_runtimeVersionStr, &version_len) == -1) return -1;
-
-      backend_ctx->metal_runtimeVersion = atoi (backend_ctx->metal_runtimeVersionStr);
-
-      // disable metal < 200
-
-      if (backend_ctx->metal_runtimeVersion < 200)
+      if (__builtin_available (HC_MIN_MACOS, *))
       {
-        event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
+        // supported
+      }
+      else
+      {
+        event_log_warning (hashcat_ctx, "Apple Metal needs macOS " HC_MIN_MACOS_TEXT " or later. Falling back to OpenCL...");
         event_log_warning (hashcat_ctx, NULL);
 
+        metal_usable = false;
+      }
+
+      // The version string is still read, because the status display shows it and the kernel cache
+      // key is built from it, so a macOS upgrade has to invalidate cached kernels. It comes out of a
+      // private file inside the framework, which is the only place Apple puts it, so a failure to
+      // read it disables Metal rather than ending the run: without it the cache key cannot tell two
+      // macOS versions apart, and that is worse than not using Metal.
+
+      if (metal_usable == true)
+      {
+        size_t version_len = 0;
+
+        if ((hc_mtlRuntimeGetVersionString (hashcat_ctx, NULL, &version_len) == -1) || (version_len == 0))
+        {
+          event_log_warning (hashcat_ctx, "Could not read the Apple Metal runtime version. Falling back to OpenCL...");
+          event_log_warning (hashcat_ctx, NULL);
+
+          metal_usable = false;
+        }
+        else
+        {
+          backend_ctx->metal_runtimeVersionStr = (char *) hcmalloc (version_len + 1);
+
+          if (hc_mtlRuntimeGetVersionString (hashcat_ctx, backend_ctx->metal_runtimeVersionStr, &version_len) == -1)
+          {
+            event_log_warning (hashcat_ctx, "Could not read the Apple Metal runtime version. Falling back to OpenCL...");
+            event_log_warning (hashcat_ctx, NULL);
+
+            metal_usable = false;
+          }
+          else
+          {
+            backend_ctx->metal_runtimeVersion = atoi (backend_ctx->metal_runtimeVersionStr);
+          }
+        }
+      }
+
+      if (metal_usable == false)
+      {
         rc_metal_init = -1;
 
         backend_ctx->rc_metal_init = rc_metal_init;
@@ -6799,6 +6867,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
         else if (strcmp (opencl_platform_vendor, CL_VENDOR_MESA) == 0)
         {
+          // Mesa answers CL_PLATFORM_VENDOR as Mesa/X.org, which is what CL_VENDOR_MESA holds. It
+          // used to hold plain Mesa, so this never matched anything and rusticl was landing on
+          // VENDOR_ID_GENERIC. Nothing keys off VENDOR_ID_MESA today, so this changes no behaviour,
+          // it makes the id mean what its name says.
+
           opencl_platform_vendor_id = VENDOR_ID_MESA;
         }
         else if (strcmp (opencl_platform_vendor, CL_VENDOR_NV) == 0)
@@ -7418,10 +7491,6 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
       {
         backend_ctx->need_nvml = true;
-
-        #if defined (_WIN) || defined (__CYGWIN__)
-        backend_ctx->need_nvapi = true;
-        #endif
       }
 
       // CPU burning loop damper
@@ -8673,9 +8742,9 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           // No runtime in use reports 1.0 or 1.1. The two that did, Beignet and Mesa, are
           // already skipped further down.
 
-          if (opencl_version_maj == 1)
+          if (opencl_version_maj == HC_MIN_OPENCL_MAJOR)
           {
-            if (opencl_version_min >= 2)
+            if (opencl_version_min >= HC_MIN_OPENCL_MINOR)
             {
               device_param->use_opencl12 = true;
             }
@@ -8922,7 +8991,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
         if (sscanf (opencl_device_c_version, "OpenCL C %d.%d", &device_c_version_maj, &device_c_version_min) == 2)
         {
-          if ((device_c_version_maj == 1) && (device_c_version_min < 2))
+          if ((device_c_version_maj == HC_MIN_OPENCL_MAJOR) && (device_c_version_min < HC_MIN_OPENCL_MINOR))
           {
             event_log_error (hashcat_ctx, "* Device #%u: OpenCL C %d.%d is too old, hashcat needs OpenCL C 1.2 or later.", device_id + 1, device_c_version_maj, device_c_version_min);
 
@@ -9172,19 +9241,10 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           continue;
         }
 
-        if (strstr (device_extensions, "base_atomics") == 0)
-        {
-          event_log_error (hashcat_ctx, "* Device #%u: This device does not support base atomics.", device_id + 1);
-
-          device_skip (device_param, "no base atomics");
-        }
-
-        if (strstr (device_extensions, "byte_addressable_store") == 0)
-        {
-          event_log_error (hashcat_ctx, "* Device #%u: This device does not support byte-addressable store.", device_id + 1);
-
-          device_skip (device_param, "no byte addressable store");
-        }
+        // cl_khr_global_int32_base_atomics and cl_khr_byte_addressable_store used to be tested here.
+        // Both became core in OpenCL 1.1 and the floor above is 1.2, so no device that reaches this
+        // point can be missing either one. The tests were substring matches as well, so a device
+        // naming any extension ending in base_atomics satisfied the first of them.
 
         // The sysfs hwmon backends find a device by its PCI address, and cl_khr_pci_bus_info is the
         // portable way to ask for one. Mesa's rusticl is the runtime that needs this: it exposes AMD
@@ -9345,7 +9405,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
             {
               const int pocl_version = (pocl_maj * 100) + pocl_min;
 
-              if (pocl_version < 500)
+              if (pocl_version < HC_MIN_POCL_VERSION)
               {
                 pocl_skip = true;
               }
@@ -9360,7 +9420,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
             {
               const int llvm_version = (llvm_maj * 100) + llvm_min;
 
-              if (llvm_version < 1000)
+              if (llvm_version < HC_MIN_POCL_LLVM_VERSION)
               {
                 pocl_skip = true;
               }
@@ -9410,34 +9470,12 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         }
         #endif
 
-        char *opencl_device_version_lower = hcstrdup (opencl_device_version);
-
-        lowercase ((u8 *) opencl_device_version_lower, strlen (opencl_device_version_lower));
-
-        if ((strstr (opencl_device_version_lower, "beignet "))
-         || (strstr (opencl_device_version_lower, " beignet"))
-         || (strstr (opencl_device_version_lower, "mesa "))
-         || (strstr (opencl_device_version_lower, " mesa")))
-        {
-          // BEIGNET: https://github.com/hashcat/hashcat/issues/2243
-          // MESA:    https://github.com/hashcat/hashcat/issues/2269
-
-          if (user_options->force == false)
-          {
-            event_log_error (hashcat_ctx, "* Device #%u: Unstable OpenCL driver detected!", device_id + 1);
-
-            if (user_options->quiet == false)
-            {
-              event_log_warning (hashcat_ctx, "This OpenCL driver may fail kernel compilation or produce false negatives.");
-              event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
-              event_log_warning (hashcat_ctx, NULL);
-            }
-
-            device_skip (device_param, "unsupported driver, --force overrides");
-          }
-        }
-
-        hcfree (opencl_device_version_lower);
+        // A device whose version string named Beignet or Mesa used to be skipped here, from issues
+        // 2243 and 2269. Both runtimes are gone: Beignet was last released in 2018, and Mesa has
+        // removed Clover, which is what issue 2269 was about. Mesa's OpenCL is rusticl now, and the
+        // test never reached it anyway, because rusticl answers CL_DEVICE_VERSION as plain
+        // "OpenCL 3.0" with no vendor name in it. What the test could still do is skip some unrelated
+        // runtime whose version string happens to carry one of those two words.
 
         // Since some times we get reports from users about not working hashcat, dropping error messages like:
         // CL_INVALID_COMMAND_QUEUE and CL_OUT_OF_RESOURCES
@@ -9562,10 +9600,6 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
             backend_ctx->need_nvml = true;
-
-            #if defined (_WIN) || defined (__CYGWIN__)
-            backend_ctx->need_nvapi = true;
-            #endif
           }
 
           if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
@@ -9887,7 +9921,15 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         {
           if ((user_options->force == false) && (user_options->backend_info == 0))
           {
-            bool warn_and_skip = false;
+            // A version below the floor and a version that could not be read at all are different
+            // answers and used to produce the same one. None of these strings has a format the
+            // vendor specifies, so the day one of them changes shape, every user of that runtime is
+            // told their driver is outdated and every one of their devices is skipped. That is a
+            // worse failure than the one this guards against, and it arrives without anybody having
+            // changed anything. An unreadable version now warns once and the device runs.
+
+            bool warn_and_skip    = false;
+            bool version_unknown  = false;
 
             if (opencl_device_type & CL_DEVICE_TYPE_CPU)
             {
@@ -9902,11 +9944,11 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
                 if (res18 == 4)
                 {
-                  if (opencl_driver1 < 2020) warn_and_skip = true;
+                  if (opencl_driver1 < HC_MIN_INTEL_CPU_DRIVER) warn_and_skip = true;
                 }
                 else
                 {
-                  warn_and_skip = true;
+                  version_unknown = true;
                 }
               }
             }
@@ -9921,11 +9963,11 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
                 if (res18 == 2)
                 {
-                  if (opencl_driver1 <  3000) warn_and_skip = true;
+                  if (opencl_driver1 < HC_MIN_AMD_OCL_DRIVER) warn_and_skip = true;
                 }
                 else
                 {
-                  warn_and_skip = true;
+                  version_unknown = true;
                 }
               }
 
@@ -9938,11 +9980,11 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
                 if (r == 2)
                 {
-                  if (version_maj < 500) warn_and_skip = true;
+                  if (version_maj < HC_MIN_NV_OCL_DRIVER) warn_and_skip = true;
                 }
                 else
                 {
-                  warn_and_skip = true;
+                  version_unknown = true;
                 }
 
                 if (device_param->sm_major < 5)
@@ -9968,72 +10010,36 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
               #if defined (__APPLE__)
 
-              char *start130 = strchr (device_param->opencl_driver_version, '(');
-              char *stop130  = strchr (device_param->opencl_driver_version, ')');
+              // Apple's OpenCL has no version to read, so this used to pull a build date out of the
+              // driver version string with strptime and compare it against 1662940800, which is
+              // Xcode 14's release date as a time_t. Any string that did not parse was treated as a
+              // driver too old, which made the check as much a test of the string's shape as of the
+              // driver.
+              //
+              // The requirement being expressed is a macOS version, and docs/changes.txt has said
+              // macOS 13.0 since that release, so ask macOS instead.
 
-              char *start131 = strchr (opencl_platform_version, '(');
-              char *stop131  = strchr (opencl_platform_version, ')');
-
-              // either none or one of these have a date string
-
-              char *start = (start130 == NULL) ? start131 : start130;
-              char *stop  = (stop130  == NULL) ? stop131  : stop130;
-
-              if ((start != NULL) && (stop != NULL))
+              if (__builtin_available (HC_MIN_MACOS, *))
               {
-                start++;
-                stop--;
-
-                const int driver_version_len = 1 + (const int) (stop - start);
-
-                if (driver_version_len > 16)
-                {
-                  struct tm tm;
-
-                  memset (&tm, 0, sizeof (tm));
-
-                  char *ptr = strptime (start, "%b %d %Y %H:%M:%S", &tm);
-
-                  if (ptr != NULL)
-                  {
-                    const time_t t = mktime (&tm);
-
-                    if (t >= 1662940800)
-                    {
-                      // ok: 1.2 (Oct 26 2022 11:01:47) // 13.1+
-                      // ok: 1.2 (Oct 27 2022 21:33:35) // 13.0 AMD
-                      // ok: 1.2 (Sep 30 2022 01:38:14) // 13.0 M1
-                      // Since versions vary a lot on destination hardware, its probably better
-                      // to use xcode 14 release date as reference: September 12, 2022 GMT
-                    }
-                    else
-                    {
-                      warn_and_skip = true;
-                    }
-                  }
-                  else
-                  {
-                    warn_and_skip = true;
-                  }
-                }
-                else
-                {
-                  warn_and_skip = true;
-                }
+                // supported
               }
               else
               {
                 warn_and_skip = true;
               }
+
               #endif // __APPLE__
             }
 
             if (warn_and_skip == true)
             {
-              event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime '%s' detected!", device_id + 1, device_param->opencl_driver_version);
+              // The block above covers Intel on the CPU and AMD, NVIDIA and Apple on the GPU, so the
+              // vendor has to come from the device rather than be named in the text.
+
+              event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken %s OpenCL runtime '%s' detected!", device_id + 1, device_param->opencl_device_vendor, device_param->opencl_driver_version);
 
               event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported runtime.");
-              event_log_warning (hashcat_ctx, "See hashcat.net for the officially supported Intel OpenCL runtime.");
+              event_log_warning (hashcat_ctx, "See hashcat.net for the officially supported OpenCL runtimes.");
               event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
               event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
               event_log_warning (hashcat_ctx, NULL);
@@ -10041,6 +10047,16 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
               device_skip (device_param, "unsupported driver, --force overrides");
 
               continue;
+            }
+
+            if (version_unknown == true)
+            {
+              if (user_options->quiet == false)
+              {
+                event_log_warning (hashcat_ctx, "* Device #%u: Could not read a version out of the %s OpenCL driver string '%s'.", device_id + 1, device_param->opencl_device_vendor, device_param->opencl_driver_version);
+                event_log_warning (hashcat_ctx, "             The device is used anyway. If it misbehaves, check the runtime version by hand.");
+                event_log_warning (hashcat_ctx, NULL);
+              }
             }
           }
 
@@ -10342,7 +10358,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->need_adl             = false;
   backend_ctx->need_nvml            = false;
-  backend_ctx->need_nvapi           = false;
   backend_ctx->need_sysfs_amdgpu    = false;
   backend_ctx->need_sysfs_intelgpu  = false;
   backend_ctx->need_sysfs_cpu       = false;
@@ -11203,7 +11218,6 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 
   backend_ctx->need_adl             = false;
   backend_ctx->need_nvml            = false;
-  backend_ctx->need_nvapi           = false;
   backend_ctx->need_sysfs_amdgpu    = false;
   backend_ctx->need_sysfs_intelgpu  = false;
   backend_ctx->need_sysfs_cpu       = false;
@@ -21123,11 +21137,7 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD hook12_thread (void *p)
-#else
-HC_API_CALL void *hook12_thread (void *p)
-#endif
+HC_THREAD_FUNC hook12_thread (void *p)
 {
   hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
 
@@ -21153,11 +21163,7 @@ HC_API_CALL void *hook12_thread (void *p)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD hook23_thread (void *p)
-#else
-HC_API_CALL void *hook23_thread (void *p)
-#endif
+HC_THREAD_FUNC hook23_thread (void *p)
 {
   hook_thread_param_t *hook_thread_param = (hook_thread_param_t *) p;
 

@@ -12,7 +12,12 @@
  * from cuda.h (/usr/local/cuda-10.1/targets/x86_64-linux/include/cuda.h)
  */
 
-#define __CUDA_API_VERSION 10010
+#include "requirements.h"
+
+// The API level these declarations are written against, taken from the same place as the runtime
+// floor so the two cannot disagree.
+
+#define __CUDA_API_VERSION HC_MIN_CUDA_VERSION
 
 /**
  * CUDA device pointer

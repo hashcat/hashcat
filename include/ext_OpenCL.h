@@ -8,7 +8,9 @@
 
 #include "export.h"
 
-#define CL_TARGET_OPENCL_VERSION 120
+#include "requirements.h"
+
+#define CL_TARGET_OPENCL_VERSION HC_CL_TARGET_VERSION
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS

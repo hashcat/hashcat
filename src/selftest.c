@@ -1240,11 +1240,7 @@ static int process_selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_selftest (void *p)
-#else
-HC_API_CALL void *thread_selftest (void *p)
-#endif
+HC_THREAD_FUNC thread_selftest (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 

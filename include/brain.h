@@ -350,13 +350,8 @@ int   brain_server_sort_hash_long       (const void *v1, const void *v2);
 int   brain_server_sort_hash_unique     (const void *v1, const void *v2);
 void  brain_server_handle_signal        (int signo);
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD brain_server_handle_client  (void *p);
-HC_API_CALL DWORD brain_server_handle_dumps   (void *p);
-#else
-HC_API_CALL void *brain_server_handle_client  (void *p);
-HC_API_CALL void *brain_server_handle_dumps   (void *p);
-#endif
+HC_THREAD_FUNC brain_server_handle_client (void *p);
+HC_THREAD_FUNC brain_server_handle_dumps  (void *p);
 
 u32   brain_server_shard_idx            (const u32 *hash);
 void *brain_server_arena_reserve        (const u64 size);

@@ -356,11 +356,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_outfile_remove (void *p)
-#else
-HC_API_CALL void *thread_outfile_remove (void *p)
-#endif
+HC_THREAD_FUNC thread_outfile_remove (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 

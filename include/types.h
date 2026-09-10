@@ -2406,7 +2406,6 @@ typedef struct backend_ctx
 
   bool                need_adl;
   bool                need_nvml;
-  bool                need_nvapi;
   bool                need_sysfs_amdgpu;
   bool                need_sysfs_intelgpu;
   bool                need_sysfs_cpu;
@@ -2480,7 +2479,6 @@ typedef enum kernel_workload
 } kernel_workload_t;
 
 #include "ext_ADL.h"
-#include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_sysfs_amdgpu.h"
 #include "ext_sysfs_intelgpu.h"
@@ -2491,7 +2489,6 @@ typedef struct hm_attrs
 {
   HM_ADAPTER_ADL            adl;
   HM_ADAPTER_NVML           nvml;
-  HM_ADAPTER_NVAPI          nvapi;
   HM_ADAPTER_SYSFS_AMDGPU   sysfs_amdgpu;
   HM_ADAPTER_SYSFS_INTELGPU sysfs_intelgpu;
   HM_ADAPTER_SYSFS_CPU      sysfs_cpu;
@@ -2520,7 +2517,6 @@ typedef struct hwmon_ctx
 
   void *hm_adl;
   void *hm_nvml;
-  void *hm_nvapi;
   void *hm_sysfs_amdgpu;
   void *hm_sysfs_intelgpu;
   void *hm_sysfs_cpu;

@@ -30,22 +30,6 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
   return 0;
 }
 
-static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVAPI *nvapiGPUHandle)
-{
-  NvU32 pGpuCount;
-
-  if (hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx, nvapiGPUHandle, &pGpuCount) == -1) return 0;
-
-  if (pGpuCount == 0)
-  {
-    event_log_error (hashcat_ctx, "No NvAPI adapters found.");
-
-    return 0;
-  }
-
-  return (pGpuCount);
-}
-
 static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVML *nvmlGPUHandle)
 {
   unsigned int deviceCount = 0;
@@ -1718,6 +1702,57 @@ int hm_get_corespeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
   return -1;
 }
 
+// Is this device losing speed to heat or to a power brake?
+//
+// NVML reports why the clocks are being held down as a bit set, and most of the reasons are not a
+// problem: the GPU being idle, the clocks being set by the application, sync boost, a display mode.
+// The previous attempt at this subtracted the reasons it did not want and asked whether anything was
+// left, which answered yes during mask generation and was abandoned as useless.
+//
+// This asks the opposite question. Only the reasons that mean the card is being slowed down count,
+// so anything else NVML reports, now or in a later release, is ignored rather than mistaken for a
+// problem.
+//
+// A software power cap is deliberately not one of them. A GPU worth cracking on sits at its power
+// limit for the whole run, so a warning about it would fire constantly and mean nothing.
+
+#define NVML_THROTTLE_REASONS_THAT_COST_SPEED ( \
+    nvmlClocksThrottleReasonHwSlowdown           \
+  | nvmlClocksEventReasonSwThermalSlowdown       \
+  | nvmlClocksThrottleReasonHwThermalSlowdown    \
+  | nvmlClocksThrottleReasonHwPowerBrakeSlowdown)
+
+static int hm_get_throttle_nvml (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  unsigned long long clocksThrottleReasons    = 0;
+  unsigned long long supportedThrottleReasons = 0;
+
+  if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &clocksThrottleReasons) == -1)
+  {
+    hwmon_ctx->hm_device[backend_device_idx].throttle_get_supported = false;
+
+    return -1;
+  }
+
+  if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &supportedThrottleReasons) == -1)
+  {
+    hwmon_ctx->hm_device[backend_device_idx].throttle_get_supported = false;
+
+    return -1;
+  }
+
+  // a reason the device does not support is not a reason it is reporting
+
+  clocksThrottleReasons &= supportedThrottleReasons;
+  clocksThrottleReasons &= NVML_THROTTLE_REASONS_THAT_COST_SPEED;
+
+  const int rc = (clocksThrottleReasons != nvmlClocksThrottleReasonNone) ? 1 : 0;
+
+  return rc;
+}
+
 int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
@@ -1729,102 +1764,16 @@ int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
   if (backend_ctx->devices_param[backend_device_idx].is_cuda == true)
   {
-    if (hwmon_ctx->hm_nvml)
-    {
-      /* this is triggered by mask generator, too. therefore useless
-      unsigned long long clocksThrottleReasons = 0;
-      unsigned long long supportedThrottleReasons = 0;
-
-      if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &clocksThrottleReasons)    == -1) return -1;
-      if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &supportedThrottleReasons) == -1) return -1;
-
-      clocksThrottleReasons &=  supportedThrottleReasons;
-      clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle;
-      clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
-      clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
-
-      if (backend_ctx->kernel_power_final)
-      {
-        clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
-      }
-
-      return (clocksThrottleReasons != nvmlClocksThrottleReasonNone);
-      */
-    }
-
-    if (hwmon_ctx->hm_nvapi)
-    {
-      NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info;
-      NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status;
-
-      memset (&perfPolicies_info,   0, sizeof (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1));
-      memset (&perfPolicies_status, 0, sizeof (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1));
-
-      perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
-      perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
-
-      hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvapi, &perfPolicies_info);
-
-      perfPolicies_status.info_value = perfPolicies_info.info_value;
-
-      hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvapi, &perfPolicies_status);
-
-      return perfPolicies_status.throttle & 2;
-    }
+    if (hwmon_ctx->hm_nvml) return hm_get_throttle_nvml (hashcat_ctx, backend_device_idx);
   }
 
-  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
+  if (backend_ctx->devices_param[backend_device_idx].is_opencl == true)
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
-      {
-      }
-
       if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
       {
-        if (hwmon_ctx->hm_nvml)
-        {
-          /* this is triggered by mask generator, too. therefore useless
-          unsigned long long clocksThrottleReasons = 0;
-          unsigned long long supportedThrottleReasons = 0;
-
-          if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &clocksThrottleReasons)    == -1) return -1;
-          if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &supportedThrottleReasons) == -1) return -1;
-
-          clocksThrottleReasons &=  supportedThrottleReasons;
-          clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle;
-          clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
-          clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
-
-          if (backend_ctx->kernel_power_final)
-          {
-            clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
-          }
-
-          return (clocksThrottleReasons != nvmlClocksThrottleReasonNone);
-          */
-        }
-
-        if (hwmon_ctx->hm_nvapi)
-        {
-          NV_GPU_PERF_POLICIES_INFO_PARAMS_V1   perfPolicies_info;
-          NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 perfPolicies_status;
-
-          memset (&perfPolicies_info,   0, sizeof (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1));
-          memset (&perfPolicies_status, 0, sizeof (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1));
-
-          perfPolicies_info.version   = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_INFO_PARAMS_V1, 1);
-          perfPolicies_status.version = MAKE_NVAPI_VERSION (NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1, 1);
-
-          hm_NvAPI_GPU_GetPerfPoliciesInfo (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvapi, &perfPolicies_info);
-
-          perfPolicies_status.info_value = perfPolicies_info.info_value;
-
-          hm_NvAPI_GPU_GetPerfPoliciesStatus (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvapi, &perfPolicies_status);
-
-          return perfPolicies_status.throttle & 2;
-        }
+        if (hwmon_ctx->hm_nvml) return hm_get_throttle_nvml (hashcat_ctx, backend_device_idx);
       }
     }
   }
@@ -1978,6 +1927,7 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
               hm_adapters_nvml[device_id].threshold_slowdown_get_supported  = true;
               hm_adapters_nvml[device_id].utilization_get_supported         = true;
               hm_adapters_nvml[device_id].memoryused_get_supported          = true;
+              hm_adapters_nvml[device_id].throttle_get_supported            = true;
               hm_adapters_nvml[device_id].power_get_supported               = false;
             }
           }
@@ -2012,6 +1962,7 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
               hm_adapters_nvml[device_id].threshold_slowdown_get_supported  = true;
               hm_adapters_nvml[device_id].utilization_get_supported         = true;
               hm_adapters_nvml[device_id].memoryused_get_supported          = true;
+              hm_adapters_nvml[device_id].throttle_get_supported            = true;
               hm_adapters_nvml[device_id].power_get_supported               = false;
             }
           }
@@ -2019,85 +1970,6 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
       }
 
       hcfree (nvmlGPUHandle);
-    }
-  }
-}
-
-static void hwmon_ctx_init_nvapi (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adapters_nvapi, int backend_devices_cnt)
-{
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
-
-  if (hwmon_ctx->hm_nvapi)
-  {
-    if (hm_NvAPI_Initialize (hashcat_ctx) == 0)
-    {
-      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (NVAPI_MAX_PHYSICAL_GPUS, sizeof (HM_ADAPTER_NVAPI));
-
-      int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
-
-      for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
-      {
-        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
-
-        if (device_param->skipped == true) continue;
-
-        if (device_param->is_cuda == true)
-        {
-          for (int i = 0; i < tmp_in; i++)
-          {
-            NvU32 BusId     = 0;
-            NvU32 BusSlotId = 0;
-
-            if (hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId) == -1) continue;
-
-            if (hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId) == -1) continue;
-
-            if ((device_param->pcie_bus      == BusId)
-             && (device_param->pcie_device   == (BusSlotId >> 3))
-             && (device_param->pcie_function == (BusSlotId & 7)))
-            {
-              const u32 device_id = device_param->device_id;
-
-              hm_adapters_nvapi[device_id].nvapi = nvGPUHandle[i];
-
-              hm_adapters_nvapi[device_id].fanpolicy_get_supported  = true;
-              hm_adapters_nvapi[device_id].throttle_get_supported   = true;
-            }
-          }
-        }
-
-        if (device_param->is_opencl == true)
-        {
-          if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
-
-          if (device_param->opencl_device_vendor_id != VENDOR_ID_NV) continue;
-
-          for (int i = 0; i < tmp_in; i++)
-          {
-            NvU32 BusId     = 0;
-            NvU32 BusSlotId = 0;
-
-            if (hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId) == -1) continue;
-
-            if (hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId) == -1) continue;
-
-            if ((device_param->pcie_bus      == BusId)
-             && (device_param->pcie_device   == (BusSlotId >> 3))
-             && (device_param->pcie_function == (BusSlotId & 7)))
-            {
-              const u32 device_id = device_param->device_id;
-
-              hm_adapters_nvapi[device_id].nvapi = nvGPUHandle[i];
-
-              hm_adapters_nvapi[device_id].fanpolicy_get_supported  = true;
-              hm_adapters_nvapi[device_id].throttle_get_supported   = true;
-            }
-          }
-        }
-      }
-
-      hcfree (nvGPUHandle);
     }
   }
 }
@@ -2389,7 +2261,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    */
 
   hm_attrs_t *hm_adapters_adl             = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvapi           = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_nvml            = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_sysfs_amdgpu    = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_sysfs_intelgpu  = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
@@ -2405,18 +2276,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (hwmon_ctx->hm_nvml);
 
       hwmon_ctx->hm_nvml = NULL;
-    }
-  }
-
-  if ((backend_ctx->need_nvapi == true) && (hwmon_ctx->hm_nvml)) // nvapi can't work alone, we need nvml, too
-  {
-    hwmon_ctx->hm_nvapi = (NVAPI_PTR *) hcmalloc (sizeof (NVAPI_PTR));
-
-    if (nvapi_init (hashcat_ctx) == -1)
-    {
-      hcfree (hwmon_ctx->hm_nvapi);
-
-      hwmon_ctx->hm_nvapi = NULL;
     }
   }
 
@@ -2484,7 +2343,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   hwmon_ctx_init_nvml  (hashcat_ctx, hm_adapters_nvml,  backend_devices_cnt);
 
-  hwmon_ctx_init_nvapi (hashcat_ctx, hm_adapters_nvapi, backend_devices_cnt);
 
   // if ADL init fail, disable
 
@@ -2527,7 +2385,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_sysfs_amdgpu == NULL && hwmon_ctx->hm_sysfs_intelgpu == NULL && hwmon_ctx->hm_sysfs_cpu == NULL && hwmon_ctx->hm_iokit == NULL)
   {
     hcfree (hm_adapters_adl);
-    hcfree (hm_adapters_nvapi);
     hcfree (hm_adapters_nvml);
     hcfree (hm_adapters_sysfs_amdgpu);
     hcfree (hm_adapters_sysfs_intelgpu);
@@ -2560,13 +2417,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hwmon_ctx->hm_device[backend_devices_idx].sysfs_intelgpu  = 0;
     hwmon_ctx->hm_device[backend_devices_idx].sysfs_cpu       = 0;
     hwmon_ctx->hm_device[backend_devices_idx].iokit           = 0;
-    hwmon_ctx->hm_device[backend_devices_idx].nvapi           = 0;
     hwmon_ctx->hm_device[backend_devices_idx].nvml            = 0;
     hwmon_ctx->hm_device[backend_devices_idx].od_version      = 0;
 
     if (device_param->is_cuda == true)
     {
-      hwmon_ctx->hm_device[backend_devices_idx].nvapi       = hm_adapters_nvapi[device_id].nvapi;
       hwmon_ctx->hm_device[backend_devices_idx].nvml        = hm_adapters_nvml[device_id].nvml;
 
       if (hwmon_ctx->hm_nvml)
@@ -2579,26 +2434,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_nvml[device_id].temperature_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_nvml[device_id].threshold_shutdown_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvml[device_id].threshold_slowdown_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvml[device_id].throttle_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvml[device_id].utilization_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_nvml[device_id].memoryused_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvml[device_id].throttle_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_nvml[device_id].power_get_supported;
       }
 
-      if (hwmon_ctx->hm_nvapi)
-      {
-        hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_nvapi[device_id].buslanes_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_nvapi[device_id].corespeed_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_nvapi[device_id].fanspeed_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_nvapi[device_id].fanpolicy_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].memoryspeed_get_supported         |= hm_adapters_nvapi[device_id].memoryspeed_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_nvapi[device_id].temperature_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_nvapi[device_id].threshold_shutdown_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvapi[device_id].threshold_slowdown_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvapi[device_id].throttle_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvapi[device_id].utilization_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_nvapi[device_id].power_get_supported;
-      }
     }
 
     if (device_param->is_metal == true)
@@ -2614,7 +2455,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_iokit[device_id].temperature_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_iokit[device_id].threshold_shutdown_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_iokit[device_id].threshold_slowdown_get_supported;
-        hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_iokit[device_id].throttle_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_iokit[device_id].utilization_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_iokit[device_id].power_get_supported;
       }
@@ -2638,7 +2478,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_iokit[device_id].temperature_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_iokit[device_id].threshold_shutdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_iokit[device_id].threshold_slowdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_iokit[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_iokit[device_id].utilization_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_iokit[device_id].power_get_supported;
           }
@@ -2655,7 +2494,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_sysfs_cpu[device_id].temperature_get_supported;
           hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_sysfs_cpu[device_id].threshold_shutdown_get_supported;
           hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_sysfs_cpu[device_id].threshold_slowdown_get_supported;
-          hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_sysfs_cpu[device_id].throttle_get_supported;
           hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_sysfs_cpu[device_id].utilization_get_supported;
           hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_sysfs_cpu[device_id].power_get_supported;
         }
@@ -2677,7 +2515,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_iokit[device_id].temperature_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_iokit[device_id].threshold_shutdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_iokit[device_id].threshold_slowdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_iokit[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_iokit[device_id].utilization_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_iokit[device_id].power_get_supported;
           }
@@ -2698,7 +2535,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_sysfs_intelgpu[device_id].temperature_get_supported;
             //hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_sysfs_intelgpu[device_id].threshold_shutdown_get_supported;
             //hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_sysfs_intelgpu[device_id].threshold_slowdown_get_supported;
-            //hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_sysfs_intelgpu[device_id].throttle_get_supported;
             //hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_sysfs_intelgpu[device_id].utilization_get_supported;
             //hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_sysfs_intelgpu[device_id].memoryused_get_supported;
           }
@@ -2721,7 +2557,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_adl[device_id].temperature_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_adl[device_id].threshold_shutdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_adl[device_id].threshold_slowdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_adl[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_adl[device_id].utilization_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_adl[device_id].power_get_supported;
           }
@@ -2736,7 +2571,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_sysfs_amdgpu[device_id].temperature_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_sysfs_amdgpu[device_id].threshold_shutdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_sysfs_amdgpu[device_id].threshold_slowdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_sysfs_amdgpu[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_sysfs_amdgpu[device_id].utilization_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_sysfs_amdgpu[device_id].memoryused_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_sysfs_amdgpu[device_id].power_get_supported;
@@ -2745,7 +2579,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
         {
-          hwmon_ctx->hm_device[backend_devices_idx].nvapi       = hm_adapters_nvapi[device_id].nvapi;
           hwmon_ctx->hm_device[backend_devices_idx].nvml        = hm_adapters_nvml[device_id].nvml;
 
           if (hwmon_ctx->hm_nvml)
@@ -2758,26 +2591,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_nvml[device_id].temperature_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_nvml[device_id].threshold_shutdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvml[device_id].threshold_slowdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvml[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvml[device_id].utilization_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_nvml[device_id].memoryused_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvml[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_nvml[device_id].power_get_supported;
           }
 
-          if (hwmon_ctx->hm_nvapi)
-          {
-            hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_nvapi[device_id].buslanes_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_nvapi[device_id].corespeed_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_nvapi[device_id].fanspeed_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_nvapi[device_id].fanpolicy_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].memoryspeed_get_supported         |= hm_adapters_nvapi[device_id].memoryspeed_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_nvapi[device_id].temperature_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_nvapi[device_id].threshold_shutdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvapi[device_id].threshold_slowdown_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvapi[device_id].throttle_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvapi[device_id].utilization_get_supported;
-            hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_nvapi[device_id].power_get_supported;
-          }
         }
       }
     }
@@ -2793,14 +2612,13 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hm_get_temperature_with_devices_idx        (hashcat_ctx, backend_devices_idx);
     hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx, backend_devices_idx);
     hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx, backend_devices_idx);
-    hm_get_throttle_with_devices_idx           (hashcat_ctx, backend_devices_idx);
     hm_get_utilization_with_devices_idx        (hashcat_ctx, backend_devices_idx);
+    hm_get_throttle_with_devices_idx           (hashcat_ctx, backend_devices_idx);
     hm_get_memoryused_with_devices_idx         (hashcat_ctx, backend_devices_idx);
     hm_get_power_with_devices_idx              (hashcat_ctx, backend_devices_idx);
   }
 
   hcfree (hm_adapters_adl);
-  hcfree (hm_adapters_nvapi);
   hcfree (hm_adapters_nvml);
   hcfree (hm_adapters_sysfs_amdgpu);
   hcfree (hm_adapters_sysfs_intelgpu);
@@ -2823,13 +2641,6 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     hm_NVML_nvmlShutdown (hashcat_ctx);
 
     nvml_close (hashcat_ctx);
-  }
-
-  if (hwmon_ctx->hm_nvapi)
-  {
-    hm_NvAPI_Unload (hashcat_ctx);
-
-    nvapi_close (hashcat_ctx);
   }
 
   if (hwmon_ctx->hm_adl)

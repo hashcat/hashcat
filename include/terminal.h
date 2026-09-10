@@ -39,11 +39,7 @@ HC_API int setup_console (void);
 HC_API void send_prompt  (hashcat_ctx_t *hashcat_ctx);
 HC_API void clear_prompt (hashcat_ctx_t *hashcat_ctx);
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API HC_API_CALL DWORD thread_keypress (void *p);
-#else
-HC_API HC_API_CALL void *thread_keypress (void *p);
-#endif
+HC_API HC_THREAD_FUNC thread_keypress (void *p);
 
 #if defined (_WIN)
 void SetConsoleWindowSize (const int x);

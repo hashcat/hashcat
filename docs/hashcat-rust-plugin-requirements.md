@@ -7,8 +7,13 @@ Linux, Windows, and macOS.
 
 1. **Install Rust**
 
-   Rust **1.88 or newer** is recommended. Older versions may not work
-   reliably.
+   Rust **1.85 or newer** is required. The crates are written in edition
+   2024, which cargo understands from 1.85, and 1.84 and below refuse to
+   parse `Cargo.toml` at all. The build checks this and says so.
+
+   This is newer than some distributions carry. Ubuntu 24.04 ships 1.75,
+   for instance, so install Rust through `rustup` rather than the package
+   manager.
 
 2. **Install libclang**
 
@@ -86,8 +91,8 @@ Linux, Windows, and macOS.
 1. **Install Rust**
 
    Ensure both `cargo` and `rustup` are installed. If Rust was
-   installed via `rustup`, you already have them.  Prefer **Rust 1.88
-   or newer**.
+   installed via `rustup`, you already have them. **Rust 1.85 or newer**
+   is required, for the reason given in the Linux section.
 
    The Windows binaries are cross-compiled from WSL, so `libclang` has to be
    installed on the WSL side too. See step 2 of the Linux section.

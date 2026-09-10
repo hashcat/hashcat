@@ -27,8 +27,8 @@
 
 #if defined (_WIN)
 
-#define hc_thread_create(t,f,a)     t = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)
-#define hc_thread_create_ok(t,f,a)  (((t) = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)) != NULL)
+#define hc_thread_create(t,f,a)     t = CreateThread (NULL, 0, &f, a, 0, NULL)
+#define hc_thread_create_ok(t,f,a)  (((t) = CreateThread (NULL, 0, &f, a, 0, NULL)) != NULL)
 
 // WaitForSingleObject () waits on the thread, it does not release it. CreateThread () hands back a
 // handle the caller owns, and the thread object and its slot in the process handle table stay alive

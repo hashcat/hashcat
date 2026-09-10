@@ -1,6 +1,8 @@
 # Compiling hashcat for Windows with macOS.
 
-Tested on macOS 12.6.6 M1.
+This is about cross compiling a Windows binary on a Mac, so it says nothing about what a machine
+running hashcat needs. For that see docs/hashcat-requirements.md, which asks for macOS 13.0 to use
+Metal or Apple's OpenCL.
 
 Make sure to have the HomeBrew upgraded.
 

@@ -13,11 +13,7 @@
 // The producer. It owns one slot at a time and never touches the one being launched, so the only
 // thing the two sides share is the pair of counting semaphores.
 
-#if defined (_WIN)
-static HC_API_CALL DWORD pw_pipe_thread (void *p)
-#else
-static HC_API_CALL void *pw_pipe_thread (void *p)
-#endif
+static HC_THREAD_FUNC pw_pipe_thread (void *p)
 {
   pw_pipe_t *pipe = (pw_pipe_t *) p;
 

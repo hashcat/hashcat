@@ -51,17 +51,29 @@ int hip_init (void *hashcat_ctx)
   memset (hip, 0, sizeof (HIP_PTR));
 
   #if   defined (_WIN)
-  char *hipSDKPath = getenv ("HIP_PATH");
+  // The SDK keeps its DLLs in bin and puts the HIP version in the name, amdhip64_7.dll. That number
+  // is HIP's own and not the ROCm release: ROCm 10.0 ships a HIP whose version is 7, so a name built
+  // from the path HIP_PATH points at need not exist. The directory is read instead. PATH is searched
+  // after it, which is where the graphics driver leaves its own older copy.
 
-  if (hipSDKPath == NULL) return -1;
+  char hip_bin[MAX_PATH];
 
-  char *hipdllpath = hipDllPath (hipSDKPath);
+  const char *hipSDKPath = getenv ("HIP_PATH");
 
-  if (hipdllpath == NULL) return -1;
+  const char *dirs[1] = { NULL };
 
-  hip->lib = hc_dlopen (hipdllpath);
+  if (hipSDKPath)
+  {
+    const size_t len = strlen (hipSDKPath);
 
-  free (hipdllpath);
+    const char *sep = ((len > 0) && (hipSDKPath[len - 1] == '\\')) ? "" : "\\";
+
+    snprintf (hip_bin, sizeof (hip_bin), "%s%sbin", hipSDKPath, sep);
+
+    dirs[0] = hip_bin;
+  }
+
+  hip->lib = hc_dynlib_open_newest_dll ("amdhip64_", dirs, 1, NULL, 0);
 
   if (hip->lib == NULL)
   {
@@ -94,27 +106,12 @@ int hip_init (void *hashcat_ctx)
   // identify the runtime from an exported symbol once the library is open, rather
   // than from the order in which the names were tried.
 
-  hip->lib = hc_dlopen ("libamdhip64.so");
+  // The unversioned name is a link that only the -dev package ships, so asking for it alone finds
+  // nothing on a distribution that splits its packages. hc_dynlib_open_newest () reads the versioned
+  // names off the disk and takes the newest, and falls back to the plain name for a layout it does
+  // not know, which is how the DTK alias is still reached.
 
-  // The unversioned name is a link that only the -dev package ships, so on a
-  // distro that splits its packages the runtime is installed and this still
-  // fails. Fall back to the sonames, newest first, the way the CUDA and NVRTC
-  // loaders already do. The range is walked rather than hardcoded so a later
-  // ROCm does not need another edit here.
-
-  if (hip->lib == NULL)
-  {
-    char soname[64];
-
-    for (int major = 9; major >= 4; major--)
-    {
-      snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
-
-      hip->lib = hc_dlopen (soname);
-
-      if (hip->lib) break;
-    }
-  }
+  hip->lib = hc_dynlib_open_newest ("libamdhip64", NULL, 0);
   #endif
 
   if (hip->lib == NULL) return -1;
