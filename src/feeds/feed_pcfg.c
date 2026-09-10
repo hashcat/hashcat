@@ -72,6 +72,7 @@ typedef struct
   u32 *b_len;
 
   u32  fixed_len;
+  u32  min_len;
   u32  max_len;
 
   // Whether b_cost never decreases. It comes from the order of lines in the terminal file, which
@@ -108,6 +109,14 @@ typedef struct
   // cannot be cut back into segments without knowing where the cuts go.
 
   u16 *tlen;
+
+  // The most and the fewest bytes a bucket of this slot may hold, or zero where nothing bounds it.
+  // The ceiling is pw_max less what the other slots spend at their shortest. The floor is pw_min
+  // less what they can spend at their longest. A bucket outside them cannot appear in a candidate
+  // the hash mode accepts, whatever the others choose. Sized per slot, out of the same arena.
+
+  u16 *cap;
+  u16 *flr;
 
   u32 cost;
   u32 cmin;
@@ -168,6 +177,10 @@ typedef struct
   u8  *ln_lvl;
   u8  *ln_k;
   u32  ln_cnt;
+
+  // Lengths this model holds that the hash mode cannot accept, and so are not enumerated.
+
+  u32  ln_drop;
 
   u64 *w;
 
@@ -262,6 +275,22 @@ typedef struct
 
   u64 scale;
   u64 costmax;
+
+  // The lengths the hash mode accepts, read once from the hashconfig. A candidate outside them is
+  // thrown away in fill_generic () after it has been built, so a structure that cannot land inside
+  // them is work with no possible outcome and is not admitted at all. pwmax 0 means the run never
+  // said, and then nothing is filtered.
+
+  u32 pwmin;
+  u32 pwmax;
+
+  // Structures those bounds took out of the grammar, and whether any bucket is bounded at all. The
+  // first names the reason where a run ends up with nothing to enumerate. The second keeps a run the
+  // hash mode does not bound on exactly the path it was on before.
+
+  u32  out_of_range;
+  bool bounded;
+
   u32 kbits;
   u32 threads;
   bool walk;
@@ -1254,6 +1283,12 @@ static u64 pcfg_ident_tables (const pcfg_global_t *pg)
     if (s->kind != NULL) paw64_update (&st, s->kind, (size_t) s->nslot * sizeof (u8));
     if (s->list != NULL) paw64_update (&st, s->list, (size_t) s->nslot * sizeof (u16));
     if (s->tlen != NULL) paw64_update (&st, s->tlen, (size_t) s->nslot * sizeof (u16));
+
+    // Left out where they are not there, which is every structure whose bounds exclude nothing: such
+    // a run keys exactly as it did before, and the tables already on disk stay valid.
+
+    if (s->cap  != NULL) paw64_update (&st, s->cap,  (size_t) s->nslot * sizeof (u16));
+    if (s->flr  != NULL) paw64_update (&st, s->flr,  (size_t) s->nslot * sizeof (u16));
   }
 
   const u64 h = paw64_final (&st);
@@ -1878,6 +1913,7 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
   tlist_mark_order (t);
 
   t->fixed_len = t->off[1] - t->off[0];
+  t->min_len   = t->off[1] - t->off[0];
   t->max_len   = t->off[1] - t->off[0];
 
   for (u32 i = 1; i < t->cnt; i++)
@@ -1886,6 +1922,7 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
 
     if (len != t->fixed_len) t->fixed_len = 0;
 
+    if (len < t->min_len) t->min_len = len;
     if (len > t->max_len) t->max_len = len;
   }
 
@@ -2125,6 +2162,27 @@ static void scratch_free (pcfg_scratch_t *sc)
   memset (sc, 0, sizeof (pcfg_scratch_t));
 }
 
+// A bucket whose entries this slot cannot spend is skipped here, and by every other walk over the
+// same buckets. That is the whole of the rule: the counting and the unranking read one predicate, so
+// they cannot disagree about which candidates exist.
+//
+// Too long, because the other slots cost at least their own minimum and the sum would pass pw_max.
+// Too short, because they contribute at most their own maximum and the sum would fall under pw_min.
+// Either way no choice the other slots can make rescues it.
+//
+// A bound of zero is no bound. A b_len of zero is a bucket holding entries of more than one length,
+// which only the varlen regime produces and which cannot be judged by length at all.
+
+static inline bool bucket_out (const pcfg_struct_t *s, const u32 j, const pcfg_tlist_t *t, const u32 b)
+{
+  if (t->b_len[b] == 0) return false;
+
+  if ((s->cap != NULL) && (s->cap[j] != 0) && (t->b_len[b] > s->cap[j])) return true;
+  if ((s->flr != NULL) && (s->flr[j] != 0) && (t->b_len[b] < s->flr[j])) return true;
+
+  return false;
+}
+
 static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *sc)
 {
   const u32 span = pg->costmax - s->cost + 1;
@@ -2159,6 +2217,8 @@ static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *s
 
     for (u32 b = 0; b < t->nb; b++)
     {
+      if (bucket_out (s, (u32) j, t, b) == true) continue;
+
       const u32 cb = t->b_cost[b];
 
       if (cb >= span) continue;
@@ -2498,6 +2558,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
   u32 dropped_m = 0;
   u32 dropped_t = 0;
   u32 dropped_c = 0;
+  u32 dropped_p = 0;
 
   // pcfg_lensplit () keeps its answer in a file scope int and works it out on the first call. The
   // preload workers below all reach it through tlist_build (), so it is settled here, on one thread,
@@ -2682,6 +2743,13 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     u16 lbuf[PCFG_MAXSLOT];
     u16 tbuf[PCFG_MAXSLOT];
 
+    // The shortest and the longest this slot's list can be, per slot rather than summed, because the
+    // bounds below each take one slot out of the sum. Zero for a case mask, which adds no bytes of
+    // its own and is left unbounded.
+
+    u16 mbuf[PCFG_MAXSLOT];
+    u16 xbuf[PCFG_MAXSLOT];
+
     s.kind = kbuf;
     s.list = lbuf;
     s.tlen = tbuf;
@@ -2695,6 +2763,15 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     if (s.cost > pg->costmax) { dropped_c++; continue; }
 
     bool ok = true;
+
+    // What this structure can weigh, in bytes, asked of the lists rather than read off the grammar.
+    // Two reasons it cannot be s.total_len. The grammar spells a token's length in characters while
+    // pw_min and pw_max count bytes, and a UTF-8 entry of n characters is never fewer than n bytes
+    // and can be more. And X and Y hold entries of differing lengths, so a structure holding one of
+    // them has a range rather than a single length.
+
+    u32 byte_lo = 0;
+    u32 byte_hi = 0;
 
     for (const char *c = line; *c && ok; )
     {
@@ -2722,6 +2799,16 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
       s.total_len += type_is_flat (ty) ? 0 : len;
 
+      // Read now rather than kept: list_get () may grow pg->lists on the next token and move it. The
+      // case mask pushed below adds nothing, because it rewrites the alpha token in place and
+      // pcfg_upper_image () keeps the byte length when it does.
+
+      byte_lo += pg->lists[li].min_len;
+      byte_hi += pg->lists[li].max_len;
+
+      mbuf[s.nslot - 1] = (u16) pg->lists[li].min_len;
+      xbuf[s.nslot - 1] = (u16) pg->lists[li].max_len;
+
       if (ty == 'A')
       {
         const int ci = list_get (global_ctx, pg, roots, nroots, 'C', len, cache, lut);
@@ -2731,11 +2818,26 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
         s.kind[s.nslot] = PCFG_SLOT_MASK;
         s.list[s.nslot] = (u16) ci;
         s.tlen[s.nslot] = (u16) len;
+        mbuf[s.nslot]   = 0;
+        xbuf[s.nslot]   = 0;
         s.nslot++;
       }
     }
 
     if (ok == false) { dropped_t++; continue; }
+
+    // Structures the hash mode can never accept. A candidate too long or too short is built in full
+    // and thrown away in fill_generic (), so this is the same decision taken once per structure
+    // instead of once per candidate, and it takes the keyspace with it.
+    //
+    // The test is on the range the structure can produce, not on one length: a structure holding a
+    // flat token is dropped only when even its shortest entry is too long, or its longest still too
+    // short. What survives inside the range is still judged per candidate, as before.
+
+    if (pg->pwmax != 0)
+    {
+      if ((byte_lo > pg->pwmax) || (byte_hi < pg->pwmin)) { dropped_p++; continue; }
+    }
 
     // A long read that says nothing cannot be told from a hang.
 
@@ -2795,6 +2897,69 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     s.list = sl;
     s.tlen = st;
 
+    // What each slot may spend, once the structure is known to fit. The other slots cost at least
+    // their own minimum, so this one has pw_max less that sum to spend, and they reach at most their
+    // own maximum, so it has to carry whatever pw_min is short of that. A bucket outside the two is
+    // one no acceptable candidate can use.
+
+    if (pg->pwmax != 0)
+    {
+      u16 cbuf[PCFG_MAXSLOT];
+      u16 fbuf[PCFG_MAXSLOT];
+
+      // Whether either bound excludes anything. A hash mode that takes 256 bytes leaves every ceiling
+      // above the longest entry its list holds, and one with no minimum leaves every floor at zero.
+      // Then the arrays would cost memory, cost a test inside every bucket walk, and give the run a
+      // cache key of its own for no reason at all, because pcfg_ident_tables () reads them. Nothing
+      // binds, nothing is kept, and such a run stays exactly the run it was before.
+
+      bool cbind = false;
+      bool fbind = false;
+
+      for (u32 k = 0; k < s.nslot; k++)
+      {
+        cbuf[k] = 0;
+        fbuf[k] = 0;
+
+        if (mbuf[k] == 0) continue;
+
+        cbuf[k] = (u16) (pg->pwmax - (byte_lo - mbuf[k]));
+
+        const u32 rest = byte_hi - xbuf[k];
+
+        if (pg->pwmin > rest) fbuf[k] = (u16) (pg->pwmin - rest);
+
+        if (cbuf[k] < pg->lists[s.list[k]].max_len) cbind = true;
+        if (fbuf[k] > pg->lists[s.list[k]].min_len) fbind = true;
+      }
+
+      if (cbind == true)
+      {
+        u16 *sc = (u16 *) slots_alloc (pg, (size_t) s.nslot * sizeof (u16));
+
+        if (sc == NULL) { dropped_t++; continue; }
+
+        memcpy (sc, cbuf, (size_t) s.nslot * sizeof (u16));
+
+        s.cap = sc;
+
+        pg->bounded = true;
+      }
+
+      if (fbind == true)
+      {
+        u16 *sf = (u16 *) slots_alloc (pg, (size_t) s.nslot * sizeof (u16));
+
+        if (sf == NULL) { dropped_t++; continue; }
+
+        memcpy (sf, fbuf, (size_t) s.nslot * sizeof (u16));
+
+        s.flr = sf;
+
+        pg->bounded = true;
+      }
+    }
+
     pg->structs[pg->structs_cnt++] = s;
 
     if ((max_structs != 0) && (pg->structs_cnt >= max_structs)) break;
@@ -2821,7 +2986,22 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     roots_join (named, sizeof (named), roots, nroots);
 
-    if (dropped_t > 0)
+    // The hash mode's own bounds took every structure. That is not a ruleset that cannot be read and
+    // not a grammar priced past costmax: the escape enumerates its own lengths, it may still hold
+    // some this mode accepts, and omen_load () has not run yet. So the run goes on. Where the escape
+    // has nothing in range either, the keyspace comes out zero and the attack is refused there, with
+    // the bounds named as the reason. It comes first because a ruleset carrying a few unusable
+    // structures is normal, and the shipped one does, so testing that first would answer every
+    // bounded run with a terminal list that could not be read.
+
+    if (dropped_p > 0)
+    {
+      if (global_ctx->quiet == false)
+      {
+        pmsg (pg, "pcfg: every structure lies outside the %u to %u bytes this hash mode accepts, so the escape is all that is left", pg->pwmin, pg->pwmax);
+      }
+    }
+    else if (dropped_t > 0)
     {
       gerr (global_ctx, "%s: all %u structures were dropped, most likely a terminal list that could not be read", named, dropped_t);
 
@@ -2832,14 +3012,14 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     // holds, and master refuses it. The M line exemption below is for a grammar that never had
     // structures, not for one whose structures were all put out of reach.
 
-    if (dropped_c > 0)
+    else if (dropped_c > 0)
     {
       gerr (global_ctx, "%s: all %u structures cost more than costmax %" PRIu64 ", nothing is reachable", named, dropped_c, pg->costmax / pg->scale);
 
       return -1;
     }
 
-    if (dropped_m == 0)
+    else if (dropped_m == 0)
     {
       gerr (global_ctx, "%s: nothing to enumerate, no structures and no M lines", named);
 
@@ -2877,7 +3057,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     pcfg_cache_save (global_ctx, pg, false);
   }
 
-  pg->m_lines = dropped_m;
+  pg->m_lines      = dropped_m;
+  pg->out_of_range = dropped_p;
 
   if (global_ctx->quiet == false)
   {
@@ -2886,6 +3067,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     extra[0] = 0;
 
     if (dropped_t) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", %u unusable dropped", dropped_t);
+
+    if (dropped_p) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", %u outside %u-%u bytes", dropped_p, pg->pwmin, pg->pwmax);
 
     if ((max_structs != 0) && (pg->structs_cnt >= max_structs)) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", stopped at PCFG_MAX_STRUCTS");
 
@@ -3478,6 +3661,31 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, const pcfg_global_t 
   hcfree (ip_lvl);
   hcfree (chr_off);
 
+  // How many bytes a guess of k transitions can occupy, read off the model instead of assumed. The
+  // walk lays down one initial prefix and then one character per transition, and both carry their
+  // own byte length here: ip_len is the prefix's and tr[].clen the character's. So the narrowest and
+  // widest guess of a given length are known before a single candidate is built, which is what lets
+  // the test below be in bytes, the unit pw_min and pw_max are counted in, rather than in characters.
+
+  u32 ip_lo = 0xffffffff, ip_hi = 0;
+  u32 ch_lo = 0xffffffff, ch_hi = 0;
+
+  for (u32 i = 0; i < om->nip; i++)
+  {
+    if (om->ip_len[i] < ip_lo) ip_lo = om->ip_len[i];
+    if (om->ip_len[i] > ip_hi) ip_hi = om->ip_len[i];
+  }
+
+  for (u32 i = 0; i < om->tr_cnt; i++)
+  {
+    if (om->tr[i].clen < ch_lo) ch_lo = om->tr[i].clen;
+    if (om->tr[i].clen > ch_hi) ch_hi = om->tr[i].clen;
+  }
+
+  // A model with no prefix or no transition produces nothing, and the loop below reads these.
+
+  if ((om->nip == 0) || (om->tr_cnt == 0)) { ip_lo = ip_hi = om->clen; ch_lo = ch_hi = 1; }
+
   om->ln_lvl = (u8 *) hcmalloc ((om->kmax + 1) * sizeof (u8));
   om->ln_k   = (u8 *) hcmalloc ((om->kmax + 1) * sizeof (u8));
   om->ln_cnt = 0;
@@ -3487,6 +3695,20 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, const pcfg_global_t 
     for (u32 k = 1; k <= om->kmax; k++)
     {
       if (ln_lvl_of[k] != l) continue;
+
+      // The escape never goes through the grammar, so filtering the structures does not reach it.
+      // Length is an explicit dimension here, which makes this the same decision taken once.
+      //
+      // Two conversions have to happen first. k is not the length: the table above reads it as
+      // k = length - clen, where clen is ngram - 1, so a 4-gram model calls a nine character guess
+      // k = 6. And a character is not a byte, while pw_min and pw_max count bytes. The widths above
+      // are what the model itself spends, so lo and hi are the narrowest and the widest guess of
+      // this length, and neither bound can drop a candidate the hash mode would have taken.
+
+      const u32 lo = ip_lo + (k * ch_lo);
+      const u32 hi = ip_hi + (k * ch_hi);
+
+      if ((pg->pwmax != 0) && ((lo > pg->pwmax) || (hi < pg->pwmin))) { om->ln_drop++; continue; }
 
       om->ln_lvl[om->ln_cnt] = (u8) l;
       om->ln_k  [om->ln_cnt] = (u8) k;
@@ -3752,6 +3974,15 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
 
   if (global_ctx->quiet == true) return true;
 
+  u32 ln_drop = 0;
+
+  for (u32 i = 0; i < pg->omen_cnt; i++) ln_drop += pg->omen[i].ln_drop;
+
+  if (ln_drop > 0)
+  {
+    pmsg (pg, "pcfg: OMEN escape held to %u-%u bytes, %u length%s left out", pg->pwmin, pg->pwmax, ln_drop, (ln_drop == 1) ? "" : "s");
+  }
+
   if (pg->omen_lvl_cnt > 0)
   {
     pmsg (pg, "pcfg: OMEN escape carried, %u level%s over %u model%s, %" PRIu64 " guesses, %" PRIu64 " MiB of tables",
@@ -3767,6 +3998,10 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
     if (with_dir == 0)
     {
       pmsg (pg, "pcfg: OMEN escape dropped, the ruleset has an M line but no Omen directory");
+    }
+    else if (ln_drop > 0)
+    {
+      pmsg (pg, "pcfg: OMEN escape dropped, no length it holds is one this hash mode accepts");
     }
     else
     {
@@ -4234,6 +4469,8 @@ static const u64 *suf_rows (const pcfg_global_t *pg, u64 **scratch, u32 *scratch
 
     for (u32 b = 0; b < t->nb; b++)
     {
+      if (bucket_out (s, (u32) j, t, b) == true) continue;
+
       const u32 cb = t->b_cost[b];
 
       if (cb >= span) continue;
@@ -4320,6 +4557,8 @@ static bool unrank (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
 
     for (u32 b = 0; b < t->nb; b++)
     {
+      if (bucket_out (s, j, t, b) == true) continue;
+
       const u32 cb = t->b_cost[b];
 
       if (cb > r) continue;
@@ -4495,12 +4734,18 @@ static bool pcfg_rank (const pcfg_global_t *pg, const u32 si, const u32 *idx, u6
 
     if (cb > r) { hcfree (scratch); return false; }
 
+    // The candidate sits in a bucket this run does not enumerate, so it has no position in it.
+
+    if (bucket_out (s, j, t, hit) == true) { hcfree (scratch); return false; }
+
     const u64 w = nxt[r - cb];
 
     if (w == 0) { hcfree (scratch); return false; }
 
     for (u32 b = 0; b < hit; b++)
     {
+      if (bucket_out (s, j, t, b) == true) continue;
+
       const u32 cbb = t->b_cost[b];
 
       if (cbb > r) continue;
@@ -5426,6 +5671,8 @@ static void build_unit_rows (const pcfg_global_t *pg, const pcfg_struct_t *s, u6
 
     for (u32 ba = 0; ba < ta->nb; ba++)
     {
+      if (bucket_out (s, (u32) j, ta, ba) == true) continue;
+
       const u32 ca = ta->b_cost[ba];
 
       if (ca >= span) { if (asc == true) break; else continue; }
@@ -6362,6 +6609,8 @@ static bool place_from (pcfg_global_t *pg, pcfg_thread_t *th, const pcfg_struct_
 
     for (u32 ba = ba0; ba < ta->nb && placed == false; ba++)
     {
+      if (bucket_out (s, j, ta, ba) == true) continue;
+
       const u32 nbm = (len == 2) ? tm->nb : 1;
 
       for (u32 bm = (ba == ba0) ? bm0 : 0; bm < nbm; bm++)
@@ -6718,6 +6967,16 @@ static bool rank_unit_walk (const pcfg_global_t *pg, const u32 si, const u32 *id
 
     for (u32 ba = 0; ba < ta->nb && placed == false; ba++)
     {
+      // The enumeration skips this bucket, so there is nothing of it to count past. And a candidate
+      // that sits in one has no position in this run at all, which is what the caller is asking for.
+
+      if (bucket_out (s, j, ta, ba) == true)
+      {
+        if (ba == hita) return false;
+
+        continue;
+      }
+
       const u32 nbm = (len == 2) ? tm->nb : 1;
 
       for (u32 bm = 0; bm < nbm; bm++)
@@ -7694,6 +7953,30 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     lookup_struct_name (pg, hit.si, name, sizeof (name));
 
+    // Ranking fails for two reasons now, and naming the wrong one sends the reader looking in the
+    // wrong place. A terminal this hash mode's length limits put out of reach is not a cost problem:
+    // no costmax raises it, because the run does not enumerate that bucket at any level.
+
+    const pcfg_struct_t *ls = &pg->structs[hit.si];
+
+    bool bounded = false;
+
+    for (u32 j = 0; j < ls->nslot; j++)
+    {
+      const pcfg_tlist_t *lt = &pg->lists[ls->list[j]];
+
+      if (bucket_out (ls, j, lt, tlist_bucket_of (lt, hit.idx[j])) == true) { bounded = true; break; }
+    }
+
+    if (bounded == true)
+    {
+      event_log_info (pg->hcctx, "lookup: structure %s derives it, but one of its terminals is outside the %u to %u bytes this hash mode takes", name, pg->pwmin, pg->pwmax);
+      event_log_info (pg->hcctx, "lookup: so this run does not enumerate it at all: no -s reaches it, and no costmax raises it");
+      event_log_info (pg->hcctx, "lookup: a hash mode whose limits admit that length reaches it, and so does -a 0 over the same words");
+
+      return;
+    }
+
     const u32 want = (u32) ((hit.cost + pg->scale - 1) / pg->scale);
 
     event_log_info (pg->hcctx, "lookup: structure %s derives it, at cost %u, and this run stops at costmax %" PRIu64, name, hit.cost, pg->costmax);
@@ -7789,6 +8072,22 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   global_ctx->gbldata = pg;
 
   pg->hcctx = hashcat_ctx;
+
+  // hashconfig_init () runs in outer_loop () before generic_ctx_init () gets here, so the hash mode's
+  // module has been loaded and its bounds are settled. Nothing moves them afterwards for this attack
+  // mode: the one other place that writes them is the benchmark case in mask_ctx_update_loop (), and
+  // that is -a 3 only.
+
+  if (hashcat_ctx != NULL)
+  {
+    const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+    if (hashconfig != NULL)
+    {
+      pg->pwmin = hashconfig->pw_min;
+      pg->pwmax = hashconfig->pw_max;
+    }
+  }
 
   u64 scale   = 1;
   u64 costmax = PCFG_COSTCAP;
@@ -8039,7 +8338,11 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
     roots_join (named, sizeof (named), roots, nroots);
 
-    if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
+    if ((pg->structs_cnt == 0) && (pg->out_of_range > 0))
+    {
+      gerr (global_ctx, "%s: nothing to enumerate, the %u to %u bytes this hash mode accepts leave the grammar empty and the escape holds no length in range", named, pg->pwmin, pg->pwmax);
+    }
+    else if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
     {
       gerr (global_ctx, "%s: nothing to enumerate, no structures and no escape to carry", named);
     }
@@ -8691,17 +8994,50 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     u32 best_b = 0;
     u32 best_n = 0;
 
-    for (u32 i = 0; i < pg->lists_cnt; i++)
+    // Where the hash mode bounds the buckets, the widest one in the grammar can be one this run never
+    // walks, and a probe sized on it measures a cell the attack will not launch. So it is asked of the
+    // structures instead, through the same predicate the enumeration reads. The head of the grammar
+    // is enough for a sizing hint and it is the part the run starts on. Where nothing is bounded the
+    // lists are walked as before, and the probe comes out exactly as it did.
+
+    if (pg->bounded == true)
     {
-      const pcfg_tlist_t *t = &pg->lists[i];
+      const u32 upto = (pg->structs_cnt > PCFG_PROBE_STRUCTS) ? PCFG_PROBE_STRUCTS : pg->structs_cnt;
 
-      for (u32 b = 0; b < t->nb; b++)
+      for (u32 i = 0; i < upto; i++)
       {
-        if (t->b_cnt[b] <= best_n) continue;
+        const pcfg_struct_t *s = &pg->structs[i];
 
-        best_l = i;
-        best_b = b;
-        best_n = t->b_cnt[b];
+        for (u32 j = 0; j < s->nslot; j++)
+        {
+          const pcfg_tlist_t *t = &pg->lists[s->list[j]];
+
+          for (u32 b = 0; b < t->nb; b++)
+          {
+            if (bucket_out (s, j, t, b) == true) continue;
+            if (t->b_cnt[b] <= best_n) continue;
+
+            best_l = s->list[j];
+            best_b = b;
+            best_n = t->b_cnt[b];
+          }
+        }
+      }
+    }
+    else
+    {
+      for (u32 i = 0; i < pg->lists_cnt; i++)
+      {
+        const pcfg_tlist_t *t = &pg->lists[i];
+
+        for (u32 b = 0; b < t->nb; b++)
+        {
+          if (t->b_cnt[b] <= best_n) continue;
+
+          best_l = i;
+          best_b = b;
+          best_n = t->b_cnt[b];
+        }
       }
     }
 
