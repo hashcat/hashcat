@@ -396,27 +396,20 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 // Where a wordlist attack reaches the candidate --lookup asked about.
 //
-// -a 0 without rules has no arithmetic to invert. Its base words are the lines of a file, in the
-// order they are in the file, so the answer is the line the word is on and the only work is finding
-// it.
-//
-// With -r the attack is no longer the file. Every base word is turned into one candidate per rule
-// and it is those the run tries, so the answer has two parts: which word and which rule. A rule is a
-// program and is not invertible, so that answer is found forwards, by making the run's candidates in
-// the run's order and comparing them. It costs words x rules rule applications to prove a miss and
-// stops at the first hit, which is the earliest the run reaches because -a 0 walks words on the
-// outside and the rule set on the inside.
+// -a 0 has no arithmetic to invert. Its base words are the lines of a file, in the order they are in
+// the file, so the answer is the line the word is on and the only work is finding it. That makes the
+// answer exact and the refusal a proof, on one condition: that no rule is in play. A rule turns one
+// base word into many candidates and nothing here inverts a rule, so a run with -r is answered about
+// the base word only, and the report says so rather than letting a miss read as a proof.
 //
 // Read once through the feed rather than through the file, because the file is not necessarily one
 // file: a folder or several dictionaries are laid end to end into one keyspace and only the feed
-// knows the order. The index that comes back is already in --skip units, which -a 0 counts in base
-// words whether or not a rule multiplies each of them.
+// knows the order. The index that comes back is already in --skip units.
 
 void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx = hashcat_ctx->straight_ctx;
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->lookup == NULL) return;
@@ -430,8 +423,8 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   u32 cand_len = 0;
 
-  // A wordlist can hold a line no shell can pass, and so can a rule's output. $HEX[...] is how the
-  // potfile and --show write one, so it is how --lookup takes one and how it gives one back.
+  // A wordlist can hold a line no shell can pass. $HEX[...] is how the potfile and --show write one,
+  // so it is how --lookup takes one.
 
   if (is_hexify (arg, arg_len) == true)
   {
@@ -457,42 +450,20 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   const bool ruled = ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0));
 
+  // Two ways of naming the same rule set, because the two sentences below mean different things by
+  // it: a miss is about any one of them having made the candidate, and a hit runs all of them.
+
+  char rules_any[64];
   char rules_all[64];
 
-  snprintf (rules_all, sizeof (rules_all), (rules == 1) ? "the one rule" : "all %" PRIu64 " rules", rules);
+  snprintf (rules_any, sizeof (rules_any), (rules == 1) ? "the one rule"  : "one of the %" PRIu64 " rules", rules);
+  snprintf (rules_all, sizeof (rules_all), (rules == 1) ? "the one rule"  : "all %" PRIu64 " rules",         rules);
 
   u64 index = 0;
   u64 more  = 0;
   u64 words = 0;
-  u64 rule  = 0;
 
-  u8  word[PW_MAX];
-  u32 word_len = 0;
-
-  int rc;
-
-  if (ruled == true)
-  {
-    // Which rule engine, and it has to be the run's own: -O runs a second implementation with a 31
-    // byte ceiling and the two do not always make the same string out of the same rule.
-
-    const bool optimized = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? true : false;
-
-    // Said before the read rather than after it, because the read is the slow part of this option and
-    // its size is the one thing the user can judge it by. words_walk_base is the queue --keyspace has
-    // just finished sizing, which for -a 0 is the base word count.
-
-    if (status_ctx->words_walk_base > 0)
-    {
-      event_log_info (hashcat_ctx, "lookup: trying %s on each of the %" PRIu64 " words, in the order the run does", rules_all, status_ctx->words_walk_base);
-    }
-
-    rc = generic_ctx_word_index_rules (hashcat_ctx, GENERIC_ROLE_BASE, cand, cand_len, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt, optimized, &index, &rule, word, &word_len, &words);
-  }
-  else
-  {
-    rc = generic_ctx_word_index (hashcat_ctx, GENERIC_ROLE_BASE, cand, cand_len, &index, &more, &words);
-  }
+  const int rc = generic_ctx_word_index (hashcat_ctx, GENERIC_ROLE_BASE, cand, cand_len, &index, &more, &words);
 
   if (rc == -1)
   {
@@ -503,9 +474,9 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == 0)
   {
-    // A proof either way, and the two are proofs of different things. Without rules the wordlist is
-    // the whole attack, so a word that is not in it is not reached. With rules the whole attack has
-    // just been built and compared, so no rule makes it out of any word. Neither is a guess.
+    // The wall this mode runs into, and the reason the wording differs from every other one. Without
+    // rules the wordlist is the whole attack and this is a proof. With rules it is not: the candidate
+    // could still be what some rule makes of some other word, and nothing here has looked.
 
     if (ruled == false)
     {
@@ -514,70 +485,27 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
       return;
     }
 
-    event_log_info (hashcat_ctx, "lookup: nothing in this run produces it. every one of the %" PRIu64 " words was tried with %s and none of them makes it", words, rules_all);
+    event_log_info (hashcat_ctx, "lookup: this wordlist does not hold it as a word, in any of its %" PRIu64 " lines", words);
+
+    event_log_info (hashcat_ctx, "lookup: whether %s makes it out of some other word was NOT checked, and is not something this can answer", rules_any);
+
+    event_log_info (hashcat_ctx, "lookup: so this is not a proof that the run misses it, only that the word itself is not there");
 
     return;
   }
-
-  // A hit with rules stopped at the first pair, so the file was not read to the end and the count it
-  // would have returned does not exist. --keyspace sized the same queue a moment ago and that is the
-  // number the percentage below is a fraction of, so it is the total here too.
-
-  const u64 words_total = (ruled == true) ? status_ctx->words_walk_base : words;
 
   const char *segment = generic_ctx_segment_of (hashcat_ctx, GENERIC_ROLE_BASE, index);
 
   if (segment != NULL)
   {
-    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 ", in %s", index, words_total, segment);
+    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 ", in %s", index, words, segment);
   }
   else
   {
-    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 "", index, words_total);
+    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 "", index, words);
   }
 
-  if (ruled == true)
-  {
-    // The two halves of the answer, spelled the way they would have to be typed to reproduce it: the
-    // word as the potfile would write it, and the rule as --debug-mode would.
-
-    char word_buf[(PW_MAX * 2) + 8];
-
-    int word_buf_len = 0;
-
-    if (need_hexify (word, word_len, hashconfig->separator, false) == true)
-    {
-      word_buf_len = hc_append_raw    (word_buf, word_buf_len, sizeof (word_buf), (const u8 *) "$HEX[", 5);
-      word_buf_len = hc_append_hexify (word_buf, word_buf_len, sizeof (word_buf), word, (int) word_len);
-      word_buf_len = hc_append_chr    (word_buf, word_buf_len, sizeof (word_buf), ']');
-    }
-    else
-    {
-      word_buf_len = hc_append_raw    (word_buf, word_buf_len, sizeof (word_buf), word, (int) word_len);
-    }
-
-    word_buf[word_buf_len] = 0;
-
-    char rule_buf[RP_PASSWORD_SIZE];
-
-    const int rule_buf_len = kernel_rule_to_cpu_rule (rule_buf, &straight_ctx->kernel_rules_buf[rule]);
-
-    // -g leaves a slot empty where a rule it generated did not convert, and an empty slot is a rule
-    // with no commands, which the run applies as a rule that changes nothing. There is no text to
-    // print for it, so it is described instead of printed as a blank.
-
-    if (rule_buf_len > 0)
-    {
-      rule_buf[rule_buf_len] = 0;
-
-      event_log_info (hashcat_ctx, "lookup: that word is '%s', and rule %" PRIu64 " of %" PRIu64 " is what makes the candidate out of it: %s", word_buf, rule, rules, rule_buf);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "lookup: that word is '%s', and rule %" PRIu64 " of %" PRIu64 " is what makes the candidate out of it, and that rule is empty and changes nothing", word_buf, rule, rules);
-    }
-  }
-  else if (more > 0)
+  if (more > 0)
   {
     event_log_info (hashcat_ctx, "lookup: it is in this wordlist %" PRIu64 " more times, and the run reaches the first of them", more);
   }
@@ -594,12 +522,9 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs that word with %s applied to it, and the candidate is one of them", index, rules_all);
+    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs that word with %s applied to it", index, rules_all);
 
-    // The earliest word that reaches it, so there is no earlier one, which is the thing the word-only
-    // search could not say. A later word or a later rule may reach it again and that was not counted.
-
-    event_log_info (hashcat_ctx, "lookup: no earlier word and no earlier rule on this word makes it, so this is the first time the run tries it");
+    event_log_info (hashcat_ctx, "lookup: an earlier -s may reach it too, through a rule on another word. that was not checked");
   }
 
   if ((user_options->skip != 0) || (user_options->limit != 0))

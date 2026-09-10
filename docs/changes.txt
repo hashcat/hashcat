@@ -234,7 +234,7 @@ reports free, and -Y covers the case the option was reached for.
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
 - Seekdbs are portable between machines, so a distributed setup can build one once and hand it out
 - New option --seekdb-path: Store seek databases in a given directory, which several hosts can share
-- New option --lookup: Report where an attack reaches one given candidate, then quit. In -a 0 with -r the rules are searched as well, so the answer names the base word and the rule that makes the candidate out of it, and a candidate no rule makes out of any word is reported as unreachable rather than as unchecked. A candidate no shell can pass is written as $HEX[...]
+- New option --lookup: Report where an attack reaches one given candidate, then quit. A candidate no shell can pass is written as $HEX[...]
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
 - Wordlists, hash lists and rule files may now be zstd compressed, alongside gzip and xz. A .zst wordlist written in several frames, which is what pzstd writes, is seeked into rather than decoded from the start
