@@ -537,7 +537,14 @@ static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, us
 
   if (python->lib == NULL)
   {
-    event_log_error (hashcat_ctx, "Awww, unable to find Python shared library.");
+    event_log_error (hashcat_ctx, "Unable to find suitable Python library for -m 73000.");
+    event_log_info (hashcat_ctx, "This mode wants an ordinary Python built as a shared library, not the free-threaded one.");
+    event_log_info (hashcat_ctx, "* On Windows, use the installer from https://www.python.org/downloads/windows/ and leave 'free-threaded' unchecked.");
+    event_log_info (hashcat_ctx, "* On Linux and MacOS, use `pyenv` and select a version with no `t` on the end (for instance `3.14.7`).");
+    event_log_info (hashcat_ctx, "  `pyenv versions` lists what is installed. A version selected but never installed looks exactly like this.");
+    event_log_info (hashcat_ctx, "  For -m 72000 instead, the version needs the `t`, and the two are separate installs.");
+    event_log_info (hashcat_ctx, NULL);
+    event_log_info (hashcat_ctx, NULL);
 
     return false;
   }
@@ -745,7 +752,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     if (user_options->machine_readable == false)
     {
       event_log_error (hashcat_ctx, "Attention!!! Falling back to single-threaded mode.");
-      event_log_info (hashcat_ctx, " Windows and MacOS ds not support multiprocessing module cleanly!");
+      event_log_info (hashcat_ctx, " Windows and MacOS do not support the multiprocessing module cleanly!");
       event_log_info (hashcat_ctx, " For multithreading on Windows and MacOS, please use -m 72000 instead.");
       event_log_info (hashcat_ctx, NULL);
     }
