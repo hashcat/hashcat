@@ -1244,6 +1244,74 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     return 0;
   }
 
+  // --rules-concat asks for one list rather than a chain: the rules of every file after each other, so
+  // the count is the sum and not the product. It leaves early for the same reason the single file case
+  // above does, because there is nothing to combine and a second pass would only copy the array.
+
+  if (user_options->rp_files_concat == true)
+  {
+    u32 kernel_rules_cnt = 0;
+
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+    {
+      if (overflow_check_u32_add (kernel_rules_cnt, all_kernel_rules_cnt[i]) == true)
+      {
+        event_log_error (hashcat_ctx, "Unsupported number of rules used in rule concatenation.");
+
+        for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+        {
+          hcfree (all_kernel_rules_buf[j]);
+        }
+
+        hcfree (all_kernel_rules_cnt);
+        hcfree (all_kernel_rules_buf);
+
+        return -1;
+      }
+
+      kernel_rules_cnt += all_kernel_rules_cnt[i];
+    }
+
+    if (kernel_rules_cnt == 0)
+    {
+      event_log_error (hashcat_ctx, "No valid rules left.");
+
+      for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+      {
+        hcfree (all_kernel_rules_buf[j]);
+      }
+
+      hcfree (all_kernel_rules_cnt);
+      hcfree (all_kernel_rules_buf);
+
+      return -1;
+    }
+
+    kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
+
+    u32 offset = 0;
+
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+    {
+      if (all_kernel_rules_cnt[i] > 0)
+      {
+        memcpy (&kernel_rules_buf[offset], all_kernel_rules_buf[i], all_kernel_rules_cnt[i] * sizeof (kernel_rule_t));
+
+        offset += all_kernel_rules_cnt[i];
+      }
+
+      hcfree (all_kernel_rules_buf[i]);
+    }
+
+    hcfree (all_kernel_rules_cnt);
+    hcfree (all_kernel_rules_buf);
+
+    *out_cnt = kernel_rules_cnt;
+    *out_buf = kernel_rules_buf;
+
+    return 0;
+  }
+
   /**
    * merge rules
    */
