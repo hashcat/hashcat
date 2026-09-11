@@ -9,6 +9,7 @@
 #include "event.h"
 #include "timer.h"
 #include "ext_metal.h"
+#include "requirements.h"
 
 #include <sys/sysctl.h>
 #include <objc/message.h>
@@ -710,6 +711,19 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl
 
 }
 
+// A pipeline that will not build is nearly always Apple's shader compiler running out of room on one
+// of our larger kernels, not anything the user did. The error the framework hands back says only that
+// the compiler service went away, so say what that means and name the way around it.
+
+static void hc_mtlCompilerGaveUp (void *hashcat_ctx, const char *func_name)
+{
+  event_log_warning (hashcat_ctx, "* Apple's Metal shader compiler could not build kernel '%s'.", func_name);
+  event_log_warning (hashcat_ctx, "  The kernel is too large for it. This is a limit of the compiler, not of the GPU.");
+  event_log_warning (hashcat_ctx, "  The same GPU can run this hash mode through the OpenCL backend instead.");
+  event_log_warning (hashcat_ctx, "  Use --backend-ignore-metal, or select the OpenCL device with -d.");
+  event_log_warning (hashcat_ctx, NULL);
+}
+
 int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
 {
   backend_ctx_t  *backend_ctx  = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
@@ -804,11 +818,18 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
 
   dispatch_release (group);
 
-  if (rc_async_err != 0) return -1;
+  if (rc_async_err != 0)
+  {
+    hc_mtlCompilerGaveUp (hashcat_ctx, func_name);
+
+    return -1;
+  }
 
   if (rc_queue != 0)
   {
     event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached (status %ld)", __func__, func_name, rc_queue);
+
+    hc_mtlCompilerGaveUp (hashcat_ctx, func_name);
 
     return -1;
   }
@@ -949,18 +970,17 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
     // we are on Apple Silicon, nothing to do ;)
   }
 
-  if (ptr != NULL)
+  // newBufferWithBytesNoCopy () wants a Shared buffer, and the mode asked for above is not always the
+  // mode given. A device that takes Managed instead gets a buffer of its own and the caller puts the
+  // bytes there, rather than the call failing on it. buf_host says which of the two happened, so a
+  // caller handing a pointer over reads the answer instead of predicting it.
+
+  mem->buf_host = 0;
+
+  if ((ptr != NULL) && (bufferOptions == MTLResourceStorageModeShared))
   {
-    if (bufferOptions != MTLResourceStorageModeShared)
-    {
-      event_log_error (hashcat_ctx, "%s(): bufferOptions must be Shared when using unified memory", __func__);
-
-      return -1;
-    }
-
-    // using unified memory
-
-    mem->buf_ptr = [metal_device newBufferWithBytesNoCopy: ptr length: size options: bufferOptions deallocator: nil];
+    mem->buf_ptr  = [metal_device newBufferWithBytesNoCopy: ptr length: size options: bufferOptions deallocator: nil];
+    mem->buf_host = 1;
   }
   else
   {
@@ -969,7 +989,7 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
 
   if (mem->buf_ptr == nil)
   {
-    event_log_error (hashcat_ctx, "%s(): %s failed (size: %zu)", __func__, (ptr == NULL) ? "newBufferWithLength" : "newBufferWithBytesNoCopy", size);
+    event_log_error (hashcat_ctx, "%s(): %s failed (size: %zu)", __func__, (mem->buf_host == 1) ? "newBufferWithBytesNoCopy" : "newBufferWithLength", size);
 
     return -1;
   }
@@ -1833,12 +1853,29 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
       compileOptions.preprocessorMacros = build_options_dict;
 
       /*
-      compileOptions.optimizationLevel = MTLLibraryOptimizationLevelSize;
       compileOptions.mathMode = MTLMathModeSafe;
       // compileOptions.mathMode = MTLMathModeRelaxed;
       // compileOptions.enableLogging = true;
       */
     }
+
+    // Apple's shader compiler runs out of room on our larger kernels at the default optimization
+    // level. Building a pipeline for one of those ends with the compiler service dying and the
+    // framework reporting XPC_ERROR_CONNECTION_INTERRUPTED, which reaches the user as a kernel
+    // create failure rather than as anything it could act on. The size level asks for less
+    // aggressive inlining and unrolling of code we already unroll by hand, which is enough to bring
+    // those kernels back under whatever the limit is, and it also cuts the time a kernel that did
+    // build takes to compile.
+
+    // optimizationLevel arrived in the macOS 13 SDK, so an older SDK has to build without it. That
+    // is the same version the backend refuses to use Metal below, so it comes from the same place.
+
+    #ifdef MAC_OS_VERSION_13_0
+    if (@available (HC_MIN_MACOS, *))
+    {
+      compileOptions.optimizationLevel = MTLLibraryOptimizationLevelSize;
+    }
+    #endif
 
     // todo: detect current os version and choose the right
     // compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_3;

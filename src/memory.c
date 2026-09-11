@@ -123,6 +123,11 @@ void *hc_alloc_aligned (size_t alignment, size_t size)
 
   #endif
 
+  // Before the memset, so the pages are backed as they are first touched. hccalloc () does this for
+  // every other large allocation, and the pcfg pool is the largest one there is.
+
+  hc_hugepage_hint (ptr, size);
+
   memset (ptr, 0, size);
 
   return ptr;

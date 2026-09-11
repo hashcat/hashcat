@@ -2370,11 +2370,7 @@ void brain_server_handle_signal (int signo)
   keep_running = false;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD brain_server_handle_dumps (void *p)
-#else
-HC_API_CALL void *brain_server_handle_dumps (void *p)
-#endif
+HC_THREAD_FUNC brain_server_handle_dumps (void *p)
 {
   brain_server_dumper_options_t *brain_server_dumper_options = (brain_server_dumper_options_t *) p;
 
@@ -2406,11 +2402,7 @@ HC_API_CALL void *brain_server_handle_dumps (void *p)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD brain_server_handle_client (void *p)
-#else
-HC_API_CALL void *brain_server_handle_client (void *p)
-#endif
+HC_THREAD_FUNC brain_server_handle_client (void *p)
 {
   brain_server_client_options_t *brain_server_client_options = (brain_server_client_options_t *) p;
 

@@ -119,7 +119,7 @@ static void seekdb_source_name (char *dst, const size_t dst_sz, const char *word
 // ident and file_size are where the answers go. Both are only written when a path could be built, so
 // a caller that got NULL has nothing to read.
 //
-// The directory is global_ctx->seekdb_dir when --seekdb-path named one, and a seekdbs folder inside
+// The directory is the wordlist feed's own folder inside
 // the cache directory otherwise. Nothing else changes: the name is still the hash, so a directory
 // shared between machines holds one database per wordlist rather than one per machine, and the
 // header checks below decide whether what is found there belongs to the file in hand.
@@ -128,19 +128,20 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 {
   char *seekdb_dir = NULL;
 
-  if (global_ctx->seekdb_dir != NULL)
-  {
-    seekdb_dir = hcstrdup (global_ctx->seekdb_dir);
-  }
-  else
-  {
-    hc_asprintf (&seekdb_dir, "%s/seekdbs", global_ctx->cache_dir);
+  // A cache belongs to whoever built it, so it is named after the feed the way the plugin beside it
+  // is: feeds/feed_wordlist.so reads this. It is the wordlist reader's cache rather than one feed's,
+  // and the table feed uses the same reader.
 
-    // Only the directory hashcat owns is created. One the user named is checked at startup instead,
-    // and creating it here would turn a typo into a directory rather than an error.
+  hc_asprintf (&seekdb_dir, "%s/feeds/wordlist", global_ctx->cache_dir);
 
-    hc_mkdir (seekdb_dir, 0700);
-  }
+  // cache_dir is wherever --cache-path put it, so a cluster pointed at one shared directory builds a
+  // database once for all of it rather than once per host. The directory may be read only: a write is
+  // attempted only when the database was not already there, and a failed write leaves the run using
+  // what it just built in memory.
+  //
+  // Recursive because the feeds level above may not be there yet.
+
+  hc_mkdir_rec (seekdb_dir, 0700);
 
   HCFILE fp;
 
@@ -347,7 +348,7 @@ static void seekdb_frame_seen (void *userdata, const u64 comp_off, const u64 unc
 
 // A database is written under a name nobody looks for and renamed into place.
 //
-// The directory is shared on purpose: --seekdb-path points a whole cluster at one of them, and every
+// The directory is shared on purpose: --cache-path points a whole cluster at one of them, and every
 // host builds the same database for the same wordlist. Writing it in place means one host can read
 // what another host is halfway through writing, and a half written database is worse than none: the
 // header describes the wordlist correctly, so it passes every check, and the body it hands over is
@@ -856,6 +857,61 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
     if (n == 0) break;
 
     paw64_update (&xstate, buf, n);
+
+    // A plain wordlist is one mapped buffer, so the walk does not have to find every line ending in
+    // order to reach the ones it records. hc_memnth travels to the next checkpoint in one pass at load
+    // width and looks inside only the load that carries it, where asking memchr line by line restarted
+    // the scan for every line in the file and paid a call to travel a handful of bytes.
+    // There is nothing else to do per line here: frames belong to a compressed source, and a plain
+    // file has no boundary but its own start.
+
+    if (feed_thread->compressed == false)
+    {
+      hc_memnth_t hc_memnth = hc_memnth_get ();
+
+      while (pos < n)
+      {
+        size_t seen = 0;
+
+        const size_t adv = hc_memnth (buf + pos, '\n', n - pos, SEEKDB_STEP, &seen);
+
+        lines += seen;
+
+        // fewer than a whole step left, so the file holds no further checkpoint
+
+        if (seen < SEEKDB_STEP) break;
+
+        pos += adv;
+
+        if (checkpoints == alloc)
+        {
+          u64 *tmp_new = (u64 *) hcrealloc (tmp, alloc * sizeof (u64), alloc * sizeof (u64));
+
+          if (tmp_new == NULL)
+          {
+            hcfree (tmp);
+            hcfree (frames.buf);
+
+            return NULL;
+          }
+
+          tmp = tmp_new;
+
+          alloc *= 2;
+        }
+
+        tmp[checkpoints++] = pos;
+      }
+
+      // All that the tail below wants from the walk is whether the file ends on a line ending, so that
+      // bytes after the last one count as a line. A mapped buffer answers that from its last byte,
+      // where the streaming loop has to carry the position of the last ending it saw.
+
+      pos         = n;
+      last_nl_end = (buf[n - 1] == '\n') ? n : 0;
+
+      break;
+    }
 
     size_t i = 0;
 

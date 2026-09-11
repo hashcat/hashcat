@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef FEED_WORDLIST_H
-#define FEED_WORDLIST_H
+#ifndef WORDLIST_H
+#define WORDLIST_H
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -44,6 +44,14 @@ typedef struct feed_global
 
   u64            line_count;
 
+  // What the sources are, as one number, folded in the order they were given. It is the same value
+  // that goes into global_ctx->source_ident, kept here as well because that one carries marks the
+  // core puts on it afterwards: a feed offered a device engine and given the host one has its
+  // source_ident altered, so a cache keyed on it is a different cache for the same wordlist. A feed
+  // caching something per wordlist wants this one.
+
+  u64            ident;
+
 } feed_global_t;
 
 // A thread has one source open at a time and moves between them as the offsets it is given move.
@@ -81,13 +89,4 @@ typedef struct feed_thread
 
 } feed_thread_t;
 
-bool global_init      (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx);
-void global_term      (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx);
-u64  global_keyspace  (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx);
-
-bool thread_init      (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx);
-void thread_term      (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx);
-int  thread_next      (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size);
-bool thread_seek      (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx, const u64 offset);
-
-#endif // FEED_WORDLIST_H
+#endif // WORDLIST_H

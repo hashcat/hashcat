@@ -9,7 +9,31 @@
 #include "filehandling.h"
 #include "shared.h"
 #include "parser.h"
+#include "convert.h"
 #include "keyboard_layout.h"
+
+// One side of a mapping line. $HEX[..] is how a token that would otherwise be read as a comment, or
+// that carries a tab, is written down. Returns the length, or -1 when it does not fit.
+
+static int mapping_token (const u8 *buf, const int len, u8 *out, const int out_max)
+{
+  if (is_hexify (buf, (size_t) len) == true)
+  {
+    const int want = (len - 6) / 2;
+
+    if (want > out_max) return -1;
+
+    for (int i = 0; i < want; i++) out[i] = hex_to_u8 (&buf[5 + (i * 2)]);
+
+    return want;
+  }
+
+  if (len > out_max) return -1;
+
+  for (int i = 0; i < len; i++) out[i] = buf[i];
+
+  return len;
+}
 
 static int sort_by_src_len (const void *p1, const void *p2)
 {
@@ -38,28 +62,43 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
     if (line_len == 0) continue;
 
-    hc_token_t token;
+    // A mapping file is a table file: blank lines and comments are skipped, and a line that does not
+    // hold exactly one tab is not a mapping and is skipped too. A file that turns out to hold no
+    // mappings at all is refused below, which is what catches one whose tabs have been eaten by an
+    // editor rather than letting it convert nothing and say nothing.
+    //
+    // The tabs are counted before the comment is considered, because '#' is a key on a German
+    // keyboard and layouts/de.hckmap mapped it. Reading that line as a comment would drop a real
+    // mapping out of a file somebody kept, and drop it silently.
 
-    token.token_cnt  = 2;
+    int tabs = 0;
+    int at   = 0;
 
-    token.len_min[0] = 1;
-    token.len_max[0] = 4;
-    token.sep[0]     = 0x09;
-    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.len_min[1] = 0;
-    token.len_max[1] = 4;
-    token.sep[1]     = 0x09;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    if (input_tokenizer ((const u8 *) line_buf, (const int) line_len, &token) != PARSER_OK)
+    for (size_t i = 0; i < line_len; i++)
     {
-      hc_fclose (&fp);
+      if (line_buf[i] != 0x09) continue;
 
-      hcfree (line_buf);
-
-      return false;
+      tabs++;
+      at = (int) i;
     }
+
+    if (tabs != 1)
+    {
+      // Only now, where it cannot be a mapping anyway
+
+      continue;
+    }
+
+    if ((line_buf[0] == '#') && (at != 0)) continue;
+
+    u8 src[4];
+    u8 dst[4];
+
+    const int src_len = mapping_token ((const u8 *) line_buf, at, src, 4);
+    const int dst_len = mapping_token ((const u8 *) &line_buf[at + 1], (int) line_len - at - 1, dst, 4);
+
+    if (src_len < 1) continue;
+    if (dst_len < 0) continue;
 
     // The array every caller passes holds 256 entries, and the check for a full one came after the
     // writes, so a mapping file with 257 lines filled element 256 before giving up.
@@ -73,11 +112,14 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
       return false;
     }
 
-    memcpy (&keyboard_layout_mapping[maps_cnt].src_char, token.buf[0], token.len[0]);
-    memcpy (&keyboard_layout_mapping[maps_cnt].dst_char, token.buf[1], token.len[1]);
+    keyboard_layout_mapping[maps_cnt].src_char = 0;
+    keyboard_layout_mapping[maps_cnt].dst_char = 0;
 
-    keyboard_layout_mapping[maps_cnt].src_len = token.len[0];
-    keyboard_layout_mapping[maps_cnt].dst_len = token.len[1];
+    memcpy (&keyboard_layout_mapping[maps_cnt].src_char, src, src_len);
+    memcpy (&keyboard_layout_mapping[maps_cnt].dst_char, dst, dst_len);
+
+    keyboard_layout_mapping[maps_cnt].src_len = src_len;
+    keyboard_layout_mapping[maps_cnt].dst_len = dst_len;
 
     maps_cnt++;
   }
@@ -87,6 +129,11 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
   hc_fclose (&fp);
 
   hcfree (line_buf);
+
+  // Nothing was read. The file exists and every line of it was passed over, which means it is not in
+  // this format, and converting nothing while saying nothing is the worst thing to do about it.
+
+  if (maps_cnt == 0) return false;
 
   // we need to sort this by length to ensure the largest blocks come first in mapping
 

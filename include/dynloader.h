@@ -72,8 +72,9 @@ void hc_once (hc_once_t *once, void (*init) (void));
 // into a buffer the caller owns, and the caller decides what a reason is worth. The core hands it to
 // event_log_error, a plugin puts it in the field its interface gives it.
 //
-// One wrapper does not fit and is not expected to. ext_nvrtc.c has no list of names to try, it
-// builds them at runtime by counting CUDA versions down, so it keeps its own loop.
+// One wrapper does not fit and is not expected to. On Windows ext_nvrtc.c has no list of names to
+// try, because a CUDA DLL carries its version in the file name, so it builds them by counting down
+// and keeps its own loop. Everywhere else it asks hc_dynlib_open_newest () below.
 
 typedef struct hc_dynlib_sym
 {
@@ -93,6 +94,21 @@ typedef struct hc_dynlib_sym
 #define HC_DYNLIB_SYM_LAST              { NULL, 0, false }
 
 HC_PLUGIN_API hc_dynlib_t hc_dynlib_open (const char *const *sonames, const size_t sonames_cnt, char *err, const size_t err_size);
+
+// Open the newest installed version of a library whose soname major moves with a vendor release.
+// Give it the stem, "libnvrtc" rather than a file name, and it reads the directories the dynamic
+// linker searches. Not available on Windows, where a DLL carries its version in the name instead.
+
+#ifndef _WIN
+HC_PLUGIN_API hc_dynlib_t hc_dynlib_open_newest (const char *stem, char *err, const size_t err_size);
+#else
+
+// The same on Windows, where the version is in the DLL name instead. Give it the fixed part of the
+// name, "nvrtc64_" or "amdhip64_" or "hiprtc", and the directories an SDK installs into. PATH is
+// searched after those, so a driver's older copy is found but never preferred.
+
+HC_PLUGIN_API hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size);
+#endif
 
 HC_PLUGIN_API bool        hc_dynlib_syms (hc_dynlib_t lib, void *dst, const hc_dynlib_sym_t *syms, char *err, const size_t err_size);
 

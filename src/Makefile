@@ -8,7 +8,7 @@
 ##
 ## Four kinds of thing come out of a build. The core, which is a shared library and holds everything
 ## hashcat knows how to do. The frontend, hashcat or hashcat.exe, which is a small program that calls
-## the core. The plugins, which are the 593 modules, the bridges and the feeds, each a shared object
+## the core. The plugins, which are the 595 modules, the bridges and the feeds, each a shared object
 ## that the core loads at runtime. And the kernels under OpenCL/, which are not compiled here at all,
 ## because the GPU driver compiles them when hashcat runs.
 ##
@@ -63,7 +63,7 @@ endif
 ##
 ## Arrangement of the core
 ##
-## The core is one shared library and everything else links against it: the frontend, the 593
+## The core is one shared library and everything else links against it: the frontend, the 595
 ## modules, the bridges and the feeds. Statically it is copied into each of them instead, and a
 ## module that calls input_tokenizer drags in the tokenizer, the file handling under it, and from
 ## there the file handling under it, none of which a module ever calls. That is 90 percent
@@ -1000,7 +1000,7 @@ $(foreach P,$(PLATFORMS),$(eval LFLAGS_$(P) += $(REPRO_LFLAGS_$(FORMAT_$(P)))))
 ## A plugin is glue. A module says what a hash mode looks like, decodes a hash line and hands every
 ## byte of real work to the core, and the two modules in the tree that carry a hook body spend it
 ## inside the core as well. So the flags that describe this machine buy a plugin nothing, and asking
-## the compiler to tune 593 shared objects for the host processor is close to a third of the build
+## the compiler to tune 595 shared objects for the host processor is close to a third of the build
 ## for code that is not in a loop.
 ##
 ## The core keeps them, because there they are worth something. The rule engine runs 5.90 s over
@@ -1090,7 +1090,7 @@ LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -W
 LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
 ## A plugin is a shared object too, so it meets the same wall the library does on OpenBSD, where the
 ## driver does not link libc into one and -z,defs then reads the whole of libc as undefined. Guarding
-## only the library left the library linking and all 593 plugins failing on abort. See the note beside
+## only the library left the library linking and all 595 plugins failing on abort. See the note beside
 ## LIBRARY_LFLAGS_NATIVE for why -lc is not the answer.
 ifneq ($(UNAME),OpenBSD)
 LFLAGS_PLUGIN_NATIVE    += -Wl,-z,defs
@@ -1134,7 +1134,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1197,6 +1197,8 @@ TOOLS                   += $(wildcard tools/*hashcat.py)
 ## A fragment may still declare a rule of its own. An explicit rule beats the pattern rules below
 ## whatever order they are read in.
 
+include src/rust_toolchain.mk
+
 include $(wildcard src/modules/*.mk)
 include $(wildcard src/bridges/*.mk)
 include $(wildcard src/feeds/*.mk)
@@ -1243,7 +1245,7 @@ DEPS_ALL                := $(wildcard obj/*.d obj/*/*.d obj/*/*/*.d)
 ## Rules: the headers a plugin is built against
 ##
 ## The API is declared in headers, so the development install ships the headers it is declared in and
-## everything those include, rather than all 92. The set is asked of the compiler instead of written
+## everything those include, rather than all 99. The set is asked of the compiler instead of written
 ## down here, out of a translation unit that includes every header the API starts from.
 ##
 ## Three things start it. The headers that carry HC_API, HC_PLUGIN_API or HC_PLUGIN_ENTRY, which is
@@ -1541,6 +1543,14 @@ $(foreach P,$(PLUGIN_PLATFORMS),$(foreach B,$(BRIDGES_ALL), \
 .PHONY: default
 default: $(HASHCAT_FRONTEND) modules bridges feeds
 
+# The version this build stamps into the binary. tools/package_bin.sh asks for it so an archive is
+# named after what it holds, rather than the release number being written out a second time where it
+# drifts the moment a package is built from anything but the release commit.
+
+.PHONY: version
+version:
+	@echo $(VERSION_TAG)
+
 .PHONY: clean
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
@@ -1583,7 +1593,9 @@ clean:
 	$(RM) -f core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
+	$(RM) -rf cache
 	$(RM) -rf kernels
+	$(RM) -rf seekdbs
 	$(RM) -rf pcfgdbs
 	$(RM) -rf Rust/bridges/*/target
 	$(RM) -rf Rust/feeds/*/target
@@ -1675,9 +1687,9 @@ install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/charsets
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/docs
-	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/layouts
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/masks
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/rules
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/tables
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
 	$(INSTALL) -m 644 example.dict                                          $(DESTDIR)$(DOCUMENT_FOLDER)/
@@ -1694,12 +1706,12 @@ install_docs: install_make_shared_root
 	$(FIND) charsets/ -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) docs/     -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) docs/     -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) layouts/  -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) layouts/  -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) masks/    -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) tables/   -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) tables/   -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh

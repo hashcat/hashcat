@@ -47,6 +47,11 @@ typedef struct pw_transform
 
   const hc_iconv_lib_t *iconv_lib;
 
+  // True when the autohex step is the only one that could fire, which is the ordinary wordlist run.
+  // Worked out once in pw_transform_init () rather than per candidate.
+
+  bool autohex_only;
+
 } pw_transform_t;
 
 int  pw_transform_init    (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int rule_len, const char *rule_buf);

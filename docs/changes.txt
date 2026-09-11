@@ -181,6 +181,50 @@ Its 2 useful values did unrelated jobs. 0 applied the reserve that keeps a deskt
 walked past it, and neither is a fraction of anything. The reserve is now sized from what the runtime
 reports free, and -Y covers the case the option was reached for.
 
+23. -w and --workload-profile no longer do anything
+
+The 4 profiles chose how long one launch was allowed to take, and the lower 2 also made autotune
+prefer a smaller launch. That was worth having when the old autotune produced launches long enough to
+freeze a desktop. The current one does not, so nobody who wanted speed had a reason to pick anything
+below 3, and the option mostly cost people throughput they did not know they were giving up. There is
+now a single launch budget, the one profile 3 used, and the preference for a smaller launch is gone.
+
+The option is still accepted and ignored, so a command line or script carrying it keeps working and
+says nothing. It is no longer listed in --help. A run that used to pass -w 1 or -w 2 will now use a
+larger launch, which is faster and less responsive on a machine you are sitting at. --benchmark also
+always uses optimized kernels now, where passing -w used to turn that off.
+
+24. Keyboard layouts: the layouts folder is now tables/layouts and the files changed format
+
+--keyboard-layout-mapping layouts/de.hckmap becomes --keyboard-layout-mapping tables/layouts/de.table.
+The old files are gone rather than kept as aliases, so a command line carrying one has to be updated.
+The mapping files are table files now, the same format the table attack reads, which means comments,
+blank lines and $HEX[] for a token that would otherwise be read as one. The old format still loads, so
+a mapping file of your own keeps working wherever you put it.
+
+Keys that produce the same character in both layouts are left out of the shipped tables, because they
+are what the mapping does not change. Each language also has a reverse table for the other direction.
+us.hckmap is dropped: it was 95 rows of pure identity and could only ever convert a word to itself.
+
+25. Folders: everything hashcat rebuilds by itself is now under one cache folder
+
+The compiled kernels used to sit in a kernels folder beside the potfile and the sessions, and each new
+kind of cache added another folder next to it. They are all under a cache folder now, so kernels are
+in cache/kernels, and a feed's own cache under cache/feeds named after the feed that writes it: the
+seek databases in cache/feeds/wordlist, the pcfg counts in cache/feeds/pcfg and the table keyspace
+indexes in cache/feeds/table, beside the feeds/feed_wordlist, feeds/feed_pcfg and feeds/feed_table
+that build them. Nothing is copied across, so an old kernels folder is left where it
+is and can be deleted. A script that removed the kernel cache by name has to say cache/kernels, or
+just cache to clear the lot.
+
+--cache-path names a different directory for all of it, and replaces --seekdb-path, which never
+appeared in a release. Everything under there is described entirely by what it was built from, so one
+built on any machine is usable on every machine with the same input, and pointing a cluster at one
+shared directory turns a build per host into a build for all of them. A feed's cache tolerates a read
+only directory, since it writes only when it did not find what it needed and carries on from memory
+when a write fails, but the compiled kernels are under the same option and a kernel hashcat cannot
+write is a build failure that drops the device, so a shared directory wants to be writable.
+
 ##
 ## New Algorithms
 ##
@@ -205,7 +249,7 @@ reports free, and -Y covers the case the option was reached for.
 
 - Attack-mode 8: Generate candidates from a feed plugin instead of a built-in attack
 - Attack-Mode 8: Feeds can be written in C or Rust and are named like a module, not pathed
-- Attack-Mode 8: Shipped feeds are: wordlist, stdin, random and rust_random
+- Attack-Mode 8: Shipped feeds are: wordlist, stdin, random, rust_random, association, pcfg and table
 - Attack-Mode 8: Feeds support implementations which can't report a keyspace
 - Attack-Mode 8: A feed that cannot report a keyspace runs without a progress denominator
 - Attack-Mode 0: Wordlists are now read through the attack-mode 8 wordlist feed, which can seek
@@ -224,6 +268,17 @@ reports free, and -Y covers the case the option was reached for.
 - Attack-Mode 12: ?q marks a word from a second wordlist and has to come after ?w, so ?w?q is -a 1
 - Attack-Mode 12: Literals work anywhere in the mask, so Pass?w?d?d is a valid mask
 - Attack-Mode 9: A username is also split at separators and at case and digit boundaries, so j.smith also tries smith and JEdgarHoover also tries Edgar and Hoover
+- Attack-Mode 5: The table attack is back, reading a wordlist and a table that maps a token to a set of replacements, and this time it runs on the graphics card. hashcat-legacy had it as -a 5 and 3.00 dropped it
+- Attack-Mode 5: Both sides of a rule are multibyte, so f to ph and th to 7h work and an empty replacement deletes, where the old attack replaced one byte with one byte
+- Attack-Mode 5: Sources are matched longest first, so a table holding both s and ss reads ss as one token
+- Attack-Mode 5: maxperm bounds what one word may be worth, spent on how many substitutions a candidate makes rather than on where they are, because a word's cost grows exponentially with its length
+- Attack-Mode 5: One wordlist or a directory of them, then as many tables as you like, read into one set, so leetspeak and case are combined on the command line rather than shipped pre-merged
+- Attack-Mode 5: Shipped tables are two leetspeak tiers, case for Latin, Greek and Cyrillic, whole words as emoji, one sport for another as a template, and the keyboard layouts, which brings layout conversion to every hash mode rather than only to TrueCrypt and VeraCrypt
+- Attack-Mode 5: Leaving a token alone is always one of its choices, and identity=0 takes that away for a table that converts rather than varies, such as a keyboard layout
+- Attack-Mode 4 and 5: New --debug-mode 6, which asks the feed how it made a candidate rather than naming a rule. A table reports the lines that fired, as football->basketball,man->woman, and a grammar reports the terminals it picked. Modes 1 to 5 need -r or -g and report a rule, which an attack with no rules has none of
+- Attack-Mode 5: New setting template=1, which never hands a word of the wordlist back unchanged. A word no rule matched can only come out as itself and is dropped, and a word that did match loses the one candidate that changes nothing, so what runs is what the table made. That reads a wordlist as a set of patterns rather than as a list of passwords, and a wordlist attack is what -a 0 is for
+- Attack-Mode 5: The one pass over the wordlist that measures the attack is kept in cache/feeds/table, so only the first run over a wordlist and table set pays for it
+- Attack-Mode 5: -a 5 hashes.txt words.txt table.table is the same attack as -a 8 hashes.txt table words.txt table.table
 
 ##
 ## New Features
@@ -231,9 +286,9 @@ reports free, and -Y covers the case the option was reached for.
 - Added a key to change a --runtime limit while a run is going. It asks for a number of seconds to add, and a negative number shortens the limit instead
 ##
 
-- Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
-- Seekdbs are portable between machines, so a distributed setup can build one once and hand it out
-- New option --seekdb-path: Store seek databases in a given directory, which several hosts can share
+- Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seek databases
+- Seek databases are portable between machines, so a distributed setup can build one once and hand it out
+- New option --cache-path: Keep everything hashcat rebuilds in a given directory, which several hosts can share
 - New option --lookup: Report where an attack reaches one given candidate, then quit. A candidate no shell can pass is written as $HEX[...]. A wordlist lookup is one pass over the wordlist, so a read that has been going for two seconds reports its progress and an estimate until it finishes
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
@@ -253,6 +308,11 @@ reports free, and -Y covers the case the option was reached for.
 - Potfile: --show and --left with --username or --dynamic-x no longer walk every copy of a hash once per potfile line naming it. A list of 200000 hashes against a potfile of 200000 lines took over a minute and was killed for memory, where it now takes about 0.1 seconds, and the message warning against the combination is gone
 ##
 ## Improvements
+- Benchmark: The default set hashcat runs for -b was reviewed for the release. yescrypt, gost-yescrypt, scryptcrypt, KeePass KDBX4 and Kerberos 5 etype 23 AS-REP are in it now, and MyBB replaces vBulletin. The 5 md5($pass.$salt) style modes are gone, because each of them benchmarks within a percent of the plain hash already in the list and the md5($salt.$pass) forms that do differ are kept. The bridged modes are out as well, since a bridge is a starting point for writing your own and not a measurement of anything
+- Build: The Rust and Python plugins now say which version they need. cargo below 1.85 stops the build for those plugins with a message naming the version found and the version wanted, where before it went ahead and failed inside cargo on a manifest it could not parse, and the Python 72000 plugin asks for the 3.13 headers it needs at run time rather than the 3.12 it used to accept and then refuse
+- Backend: The throttling indicator no longer needs NVAPI and now works wherever NVML does, Linux included. It was built on 2 NVAPI functions that are not part of NVIDIA's published API and were reached through hardcoded interface ids, which tied it to Windows. The NVML alternative had been dropped for reporting throttling too often, and it did that because it counted every reason NVML knows, including the GPU sitting idle while the mask generator works. It now counts only the 4 reasons that mean the card is being slowed down by heat or by a power brake. A software power cap is not one of them, because a GPU under load sits at its power limit for the whole run. The NVAPI code is gone and no other hardware reading changes
+- Backend: The minimum CUDA version hashcat will use its CUDA backend with is now 12.0, up from 9.0. That is what Ubuntu 24.04 delivers from its own archive, where nvidia-cuda-toolkit is 12.0.140 and the oldest driver offered is 535, which carries CUDA 12.2. An older toolkit no longer stops the run: hashcat says which backend went away and the card is used through OpenCL instead, with hardware monitoring unaffected
+- Backend: The minimum HIP version is now 6.2.0 on Windows as well as on Linux. The Windows check asked for 4.4 against a version HIP reports on a different scale entirely, so it passed everything, and the two platforms now use one floor that AMD publishes for Ubuntu 24.04 as 6.2.4
 - CUDA: Devices that a run has already excluded no longer get a context. One was created for every device the driver reported, only to read how much memory that device had free, so a box of 8 cards running one agent per card built 8 contexts in every agent and used 1. Each of the others cost about 36 ms and a reservation of card memory
 - Rule application for --stdout is spread across the host cores. It ran on one core while the rest of the machine idled, and a second device did not help because the outfile mutex is held for the whole generation loop. On a 24 thread box, 50,000 words against 30,000 rules falls from 34.0 to 7.6 seconds. Output is unchanged, byte for byte
 - The directory named by --outfile-check-dir is read once before the attack is built rather than only while it runs. A hash list another run has already finished no longer pays for bitmaps, kernel building, device buffers and autotune before anything notices there is nothing left to do
@@ -361,7 +421,7 @@ reports free, and -Y covers the case the option was reached for.
 - Candidates for the next batch are prepared on a thread of their own while the current batch runs on the device. The two used to take turns on one thread, so the device waited while the host built the next batch. A brain client keeps the serial path because its reserve, lookup and commit have to stay in order on one connection, and setting HASHCAT_PIPE_SYNC selects that path for every attack
 - Brain: The hash database of a session is split into 1024 shards, each with its own lock, so a commit costs the size of the batch rather than the size of the whole database. Against 300 million entries a commit falls from 923 to 12 ms, a lookup from 598 to 45 ms, and taking in 300 million candidates falls from 1113 to 56 seconds
 - Brain: The status screen, --machine-readable and --status-json now report Brain.Rejects, split into keyspace another client had already reserved and candidates the brain had already seen. The existing Rejected counter mixes both in with length and rule rejects, so it could not be read as what the brain saved
-- Backends: HIP is loaded from a versioned libamdhip64 or libhiprtc soname when the unversioned name is absent, so the runtime package alone is enough without the development package that ships the symlink. A failure now names what was looked for
+- Backends: The CUDA and HIP runtime and compiler libraries are now found by reading the file names off the disk and taking the newest version installed, rather than by building a name and hoping. On Linux this means the runtime package alone is enough, where the unversioned link the loaders asked for only ships with the development package. NVRTC asked for libnvrtc.so.1, which no supported CUDA has ever installed, and HIP searched a fixed range of soname majors, so a release above the range looked like no HIP at all. On Windows the CUDA name was guessed from 2 nested ranges, several hundred attempts to reach a file that was there the whole time, and the HIP name was built from the ROCm release in HIP_PATH, which is not the same number as the HIP version that names the DLL
 - Rule engine: A rule applied on the host no longer allocates and frees a copy of itself once per word
 - Tuning Database: Added vector width tunings for the NVIDIA GB10, the GPU in the DGX Spark
 - Kernels: A helper an OpenCL kernel never calls is no longer compiled into it, so a cold benchmark of -m 0 takes 8.2 seconds instead of 14.1 and --backend-info answers in 0.55 seconds instead of 1.84 on a Radeon RX 7900 XTX with ROCm 7.0.1
@@ -382,11 +442,18 @@ reports free, and -Y covers the case the option was reached for.
 - Autotune: The thread count ceiling on Metal now comes from the compiled pipeline, as it already does on CUDA, HIP and OpenCL, instead of from the 32 thread SIMD width that capped every kernel
 - Backend: HIP picks its ABI from the runtime it finds, so one binary drives both ROCm and the Hygon DTK runtime, where device initialization used to fail
 - Potfile: A password found in the potfile is stored once per hash and handed to every copy of that hash after the file is read, instead of a new buffer being allocated for every copy on every matching line. A list of 200000 copies of one hash, against a potfile naming it 200000 times, took 67 seconds and then ran out of memory, and now takes about 0.1 seconds. --show is allowed with --username and --dynamic-x again
+- Backend: hashcat no longer forces AMD_DIRECT_DISPATCH=0 on the HIP runtime. It was set to keep host CPU load down, but on ROCm 7 it changes neither the CPU load of a waiting host thread nor cracking speed, measured across several hash modes on a 7900 XTX, so the runtime default is used again
+- Backend: 2 environment variables hashcat used to set are gone, OCL_CODE_CACHE_ENABLE, which AMD removed from its OpenCL runtime and no shipping runtime reads, and a commented out CL_CONFIG_USE_VECTORIZER whose Intel CPU runtime workaround has not applied for years. CUDA_CACHE_DISABLE and POCL_KERNEL_CACHE stay, since a debug build still needs them
 
 ##
 ## Bugs
 ##
+- Fixed thread entry points returning the wrong type on Windows. CreateThread () reads 4 bytes where these returned 8, and the mismatch was hidden behind a cast at every call site
+- Fixed the Rust plugin build naming rustup in the message it prints when cargo is the thing that is missing
 
+- Fixed --keyboard-layout-mapping doing nothing at all for the 15 TrueCrypt and VeraCrypt modes that both take the option and read a container: 6241-6243, 13721-13723, 13741-13743, 13761-13763 and 13781-13783. Those modules parse their own file and so the core never ran module_hash_decode_postprocess, which is where the mapping is loaded, so hashcat accepted the option and hashed the candidates exactly as they came. The hook now runs after a binary parse as well. The 29xxx modes take a hash rather than a container, go through the normal decode and were never affected
+- Fixed the Danish keyboard layout never having worked. layouts/da.hckmap had its tabs replaced by runs of spaces, so it held no mappings at all and every candidate went through unconverted. It ships as tables/layouts/da.table now
+- Fixed a mapping file that yields no mappings at all being accepted, which is what let a file like the Danish one convert nothing without saying so. The file is checked when the option is, because a module loads it from a hook whose result nothing looks at
 - Windows: The working directory is no longer searched for the libraries hashcat loads by name, so a DLL left beside a wordlist can no longer be loaded and run. Supplying one beside hashcat.exe is unaffected
 - Windows: Fixed module 23800 not loading in a build made on MSYS2, where it depended on libstdc++-6.dll and libgcc_s_seh-1.dll being found on PATH
 - Windows: Fixed the reason a plugin failed to load being reported as "The operation completed successfully", for modules, bridges and feeds alike
@@ -408,8 +475,12 @@ reports free, and -Y covers the case the option was reached for.
 - Fixed buffer overflows in modules 11600, 17050 and 70000, where a token wrote past the field it decodes into
 - Fixed a buffer overflow in generic_salt_decode(), where a base64 salt wrote past salt_buf for non optimized kernels
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
+- Fixed the outdated driver message naming Intel whatever the vendor was. The check behind it covers Intel on a CPU device and AMD, NVIDIA and Apple on a GPU one, so an AMD user on a driver hashcat refuses was told their Intel OpenCL runtime was broken. The message takes the vendor from the device now
 - Fixed an out-of-bounds read in the secp256k1 point_mul_xy() when the scalar is zero
 - Fixed the secp256k1 inv_mod() looping forever on a zero input, which hangs clFinish on CPU devices
+- Fixed the HIP blocking sync scheduler flag being applied to whichever device happened to be current instead of the device being initialized. hipSetDeviceFlags acts on the current device and hashcat called it before selecting one, so on a machine with several AMD GPUs only the first ever received the setting
+- Fixed the AMD instruction probe reading the wrong neighbour when it reuses a result. It indexed the enumeration total rather than the loop counter, so it compared against the last device found instead of the one before it, and could copy V_PERM_B32 support out of a device nothing had probed yet, leaving it switched off
+- Fixed the Metal backend leaking one buffer on every kernel launch. run_kernel creates a placeholder to bind into unused kernel arguments and never released it, so a long session grew without bound until allocation failed. run_kernel_amp already released its own and is what the fix follows
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
 - Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12
@@ -500,6 +571,7 @@ reports free, and -Y covers the case the option was reached for.
 - Fixed the available memory calculation underflowing on a u64 in the yescrypt, scrypt and argon2 modules when a device reports less memory than the reserve, which asked for far more memory than the device has
 - Fixed the CUDA context created for each device being left on the main thread's context stack, since cuCtxCreate makes it current as well as creating it
 - Fixed the per file rule buffers being leaked when a ruleset loaded, and bounded the class selector lookahead in the rule compiler
+- Fixed make failing to locate Rust libraries when CARGO_TARGET_DIR is set in the environment
 - Windows: Fixed hashcat failing to run from a folder whose name holds a character the system code page cannot represent, where its own pid, tuning and potfile paths were rejected as an invalid argument
 - Windows: Fixed a mask, a rule or any other argument holding such a character arriving as a question mark, which for a mask silently ran a different keyspace because ? is the mask metacharacter
 - Windows: Fixed a message printed to a console being rendered through the console code page rather than as UTF-8, which showed any such character as mojibake unless the user had run chcp 65001 first

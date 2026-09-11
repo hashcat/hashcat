@@ -97,7 +97,7 @@ typedef struct stdout_rule_job
 
 } stdout_rule_job_t;
 
-static HC_API_CALL void *stdout_rule_worker (void *p)
+static HC_THREAD_FUNC stdout_rule_worker (void *p)
 {
   stdout_rule_job_t *job = (stdout_rule_job_t *) p;
 
@@ -151,7 +151,7 @@ static HC_API_CALL void *stdout_rule_worker (void *p)
     #endif
   }
 
-  return NULL;
+  return 0;
 }
 
 int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)

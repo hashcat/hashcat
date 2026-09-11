@@ -57,6 +57,13 @@ typedef enum generic_plugin_options
 
   GENERIC_PLUGIN_OPTIONS_DEVICE       = 1 << 3,
 
+  // The feed can say how it made a candidate, and exports global_explain () for it. --debug-mode
+  // writes the rule that made a candidate, and a feed makes them some other way: a table applies
+  // substitutions, a grammar picks terminals. A feed that declares this can put that in the same
+  // place, so somebody tuning a table or a ruleset can see which of its lines actually fired.
+
+  GENERIC_PLUGIN_OPTIONS_EXPLAIN      = 1 << 4,
+
   GENERIC_PLUGIN_OPTIONS_UNDEFINED = 0,
 
 } generic_plugin_options_t;
@@ -106,6 +113,18 @@ HC_PLUGIN_ENTRY bool thread_seek     (generic_global_ctx_t *global_ctx, generic_
 
 HC_PLUGIN_ENTRY bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *avg, u32 *maxword, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe);
 HC_PLUGIN_ENTRY int  thread_next_dev (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size, pcfg_cell_t *cell);
+
+// How this candidate was made, as text, for --debug-mode.
+//
+// It is given the same four things pcfg_expand () rebuilds a candidate from, so a feed answers by
+// walking what it already knows how to walk: the cell the base word was handed with, the pool the
+// cell points into, the base word itself, and which of the cell's candidates this was. It runs once
+// per crack rather than once per candidate, so it may take its time.
+//
+// Writes at most out_size bytes and returns how many, or -1 when it has nothing to say. Only a feed
+// declaring GENERIC_PLUGIN_OPTIONS_EXPLAIN exports it.
+
+HC_PLUGIN_ENTRY int  global_explain (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, char *out_buf, const int out_size);
 
 // ---------------------------------------------------------------------------------------------
 // what the device is doing while a feed runs

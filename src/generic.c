@@ -97,7 +97,6 @@ static bool generic_global_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
 
   generic_ctx->global_ctx.cache_dir   = folder_config->cache_dir;
   generic_ctx->global_ctx.profile_dir = folder_config->profile_dir;
-  generic_ctx->global_ctx.seekdb_dir  = user_options->seekdb_path;
   generic_ctx->global_ctx.shared_dir  = folder_config->shared_dir;
 
   // ok we can also add hashcat_ctx, which might be hard to bind, but we make it optional
@@ -326,6 +325,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   generic_ctx->iconv_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_ICONV)   ? true : false;
   generic_ctx->rules_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_RULES)   ? true : false;
   generic_ctx->dev_enable     = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE)     ? true : false;
+  generic_ctx->explain_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_EXPLAIN)    ? true : false;
 
   const bool dev_offered = generic_ctx->dev_enable;
 
@@ -345,6 +345,22 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   {
     HC_LOAD_FUNC_GENERIC (generic_ctx, global_dev_init, GENERIC_GLOBAL_DEV_INIT);
     HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next_dev, GENERIC_THREAD_NEXT_DEV);
+  }
+
+  // Whether this feed can answer the question --debug-mode 6 asks. The option is checked for shape
+  // when the command line is read, but nothing had opened the feed by then, so this is where a feed
+  // that cannot explain itself is reported rather than quietly writing nothing.
+
+  if ((hashcat_ctx->user_options->debug_mode == DEBUG_MODE_FEED) && (generic_ctx->explain_enable == false))
+  {
+    event_log_error (hashcat_ctx, "%s: this feed cannot say how it made a candidate, so --debug-mode %d has nothing to write.", generic_ctx->plugin_name, DEBUG_MODE_FEED);
+
+    return -1;
+  }
+
+  if (generic_ctx->explain_enable == true)
+  {
+    HC_LOAD_FUNC_GENERIC (generic_ctx, global_explain, GENERIC_GLOBAL_EXPLAIN);
   }
 
   // Whether the device engine is going to be used, settled here and nowhere else.

@@ -65,6 +65,21 @@
 #define HC_API_CALL
 #endif
 
+// A thread entry point, written with the return type each platform's thread API actually asks for.
+// CreateThread () wants a DWORD back and pthread_create () wants a void *, and an entry point written
+// for one and handed to the other is undefined behaviour that happens to work: on 64 bit Windows the
+// pointer it returns is 8 bytes where the caller reads 4. Spelling the entry points this way is what
+// lets hc_thread_create () pass a function straight through, with no cast to hide the mismatch.
+//
+// DWORD is spelled out rather than named, because this header is included long before windows.h and
+// the two are the same type: unsigned long, which Win64 keeps at 32 bits.
+
+#if defined (_WIN)
+#define HC_THREAD_FUNC HC_API_CALL unsigned long
+#else
+#define HC_THREAD_FUNC HC_API_CALL void *
+#endif
+
 #if defined (__GNUC__)
 #define HC_ALIGN(x) __attribute__((aligned(x)))
 #elif defined (_MSC_VER)

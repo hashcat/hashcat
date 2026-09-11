@@ -333,7 +333,7 @@ typedef struct bitmap_fill
 
 } bitmap_fill_t;
 
-static void *generate_bitmaps_thread (void *p)
+static HC_THREAD_FUNC generate_bitmaps_thread (void *p)
 {
   bitmap_fill_t *param = (bitmap_fill_t *) p;
 
@@ -346,7 +346,7 @@ static void *generate_bitmaps_thread (void *p)
       memset (bitmap_tabs[t] + param->from, 0, (size_t) (param->to - param->from) * sizeof (u32));
     }
 
-    return NULL;
+    return 0;
   }
 
   if (param->phase == 4)
@@ -373,7 +373,7 @@ static void *generate_bitmaps_thread (void *p)
       }
     }
 
-    return NULL;
+    return 0;
   }
 
   const u32 dgst_size   = param->dgst_size;
@@ -392,7 +392,7 @@ static void *generate_bitmaps_thread (void *p)
       bitmap_set (bitmap_tabs, bitmap_mask, digest_ptr[param->dgst_pos0], digest_ptr[param->dgst_pos1], digest_ptr[param->dgst_pos2], digest_ptr[param->dgst_pos3]);
     }
 
-    return NULL;
+    return 0;
   }
 
   const u32 region_bits = param->region_bits;
@@ -427,7 +427,7 @@ static void *generate_bitmaps_thread (void *p)
       }
     }
 
-    return NULL;
+    return 0;
   }
 
   u32 *records = param->records;
@@ -460,7 +460,7 @@ static void *generate_bitmaps_thread (void *p)
     }
   }
 
-  return NULL;
+  return 0;
 }
 
 static void generate_bitmaps_run (bitmap_fill_t *params, hc_thread_t *threads, const int threads_cnt, const int phase)
@@ -701,7 +701,6 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   /**
    * pick the table size
    */
-
 
   const u32 bitmap_min = user_options->bitmap_min;
   const u32 bitmap_max = user_options->bitmap_max;

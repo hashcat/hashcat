@@ -7,6 +7,10 @@
 #include "types.h"
 #include "dynloader.h"
 
+#ifndef _WIN
+#include <glob.h>
+#endif
+
 #ifdef _WIN
 
 // Take the working directory out of the library search order.
@@ -122,6 +126,445 @@ char *hc_dlerror ()
 }
 
 #endif
+
+#ifdef _WIN
+
+// The Windows half of the same problem. A CUDA or HIP DLL carries its version in the file name,
+// nvrtc64_130_0.dll and amdhip64_7.dll and hiprtc0702.dll, so the loaders built a name and asked for
+// it. NVRTC guessed a major and a minor from two nested ranges, which is a few hundred LoadLibrary
+// calls on a machine that has no CUDA and a ceiling on the ones that do. HIP did not guess so much as
+// assume, taking the number out of the HIP_PATH string, and the two numbers are not the same thing:
+// ROCm 10.0 ships a HIP whose version is 7, so a name built from the ROCm release is a name that
+// need not exist.
+//
+// The directory is read instead. Every digit in the file name after the fixed part counts toward the
+// version, in order, which is enough to sort names that differ only there.
+
+#define HC_DYNLIB_VER_MAX 4
+
+static void hc_dynlib_ver_of_dll (const char *name, const size_t prefix_len, int *ver)
+{
+  for (int i = 0; i < HC_DYNLIB_VER_MAX; i++) ver[i] = 0;
+
+  int idx = 0;
+
+  bool in_run = false;
+
+  for (const char *p = name + prefix_len; *p; p++)
+  {
+    if ((*p >= '0') && (*p <= '9'))
+    {
+      if (in_run == false)
+      {
+        if (idx == HC_DYNLIB_VER_MAX) break;
+
+        in_run = true;
+      }
+
+      ver[idx] = (ver[idx] * 10) + (*p - '0');
+
+      continue;
+    }
+
+    if (in_run == true)
+    {
+      idx++;
+
+      in_run = false;
+    }
+  }
+}
+
+static int hc_dynlib_ver_cmp (const int *a, const int *b)
+{
+  for (int i = 0; i < HC_DYNLIB_VER_MAX; i++)
+  {
+    if (a[i] > b[i]) return  1;
+    if (a[i] < b[i]) return -1;
+  }
+
+  return 0;
+}
+
+// A candidate is a file whose name starts with the fixed part and carries a digit straight after it.
+// That last condition is what keeps hiprtc-builtins0702.dll from being mistaken for hiprtc0702.dll.
+
+static void hc_dynlib_best_dll (const char *dir, const char *prefix, char *best, const size_t best_size, int *best_ver, bool *have)
+{
+  const size_t prefix_len = strlen (prefix);
+
+  char pattern[MAX_PATH];
+
+  const int len = snprintf (pattern, sizeof (pattern), "%s\\%s*.dll", dir, prefix);
+
+  if (len < 0) return;
+  if ((size_t) len >= sizeof (pattern)) return;
+
+  WIN32_FIND_DATAA fd;
+
+  HANDLE h = FindFirstFileA (pattern, &fd);
+
+  if (h == INVALID_HANDLE_VALUE) return;
+
+  do
+  {
+    const char c = fd.cFileName[prefix_len];
+
+    if ((c < '0') || (c > '9')) continue;
+
+    int ver[HC_DYNLIB_VER_MAX];
+
+    hc_dynlib_ver_of_dll (fd.cFileName, prefix_len, ver);
+
+    if ((*have == true) && (hc_dynlib_ver_cmp (ver, best_ver) <= 0)) continue;
+
+    snprintf (best, best_size, "%s\\%s", dir, fd.cFileName);
+
+    memcpy (best_ver, ver, sizeof (ver));
+
+    *have = true;
+
+  } while (FindNextFileA (h, &fd) != 0);
+
+  FindClose (h);
+}
+
+hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size)
+{
+  if (prefix == NULL) return NULL;
+
+  char best[MAX_PATH];
+
+  int best_ver[HC_DYNLIB_VER_MAX];
+
+  bool have = false;
+
+  for (size_t i = 0; i < dirs_cnt; i++)
+  {
+    if (dirs[i] == NULL) continue;
+
+    hc_dynlib_best_dll (dirs[i], prefix, best, sizeof (best), best_ver, &have);
+  }
+
+  // Whatever is on PATH, which is where a driver leaves its copy. The SDK directories above come
+  // first, so a newer runtime beside the compiler still wins over an older one in System32.
+
+  const char *env = getenv ("PATH");
+
+  if (env)
+  {
+    const char *s = env;
+
+    while (*s)
+    {
+      const char *e = strchr (s, ';');
+
+      const size_t len = (e) ? (size_t) (e - s) : strlen (s);
+
+      if ((len > 0) && (len < MAX_PATH))
+      {
+        char one[MAX_PATH];
+
+        memcpy (one, s, len);
+
+        one[len] = 0;
+
+        hc_dynlib_best_dll (one, prefix, best, sizeof (best), best_ver, &have);
+      }
+
+      if (e == NULL) break;
+
+      s = e + 1;
+    }
+  }
+
+  if (have == true)
+  {
+    hc_dynlib_t lib = hc_dlopen (best);
+
+    if (lib) return lib;
+  }
+
+  if (err == NULL) return NULL;
+  if (err_size == 0) return NULL;
+
+  if (have == true)
+  {
+    snprintf (err, err_size, "%s was found at %s but would not load", prefix, best);
+  }
+  else
+  {
+    snprintf (err, err_size, "no %s*.dll in the SDK directory or anywhere on PATH", prefix);
+  }
+
+  err[err_size - 1] = 0;
+
+  return NULL;
+}
+
+#endif // _WIN
+
+#ifndef _WIN
+
+// Open the newest installed version of a library whose soname major moves with a vendor release.
+//
+// Three of them do. libnvrtc follows the CUDA major and is on 12 and 13 today, libamdhip64 and
+// libhiprtc follow HIP's own major and are on 7. Every other library hashcat opens is pinned at .so.1
+// by convention, libcuda and libOpenCL and libnvidia-ml among them, and none of this applies to an
+// OpenCL implementation such as rusticl or Intel's, which is an ICD the loader finds by itself.
+//
+// The unversioned name is a link that only the development package ships, so a machine carrying just
+// the runtime has libnvrtc.so.13 and no libnvrtc.so. dlopen () cannot be asked which majors exist, so
+// the loaders used to guess: count a range downward and open the first name that answers. That put a
+// ceiling on the version hashcat could find, and a release above it did not look like a new release,
+// it looked like the runtime was not installed at all.
+//
+// The file names are read off the disk instead, from the directories the dynamic linker itself
+// searches, so a library it could load is a library this finds. The newest wins, by the version in
+// the resolved file name rather than by the soname major, because the major alone does not settle it:
+// a machine can carry libamdhip64.so.7 twice, 7.15 under /opt/rocm and 7.1 from the distribution, and
+// the two are different libraries.
+
+#define HC_DYNLIB_DIR_MAX  64
+#define HC_DYNLIB_PATH_MAX 512
+#define HC_DYNLIB_VER_MAX  4
+
+// A version out of a file name, as its numeric parts. Ordering these is the whole job, so a part
+// that is missing counts as zero and anything the vendor appends, such as ROCm's -0000000 build tag,
+// ends the number rather than joining it.
+
+static bool hc_dynlib_ver_parse (const char *name, const char *stem, int *ver)
+{
+  const size_t stem_len = strlen (stem);
+
+  if (strncmp (name, stem, stem_len) != 0) return false;
+  if (strncmp (name + stem_len, ".so.", 4) != 0) return false;
+
+  const char *v = name + stem_len + 4;
+
+  if ((v[0] < '0') || (v[0] > '9')) return false;
+
+  for (int i = 0; i < HC_DYNLIB_VER_MAX; i++) ver[i] = 0;
+
+  int idx = 0;
+
+  for (const char *p = v; *p; p++)
+  {
+    if ((*p >= '0') && (*p <= '9'))
+    {
+      ver[idx] = (ver[idx] * 10) + (*p - '0');
+
+      continue;
+    }
+
+    if (*p != '.') break;
+
+    idx++;
+
+    if (idx == HC_DYNLIB_VER_MAX) break;
+  }
+
+  return true;
+}
+
+static int hc_dynlib_ver_cmp (const int *a, const int *b)
+{
+  for (int i = 0; i < HC_DYNLIB_VER_MAX; i++)
+  {
+    if (a[i] > b[i]) return  1;
+    if (a[i] < b[i]) return -1;
+  }
+
+  return 0;
+}
+
+static void hc_dynlib_dir_add (char dirs[][HC_DYNLIB_PATH_MAX], size_t *dirs_cnt, const char *dir)
+{
+  if (dir == NULL) return;
+  if (dir[0] != '/') return;
+
+  if (*dirs_cnt >= HC_DYNLIB_DIR_MAX) return;
+
+  for (size_t i = 0; i < *dirs_cnt; i++)
+  {
+    if (strcmp (dirs[i], dir) == 0) return;
+  }
+
+  snprintf (dirs[*dirs_cnt], HC_DYNLIB_PATH_MAX, "%s", dir);
+
+  (*dirs_cnt)++;
+}
+
+// LD_LIBRARY_PATH first, then whatever ldconfig was told, then the usual places. The multiarch
+// directory is reached by a pattern because its name carries the architecture.
+
+static size_t hc_dynlib_dirs (char dirs[][HC_DYNLIB_PATH_MAX])
+{
+  size_t dirs_cnt = 0;
+
+  const char *env = getenv ("LD_LIBRARY_PATH");
+
+  if (env)
+  {
+    const char *s = env;
+
+    while (*s)
+    {
+      const char *e = strchr (s, ':');
+
+      const size_t len = (e) ? (size_t) (e - s) : strlen (s);
+
+      if ((len > 0) && (len < HC_DYNLIB_PATH_MAX))
+      {
+        char one[HC_DYNLIB_PATH_MAX];
+
+        memcpy (one, s, len);
+
+        one[len] = 0;
+
+        hc_dynlib_dir_add (dirs, &dirs_cnt, one);
+      }
+
+      if (e == NULL) break;
+
+      s = e + 1;
+    }
+  }
+
+  glob_t gl;
+
+  if (glob ("/etc/ld.so.conf.d/*.conf", 0, NULL, &gl) == 0)
+  {
+    for (size_t i = 0; i < gl.gl_pathc; i++)
+    {
+      FILE *fp = fopen (gl.gl_pathv[i], "r");
+
+      if (fp == NULL) continue;
+
+      char line[HC_DYNLIB_PATH_MAX];
+
+      while (fgets (line, sizeof (line), fp))
+      {
+        char *end = strpbrk (line, "\r\n");
+
+        if (end) *end = 0;
+
+        hc_dynlib_dir_add (dirs, &dirs_cnt, line);
+      }
+
+      fclose (fp);
+    }
+
+    globfree (&gl);
+  }
+
+  hc_dynlib_dir_add (dirs, &dirs_cnt, "/lib");
+  hc_dynlib_dir_add (dirs, &dirs_cnt, "/usr/lib");
+  hc_dynlib_dir_add (dirs, &dirs_cnt, "/lib64");
+  hc_dynlib_dir_add (dirs, &dirs_cnt, "/usr/lib64");
+
+  return dirs_cnt;
+}
+
+static void hc_dynlib_best (const char *pattern, const char *stem, char *best, const size_t best_size, int *best_ver, bool *have)
+{
+  glob_t gl;
+
+  if (glob (pattern, 0, NULL, &gl) != 0) return;
+
+  for (size_t i = 0; i < gl.gl_pathc; i++)
+  {
+    const char *path = gl.gl_pathv[i];
+
+    const char *base = strrchr (path, '/');
+
+    base = (base) ? base + 1 : path;
+
+    int ver[HC_DYNLIB_VER_MAX];
+
+    if (hc_dynlib_ver_parse (base, stem, ver) == false) continue;
+
+    if ((*have == true) && (hc_dynlib_ver_cmp (ver, best_ver) <= 0)) continue;
+
+    snprintf (best, best_size, "%s", path);
+
+    memcpy (best_ver, ver, sizeof (ver));
+
+    *have = true;
+  }
+
+  globfree (&gl);
+}
+
+hc_dynlib_t hc_dynlib_open_newest (const char *stem, char *err, const size_t err_size)
+{
+  if (stem == NULL) return NULL;
+
+  char dirs[HC_DYNLIB_DIR_MAX][HC_DYNLIB_PATH_MAX];
+
+  const size_t dirs_cnt = hc_dynlib_dirs (dirs);
+
+  char best[HC_DYNLIB_PATH_MAX];
+
+  int best_ver[HC_DYNLIB_VER_MAX];
+
+  bool have = false;
+
+  char pattern[HC_DYNLIB_PATH_MAX];
+
+  for (size_t i = 0; i < dirs_cnt; i++)
+  {
+    const int len = snprintf (pattern, sizeof (pattern), "%s/%s.so.*", dirs[i], stem);
+
+    if (len < 0) continue;
+    if ((size_t) len >= sizeof (pattern)) continue;
+
+    hc_dynlib_best (pattern, stem, best, sizeof (best), best_ver, &have);
+  }
+
+  const int len = snprintf (pattern, sizeof (pattern), "/usr/lib/*-linux-gnu/%s.so.*", stem);
+
+  if ((len > 0) && ((size_t) len < sizeof (pattern)))
+  {
+    hc_dynlib_best (pattern, stem, best, sizeof (best), best_ver, &have);
+  }
+
+  if (have == true)
+  {
+    hc_dynlib_t lib = hc_dlopen (best);
+
+    if (lib) return lib;
+  }
+
+  // Nothing was found where the linker looks, or the newest one would not open. The plain name is
+  // still worth a try, because it costs one call and it covers a layout this does not know about.
+
+  char plain[HC_DYNLIB_PATH_MAX];
+
+  snprintf (plain, sizeof (plain), "%s.so", stem);
+
+  hc_dynlib_t lib = hc_dlopen (plain);
+
+  if (lib) return lib;
+
+  if (err == NULL) return NULL;
+  if (err_size == 0) return NULL;
+
+  if (have == true)
+  {
+    snprintf (err, err_size, "%s was found at %s but would not load: %s", stem, best, hc_dlerror ());
+  }
+  else
+  {
+    snprintf (err, err_size, "no %s.so or %s.so.<version> in any library directory", stem, stem);
+  }
+
+  err[err_size - 1] = 0;
+
+  return NULL;
+}
+
+#endif // _WIN
 
 // Open the first library in the list that will load.
 //

@@ -735,7 +735,7 @@ int hc_append_chr (char *buf, const int len, const int buf_sz, const char c)
 // Bytes are addressed directly here rather than through shifts, which is the same thing on a little
 // endian host and is what the kernel's word arithmetic amounts to.
 
-HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len)
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len)
 {
   if (pool == NULL) return -1;
 
@@ -786,6 +786,7 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
   if (carry != 0) return -1;
 
   const u8 *pb = (const u8 *) pool;
+  const u8 *bb = (const u8 *) base;
 
   u8 *wb = (u8 *) w;
 
@@ -802,6 +803,27 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
     const u32 packed = cell->slots[j].packed;
 
     const u32 kind = PCFG_SLOT_KIND (packed);
+
+    // A run of the base word is not in the pool and its length is in the descriptor either way, so it
+    // is settled before the two that read the pool to find out.
+
+    if (kind == PCFG_SLOT_KIND_COPY)
+    {
+      const u32 ent_len = PCFG_SLOT_ENT_LEN (packed);
+      const u32 dst_off = (varlen == true) ? pos : PCFG_SLOT_DST_OFF (packed);
+      const u32 src     = cell->slots[j].pool_off;
+
+      dpos[j] = dst_off;
+
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        wb[dst_off + k] = bb[src + k];
+      }
+
+      pos += ent_len;
+
+      continue;
+    }
 
     const u32 ent_len = (varlen == true) ? (pool[cell->slots[j].pool_off + digit[j] + 1] - pool[cell->slots[j].pool_off + digit[j]]) : PCFG_SLOT_ENT_LEN (packed);
     const u32 dst_off = (varlen == true) ? pos                                                                                      : PCFG_SLOT_DST_OFF (packed);
@@ -860,12 +882,19 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
     }
   }
 
-  // How long the candidate is. The device slots are a suffix of the structure, so the last of them is
-  // where the candidate ends whether or not the lengths vary, and the running offset says where that
-  // is. A cell with no device slots rewrote nothing and its candidate is the base word, which only the
-  // caller knows the length of.
+  // How long the candidate is, and it has to be the length the kernel hashed or a crack is reported as
+  // a password that does not produce its own digest.
+  //
+  // Where the entries are all one length the kernel hashes the base word's length, because the slots
+  // write over bytes that were already there and nothing moves. The running offset is not that length:
+  // it stops where the last slot stopped. For a grammar the two agree, because its slots are a suffix
+  // of the structure and the last of them ends the candidate. For a table they do not, because a slot
+  // is wherever a token varies, so a word that does not end in one leaves the offset short and the
+  // plaintext was reported truncated.
+  //
+  // Where the entries vary in length the offset is the length, and it is what the kernel returns too.
 
-  const int len = (int) pos;
+  const int len = (varlen == true) ? (int) pos : base_len;
 
   return len;
 }

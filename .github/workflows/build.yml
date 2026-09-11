@@ -25,7 +25,7 @@ env:
     docs/
     extra/
     feeds/
-    layouts/
+    tables/
     masks/
     modules/
     OpenCL/

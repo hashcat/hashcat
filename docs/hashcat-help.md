@@ -59,15 +59,15 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot
      --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15
      --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le
-     --debug-mode               | Num  | Defines the debug mode, requires -r or -g            | --debug-mode=4
+     --debug-mode               | Num  | Defines the debug mode, 1-5 require -r or -g, 6 a feed | --debug-mode=4
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
-     --seekdb-path              | Dir  | Specify the directory to store seek databases in     | --seekdb-path=/mnt/seekdbs
+     --cache-path               | Dir  | Specify the directory hashcat caches everything in   | --cache-path=/mnt/hccache
      --logfile-disable          |      | Disable the logfile                                  |
      --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2
      --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
-     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=german.hckmap
+     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table
      --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png
      --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt
      --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450
@@ -99,7 +99,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1
  -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |
  -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |
- -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3
  -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64
  -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256
  -T, --kernel-threads           | Num  | Manual workload tuning, set thread count to X        | -T 64
@@ -192,6 +191,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   1 | Combination
   3 | Brute-force
   4 | PCFG, a trained grammar makes the candidates
+  5 | Table, a table says what each character may become
   6 | Hybrid Wordlist + Mask
   7 | Hybrid Mask + Wordlist
   8 | Generic
@@ -227,15 +227,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
 
 Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.
 
-- [ Workload Profiles ] -
-
-  # | Performance | Runtime | Power Consumption | Desktop Impact
- ===+=============+=========+===================+=================
-  1 | Low         |   2 ms  | Low               | Minimal
-  2 | Default     |  12 ms  | Economic          | Noticeable
-  3 | High        |  96 ms  | High              | Unresponsive
-  4 | Nightmare   | 480 ms  | Insane            | Headless
-
 - [ License ] -
 
   hashcat is licensed under the MIT license
@@ -251,6 +242,7 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Brute-Force      | MD5   | hashcat -a 3 -m 0 example0.hash ?a?a?a?a?a?a
   PCFG             | MD5   | hashcat -a 4 -m 0 example0.hash
   PCFG + ruleset   | MD5   | hashcat -a 4 -m 0 example0.hash /path/to/ruleset
+  Table            | MD5   | hashcat -a 5 -m 0 example0.hash example.dict tables/leetspeak-common.table tables/toggle.table
   Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule

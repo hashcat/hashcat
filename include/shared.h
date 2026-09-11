@@ -93,7 +93,7 @@ int hc_append_chr    (char *buf, const int len, const int buf_sz, const char c);
 // base_len is the base word's length, which is the answer when the cell has no device slots at all and
 // the base word is therefore the whole candidate. -1 means il_pos is past the end of the rectangle.
 
-HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len);
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len);
 
 HC_API u64 hc_peak_rss (void);
 

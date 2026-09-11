@@ -99,10 +99,16 @@
 #define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void),  \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e),     \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
@@ -119,10 +125,16 @@
 #define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void),  \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e),     \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)
@@ -326,8 +338,8 @@ DECLSPEC void hc_enc_init (PRIVATE_AS hc_enc_t *hc_enc);
 DECLSPEC int hc_enc_has_next (PRIVATE_AS hc_enc_t *hc_enc, const int sz);
 DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz);
 DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz);
-DECLSPEC int hc_enc_validate_utf8 (PRIVATE_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead);
-DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead);
+DECLSPEC u32 hc_enc_seq_byte (const u32 w0, const u32 w1, const int p, const int j);
+DECLSPEC int hc_enc_validate_utf8 (const u32 w0, const u32 w1, const int src_pos, const int extraBytesToRead);
 
 DECLSPEC int pkcs_padding_bs8 (PRIVATE_AS const u32 *data_buf, const int data_len);
 DECLSPEC int pkcs_padding_bs16 (PRIVATE_AS const u32 *data_buf, const int data_len);

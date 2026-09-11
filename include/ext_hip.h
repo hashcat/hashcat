@@ -561,7 +561,7 @@ typedef struct hipDevicePropDTK_t
 #define hipDeviceScheduleBlockingSync 0x4
 #define hipDeviceScheduleMask 0x7
 #define hipDeviceMapHost 0x8
-#define hipDeviceLmemResizeToMax 0x16
+#define hipDeviceLmemResizeToMax 0x10
 
 typedef enum hipJitOption
 {

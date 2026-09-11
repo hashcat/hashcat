@@ -1,25 +1,9 @@
 RUST_BUILD_MODE ?= release
 
-RUST_CARGO      ?= cargo
-RUST_RUSTUP     ?= rustup
-
 RUST_SCAN_DIR   := Rust/feeds
 RUST_MODE_FLAG  := $(if $(filter $(RUST_BUILD_MODE),release),--release,)
 
-CARGO_PRESENT   := false
-RUSTUP_PRESENT  := false
-
-CARGO_VERSION   := $(word 2, $(shell $(RUST_CARGO) version 2>/dev/null))
-ifneq ($(filter 1.%,$(CARGO_VERSION)),)
-CARGO_PRESENT   := true
-endif
-
-RUSTUP_VERSION  := $(word 2, $(shell $(RUST_RUSTUP) --version 2>/dev/null))
-ifneq ($(filter 1.%,$(RUSTUP_VERSION)),)
-RUSTUP_PRESENT  := true
-endif
-
-ifeq ($(CARGO_PRESENT),true)
+ifeq ($(RUST_SKIP_REASON),)
 
 ifeq ($(shell uname),Darwin)
 RUST_LIB_EXT    := dylib
@@ -71,37 +55,22 @@ FORCE:
 # during a dry run.
 
 feeds/rust_%.so: $(RUST_SCAN_DIR)/%/Cargo.toml FORCE
-	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $<
+	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --target-dir Rust/feeds/$*/target --manifest-path $<
 	@cmp -s Rust/feeds/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@ 2>/dev/null || cp Rust/feeds/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@
 ifeq ($(RUSTUP_PRESENT),true)
 feeds/rust_%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml FORCE
 	$(RUST_RUSTUP) --quiet target add x86_64-pc-windows-gnu
-	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $< --target x86_64-pc-windows-gnu
+	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --target-dir Rust/feeds/$*/target --manifest-path $< --target x86_64-pc-windows-gnu
 	@cmp -s Rust/feeds/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@ 2>/dev/null || cp Rust/feeds/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@
 else
 feeds/rust_%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
-	@echo ""
-	@echo "$(RED)WARNING$(RESET): Skipping genereric attack-mode 8 plugin: rustup not found."
-	@echo "         To use it, you must install Rust."
-	@echo "         Otherwise, you can safely ignore this warning."
-	@echo "         For more information, see 'docs/hashcat-rust-plugin-requirements.md'."
-	@echo ""
+	$(call RUST_SKIP_WARNING,generic attack-mode 8 plugin,rustup not found)
 endif
 else
 feeds/rust_%.so: $(RUST_SCAN_DIR)/%/Cargo.toml
-	@echo ""
-	@echo "$(RED)WARNING$(RESET): Skipping genereric attack-mode 8 plugin: cargo not found."
-	@echo "         To use it, you must install Rust."
-	@echo "         Otherwise, you can safely ignore this warning."
-	@echo "         For more information, see 'docs/hashcat-rust-plugin-requirements.md'."
-	@echo ""
+	$(call RUST_SKIP_WARNING,generic attack-mode 8 plugin,$(RUST_SKIP_REASON))
 feeds/rust_%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
-	@echo ""
-	@echo "$(RED)WARNING$(RESET): Skipping genereric attack-mode 8 plugin: cargo not found."
-	@echo "         To use it, you must install Rust."
-	@echo "         Otherwise, you can safely ignore this warning."
-	@echo "         For more information, see 'docs/hashcat-rust-plugin-requirements.md'."
-	@echo ""
+	$(call RUST_SKIP_WARNING,generic attack-mode 8 plugin,$(RUST_SKIP_REASON))
 endif
 
 FEEDS_RUST_SRC := $(wildcard $(RUST_SCAN_DIR)/*/Cargo.toml)

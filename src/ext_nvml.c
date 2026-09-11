@@ -133,12 +133,35 @@ int nvml_init (void *hashcat_ctx)
     return -1;
   }
 
+  // NVML versions an entry point by suffixing the symbol and keeping the old one, the way CUDA does,
+  // so the member keeps the plain name and only the symbol carries the suffix. The unsuffixed symbol
+  // is the fallback, because a driver older than the suffixed one would otherwise leave the pointer
+  // null and every wrapper here calls its pointer without checking.
+
+  #define HC_LOAD_FUNC_NVML(ptr,name,nvmlname,type,libname,noerr) \
+    do { \
+      (ptr)->name = (type) hc_dlsym ((ptr)->lib, #nvmlname); \
+      if (!(ptr)->name) (ptr)->name = (type) hc_dlsym ((ptr)->lib, #name); \
+      if ((noerr) != -1) { \
+        if (!(ptr)->name) { \
+          if ((noerr) == 1) { \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return -1; \
+          } \
+          if ((noerr) != 1) { \
+            event_log_warning (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
+            return 0; \
+          } \
+        } \
+      } \
+    } while (0)
+
   HC_LOAD_FUNC(nvml, nvmlErrorString, NVML_ERROR_STRING, NVML, 0);
-  HC_LOAD_FUNC(nvml, nvmlInit, NVML_INIT, NVML, 0);
+  HC_LOAD_FUNC_NVML(nvml, nvmlInit, nvmlInit_v2, NVML_INIT, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlShutdown, NVML_SHUTDOWN, NVML, 0);
-  HC_LOAD_FUNC(nvml, nvmlDeviceGetCount, NVML_DEVICE_GET_COUNT, NVML, 0);
+  HC_LOAD_FUNC_NVML(nvml, nvmlDeviceGetCount, nvmlDeviceGetCount_v2, NVML_DEVICE_GET_COUNT, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetName, NVML_DEVICE_GET_NAME, NVML, 0);
-  HC_LOAD_FUNC(nvml, nvmlDeviceGetHandleByIndex, NVML_DEVICE_GET_HANDLE_BY_INDEX, NVML, 0);
+  HC_LOAD_FUNC_NVML(nvml, nvmlDeviceGetHandleByIndex, nvmlDeviceGetHandleByIndex_v2, NVML_DEVICE_GET_HANDLE_BY_INDEX, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperature, NVML_DEVICE_GET_TEMPERATURE, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetFanSpeed, NVML_DEVICE_GET_FAN_SPEED, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetUtilizationRates, NVML_DEVICE_GET_UTILIZATION_RATES, NVML, 0);
@@ -146,10 +169,19 @@ int nvml_init (void *hashcat_ctx)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperatureThreshold, NVML_DEVICE_GET_THRESHOLD, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkGeneration, NVML_DEVICE_GET_CURRPCIELINKGENERATION, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkWidth, NVML_DEVICE_GET_CURRPCIELINKWIDTH, NVML, 0);
-  HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrentClocksThrottleReasons, NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS, NVML, 0);
-  HC_LOAD_FUNC(nvml, nvmlDeviceGetSupportedClocksThrottleReasons, NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS, NVML, 0);
-  HC_LOAD_FUNC(nvml, nvmlDeviceGetPciInfo, NVML_DEVICE_GET_PCIINFO, NVML, 0);
+  HC_LOAD_FUNC_NVML(nvml, nvmlDeviceGetCurrentClocksThrottleReasons, nvmlDeviceGetCurrentClocksEventReasons, NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS, NVML, 0);
+  HC_LOAD_FUNC_NVML(nvml, nvmlDeviceGetSupportedClocksThrottleReasons, nvmlDeviceGetSupportedClocksEventReasons, NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS, NVML, 0);
+  HC_LOAD_FUNC_NVML(nvml, nvmlDeviceGetPciInfo, nvmlDeviceGetPciInfo_v3, NVML_DEVICE_GET_PCIINFO, NVML, 0);
+
+  // Left on the unsuffixed entry points on purpose. nvmlDeviceGetMemoryInfo_v2 reports the memory the
+  // driver reserves as a field of its own rather than counting it as used, and nvmlDeviceGetFanSpeed_v2
+  // takes a fan index where this one always answers for the first fan, so a card with several fans
+  // reads differently. Both would change what the status screen shows, which is a decision about the
+  // display rather than about which API this is written against.
+
   HC_LOAD_FUNC(nvml, nvmlDeviceGetMemoryInfo, NVML_DEVICE_GET_MEMORYINFO, NVML, 0);
+
+  #undef HC_LOAD_FUNC_NVML
 
   return 0;
 }
@@ -307,6 +339,50 @@ int hm_NVML_nvmlDeviceGetUtilizationRates (void *hashcat_ctx, nvmlDevice_t devic
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     event_log_error (hashcat_ctx, "nvmlDeviceGetUtilizationRates(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (void *hashcat_ctx, nvmlDevice_t device, unsigned long long *clocksThrottleReasons)
+{
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+  NVML_PTR *nvml = (NVML_PTR *) hwmon_ctx->hm_nvml;
+
+  if (nvml->nvmlDeviceGetCurrentClocksThrottleReasons == NULL) return -1;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrentClocksThrottleReasons (device, clocksThrottleReasons);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetCurrentClocksThrottleReasons(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (void *hashcat_ctx, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons)
+{
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+  NVML_PTR *nvml = (NVML_PTR *) hwmon_ctx->hm_nvml;
+
+  if (nvml->nvmlDeviceGetSupportedClocksThrottleReasons == NULL) return -1;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetSupportedClocksThrottleReasons (device, supportedClocksThrottleReasons);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetSupportedClocksThrottleReasons(): %s", string);
 
     return -1;
   }

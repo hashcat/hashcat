@@ -28,6 +28,21 @@ At the time of writing, several Linux distributions, including Ubuntu 24.04, do 
 
 For now, multiprocessing (-m 73000) supports most modules and is generally better for real-world workloads, but it works only on Linux. Developers on Windows/macOS may use `-m 72000` for development, except if `cffi` modules are requested and in this case switch back to `-m 73000`. Then use Linux (or WSL2 on Windows) for long running tasks.
 
+## Minimum versions
+
+```
+-m 72000   Python 3.13   and a free-threaded build to run it
+-m 73000   Python 3.10
+```
+
+Both are checked when hashcat starts, and the 72000 build refuses headers below 3.13 as well, so a
+plugin that could only fail at run time is not produced in the first place. Building 72000 does not
+itself need a free-threaded Python, only running it does, which is why the release package is built
+against an ordinary one.
+
+Ubuntu 24.04 carries 3.12, so neither 3.13 nor a free-threaded build comes from the distribution.
+Use `pyenv`, as described below.
+
 ### Pyenv
 
 Pyenv is great for managing local python versions, and also frees us from using virtual environments while at the same time to not break global system installs when using `pip` to install new modules.

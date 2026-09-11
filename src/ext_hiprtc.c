@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
+#include "ext_hip.h"
 #include "ext_hiprtc.h"
 #include "shared.h"
 
@@ -77,17 +78,34 @@ int hiprtc_init (void *hashcat_ctx)
   }
 
   #if   defined (_WIN)
-  char *hipSDKPath = getenv ("HIP_PATH");
+  // hiprtc0702.dll for 7.2, the same numbering as the runtime library beside it. The name is read off
+  // the disk rather than built, and the digit test in the helper is what keeps hiprtc-builtins from
+  // being mistaken for it.
 
-  if (hipSDKPath == NULL) return -1;
+  char hip_bin[MAX_PATH];
 
-  char *hiprtcdllpath = hiprtcDllPath (hipSDKPath);
+  const char *hipSDKPath = getenv ("HIP_PATH");
 
-  if (hiprtcdllpath == NULL) return -1;
+  const char *dirs[1] = { NULL };
 
-  hiprtc->lib = hc_dlopen (hiprtcdllpath);
+  if (hipSDKPath)
+  {
+    const size_t len = strlen (hipSDKPath);
 
-  free (hiprtcdllpath);
+    const char *sep = ((len > 0) && (hipSDKPath[len - 1] == '\\')) ? "" : "\\";
+
+    snprintf (hip_bin, sizeof (hip_bin), "%s%sbin", hipSDKPath, sep);
+
+    dirs[0] = hip_bin;
+  }
+
+  hiprtc->lib = hc_dynlib_open_newest_dll ("hiprtc", dirs, 1, NULL, 0);
+
+  if (hiprtc->lib == NULL)
+  {
+    hiprtc->lib = hc_dlopen ("hiprtc.dll");
+  }
+
   #elif defined (__APPLE__)
   hiprtc->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
@@ -103,24 +121,10 @@ int hiprtc_init (void *hashcat_ctx)
 
   free (hiprtcdllpath);
   #else
-  hiprtc->lib = hc_dlopen ("libhiprtc.so");
+  // Same as the runtime library: the versioned names are read off the disk and the newest wins,
+  // because the unversioned link only comes with the development package.
 
-  // Same as the runtime loader in ext_hip.c: the unversioned name belongs to the -dev package, so
-  // fall back to the sonames newest first.
-
-  if (hiprtc->lib == NULL)
-  {
-    char soname[64];
-
-    for (int major = 9; major >= 4; major--)
-    {
-      snprintf (soname, sizeof (soname), "libhiprtc.so.%d", major);
-
-      hiprtc->lib = hc_dlopen (soname);
-
-      if (hiprtc->lib) break;
-    }
-  }
+  hiprtc->lib = hc_dynlib_open_newest ("libhiprtc", NULL, 0);
   #endif
 
   if (hiprtc->lib == NULL) return -1;

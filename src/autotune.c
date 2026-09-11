@@ -12,20 +12,18 @@
 #include "shared.h"
 #include "autotune.h"
 
-// How much longer a bridge is allowed to run per launch than a compute kernel is, per workload profile.
+// How much longer a bridge is allowed to run per launch than a compute kernel is.
 //
-// TARGET_MSEC_PROFILE in backend.c is picked for a kernel on a GPU, where a short launch is what keeps a
+// TARGET_MSEC in backend.c is set for a kernel on a GPU, where a short launch is what keeps a
 // display drawing. A bridge that replaced the loop kernel never enters that queue, which is the same
 // reason the TDR limit is waived for it further down in this file.
 //
 // It also pays far more for a short launch than a GPU does. A bridge unit that is wide internally runs
 // a launch's candidates through its whole compute array and then drains it, so the waste is one
 // array-fill per launch rather than a fixed overhead, and it grows as the launch gets shorter. On such
-// a unit the 96 ms that -w 3 asks for has been measured costing five to eleven percent of throughput,
-// against about 1.2 percent for a GPU running -m 1000.
-//
-// Scaling the whole ladder rather than moving one rung keeps -w meaning what it means: 1 and 2 stay the
-// responsive settings, 3 stays the default that should sit near peak, 4 stays maximum throughput.
+// a unit the 96 ms budget has been measured costing five to eleven percent of throughput, against
+// about 1.2 percent for a GPU running -m 1000. So the bridge is given a multiple of the kernel budget
+// rather than the same one.
 
 #define BRIDGE_TARGET_MSEC_SCALE 4
 
@@ -58,10 +56,32 @@ int find_tuning_function (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_par
   return -1;
 }
 
+// How many work items a launch may have.
+//
+// The association attack pairs each candidate with one hash, so the work item id is also the index
+// into the salt array: attack mode 9 defines SALT_POS_HOST as pws_pos plus the global id. A launch
+// with more work items than there are salts reads past the end of salt_bufs, which on a discrete GPU
+// is an illegal access rather than a wrong answer. Every launch autotune makes has to be trimmed,
+// not only the one that times the loop kernel.
+
+static u32 autotune_kernel_power (hashcat_ctx_t *hashcat_ctx, const u32 kernel_power)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) return kernel_power;
+
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  const u32 salts_cnt = hashes->salts_cnt;
+
+  if (kernel_power > salts_cnt) return salts_cnt;
+
+  return kernel_power;
+}
+
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const u32 kernel_threads)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   device_param->kernel_param.loop_pos = 0;
   device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
@@ -71,19 +91,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
                            : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads);
 
-  u32 kernel_power_try = hardware_power * kernel_accel;
-
-  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-  {
-    hashes_t *hashes = hashcat_ctx->hashes;
-
-    const u32 salts_cnt = hashes->salts_cnt;
-
-    if (kernel_power_try > salts_cnt)
-    {
-      kernel_power_try = salts_cnt;
-    }
-  }
+  u32 kernel_power_try = autotune_kernel_power (hashcat_ctx, hardware_power * kernel_accel);
 
   // the count a bridge advertises is a maximum it cannot be asked to exceed, so a probe has to
   // respect it the same way the production launch does. the accel is derived by rounding that
@@ -354,23 +362,7 @@ static u32 autotune2_threads_walk (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 // -m 0 on the same card has not turned over by accel 128.
 //
 // So the candidates are built by arithmetic and a few of them are measured. All of them cost the
-// same time by construction, so the comparison is fair, and the lowest accel within a small margin
-// of the best is taken. Fewer candidates in flight means less work thrown away when a slow hash
-// finishes, and it costs nothing when the margin is respected.
-
-#define AUTOTUNE2_MARGIN 0.98
-
-// Greed is how much of a gain a bigger launch has to show before the tuner takes it. Below 1 it keeps
-// the smaller launch unless the bigger one clearly wins, and that is what makes the batch short. At 1
-// it takes every gain there is and the batch grows to whatever the budget allows.
-//
-// Greed rides -w because -w already means responsiveness against throughput, and hashcat already
-// documents it that way. The two lower profiles stay frugal, so an interactive run and a distributed
-// agent both get the short batch. The two upper profiles chase the last percent, so a dedicated rig
-// gives up nothing, and benchmark figures stay comparable across the change because --benchmark
-// forces profile 3.
-
-static const double AUTOTUNE2_GREED[4] = { AUTOTUNE2_MARGIN, AUTOTUNE2_MARGIN, 1.00, 1.00 };
+// same time by construction, so the comparison is fair, and the fastest one is taken.
 
 // How long a calibration probe has to run before its result is a measurement rather than timer noise.
 // The launches that defeated the fit came back at 0.002 ms to 0.34 ms, and two of them were identical
@@ -395,8 +387,10 @@ static double autotune2_fixed_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   const u32 threads_sav = device_param->kernel_threads;
 
-  const u32 kernel_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                         * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
+                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
   device_param->kernel_threads = threads;
 
@@ -474,8 +468,10 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   const u32 threads_sav = device_param->kernel_threads;
 
-  const u32 kernel_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                         * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
+                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
   device_param->kernel_threads = threads;
 
@@ -500,8 +496,10 @@ static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
   device_param->kernel_param.loop_cnt = loops;
   device_param->kernel_param.il_cnt   = loops;
 
-  const u32 kernel_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                         * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
+                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
   const u32    threads_sav   = device_param->kernel_threads;
   const double spin_damp_sav = device_param->spin_damp;
@@ -529,8 +527,9 @@ static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 // is arithmetic, so the split is chosen without launching anything more.
 //
 // Fitted against nine configurations of -m 1800 that all cost the same time, the expression is
-// within 0.4 percent through accel 5 and drifts to 6 percent by accel 16, so it is trusted where
-// the frugal answers live and the margin below keeps it away from the far end.
+// within 0.4 percent through accel 5 and drifts to 6 percent by accel 16. Nothing holds the walk back
+// from the far end any more, so a large accel answer carries that drift. It is trusted where
+// the frugal answers live.
 
 static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 accel_min, const u32 accel_max, const u32 loops_min, const u32 loops_max, const u32 threads, const double target_msec, u32 *out_accel, u32 *out_loops)
 {
@@ -554,8 +553,9 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   //
   // Leaving A out is not a small error, it is the one that decided the answer. Without it the cost is
   // a line through the origin, so throughput works out as accel / (I + c * accel), which flattens as
-  // soon as c * accel passes I. Every accel then scores the same to within the margin below, the
-  // margin hands the tie to the smallest, and a starved launch is reported as the best one. Measured
+  // soon as c * accel passes I. Every accel then scores within a couple of percent of every other
+  // one, so which wins is decided by rounding rather than by the device, and a starved launch can be
+  // reported as the best one. Measured
   // on m33400 that is 14397 H/s read as 278.
   //
   // Three points give all three numbers. Two loop counts at one accel give P, and a second accel at
@@ -590,7 +590,7 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   // while its answer runs at 999 or more, and there the two accels land inside the timer's resolution:
   // 0.207 ms against 0.207 ms on m14800, 0.331 against 0.342 on m33400, 0.002 against 0.004 on a CPU
   // device. Every one of those fits the per-accel cost negative, which throws the intercept away and
-  // leaves the origin form that scores every accel alike, so the margin returns accel_min and the
+  // leaves the origin form that scores every accel alike, so the walk returns accel_min and the
   // launch is starved. So climb the calibration loop count until the probe is long enough to carry a
   // slope, stopping at loops_max or once the probe is already worth a launch of its own.
 
@@ -656,10 +656,9 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   }
 
   // The accel axis gave nothing usable, so the origin form is all there is to fall back to. That form
-  // scores every accel within a couple of percent of every other one, and the margin below would then
-  // hand the answer to the smallest and starve the launch. A fit that cannot separate one accel from
-  // another has not earned the right to choose the frugal end, so the margin is dropped here and the
-  // best rate is taken outright.
+  // scores every accel within a couple of percent of every other one, so the answer it gives is close
+  // to arbitrary. The walk still takes the highest rate it finds, and only an exact tie leaves it at
+  // accel_min. Nothing here can recover a fit that carries no accel information.
 
   if (accel_fit == false)
   {
@@ -766,24 +765,6 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     }
   }
 
-  const user_options_t *user_options = hashcat_ctx->user_options;
-
-  const double greed = AUTOTUNE2_GREED[user_options->workload_profile - 1];
-
-  // A fit that could not separate the accel axis scores every accel alike, so greed below 1 would hand
-  // the answer to the smallest and starve the launch whatever the profile asked for.
-
-  // Frugality trades throughput for fewer candidates in flight, and that is worth paying for only
-  // where an abandoned launch is expensive. A mode whose work sits outside the attack kernel holds
-  // the device in its loop kernel for the whole budget, so a launch it has to give up costs the
-  // budget. A mode that hashes inside the attack kernel finishes a launch in milliseconds and has
-  // nothing worth saving, while its rate flattens as soon as accel * F passes A, so the margin
-  // hands it the smallest accel and starves the launch.
-
-  const bool margin_applies = (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL);
-
-  const double margin = ((accel_fit == true) && (margin_applies == true)) ? greed : 1.0;
-
   double best_rate  = 0;
   u32    best_accel = accel_min;
   u32    best_loops = loops_min;
@@ -842,19 +823,27 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
       event_log_info (hashcat_ctx, "AT2 accel=%u loops=%u loop_msec=%.3f total=%.3f rate=%.5f", accel, loops, msec_loop, total, rate);
     }
 
-    // Frugality wins ties. A candidate has to beat the incumbent by more than the margin to take
-    // its place, and candidates are walked from the smallest accel upward, so the cheapest one that
-    // is good enough is the one that survives.
+    // Candidates are walked from the smallest accel upward, and a tie goes to the larger launch.
+    //
+    // The tie is the normal case rather than a rare one. The intercept A is fitted as the difference
+    // of two nearly equal numbers and on a fast hash those agree to a fraction of a percent. Measured
+    // on m2811 over 12 identical runs, t(1) moved between 0.613 and 0.633 ms while A moved between
+    // -0.019 and +0.003, so its sign is decided by jitter. A negative fit is clamped to zero, and at
+    // zero the rate is mathematically constant in accel, because loops is chosen to fill the budget
+    // and that pins accel * loops. Every candidate then scores alike.
+    //
+    // Keeping the smaller launch on that tie answered accel 1 in 9 of those 12 runs and ran 5 times
+    // slower than the tuner this replaced, while the single run whose A landed positive chose accel
+    // 141 and matched it. Taking the larger is also what the device wants: the cost a wider launch
+    // saves is paid outside the kernel try_run times, so where the probe sees no difference there is
+    // still one.
 
-    if (rate > (best_rate / margin))
+    if (rate > (best_rate * 0.98))
     {
-      best_rate  = rate;
+      if (rate > best_rate) best_rate = rate;
+
       best_accel = accel;
       best_loops = loops;
-    }
-    else if (rate > best_rate)
-    {
-      best_rate = rate;
     }
   }
 
@@ -1024,19 +1013,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
 
-    u32 kernel_power_max = hardware_power_max * kernel_accel_max;
-
-    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-    {
-      hashes_t *hashes = hashcat_ctx->hashes;
-
-      const u32 salts_cnt = hashes->salts_cnt;
-
-      if (kernel_power_max > salts_cnt)
-      {
-        kernel_power_max = salts_cnt;
-      }
-    }
+    const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
 
     device_param->at_rc = -2;
 
@@ -1298,11 +1275,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_autotune (void *p)
-#else
-HC_API_CALL void *thread_autotune (void *p)
-#endif
+HC_THREAD_FUNC thread_autotune (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 

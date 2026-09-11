@@ -8,6 +8,9 @@
 
 #if ATTACK_MODE == 9
 #define BITMAP_MASK         kernel_param->bitmap_mask
+#define PCFG_POOL_AT1       kernel_param->pcfg_pool_at1
+#define PCFG_POOL_AT2       kernel_param->pcfg_pool_at2
+#define PCFG_POOL_AT3       kernel_param->pcfg_pool_at3
 #define SALT_POS_HOST       (kernel_param->pws_pos + gid)
 #define SALT_POS_HOST_BID   (kernel_param->pws_pos + bid)
 #define LOOP_POS            kernel_param->loop_pos
@@ -23,6 +26,9 @@
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
+#define PCFG_POOL_AT1       kernel_param->pcfg_pool_at1
+#define PCFG_POOL_AT2       kernel_param->pcfg_pool_at2
+#define PCFG_POOL_AT3       kernel_param->pcfg_pool_at3
 #define SALT_POS_HOST       kernel_param->salt_pos_host
 #define SALT_POS_HOST_BID   SALT_POS_HOST
 #define LOOP_POS            kernel_param->loop_pos
@@ -2090,6 +2096,13 @@ typedef struct kernel_param
 
   u64 pcfg_lane_stride;     // 39
 
+  // Where each part of the device engine's pool begins, in words. Last, so that adding them does not
+  // renumber every field after them.
+
+  u32 pcfg_pool_at1;        // 40
+  u32 pcfg_pool_at2;        // 41
+  u32 pcfg_pool_at3;        // 42
+
 } kernel_param_t;
 
 typedef struct salt
@@ -2309,6 +2322,20 @@ typedef struct pw_idx
 #define PCFG_SLOT_KIND_BYTES 0
 #define PCFG_SLOT_KIND_CASE  1
 
+// A run of the base word, copied rather than looked up.
+//
+// The pool holds what a grammar or a table can produce, which is a fixed set known before the run.
+// A feed whose candidate also contains stretches of the base word itself has nothing in the pool to
+// write them from, and cannot put them there because they are whatever word is in hand. Such a slot
+// names an offset into the base word in pool_off instead, and has a radix of one because a run of a
+// word is not a choice.
+//
+// It reads the base word out of global memory rather than out of w, because w is being rewritten as
+// the odometer walks and a slot that grew has already overwritten what a later one would read. A whole
+// warp shares one cell and therefore one base word, so the read is a broadcast.
+
+#define PCFG_SLOT_KIND_COPY  2
+
 #define PCFG_SLOT_ENT_LEN(p) (((p) >>  0) & 0xff)
 #define PCFG_SLOT_DST_OFF(p) (((p) >>  8) & 0xff)
 #define PCFG_SLOT_KIND(p)    (((p) >> 16) & 0xff)
@@ -2387,6 +2414,15 @@ typedef struct pcfg_cell
 } pcfg_cell_t;
 
 #define PCFG_CELL_VARLEN 1
+
+// How many buffers the pool may be handed over in. inc_pcfg_pool.h says how a read finds its part.
+
+#define PCFG_POOL_PARTS 4
+
+// What the pool is aligned to and rounded up to, so a device whose memory is the host's can be handed
+// the feed's bytes instead of a copy. A multiple of every page size hashcat runs on.
+
+#define PCFG_POOL_ALIGN 65536
 
 typedef struct bf
 {

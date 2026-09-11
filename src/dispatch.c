@@ -1345,11 +1345,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_calc (void *p)
-#else
-HC_API_CALL void *thread_calc (void *p)
-#endif
+HC_THREAD_FUNC thread_calc (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
