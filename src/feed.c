@@ -38,13 +38,6 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#if defined (_WIN)
-#include <process.h>
-#define FEED_GETPID _getpid
-#else
-#define FEED_GETPID getpid
-#endif
-
 // ---------------------------------------------------------------------------------------------
 // saying things
 // ---------------------------------------------------------------------------------------------
@@ -976,7 +969,7 @@ static void feed_gpu_cache_write (const char *path, const void *buf, const size_
 
   char tmp[1024];
 
-  snprintf (tmp, sizeof (tmp), "%s.tmp.%d", path, (int) FEED_GETPID ());
+  snprintf (tmp, sizeof (tmp), "%s.tmp.%016" PRIx64, path, hc_tmp_tag ());
 
   HCFILE fp;
 

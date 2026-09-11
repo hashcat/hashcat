@@ -2589,12 +2589,12 @@ static void table_cache_save (const generic_global_ctx_t *global_ctx, const tabl
   if (path == NULL) return;
 
   // Written beside the name and moved onto it, so a run that dies leaves no file the next would
-  // trust. The temporary carries the process, or two runs on one wordlist write the same one over
-  // each other.
+  // trust. The temporary carries the process and the host it is on, or two runs on one wordlist
+  // write the same one over each other.
 
   char *tmp = NULL;
 
-  hc_asprintf (&tmp, "%s.%d.tmp", path, (int) getpid ());
+  hc_asprintf (&tmp, "%s.%016" PRIx64 ".tmp", path, hc_tmp_tag ());
 
   if (tmp == NULL) { hcfree (path); return; }
 

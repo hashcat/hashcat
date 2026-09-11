@@ -23,15 +23,14 @@ static const size_t SAMPLE_SIZE = 65536;
 
 #define SEEKDB_FRAME_GEN 2
 
-// Which process is writing, so that two of them sharing a seek database directory do not pick the
-// same temporary name.
+// lseek (), for reporting how far through a compressed source the walk has got. Which process is
+// writing used to be worked out here as well; hc_tmp_tag () in src/shared.c answers that now, and
+// answers it for other machines too.
 
 #if defined (_WIN)
-#include <process.h>
-#define SEEKDB_GETPID _getpid
+#include <io.h>
 #else
 #include <unistd.h>
-#define SEEKDB_GETPID getpid
 #endif
 
 // How many bytes a compressed wordlist has to decode to before hashcat says anything about it not
@@ -394,7 +393,7 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
 
   char tmp[1024];
 
-  snprintf (tmp, sizeof (tmp), "%s.tmp.%d", path, (int) SEEKDB_GETPID ());
+  snprintf (tmp, sizeof (tmp), "%s.tmp.%016" PRIx64, path, hc_tmp_tag ());
 
   HCFILE fp;
 
