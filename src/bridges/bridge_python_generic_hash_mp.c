@@ -41,6 +41,7 @@
 typedef void                (PYTHON_API_CALL *PY_INITIALIZE)                    ();
 typedef void                (PYTHON_API_CALL *PY_FINALIZE)                      ();
 typedef void                (PYTHON_API_CALL *PY_DECREF)                        (PyObject *);
+typedef void                (PYTHON_API_CALL *PY_INCREF)                        (PyObject *);
 typedef PyObject           *(PYTHON_API_CALL *PYBOOL_FROMLONG)                  (long);
 typedef PyObject           *(PYTHON_API_CALL *PYBYTES_FROMSTRINGANDSIZE)        (const char *, Py_ssize_t);
 typedef int                 (PYTHON_API_CALL *PYDICT_DELITEMSTRING)             (PyObject *, const char *);
@@ -97,6 +98,7 @@ typedef struct hc_python_lib
   PY_INITIALIZE                     Py_Initialize;
   PY_FINALIZE                       Py_Finalize;
   PY_DECREF                         Py_DecRef;
+  PY_INCREF                         Py_IncRef;
   PYBOOL_FROMLONG                   PyBool_FromLong;
   PYBYTES_FROMSTRINGANDSIZE         PyBytes_FromStringAndSize;
   PYDICT_DELITEMSTRING              PyDict_DelItemString;
@@ -591,6 +593,7 @@ static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, us
   HC_LOAD_FUNC_PYTHON (python, Py_Initialize,                     Py_Initialize,                      PY_INITIALIZE,                    PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_Finalize,                       Py_Finalize,                        PY_FINALIZE,                      PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_DecRef,                         Py_DecRef,                          PY_DECREF,                        PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, Py_IncRef,                         Py_IncRef,                          PY_INCREF,                        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBool_FromLong,                   PyBool_FromLong,                    PYBOOL_FROMLONG,                  PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBytes_FromStringAndSize,         PyBytes_FromStringAndSize,          PYBYTES_FROMSTRINGANDSIZE,        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyDict_DelItemString,              PyDict_DelItemString,               PYDICT_DELITEMSTRING,             PYTHON, 1);
@@ -919,6 +922,12 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     return false;
   }
 
+  // PyTuple_SetItem () steals the reference it is handed, and pContext is already owned by
+  // unit_buf->pArgs. Handing that one reference to a second tuple gives two owners one count, so this
+  // tuple takes a reference of its own and gives it back when it goes.
+
+  python->Py_IncRef (unit_buf->pContext);
+
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   PyObject *pReturn = python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
@@ -927,10 +936,14 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   {
     python->PyErr_Print ();
 
+    python->Py_DecRef (pArgs);
+
     return false;
   }
 
   python->Py_DecRef (pReturn);
+
+  python->Py_DecRef (pArgs);
 
   python->PyGILState_Release (unit_buf->gstate);
 
@@ -958,9 +971,15 @@ void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     return;
   }
 
+  // As in units_init (): a reference of this tuple's own, given back below.
+
+  python->Py_IncRef (unit_buf->pContext);
+
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   python->PyObject_CallObject (unit_buf->pFunc_Term, pArgs);
+
+  python->Py_DecRef (pArgs);
 
   python->PyDict_DelItemString (unit_buf->pContext, "salts_cnt");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_size");
