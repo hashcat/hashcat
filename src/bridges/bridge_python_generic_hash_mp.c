@@ -854,11 +854,13 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
 
   unit_buf->gstate = python->PyGILState_Ensure ();
 
+  // Only the two objects this file created are ours to release. pContext belongs to pArgs, because
+  // PyTuple_SetItem () steals the reference it is given, so dropping the tuple drops the dict with it.
+  // pFunc_Init, pFunc_Term and pFunc_kernel_loop are borrowed from pGlobals by PyDict_GetItemString ()
+  // and were never owned here. Releasing all four took their counts below what they really were, and
+  // the interpreter then freed live objects during its last collection.
+
   python->Py_DecRef (unit_buf->pArgs);
-  python->Py_DecRef (unit_buf->pContext);
-  python->Py_DecRef (unit_buf->pFunc_kernel_loop);
-  python->Py_DecRef (unit_buf->pFunc_Term);
-  python->Py_DecRef (unit_buf->pFunc_Init);
   python->Py_DecRef (unit_buf->pGlobals);
 
   //python->PyEval_RestoreThread (python_interpreter->tstate);
