@@ -344,13 +344,26 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
     HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next_dev, GENERIC_THREAD_NEXT_DEV);
   }
 
-  // Whether this feed can answer the question --debug-mode 6 asks. The option is checked for shape
-  // when the command line is read, but nothing had opened the feed by then, so this is where a feed
-  // that cannot explain itself is reported rather than quietly writing nothing.
+  // Whether this feed can answer the question --debug-mode asks. The option is checked for shape when
+  // the command line is read, but nothing had opened the feed by then, so this is where a feed that
+  // cannot explain itself is reported rather than quietly writing nothing.
+  //
+  // Mode 6 always asks the feed. Modes 1, 3, 4 and 5 ask it only when the run has no rules, because
+  // then there is no rule for them to name and the feed is the only thing that can fill the field.
+  // Mode 2 writes the base word alone, so it never needs an answer.
 
-  if ((hashcat_ctx->user_options->debug_mode == DEBUG_MODE_FEED) && (generic_ctx->explain_enable == false))
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const u32 debug_mode = user_options->debug_mode;
+
+  const bool wants_rule = (debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5);
+  const bool no_rules = (user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0);
+
+  const bool asks_feed = (debug_mode == DEBUG_MODE_FEED) || ((wants_rule == true) && (no_rules == true));
+
+  if ((asks_feed == true) && (generic_ctx->explain_enable == false))
   {
-    event_log_error (hashcat_ctx, "%s: this feed cannot say how it made a candidate, so --debug-mode %d has nothing to write.", generic_ctx->plugin_name, DEBUG_MODE_FEED);
+    event_log_error (hashcat_ctx, "%s: this feed cannot say how it made a candidate, so --debug-mode %u has nothing to write.", generic_ctx->plugin_name, debug_mode);
 
     return -1;
   }

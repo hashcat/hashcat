@@ -59,7 +59,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot
      --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15
      --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le
-     --debug-mode               | Num  | Defines the debug mode, 1-5 require -r or -g, 6 a feed | --debug-mode=4
+     --debug-mode               | Num  | Defines the debug mode, needs rules or a feed        | --debug-mode=4
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
@@ -173,7 +173,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   5 | timestamp absolute
   6 | timestamp relative
 
-- [ Rule Debugging Modes ] -
+- [ Debugging Modes ] -
 
   # | Format
  ===+========
@@ -182,6 +182,9 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   3 | Original-Word:Finding-Rule
   4 | Original-Word:Finding-Rule:Processed-Word
   5 | Original-Word:Finding-Rule:Processed-Word:Wordlist
+  6 | Original-Word:What-The-Feed-Did:Processed-Word
+
+  Finding-Rule needs -r or -g, except in attack modes 4, 5 and 8, where the feed fills it in.
 
 - [ Attack Modes ] -
 
@@ -191,7 +194,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   1 | Combination
   3 | Brute-force
   4 | PCFG, a trained grammar makes the candidates
-  5 | Table, a table says what each character may become
+  5 | Table, tables say what each token may become
   6 | Hybrid Wordlist + Mask
   7 | Hybrid Mask + Wordlist
   8 | Generic
