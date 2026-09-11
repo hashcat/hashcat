@@ -204,8 +204,8 @@ check_exports ()
 {
   DIRECTORY="$1"
   PREFIX="$2"
-  EXPECTED="$3"
-  EXPECTED_ALT="${4:-}"
+  REQUIRED="$3"
+  OPTIONAL="${4:-}"
 
   SEEN=0
   WRONG=0
@@ -217,18 +217,32 @@ check_exports ()
 
     NAMES="$(plugin_exports "$PLUGIN" | sort | tr '\n' ' ' | sed 's/ $//')"
 
-    if [ "$NAMES" = "$EXPECTED" ]; then
-      continue
-    fi
+    BAD=""
 
-    if [ "$NAMES" = "$EXPECTED_ALT" ]; then
-      continue
-    fi
+    # everything the core resolves has to be there
+
+    for WANT in $REQUIRED; do
+      case " $NAMES " in
+        *" $WANT "*) ;;
+        *) BAD="$BAD missing:$WANT" ;;
+      esac
+    done
+
+    # and nothing beyond the entry points a plugin is allowed to leave out
+
+    for HAVE in $NAMES; do
+      case " $REQUIRED $OPTIONAL " in
+        *" $HAVE "*) ;;
+        *) BAD="$BAD unexpected:$HAVE" ;;
+      esac
+    done
+
+    [ -z "$BAD" ] && continue
 
     WRONG=$((WRONG + 1))
 
     if [ "$WRONG" -le 3 ]; then
-      printf '      %s exports: %s\n' "$PLUGIN" "$NAMES"
+      printf '      %s%s\n' "$PLUGIN" "$BAD"
     fi
   done
 
@@ -237,7 +251,7 @@ check_exports ()
   elif [ "$WRONG" -eq 0 ]; then
     pass "all $SEEN plugins in $DIRECTORY/ export exactly what the core resolves"
   else
-    fail "$WRONG of $SEEN plugins in $DIRECTORY/ do not export exactly: $EXPECTED"
+    fail "$WRONG of $SEEN plugins in $DIRECTORY/ export the wrong set, required: $REQUIRED"
   fi
 }
 
@@ -245,15 +259,17 @@ check_exports ()
 # itself, and which of those names stay in its dynamic symbol table is up to the platform's linker,
 # so there is nothing to hold it to here.
 #
-# A feed has two shapes it may take. One generates candidates on the host alone. One also generates
-# them on the device, and it exports global_dev_init () and thread_next_dev () on top for that, so
-# both name lists are given here.
+# A feed names what every feed has to, and may add the entry points for the parts it takes on. A feed
+# that generates candidates on the device as well as the host exports global_dev_init () and
+# thread_next_dev (), and one that can say how it made a candidate exports global_explain (). Listing
+# the optional names rather than every combination of them keeps the next one from doubling the list,
+# and a feed that exports a name from neither list is still caught.
 
 if [ -n "$LIBRARY" ]; then
   check_exports modules module_ "module_init"
   check_exports bridges bridge_ "bridge_init"
   check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term" \
-                                 "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_dev_init global_init global_keyspace global_term thread_init thread_next thread_next_dev thread_seek thread_term"
+                                 "global_dev_init thread_next_dev global_explain"
 fi
 
 # and the other direction. Where there is a core library, a plugin calls the core through it and
