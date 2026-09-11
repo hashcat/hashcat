@@ -72,6 +72,13 @@ typedef struct table
   u32             bucket_cnt;
   u32             bucket_alloc;
 
+  // Which bucket a source already has. Reading a table looks every line's source up, so a walk over
+  // the buckets would cost what the table holds squared. Open addressing, a slot holding the bucket
+  // index one higher than it is so that zero can mean empty.
+
+  u32 *hmap;
+  u32  hmap_size;
+
   // Longest match, by first byte. Sources sharing a first byte are held together and sorted longest
   // first, so the first one that matches at a position is the one to take and there is nothing to
   // compare afterwards. A single byte table gives every list one member and the walk is a load.
@@ -174,13 +181,63 @@ static bool table_span_eq (const table_t *tb, const u32 off, const u32 len, cons
   return true;
 }
 
+static u32 table_hash (const u8 *src, const u32 src_len)
+{
+  u32 h = 2166136261U;
+
+  for (u32 i = 0; i < src_len; i++)
+  {
+    h ^= src[i];
+    h *= 16777619U;
+  }
+
+  return h;
+}
+
+// The arena moves as it grows, so a slot holds a bucket index and the bytes are read through it.
+
+static void table_index_put (table_t *tb, const u32 idx)
+{
+  const table_bucket_t *b = &tb->bucket[idx];
+
+  u32 at = table_hash (&tb->arena[b->src_off], b->src_len) & (tb->hmap_size - 1);
+
+  while (tb->hmap[at] != 0) at = (at + 1) & (tb->hmap_size - 1);
+
+  tb->hmap[at] = idx + 1;
+}
+
+// Kept under three quarters full, because open addressing walks a long way once a table fills up.
+
+static void table_index_fit (table_t *tb)
+{
+  if ((tb->hmap_size > 0) && (((tb->bucket_cnt + 1) * 4) < (tb->hmap_size * 3))) return;
+
+  const u32 want = (tb->hmap_size == 0) ? 1024 : (tb->hmap_size * 2);
+
+  hcfree (tb->hmap);
+
+  tb->hmap      = (u32 *) hccalloc (want, sizeof (u32));
+  tb->hmap_size = want;
+
+  for (u32 i = 0; i < tb->bucket_cnt; i++) table_index_put (tb, i);
+}
+
 static u32 table_bucket_find (const table_t *tb, const u8 *src, const u32 src_len)
 {
-  for (u32 i = 0; i < tb->bucket_cnt; i++)
-  {
-    const table_bucket_t *b = &tb->bucket[i];
+  if (tb->hmap_size == 0) return TABLE_TOK_LITERAL;
 
-    if (table_span_eq (tb, b->src_off, b->src_len, src, src_len) == true) return i;
+  u32 at = table_hash (src, src_len) & (tb->hmap_size - 1);
+
+  while (tb->hmap[at] != 0)
+  {
+    const u32 idx = tb->hmap[at] - 1;
+
+    const table_bucket_t *b = &tb->bucket[idx];
+
+    if (table_span_eq (tb, b->src_off, b->src_len, src, src_len) == true) return idx;
+
+    at = (at + 1) & (tb->hmap_size - 1);
   }
 
   return TABLE_TOK_LITERAL;
@@ -252,7 +309,14 @@ static u32 table_bucket_add (table_t *tb, const u8 *src, const u32 src_len)
   b->pool_off = 0;
   b->ent_len  = 0;
 
+  // Sized before the count goes up, so the rehash covers the buckets already there and this one is
+  // put in once rather than twice.
+
+  table_index_fit (tb);
+
   tb->bucket_cnt++;
+
+  table_index_put (tb, idx);
 
   if ((tb->identity == true) && (tb->identity_last == false)) table_ent_add (tb, idx, src, src_len);
 
@@ -343,7 +407,13 @@ static bool table_bucket_idle (const table_t *tb, const u32 idx)
   return same;
 }
 
-// The lists longest match walks, one per first byte.
+// The lists longest match walks, one per first byte, each ordered longest source first so that the
+// first entry matching at a position is the one to take.
+//
+// The order is counted rather than sorted. A source length is what the list is ordered by and
+// TABLE_SRC_MAX bounds it, so counting how many entries each length holds says where each length
+// starts. Sorting a first byte list costs what that list holds squared, which a table of millions of
+// entries spends hours on.
 
 static void table_index_build (table_t *tb)
 {
@@ -353,6 +423,13 @@ static void table_index_build (table_t *tb)
     tb->first_cnt[i] = 0;
   }
 
+  // A source is at least one byte, because a line whose source has none is dropped when it is read,
+  // and at most TABLE_SRC_MAX, because a longer one is an error there.
+
+  const u32 lanes = TABLE_SRC_MAX + 1;
+
+  u32 *len_cnt = (u32 *) hccalloc (256 * lanes, sizeof (u32));
+
   for (u32 i = 0; i < tb->bucket_cnt; i++)
   {
     if (table_bucket_idle (tb, i) == true) continue;
@@ -360,6 +437,8 @@ static void table_index_build (table_t *tb)
     const u32 c = tb->arena[tb->bucket[i].src_off];
 
     tb->first_cnt[c]++;
+
+    len_cnt[(c * lanes) + tb->bucket[i].src_len]++;
   }
 
   for (u32 i = 0; i < 256; i++)
@@ -367,42 +446,41 @@ static void table_index_build (table_t *tb)
     if (tb->first_cnt[i] == 0) continue;
 
     tb->first[i] = (u32 *) hcmalloc (tb->first_cnt[i] * sizeof (u32));
-
-    tb->first_cnt[i] = 0;
   }
+
+  // Where each length begins in its list, counting down so the longest sits at the front
+
+  u32 *len_pos = (u32 *) hccalloc (256 * lanes, sizeof (u32));
+
+  for (u32 i = 0; i < 256; i++)
+  {
+    u32 at = 0;
+
+    for (u32 len = TABLE_SRC_MAX; len > 0; len--)
+    {
+      len_pos[(i * lanes) + len] = at;
+
+      at += len_cnt[(i * lanes) + len];
+    }
+  }
+
+  // Taking the buckets in order leaves entries of the same length in the order the table gave them,
+  // which is what sorting them by length alone did.
 
   for (u32 i = 0; i < tb->bucket_cnt; i++)
   {
     if (table_bucket_idle (tb, i) == true) continue;
 
-    const u32 c = tb->arena[tb->bucket[i].src_off];
+    const u32 c   = tb->arena[tb->bucket[i].src_off];
+    const u32 len = tb->bucket[i].src_len;
 
-    tb->first[c][tb->first_cnt[c]] = i;
+    tb->first[c][len_pos[(c * lanes) + len]] = i;
 
-    tb->first_cnt[c]++;
+    len_pos[(c * lanes) + len]++;
   }
 
-  // Longest first, so the first source that matches at a position is the one to take.
-
-  for (u32 i = 0; i < 256; i++)
-  {
-    for (u32 j = 1; j < tb->first_cnt[i]; j++)
-    {
-      const u32 v   = tb->first[i][j];
-      const u32 len = tb->bucket[v].src_len;
-
-      u32 k = j;
-
-      while ((k > 0) && (tb->bucket[tb->first[i][k - 1]].src_len < len))
-      {
-        tb->first[i][k] = tb->first[i][k - 1];
-
-        k--;
-      }
-
-      tb->first[i][k] = v;
-    }
-  }
+  hcfree (len_pos);
+  hcfree (len_cnt);
 }
 
 // The pool the device reads, in the two shapes the kernel is built for. With entries of one length a
@@ -781,6 +859,7 @@ void table_free (table_t *tb)
 
   for (u32 i = 0; i < 256; i++) hcfree (tb->first[i]);
 
+  hcfree (tb->hmap);
   hcfree (tb->bucket);
   hcfree (tb->arena);
 
