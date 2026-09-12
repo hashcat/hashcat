@@ -115,6 +115,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -j, --rule-left                | Rule | Single rule applied to each word from left wordlist  | -j 'c'
  -k, --rule-right               | Rule | Single rule applied to each word from right wordlist | -k '^-'
  -r, --rules-file               | File | Multiple rules applied to each word from wordlists   | -r rules/best66.rule
+     --rules-concat             |      | Use the -r files as one list instead of chaining them |
  -g, --generate-rules           | Num  | Generate X random rules                              | -g 10000
      --generate-rules-func-min  | Num  | Force min X functions per rule                       |
      --generate-rules-func-max  | Num  | Force max X functions per rule                       |
