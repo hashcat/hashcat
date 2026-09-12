@@ -90,17 +90,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 3;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len[0]     = 40;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = SALT_MIN;
   token.len_max[1] = SALT_MAX;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
@@ -196,13 +196,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[4], out_buf + out_len); out_len += 8;
 
-  out_buf[out_len] = hashconfig->separator;
+  out_buf[out_len] = ':';
 
   out_len += 1;
 
   out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->salt_buf, devise_double_salt->salt_len, out_buf + out_len);
 
-  out_buf[out_len] = hashconfig->separator;
+  out_buf[out_len] = ':';
 
   out_len += 1;
 

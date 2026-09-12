@@ -73,13 +73,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     for (int i = 0; i < count; i += 2)
     {
-      token.sep[i + 0]     = hashconfig->separator;
+      token.sep[i + 0]     = ':';
       token.len[i + 0]     = 6;
       token.attr[i + 0]    = TOKEN_ATTR_FIXED_LENGTH
                            | TOKEN_ATTR_VERIFY_DIGIT;
 
       // 0 to 18446744073709551616
-      token.sep[i + 1]     = hashconfig->separator;
+      token.sep[i + 1]     = ':';
       token.len_min[i + 1] = 1;
       token.len_max[i + 1] = 20;
       token.attr[i + 1]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -164,7 +164,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   for (; i < count - 1; i += 1)
   {
     const u64 tmp_salt_buf = (((u64) (salt->salt_buf[4 * i + 2])) << 32) | ((u64) (salt->salt_buf[4 * i + 3]));
-    const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64 "%c", digest[i], hashconfig->separator, tmp_salt_buf, hashconfig->separator);
+    const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64 "%c", digest[i], ':', tmp_salt_buf, ':');
     line_len += ret;
 
     // error
@@ -176,7 +176,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // the last TOTP code
   const u64 tmp_salt_buf = (((u64) (salt->salt_buf[4 * i + 2])) << 32) | ((u64) (salt->salt_buf[4 * i + 3]));
-  const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64, digest[i], hashconfig->separator, tmp_salt_buf);
+  const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64, digest[i], ':', tmp_salt_buf);
   line_len += ret;
 
   // error
