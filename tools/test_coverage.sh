@@ -13,9 +13,12 @@
 # Nothing here needs a backend device or even a built hashcat; it only reads
 # the source tree, so it is cheap enough to run in CI.
 #
-# A mode counts as covered when it has a test.pl oracle in tools/test_modules/
-# or appears in one of test.sh's container mode lists. Those lists are read out
-# of test.sh rather than repeated here, so this stays correct when they change.
+# A mode counts as covered when it has an oracle in tools/test_modules/ or
+# appears in one of test.sh's container mode lists. An oracle is an m<mode>.pm,
+# read by test.pl, or an m<mode>.py, read by test_module_runner.py: a mode is
+# written in one language or the other, never both, so the set is the union of
+# the two, the same way test.sh builds it. Those lists are read out of test.sh
+# rather than repeated here, so this stays correct when they change.
 
 set -u
 
@@ -23,7 +26,7 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 TEST_SH="${TDIR}/test.sh"
 MODULE_DIR="${TDIR}/../src/modules"
-PM_DIR="${TDIR}/test_modules"
+ORACLE_DIR="${TDIR}/test_modules"
 
 # Modes with no test.sh coverage on purpose. Each line is "<mode> <reason>".
 #
@@ -50,8 +53,10 @@ fi
 # every mode that ships a module
 all_modes=$(ls "${MODULE_DIR}"/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c/\1/' | sort -un)
 
-# modes with a test.pl oracle
-pm_modes=$(ls "${PM_DIR}"/m*.pm 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.pm/\1/' | sort -un)
+# modes with an oracle, in either language
+oracle_modes=$(ls "${ORACLE_DIR}"/m[0-9][0-9][0-9][0-9][0-9].pm "${ORACLE_DIR}"/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null \
+  | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' \
+  | sort -un)
 
 # modes covered by a container or reference file, taken from test.sh's own lists
 container_modes=$(grep -hoE '^[A-Z0-9_]*MODES="[0-9 ]*"' "${TEST_SH}" \
@@ -76,7 +81,7 @@ if [ -n "${cl_modes}" ]; then
   container_modes=$(printf '%s\n14500\n' "${container_modes}" | sort -un)
 fi
 
-covered=$(printf '%s\n%s\n' "${pm_modes}" "${container_modes}" | sort -un)
+covered=$(printf '%s\n%s\n' "${oracle_modes}" "${container_modes}" | sort -un)
 
 excluded=$(printf '%s\n' "${UNTESTABLE}" | awk 'NF {print $1}' | sort -un)
 
@@ -121,7 +126,7 @@ for m in ${missing}; do
 done
 
 echo ""
-echo "Add tools/test_modules/m<mode>.pm, or add the mode to UNTESTABLE in this"
-echo "script with the reason it cannot have one."
+echo "Add tools/test_modules/m<mode>.pm or m<mode>.py, or add the mode to"
+echo "UNTESTABLE in this script with the reason it cannot have one."
 
 exit 1
