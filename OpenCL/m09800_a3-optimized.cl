@@ -10,10 +10,80 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
+#define RC4_INIT_128_UNROLL8
+#define RC4_ENABLE_NEXT_4
+#define RC4_NEXT_16_PREFETCH
+#define RC4_NEXT_16_UNROLL2
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_NEXT_16_UNROLL2
+#undef RC4_NEXT_16_PREFETCH
+#undef RC4_ENABLE_NEXT_4
+#undef RC4_INIT_128_UNROLL8
 #endif
 
 #define MIN_NULL_BYTES 10
+
+DECLSPEC int m09800_rc4_next_4_staged (LOCAL_AS u32 *S, const u8 i, const u8 j, const u32 in, const u32 search, const u32 lid)
+{
+  u8 a = i;
+  u8 b = j;
+
+  u32 xor4 = 0;
+
+  u32 tmp;
+
+  u8 idx;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 0;
+
+  if (((in ^ xor4) & 0xff) != (search & 0xff)) return -1;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 8;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 16;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 24;
+
+  if ((in ^ xor4) != search) return -1;
+
+  return b;
+}
 
 typedef struct oldoffice34
 {
@@ -135,14 +205,17 @@ DECLSPEC void m09800m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     digest[0] = hc_swap32_S (digest[0]);
     digest[1] = hc_swap32_S (digest[1]);
-    digest[2] = hc_swap32_S (digest[2]);
-    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
       digest[1] &= 0xff;
       digest[2]  = 0;
       digest[3]  = 0;
+    }
+    else
+    {
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
     }
 
     rc4_init_128 (S, digest, lid);
@@ -394,14 +467,17 @@ DECLSPEC void m09800s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     digest[0] = hc_swap32_S (digest[0]);
     digest[1] = hc_swap32_S (digest[1]);
-    digest[2] = hc_swap32_S (digest[2]);
-    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
       digest[1] &= 0xff;
       digest[2]  = 0;
       digest[3]  = 0;
+    }
+    else
+    {
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
     }
 
     rc4_init_128 (S, digest, lid);
@@ -440,14 +516,17 @@ DECLSPEC void m09800s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out, lid);
+    const int j4 = m09800_rc4_next_4_staged (S, 16, j, digest[0], search[0], lid);
 
-    // initial compare
+    if (j4 == -1) continue;
 
-    if (out[0] != search[0]) continue;
-    if (out[1] != search[1]) continue;
-    if (out[2] != search[2]) continue;
-    if (out[3] != search[3]) continue;
+    j = (u8) j4;
+
+    rc4_next_16 (S, 20, j, digest + 1, out, lid);
+
+    if (out[0] != search[1]) continue;
+    if (out[1] != search[2]) continue;
+    if (out[2] != search[3]) continue;
 
     if (esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockLen != 0)
     {
@@ -537,7 +616,7 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -588,7 +667,7 @@ KERNEL_FQ KERNEL_FA void m09800_m08 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -639,7 +718,7 @@ KERNEL_FQ KERNEL_FA void m09800_m16 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -690,7 +769,7 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -741,7 +820,7 @@ KERNEL_FQ KERNEL_FA void m09800_s08 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -792,7 +871,7 @@ KERNEL_FQ KERNEL_FA void m09800_s16 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
