@@ -79,6 +79,27 @@ static u32 autotune_kernel_power (hashcat_ctx_t *hashcat_ctx, const u32 kernel_p
   return kernel_power;
 }
 
+// What one unit of accel is worth on this device.
+//
+// A bridge counts its work in units rather than in waves of threads, so there it is the multiple the
+// bridge asks for and the thread count does not enter. backend.c sizes the pws buffer by the same
+// rule, at the size_pws assignment, so a launch built any other way runs off the end of it.
+
+static u32 autotune_hardware_power (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 threads)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  if (bridge_active (hashcat_ctx, device_param->bridge_link_device) == true)
+  {
+    return bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
+  }
+
+  const u32 processors = (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors;
+  const u32 width      = (hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads;
+
+  return processors * width;
+}
+
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const u32 kernel_threads)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -87,9 +108,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
   device_param->kernel_param.il_cnt   = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
-                           : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
-                           * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads);
+  const u32 hardware_power = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads);
 
   u32 kernel_power_try = autotune_kernel_power (hashcat_ctx, hardware_power * kernel_accel);
 
@@ -387,8 +406,7 @@ static double autotune2_fixed_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   const u32 threads_sav = device_param->kernel_threads;
 
-  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = autotune_hardware_power (hashcat_ctx, device_param, threads) * accel;
 
   const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
@@ -468,8 +486,7 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   const u32 threads_sav = device_param->kernel_threads;
 
-  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = autotune_hardware_power (hashcat_ctx, device_param, threads) * accel;
 
   const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
@@ -490,14 +507,11 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
 static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 accel, const u32 loops, const u32 threads)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   device_param->kernel_param.loop_pos = 0;
   device_param->kernel_param.loop_cnt = loops;
   device_param->kernel_param.il_cnt   = loops;
 
-  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = autotune_hardware_power (hashcat_ctx, device_param, threads) * accel;
 
   const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
@@ -928,9 +942,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_accel   = kernel_accel_min;
     device_param->kernel_loops   = kernel_loops_min;
     device_param->kernel_threads = kernel_threads_min;
-    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
-                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
-                                 * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_min);
+    device_param->hardware_power = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads_min);
     device_param->kernel_power   = device_param->hardware_power * kernel_accel_min;
   }
 
@@ -1009,9 +1021,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // from here it's clear we are allowed to autotune
     // so let's init some fake words
 
-    const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
-                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
-                                 * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
+    const u32 hardware_power_max = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads_max);
 
     const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
 
@@ -1260,9 +1270,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_loops   = kernel_loops;
   device_param->kernel_threads = kernel_threads;
 
-  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
-                           : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
-                           * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
+  const u32 hardware_power = autotune_hardware_power (hashcat_ctx, device_param, device_param->kernel_threads);
 
   device_param->hardware_power = hardware_power;
 
