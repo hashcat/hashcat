@@ -201,11 +201,17 @@ The main options:
 * Select hash type (-m): Test only a special hash-mode
 * Select test mode (-t): Test either single-hash or multi-hash kernel
 * Select attack mode (-a): Test a special attack mode. With a slow hash, this is automatically switches to a straight attack, because there are no attack-mode specific kernel implementations
+* Minimal mode (-M): Test only the hash-modes hashcat benchmarks, which the suite reads from DEFAULT_BENCHMARK_ALGORITHMS_BUF in src/benchmark.c. Those cover the distinct code paths, and a mode that belongs in the set is added there rather than to a second list beside it
 
 If the options are not set, attack-mode 0 for hash-mode 0 is executed. To see additional options, see tools/test.sh --help
 
+### test_edge.sh ###
 
+The test_edge.sh is a complementary testing tool that generates edge cases for each hash-mode using the constraints defined in the test modules. Unlike test.sh which tests with random passwords, test_edge.sh specifically targets boundary conditions such as minimum and maximum password lengths, minimum and maximum salt lengths, and other constraint limits.
 
+It tests each hash-mode under every kernel type the mode has, and every attack mode that kernel type can run. The minimal mode (-M or --minimal) option is also available, and reads the same list out of src/benchmark.c that test.sh -M does.
+
+To see all available options, see tools/test_edge.sh --help
 
 ## Module ##
 
