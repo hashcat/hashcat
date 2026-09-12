@@ -2,7 +2,7 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use std::fmt;
 
 use crate::{DataDecoder, Expr, ExtraParams, OutputFormat};
