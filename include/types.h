@@ -1125,6 +1125,16 @@ typedef struct user
   char *user_name;
   u32   user_len;
 
+  // What a passwd line carries beside the login: the real name out of the gecos field and the last
+  // component of the home directory. Both are empty for every other hash list format, and both point
+  // into the same allocation as user_name, so freeing that one frees all three.
+
+  char *user_gecos;
+  u32   user_gecos_len;
+
+  char *user_home;
+  u32   user_home_len;
+
 } user_t;
 
 typedef enum split_origin
@@ -3461,7 +3471,7 @@ typedef bool (*GENERIC_THREAD_INIT)     (generic_global_ctx_t *, generic_thread_
 typedef void (*GENERIC_THREAD_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int);
 typedef int  (*GENERIC_THREAD_NEXT_DEV) (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int, pcfg_cell_t *);
-typedef int  (*GENERIC_GLOBAL_EXPLAIN)   (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, char *, const int);
+typedef int  (*GENERIC_GLOBAL_EXPLAIN)   (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, const u64, char *, const int);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
 typedef bool (*GENERIC_GLOBAL_DEV_INIT) (generic_global_ctx_t *, const u32 **, u64 *, u32 *, u32 *, u32 *, u32 *, u32 *, u32 *, pcfg_cell_t *);
 
@@ -4086,6 +4096,19 @@ typedef struct bridge_ctx
 
 typedef void (*MODULE_INIT) (void *);
 
+// One word hashcat knows about a hash, which an attack may guess from. Every word is either a
+// substring of something the hash list already holds, in which case this points into it, or one the
+// module derived, in which case it points into the scratch buffer the module was handed. Nothing here
+// is allocated and nothing here is freed.
+
+typedef struct hlfmt_word
+{
+  const char *buf;
+
+  u32 len;
+
+} hlfmt_word_t;
+
 typedef struct module_ctx
 {
   size_t      module_context_size;
@@ -4158,6 +4181,7 @@ typedef struct module_ctx
   int         (*module_hash_encode_potfile)     (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int, const void *);
   int         (*module_hash_encode_status)      (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
   int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
+  u32         (*module_hash_hints)              (const hashconfig_t *, const salt_t *, const void *, const hashinfo_t *, hlfmt_word_t *, const u32, char *, const u32);
 
   u64         (*module_kern_type_dynamic)       (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *);
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);

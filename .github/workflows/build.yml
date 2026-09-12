@@ -46,24 +46,34 @@ on:
     paths:
       - 'OpenCL/**.h'
       - 'OpenCL/**.cl'
+      - 'deps/**'
       - 'include/**.h'
       - 'src/**.c'
+      - 'src/**.h'
+      - 'src/**.m'
       - 'src/**.mk'
-      - 'tools/**'
+      - 'tools/test_package.sh'
       - '**/Makefile'
       - '.github/workflows/build.yml'
+      - '.github/workflows/generate_docs.sh'
+      - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
   pull_request:
     branches:
       - master
     paths:
       - 'OpenCL/**.h'
       - 'OpenCL/**.cl'
+      - 'deps/**'
       - 'include/**.h'
       - 'src/**.c'
+      - 'src/**.h'
+      - 'src/**.m'
       - 'src/**.mk'
-      - 'tools/**'
+      - 'tools/test_package.sh'
       - '**/Makefile'
       - '.github/workflows/build.yml'
+      - '.github/workflows/generate_docs.sh'
+      - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
 
 jobs:
   build:
@@ -99,7 +109,7 @@ jobs:
     name: Build ${{ matrix.os_name }} (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: ${{ matrix.os == 'freebsd' && 'ubuntu-latest' || matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
@@ -204,7 +214,7 @@ jobs:
           fi
 
       - name: Generate artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hashcat-${{ matrix.os_name_lowercase }}-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
@@ -217,7 +227,7 @@ jobs:
       matrix:
         shared: [0, 1]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
@@ -230,9 +240,9 @@ jobs:
 
           mkdir ~/src && cd ~/src
           mkdir /opt/win-python && cd /opt/win-python
-          wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.11-1-any.pkg.tar.zst
-          unzstd mingw-w64-x86_64-python-3.12.11-1-any.pkg.tar.zst
-          tar -xf mingw-w64-x86_64-python-3.12.11-1-any.pkg.tar
+          wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.7-1-any.pkg.tar.zst
+          unzstd mingw-w64-x86_64-python-3.14.7-1-any.pkg.tar.zst
+          tar -xf mingw-w64-x86_64-python-3.14.7-1-any.pkg.tar
 
           cd ~/src
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
@@ -253,7 +263,7 @@ jobs:
         run: bash tools/test_package.sh . --no-device
 
       - name: Generate artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hashcat-cross-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}

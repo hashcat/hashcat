@@ -14,6 +14,7 @@
 #include "rp.h"
 #include "mpsp.h"
 #include "wordlist.h"
+#include "hlfmt.h"
 #include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
@@ -344,13 +345,26 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
     HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next_dev, GENERIC_THREAD_NEXT_DEV);
   }
 
-  // Whether this feed can answer the question --debug-mode 6 asks. The option is checked for shape
-  // when the command line is read, but nothing had opened the feed by then, so this is where a feed
-  // that cannot explain itself is reported rather than quietly writing nothing.
+  // Whether this feed can answer the question --debug-mode asks. The option is checked for shape when
+  // the command line is read, but nothing had opened the feed by then, so this is where a feed that
+  // cannot explain itself is reported rather than quietly writing nothing.
+  //
+  // Mode 6 always asks the feed. Modes 1, 3, 4 and 5 ask it only when the run has no rules, because
+  // then there is no rule for them to name and the feed is the only thing that can fill the field.
+  // Mode 2 writes the base word alone, so it never needs an answer.
 
-  if ((hashcat_ctx->user_options->debug_mode == DEBUG_MODE_FEED) && (generic_ctx->explain_enable == false))
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const u32 debug_mode = user_options->debug_mode;
+
+  const bool wants_rule = (debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5);
+  const bool no_rules = (user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0);
+
+  const bool asks_feed = (debug_mode == DEBUG_MODE_FEED) || ((wants_rule == true) && (no_rules == true));
+
+  if ((asks_feed == true) && (generic_ctx->explain_enable == false))
   {
-    event_log_error (hashcat_ctx, "%s: this feed cannot say how it made a candidate, so --debug-mode %d has nothing to write.", generic_ctx->plugin_name, DEBUG_MODE_FEED);
+    event_log_error (hashcat_ctx, "%s: this feed cannot say how it made a candidate, so --debug-mode %u has nothing to write.", generic_ctx->plugin_name, debug_mode);
 
     return -1;
   }
@@ -711,6 +725,38 @@ static int generic_instance_open (hashcat_ctx_t *hashcat_ctx, const generic_role
 // An induction dictionary is a file hashcat wrote itself. Only the array is owned, as everywhere else:
 // the plugin takes its own copy of every path while it is initialising.
 
+// Whether the user gave this phase a setting of their own for this key.
+//
+// A phase carries defaults, and a feed refuses a key it is given twice rather than letting the last one
+// win, so a default has to stand aside for a setting rather than be overridden by it. setting names the
+// default, "rulemax=1000", and only the part in front of the equals sign is compared.
+
+static bool generic_phase_setting_given (const user_options_extra_t *user_options_extra, const char *prefix, const size_t prefix_len, const char *setting)
+{
+  const char *eq = strchr (setting, '=');
+
+  if (eq == NULL) return false;
+
+  const size_t key_len = (size_t) (eq - setting);
+
+  for (int i = 0; i < user_options_extra->hc_workc; i++)
+  {
+    const char *arg = user_options_extra->hc_workv[i];
+
+    if (strncmp (arg, prefix, prefix_len) != 0) continue;
+
+    const char *key = arg + prefix_len;
+
+    if (strncmp (key, setting, key_len) != 0) continue;
+
+    if (key[key_len] != '=') continue;
+
+    return true;
+  }
+
+  return false;
+}
+
 int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
 {
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -719,14 +765,152 @@ int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
 
   generic_instance_destroy (hashcat_ctx, generic_ctx);
 
+  // -a 9 splitting its own hash file has no file to name per source. Its sources are the phases of the
+  // attack, and a phase says which feed runs it and what to tell that feed.
+  //
+  // The grammar phase is the pcfg feed rather than a second implementation of one. It is handed the
+  // hint ruleset and told to take its words from the account names, which is the whole of the wiring:
+  // everything else about it, the cost ordering, the index, the seek and --debug-mode, is what a pcfg
+  // attack already does.
+  //
+  // Only the array is owned. The strings are literals or belong to the source list.
+
+  const bool autosplit = (user_options_extra->association_autosplit == true);
+
+  const bool phase_pcfg  = (autosplit == true) && (strcmp (path, "pcfg")  == 0);
+  const bool phase_rules = (autosplit == true) && (strcmp (path, "rules") == 0);
+  const bool phase_words = (autosplit == true) && (strcmp (path, "words") == 0);
+
+  // A setting the user wrote for this phase, which is one prefixed with the phase's name. A phase runs a
+  // feed of its own and two phases run two different feeds, so an unprefixed setting would have to be
+  // understood by both or refused by one, and every feed would have to stop reporting a key it does not
+  // know. That is the report that catches a typo, so the prefix is what keeps it.
+  //
+  // The prefix is stripped by pointing past it rather than by copying, so "rules.rulemax=500" is handed
+  // over as "rulemax=500" with no allocation. Where they sit does not matter: feed_param_parse ()
+  // refuses a key it is given twice rather than keeping one of them, which is why a default has to be
+  // left out rather than overridden.
+
+  const char *prefix = "rules.";
+
+  if (phase_pcfg  == true) prefix = "pcfg.";
+  if (phase_words == true) prefix = "words.";
+
+  const size_t prefix_len = strlen (prefix);
+
+  // Where the grammar phase takes its words from is not the user's to choose. It is the account attack:
+  // one hash, one set of words, taken from whatever the hash mode can say about that hash. Naming a
+  // word set instead would be a different attack, and the feed refuses the pair because a hint ruleset
+  // takes its words from one place. Said here instead, because the setting it collides with is one
+  // hashcat added and the user never wrote, so the feed's message named a setting nobody typed.
+
+  // The words phase has no rule list: a round is one word and the candidate is that word. The feed takes
+  // rulefile and rulemax because the rules phase needs them, so a key naming one here would be accepted
+  // and then never read, which is the silence every other setting refusal exists to stop.
+
+  if (phase_words == true)
+  {
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "rulefile=") == true)
+    {
+      event_log_error (hashcat_ctx, "%srulefile: the words phase of -a 9 applies no rules, so it has no rule list. Did you mean rules.rulefile?", prefix);
+
+      return -1;
+    }
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "rulemax=") == true)
+    {
+      event_log_error (hashcat_ctx, "%srulemax: the words phase of -a 9 applies no rules, so it has no rule list. Did you mean rules.rulemax?", prefix);
+
+      return -1;
+    }
+  }
+
+  if (phase_pcfg == true)
+  {
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "hintwords=") == true)
+    {
+      event_log_error (hashcat_ctx, "%shintwords: the grammar phase of -a 9 takes its words from the hashes, so it cannot be given a word list as well.", prefix);
+
+      return -1;
+    }
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "hintfile=") == true)
+    {
+      event_log_error (hashcat_ctx, "%shintfile: the grammar phase of -a 9 takes its words from the hashes, so it cannot be given a word list as well.", prefix);
+
+      return -1;
+    }
+  }
+
+  int extra = 0;
+
+  if (autosplit == true)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      if (strncmp (user_options_extra->hc_workv[i], prefix, prefix_len) != 0) continue;
+
+      extra++;
+    }
+  }
+
   generic_ctx->workc = 2;
-  generic_ctx->workv = (char **) hcmalloc (2 * sizeof (char *));
 
-  // -a 9 splitting its own hash file has no file to name per round. Its rounds are the words one account
-  // name becomes, so the source is which of those words this round is trying.
+  if (phase_pcfg  == true) generic_ctx->workc = 3;
+  if (phase_rules == true) generic_ctx->workc = 4;
+  if (phase_words == true) generic_ctx->workc = 2;
 
-  generic_ctx->workv[0] = (user_options_extra->association_autosplit == true) ? "association" : "wordlist";
-  generic_ctx->workv[1] = (char *) path;
+  generic_ctx->workc += extra;
+
+  generic_ctx->workv = (char **) hcmalloc ((size_t) generic_ctx->workc * sizeof (char *));
+
+  int at = 0;
+
+  if (phase_pcfg == true)
+  {
+    generic_ctx->workv[at++] = "pcfg";
+    generic_ctx->workv[at++] = ASSOCIATION_PCFG_RULESET;
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, ASSOCIATION_PCFG_HINTS) == false) generic_ctx->workv[at++] = ASSOCIATION_PCFG_HINTS;
+  }
+  else if (phase_words == true)
+  {
+    generic_ctx->workv[at++] = "association";
+    generic_ctx->workv[at++] = (char *) path;
+  }
+  else if (phase_rules == true)
+  {
+    generic_ctx->workv[at++] = "association";
+    generic_ctx->workv[at++] = (char *) path;
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, ASSOCIATION_RULES_FILE) == false) generic_ctx->workv[at++] = ASSOCIATION_RULES_FILE;
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, ASSOCIATION_RULES_MAX)  == false) generic_ctx->workv[at++] = ASSOCIATION_RULES_MAX;
+  }
+  else
+  {
+    // Every phase of the autosplit form is named above, so what is left here is the form that was given
+    // a wordlist to pair with the hashes by line number.
+
+    generic_ctx->workv[at++] = "wordlist";
+    generic_ctx->workv[at++] = (char *) path;
+  }
+
+  if (autosplit == true)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      char *arg = user_options_extra->hc_workv[i];
+
+      if (strncmp (arg, prefix, prefix_len) != 0) continue;
+
+      generic_ctx->workv[at++] = arg + prefix_len;
+    }
+  }
+
+  // A default that stood aside left a slot unused, so the count is what was written rather than what
+  // was budgeted for.
+
+  generic_ctx->workc = at;
 
   generic_ctx->workv_owned = true;
 
@@ -841,21 +1025,61 @@ static bool generic_amp_is_wordlist (const hashcat_ctx_t *hashcat_ctx)
   return inverted;
 }
 
-// -a 9 pairs word N with salt N, so the two counts have to agree exactly. Asked at init and again per
-// round, because a scope that knows its keyspace at init should be refused before any device is brought
-// up rather than after the self-test, and a scope that reads one dictionary per round can only be asked
+// -a 9 pairs word N with salt N, so the counts have to agree. Asked at init and again per round,
+// because a scope that knows its keyspace at init should be refused before any device is brought up
+// rather than after the self-test, and a scope that reads one dictionary per round can only be asked
 // once that round's dictionary has been counted.
 //
-// A hash-mode with no salt is the common way to arrive here: every one of its hashes shares the single
-// salt, so there is one salt to pair with however many words there are. Naming the file the words came
-// out of is what makes that readable, and the autosplit form has no such file to name.
+// The attack only exists where every hash has a salt of its own, because the kernel reaches both the
+// salt and the digest by the same index. A hash-mode with no salt is the common way to arrive here:
+// every one of its hashes shares the single salt, so there is one salt to pair with however many words
+// there are. Naming the file the words came out of is what makes that readable, and the autosplit form
+// has no such file to name.
+//
+// The autosplit feed may cover several rounds in one instance. It writes them round major, one word per
+// salt in salt order and then the next round over the same salts, so its pairing is word N with salt N
+// modulo the salt count and its keyspace is a whole multiple rather than equal. A remainder is a stream
+// that runs off the end of the salt list part way through a round, which pairs the tail of it with the
+// wrong hashes and reports nothing wrong.
+//
+// A wordlist the user brought is held to equality still. It does not say how many rounds it means, so a
+// file that happens to be twice as long as the hash list is a miscount far more often than it is a
+// second round, and reading it as one would run the whole attack against the wrong hashes.
 
 int generic_association_in_sync (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx)
 {
   const hashes_t             *hashes             = hashcat_ctx->hashes;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (generic_ctx->keyspace == hashes->salts_cnt) return 0;
+  if ((hashes->salts_cnt > 0) && (hashes->salts_cnt == hashes->digests_cnt))
+  {
+    if (generic_ctx->keyspace == hashes->salts_cnt) return 0;
+
+    if (user_options_extra->association_autosplit == true)
+    {
+      if (generic_ctx->keyspace >= hashes->salts_cnt)
+      {
+        if ((generic_ctx->keyspace % hashes->salts_cnt) == 0) return 0;
+      }
+    }
+  }
+
+  // Two different refusals, and they need two different messages. This one is the hash-mode: the kernel
+  // reaches the salt and the digest by the same index, so an attack that pairs one candidate with one
+  // hash only exists where every hash has a salt of its own. An unsalted mode gives every hash the same
+  // salt slot, and the run would test the first digest of it and nothing else. Saying the word count is
+  // out of sync would print two numbers that agree and name the wrong thing.
+
+  if (hashes->salts_cnt != hashes->digests_cnt)
+  {
+    event_log_error (hashcat_ctx, "Attack mode 9 pairs one candidate with one hash, so every hash needs a salt of its own.");
+
+    event_log_error (hashcat_ctx, "Hash-mode %u does not give one, so a candidate would be tested against a salt several hashes share.", hashcat_ctx->hashconfig->hash_mode);
+
+    event_log_error (hashcat_ctx, "Hashes: %u, salts: %u", hashes->digests_cnt, hashes->salts_cnt);
+
+    return -1;
+  }
 
   if (user_options_extra->association_autosplit == true)
   {

@@ -467,6 +467,61 @@ static void device_skip (hc_device_param_t *device_param, const char *reason)
   snprintf (device_param->skipped_reason, sizeof (device_param->skipped_reason), "%s", reason);
 }
 
+// --stdout is one stream, so it is produced by one device.
+//
+// No hashing happens under --stdout. generic.c clears dev_enable for it, so every candidate is built on
+// the host and a backend device is only a thread that fills a buffer and prints it. Several of them
+// divide the keyspace between them and print their own slice, and the slices reach stdout in whatever
+// order the threads reach process_stdout (). Each slice is internally correct, so the output holds every
+// candidate exactly once, in blocks that are individually in order and collectively are not.
+//
+// That is invisible for -a 0 and -a 3, whose host side producers are slow enough that the first device
+// is always still ahead, and plain for -a 4, where a grammar hands out base words fast enough for the
+// second device to finish a slice first. It shows on a machine with two GPUs and hides on one where
+// --stdout picked a single CPU device, which is why it reads as a platform difference and is not one.
+//
+// A candidate order is what a PCFG attack is for, and a ruleset can only be compared against another if
+// the two produce candidates in the same order, so the ordering is worth more here than the throughput.
+// Two devices print 40 million candidates in 0.58 seconds against 0.75 for one, because the writes are
+// serialised on mux_outfile either way and only the fill runs in parallel.
+
+static void backend_ctx_devices_stdout_single (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->stdout_flag == false) return;
+
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  bool kept = false;
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_pos];
+
+    if (device_param->skipped         == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (kept == false)
+    {
+      kept = true;
+
+      continue;
+    }
+
+    device_skip (device_param, NULL);
+
+    if      (device_param->is_cuda   == true) backend_ctx->cuda_devices_active--;
+    else if (device_param->is_hip    == true) backend_ctx->hip_devices_active--;
+    #if defined (__APPLE__)
+    else if (device_param->is_metal  == true) backend_ctx->metal_devices_active--;
+    #endif
+    else if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
+
+    backend_ctx->backend_devices_active--;
+  }
+}
+
 static bool is_gpu_device (const hc_device_param_t *device_param)
 {
   if (device_param->is_cuda   == true) return true;
@@ -1095,9 +1150,14 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 {
   if (binary_size > 0)
   {
-    char tmp_file[256];
+    // The kernel path is built in 256 bytes of its own, and the suffix adds twenty one on top, so
+    // the room here is the one plus the other. Sized to the same 256 it would truncate a deep
+    // --cache-path, and two kernels cut to the same temporary name is the collision this suffix is
+    // here to avoid.
 
-    snprintf (tmp_file, sizeof (tmp_file), "%s.tmp.%d", kernel_file, (int) HC_GETPID ());
+    char tmp_file[256 + 32];
+
+    snprintf (tmp_file, sizeof (tmp_file), "%s.tmp.%016" PRIx64, kernel_file, hc_tmp_tag ());
 
     HCFILE fp;
 
@@ -4461,6 +4521,14 @@ int pcfg_seed_cells (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (rect > generic_ctx->dev_il_cnt) rect = generic_ctx->dev_il_cnt;
 
+  // The probe is the widest cell the feed found while sampling, and a launch whose every work item
+  // carries that word is a launch that never happens. A real one takes a batch of base words whose
+  // rectangles average dev_avg, so that is the size worth measuring. Sizing for the widest made a
+  // large table refuse to autotune at all: the probe alone passed the watchdog budget, and the run
+  // was then refused for a runtime no real launch would have had.
+
+  if ((generic_ctx->dev_avg > 0) && (rect > generic_ctx->dev_avg)) rect = generic_ctx->dev_avg;
+
   cell.rect = (u32) rect;
 
   // and how many of the rectangle one work item walks. Without it the probe measures one candidate a
@@ -6181,10 +6249,32 @@ static bool salt_inner_enabled (const hashcat_ctx_t *hashcat_ctx)
   return enabled;
 }
 
-int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt)
+int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos_arg, const u64 pws_cnt)
 {
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // Where this batch starts, as the launch reads it. Everything below passes this to the kernel as
+  // kernel_param.pws_pos, and in -a 9 that is not a position in the keyspace at all: the kernel adds
+  // its own work item id to it and uses the sum to pick a salt and a digest, so what it wants is where
+  // the batch starts in the salt array.
+  //
+  // The two are the same number while a feed covers one round. A feed covering several writes them
+  // round major, so the keyspace runs on past the last salt and starts over, and the salt the batch
+  // begins at is the offset taken modulo the salt count. get_work () cuts a batch at the round
+  // boundary, so one reduced offset is true for every word in the batch.
+  //
+  // The progress counters -a 9 keeps are indexed by salt as well, so they take the reduced offset for
+  // the same reason.
+
+  u64 pws_pos = pws_pos_arg;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    const u32 salts_cnt = hashcat_ctx->hashes->salts_cnt;
+
+    if (salts_cnt > 0) pws_pos = pws_pos_arg % salts_cnt;
+  }
 
   // do the on-the-fly combinator mode encoding
 
@@ -10454,6 +10544,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx_devices_skip_integrated (hashcat_ctx);
     //{
   //}
+
+  // Last, because it keeps whichever device the passes above left first.
+
+  backend_ctx_devices_stdout_single (hashcat_ctx);
 
   if (backend_ctx->backend_devices_active == 0)
   {

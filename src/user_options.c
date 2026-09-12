@@ -21,6 +21,7 @@
 #include "rp_cpu.h"
 
 #include "feed_ctx.h"
+#include "feed.h"
 #include "mpsp.h"
 
 #ifdef WITH_BRAIN
@@ -1337,6 +1338,23 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  // Same reason --keyspace is refused below. An association attack takes its candidates out of the
+  // hash file, and --stdout never reads a hash file: its one argument is the wordlist. Without this
+  // the hash file is opened as a wordlist and the run ends on a line count that does not match a salt
+  // count of one, which reads like a broken hash file rather than like a question nothing can answer.
+
+  if (user_options->stdout_flag == true)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      event_log_error (hashcat_ctx, "Combining -a 9 with --stdout is not allowed.");
+
+      event_log_warning (hashcat_ctx, "An association attack takes its candidates from the hash file, which --stdout does not read. Use --debug-mode to see what a run is trying.");
+
+      return -1;
+    }
+  }
+
   if (user_options->show == true && (user_options->restore == true || user_options->restore_position == true))
   {
     event_log_error (hashcat_ctx, "Mixing --show and --restore is not allowed.");
@@ -1666,20 +1684,29 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     // substitutions and a grammar picks terminals. Whether this feed can actually say is settled when
     // it is loaded, because nothing here has opened it yet.
 
+    const bool has_feed = (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_TABLE) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
     if (user_options->debug_mode == DEBUG_MODE_FEED)
     {
-      if ((user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC))
+      if (has_feed == false)
       {
-        event_log_error (hashcat_ctx, "Parameter --debug-mode %d is only allowed in an attack that has a feed, which is attack mode 4 (pcfg), 5 (table) and 8 (generic).", DEBUG_MODE_FEED);
+        event_log_error (hashcat_ctx, "Parameter --debug-mode %d is only allowed in an attack that has a feed, which is attack mode 4 (pcfg), 5 (table), 8 (generic) and 9 (association).", DEBUG_MODE_FEED);
 
         return -1;
       }
     }
     else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
     {
-      event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
+      // Rules are what modes 1 to 5 name, so without them there is nothing to write. An attack with
+      // a feed is the exception: it has no rules by nature, and its feed can say what it did, so the
+      // rule field is filled from the feed rather than the option being refused.
 
-      return -1;
+      if (has_feed == false)
+      {
+        event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
+
+        return -1;
+      }
     }
   }
 
@@ -3111,16 +3138,9 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
     // from the start whatever it was told.
   }
 
-  // Splitting the hash file is what --username already does, so it is turned on rather than reinvented.
-  // The hash side is then the text after the first separator, which is what the hash parser has to see,
-  // and the username side is kept per hash, which is where the feed picks the words up. Saying
-  // --username as well is not a contradiction and not an error, it asks for the half of this that it
-  // has always asked for.
-
-  if (user_options_extra->association_autosplit == true)
-  {
-    user_options->username = true;
-  }
+  // Whether the hash file has to be split into username and hash is settled in
+  // user_options_extra_init_late (), because the answer depends on the module and the module is not
+  // loaded yet.
 }
 
 void user_options_info (hashcat_ctx_t *hashcat_ctx)
@@ -3368,8 +3388,27 @@ static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
 void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig         = hashcat_ctx->hashconfig;
+  const module_ctx_t   *module_ctx         = hashcat_ctx->module_ctx;
   const user_options_t *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // Whether -a 9 splitting its own hash file has to split it into username and hash.
+  //
+  // For most modes the account name in front of the hash is the only thing hashcat knows about whoever
+  // chose the password, and --username is what cuts it off, so it is turned on rather than reinvented.
+  // A module that answers module_hash_hints itself knows something better, and its hash file may have
+  // no account name at all: a WPA capture is one line of its own format and splitting it at the first
+  // separator would destroy it.
+  //
+  // So the module decides, and this is where it can be asked: hashconfig_init () has loaded it and the
+  // hash file has not been read yet. Deciding it earlier and taking it back here would need a record of
+  // what the user asked for, which is a piece of state kept only to undo a decision made too soon.
+  // Nothing here ever turns --username off, so there is nothing to remember.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    if (module_ctx->module_hash_hints == default_hash_hints) hashcat_ctx->user_options->username = true;
+  }
 
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
 
@@ -3544,6 +3583,10 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   //
   // --keyspace and --stdout have no hash file at all, and their single argument is the wordlist, which
   // is why hc_hash rather than the argument count is what this asks.
+  //
+  // A key=value argument is a setting rather than a wordlist, and settings are how every attack-mode 8
+  // feed is configured. So a run that names only settings is still taking its words out of the hash
+  // file, and phases= can say which phases of the attack to run.
 
   user_options_extra->association_autosplit = false;
 
@@ -3551,7 +3594,16 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->hc_hash != NULL)
     {
-      if (user_options_extra->hc_workc == 0) user_options_extra->association_autosplit = true;
+      u32 sources = 0;
+
+      for (int i = 0; i < user_options_extra->hc_workc; i++)
+      {
+        if (feed_param_is_setting (user_options_extra->hc_workv[i]) == true) continue;
+
+        sources++;
+      }
+
+      if (sources == 0) user_options_extra->association_autosplit = true;
     }
   }
 
@@ -3849,6 +3901,14 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     for (int i = 0; i < user_options_extra->hc_workc; i++)
     {
       char *wlfile = user_options_extra->hc_workv[i];
+
+      // -a 9 taking its words out of the hash file has no wordlist to name, and what it takes instead
+      // is settings. A setting is not a path and must not be looked for as one.
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        if (feed_param_is_setting (wlfile) == true) continue;
+      }
 
       if (hc_path_exist (wlfile) == false)
       {
