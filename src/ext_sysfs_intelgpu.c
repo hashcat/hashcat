@@ -76,7 +76,21 @@ char *hm_SYSFS_INTELGPU_get_syspath_hwmon (void *hashcat_ctx, const int backend_
 
   if (hwmonN == NULL)
   {
-    event_log_error (hashcat_ctx, "First_file_in_directory() failed.");
+    hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+    hm_attrs_t *hm_device = &hwmon_ctx->hm_device[backend_device_idx];
+
+    if ((hm_device->fanspeed_get_supported == true) || (hm_device->temperature_get_supported == true))
+    {
+      backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+      const u32 device_id = backend_ctx->devices_param[backend_device_idx].device_id;
+
+      event_log_warning (hashcat_ctx, "* Device #%u: Intel GPU hwmon interface not available. Hardware monitoring disabled.", device_id + 1);
+    }
+
+    hm_device->fanspeed_get_supported = false;
+    hm_device->temperature_get_supported = false;
 
     hcfree (syspath);
 
