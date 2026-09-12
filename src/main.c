@@ -774,11 +774,11 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options_extra->association_autosplit == true)
   {
-    event_log_advice (hashcat_ctx, "This attack splits each account name into words and tries each word as a candidate.");
-    event_log_advice (hashcat_ctx, "An account with fewer words than the widest name in the file spends the rounds it has");
-    event_log_advice (hashcat_ctx, "left over on a small set of rules applied to its own words.");
-    event_log_advice (hashcat_ctx, "A cracked password therefore need not appear in the file, and one line on its own can");
-    event_log_advice (hashcat_ctx, "behave differently from the same line inside a larger list.");
+    event_log_advice (hashcat_ctx, "This attack guesses from what hashcat knows about each hash: the account name in front of");
+    event_log_advice (hashcat_ctx, "it, cut into words, and whatever the hash mode itself can tell, such as a network name.");
+    event_log_advice (hashcat_ctx, "Those words are then run through a rule list, one hash at a time.");
+    event_log_advice (hashcat_ctx, "A cracked password therefore need not appear in the file. Say phases=rules,pcfg to carry");
+    event_log_advice (hashcat_ctx, "on into a grammar afterwards, which does not run out.");
 
     event_log_advice (hashcat_ctx, NULL);
   }

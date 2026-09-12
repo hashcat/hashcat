@@ -357,6 +357,10 @@ every fast hash for its own reasons.
 What it cannot do is guess a word you did not give it. Every candidate contains one of your words, so
 the attack is only as good as what you know.
 
+`-a 9` runs this ruleset too, and takes the words out of the hash file rather than from you: one set
+per hash, cut out of whatever that hash carries about its owner. That is the `hintaccount` setting, and
+`hashcat-association.md` is where it is written up.
+
 It is also slower per candidate than an ordinary ruleset, and section 7.3 says why. A hint word lives
 in hashcat's memory rather than in the ruleset, so the graphics card cannot read it and the slot has
 to stay on the host. What the card is left to expand is whatever comes after the hint, which on many
@@ -390,6 +394,7 @@ Most people never need any of them.
 | `hintwords` | none | The words a hint ruleset is given, comma separated. See section 4. |
 | `hintfile` | none | The same words out of a file, one per line. |
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
+| `hintaccount` | 0 | Words to take from each hash instead, which is what `-a 9` uses. See `hashcat-association.md`. |
 
 `scale` is hashcat's own setting and is not read from the ruleset, so it reads `scale 1` on the status
 screen until you ask for something else. It is unrelated to `--coverage` in the trainer, which is set

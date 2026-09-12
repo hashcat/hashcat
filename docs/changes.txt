@@ -225,6 +225,26 @@ only directory, since it writes only when it did not find what it needed and car
 when a write fails, but the compiled kernels are under the same option and a kernel hashcat cannot
 write is a build failure that drops the device, so a shared directory wants to be writable.
 
+26. Plugins: module_hash_hints was added to the module interface
+
+A module now says what a hash tells us about whoever chose the password, and attack-mode 9 guesses from
+that. The answer for most modes is the account name in front of the hash, which is what it always was,
+so a module that says nothing is given that answer when it is loaded and behaves exactly as before. A
+module whose salt or esalt holds something better says so: -m 22000 answers with the network name and
+the two MAC addresses, and attack-mode 9 therefore works on a WPA capture, which has no account name
+anywhere in it.
+
+A private plugin has to add one line to module_init(). It goes in alphabetical order, after
+module_hash_encode and before module_hash_init_selftest:
+
+  module_ctx->module_hash_encode              = module_hash_encode;
++ module_ctx->module_hash_hints               = MODULE_DEFAULT;
+  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+
+For a tree full of modules, this does it:
+
+  sed -i -E 's/^(\s*module_ctx->module_hash_encode\s+=.*;)$/\1\n  module_ctx->module_hash_hints               = MODULE_DEFAULT;/' src/modules/module_*.c
+
 ##
 ## New Algorithms
 ##
@@ -259,8 +279,14 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Attack-Mode 0: --skip, --limit and --restore now work on stdin if the same stream is fed again
 - Attack-Mode 1: Both dictionaries are now read through a feed, with --slow-candidates as well
 - Attack-Mode 9: Compares wordlist lines against unique salts, refusing files it once accepted
+- Attack-Mode 9: Refuses an unsalted hash-mode, where every hash shares one salt and only the first could be tested
 - Attack-Mode 9: A hash file of username, separator and hash is now split by hashcat, with no wordlist
-- Attack-Mode 9: The username in front of the first separator becomes the candidate, and rules apply
+- Attack-Mode 9: Guesses from what the hash mode can say about a hash, which for most modes is the account name
+- Attack-Mode 9: Runs phases, and all three of them by default: every word of an account as it stands, then every word through the first 1000 rules of rules/rockyou-30000.rule, then every word through a probability ordered grammar
+- Attack-Mode 9: The grammar phase does not end, so the attack no longer finishes on its own. phases=words,rules is the bounded run
+- Attack-Mode 9: Rules are applied by the host side rule engine, so a rule that rejects a word costs almost nothing
+- Attack-Mode 9: Works on a hash file with no account names, such as a WPA capture, where -m 22000 answers with the network name and both MAC addresses
+- Attack-Mode 9: Refuses --stdout, which does not read a hash file and so opened it as a wordlist
 - Mask attacks: --increment and mask files now form one keyspace, so --skip and --limit apply to all
 - Mask attacks: --keyspace now answers for the whole increment or mask file instead of being refused
 - Attack-Mode 12: A hybrid attack where the mask says where the word goes, with ?w marking the place
@@ -275,7 +301,7 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Attack-Mode 5: One wordlist or a directory of them, then as many tables as you like, read into one set, so leetspeak and case are combined on the command line rather than shipped pre-merged
 - Attack-Mode 5: Shipped tables are two leetspeak tiers, case for Latin, Greek and Cyrillic, whole words as emoji, one sport for another as a template, and the keyboard layouts, which brings layout conversion to every hash mode rather than only to TrueCrypt and VeraCrypt
 - Attack-Mode 5: Leaving a token alone is always one of its choices, and identity=0 takes that away for a table that converts rather than varies, such as a keyboard layout
-- Attack-Mode 4 and 5: --debug-mode no longer requires -r or -g. An attack with a feed has no rule to name, so we fill the Finding-Rule field from the feed instead: a table reports the lines that fired, as football->basketball,man->woman, and a grammar reports the terminals it picked. New --debug-mode 6 writes the same thing in the layout of mode 4
+- Attack-Mode 4, 5 and 9: --debug-mode no longer requires -r or -g. An attack with a feed has no rule to name, so we fill the Finding-Rule field from the feed instead: a table reports the lines that fired, as football->basketball,man->woman, a grammar reports the terminals it picked, and attack-mode 9 reports the rule its rules phase applied or the shape its grammar phase used. New --debug-mode 6 writes the same thing in the layout of mode 4
 - Attack-Mode 5: New setting template=1, which never hands a word of the wordlist back unchanged. A word no rule matched can only come out as itself and is dropped, and a word that did match loses the one candidate that changes nothing, so what runs is what the table made. That reads a wordlist as a set of patterns rather than as a list of passwords, and a wordlist attack is what -a 0 is for
 - Attack-Mode 5: The one pass over the wordlist that measures the attack is kept in cache/feeds/table, so only the first run over a wordlist and table set pays for it
 - Attack-Mode 5: -a 5 hashes.txt words.txt table.table is the same attack as -a 8 hashes.txt table words.txt table.table
@@ -386,6 +412,7 @@ write is a build failure that drops the device, so a shared directory wants to b
 - PCFG: A ruleset can take its words from the command line instead of from its own training, so naming what you know about one person leaves the grammar to wrap those words in everything people wrap words in, in the order the training says is likely
 - PCFG: New shipped ruleset hints, which is the trained grammar with the words taken out of it and is built from default-passwords by tools/pcfg_hints.py
 - PCFG: New settings hintwords, hintfile and hintrank, which say what those words are and what an unranked one is worth
+- PCFG: New setting hintaccount, which says the words are a different set for every hash and come from what the module knows about it. That is the grammar phase of attack-mode 9
 - Feeds: A feed is given the shared folder, so one that ships data of its own can find it
 - Files: Added hc_fopen_mem, which reads a file that is already in memory
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
@@ -557,7 +584,6 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Fixed a run that lost every device still exiting successfully, which was most visible in benchmark mode
 - Fixed an unused variable warning on Android builds, and affinity failures there being blamed on pthread_setaffinity_np(), which does not exist on that platform
 - Fixed --keyspace and --total-candidates being accepted with attack-mode 9, where the hash file was opened as a wordlist
-- Fixed association autosplit trying pieces of an account name shorter than three characters, each of which cost a round against every account in the file
 - Fixed 66 modules underflowing the salt iteration count when the hash carried a zero, which asked the device for about 4 billion iterations and hung
 - Fixed 16 modules deriving a salt iteration count by shifting past the width of the type, where a value of 32 or more gave the wrong count
 - Fixed the eight scrypt modules underflowing salt_repeats when the hash carried a parallelism of zero, which hung the kernel on launch

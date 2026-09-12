@@ -2959,8 +2959,13 @@ static u32 table_bucket_of (const table_t *tb, const u32 pool_off)
 // made on the host and carried in the base word, and the base word is what --debug-mode prints beside
 // this, so what the two say together is still the whole story.
 
-int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, MAYBE_UNUSED const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, char *out_buf, const int out_size)
+int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, MAYBE_UNUSED const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, MAYBE_UNUSED const u64 pos, char *out_buf, const int out_size)
 {
+  // No cell, so the card expanded nothing and there is nothing here to decompose. That is the host
+  // engine, which a slow hash always gets, and everything below reads the cell.
+
+  if (cell == NULL) return -1;
+
   const table_global_t *tg = global_ctx->gbldata;
 
   if (tg == NULL) return -1;

@@ -236,6 +236,32 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   work = MIN (work, max);
 
+  // -a 9 pairs word N with salt N, and a feed that covers several rounds writes them round major, so
+  // the pairing is word N with salt N modulo the salt count. What the kernel is told is the batch's
+  // own offset, one number for the whole batch, so a batch that ran past the end of a round would
+  // carry on into the next one against salts counted from where the batch began. Every word after the
+  // boundary would then be hashed against the wrong account, and nothing anywhere would say so: the
+  // run would simply crack less.
+  //
+  // Cutting the batch at the boundary is what keeps one offset true for all of it. With more accounts
+  // than a launch holds it costs one short batch per round, which is nothing. With fewer, every launch
+  // carries exactly the salt count, which is the ceiling this attack has always had: the kernel reads
+  // the salt index off the work item id, so a launch cannot cover more accounts than there are.
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    const u32 salts_cnt = hashcat_ctx->hashes->salts_cnt;
+
+    if (salts_cnt > 0)
+    {
+      const u64 round_left = salts_cnt - (words_off % salts_cnt);
+
+      work = MIN (work, round_left);
+    }
+  }
+
   status_ctx->words_off += work;
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);

@@ -6244,10 +6244,32 @@ static bool salt_inner_enabled (const hashcat_ctx_t *hashcat_ctx)
   return enabled;
 }
 
-int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt)
+int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos_arg, const u64 pws_cnt)
 {
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // Where this batch starts, as the launch reads it. Everything below passes this to the kernel as
+  // kernel_param.pws_pos, and in -a 9 that is not a position in the keyspace at all: the kernel adds
+  // its own work item id to it and uses the sum to pick a salt and a digest, so what it wants is where
+  // the batch starts in the salt array.
+  //
+  // The two are the same number while a feed covers one round. A feed covering several writes them
+  // round major, so the keyspace runs on past the last salt and starts over, and the salt the batch
+  // begins at is the offset taken modulo the salt count. get_work () cuts a batch at the round
+  // boundary, so one reduced offset is true for every word in the batch.
+  //
+  // The progress counters -a 9 keeps are indexed by salt as well, so they take the reduced offset for
+  // the same reason.
+
+  u64 pws_pos = pws_pos_arg;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    const u32 salts_cnt = hashcat_ctx->hashes->salts_cnt;
+
+    if (salts_cnt > 0) pws_pos = pws_pos_arg % salts_cnt;
+  }
 
   // do the on-the-fly combinator mode encoding
 

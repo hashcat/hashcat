@@ -324,8 +324,16 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     mask_ctx->lookup_combi.word  += walk_first;
   }
 
-  status_ctx->words_walk_base += status_ctx->words_base;
-  status_ctx->words_walk_cnt  += status_ctx->words_cnt;
+  // How much the whole queue holds, summed as each round of it is sized. A round that cannot be counted
+  // reports UINT64_MAX, which is hashcat's way of saying more than a u64 holds, and adding anything to
+  // that wraps. The status line then measures the progress against a total smaller than itself:
+  // -a 9 with phases=rules,pcfg and -r rules/best66.rule reported 2528130 of 65999.
+
+  const bool walk_base_over = overflow_check_u64_add (status_ctx->words_walk_base, status_ctx->words_base);
+  const bool walk_cnt_over  = overflow_check_u64_add (status_ctx->words_walk_cnt,  status_ctx->words_cnt);
+
+  status_ctx->words_walk_base = (walk_base_over == true) ? UINT64_MAX : (status_ctx->words_walk_base + status_ctx->words_base);
+  status_ctx->words_walk_cnt  = (walk_cnt_over  == true) ? UINT64_MAX : (status_ctx->words_walk_cnt  + status_ctx->words_cnt);
 
   // --keyspace answers for the whole queue, so every round is sized and none of them is run. The
   // total is reported once the queue has been walked, by outer_loop.
@@ -434,11 +442,25 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    const u64 progress_restored = 1 * amplifier_cnt;
+    // -a 9 counts its progress per salt, because word N is the guess for salt N and nothing else. So
+    // what a restored position says is how many guesses each salt has already had, and the stream is
+    // round major: the position divides into the whole rounds every salt got and a remainder that the
+    // salts at the front of the list got one more of.
+    //
+    // Counted per word instead, this walked words_off entries of an array that is one entry per salt.
+    // A feed carrying one round could not reach past the end of it. One carrying many does, on the
+    // first restore of any run long enough to be worth restoring.
 
-    for (u32 i = 0; i < status_ctx->words_off; i++)
+    const u32 salts_cnt = hashes->salts_cnt;
+
+    const u64 rounds = (salts_cnt > 0) ? (status_ctx->words_off / salts_cnt) : 0;
+    const u32 extra  = (salts_cnt > 0) ? (u32) (status_ctx->words_off % salts_cnt) : 0;
+
+    for (u32 i = 0; i < salts_cnt; i++)
     {
-      status_ctx->words_progress_restored[i] = progress_restored;
+      const u64 done = rounds + ((i < extra) ? 1 : 0);
+
+      status_ctx->words_progress_restored[i] = done * amplifier_cnt;
     }
   }
   else
@@ -2173,8 +2195,10 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
 
 int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_buf)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   int usage_sort_cnt = 0;
 
@@ -2185,6 +2209,15 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
   const bool quiet_sav = user_options->quiet;
 
   user_options->quiet = true;
+
+  // Whether -a 9 splitting its own hash file has to split it here as well, which is the same question
+  // user_options_extra_init_late () answers once the mode is known. Here the mode is not known yet,
+  // which is the whole point of this loop, so it is asked of each module as that module is tried.
+  //
+  // Without it every mode whose hash file carries an account name in front of the hash fails to parse
+  // and hashcat reports that nothing matches, which is what "-a 9 users.hash" with no -m does.
+
+  const bool username_sav = user_options->username;
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
@@ -2208,6 +2241,13 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
     if (hashconfig_init_rc == 0)
     {
+      user_options->username = username_sav;
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        if (module_ctx->module_hash_hints == default_hash_hints) user_options->username = true;
+      }
+
       const bool test_rc = autodetect_hashmode_test (hashcat_ctx);
 
       if (test_rc == true)
@@ -2229,7 +2269,8 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
   qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
 
-  user_options->quiet = quiet_sav;
+  user_options->quiet    = quiet_sav;
+  user_options->username = username_sav;
 
   EVENT (EVENT_AUTODETECT_FINISHED);
 

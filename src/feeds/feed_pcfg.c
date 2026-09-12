@@ -15,6 +15,7 @@
 #include "event.h"
 #include "folder.h"
 #include "paw64.h"
+#include "hlfmt.h"
 
 #include <math.h>
 #include <limits.h>
@@ -335,9 +336,11 @@ typedef struct
 
   u32 hint_rank;
 
-  // Whether the masks have been folded into the words yet, and the buffer holding the forms that came
-  // out when they were. See hint_expand ().
+  // Whether the hint words carry their own case, which they do whenever the run named them rather than
+  // promising to supply them per candidate. Then, whether the masks have been folded into them yet and
+  // the buffer holding the forms that came out. See hint_expand ().
 
+  bool  hint_cased;
   bool  hint_done;
   char *hw_cased;
 
@@ -345,6 +348,19 @@ typedef struct
   // one that does not, which is the difference between a run that named none and a run that needed none.
 
   bool hint_wanted;
+
+  // Where the hint words come from when every hash gets a different set: the account names in front of
+  // the hashes. Borrowed from the hash list, which outlives the feed, so no bytes here are copied or
+  // freed.
+  //
+  // The stream is round major. Round r is grammar rank r for every account, so the grammar is walked
+  // once per round rather than once per candidate, and what is left per candidate is cutting one name
+  // up and copying a word. acct_rounds is how many rounds there are, which is as many as the grammar
+  // has ranks.
+
+  hashinfo_t **acct_info;
+  u64          acct_cnt;
+  u64          acct_rounds;
 
   // Structures those bounds took out of the grammar, and whether any bucket is bounded at all. The
   // first names the reason where a run ends up with nothing to enumerate. The second keeps a run the
@@ -465,6 +481,21 @@ typedef struct
 
   const pcfg_hint_t *hint;
   u32                hint_cnt;
+
+  // Where a per account hint set is cut. A run naming its words points hint at the loaded list instead
+  // and leaves this alone.
+
+  pcfg_hint_t hint_own[PCFG_HINT_MAX];
+
+  // Which round the unranked template in idx[] belongs to. Everything in one round shares it, so this
+  // is what turns one grammar walk into a whole pass over the hash list.
+
+  u64  round;
+  bool round_valid;
+
+  // Where the one hint that is not a substring of an account name is built.
+
+  char hint_scratch[ASSOCIATION_HINT_SCRATCH];
 
   u32 inner;
   u32 inner_end;
@@ -2818,7 +2849,7 @@ static int list_get (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const 
     // hint list. It happens here rather than where the words were read because the masks come out of
     // the ruleset and the ruleset is not open yet at that point.
 
-    if (pg->hint_done == false)
+    if ((pg->hint_cased == true) && (pg->hint_done == false))
     {
       const int ci = list_get (global_ctx, pg, roots, nroots, 'C', 1, cache, lut);
 
@@ -3566,15 +3597,24 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
       mbuf[s.nslot - 1] = (u16) pg->lists[li].min_len;
       xbuf[s.nslot - 1] = (u16) pg->lists[li].max_len;
 
-      if (ty == 'A')
+      // An account's hint carries a mask exactly as a letter run does, and for the same reason: the
+      // terminal is stored in one case and the mask is what puts the other one back. Its mask list is
+      // C1, which in a hint ruleset holds masks that work at any length rather than masks cut for one.
+      // A named set had its masks folded into the words instead and needs no slot.
+
+      const bool wants_mask = (ty == 'A') || ((ty == 'H') && (pg->hint_cased == false));
+
+      if (wants_mask == true)
       {
-        const int ci = list_get (global_ctx, pg, roots, nroots, 'C', len, cache, lut);
+        const u32 clen = (ty == 'H') ? 1 : len;
+
+        const int ci = list_get (global_ctx, pg, roots, nroots, 'C', clen, cache, lut);
 
         if (ci == -1) { ok = false; break; }
 
         s.kind[s.nslot] = PCFG_SLOT_MASK;
         s.list[s.nslot] = (u16) ci;
-        s.tlen[s.nslot] = (u16) len;
+        s.tlen[s.nslot] = (ty == 'H') ? 0 : (u16) len;
         mbuf[s.nslot]   = 0;
         xbuf[s.nslot]   = 0;
         s.nslot++;
@@ -3765,7 +3805,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
       if ((pg->hint_wanted == true) && (pg->hint_cnt == 0))
       {
-        gerr (global_ctx, "%s: this ruleset takes its words from you, so name them with hintwords or hintfile", named);
+        gerr (global_ctx, "%s: this ruleset takes its words from somewhere, so name them with hintwords, hintfile or hintaccount", named);
 
         return -1;
       }
@@ -5559,6 +5599,26 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
   int last_off = 0;
   int last_len = 0;
 
+  // The hint the slot before this one wrote, in both cases. A hint has no stored uppercase image
+  // because it is not stored at all, so the mask that follows it reads these instead of the list's
+  // ubuf. Only the most recent one is needed: a mask always sits immediately behind its own token.
+
+  u8 hint_lo[PCFG_HINT_LEN_MAX];
+  u8 hint_up[PCFG_HINT_LEN_MAX];
+
+  bool last_hint = false;
+
+  // Whether hint_up has been filled for the hint sitting in hint_lo.
+  //
+  // Building it is the most expensive thing in this function: it decodes UTF-8 and binary searches a
+  // table of case ranges for every character of the word. Most candidates never need it, because the
+  // cheapest capitalization mask leaves the word alone and that mask carries 88 per cent of its list's
+  // probability. So it is built where the first upper case byte is actually wanted rather than ahead of
+  // a mask that turns out not to want one. Measured on 20000 accounts with ordinary names, 5.5 MH/s
+  // against 15.8.
+
+  bool hint_up_ready = false;
+
   for (u32 j = 0; j < s->nslot; j++)
   {
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
@@ -5572,16 +5632,38 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
     // A hint list holds one placeholder byte per word and the words themselves live beside it, so the
     // digit the odometer turned is an index into those rather than an offset into the list buffer.
 
-    if ((t->ty == 'H') && (s->kind[j] == PCFG_SLOT_TERM))
+    const bool is_hint = (t->ty == 'H') && (s->kind[j] == PCFG_SLOT_TERM);
+
+    if (is_hint == true)
     {
       if ((th->hint_cnt == 0) || (th->hint == NULL)) return GENERIC_RC_ERROR;
 
-      const u32 hl = (th->hint[i].len < PCFG_HINT_LEN_MAX) ? th->hint[i].len : PCFG_HINT_LEN_MAX;
+      // The digit wraps, because the list is the same width for every account and an account is not
+      // obliged to have that many words. See the comment on the hint field.
 
-      // Written as it stands. hint_expand () already applied the case masks, and lowering the word
-      // here would undo that and hand the run the same form three times.
+      const u32 h = i % th->hint_cnt;
 
-      v = th->hint[i].buf;
+      const u32 hl = (th->hint[h].len < PCFG_HINT_LEN_MAX) ? th->hint[h].len : PCFG_HINT_LEN_MAX;
+
+      // A word that carries its own case is written as it stands. hint_expand () already applied the
+      // masks, and lowering it here would undo that and hand the run the same form three times.
+      //
+      // A word that does not is lowered, because that is what the model means by a terminal, and the
+      // mask slot behind it is what puts the case back.
+
+      if (pg->hint_cased == true)
+      {
+        v = th->hint[h].buf;
+      }
+      else
+      {
+        pcfg_lower_ascii (hint_lo, th->hint[h].buf, hl);
+
+        hint_up_ready = false;
+
+        v = hint_lo;
+      }
+
       l = (int) hl;
     }
 
@@ -5599,6 +5681,8 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
       last_off = pos;
       last_len = l;
 
+      last_hint = is_hint;
+
       pos += l;
     }
     else
@@ -5606,7 +5690,7 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
 
       const pcfg_tlist_t *ta = &pg->lists[s->list[j - 1]];
 
-      const u8 *up = (ta->ubuf != NULL) ? (ta->ubuf + ta->off[th->idx[j - 1]]) : NULL;
+      const u8 *up = (last_hint == true) ? hint_up : ((ta->ubuf != NULL) ? (ta->ubuf + ta->off[th->idx[j - 1]]) : NULL);
 
       int ci = 0;
       int at = 0;
@@ -5616,6 +5700,13 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
         const bool hit = (v[ci] == 'U') && (up != NULL);
 
         if ((last_off + at) >= out_size) break;
+
+        if ((hit == true) && (last_hint == true) && (hint_up_ready == false))
+        {
+          pcfg_upper_image (hint_up, hint_lo, (u32) last_len);
+
+          hint_up_ready = true;
+        }
 
         if (hit == true) out[last_off + at] = up[at];
 
@@ -5934,7 +6025,7 @@ static u32 pcfg_parse (pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *o
         // An account's words are not known here at all, so a hint list they fill cannot be walked and
         // the placeholder is what the scan sees. That is why --lookup answers for a named set only.
 
-        const bool hint = (t->ty == 'H');
+        const bool hint = (t->ty == 'H') && (pg->hint_cased == true);
 
         u32 i = (cur[j] == 0xffffffff) ? 0 : cur[j];
 
@@ -8163,6 +8254,87 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
   return len;
 }
 
+// Cut one account name into the hints this candidate may use, and point the thread at them.
+//
+// Every hint but one is a substring of the name, so this is a walk over a short string. It happens once
+// per candidate because the account changes on every candidate: the stream is round major and the
+// account is the position modulo the hash count, which is what the attack's pairing of word N with
+// salt N requires.
+//
+// Returns how many words the account actually has, which may be fewer than the list is wide. The digit
+// wraps onto them in assemble (). It may also be none, for a line whose account name was empty.
+
+static u32 hint_account (const pcfg_global_t *pg, pcfg_thread_t *th, const u64 a)
+{
+  th->hint     = th->hint_own;
+  th->hint_cnt = 0;
+
+  hlfmt_word_t words[PCFG_HINT_MAX];
+
+  // The whole list rather than hint_cnt of it, for the reason feed_association gives at its own call:
+  // a narrower cap returns different words and not merely fewer. The grid is hint_cnt wide and the
+  // digit wraps onto whatever the account really has.
+
+  const u32 cnt = hlfmt_hash_hints (pg->hcctx, a, words, PCFG_HINT_MAX, th->hint_scratch, ASSOCIATION_HINT_SCRATCH);
+
+  for (u32 i = 0; i < cnt; i++)
+  {
+    th->hint_own[i].buf = (const u8 *) words[i].buf;
+    th->hint_own[i].len = words[i].len;
+  }
+
+  th->hint_cnt = cnt;
+
+  return cnt;
+}
+
+// One candidate of the account attack.
+//
+// The position divides into which round this is and which account inside it. The round is the grammar
+// rank and every account in the round shares it, so the unranked template is kept and only rebuilt
+// when the round turns over. That is the whole reason the hint index lives inside the grammar rather
+// than beside it: with it outside, consecutive candidates would land on different structures and the
+// suffix table would be rebuilt for each of them.
+
+static int account_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size)
+{
+  if (th->pos >= (pg->acct_rounds * pg->acct_cnt)) return GENERIC_RC_EOF;
+
+  const u64 r = th->pos / pg->acct_cnt;
+  const u64 a = th->pos % pg->acct_cnt;
+
+  if ((th->round_valid == false) || (th->round != r) || (th->valid == false))
+  {
+    if (unrank (pg, r, th) == false) return GENERIC_RC_EOF;
+
+    th->round       = r;
+    th->round_valid = true;
+  }
+
+  th->pos++;
+
+  // An account with no name yields no word, and a candidate of length zero is how it keeps its place. -a 9 pairs word N with salt N, so a word that is not produced at all moves every later word
+  // onto the previous hash and hashcat stops the run rather than allow it.
+
+  if (hint_account (pg, th, a) == 0) return 0;
+
+  const int len = assemble (pg, th, out_buf, out_size);
+
+  if (len < 0) return len;
+
+  // A candidate longer than the buffer is one this attack cannot use. Everywhere else hashcat reads it
+  // again into a wider buffer or throws it away and takes the next word, and -a 9 can do neither,
+  // because a word that is not produced moves every later word onto the previous hash. So it stops the
+  // run instead, and one account name long enough to fill four hint slots would stop it.
+  //
+  // The zero length candidate an account with no name gets is what this one gets too. It keeps its
+  // place and guesses nothing.
+
+  if (len > out_size) return 0;
+
+  return len;
+}
+
 static int plain_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size)
 {
   if (th->pos >= pg->keyspace) return GENERIC_RC_EOF;
@@ -8652,7 +8824,7 @@ static void lookup_slots (const pcfg_global_t *pg, const pcfg_hit_t *hit, char *
     // A hint slot names one of the words the run was given, and those live beside the list rather
     // than in it. Everything else reads the list.
 
-    const bool hint = (t->ty == 'H');
+    const bool hint = (t->ty == 'H') && (pg->hint_cased == true);
 
     const u8 *val = (hint == true) ? pg->hw[e].buf : (t->buf + t->off[e]);
     const u32 len = (hint == true) ? pg->hw[e].len : (t->off[e + 1] - t->off[e]);
@@ -8880,6 +9052,15 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
 static void pcfg_say_base (generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const u64 scale, const char *half)
 {
+  if (pg->acct_cnt > 0)
+  {
+    const hashes_t *hashes = pg->hcctx->hashes;
+
+    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s, grammar phase: %s", (hashes != NULL) ? hashes->hashfile : "the hashes", pg->named_given);
+
+    return;
+  }
+
   snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named_given, scale, half);
 }
 
@@ -8944,6 +9125,8 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   u64    maxword = 0;
   double maxgain = 1.5;
 
+  u64 hintaccount = 0;
+
   const char *hintwords = NULL;
   const char *hintfile  = NULL;
   const char *hintrank  = NULL;
@@ -8962,6 +9145,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "cache",   FEED_PARAM_TYPE_U64, &cache,   0, 1, "keep the unit tables under the cache directory, which trades disk for the longest step of the start" },
     { "maxword", FEED_PARAM_TYPE_U64, &maxword, 0, PCFG_DEV_MAXWORD_HI, "words the kernel gives a candidate, 0 to pick from the ruleset" },
     { "maxgain", FEED_PARAM_TYPE_DBL, &maxgain, 1.0, 64.0, "how much wider the rectangle must get before the larger array is taken" },
+    { "hintaccount", FEED_PARAM_TYPE_U64, &hintaccount, 0, PCFG_HINT_MAX, "words to take from each account name, for an attack that pairs one hash with one set of words" },
     { "hintwords", FEED_PARAM_TYPE_STR, &hintwords, 0, 0, "the hint words themselves, comma separated, best first" },
     { "hintfile",  FEED_PARAM_TYPE_STR, &hintfile,  0, 0, "a file of hint words, one per line, optionally followed by a tab and a probability" },
     { "hintrank",  FEED_PARAM_TYPE_STR, &hintrank,  0, 0, "what a hint word with no probability of its own is worth: zipf, linear or flat" },
@@ -9010,14 +9194,27 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     }
   }
 
-  // Two ways to select the hint word source, and only one of them at a time.
+  // Three ways to select the hint word source, and only one of them at a time. hintwords and
+  // hintfile both name a fixed set, and hintaccount says the set is different for every hash and is cut
+  // out of that hash's own account name.
 
-  if ((hintwords != NULL) && (hintfile != NULL))
+  u32 sources = 0;
+
+  if (hintwords   != NULL) sources++;
+  if (hintfile    != NULL) sources++;
+  if (hintaccount != 0)    sources++;
+
+  if (sources > 1)
   {
-    gerr (global_ctx, "hintwords and hintfile both select the hint word source, so only one of them can be given");
+    gerr (global_ctx, "hintwords, hintfile and hintaccount each select the hint word source, so only one of them can be given");
 
     return false;
   }
+
+  // A named set carries its own case, because it is known here and the masks can be folded into it. An
+  // account's words are not known until the candidate is built, so they keep the mask slot.
+
+  pg->hint_cased = ((hintwords != NULL) || (hintfile != NULL));
 
   if (hintwords != NULL)
   {
@@ -9029,9 +9226,92 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     if (hint_file_load (global_ctx, pg, hintfile) == false) return false;
   }
 
-  pg->hint_cnt = pg->hw_cnt;
+  // Naming the words fixes how many there are, so the count is not given twice.
 
-  // What the shortest and longest hint is. They only steer the structure filter, which decides whether a structure can ever reach a length
+  if (pg->hw_cnt > 0) hintaccount = pg->hw_cnt;
+
+  pg->hint_cnt = (u32) hintaccount;
+
+  if ((hintaccount != 0) && (pg->hw_cnt == 0))
+  {
+    const hashes_t *hashes = hashcat_ctx->hashes;
+
+    if ((hashes == NULL) || (hashes->digests_cnt == 0))
+    {
+      gerr (global_ctx, "hintaccount has no hashes to take words from");
+
+      return false;
+    }
+
+    // Two settings only a named word set can honour. An account's words are ranked by whatever the hash
+    // mode reports for that hash, the same way for every hash in the file, so hintrank has no list here
+    // to rank. And lookup= walks the terminal lists to locate a candidate in the stream,
+    // while a hint list holds one placeholder byte per word because the words are a different set for
+    // every hash, so the answer it would give describes the placeholders. Both are refused rather than
+    // accepted and quietly ignored.
+
+    if (hintrank != NULL)
+    {
+      gerr (global_ctx, "hintrank ranks a word list given on the command line. These words come from the hashes, and each one is worth what the hash mode reports for it");
+
+      return false;
+    }
+
+    if (lookup != NULL)
+    {
+      gerr (global_ctx, "lookup cannot answer for an attack whose words come from the hashes. They are a different set for every hash, so a candidate has no one place in the stream");
+
+      return false;
+    }
+
+    // Whether anything is known about these hashes at all, and how much. The module answers that, so
+    // this asks rather than testing for an account name: a mode that carries a network name or a
+    // principal still carries a field for a hash file that has no account names in it.
+    //
+    // The list is one width for every hash, because that is what lets one grammar and one cost index
+    // serve the whole file, and an account with fewer words than the width repeats one. A width no
+    // hash in the file can fill is therefore a digit that only ever repeats: it emits a candidate the
+    // run has already tried, at a rank of its own. -m 22000 answers with three words and never more,
+    // so five digits in eight were spent that way. The width is cut to the widest answer here.
+
+    u32 words_max = 0;
+
+    for (u64 i = 0; i < hashes->digests_cnt; i++)
+    {
+      hlfmt_word_t probe[PCFG_HINT_MAX];
+
+      char scratch[ASSOCIATION_HINT_SCRATCH];
+
+      const u32 known = hlfmt_hash_hints (hashcat_ctx, i, probe, pg->hint_cnt, scratch, sizeof (scratch));
+
+      if (known > words_max) words_max = known;
+
+      if (words_max == pg->hint_cnt) break;
+    }
+
+    if (words_max == 0)
+    {
+      gerr (global_ctx, "these hashes carry no fields to guess from, so the grammar has no words to work with");
+
+      return false;
+    }
+
+    pg->hint_cnt = words_max;
+
+    pg->acct_info = hashes->hash_info;
+    pg->acct_cnt  = hashes->digests_cnt;
+
+    // The prefetch workers walk by position and cannot map a position to an account, so they are turned
+    // off rather than taught. What they save is the grammar walk, and this attack already walks it once
+    // a round instead of once a candidate.
+
+    pg->threads = 0;
+  }
+
+  // What the shortest and longest hint may be. A run that named its words knows both; a run that will
+  // read them out of a hash file does not yet, so it takes the widest a hint may be.
+  //
+  // They only steer the structure filter, which decides whether a structure can ever reach a length
   // the hash mode accepts. Too wide keeps structures whose candidates are rejected one at a time
   // instead, which is slower and never wrong.
 
@@ -9261,6 +9541,25 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
+  // How many rounds the account attack has. A round is one pass over the hash list at one grammar rank,
+  // so there are as many rounds as the grammar has ranks, and this is the first point at which that
+  // number exists.
+  //
+  // The product has to be exact rather than saturated, because -a 9 pairs word N with salt N and
+  // hashcat checks that the keyspace is a whole multiple of the hash count before it will run. A
+  // saturated value is a multiple of no number at all and the run would be refused. So the rounds are capped at
+  // whatever keeps the product inside the ceiling build_index () already holds the grammar to, which
+  // still leaves more rounds than any run will reach.
+
+  if (pg->acct_cnt > 0)
+  {
+    const u64 ceiling = ((u64) 1 << 62) / pg->acct_cnt;
+
+    pg->acct_rounds = (pg->keyspace < ceiling) ? pg->keyspace : ceiling;
+
+    if (pg->acct_rounds == 0) pg->acct_rounds = 1;
+  }
+
   // lookup= is answered here and not earlier, because it reads the grammar grammar_load () parsed,
   // the terminal lists list_get () pulled in behind it, the suffix counts build_suffix () left, the
   // OMEN tables omen_load () built and the level index build_index () has just finished. This is the
@@ -9392,6 +9691,11 @@ u64 global_keyspace (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thre
 {
   const pcfg_global_t *pg = (const pcfg_global_t *) global_ctx->gbldata;
 
+  // The account attack is as long as its rounds times the hash list. The rounds were capped so that
+  // this product is exact, because hashcat checks it is a whole multiple of the hash count.
+
+  if (pg->acct_cnt > 0) return pg->acct_rounds * pg->acct_cnt;
+
   if (pg->keyspace >= UINT64_MAX - 1) return UINT64_MAX - 2;
 
   if (pg->units > 0) return pg->units;
@@ -9449,6 +9753,8 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
   pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
   pcfg_thread_t *th = (pcfg_thread_t *) thread_ctx->thrdata;
 
+  if (pg->acct_cnt > 0) return account_emit (pg, th, out_buf, out_size);
+
   if ((th->pf == NULL) || (th->pf->amp == true)) return plain_emit (pg, th, out_buf, out_size);
 
   u64 pos = 0;
@@ -9470,6 +9776,42 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
 bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *avg, u32 *maxword, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe)
 {
   pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
+
+  // An attack that takes its words from the hashes cannot run on the device engine. The words are a
+  // different set for every hash and they live in host memory, so what the card would read is the one
+  // placeholder byte a hint list holds, and thread_next_dev () has no way to ask which account a
+  // position belongs to. Reported as an empty inner loop, the way the two refusals further down are,
+  // so the core moves the run to the host engine rather than failing on the first candidate.
+  //
+  // -a 9 never arrives here, because the core clears the device engine for any attack mode that is not
+  // -a 8. "-a 4 hashes.txt hints hintaccount=8" does, and ended the session on "thread_next_dev
+  // returned -2" as soon as autotune finished.
+
+  if (pg->acct_cnt > 0)
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: the words come from the hashes, so the host engine takes the run");
+
+    global_ctx->dev_enable = false;
+
+    pcfg_pick_workers (pg);
+
+    pcfg_say_base (global_ctx, pg, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+
+    if (pg->lookup != NULL) lookup_report (global_ctx, pg);
+
+    pool[0]      = NULL;
+    pool_size[0] = 0;
+    il_cnt[0]    = 0;
+    maxword[0]   = pg->maxword;
+    avg[0]       = 1;
+    front[0]     = 1;
+    step[0]      = 1;
+    varlen[0]    = (pg->varlen == true) ? 1 : 0;
+
+    memset (probe, 0, sizeof (pcfg_cell_t));
+
+    return true;
+  }
 
   pg->il_cnt = (u32) 1 << pg->kbits;
 
@@ -10094,8 +10436,55 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 // Only the part the card expanded is here. The slots in front of it are already assembled into the
 // base word, which --debug-mode prints beside this.
 
-int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, char *out_buf, const int out_size)
+int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, MAYBE_UNUSED const u64 pos, char *out_buf, const int out_size)
 {
+  // Without a cell there is no rectangle here to walk. That is the account attack: it runs this feed on the
+  // host and hands hashcat finished candidates, so what it has instead is the position, and the position
+  // is enough. A round of that attack is one grammar rank over the whole hash list, so the rank divides
+  // out of it, and unranking the rank gives the structure that made the candidate.
+  //
+  // The shape is what is written, "H1D2", and not the terminals. The terminals are in the candidate,
+  // which the debug line already carries, and the hint terminal is a placeholder whose bytes say
+  // little. The shape is the part a person tuning the grammar phase cannot see any other way.
+  //
+  // A thread of its own, because unranking memoises its suffix rows onto one and this may be called
+  // from whichever thread found the crack. It runs once per crack, so the allocation is nothing.
+
+  if (cell == NULL)
+  {
+    pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
+
+    if (pg == NULL) return -1;
+
+    if (pg->acct_cnt == 0) return -1;
+
+    const u64 rank = pos / pg->acct_cnt;
+
+    pcfg_thread_t *th = (pcfg_thread_t *) hccalloc (1, sizeof (pcfg_thread_t));
+
+    if (th == NULL) return -1;
+
+    int len = -1;
+
+    if (unrank (pg, rank, th) == true)
+    {
+      if (th->omen == false)
+      {
+        char name[128];
+
+        lookup_struct_name (pg, th->si, name, sizeof (name));
+
+        len = snprintf (out_buf, (size_t) out_size, "%s", name);
+      }
+    }
+
+    thread_scratch_free (th);
+
+    hcfree (th);
+
+    return len;
+  }
+
   if (pool == NULL) return -1;
 
   const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
@@ -10188,8 +10577,17 @@ bool thread_seek (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread
   pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
   pcfg_thread_t *th = (pcfg_thread_t *) thread_ctx->thrdata;
 
-  th->pos   = offset;
-  th->valid = false;
+  th->pos         = offset;
+  th->valid       = false;
+  th->round_valid = false;
+
+  // An account attack's position is a round and an account rather than a grammar rank, and
+  // account_emit () divides it and unranks the round itself. Unranking the raw position here would
+  // build a template for a rank the run never reaches, throw it away a moment later, and let whether that
+  // unrank happened to succeed decide whether the seek stands. It also rebuilds the structure's
+  // suffix rows, which is the one expensive thing a round is meant to pay for once.
+
+  if (pg->acct_cnt > 0) return true;
 
   if (th->pf != NULL)
   {

@@ -331,6 +331,80 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
+// What a WPA hash tells us about whoever chose the password.
+//
+// The default answer for every mode is the account name in front of the hash, and a WPA capture has no
+// such thing. What it has is better: the network name, which a person typed, and the two MAC addresses,
+// which are what a router's factory password is derived from where it is derived from anything.
+//
+// The network name goes first because it is the only one of the three a human chose. The MACs follow as
+// the twelve hex digits they are written as, which is the form a keygen takes them in.
+//
+// A network name is bytes rather than text and may hold anything, so one that holds a control byte is
+// left out. It would reach every candidate built on it and none of them would be a password anybody
+// typed. Anything above ASCII is kept: a network name in another script is exactly a name somebody
+// chose, and its bytes are exactly the bytes of a passphrase built on it. Both phases take them as
+// they are, because the host rule engine works on bytes and the grammar decodes UTF-8 itself.
+
+u32 module_hash_hints (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  if (esalt_buf == NULL) return 0;
+
+  const wpa_t *wpa = (const wpa_t *) esalt_buf;
+
+  u32 cnt = 0;
+  u32 at  = 0;
+
+  const u8 *essid = (const u8 *) wpa->essid_buf;
+
+  bool printable = (wpa->essid_len > 0);
+
+  for (u32 i = 0; i < wpa->essid_len; i++)
+  {
+    if ((essid[i] >= 0x20) && (essid[i] != 0x7f)) continue;
+
+    printable = false;
+
+    break;
+  }
+
+  if ((printable == true) && (cnt < out_max) && ((at + wpa->essid_len) < scratch_size))
+  {
+    memcpy (scratch + at, essid, wpa->essid_len);
+
+    out_words[cnt].buf = scratch + at;
+    out_words[cnt].len = wpa->essid_len;
+
+    cnt++;
+    at += wpa->essid_len;
+  }
+
+  const u8 *macs[2] = { (const u8 *) wpa->mac_ap, (const u8 *) wpa->mac_sta };
+
+  for (u32 m = 0; m < 2; m++)
+  {
+    if (cnt == out_max) break;
+
+    if ((at + 12) >= scratch_size) break;
+
+    for (u32 i = 0; i < 6; i++)
+    {
+      static const char hex[] = "0123456789abcdef";
+
+      scratch[at + (i * 2) + 0] = hex[macs[m][i] >> 4];
+      scratch[at + (i * 2) + 1] = hex[macs[m][i] & 15];
+    }
+
+    out_words[cnt].buf = scratch + at;
+    out_words[cnt].len = 12;
+
+    cnt++;
+    at += 12;
+  }
+
+  return cnt;
+}
+
 int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len, MAYBE_UNUSED void *tmps)
 {
   wpa_t *wpa = (wpa_t *) esalt_buf;
@@ -1392,6 +1466,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = module_hash_hints;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;

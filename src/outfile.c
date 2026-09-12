@@ -422,6 +422,10 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 // What the feed did, rather than what a rule did. The feed is handed the same four things
 // pcfg_expand () rebuilds the candidate from, so it can name the choices it made. A feed that
 // cannot answer leaves the field empty rather than making one up.
+//
+// A feed that does not amplify has no cell and no pool, so it is handed its own position instead and
+// answers from that. -a 9 is that case: it decides what to make from where it is in its keyspace, so
+// the position is the whole of what it needs to say which word and which rule made this candidate.
 
 static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidvid, const u32 il_pos, const u8 *base, const int base_len, u8 *debug_rule_buf)
 {
@@ -430,9 +434,20 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   if (generic_ctx->explain_enable == false) return 0;
   if (generic_ctx->global_explain == NULL) return 0;
-  if (user_options_extra->attack_kern != ATTACK_KERN_PCFG) return 0;
 
-  const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, &device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, base, base_len, il_pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
+  const bool amp = (user_options_extra->attack_kern == ATTACK_KERN_PCFG);
+
+  const pcfg_cell_t *cell = (amp == true) ? &device_param->pcfg_cells_buf[gidvid] : NULL;
+
+  const u32 *pool = (amp == true) ? generic_ctx->dev_pool : NULL;
+
+  // Where this candidate's base word sat in the feed's own keyspace. The batch being launched, plus
+  // the work item inside it, which is the same arithmetic build_crackpos () makes before it multiplies
+  // by whatever amplifies.
+
+  const u64 pos = device_param->words_off_launch + gidvid;
+
+  const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, cell, pool, base, base_len, (amp == true) ? il_pos : 0, pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
 
   if (len <= 0) return 0;
 

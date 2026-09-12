@@ -121,10 +121,15 @@ HC_PLUGIN_ENTRY int  thread_next_dev (generic_global_ctx_t *global_ctx, generic_
 // cell points into, the base word itself, and which of the cell's candidates this was. It runs once
 // per crack rather than once per candidate, so it may take its time.
 //
+// A feed that does not amplify has none of those. cell and pool are NULL for it and il_pos is zero, and
+// what it gets instead is pos, which is where this candidate sat in its own keyspace. A feed that
+// decides what to make from the position can answer from that alone. Both are always passed, so a feed
+// answers from whichever it works in.
+//
 // Writes at most out_size bytes and returns how many, or -1 when it has nothing to say. Only a feed
 // declaring GENERIC_PLUGIN_OPTIONS_EXPLAIN exports it.
 
-HC_PLUGIN_ENTRY int  global_explain (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, char *out_buf, const int out_size);
+HC_PLUGIN_ENTRY int  global_explain (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u64 pos, char *out_buf, const int out_size);
 
 // ---------------------------------------------------------------------------------------------
 // what the device is doing while a feed runs

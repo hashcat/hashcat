@@ -1732,18 +1732,32 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // -a 9 splitting its own hash file runs its rounds as one attack, so the progress it counts is the
-  // whole queue and the total it is measured against has to be the whole queue too.
+  // -a 9 splitting its own hash file runs its phases as one attack, so the progress it counts is the
+  // whole run and the total it is measured against has to be the whole run too.
   //
-  // The multiplication is exact rather than an estimate. Every round pairs one word with every digest,
-  // and generic_association_in_sync refuses any round where that is not true, so a round is always
-  // words_cnt candidates and there are dicts_cnt of them.
+  // It used to multiply this phase by the number of phases, which was right while a phase was one word
+  // position and every one of them was the same size. Phases are not: running a rule list over every
+  // hash is a thousand times the work of trying the words alone, and the grammar phase has no end at
+  // all. Multiplying therefore made a finished phase read as a fraction of itself.
+  //
+  // The total is everything sized so far instead, which is what words_walk_cnt already holds. It is not
+  // known in full at the start, because sizing a phase means opening it and the grammar phase takes
+  // seconds to load, so it grows when a phase opens. What that buys is a progress that never resets and
+  // never goes backwards, and a percentage that is honest about the work hashcat has actually measured.
+  //
+  // --limit is left alone. It is refused for more than one phase, so where it applies there is only one
+  // phase and the two answers are the same anyway.
 
   if (user_options_extra->association_autosplit == true)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    if (status_ctx->words_limit == 0)
+    {
+      // A queue holding a phase whose keyspace does not fit a u64 saturates the sum, and then there is
+      // no denominator to give. Zero is how the rest of this function says that, and the progress line
+      // prints the count on its own, which is what every attack hashcat cannot size already does.
 
-    if (straight_ctx->dicts_cnt > 1) progress_end *= straight_ctx->dicts_cnt;
+      progress_end = (status_ctx->words_walk_cnt == (u64) -1) ? 0 : status_ctx->words_walk_cnt;
+    }
   }
 
   return progress_end;
