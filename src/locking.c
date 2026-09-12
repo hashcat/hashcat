@@ -55,16 +55,36 @@ int hc_unlockfile (HCFILE *fp)
 
 #else
 
-int hc_lockfile (MAYBE_UNUSED HCFILE *fp)
+int hc_lockfile (HCFILE *fp)
 {
-  // we should put windows specific code here
+  if (fp == NULL) return -1;
+
+  HANDLE hFile = (HANDLE) _get_osfhandle (fp->fd);
+
+  if (hFile == INVALID_HANDLE_VALUE) return -1;
+
+  OVERLAPPED ov;
+
+  memset (&ov, 0, sizeof (OVERLAPPED));
+
+  if (LockFileEx (hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &ov) == 0) return -1;
 
   return 0;
 }
 
-int hc_unlockfile (MAYBE_UNUSED HCFILE *fp)
+int hc_unlockfile (HCFILE *fp)
 {
-  // we should put windows specific code here
+  if (fp == NULL) return -1;
+
+  HANDLE hFile = (HANDLE) _get_osfhandle (fp->fd);
+
+  if (hFile == INVALID_HANDLE_VALUE) return -1;
+
+  OVERLAPPED ov;
+
+  memset (&ov, 0, sizeof (OVERLAPPED));
+
+  if (UnlockFileEx (hFile, 0, MAXDWORD, MAXDWORD, &ov) == 0) return -1;
 
   return 0;
 }
