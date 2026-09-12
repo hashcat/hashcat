@@ -1666,9 +1666,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     // substitutions and a grammar picks terminals. Whether this feed can actually say is settled when
     // it is loaded, because nothing here has opened it yet.
 
+    const bool has_feed = (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_TABLE) || (user_options->attack_mode == ATTACK_MODE_GENERIC);
+
     if (user_options->debug_mode == DEBUG_MODE_FEED)
     {
-      if ((user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC))
+      if (has_feed == false)
       {
         event_log_error (hashcat_ctx, "Parameter --debug-mode %d is only allowed in an attack that has a feed, which is attack mode 4 (pcfg), 5 (table) and 8 (generic).", DEBUG_MODE_FEED);
 
@@ -1677,9 +1679,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
     {
-      event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
+      // Rules are what modes 1 to 5 name, so without them there is nothing to write. An attack with
+      // a feed is the exception: it has no rules by nature, and its feed can say what it did, so the
+      // rule field is filled from the feed rather than the option being refused.
 
-      return -1;
+      if (has_feed == false)
+      {
+        event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
+
+        return -1;
+      }
     }
   }
 

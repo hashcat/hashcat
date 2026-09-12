@@ -1,6 +1,8 @@
 # The Table Attack
 
-The table attack reads a wordlist and a table file that defines token replacements. We choose a replacement independently for each token position in a word, then generate the full cross product of those choices.
+The table attack reads a wordlist and one or more tables that define token replacements. We choose a replacement independently for each token position in a word, then generate the full cross product of those choices.
+
+Every argument after the wordlist is a table, and we read them all into one set. A leetspeak table and a case table given together make one attack rather than two runs, which is what the example below does. Section 3 covers how lines from different tables merge.
 
 ```
 hashcat -m 0 -a 5 hashes.txt rockyou.txt tables/leetspeak-common.table tables/toggle.table
@@ -257,7 +259,7 @@ Two more lines appear when they apply. `table: identity off` says the unchanged 
 
 ## 7. Seeing which lines fired
 
-`--debug-mode` writes down how a candidate was made. It was built for rules, so its first five modes report the rule that made a crack, and a table attack has no rules. `--debug-mode 6` asks the feed instead, and for a table that is the lines that fired:
+`--debug-mode` writes down how a candidate was made. It was built for rules, so its first five modes report the rule that made a crack, and a table attack has no rules. In an attack that has a feed we fill that field from the feed instead, so every mode works here and reports the table lines that fired:
 
 ```
 $ hashcat -m 0 -a 5 hashes.txt words.txt t.table --debug-mode 6 --debug-file fired.txt
@@ -270,9 +272,13 @@ sunshine::sunshine
 
 The base word, the rules that fired, and the candidate they produced. Only the rules that actually fired are named: a word carries a choice for every token the table covers, and listing the ones that changed nothing would bury the ones that did. A line with an empty middle is a candidate no rule changed.
 
-It needs no `-r`, which the other modes do. What it does need is the graphics card: the rules that fired are recovered from the cell the card was handed, so on a hash slow enough to run the host engine there is no cell to read and the middle stays empty.
+`--debug-mode 6` is the shape above, the same three fields as mode 4. The other modes pick their own: mode 1 writes the substitutions alone, mode 2 the base word alone, mode 3 both without the candidate, and mode 5 adds the wordlist position field, which an attack with a feed fills with `<generic>` rather than a number. None of them needs `-r` here.
+
+What every mode needs here is the graphics card: the lines that fired are recovered from the cell the card was handed, so on a hash slow enough to run the host engine there is no cell to read and the middle stays empty.
 
 A table too wide for one cell has its leading substitutions made on the host and carried in the base word, so those do not appear in the middle either. The base word is printed beside them, so the two together still account for the candidate.
+
+Rules and a table can be combined, and then none of this is available. Stacking rules gives up the feed's own kernel, so the table's candidates become the base words that the rules work on. The first five modes go back to reporting the rule, and the base word they name is the table's output rather than the wordlist entry. Mode 6 has no cell left to read, so its middle field is empty.
 
 ## 8. Notes
 

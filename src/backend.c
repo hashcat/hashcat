@@ -4461,6 +4461,14 @@ int pcfg_seed_cells (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (rect > generic_ctx->dev_il_cnt) rect = generic_ctx->dev_il_cnt;
 
+  // The probe is the widest cell the feed found while sampling, and a launch whose every work item
+  // carries that word is a launch that never happens. A real one takes a batch of base words whose
+  // rectangles average dev_avg, so that is the size worth measuring. Sizing for the widest made a
+  // large table refuse to autotune at all: the probe alone passed the watchdog budget, and the run
+  // was then refused for a runtime no real launch would have had.
+
+  if ((generic_ctx->dev_avg > 0) && (rect > generic_ctx->dev_avg)) rect = generic_ctx->dev_avg;
+
   cell.rect = (u32) rect;
 
   // and how many of the rectangle one work item walks. Without it the probe measures one candidate a

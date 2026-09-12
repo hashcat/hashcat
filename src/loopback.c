@@ -78,7 +78,7 @@ int loopback_init (hashcat_ctx_t *hashcat_ctx)
 
   loopback_ctx->enabled  = true;
   loopback_ctx->fp.pfp   = NULL;
-  loopback_ctx->filename = (char *) hcmalloc (HCBUFSIZ_TINY);
+  loopback_ctx->filename = NULL;
 
   return 0;
 }
@@ -88,6 +88,8 @@ void loopback_destroy (hashcat_ctx_t *hashcat_ctx)
   loopback_ctx_t *loopback_ctx = hashcat_ctx->loopback_ctx;
 
   if (loopback_ctx->enabled == false) return;
+
+  hcfree (loopback_ctx->filename);
 
   memset (loopback_ctx, 0, sizeof (loopback_ctx_t));
 }
@@ -107,7 +109,17 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   const u32 random_num = get_random_num (0, 9999);
 
-  hc_asprintf (&loopback_ctx->filename, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
+  // hc_asprintf () allocates and assigns, so the name it replaces is lost unless it is freed here.
+  // Every round of an induction run passes through, not only the first. The old name goes after the
+  // new one exists, so a failed allocation cannot leave a freed pointer behind.
+
+  char *filename = NULL;
+
+  hc_asprintf (&filename, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
+
+  hcfree (loopback_ctx->filename);
+
+  loopback_ctx->filename = filename;
 
   if (hc_fopen (&loopback_ctx->fp, loopback_ctx->filename, "ab") == false)
   {

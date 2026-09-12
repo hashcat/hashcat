@@ -268,14 +268,14 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Attack-Mode 12: ?q marks a word from a second wordlist and has to come after ?w, so ?w?q is -a 1
 - Attack-Mode 12: Literals work anywhere in the mask, so Pass?w?d?d is a valid mask
 - Attack-Mode 9: A username is also split at separators and at case and digit boundaries, so j.smith also tries smith and JEdgarHoover also tries Edgar and Hoover
-- Attack-Mode 5: The table attack is back, reading a wordlist and a table that maps a token to a set of replacements, and this time it runs on the graphics card. hashcat-legacy had it as -a 5 and 3.00 dropped it
+- Attack-Mode 5: The table attack is back, reading a wordlist and any number of tables that map a token to a set of replacements, and this time it runs on the graphics card. hashcat-legacy had it as -a 5 and 3.00 dropped it
 - Attack-Mode 5: Both sides of a rule are multibyte, so f to ph and th to 7h work and an empty replacement deletes, where the old attack replaced one byte with one byte
 - Attack-Mode 5: Sources are matched longest first, so a table holding both s and ss reads ss as one token
 - Attack-Mode 5: maxperm bounds what one word may be worth, spent on how many substitutions a candidate makes rather than on where they are, because a word's cost grows exponentially with its length
 - Attack-Mode 5: One wordlist or a directory of them, then as many tables as you like, read into one set, so leetspeak and case are combined on the command line rather than shipped pre-merged
 - Attack-Mode 5: Shipped tables are two leetspeak tiers, case for Latin, Greek and Cyrillic, whole words as emoji, one sport for another as a template, and the keyboard layouts, which brings layout conversion to every hash mode rather than only to TrueCrypt and VeraCrypt
 - Attack-Mode 5: Leaving a token alone is always one of its choices, and identity=0 takes that away for a table that converts rather than varies, such as a keyboard layout
-- Attack-Mode 4 and 5: New --debug-mode 6, which asks the feed how it made a candidate rather than naming a rule. A table reports the lines that fired, as football->basketball,man->woman, and a grammar reports the terminals it picked. Modes 1 to 5 need -r or -g and report a rule, which an attack with no rules has none of
+- Attack-Mode 4 and 5: --debug-mode no longer requires -r or -g. An attack with a feed has no rule to name, so we fill the Finding-Rule field from the feed instead: a table reports the lines that fired, as football->basketball,man->woman, and a grammar reports the terminals it picked. New --debug-mode 6 writes the same thing in the layout of mode 4
 - Attack-Mode 5: New setting template=1, which never hands a word of the wordlist back unchanged. A word no rule matched can only come out as itself and is dropped, and a word that did match loses the one candidate that changes nothing, so what runs is what the table made. That reads a wordlist as a set of patterns rather than as a list of passwords, and a wordlist attack is what -a 0 is for
 - Attack-Mode 5: The one pass over the wordlist that measures the attack is kept in cache/feeds/table, so only the first run over a wordlist and table set pays for it
 - Attack-Mode 5: -a 5 hashes.txt words.txt table.table is the same attack as -a 8 hashes.txt table words.txt table.table

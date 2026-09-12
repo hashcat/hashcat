@@ -610,7 +610,7 @@ Covered in section 5, and section 5.1 says how the merge works. `pcfg_cracker` t
 
 ## 7. Seeing which terminals fired
 
-`--debug-mode` reports the rule that made a crack, and a grammar has no rules: it picks a terminal out of a list for each slot of a structure. `--debug-mode 6` asks the feed instead, and needs no `-r`:
+`--debug-mode` reports the rule that made a crack, and a grammar has no rules: it picks a terminal out of a list for each slot of a structure. In an attack that has a feed we fill that field from the feed instead, so every mode works here and needs no `-r`. Mode 6 is the shape below, the same three fields as mode 4:
 
 ```
 $ hashcat -m 0 -a 4 hashes.txt --debug-mode 6 --debug-file fired.txt

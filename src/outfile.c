@@ -419,12 +419,33 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   return 0;
 }
 
+// What the feed did, rather than what a rule did. The feed is handed the same four things
+// pcfg_expand () rebuilds the candidate from, so it can name the choices it made. A feed that
+// cannot answer leaves the field empty rather than making one up.
+
+static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidvid, const u32 il_pos, const u8 *base, const int base_len, u8 *debug_rule_buf)
+{
+  const generic_ctx_t        *generic_ctx        = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (generic_ctx->explain_enable == false) return 0;
+  if (generic_ctx->global_explain == NULL) return 0;
+  if (user_options_extra->attack_kern != ATTACK_KERN_PCFG) return 0;
+
+  const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, &device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, base, base_len, il_pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
+
+  if (len <= 0) return 0;
+
+  debug_rule_buf[len] = 0;
+
+  return len;
+}
+
 int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
   const debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
   const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
@@ -471,26 +492,9 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     const u64 off = device_param->innerloop_pos + il_pos;
 
-    // What the feed did, rather than what a rule did. The feed is handed the same four things
-    // pcfg_expand () rebuilds the candidate from, so it can name the choices it made.
-
     if (debug_mode == DEBUG_MODE_FEED)
     {
-      const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
-
-      *debug_rule_len = 0;
-
-      if ((generic_ctx->explain_enable == true) && (generic_ctx->global_explain != NULL) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
-      {
-        const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, &device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, (const u8 *) pw.i, plain_len, il_pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
-
-        if (len > 0)
-        {
-          debug_rule_buf[len] = 0;
-
-          *debug_rule_len = len;
-        }
-      }
+      *debug_rule_len = debug_rule_from_feed (hashcat_ctx, device_param, gidvid, il_pos, (const u8 *) pw.i, plain_len, debug_rule_buf);
 
       memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
 
@@ -504,11 +508,21 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // save rule
     if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
-      const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
+      // An attack with a feed and no rules has no rule to name, so the feed says what it did instead.
+      // With rules the rule is what was asked for, and mode 6 is there to ask the feed anyway.
 
-      debug_rule_buf[len] = 0;
+      if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+      {
+        *debug_rule_len = debug_rule_from_feed (hashcat_ctx, device_param, gidvid, il_pos, (const u8 *) pw.i, plain_len, debug_rule_buf);
+      }
+      else
+      {
+        const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
 
-      *debug_rule_len = len;
+        debug_rule_buf[len] = 0;
+
+        *debug_rule_len = len;
+      }
     }
 
     // save plain
