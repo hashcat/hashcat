@@ -467,6 +467,61 @@ static void device_skip (hc_device_param_t *device_param, const char *reason)
   snprintf (device_param->skipped_reason, sizeof (device_param->skipped_reason), "%s", reason);
 }
 
+// --stdout is one stream, so it is produced by one device.
+//
+// No hashing happens under --stdout. generic.c clears dev_enable for it, so every candidate is built on
+// the host and a backend device is only a thread that fills a buffer and prints it. Several of them
+// divide the keyspace between them and print their own slice, and the slices reach stdout in whatever
+// order the threads reach process_stdout (). Each slice is internally correct, so the output holds every
+// candidate exactly once, in blocks that are individually in order and collectively are not.
+//
+// That is invisible for -a 0 and -a 3, whose host side producers are slow enough that the first device
+// is always still ahead, and plain for -a 4, where a grammar hands out base words fast enough for the
+// second device to finish a slice first. It shows on a machine with two GPUs and hides on one where
+// --stdout picked a single CPU device, which is why it reads as a platform difference and is not one.
+//
+// A candidate order is what a PCFG attack is for, and a ruleset can only be compared against another if
+// the two produce candidates in the same order, so the ordering is worth more here than the throughput.
+// Two devices print 40 million candidates in 0.58 seconds against 0.75 for one, because the writes are
+// serialised on mux_outfile either way and only the fill runs in parallel.
+
+static void backend_ctx_devices_stdout_single (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->stdout_flag == false) return;
+
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  bool kept = false;
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_pos];
+
+    if (device_param->skipped         == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (kept == false)
+    {
+      kept = true;
+
+      continue;
+    }
+
+    device_skip (device_param, NULL);
+
+    if      (device_param->is_cuda   == true) backend_ctx->cuda_devices_active--;
+    else if (device_param->is_hip    == true) backend_ctx->hip_devices_active--;
+    #if defined (__APPLE__)
+    else if (device_param->is_metal  == true) backend_ctx->metal_devices_active--;
+    #endif
+    else if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
+
+    backend_ctx->backend_devices_active--;
+  }
+}
+
 static bool is_gpu_device (const hc_device_param_t *device_param)
 {
   if (device_param->is_cuda   == true) return true;
@@ -10462,6 +10517,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   backend_ctx_devices_skip_integrated (hashcat_ctx);
     //{
   //}
+
+  // Last, because it keeps whichever device the passes above left first.
+
+  backend_ctx_devices_stdout_single (hashcat_ctx);
 
   if (backend_ctx->backend_devices_active == 0)
   {

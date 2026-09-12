@@ -567,6 +567,7 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Windows: Fixed a thread handle being leaked on every join, which for a hash mode with a host side hook is one handle per hook thread per kernel launch and grew by about 40 handles a second on -m 11600
 - Fixed hashcat carrying on after a thread it needed failed to start, where the join that followed ran against a handle that was never set. A worker that will not start now does its own chunk on the calling thread, and a cracking, monitor or outfile-check thread that will not start is reported
 - Fixed diagnostics being written to standard output under --stdout, where they landed in the middle of the candidate stream and were read back as candidates
+- Fixed --stdout printing its candidates out of order on a machine with more than one backend device. Each device produced its own slice of the keyspace and printed it as it finished, so the stream held every candidate exactly once but not in the order the attack defines. --stdout now runs on one device, and a cracking run still uses all of them
 - Fixed the seek database builder dereferencing a null pointer at four allocation sites, and never reporting a failed build to its caller
 - Fixed the scanned induction dictionary paths being leaked on every rescan, which accumulates for the life of a --loopback run
 - Fixed the backend session being left open when it failed to start outside a benchmark
