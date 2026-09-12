@@ -61,11 +61,6 @@ KERNEL_FQ KERNEL_FA void m28501_mxx (KERN_ATTR_BASIC ())
 
   if (status_base58 != true) return;
 
-  secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
-
-  set_precomputed_basepoint_g (&preG);
-
-
   /**
    * loop
    */
@@ -142,6 +137,10 @@ KERNEL_FQ KERNEL_FA void m28501_mxx (KERN_ATTR_BASIC ())
 
     u32 x[8];
     u32 y[8];
+
+    secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
+
+    set_precomputed_basepoint_g (&preG);
 
     point_mul_xy (x, y, prv_key, &preG);
 
@@ -251,11 +250,6 @@ KERNEL_FQ KERNEL_FA void m28501_sxx (KERN_ATTR_BASIC ())
 
   if (status_base58 != true) return;
 
-  secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
-
-  set_precomputed_basepoint_g (&preG);
-
-
   /**
    * loop
    */
@@ -332,6 +326,10 @@ KERNEL_FQ KERNEL_FA void m28501_sxx (KERN_ATTR_BASIC ())
 
     u32 x[8];
     u32 y[8];
+
+    secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
+
+    set_precomputed_basepoint_g (&preG);
 
     point_mul_xy (x, y, prv_key, &preG);
 

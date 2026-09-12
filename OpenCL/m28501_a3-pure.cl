@@ -20,6 +20,93 @@
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
 
+// The common Base58/checksum path is latency-bound at 210 registers/thread.
+// Three 256-thread blocks trade four resident warps for a looser register cap
+// while testing an eight-warp block shape.
+#if defined IS_CUDA || defined IS_HIP
+#undef  KERNEL_FA
+#define KERNEL_FA __launch_bounds__ (256, 3)
+#endif
+
+// Split a 52-digit Base58 value after its four candidate-dependent digits:
+//
+//   value = prefix * 58^48 + tail
+//
+// The 48-digit tail is invariant across the a3 inner loop.  Decode it once per
+// gid, then reconstruct each candidate with eight limb multiplies instead of
+// replaying all 48 digits for every surviving prefix.  Four Base58 digits fit
+// in one u32, so consume them as a radix-58^4 chunk: this shortens the tail
+// decode from 48 ten-limb multiply chains to 12 without changing its value.
+DECLSPEC bool m28501_decode_b58_tail (PRIVATE_AS u32 *tail, PRIVATE_AS const u32 *data)
+{
+  for (u32 i = 0; i < 10; i++) tail[i] = 0;
+
+  for (u32 i = 1; i < 13; i++)
+  {
+    const u32 v = data[i];
+
+    const int c0 = B58_DIGITS_MAP[(v >>  0) & 0xff];
+    const int c1 = B58_DIGITS_MAP[(v >>  8) & 0xff];
+    const int c2 = B58_DIGITS_MAP[(v >> 16) & 0xff];
+    const int c3 = B58_DIGITS_MAP[(v >> 24) & 0xff];
+
+    if ((c0 | c1 | c2 | c3) < 0) return false;
+
+    int c = (((c0 * 58) + c1) * 58 + c2) * 58 + c3;
+
+    #pragma unroll
+    for (u32 j = 0; j < 10; j++)
+    {
+      const u32 pos = 9 - j;
+      const u64 t = ((u64) tail[pos]) * 11316496 + c;
+
+      c = t >> 32;
+      tail[pos] = t;
+    }
+  }
+
+  return true;
+}
+
+DECLSPEC void m28501_join_b58_prefix (PRIVATE_AS u32 *out, const u32 prefix, PRIVATE_AS const u32 *tail)
+{
+  out[9] = tail[9];
+
+  u64 t = ((u64) 0x53c10000 * prefix) + tail[8];
+  out[8] = t;
+
+  t = ((u64) 0xc785ecfd * prefix) + tail[7] + (t >> 32);
+  out[7] = t;
+
+  t = ((u64) 0x1b8c3026 * prefix) + tail[6] + (t >> 32);
+  out[6] = t;
+
+  t = ((u64) 0x92e35e9a * prefix) + tail[5] + (t >> 32);
+  out[5] = t;
+
+  t = ((u64) 0x38dd5572 * prefix) + tail[4] + (t >> 32);
+  out[4] = t;
+
+  t = ((u64) 0x253c87c1 * prefix) + tail[3] + (t >> 32);
+  out[3] = t;
+
+  t = ((u64) 0x55f87fdf * prefix) + tail[2] + (t >> 32);
+  out[2] = t;
+
+  t = ((u64) 0x02454781 * prefix) + tail[1] + (t >> 32);
+  out[1] = t;
+  out[0] = tail[0] + (t >> 32);
+
+  // b58dec_52's output convention is shifted by two bytes.
+  out[10] = 0;
+
+  #pragma unroll
+  for (u32 i = 0; i < 10; i++)
+  {
+    out[i] = (out[i] << 16) | (out[i + 1] >> 16);
+  }
+}
+
 // or use set_precomputed_basepoint_g () instead:
 // (set SECP256K1_TMPS_TYPE to CONSTANT_AS above:)
 
@@ -90,14 +177,16 @@ KERNEL_FQ KERNEL_FA void m28501_mxx (KERN_ATTR_VECTOR ())
     w[i] = pws[gid].i[i];
   }
 
-  const bool status_base58 = is_valid_base58 (w, 4, 52);
+  u32 b58_tail[10];
+
+  const bool status_base58 = m28501_decode_b58_tail (b58_tail, w);
 
   if (status_base58 != true) return;
 
-  secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
-
-  set_precomputed_basepoint_g (&preG);
-
+  // 58^48 contains 48 factors of two, so the low 48 bits are independent of
+  // the four candidate prefix digits.  The compressed-key marker is the low
+  // byte of raw limb 8 and can reject this gid before entering the IL loop.
+  if ((b58_tail[8] & 0xff) != 1) return;
 
   /**
    * loop
@@ -111,25 +200,25 @@ KERNEL_FQ KERNEL_FA void m28501_mxx (KERN_ATTR_VECTOR ())
 
     const u32 w0 = w0l | w0r;
 
-    w[0] = w0;
-
-    const u32 b = hc_swap32_S (w[0]);
+    const u32 b = hc_swap32_S (w0);
 
     if ((b < 0x4b774469) ||         // 'KwDi'
         (b > 0x4c356f4c)) continue; // 'L5oL'
 
-    const bool status_base58 = is_valid_base58 (w, 0, 4);
+    const int c0 = B58_DIGITS_MAP[(w0 >>  0) & 0xff];
+    const int c1 = B58_DIGITS_MAP[(w0 >>  8) & 0xff];
+    const int c2 = B58_DIGITS_MAP[(w0 >> 16) & 0xff];
+    const int c3 = B58_DIGITS_MAP[(w0 >> 24) & 0xff];
 
-    if (status_base58 != true) continue;
+    if ((c0 | c1 | c2 | c3) < 0) continue;
 
+    const u32 prefix = (((c0 * 58) + c1) * 58 + c2) * 58 + c3;
 
-    // convert password from b58 to binary
+    u32 tmp[16];
 
-    u32 tmp[16] = { 0 };
+    m28501_join_b58_prefix (tmp, prefix, b58_tail);
 
-    const bool status_dec = b58dec_52 (tmp, w);
-
-    if (status_dec != true) continue;
+    for (u32 i = 11; i < 16; i++) tmp[i] = 0;
 
 
     // check for bitcoin main network identifier:
@@ -166,6 +255,10 @@ KERNEL_FQ KERNEL_FA void m28501_mxx (KERN_ATTR_VECTOR ())
 
     u32 x[8];
     u32 y[8];
+
+    secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
+
+    set_precomputed_basepoint_g (&preG);
 
     point_mul_xy (x, y, prv_key, &preG);
 
@@ -261,14 +354,13 @@ KERNEL_FQ KERNEL_FA void m28501_sxx (KERN_ATTR_VECTOR ())
     w[i] = pws[gid].i[i];
   }
 
-  const bool status_base58 = is_valid_base58 (w, 4, 52);
+  u32 b58_tail[10];
+
+  const bool status_base58 = m28501_decode_b58_tail (b58_tail, w);
 
   if (status_base58 != true) return;
 
-  secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
-
-  set_precomputed_basepoint_g (&preG);
-
+  if ((b58_tail[8] & 0xff) != 1) return;
 
   /**
    * loop
@@ -282,25 +374,25 @@ KERNEL_FQ KERNEL_FA void m28501_sxx (KERN_ATTR_VECTOR ())
 
     const u32 w0 = w0l | w0r;
 
-    w[0] = w0;
-
-    const u32 b = hc_swap32_S (w[0]);
+    const u32 b = hc_swap32_S (w0);
 
     if ((b < 0x4b774469) ||         // 'KwDi'
         (b > 0x4c356f4c)) continue; // 'L5oL'
 
-    const bool status_base58 = is_valid_base58 (w, 0, 4);
+    const int c0 = B58_DIGITS_MAP[(w0 >>  0) & 0xff];
+    const int c1 = B58_DIGITS_MAP[(w0 >>  8) & 0xff];
+    const int c2 = B58_DIGITS_MAP[(w0 >> 16) & 0xff];
+    const int c3 = B58_DIGITS_MAP[(w0 >> 24) & 0xff];
 
-    if (status_base58 != true) continue;
+    if ((c0 | c1 | c2 | c3) < 0) continue;
 
+    const u32 prefix = (((c0 * 58) + c1) * 58 + c2) * 58 + c3;
 
-    // convert password from b58 to binary
+    u32 tmp[16];
 
-    u32 tmp[16] = { 0 };
+    m28501_join_b58_prefix (tmp, prefix, b58_tail);
 
-    const bool status_dec = b58dec_52 (tmp, w);
-
-    if (status_dec != true) continue;
+    for (u32 i = 11; i < 16; i++) tmp[i] = 0;
 
 
     // check for bitcoin main network identifier:
@@ -337,6 +429,10 @@ KERNEL_FQ KERNEL_FA void m28501_sxx (KERN_ATTR_VECTOR ())
 
     u32 x[8];
     u32 y[8];
+
+    secp256k1_t preG; // need to change SECP256K1_TMPS_TYPE above to: PRIVATE_AS
+
+    set_precomputed_basepoint_g (&preG);
 
     point_mul_xy (x, y, prv_key, &preG);
 
