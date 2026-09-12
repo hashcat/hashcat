@@ -691,6 +691,7 @@ For a tree full of modules, this does it:
 
 - Added hash-mode: Generic Hash [Bridged: Rust] with the new Rust Bridge
 - Added hash-mode: Besder Authentication MD5
+- Added hash-mode: LastPass Vault (Chrome IndexedDB)
 
 ##
 ## Improvements
