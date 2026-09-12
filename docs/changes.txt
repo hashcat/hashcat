@@ -383,6 +383,9 @@ write is a build failure that drops the device, so a shared directory wants to b
 - PCFG: Naming several rulesets runs them together, each with an equal share unless weights= says otherwise
 - PCFG: A ruleset is named rather than pathed, the way a hash mode and a feed already are
 - PCFG: A ruleset name is looked for in <profile>/pcfg and then <shared>/pcfg, and anything holding a slash is used as a path
+- PCFG: A ruleset can take its words from the command line instead of from its own training, so naming what you know about one person leaves the grammar to wrap those words in everything people wrap words in, in the order the training says is likely
+- PCFG: New shipped ruleset hints, which is the trained grammar with the words taken out of it and is built from default-passwords by tools/pcfg_hints.py
+- PCFG: New settings hintwords, hintfile and hintrank, which say what those words are and what an unranked one is worth
 - Feeds: A feed is given the shared folder, so one that ships data of its own can find it
 - Files: Added hc_fopen_mem, which reads a file that is already in memory
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort

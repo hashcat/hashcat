@@ -33,7 +33,26 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN
 // to a loaded list is indexed by the list number, so the two have to agree.
 
 #define PCFG_LIST_CACHE 4096
+
+// How many words hintwords= may name or one account may contribute, and how long one hint word may be.
+// A command line is for a handful of facts about one person, and hintfile= is the way to give more than
+// that, so the cap here is on the settings rather than on the attack.
+
+#define PCFG_HINT_MAX     32
+#define PCFG_HINT_LEN_MAX 64
+
 #define PCFG_COSTCAP  64
+
+// One hint word. It points at bytes somebody else owns: the buffer hint_expand () built for a run that
+// named its words, or the hash list for one that takes them from an account name. Nothing here copies
+// a word.
+
+typedef struct
+{
+  const u8 *buf;
+  u32       len;
+
+} pcfg_hint_t;
 
 // The highest cost a run can carry, which is the costmax parameter times scale. Both cap at
 // PCFG_COSTCAP, so anything sized for one cost level per unit of costmax alone is short at any scale
@@ -284,6 +303,49 @@ typedef struct
   u32 pwmin;
   u32 pwmax;
 
+  // The hint list, which is what a hint ruleset puts where a trained ruleset has its letters.
+  //
+  // hint_cnt is how wide that list is: the number of words a named set holds, counting every case form
+  // separately, or the number every account contributes. It is the same number for every account,
+  // because a list whose bucket shape does not change is what lets one grammar and one cost index
+  // serve a whole hash file. An account with fewer words wraps onto the ones it has.
+  //
+  // hint_min and hint_max bound the word lengths, and they are what the structure filter adds into a
+  // candidate's byte bounds. Zero for hint_cnt means the ruleset has no hint token and this is an
+  // ordinary pcfg run.
+
+  u32 hint_cnt;
+  u32 hint_min;
+  u32 hint_max;
+
+  // A fixed set of hint words, for a run that names them rather than taking them from a hash file:
+  // hintwords= on the command line, or hintfile= naming a file. hw_store owns the bytes either way and
+  // the entries cut it into words, so a word costs one pointer and a length whichever way it arrived.
+  //
+  // hw_cost is what each word is worth, and it is what the list's buckets are cut on. A word list with
+  // no probabilities in it is uniform, so the whole file is one bucket and the grammar reaches every
+  // word before it decorates any of them.
+
+  char        *hw_store;
+  pcfg_hint_t *hw;
+  u32         *hw_cost;
+  u32          hw_cnt;
+
+  // Which curve a word with no probability of its own is given. See hint_rank_cost ().
+
+  u32 hint_rank;
+
+  // Whether the masks have been folded into the words yet, and the buffer holding the forms that came
+  // out when they were. See hint_expand ().
+
+  bool  hint_done;
+  char *hw_cased;
+
+  // Whether a structure asked for the hint list. It separates a ruleset that needs supplied words from
+  // one that does not, which is the difference between a run that named none and a run that needed none.
+
+  bool hint_wanted;
+
   // Structures those bounds took out of the grammar, and whether any bucket is bounded at all. The
   // first names the reason where a run ends up with nothing to enumerate. The second keeps a run the
   // hash mode does not bound on exactly the path it was on before.
@@ -296,6 +358,12 @@ typedef struct
   bool walk;
 
   char named[192];
+
+  // The same rulesets as they were written on the command line rather than as they resolved on disk.
+  // What names the attack is the resolved form, because two spellings of one ruleset are one attack;
+  // what a person reads on the status screen is what they typed.
+
+  char named_given[192];
 
   u32 maxword;
   u32 maxbyte;
@@ -385,6 +453,19 @@ typedef struct
   u32 cost;
   u32 idx[PCFG_MAXSLOT];
 
+  // The hint words this candidate is built from, and how many there really are. They point at the
+  // global list or at the hash list rather than being copied. hint_seed () sets them once when the
+  // thread is made for a run that named its words, and the account attack resets them per candidate.
+  //
+  // A hint slot's digit may name a word this account does not have, because the list's shape is the
+  // same for every account and accounts are not. The digit wraps in that case: -a 9 pairs word N with
+  // salt N, so refusing to produce a candidate would move every later word onto the previous hash and
+  // hashcat stops the run rather than allow it. A repeat costs the card one hash it has already done,
+  // which is the cheapest thing there is to put here.
+
+  const pcfg_hint_t *hint;
+  u32                hint_cnt;
+
   u32 inner;
   u32 inner_end;
 
@@ -430,6 +511,22 @@ typedef struct
   u32  urows_capnb;
 
 } pcfg_thread_t;
+
+// Every thread that builds candidates needs the hint words, and there are four places that make one:
+// thread_init () for a device thread, the prefetch worker, and the two probes. A thread that missed
+// them produces no candidate at all, which surfaces as the feed failing rather than as bad output, so
+// they are seeded from one function rather than four times over.
+//
+// This carries the words a run named on its command line. A run reading them out of a hash file sets
+// them per candidate instead, because they are a different set for every account.
+
+static void hint_seed (const pcfg_global_t *pg, pcfg_thread_t *th)
+{
+  if (pg == NULL) return;
+
+  th->hint     = pg->hw;
+  th->hint_cnt = pg->hw_cnt;
+}
 
 // The rows above are rebuilt onto whichever thread did the walking, so every place that lets one of
 // these go has to give them back first. Freeing the thread alone leaves the largest thing it held.
@@ -1122,6 +1219,24 @@ static u32 pcfg_utf8_put (u8 *d, const u32 cp)
   return 4;
 }
 
+// A hint arrives in whatever case it was written in, and the model needs a terminal in one case with a
+// mask putting the other one back. So it is lowered on the way in.
+//
+// Only ASCII is lowered. The table above maps lowercase to uppercase and inverting it per byte would
+// be a linear scan of two hundred ranges for every character of every candidate. What a non-ASCII word
+// loses is the all lowercase form of a word that was not written that way, and it keeps every other
+// form, because the uppercase image is built from whatever is here.
+
+static void pcfg_lower_ascii (u8 *dst, const u8 *src, const u32 len)
+{
+  for (u32 i = 0; i < len; i++)
+  {
+    const u8 c = src[i];
+
+    dst[i] = ((c >= 'A') && (c <= 'Z')) ? (u8) (c + 32) : c;
+  }
+}
+
 static void pcfg_upper_image (u8 *dst, const u8 *src, const u32 len)
 {
   u32 at = 0;
@@ -1321,6 +1436,19 @@ static u64 pcfg_ident_content (const pcfg_global_t *pg)
     if (t->off == NULL) continue;
 
     paw64_update (&st, t->buf, (size_t) t->off[t->cnt]);
+  }
+
+  // A hint list holds one placeholder byte per entry, because the words it stands for live beside it
+  // rather than in it. The loop above therefore hashes a row of question marks, and two runs given
+  // different words of the same lengths at the same costs come out identical. The words are what the
+  // run actually sends, so they go in here.
+
+  if (pg->hw != NULL)
+  {
+    for (u32 i = 0; i < pg->hw_cnt; i++)
+    {
+      paw64_update (&st, pg->hw[i].buf, pg->hw[i].len);
+    }
   }
 
   const u64 h = paw64_final (&st);
@@ -1582,7 +1710,10 @@ static bool merge_read (pcfg_merge_t *m, const pcfg_root_t *r, const char *rel)
   return true;
 }
 
-static void roots_join (char *out, const size_t out_size, const pcfg_root_t *roots, const u32 nroots)
+// Every ruleset this run was given, in one string. Either as they were resolved on disk, which is what
+// names the attack, or as they were written on the command line, which is what a person reads.
+
+static void roots_join_as (char *out, const size_t out_size, const pcfg_root_t *roots, const u32 nroots, const bool as_given)
 {
   size_t at = 0;
 
@@ -1590,7 +1721,9 @@ static void roots_join (char *out, const size_t out_size, const pcfg_root_t *roo
 
   for (u32 i = 0; i < nroots; i++)
   {
-    const int rc = snprintf (out + at, out_size - at, "%s%s", (i == 0) ? "" : "+", roots[i].dir);
+    const char *name = (as_given == true) ? roots[i].given : roots[i].dir;
+
+    const int rc = snprintf (out + at, out_size - at, "%s%s", (i == 0) ? "" : "+", name);
 
     if (rc < 0) break;
 
@@ -1598,6 +1731,11 @@ static void roots_join (char *out, const size_t out_size, const pcfg_root_t *roo
 
     at += (size_t) rc;
   }
+}
+
+static void roots_join (char *out, const size_t out_size, const pcfg_root_t *roots, const u32 nroots)
+{
+  roots_join_as (out, out_size, roots, nroots, false);
 }
 
 static bool root_weights (generic_global_ctx_t *global_ctx, pcfg_root_t *roots, const u32 nroots, const char *spec)
@@ -1974,6 +2112,14 @@ static u32 tlist_split_count (const pcfg_tlist_t *t)
 
 static void tlist_split_bylen (pcfg_tlist_t *t)
 {
+  // A hint list holds placeholders, one byte an entry, and the word a placeholder stands for is as
+  // long as it is. Cutting the buckets by the length of the list's own bytes would mark every one of
+  // them as holding a one byte word, and a hash mode with a password floor above one would then rule
+  // all of them out: -m 22000 has a floor of eight, and a hint run against a WPA capture found
+  // nothing at all.
+
+  if (t->ty == 'H') return;
+
   const u32 nb = t->nb;
 
   u32 *o_cost  = (u32 *) hcmalloc (nb * sizeof (u32));
@@ -2060,9 +2206,576 @@ static const char *type_dir (const char t)
   return NULL;
 }
 
+// A flat token's number is not a character count, so no caller may read it as one.
+//
+// X and Y are flat because their lists mix lengths. H is flat because a hint's length is a property of
+// the word behind it rather than of the grammar, which is the whole point of collapsing a trained
+// ruleset's letter runs into it.
+
 static bool type_is_flat (const char t)
 {
-  return (t == 'X' || t == 'Y');
+  return (t == 'X' || t == 'Y' || t == 'H');
+}
+
+// The hint list, built rather than read.
+//
+// There is no file behind this one. The entries are the words the run named, or the words of whichever
+// account the candidate turns out to be for, which is not known until the candidate is assembled. What
+// the grammar needs before then is the shape: cnt entries, cut into buckets by the cost the caller gave
+// each word, and the same shape for every account. Everything downstream treats it as a loaded list.
+//
+// buf and off are placeholders. assemble () takes the bytes from the hint array, but the loader frees
+// these and the identity hashes walk them, so they have to exist and agree with cnt.
+
+static int hint_list_build (pcfg_tlist_t *t, const u32 cnt, const u32 *cost, const u32 min_len, const u32 max_len)
+{
+  if (cnt == 0) return -1;
+
+  memset (t, 0, sizeof (pcfg_tlist_t));
+
+  t->cnt = cnt;
+
+  t->off = (u32 *) hcmalloc ((cnt + 1) * sizeof (u32));
+  t->buf = (u8 *)  hcmalloc (cnt);
+
+  for (u32 i = 0; i < cnt; i++)
+  {
+    t->off[i] = i;
+    t->buf[i] = '?';
+  }
+
+  t->off[cnt] = cnt;
+
+  t->b_cost  = (u32 *) hcmalloc (cnt * sizeof (u32));
+  t->b_start = (u32 *) hcmalloc (cnt * sizeof (u32));
+  t->b_cnt   = (u32 *) hcmalloc (cnt * sizeof (u32));
+  t->b_len   = (u32 *) hcmalloc (cnt * sizeof (u32));
+
+  t->nb = 0;
+
+  // One bucket per run of equal cost, which is what every other list is cut on. Words the caller left
+  // at one cost land in one bucket however many there are, and words it ranked land in one each.
+
+  for (u32 i = 0; i < cnt; i++)
+  {
+    const u32 c = (cost != NULL) ? cost[i] : 0;
+
+    if ((t->nb > 0) && (t->b_cost[t->nb - 1] == c) && (t->b_cnt[t->nb - 1] < PCFG_ODO_MAXDIGIT))
+    {
+      t->b_cnt[t->nb - 1]++;
+
+      continue;
+    }
+
+    t->b_cost[t->nb]  = c;
+    t->b_start[t->nb] = i;
+    t->b_cnt[t->nb]   = 1;
+
+    // Zero marks the bucket as mixing byte lengths, which a hint bucket does: a hint's length is a property
+    // of the word rather than of the grammar.
+
+    t->b_len[t->nb] = 0;
+
+    t->nb++;
+  }
+
+  tlist_mark_order (t);
+
+  t->fixed_len = 0;
+  t->min_len   = min_len;
+  t->max_len   = max_len;
+
+  return 0;
+}
+
+// How the words rank when the caller supplies no probability.
+//
+// A hint set arrives in an order, and the order is information: a person listing what they know puts
+// the surest thing first, an account's own name comes before the fragments of it, and a
+// word list off the internet is nearly always sorted by frequency. What it is not is a probability, so
+// one has to be assumed, and which one changes the attack a great deal.
+//
+// ZIPF is the default and it is what word frequencies actually look like: the n'th word costs
+// log2 (n) bits, so word 1 is free, words 2 and 3 cost a bit, words 4 to 7 cost two, and so on. Ten
+// words span three bits and ten thousand span thirteen, which leaves the grammar room to decorate the
+// late ones rather than clipping them.
+//
+// LINEAR prices each word at half the likelihood of the one before it. That is right for a handful of words
+// ranked carefully and wrong for anything longer: word n costs n bits, so a file's words past costmax
+// cost more than the run enumerates and are left out of the list entirely. With the default costmax
+// that is everything past word 64, and the ones in front of it reach less of the grammar the later
+// they are. hintwords cannot reach that, because it holds at most 32 words.
+//
+// FLAT prices them equally, so the hint axis contributes no cost and the grammar walks every word
+// before it decorates any of them. That suits an unordered list of facts about one target, and a list
+// of unknown provenance.
+
+#define PCFG_HINT_RANK_ZIPF   0
+#define PCFG_HINT_RANK_LINEAR 1
+#define PCFG_HINT_RANK_FLAT   2
+
+static u32 hint_rank_cost (const u32 rank, const u32 mode, const u64 scale)
+{
+  if (mode == PCFG_HINT_RANK_FLAT) return 0;
+
+  if (mode == PCFG_HINT_RANK_LINEAR) return (u32) (rank * scale);
+
+  u32 bits = 0;
+  u32 n    = rank + 1;
+
+  while (n > 1)
+  {
+    n = n >> 1;
+
+    bits++;
+  }
+
+  return (u32) (bits * scale);
+}
+
+static bool hint_add (pcfg_global_t *pg, const char *w, const u32 len, const u32 cost, const u32 cap)
+{
+  if (len == 0) return true;
+
+  if (pg->hw_cnt == cap) return false;
+
+  pg->hw[pg->hw_cnt].buf = (const u8 *) w;
+  pg->hw[pg->hw_cnt].len = (len < PCFG_HINT_LEN_MAX) ? len : PCFG_HINT_LEN_MAX;
+
+  pg->hw_cost[pg->hw_cnt] = cost;
+
+  pg->hw_cnt++;
+
+  return true;
+}
+
+// hintwords=a,b,c. The order is the ranking: the first word is free and each one behind it costs
+// a bit more, so the cheap head of the stream is built on the word the user put first.
+
+static bool hint_words_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const char *arg)
+{
+  pg->hw_store = hcstrdup (arg);
+
+  if (pg->hw_store == NULL)
+  {
+    gerr (global_ctx, "out of memory reading hintwords");
+
+    return false;
+  }
+
+  pg->hw      = (pcfg_hint_t *) hcmalloc (PCFG_HINT_MAX * sizeof (pcfg_hint_t));
+  pg->hw_cost = (u32 *)         hcmalloc (PCFG_HINT_MAX * sizeof (u32));
+
+  char *save = NULL;
+
+  for (char *w = strtok_r (pg->hw_store, ",", &save); w != NULL; w = strtok_r (NULL, ",", &save))
+  {
+    const u32 cost = hint_rank_cost (pg->hw_cnt, pg->hint_rank, pg->scale);
+
+    if (hint_add (pg, w, (u32) strlen (w), cost, PCFG_HINT_MAX) == true) continue;
+
+    gerr (global_ctx, "hintwords: more than %d words, which is what hintfile is for", PCFG_HINT_MAX);
+
+    return false;
+  }
+
+  if (pg->hw_cnt == 0)
+  {
+    gerr (global_ctx, "hintwords holds no words");
+
+    return false;
+  }
+
+  return true;
+}
+
+// hintfile=path. One word per line, and a line may carry a tab and a probability behind it, which is
+// the format every terminal file of a ruleset is written in. So a trained list drops straight in.
+//
+// A line carrying a tab and a number is worth that number, and a line without one is worth what
+// hintrank assigns to its position. A file that mixes the two is read line by line, each the way
+// it is written.
+
+static bool hint_file_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const char *path)
+{
+  HCFILE fp;
+
+  if (hc_fopen (&fp, path, "rb") == false)
+  {
+    gerr (global_ctx, "%s: %s", path, strerror (errno));
+
+    return false;
+  }
+
+  size_t cap = 1024 * 1024;
+  size_t len = 0;
+
+  char *buf = (char *) hcmalloc (cap);
+
+  while (true)
+  {
+    if (len == cap)
+    {
+      const size_t grow = cap;
+
+      char *nb = (char *) hcrealloc (buf, cap, grow);
+
+      if (nb == NULL) break;
+
+      buf = nb;
+      cap = cap + grow;
+    }
+
+    const size_t got = hc_fread (buf + len, 1, cap - len, &fp);
+
+    if (got == 0) break;
+    if (got == (size_t) -1) break;
+
+    len += got;
+  }
+
+  hc_fclose (&fp);
+
+  if (len == 0)
+  {
+    hcfree (buf);
+
+    gerr (global_ctx, "%s: holds no words", path);
+
+    return false;
+  }
+
+  // A line is terminated in place, and the last one may run to the final byte of the file, so there has
+  // to be one byte behind it to write the terminator into.
+
+  if (len == cap)
+  {
+    char *nb = (char *) hcrealloc (buf, cap, 1);
+
+    if (nb == NULL)
+    {
+      hcfree (buf);
+
+      gerr (global_ctx, "%s: out of memory", path);
+
+      return false;
+    }
+
+    buf = nb;
+    cap = cap + 1;
+  }
+
+  pg->hw_store = buf;
+
+  // One entry per line at most, so counting the line ends is enough to size the arrays once.
+
+  u32 lines = 1;
+
+  for (size_t i = 0; i < len; i++) if (buf[i] == '\n') lines++;
+
+  pg->hw      = (pcfg_hint_t *) hcmalloc (lines * sizeof (pcfg_hint_t));
+  pg->hw_cost = (u32 *)         hcmalloc (lines * sizeof (u32));
+
+  size_t at = 0;
+
+  while (at < len)
+  {
+    size_t end = at;
+
+    while ((end < len) && (buf[end] != '\n')) end++;
+
+    size_t stop = end;
+
+    if ((stop > at) && (buf[stop - 1] == '\r')) stop--;
+
+    // The value is what sits in front of the first tab, and the probability is what sits behind it.
+
+    size_t tab = at;
+
+    while ((tab < stop) && (buf[tab] != '\t')) tab++;
+
+    u32 cost = hint_rank_cost (pg->hw_cnt, pg->hint_rank, pg->scale);
+
+    // Terminated before the value behind the tab is read. strtod () skips leading whitespace, a line
+    // end included, so a tab at the end of a line ran the parse on into the line below it and gave
+    // this word the next one's probability, while that line was still added as a word of its own.
+
+    buf[stop] = 0;
+
+    if (tab < stop)
+    {
+      buf[tab] = 0;
+
+      const char *pr_buf = buf + tab + 1;
+
+      // A tab with an empty field behind it carries no probability, which is what a hand edited file
+      // and a spreadsheet export both leave behind. The word is then worth its position, the same
+      // as a line that carries no tab at all.
+
+      if (pr_buf[0] != 0)
+      {
+        const double pr = strtod (pr_buf, NULL);
+
+        if (pr > 0.0)
+        {
+          const double q = -log2 (pr) * (double) pg->scale;
+
+          cost = (q < 0.0) ? 0 : (u32) (q + 0.5);
+        }
+        else
+        {
+          cost = (u32) pg->costmax + 1;
+        }
+      }
+    }
+
+    if (cost <= (u32) pg->costmax)
+    {
+      if (hint_add (pg, buf + at, (u32) (tab - at), cost, lines) == false) break;
+    }
+
+    at = end + 1;
+  }
+
+  if (pg->hw_cnt == 0)
+  {
+    gerr (global_ctx, "%s: holds no words", path);
+
+    return false;
+  }
+
+  return true;
+}
+
+// Cost first, then the position the entry was built at, both in one integer so the sort needs no
+// comparator beyond less than. Ordering by the position is what keeps entries of equal cost in the
+// order the words were given.
+
+static int hint_order_cmp (const void *a, const void *b)
+{
+  const u64 x = *(const u64 *) a;
+  const u64 y = *(const u64 *) b;
+
+  if (x < y) return -1;
+  if (x > y) return  1;
+
+  return 0;
+}
+
+// Write src through a capitalization mask, the way assemble () does it: mask character ci decides
+// character ci of the token, a mask shorter than the token leaves the tail alone, and a character is
+// as many bytes as UTF-8 requires rather than one.
+
+static u32 hint_mask_apply (u8 *dst, const u8 *lo, const u8 *up, const u32 len, const u8 *mask, const u32 mask_len)
+{
+  memcpy (dst, lo, len);
+
+  u32 ci = 0;
+  u32 at = 0;
+
+  while ((at < len) && (ci < mask_len))
+  {
+    const bool hit = (mask[ci] == 'U');
+
+    if (hit == true) dst[at] = up[at];
+
+    at++;
+
+    while (at < len)
+    {
+      if ((lo[at] & 0xc0) != 0x80) break;
+
+      if (hit == true) dst[at] = up[at];
+
+      at++;
+    }
+
+    ci++;
+  }
+
+  return len;
+}
+
+// Fold the capitalization masks into the hint words themselves.
+//
+// The obvious shape for a hint token is the one a letter run has: the token, then a mask slot behind
+// it holding leave it, upper the first character, and upper all of them. For a word with letters in it
+// those are three different candidates. For 1992 they are the same candidate three times, and the run
+// would emit it three times, because the shape gives the mask three entries and the cost index was
+// counted from that.
+//
+// Measured on the shipped ruleset, that is 55 per cent of everything emitted when every hint is a
+// number. It climbs with depth as well, because the two expensive masks only take their share deep in
+// the run.
+//
+// A run that names its words has them at load time, so it does the masking here instead. Each word
+// becomes its distinct cased forms and no others, each at what it would have cost as a word plus a
+// mask, and the shape drops the mask slot. The candidates and their costs are exactly what they would
+// have been, minus the repeats, and the run is cheaper as well: one slot rather than two, and no
+// uppercase image built per candidate.
+//
+// The account attack cannot do this. Its words are a different set for every account and the list's
+// shape has to be the same for all of them, which is what lets one grammar and one cost index serve a
+// whole hash file. It keeps the mask slot, and account names are letters, which is the case that
+// barely repeats at all.
+
+static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_tlist_t *cm)
+{
+  const u32 raw_cnt = pg->hw_cnt;
+
+  // Every word under every mask: that is what the store has to hold and what the two arrays have to
+  // index. hintfile names a file with no size limit, and everything below walks all three with a u32,
+  // so the sizes are worked out wide and the file is refused rather than wrapped into an allocation
+  // that is short and then written past. It takes tens of millions of words to reach.
+
+  u64 store_size = 0;
+
+  for (u32 i = 0; i < raw_cnt; i++) store_size += (u64) pg->hw[i].len + 1;
+
+  store_size = store_size * (u64) cm->cnt;
+
+  const u64 forms = (u64) raw_cnt * (u64) cm->cnt;
+
+  if ((store_size > UINT32_MAX) || (forms > UINT32_MAX))
+  {
+    gerr (global_ctx, "the hint words are too many to expand: %u words under %u capitalization masks", raw_cnt, cm->cnt);
+
+    return false;
+  }
+
+  const u32 cap = (u32) store_size;
+
+  char *store = (char *) hcmalloc (cap);
+
+  pcfg_hint_t *out  = (pcfg_hint_t *) hcmalloc ((size_t) forms * sizeof (pcfg_hint_t));
+  u32         *cost = (u32 *)         hcmalloc ((size_t) forms * sizeof (u32));
+
+  u32 out_cnt = 0;
+  u32 at      = 0;
+
+  u8 lo[PCFG_HINT_LEN_MAX];
+  u8 up[PCFG_HINT_LEN_MAX];
+
+  // Cheapest first, so the walk below meets a word's cheapest form before its dearer ones and the
+  // duplicate that is dropped is always the dearer one.
+
+  for (u32 b = 0; b < cm->nb; b++)
+  {
+    for (u32 k = 0; k < cm->b_cnt[b]; k++)
+    {
+      const u32 e = cm->b_start[b] + k;
+
+      const u8 *mask = cm->buf + cm->off[e];
+
+      const u32 mask_len = cm->off[e + 1] - cm->off[e];
+
+      for (u32 i = 0; i < raw_cnt; i++)
+      {
+        const u32 len = pg->hw[i].len;
+
+        pcfg_lower_ascii (lo, pg->hw[i].buf, len);
+        pcfg_upper_image (up, lo, len);
+
+        u8 *dst = (u8 *) store + at;
+
+        hint_mask_apply (dst, lo, up, len, mask, mask_len);
+
+        // A duplicate can only be this word under a cheaper mask, because a mask rewrites the word it
+        // sits behind and no other. So the test is against this word's own earlier forms rather
+        // than against everything emitted so far, which is what keeps a long hint file linear.
+
+        bool seen = false;
+
+        for (u32 pb = 0; (pb <= b) && (seen == false); pb++)
+        {
+          const u32 upto = (pb == b) ? k : cm->b_cnt[pb];
+
+          for (u32 pk = 0; pk < upto; pk++)
+          {
+            const u32 pe = cm->b_start[pb] + pk;
+
+            u8 prev[PCFG_HINT_LEN_MAX];
+
+            hint_mask_apply (prev, lo, up, len, cm->buf + cm->off[pe], cm->off[pe + 1] - cm->off[pe]);
+
+            if (memcmp (prev, dst, len) != 0) continue;
+
+            seen = true;
+
+            break;
+          }
+        }
+
+        if (seen == true) continue;
+
+        out[out_cnt].buf = (const u8 *) dst;
+        out[out_cnt].len = len;
+
+        cost[out_cnt] = pg->hw_cost[i] + cm->b_cost[b];
+
+        out_cnt++;
+
+        at += len + 1;
+      }
+    }
+  }
+
+  // One word and one mask is one form, so this cannot be empty. It is checked because everything below
+  // indexes into it.
+
+  if (out_cnt == 0)
+  {
+    hcfree (store);
+    hcfree (out);
+    hcfree (cost);
+
+    return false;
+  }
+
+  // The buckets a list is cut into are runs of equal cost, so the entries have to arrive in cost
+  // order, and the order inside one cost has to stay as it is: the word the user put first keeps
+  // coming first. Sorting a key of the cost with the position behind it gives both at once.
+  //
+  // This was an insertion sort, on the grounds that a hint set is a few dozen words. hintfile has no
+  // such limit and a large one is not nearly sorted, because the masks are walked outside the words
+  // and each mask re-runs the whole cost range. 200000 words spent 3 seconds here, 400000 spent 10
+  // and 800000 spent 40.
+
+  u64 *order = (u64 *) hcmalloc (out_cnt * sizeof (u64));
+
+  for (u32 i = 0; i < out_cnt; i++) order[i] = ((u64) cost[i] << 32) | (u64) i;
+
+  qsort (order, out_cnt, sizeof (u64), hint_order_cmp);
+
+  pcfg_hint_t *sorted_out  = (pcfg_hint_t *) hcmalloc (out_cnt * sizeof (pcfg_hint_t));
+  u32         *sorted_cost = (u32 *)         hcmalloc (out_cnt * sizeof (u32));
+
+  for (u32 i = 0; i < out_cnt; i++)
+  {
+    const u32 from = (u32) (order[i] & 0xffffffff);
+
+    sorted_out[i]  = out[from];
+    sorted_cost[i] = cost[from];
+  }
+
+  hcfree (order);
+  hcfree (out);
+  hcfree (cost);
+
+  out  = sorted_out;
+  cost = sorted_cost;
+
+  hcfree (pg->hw);
+  hcfree (pg->hw_cost);
+
+  pg->hw_cased = store;
+  pg->hw       = out;
+  pg->hw_cost  = cost;
+  pg->hw_cnt   = out_cnt;
+
+  pg->hint_cnt = out_cnt;
+
+  return true;
 }
 
 // Resolving a token to a list handle ran once per token over every list already loaded, which on a
@@ -2073,7 +2786,7 @@ static bool type_is_flat (const char t)
 
 #define LIST_LUT_LEN 256
 
-static int list_get (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots, const char t, const u32 len, int *cache, int *lut)
+static int list_get (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots, const char t, const u32 len, int *cache, int *lut)
 {
   const int key = ((int) (u8) t << 8) | (int) len;
 
@@ -2091,6 +2804,50 @@ static int list_get (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg, 
   }
 
   const char *dir = type_dir (t);
+
+  // A hint token names no file. Everything below this point is the same for it as for a loaded list,
+  // which is the point: the grammar, the cost index and the unranking cannot tell them apart.
+
+  if (t == 'H')
+  {
+    pg->hint_wanted = true;
+
+    if (pg->hint_cnt == 0) return -1;
+
+    // A run that named its words folds the masks into them, once, the first time a shape asks for the
+    // hint list. It happens here rather than where the words were read because the masks come out of
+    // the ruleset and the ruleset is not open yet at that point.
+
+    if (pg->hint_done == false)
+    {
+      const int ci = list_get (global_ctx, pg, roots, nroots, 'C', 1, cache, lut);
+
+      if (ci == -1) return -1;
+
+      pg->hint_done = true;
+
+      if (hint_expand (global_ctx, pg, &pg->lists[ci]) == false) return -1;
+    }
+
+    if (pg->lists_cnt >= PCFG_LIST_CACHE) return -1;
+
+    pcfg_tlist_t hint;
+
+    if (hint_list_build (&hint, pg->hint_cnt, pg->hw_cost, pg->hint_min, pg->hint_max) == -1) return -1;
+
+    hint.ty = (u8) t;
+    hint.ln = len;
+
+    pg->lists = (pcfg_tlist_t *) hcrealloc (pg->lists, pg->lists_cnt * sizeof (pcfg_tlist_t), (pg->lists_cnt + 1) * sizeof (pcfg_tlist_t));
+
+    pg->lists[pg->lists_cnt] = hint;
+
+    cache[pg->lists_cnt] = key;
+
+    if (mapped == true) lut[((u32) (u8) t * LIST_LUT_LEN) + len] = (int) pg->lists_cnt;
+
+    return (int) pg->lists_cnt++;
+  }
 
   if (dir == NULL) return -1;
 
@@ -3003,6 +3760,16 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     }
     else if (dropped_t > 0)
     {
+      // A hint ruleset has a hint token in every structure it has, so a run that named no words drops
+      // every one of them. The general answer below would send that person looking for a broken file.
+
+      if ((pg->hint_wanted == true) && (pg->hint_cnt == 0))
+      {
+        gerr (global_ctx, "%s: this ruleset takes its words from you, so name them with hintwords or hintfile", named);
+
+        return -1;
+      }
+
       gerr (global_ctx, "%s: all %u structures were dropped, most likely a terminal list that could not be read", named, dropped_t);
 
       return -1;
@@ -4800,7 +5567,23 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
     if (i >= t->cnt) return GENERIC_RC_ERROR;
 
     const u8 *v = t->buf + t->off[i];
-    const int l = (int) (t->off[i + 1] - t->off[i]);
+    int l = (int) (t->off[i + 1] - t->off[i]);
+
+    // A hint list holds one placeholder byte per word and the words themselves live beside it, so the
+    // digit the odometer turned is an index into those rather than an offset into the list buffer.
+
+    if ((t->ty == 'H') && (s->kind[j] == PCFG_SLOT_TERM))
+    {
+      if ((th->hint_cnt == 0) || (th->hint == NULL)) return GENERIC_RC_ERROR;
+
+      const u32 hl = (th->hint[i].len < PCFG_HINT_LEN_MAX) ? th->hint[i].len : PCFG_HINT_LEN_MAX;
+
+      // Written as it stands. hint_expand () already applied the case masks, and lowering the word
+      // here would undo that and hand the run the same form three times.
+
+      v = th->hint[i].buf;
+      l = (int) hl;
+    }
 
     if (s->kind[j] == PCFG_SLOT_TERM)
     {
@@ -5144,13 +5927,25 @@ static u32 pcfg_parse (pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *o
 
         const u32 room = pw_len - spos[j];
 
+        // A hint list's own buffer is one placeholder byte an entry, because the words are not in the
+        // ruleset. A named set sits beside it in the order the entries are in, so entry i is hint i and
+        // the scan reads its bytes from there. Everything after this point is the same either way.
+        //
+        // An account's words are not known here at all, so a hint list they fill cannot be walked and
+        // the placeholder is what the scan sees. That is why --lookup answers for a named set only.
+
+        const bool hint = (t->ty == 'H');
+
         u32 i = (cur[j] == 0xffffffff) ? 0 : cur[j];
+
+        u32 hit_len = 0;
 
         while (i < t->cnt)
         {
-          const u32 l = t->off[i + 1] - t->off[i];
+          const u8 *e = (hint == true) ? pg->hw[i].buf : (t->buf + t->off[i]);
+          const u32 l = (hint == true) ? pg->hw[i].len : (t->off[i + 1] - t->off[i]);
 
-          if ((l <= room) && (memcmp (t->buf + t->off[i], pw + spos[j], l) == 0)) break;
+          if ((l <= room) && (memcmp (e, pw + spos[j], l) == 0)) { hit_len = l; break; }
 
           i++;
         }
@@ -5159,7 +5954,7 @@ static u32 pcfg_parse (pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *o
         {
           idx[j]      = i;
           cur[j]      = i + 1;
-          spos[j + 1] = spos[j] + (t->off[i + 1] - t->off[i]);
+          spos[j + 1] = spos[j] + hit_len;
 
           got = true;
         }
@@ -5526,8 +6321,10 @@ static bool pcfg_omen_lookup (const pcfg_global_t *pg, const u8 *pw, const u32 p
   return true;
 }
 
-static void slot_geometry (const pcfg_global_t *pg, const pcfg_struct_t *s, const u32 *idx, u32 *off, u32 *wid)
+static void slot_geometry (const pcfg_global_t *pg, const pcfg_thread_t *th, const pcfg_struct_t *s, u32 *off, u32 *wid)
 {
+  const u32 *idx = th->idx;
+
   u32 pos = 0;
 
   u32 last_off = 0;
@@ -5538,7 +6335,14 @@ static void slot_geometry (const pcfg_global_t *pg, const pcfg_struct_t *s, cons
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
 
     const u32 i = idx[j];
-    const u32 l = t->off[i + 1] - t->off[i];
+
+    // A hint list's entries are one placeholder byte each, so its own length is no guide to how
+    // much room the word takes in the candidate. assemble () writes the word, and every slot behind
+    // this one sits where the word ends rather than where the placeholder would.
+
+    const bool hint = (t->ty == 'H') && (s->kind[j] == PCFG_SLOT_TERM) && (th->hint_cnt > 0);
+
+    const u32 l = (hint == true) ? MIN (th->hint[i % th->hint_cnt].len, PCFG_HINT_LEN_MAX) : (t->off[i + 1] - t->off[i]);
 
     if (s->kind[j] == PCFG_SLOT_TERM)
     {
@@ -5610,6 +6414,19 @@ static void choose_cut (const pcfg_global_t *pg, pcfg_struct_t *s)
     s->cut = s->nslot;
 
     return;
+  }
+
+  // A hint slot cannot go to the card. Its terminal list holds one placeholder byte per word and the
+  // words themselves live in host memory, so the pool the card reads carries none of them. The cut moves
+  // past the last hint slot, which leaves it in the base word the host assembles and hands the card
+  // whatever comes after it.
+
+  for (u32 j = 0; j < s->nslot; j++)
+  {
+    if (s->kind[j] != PCFG_SLOT_TERM) continue;
+    if (pg->lists[s->list[j]].ty != 'H') continue;
+
+    cut = MAX (cut, j + 1);
   }
 
   while (cut < s->nslot)
@@ -7283,7 +8100,7 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
   u32 off[PCFG_MAXSLOT];
   u32 wid[PCFG_MAXSLOT];
 
-  slot_geometry (pg, s, th->idx, off, wid);
+  slot_geometry (pg, th, s, off, wid);
 
   cell->slot_cnt = s->nslot - th->devstart;
 
@@ -7446,6 +8263,8 @@ static HC_API_CALL void *pf_worker (void *arg)
   const bool     amp = pf->amp;
 
   pcfg_thread_t *th = (pcfg_thread_t *) hccalloc (1, sizeof (pcfg_thread_t));
+
+  hint_seed (pg, th);
 
   hc_thread_mutex_lock (pf->mux);
 
@@ -7828,11 +8647,17 @@ static void lookup_slots (const pcfg_global_t *pg, const pcfg_hit_t *hit, char *
   {
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
 
-    const u32 e   = hit->idx[j];
-    const u32 off = t->off[e];
-    const u32 len = t->off[e + 1] - off;
+    const u32 e = hit->idx[j];
 
-    const int rc = snprintf (out_buf + at, out_size - (size_t) at, "%s%c%u=%.*s", (at == 0) ? "" : " ", t->ty, t->ln, (int) len, (const char *) (t->buf + off));
+    // A hint slot names one of the words the run was given, and those live beside the list rather
+    // than in it. Everything else reads the list.
+
+    const bool hint = (t->ty == 'H');
+
+    const u8 *val = (hint == true) ? pg->hw[e].buf : (t->buf + t->off[e]);
+    const u32 len = (hint == true) ? pg->hw[e].len : (t->off[e + 1] - t->off[e]);
+
+    const int rc = snprintf (out_buf + at, out_size - (size_t) at, "%s%c%u=%.*s", (at == 0) ? "" : " ", t->ty, t->ln, (int) len, (const char *) val);
 
     if (rc < 0) break;
 
@@ -8042,6 +8867,22 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   }
 }
 
+// What the status screen reports this run is guessing from.
+//
+// A pcfg attack guesses from its ruleset, so the ruleset is what it names. The account attack guesses
+// from what each hash carries and uses the ruleset to decorate it, so there the hash file is the base
+// and the grammar is the phase. Guess.Queue reports which phase of how many, so this only has
+// to say which one this is.
+//
+// Either way the ruleset is named as it was written rather than as it resolved. A path is what the
+// loader needs and it is what names the attack, but on a status screen it is a line of noise wrapped
+// around the one word the user typed.
+
+static void pcfg_say_base (generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const u64 scale, const char *half)
+{
+  snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named_given, scale, half);
+}
+
 // How many threads build base words when this run generates them here. The device engine settles
 // the count for itself further down, so this is the host engine answer, and the fallback in
 // global_dev_init () asks for it again once it knows the run is coming back here.
@@ -8060,7 +8901,7 @@ static void pcfg_pick_workers (pcfg_global_t *pg)
   pg->threads = want;
 }
 
-bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
+bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
 {
   if (global_ctx->workc < 1)
   {
@@ -8103,6 +8944,10 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   u64    maxword = 0;
   double maxgain = 1.5;
 
+  const char *hintwords = NULL;
+  const char *hintfile  = NULL;
+  const char *hintrank  = NULL;
+
   const char *weights = NULL;
   const char *lookup  = NULL;
 
@@ -8117,6 +8962,9 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "cache",   FEED_PARAM_TYPE_U64, &cache,   0, 1, "keep the unit tables under the cache directory, which trades disk for the longest step of the start" },
     { "maxword", FEED_PARAM_TYPE_U64, &maxword, 0, PCFG_DEV_MAXWORD_HI, "words the kernel gives a candidate, 0 to pick from the ruleset" },
     { "maxgain", FEED_PARAM_TYPE_DBL, &maxgain, 1.0, 64.0, "how much wider the rectangle must get before the larger array is taken" },
+    { "hintwords", FEED_PARAM_TYPE_STR, &hintwords, 0, 0, "the hint words themselves, comma separated, best first" },
+    { "hintfile",  FEED_PARAM_TYPE_STR, &hintfile,  0, 0, "a file of hint words, one per line, optionally followed by a tab and a probability" },
+    { "hintrank",  FEED_PARAM_TYPE_STR, &hintrank,  0, 0, "what a hint word with no probability of its own is worth: zipf, linear or flat" },
     { "weights", FEED_PARAM_TYPE_STR, &weights, 0, 0, "share of the grammar each ruleset carries, colon separated, one per ruleset" },
     { "lookup",  FEED_PARAM_TYPE_STR, &lookup,  0, 0, "ask where this attack reaches a candidate instead of running it" },
     { NULL, 0, NULL, 0, 0, NULL }
@@ -8146,6 +8994,61 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   pg->omen_want = (omen != 0);
   pg->cache_ok  = (cache != 0);
   pg->lookup    = lookup;
+
+  pg->hint_rank = PCFG_HINT_RANK_ZIPF;
+
+  if (hintrank != NULL)
+  {
+    if      (strcmp (hintrank, "zipf")   == 0) pg->hint_rank = PCFG_HINT_RANK_ZIPF;
+    else if (strcmp (hintrank, "linear") == 0) pg->hint_rank = PCFG_HINT_RANK_LINEAR;
+    else if (strcmp (hintrank, "flat")   == 0) pg->hint_rank = PCFG_HINT_RANK_FLAT;
+    else
+    {
+      gerr (global_ctx, "hintrank must be zipf, linear or flat, not '%s'", hintrank);
+
+      return false;
+    }
+  }
+
+  // Two ways to select the hint word source, and only one of them at a time.
+
+  if ((hintwords != NULL) && (hintfile != NULL))
+  {
+    gerr (global_ctx, "hintwords and hintfile both select the hint word source, so only one of them can be given");
+
+    return false;
+  }
+
+  if (hintwords != NULL)
+  {
+    if (hint_words_load (global_ctx, pg, hintwords) == false) return false;
+  }
+
+  if (hintfile != NULL)
+  {
+    if (hint_file_load (global_ctx, pg, hintfile) == false) return false;
+  }
+
+  pg->hint_cnt = pg->hw_cnt;
+
+  // What the shortest and longest hint is. They only steer the structure filter, which decides whether a structure can ever reach a length
+  // the hash mode accepts. Too wide keeps structures whose candidates are rejected one at a time
+  // instead, which is slower and never wrong.
+
+  pg->hint_min = 1;
+  pg->hint_max = PCFG_HINT_LEN_MAX;
+
+  if (pg->hw_cnt > 0)
+  {
+    pg->hint_min = pg->hw[0].len;
+    pg->hint_max = pg->hw[0].len;
+
+    for (u32 i = 1; i < pg->hw_cnt; i++)
+    {
+      pg->hint_min = MIN (pg->hint_min, pg->hw[i].len);
+      pg->hint_max = MAX (pg->hint_max, pg->hw[i].len);
+    }
+  }
 
   pcfg_root_t roots[PCFG_MAXROOT];
 
@@ -8374,7 +9277,9 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   roots_join (pg->named, sizeof (pg->named), roots, nroots);
 
-  snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, scale, half);
+  roots_join_as (pg->named_given, sizeof (pg->named_given), roots, nroots, true);
+
+  pcfg_say_base (global_ctx, pg, scale, half);
 
   roots_free (roots, nroots);
 
@@ -8429,6 +9334,11 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     hcfree (pg->lists[i].b_cnt);
     hcfree (pg->lists[i].b_len);
   }
+
+  hcfree (pg->hw_store);
+  hcfree (pg->hw_cased);
+  hcfree (pg->hw);
+  hcfree (pg->hw_cost);
 
   hcfree (pg->lists);
 
@@ -8501,6 +9411,8 @@ bool thread_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_
   pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
 
   if (pg == NULL) return true;
+
+  hint_seed (pg, th);
 
   const bool amp = global_ctx->dev_enable;
 
@@ -8602,7 +9514,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     pcfg_pick_workers (pg);
 
-    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+    pcfg_say_base (global_ctx, pg, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
 
     if (pg->lookup != NULL) lookup_report (global_ctx, pg);
 
@@ -8899,7 +9811,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     pcfg_pick_workers (pg);
 
-    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+    pcfg_say_base (global_ctx, pg, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
 
     if (pg->lookup != NULL) lookup_report (global_ctx, pg);
 
@@ -8948,6 +9860,8 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   if (front[0] == 0) front[0] = 1;
 
   pcfg_thread_t *pth = (pcfg_thread_t *) hccalloc (1, sizeof (pcfg_thread_t));
+
+  hint_seed (pg, pth);
 
   u64 seen = 0;
   u64 wide = 0;
@@ -9090,6 +10004,8 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     const u64 want = strtoull (rectenv, NULL, 10);
 
     pcfg_thread_t *rp = (pcfg_thread_t *) hccalloc (1, sizeof (pcfg_thread_t));
+
+    hint_seed (pg, rp);
 
     const char *cndenv = getenv ("PCFG_RECT_CANDS");
 
