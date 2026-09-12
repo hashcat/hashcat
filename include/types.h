@@ -1036,6 +1036,7 @@ typedef enum user_options_map
   IDX_RESTORE_FILE_PATH         = 0xff3e,
   IDX_RESTORE_POSITION          = 0xff87,
   IDX_RP_FILE                   = 'r',
+  IDX_RP_FILE_CONCAT            = 0xff8c,
   IDX_RP_GEN_FUNC_MAX           = 0xff3f,
   IDX_RP_GEN_FUNC_MIN           = 0xff40,
   IDX_RP_GEN_FUNC_SEL           = 0xff41,
@@ -2908,6 +2909,7 @@ typedef struct user_options
   bool         restore;
   bool         restore_enable;
   bool         restore_position;
+  bool         rp_files_concat;
   bool         self_test;
   bool         show;
   bool         slow_candidates;
