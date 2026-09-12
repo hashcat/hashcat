@@ -14,6 +14,8 @@
 #endif
 #include "memory.h"
 #include "convert.h"
+#include "paw64.h"
+#include "timer.h"
 
 #include <stdarg.h>
 
@@ -129,6 +131,59 @@ u32 smallest_repeat_double (const u32 v)
   if (v == 0) return 0;
 
   return (v / (v & -v));
+}
+
+// A name no other writer will pick, for the file a cache is written under before it is renamed into
+// place.
+//
+// Everything hashcat caches is written that way, so that a reader finds either the whole of a file
+// or none of it, and that name carried a pid alone. A pid tells two processes on one host apart and
+// says nothing at all between hosts, while --cache-path is there to point a whole cluster at one
+// directory: two hosts that pick the same pid open the same temporary file, write into it at once,
+// and the rename publishes whatever the two of them left behind.
+//
+// So the pid is only a part of it. The host name separates two machines, and neither separates two
+// containers on one host that were given the same name and both start at pid 1, which is why the
+// clock and an address off this stack go in as well: the first differs between two runs however
+// close together they start, and the second differs again wherever the loader puts them.
+//
+// They are folded rather than spelled out, because the result becomes part of a path that a caller
+// keeps in a fixed buffer, and a fold is the same sixteen characters whatever went into it.
+//
+// The answer is a new one on every call, which is what a name for one write wants to be: two threads
+// writing two caches at once are asking for two names, not one.
+
+u64 hc_tmp_tag (void)
+{
+  char host[256];
+
+  memset (host, 0, sizeof (host));
+
+  #if defined (_WIN)
+  DWORD host_len = (DWORD) sizeof (host) - 1;
+
+  if (GetComputerNameA (host, &host_len) == 0) host[0] = 0;
+  #else
+  if (gethostname (host, sizeof (host) - 1) != 0) host[0] = 0;
+  #endif
+
+  host[sizeof (host) - 1] = 0;
+
+  hc_timer_t now;
+
+  hc_timer_set (&now);
+
+  const void *here = (const void *) &now;
+
+  paw64_ctx_t state;
+
+  paw64_init (&state, (u64) HC_GETPID ());
+
+  paw64_update (&state, host, strlen (host));
+  paw64_update (&state, &now, sizeof (now));
+  paw64_update (&state, &here, sizeof (here));
+
+  return paw64_final (&state);
 }
 
 u32 mydivc32 (const u32 dividend, const u32 divisor)

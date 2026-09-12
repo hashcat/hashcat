@@ -1150,9 +1150,14 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 {
   if (binary_size > 0)
   {
-    char tmp_file[256];
+    // The kernel path is built in 256 bytes of its own, and the suffix adds twenty one on top, so
+    // the room here is the one plus the other. Sized to the same 256 it would truncate a deep
+    // --cache-path, and two kernels cut to the same temporary name is the collision this suffix is
+    // here to avoid.
 
-    snprintf (tmp_file, sizeof (tmp_file), "%s.tmp.%d", kernel_file, (int) HC_GETPID ());
+    char tmp_file[256 + 32];
+
+    snprintf (tmp_file, sizeof (tmp_file), "%s.tmp.%016" PRIx64, kernel_file, hc_tmp_tag ());
 
     HCFILE fp;
 
