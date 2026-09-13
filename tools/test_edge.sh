@@ -50,6 +50,8 @@ function usage()
   echo ""
   echo "     --skip-clean-cache             : Skip cleaning the kernel caches before starting the tests"
   echo ""
+  echo "-M / --minimal                      : test only 24 hash types covering all distinct code paths, vector-width 1"
+  echo ""
   echo "-f / --force                        : run hashcat using --force"
   echo ""
   echo "-v / --verbose                      : show debug messages (supported: -v or -vv)"
@@ -386,6 +388,7 @@ BACKEND_DEVICES_KEEPFREE=0
 ALL_ATTACKS=0
 SELF_TEST_DISABLE=1
 CLEAN_CACHE_DISABLE=0
+MINIMAL=0
 
 OPTS="--quiet --potfile-disable --machine-readable --logfile-disable"
 
@@ -437,6 +440,12 @@ while [[ $# -gt 0 ]]; do
         usage
       fi
       shift 2
+      ;;
+    --minimal)
+      MINIMAL=1
+      HASH_TYPE="all"
+      VECTOR_WIDTHS="1"
+      shift
       ;;
     --allow-all-attacks)
       ALL_ATTACKS=1
@@ -807,6 +816,11 @@ while [[ $# -gt 0 ]]; do
 
             break
             ;;
+          M)
+            MINIMAL=1
+            HASH_TYPE="all"
+            VECTOR_WIDTHS="1"
+            ;;
           *)
             echo "Unknown option: -$opt"
             usage
@@ -877,18 +891,48 @@ if [ ${VERBOSE} -ge 1 ]; then
   echo "Global hashcat options selected: ${OPTS}"
 fi
 
+# Attack type 4 asked for on one mode whose kernel runs inside, with the optimized kernel type and
+# nothing else, has nothing it can do: the round below would skip every cell. attack_exec is read
+# from the module rather than from --hash-info so that this costs no run of hashcat, the same way
+# tools/test.sh reads it. -K all is not this case, and neither is a mode whose kernel runs outside.
+
+if [ "${ATTACK_TYPES}" == "4" ] && [ "${KERNEL_TYPE}" == "1" ] && echo -n "${HASH_TYPE}" | grep -q '^[0-9]\+$'; then
+  edge_module=$(printf "%s/../src/modules/module_%05d.c" "${TDIR}" "${HASH_TYPE}")
+
+  if [ -r "${edge_module}" ] && ! grep -q ATTACK_EXEC_OUTSIDE_KERNEL "${edge_module}"; then
+    echo "! Attack type 4 has no optimized kernel for hash type ${HASH_TYPE}, and -K 1 asks for the"
+    echo "! optimized one only."
+    echo "!"
+    echo "! -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has a"
+    echo "! pure kernel only. Ask for the pure kernel type instead:"
+    echo "!"
+    echo "!     ${0} -m ${HASH_TYPE} -a 4 -K 0"
+
+    exit 1
+  fi
+fi
+
 errors=0
 startTime=$(date +%s)
 
 mkdir -p ${OUTD} &> /dev/null
 
-for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | awk '{print $1+=0}'); do
+MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 14511 14600 14900 15400 15700 20510 22000 29511 33000 33500 34100"
+
+# A mode is covered once it has an oracle, and an oracle is a .pm or a .py. Globbing .pm alone left
+# 1000 and 5200 out of the suite from the moment 731f2ed8c gave them a .py one.
+
+for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n); do
 
   if [ $HASH_TYPE != "all" ]; then
     if [ $HASH_TYPE -ne $hash_type ]; then continue; fi
   else
     if [ $hash_type -lt ${HASH_TYPE_MIN} ]; then continue; fi
     if [ $hash_type -gt ${HASH_TYPE_MAX} ]; then continue; fi
+  fi
+
+  if [ "${MINIMAL}" -eq 1 ]; then
+    if ! is_in_array "${hash_type}" ${MINIMAL_MODES}; then continue; fi
   fi
 
   if is_in_array "${hash_type}" ${SKIP_HASH_TYPES}; then
@@ -914,10 +958,21 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
     continue
   fi
 
+  # The bridge for this mode wants an ordinary Python built as a shared library and refuses a
+  # free-threaded one on every platform, so the skip is not the platform's. The message used to sit
+  # inside a test for Darwin, which left the mode skipped in silence everywhere else.
+
   if [ $pyenv_free_threaded -eq 1 ] && [ $hash_type -eq 73000 ]; then
-    if [ "$UNAME" == "Darwin" ]; then
-      echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (not supported on Apple and Windows with python 'free-threaded' library support)" | tee -a ${OUTD}/test_edge.details.log
-    fi
+    echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (needs a Python without the 'free-threaded' library support)" | tee -a ${OUTD}/test_edge.details.log
+    continue
+  fi
+
+  # An edge case run needs the oracle's edge entry point and only tools/test.pl has one, which
+  # test_module_runner.py says of itself. So a mode whose oracle is a .py is named here and skipped,
+  # rather than left out of the loop with nothing said.
+
+  if [ ! -f "${TDIR}/test_modules/m$(printf '%05d' ${hash_type}).pm" ]; then
+    echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (edge is implemented in tools/test.pl only, and this mode's oracle is a .py)" | tee -a ${OUTD}/test_edge.details.log
     continue
   fi
 
@@ -946,6 +1001,21 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
       tmp_slow_hash=$(./hashcat -m ${hash_type} -HH | grep Slow\\.Hash | awk '{print $2}')
       if [ "${tmp_slow_hash}" == "Yes" ]; then
         slow_hash=1
+      fi
+
+      # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has no
+      # optimized kernel: hashcat refuses the optimized flag for it rather than ignoring it. So an
+      # optimized round has nothing to run for attack type 4 on such a mode. A mode whose kernel runs
+      # outside is not this case: there the feed builds every candidate on the host and the round runs,
+      # so the test is on slow_hash and not on the kernel type alone.
+
+      if [ ${attack_type} -eq 4 ] && [ ${optimized} -eq 1 ] && [ ${slow_hash} -eq 0 ]; then
+        if [ ${VERBOSE} -ge 2 ]; then
+          echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} with Attack-Type ${attack_type} and Kernel-Type ${kernel_type} (attack type 4 has no optimized kernel)" | tee -a ${OUTD}/test_edge.details.log
+        else
+          echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} with Attack-Type ${attack_type} and Kernel-Type ${kernel_type} (attack type 4 has no optimized kernel)" >> ${OUTD}/test_edge.details.log
+        fi
+        continue
       fi
 
       binary_hashfile=0
