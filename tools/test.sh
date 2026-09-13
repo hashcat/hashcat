@@ -211,6 +211,13 @@ KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/modu
 HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
+# What -M runs, taken from the list hashcat benchmarks rather than written out again here.
+# tools/benchmark_deep.pl reads the same array for the same reason, and it sits with the lists above
+# because a packaged run has no src/ to read: the copy this script writes into a package freezes all
+# of them into literals.
+
+MINIMAL_MODES=$(awk '/DEFAULT_BENCHMARK_ALGORITHMS_BUF\[\] *=/,/^};/' "${TDIR}"/../src/benchmark.c 2>/dev/null | sed -n 's/^[[:space:]]*\([0-9][0-9]*\)[[:space:]]*,.*/\1/p' | sort -u -n | tr '\n' ' ')
+
 # The same list, kept before the additions below, because attack_exec is what decides whether a feed
 # gets its device engine and the additions are not about attack_exec. -a 4 is the one attack mode
 # that reads it: the pcfg feed amplifies on the device for a mode whose kernel runs inside, and falls
@@ -1789,8 +1796,12 @@ function attack_3()
     # spells all of them. The hcmask path below already gives hashcat one mask per line, which
     # is exactly one mask per password, so take it whenever a character is in play and write a
     # mask per password rather than searching a mask per length.
+    #
+    # The test for a multi byte character is tr deleting every byte that is ASCII and asking whether
+    # anything is left, because -P is a GNU extension: the grep on a Mac answers "invalid option --
+    # P" and exits 2, which 2>/dev/null hides, so the branch was never taken there.
 
-    if grep -qP '[^\x00-\x7F]' "${OUTD}/${hash_type}_passwords.txt" 2>/dev/null; then
+    if [ -n "$(tr -d '\000-\177' < "${OUTD}/${hash_type}_passwords.txt")" ]; then
       need_hcmask=2
     fi
 
@@ -1798,11 +1809,12 @@ function attack_3()
       need_hcmask=1
     fi
 
-    if [ ${need_hcmask} -eq 2 ]; then
-      tail_hashes=$(wc -l < "${OUTD}/${hash_type}_passwords.txt")
+    # the hcmask path below spells its digits with '?d' as well, so it has the same reach as the
+    # single mask: at most increment_max positions. It therefore takes the same hashes. Taking every
+    # password instead asks a mask attack for the digits of a 31 byte password, which is 10^20
+    # candidates on one line of the file and never comes back.
 
-      cp "${OUTD}/${hash_type}_hashes.txt" "${hash_file}"
-    elif [ ${need_hcmask} -eq 0 ]; then
+    if [ ${need_hcmask} -eq 2 ] || [ ${need_hcmask} -eq 0 ]; then
       head -n "${head_hashes}" "${OUTD}/${hash_type}_hashes.txt" | tail -n "${tail_hashes}" > "${hash_file}"
     else
       tail_hashes=$(awk "length >= ${increment_min}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
@@ -1824,15 +1836,15 @@ function attack_3()
     cracks_offset=0
 
     if [ ${need_hcmask} -eq 2 ]; then
-      cracks_offset=0
+      cracks_offset=$((head_hashes - tail_hashes))
 
       mask="${OUTD}/${hash_type}_multi_a3.hcmask"
 
       : > "${mask}"
 
-      while IFS= read -r a3_pass; do
+      awk "length >= ${increment_min} && length <= ${increment_max}" "${OUTD}/${hash_type}_passwords.txt" | while IFS= read -r a3_pass; do
         printf '%s\n' "$(mask_literalize "$(mask_dots ${#a3_pass})" "${a3_pass}")" >> "${mask}"
-      done < "${OUTD}/${hash_type}_passwords.txt"
+      done
     elif [ ${need_hcmask} -eq 0 ]; then
       cracks_offset=$((head_hashes - tail_hashes))
 
@@ -6337,7 +6349,8 @@ OPTIONS:
         against one hash, so -r defaults to 60 here rather than 400; modes that
         hit it are reported separately from modes that failed.
 
-  -M    Minimal mode: test only 24 hash types covering all distinct code paths
+  -M    Minimal mode: test only the hash-modes hashcat benchmarks, read from
+        src/benchmark.c, instead of every mode the suite knows
 
   -h    Show this help
 
@@ -6624,7 +6637,12 @@ if [ $(uname) == "Darwin" ]; then
 fi
 
 if [ "${MINIMAL}" -eq 1 ]; then
-  MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 14511 14600 14900 15400 15700 20510 22000 29511 33000 33500 34100"
+  if [ -z "${MINIMAL_MODES}" ]; then
+    echo "! -M could not read DEFAULT_BENCHMARK_ALGORITHMS_BUF from ${TDIR}/../src/benchmark.c"
+
+    exit 1
+  fi
+
   HASH_TYPES="${MINIMAL_MODES}"
 fi
 
@@ -6988,35 +7006,6 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       continue
     fi
 
-    # test.pl produce wrong hashes with Apple
-    # would be necessary to investigate to understand why
-    if [ "${hash_type}" -eq 1800 ]; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        continue
-      fi
-    fi
-
-    # Digest::BLAKE2 is broken on Apple Silicon
-    if [ "${hash_type}" -eq 600 ]; then
-      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
-        continue
-      fi
-    fi
-
-    # Digest::GOST is broken on Apple Silicon
-    if [ "${hash_type}" -eq 6900 ]; then
-      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
-        continue
-      fi
-    fi
-
-    # Crypt::GCrypt is broken on Apple
-    if [ "${hash_type}" -eq 18600 ]; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        continue
-      fi
-    fi
-
     if [ -z "${PACKAGE_FOLDER}" ]; then
       # init test data
       init
@@ -7350,6 +7339,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
   HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ *$//')
   KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
   SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
+  MINIMAL_MODES_PACKAGED=$(echo "${MINIMAL_MODES}" | tr '\n' ' ' | sed 's/ *$//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
@@ -7357,6 +7347,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
     -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
+    -e "s/^\(MINIMAL_MODES\)=\$(.*/\1=\"${MINIMAL_MODES_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
