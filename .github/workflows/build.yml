@@ -89,6 +89,14 @@ jobs:
             os_name: Linux
             os_name_lowercase: linux
             shared: 1
+          - os: ubuntu-22.04-arm
+            os_name: Linux-ARM64
+            os_name_lowercase: linux-arm64
+            shared: 0
+          - os: ubuntu-22.04-arm
+            os_name: Linux-ARM64
+            os_name_lowercase: linux-arm64
+            shared: 1
           - os: macos-latest
             os_name: macOS
             os_name_lowercase: macos
@@ -131,6 +139,18 @@ jobs:
             mingw-w64-x86_64-toolchain
             python3
 
+      - name: Install dependencies (Linux-ARM64 only)
+        if: matrix.os_name_lowercase == 'linux-arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang lld llvm
+
+      - name: Setup Python 3.14 (Linux-ARM64 only)
+        if: matrix.os_name_lowercase == 'linux-arm64'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
       - name: Setup Rustup (Windows only)
         if: matrix.os_name_lowercase == 'windows'
         shell: msys2 {0}
@@ -149,6 +169,15 @@ jobs:
           WIN_PYTHON: ""
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
+          bash tools/test_package.sh . --no-device
+
+      - name: Build (Linux-ARM64)
+        if: matrix.os_name_lowercase == 'linux-arm64'
+        env:
+          SHARED: ${{ matrix.shared }}
+          TERM: xterm
+        run: |
+          make ENABLE_LTO=0 IS_RPI=1 CC=clang CXX=clang++ AR=llvm-ar
           bash tools/test_package.sh . --no-device
 
       - name: Build (Linux/macOS)
