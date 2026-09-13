@@ -10,6 +10,11 @@
 #define O_BINARY 0
 #endif
 
+// feed_thread_t holds a line scanner, so this header carries the type rather than relying on the one
+// translation unit that includes it having included memchr.h first.
+
+#include "memchr.h"
+
 // One wordlist. Several of them are laid end to end into a single keyspace, so line 0 of the second
 // file is offset line_count-of-the-first. first_line is where that source starts in the global
 // numbering, which is what turns a global offset back into a file and a line inside it.
@@ -86,6 +91,13 @@ typedef struct feed_thread
 
   u64    source_idx;
   bool   source_open;
+
+  // The line scanner, fetched once for the life of the thread. hc_memchr_get () is a call into the
+  // hashcat library and a feed is a shared object, so nothing inlines it away: asking for the scanner
+  // per word puts one such call on every candidate this thread produces. memchr.h says the same thing
+  // above hc_line_next_with (), which is the entry point that takes the answer instead of fetching it.
+
+  hc_memchr_t memchr;
 
 } feed_thread_t;
 

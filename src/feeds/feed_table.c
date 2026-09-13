@@ -109,6 +109,18 @@ typedef struct table
 
   bool identity_last;
 
+  // How many replacements one source may carry, 0 for no limit. Nothing in a table file bounds this,
+  // and a harvested table can hold thousands for one source while the median holds a handful. That is
+  // what makes such a table's keyspace enormous rather than the number of sources in it, so the cap
+  // is the one knob that reaches it. The replacements kept are the first the files give, because a
+  // table line carries no count to rank them by.
+
+  u32 cap;
+
+  // how many lines the cap turned away, for the line the startup prints
+
+  u64 cap_dropped;
+
   // What the merged table is, as one number. Everything that changes a candidate or its place in the
   // run goes into it: the sources and their replacements, in order, and whether a token is an
   // alternative to itself. It is what names the keyspace index on disk.
@@ -725,6 +737,24 @@ static bool table_read (table_t *tb, const char *path, char *err_buf, const size
 
     if (idx == TABLE_TOK_LITERAL) idx = table_bucket_add (tb, src, (u32) src_len);
 
+    // The unchanged entry is not a replacement, so it is discounted where it has already gone in.
+    // Turning the line away here rather than after the load is what keeps a capped run's memory and
+    // load time down to what it kept.
+
+    if (tb->cap > 0)
+    {
+      const u32 head = ((tb->identity == true) && (tb->identity_last == false)) ? 1 : 0;
+
+      if (tb->bucket[idx].ent_cnt >= (tb->cap + head))
+      {
+        tb->cap_dropped++;
+
+        pos = next;
+
+        continue;
+      }
+    }
+
     table_ent_add (tb, idx, ent, (u32) ent_len);
 
     pos = next;
@@ -766,12 +796,13 @@ static void table_ident (table_t *tb)
   tb->ident = paw64_final (&state);
 }
 
-bool table_load (table_t *tb, char * const *paths, const int paths_cnt, const bool identity, const bool identity_last, char *err_buf, const size_t err_size)
+bool table_load (table_t *tb, char * const *paths, const int paths_cnt, const bool identity, const bool identity_last, const u32 cap, char *err_buf, const size_t err_size)
 {
   memset (tb, 0, sizeof (table_t));
 
   tb->identity      = identity;
   tb->identity_last = identity_last;
+  tb->cap           = cap;
 
   for (int i = 0; i < paths_cnt; i++)
   {
@@ -870,6 +901,47 @@ void table_free (table_t *tb)
 
 // Reading the table over a word. Every position takes the longest source that matches there, bytes no
 // source matches gather into a literal run, and the run is closed as soon as a source does match.
+
+// Every place a source matches, for single=1. This is the tokenizer's lookup without the two things
+// that make it a partition: it does not stop at the longest match, and it does not step over what it
+// matched. Offsets ascend and, within an offset, the buckets come out in the order the first byte
+// index holds them, which is longest source first. A run seeks against that order, so it has to be
+// the same on every host and every call.
+
+static u32 table_scan (const table_t *tb, const u8 *word, const u32 word_len, table_tok_t *hit, const u32 hit_max)
+{
+  u32 cnt = 0;
+
+  for (u32 i = 0; i < word_len; i++)
+  {
+    const u32 c = word[i];
+
+    for (u32 n = 0; n < tb->first_cnt[c]; n++)
+    {
+      const u32 idx = tb->first[c][n];
+      const u32 len = tb->bucket[idx].src_len;
+
+      if ((i + len) > word_len) continue;
+
+      if (table_span_eq (tb, tb->bucket[idx].src_off, len, &word[i], len) == false) continue;
+
+      // A bucket holding nothing but the unchanged entry offers no substitution, so it is left out
+      // here for the same reason the tokenizer leaves it out of the variable list.
+
+      if (tb->bucket[idx].ent_cnt < 2) continue;
+
+      if (cnt == hit_max) return cnt;
+
+      hit[cnt].off    = i;
+      hit[cnt].len    = len;
+      hit[cnt].bucket = idx;
+
+      cnt++;
+    }
+  }
+
+  return cnt;
+}
 
 int table_tokenize (const table_t *tb, const u8 *word, const u32 word_len, table_tok_t *tok, const u32 tok_max)
 {
@@ -1036,6 +1108,12 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_ICONV
 
 #define TABLE_WMAX 8
 
+// How many places one word may offer a substitution under single=1. Every source that matches at
+// every offset is one of them, overlaps included, so it is bounded by the word length times the
+// number of source lengths sharing a first byte rather than by the token count.
+
+#define TABLE_SINGMAX 1024
+
 // Where the run is, in units, at every TABLE_INDEX_STEP'th line. What a word is worth depends on the
 // word and on the table, so this cannot be worked out from a line number the way an ordinary wordlist
 // attack can, and a seek would otherwise read the whole wordlist to find out.
@@ -1065,6 +1143,13 @@ typedef struct table_global
   u32 maxword;
 
   u64 maxperm;
+
+  // Whether a candidate carries one substitution rather than a choice at every position. The cross
+  // product is what the attack is for and stays the default. One substitution is a different attack:
+  // it reaches the words a person actually typed, where only one letter was swapped, and it reaches
+  // far more of them per candidate spent.
+
+  bool single;
 
   // Whether a word the table had nothing to say about is a candidate. Off, it is: the word comes out
   // as it went in, which is what a table that varies a word wants. On, it is worth nothing and the
@@ -1128,6 +1213,27 @@ typedef struct table_thread
   u32 var_cnt;
 
   u32 digit[PW_MAX];
+
+  // Under single=1 a unit changes one position and leaves the rest. sing_v is which of the varying
+  // positions it is, and sing_d the entry that position takes, which only the host engine reads
+  // because on a fixed length table the cell walks that rectangle itself.
+
+  u32 sing_v;
+  u32 sing_d;
+
+  // Whether this word's units are base words the card expands, or finished candidates. A word the
+  // card cannot take is enumerated here instead, exactly as the cross product does with one.
+
+  bool sing_dev;
+
+  // Every place this word offers a substitution under single=1. The cross product needs a partition,
+  // because it chooses at each position at once and two overlapping choices would fight over the same
+  // bytes. One substitution has no such conflict, so a source is offered wherever it matches and a
+  // longer source no longer covers a shorter one underneath it. That is most of what single=1 is
+  // worth: the tokenised form of it reaches 71 percent of a target set where this reaches 92.
+
+  table_tok_t sing[TABLE_SINGMAX];
+  u32         sing_cnt;
 
   // The first token the cell covers. Everything in front of it is written into the base word here,
   // and everything from it on is the cell's.
@@ -1219,8 +1325,68 @@ static const u8 *table_ent (const table_t *tb, const u32 bucket, const u32 d, u3
 // hashcat rejects an over-length candidate and handing it a clipped one would hash a password the
 // table never described. It is the same contract process_word () keeps for an over-length line.
 
-static u32 table_write (const table_t *tb, const table_thread_t *tt, u8 *out_buf, const u32 out_size)
+// The candidate a single=1 unit stands for: the bytes in front of the place, the entry, then the
+// bytes behind it. One substitution never touches a second place, so there is no odometer and no
+// token walk, and a word that offers no place at all is itself.
+
+static u32 table_single_write (const table_global_t *tg, const table_thread_t *tt, u8 *out_buf, const u32 out_size)
 {
+  if (tt->sing_cnt == 0)
+  {
+    const u32 len = tt->word_len;
+
+    const u32 fit = MIN (len, out_size);
+
+    for (u32 k = 0; k < fit; k++) out_buf[k] = tt->word[k];
+
+    return len;
+  }
+
+  const table_tok_t *hit = &tt->sing[tt->sing_v];
+
+  u32 ent_len = 0;
+
+  const u8 *ent = table_ent (&tg->tb, hit->bucket, tt->sing_d, &ent_len);
+
+  const u32 tail_off = hit->off + hit->len;
+
+  u32 len = 0;
+
+  for (u32 k = 0; k < hit->off; k++)
+  {
+    if (len < out_size) out_buf[len] = tt->word[k];
+
+    len++;
+  }
+
+  for (u32 k = 0; k < ent_len; k++)
+  {
+    if (len < out_size) out_buf[len] = ent[k];
+
+    len++;
+  }
+
+  for (u32 k = tail_off; k < tt->word_len; k++)
+  {
+    if (len < out_size) out_buf[len] = tt->word[k];
+
+    len++;
+  }
+
+  return len;
+}
+
+static u32 table_write (const table_global_t *tg, const table_thread_t *tt, u8 *out_buf, const u32 out_size)
+{
+  const table_t *tb = &tg->tb;
+
+  if (tg->single == true)
+  {
+    const u32 len = table_single_write (tg, tt, out_buf, out_size);
+
+    return len;
+  }
+
   u32 len = 0;
   u32 v   = 0;
 
@@ -1262,8 +1428,31 @@ static u32 table_write (const table_t *tb, const table_thread_t *tt, u8 *out_buf
 // place. Otherwise it is built token by token, because a substitution in front moves everything behind
 // it, and the tail is copied over unchanged for the cell's copy slots to read back out.
 
-static u32 table_write_base (const table_t *tb, const table_thread_t *tt, u8 *out_buf, const u32 out_size)
+static u32 table_write_base (const table_global_t *tg, const table_thread_t *tt, u8 *out_buf, const u32 out_size)
 {
+  const table_t *tb = &tg->tb;
+
+  if (tg->single == true)
+  {
+    // The card is handed the word as it was read, because its cell writes the substitution over it.
+    // A word the card would not take is enumerated here instead, and then the unit is the candidate.
+
+    if (tt->sing_dev == true)
+    {
+      const u32 len = tt->word_len;
+
+      const u32 fit = MIN (len, out_size);
+
+      for (u32 k = 0; k < fit; k++) out_buf[k] = tt->word[k];
+
+      return len;
+    }
+
+    const u32 len = table_single_write (tg, tt, out_buf, out_size);
+
+    return len;
+  }
+
   if (tb->varlen == false)
   {
     // What is written stops at the buffer and what is returned is the length the base word really
@@ -1376,14 +1565,106 @@ static u32 table_base_head (const table_t *tb, const table_thread_t *tt)
   return len;
 }
 
+// One substitution per candidate. A unit changes one varying position and leaves every other at the
+// unchanged choice, so unit i is tok[var[i]] and the word keeps its other letters.
+//
+// The unchanged choice sits last in every bucket here. A position that is not the one being
+// substituted is therefore skipped by making the rectangle one shorter, rather than by starting it at
+// digit 1: the kernel's odometer seeds from il_pos alone and does not read a starting digit, so
+// shortening is the only one of the two that the device and pcfg_expand () would agree on.
+//
+// The word itself stays a candidate exactly once. It is the last entry of the first position's
+// rectangle, which is why that one position keeps its full radix and every other one loses an entry.
+
+static u64 table_single_block (const table_global_t *tg, const table_thread_t *tt, const u32 v)
+{
+  const u64 radix = table_radix (&tg->tb, &tt->sing[v]);
+
+  // The word itself is a candidate exactly once, and it is the last entry of the first place's
+  // rectangle. Every other place skips it, which is that rectangle one shorter.
+
+  if ((v == 0) && (tg->template == false)) return radix;
+
+  const u64 blk = radix - 1;
+
+  return blk;
+}
+
 // The cell. With entries the length of what they replace it is the variable tokens the host did not
 // take, each writing over the bytes its own token had in the base word. Otherwise it is every token
 // from the cut on, a substitution reading the pool and a literal run copying itself back out of the
 // base word, with the write offsets a running sum the odometer keeps.
 
-static void table_cell (const table_t *tb, const table_thread_t *tt, pcfg_cell_t *cell)
+static void table_cell (const table_global_t *tg, const table_thread_t *tt, pcfg_cell_t *cell)
 {
+  const table_t *tb = &tg->tb;
+
   memset (cell, 0, sizeof (pcfg_cell_t));
+
+  if (tg->single == true)
+  {
+    // A word the card cannot take, and a word the table never matched, both hand over a finished
+    // candidate with nothing to expand. var[] is empty in the second case, so this has to come first.
+
+    if ((tt->sing_dev == false) || (tt->sing_cnt == 0))
+    {
+      cell->rect     = 1;
+      cell->slot_cnt = 0;
+
+      return;
+    }
+
+    // The base word is the word as it was read. radix stays the whole bucket because that is the
+    // modulus the odometer decomposes against, while rect is what the rectangle actually reaches,
+    // which is one shorter wherever the unchanged entry at the end of the bucket has to be skipped.
+
+    const table_tok_t *tok = &tt->sing[tt->sing_v];
+
+    const table_bucket_t *b = &tb->bucket[tok->bucket];
+
+    cell->rect = (u32) table_single_block (tg, tt, tt->sing_v);
+
+    // Entries the length of what they replace leave the rest of the word where it already is, so one
+    // slot writing over the token is the whole cell.
+
+    if (tb->varlen == false)
+    {
+      cell->slot_cnt = 1;
+
+      cell->slots[0].pool_off = b->pool_off;
+      cell->slots[0].radix    = b->ent_cnt;
+      cell->slots[0].digit    = 0;
+      cell->slots[0].packed   = (b->ent_len & 0xff) | ((tok->off & 0xff) << 8) | (PCFG_SLOT_KIND_BYTES << 16);
+
+      return;
+    }
+
+    // An entry of another length moves everything behind it, so the bytes after the token are written
+    // again. Only one token changes here, so what follows it is a single run of the word rather than
+    // the token by token walk the cross product needs, and the cell is 2 slots however long the word
+    // is and however many tokens the table matched in it.
+
+    const u32 tail_off = tok->off + tok->len;
+    const u32 tail_len = (tt->word_len > tail_off) ? (tt->word_len - tail_off) : 0;
+
+    cell->flags    = PCFG_CELL_VARLEN;
+    cell->slot_cnt = (tail_len > 0) ? 2 : 1;
+
+    cell->slots[0].pool_off = b->pool_off;
+    cell->slots[0].radix    = b->ent_cnt;
+    cell->slots[0].digit    = 0;
+    cell->slots[0].packed   = ((tok->off & 0xff) << 8) | (PCFG_SLOT_KIND_BYTES << 16);
+
+    if (tail_len > 0)
+    {
+      cell->slots[1].pool_off = tail_off;
+      cell->slots[1].radix    = 1;
+      cell->slots[1].digit    = 0;
+      cell->slots[1].packed   = (tail_len & 0xff) | (PCFG_SLOT_KIND_COPY << 16) | (1 << 24);
+    }
+
+    return;
+  }
 
   cell->rect = (u32) tt->cell_rect;
 
@@ -1647,6 +1928,114 @@ static void table_front_unrank (const table_global_t *tg, table_thread_t *tt, co
   }
 }
 
+// What one word is worth under single=1, and where its units sit.
+//
+// On a fixed length table a unit is a varying position and the card walks that position's entries, so
+// a word comes to as many units as it has positions the table matched. Everywhere else a unit is a
+// candidate, and a word comes to the sum of what its positions are worth.
+
+static void table_single_plan (const table_global_t *tg, table_thread_t *tt, const bool hostonly)
+{
+  bool dev = ((tg->dev == true) && (hostonly == false));
+
+  // The kernel seeds its odometer from a position in the rectangle alone and cannot be told to start
+  // part way along a bucket, so a bucket wider than the inner loop cannot be handed over in pieces.
+  // Such a word is enumerated on the host, which is the same answer the cross product gives a word it
+  // cannot fit on the card.
+
+  if (dev == true)
+  {
+    for (u32 v = 0; v < tt->sing_cnt; v++)
+    {
+      if (table_single_block (tg, tt, v) <= tg->il_cnt) continue;
+
+      dev = false;
+
+      break;
+    }
+  }
+
+  // A slot's write offset and a copy slot's length are a byte each, so a word that reaches past that
+  // cannot be described to the card.
+
+  if (tt->word_len > 0xff) dev = false;
+
+  tt->sing_dev = dev;
+
+  // The device engine leaves the base word exactly as it was read and lets the cell write the one
+  // substitution. The host engine builds the whole candidate itself, so every position is a front
+  // position there and the digits say which one moved.
+
+  // Under single=1 the host never applies a substitution through the token digits, so nfront and
+  // dev_tok say only that nothing is expanded in front of the cell. table_write_base () branches on
+  // single before it reads either of them.
+
+  tt->wmax      = TABLE_WFULL;
+  tt->nfront    = 0;
+  tt->dev_tok   = tt->tok_cnt;
+  tt->cell_rect = 1;
+
+  u64 total = 0;
+
+  for (u32 v = 0; v < tt->sing_cnt; v++)
+  {
+    total = table_sat_add (total, table_single_block (tg, tt, v));
+  }
+
+  // A word the table never reached has no substitution to make, so the word itself is all it is
+  // worth. template=1 asks for the wordlist to be left out and takes that away too.
+
+  if (tt->sing_cnt == 0) total = (tg->template == true) ? 0 : 1;
+
+  tt->front_full  = total;
+  tt->front_units = total;
+
+  if ((dev == true) && (tt->sing_cnt > 0)) tt->front_units = tt->sing_cnt;
+}
+
+// Landing on one unit of a word under single=1.
+
+static void table_single_unrank (const table_global_t *tg, table_thread_t *tt, const u64 pos)
+{
+  tt->at = pos;
+
+  tt->sing_v = 0;
+  tt->sing_d = 0;
+
+  if (tt->sing_cnt == 0) return;
+
+  // On the card a unit is one of the places, and which entry it takes is the card's business.
+
+  if (tt->sing_dev == true)
+  {
+    tt->sing_v = (u32) pos;
+
+    return;
+  }
+
+  u64 rem = pos;
+
+  u32 v = 0;
+
+  while (v < tt->sing_cnt)
+  {
+    const u64 blk = table_single_block (tg, tt, v);
+
+    if (rem < blk) break;
+
+    rem -= blk;
+
+    v++;
+  }
+
+  // Past the end of the word, which a caller that respects rect never asks for.
+
+  if (v >= tt->sing_cnt) return;
+
+  tt->sing_v = v;
+  tt->sing_d = (u32) rem;
+}
+
 // How the word is divided between the two engines.
 //
 // With entries the length of what they replace, the candidate keeps the base word's layout: a literal
@@ -1663,6 +2052,32 @@ static void table_front_unrank (const table_global_t *tg, table_thread_t *tt, co
 
 static void table_span (const table_global_t *tg, const table_thread_t *tt, u32 *lo, u32 *hi)
 {
+  // One substitution leaves the rest of the word alone, so a candidate is the word with one place
+  // swapped and the word itself is one of them.
+
+  if (tg->single == true)
+  {
+    u32 a = tt->word_len;
+    u32 b = tt->word_len;
+
+    for (u32 v = 0; v < tt->sing_cnt; v++)
+    {
+      const table_tok_t *hit = &tt->sing[v];
+
+      const table_bucket_t *bk = &tg->tb.bucket[hit->bucket];
+
+      const u32 rest = tt->word_len - hit->len;
+
+      a = MIN (a, rest + bk->ent_min);
+      b = MAX (b, rest + bk->ent_max);
+    }
+
+    lo[0] = a;
+    hi[0] = b;
+
+    return;
+  }
+
   u32 a = 0;
   u32 b = 0;
 
@@ -1745,7 +2160,14 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
 
   u64 rect = 1;
 
-  if ((wide > maxbyte) || (basewide > maxbyte) || (basemin < tg->pwmin))
+  const bool hostonly = ((wide > maxbyte) || (basewide > maxbyte) || (basemin < tg->pwmin));
+
+  if (tg->single == true)
+  {
+    // table_single_plan () below settles the split, because one substitution divides a word in a way
+    // that has nothing to do with the longest suffix the cross product looks for.
+  }
+  else if (hostonly == true)
   {
     tt->nfront  = tt->var_cnt;
     tt->dev_tok = tt->tok_cnt;
@@ -1821,7 +2243,14 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
 
   tt->cell_rect = rect;
 
-  table_front_plan (tg, tt);
+  if (tg->single == true)
+  {
+    table_single_plan (tg, tt, hostonly);
+  }
+  else
+  {
+    table_front_plan (tg, tt);
+  }
 
   // A unit is a base word where the card expands one and a candidate where it does not, and the split
   // above is the same either way, so the two engines walk the same candidates in the same order.
@@ -1832,7 +2261,10 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
   // goes by counting one fewer. A cell with room loses its last entry and a cell of one loses the
   // whole base word it sat in.
 
-  tt->drop_last = ((tg->template == true) && (tg->tb.identity == true) && (tt->var_cnt > 0));
+  // Under single=1 template=1 is already in what each position is worth, because the unchanged entry
+  // is the last of the first position's rectangle and dropping it is that rectangle one shorter.
+
+  tt->drop_last = ((tg->single == false) && (tg->template == true) && (tg->tb.identity == true) && (tt->var_cnt > 0));
 
   if (tg->dev == true)
   {
@@ -1853,7 +2285,9 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
   // literal run, so the only candidate it could make is the word itself, and somebody reading a
   // wordlist as a set of patterns wants the patterns the table fills in rather than the wordlist back.
 
-  tt->unmatched = ((tg->template == true) && (tt->var_cnt == 0));
+  const u32 places = (tg->single == true) ? tt->sing_cnt : tt->var_cnt;
+
+  tt->unmatched = ((tg->template == true) && (places == 0));
 
   if (tt->unmatched == true) tt->rect = 0;
 
@@ -1877,6 +2311,8 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
 
   for (u32 v = 0; v < tt->var_cnt; v++) tt->digit[v] = 0;
 
+  if (tg->single == true) table_single_unrank (tg, tt, 0);
+
   if ((tt->drop_last == true) && (tt->rect > 0)) table_unrank (tg, tt, 0);
 }
 
@@ -1885,6 +2321,13 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
 
 static void table_step (const table_global_t *tg, table_thread_t *tt)
 {
+  if (tg->single == true)
+  {
+    table_single_unrank (tg, tt, tt->at + 1);
+
+    return;
+  }
+
   if (tg->dev == false)
   {
     bool carry = true;
@@ -1935,6 +2378,13 @@ static void table_step (const table_global_t *tg, table_thread_t *tt)
 
 static void table_unrank (const table_global_t *tg, table_thread_t *tt, const u64 pos)
 {
+  if (tg->single == true)
+  {
+    table_single_unrank (tg, tt, pos);
+
+    return;
+  }
+
   if (tg->dev == true)
   {
     table_front_unrank (tg, tt, pos);
@@ -1977,6 +2427,7 @@ static bool table_take (const table_global_t *tg, table_thread_t *tt, const u8 *
     tt->word_len   = 0;
     tt->tok_cnt    = 0;
     tt->var_cnt    = 0;
+    tt->sing_cnt   = 0;
     tt->nfront     = 0;
     tt->cell_rect  = 1;
     tt->front_units = 0;
@@ -2019,6 +2470,8 @@ static bool table_take (const table_global_t *tg, table_thread_t *tt, const u8 *
 
   tt->tok_cnt = (u32) tok_cnt;
   tt->var_cnt = 0;
+
+  tt->sing_cnt = (tg->single == true) ? table_scan (&tg->tb, tt->word, len, tt->sing, TABLE_SINGMAX) : 0;
 
   for (u32 i = 0; i < tt->tok_cnt; i++)
   {
@@ -2132,7 +2585,7 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   if (tables_cnt < 1)
   {
-    error_set (global_ctx, "usage: table <wordlist|directory> <table ..> [maxperm=%d] [identity=0] [template=1]", TABLE_MAXPERM_DEF);
+    error_set (global_ctx, "usage: table <wordlist|directory> <table ..> [maxperm=%d] [identity=0] [template=1] [single=1] [cap=N]", TABLE_MAXPERM_DEF);
 
     return false;
   }
@@ -2141,12 +2594,17 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   bool identity = true;
   bool template = false;
+  bool single   = false;
+
+  u64 cap = 0;
 
   const feed_param_t params[] =
   {
     { "maxperm",  FEED_PARAM_TYPE_U64,  &maxperm,  0, 0xffffffffffffffffULL, "candidates one word may be worth, 0 for no limit" },
     { "identity", FEED_PARAM_TYPE_BOOL, &identity, 0, 0,                     "whether leaving a token alone is one of its choices, 0 for a table that converts rather than varies" },
     { "template", FEED_PARAM_TYPE_BOOL, &template, 0, 0,                     "whether a word no rule matched is dropped, 1 to read the wordlist as a template" },
+    { "single",   FEED_PARAM_TYPE_BOOL, &single,   0, 0,                     "whether a candidate carries one substitution instead of the cross product of every position" },
+    { "cap",      FEED_PARAM_TYPE_U64,  &cap,      0, 0xffffffffULL,          "how many replacements one source may carry, 0 for no limit" },
     { NULL, 0, NULL, 0, 0, NULL }
   };
 
@@ -2157,17 +2615,31 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
     return false;
   }
 
+  // One substitution needs a token it can leave alone, and identity=0 takes that away: with nothing
+  // to leave alone, every position is converted and there is no single substitution to make.
+
+  if ((single == true) && (identity == false))
+  {
+    error_set (global_ctx, "table: single=1 and identity=0 cannot be combined, because one substitution needs the other positions left alone");
+
+    return false;
+  }
+
   tg->maxperm  = maxperm;
   tg->template = template;
+  tg->single   = single;
 
   if (wordlist_init (global_ctx, &tg->wl, 1, 2) == false) return false;
 
   char err[256];
 
   // The unchanged choice goes last exactly when it is going to be dropped, which is what makes the
-  // word the last candidate of a word rather than the first.
+  // word the last candidate of a word rather than the first. single=1 wants it last for a different
+  // reason: a position that is not the one being substituted has to skip it, and skipping the last
+  // digit is a shorter rectangle where skipping the first would need a starting digit the kernel's
+  // odometer does not read.
 
-  if (table_load (&tg->tb, &global_ctx->workv[2], tables_cnt, identity, (identity == true) && (template == true), err, sizeof (err)) == false)
+  if (table_load (&tg->tb, &global_ctx->workv[2], tables_cnt, identity, (identity == true) && ((template == true) || (single == true)), (u32) cap, err, sizeof (err)) == false)
   {
     error_set (global_ctx, "%s", err);
 
@@ -2307,18 +2779,49 @@ static u64 table_sample (table_global_t *tg, pcfg_cell_t *probe, u32 *step)
 
       if (table_take (tg, tt, &buf[at], (u32) len) == false) continue;
 
-      sum += tt->cell_rect;
+      // What one unit hands the card. Under single=1 that is the word's candidates spread over its
+      // places, because cell_rect belongs to the cross product's shared rectangle and is 1 here.
+
+      const u64 cell = (tg->single == false) ? tt->cell_rect : ((tt->sing_cnt > 0) ? (tt->front_full / tt->sing_cnt) : 1);
+
+      sum += cell;
 
       seen++;
 
       // A probe the autotuner searches with has to be one the feed really emits, and the widest of
       // the sample is the one whose launch is worth sizing for.
 
-      if (tt->cell_rect <= best) continue;
+      if (cell <= best) continue;
 
-      best = tt->cell_rect;
+      best = cell;
 
-      table_cell (&tg->tb, tt, probe);
+      // The widest place of the word is the one worth sizing a launch for, so the probe is taken
+      // there rather than at the word's first place.
+
+      if (tg->single == true)
+      {
+        u64 wide = 0;
+
+        for (u32 v = 0; v < tt->sing_cnt; v++)
+        {
+          const u64 blk = table_single_block (tg, tt, v);
+
+          if (blk <= wide) continue;
+
+          wide = blk;
+
+          tt->sing_v = v;
+        }
+      }
+
+      table_cell (tg, tt, probe);
+
+      if (tg->single == true)
+      {
+        step[0] = (tt->sing_cnt > 0) ? tg->tb.bucket[tt->sing[tt->sing_v].bucket].ent_len : 1;
+
+        continue;
+      }
 
       step[0] = (tt->var_cnt > tt->nfront) ? tg->tb.bucket[tt->tok[tt->var[tt->nfront]].bucket].ent_len : 1;
     }
@@ -2395,6 +2898,25 @@ static void table_report (table_global_t *tg, const u64 lines, const double runt
     feed_say (tg->hcctx, "table: template on, %" PRIu64 " of %" PRIu64 " words matched no rule and were dropped", tg->unmatched, lines);
   }
 
+  if (tg->single == true)
+  {
+    feed_say (tg->hcctx, "table: single on, one substitution per candidate rather than a choice at every position, so maxperm has nothing to cut and is ignored");
+  }
+
+  if (tg->tb.cap > 0)
+  {
+    u32 at_cap = 0;
+
+    const u32 head = ((tg->tb.identity == true) && (tg->tb.identity_last == false)) ? 1 : 0;
+
+    for (u32 i = 0; i < tg->tb.bucket_cnt; i++)
+    {
+      if (tg->tb.bucket[i].ent_cnt >= (tg->tb.cap + head)) at_cap++;
+    }
+
+    feed_say (tg->hcctx, "table: cap %u, %u of %u sources reached it and %" PRIu64 " lines were left out", tg->tb.cap, at_cap, tg->tb.bucket_cnt, tg->tb.cap_dropped);
+  }
+
   if (runtime > 1000) feed_say (tg->hcctx, "table: %" PRIu64 " words measured in %.1fs", lines, runtime / 1000);
 
   const u64 mean = (tg->idx.units > 0) ? (tg->idx.total / tg->idx.units) : 1;
@@ -2413,7 +2935,10 @@ static void table_report (table_global_t *tg, const u64 lines, const double runt
     feed_say (tg->hcctx, "table: %" PRIu64 " words left out, no candidate of theirs is between the %u and %u bytes this hash mode accepts", tg->outside, tg->pwmin, tg->pwmax);
   }
 
-  if (tg->maxperm == 0)
+  // Under single=1 a word is worth what its positions add up to and the budget never binds, so the
+  // line reports the width alone rather than a limit that did nothing.
+
+  if ((tg->maxperm == 0) || (tg->single == true))
   {
     feed_say (tg->hcctx, "table: no limit per word, the widest is %" PRIu64 " candidates", tg->widest);
 
@@ -2445,7 +2970,7 @@ static void table_report (table_global_t *tg, const u64 lines, const double runt
 // about a hundred kilobytes. Packing it would buy little and cost the reader something to get wrong.
 
 #define TABLE_CACHE_MAGIC   0x584449454c424154ULL
-#define TABLE_CACHE_VERSION 7
+#define TABLE_CACHE_VERSION 8
 
 typedef struct table_cache_head
 {
@@ -2480,6 +3005,11 @@ typedef struct table_cache_head
   // something under another.
 
   u64 maxperm;
+
+  // single=1 walks different candidates in a different order, so a database built without it
+  // describes a run this one is not.
+
+  u32 single;
   u32 pwmin;
   u32 pwmax;
 
@@ -2522,6 +3052,7 @@ static void table_cache_head_fill (const table_global_t *tg, table_cache_head_t 
   h->lines      = tg->wl.line_count;
   h->tb_ident   = tg->tb.ident;
   h->maxperm    = tg->maxperm;
+  h->single     = (tg->single == true) ? 1 : 0;
   h->pwmin      = tg->pwmin;
   h->pwmax      = tg->pwmax;
   h->wmax       = TABLE_WMAX;
@@ -2568,7 +3099,7 @@ static char *table_cache_path (const generic_global_ctx_t *global_ctx, const tab
 
   char *path = NULL;
 
-  hc_asprintf (&path, "%s/%016" PRIx64 "-%016" PRIx64 "-%" PRIu64 "-%u-%u-%u.tabledb", dir, tg->wl.ident, tg->tb.ident, tg->maxperm, tg->pwmin, tg->pwmax, (tg->dev == true) ? 1 : 0);
+  hc_asprintf (&path, "%s/%016" PRIx64 "-%016" PRIx64 "-%" PRIu64 "-%u-%u-%u-%u.tabledb", dir, tg->wl.ident, tg->tb.ident, tg->maxperm, tg->pwmin, tg->pwmax, (tg->dev == true) ? 1 : 0, (tg->single == true) ? 1 : 0);
 
   hcfree (dir);
 
@@ -2606,6 +3137,7 @@ static bool table_cache_load (const generic_global_ctx_t *global_ctx, table_glob
   if (have.lines      != want.lines)     { hc_fclose (&fp); return false; }
   if (have.tb_ident   != want.tb_ident)   { hc_fclose (&fp); return false; }
   if (have.maxperm    != want.maxperm)    { hc_fclose (&fp); return false; }
+  if (have.single     != want.single)     { hc_fclose (&fp); return false; }
   if (have.pwmin      != want.pwmin)      { hc_fclose (&fp); return false; }
   if (have.pwmax      != want.pwmax)      { hc_fclose (&fp); return false; }
   if (have.wmax       != want.wmax)       { hc_fclose (&fp); return false; }
@@ -2803,6 +3335,12 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
 
     u64 full = (tg->dev == true) ? table_sat_mul (tt->rect, tt->cell_rect) : tt->rect;
 
+    // Under single=1 every unit carries a rectangle of its own rather than one the whole word shares,
+    // so what the word is worth is the sum the plan already worked out and not a product. A word the
+    // length window or template=1 threw out is worth nothing whatever that sum says.
+
+    if (tg->single == true) full = (tt->rect > 0) ? tt->front_full : 0;
+
     // On the card the base word count still holds every base word, and it is the last one's rectangle
     // that is a candidate shorter. Where the rectangle is one, the base word went instead and rect is
     // already right.
@@ -2926,7 +3464,7 @@ int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED gen
     if (rc < 0) return rc;
   }
 
-  const u32 len = table_write (&tg->tb, tt, out_buf, (u32) out_size);
+  const u32 len = table_write (tg, tt, out_buf, (u32) out_size);
 
   table_step (tg, tt);
 
@@ -2978,8 +3516,6 @@ int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_ce
 
   // The same decomposition the kernel and pcfg_expand () make, so the digits name the same entries.
 
-  const bool varlen = ((cell->flags & PCFG_CELL_VARLEN) != 0);
-
   u32 digit[PCFG_DEV_MAXSLOT];
 
   u64 carry = il_pos;
@@ -2990,13 +3526,9 @@ int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_ce
 
     if (radix == 0) return -1;
 
-    const u64 start = (varlen == true) ? 0 : (u64) cell->slots[j].digit;
+    digit[j] = (u32) (carry % radix);
 
-    const u64 t = start + carry;
-
-    digit[j] = (u32) (t % radix);
-
-    carry = t / radix;
+    carry = carry / radix;
   }
 
   if (carry != 0) return -1;
@@ -3083,9 +3615,9 @@ int thread_next_dev (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
     if (rc < 0) return rc;
   }
 
-  const u32 len = table_write_base (&tg->tb, tt, out_buf, (u32) out_size);
+  const u32 len = table_write_base (tg, tt, out_buf, (u32) out_size);
 
-  table_cell (&tg->tb, tt, cell);
+  table_cell (tg, tt, cell);
 
   table_step (tg, tt);
 

@@ -213,6 +213,21 @@ using namespace metal;
 
 #define HC_NOINLINE_ALWAYS __attribute__ ((noinline))
 
+/**
+ * HC_INLINE_ALWAYS is the other direction, and it is here for one reason: a called function that the
+ * back end has to relax a branch inside. The AMD back end expands a long branch into
+ * s_getpc_b64 s[30:31] / s_add / s_setpc_b64 s[30:31], which overwrites the pair holding the
+ * function's own return address, and nothing restores it, so the function returns into itself and
+ * the card spins forever. A kernel ends in s_endpgm and has no return address to lose, so folding
+ * such a function into its kernel makes the same relaxation harmless.
+ *
+ * The other way out is to keep every called function small enough that no branch needs relaxing,
+ * which is what HC_NOINLINE_ALWAYS does for the TrueCrypt and VeraCrypt header helpers. Use whichever
+ * the body allows, and use neither without a disassembly that shows the clobber.
+ */
+
+#define HC_INLINE_ALWAYS __attribute__ ((always_inline))
+
 // On a device DECLSPEC says how a function is compiled. On the host it says something else, because
 // the host build of these files is compiled into the core and a plugin calls the result: every one
 // of these functions is a host side hash, cipher or helper entry point, so DECLSPEC is where they

@@ -269,6 +269,10 @@ DECLSPEC bool pcfg_odo_seed (LOCAL_AS const pcfg_cell_t *cell, const u32 il_pos,
 {
   const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
 
+  // il_pos is the whole of it. A slot carries no starting digit, and pcfg_expand () on the host makes
+  // the same decomposition so that a cracked hash is written out with the candidate that produced it.
+  // See pcfg_slot_t.
+
   u32 carry = il_pos;
 
   for (int j = (int) slot_cnt - 1; j >= 0; j--)

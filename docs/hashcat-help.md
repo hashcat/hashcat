@@ -73,6 +73,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450
      --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500
  -b, --benchmark                |      | Run benchmark of selected hash-modes                 |
+ -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |
      --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |
      --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100
      --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000

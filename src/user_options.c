@@ -29,9 +29,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:z";
+static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbBw:OMSY:R:z";
 #else
-static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:";
+static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbBw:OMSY:R:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -56,6 +56,7 @@ static const struct option long_options[] =
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
   {"benchmark-max",             required_argument, NULL, IDX_BENCHMARK_MAX},
   {"benchmark-min",             required_argument, NULL, IDX_BENCHMARK_MIN},
+  {"benchmark-pure",            no_argument,       NULL, IDX_BENCHMARK_PURE},
   {"benchmark",                 no_argument,       NULL, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, NULL, IDX_BITMAP_MAX},
   {"bitmap-min",                required_argument, NULL, IDX_BITMAP_MIN},
@@ -220,6 +221,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->benchmark_all             = BENCHMARK_ALL;
   user_options->benchmark_max             = BENCHMARK_MAX;
   user_options->benchmark_min             = BENCHMARK_MIN;
+  user_options->benchmark_pure            = BENCHMARK_PURE;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
   user_options->bitmap_min                = BITMAP_MIN;
@@ -512,6 +514,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BENCHMARK_ALL:             user_options->benchmark_all             = true;                            break;
       case IDX_BENCHMARK_MAX:             user_options->benchmark_max             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BENCHMARK_MIN:             user_options->benchmark_min             = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_BENCHMARK_PURE:            user_options->benchmark                 = true;
+                                          user_options->benchmark_pure            = true;                            break;
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
@@ -1800,6 +1804,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       user_options->benchmark_all = true;
     }
 
+    if (user_options->benchmark_pure == true)
+    {
+      if (user_options->optimized_kernel == true)
+      {
+        event_log_error (hashcat_ctx, "Can't combine --benchmark-pure (-B) with --optimized-kernel-enable (-O).");
+
+        return -1;
+      }
+    }
+
     if (user_options->attack_mode_chgd == true)
     {
       event_log_error (hashcat_ctx, "Can't change --attack-mode (-a) in benchmark mode.");
@@ -2915,7 +2929,13 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->brain_client        = false;
     #endif
 
-    user_options->optimized_kernel    = true;
+    // -b reports the fastest number a mode can produce, which is the optimized kernel wherever one
+    // exists. -B is the same benchmark against the kernel a real attack gets by default.
+
+    if (user_options->benchmark_pure == false)
+    {
+      user_options->optimized_kernel  = true;
+    }
   }
 
   if (user_options->hash_info > 0)
@@ -3171,6 +3191,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --benchmark-all");
     }
 
+    if (user_options->benchmark_pure == true)
+    {
+      event_log_info (hashcat_ctx, "* --benchmark-pure");
+    }
+
     if (user_options->hash_mode_chgd == false)
     {
       if (user_options->benchmark_max != BENCHMARK_MAX)
@@ -3246,6 +3271,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->benchmark_all == true)
     {
       event_log_info (hashcat_ctx, "# option: --benchmark-all");
+    }
+
+    if (user_options->benchmark_pure == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --benchmark-pure");
     }
 
     if (user_options->benchmark_max != BENCHMARK_MAX)
@@ -4826,6 +4856,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->benchmark_max);
   logfile_top_uint   (user_options->benchmark_min);
+  logfile_top_uint   (user_options->benchmark_pure);
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);

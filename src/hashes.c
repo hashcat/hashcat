@@ -23,6 +23,7 @@
 #include "shared.h"
 #include "path.h"
 #include "parser.h"
+#include "status.h"
 #include "memchr.h"
 #include "system.h"
 #include "thread.h"
@@ -2065,7 +2066,19 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       // of. build_crackpos takes the same number and multiplies it by the amplifier; debug mode 5
       // wants it before that.
 
-      const u64 word_pos = (user_options->slow_candidates == true) ? plain->gidvid : device_param->words_off_launch + plain->gidvid;
+      u64 word_pos = device_param->words_off_launch + plain->gidvid;
+
+      // --slow-candidates expands the amplifier on the host, so a position in that keyspace counts
+      // candidates where the feed's segment table counts lines. Dividing brings the two back into the
+      // same unit, and without it a candidate index past the first wordlist's line count names the
+      // second wordlist for words that came out of the first.
+
+      if (user_options->slow_candidates == true)
+      {
+        const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+        if (amplifier > 1) word_pos = word_pos / amplifier;
+      }
 
       debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len, word_pos);
     }

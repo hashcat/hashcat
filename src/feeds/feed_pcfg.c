@@ -10505,13 +10505,9 @@ int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_ce
 
     if (radix == 0) return -1;
 
-    const u64 start = ((PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_CASE) || (varlen == true)) ? 0 : (u64) cell->slots[j].digit;
+    digit[j] = (u32) (carry % radix);
 
-    const u64 t = start + carry;
-
-    digit[j] = (u32) (t % radix);
-
-    carry = t / radix;
+    carry = carry / radix;
   }
 
   if (carry != 0) return -1;

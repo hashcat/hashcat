@@ -822,20 +822,13 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
 
     if (radix == 0) return false;
 
-    // A capitalisation slot's digit field carries the upper case image base rather than a starting
-    // digit, so it contributes nothing to the decomposition. An ordinary slot's is always zero today
-    // and is reserved for a rectangle wider than the inner loop.
+    // The position in the rectangle is the whole of it. A slot's digit field is not a starting digit
+    // and is never added here, because pcfg_odo_seed () in the kernel decomposes il_pos alone and this
+    // has to name the candidate the card actually hashed. See pcfg_slot_t for what the field does mean.
 
-    // A capitalisation slot's digit field carries something other than a starting digit either way: the
-    // upper case image's base without per entry offsets and the distance to it with them.
+    digit[j] = (u32) (carry % radix);
 
-    const u64 start = ((PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_CASE) || (varlen == true)) ? 0 : (u64) cell->slots[j].digit;
-
-    const u64 t = start + carry;
-
-    digit[j] = (u32) (t % radix);
-
-    carry = t / radix;
+    carry = carry / radix;
   }
 
   if (carry != 0) return -1;

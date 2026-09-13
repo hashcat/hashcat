@@ -817,6 +817,7 @@ typedef enum user_options_defaults
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
+  BENCHMARK_PURE           = false,
   BENCHMARK                = false,
   BITMAP_MAX               = 24,
   BITMAP_MIN               = 10,
@@ -940,6 +941,7 @@ typedef enum user_options_map
   IDX_BENCHMARK_ALL             = 0xff06,
   IDX_BENCHMARK_MAX             = 0xff56,
   IDX_BENCHMARK_MIN             = 0xff57,
+  IDX_BENCHMARK_PURE            = 'B',
   IDX_BENCHMARK                 = 'b',
   IDX_BITMAP_MAX                = 0xff07,
   IDX_BITMAP_MIN                = 0xff08,
@@ -2870,6 +2872,7 @@ typedef struct user_options
   bool         advice;
   bool         benchmark;
   bool         benchmark_all;
+  bool         benchmark_pure;
   #ifdef WITH_BRAIN
   bool         brain_client;
   bool         brain_feed;

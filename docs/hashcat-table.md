@@ -226,6 +226,8 @@ Settings are `key=value` arguments and go after the tables.
 | `maxperm` | 1048576 | how much of one word's cross product the host enumerates, 0 for no limit |
 | `template` | 0 | `1` never hands back a word of the wordlist unchanged, which reads it as a set of patterns |
 | `identity` | 1 | whether leaving a token alone is one of its choices, `identity=0` for a table that converts |
+| `single` | 0 | `1` makes a candidate carry one substitution instead of the cross product of every position |
+| `cap` | 0 | how many replacements one source may carry, 0 for no limit |
 
 ### maxperm
 
@@ -240,6 +242,62 @@ So we spend the budget on **how many** substitutions a candidate makes rather th
 What the budget buys is the part the host walks, not the whole word. The graphics card expands a cell of up to 8 token positions and that cell is never cut down, because cutting it down is giving up the amplification the attack exists for. So the budget is divided by the size of the cell and spent on the rest, and a word is worth at least one whole cell however small `maxperm` is set. With the shipped tables a cell reaches a few hundred thousand candidates, so `maxperm=1` and `maxperm=100000` ask for much the same thing. The setting bites on the long words it was written for, where the part in front of the cell is what runs away.
 
 Changing `maxperm` changes the order of candidates, so it is part of the identity of the attack. A restore point taken before the change is not valid after it.
+
+### single
+
+`single=1` makes each candidate carry exactly one substitution. The word itself is still tried, once, and then every replacement of every source the table matches anywhere in it. There is no cross product, so `maxperm` has nothing to cut and is ignored.
+
+This is a different attack rather than a cheaper one. The cross product asks what a word looks like when several letters are swapped at once. `single=1` asks what it looks like when one is, which is what a person who typed `p@ssword` actually did.
+
+It also changes what a table means. The cross product has to divide a word into non-overlapping tokens, because two choices cannot both claim the same bytes, and it takes the longest source that matches at each point. A shorter source underneath a longer one therefore never gets a turn: with both `s` and `ss` in the table, `ss` claims both letters of `password` and `pa$sword` is unreachable. One substitution has no such conflict, so every source is offered wherever it matches and nothing is covered:
+
+```
+$ cat s.table
+s	$
+ss	5
+$ hashcat -a 5 --stdout words.txt s.table
+password
+pa5word
+$ hashcat -a 5 --stdout words.txt s.table single=1
+pa5word
+password
+pa$sword
+pas$word
+```
+
+Against 200000 rockyou words and 60000 other rockyou passwords as targets, using a harvested table of 8285769 lines over 234785 sources, `single=1` recovered 91.72 percent on 6975690596 candidates where the full cross product recovered 87.44 percent on 15016588492. More cracks for less than half the candidates.
+
+It is not free. A cell reaches one position rather than eight, so the card amplifies about 1852 times where the cross product amplifies about 73989 times, and the host has to feed 3765707 base words instead of 205410. On MD5 that run takes 44 seconds against the cross product's 13, so on a fast hash `single=1` is more work per second even though it is less work per crack. On a slow hash, where the candidate count is what costs, it wins outright.
+
+`identity=0` cannot be combined with `single=1`, because one substitution needs the other positions left alone and `identity=0` is the instruction to convert them all. `template=1` works, and takes away the one candidate that changes nothing.
+
+### cap
+
+Nothing in a table file bounds how many replacements one source may carry. A table written by hand carries a handful. A table harvested from cracked passwords can carry thousands: the one measured above averages 35 replacements across its 234785 sources and its widest source carries 13510.
+
+That is what makes such a table expensive, rather than the number of sources in it, and it is the part `single=1` does not reach. One substitution removes the combinations between positions and leaves the replacement lists exactly as they were.
+
+`cap=N` keeps the first N replacements of each source and drops the rest, in both attacks. The first N are the ones the table files give first, because a table line carries no count to rank them by. If your table came out of a harvest, write it in the order you want kept.
+
+```
+table: cap 8, 79149 of 234785 sources reached it and 7335944 lines were left out
+```
+
+What a cap buys depends entirely on what the hash costs. On the run above, with `single=1`:
+
+| | candidates | recovered | on MD5 |
+|---|---|---|---|
+| no cap | 6975690596 | 91.72% | 44 s |
+| `cap=32` | 97885487 | 61.70% | 37 s |
+| `cap=16` | 51405879 | 49.41% | 34 s |
+| `cap=8` | 26960600 | 36.19% | 33 s |
+| `cap=4` | 14077682 | 24.62% | 32 s |
+
+`cap=32` throws away 98.6 percent of the candidates and keeps two thirds of the cracks. That is a poor trade on MD5, where the 7 seconds it saves come out of a 44 second run whose time goes on reading an 8285769 line table and feeding 3.7 million base words rather than on hashing. The cap barely touches either: it shortens the replacement list at each place without changing how many places a word has, so the base word count falls only from 3765707 to 3664044.
+
+On a slow hash the arithmetic inverts, because there the candidate count is the cost. The same `cap=32` is 71 times less work for two thirds of the cracks. Set the cap by what a candidate costs you, not by the size of the table.
+
+The cap changes the table, so it changes the attack's identity and its keyspace index the same way editing the table file would.
 
 ## 6. The lines it prints
 

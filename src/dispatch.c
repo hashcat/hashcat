@@ -387,6 +387,14 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       const u64 words_fin = words_off + work;
 
+      // Where this batch starts in the keyspace. fill_generic () sets the same field and this did not,
+      // so under --slow-candidates words_off_launch stayed 0 for every launch and everything that
+      // turns a work item back into a position had only the index inside the launch. The chunk that
+      // contributes the first candidate sets it, because a batch built from several chunks still
+      // begins where its first candidate did.
+
+      if (batch->pws_cnt == 0) batch->words_off = words_off;
+
       batch->words_fin = words_fin;
 
       if (sc->seek == true) slow_candidates_seek (hashcat_ctx, sc->extra_info, sc->words_cur, words_off);

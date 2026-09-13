@@ -305,6 +305,8 @@ For a tree full of modules, this does it:
 - Attack-Mode 5: New setting template=1, which never hands a word of the wordlist back unchanged. A word no rule matched can only come out as itself and is dropped, and a word that did match loses the one candidate that changes nothing, so what runs is what the table made. That reads a wordlist as a set of patterns rather than as a list of passwords, and a wordlist attack is what -a 0 is for
 - Attack-Mode 5: The one pass over the wordlist that measures the attack is kept in cache/feeds/table, so only the first run over a wordlist and table set pays for it
 - Attack-Mode 5: -a 5 hashes.txt words.txt table.table is the same attack as -a 8 hashes.txt table words.txt table.table
+- Attack-Mode 5: New setting single=1, which makes a candidate carry one substitution instead of the cross product of every position. The word itself is tried once and then every replacement of every source that matches anywhere in it. Sources are no longer matched longest first there, because one substitution cannot collide with a second, so a table holding both s and ss reaches pa$sword where the cross product cannot. Against 200000 rockyou words and 60000 other rockyou passwords, with a harvested table of 8285769 lines, that recovered 91.72 percent on 6975690596 candidates where the cross product recovered 87.44 percent on 15016588492. A cell reaches one position rather than eight, so the card amplifies about 1852 times instead of 73989 and a fast hash spends more wall clock for the fewer candidates
+- Attack-Mode 5: New setting cap=N, which keeps the first N replacements of each source. Nothing in a table file bounds that number, and a table harvested from cracked passwords can carry thousands for one source where a hand written one carries a handful. On the table above the mean is 35 and the widest source carries 13510, which is what makes such a table expensive rather than the number of sources in it
 
 ##
 ## New Features
@@ -327,6 +329,7 @@ For a tree full of modules, this does it:
 - Windows: The binary now carries an application manifest and a version block. The manifest declares the process code page as UTF-8, which is what makes a path or an argument holding any character mean the same thing it means on every other platform, and it also opts into long paths
 - Added option --task-time-breakdown, which reports where a run's wall clock went, split into session initialization, attack preparation, the attack itself and cleanup, with each section naming what it could not account for
 - Added option --pipeline-stats, which reports where each launch's time goes, split into feeding, copying, init, transfer, the loop itself and comp, per device and with an effective hash rate. Adding --machine-readable prints the same thing as JSON. It replaces the HASHCAT_PIPE environment variable, which still works
+- Added option --benchmark-pure (-B), which is -b against the kernel an ordinary attack gets rather than the optimized one. -b forces the optimized kernel, so a mode that has both kernels had no benchmark at all for its pure one. Every benchmark row now names the kernel it measured
 - Added a dynamic hash plugin for -m 74000, selected by pointing --bridge-parameter1 at bridges/subs/dynamic_hash, which builds the hash from a description such as md5(sha1($pass).$salt) given in --bridge-parameter2. A combination of the built-in primitives no longer needs a Rust plugin written and compiled for it
 - Added tools/gpg-ocb-aes2hashcat.py, which writes -m 17050 hash lines from a GnuPG key file in private-keys-v1.d
 - Added --brain-feed, which reads candidates from stdin and stores them in a running brain server, so the session database picked with --brain-session can be extended without stopping the server
@@ -590,6 +593,7 @@ For a tree full of modules, this does it:
 - Fixed --speed-only measuring with the bitmap flattened to a single entry, which misreported the speed for a list holding many hashes
 - Fixed the PKZIP modes 17220 and 17225 overrunning the 4 GiB private aperture on AMD GPUs under HIP, which refused the launch on larger cards and cost 58 percent of throughput on smaller ones
 - Fixed the VeraCrypt modes 13723, 13733, 13751, 13753, 13761 and 13763 failing their self test, and hanging on the password they had just found under --self-test-disable. The 15 XTS header helpers are now kept out of line, and TrueCrypt, DiskCryptor and LUKS were never affected
+- Fixed mode 31100 hanging at vector width 16 on AMD GPUs, where the SM3 message schedule makes one function large enough that the compiler relaxes a branch through the register pair holding the return address, so the function returns into itself. The card then sits at 100 percent with no progress and --runtime cannot end the run. The body is inlined into its kernels now, which have no return address to lose. Only the optimized -a 3 kernel and only that vector width were affected
 - Windows: Fixed a thread handle being leaked on every join, which for a hash mode with a host side hook is one handle per hook thread per kernel launch and grew by about 40 handles a second on -m 11600
 - Fixed hashcat carrying on after a thread it needed failed to start, where the join that followed ran against a handle that was never set. A worker that will not start now does its own chunk on the calling thread, and a cracking, monitor or outfile-check thread that will not start is reported
 - Fixed diagnostics being written to standard output under --stdout, where they landed in the middle of the candidate stream and were read back as candidates
@@ -665,6 +669,7 @@ For a tree full of modules, this does it:
 - Fixed a buffer overflow in the mask file parser, where a mask or custom charset longer than 1023 characters wrote past the buffer it is copied into and then over the length used to index it
 - Fixed an out-of-bounds read in the 4 rule rejection operators that test the first or last character, where an empty candidate has neither
 - Fixed module 25400 adding one stray byte after a PDF user password of the full 32 characters, which reached the hash line and the potfile
+- Unit tests: Fixed tools/test_edge.sh failing every combination for a hash mode whose hash contains a single quote. tools/test.pl wrapped each field in shell quotes and escaped nothing, and the script removed the wrapper by evaluating it, so such a field came back empty and the hash file was written blank. The word, the salt and the hash go out hex encoded now and the script decodes them where it reads them
 
 ##
 ## Other changes

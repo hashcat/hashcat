@@ -79,11 +79,11 @@ static void thread_error_set (generic_thread_ctx_t *thread_ctx, const char *fmt,
 // taking the line ending off is hc_line_next () in memchr.h, which is the same code the stdin feed and
 // the line counter use.
 
-static size_t process_word (const u8 *buf, const size_t max_len, u8 *out_buf, const size_t out_size, size_t *out_len)
+static size_t process_word (const hc_memchr_t hc_memchr, const u8 *buf, const size_t max_len, u8 *out_buf, const size_t out_size, size_t *out_len)
 {
   size_t word_len = 0;
 
-  const size_t step = hc_line_next (buf, max_len, &word_len);
+  const size_t step = hc_line_next_with (hc_memchr, buf, max_len, &word_len);
 
   // hashcat hands out a pointer straight into the buffer it uploads, so there is no room past
   // out_size. Write no more than that, and still report the real length: hashcat rejects an
@@ -802,6 +802,8 @@ static feed_thread_t *wordlist_thread_init (generic_thread_ctx_t *thread_ctx)
   feed_thread->fd_off      = 0;
   feed_thread->fd_line     = 0;
 
+  feed_thread->memchr      = hc_memchr_get ();
+
   return feed_thread;
 }
 
@@ -866,7 +868,7 @@ static int wordlist_next (generic_global_ctx_t *global_ctx, feed_global_t *feed_
 
   size_t word_len = 0;
 
-  const size_t step = process_word (fd_mem + fd_off, remaining, out_buf, out_size, &word_len);
+  const size_t step = process_word (feed_thread->memchr, fd_mem + fd_off, remaining, out_buf, out_size, &word_len);
 
   if (step < remaining)
   {

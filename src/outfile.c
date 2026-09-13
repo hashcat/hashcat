@@ -390,7 +390,10 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   if (user_options->slow_candidates == true)
   {
-    crackpos = gidvid;
+    // The host already applied the amplifier, so the work item is a candidate and nothing multiplies
+    // it. It still needs the launch's own offset, which is what every other branch here adds.
+
+    crackpos += gidvid;
   }
   else
   {
