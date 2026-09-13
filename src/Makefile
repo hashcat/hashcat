@@ -455,6 +455,28 @@ ifeq ($(HAVE_MCPU_NATIVE),1)
 MCPU_NATIVE             := -mcpu=native -mtune=native
 endif
 
+# MCPU names the core to build for, for a build that has to run on a machine other than this one.
+# It replaces the native flags rather than joining them, which is the whole point: -march=native is
+# this machine's architecture, and a binary built for a newer architecture and merely tuned for an
+# older core faults on the older one. On its own -mcpu carries the right architecture with it, so
+# naming the core is all it takes: cortex-a53 and cortex-a72 bring armv8-a, cortex-a76 armv8.2-a.
+
+# The probe wants a clean run and not only a zero exit, because -mcpu is not an x86 flag and gcc
+# there takes it as a deprecated spelling of -mtune, says so on stderr, and exits 0 anyway. Taking
+# that would swap -march=native for a tuning flag and lose the architecture, which is the fault this
+# variable exists to avoid. clang on x86 refuses the flag outright and needs no help.
+
+ifneq ($(MCPU),)
+MCPU_PROBE              := $(shell echo | $(CC_NATIVE) -mcpu=$(MCPU) -E - 2>&1 >/dev/null)
+HAVE_MCPU               := $(if $(MCPU_PROBE),0,1)
+
+ifeq ($(HAVE_MCPU),0)
+$(error MCPU=$(MCPU) is not a core $(CC_NATIVE) builds for with -mcpu)
+endif
+
+CFLAGS_HOST_ONLY        += -mcpu=$(MCPU)
+else
+
 ifeq ($(UNAME),Darwin)
 # a universal binary is built for two architectures at once, so it cannot be built for this one
 ifeq ($(MACOS_UNIVERSAL_BINARY),0)
@@ -468,12 +490,70 @@ CFLAGS_HOST_ONLY        += $(MARCH_NATIVE)
 endif
 endif
 
+endif
+
 ifeq ($(UNAME),Linux)
-IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo && echo 1 || echo 0)
+
+IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo 2>/dev/null && echo 1 || echo 0)
 
 ifeq ($(IS_RPI),1)
-CFLAGS_HOST_ONLY        += -mcpu=cortex-a72
+
+# What -march=native leaves out on a Raspberry Pi. It resolves the architecture, and on a Pi 4 that is
+# armv8-a, but it leaves the scheduling model at "generic", and -mtune=native does not name the core
+# either. -mcpu does, and this is where the old -mcpu=cortex-a72 came from.
+#
+# Which core, though, is read from the "CPU part" line of /proc/cpuinfo rather than assumed. The board
+# name says Raspberry Pi for machines whose cores are three generations apart, a Cortex-A53 on a Pi 3,
+# an A72 on a Pi 4 and an A76 on a Pi 5, so a single hardcoded name tunes two of the three for the
+# wrong machine.
+#
+# The test stays inside the Raspberry Pi branch on purpose. Every other aarch64 machine keeps the
+# flags it has today, because naming a core for hardware nobody asked about would be a change to
+# machines this is not about.
+#
+# -mcpu=native would answer the same question in one flag and is not used, because on a Pi 4 with
+# clang 19 it answers it wrongly: it adds +aes and +sha2, which the BCM2711 does not have, and a
+# binary that uses them dies with SIGILL on the machine that compiled it. /proc/cpuinfo there lists
+# "fp asimd evtstrm crc32 cpuid" and no crypto.
+#
+# Only when every core reports the same part, because a name taken from one half of a big.LITTLE pair
+# tunes for a core that half the threads never run on. And only when the compiler accepts the name,
+# which also drops the 32 bit cores of the older boards, since a 64 bit build cannot target them.
+
+CPU_PARTS               := $(shell awk '/^CPU part/ { print $$4 }' /proc/cpuinfo 2>/dev/null | sort -u)
+
+MCPU_PART_0xd03         := cortex-a53
+MCPU_PART_0xd07         := cortex-a57
+MCPU_PART_0xd08         := cortex-a72
+MCPU_PART_0xd0b         := cortex-a76
+
+ifeq ($(MCPU),)
+ifeq ($(words $(CPU_PARTS)),1)
+MCPU_TUNE               := $(MCPU_PART_$(CPU_PARTS))
+
+# The list covers every 64 bit Raspberry Pi there is, so a part it does not know is a board newer than
+# this file. The build still works, because -march=native already got the architecture right and only
+# the scheduling model is missing, so this says so rather than stopping.
+
+ifeq ($(MCPU_TUNE),)
+$(warning Raspberry Pi with CPU part $(CPU_PARTS), which this Makefile has no -mcpu name for)
+$(warning building without it, which costs scheduling only; add MCPU_PART_$(CPU_PARTS) or pass MCPU=)
 endif
+
+endif
+endif
+
+ifneq ($(MCPU_TUNE),)
+MCPU_TUNE_PROBE         := $(shell echo | $(CC_NATIVE) -mcpu=$(MCPU_TUNE) -E - 2>&1 >/dev/null)
+HAVE_MCPU_TUNE          := $(if $(MCPU_TUNE_PROBE),0,1)
+
+ifeq ($(HAVE_MCPU_TUNE),1)
+CFLAGS_HOST_ONLY        += -mcpu=$(MCPU_TUNE)
+endif
+endif
+
+endif
+
 endif
 endif
 
@@ -1042,6 +1122,12 @@ ifeq ($(MAINTAINER_MODE),0)
 SIMD_LINUX              := -mavx2
 SIMD_WIN                := -mavx2
 
+ifneq ($(MCPU),)
+# the same core the frontend is built for, or the three bridges below would be the one part of the
+# artifact still built for the machine that compiled it
+SIMD_NATIVE             := -mcpu=$(MCPU)
+else
+
 ifeq ($(UNAME),Darwin)
 ifeq ($(IS_APPLE_SILICON),0)
 SIMD_NATIVE             := -mavx2
@@ -1052,6 +1138,8 @@ SIMD_NATIVE             := $(MCPU_NATIVE)
 else
 SIMD_NATIVE             := $(MARCH_NATIVE)
 endif
+endif
+
 endif
 endif
 

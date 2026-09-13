@@ -35,15 +35,19 @@ RUSTFLAGS_DLL   += -C lto -C embed-bitcode=y
 endif
 
 # target-cpu=native describes the machine running the build, so it goes to whichever of the two file
-# names belongs to that machine and not to the one built for a release
+# names belongs to that machine and not to the one built for a release. MCPU names a different
+# machine, and then the crates have to be told the same thing the C side was told, or they are the
+# one part of the artifact still built for the machine that compiled it.
 
 ifeq ($(MAINTAINER_MODE),0)
+RUST_TARGET_CPU := $(if $(MCPU),$(MCPU),native)
+
 ifeq ($(PLUGIN_PLATFORM_so),NATIVE)
-RUSTFLAGS_SO    += -C target-cpu=native
+RUSTFLAGS_SO    += -C target-cpu=$(RUST_TARGET_CPU)
 endif
 
 ifeq ($(PLUGIN_PLATFORM_dll),NATIVE)
-RUSTFLAGS_DLL   += -C target-cpu=native
+RUSTFLAGS_DLL   += -C target-cpu=$(RUST_TARGET_CPU)
 endif
 endif
 
