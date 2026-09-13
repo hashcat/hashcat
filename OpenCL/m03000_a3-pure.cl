@@ -250,6 +250,90 @@ DECLSPEC void s6 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const 
   *out4 ^= x4;
 }
 
+DECLSPEC void s1_early (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, PRIVATE_AS u32 *out1)
+{
+  LUT(xAA55AA5500550055, a1, a4, a6, 0xC1)
+  LUT(xA55AA55AF0F5F0F5, a3, a6, xAA55AA5500550055, 0x9E)
+  LUT(x5F5F5F5FA5A5A5A5, a1, a3, a6, 0xD6)
+  LUT(xF5A0F5A0A55AA55A, a4, xAA55AA5500550055, x5F5F5F5FA5A5A5A5, 0x56)
+  LUT(x947A947AD1E7D1E7, a2, xA55AA55AF0F5F0F5, xF5A0F5A0A55AA55A, 0x6C)
+  LUT(x55EE55EE55EE55EE, a1, a2, a4, 0x7A)
+  LUT(x084C084CB77BB77B, a2, a6, xF5A0F5A0A55AA55A, 0xC9)
+  LUT(xA51EA51E50E050E0, a3, a6, x55EE55EE55EE55EE, 0x29)
+  LUT(x8058805811621162, x947A947AD1E7D1E7, x55EE55EE55EE55EE, x084C084CB77BB77B, 0x90)
+  LUT(x148014807B087B08, a1, xAA55AA5500550055, x947A947AD1E7D1E7, 0x21)
+  LUT(x94D894D86B686B68, xA55AA55AF0F5F0F5, x8058805811621162, x148014807B087B08, 0x6A)
+  LUT(x5555555540044004, a1, a6, x084C084CB77BB77B, 0x70)
+  LUT(xAFB4AFB4BF5BBF5B, x5F5F5F5FA5A5A5A5, xA51EA51E50E050E0, x5555555540044004, 0x97)
+  LUT(x1, a5, x94D894D86B686B68, xAFB4AFB4BF5BBF5B, 0x6C)
+
+  *out1 ^= x1;
+}
+
+DECLSPEC void s2_early (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out3)
+{
+  LUT(xEEEEEEEE99999999, a1, a2, a6, 0x97)
+  LUT(xFFFFEEEE66666666, a5, a6, xEEEEEEEE99999999, 0x67)
+  LUT(x5555FFFFFFFF0000, a1, a5, a6, 0x76)
+  LUT(x6666DDDD5555AAAA, a2, xFFFFEEEE66666666, x5555FFFFFFFF0000, 0x69)
+  LUT(x6969D3D35353ACAC, a3, xFFFFEEEE66666666, x6666DDDD5555AAAA, 0x6A)
+  LUT(xCFCF3030CFCF3030, a2, a3, a5, 0x65)
+  LUT(xE4E4EEEE9999F0F0, a3, xEEEEEEEE99999999, x5555FFFFFFFF0000, 0x8D)
+  LUT(xE5E5BABACDCDB0B0, a1, xCFCF3030CFCF3030, xE4E4EEEE9999F0F0, 0xCA)
+  LUT(x3, a4, x6969D3D35353ACAC, xE5E5BABACDCDB0B0, 0xC6)
+  LUT(x00000101F0F0F0F0, a3, a6, xFFFFEEEE66666666, 0x1C)
+  LUT(x9A9A64646A6A9595, a1, xCFCF3030CFCF3030, x00000101F0F0F0F0, 0x96)
+  LUT(x3333BBBB3333FFFF, a1, a2, x6666DDDD5555AAAA, 0xDE)
+  LUT(x1414141441410000, a1, a3, xE4E4EEEE9999F0F0, 0x90)
+  LUT(x7F7FF3F3F5F53939, x6969D3D35353ACAC, x9A9A64646A6A9595, x3333BBBB3333FFFF, 0x79)
+  LUT(x9494E3E34B4B3939, a5, x1414141441410000, x7F7FF3F3F5F53939, 0x29)
+  LUT(x1, a4, x3333BBBB3333FFFF, x9494E3E34B4B3939, 0xA6)
+
+  *out1 ^= x1;
+  *out3 ^= x3;
+}
+
+DECLSPEC void s4_early (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, PRIVATE_AS u32 *out3, PRIVATE_AS u32 *out4)
+{
+  LUT(x55F055F055F055F0, a1, a3, a4, 0x72)
+  LUT(xA500F5F0A500F5F0, a3, a5, x55F055F055F055F0, 0xAD)
+  LUT(xF50AF50AF50AF50A, a1, a3, a4, 0x59)
+  LUT(xF5FA0FFFF5FA0FFF, a3, a5, xF50AF50AF50AF50A, 0xE7)
+  LUT(x61C8F93C61C8F93C, a2, xA500F5F0A500F5F0, xF5FA0FFFF5FA0FFF, 0xC6)
+  LUT(x9999666699996666, a1, a2, a5, 0x69)
+  LUT(x22C022C022C022C0, a2, a4, x55F055F055F055F0, 0x18)
+  LUT(xB35C94A6B35C94A6, xF5FA0FFFF5FA0FFF, x9999666699996666, x22C022C022C022C0, 0x63)
+  LUT(x4, a6, x61C8F93C61C8F93C, xB35C94A6B35C94A6, 0x6A)
+  LUT(x3, a6, x61C8F93C61C8F93C, xB35C94A6B35C94A6, 0x56)
+
+  *out3 ^= x3;
+  *out4 ^= x4;
+}
+
+DECLSPEC void s6_early (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out3)
+{
+  LUT(x5050F5F55050F5F5, a1, a3, a5, 0xB2)
+  LUT(x6363C6C66363C6C6, a1, a2, x5050F5F55050F5F5, 0x66)
+  LUT(xAAAA5555AAAA5555, a1, a1, a5, 0xA9)
+  LUT(x3A3A65653A3A6565, a3, x6363C6C66363C6C6, xAAAA5555AAAA5555, 0xA9)
+  LUT(x5963A3C65963A3C6, a4, x6363C6C66363C6C6, x3A3A65653A3A6565, 0xC6)
+  LUT(xE7E76565E7E76565, a5, x6363C6C66363C6C6, x3A3A65653A3A6565, 0xAD)
+  LUT(x1101220211012202, a2, xAAAA5555AAAA5555, x5963A3C65963A3C6, 0x20)
+  LUT(xF00F0FF0F00F0FF0, a3, a4, a5, 0x69)
+  LUT(x16E94A9716E94A97, xE7E76565E7E76565, x1101220211012202, xF00F0FF0F00F0FF0, 0x9E)
+  LUT(x2992922929929229, a1, a2, xF00F0FF0F00F0FF0, 0x49)
+  LUT(xAFAF9823AFAF9823, a5, x5050F5F55050F5F5, x2992922929929229, 0x93)
+  LUT(x3, a6, x16E94A9716E94A97, xAFAF9823AFAF9823, 0x6C)
+  LUT(x4801810248018102, a4, x5963A3C65963A3C6, x1101220211012202, 0xA4)
+  LUT(x5EE8FFFD5EE8FFFD, a5, x16E94A9716E94A97, x4801810248018102, 0x76)
+  LUT(xF0FF00FFF0FF00FF, a3, a4, a5, 0xCD)
+  LUT(x942D9A67942D9A67, x3A3A65653A3A6565, x5EE8FFFD5EE8FFFD, xF0FF00FFF0FF00FF, 0x86)
+  LUT(x1, a6, x5EE8FFFD5EE8FFFD, x942D9A67942D9A67, 0xA6)
+
+  *out1 ^= x1;
+  *out3 ^= x3;
+}
+
 DECLSPEC void s7 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const u32 a5, const u32 a6, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out2, PRIVATE_AS u32 *out3, PRIVATE_AS u32 *out4)
 {
   LUT(x88AA88AA88AA88AA, a1, a2, a4, 0x0B)
@@ -1529,8 +1613,10 @@ DECLSPEC void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const 
 #define KEYSET07 { k00 = K31; k01 = K35; k02 = K52; k03 = K43; k04 = K08; k05 = K37; k06 = K51; k07 = K15; k08 = K49; k09 = K30; k10 = K07; k11 = K02; k12 = K50; k13 = K21; k14 = K45; k15 = K44; k16 = K29; k17 = K16; k18 = K42; k19 = K23; k20 = K22; k21 = K14; k22 = K38; k23 = K01; k24 = K10; k25 = K47; k26 = K53; k27 = K11; k28 = K27; k29 = K26; k30 = K05; k31 = K17; k32 = K54; k33 = K41; k34 = K39; k35 = K20; k36 = K48; k37 = K13; k38 = K24; k39 = K19; k40 = K32; k41 = K40; k42 = K34; k43 = K03; k44 = K06; k45 = K18; k46 = K12; k47 = K46; }
 #define KEYSET17 { k00 = K15; k01 = K51; k02 = K36; k03 = K02; k04 = K49; k05 = K21; k06 = K35; k07 = K31; k08 = K08; k09 = K14; k10 = K23; k11 = K43; k12 = K09; k13 = K37; k14 = K29; k15 = K28; k16 = K45; k17 = K00; k18 = K01; k19 = K07; k20 = K38; k21 = K30; k22 = K22; k23 = K42; k24 = K26; k25 = K04; k26 = K41; k27 = K54; k28 = K39; k29 = K10; k30 = K48; k31 = K33; k32 = K11; k33 = K53; k34 = K27; k35 = K32; k36 = K05; k37 = K25; k38 = K40; k39 = K03; k40 = K20; k41 = K24; k42 = K46; k43 = K19; k44 = K18; k45 = K06; k46 = K55; k47 = K34; }
 
-DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, PRIVATE_AS u32 *D00, PRIVATE_AS u32 *D01, PRIVATE_AS u32 *D02, PRIVATE_AS u32 *D03, PRIVATE_AS u32 *D04, PRIVATE_AS u32 *D05, PRIVATE_AS u32 *D06, PRIVATE_AS u32 *D07, PRIVATE_AS u32 *D08, PRIVATE_AS u32 *D09, PRIVATE_AS u32 *D10, PRIVATE_AS u32 *D11, PRIVATE_AS u32 *D12, PRIVATE_AS u32 *D13, PRIVATE_AS u32 *D14, PRIVATE_AS u32 *D15, PRIVATE_AS u32 *D16, PRIVATE_AS u32 *D17, PRIVATE_AS u32 *D18, PRIVATE_AS u32 *D19, PRIVATE_AS u32 *D20, PRIVATE_AS u32 *D21, PRIVATE_AS u32 *D22, PRIVATE_AS u32 *D23, PRIVATE_AS u32 *D24, PRIVATE_AS u32 *D25, PRIVATE_AS u32 *D26, PRIVATE_AS u32 *D27, PRIVATE_AS u32 *D28, PRIVATE_AS u32 *D29, PRIVATE_AS u32 *D30, PRIVATE_AS u32 *D31, PRIVATE_AS u32 *D32, PRIVATE_AS u32 *D33, PRIVATE_AS u32 *D34, PRIVATE_AS u32 *D35, PRIVATE_AS u32 *D36, PRIVATE_AS u32 *D37, PRIVATE_AS u32 *D38, PRIVATE_AS u32 *D39, PRIVATE_AS u32 *D40, PRIVATE_AS u32 *D41, PRIVATE_AS u32 *D42, PRIVATE_AS u32 *D43, PRIVATE_AS u32 *D44, PRIVATE_AS u32 *D45, PRIVATE_AS u32 *D46, PRIVATE_AS u32 *D47, PRIVATE_AS u32 *D48, PRIVATE_AS u32 *D49, PRIVATE_AS u32 *D50, PRIVATE_AS u32 *D51, PRIVATE_AS u32 *D52, PRIVATE_AS u32 *D53, PRIVATE_AS u32 *D54, PRIVATE_AS u32 *D55, PRIVATE_AS u32 *D56, PRIVATE_AS u32 *D57, PRIVATE_AS u32 *D58, PRIVATE_AS u32 *D59, PRIVATE_AS u32 *D60, PRIVATE_AS u32 *D61, PRIVATE_AS u32 *D62, PRIVATE_AS u32 *D63)
+DECLSPEC u32 DES (const u32 target, const u32 early_reject, const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, PRIVATE_AS u32 *D00, PRIVATE_AS u32 *D01, PRIVATE_AS u32 *D02, PRIVATE_AS u32 *D03, PRIVATE_AS u32 *D04, PRIVATE_AS u32 *D05, PRIVATE_AS u32 *D06, PRIVATE_AS u32 *D07, PRIVATE_AS u32 *D08, PRIVATE_AS u32 *D09, PRIVATE_AS u32 *D10, PRIVATE_AS u32 *D11, PRIVATE_AS u32 *D12, PRIVATE_AS u32 *D13, PRIVATE_AS u32 *D14, PRIVATE_AS u32 *D15, PRIVATE_AS u32 *D16, PRIVATE_AS u32 *D17, PRIVATE_AS u32 *D18, PRIVATE_AS u32 *D19, PRIVATE_AS u32 *D20, PRIVATE_AS u32 *D21, PRIVATE_AS u32 *D22, PRIVATE_AS u32 *D23, PRIVATE_AS u32 *D24, PRIVATE_AS u32 *D25, PRIVATE_AS u32 *D26, PRIVATE_AS u32 *D27, PRIVATE_AS u32 *D28, PRIVATE_AS u32 *D29, PRIVATE_AS u32 *D30, PRIVATE_AS u32 *D31, PRIVATE_AS u32 *D32, PRIVATE_AS u32 *D33, PRIVATE_AS u32 *D34, PRIVATE_AS u32 *D35, PRIVATE_AS u32 *D36, PRIVATE_AS u32 *D37, PRIVATE_AS u32 *D38, PRIVATE_AS u32 *D39, PRIVATE_AS u32 *D40, PRIVATE_AS u32 *D41, PRIVATE_AS u32 *D42, PRIVATE_AS u32 *D43, PRIVATE_AS u32 *D44, PRIVATE_AS u32 *D45, PRIVATE_AS u32 *D46, PRIVATE_AS u32 *D47, PRIVATE_AS u32 *D48, PRIVATE_AS u32 *D49, PRIVATE_AS u32 *D50, PRIVATE_AS u32 *D51, PRIVATE_AS u32 *D52, PRIVATE_AS u32 *D53, PRIVATE_AS u32 *D54, PRIVATE_AS u32 *D55, PRIVATE_AS u32 *D56, PRIVATE_AS u32 *D57, PRIVATE_AS u32 *D58, PRIVATE_AS u32 *D59, PRIVATE_AS u32 *D60, PRIVATE_AS u32 *D61, PRIVATE_AS u32 *D62, PRIVATE_AS u32 *D63)
 {
+  u32 tmpResult = 0;
+
   KXX_DECL u32 k00, k01, k02, k03, k04, k05;
   KXX_DECL u32 k06, k07, k08, k09, k10, k11;
   KXX_DECL u32 k12, k13, k14, k15, k16, k17;
@@ -1540,9 +1626,7 @@ DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, c
   KXX_DECL u32 k36, k37, k38, k39, k40, k41;
   KXX_DECL u32 k42, k43, k44, k45, k46, k47;
 
-  #ifdef _unroll
   #pragma unroll
-  #endif
   for (u32 i = 0; i < 2; i++)
   {
     if (i) KEYSET10 else KEYSET00
@@ -1613,14 +1697,70 @@ DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, c
 
     if (i) KEYSET16 else KEYSET06
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
+    #if defined IS_NV && CUDA_ARCH >= 500
+    if (i && early_reject)
+    {
+      s2_early (*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D01);
+      s3       (*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
+      s4_early (*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D09, D00);
+      s5       (*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
+    }
+    else
+    #endif
+    {
+      s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
+      s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
+      s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
+      s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
+      s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
+      s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
+    }
+
+    if (i && early_reject)
+    {
+      tmpResult |= *D00 ^ (((target >>  0) & 1) ? -1 : 0);
+      tmpResult |= *D01 ^ (((target >>  1) & 1) ? -1 : 0);
+      tmpResult |= *D02 ^ (((target >>  2) & 1) ? -1 : 0);
+      tmpResult |= *D05 ^ (((target >>  5) & 1) ? -1 : 0);
+      tmpResult |= *D07 ^ (((target >>  7) & 1) ? -1 : 0);
+      tmpResult |= *D09 ^ (((target >>  9) & 1) ? -1 : 0);
+      tmpResult |= *D12 ^ (((target >> 12) & 1) ? -1 : 0);
+      tmpResult |= *D13 ^ (((target >> 13) & 1) ? -1 : 0);
+      tmpResult |= *D15 ^ (((target >> 15) & 1) ? -1 : 0);
+      tmpResult |= *D23 ^ (((target >> 23) & 1) ? -1 : 0);
+      tmpResult |= *D24 ^ (((target >> 24) & 1) ? -1 : 0);
+      tmpResult |= *D29 ^ (((target >> 29) & 1) ? -1 : 0);
+
+      if (tmpResult == 0xffffffff) return tmpResult;
+
+      #if defined IS_NV && CUDA_ARCH >= 500
+      s1       (*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
+      s2       (*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
+      s2_early (*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D01);
+      s4       (*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
+      s4_early (*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D09, D00);
+      s6       (*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
+      #endif
+
+      tmpResult |= *D03 ^ (((target >>  3) & 1) ? -1 : 0);
+      tmpResult |= *D08 ^ (((target >>  8) & 1) ? -1 : 0);
+      tmpResult |= *D10 ^ (((target >> 10) & 1) ? -1 : 0);
+
+      if (tmpResult == 0xffffffff) return tmpResult;
+    }
+
     s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
     s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+
+    if (i && early_reject)
+    {
+      tmpResult |= *D04 ^ (((target >>  4) & 1) ? -1 : 0);
+      tmpResult |= *D06 ^ (((target >>  6) & 1) ? -1 : 0);
+      tmpResult |= *D11 ^ (((target >> 11) & 1) ? -1 : 0);
+      tmpResult |= *D14 ^ (((target >> 14) & 1) ? -1 : 0);
+
+      if (tmpResult == 0xffffffff) return tmpResult;
+    }
 
     if (i) KEYSET17 else KEYSET07
 
@@ -1633,6 +1773,8 @@ DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, c
     s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
     s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
   }
+
+  return tmpResult;
 }
 
 DECLSPEC void transpose32c (PRIVATE_AS u32 *data)
@@ -1972,6 +2114,7 @@ KERNEL_FQ KERNEL_FA void m03000_mxx (KERN_ATTR_BITSLICE ())
 
     DES
     (
+      0, 0,
       k00, k01, k02, k03, k04, k05, k06,
       k07, k08, k09, k10, k11, k12, k13,
       k14, k15, k16, k17, k18, k19, k20,
@@ -2145,22 +2288,6 @@ KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_BITSLICE ())
   const u32 s0 = digests_buf[0].digest_buf[0];
   const u32 s1 = digests_buf[0].digest_buf[1];
 
-  const u32 S00 = (((s0 >>  0) & 1) ? -1 : 0);
-  const u32 S01 = (((s0 >>  1) & 1) ? -1 : 0);
-  const u32 S02 = (((s0 >>  2) & 1) ? -1 : 0);
-  const u32 S03 = (((s0 >>  3) & 1) ? -1 : 0);
-  const u32 S04 = (((s0 >>  4) & 1) ? -1 : 0);
-  const u32 S05 = (((s0 >>  5) & 1) ? -1 : 0);
-  const u32 S06 = (((s0 >>  6) & 1) ? -1 : 0);
-  const u32 S07 = (((s0 >>  7) & 1) ? -1 : 0);
-  const u32 S08 = (((s0 >>  8) & 1) ? -1 : 0);
-  const u32 S09 = (((s0 >>  9) & 1) ? -1 : 0);
-  const u32 S10 = (((s0 >> 10) & 1) ? -1 : 0);
-  const u32 S11 = (((s0 >> 11) & 1) ? -1 : 0);
-  const u32 S12 = (((s0 >> 12) & 1) ? -1 : 0);
-  const u32 S13 = (((s0 >> 13) & 1) ? -1 : 0);
-  const u32 S14 = (((s0 >> 14) & 1) ? -1 : 0);
-  const u32 S15 = (((s0 >> 15) & 1) ? -1 : 0);
   const u32 S16 = (((s0 >> 16) & 1) ? -1 : 0);
   const u32 S17 = (((s0 >> 17) & 1) ? -1 : 0);
   const u32 S18 = (((s0 >> 18) & 1) ? -1 : 0);
@@ -2168,13 +2295,10 @@ KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_BITSLICE ())
   const u32 S20 = (((s0 >> 20) & 1) ? -1 : 0);
   const u32 S21 = (((s0 >> 21) & 1) ? -1 : 0);
   const u32 S22 = (((s0 >> 22) & 1) ? -1 : 0);
-  const u32 S23 = (((s0 >> 23) & 1) ? -1 : 0);
-  const u32 S24 = (((s0 >> 24) & 1) ? -1 : 0);
   const u32 S25 = (((s0 >> 25) & 1) ? -1 : 0);
   const u32 S26 = (((s0 >> 26) & 1) ? -1 : 0);
   const u32 S27 = (((s0 >> 27) & 1) ? -1 : 0);
   const u32 S28 = (((s0 >> 28) & 1) ? -1 : 0);
-  const u32 S29 = (((s0 >> 29) & 1) ? -1 : 0);
   const u32 S30 = (((s0 >> 30) & 1) ? -1 : 0);
   const u32 S31 = (((s0 >> 31) & 1) ? -1 : 0);
   const u32 S32 = (((s1 >>  0) & 1) ? -1 : 0);
@@ -2415,8 +2539,9 @@ KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_BITSLICE ())
     u32 D62 = 0xffffffff;
     u32 D63 = 0xffffffff;
 
-    DES
+    u32 tmpResult = DES
     (
+      s0, 1,
       k00, k01, k02, k03, k04, k05, k06,
       k07, k08, k09, k10, k11, k12, k13,
       k14, k15, k16, k17, k18, k19, k20,
@@ -2435,25 +2560,6 @@ KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_BITSLICE ())
       &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63
     );
 
-    u32 tmpResult = 0;
-
-    tmpResult |= D00 ^ S00;
-    tmpResult |= D01 ^ S01;
-    tmpResult |= D02 ^ S02;
-    tmpResult |= D03 ^ S03;
-    tmpResult |= D04 ^ S04;
-    tmpResult |= D05 ^ S05;
-    tmpResult |= D06 ^ S06;
-    tmpResult |= D07 ^ S07;
-    tmpResult |= D08 ^ S08;
-    tmpResult |= D09 ^ S09;
-    tmpResult |= D10 ^ S10;
-    tmpResult |= D11 ^ S11;
-    tmpResult |= D12 ^ S12;
-    tmpResult |= D13 ^ S13;
-    tmpResult |= D14 ^ S14;
-    tmpResult |= D15 ^ S15;
-
     if (tmpResult == 0xffffffff) continue;
 
     tmpResult |= D16 ^ S16;
@@ -2463,13 +2569,10 @@ KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_BITSLICE ())
     tmpResult |= D20 ^ S20;
     tmpResult |= D21 ^ S21;
     tmpResult |= D22 ^ S22;
-    tmpResult |= D23 ^ S23;
-    tmpResult |= D24 ^ S24;
     tmpResult |= D25 ^ S25;
     tmpResult |= D26 ^ S26;
     tmpResult |= D27 ^ S27;
     tmpResult |= D28 ^ S28;
-    tmpResult |= D29 ^ S29;
     tmpResult |= D30 ^ S30;
     tmpResult |= D31 ^ S31;
 
