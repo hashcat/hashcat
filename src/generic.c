@@ -19,6 +19,9 @@
 #include "dynloader.h"
 #include "user_options.h"
 #include "backend.h"
+#include "terminal.h"
+#include "timer.h"
+#include "status.h"
 
 #include <inttypes.h>
 
@@ -1140,6 +1143,123 @@ static bool generic_word_transform (const pw_transform_t *transform, u8 *buf, co
   return true;
 }
 
+// Feedback for a lookup that reads long enough to look like a hang.
+//
+// A wordlist lookup is one pass over the whole file, and on a hundred gigabytes that is minutes in
+// which nothing is printed. A run that says nothing cannot be told from a stuck one, so once the
+// read has been going for LOOKUP_SAY_MS the progress is reported, and again every LOOKUP_SAY_MS
+// after that.
+//
+// Nothing at all is said before then, which is the point: a wordlist small enough to answer in an
+// instant is answered without a word of noise, so the common case is untouched.
+//
+// Written with event_log_info_nn (), the same self-erasing line the dictionary cache build uses.
+// main_log () remembers the length of a line that had no newline and wipes it before the next
+// message, so the answer lands on a clean line with no trace of the counting. That wipe is an ANSI
+// sequence, so this only runs on a terminal: a redirected lookup carries its answer and nothing
+// else.
+
+#define LOOKUP_SAY_MS   2000.0
+#define LOOKUP_SAY_MASK 0xffff
+#define LOOKUP_SAY_BAR  24
+
+typedef struct
+{
+  hc_timer_t start;             // when the read began, which is what the rate is measured over
+  double     last;              // when it last said something, so it says it no more often than that
+  u64        total;
+  bool       enabled;
+
+} lookup_say_t;
+
+static void lookup_say_init (lookup_say_t *say, const u64 total)
+{
+  hc_timer_set (&say->start);
+
+  say->last = 0.0;
+
+  // A feed that does not know its own keyspace, which is what stdin is, still gets a count. Only the
+  // fraction and the estimate need a denominator.
+
+  say->total   = (total == GENERIC_KEYSPACE_UNKNOWN) ? 0 : total;
+  say->enabled = is_stdout_terminal ();
+}
+
+// Called once every LOOKUP_SAY_MASK + 1 words rather than on every one. hc_timer_get () is a clock
+// read, and this loop does about twenty five nanoseconds of work per word, so asking the clock each
+// time would cost more than the search.
+
+static void lookup_say (hashcat_ctx_t *hashcat_ctx, lookup_say_t *say, const u64 done)
+{
+  if (say->enabled == false) return;
+
+  const double msec = hc_timer_get (say->start);
+
+  if ((msec - say->last) < LOOKUP_SAY_MS) return;
+
+  say->last = msec;
+
+  // A hybrid reads the wordlist once per mask in its queue, so a bare percentage would run from
+  // nothing to full once per round with nothing to say how many rounds are left. -a 0 has no queue
+  // and no round to name.
+
+  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  char round[64];
+
+  round[0] = 0;
+
+  if (mask_ctx->masks_cnt > 1)
+  {
+    snprintf (round, sizeof (round), "round %u of %u, ", mask_ctx->masks_pos + 1, mask_ctx->masks_cnt);
+  }
+
+  if (say->total == 0)
+  {
+    event_log_info_nn (hashcat_ctx, "lookup: %s%" PRIu64 " words read", round, done);
+
+    return;
+  }
+
+  double frac = (double) done / (double) say->total;
+
+  if (frac > 1.0) frac = 1.0;
+
+  char bar[LOOKUP_SAY_BAR + 1];
+
+  const int filled = (int) (frac * LOOKUP_SAY_BAR);
+
+  for (int i = 0; i < LOOKUP_SAY_BAR; i++) bar[i] = (i < filled) ? '#' : '-';
+
+  bar[LOOKUP_SAY_BAR] = 0;
+
+  // An estimate made from a fraction close to zero is worse than none, because a short elapsed time
+  // divided by almost nothing is an enormous number that says only that the read has begun.
+
+  if (frac < 0.01)
+  {
+    event_log_info_nn (hashcat_ctx, "lookup: %s[%s] %.1f%%, %" PRIu64 " of %" PRIu64 " words", round, bar, frac * 100.0, done, say->total);
+
+    return;
+  }
+
+  // Rate over the whole read rather than the last window, since a wordlist is read at a steady pace
+  // and the average is the steadier number to divide by.
+
+  const double left = ((double) say->total - (double) done) / ((double) done / (msec / 1000.0));
+
+  time_t sec_left = (time_t) left;
+
+  struct tm  tm_left;
+  struct tm *tmp_left = gmtime_r (&sec_left, &tm_left);
+
+  char eta[HCBUFSIZ_TINY];
+
+  format_timer_display (tmp_left, eta, sizeof (eta));
+
+  event_log_info_nn (hashcat_ctx, "lookup: %s[%s] %.1f%%, %" PRIu64 " of %" PRIu64 " words, ETA %s", round, bar, frac * 100.0, done, say->total, eta);
+}
+
 // Where a feed reaches a candidate: the index of the first word it produces that equals it, and how
 // many more of them there are behind it.
 //
@@ -1223,10 +1343,16 @@ int generic_ctx_word_index (hashcat_ctx_t *hashcat_ctx, const generic_role_t rol
 
     bool found = false;
 
+    lookup_say_t say;
+
+    lookup_say_init (&say, generic_ctx->keyspace);
+
     rc = 0;
 
     while (true)
     {
+      if ((index & LOOKUP_SAY_MASK) == 0) lookup_say (hashcat_ctx, &say, index);
+
       const int out_len = generic_thread_next (hashcat_ctx, role, 0, buf, sizeof (buf));
 
       if (out_len == GENERIC_RC_EOF) break;
@@ -1343,10 +1469,16 @@ int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
 
     u64 index = 0;
 
+    lookup_say_t say;
+
+    lookup_say_init (&say, generic_ctx->keyspace);
+
     rc = 0;
 
     while (true)
     {
+      if ((index & LOOKUP_SAY_MASK) == 0) lookup_say (hashcat_ctx, &say, index);
+
       const int out_len = generic_thread_next (hashcat_ctx, role, 0, buf, sizeof (buf));
 
       if (out_len == GENERIC_RC_EOF) break;

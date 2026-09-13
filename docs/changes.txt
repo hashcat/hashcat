@@ -315,7 +315,7 @@ For a tree full of modules, this does it:
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seek databases
 - Seek databases are portable between machines, so a distributed setup can build one once and hand it out
 - New option --cache-path: Keep everything hashcat rebuilds in a given directory, which several hosts can share
-- New option --lookup: Report where an attack reaches one given candidate, then quit. A candidate no shell can pass is written as $HEX[...]
+- New option --lookup: Report where an attack reaches one given candidate, then quit. A candidate no shell can pass is written as $HEX[...]. A wordlist lookup is one pass over the wordlist, so a read that has been going for two seconds reports its progress and an estimate until it finishes
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
 - Wordlists, hash lists and rule files may now be zstd compressed, alongside gzip and xz. A .zst wordlist written in several frames, which is what pzstd writes, is seeked into rather than decoded from the start
