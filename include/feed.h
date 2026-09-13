@@ -37,6 +37,18 @@
 #define GENERIC_RC_EOF   -1
 #define GENERIC_RC_ERROR -2
 
+// A position the feed holds but has no candidate for. The position is spent either way, so the next
+// call carries on at the one behind it and the run books this one as rejected, the same as a word a
+// wordlist holds that no hash mode can take.
+//
+// A wordlist never needs it, because every line it holds is a candidate. A grammar does: it counts
+// the candidates a structure can spell before it knows what the words are, and a rule that only the
+// words can answer therefore lands after the counting. Skipping the position rather than leaving it
+// out of the count is what keeps a position the same candidate on every run, which is what --skip,
+// --limit and a restore all rest on.
+
+#define GENERIC_RC_SKIP  -3
+
 // What global_keyspace () may say. A feed that cannot count itself returns GENERIC_KEYSPACE_UNKNOWN
 // and hashcat runs it without a denominator. GENERIC_KEYSPACE_ERROR is hashcat's own value and a
 // plugin never returns it, it is what the wrapper reports when the plugin failed. The two were the

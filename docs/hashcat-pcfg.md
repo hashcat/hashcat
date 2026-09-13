@@ -302,16 +302,31 @@ words and it wraps them in everything people wrap words in:
 which guesses, in this order:
 
 ```
-tom sarah 1992 bmw bears chicago tom123 tomtom Tom sarah123 1992123 tom1 tomsarah
-tom1992 sarahtom 1992tom Sarah tom12 tom11 bmw123 bears123 chicago123 sarah1 19921
-tombmw tombears tomchicago sarahsarah sarah1992 1992sarah 19921992 bmwtom bearstom
-chicagotom TOM Bmw Bears Chicago tom13 tom10 ...
+tom sarah 1992 bmw bears chicago tom123 Tom sarah123 1992123 tom1 tomsarah tom1992
+sarahtom 1992tom Sarah tom12 tom11 bmw123 bears123 chicago123 sarah1 19921 tombmw
+tombears tomchicago sarah1992 1992sarah bmwtom bearstom chicagotom Bmw Bears Chicago
+TOM tom13 tom10 tom01 tom22 tom23 tom21 tom99 sarah12 sarah11 199212 ...
 ```
 
 Every word on its own, every pair of them in both orders, every one with the digits and years and
 symbols people actually append, capitalised and uppercased, and it does not stop. The order is the
 trained one: `tom123` comes before `tomchicago` because a word followed by three digits is a more
 common shape than two words joined, and no hand written rule put it there.
+
+What is not in there is `tomtom`. Each word is a fact about one person, and a password built on a fact
+holds it once, so a candidate spells each of your words at most once and a shape with two word slots
+joins two different words. The grammar on its own has no such opinion: it learned that a password is
+often two letter runs with something between them, and once every letter run is one token those shapes
+read `football2football5football` as readily as `tom1sarah`. Over the first 2 million candidates of the
+six words above, 53 per cent of them were a word against itself.
+
+The rule is on the word rather than on the bytes, so `tomTom` goes with `tomtom`. The years and digits
+the grammar appends are its own and are not counted against you, so `1992` as a hint still meets `1992`
+as a year, which is why `19921992` survives.
+
+Two ways to ask for the doubles. Name a word twice, `hintwords=tom,tom,sarah`, and it becomes two words
+of the list, which lets a two slot shape take both and costs you `tom` twice wherever one slot was
+enough. Or give `hintrepeat=1` and the whole rule is off.
 
 This is the attack to reach for when a targeted rule attack has failed and you have facts rather than
 a wordlist. It is not a wordlist attack with extra steps. A wordlist has no opinion about which line to
@@ -359,7 +374,9 @@ the attack is only as good as what you know.
 
 `-a 9` runs this ruleset too, and takes the words out of the hash file rather than from you: one set
 per hash, cut out of whatever that hash carries about its owner. That is the `hintaccount` setting, and
-`hashcat-association.md` is where it is written up.
+`hashcat-association.md` is where it is written up. The once rule is not applied there and `hintrepeat`
+is refused: that attack pairs word N with salt N, so a candidate it declines to build is a hash it
+guesses nothing for, and it has nothing to put in the gap.
 
 It is also slower per candidate than an ordinary ruleset, and section 7.3 says why. A hint word lives
 in hashcat's memory rather than in the ruleset, so the graphics card cannot read it and the slot has
@@ -368,6 +385,14 @@ of these shapes is no slot at all, so a run makes about two candidates per base 
 ruleset makes several thousand. It matters less than it sounds, because this attack is aimed at one
 person and the whole point is that it does not need to make quadrillions of guesses. `-r` still
 amplifies on the card if you want the speed back.
+
+The status screen reports a large `Rejected` on this ruleset, and that number is the once rule doing its
+work. A position whose words repeat is walked and stepped over rather than left out of the count, so it
+shows up there exactly as an over-length word from a wordlist does. The six words above reject about
+half the positions at the front of the run and about four in five a billion candidates in, and what the
+card is given is the rest. A shape that wants more of your words than you named holds nothing at all, so
+those are dropped when the grammar is read instead, and the line under it says how many. That is most of
+the grammar for a run naming one word: every shape with two word slots.
 
 ## 5. Settings
 
@@ -394,6 +419,7 @@ Most people never need any of them.
 | `hintwords` | none | The words a hint ruleset is given, comma separated. See section 4. |
 | `hintfile` | none | The same words out of a file, one per line. |
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
+| `hintrepeat` | 0 | Let one candidate spell the same hint word twice. See section 4. |
 | `hintaccount` | 0 | Words to take from each hash instead, which is what `-a 9` uses. See `hashcat-association.md`. |
 
 `scale` is hashcat's own setting and is not read from the ruleset, so it reads `scale 1` on the status

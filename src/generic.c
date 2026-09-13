@@ -188,7 +188,8 @@ int generic_thread_next_dev (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
 
   if (out_len < 0)
   {
-    if (out_len == GENERIC_RC_EOF) return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_EOF)  return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_SKIP) return GENERIC_RC_SKIP;
 
     event_log_error (hashcat_ctx, "%s: thread_next_dev returned %d", generic_ctx->dynlib_filename, out_len);
 
@@ -211,7 +212,8 @@ int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, 
 
   if (out_len < 0)
   {
-    if (out_len == GENERIC_RC_EOF) return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_EOF)  return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_SKIP) return GENERIC_RC_SKIP;
 
     event_log_error (hashcat_ctx, "%s: thread_next returned %d", generic_ctx->dynlib_filename, out_len);
 
@@ -1129,6 +1131,11 @@ bool generic_ctx_described (const hashcat_ctx_t *hashcat_ctx)
 
 static bool generic_word_transform (const pw_transform_t *transform, u8 *buf, const int out_len, const size_t buf_size, u32 *len_out)
 {
+  // A position the feed skipped has no bytes to transform, and it holds its place in the count the
+  // same way a word too long for the transform does.
+
+  if (out_len < 0) return false;
+
   if (out_len > PW_MAX) return false;
 
   const int len = pw_transform_apply (transform, buf, out_len, (int) buf_size);

@@ -138,6 +138,11 @@ typedef struct
   u16 *cap;
   u16 *flr;
 
+  // Hint slots this structure has. Nearly every structure of a hint ruleset has one and cannot spell a
+  // word twice whatever the words are, so this is what keeps the repeat test off the common path.
+
+  u32 hslot;
+
   u32 cost;
   u32 cmin;
   u32 cmax;
@@ -331,6 +336,24 @@ typedef struct
   pcfg_hint_t *hw;
   u32         *hw_cost;
   u32          hw_cnt;
+
+  // Which word of the named set each entry of the list came from, and how many words there were before
+  // the case forms were folded in. One word becomes up to three entries, and telling a candidate that
+  // spells one fact twice from one that spells two different facts is a question about the word rather
+  // than about the bytes, so "tomTom" reads as tom twice. See hint_repeated ().
+  //
+  // NULL wherever nothing folded the words: an account's set keeps its mask slot and one entry is one
+  // word there, so the entry index is the answer.
+
+  u32 *hw_src;
+  u32  hw_srcs;
+
+  // Whether a candidate may spell each hint word at most once. On by default, because a hint is a fact
+  // about one person and a password built on a fact holds it once. A run that wants "tomtom" back names
+  // tom twice, which makes it two words of the list, and one slot's source is only ever one of them.
+  // hintrepeat=1 turns the rule off and gives back the run this attack shipped with.
+
+  bool hint_once;
 
   // Which curve a word with no probability of its own is given. See hint_rank_cost ().
 
@@ -2680,6 +2703,7 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   pcfg_hint_t *out  = (pcfg_hint_t *) hcmalloc ((size_t) forms * sizeof (pcfg_hint_t));
   u32         *cost = (u32 *)         hcmalloc ((size_t) forms * sizeof (u32));
+  u32         *src  = (u32 *)         hcmalloc ((size_t) forms * sizeof (u32));
 
   u32 out_cnt = 0;
   u32 at      = 0;
@@ -2743,6 +2767,7 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
         out[out_cnt].len = len;
 
         cost[out_cnt] = pg->hw_cost[i] + cm->b_cost[b];
+        src[out_cnt]  = i;
 
         out_cnt++;
 
@@ -2759,6 +2784,7 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     hcfree (store);
     hcfree (out);
     hcfree (cost);
+    hcfree (src);
 
     return false;
   }
@@ -2780,6 +2806,7 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   pcfg_hint_t *sorted_out  = (pcfg_hint_t *) hcmalloc (out_cnt * sizeof (pcfg_hint_t));
   u32         *sorted_cost = (u32 *)         hcmalloc (out_cnt * sizeof (u32));
+  u32         *sorted_src  = (u32 *)         hcmalloc (out_cnt * sizeof (u32));
 
   for (u32 i = 0; i < out_cnt; i++)
   {
@@ -2787,11 +2814,13 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     sorted_out[i]  = out[from];
     sorted_cost[i] = cost[from];
+    sorted_src[i]  = src[from];
   }
 
   hcfree (order);
   hcfree (out);
   hcfree (cost);
+  hcfree (src);
 
   out  = sorted_out;
   cost = sorted_cost;
@@ -2803,6 +2832,7 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
   pg->hw       = out;
   pg->hw_cost  = cost;
   pg->hw_cnt   = out_cnt;
+  pg->hw_src   = sorted_src;
 
   pg->hint_cnt = out_cnt;
 
@@ -3347,6 +3377,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
   u32 dropped_t = 0;
   u32 dropped_c = 0;
   u32 dropped_p = 0;
+  u32 dropped_h = 0;
 
   // pcfg_lensplit () keeps its answer in a file scope int and works it out on the first call. The
   // preload workers below all reach it through tlist_build (), so it is settled here, on one thread,
@@ -3587,6 +3618,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
       s.total_len += type_is_flat (ty) ? 0 : len;
 
+      if (ty == 'H') s.hslot++;
+
       // Read now rather than kept: list_get () may grow pg->lists on the next token and move it. The
       // case mask pushed below adds nothing, because it rewrites the alpha token in place and
       // pcfg_upper_image () keeps the byte length when it does.
@@ -3635,6 +3668,13 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     {
       if ((byte_lo > pg->pwmax) || (byte_hi < pg->pwmin)) { dropped_p++; continue; }
     }
+
+    // A structure with more hint slots than the run has words cannot be filled without spelling one of
+    // them twice, so with repeats refused it holds nothing at all. Dropping it keeps its positions out
+    // of the keyspace rather than walking them and skipping every one, which for a run naming a single
+    // word is every structure that has two.
+
+    if ((pg->hint_once == true) && (s.hslot > pg->hw_srcs)) { dropped_h++; continue; }
 
     // A long read that says nothing cannot be told from a hang.
 
@@ -3876,6 +3916,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     if (dropped_t) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", %u unusable dropped", dropped_t);
 
     if (dropped_p) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", %u outside %u-%u bytes", dropped_p, pg->pwmin, pg->pwmax);
+
+    if (dropped_h) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", %u want more than %u hint words", dropped_h, pg->hw_srcs);
 
     if ((max_structs != 0) && (pg->structs_cnt >= max_structs)) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", stopped at PCFG_MAX_STRUCTS");
 
@@ -8173,6 +8215,87 @@ static bool advance_unit (pcfg_global_t *pg, pcfg_thread_t *th)
   return false;
 }
 
+// Whether this candidate spells one of the hint words more than once.
+//
+// A hint is a fact about one person, and a password built on a fact holds it once. The grammar has no
+// such opinion: it learned that a password is often two letter runs with something between them, and
+// once every letter run is the same token those shapes read "football2football5football" as readily as
+// "tom1sarah". Over the first 2 million candidates of a 6 word set, 53 per cent of them spell a word
+// against itself, and none of that is worth hashing.
+//
+// The test is on the word a slot drew from rather than on the bytes it wrote, so "tomTom" goes as well:
+// those are two case forms of one fact. A run that wants the doubles back names the word twice, which
+// makes it two words of the list, and then no slot shares a source with any other.
+//
+// A structure with one hint slot cannot fail this, and nearly every structure has one, so the count is
+// taken at load time and the walk below is for the few that have more.
+
+static bool hint_repeated (const pcfg_global_t *pg, const u32 si, const u32 *idx)
+{
+  const pcfg_struct_t *s = &pg->structs[si];
+
+  if (s->hslot < 2) return false;
+
+  u32 src[PCFG_MAXSLOT];
+
+  u32 cnt = 0;
+
+  for (u32 j = 0; j < s->nslot; j++)
+  {
+    if (s->kind[j] != PCFG_SLOT_TERM) continue;
+
+    const pcfg_tlist_t *t = &pg->lists[s->list[j]];
+
+    if (t->ty != 'H') continue;
+
+    const u32 w = pg->hw_src[idx[j]];
+
+    for (u32 k = 0; k < cnt; k++) if (src[k] == w) return true;
+
+    src[cnt] = w;
+
+    cnt++;
+  }
+
+  return false;
+}
+
+// How many candidates the card makes out of this base word, which is the product of the bucket widths
+// behind the cut, capped at the inner loop the launch has room for.
+
+static u32 unit_rect (const pcfg_global_t *pg, const pcfg_thread_t *th)
+{
+  const pcfg_struct_t *s = &pg->structs[th->si];
+
+  u64 rect = 1;
+
+  for (u32 j = th->devstart; j < s->nslot; j++)
+  {
+    const pcfg_tlist_t *t = &pg->lists[s->list[j]];
+
+    rect = sat_mul (rect, t->b_cnt[th->buck[j]]);
+  }
+
+  const u32 out = (rect < pg->il_cnt) ? (u32) rect : pg->il_cnt;
+
+  return out;
+}
+
+// Onto the next base word, which is the step the walk takes whether or not this one produced a
+// candidate.
+
+static void unit_step (pcfg_global_t *pg, pcfg_thread_t *th)
+{
+  th->pos++;
+
+  th->valid = false;
+
+  if (pg->walk == true)
+  {
+    if (advance_unit (pg, th) == true) th->valid = true;
+  }
+}
+
 static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size, pcfg_cell_t *cell)
 {
   if (th->pos >= pg->units) return GENERIC_RC_EOF;
@@ -8180,6 +8303,23 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
   if (th->valid == false)
   {
     if (unrank_unit (pg, th->pos, th) == false) return GENERIC_RC_ERROR;
+  }
+
+  // Nothing is built for a base word that spells a hint word twice, and no cell is laid out for it
+  // either. The position is spent the same way, so the walk steps over it and the run books it as
+  // rejected.
+
+  if ((pg->hint_once == true) && (hint_repeated (pg, th->si, th->idx) == true))
+  {
+    // The cell this base word would have carried stood for a rectangle of candidates rather than for
+    // one, so the rectangle is worked out even though no cell is laid out. It is what the run books as
+    // rejected, and a progress that counts one candidate for a cell of thousands never reaches the end.
+
+    cell->rect = unit_rect (pg, th);
+
+    unit_step (pg, th);
+
+    return GENERIC_RC_SKIP;
   }
 
   const int len = assemble (pg, th, out_buf, out_size);
@@ -8197,16 +8337,7 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
 
   cell->flags = (pg->varlen == true) ? PCFG_CELL_VARLEN : 0;
 
-  u64 rect = 1;
-
-  for (u32 j = th->devstart; j < s->nslot; j++)
-  {
-    const pcfg_tlist_t *t = &pg->lists[s->list[j]];
-
-    rect = sat_mul (rect, t->b_cnt[th->buck[j]]);
-  }
-
-  cell->rect = (rect < pg->il_cnt) ? (u32) rect : pg->il_cnt;
+  cell->rect = unit_rect (pg, th);
 
   u32 from = 0;
 
@@ -8242,14 +8373,7 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
     }
   }
 
-  th->pos++;
-
-  th->valid = false;
-
-  if (pg->walk == true)
-  {
-    if (advance_unit (pg, th) == true) th->valid = true;
-  }
+  unit_step (pg, th);
 
   return len;
 }
@@ -8335,19 +8459,12 @@ static int account_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, cons
   return len;
 }
 
-static int plain_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size)
+// Onto the next candidate, which is the step the walk takes whether or not this position produced
+// one. The odometer turns its innermost slot where it can and unranks the position behind it where it
+// cannot, and the escape has a walk of its own.
+
+static void plain_step (const pcfg_global_t *pg, pcfg_thread_t *th)
 {
-  if (th->pos >= pg->keyspace) return GENERIC_RC_EOF;
-
-  if (th->valid == false)
-  {
-    if (unrank (pg, th->pos, th) == false) return GENERIC_RC_EOF;
-  }
-
-  const int len = assemble (pg, th, out_buf, out_size);
-
-  if (len < 0) return len;
-
   th->pos++;
 
   if (th->omen == true)
@@ -8362,6 +8479,32 @@ static int plain_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const 
   {
     th->valid = false;
   }
+}
+
+static int plain_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size)
+{
+  if (th->pos >= pg->keyspace) return GENERIC_RC_EOF;
+
+  if (th->valid == false)
+  {
+    if (unrank (pg, th->pos, th) == false) return GENERIC_RC_EOF;
+  }
+
+  // A candidate that spells one hint word twice is not built at all. The position is spent either
+  // way, so the walk steps over it and the run books it as rejected.
+
+  if ((pg->hint_once == true) && (th->omen == false) && (hint_repeated (pg, th->si, th->idx) == true))
+  {
+    plain_step (pg, th);
+
+    return GENERIC_RC_SKIP;
+  }
+
+  const int len = assemble (pg, th, out_buf, out_size);
+
+  if (len < 0) return len;
+
+  plain_step (pg, th);
 
   return len;
 }
@@ -8481,6 +8624,12 @@ static HC_API_CALL void *pf_worker (void *arg)
       const int len = (amp == true)
                     ? unit_emit  (pg, th, at, PCFG_PF_WLEN, &sl->cell[n])
                     : plain_emit (pg, th, at, PCFG_PF_WLEN);
+
+      // A skipped position is one this chunk holds and has no candidate for, so it is recorded and the
+      // chunk carries on. Ending the chunk on it instead would leave the positions behind it to the
+      // chunk after this one, which starts where this one was told to end rather than where it stopped.
+
+      if (len == GENERIC_RC_SKIP) { sl->wlen[n] = len; continue; }
 
       if (len < 0) { sl->wlen[n] = len; n++; break; }
 
@@ -8655,7 +8804,15 @@ static int pf_next (pcfg_pf_t *pf, u8 *out_buf, const int out_size, pcfg_cell_t 
 
   const int len = sl->wlen[at];
 
-  if (len < 0) return len;
+  if (len < 0)
+  {
+    // A skipped position wrote no bytes but it did work out the rectangle its cell would have held,
+    // and that is the count the run books as rejected.
+
+    if ((len == GENERIC_RC_SKIP) && (cell != NULL)) cell[0] = sl->cell[at];
+
+    return len;
+  }
 
   int cp = (len < out_size) ? len : out_size;
 
@@ -8679,6 +8836,11 @@ typedef struct
   bool found;
   bool ranked;
   bool omen;
+
+  // Whether a structure spells this candidate and the run refuses every way of doing it, which is
+  // what a candidate holding one hint word twice looks like from here.
+
+  bool once;
 
   u32 si;
   u32 idx[PCFG_MAXSLOT];
@@ -8712,6 +8874,17 @@ static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_
 
   for (u32 i = 0; i < cnt; i++)
   {
+    // A derivation the run steps over is not a place it reaches the candidate. It is dropped rather
+    // than reported, because another structure may spell the same candidate without asking for one
+    // hint word twice, and that one is the answer.
+
+    if ((pg->hint_once == true) && (hint_repeated (pg, si[i], idx[i]) == true))
+    {
+      hit->once = true;
+
+      continue;
+    }
+
     u64 pos  = 0;
     u32 cost = 0;
 
@@ -8906,6 +9079,17 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
   if (found == false)
   {
+    // Spelled, and spelled only by repeating one of the words. The run walks that position and steps
+    // over it, so the answer is that this attack does not try this password rather than where it does.
+
+    if (hit.once == true)
+    {
+      event_log_info (pg->hcctx, "lookup: this grammar spells it, but every way it does uses one of your hint words twice");
+      event_log_info (pg->hcctx, "lookup: so this attack never tries this password. name that word twice in hintwords, or give hintrepeat=1, and ask again");
+
+      return;
+    }
+
     // Case 3, and the reason the setting exists. No structure spells this password, so the OMEN
     // escape is the only route left, and this run does not carry it. There is nothing here to
     // search either: a run that dropped the escape never built its tables, so what can be said is
@@ -9127,6 +9311,11 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   u64 hintaccount = 0;
 
+  // 2 is not a value hintrepeat takes, so it survives the parse only on a run that never named the
+  // setting. That is what lets the refusal below tell "hintrepeat=0" from a run that said nothing.
+
+  u64 hintrepeat = 2;
+
   const char *hintwords = NULL;
   const char *hintfile  = NULL;
   const char *hintrank  = NULL;
@@ -9149,6 +9338,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "hintwords", FEED_PARAM_TYPE_STR, &hintwords, 0, 0, "the hint words themselves, comma separated, best first" },
     { "hintfile",  FEED_PARAM_TYPE_STR, &hintfile,  0, 0, "a file of hint words, one per line, optionally followed by a tab and a probability" },
     { "hintrank",  FEED_PARAM_TYPE_STR, &hintrank,  0, 0, "what a hint word with no probability of its own is worth: zipf, linear or flat" },
+    { "hintrepeat", FEED_PARAM_TYPE_U64, &hintrepeat, 0, 1, "let one candidate spell the same hint word more than once, which naming that word twice does for one word alone" },
     { "weights", FEED_PARAM_TYPE_STR, &weights, 0, 0, "share of the grammar each ruleset carries, colon separated, one per ruleset" },
     { "lookup",  FEED_PARAM_TYPE_STR, &lookup,  0, 0, "ask where this attack reaches a candidate instead of running it" },
     { NULL, 0, NULL, 0, 0, NULL }
@@ -9226,6 +9416,18 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     if (hint_file_load (global_ctx, pg, hintfile) == false) return false;
   }
 
+  // How many words were named, which is what the repeat rule counts against. It is read here because
+  // hint_expand () replaces the count with the number of case forms the words came out as, and three
+  // forms of one word are still one fact.
+
+  pg->hw_srcs = pg->hw_cnt;
+
+  // A candidate spells each word once, unless the run asks for the other behaviour. Only a named set
+  // can honour it: an account's words are a different set for every hash and -a 9 pairs word N with
+  // salt N, so a position with nothing to put in it stops that run rather than costing it a guess.
+
+  pg->hint_once = ((pg->hw_cnt > 0) && (hintrepeat != 1));
+
   // Naming the words fixes how many there are, so the count is not given twice.
 
   if (pg->hw_cnt > 0) hintaccount = pg->hw_cnt;
@@ -9260,6 +9462,17 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     if (lookup != NULL)
     {
       gerr (global_ctx, "lookup cannot answer for an attack whose words come from the hashes. They are a different set for every hash, so a candidate has no one place in the stream");
+
+      return false;
+    }
+
+    // A third. Refusing a candidate costs a position, and an attack that pairs word N with salt N has
+    // nothing to put in a position it leaves empty, so the rule cannot be honoured here either way
+    // round.
+
+    if (hintrepeat != 2)
+    {
+      gerr (global_ctx, "hintrepeat decides whether a candidate may spell one of your words twice. An attack whose words come from the hashes pairs word N with salt N, so it cannot leave a position empty and always spells what the grammar asks for");
 
       return false;
     }
@@ -9638,6 +9851,7 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   hcfree (pg->hw_cased);
   hcfree (pg->hw);
   hcfree (pg->hw_cost);
+  hcfree (pg->hw_src);
 
   hcfree (pg->lists);
 

@@ -415,8 +415,10 @@ For a tree full of modules, this does it:
 - PCFG: A ruleset can take its words from the command line instead of from its own training, so naming what you know about one person leaves the grammar to wrap those words in everything people wrap words in, in the order the training says is likely
 - PCFG: New shipped ruleset hints, which is the trained grammar with the words taken out of it and is built from default-passwords by tools/pcfg_hints.py
 - PCFG: New settings hintwords, hintfile and hintrank, which say what those words are and what an unranked one is worth
+- PCFG: A hint ruleset spells each of your words at most once in a candidate, so a shape with two word slots joins two different words rather than repeating one. Naming a word twice makes it two words of the list, and the new hintrepeat setting lets one candidate spell the same word more than once
 - PCFG: New setting hintaccount, which says the words are a different set for every hash and come from what the module knows about it. That is the grammar phase of attack-mode 9
 - Feeds: A feed is given the shared folder, so one that ships data of its own can find it
+- Feeds: A feed may answer GENERIC_RC_SKIP for a position it holds and has no candidate for, which hashcat books as a rejected word rather than as the end of the feed
 - Files: Added hc_fopen_mem, which reads a file that is already in memory
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
 - Kernels: Added the DEScrypt pure kernel for attack-mode 3, and both salt paths share one multi hash kernel

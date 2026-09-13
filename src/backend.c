@@ -5096,6 +5096,16 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     if (line_len_raw == GENERIC_RC_ERROR) return -1;
 
+    // A position the amplifier holds but has no word for. It costs an inner loop slot the same way a
+    // word thrown away on its length does.
+
+    if (line_len_raw == GENERIC_RC_SKIP)
+    {
+      r++;
+
+      continue;
+    }
+
     // A feed reports the true length of a word even when it only had room to write the first out_size
     // bytes of it, so one that does not fit has to be thrown away here rather than believed.
 

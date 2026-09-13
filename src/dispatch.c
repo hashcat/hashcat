@@ -747,7 +747,13 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     const u64 words_off = device_param->words_off;
 
-    batch->words_off = words_off;
+    // Where this batch starts, which is where the first candidate in it came from. A batch is usually
+    // one chunk and the two agree, so setting this on every chunk was harmless until a feed began
+    // refusing positions: several chunks are then needed to fill one batch, and the launch was left
+    // reporting the last of them. A crack was named at a position millions of words past the candidate
+    // that produced it. fill_slow () answers the same question the same way.
+
+    if (batch->pws_cnt == 0) batch->words_off = words_off;
 
     if ((gf->seek_known == false) || (gf->seek_pos != words_off))
     {
@@ -810,6 +816,17 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       if (pw_len == GENERIC_RC_ERROR) return -1;
 
       gf->seek_pos++;
+
+      // The feed held this position but had no candidate for it. It is booked the same way a word
+      // rejected on its length is, so the position still counts towards the keyspace and the status
+      // screen reports it under Rejected.
+
+      if (pw_len == GENERIC_RC_SKIP)
+      {
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+        continue;
+      }
 
       // A feed reports the true length even when the candidate did not fit and it only wrote the
       // first PW_MAX bytes. If nothing in this run can shorten it then it is simply too long, and
