@@ -50,7 +50,7 @@ function usage()
   echo ""
   echo "     --skip-clean-cache             : Skip cleaning the kernel caches before starting the tests"
   echo ""
-  echo "-M / --minimal                      : test only the hash-modes hashcat benchmarks, read from src/benchmark.c, vector-width 1"
+  echo "-M / --minimal                      : test only 24 hash types covering all distinct code paths, vector-width 1"
   echo ""
   echo "-f / --force                        : run hashcat using --force"
   echo ""
@@ -905,18 +905,7 @@ startTime=$(date +%s)
 
 mkdir -p ${OUTD} &> /dev/null
 
-if [ "${MINIMAL}" -eq 1 ]; then
-  MINIMAL_MODES=$(awk '/DEFAULT_BENCHMARK_ALGORITHMS_BUF\[\] *=/,/^};/' "${TDIR}"/../src/benchmark.c 2>/dev/null \
-    | sed -n 's/^[[:space:]]*\([0-9][0-9]*\)[[:space:]]*,.*/\1/p' \
-    | sort -u -n \
-    | tr '\n' ' ')
-
-  if [ -z "${MINIMAL_MODES}" ]; then
-    echo "! -M could not read DEFAULT_BENCHMARK_ALGORITHMS_BUF from ${TDIR}/../src/benchmark.c"
-
-    exit 1
-  fi
-fi
+MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 14511 14600 14900 15400 15700 20510 22000 29511 33000 33500 34100"
 
 # A mode is covered once it has an oracle, and an oracle is a .pm or a .py. Globbing .pm alone left
 # 1000 and 5200 out of the suite from the moment 731f2ed8c gave them a .py one.
