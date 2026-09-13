@@ -55,6 +55,7 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 # List of modes which return a different output hash format than the input hash format
 NOCHECK_ENCODING="16800 22000"
 
+
 # List of LUKS modes which have test containers
 LUKS1_LEGACY_MODE="14600"
 LUKS1_MODES="29511 29512 29513 29521 29522 29523 29531 29532 29533 29541 29542 29543"
@@ -209,6 +210,13 @@ VECTOR_WIDTHS="1 4"
 KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+
+# The same list, kept before the additions below, because attack_exec is what decides whether a feed
+# gets its device engine and the additions are not about attack_exec. -a 4 is the one attack mode
+# that reads it: the pcfg feed amplifies on the device for a mode whose kernel runs inside, and falls
+# back to building every candidate on the host for a mode whose kernel runs outside.
+
+HOST_ENGINE_ALGOS="${SLOW_ALGOS}"
 
 # fake slow algos, due to specific password pattern (e.g. ?d from "mask_3" is invalid):
 # ("only" drawback is that just -a 0 is tested with this workaround)
@@ -846,6 +854,24 @@ function status()
 function attack_whole_word()
 {
   attack_mode=$1
+
+  # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has no optimized
+  # kernel. hashcat refuses -O for it rather than ignoring the flag, because the digests were already
+  # parsed under it, so the run ends with "The device engine has no optimized kernel. Run this without
+  # -O." and nothing is tested. An optimized pass has nothing to run for such a mode; the pure pass
+  # covers the attack mode.
+  #
+  # A mode whose kernel runs outside is not this case. There the feed builds every candidate on the
+  # host, no device engine is asked for, and -a 4 with -O runs and cracks. Measured on this tree:
+  # -m 0 and -m 1000 are refused with -O, -m 400 and -m 3200 crack 7 of 7 with it. So the test is on
+  # attack_exec and not on -O alone, or the optimized pass would quietly stop covering -a 4 for every
+  # slow mode, which is the kind of hole this skip exists to avoid making.
+
+  if [ "${attack_mode}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && ! is_in_array "${hash_type}" ${HOST_ENGINE_ALGOS}; then
+    echo "> Skipping hash type ${hash_type} attack mode 4: it has no optimized kernel, so it runs in the pure pass only." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+    return
+  fi
 
   file_only=0
 
@@ -1763,8 +1789,12 @@ function attack_3()
     # spells all of them. The hcmask path below already gives hashcat one mask per line, which
     # is exactly one mask per password, so take it whenever a character is in play and write a
     # mask per password rather than searching a mask per length.
+    #
+    # The test for a multi byte character is tr deleting every byte that is ASCII and asking whether
+    # anything is left, because -P is a GNU extension: the grep on a Mac answers "invalid option --
+    # P" and exits 2, which 2>/dev/null hides, so the branch was never taken there.
 
-    if grep -qP '[^\x00-\x7F]' "${OUTD}/${hash_type}_passwords.txt" 2>/dev/null; then
+    if [ -n "$(tr -d '\000-\177' < "${OUTD}/${hash_type}_passwords.txt")" ]; then
       need_hcmask=2
     fi
 
@@ -1772,11 +1802,12 @@ function attack_3()
       need_hcmask=1
     fi
 
-    if [ ${need_hcmask} -eq 2 ]; then
-      tail_hashes=$(wc -l < "${OUTD}/${hash_type}_passwords.txt")
+    # the hcmask path below spells its digits with '?d' as well, so it has the same reach as the
+    # single mask: at most increment_max positions. It therefore takes the same hashes. Taking every
+    # password instead puts one line in the file per password, and the oracles generate passwords of
+    # up to 128 bytes of nothing but digits, which is a line no mask attack comes back from.
 
-      cp "${OUTD}/${hash_type}_hashes.txt" "${hash_file}"
-    elif [ ${need_hcmask} -eq 0 ]; then
+    if [ ${need_hcmask} -eq 2 ] || [ ${need_hcmask} -eq 0 ]; then
       head -n "${head_hashes}" "${OUTD}/${hash_type}_hashes.txt" | tail -n "${tail_hashes}" > "${hash_file}"
     else
       tail_hashes=$(awk "length >= ${increment_min}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
@@ -1798,15 +1829,15 @@ function attack_3()
     cracks_offset=0
 
     if [ ${need_hcmask} -eq 2 ]; then
-      cracks_offset=0
+      cracks_offset=$((head_hashes - tail_hashes))
 
       mask="${OUTD}/${hash_type}_multi_a3.hcmask"
 
       : > "${mask}"
 
-      while IFS= read -r a3_pass; do
+      awk "length >= ${increment_min} && length <= ${increment_max}" "${OUTD}/${hash_type}_passwords.txt" | while IFS= read -r a3_pass; do
         printf '%s\n' "$(mask_literalize "$(mask_dots ${#a3_pass})" "${a3_pass}")" >> "${mask}"
-      done < "${OUTD}/${hash_type}_passwords.txt"
+      done
     elif [ ${need_hcmask} -eq 0 ]; then
       cracks_offset=$((head_hashes - tail_hashes))
 
@@ -2241,15 +2272,26 @@ function attack_6()
           pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
         fi
 
-        if [ ${#pass} -le ${i} ]; then
+        # The loop index doubles as the length of the mask, so a password no longer than its own
+        # index was skipped. A mode whose passwords are all short then reached an index above every
+        # password and produced no case at all. Cap the mask at one byte less than the password
+        # instead, and skip only a password that cannot be split into a word and a mask.
+
+        mask_len=${i}
+
+        if [ ${mask_len} -ge ${#pass} ]; then
+          mask_len=$((${#pass} - 1))
+        fi
+
+        if [ ${mask_len} -lt 1 ]; then
           i=$((i + 1))
           continue
         fi
 
-        # the mask covers the last ${i} bytes, or a little more when that offset falls inside a
-        # multi byte character, see utf8_split_point()
+        # the mask covers the last ${mask_len} bytes, or a little more when that offset falls inside
+        # a multi byte character, see utf8_split_point()
 
-        a6_split=$(utf8_split_point "${pass}" $((${#pass} - i)))
+        a6_split=$(utf8_split_point "${pass}" $((${#pass} - mask_len)))
 
         printf '%s\n' "${pass:0:${a6_split}}" >> "${dict1_a6}"
 
@@ -6300,6 +6342,8 @@ OPTIONS:
         against one hash, so -r defaults to 60 here rather than 400; modes that
         hit it are reported separately from modes that failed.
 
+  -M    Minimal mode: test only 24 hash types covering all distinct code paths
+
   -h    Show this help
 
 EOF
@@ -6322,8 +6366,9 @@ GENERATE_CONTAINERS=0
 SELFTEST_ALL=0
 RUNTIME_SET=0
 HT_SET=0
+MINIMAL=0
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSy" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSyM" opt; do
 
   case ${opt} in
     "V")
@@ -6483,6 +6528,12 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSy" opt; do
       GENERATE_CONTAINERS=1
       ;;
 
+    "M")
+      MINIMAL=1
+      HT=65535
+      VECTOR=1
+      ;;
+
     \?)
       usage
       ;;
@@ -6527,6 +6578,24 @@ if [ -n "${SUDO_USER:-}" ]; then
   exit 1
 fi
 
+# -a 4 asked for on one mode whose kernel runs inside, in an optimized run, has nothing it can do:
+# every cell would be skipped by the test in attack_whole_word (). Saying so here, with the option
+# that does work, costs one line instead of a run that tests nothing. -m all is not this case, and
+# neither is a mode whose kernel runs outside: there -a 4 runs with -O.
+
+if [ "${ATTACK}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && [ "${HT}" != "65535" ] && echo -n "${HT}" | grep -q '^[0-9]\+$'; then
+  if ! is_in_array "${HT}" ${HOST_ENGINE_ALGOS}; then
+    echo "! Attack mode 4 has no optimized kernel for hash type ${HT}, and this run is optimized."
+    echo "!"
+    echo "! -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has a"
+    echo "! pure kernel only. Optimized is the default here, so add -P to run attack mode 4:"
+    echo "!"
+    echo "!     ${0} -m ${HT} -a 4 -P"
+
+    exit 1
+  fi
+fi
+
 # -g on its own means everything -g can build, not the default of -m 0. Mode 0
 # has no generator, so without this the run starts, finds nothing to generate
 # and reports an error for a run nobody asked for.
@@ -6557,6 +6626,14 @@ if [ $(uname) == "Darwin" ]; then
       IS_APPLE_SILICON=1
     fi
   fi
+fi
+
+# Six of these are the first entry of a family list defined near the top of this file, and are read
+# from there rather than typed again, so -M follows the family when the family changes.
+
+if [ "${MINIMAL}" -eq 1 ]; then
+  MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 ${TC_MODES%% *} 11600 12500 ${VC_MODES%% *} 14200 ${CL_MODES%% *} ${LUKS1_LEGACY_MODE} 14900 15400 15700 20510 22000 ${LUKS1_MODES%% *} 33000 33500 ${LUKS2_MODES}"
+  HASH_TYPES="${MINIMAL_MODES}"
 fi
 
 export IS_OPTIMIZED=${OPTIMIZED}
@@ -6917,35 +6994,6 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     # skip deprecated hash-types
     if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 2501 ] || [ "${hash_type}" -eq 16800 ] || [ "${hash_type}" -eq 16801 ] ; then
       continue
-    fi
-
-    # test.pl produce wrong hashes with Apple
-    # would be necessary to investigate to understand why
-    if [ "${hash_type}" -eq 1800 ]; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        continue
-      fi
-    fi
-
-    # Digest::BLAKE2 is broken on Apple Silicon
-    if [ "${hash_type}" -eq 600 ]; then
-      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
-        continue
-      fi
-    fi
-
-    # Digest::GOST is broken on Apple Silicon
-    if [ "${hash_type}" -eq 6900 ]; then
-      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
-        continue
-      fi
-    fi
-
-    # Crypt::GCrypt is broken on Apple
-    if [ "${hash_type}" -eq 18600 ]; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        continue
-      fi
     fi
 
     if [ -z "${PACKAGE_FOLDER}" ]; then
