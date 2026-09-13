@@ -27,6 +27,8 @@ typedef struct hm_sysfs_cpu_lib
 
   SYSFS_CPU_LIB lib;
 
+  char *syspath;
+
 } hm_sysfs_cpu_lib_t;
 
 typedef struct
