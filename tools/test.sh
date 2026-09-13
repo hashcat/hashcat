@@ -211,13 +211,6 @@ KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/modu
 HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
-# What -M runs, taken from the list hashcat benchmarks rather than written out again here.
-# tools/benchmark_deep.pl reads the same array for the same reason, and it sits with the lists above
-# because a packaged run has no src/ to read: the copy this script writes into a package freezes all
-# of them into literals.
-
-MINIMAL_MODES=$(awk '/DEFAULT_BENCHMARK_ALGORITHMS_BUF\[\] *=/,/^};/' "${TDIR}"/../src/benchmark.c 2>/dev/null | sed -n 's/^[[:space:]]*\([0-9][0-9]*\)[[:space:]]*,.*/\1/p' | sort -u -n | tr '\n' ' ')
-
 # The same list, kept before the additions below, because attack_exec is what decides whether a feed
 # gets its device engine and the additions are not about attack_exec. -a 4 is the one attack mode
 # that reads it: the pcfg feed amplifies on the device for a mode whose kernel runs inside, and falls
@@ -1811,8 +1804,8 @@ function attack_3()
 
     # the hcmask path below spells its digits with '?d' as well, so it has the same reach as the
     # single mask: at most increment_max positions. It therefore takes the same hashes. Taking every
-    # password instead asks a mask attack for the digits of a 31 byte password, which is 10^20
-    # candidates on one line of the file and never comes back.
+    # password instead puts one line in the file per password, and the oracles generate passwords of
+    # up to 128 bytes of nothing but digits, which is a line no mask attack comes back from.
 
     if [ ${need_hcmask} -eq 2 ] || [ ${need_hcmask} -eq 0 ]; then
       head -n "${head_hashes}" "${OUTD}/${hash_type}_hashes.txt" | tail -n "${tail_hashes}" > "${hash_file}"
@@ -6349,8 +6342,7 @@ OPTIONS:
         against one hash, so -r defaults to 60 here rather than 400; modes that
         hit it are reported separately from modes that failed.
 
-  -M    Minimal mode: test only the hash-modes hashcat benchmarks, read from
-        src/benchmark.c, instead of every mode the suite knows
+  -M    Minimal mode: test only 24 hash types covering all distinct code paths
 
   -h    Show this help
 
@@ -6636,13 +6628,11 @@ if [ $(uname) == "Darwin" ]; then
   fi
 fi
 
+# Six of these are the first entry of a family list defined near the top of this file, and are read
+# from there rather than typed again, so -M follows the family when the family changes.
+
 if [ "${MINIMAL}" -eq 1 ]; then
-  if [ -z "${MINIMAL_MODES}" ]; then
-    echo "! -M could not read DEFAULT_BENCHMARK_ALGORITHMS_BUF from ${TDIR}/../src/benchmark.c"
-
-    exit 1
-  fi
-
+  MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 ${TC_MODES%% *} 11600 12500 ${VC_MODES%% *} 14200 ${CL_MODES%% *} ${LUKS1_LEGACY_MODE} 14900 15400 15700 20510 22000 ${LUKS1_MODES%% *} 33000 33500 ${LUKS2_MODES}"
   HASH_TYPES="${MINIMAL_MODES}"
 fi
 
@@ -7339,7 +7329,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
   HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ *$//')
   KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
   SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
-  MINIMAL_MODES_PACKAGED=$(echo "${MINIMAL_MODES}" | tr '\n' ' ' | sed 's/ *$//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
@@ -7347,7 +7336,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
     -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
-    -e "s/^\(MINIMAL_MODES\)=\$(.*/\1=\"${MINIMAL_MODES_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
