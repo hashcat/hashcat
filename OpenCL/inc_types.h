@@ -2361,6 +2361,18 @@ typedef struct pcfg_slot
 
   u32 pool_off;
   u32 radix;
+
+  // What a capitalisation slot has to know to reach the upper case image of the entry the slot it
+  // follows chose: that image's base in the pool without per entry offsets, and the distance to it
+  // with them. It means nothing on any other kind of slot and every feed leaves it zero there.
+  //
+  // It is NOT a starting digit. pcfg_odo_seed () decomposes il_pos on its own, so a slot cannot be
+  // told to begin part way along its bucket, and a host side rebuild that added a start here would
+  // name a different candidate than the card hashed. A cracked hash would then be written out with a
+  // plaintext that does not hash to it. Giving the odometer a start means changing pcfg_odo_seed (),
+  // pcfg_expand () and the two global_explain () copies together, and paying for it on every slot of
+  // every seed.
+
   u32 digit;
   u32 packed;
 

@@ -236,6 +236,32 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   work = MIN (work, max);
 
+  // -a 9 pairs word N with salt N, and a feed that covers several rounds writes them round major, so
+  // the pairing is word N with salt N modulo the salt count. What the kernel is told is the batch's
+  // own offset, one number for the whole batch, so a batch that ran past the end of a round would
+  // carry on into the next one against salts counted from where the batch began. Every word after the
+  // boundary would then be hashed against the wrong account, and nothing anywhere would say so: the
+  // run would simply crack less.
+  //
+  // Cutting the batch at the boundary is what keeps one offset true for all of it. With more accounts
+  // than a launch holds it costs one short batch per round, which is nothing. With fewer, every launch
+  // carries exactly the salt count, which is the ceiling this attack has always had: the kernel reads
+  // the salt index off the work item id, so a launch cannot cover more accounts than there are.
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    const u32 salts_cnt = hashcat_ctx->hashes->salts_cnt;
+
+    if (salts_cnt > 0)
+    {
+      const u64 round_left = salts_cnt - (words_off % salts_cnt);
+
+      work = MIN (work, round_left);
+    }
+  }
+
   status_ctx->words_off += work;
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
@@ -360,6 +386,14 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       #endif
 
       const u64 words_fin = words_off + work;
+
+      // Where this batch starts in the keyspace. fill_generic () sets the same field and this did not,
+      // so under --slow-candidates words_off_launch stayed 0 for every launch and everything that
+      // turns a work item back into a position had only the index inside the launch. The chunk that
+      // contributes the first candidate sets it, because a batch built from several chunks still
+      // begins where its first candidate did.
+
+      if (batch->pws_cnt == 0) batch->words_off = words_off;
 
       batch->words_fin = words_fin;
 
@@ -713,7 +747,13 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     const u64 words_off = device_param->words_off;
 
-    batch->words_off = words_off;
+    // Where this batch starts, which is where the first candidate in it came from. A batch is usually
+    // one chunk and the two agree, so setting this on every chunk was harmless until a feed began
+    // refusing positions: several chunks are then needed to fill one batch, and the launch was left
+    // reporting the last of them. A crack was named at a position millions of words past the candidate
+    // that produced it. fill_slow () answers the same question the same way.
+
+    if (batch->pws_cnt == 0) batch->words_off = words_off;
 
     if ((gf->seek_known == false) || (gf->seek_pos != words_off))
     {
@@ -776,6 +816,17 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       if (pw_len == GENERIC_RC_ERROR) return -1;
 
       gf->seek_pos++;
+
+      // The feed held this position but had no candidate for it. It is booked the same way a word
+      // rejected on its length is, so the position still counts towards the keyspace and the status
+      // screen reports it under Rejected.
+
+      if (pw_len == GENERIC_RC_SKIP)
+      {
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+        continue;
+      }
 
       // A feed reports the true length even when the candidate did not fit and it only wrote the
       // first PW_MAX bytes. If nothing in this run can shorten it then it is simply too long, and

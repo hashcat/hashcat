@@ -25,26 +25,11 @@ static const char *const HLFMT_TEXT_NSLDAPS  = "nsldaps";
 // Turning one account name into the words an association attack can try for that account.
 //
 // "j.smith" is three tries and not one, because the account name is a hint rather than a password and
-// the parts of it are hints in their own right. john's single mode does the same thing, and it takes
-// the parts from the gecos field and the home directory too. Here there is only the name.
+// the parts of it are hints in their own right. Only the name is available here, and what a mode
+// carries beyond it comes from the module instead: see module_hash_hints ().
 //
-// Every word is a substring of the name, so nothing is copied and the words point into the caller's
-// buffer. The whole name is always first, which is what makes the first round of an attack identical to
-// what a one word per account run has always done.
-
-static bool association_word_is_separator (const char c)
-{
-  if ((c >= 'a') && (c <= 'z')) return false;
-  if ((c >= 'A') && (c <= 'Z')) return false;
-  if ((c >= '0') && (c <= '9')) return false;
-
-  // Anything above ASCII is a letter as far as this is concerned. Splitting inside a UTF-8 sequence
-  // would produce words that are not words, and a name in a non-latin script would be split to pieces.
-
-  if ((u8) c >= 0x80) return false;
-
-  return true;
-}
+// Every word here is a substring of the name, so no bytes are copied and the words point into the
+// caller's buffer.
 
 static bool association_word_add (hlfmt_word_t *out_words, u32 *out_cnt, const u32 out_max, const char *buf, const u32 len)
 {
@@ -53,8 +38,9 @@ static bool association_word_add (hlfmt_word_t *out_words, u32 *out_cnt, const u
   // Too short to be a password on its own. Returns true rather than false because false means "the
   // collection is full, stop", which would abandon the rest of the name over one useless piece.
   //
-  // The first word is the whole account name and is exempt. It is added before any split, so an empty
-  // collection is the test for it, and a short name is still tried as itself.
+  // This is the collector the case splitter fills, so the floor is applied on the way in as well as on
+  // the way out in hlfmt_hint_take (). Whatever was collected first is exempt, which matters only when
+  // a caller starts from an empty collection.
 
   if ((*out_cnt > 0) && (len < ASSOCIATION_WORD_MIN_LEN)) return true;
 
@@ -130,71 +116,371 @@ static void association_words_split_more (hlfmt_word_t *out_words, u32 *out_cnt,
   association_word_add (out_words, out_cnt, out_max, buf + start, len - start);
 }
 
-u32 hlfmt_user_words (const char *user_buf, const u32 user_len, hlfmt_word_t *out_words, const u32 out_max)
+// The words an attack guesses from, cut out of an account name. Both phases of -a 9 read this one list,
+// the rules phase to try each word as a candidate and the grammar phase to put something around it.
+//
+// The list is ranked by how likely a word is to be the STEM of a password rather than to be one. That
+// is what a grammar needs, and it is close enough for a rule list: the first rule of a rule list
+// ordered by yield is the do-nothing rule, so a word the ranking puts first is tried as itself
+// first anyway. "j.smith" is a fine guess and a poor stem, because the full stop survives into every
+// candidate built on it, and it is still in the list, further down.
+//
+// What a grammar has no list of is names, so names come first and the rest follows them. A grammar
+// reaches "smith42" from "smith" and its own digit lists, so a digit run is worth less as a hint than a
+// name is. It is still worth having, because a rule applied to "2024" out of "user2024" reaches a
+// password somebody chose.
+//
+// The order, best first:
+//
+//   1. the longest run of letters, which for a login is usually the surname
+//   2. every run of letters laid end to end, which is a stem in its own right and is not a substring of
+//      the name, so it is the one hint that has to be built rather than pointed at
+//   3. the other runs of letters, longest first
+//   4. the runs of digits, longest first
+//   5. the account name as it was written, when that is not already one of the above
+//
+// That order is a judgement and not a measurement. Measuring it needs a corpus of account names beside
+// the passwords those people chose, and the one to hand, a password contest, has none: 0.1 per cent of
+// its 2645 pairs have any word of the account name in the password, because contest passwords are
+// generated rather than chosen. Whoever does have such a corpus should try 1 and 2 the other way round
+// before anything else.
+//
+// The last entry has a slot kept for it while 3 and 4 are collected, because a name that falls into
+// enough pieces would otherwise fill the list with them and leave no room for the name itself. If the
+// name turns out to be one of the pieces, the slot goes back to them.
+//
+// scratch holds the joined form, which is the only hint that is not a substring of the name.
+//
+// Every piece a split produces is held to ASSOCIATION_WORD_MIN_LEN, at a separator and at a case or
+// digit boundary alike, and so is the joined form. The name as it was written is the one exemption, and
+// it is added last and unconditionally, so an account too short to survive the floor still has itself
+// to try.
+
+static bool hlfmt_hint_add (hlfmt_word_t *out_words, u32 *out_cnt, const u32 out_max, const char *buf, const u32 len)
 {
-  if (user_len == 0) return 0;
-  if (out_max  == 0) return 0;
+  if (len == 0) return true;
 
-  hlfmt_word_t all[ASSOCIATION_WORDS_COLLECT];
+  if (*out_cnt == out_max) return false;
 
-  u32 all_cnt = 0;
+  // Compared without case because the grammar lowers a hint before it uses it, so two hints that differ
+  // only in case are one hint that costs two slots.
 
-  // The whole name first, so that round zero of an attack is exactly the one word per account run
-
-  association_word_add (all, &all_cnt, ASSOCIATION_WORDS_COLLECT, user_buf, user_len);
-
-  // Then the parts between the separators, "j.smith" giving j and smith
-
-  u32 start = 0;
-
-  for (u32 i = 0; i <= user_len; i++)
+  for (u32 i = 0; i < *out_cnt; i++)
   {
-    const bool end = (i == user_len) ? true : association_word_is_separator (user_buf[i]);
+    if (out_words[i].len != len) continue;
 
-    if (end == false) continue;
+    u32 k = 0;
 
-    if (association_word_add (all, &all_cnt, ASSOCIATION_WORDS_COLLECT, user_buf + start, i - start) == false) break;
-
-    start = i + 1;
-  }
-
-  // Then the case and digit boundaries inside each of those parts. Walked over what has been collected
-  // so far rather than over the name again, because "JEdgarHoover.2024" wants splitting on both.
-
-  const u32 split_cnt = all_cnt;
-
-  for (u32 i = 0; i < split_cnt; i++)
-  {
-    association_words_split_more (all, &all_cnt, ASSOCIATION_WORDS_COLLECT, all[i].buf, all[i].len);
-  }
-
-  // Over the cap, drop the shortest. A name that falls apart into a dozen pieces would otherwise make
-  // every other account in the file run a dozen times, and the pieces it would spend that on are its
-  // initials. The whole name is the longest of its own parts, so it is never the one dropped.
-
-  while (all_cnt > out_max)
-  {
-    u32 worst = 1;
-
-    for (u32 i = 2; i < all_cnt; i++)
+    while (k < len)
     {
-      if (all[i].len <= all[worst].len) worst = i;
+      const char a = out_words[i].buf[k];
+      const char b = buf[k];
+
+      const char la = ((a >= 'A') && (a <= 'Z')) ? (char) (a + 32) : a;
+      const char lb = ((b >= 'A') && (b <= 'Z')) ? (char) (b + 32) : b;
+
+      if (la != lb) break;
+
+      k++;
     }
 
-    for (u32 i = worst; i < (all_cnt - 1); i++)
+    if (k == len) return true;
+  }
+
+  out_words[*out_cnt].buf = buf;
+  out_words[*out_cnt].len = len;
+
+  *out_cnt = *out_cnt + 1;
+
+  return true;
+}
+
+static bool hlfmt_is_letter (const char c)
+{
+  if ((c >= 'a') && (c <= 'z')) return true;
+  if ((c >= 'A') && (c <= 'Z')) return true;
+
+  // Anything above ASCII is a letter as far as this is concerned, the same as it is to the splitter
+  // above, so a name in a non-latin script is one run rather than none.
+
+  if ((u8) c >= 0x80) return true;
+
+  return false;
+}
+
+// Take the longest word left in a pool, then the next longest, until the collection is full or the pool
+// is spent. A word that is taken is emptied out of the pool, so the walk can be resumed where it
+// stopped and never offers the same word twice.
+
+// Longest first out of a pool, and never a piece below the floor. A pool holds what a split produced,
+// so everything in it is subject to ASSOCIATION_WORD_MIN_LEN. The name itself never comes through here.
+
+static void hlfmt_hint_take (hlfmt_word_t *out_words, u32 *out_cnt, const u32 out_max, hlfmt_word_t *pool, const u32 pool_cnt)
+{
+  while (*out_cnt < out_max)
+  {
+    u32 best = pool_cnt;
+
+    for (u32 i = 0; i < pool_cnt; i++)
     {
-      all[i] = all[i + 1];
+      if (pool[i].len == 0) continue;
+
+      if (pool[i].len < ASSOCIATION_WORD_MIN_LEN) continue;
+
+      if ((best == pool_cnt) || (pool[i].len > pool[best].len)) best = i;
     }
 
-    all_cnt--;
-  }
+    if (best == pool_cnt) break;
 
-  for (u32 i = 0; i < all_cnt; i++)
+    hlfmt_hint_add (out_words, out_cnt, out_max, pool[best].buf, pool[best].len);
+
+    pool[best].len = 0;
+  }
+}
+
+// Cutting one field into words and adding them to a list that may already hold some.
+//
+// Three fields are cut this way and they share one list, so the count is carried in and out rather than
+// started from zero. That is what lets the duplicate test see the words an earlier field contributed: a
+// home directory ending in the login, which is nearly every home directory, adds nothing twice.
+//
+// The joined form is the one word that is not a substring of the field, so it is built in scratch, and
+// each field therefore needs a slice of its own. It can never be longer than the field, so the caller
+// advances scratch by the field length and the slices cannot overlap.
+
+static void hlfmt_user_hints_append (const char *user_buf, const u32 user_len, hlfmt_word_t *out_words, u32 *io_cnt, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  if (user_len == 0) return;
+  if (out_max  == 0) return;
+
+  // The runs of letters, cut again on the case boundaries inside them so that "JEdgarHoover" is J,
+  // Edgar and Hoover rather than one run.
+
+  hlfmt_word_t runs[ASSOCIATION_WORDS_COLLECT];
+
+  u32 runs_cnt = 0;
+
+  u32 at = 0;
+
+  while (at < user_len)
   {
-    out_words[i] = all[i];
+    if (hlfmt_is_letter (user_buf[at]) == false) { at++; continue; }
+
+    const u32 start = at;
+
+    while ((at < user_len) && (hlfmt_is_letter (user_buf[at]) == true)) at++;
+
+    if (runs_cnt == ASSOCIATION_WORDS_COLLECT) break;
+
+    runs[runs_cnt].buf = user_buf + start;
+    runs[runs_cnt].len = at - start;
+
+    runs_cnt++;
   }
 
-  return all_cnt;
+  const u32 whole_cnt = runs_cnt;
+
+  for (u32 i = 0; i < whole_cnt; i++)
+  {
+    association_words_split_more (runs, &runs_cnt, ASSOCIATION_WORDS_COLLECT, runs[i].buf, runs[i].len);
+  }
+
+  // The joined form, which is every run of letters end to end. It is built here because it is the one
+  // hint that is not a substring of the name.
+
+  u32 joined_len = 0;
+
+  for (u32 i = 0; i < whole_cnt; i++)
+  {
+    if ((joined_len + runs[i].len) > scratch_size) break;
+
+    memcpy (scratch + joined_len, runs[i].buf, runs[i].len);
+
+    joined_len += runs[i].len;
+  }
+
+    // 1. the longest run. A later one wins a tie, because a login is usually given name then surname and
+  // the surname is the better stem.
+
+  if (runs_cnt > 0)
+  {
+    u32 best = 0;
+
+    for (u32 i = 1; i < runs_cnt; i++)
+    {
+      if (runs[i].len >= runs[best].len) best = i;
+    }
+
+    if (runs[best].len >= ASSOCIATION_WORD_MIN_LEN)
+    {
+      hlfmt_hint_add (out_words, io_cnt, out_max, runs[best].buf, runs[best].len);
+    }
+  }
+
+  // 2. the joined form, which is built out of the pieces and is held to the same floor
+
+  if (joined_len >= ASSOCIATION_WORD_MIN_LEN)
+  {
+    hlfmt_hint_add (out_words, io_cnt, out_max, scratch, joined_len);
+  }
+
+  // The runs of digits, collected before anything is taken from either pool so that both are ready.
+
+  u32 digs_cnt = 0;
+
+  hlfmt_word_t digs[ASSOCIATION_WORDS_COLLECT];
+
+  at = 0;
+
+  while (at < user_len)
+  {
+    const char c = user_buf[at];
+
+    if ((c < '0') || (c > '9')) { at++; continue; }
+
+    const u32 start = at;
+
+    while ((at < user_len) && (user_buf[at] >= '0') && (user_buf[at] <= '9')) at++;
+
+    if (digs_cnt == ASSOCIATION_WORDS_COLLECT) break;
+
+    digs[digs_cnt].buf = user_buf + start;
+    digs[digs_cnt].len = at - start;
+
+    digs_cnt++;
+  }
+
+  // One slot short of the cap, so that the name as it was written has somewhere to go. A name that
+  // falls into as many pieces as the cap allows would otherwise fill the list with them, one letter
+  // pieces included, and be refused itself: john.q.public@mail.corp.example.com used all eight slots on
+  // its parts and never tried the address.
+
+  const u32 keep = (out_max > 1) ? (out_max - 1) : out_max;
+
+  // 3. the rest of the runs, longest first
+
+  hlfmt_hint_take (out_words, io_cnt, keep, runs, runs_cnt);
+
+  // 4. the runs of digits, longest first
+
+  hlfmt_hint_take (out_words, io_cnt, keep, digs, digs_cnt);
+
+  // 5. the name as it was written
+
+  hlfmt_hint_add (out_words, io_cnt, out_max, user_buf, user_len);
+
+  // The name was already in the list under another guise, so the slot kept for it goes back to the
+  // pieces.
+
+  hlfmt_hint_take (out_words, io_cnt, out_max, runs, runs_cnt);
+
+  hlfmt_hint_take (out_words, io_cnt, out_max, digs, digs_cnt);
+}
+
+u32 hlfmt_user_hints (const char *user_buf, const u32 user_len, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  u32 out_cnt = 0;
+
+  hlfmt_user_hints_append (user_buf, user_len, out_words, &out_cnt, out_max, scratch, scratch_size);
+
+  return out_cnt;
+}
+
+// Every field of an account, cut into one list.
+//
+// The login comes first, because it is the field every hash list format carries and the one a password
+// is most often built from. The gecos field is next, since a real name is worth more than a path, and
+// the home directory last. A field that is empty costs nothing.
+//
+// The first two are given a smaller list than they could fill, so that a login falling into many pieces
+// cannot crowd the real name out. Then the login is offered the rest, which it takes only if the fields
+// behind it left anything, and the duplicate test in hlfmt_hint_add () makes that second pass free.
+//
+// scratch is cut into a slice per field, because each one builds its joined form there and that word
+// has to outlive the call.
+
+u32 hlfmt_account_hints (const char *user_buf, const u32 user_len, const char *gecos_buf, const u32 gecos_len, const char *home_buf, const u32 home_len, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  u32 out_cnt = 0;
+
+  if (out_max == 0) return 0;
+
+  u32 at = 0;
+
+  const u32 keep_user  = (out_max > 2) ? (out_max - 2) : out_max;
+  const u32 keep_gecos = (out_max > 1) ? (out_max - 1) : out_max;
+
+  if ((user_len > 0) && ((at + user_len) <= scratch_size))
+  {
+    hlfmt_user_hints_append (user_buf, user_len, out_words, &out_cnt, keep_user, scratch + at, user_len);
+
+    at += user_len;
+  }
+
+  if ((gecos_len > 0) && ((at + gecos_len) <= scratch_size))
+  {
+    hlfmt_user_hints_append (gecos_buf, gecos_len, out_words, &out_cnt, keep_gecos, scratch + at, gecos_len);
+
+    at += gecos_len;
+  }
+
+  if ((home_len > 0) && ((at + home_len) <= scratch_size))
+  {
+    hlfmt_user_hints_append (home_buf, home_len, out_words, &out_cnt, out_max, scratch + at, home_len);
+
+    at += home_len;
+  }
+
+  // Whatever the fields behind the login did not use goes back to it.
+
+  if ((user_len > 0) && ((at + user_len) <= scratch_size))
+  {
+    hlfmt_user_hints_append (user_buf, user_len, out_words, &out_cnt, out_max, scratch + at, user_len);
+  }
+
+  return out_cnt;
+}
+
+// What one hash carries about its owner, as words an attack may guess from.
+//
+// The module supplies them, because only the module can interpret its own salt and esalt. A module that
+// leaves the hook at MODULE_DEFAULT was given default_hash_hints () when it was loaded, so the pointer
+// is always valid and no caller has to test for it.
+//
+// hash_pos is a digest position. hash_info and the esalt array are indexed that way; the salt array is
+// not, and a digest position is only a salt position where every hash has a salt of its own. That is
+// what -a 9 requires and checks before it runs, and -a 9 is what asks this. Any other caller is handed
+// no salt rather than the wrong one.
+
+u32 hlfmt_hash_hints (hashcat_ctx_t *hashcat_ctx, const u64 hash_pos, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  if (hashes == NULL) return 0;
+
+  if (hash_pos >= hashes->digests_cnt) return 0;
+
+  const hashinfo_t *hash_info = (hashes->hash_info != NULL) ? hashes->hash_info[hash_pos] : NULL;
+
+  const void *esalt = NULL;
+
+  if ((hashes->esalts_buf != NULL) && (hashconfig->esalt_size > 0))
+  {
+    esalt = (const u8 *) hashes->esalts_buf + (hash_pos * hashconfig->esalt_size);
+  }
+
+  const salt_t *salt = NULL;
+
+  if ((hashes->salts_buf != NULL) && (hashes->salts_cnt == hashes->digests_cnt))
+  {
+    salt = &hashes->salts_buf[hash_pos];
+  }
+
+  const u32 cnt = module_ctx->module_hash_hints (hashconfig, salt, esalt, hash_info, out_words, out_max, scratch, scratch_size);
+
+  return cnt;
 }
 
 // hlfmt hashcat
@@ -509,6 +795,91 @@ void hlfmt_hash (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf
     case HLFMT_PASSWD:  hlfmt_hash_passwd  (hashcat_ctx, line_buf, line_len, hashbuf_pos, hashbuf_len); break;
     case HLFMT_SHADOW:  hlfmt_hash_shadow  (hashcat_ctx, line_buf, line_len, hashbuf_pos, hashbuf_len); break;
   }
+}
+
+// The two fields of a passwd line that describe the person rather than the account.
+//
+// Field 4 is the gecos field and its first comma separated part is the real name, where the parts behind
+// it are an office, a phone number and whatever else the site puts there. Field 5 is the home directory,
+// and only its last component is worth anything: the ones in front are "home", "export" and "users",
+// which are the same for every account in the file and would cost a round each for all of them.
+//
+// Both point into line_buf, the same as the login does. A format that has neither is handed two empty
+// fields rather than an error, because most of them have neither.
+
+static void hlfmt_user_extra_passwd (char *line_buf, const int line_len, char **gecos_pos, int *gecos_len, char **home_pos, int *home_len)
+{
+  int sep_cnt = 0;
+
+  int field_start = 0;
+
+  for (int i = 0; i <= line_len; i++)
+  {
+    const bool end = (i == line_len) || (line_buf[i] == ':');
+
+    if (end == false) continue;
+
+    if (sep_cnt == 4)
+    {
+      // The real name only, which is everything before the first comma.
+
+      int len = i - field_start;
+
+      for (int k = 0; k < len; k++)
+      {
+        if (line_buf[field_start + k] != ',') continue;
+
+        len = k;
+
+        break;
+      }
+
+      if (len > 0)
+      {
+        *gecos_pos = line_buf + field_start;
+        *gecos_len = len;
+      }
+    }
+
+    if (sep_cnt == 5)
+    {
+      // The last component, which is the one that names the person rather than the file system.
+
+      int start = field_start;
+
+      for (int k = field_start; k < i; k++)
+      {
+        if (line_buf[k] != '/') continue;
+
+        start = k + 1;
+      }
+
+      if (i > start)
+      {
+        *home_pos = line_buf + start;
+        *home_len = i - start;
+      }
+    }
+
+    sep_cnt++;
+
+    field_start = i + 1;
+  }
+}
+
+void hlfmt_user_extra (u32 hashfile_format, char *line_buf, const int line_len, char **gecos_pos, int *gecos_len, char **home_pos, int *home_len)
+{
+  *gecos_pos = NULL;
+  *gecos_len = 0;
+  *home_pos  = NULL;
+  *home_len  = 0;
+
+  // Only a passwd line carries them. A shadow line has the login and the hash and then ageing counters,
+  // and every other format has the login alone.
+
+  if (hashfile_format != HLFMT_PASSWD) return;
+
+  hlfmt_user_extra_passwd (line_buf, line_len, gecos_pos, gecos_len, home_pos, home_len);
 }
 
 void hlfmt_user (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf, const int line_len, char **userbuf_pos, int *userbuf_len)

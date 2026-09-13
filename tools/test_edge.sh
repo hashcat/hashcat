@@ -69,6 +69,18 @@ function is_in_array()
   return 1
 }
 
+# tools/test.pl emits the word, the salt and the hash hex encoded, so a field carries whatever the
+# module put in it without a comma splitting it or a quote unbalancing the line. Every one of them
+# comes back through here.
+#
+# printf '%b' keeps the decode to shell builtins and one sed, which is the same form the self-test
+# path in tools/test.sh uses, so no xxd or od dependency creeps in.
+
+function unhex()
+{
+  printf '%b' "$(printf '%s' "$1" | sed 's/\(..\)/\\x\1/g')"
+}
+
 # The mask attacks do not test the correct password on its own. The mask puts candidates on one side
 # of it or the other, and the correct one has to be picked out of them, which is what catches a kernel
 # that reports a neighbour of the match. An attack reading a word list has no mask, so the same noise
@@ -998,11 +1010,11 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
       if [ $? -eq 0 ]; then
 
-        # test.pl wraps the field in single quotes, so an empty hash arrives as two characters.
-        # Strip the quotes and ask whether anything is left, rather than counting characters. A
-        # length of 3 is a one character hash, which is what mode 99999 emits and is legitimate.
+        # The hash field is hex, so an empty hash is an empty field and a one character hash is
+        # two characters, which is what mode 99999 emits and is legitimate. Ask whether anything
+        # is there rather than counting characters.
 
-        check_hash=$(cat ${edge_out} | cut -d, -f8- | head -1 | sed -e "s/^'//" -e "s/'$//")
+        check_hash=$(cat ${edge_out} | cut -d, -f8- | head -1)
         if [ -z "${check_hash}" ]; then
           echo "[ ${OUTD} ] !> error detected with Hash-Type ${hash_type}: empty test vectors" | tee -a ${OUTD}/test_edge.details.log
           ((errors++))
@@ -1049,26 +1061,23 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               word_compare=None
               word_len=$(cat ${edge_out} | cut -d, -f4 | head -${i} | tail -1)
               salt_len=$(cat ${edge_out} | cut -d, -f5 | head -${i} | tail -1)
-              word=$(cat ${edge_out} | cut -d, -f6 | head -${i} | tail -1)
-              salt=$(cat ${edge_out} | cut -d, -f7 | head -${i} | tail -1)
-              hash=$(cat ${edge_out} | cut -d, -f8- | head -${i} | tail -1)
+              word=$(unhex "$(cat ${edge_out} | cut -d, -f6 | head -${i} | tail -1)")
+              salt=$(unhex "$(cat ${edge_out} | cut -d, -f7 | head -${i} | tail -1)")
+              hash=$(unhex "$(cat ${edge_out} | cut -d, -f8- | head -${i} | tail -1)")
 
-              x="echo -n '${word}'"
+              # This mode reports a plaintext that is not the candidate it was given, so the word
+              # the attack is fed and the word the outfile is checked against are two different
+              # strings. The candidate is the word without its first 6 bytes.
 
               if [ ${hash_type} -eq 20510 ]; then
-                word_compare="echo -n '${word}'"
-                x="echo -n '${word}' | cut -b7-"
+                word_compare="${word}"
+                word=$(printf '%s' "${word}" | cut -b7-)
               fi
 
               if [ ${have_salt} -eq 1 ]; then
                 salt_len="None"
                 salt=
-              else
-                z="echo -n '${salt}'"
-                salt=$(eval $z)
               fi
-
-              word=$(eval $x)
 
               if [ ${hash_type} -eq 20510 ]; then
                 if [ "$word_len" -le 6 ] && [ "${#word}" -eq 0 ] && { [ "$attack_type" -eq 3 ] || [ "$attack_type" -eq 6 ] || [ "$attack_type" -eq 7 ] || [ "$attack_type" -eq 12 ]; }; then
@@ -1095,9 +1104,6 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               # so that one is already a container and must be passed through untouched.
 
               if [ ${binary_hashfile} -eq 1 ]; then
-                y="echo -n ${hash}"
-                hash=$(eval $y)
-
                 if [ -f "${hash}" ]; then
                   hash_file="${hash}"
                 else
@@ -1109,14 +1115,19 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 hash="${hash_file}"
               fi
 
+              # Every attack below assembles its command line as a string that eval then runs, so
+              # the hash is quoted once here rather than at each of them. A hash is whatever the
+              # module makes of it and can carry a shell metacharacter, an apostrophe for one.
+
+              hash_arg=$(printf '%q' "${hash}")
+
               CMD=""
 
               if [ "${attack_type}" -eq 0 ]; then
                 #echo ${word} > test_${hash_type}_${kernel_type}_${attack_type}_${i}.word
 
-                CMD="echo ${word} | ./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 0"
+                CMD="echo ${word} | ./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 0"
               elif [ "${attack_type}" -eq 1 ]; then
-                word=$(eval $x)
 
                 # Both halves reach the kernel as a buffer of their own, and a UTF-16 mode converts
                 # each on its own, so a character cut in half is two invalid fragments rather than
@@ -1129,7 +1140,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word
                 echo ${word_2} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 1 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 1 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word"
               elif [ "${attack_type}" -eq 3 ]; then
 
                 if [ $pt_hex -eq 1 ]; then
@@ -1158,7 +1169,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   mask_1="$(mask_literalize "${mask_1}" "${word#"${word_1}"}")"
                 fi
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 3 ${word_1}${mask_1}"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 3 ${word_1}${mask_1}"
               elif [ "${attack_type}" -eq 6 ]; then
 
                 if [ $pt_hex -eq 1 ]; then
@@ -1184,7 +1195,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 6 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word ${mask_1}"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 6 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word ${mask_1}"
               elif [ "${attack_type}" -eq 7 ]; then
 
                 if [ $pt_hex -eq 1 ]; then
@@ -1210,7 +1221,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 7 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 7 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word"
               elif [ "${attack_type}" -eq 12 ]; then
 
                 # A mask on both sides of the word is the shape -a 6 and -a 7 cannot reach, so that is
@@ -1269,7 +1280,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo -n "${word_1}" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_12.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 12 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_12.word"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 12 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_12.word"
               elif [ "${attack_type}" -eq 4 ]; then
 
                 # The smallest ruleset that produces a named list of candidates. X is the flat token, so
@@ -1284,7 +1295,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 noise_words "${word}" ${slow_hash} $'\t1.0' > ${ruleset}/Context/1.txt
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 4 ${ruleset}"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 4 ${ruleset}"
               elif [ "${attack_type}" -eq 8 ]; then
 
                 # -a 0 with no wordlist already runs the stdin feed, so the one worth naming here is the
@@ -1293,7 +1304,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 noise_words "${word}" ${slow_hash} "" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_8.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 8 wordlist ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_8.word"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 8 wordlist ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_8.word"
               elif [ "${attack_type}" -eq 9 ]; then
 
                 # -a 9 named a wordlist pairs word N with hash N. The other form of it cuts the
@@ -1306,7 +1317,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo "${word}" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_9.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 9 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_9.word"
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_arg} -a 9 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_9.word"
               fi
 
               cmd_out="${OUTD}/cmd_${hash_type}_${kernel_type}_${attack_type}_${i}.single.log"
@@ -1351,16 +1362,12 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 out=$(cat ${outfile} 2>/dev/null | sed -e 's/    (user password.*$//g')
 
-                x="echo -n ${hash}"
-                hash=$(eval $x)
-
                 md5_1=$(echo ${out} | md5sum | cut -d' ' -f1)
 
                 hc_out="${hash}:${word}"
 
                 if [ "${word_compare}" != "None" ]; then
-                  word_tmp=$(eval $word_compare)
-                  hc_out="${hash}:${word_tmp}"
+                  hc_out="${hash}:${word_compare}"
                 fi
 
                 md5_2=$(echo ${hc_out} | md5sum | cut -d' ' -f1)
@@ -1471,25 +1478,19 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               word_compare=None
               word_len=$(cat ${edge_out} | cut -d, -f4 | head -${i} | tail -1)
               salt_len=$(cat ${edge_out} | cut -d, -f5 | head -${i} | tail -1)
-              word=$(cat ${edge_out} | cut -d, -f6 | head -${i} | tail -1)
-              salt=$(cat ${edge_out} | cut -d, -f7 | head -${i} | tail -1)
-              hash=$(cat ${edge_out} | cut -d, -f8- | head -${i} | tail -1)
-
-              x="echo -n '${word}'"
-              y="echo -n ${hash}"
+              word=$(unhex "$(cat ${edge_out} | cut -d, -f6 | head -${i} | tail -1)")
+              salt=$(unhex "$(cat ${edge_out} | cut -d, -f7 | head -${i} | tail -1)")
+              hash=$(unhex "$(cat ${edge_out} | cut -d, -f8- | head -${i} | tail -1)")
 
               if [ "${hash_type}" == "20510" ]; then
-                word_compare="echo -n '${word}'"
-                x="echo -n '${word}' | cut -b7-"
+                word_compare="${word}"
+                word=$(printf '%s' "${word}" | cut -b7-)
               fi
 
               if [ ${have_salt} -eq 1 ]; then
                 salt_len="None"
                 salt=
               else
-                z="echo -n '${salt}'"
-                salt=$(eval $z)
-
                 # skip hashes with same salt if are not allowed
                 if [ ${same_salt} -eq 0 ]; then
                   if is_in_array "${salt_len}:${salt}" ${SALTS_VAL}; then
@@ -1503,21 +1504,17 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 fi
               fi
 
-              word=$(eval $x)
-              hash=$(eval $y)
-
               if attack_rejects_word "${word}" ${attack_type}; then
                 echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Test ID ${i}, Target-Type multi (this word cannot be written into the attack's input)" | tee -a ${OUTD}/test_edge.details.log
                 continue
               fi
 
-              echo $hash >> ${hash_in}
+              printf '%s\n' "${hash}" >> ${hash_in}
 
               if [ "${word_compare}" != "None" ]; then
-                w=$(eval $word_compare)
-                echo $w >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.words_compare
+                printf '%s\n' "${word_compare}" >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.words_compare
               else
-                echo ${word} >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.words
+                printf '%s\n' "${word}" >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.words
               fi
 
               if [ "${attack_type}" -eq 0 ]; then

@@ -263,9 +263,9 @@ KERNEL_FQ KERNEL_FA void m09820_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     // initial compare
 
-    int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+    const u32 digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-    if (digest_pos == -1) continue;
+    if (digest_pos == (u32) -1) continue;
 
     if (esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockLen != 0)
     {

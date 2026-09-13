@@ -176,9 +176,14 @@ sub edge_format
 
   if (defined $hash)
   {
-    my $format = "%d,%d,%d,%d,%d,'%s','%s','%s'\n";
+    # The word, the salt and the hash go out hex encoded. tools/test_edge.sh reads these fields
+    # into shell variables, and a comma or a quote in one of them would otherwise end the field
+    # early or unbalance the quoting around it. Hex contains neither, so a field stays separable
+    # whatever the module puts in it, and the consumer decodes rather than parses.
 
-    printf ($format, $MODE, $attack_type, $optimized, $word_len, $salt_len, $word, $salt, $hash);
+    my $format = "%d,%d,%d,%d,%d,%s,%s,%s\n";
+
+    printf ($format, $MODE, $attack_type, $optimized, $word_len, $salt_len, unpack ("H*", $word), unpack ("H*", $salt), unpack ("H*", $hash));
   }
 }
 

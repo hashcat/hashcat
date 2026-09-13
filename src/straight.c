@@ -17,6 +17,7 @@
 #include "wordlist.h"
 #include "convert.h"
 #include "feed_ctx.h"
+#include "feed.h"
 #include "straight.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
@@ -44,48 +45,182 @@ static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
   return 0;
 }
 
-// The rounds of -a 9 splitting its own hash file. There is no file per round: a round is "try the Nth
-// word of every account name", so the list is as long as the widest account name in the file.
+// The sources of -a 9 splitting its own hash file. There is no file to name: a source is one phase of
+// the attack, and a phase is one way of turning an account's own words into candidates.
 //
-// The names are walked here rather than the count being asked of the feed, because the round list has to
-// exist before any round is opened and the feed is opened one round at a time.
+// A phase is not a round. A round is "try the Nth candidate of every account", and a phase holds as many
+// of them as it needs. The feed writes them round major, every account once and then every account
+// again, because the attack pairs word N with salt N and the salts are walked in order. So the queue is
+// as long as the phase list and not as long as the widest account name, and how many rounds a phase
+// covers is settled by the feed when it reports its keyspace.
+//
+// Rounds used to be sources of their own, which meant a name with eight words made eight attacks out of
+// one. The run restarted its progress, its elapsed time and its estimate at each of them, which is what
+// a user watching the status screen complains about. Eight was already awkward to read, and the phases
+// below reach numbers that would be unreadable.
 
 static int straight_ctx_add_association_rounds (hashcat_ctx_t *hashcat_ctx)
 {
-  const hashes_t *hashes = hashcat_ctx->hashes;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-  u32 words_max = 1;
+  static const char *const known[] = ASSOCIATION_PHASES;
 
-  if (hashes->hash_info)
+  const u32 known_cnt = sizeof (known) / sizeof (known[0]);
+
+  // Which phases to run, comma separated, cheapest first. The default is the one phase that is
+  // bounded. The grammar phase does not run out, so a run that asks for it runs until it is stopped,
+  // and that is not something an attack should start doing because it was upgraded.
+
+  // Read here rather than with feed_param_lookup (), which skips the first argument because a feed's
+  // own name sits there. These are hashcat's work arguments and the first of them is an argument like
+  // any other.
+
+  const char *want = NULL;
+
+  u32 want_cnt = 0;
+
+  for (int i = 0; i < user_options_extra->hc_workc; i++)
   {
-    hlfmt_word_t words[ASSOCIATION_WORDS_MAX];
+    const char *arg = user_options_extra->hc_workv[i];
 
-    for (u32 i = 0; i < hashes->digests_cnt; i++)
-    {
-      const user_t *user = hashes->hash_info[i]->user;
+    if (feed_param_is_setting (arg) == false) continue;
 
-      if (user == NULL) continue;
+    if (strncmp (arg, "phases=", 7) != 0) continue;
 
-      const u32 words_cnt = hlfmt_user_words (user->user_name, user->user_len, words, ASSOCIATION_WORDS_MAX);
+    want = arg + 7;
 
-      if (words_cnt > words_max) words_max = words_cnt;
-    }
+    want_cnt++;
   }
 
-  straight_ctx->dicts = (char **) hcmalloc (words_max * sizeof (char *));
+  // A setting given twice is refused rather than letting the last one win, which is what the feed layer
+  // does with every other setting and what the documentation promises. phases= never reaches a feed,
+  // because it carries no phase prefix, so the refusal has to be here.
 
-  straight_ctx->dicts_avail = words_max;
-  straight_ctx->dicts_cnt   = words_max;
-
-  for (u32 i = 0; i < words_max; i++)
+  if (want_cnt > 1)
   {
-    char *name = NULL;
+    event_log_error (hashcat_ctx, "phases: given more than once");
 
-    hc_asprintf (&name, "%u", i);
+    return -1;
+  }
 
-    straight_ctx->dicts[i] = name;
+  if (want == NULL) want = ASSOCIATION_PHASES_DEFAULT;
+
+  char *spec = hcstrdup (want);
+
+  if (spec == NULL) return -1;
+
+  u32 cnt = 1;
+
+  for (const char *c = spec; *c; c++) if (*c == ',') cnt++;
+
+  straight_ctx->dicts = (char **) hcmalloc (cnt * sizeof (char *));
+
+  straight_ctx->dicts_avail = cnt;
+  straight_ctx->dicts_cnt   = 0;
+
+  char *save = NULL;
+
+  for (char *p = strtok_r (spec, ",", &save); p != NULL; p = strtok_r (NULL, ",", &save))
+  {
+    bool ok = false;
+
+    for (u32 i = 0; i < known_cnt; i++)
+    {
+      if (strcmp (p, known[i]) != 0) continue;
+
+      ok = true;
+
+      break;
+    }
+
+    if (ok == false)
+    {
+      event_log_error (hashcat_ctx, "%s: no such attack phase. -a 9 runs phases= out of this list, comma separated:", p);
+
+      for (u32 i = 0; i < known_cnt; i++) event_log_error (hashcat_ctx, "  %s", known[i]);
+
+      hcfree (spec);
+
+      return -1;
+    }
+
+    straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (p);
+
+    straight_ctx->dicts_cnt++;
+  }
+
+  hcfree (spec);
+
+  if (straight_ctx->dicts_cnt == 0)
+  {
+    event_log_error (hashcat_ctx, "phases= names no phase to run");
+
+    return -1;
+  }
+
+  // Every other setting says which phase it is for, because a phase runs a feed of its own and two
+  // phases run two different feeds. A key with no prefix reaches no feed at all, and so does one
+  // prefixed for a phase this run is not doing, so neither was ever reported and the run quietly
+  // differed from what was asked for: "rulemax=300" with the prefix forgotten ran the full thousand
+  // rules and said nothing. The feed layer refuses a key it does not know, and this is that refusal one
+  // level up, where the phase list is what a prefix is checked against.
+
+  for (int i = 0; i < user_options_extra->hc_workc; i++)
+  {
+    const char *arg = user_options_extra->hc_workv[i];
+
+    if (feed_param_is_setting (arg) == false) continue;
+
+    if (strncmp (arg, "phases=", 7) == 0) continue;
+
+    const char *eq  = strchr (arg, '=');
+    const char *dot = strchr (arg, '.');
+
+    const size_t prefix_len = ((dot != NULL) && (dot < eq)) ? (size_t) (dot - arg) : 0;
+
+    bool running = false;
+
+    for (u32 k = 0; k < straight_ctx->dicts_cnt; k++)
+    {
+      if (strlen (straight_ctx->dicts[k]) != prefix_len) continue;
+      if (strncmp (arg, straight_ctx->dicts[k], prefix_len) != 0) continue;
+
+      running = true;
+
+      break;
+    }
+
+    if (running == true) continue;
+
+    // The prefix names a phase hashcat has, and the run is not doing it. Saying which phase would have
+    // read the setting is what turns this from a refusal into an answer.
+
+    bool spelled = false;
+
+    for (u32 k = 0; k < known_cnt; k++)
+    {
+      if (strlen (known[k]) != prefix_len) continue;
+      if (strncmp (arg, known[k], prefix_len) != 0) continue;
+
+      spelled = true;
+
+      break;
+    }
+
+    if (spelled == true)
+    {
+      event_log_error (hashcat_ctx, "%s: the %.*s phase is not in phases=, so nothing would read this setting.", arg, (int) prefix_len, arg);
+
+      return -1;
+    }
+
+    event_log_error (hashcat_ctx, "%s: no such setting. -a 9 takes phases=, and a setting for a phase it is running, written with that phase in front of it:", arg);
+
+    for (u32 k = 0; k < straight_ctx->dicts_cnt; k++) event_log_error (hashcat_ctx, "  %s.<setting>=<value>", straight_ctx->dicts[k]);
+
+    return -1;
   }
 
   return 0;
@@ -606,10 +741,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 0;
   }
 
-  // -a 9 splitting its own hash file has no dictionaries. Its rounds are the words one account name
-  // becomes, so the list is a round per word and the widest name in the file says how many. Every round
-  // hands out one word per hash, and an account with fewer words repeats its last one, because the
-  // kernel reads the salt index off the word's position in the batch and no account can sit a round out.
+  // -a 9 splitting its own hash file has no dictionaries. Its sources are the phases of the attack, and
+  // the list is one entry per phase. straight_ctx_add_association_rounds () builds it and says how a
+  // phase differs from a round.
 
   if (user_options_extra->association_autosplit == true)
   {

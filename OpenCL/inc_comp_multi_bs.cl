@@ -16,9 +16,9 @@ if (check (digest_tp,
              bitmaps_buf_s2_d,
              BITMAP_MASK))
 {
-  int digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+  const u32 digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-  if (digest_pos != -1)
+  if (digest_pos != (u32) -1)
   {
     if ((il_pos + slice) < IL_CNT)
     {

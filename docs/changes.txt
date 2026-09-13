@@ -225,6 +225,26 @@ only directory, since it writes only when it did not find what it needed and car
 when a write fails, but the compiled kernels are under the same option and a kernel hashcat cannot
 write is a build failure that drops the device, so a shared directory wants to be writable.
 
+26. Plugins: module_hash_hints was added to the module interface
+
+A module now says what a hash tells us about whoever chose the password, and attack-mode 9 guesses from
+that. The answer for most modes is the account name in front of the hash, which is what it always was,
+so a module that says nothing is given that answer when it is loaded and behaves exactly as before. A
+module whose salt or esalt holds something better says so: -m 22000 answers with the network name and
+the two MAC addresses, and attack-mode 9 therefore works on a WPA capture, which has no account name
+anywhere in it.
+
+A private plugin has to add one line to module_init(). It goes in alphabetical order, after
+module_hash_encode and before module_hash_init_selftest:
+
+  module_ctx->module_hash_encode              = module_hash_encode;
++ module_ctx->module_hash_hints               = MODULE_DEFAULT;
+  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+
+For a tree full of modules, this does it:
+
+  sed -i -E 's/^(\s*module_ctx->module_hash_encode\s+=.*;)$/\1\n  module_ctx->module_hash_hints               = MODULE_DEFAULT;/' src/modules/module_*.c
+
 ##
 ## New Algorithms
 ##
@@ -242,6 +262,7 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Added hash-mode: scryptcrypt, scrypt (Unix)
 - Added hash-mode: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
 - Added hash-mode: KDE KWallet < 4.13 (SHA-1, Blowfish)
+- Added hash-mode: Mozilla key4.db SHA384
 
 ##
 ## New Attack modes and changed Attack modes
@@ -259,8 +280,14 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Attack-Mode 0: --skip, --limit and --restore now work on stdin if the same stream is fed again
 - Attack-Mode 1: Both dictionaries are now read through a feed, with --slow-candidates as well
 - Attack-Mode 9: Compares wordlist lines against unique salts, refusing files it once accepted
+- Attack-Mode 9: Refuses an unsalted hash-mode, where every hash shares one salt and only the first could be tested
 - Attack-Mode 9: A hash file of username, separator and hash is now split by hashcat, with no wordlist
-- Attack-Mode 9: The username in front of the first separator becomes the candidate, and rules apply
+- Attack-Mode 9: Guesses from what the hash mode can say about a hash, which for most modes is the account name
+- Attack-Mode 9: Runs phases, and all three of them by default: every word of an account as it stands, then every word through the first 1000 rules of rules/rockyou-30000.rule, then every word through a probability ordered grammar
+- Attack-Mode 9: The grammar phase does not end, so the attack no longer finishes on its own. phases=words,rules is the bounded run
+- Attack-Mode 9: Rules are applied by the host side rule engine, so a rule that rejects a word costs almost nothing
+- Attack-Mode 9: Works on a hash file with no account names, such as a WPA capture, where -m 22000 answers with the network name and both MAC addresses
+- Attack-Mode 9: Refuses --stdout, which does not read a hash file and so opened it as a wordlist
 - Mask attacks: --increment and mask files now form one keyspace, so --skip and --limit apply to all
 - Mask attacks: --keyspace now answers for the whole increment or mask file instead of being refused
 - Attack-Mode 12: A hybrid attack where the mask says where the word goes, with ?w marking the place
@@ -275,10 +302,12 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Attack-Mode 5: One wordlist or a directory of them, then as many tables as you like, read into one set, so leetspeak and case are combined on the command line rather than shipped pre-merged
 - Attack-Mode 5: Shipped tables are two leetspeak tiers, case for Latin, Greek and Cyrillic, whole words as emoji, one sport for another as a template, and the keyboard layouts, which brings layout conversion to every hash mode rather than only to TrueCrypt and VeraCrypt
 - Attack-Mode 5: Leaving a token alone is always one of its choices, and identity=0 takes that away for a table that converts rather than varies, such as a keyboard layout
-- Attack-Mode 4 and 5: --debug-mode no longer requires -r or -g. An attack with a feed has no rule to name, so we fill the Finding-Rule field from the feed instead: a table reports the lines that fired, as football->basketball,man->woman, and a grammar reports the terminals it picked. New --debug-mode 6 writes the same thing in the layout of mode 4
+- Attack-Mode 4, 5 and 9: --debug-mode no longer requires -r or -g. An attack with a feed has no rule to name, so we fill the Finding-Rule field from the feed instead: a table reports the lines that fired, as football->basketball,man->woman, a grammar reports the terminals it picked, and attack-mode 9 reports the rule its rules phase applied or the shape its grammar phase used. New --debug-mode 6 writes the same thing in the layout of mode 4
 - Attack-Mode 5: New setting template=1, which never hands a word of the wordlist back unchanged. A word no rule matched can only come out as itself and is dropped, and a word that did match loses the one candidate that changes nothing, so what runs is what the table made. That reads a wordlist as a set of patterns rather than as a list of passwords, and a wordlist attack is what -a 0 is for
 - Attack-Mode 5: The one pass over the wordlist that measures the attack is kept in cache/feeds/table, so only the first run over a wordlist and table set pays for it
 - Attack-Mode 5: -a 5 hashes.txt words.txt table.table is the same attack as -a 8 hashes.txt table words.txt table.table
+- Attack-Mode 5: New setting single=1, which makes a candidate carry one substitution instead of the cross product of every position. The word itself is tried once and then every replacement of every source that matches anywhere in it. Sources are no longer matched longest first there, because one substitution cannot collide with a second, so a table holding both s and ss reaches pa$sword where the cross product cannot. Against 200000 rockyou words and 60000 other rockyou passwords, with a harvested table of 8285769 lines, that recovered 91.72 percent on 6975690596 candidates where the cross product recovered 87.44 percent on 15016588492. A cell reaches one position rather than eight, so the card amplifies about 1852 times instead of 73989 and a fast hash spends more wall clock for the fewer candidates
+- Attack-Mode 5: New setting cap=N, which keeps the first N replacements of each source. Nothing in a table file bounds that number, and a table harvested from cracked passwords can carry thousands for one source where a hand written one carries a handful. On the table above the mean is 35 and the widest source carries 13510, which is what makes such a table expensive rather than the number of sources in it
 
 ##
 ## New Features
@@ -301,6 +330,7 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Windows: The binary now carries an application manifest and a version block. The manifest declares the process code page as UTF-8, which is what makes a path or an argument holding any character mean the same thing it means on every other platform, and it also opts into long paths
 - Added option --task-time-breakdown, which reports where a run's wall clock went, split into session initialization, attack preparation, the attack itself and cleanup, with each section naming what it could not account for
 - Added option --pipeline-stats, which reports where each launch's time goes, split into feeding, copying, init, transfer, the loop itself and comp, per device and with an effective hash rate. Adding --machine-readable prints the same thing as JSON. It replaces the HASHCAT_PIPE environment variable, which still works
+- Added option --benchmark-pure (-B), which is -b against the kernel an ordinary attack gets rather than the optimized one. -b forces the optimized kernel, so a mode that has both kernels had no benchmark at all for its pure one. Every benchmark row now names the kernel it measured
 - Added a dynamic hash plugin for -m 74000, selected by pointing --bridge-parameter1 at bridges/subs/dynamic_hash, which builds the hash from a description such as md5(sha1($pass).$salt) given in --bridge-parameter2. A combination of the built-in primitives no longer needs a Rust plugin written and compiled for it
 - Added tools/gpg-ocb-aes2hashcat.py, which writes -m 17050 hash lines from a GnuPG key file in private-keys-v1.d
 - Added --brain-feed, which reads candidates from stdin and stores them in a running brain server, so the session database picked with --brain-session can be extended without stopping the server
@@ -383,7 +413,13 @@ write is a build failure that drops the device, so a shared directory wants to b
 - PCFG: Naming several rulesets runs them together, each with an equal share unless weights= says otherwise
 - PCFG: A ruleset is named rather than pathed, the way a hash mode and a feed already are
 - PCFG: A ruleset name is looked for in <profile>/pcfg and then <shared>/pcfg, and anything holding a slash is used as a path
+- PCFG: A ruleset can take its words from the command line instead of from its own training, so naming what you know about one person leaves the grammar to wrap those words in everything people wrap words in, in the order the training says is likely
+- PCFG: New shipped ruleset hints, which is the trained grammar with the words taken out of it and is built from default-passwords by tools/pcfg_hints.py
+- PCFG: New settings hintwords, hintfile and hintrank, which say what those words are and what an unranked one is worth
+- PCFG: A hint ruleset spells each of your words at most once in a candidate, so a shape with two word slots joins two different words rather than repeating one. Naming a word twice makes it two words of the list, and the new hintrepeat setting lets one candidate spell the same word more than once
+- PCFG: New setting hintaccount, which says the words are a different set for every hash and come from what the module knows about it. That is the grammar phase of attack-mode 9
 - Feeds: A feed is given the shared folder, so one that ships data of its own can find it
+- Feeds: A feed may answer GENERIC_RC_SKIP for a position it holds and has no candidate for, which hashcat books as a rejected word rather than as the end of the feed
 - Files: Added hc_fopen_mem, which reads a file that is already in memory
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
 - Kernels: Added the DEScrypt pure kernel for attack-mode 3, and both salt paths share one multi hash kernel
@@ -554,16 +590,17 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Fixed a run that lost every device still exiting successfully, which was most visible in benchmark mode
 - Fixed an unused variable warning on Android builds, and affinity failures there being blamed on pthread_setaffinity_np(), which does not exist on that platform
 - Fixed --keyspace and --total-candidates being accepted with attack-mode 9, where the hash file was opened as a wordlist
-- Fixed association autosplit trying pieces of an account name shorter than three characters, each of which cost a round against every account in the file
 - Fixed 66 modules underflowing the salt iteration count when the hash carried a zero, which asked the device for about 4 billion iterations and hung
 - Fixed 16 modules deriving a salt iteration count by shifting past the width of the type, where a value of 32 or more gave the wrong count
 - Fixed the eight scrypt modules underflowing salt_repeats when the hash carried a parallelism of zero, which hung the kernel on launch
 - Fixed --speed-only measuring with the bitmap flattened to a single entry, which misreported the speed for a list holding many hashes
 - Fixed the PKZIP modes 17220 and 17225 overrunning the 4 GiB private aperture on AMD GPUs under HIP, which refused the launch on larger cards and cost 58 percent of throughput on smaller ones
 - Fixed the VeraCrypt modes 13723, 13733, 13751, 13753, 13761 and 13763 failing their self test, and hanging on the password they had just found under --self-test-disable. The 15 XTS header helpers are now kept out of line, and TrueCrypt, DiskCryptor and LUKS were never affected
+- Fixed mode 31100 hanging at vector width 16 on AMD GPUs, where the SM3 message schedule makes one function large enough that the compiler relaxes a branch through the register pair holding the return address, so the function returns into itself. The card then sits at 100 percent with no progress and --runtime cannot end the run. The body is inlined into its kernels now, which have no return address to lose. Only the optimized -a 3 kernel and only that vector width were affected
 - Windows: Fixed a thread handle being leaked on every join, which for a hash mode with a host side hook is one handle per hook thread per kernel launch and grew by about 40 handles a second on -m 11600
 - Fixed hashcat carrying on after a thread it needed failed to start, where the join that followed ran against a handle that was never set. A worker that will not start now does its own chunk on the calling thread, and a cracking, monitor or outfile-check thread that will not start is reported
 - Fixed diagnostics being written to standard output under --stdout, where they landed in the middle of the candidate stream and were read back as candidates
+- Fixed --stdout printing its candidates out of order on a machine with more than one backend device. Each device produced its own slice of the keyspace and printed it as it finished, so the stream held every candidate exactly once but not in the order the attack defines. --stdout now runs on one device, and a cracking run still uses all of them
 - Fixed the seek database builder dereferencing a null pointer at four allocation sites, and never reporting a failed build to its caller
 - Fixed the scanned induction dictionary paths being leaked on every rescan, which accumulates for the life of a --loopback run
 - Fixed the backend session being left open when it failed to start outside a benchmark
@@ -635,6 +672,7 @@ write is a build failure that drops the device, so a shared directory wants to b
 - Fixed a buffer overflow in the mask file parser, where a mask or custom charset longer than 1023 characters wrote past the buffer it is copied into and then over the length used to index it
 - Fixed an out-of-bounds read in the 4 rule rejection operators that test the first or last character, where an empty candidate has neither
 - Fixed module 25400 adding one stray byte after a PDF user password of the full 32 characters, which reached the hash line and the potfile
+- Unit tests: Fixed tools/test_edge.sh failing every combination for a hash mode whose hash contains a single quote. tools/test.pl wrapped each field in shell quotes and escaped nothing, and the script removed the wrapper by evaluating it, so such a field came back empty and the hash file was written blank. The word, the salt and the hash go out hex encoded now and the script decodes them where it reads them
 
 ##
 ## Other changes

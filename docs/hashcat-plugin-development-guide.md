@@ -448,6 +448,22 @@ Note: the general rule is that the kernel code should not do any unnecessary rep
 
 This module can be used when you have certain configuration items of a hash that you want to override with a command line parameter. A good example is the --hccapx-message-pair, where the user can add additional filter criteria so that Hashcat doesn't load a specific set of hashes from the hash list.
 
+### module_hash_hints() ###
+
+This is what your hash tells hashcat about whoever chose the password, and it is what the association attack guesses from. Attack-mode 9 pairs one hash with one set of candidates, so what it needs from you is words: the name, the network, the principal, whatever your salt and esalt carry that a person might have put into their password.
+
+You do not have to write it. A module that leaves this at MODULE_DEFAULT is given the answer that works for every mode, the account name in front of the hash cut into words, and behaves exactly as it did before this function existed. Write it when your hash carries something better than an account name, or something instead of one.
+
+```
+u32 module_hash_hints (const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+```
+
+Fill up to out_max entries of out_words and return how many you filled. Each entry is a pointer and a length. The pointer may go into the salt or the esalt, which outlive the call, or into scratch, which is a per-thread buffer of scratch_size bytes for a word you have to build. Do not allocate, and do not point at anything on your own stack.
+
+Order matters. The first word is the cheapest to try and each one behind it costs a little more, so put the word most likely to be the stem of a password first. -m 22000 is the example to copy: it answers with the network name first, because that is the only one of the three a human chose, and then both MAC addresses as the twelve hex digits a router keygen uses. It also drops a network name that is not printable, because a candidate built on bytes nobody could type is a candidate wasted.
+
+This function is called once per candidate, so keep it to a walk over a short string. See `docs/hashcat-association.md` for what the attack does with the answer.
+
 ### module_opts_type() ###
 
 This configuration item is a bitmask field and is very similar to the module_opti_type() function. The main difference is that here you configure general options of the workflow and not optimization specific settings. As always, the list of flags can be found here: `include/types.h`. The following list contains the flags currently supported:
@@ -1079,13 +1095,14 @@ bookkeeping from a plugin thread, and the build will tell you so rather than the
 with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for
 them.
 
-One hook is gone: `module_dictstat_disable`. Remove the line in `module_init()` that registers it and two hooks are new, `module_usage_notice` and `module_advice_notice`, which let a module print a usage or an advice line of its own.
+One hook is gone: `module_dictstat_disable`, so remove the line in `module_init()` that registers it. Three are new. `module_usage_notice` and `module_advice_notice` let a module print a usage or an advice line of its own, and `module_hash_hints` says what a hash tells hashcat about whoever chose the password, which is what attack-mode 9 guesses from. All three are optional, so registering them as `MODULE_DEFAULT` leaves your plugin behaving exactly as it did.
 
-Here's a small sed automatisation line for both halves of that, if your `module_init()` still looks like the in-tree template. It anchors on the field names rather than on line numbers, so it does not care where in the list they sit:
+Here's a small sed automatisation line for all four of those, if your `module_init()` still looks like the in-tree template. It anchors on the field names rather than on line numbers, so it does not care where in the list they sit:
 
 ```
 sed -i -e '/module_ctx->module_dictstat_disable/d' \
        -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
        -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
        src/modules/module_*.c
 ```

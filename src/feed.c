@@ -38,13 +38,6 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#if defined (_WIN)
-#include <process.h>
-#define FEED_GETPID _getpid
-#else
-#define FEED_GETPID getpid
-#endif
-
 // ---------------------------------------------------------------------------------------------
 // saying things
 // ---------------------------------------------------------------------------------------------
@@ -160,6 +153,13 @@ bool feed_param_is_setting (const char *arg)
     if (*p >= '0' && *p <= '9') continue;
     if (*p == '-') continue;
     if (*p == '_') continue;
+
+    // A dot, so that a key can name who it is for. -a 9 runs phases and a phase runs a feed of its
+    // own, so "rules.rulemax=500" says which of them the setting is for and the core hands the rest of
+    // it over. A path is not caught by this: it would have to begin with a letter, hold an equals sign,
+    // and hold nothing but key characters in front of it.
+
+    if (*p == '.') continue;
 
     return false;
   }
@@ -976,7 +976,7 @@ static void feed_gpu_cache_write (const char *path, const void *buf, const size_
 
   char tmp[1024];
 
-  snprintf (tmp, sizeof (tmp), "%s.tmp.%d", path, (int) FEED_GETPID ());
+  snprintf (tmp, sizeof (tmp), "%s.tmp.%016" PRIx64, path, hc_tmp_tag ());
 
   HCFILE fp;
 

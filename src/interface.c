@@ -13,6 +13,7 @@
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"
+#include "hlfmt.h"
 #include "keyboard_layout.h"
 
 // The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
@@ -157,6 +158,16 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_usage_notice  == NULL) module_ctx->module_usage_notice  = MODULE_DEFAULT;
   if (module_ctx->module_advice_notice == NULL) module_ctx->module_advice_notice = MODULE_DEFAULT;
 
+  // What a hash tells us about whoever chose the password. A module that says nothing gets the answer
+  // that works for every mode, which is the account name in front of the hash cut into words, and a
+  // module that knows better says so and is not overwritten. -m 22000 is the example: its salt is the
+  // network name and its esalt holds two MAC addresses, and no general rule could find those.
+  //
+  // Installed here rather than tested for at every call site, so that a reader has a pointer to call
+  // either way and the question "did this module define one" is asked once.
+
+  if (module_ctx->module_hash_hints == MODULE_DEFAULT) module_ctx->module_hash_hints = default_hash_hints;
+
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
     event_log_error (hashcat_ctx, "Module context size in 'module_init()' for hash-mode '%d' is invalid. Is this module based on an old template?", user_options->hash_mode);
@@ -215,6 +226,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_hash_encode);
   CHECK_DEFINED (module_ctx, module_hash_encode_potfile);
   CHECK_DEFINED (module_ctx, module_hash_encode_status);
+  CHECK_DEFINED (module_ctx, module_hash_hints);
   CHECK_DEFINED (module_ctx, module_hash_init_selftest);
   CHECK_DEFINED (module_ctx, module_hash_mode);
   CHECK_DEFINED (module_ctx, module_hash_name);
@@ -800,6 +812,27 @@ bool default_outfile_check_nocomp (MAYBE_UNUSED const hashconfig_t *hashconfig, 
   return outfile_check_nocomp;
 }
 
+// What a hash carries about whoever chose the password, when the module has nothing of its own.
+//
+// The one thing true of every hash mode is that a hash file may carry the account name in front of the
+// hash, so that is what this answers with. A passwd file carries two more fields that describe the
+// person rather than the account, the real name out of the gecos field and the home directory, and both
+// are taken as well. A module whose salt or esalt holds something better, a network name or a principal
+// or a MAC address, defines its own and is not overwritten.
+
+u32 default_hash_hints (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  if (hash_info == NULL) return 0;
+
+  const user_t *user = hash_info->user;
+
+  if (user == NULL) return 0;
+
+  const u32 cnt = hlfmt_account_hints (user->user_name, user->user_len, user->user_gecos, user->user_gecos_len, user->user_home, user->user_home_len, out_words, out_max, scratch, scratch_size);
+
+  return cnt;
+}
+
 bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const bool hlfmt_disable = false;
@@ -812,6 +845,11 @@ bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfi
   bool potfile_keep_all_hashes = false;
 
   // keep all hashes if --username was combined with --left or --show
+  //
+  // -a 9 is not here, although it splits its hash file the same way. The potfile is turned off for the
+  // whole attack mode in user_options_preprocess (), so nothing reads one, and every answer this steers
+  // is inside potfile handling that never runs. A term for it would read as though --show worked there,
+  // and --show for -a 9 prints nothing at all.
 
   if ((user_options->username == true) || (user_options->dynamic_x == true))
   {

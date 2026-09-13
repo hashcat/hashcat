@@ -670,15 +670,22 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       char buf[HCBUFSIZ_TINY] = { 0 };
 
+      // a mode with both kernels gives two different numbers, so the row has to say which kernel
+      // produced the one below it
+
+      const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
+
+      const char *kernel_name = (optimized_kernel == true) ? "optimized" : "pure";
+
       size_t len = 0;
 
       if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {
-        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter, kernel_name);
       }
       else
       {
-        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s)", hashconfig->hash_mode, hashconfig->hash_name);
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, kernel_name);
       }
 
       char line[HCBUFSIZ_TINY] = { 0 };
@@ -774,11 +781,11 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options_extra->association_autosplit == true)
   {
-    event_log_advice (hashcat_ctx, "This attack splits each account name into words and tries each word as a candidate.");
-    event_log_advice (hashcat_ctx, "An account with fewer words than the widest name in the file spends the rounds it has");
-    event_log_advice (hashcat_ctx, "left over on a small set of rules applied to its own words.");
-    event_log_advice (hashcat_ctx, "A cracked password therefore need not appear in the file, and one line on its own can");
-    event_log_advice (hashcat_ctx, "behave differently from the same line inside a larger list.");
+    event_log_advice (hashcat_ctx, "This attack guesses from what hashcat knows about each hash: the account name in front of");
+    event_log_advice (hashcat_ctx, "it, cut into words, and whatever the hash mode itself can tell, such as a network name.");
+    event_log_advice (hashcat_ctx, "Those words are then run through a rule list, one hash at a time.");
+    event_log_advice (hashcat_ctx, "A cracked password therefore need not appear in the file. Say phases=rules,pcfg to carry");
+    event_log_advice (hashcat_ctx, "on into a grammar afterwards, which does not run out.");
 
     event_log_advice (hashcat_ctx, NULL);
   }

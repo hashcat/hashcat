@@ -817,6 +817,7 @@ typedef enum user_options_defaults
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
+  BENCHMARK_PURE           = false,
   BENCHMARK                = false,
   BITMAP_MAX               = 24,
   BITMAP_MIN               = 10,
@@ -940,6 +941,7 @@ typedef enum user_options_map
   IDX_BENCHMARK_ALL             = 0xff06,
   IDX_BENCHMARK_MAX             = 0xff56,
   IDX_BENCHMARK_MIN             = 0xff57,
+  IDX_BENCHMARK_PURE            = 'B',
   IDX_BENCHMARK                 = 'b',
   IDX_BITMAP_MAX                = 0xff07,
   IDX_BITMAP_MIN                = 0xff08,
@@ -1036,6 +1038,7 @@ typedef enum user_options_map
   IDX_RESTORE_FILE_PATH         = 0xff3e,
   IDX_RESTORE_POSITION          = 0xff87,
   IDX_RP_FILE                   = 'r',
+  IDX_RP_FILE_CONCAT            = 0xff8c,
   IDX_RP_GEN_FUNC_MAX           = 0xff3f,
   IDX_RP_GEN_FUNC_MIN           = 0xff40,
   IDX_RP_GEN_FUNC_SEL           = 0xff41,
@@ -1124,6 +1127,16 @@ typedef struct user
 {
   char *user_name;
   u32   user_len;
+
+  // What a passwd line carries beside the login: the real name out of the gecos field and the last
+  // component of the home directory. Both are empty for every other hash list format, and both point
+  // into the same allocation as user_name, so freeing that one frees all three.
+
+  char *user_gecos;
+  u32   user_gecos_len;
+
+  char *user_home;
+  u32   user_home_len;
 
 } user_t;
 
@@ -2859,6 +2872,7 @@ typedef struct user_options
   bool         advice;
   bool         benchmark;
   bool         benchmark_all;
+  bool         benchmark_pure;
   #ifdef WITH_BRAIN
   bool         brain_client;
   bool         brain_feed;
@@ -2898,6 +2912,7 @@ typedef struct user_options
   bool         restore;
   bool         restore_enable;
   bool         restore_position;
+  bool         rp_files_concat;
   bool         self_test;
   bool         show;
   bool         slow_candidates;
@@ -3461,7 +3476,7 @@ typedef bool (*GENERIC_THREAD_INIT)     (generic_global_ctx_t *, generic_thread_
 typedef void (*GENERIC_THREAD_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int);
 typedef int  (*GENERIC_THREAD_NEXT_DEV) (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int, pcfg_cell_t *);
-typedef int  (*GENERIC_GLOBAL_EXPLAIN)   (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, char *, const int);
+typedef int  (*GENERIC_GLOBAL_EXPLAIN)   (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, const u64, char *, const int);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
 typedef bool (*GENERIC_GLOBAL_DEV_INIT) (generic_global_ctx_t *, const u32 **, u64 *, u32 *, u32 *, u32 *, u32 *, u32 *, u32 *, pcfg_cell_t *);
 
@@ -3677,15 +3692,15 @@ typedef struct hashcat_status
   double      msec_paused;
   double      msec_running;
   double      msec_real;
-  int         digests_cnt;
-  int         digests_done;
-  int         digests_done_pot;
-  int         digests_done_zero;
-  int         digests_done_new;
+  u32         digests_cnt;
+  u32         digests_done;
+  u32         digests_done_pot;
+  u32         digests_done_zero;
+  u32         digests_done_new;
   double      digests_percent;
   double      digests_percent_new;
-  int         salts_cnt;
-  int         salts_done;
+  u32         salts_cnt;
+  u32         salts_done;
   double      salts_percent;
   int         progress_mode;
   double      progress_finished_percent;
@@ -4086,6 +4101,19 @@ typedef struct bridge_ctx
 
 typedef void (*MODULE_INIT) (void *);
 
+// One word hashcat knows about a hash, which an attack may guess from. Every word is either a
+// substring of something the hash list already holds, in which case this points into it, or one the
+// module derived, in which case it points into the scratch buffer the module was handed. Nothing here
+// is allocated and nothing here is freed.
+
+typedef struct hlfmt_word
+{
+  const char *buf;
+
+  u32 len;
+
+} hlfmt_word_t;
+
 typedef struct module_ctx
 {
   size_t      module_context_size;
@@ -4158,6 +4186,7 @@ typedef struct module_ctx
   int         (*module_hash_encode_potfile)     (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int, const void *);
   int         (*module_hash_encode_status)      (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
   int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
+  u32         (*module_hash_hints)              (const hashconfig_t *, const salt_t *, const void *, const hashinfo_t *, hlfmt_word_t *, const u32, char *, const u32);
 
   u64         (*module_kern_type_dynamic)       (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *);
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);

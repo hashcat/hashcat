@@ -23,6 +23,7 @@
 #include "shared.h"
 #include "path.h"
 #include "parser.h"
+#include "status.h"
 #include "memchr.h"
 #include "system.h"
 #include "thread.h"
@@ -80,17 +81,14 @@ int sort_by_salt (const void *v1, const void *v2)
   const salt_t *s1 = (const salt_t *) v1;
   const salt_t *s2 = (const salt_t *) v2;
 
-  const int res_pos = (int) s1->orig_pos - (int) s2->orig_pos;
+  if (s1->orig_pos > s2->orig_pos) return  1;
+  if (s1->orig_pos < s2->orig_pos) return -1;
 
-  if (res_pos != 0) return (res_pos);
+  if (s1->salt_len > s2->salt_len) return  1;
+  if (s1->salt_len < s2->salt_len) return -1;
 
-  const int res1 = (int) s1->salt_len - (int) s2->salt_len;
-
-  if (res1 != 0) return (res1);
-
-  const int res2 = (int) s1->salt_iter - (int) s2->salt_iter;
-
-  if (res2 != 0) return (res2);
+  if (s1->salt_iter > s2->salt_iter) return  1;
+  if (s1->salt_iter < s2->salt_iter) return -1;
 
   for (int n = 0; n < 64; n++)
   {
@@ -2068,7 +2066,19 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       // of. build_crackpos takes the same number and multiplies it by the amplifier; debug mode 5
       // wants it before that.
 
-      const u64 word_pos = (user_options->slow_candidates == true) ? plain->gidvid : device_param->words_off_launch + plain->gidvid;
+      u64 word_pos = device_param->words_off_launch + plain->gidvid;
+
+      // --slow-candidates expands the amplifier on the host, so a position in that keyspace counts
+      // candidates where the feed's segment table counts lines. Dividing brings the two back into the
+      // same unit, and without it a candidate index past the first wordlist's line count names the
+      // second wordlist for words that came out of the first.
+
+      if (user_options->slow_candidates == true)
+      {
+        const u64 amplifier = status_get_amplifier_cnt (hashcat_ctx);
+
+        if (amplifier > 1) word_pos = word_pos / amplifier;
+      }
 
       debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len, word_pos);
     }
@@ -3389,7 +3399,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       hashes_avail = 1;
 
-      if (user_options_extra->association_autosplit == true)
+      // Asked of the splitting rather than of the attack, the same way the hash file case below asks
+      // it. A mode that answers module_hash_hints itself takes its words out of the hash and splits
+      // nothing, and its hash has no username in front of it to find: one WPA handshake given as an
+      // argument holds no separator at all.
+
+      if ((user_options_extra->association_autosplit == true) && (user_options->username == true))
       {
         if (strchr (user_options_extra->hc_hash, hashconfig->separator) == NULL)
         {
@@ -3441,8 +3456,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       // fail to parse and the run would end on "No hashes loaded" with a warning per line and no word
       // about the separator. Said here instead, before any of that, because this is the one thing the
       // user has to change.
+      //
+      // Asked of the splitting rather than of the attack. A mode that answers module_hash_hints itself
+      // takes its words from the hash and is not splitting anything, and its file is its own format: a
+      // WPA capture has no username and does not want one. user_options_extra_init_late () is what
+      // settled that, so by here --username says whether the split is happening.
 
-      if (user_options_extra->association_autosplit == true)
+      if ((user_options_extra->association_autosplit == true) && (user_options->username == true))
       {
         hc_rewind (&fp);
 
@@ -3747,26 +3767,56 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             user_t *user_ptr = *user;
 
-            if (user_buf != NULL)
-            {
-              // user_len counts every byte of the line before the separator, and a NUL among them
-              // is one of those bytes. hcstrdup stops at the first NUL, so the buffer and the
-              // length recorded beside it disagreed, and every reader of the pair trusts the
-              // length: potfile_handle_show and potfile_handle_left write a terminator at
-              // user_name[user_len] and outfile_write copies user_len bytes out.
+            // The login, and whatever else the format carries about the person. One allocation holds
+            // all three with a terminator after each, so the two extra fields cost no second free and
+            // user_name still starts at the front of it for every reader that only wants the login.
+            //
+            // user_len counts every byte of the line before the separator, and a NUL among them
+            // is one of those bytes. hcstrdup stops at the first NUL, so the buffer and the
+            // length recorded beside it disagreed, and every reader of the pair trusts the
+            // length: potfile_handle_show and potfile_handle_left write a terminator at
+            // user_name[user_len] and outfile_write copies user_len bytes out.
 
-              user_ptr->user_name = (char *) hcmalloc (user_len + 1);
+            char *gecos_buf = NULL;
+            int   gecos_len = 0;
 
-              memcpy (user_ptr->user_name, user_buf, user_len);
+            char *home_buf = NULL;
+            int   home_len = 0;
 
-              user_ptr->user_name[user_len] = 0;
-            }
-            else
-            {
-              user_ptr->user_name = hcstrdup ("");
-            }
+            hlfmt_user_extra (hashlist_format, input_buf, input_len, &gecos_buf, &gecos_len, &home_buf, &home_len);
 
-            user_ptr->user_len = (u32) user_len;
+            const size_t user_size = (size_t) user_len + (size_t) gecos_len + (size_t) home_len + 3;
+
+            char *store = (char *) hcmalloc (user_size);
+
+            size_t store_at = 0;
+
+            if (user_buf != NULL) memcpy (store + store_at, user_buf, user_len);
+
+            user_ptr->user_name = store + store_at;
+            user_ptr->user_len  = (u32) user_len;
+
+            store_at += (size_t) user_len;
+
+            store[store_at++] = 0;
+
+            if (gecos_buf != NULL) memcpy (store + store_at, gecos_buf, gecos_len);
+
+            user_ptr->user_gecos     = store + store_at;
+            user_ptr->user_gecos_len = (u32) gecos_len;
+
+            store_at += (size_t) gecos_len;
+
+            store[store_at++] = 0;
+
+            if (home_buf != NULL) memcpy (store + store_at, home_buf, home_len);
+
+            user_ptr->user_home     = store + store_at;
+            user_ptr->user_home_len = (u32) home_len;
+
+            store_at += (size_t) home_len;
+
+            store[store_at] = 0;
           }
         }
 
@@ -4035,26 +4085,56 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             user_t *user_ptr = *user;
 
-            if (user_buf != NULL)
-            {
-              // user_len counts every byte of the line before the separator, and a NUL among them
-              // is one of those bytes. hcstrdup stops at the first NUL, so the buffer and the
-              // length recorded beside it disagreed, and every reader of the pair trusts the
-              // length: potfile_handle_show and potfile_handle_left write a terminator at
-              // user_name[user_len] and outfile_write copies user_len bytes out.
+            // The login, and whatever else the format carries about the person. One allocation holds
+            // all three with a terminator after each, so the two extra fields cost no second free and
+            // user_name still starts at the front of it for every reader that only wants the login.
+            //
+            // user_len counts every byte of the line before the separator, and a NUL among them
+            // is one of those bytes. hcstrdup stops at the first NUL, so the buffer and the
+            // length recorded beside it disagreed, and every reader of the pair trusts the
+            // length: potfile_handle_show and potfile_handle_left write a terminator at
+            // user_name[user_len] and outfile_write copies user_len bytes out.
 
-              user_ptr->user_name = (char *) hcmalloc (user_len + 1);
+            char *gecos_buf = NULL;
+            int   gecos_len = 0;
 
-              memcpy (user_ptr->user_name, user_buf, user_len);
+            char *home_buf = NULL;
+            int   home_len = 0;
 
-              user_ptr->user_name[user_len] = 0;
-            }
-            else
-            {
-              user_ptr->user_name = hcstrdup ("");
-            }
+            hlfmt_user_extra (hashlist_format, line_buf, line_len, &gecos_buf, &gecos_len, &home_buf, &home_len);
 
-            user_ptr->user_len = (u32) user_len;
+            const size_t user_size = (size_t) user_len + (size_t) gecos_len + (size_t) home_len + 3;
+
+            char *store = (char *) hcmalloc (user_size);
+
+            size_t store_at = 0;
+
+            if (user_buf != NULL) memcpy (store + store_at, user_buf, user_len);
+
+            user_ptr->user_name = store + store_at;
+            user_ptr->user_len  = (u32) user_len;
+
+            store_at += (size_t) user_len;
+
+            store[store_at++] = 0;
+
+            if (gecos_buf != NULL) memcpy (store + store_at, gecos_buf, gecos_len);
+
+            user_ptr->user_gecos     = store + store_at;
+            user_ptr->user_gecos_len = (u32) gecos_len;
+
+            store_at += (size_t) gecos_len;
+
+            store[store_at++] = 0;
+
+            if (home_buf != NULL) memcpy (store + store_at, home_buf, home_len);
+
+            user_ptr->user_home     = store + store_at;
+            user_ptr->user_home_len = (u32) home_len;
+
+            store_at += (size_t) home_len;
+
+            store[store_at] = 0;
           }
         }
 
