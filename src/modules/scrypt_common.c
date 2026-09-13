@@ -34,6 +34,11 @@ u32 scrypt_module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfi
   return kernel_threads_max;
 }
 
+// The highest TMTO the search will propose. Past this the recomputation dominates on every
+// device measured, and the stored element count gets small enough that the walk is pointless.
+
+#define SCRYPT_TMTO_CEILING 6
+
 u32 tmto = 0;
 
 u32 scrypt_exptected_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -183,6 +188,46 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
           }
 
           break;
+        }
+
+        // The search above stops at 2, and on a configuration big enough that even a TMTO of 2
+        // leaves the device nearly empty that ceiling is what limits the launch, not the memory.
+        // A 4090 attacking N=262144 gets 8 work items where 176 fit, and the same holds for every
+        // mode that ships a large N: 15700 is N=262144 by default.
+        //
+        // Raising it everywhere is wrong. A device that is merely short of work loses more to the
+        // extra recomputation than it gains from the parallelism, which is what the 1.16 test above
+        // already decides. So the ceiling only lifts where the device is under half filled, and the
+        // same test then chooses how far to go.
+
+        const u64 size_per_accel_ceiling = size_per_accel >> tmto;
+
+        const float blocks_ceiling = (float) available_mem / size_per_accel_ceiling;
+
+        const float blocks_perc_ceiling = device_processors / blocks_ceiling;
+
+        if (blocks_perc_ceiling > 2.0)
+        {
+          // N >> tmto is the number of stored elements, so the walk stops before that reaches zero
+
+          u32 tmto_max = 0;
+
+          while (((u64) 1 << tmto_max) < scrypt_N) tmto_max++;
+
+          tmto_max = MIN (tmto_max, SCRYPT_TMTO_CEILING);
+
+          while (tmto < tmto_max)
+          {
+            const u64 size_per_accel_tmto = size_per_accel >> tmto;
+
+            const float blocks = (float) available_mem / size_per_accel_tmto;
+
+            const float blocks_perc = device_processors / blocks;
+
+            if (blocks_perc <= 1.16) break;
+
+            tmto++;
+          }
         }
       }
     }
