@@ -50,7 +50,7 @@ function usage()
   echo ""
   echo "     --skip-clean-cache             : Skip cleaning the kernel caches before starting the tests"
   echo ""
-  echo "-M / --minimal                      : test only 24 hash types covering all distinct code paths, vector-width 1"
+  echo "-M / --minimal                      : test only the hash-modes hashcat benchmarks, read from src/benchmark.c, vector-width 1"
   echo ""
   echo "-f / --force                        : run hashcat using --force"
   echo ""
@@ -905,9 +905,23 @@ startTime=$(date +%s)
 
 mkdir -p ${OUTD} &> /dev/null
 
-MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 14511 14600 14900 15400 15700 20510 22000 29511 33000 33500 34100"
+if [ "${MINIMAL}" -eq 1 ]; then
+  MINIMAL_MODES=$(awk '/DEFAULT_BENCHMARK_ALGORITHMS_BUF\[\] *=/,/^};/' "${TDIR}"/../src/benchmark.c 2>/dev/null \
+    | sed -n 's/^[[:space:]]*\([0-9][0-9]*\)[[:space:]]*,.*/\1/p' \
+    | sort -u -n \
+    | tr '\n' ' ')
 
-for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | awk '{print $1+=0}'); do
+  if [ -z "${MINIMAL_MODES}" ]; then
+    echo "! -M could not read DEFAULT_BENCHMARK_ALGORITHMS_BUF from ${TDIR}/../src/benchmark.c"
+
+    exit 1
+  fi
+fi
+
+# A mode is covered once it has an oracle, and an oracle is a .pm or a .py. Globbing .pm alone left
+# 1000 and 5200 out of the suite from the moment 731f2ed8c gave them a .py one.
+
+for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n); do
 
   if [ $HASH_TYPE != "all" ]; then
     if [ $HASH_TYPE -ne $hash_type ]; then continue; fi
@@ -943,10 +957,21 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
     continue
   fi
 
+  # The bridge for this mode wants an ordinary Python built as a shared library and refuses a
+  # free-threaded one on every platform, so the skip is not the platform's. The message used to sit
+  # inside a test for Darwin, which left the mode skipped in silence everywhere else.
+
   if [ $pyenv_free_threaded -eq 1 ] && [ $hash_type -eq 73000 ]; then
-    if [ "$UNAME" == "Darwin" ]; then
-      echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (not supported on Apple and Windows with python 'free-threaded' library support)" | tee -a ${OUTD}/test_edge.details.log
-    fi
+    echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (needs a Python without the 'free-threaded' library support)" | tee -a ${OUTD}/test_edge.details.log
+    continue
+  fi
+
+  # An edge case run needs the oracle's edge entry point and only tools/test.pl has one, which
+  # test_module_runner.py says of itself. So a mode whose oracle is a .py is named here and skipped,
+  # rather than left out of the loop with nothing said.
+
+  if [ ! -f "${TDIR}/test_modules/m$(printf '%05d' ${hash_type}).pm" ]; then
+    echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (edge is implemented in tools/test.pl only, and this mode's oracle is a .py)" | tee -a ${OUTD}/test_edge.details.log
     continue
   fi
 
