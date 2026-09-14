@@ -1234,6 +1234,14 @@ static u32 pcfg_cp_upper (const u32 cp)
 // word that does not decode is a single byte encoding, and cp1252 keeps letters where UTF-8 keeps
 // continuation bytes.
 
+// The shape of a sequence is not enough to call a word UTF-8 here, because this test is what
+// separates UTF-8 from a single byte encoding whose letters live in the same bytes. 0xC0 and 0xC1
+// can never open a UTF-8 sequence, and they are A-grave and A-acute in cp1252 and latin-1, so a
+// word carrying one of them in front of a byte in 0x80-0xBF would take the codepoint path and keep
+// its capital. The same goes for an overlong form of any width, for the surrogate range, and for
+// the 0xF5-0xF7 leads, which decode past U+10FFFF. Each width therefore carries the lowest
+// codepoint it is allowed to encode, and the value is checked rather than the lead byte alone.
+
 static bool pcfg_is_utf8 (const u8 *s, const u32 len)
 {
   u32 at = 0;
@@ -1243,16 +1251,29 @@ static bool pcfg_is_utf8 (const u8 *s, const u32 len)
     const u8 c = s[at];
 
     u32 need;
+    u32 cp;
+    u32 min;
 
     if (c < 0x80)            { at++; continue; }
-    else if ((c & 0xe0) == 0xc0) need = 1;
-    else if ((c & 0xf0) == 0xe0) need = 2;
-    else if ((c & 0xf8) == 0xf0) need = 3;
+    else if ((c & 0xe0) == 0xc0) { need = 1; cp = c & 0x1f; min = 0x80;    }
+    else if ((c & 0xf0) == 0xe0) { need = 2; cp = c & 0x0f; min = 0x800;   }
+    else if ((c & 0xf8) == 0xf0) { need = 3; cp = c & 0x07; min = 0x10000; }
     else return false;
 
     if ((at + need) >= len) return false;
 
-    for (u32 j = 1; j <= need; j++) if ((s[at + j] & 0xc0) != 0x80) return false;
+    for (u32 j = 1; j <= need; j++)
+    {
+      if ((s[at + j] & 0xc0) != 0x80) return false;
+
+      cp = (cp << 6) | (s[at + j] & 0x3f);
+    }
+
+    if (cp < min) return false;
+
+    if ((cp >= 0xd800) && (cp <= 0xdfff)) return false;
+
+    if (cp > 0x10ffff) return false;
 
     at += need + 1;
   }
@@ -2762,15 +2783,17 @@ static int hint_order_cmp (const void *a, const void *b)
 // character ci of the token, a mask shorter than the token leaves the tail alone, and a character is
 // as many bytes as UTF-8 requires rather than one.
 
-static u32 hint_mask_apply (u8 *dst, const u8 *lo, const u8 *up, const u32 len, const u8 *mask, const u32 mask_len)
+static u32 hint_mask_apply (u8 *dst, const u8 *lo, const u8 *up, const u32 len, const u8 *mask, const u32 mask_len, const bool wide)
 {
   memcpy (dst, lo, len);
 
   // The word's own bytes say what a character is. The mask cannot: a hint mask list is one entry
   // long by construction and holds masks of every width, so comparing the two lengths the way
   // assemble () does would say nothing here.
-
-  const bool wide = pcfg_is_utf8 (lo, len);
+  //
+  // Those bytes are the ones the word arrived with, which is why the answer is handed in rather
+  // than asked of lo. pcfg_byte_lower () moves 0xC0-0xDE to 0xE0-0xFE, so lowering turns a two byte
+  // lead into a three byte one and a word can change side between the two questions.
 
   u32 ci = 0;
   u32 at = 0;
@@ -2876,18 +2899,25 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
       {
         const u32 len = pg->hw[i].len;
 
-        pcfg_lower_word (lo, pg->hw[i].buf, len);
-
         // A hint word has no list behind it to say what a character is, so its own bytes say: one
         // that does not decode as UTF-8 is a single byte encoding, and its uppercase pairs are the
         // single byte ones. Without this the all-capitals form of a cp1252 word comes out with every
         // letter raised but the high byte left alone.
+        //
+        // The question is asked once, of the word as it arrived, and the answer carried to everything
+        // downstream. Asking it again of lo would not be the same question: pcfg_byte_lower () moves
+        // 0xC0-0xDE to 0xE0-0xFE, so a two byte lead becomes a three byte one and the lowered word can
+        // answer the other way.
 
-        pcfg_upper_image (up, lo, len, pcfg_is_utf8 (lo, len));
+        const bool wide = pcfg_is_utf8 (pg->hw[i].buf, len);
+
+        pcfg_lower_word (lo, pg->hw[i].buf, len);
+
+        pcfg_upper_image (up, lo, len, wide);
 
         u8 *dst = (u8 *) store + at;
 
-        hint_mask_apply (dst, lo, up, len, mask, mask_len);
+        hint_mask_apply (dst, lo, up, len, mask, mask_len, wide);
 
         // A duplicate can only be this word under a cheaper mask, because a mask rewrites the word it
         // sits behind and no other. So the test is against this word's own earlier forms rather
@@ -2905,7 +2935,7 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
             u8 prev[PCFG_HINT_LEN_MAX];
 
-            hint_mask_apply (prev, lo, up, len, cm->buf + cm->off[pe], cm->off[pe + 1] - cm->off[pe]);
+            hint_mask_apply (prev, lo, up, len, cm->buf + cm->off[pe], cm->off[pe + 1] - cm->off[pe], wide);
 
             if (memcmp (prev, dst, len) != 0) continue;
 
@@ -5818,6 +5848,12 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
 
   bool hint_up_ready = false;
 
+  // Whether the hint sitting in hint_lo arrived as UTF-8. Taken from the word before it was
+  // lowered, because pcfg_byte_lower () moves 0xC0-0xDE to 0xE0-0xFE and the lowered form can
+  // answer the other way.
+
+  bool hint_wide = false;
+
   for (u32 j = 0; j < s->nslot; j++)
   {
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
@@ -5856,6 +5892,8 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
       }
       else
       {
+        hint_wide = pcfg_is_utf8 (th->hint[h].buf, hl);
+
         pcfg_lower_word (hint_lo, th->hint[h].buf, hl);
 
         hint_up_ready = false;
@@ -5904,7 +5942,7 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
       // image has nothing different to write - but the three copies of this rule should not
       // disagree on what a character is.
 
-      const bool wide = (last_hint == true) ? pcfg_is_utf8 (hint_lo, (u32) last_len)
+      const bool wide = (last_hint == true) ? hint_wide
                                             : (last_len != l);
 
       int ci = 0;
