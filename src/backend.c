@@ -10922,7 +10922,6 @@ int backend_ctx_device_group_size (const hashcat_ctx_t *hashcat_ctx, const int b
 void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t   *backend_ctx  = hashcat_ctx->backend_ctx;
-  bridge_ctx_t    *bridge_ctx   = hashcat_ctx->bridge_ctx;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
 
   if (backend_ctx->enabled == false) return;
@@ -11042,7 +11041,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       if (device_param->skipped == true) continue;
       if (device_param->skipped_warning == true) continue;
 
-      const int workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
+      const u32 workitem_count = bridge_workitem_count (hashcat_ctx, device_param->bridge_link_device);
 
       // A launch smaller than the advertised count used to be worth warning about, back when that
       // count WAS the launch size and anything below it meant something had gone wrong. Autotune now
@@ -11056,6 +11055,8 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       // for a different accel, which is how a -n below the bridge's count turned into an out of
       // bounds access. With the accel derived above, kernel_power already lands on the advertised
       // count and this only bites when something else moved it.
+
+      if (workitem_count == 0) continue;
 
       if (device_param->kernel_power > (u64) workitem_count) device_param->kernel_power = workitem_count;
 
@@ -11531,7 +11532,7 @@ static void kernel_build_finish (hashcat_ctx_t *hashcat_ctx, const char *cached_
 // The program the result lands in is named by its slot rather than by four out pointers, so a caller
 // names the program to build and no more.
 
-static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, const hc_dev_program_t program)
+static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, const hc_dev_program_t program, size_t *kernel_lengths, char **kernel_sources)
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
@@ -11543,14 +11544,6 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
   /**
    * kernel compile or load
    */
-
-  size_t kernel_lengths_buf = 0;
-
-  size_t *kernel_lengths = &kernel_lengths_buf;
-
-  char *kernel_sources_buf = NULL;
-
-  char **kernel_sources = &kernel_sources_buf;
 
   if (cached == false)
   {
@@ -12027,6 +12020,8 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
         {
           hcfree (build_log);
 
+          hc_clReleaseProgramPtr (hashcat_ctx, &p1);
+
           return false;
         }
 
@@ -12037,7 +12032,12 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
         hcfree (build_log);
       }
 
-      if (CL_rc == -1) return false;
+      if (CL_rc == -1)
+      {
+        hc_clReleaseProgramPtr (hashcat_ctx, &p1);
+
+        return false;
+      }
 
       // workaround opencl issue with Apple Silicon
 
@@ -12049,7 +12049,12 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
 
         cl_program fin;
 
-        if (hc_clLinkProgram (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, NULL, 1, t2, NULL, NULL, &fin) == -1) return false;
+        if (hc_clLinkProgram (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, NULL, 1, t2, NULL, NULL, &fin) == -1)
+        {
+          hc_clReleaseProgramPtr (hashcat_ctx, &p1);
+
+          return false;
+        }
 
         // it seems errors caused by clLinkProgram() do not go into CL_PROGRAM_BUILD
         // I couldn't find any information on the web explaining how else to retrieve the error messages from the linker
@@ -12211,13 +12216,31 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
     }
   }
 
-  hcfree (kernel_sources[0]);
-
   return true;
 }
 
-// The election sits here rather than inside the body above, because that body leaves by more than
-// thirty different returns and every one of them has to release whoever is waiting.
+// The source buffer is owned here rather than inside the function above. That function leaves by 36
+// different returns once it holds the buffer, so it has no single exit to free it on.
+
+static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, const hc_dev_program_t program)
+{
+  size_t kernel_lengths_buf = 0;
+
+  size_t *kernel_lengths = &kernel_lengths_buf;
+
+  char *kernel_sources_buf = NULL;
+
+  char **kernel_sources = &kernel_sources_buf;
+
+  const bool rc = load_kernel_program (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, program, kernel_lengths, kernel_sources);
+
+  hcfree (kernel_sources[0]);
+
+  return rc;
+}
+
+// The election sits here for the same reason the buffer sits one level up. A build leaves by many
+// different returns and every one of them has to release whoever is waiting.
 
 static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, const hc_dev_program_t program)
 {
@@ -13006,7 +13029,6 @@ static int pcfg_pool_split (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
-  const bridge_ctx_t         *bridge_ctx          = hashcat_ctx->bridge_ctx;
   const folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   const hashes_t             *hashes              = hashcat_ctx->hashes;
@@ -13600,6 +13622,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, KERNEL_BFS);
           device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, KERNEL_BFS);
         }
+        else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+        {
+          // The device engine walks a base word's whole cell in one launch, and the kernel takes that
+          // bound from the cell it was handed rather than from the loop count, so there is no axis
+          // here to search. Pinning it keeps autotune from probing one: a search over a value the
+          // launch never reads is fitting timer noise, and it answered a different number each run.
+
+          device_param->kernel_loops_min = 1;
+          device_param->kernel_loops_max = 1;
+        }
       }
     }
 
@@ -13711,7 +13743,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->bridge_type)
     {
-      const u32 workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
+      const u32 workitem_count = bridge_workitem_count (hashcat_ctx, device_param->bridge_link_device);
+
+      // bridges_init_late () brings the bridge up for this hash mode before the session starts, so a
+      // mode that wants one and has none is a fault rather than a case to carry on from. Deriving an
+      // accel from a count of zero would run the mode against no bridge at all.
+
+      if (workitem_count == 0)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Hash-mode %u needs a bridge and none is loaded.", device_id + 1, hashconfig->hash_mode);
+
+        return -1;
+      }
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
@@ -13989,9 +14032,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // built options
 
-    const size_t build_options_sz = 4096;
+    char build_options_buf[4096];
 
-    char *build_options_buf = (char *) hcmalloc (build_options_sz);
+    const size_t build_options_sz = sizeof (build_options_buf);
 
     int build_options_len = snprintf(build_options_buf, build_options_sz, "-D KERNEL_STATIC ");
 
@@ -14263,7 +14306,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      */
 
     {
-      char *build_options_module_buf = (char *) hcmalloc (build_options_sz);
+      char build_options_module_buf[sizeof (build_options_buf)];
 
       int build_options_module_len = 0;
 
@@ -14424,8 +14467,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->skipped_warning = true;
         continue;
       }
-
-      hcfree (build_options_module_buf);
     }
 
     /**
@@ -14523,8 +14564,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           return -1;
         }
-
-        hcfree (build_options_buf);
       }
     }
 

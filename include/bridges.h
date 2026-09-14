@@ -33,9 +33,11 @@ HC_PLUGIN_ENTRY void bridge_init (bridge_ctx_t *bridge_ctx);
 bool  bridge_active            (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
 bool  bridge_same_unit_class   (hashcat_ctx_t *hashcat_ctx, const int unit_a, const int unit_b);
 u32   bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
+u32   bridge_workitem_count    (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
 
-bool  bridges_init    (hashcat_ctx_t *hashcat_ctx);
-void  bridges_destroy (hashcat_ctx_t *hashcat_ctx);
+bool  bridges_init      (hashcat_ctx_t *hashcat_ctx);
+bool  bridges_init_late (hashcat_ctx_t *hashcat_ctx);
+void  bridges_destroy   (hashcat_ctx_t *hashcat_ctx);
 
 bool  bridges_salt_prepare (hashcat_ctx_t *hashcat_ctx);
 void  bridges_salt_destroy (hashcat_ctx_t *hashcat_ctx);

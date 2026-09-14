@@ -1210,6 +1210,24 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (generic_ctx_init (hashcat_ctx) == -1) return -1;
 
+  // Whether the device engine runs is settled by the feed, not by the attack mode: -a 4, -a 5 and a
+  // feed on -a 8 or -a 9 all reach it, and any of them falls back to the host engine when the feed
+  // has no base word for it. So a loop count can only be judged here, once generic_ctx_init () has
+  // answered. On the device engine a base word becomes its whole cell of candidates in one launch,
+  // the kernel takes that bound from the cell it was handed, and kernel_loops reaches nothing. A
+  // value set there would travel to the status display and to no launch at all, so --force does not
+  // open this one either.
+
+  if ((user_options->kernel_loops_chgd == true) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
+  {
+    event_log_error (hashcat_ctx, "The -u option (or --kernel-loops) does not apply to this attack.");
+
+    event_log_warning (hashcat_ctx, "The device engine turns a base word into its whole cell of candidates in one launch, so there is no loop count to set.");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
+  }
+
   // A feed can be asked to describe the attack instead of running it, and by now it has answered.
   // There is nothing left for this run to do, so the queue of rounds is never entered.
   //
@@ -1335,6 +1353,46 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    */
 
   EVENT (EVENT_POTFILE_NUM_CRACKED);
+
+  /**
+   * the bridge this hash mode selects
+   */
+
+  // hashcat_session_init () loaded the bridge for the hash mode it was given, and a run that walks
+  // several modes needs one per mode rather than one for the whole run. bridges_destroy () at the
+  // end of this function takes it down again, and a bridge already up is left alone.
+
+  if (bridges_init_late (hashcat_ctx) == false)
+  {
+    // A sweep over every hash mode reaches modes whose bridge cannot come up on this machine, a
+    // python bridge without the free threaded library behind it for one. That is the same kind of
+    // answer as a kernel that will not build, so it skips the mode and carries on. A named mode is
+    // the user asking for that one, and there the failure is the answer.
+
+    if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+    {
+      #ifdef WITH_BRAIN
+      brain_ctx_destroy       (hashcat_ctx);
+      #endif
+
+      bridges_destroy         (hashcat_ctx);
+      bitmap_ctx_destroy      (hashcat_ctx);
+      combinator_ctx_destroy  (hashcat_ctx);
+      cpt_ctx_destroy         (hashcat_ctx);
+      hashconfig_destroy      (hashcat_ctx);
+      hashes_destroy          (hashcat_ctx);
+      mask_ctx_destroy        (hashcat_ctx);
+      status_progress_destroy (hashcat_ctx);
+      generic_ctx_destroy     (hashcat_ctx);
+      straight_ctx_destroy    (hashcat_ctx);
+
+      return 0;
+    }
+
+    event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
+
+    return -1;
+  }
 
   /**
    * setup salts for bridges, needs to be after bridge init, but before session start

@@ -2751,6 +2751,20 @@ int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int bac
   if (device_param->skipped == true) return 0;
   if (device_param->skipped_warning == true) return 0;
 
+  // The device engine has no loop count to report: a base word becomes its whole cell of candidates in
+  // one launch, and kernel_loops is pinned and unread there. What the field means for every other
+  // attack, how many candidates one base word turns into, is the mean cell, which is the same figure
+  // the progress total and --keyspace already multiply by.
+
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+  {
+    const u32 dev_avg = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+    if (dev_avg > 0) return (int) dev_avg;
+  }
+
   if (device_param->kernel_loops_prev) return device_param->kernel_loops_prev;
 
   return device_param->kernel_loops;

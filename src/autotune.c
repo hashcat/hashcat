@@ -119,11 +119,14 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
   {
-    bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
 
-    const u32 workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
+    const u32 workitem_count = bridge_workitem_count (hashcat_ctx, device_param->bridge_link_device);
 
-    if (kernel_power_try > workitem_count)
+    // Zero means no bridge answered, and clamping to it would autotune the mode down to no work at
+    // all. backend_session_begin refuses that case before autotune ever runs, so this only has to
+    // avoid making it worse.
+
+    if ((workitem_count > 0) && (kernel_power_try > workitem_count))
     {
       kernel_power_try = workitem_count;
     }
@@ -445,7 +448,11 @@ static double autotune2_fixed_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
 static u32 autotune2_align_loops (const u32 loops, const u32 work, const u32 loops_min)
 {
-  if (work == 0) return loops;
+  // Work that fits in a single launch has nothing to divide. Every chunk length keeps that one
+  // launch, so the search below answers the shortest of them, which is 1.
+
+  if (work <= 1) return loops;
+
   if (loops == 0) return loops;
 
   const u32 launches = (work + loops - 1) / loops;
