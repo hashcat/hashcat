@@ -14,7 +14,20 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_USE_BITWISE_ADDRESSING
+#define RC4_INIT_128_PREFETCH
+#define RC4_ENABLE_KRB5_HELPERS
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_ENABLE_KRB5_HELPERS
+#undef RC4_INIT_128_PREFETCH
+#undef RC4_USE_BITWISE_ADDRESSING
+#endif
+
+// A 32-thread block owns an 8 KiB RC4 S-box. Twelve blocks fill the practical
+// shared-memory residency limit while giving ptxas a mild latency-hiding target.
+#if defined IS_CUDA || defined IS_HIP
+#undef  KERNEL_FA
+#define KERNEL_FA __launch_bounds__ (32, 12)
 #endif
 
 typedef struct krb5tgs
@@ -112,11 +125,10 @@ DECLSPEC void hmac_md5_run (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u32 lid)
 {
   rc4_init_128 (S, data, lid);
 
-  u32 out0[4];
   u32 out1[4];
 
   u8 i = 0;
@@ -133,13 +145,15 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS
     next headers follow the same ASN1 "type-length-data" scheme
   */
 
-  j = rc4_next_16_global (S, i, j, edata2 + 0, out0, lid); i += 16;
+  const int probe0 = rc4_next_12_global_krb5_staged (S, i, j, edata2 + 0, lid); i += 12;
 
-  if (((out0[2] & 0xff00ffff) != 0x30008163) && ((out0[2] & 0x0000ffff) != 0x00008263)) return 0;
+  if (probe0 < 0) return 0;
 
-  j = rc4_next_16_global (S, i, j, edata2 + 4, out1, lid); i += 16;
+  j = (u8) probe0;
 
-  if (((out1[0] & 0x00ffffff) != 0x00000503) && (out1[0] != 0x050307A0)) return 0;
+  j = rc4_next_12_global (S, i, j, edata2 + 3, out1, lid); i += 12;
+
+  if (((out1[1] & 0x00ffffff) != 0x00000503) && (out1[1] != 0x050307A0)) return 0;
 
   rc4_init_128 (S, data, lid);
 
@@ -514,7 +528,7 @@ KERNEL_FQ KERNEL_FA void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -565,7 +579,7 @@ KERNEL_FQ KERNEL_FA void m13100_m08 (KERN_ATTR_ESALT (krb5tgs_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -620,7 +634,7 @@ KERNEL_FQ KERNEL_FA void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
@@ -671,7 +685,7 @@ KERNEL_FQ KERNEL_FA void m13100_s08 (KERN_ATTR_ESALT (krb5tgs_t))
    * base
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
