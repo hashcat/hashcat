@@ -223,6 +223,13 @@ HOST_ENGINE_ALGOS="${SLOW_ALGOS}"
 
 SLOW_ALGOS="${SLOW_ALGOS} 28501 28502 28503 28504 28505 28506 30901 30902 30903 30904 30905 30906 34700"
 
+# A mode with OPTS_TYPE_PT_ALWAYS_HEXIFY has its plaintext written out as bare hex whatever the
+# candidate was, so what the output carries is the hex of the word rather than the word. A mode that
+# also reads its candidate as hex is given the word in that form to begin with and reports it back
+# the same way, so those are left out.
+
+HEXIFY_PLAIN=$( grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+
 OUTD="test_$(date +%s)"
 
 PACKAGE_CMD="7z a"
@@ -343,6 +350,41 @@ function is_in_array()
   return 1
 }
 
+# The hex form of a string, for a mode whose plaintext hashcat writes that way. printf with a leading
+# quote reads the character as its numeric value and LC_ALL=C makes that value a byte rather than a
+# code point, so no xxd or od dependency creeps in here either. bash 3.2 hands the value back sign
+# extended, which is what the mask is for.
+
+function hexify()
+{
+  local LC_ALL=C
+  local out=""
+  local c
+  local i
+
+  for ((i = 0; i < ${#1}; i++)); do
+    printf -v c '%d' "'${1:i:1}"
+    printf -v c '%02x' "$((c & 0xff))"
+
+    out="${out}${c}"
+  done
+
+  printf '%s' "${out}"
+}
+
+# What the output is searched for in place of the candidate that was sent in.
+
+function expected_plain()
+{
+  if [ "${hexify_plain}" -eq 1 ]; then
+    hexify "${1}"
+
+    return
+  fi
+
+  printf '%s' "${1}"
+}
+
 # What each of the whole word attacks is given after the hash. -a 0 takes its candidates on a pipe
 # and is given nothing, -a 8 names the shipped wordlist feed and the file under it, -a 9 names the
 # list that pairs word N with hash N, and -a 4 names a ruleset directory.
@@ -381,6 +423,68 @@ function whole_word_ruleset()
   printf 'X1\t1.0\n' > "${ruleset_stem}_ruleset/Grammar/grammar.txt"
 
   awk '{ printf "%s\t1.0\n", $0 }' "${ruleset_stem}_words" > "${ruleset_stem}_ruleset/Context/1.txt"
+}
+
+# The vector list attack mode 4 runs on. A grammar assembles its candidate out of terminals and the
+# shortest terminal is one character long, so the zero length word the generator draws for a mode
+# whose minimum is zero cannot be written into a ruleset. Every other attack mode takes that word, so
+# the list they share is left as it is and attack mode 4 gets one of its own, with the zero length
+# word replaced by a word of length 1 and by the hash that goes with it, from the same oracle. A mode
+# that cannot produce a word of length 1 keeps the list it had, and the run skips that word.
+
+function whole_word_vectors()
+{
+  local vectors_type=$1
+
+  local vectors_src="${OUTD}/${vectors_type}.sh"
+  local vectors_out="${OUTD}/${vectors_type}_a4.sh"
+
+  rm -f "${vectors_out}" "${OUTD}/${vectors_type}_a4_passwords.txt" "${OUTD}/${vectors_type}_a4_hashes.txt"
+
+  if [ ! -s "${vectors_src}" ]; then
+    return
+  fi
+
+  # A LUKS mode's hashes are the container paths its generator prints, which init () reads into the
+  # real lines after this returns, and mode 10300 takes its hashes out of another field of the same
+  # line. Neither list is the one this builds out of the generator's own output, so those modes keep
+  # the list they had and the round skips the word the way it did before.
+
+  if is_in_array "${vectors_type}" ${LUKS_MODES} || [ "${vectors_type}" -eq 10300 ]; then
+    return
+  fi
+
+  local line
+  local empty=0
+
+  while IFS= read -r line; do
+    if [ -z "$(printf '%s' "${line}" | cut -d' ' -f2)" ]; then
+      empty=1
+    fi
+  done < "${vectors_src}"
+
+  if [ "${empty}" -eq 0 ]; then
+    return
+  fi
+
+  local spare
+
+  spare=$(run_oracle single "${vectors_type}" 1 2>/dev/null | head -1)
+
+  if [ -z "$(printf '%s' "${spare}" | cut -d' ' -f2)" ]; then
+    return
+  fi
+
+  while IFS= read -r line; do
+    if [ -z "$(printf '%s' "${line}" | cut -d' ' -f2)" ]; then
+      printf '%s\n' "${spare}"
+    else
+      printf '%s\n' "${line}"
+    fi
+  done < "${vectors_src}" > "${vectors_out}"
+
+  sed 's/^echo *|.*$//'       "${vectors_out}" | awk '{print $2}'                                                                    > "${OUTD}/${vectors_type}_a4_passwords.txt"
+  sed 's/^echo *|/echo "" |/' "${vectors_out}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${vectors_type}_a4_hashes.txt"
 }
 
 function has_multi_hash()
@@ -559,6 +663,8 @@ function init()
   # create separate list of password and hashes
   sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords.txt"
   sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
+
+  whole_word_vectors "${hash_type}"
 
   if is_in_array "${hash_type}" ${LUKS_MODES}; then
     # 34100 LUKS2 dynamically generates filenames, we need to cat those to get the hashes
@@ -897,6 +1003,12 @@ function attack_whole_word()
       max=12
     fi
 
+    vectors="${OUTD}/${hash_type}.sh"
+
+    if [ "${attack_mode}" -eq 4 ] && [ -s "${OUTD}/${hash_type}_a4.sh" ]; then
+      vectors="${OUTD}/${hash_type}_a4.sh"
+    fi
+
     i=0
 
     while read -r -u 9 line; do
@@ -974,9 +1086,9 @@ function attack_whole_word()
       if [ "${ret}" -eq 0 ]; then
         if ! (is_in_array "${hash_type}" ${LUKS_MODES}); then
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${pass}"
+            search=":$(expected_plain "${pass}")"
           else
-            search="${hash}:${pass}"
+            search="${hash}:$(expected_plain "${pass}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -987,7 +1099,7 @@ function attack_whole_word()
           # out-of-memory, workaround
 
           if is_in_array "${hash_type}" ${LUKS_MODES}; then
-            search="$(cat ${hash} | tr -d '\n'):${pass}" #hash is a filename for 34100
+            search="$(cat ${hash} | tr -d '\n'):$(expected_plain "${pass}")" #hash is a filename for 34100
             echo "${output}" | grep -E '^\$luks\$' | head -1 > tmp_file_out #cracked hash from hashcat output
           else
             echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out #cracked hash from hashcat output
@@ -1028,7 +1140,7 @@ function attack_whole_word()
 
       i=$((i + 1))
 
-    done 9< "${OUTD}/${hash_type}.sh"
+    done 9< "${vectors}"
 
     msg="OK"
 
@@ -1094,9 +1206,10 @@ function attack_whole_word()
 
     fi
 
-    # -a 4 cannot write an empty password into a ruleset, so the hash that belongs to one is left out
-    # of the run rather than the run being given up. A file based mode has no line to leave out, its
-    # hashes arrive as one blob, so that one keeps its single hash coverage only.
+    # -a 4 runs on the list whole_word_vectors () prepared, where the zero length word is a word of
+    # length 1 instead. Where that list could not be made the hash that belongs to an empty password
+    # is left out of the run rather than the run being given up. A file based mode has no line to
+    # leave out, its hashes arrive as one blob, so that one keeps its single hash coverage only.
 
     if [ "${attack_mode}" -eq 4 ]; then
       if [ "${file_only}" -eq 1 ]; then
@@ -1106,9 +1219,14 @@ function attack_whole_word()
       check_passwords="${OUTD}/${hash_type}_a4_multi_passwords"
       check_hashes="${OUTD}/${hash_type}_a4_multi_hashes"
 
-      grep -v '^$' "${OUTD}/${hash_type}_passwords.txt" > "${check_passwords}"
+      if [ -s "${OUTD}/${hash_type}_a4_passwords.txt" ]; then
+        cp "${OUTD}/${hash_type}_a4_passwords.txt" "${check_passwords}"
+        cp "${OUTD}/${hash_type}_a4_hashes.txt"    "${check_hashes}"
+      else
+        grep -v '^$' "${OUTD}/${hash_type}_passwords.txt" > "${check_passwords}"
 
-      awk 'NR == FNR { keep[FNR] = ($0 != ""); next } keep[FNR] { print }' "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt" > "${check_hashes}"
+        awk 'NR == FNR { keep[FNR] = ($0 != ""); next } keep[FNR] { print }' "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt" > "${check_hashes}"
+      fi
 
       hash_file="${check_hashes}"
     fi
@@ -1145,9 +1263,9 @@ function attack_whole_word()
 
         if ! (is_in_array "${hash_type}" ${LUKS_MODES}); then
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${pass}"
+            search=":$(expected_plain "${pass}")"
           else
-            search="${hash}:${pass}"
+            search="${hash}:$(expected_plain "${pass}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -1156,7 +1274,7 @@ function attack_whole_word()
         fi
 
         if is_in_array "${hash_type}" ${LUKS_MODES}; then
-          search="$(echo ${hash} | tr -d '\n'):${pass}" #hash is read from file already
+          search="$(echo ${hash} | tr -d '\n'):$(expected_plain "${pass}")" #hash is read from file already
           to_search_in_out="$(echo ${hash} | head -c 200)"
           echo "${output}" | grep -F "$to_search_in_out" | head -1 > tmp_file_out #cracked hash from hashcat output
           echo "${search}" > tmp_file_search
@@ -1346,9 +1464,9 @@ function attack_1()
           line_dict2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -1479,9 +1597,9 @@ function attack_1()
         line_dict2=$(tail -n ${line_nr} "${OUTD}/${hash_type}_dict2" | head -1)
 
         if [ "${pass_only}" -eq 1 ]; then
-          search=":${line_dict1}${line_dict2}"
+          search=":$(expected_plain "${line_dict1}${line_dict2}")"
         else
-          search="${hash}:${line_dict1}${line_dict2}"
+          search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
         fi
 
         echo "${output}" | grep -F "${search}" &>/dev/null
@@ -1647,15 +1765,15 @@ function attack_3()
 
         if is_in_array "${hash_type}" ${LUKS_MODES}; then
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict}"
+            search=":$(expected_plain "${line_dict}")"
           else
-            search="$(cat ${hash} | tr -d '\n'):${line_dict}" #hash is a filename for 34100
+            search="$(cat ${hash} | tr -d '\n'):$(expected_plain "${line_dict}")" #hash is a filename for 34100
           fi
         else
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict}"
+            search=":$(expected_plain "${line_dict}")"
           else
-            search="${hash}:${line_dict}"
+            search="${hash}:$(expected_plain "${line_dict}")"
           fi
         fi
 
@@ -2114,9 +2232,9 @@ function attack_3()
         pass=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_passwords.txt")
 
         if [ "${pass_only}" -eq 1 ]; then
-          search=":${pass}"
+          search=":$(expected_plain "${pass}")"
         else
-          search="${hash}:${pass}"
+          search="${hash}:$(expected_plain "${pass}")"
         fi
 
         echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2355,9 +2473,9 @@ function attack_6()
           line_dict2=$(sed -n ${line_nr}p "${dict2}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2522,9 +2640,9 @@ function attack_6()
           line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2815,9 +2933,9 @@ function attack_7()
           line_dict2=$(sed -n ${line_nr}p "${dict2}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -3017,9 +3135,9 @@ function attack_7()
           line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -3245,9 +3363,9 @@ function attack_12()
           if [ "${ret}" -eq 0 ]; then
 
             if [ "${pass_only}" -eq 1 ]; then
-              search=":${pass}"
+              search=":$(expected_plain "${pass}")"
             else
-              search="${hash}:${pass}"
+              search="${hash}:$(expected_plain "${pass}")"
             fi
 
             echo "${output}" | grep -F "${search}" &>/dev/null
@@ -3434,9 +3552,9 @@ function attack_12()
             line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
             if [ "${pass_only}" -eq 1 ]; then
-              search=":${line_dict1}${line_dict2}"
+              search=":$(expected_plain "${line_dict1}${line_dict2}")"
             else
-              search="${hash}:${line_dict1}${line_dict2}"
+              search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
             fi
 
             echo "${output}" | grep -F "${search}" &>/dev/null
@@ -7009,6 +7127,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       pass_only=0
       is_in_array "${hash_type}"  ${PASS_ONLY} && pass_only=1
 
+      # is the plaintext written out as bare hex?
+      hexify_plain=0
+      is_in_array "${hash_type}"  ${HEXIFY_PLAIN} && hexify_plain=1
+
       if is_in_array "${hash_type}" ${NOT_APPLICABLE_MODES}; then
         continue
       fi
@@ -7328,6 +7450,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
   PM_MODES_PACKAGED=$(     echo "${PM_MODES}"      | tr '\n' ' ' | sed 's/ *$//')
   HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ *$//')
   KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
+  HEXIFY_PLAIN_PACKAGED=$( echo "${HEXIFY_PLAIN}"  | tr '\n' ' ' | sed 's/ *$//')
   SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
@@ -7335,6 +7458,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
     -e "s/^\(PM_MODES\)=\$(.*/\1=\"${PM_MODES_PACKAGED}\"/" \
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
     -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
+    -e "s/^\(HEXIFY_PLAIN\)=\$(.*/\1=\"${HEXIFY_PLAIN_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
