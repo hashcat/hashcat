@@ -43,110 +43,6 @@ typedef enum metalResourceStorageMode
 
 } metalResourceStorageMode_t;
 
-typedef enum metalBufferStorageModeId
-{
-  metal_d_pws_buf_storageMode,
-  metal_d_pws_amp_buf_storageMode,
-  metal_d_pws_comp_buf_storageMode,
-  metal_d_pws_idx_storageMode,
-  metal_d_rules_storageMode,
-  metal_d_rules_c_storageMode,
-  metal_d_combs_storageMode,
-  metal_d_combs_c_storageMode,
-  metal_d_bfs_storageMode,
-  metal_d_bfs_c_storageMode,
-  metal_d_tm_c_storageMode,
-  metal_d_bitmap_s1_a_storageMode,
-  metal_d_bitmap_s1_b_storageMode,
-  metal_d_bitmap_s1_c_storageMode,
-  metal_d_bitmap_s1_d_storageMode,
-  metal_d_bitmap_s2_a_storageMode,
-  metal_d_bitmap_s2_b_storageMode,
-  metal_d_bitmap_s2_c_storageMode,
-  metal_d_bitmap_s2_d_storageMode,
-  metal_d_plain_bufs_storageMode,
-  metal_d_digests_buf_storageMode,
-  metal_d_digests_shown_storageMode,
-  metal_d_salt_bufs_storageMode,
-  metal_d_esalt_bufs_storageMode,
-  metal_d_tmps_storageMode,
-  metal_d_hooks_storageMode,
-  metal_d_result_storageMode,
-  metal_d_extra0_buf_storageMode,
-  metal_d_extra1_buf_storageMode,
-  metal_d_extra2_buf_storageMode,
-  metal_d_extra3_buf_storageMode,
-  metal_d_root_css_buf_storageMode,
-  metal_d_markov_css_buf_storageMode,
-  metal_d_st_digests_buf_storageMode,
-  metal_d_st_salts_buf_storageMode,
-  metal_d_st_esalts_buf_storageMode,
-  metal_d_kernel_param_storageMode,
-  metal_d_pcfg_cells_storageMode,
-  metal_d_pcfg_pool_storageMode,
-  metal_d_pcfg_wmap_storageMode,
-  //
-  metal_private_storageMode,
-  metal_shared_storageMode,
-  metal_managed_storageMode,
-  MTL_BUFFER_CNT
-
-} metalBufferStorageModeId_t;
-
-static const metalResourceStorageMode_t metalResourceStorageModes[MTL_BUFFER_CNT] =
-{
-  [metal_d_pws_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pws_amp_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pws_comp_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pws_idx_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_rules_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_rules_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_combs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_combs_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bfs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bfs_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_tm_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_a_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_b_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_d_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_a_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_b_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_d_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_plain_bufs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_digests_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_digests_shown_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_salt_bufs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_esalt_bufs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_tmps_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_hooks_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_result_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra0_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra1_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra2_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra3_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_root_css_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_markov_css_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_st_digests_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_st_salts_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_st_esalts_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_kernel_param_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pcfg_cells_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pcfg_pool_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pcfg_wmap_storageMode] = MTL_STORAGE_MODE_SHARED,
-  //
-  [metal_private_storageMode] = MTL_STORAGE_MODE_PRIVATE,
-  [metal_shared_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_managed_storageMode] = MTL_STORAGE_MODE_MANAGED
-};
-
-#define HC_MTL_CREATEBUFFER(ctx, size, ptr, buf_name)                          \
-  do {                                                                         \
-    if (hc_mtlCreateBuffer(ctx, device_param->metal_device, size, ptr,         \
-                           &device_param->metal_d_##buf_name,                  \
-                           metal_d_##buf_name##_storageMode) == -1) return -1; \
-  } while (0)
 
 typedef enum metalDeviceAttribute
 {
@@ -210,7 +106,7 @@ int  hc_mtlDeviceMaxMemAlloc                (void *hashcat_ctx, size_t *bytes, m
 int  hc_mtlMemGetInfo                       (void *hashcat_ctx, size_t *mem_free, size_t *mem_total);
 
 int  hc_mtlCreateCommandQueue               (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue *command_queue);
-int  hc_mtlCreateBuffer                     (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalBufferStorageModeId_t metal_storage_mode);
+int  hc_mtlCreateBuffer                     (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode);
 int  hc_mtlCreateKernel                     (void *hashcat_ctx, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline);
 
 int  hc_mtlGetMaxTotalThreadsPerThreadgroup (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *maxTotalThreadsPerThreadgroup);
@@ -226,7 +122,8 @@ int  hc_mtlMemcpyDtoH                       (void *hashcat_ctx, mtl_device_id me
 
 int  hc_mtlReleaseMemObject                 (void *hashcat_ctx, mtl_mem_t *metal_buffer);
 int  hc_mtlReleaseFunction                  (void *hashcat_ctx, mtl_function *metal_function);
-int  hc_mtlReleaseLibrary                   (void *hashcat_ctx, mtl_function *metal_library);
+int  hc_mtlReleasePipeline                  (void *hashcat_ctx, mtl_pipeline *metal_pipeline);
+int  hc_mtlReleaseLibrary                   (void *hashcat_ctx, mtl_library *metal_library);
 int  hc_mtlReleaseCommandQueue              (void *hashcat_ctx, mtl_command_queue *command_queue);
 int  hc_mtlReleaseDevice                    (void *hashcat_ctx, mtl_device_id *metal_device);
 

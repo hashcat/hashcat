@@ -83,7 +83,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // this uses some nice feedback effect.
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
-  // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
+  // which is then is read from the opencl host in the device_preferred_wgs_multiple result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
@@ -114,11 +114,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
       if (use_dynamic == true)
       {
-        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET])
         {
           // otherwise out-of-bound reads
 
-          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
         }
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
@@ -139,11 +139,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     {
       if (use_dynamic == true)
       {
-        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // using kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] is a bit hackish.
         // we had to brute-force this value out of an already loaded CUDA function.
         // there's no official way to query for this value.
 
-        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
       }

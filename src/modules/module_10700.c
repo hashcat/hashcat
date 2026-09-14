@@ -189,7 +189,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     }
     else
     {
-      if (fixed_local_size > device_param->kernel_preferred_wgs_multiple) fixed_local_size -= fixed_local_size % device_param->kernel_preferred_wgs_multiple;
+      if (fixed_local_size > device_param->device_preferred_wgs_multiple) fixed_local_size -= fixed_local_size % device_param->device_preferred_wgs_multiple;
     }
 
     hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D _unroll", fixed_local_size);

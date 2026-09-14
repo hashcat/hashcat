@@ -109,11 +109,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
       if (use_dynamic == true)
       {
-        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET])
         {
           // otherwise out-of-bound reads
 
-          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
         }
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
@@ -134,7 +134,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     {
       if (use_dynamic == true)
       {
-        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
       }

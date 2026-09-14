@@ -907,7 +907,7 @@ int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline meta
   return 0;
 }
 
-int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalBufferStorageModeId_t metal_storage_mode)
+int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -926,9 +926,7 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
 
   MTLResourceOptions bufferOptions;
 
-  metalResourceStorageMode_t storageMode = metalResourceStorageModes[metal_storage_mode];
-
-  switch (storageMode)
+  switch (metal_storage_mode)
   {
     case MTL_STORAGE_MODE_PRIVATE:
       bufferOptions = MTLResourceStorageModePrivate;
@@ -1054,6 +1052,25 @@ int hc_mtlReleaseFunction (void *hashcat_ctx, mtl_function *metal_function)
   #endif
 
   *metal_function = nil;
+
+  return 0;
+}
+
+int hc_mtlReleasePipeline (void *hashcat_ctx, mtl_pipeline *metal_pipeline)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
+
+  if (mtl == NULL) return -1;
+
+  if (metal_pipeline == NULL || *metal_pipeline == nil) return -1;
+
+  #if !__has_feature(objc_arc)
+  [*metal_pipeline release];
+  #endif
+
+  *metal_pipeline = nil;
 
   return 0;
 }

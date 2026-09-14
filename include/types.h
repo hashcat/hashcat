@@ -422,6 +422,115 @@ typedef enum kern_run_mp
 
 } kern_run_mp_t;
 
+// Every kernel a device holds, as an index rather than a name. The handles and the four figures
+// measured per kernel are arrays over this, so code that walks the kernels names a slot and the
+// backend in use decides which handle type that slot is read out of.
+//
+// The order is the order the kernels are created in. KERN_RUN_* above is what a module and the
+// cracking loop speak, and it keeps its own values, so kern_run_to_slot () is the one place the
+// two are tied together.
+
+typedef enum hc_dev_kern
+{
+  HC_DEV_KERN_1 = 0,
+  HC_DEV_KERN_12,
+  HC_DEV_KERN_2P,
+  HC_DEV_KERN_2,
+  HC_DEV_KERN_2E,
+  HC_DEV_KERN_23,
+  HC_DEV_KERN_3,
+  HC_DEV_KERN_4,
+  HC_DEV_KERN_INIT2,
+  HC_DEV_KERN_LOOP2P,
+  HC_DEV_KERN_LOOP2,
+  HC_DEV_KERN_MP,
+  HC_DEV_KERN_MP_L,
+  HC_DEV_KERN_MP_R,
+  HC_DEV_KERN_AMP,
+  HC_DEV_KERN_TM,
+  HC_DEV_KERN_MEMSET,
+  HC_DEV_KERN_BZERO,
+  HC_DEV_KERN_ATINIT,
+  HC_DEV_KERN_UTF8TOUTF16LE,
+  HC_DEV_KERN_DECOMPRESS,
+  HC_DEV_KERN_AUX1,
+  HC_DEV_KERN_AUX2,
+  HC_DEV_KERN_AUX3,
+  HC_DEV_KERN_AUX4,
+  HC_DEV_KERN_CNT,
+
+} hc_dev_kern_t;
+
+// The programs a device builds. The hashing kernels come out of the main one, the utility kernels
+// out of the shared one, and the mask processor and the amplifier each have their own. A program is
+// a CUmodule, a hipModule_t, a mtl_library or a cl_program depending on the backend, and all four
+// are arrays over this.
+
+typedef enum hc_dev_program
+{
+  HC_DEV_PROGRAM_MAIN = 0,
+  HC_DEV_PROGRAM_SHARED,
+  HC_DEV_PROGRAM_MP,
+  HC_DEV_PROGRAM_AMP,
+  HC_DEV_PROGRAM_CNT,
+
+} hc_dev_program_t;
+
+// Every buffer a device holds, as an index rather than a name. What a buffer is depends on the
+// backend, so the handle is a union and is_cuda, is_hip, is_metal and is_opencl select which
+// member of it is live. Code that
+// allocates, frees or copies names a slot and hc_dev_mem_* () does the rest.
+//
+// Two things about a buffer are fixed per slot rather than per call, and both are per backend: the
+// OpenCL memory flags and the Metal storage mode. Those two tables are in src/backend.c, beside the
+// allocation primitive that reads them, and are indexed by this same enum.
+
+typedef enum hc_dev_buf
+{
+  HC_DEV_BUF_PWS_BUF = 0,
+  HC_DEV_BUF_PWS_AMP_BUF,
+  HC_DEV_BUF_PWS_COMP_BUF,
+  HC_DEV_BUF_PWS_IDX,
+  HC_DEV_BUF_RULES,
+  HC_DEV_BUF_RULES_C,
+  HC_DEV_BUF_COMBS,
+  HC_DEV_BUF_COMBS_C,
+  HC_DEV_BUF_BFS,
+  HC_DEV_BUF_BFS_C,
+  HC_DEV_BUF_TM_C,
+  HC_DEV_BUF_BITMAP_S1_A,
+  HC_DEV_BUF_BITMAP_S1_B,
+  HC_DEV_BUF_BITMAP_S1_C,
+  HC_DEV_BUF_BITMAP_S1_D,
+  HC_DEV_BUF_BITMAP_S2_A,
+  HC_DEV_BUF_BITMAP_S2_B,
+  HC_DEV_BUF_BITMAP_S2_C,
+  HC_DEV_BUF_BITMAP_S2_D,
+  HC_DEV_BUF_PLAIN_BUFS,
+  HC_DEV_BUF_DIGESTS_BUF,
+  HC_DEV_BUF_DIGESTS_SHOWN,
+  HC_DEV_BUF_SALT_BUFS,
+  HC_DEV_BUF_ESALT_BUFS,
+  HC_DEV_BUF_TMPS,
+  HC_DEV_BUF_HOOKS,
+  HC_DEV_BUF_RESULT,
+  HC_DEV_BUF_EXTRA0_BUF,
+  HC_DEV_BUF_EXTRA1_BUF,
+  HC_DEV_BUF_EXTRA2_BUF,
+  HC_DEV_BUF_EXTRA3_BUF,
+  HC_DEV_BUF_ROOT_CSS_BUF,
+  HC_DEV_BUF_MARKOV_CSS_BUF,
+  HC_DEV_BUF_ST_DIGESTS_BUF,
+  HC_DEV_BUF_ST_SALTS_BUF,
+  HC_DEV_BUF_ST_ESALTS_BUF,
+  HC_DEV_BUF_KERNEL_PARAM,
+  HC_DEV_BUF_PCFG_CELLS,
+  HC_DEV_BUF_PCFG_POOL,
+  HC_DEV_BUF_PCFG_WMAP,
+  HC_DEV_BUF_CNT,
+
+} hc_dev_buf_t;
+
 typedef enum rule_functions
 {
   RULE_OP_MANGLE_NOOP              = ':',
@@ -1466,6 +1575,21 @@ typedef struct hc_fp
 #include "ext_OpenCL.h"
 #include "ext_metal.h"
 
+// A device buffer. Only the member belonging to the device's own backend is ever written, and
+// is_cuda, is_hip, is_metal and is_opencl select which that is.
+
+typedef union hc_dev_mem
+{
+  CUdeviceptr       cuda;
+  hipDeviceptr_t    hip;
+  cl_mem            opencl;
+
+  #if defined (__APPLE__)
+  mtl_mem_t         metal;
+  #endif
+
+} hc_dev_mem_t;
+
 // Where a launch's wall clock goes, split by the stage that spent it. A launch is a chain of host
 // steps around one device step, and the steps live in different files, so every stage books its time
 // into the device it belongs to.
@@ -1538,7 +1662,7 @@ typedef struct hc_device_param
   int     regsPerMultiprocessor;
   u32     kernel_exec_timeout;
 
-  u32     kernel_preferred_wgs_multiple;
+  u32     device_preferred_wgs_multiple;
 
   int     bridge_link_device;
 
@@ -1560,109 +1684,13 @@ typedef struct hc_device_param
 
   int     vector_width;
 
-  u32     kernel_wgs1;
-  u32     kernel_wgs12;
-  u32     kernel_wgs2p;
-  u32     kernel_wgs2;
-  u32     kernel_wgs2e;
-  u32     kernel_wgs23;
-  u32     kernel_wgs3;
-  u32     kernel_wgs4;
-  u32     kernel_wgs_init2;
-  u32     kernel_wgs_loop2p;
-  u32     kernel_wgs_loop2;
-  u32     kernel_wgs_mp;
-  u32     kernel_wgs_mp_l;
-  u32     kernel_wgs_mp_r;
-  u32     kernel_wgs_amp;
-  u32     kernel_wgs_tm;
-  u32     kernel_wgs_memset;
-  u32     kernel_wgs_bzero;
-  u32     kernel_wgs_atinit;
-  u32     kernel_wgs_utf8toutf16le;
-  u32     kernel_wgs_decompress;
-  u32     kernel_wgs_aux1;
-  u32     kernel_wgs_aux2;
-  u32     kernel_wgs_aux3;
-  u32     kernel_wgs_aux4;
+  u32     kernel_wgs[HC_DEV_KERN_CNT];
 
-  u32     kernel_preferred_wgs_multiple1;
-  u32     kernel_preferred_wgs_multiple12;
-  u32     kernel_preferred_wgs_multiple2p;
-  u32     kernel_preferred_wgs_multiple2;
-  u32     kernel_preferred_wgs_multiple2e;
-  u32     kernel_preferred_wgs_multiple23;
-  u32     kernel_preferred_wgs_multiple3;
-  u32     kernel_preferred_wgs_multiple4;
-  u32     kernel_preferred_wgs_multiple_init2;
-  u32     kernel_preferred_wgs_multiple_loop2p;
-  u32     kernel_preferred_wgs_multiple_loop2;
-  u32     kernel_preferred_wgs_multiple_mp;
-  u32     kernel_preferred_wgs_multiple_mp_l;
-  u32     kernel_preferred_wgs_multiple_mp_r;
-  u32     kernel_preferred_wgs_multiple_amp;
-  u32     kernel_preferred_wgs_multiple_tm;
-  u32     kernel_preferred_wgs_multiple_memset;
-  u32     kernel_preferred_wgs_multiple_bzero;
-  u32     kernel_preferred_wgs_multiple_atinit;
-  u32     kernel_preferred_wgs_multiple_utf8toutf16le;
-  u32     kernel_preferred_wgs_multiple_decompress;
-  u32     kernel_preferred_wgs_multiple_aux1;
-  u32     kernel_preferred_wgs_multiple_aux2;
-  u32     kernel_preferred_wgs_multiple_aux3;
-  u32     kernel_preferred_wgs_multiple_aux4;
+  u32     kernel_preferred_wgs_multiple[HC_DEV_KERN_CNT];
 
-  u64     kernel_local_mem_size1;
-  u64     kernel_local_mem_size12;
-  u64     kernel_local_mem_size2p;
-  u64     kernel_local_mem_size2;
-  u64     kernel_local_mem_size2e;
-  u64     kernel_local_mem_size23;
-  u64     kernel_local_mem_size3;
-  u64     kernel_local_mem_size4;
-  u64     kernel_local_mem_size_init2;
-  u64     kernel_local_mem_size_loop2p;
-  u64     kernel_local_mem_size_loop2;
-  u64     kernel_local_mem_size_mp;
-  u64     kernel_local_mem_size_mp_l;
-  u64     kernel_local_mem_size_mp_r;
-  u64     kernel_local_mem_size_amp;
-  u64     kernel_local_mem_size_tm;
-  u64     kernel_local_mem_size_memset;
-  u64     kernel_local_mem_size_bzero;
-  u64     kernel_local_mem_size_atinit;
-  u64     kernel_local_mem_size_utf8toutf16le;
-  u64     kernel_local_mem_size_decompress;
-  u64     kernel_local_mem_size_aux1;
-  u64     kernel_local_mem_size_aux2;
-  u64     kernel_local_mem_size_aux3;
-  u64     kernel_local_mem_size_aux4;
+  u64     kernel_local_mem_size[HC_DEV_KERN_CNT];
 
-  u64     kernel_dynamic_local_mem_size1;
-  u64     kernel_dynamic_local_mem_size12;
-  u64     kernel_dynamic_local_mem_size2p;
-  u64     kernel_dynamic_local_mem_size2;
-  u64     kernel_dynamic_local_mem_size2e;
-  u64     kernel_dynamic_local_mem_size23;
-  u64     kernel_dynamic_local_mem_size3;
-  u64     kernel_dynamic_local_mem_size4;
-  u64     kernel_dynamic_local_mem_size_init2;
-  u64     kernel_dynamic_local_mem_size_loop2p;
-  u64     kernel_dynamic_local_mem_size_loop2;
-  u64     kernel_dynamic_local_mem_size_mp;
-  u64     kernel_dynamic_local_mem_size_mp_l;
-  u64     kernel_dynamic_local_mem_size_mp_r;
-  u64     kernel_dynamic_local_mem_size_amp;
-  u64     kernel_dynamic_local_mem_size_tm;
-  u64     kernel_dynamic_local_mem_size_memset;
-  u64     kernel_dynamic_local_mem_size_bzero;
-  u64     kernel_dynamic_local_mem_size_atinit;
-  u64     kernel_dynamic_local_mem_size_utf8toutf16le;
-  u64     kernel_dynamic_local_mem_size_decompress;
-  u64     kernel_dynamic_local_mem_size_aux1;
-  u64     kernel_dynamic_local_mem_size_aux2;
-  u64     kernel_dynamic_local_mem_size_aux3;
-  u64     kernel_dynamic_local_mem_size_aux4;
+  u64     kernel_dynamic_local_mem_size[HC_DEV_KERN_CNT];
 
   u32     kernel_accel;
   u32     kernel_accel_prev;
@@ -1811,19 +1839,7 @@ typedef struct hc_device_param
 
   // workaround cpu spinning
 
-  double  exec_us_prev1[EXPECTED_ITERATIONS];
-  double  exec_us_prev2p[EXPECTED_ITERATIONS];
-  double  exec_us_prev2[EXPECTED_ITERATIONS];
-  double  exec_us_prev2e[EXPECTED_ITERATIONS];
-  double  exec_us_prev3[EXPECTED_ITERATIONS];
-  double  exec_us_prev4[EXPECTED_ITERATIONS];
-  double  exec_us_prev_init2[EXPECTED_ITERATIONS];
-  double  exec_us_prev_loop2p[EXPECTED_ITERATIONS];
-  double  exec_us_prev_loop2[EXPECTED_ITERATIONS];
-  double  exec_us_prev_aux1[EXPECTED_ITERATIONS];
-  double  exec_us_prev_aux2[EXPECTED_ITERATIONS];
-  double  exec_us_prev_aux3[EXPECTED_ITERATIONS];
-  double  exec_us_prev_aux4[EXPECTED_ITERATIONS];
+  double  exec_us_prev[HC_DEV_KERN_CNT][EXPECTED_ITERATIONS];
 
   // this is "current" speed
 
@@ -1907,6 +1923,17 @@ typedef struct hc_device_param
 
   kernel_param_t kernel_param;
 
+  // Indexed by hc_dev_buf_t. The pool parts are their own array because there are several of them
+  // per run; the slot HC_DEV_BUF_PCFG_POOL is what carries their per-backend allocation metadata.
+
+  hc_dev_mem_t      d_buf[HC_DEV_BUF_CNT];
+  hc_dev_mem_t      d_pcfg_pool[PCFG_POOL_PARTS];
+
+  // A slot holding a symbol out of the built program rather than an allocation of ours. Unloading the
+  // program is what releases it, so the teardown walk leaves it alone.
+
+  bool              d_buf_borrowed[HC_DEV_BUF_CNT];
+
   // API: cuda
 
   bool              is_cuda;
@@ -1921,77 +1948,9 @@ typedef struct hc_device_param
   CUevent           cuda_event2;
   CUevent           cuda_event3;
 
-  CUmodule          cuda_module;
-  CUmodule          cuda_module_shared;
-  CUmodule          cuda_module_mp;
-  CUmodule          cuda_module_amp;
+  CUmodule          cuda_module[HC_DEV_PROGRAM_CNT];
 
-  CUfunction        cuda_function1;
-  CUfunction        cuda_function12;
-  CUfunction        cuda_function2p;
-  CUfunction        cuda_function2;
-  CUfunction        cuda_function2e;
-  CUfunction        cuda_function23;
-  CUfunction        cuda_function3;
-  CUfunction        cuda_function4;
-  CUfunction        cuda_function_init2;
-  CUfunction        cuda_function_loop2p;
-  CUfunction        cuda_function_loop2;
-  CUfunction        cuda_function_mp;
-  CUfunction        cuda_function_mp_l;
-  CUfunction        cuda_function_mp_r;
-  CUfunction        cuda_function_amp;
-  CUfunction        cuda_function_tm;
-  CUfunction        cuda_function_memset;
-  CUfunction        cuda_function_bzero;
-  CUfunction        cuda_function_atinit;
-  CUfunction        cuda_function_utf8toutf16le;
-  CUfunction        cuda_function_decompress;
-  CUfunction        cuda_function_aux1;
-  CUfunction        cuda_function_aux2;
-  CUfunction        cuda_function_aux3;
-  CUfunction        cuda_function_aux4;
-
-  CUdeviceptr       cuda_d_pws_buf;
-  CUdeviceptr       cuda_d_pws_amp_buf;
-  CUdeviceptr       cuda_d_pws_comp_buf;
-  CUdeviceptr       cuda_d_pws_idx;
-  CUdeviceptr       cuda_d_rules;
-  CUdeviceptr       cuda_d_rules_c;
-  CUdeviceptr       cuda_d_combs;
-  CUdeviceptr       cuda_d_combs_c;
-  CUdeviceptr       cuda_d_pcfg_cells;
-  CUdeviceptr       cuda_d_pcfg_pool[PCFG_POOL_PARTS];
-  CUdeviceptr       cuda_d_pcfg_wmap;
-  CUdeviceptr       cuda_d_bfs;
-  CUdeviceptr       cuda_d_bfs_c;
-  CUdeviceptr       cuda_d_tm_c;
-  CUdeviceptr       cuda_d_bitmap_s1_a;
-  CUdeviceptr       cuda_d_bitmap_s1_b;
-  CUdeviceptr       cuda_d_bitmap_s1_c;
-  CUdeviceptr       cuda_d_bitmap_s1_d;
-  CUdeviceptr       cuda_d_bitmap_s2_a;
-  CUdeviceptr       cuda_d_bitmap_s2_b;
-  CUdeviceptr       cuda_d_bitmap_s2_c;
-  CUdeviceptr       cuda_d_bitmap_s2_d;
-  CUdeviceptr       cuda_d_plain_bufs;
-  CUdeviceptr       cuda_d_digests_buf;
-  CUdeviceptr       cuda_d_digests_shown;
-  CUdeviceptr       cuda_d_salt_bufs;
-  CUdeviceptr       cuda_d_esalt_bufs;
-  CUdeviceptr       cuda_d_tmps;
-  CUdeviceptr       cuda_d_hooks;
-  CUdeviceptr       cuda_d_result;
-  CUdeviceptr       cuda_d_extra0_buf;
-  CUdeviceptr       cuda_d_extra1_buf;
-  CUdeviceptr       cuda_d_extra2_buf;
-  CUdeviceptr       cuda_d_extra3_buf;
-  CUdeviceptr       cuda_d_root_css_buf;
-  CUdeviceptr       cuda_d_markov_css_buf;
-  CUdeviceptr       cuda_d_st_digests_buf;
-  CUdeviceptr       cuda_d_st_salts_buf;
-  CUdeviceptr       cuda_d_st_esalts_buf;
-  CUdeviceptr       cuda_d_kernel_param;
+  CUfunction        cuda_function[HC_DEV_KERN_CNT];
 
   // API: hip
 
@@ -2007,77 +1966,11 @@ typedef struct hc_device_param
   hipEvent_t        hip_event2;
   hipEvent_t        hip_event3;
 
-  hipModule_t       hip_module;
-  hipModule_t       hip_module_shared;
-  hipModule_t       hip_module_mp;
-  hipModule_t       hip_module_amp;
+  hipModule_t       hip_module[HC_DEV_PROGRAM_CNT];
 
-  hipFunction_t     hip_function1;
-  hipFunction_t     hip_function12;
-  hipFunction_t     hip_function2p;
-  hipFunction_t     hip_function2;
-  hipFunction_t     hip_function2e;
-  hipFunction_t     hip_function23;
-  hipFunction_t     hip_function3;
-  hipFunction_t     hip_function4;
-  hipFunction_t     hip_function_init2;
-  hipFunction_t     hip_function_loop2p;
-  hipFunction_t     hip_function_loop2;
-  hipFunction_t     hip_function_mp;
-  hipFunction_t     hip_function_mp_l;
-  hipFunction_t     hip_function_mp_r;
-  hipFunction_t     hip_function_amp;
-  hipFunction_t     hip_function_tm;
-  hipFunction_t     hip_function_memset;
-  hipFunction_t     hip_function_bzero;
-  hipFunction_t     hip_function_atinit;
-  hipFunction_t     hip_function_utf8toutf16le;
-  hipFunction_t     hip_function_decompress;
-  hipFunction_t     hip_function_aux1;
-  hipFunction_t     hip_function_aux2;
-  hipFunction_t     hip_function_aux3;
-  hipFunction_t     hip_function_aux4;
+  hipFunction_t     hip_function[HC_DEV_KERN_CNT];
 
-  hipDeviceptr_t    hip_d_pws_buf;
-  hipDeviceptr_t    hip_d_pws_amp_buf;
-  hipDeviceptr_t    hip_d_pws_comp_buf;
-  hipDeviceptr_t    hip_d_pws_idx;
-  hipDeviceptr_t    hip_d_rules;
-  hipDeviceptr_t    hip_d_rules_c;
-  hipDeviceptr_t    hip_d_combs;
-  hipDeviceptr_t    hip_d_combs_c;
-  hipDeviceptr_t    hip_d_pcfg_cells;
-  hipDeviceptr_t    hip_d_pcfg_pool[PCFG_POOL_PARTS];
-  hipDeviceptr_t    hip_d_pcfg_wmap;
-  hipDeviceptr_t    hip_d_bfs;
-  hipDeviceptr_t    hip_d_bfs_c;
-  hipDeviceptr_t    hip_d_tm_c;
-  hipDeviceptr_t    hip_d_bitmap_s1_a;
-  hipDeviceptr_t    hip_d_bitmap_s1_b;
-  hipDeviceptr_t    hip_d_bitmap_s1_c;
-  hipDeviceptr_t    hip_d_bitmap_s1_d;
-  hipDeviceptr_t    hip_d_bitmap_s2_a;
-  hipDeviceptr_t    hip_d_bitmap_s2_b;
-  hipDeviceptr_t    hip_d_bitmap_s2_c;
-  hipDeviceptr_t    hip_d_bitmap_s2_d;
-  hipDeviceptr_t    hip_d_plain_bufs;
-  hipDeviceptr_t    hip_d_digests_buf;
-  hipDeviceptr_t    hip_d_digests_shown;
-  hipDeviceptr_t    hip_d_salt_bufs;
-  hipDeviceptr_t    hip_d_esalt_bufs;
-  hipDeviceptr_t    hip_d_tmps;
-  hipDeviceptr_t    hip_d_hooks;
-  hipDeviceptr_t    hip_d_result;
-  hipDeviceptr_t    hip_d_extra0_buf;
-  hipDeviceptr_t    hip_d_extra1_buf;
-  hipDeviceptr_t    hip_d_extra2_buf;
-  hipDeviceptr_t    hip_d_extra3_buf;
-  hipDeviceptr_t    hip_d_root_css_buf;
-  hipDeviceptr_t    hip_d_markov_css_buf;
-  hipDeviceptr_t    hip_d_st_digests_buf;
-  hipDeviceptr_t    hip_d_st_salts_buf;
-  hipDeviceptr_t    hip_d_st_esalts_buf;
-  hipDeviceptr_t    hip_d_kernel_param;
+
 
   // API: opencl and metal
 
@@ -2105,103 +1998,13 @@ typedef struct hc_device_param
   mtl_device_id     metal_device;
   mtl_command_queue metal_command_queue;
 
-  mtl_library       metal_library;
-  mtl_library       metal_library_shared;
-  mtl_library       metal_library_mp;
-  mtl_library       metal_library_amp;
+  mtl_library       metal_library[HC_DEV_PROGRAM_CNT];
 
-  mtl_function      metal_function1;
-  mtl_function      metal_function12;
-  mtl_function      metal_function2p;
-  mtl_function      metal_function2;
-  mtl_function      metal_function2e;
-  mtl_function      metal_function23;
-  mtl_function      metal_function3;
-  mtl_function      metal_function4;
-  mtl_function      metal_function_init2;
-  mtl_function      metal_function_loop2p;
-  mtl_function      metal_function_loop2;
-  mtl_function      metal_function_mp;
-  mtl_function      metal_function_mp_l;
-  mtl_function      metal_function_mp_r;
-  mtl_function      metal_function_amp;
-  mtl_function      metal_function_tm;
-  mtl_function      metal_function_memset;
-  mtl_function      metal_function_bzero;
-  mtl_function      metal_function_atinit;
-  mtl_function      metal_function_utf8toutf16le;
-  mtl_function      metal_function_decompress;
-  mtl_function      metal_function_aux1;
-  mtl_function      metal_function_aux2;
-  mtl_function      metal_function_aux3;
-  mtl_function      metal_function_aux4;
+  mtl_function      metal_function[HC_DEV_KERN_CNT];
 
-  mtl_pipeline      metal_pipeline1;
-  mtl_pipeline      metal_pipeline12;
-  mtl_pipeline      metal_pipeline2p;
-  mtl_pipeline      metal_pipeline2;
-  mtl_pipeline      metal_pipeline2e;
-  mtl_pipeline      metal_pipeline23;
-  mtl_pipeline      metal_pipeline3;
-  mtl_pipeline      metal_pipeline4;
-  mtl_pipeline      metal_pipeline_init2;
-  mtl_pipeline      metal_pipeline_loop2p;
-  mtl_pipeline      metal_pipeline_loop2;
-  mtl_pipeline      metal_pipeline_mp;
-  mtl_pipeline      metal_pipeline_mp_l;
-  mtl_pipeline      metal_pipeline_mp_r;
-  mtl_pipeline      metal_pipeline_amp;
-  mtl_pipeline      metal_pipeline_tm;
-  mtl_pipeline      metal_pipeline_memset;
-  mtl_pipeline      metal_pipeline_bzero;
-  mtl_pipeline      metal_pipeline_atinit;
-  mtl_pipeline      metal_pipeline_utf8toutf16le;
-  mtl_pipeline      metal_pipeline_decompress;
-  mtl_pipeline      metal_pipeline_aux1;
-  mtl_pipeline      metal_pipeline_aux2;
-  mtl_pipeline      metal_pipeline_aux3;
-  mtl_pipeline      metal_pipeline_aux4;
+  mtl_pipeline      metal_pipeline[HC_DEV_KERN_CNT];
 
-  mtl_mem_t         metal_d_pws_buf;
-  mtl_mem_t         metal_d_pws_amp_buf;
-  mtl_mem_t         metal_d_pws_comp_buf;
-  mtl_mem_t         metal_d_pws_idx;
-  mtl_mem_t         metal_d_rules;
-  mtl_mem_t         metal_d_rules_c;
-  mtl_mem_t         metal_d_combs;
-  mtl_mem_t         metal_d_combs_c;
-  mtl_mem_t         metal_d_pcfg_cells;
-  mtl_mem_t         metal_d_pcfg_pool[PCFG_POOL_PARTS];
-  mtl_mem_t         metal_d_pcfg_wmap;
-  mtl_mem_t         metal_d_bfs;
-  mtl_mem_t         metal_d_bfs_c;
-  mtl_mem_t         metal_d_tm_c;
-  mtl_mem_t         metal_d_bitmap_s1_a;
-  mtl_mem_t         metal_d_bitmap_s1_b;
-  mtl_mem_t         metal_d_bitmap_s1_c;
-  mtl_mem_t         metal_d_bitmap_s1_d;
-  mtl_mem_t         metal_d_bitmap_s2_a;
-  mtl_mem_t         metal_d_bitmap_s2_b;
-  mtl_mem_t         metal_d_bitmap_s2_c;
-  mtl_mem_t         metal_d_bitmap_s2_d;
-  mtl_mem_t         metal_d_plain_bufs;
-  mtl_mem_t         metal_d_digests_buf;
-  mtl_mem_t         metal_d_digests_shown;
-  mtl_mem_t         metal_d_salt_bufs;
-  mtl_mem_t         metal_d_esalt_bufs;
-  mtl_mem_t         metal_d_tmps;
-  mtl_mem_t         metal_d_hooks;
-  mtl_mem_t         metal_d_result;
-  mtl_mem_t         metal_d_extra0_buf;
-  mtl_mem_t         metal_d_extra1_buf;
-  mtl_mem_t         metal_d_extra2_buf;
-  mtl_mem_t         metal_d_extra3_buf;
-  mtl_mem_t         metal_d_root_css_buf;
-  mtl_mem_t         metal_d_markov_css_buf;
-  mtl_mem_t         metal_d_st_digests_buf;
-  mtl_mem_t         metal_d_st_salts_buf;
-  mtl_mem_t         metal_d_st_esalts_buf;
-  mtl_mem_t         metal_d_kernel_param;
+
 
   #endif // __APPLE__
 
@@ -2231,77 +2034,11 @@ typedef struct hc_device_param
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;
 
-  cl_program        opencl_program;
-  cl_program        opencl_program_shared;
-  cl_program        opencl_program_mp;
-  cl_program        opencl_program_amp;
+  cl_program        opencl_program[HC_DEV_PROGRAM_CNT];
 
-  cl_kernel         opencl_kernel1;
-  cl_kernel         opencl_kernel12;
-  cl_kernel         opencl_kernel2p;
-  cl_kernel         opencl_kernel2;
-  cl_kernel         opencl_kernel2e;
-  cl_kernel         opencl_kernel23;
-  cl_kernel         opencl_kernel3;
-  cl_kernel         opencl_kernel4;
-  cl_kernel         opencl_kernel_init2;
-  cl_kernel         opencl_kernel_loop2p;
-  cl_kernel         opencl_kernel_loop2;
-  cl_kernel         opencl_kernel_mp;
-  cl_kernel         opencl_kernel_mp_l;
-  cl_kernel         opencl_kernel_mp_r;
-  cl_kernel         opencl_kernel_amp;
-  cl_kernel         opencl_kernel_tm;
-  cl_kernel         opencl_kernel_memset;
-  cl_kernel         opencl_kernel_bzero;
-  cl_kernel         opencl_kernel_atinit;
-  cl_kernel         opencl_kernel_utf8toutf16le;
-  cl_kernel         opencl_kernel_decompress;
-  cl_kernel         opencl_kernel_aux1;
-  cl_kernel         opencl_kernel_aux2;
-  cl_kernel         opencl_kernel_aux3;
-  cl_kernel         opencl_kernel_aux4;
+  cl_kernel         opencl_kernel[HC_DEV_KERN_CNT];
 
-  cl_mem            opencl_d_pws_buf;
-  cl_mem            opencl_d_pws_amp_buf;
-  cl_mem            opencl_d_pws_comp_buf;
-  cl_mem            opencl_d_pws_idx;
-  cl_mem            opencl_d_rules;
-  cl_mem            opencl_d_rules_c;
-  cl_mem            opencl_d_combs;
-  cl_mem            opencl_d_combs_c;
-  cl_mem            opencl_d_pcfg_cells;
-  cl_mem            opencl_d_pcfg_pool[PCFG_POOL_PARTS];
-  cl_mem            opencl_d_pcfg_wmap;
-  cl_mem            opencl_d_bfs;
-  cl_mem            opencl_d_bfs_c;
-  cl_mem            opencl_d_tm_c;
-  cl_mem            opencl_d_bitmap_s1_a;
-  cl_mem            opencl_d_bitmap_s1_b;
-  cl_mem            opencl_d_bitmap_s1_c;
-  cl_mem            opencl_d_bitmap_s1_d;
-  cl_mem            opencl_d_bitmap_s2_a;
-  cl_mem            opencl_d_bitmap_s2_b;
-  cl_mem            opencl_d_bitmap_s2_c;
-  cl_mem            opencl_d_bitmap_s2_d;
-  cl_mem            opencl_d_plain_bufs;
-  cl_mem            opencl_d_digests_buf;
-  cl_mem            opencl_d_digests_shown;
-  cl_mem            opencl_d_salt_bufs;
-  cl_mem            opencl_d_esalt_bufs;
-  cl_mem            opencl_d_tmps;
-  cl_mem            opencl_d_hooks;
-  cl_mem            opencl_d_result;
-  cl_mem            opencl_d_extra0_buf;
-  cl_mem            opencl_d_extra1_buf;
-  cl_mem            opencl_d_extra2_buf;
-  cl_mem            opencl_d_extra3_buf;
-  cl_mem            opencl_d_root_css_buf;
-  cl_mem            opencl_d_markov_css_buf;
-  cl_mem            opencl_d_st_digests_buf;
-  cl_mem            opencl_d_st_salts_buf;
-  cl_mem            opencl_d_st_esalts_buf;
-  cl_mem            opencl_d_kernel_param;
+
 
   // Which presentation group this device belongs to, as the device index of the group's first
   // member. A device that leads its own group carries its own index, which is what every device

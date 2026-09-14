@@ -2077,7 +2077,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u64   device_available_mem          = device_param->device_available_mem;
       u64   device_global_mem             = device_param->device_global_mem;
       int   device_host_unified_memory    = device_param->device_host_unified_memory;
-      u32   kernel_preferred_wgs_multiple = device_param->kernel_preferred_wgs_multiple;
+      u32   device_preferred_wgs_multiple = device_param->device_preferred_wgs_multiple;
       u8    pcie_domain                   = device_param->pcie_domain;
       u8    pcie_bus                      = device_param->pcie_bus;
       u8    pcie_device                   = device_param->pcie_device;
@@ -2111,7 +2111,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", device_preferred_wgs_multiple);
         event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
         event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
@@ -2125,7 +2125,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       {
         printf ("\"Name\": \"%s\", ", device_name);
         printf ("\"Processors\": \"%u\", ", device_processors);
-        printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
+        printf ("\"PreferredThreadSize\": \"%u\", ", device_preferred_wgs_multiple);
         printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
         printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
         printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
@@ -2234,7 +2234,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u64   device_available_mem          = device_param->device_available_mem;
       u64   device_global_mem             = device_param->device_global_mem;
       int   device_host_unified_memory    = device_param->device_host_unified_memory;
-      u32   kernel_preferred_wgs_multiple = device_param->kernel_preferred_wgs_multiple;
+      u32   device_preferred_wgs_multiple = device_param->device_preferred_wgs_multiple;
       u8    pcie_domain                   = device_param->pcie_domain;
       u8    pcie_bus                      = device_param->pcie_bus;
       u8    pcie_device                   = device_param->pcie_device;
@@ -2268,7 +2268,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", device_preferred_wgs_multiple);
         event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
         event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
@@ -2282,7 +2282,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       {
         printf ("\"Name\": \"%s\", ", device_name);
         printf ("\"Processors\": \"%u\", ", device_processors);
-        printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
+        printf ("\"PreferredThreadSize\": \"%u\", ", device_preferred_wgs_multiple);
         printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
         printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
         printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
@@ -2384,7 +2384,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u64   device_available_mem             = device_param->device_available_mem;
       u64   device_local_mem_size            = device_param->device_local_mem_size;
       int   device_host_unified_memory       = device_param->device_host_unified_memory;
-      u32   kernel_preferred_wgs_multiple    = device_param->kernel_preferred_wgs_multiple;
+      u32   device_preferred_wgs_multiple    = device_param->device_preferred_wgs_multiple;
 
       cl_device_type opencl_device_type      = device_param->opencl_device_type;
       cl_uint        opencl_device_vendor_id = device_param->opencl_device_vendor_id;
@@ -2421,7 +2421,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", device_preferred_wgs_multiple);
         event_log_info (hashcat_ctx, "  Clock..........: N/A");
         event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
@@ -2436,7 +2436,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
         printf ("\"Name\": \"%s\", ", device_name);
         printf ("\"Processors\": \"%u\", ", device_processors);
-        printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
+        printf ("\"PreferredThreadSize\": \"%u\", ", device_preferred_wgs_multiple);
         printf ("\"Clock\": \"%s\", ", "N/A");
         printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
         printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
@@ -2655,7 +2655,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         u64            device_available_mem           = device_param->device_available_mem;
         u64            device_global_mem              = device_param->device_global_mem;
         int            device_host_unified_memory     = device_param->device_host_unified_memory;
-        u32            kernel_preferred_wgs_multiple  = device_param->kernel_preferred_wgs_multiple;
+        u32            device_preferred_wgs_multiple  = device_param->device_preferred_wgs_multiple;
         cl_device_type opencl_device_type             = device_param->opencl_device_type;
         cl_uint        opencl_device_vendor_id        = device_param->opencl_device_vendor_id;
         char          *opencl_device_vendor           = device_param->opencl_device_vendor;
@@ -2695,7 +2695,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
           event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
           event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
           event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
-          event_log_info (hashcat_ctx, "    Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+          event_log_info (hashcat_ctx, "    Preferred.Thrd.: %u", device_preferred_wgs_multiple);
           event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
           event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
           event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
@@ -2712,7 +2712,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
           printf ("\"Name\": \"%s\", ", device_name);
           printf ("\"Version\": \"%s\", ", opencl_device_version);
           printf ("\"Processors\": \"%u\", ", device_processors);
-          printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
+          printf ("\"PreferredThreadSize\": \"%u\", ", device_preferred_wgs_multiple);
           printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
           printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
           printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
