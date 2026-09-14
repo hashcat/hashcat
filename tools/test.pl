@@ -240,6 +240,19 @@ sub edge
     }
   }
 
+  # Attack type 4 assembles its candidate out of grammar terminals and the shortest terminal is one
+  # character long, so there is no way to hand it an empty word. A mode whose minimum is zero gets a
+  # one character word for that corner instead, which is a case the attack can express. Left at zero
+  # the vector reaches tools/test_edge.sh, which has to skip it, and the corner goes untested.
+
+  if ($attack_type == 4)
+  {
+    if ($word_min == 0)
+    {
+      $word_min = 1;
+    }
+  }
+
   my $word_len = 0;
   my $salt_len = 0;
 

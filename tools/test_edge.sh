@@ -83,6 +83,28 @@ function unhex()
   printf '%b' "$(printf '%s' "$1" | sed 's/\(..\)/\\x\1/g')"
 }
 
+# The other direction, for a mode whose plaintext hashcat writes as bare hex. printf with a leading
+# quote reads the character as its numeric value and LC_ALL=C makes that value a byte rather than a
+# code point, which keeps this on shell builtins the way the decode above is. bash 3.2 hands the
+# value back sign extended, which is what the mask is for.
+
+function hexify()
+{
+  local LC_ALL=C
+  local out=""
+  local c
+  local i
+
+  for ((i = 0; i < ${#1}; i++)); do
+    printf -v c '%d' "'${1:i:1}"
+    printf -v c '%02x' "$((c & 0xff))"
+
+    out="${out}${c}"
+  done
+
+  printf '%s' "${out}"
+}
+
 # The mask attacks do not test the correct password on its own. The mask puts candidates on one side
 # of it or the other, and the correct one has to be picked out of them, which is what catches a kernel
 # that reports a neighbour of the match. An attack reading a word list has no mask, so the same noise
@@ -350,6 +372,13 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # so those are left out.
 
 BINARY_HASHFILE_TYPES=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | sed -E 's/.*module_0*([0-9]+)\.c/\1/' | tr '\n' ' ')
+
+# A mode with OPTS_TYPE_PT_ALWAYS_HEXIFY has its plaintext written out as bare hex whatever the
+# candidate was, so the outfile carries the hex of the word rather than the word. A mode that also
+# reads its candidate as hex is given the word in that form to begin with and reports it back the
+# same way, so those are left out.
+
+HEXIFY_PLAIN_TYPES=$(grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+)\.c/\1/' | tr '\n' ' ')
 
 UNAME=$(uname -s)
 
@@ -1144,6 +1173,13 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
                 word=$(printf '%s' "${word}" | cut -b7-)
               fi
 
+              # A mode that always hexifies is the same split by a different cause: the candidate is
+              # the word, and the outfile carries it in hex.
+
+              if is_in_array "${hash_type}" ${HEXIFY_PLAIN_TYPES}; then
+                word_compare=$(hexify "${word}")
+              fi
+
               if [ ${have_salt} -eq 1 ]; then
                 salt_len="None"
                 salt=
@@ -1555,6 +1591,10 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
               if [ "${hash_type}" == "20510" ]; then
                 word_compare="${word}"
                 word=$(printf '%s' "${word}" | cut -b7-)
+              fi
+
+              if is_in_array "${hash_type}" ${HEXIFY_PLAIN_TYPES}; then
+                word_compare=$(hexify "${word}")
               fi
 
               if [ ${have_salt} -eq 1 ]; then
