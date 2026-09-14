@@ -158,9 +158,20 @@ static bool hc_lzma_raw_decompress (const u64 filter_id, const unsigned char *in
 
   const int rc_init = lz->lzma_raw_decoder (&strm, filters);
 
-  // liblzma allocated this from the properties and copied what it needed into its own state
+  // liblzma allocated this from the properties and copied what it needed into its own state, so the
+  // library is what has to release it. On Windows a module linked against a different C runtime
+  // allocates from a different heap, and free () here corrupts the one hashcat itself allocates from.
+  // lzma_filters_free arrived in xz 5.4. Where it is missing, free () is what this did before and is
+  // still correct on a platform that gives the whole process one heap.
 
-  free (filters[0].options);
+  if (lz->lzma_filters_free != NULL)
+  {
+    lz->lzma_filters_free (filters, NULL);
+  }
+  else
+  {
+    free (filters[0].options);
+  }
 
   if (rc_init != HC_LZMA_OK) return false;
 
