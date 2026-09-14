@@ -80,13 +80,11 @@ DECLSPEC void m17400m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
       ad = hc_rotl64 (t, r); \
       t = bc0;               \
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int round = 0; round < KECCAK_ROUNDS - 1; round++)
+    // Peeled first round: the initial state has 16 zero lanes plus one
+    // constant lane, so emitting round 0 as straight-line code lets the
+    // compiler fold those constants (Theta parities collapse, D-application
+    // into zero lanes becomes free) without unrolling the whole loop.
     {
-      // Theta
-
       u64x bc0 = a00 ^ a10 ^ a20 ^ a30 ^ a40;
       u64x bc1 = a01 ^ a11 ^ a21 ^ a31 ^ a41;
       u64x bc2 = a02 ^ a12 ^ a22 ^ a32 ^ a42;
@@ -100,6 +98,76 @@ DECLSPEC void m17400m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
       t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
       t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
       t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
+
+      t = a01;
+
+      Rho_Pi (a20,  1);
+      Rho_Pi (a12,  3);
+      Rho_Pi (a21,  6);
+      Rho_Pi (a32, 10);
+      Rho_Pi (a33, 15);
+      Rho_Pi (a03, 21);
+      Rho_Pi (a10, 28);
+      Rho_Pi (a31, 36);
+      Rho_Pi (a13, 45);
+      Rho_Pi (a41, 55);
+      Rho_Pi (a44,  2);
+      Rho_Pi (a04, 14);
+      Rho_Pi (a30, 27);
+      Rho_Pi (a43, 41);
+      Rho_Pi (a34, 56);
+      Rho_Pi (a23,  8);
+      Rho_Pi (a22, 25);
+      Rho_Pi (a02, 43);
+      Rho_Pi (a40, 62);
+      Rho_Pi (a24, 18);
+      Rho_Pi (a42, 39);
+      Rho_Pi (a14, 61);
+      Rho_Pi (a11, 20);
+      Rho_Pi (a01, 44);
+
+      bc0 = a00; bc1 = a01; bc2 = a02; bc3 = a03; bc4 = a04;
+      a00 ^= ~bc1 & bc2; a01 ^= ~bc2 & bc3; a02 ^= ~bc3 & bc4; a03 ^= ~bc4 & bc0; a04 ^= ~bc0 & bc1;
+
+      bc0 = a10; bc1 = a11; bc2 = a12; bc3 = a13; bc4 = a14;
+      a10 ^= ~bc1 & bc2; a11 ^= ~bc2 & bc3; a12 ^= ~bc3 & bc4; a13 ^= ~bc4 & bc0; a14 ^= ~bc0 & bc1;
+
+      bc0 = a20; bc1 = a21; bc2 = a22; bc3 = a23; bc4 = a24;
+      a20 ^= ~bc1 & bc2; a21 ^= ~bc2 & bc3; a22 ^= ~bc3 & bc4; a23 ^= ~bc4 & bc0; a24 ^= ~bc0 & bc1;
+
+      bc0 = a30; bc1 = a31; bc2 = a32; bc3 = a33; bc4 = a34;
+      a30 ^= ~bc1 & bc2; a31 ^= ~bc2 & bc3; a32 ^= ~bc3 & bc4; a33 ^= ~bc4 & bc0; a34 ^= ~bc0 & bc1;
+
+      bc0 = a40; bc1 = a41; bc2 = a42; bc3 = a43; bc4 = a44;
+      a40 ^= ~bc1 & bc2; a41 ^= ~bc2 & bc3; a42 ^= ~bc3 & bc4; a43 ^= ~bc4 & bc0; a44 ^= ~bc0 & bc1;
+
+      a00 ^= keccakf_rndc[0];
+    }
+
+    // Partially unroll pairs of rounds to halve loop-control overhead without
+    // the code-size/register-pressure cost of fully unrolling all 22 rounds.
+    #pragma unroll 2
+    for (int round = 1; round < KECCAK_ROUNDS - 1; round++)
+    {
+      // Theta
+
+      u64x bc0 = a00 ^ a10 ^ a20 ^ a30 ^ a40;
+      u64x bc1 = a01 ^ a11 ^ a21 ^ a31 ^ a41;
+      u64x bc2 = a02 ^ a12 ^ a22 ^ a32 ^ a42;
+      u64x bc3 = a03 ^ a13 ^ a23 ^ a33 ^ a43;
+      u64x bc4 = a04 ^ a14 ^ a24 ^ a34 ^ a44;
+
+      u64x t;
+
+      // Fold Theta D-application as explicit 3-input XORs so ptxas emits one
+      // XOR3 (LOP3) per lane instead of materializing t = bc[x-1] ^ rotl(bc[x+1])
+      // and then 5 two-input XORs; the parity bc is live across the D-phase
+      // anyway, so register pressure is unchanged. Value-identical (XOR assoc).
+      t = hc_rotl64 (bc1, 1); a00 = a00 ^ bc4 ^ t; a10 = a10 ^ bc4 ^ t; a20 = a20 ^ bc4 ^ t; a30 = a30 ^ bc4 ^ t; a40 = a40 ^ bc4 ^ t;
+      t = hc_rotl64 (bc2, 1); a01 = a01 ^ bc0 ^ t; a11 = a11 ^ bc0 ^ t; a21 = a21 ^ bc0 ^ t; a31 = a31 ^ bc0 ^ t; a41 = a41 ^ bc0 ^ t;
+      t = hc_rotl64 (bc3, 1); a02 = a02 ^ bc1 ^ t; a12 = a12 ^ bc1 ^ t; a22 = a22 ^ bc1 ^ t; a32 = a32 ^ bc1 ^ t; a42 = a42 ^ bc1 ^ t;
+      t = hc_rotl64 (bc4, 1); a03 = a03 ^ bc2 ^ t; a13 = a13 ^ bc2 ^ t; a23 = a23 ^ bc2 ^ t; a33 = a33 ^ bc2 ^ t; a43 = a43 ^ bc2 ^ t;
+      t = hc_rotl64 (bc0, 1); a04 = a04 ^ bc3 ^ t; a14 = a14 ^ bc3 ^ t; a24 = a24 ^ bc3 ^ t; a34 = a34 ^ bc3 ^ t; a44 = a44 ^ bc3 ^ t;
 
       // Rho Pi
 
@@ -275,13 +343,11 @@ DECLSPEC void m17400s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
       ad = hc_rotl64 (t, r); \
       t = bc0;               \
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int round = 0; round < KECCAK_ROUNDS - 1; round++)
+    // Peeled first round: the initial state has 16 zero lanes plus one
+    // constant lane, so emitting round 0 as straight-line code lets the
+    // compiler fold those constants (Theta parities collapse, D-application
+    // into zero lanes becomes free) without unrolling the whole loop.
     {
-      // Theta
-
       u64x bc0 = a00 ^ a10 ^ a20 ^ a30 ^ a40;
       u64x bc1 = a01 ^ a11 ^ a21 ^ a31 ^ a41;
       u64x bc2 = a02 ^ a12 ^ a22 ^ a32 ^ a42;
@@ -295,6 +361,76 @@ DECLSPEC void m17400s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
       t = bc1 ^ hc_rotl64 (bc3, 1); a02 ^= t; a12 ^= t; a22 ^= t; a32 ^= t; a42 ^= t;
       t = bc2 ^ hc_rotl64 (bc4, 1); a03 ^= t; a13 ^= t; a23 ^= t; a33 ^= t; a43 ^= t;
       t = bc3 ^ hc_rotl64 (bc0, 1); a04 ^= t; a14 ^= t; a24 ^= t; a34 ^= t; a44 ^= t;
+
+      t = a01;
+
+      Rho_Pi (a20,  1);
+      Rho_Pi (a12,  3);
+      Rho_Pi (a21,  6);
+      Rho_Pi (a32, 10);
+      Rho_Pi (a33, 15);
+      Rho_Pi (a03, 21);
+      Rho_Pi (a10, 28);
+      Rho_Pi (a31, 36);
+      Rho_Pi (a13, 45);
+      Rho_Pi (a41, 55);
+      Rho_Pi (a44,  2);
+      Rho_Pi (a04, 14);
+      Rho_Pi (a30, 27);
+      Rho_Pi (a43, 41);
+      Rho_Pi (a34, 56);
+      Rho_Pi (a23,  8);
+      Rho_Pi (a22, 25);
+      Rho_Pi (a02, 43);
+      Rho_Pi (a40, 62);
+      Rho_Pi (a24, 18);
+      Rho_Pi (a42, 39);
+      Rho_Pi (a14, 61);
+      Rho_Pi (a11, 20);
+      Rho_Pi (a01, 44);
+
+      bc0 = a00; bc1 = a01; bc2 = a02; bc3 = a03; bc4 = a04;
+      a00 ^= ~bc1 & bc2; a01 ^= ~bc2 & bc3; a02 ^= ~bc3 & bc4; a03 ^= ~bc4 & bc0; a04 ^= ~bc0 & bc1;
+
+      bc0 = a10; bc1 = a11; bc2 = a12; bc3 = a13; bc4 = a14;
+      a10 ^= ~bc1 & bc2; a11 ^= ~bc2 & bc3; a12 ^= ~bc3 & bc4; a13 ^= ~bc4 & bc0; a14 ^= ~bc0 & bc1;
+
+      bc0 = a20; bc1 = a21; bc2 = a22; bc3 = a23; bc4 = a24;
+      a20 ^= ~bc1 & bc2; a21 ^= ~bc2 & bc3; a22 ^= ~bc3 & bc4; a23 ^= ~bc4 & bc0; a24 ^= ~bc0 & bc1;
+
+      bc0 = a30; bc1 = a31; bc2 = a32; bc3 = a33; bc4 = a34;
+      a30 ^= ~bc1 & bc2; a31 ^= ~bc2 & bc3; a32 ^= ~bc3 & bc4; a33 ^= ~bc4 & bc0; a34 ^= ~bc0 & bc1;
+
+      bc0 = a40; bc1 = a41; bc2 = a42; bc3 = a43; bc4 = a44;
+      a40 ^= ~bc1 & bc2; a41 ^= ~bc2 & bc3; a42 ^= ~bc3 & bc4; a43 ^= ~bc4 & bc0; a44 ^= ~bc0 & bc1;
+
+      a00 ^= keccakf_rndc[0];
+    }
+
+    // Partially unroll pairs of rounds to halve loop-control overhead without
+    // the code-size/register-pressure cost of fully unrolling all 22 rounds.
+    #pragma unroll 2
+    for (int round = 1; round < KECCAK_ROUNDS - 1; round++)
+    {
+      // Theta
+
+      u64x bc0 = a00 ^ a10 ^ a20 ^ a30 ^ a40;
+      u64x bc1 = a01 ^ a11 ^ a21 ^ a31 ^ a41;
+      u64x bc2 = a02 ^ a12 ^ a22 ^ a32 ^ a42;
+      u64x bc3 = a03 ^ a13 ^ a23 ^ a33 ^ a43;
+      u64x bc4 = a04 ^ a14 ^ a24 ^ a34 ^ a44;
+
+      u64x t;
+
+      // Fold Theta D-application as explicit 3-input XORs so ptxas emits one
+      // XOR3 (LOP3) per lane instead of materializing t = bc[x-1] ^ rotl(bc[x+1])
+      // and then 5 two-input XORs; the parity bc is live across the D-phase
+      // anyway, so register pressure is unchanged. Value-identical (XOR assoc).
+      t = hc_rotl64 (bc1, 1); a00 = a00 ^ bc4 ^ t; a10 = a10 ^ bc4 ^ t; a20 = a20 ^ bc4 ^ t; a30 = a30 ^ bc4 ^ t; a40 = a40 ^ bc4 ^ t;
+      t = hc_rotl64 (bc2, 1); a01 = a01 ^ bc0 ^ t; a11 = a11 ^ bc0 ^ t; a21 = a21 ^ bc0 ^ t; a31 = a31 ^ bc0 ^ t; a41 = a41 ^ bc0 ^ t;
+      t = hc_rotl64 (bc3, 1); a02 = a02 ^ bc1 ^ t; a12 = a12 ^ bc1 ^ t; a22 = a22 ^ bc1 ^ t; a32 = a32 ^ bc1 ^ t; a42 = a42 ^ bc1 ^ t;
+      t = hc_rotl64 (bc4, 1); a03 = a03 ^ bc2 ^ t; a13 = a13 ^ bc2 ^ t; a23 = a23 ^ bc2 ^ t; a33 = a33 ^ bc2 ^ t; a43 = a43 ^ bc2 ^ t;
+      t = hc_rotl64 (bc0, 1); a04 = a04 ^ bc3 ^ t; a14 = a14 ^ bc3 ^ t; a24 = a24 ^ bc3 ^ t; a34 = a34 ^ bc3 ^ t; a44 = a44 ^ bc3 ^ t;
 
       // Rho Pi
 
