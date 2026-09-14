@@ -1229,6 +1229,79 @@ static u32 pcfg_cp_upper (const u32 cp)
   return cp;
 }
 
+// Whether a run of bytes is strictly UTF-8. A word with no list behind it has no character count to
+// compare its byte count against, so this is what says whether it is one byte per character: a hint
+// word that does not decode is a single byte encoding, and cp1252 keeps letters where UTF-8 keeps
+// continuation bytes.
+
+static bool pcfg_is_utf8 (const u8 *s, const u32 len)
+{
+  u32 at = 0;
+
+  while (at < len)
+  {
+    const u8 c = s[at];
+
+    u32 need;
+
+    if (c < 0x80)            { at++; continue; }
+    else if ((c & 0xe0) == 0xc0) need = 1;
+    else if ((c & 0xf0) == 0xe0) need = 2;
+    else if ((c & 0xf8) == 0xf0) need = 3;
+    else return false;
+
+    if ((at + need) >= len) return false;
+
+    for (u32 j = 1; j <= need; j++) if ((s[at + j] & 0xc0) != 0x80) return false;
+
+    at += need + 1;
+  }
+
+  return true;
+}
+
+// The inverse of pcfg_cp_upper (). PCFG_UC is keyed on the lower case codepoint, so it cannot be
+// searched from the upper side in the same way: the upper ranges it implies are not in order. It is
+// walked instead, which costs nothing where it is used - ASCII takes the branch above, and the rest
+// is a hint word's letters, counted in dozens and lowered once.
+
+static u32 pcfg_cp_lower (const u32 cp)
+{
+  if (cp < 0x80) return ((cp >= 'A') && (cp <= 'Z')) ? cp + 32 : cp;
+
+  for (u32 i = 0; i < (sizeof (PCFG_UC) / sizeof (PCFG_UC[0])); i++)
+  {
+    const int ulo = (int) PCFG_UC[i].lo + PCFG_UC[i].delta;
+    const int uhi = (int) PCFG_UC[i].hi + PCFG_UC[i].delta;
+
+    if (((int) cp < ulo) || ((int) cp > uhi)) continue;
+
+    if ((((int) cp - ulo) % (int) PCFG_UC[i].step) != 0) continue;
+
+    return (u32) ((int) cp - PCFG_UC[i].delta);
+  }
+
+  return cp;
+}
+
+// The lower case of one byte, for a word that is not UTF-8. The mirror of pcfg_byte_upper ().
+
+static u8 pcfg_byte_lower (const u8 c)
+{
+  if ((c >= 'A') && (c <= 'Z')) return c + 0x20;
+  if ((c >= 0xc0) && (c <= 0xde) && (c != 0xd7)) return c + 0x20;
+
+  switch (c)
+  {
+    case 0x8a: return 0x9a;
+    case 0x8c: return 0x9c;
+    case 0x8e: return 0x9e;
+    case 0x9f: return 0xff;
+  }
+
+  return c;
+}
+
 static u32 pcfg_utf8_get (const u8 *s, const u32 len, u32 *cp)
 {
   const u8 b0 = s[0];
@@ -1281,18 +1354,87 @@ static u32 pcfg_utf8_put (u8 *d, const u32 cp)
 // loses is the all lowercase form of a word that was not written that way, and it keeps every other
 // form, because the uppercase image is built from whatever is here.
 
-static void pcfg_lower_ascii (u8 *dst, const u8 *src, const u32 len)
-{
-  for (u32 i = 0; i < len; i++)
-  {
-    const u8 c = src[i];
+// A hint word lowered the way the model means it: the mask slot behind the token is what puts the
+// case back, so a capital the lowering did not reach is a capital every form of that word carries.
+// Lowering only A-Z left one in any word that is not ASCII - a name typed as "NASTAK" with a caron
+// came out as "naStak" in every lower case form of it, which is 95 per cent of the candidates that
+// word appears in.
+//
+// The word's own bytes say which lowering applies, the same question its uppercase image asks.
 
-    dst[i] = ((c >= 'A') && (c <= 'Z')) ? (u8) (c + 32) : c;
+static void pcfg_lower_word (u8 *dst, const u8 *src, const u32 len)
+{
+  if (pcfg_is_utf8 (src, len) == false)
+  {
+    for (u32 i = 0; i < len; i++) dst[i] = pcfg_byte_lower (src[i]);
+
+    return;
+  }
+
+  u32 at = 0;
+
+  while (at < len)
+  {
+    u32 cp = 0;
+
+    const u32 n = pcfg_utf8_get (src + at, len - at, &cp);
+
+    const u32 lo = pcfg_cp_lower (cp);
+
+    u8 tmp[4];
+
+    const u32 m = (lo == cp) ? 0 : pcfg_utf8_put (tmp, lo);
+
+    // A lowering that changes the width would move every byte behind it, and the mask that follows
+    // counts characters from here. Left as it stands rather than half applied.
+
+    if (m == n)
+    {
+      for (u32 i = 0; i < n; i++) dst[at + i] = tmp[i];
+    }
+    else
+    {
+      for (u32 i = 0; i < n; i++) dst[at + i] = src[at + i];
+    }
+
+    at += n;
   }
 }
 
-static void pcfg_upper_image (u8 *dst, const u8 *src, const u32 len)
+// The uppercase of one byte, for a list that keeps one byte per character. Latin-1 pairs off by
+// 0x20 like ASCII, and windows-1252 puts four more letters in the C1 block that Unicode has no
+// uppercase for at all - s-caron, oe, z-caron and y-diaeresis - which is why the codepoint path
+// below leaves them alone and this one does not.
+
+static u8 pcfg_byte_upper (const u8 c)
 {
+  if ((c >= 'a') && (c <= 'z')) return c - 0x20;
+  if ((c >= 0xe0) && (c <= 0xfe) && (c != 0xf7)) return c - 0x20;
+
+  switch (c)
+  {
+    case 0x9a: return 0x8a;
+    case 0x9c: return 0x8c;
+    case 0x9e: return 0x8e;
+    case 0xff: return 0x9f;
+  }
+
+  return c;
+}
+
+static void pcfg_upper_image (u8 *dst, const u8 *src, const u32 len, const bool wide)
+{
+  // A terminal whose byte count equals its list's character count is one byte per character, and
+  // decoding it as UTF-8 is wrong twice over: the bytes are not UTF-8, and the case pairs are not
+  // the Unicode ones.
+
+  if (wide == false)
+  {
+    for (u32 i = 0; i < len; i++) dst[i] = pcfg_byte_upper (src[i]);
+
+    return;
+  }
+
   u32 at = 0;
 
   while (at < len)
@@ -2131,7 +2273,7 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
       const u32 at  = t->off[i];
       const u32 len = t->off[i + 1] - at;
 
-      pcfg_upper_image (t->ubuf + at, t->buf + at, len);
+      pcfg_upper_image (t->ubuf + at, t->buf + at, len, (len != t->ln));
     }
   }
 
@@ -2624,6 +2766,12 @@ static u32 hint_mask_apply (u8 *dst, const u8 *lo, const u8 *up, const u32 len, 
 {
   memcpy (dst, lo, len);
 
+  // The word's own bytes say what a character is. The mask cannot: a hint mask list is one entry
+  // long by construction and holds masks of every width, so comparing the two lengths the way
+  // assemble () does would say nothing here.
+
+  const bool wide = pcfg_is_utf8 (lo, len);
+
   u32 ci = 0;
   u32 at = 0;
 
@@ -2635,7 +2783,7 @@ static u32 hint_mask_apply (u8 *dst, const u8 *lo, const u8 *up, const u32 len, 
 
     at++;
 
-    while (at < len)
+    while ((wide == true) && (at < len))
     {
       if ((lo[at] & 0xc0) != 0x80) break;
 
@@ -2728,8 +2876,14 @@ static bool hint_expand (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
       {
         const u32 len = pg->hw[i].len;
 
-        pcfg_lower_ascii (lo, pg->hw[i].buf, len);
-        pcfg_upper_image (up, lo, len);
+        pcfg_lower_word (lo, pg->hw[i].buf, len);
+
+        // A hint word has no list behind it to say what a character is, so its own bytes say: one
+        // that does not decode as UTF-8 is a single byte encoding, and its uppercase pairs are the
+        // single byte ones. Without this the all-capitals form of a cp1252 word comes out with every
+        // letter raised but the high byte left alone.
+
+        pcfg_upper_image (up, lo, len, pcfg_is_utf8 (lo, len));
 
         u8 *dst = (u8 *) store + at;
 
@@ -2924,10 +3078,13 @@ static int list_get (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const 
 
   memset (&tmp, 0, sizeof (tmp));
 
-  if (tlist_load (&tmp, roots, nroots, rel, pg->scale, pg->costmax, (t == 'A')) == -1) return -1;
+  // Set before the load, not after: tlist_build () needs the character count to know whether a
+  // terminal is one byte per character, and it builds the uppercase image while it is in there.
 
   tmp.ty = (u8) t;
   tmp.ln = len;
+
+  if (tlist_load (&tmp, roots, nroots, rel, pg->scale, pg->costmax, (t == 'A')) == -1) return -1;
 
   // Reading a list happens inside the grammar loop, so without this the loop looks stopped while
   // gigabytes of terminals are read.
@@ -3161,10 +3318,10 @@ static HC_API_CALL void *preload_worker (void *arg)
 
     // Each worker owns its own slot, so nothing here is shared but the file system.
 
-    if (tlist_load (&tmp, pl->roots, pl->nroots, rel, pl->pg->scale, pl->pg->costmax, (t == 'A')) == -1) continue;
-
     tmp.ty = (u8) t;
     tmp.ln = len;
+
+    if (tlist_load (&tmp, pl->roots, pl->nroots, rel, pl->pg->scale, pl->pg->costmax, (t == 'A')) == -1) continue;
 
     pl->pg->lists[i] = tmp;
     pl->ok[i]        = true;
@@ -5699,7 +5856,7 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
       }
       else
       {
-        pcfg_lower_ascii (hint_lo, th->hint[h].buf, hl);
+        pcfg_lower_word (hint_lo, th->hint[h].buf, hl);
 
         hint_up_ready = false;
 
@@ -5734,6 +5891,22 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
 
       const u8 *up = (last_hint == true) ? hint_up : ((ta->ubuf != NULL) ? (ta->ubuf + ta->off[th->idx[j - 1]]) : NULL);
 
+      // The mask has one position per character and the terminal is that same word, so the two
+      // lengths say what a character is here without anything having to declare it: equal means one
+      // byte per character, and the continuation walk below must not run. A latin-1 or cp1252 list
+      // carries letters in 0x80-0xBF, which look exactly like UTF-8 continuation bytes, and swallowing
+      // one of those slides every remaining mask position one character to the right.
+
+      // A hint token is not a list entry: its mask comes from a one-entry list that holds masks of
+      // every width, so the two lengths say nothing about it. Its own bytes do, which is the test
+      // hint_mask_apply () and hint_expand () make. I could not build a case where taking the list
+      // rule here produces a wrong candidate - the two readings coincide wherever the uppercase
+      // image has nothing different to write - but the three copies of this rule should not
+      // disagree on what a character is.
+
+      const bool wide = (last_hint == true) ? pcfg_is_utf8 (hint_lo, (u32) last_len)
+                                            : (last_len != l);
+
       int ci = 0;
       int at = 0;
 
@@ -5745,7 +5918,7 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
 
         if ((hit == true) && (last_hint == true) && (hint_up_ready == false))
         {
-          pcfg_upper_image (hint_up, hint_lo, (u32) last_len);
+          pcfg_upper_image (hint_up, hint_lo, (u32) last_len, wide);
 
           hint_up_ready = true;
         }
@@ -5754,7 +5927,7 @@ static int assemble (pcfg_global_t *pg, const pcfg_thread_t *th, u8 *out, const 
 
         at++;
 
-        while (at < last_len)
+        while ((wide == true) && (at < last_len))
         {
           if ((last_off + at) >= out_size) break;
 
@@ -5917,6 +6090,12 @@ static bool mask_match (const pcfg_tlist_t *ta, const u32 wi, const pcfg_tlist_t
 
   const u32 mlen = tc->off[mi + 1] - tc->off[mi];
 
+  // The same test assemble () makes, and it has to be the same: this decides whether a password is
+  // derivable, so a walk that disagrees with the one that builds candidates reports a password the
+  // run does emit as not derivable at all.
+
+  const bool wide = (vlen != mlen);
+
   u32 ci = 0;
   u32 at = 0;
 
@@ -5930,7 +6109,7 @@ static bool mask_match (const pcfg_tlist_t *ta, const u32 wi, const pcfg_tlist_t
 
     at++;
 
-    while (at < vlen)
+    while ((wide == true) && (at < vlen))
     {
       if ((v[at] & 0xc0) != 0x80) break;
 
@@ -6104,7 +6283,7 @@ static u32 pcfg_parse (pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *o
 
           if (t->ubuf != NULL)
           {
-            pcfg_upper_image (key, pw + spos[j], span);
+            pcfg_upper_image (key, pw + spos[j], span, (span != t->ln));
           }
           else
           {

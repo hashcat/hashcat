@@ -237,6 +237,12 @@ DECLSPEC void pcfg_case_slot (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, 
 
   #endif
 
+  // The same rule the host uses: the mask has one position per character and the token is that word,
+  // so equal lengths mean one byte per character and the continuation walk must not run. A latin-1 or
+  // cp1252 list keeps letters in 0x80-0xBF, which are indistinguishable from continuation bytes.
+
+  const u32 wide = (tok_len != mask_len) ? 1 : 0;
+
   u32 ci = 0;
   u32 at = 0;
 
@@ -249,7 +255,7 @@ DECLSPEC void pcfg_case_slot (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, 
 
     at++;
 
-    while (at < tok_len)
+    while ((wide != 0) && (at < tok_len))
     {
       if ((pcfg_get_byte (w, dst_off + at) & 0xc0) != 0x80) break;
 
