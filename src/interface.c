@@ -497,7 +497,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16LE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD01;
-    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD02;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD06;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD80;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS14;

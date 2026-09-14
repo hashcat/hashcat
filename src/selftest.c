@@ -677,6 +677,11 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 0, 1, false, 0, false) == -1) return -1;
       }
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX5)
+      {
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, 0, 1, false, 0, false) == -1) return -1;
+      }
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_COMP)

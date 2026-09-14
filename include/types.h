@@ -411,6 +411,7 @@ typedef enum kern_run
   KERN_RUN_AUX2   = 7002,
   KERN_RUN_AUX3   = 7003,
   KERN_RUN_AUX4   = 7004,
+  KERN_RUN_AUX5   = 7005,
 
 } kern_run_t;
 
@@ -457,6 +458,7 @@ typedef enum hc_dev_kern
   HC_DEV_KERN_AUX2,
   HC_DEV_KERN_AUX3,
   HC_DEV_KERN_AUX4,
+  HC_DEV_KERN_AUX5,
   HC_DEV_KERN_CNT,
 
 } hc_dev_kern_t;
@@ -662,7 +664,8 @@ typedef enum opts_type
   OPTS_TYPE_PT_UPPER                 = (1ULL <<  2),
   OPTS_TYPE_PT_LOWER                 = (1ULL <<  3),
   OPTS_TYPE_PT_ADD01                 = (1ULL <<  4),
-  OPTS_TYPE_PT_ADD02                 = (1ULL <<  5),
+  // Bit 5 held OPTS_TYPE_PT_ADD02, which no module ever set and nothing ever read. It is
+  // OPTS_TYPE_AUX5 below, kept with the rest of its family rather than in numeric order.
   OPTS_TYPE_PT_ADD80                 = (1ULL <<  6),
   OPTS_TYPE_PT_ADDBITS14             = (1ULL <<  7),
   OPTS_TYPE_PT_ADDBITS15             = (1ULL <<  8),
@@ -704,6 +707,7 @@ typedef enum opts_type
   OPTS_TYPE_AUX2                     = (1ULL << 42),
   OPTS_TYPE_AUX3                     = (1ULL << 43),
   OPTS_TYPE_AUX4                     = (1ULL << 44),
+  OPTS_TYPE_AUX5                     = (1ULL <<  5), // the bit freed above, out of order because no high bit is left
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
   OPTS_TYPE_BINARY_HASHFILE_OPTIONAL = (1ULL << 46), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06                 = (1ULL << 47),

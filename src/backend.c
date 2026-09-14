@@ -540,6 +540,7 @@ static const hc_dev_kern_t kern_run_all[] =
   HC_DEV_KERN_AUX2,
   HC_DEV_KERN_AUX3,
   HC_DEV_KERN_AUX4,
+  HC_DEV_KERN_AUX5,
 };
 
 static const int kern_run_cnt = sizeof (kern_run_all) / sizeof (kern_run_all[0]);
@@ -567,6 +568,7 @@ static hc_dev_kern_t kern_run_to_slot (const int kern_run)
     case KERN_RUN_AUX2:   return HC_DEV_KERN_AUX2;
     case KERN_RUN_AUX3:   return HC_DEV_KERN_AUX3;
     case KERN_RUN_AUX4:   return HC_DEV_KERN_AUX4;
+    case KERN_RUN_AUX5:   return HC_DEV_KERN_AUX5;
   }
 
   return HC_DEV_KERN_CNT;
@@ -2131,7 +2133,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           BRIDGE_LOOP2
           COPY_BRIDGE_MATERIAL_TO_DEVICE
         DEEP_COMP_KERNEL:
-          RUN_AUX1/2/3/4
+          RUN_AUX1/2/3/4/5
         RUN_COMP
         CLEAN_HOOK_DATA
     */
@@ -2508,6 +2510,15 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             if (hashconfig->opts_type & OPTS_TYPE_AUX4)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+
+              aux_cnt++;
+            }
+
+            if (hashconfig->opts_type & OPTS_TYPE_AUX5)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
               if (status_ctx->run_thread_level2 == false) break;
 
@@ -12621,6 +12632,15 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
 
       SETUP_KERNEL (HC_DEV_KERN_AUX4, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // aux5
+
+    if (hashconfig->opts_type & OPTS_TYPE_AUX5)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux5", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_AUX5, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
   }
 
