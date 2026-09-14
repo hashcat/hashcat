@@ -425,6 +425,7 @@ static const char *tuning_db_vendor_alias (const cl_device_type device_type, con
   if (strncmp (device_name, "NVIDIA ", 7) == 0) return "ALIAS_NV";
   if (strncmp (device_name, "AMD ",    4) == 0) return "ALIAS_AMD";
   if (strncmp (device_name, "Intel",   5) == 0) return "ALIAS_INTEL";
+  if (strncmp (device_name, "Apple M", 7) == 0) return "ALIAS_Apple_M";
 
   return NULL;
 }
