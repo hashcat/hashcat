@@ -1767,6 +1767,14 @@ void generate_cached_kernel_amp_filename (const u32 attack_kern, char *cache_dir
 
 int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
 {
+  // The index first, because it is about to become an offset into device memory and nothing else
+  // checks it. Everything the copy below brings back is checked, and where it was read from was not:
+  // an index past the end of the buffer reads memory this run does not own, and the driver answers
+  // that with an illegal access rather than with an error. It sits in front of the bind so that
+  // refusing one costs nothing to balance.
+
+  if (gidd >= (device_param->size_pws_idx / sizeof (pw_idx_t))) return -1;
+
   // One exit, because the bind above it is a push on CUDA and every path out has to balance it. The
   // checks below reject rather than clamp, so there are several of them.
 
@@ -5519,16 +5527,20 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
       if (total_words == 0) total_words = (double) device_param->speed_cnt[0] / (double) innerloop_cnt;
 
-      // outerloop_left is a whole number of base words and the pair is read as a rate, so the time is
-      // scaled to the count that survives the rounding. A window covering less than one base word
+      // The count reported is a whole number of base words and the pair is read as a rate, so the time
+      // is scaled to the count that survives the rounding. A window covering less than one base word
       // then reports the rate it measured, instead of rounding that rate up to a whole word's worth.
+      //
+      // It goes in a field of its own rather than in outerloop_left. That one is the batch the device
+      // is working on, and the status display turns it into an index into the candidate buffer, so a
+      // measurement spanning several batches wrote an index that buffer never had.
 
-      const u64 outerloop_left = MAX ((u64) total_words, 1);
+      const u64 outerloop_progress = MAX ((u64) total_words, 1);
 
-      if (total_words > 0) total_msec *= (double) outerloop_left / total_words;
+      if (total_words > 0) total_msec *= (double) outerloop_progress / total_words;
 
-      device_param->outerloop_left = outerloop_left;
-      device_param->outerloop_msec = total_msec;
+      device_param->outerloop_progress = outerloop_progress;
+      device_param->outerloop_msec     = total_msec;
 
       break;
     }
@@ -16411,8 +16423,9 @@ void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     device_param->outerloop_msec  = 0;
     device_param->outerloop_pos   = 0;
-    device_param->outerloop_left  = 0;
-    device_param->outerloop_words = 0;
+    device_param->outerloop_left     = 0;
+    device_param->outerloop_words    = 0;
+    device_param->outerloop_progress = 0;
     device_param->innerloop_pos   = 0;
     device_param->innerloop_left  = 0;
 

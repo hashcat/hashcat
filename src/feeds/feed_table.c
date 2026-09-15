@@ -79,15 +79,21 @@ typedef struct table
   u32 *hmap;
   u32  hmap_size;
 
-  // Longest match, by first byte. Sources sharing a first byte are held together and sorted longest
-  // first, so the first one that matches at a position is the one to take and there is nothing to
-  // compare afterwards. A single byte table gives every list one member and the walk is a load.
+  // Longest match, by first byte. A position takes the longest source that matches there, so the walk
+  // asks the hash index above for one length at a time, longest first, and stops at the first answer.
+  // These are the lengths worth asking about: the source lengths that first byte has at all, and a
+  // source is at most TABLE_SRC_MAX bytes, so the list is short whatever the table holds.
   //
-  // A bucket of one entry is left out of these lists. Its only entry is the identity, so it varies
-  // not at all, and leaving it in would spend a slot of the cell on a token that never changes.
+  // Walking every source that shares a first byte instead is the same work for a leetspeak or case
+  // table, which names a handful of them, and quite another thing for a table that names things. Cars,
+  // clubs or cities put thousands of sources under one letter, and a pass over a wordlist multiplies
+  // that by every position of every word.
+  //
+  // A bucket that varies not at all is left out. Its only entry is the identity, so it varies nothing,
+  // and leaving it in would spend a slot of the cell on a token that never changes.
 
-  u32 *first[256];
-  u32  first_cnt[256];
+  u8  *flen[256];
+  u32  flen_cnt[256];
 
   u32  src_max;
 
@@ -419,20 +425,17 @@ static bool table_bucket_idle (const table_t *tb, const u32 idx)
   return same;
 }
 
-// The lists longest match walks, one per first byte, each ordered longest source first so that the
-// first entry matching at a position is the one to take.
+// The lengths longest match asks about, one list per first byte, each ordered longest first.
 //
-// The order is counted rather than sorted. A source length is what the list is ordered by and
-// TABLE_SRC_MAX bounds it, so counting how many entries each length holds says where each length
-// starts. Sorting a first byte list costs what that list holds squared, which a table of millions of
-// entries spends hours on.
+// Nothing is sorted. TABLE_SRC_MAX bounds a source length, so one pass over the buckets marks which
+// lengths a first byte has and the list is written out of the marks, longest first.
 
 static void table_index_build (table_t *tb)
 {
   for (u32 i = 0; i < 256; i++)
   {
-    tb->first[i]     = NULL;
-    tb->first_cnt[i] = 0;
+    tb->flen[i]     = NULL;
+    tb->flen_cnt[i] = 0;
   }
 
   // A source is at least one byte, because a line whose source has none is dropped when it is read,
@@ -440,7 +443,7 @@ static void table_index_build (table_t *tb)
 
   const u32 lanes = TABLE_SRC_MAX + 1;
 
-  u32 *len_cnt = (u32 *) hccalloc (256 * lanes, sizeof (u32));
+  u8 *seen = (u8 *) hccalloc (256 * lanes, sizeof (u8));
 
   for (u32 i = 0; i < tb->bucket_cnt; i++)
   {
@@ -448,51 +451,34 @@ static void table_index_build (table_t *tb)
 
     const u32 c = tb->arena[tb->bucket[i].src_off];
 
-    tb->first_cnt[c]++;
-
-    len_cnt[(c * lanes) + tb->bucket[i].src_len]++;
+    seen[(c * lanes) + tb->bucket[i].src_len] = 1;
   }
 
   for (u32 i = 0; i < 256; i++)
   {
-    if (tb->first_cnt[i] == 0) continue;
+    u32 n = 0;
 
-    tb->first[i] = (u32 *) hcmalloc (tb->first_cnt[i] * sizeof (u32));
-  }
+    for (u32 len = TABLE_SRC_MAX; len > 0; len--) n += seen[(i * lanes) + len];
 
-  // Where each length begins in its list, counting down so the longest sits at the front
+    if (n == 0) continue;
 
-  u32 *len_pos = (u32 *) hccalloc (256 * lanes, sizeof (u32));
+    tb->flen[i] = (u8 *) hcmalloc (n * sizeof (u8));
 
-  for (u32 i = 0; i < 256; i++)
-  {
     u32 at = 0;
 
     for (u32 len = TABLE_SRC_MAX; len > 0; len--)
     {
-      len_pos[(i * lanes) + len] = at;
+      if (seen[(i * lanes) + len] == 0) continue;
 
-      at += len_cnt[(i * lanes) + len];
+      tb->flen[i][at] = (u8) len;
+
+      at++;
     }
+
+    tb->flen_cnt[i] = n;
   }
 
-  // Taking the buckets in order leaves entries of the same length in the order the table gave them,
-  // which is what sorting them by length alone did.
-
-  for (u32 i = 0; i < tb->bucket_cnt; i++)
-  {
-    if (table_bucket_idle (tb, i) == true) continue;
-
-    const u32 c   = tb->arena[tb->bucket[i].src_off];
-    const u32 len = tb->bucket[i].src_len;
-
-    tb->first[c][len_pos[(c * lanes) + len]] = i;
-
-    len_pos[(c * lanes) + len]++;
-  }
-
-  hcfree (len_pos);
-  hcfree (len_cnt);
+  hcfree (seen);
 }
 
 // The pool the device reads, in the two shapes the kernel is built for. With entries of one length a
@@ -888,7 +874,7 @@ void table_free (table_t *tb)
 {
   for (u32 i = 0; i < tb->bucket_cnt; i++) hcfree (tb->bucket[i].ent);
 
-  for (u32 i = 0; i < 256; i++) hcfree (tb->first[i]);
+  for (u32 i = 0; i < 256; i++) hcfree (tb->flen[i]);
 
   hcfree (tb->hmap);
   hcfree (tb->bucket);
@@ -916,17 +902,19 @@ static u32 table_scan (const table_t *tb, const u8 *word, const u32 word_len, ta
   {
     const u32 c = word[i];
 
-    for (u32 n = 0; n < tb->first_cnt[c]; n++)
+    for (u32 n = 0; n < tb->flen_cnt[c]; n++)
     {
-      const u32 idx = tb->first[c][n];
-      const u32 len = tb->bucket[idx].src_len;
+      const u32 len = tb->flen[c][n];
 
       if ((i + len) > word_len) continue;
 
-      if (table_span_eq (tb, tb->bucket[idx].src_off, len, &word[i], len) == false) continue;
+      const u32 idx = table_bucket_find (tb, &word[i], len);
+
+      if (idx == TABLE_TOK_LITERAL) continue;
 
       // A bucket holding nothing but the unchanged entry offers no substitution, so it is left out
-      // here for the same reason the tokenizer leaves it out of the variable list.
+      // here for the same reason the tokenizer leaves it out of the variable list. An idle bucket is
+      // one of those, which is why the index it was left out of is not consulted here.
 
       if (tb->bucket[idx].ent_cnt < 2) continue;
 
@@ -958,14 +946,20 @@ int table_tokenize (const table_t *tb, const u8 *word, const u32 word_len, table
 
     u32 hit = TABLE_TOK_LITERAL;
 
-    for (u32 n = 0; n < tb->first_cnt[c]; n++)
+    for (u32 n = 0; n < tb->flen_cnt[c]; n++)
     {
-      const u32 idx = tb->first[c][n];
-      const u32 len = tb->bucket[idx].src_len;
+      const u32 len = tb->flen[c][n];
 
       if ((i + len) > word_len) continue;
 
-      if (table_span_eq (tb, tb->bucket[idx].src_off, len, &word[i], len) == false) continue;
+      const u32 idx = table_bucket_find (tb, &word[i], len);
+
+      if (idx == TABLE_TOK_LITERAL) continue;
+
+      // A bucket that varies not at all is not a token. The first byte lists leave those out, so the
+      // walk they served never met one, and the hash index holds every source there is.
+
+      if (table_bucket_idle (tb, idx) == true) continue;
 
       hit = idx;
 

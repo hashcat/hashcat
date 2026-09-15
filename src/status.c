@@ -2713,7 +2713,7 @@ u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int backend
   if (device_param->skipped == true) return 0;
   if (device_param->skipped_warning == true) return 0;
 
-  return device_param->outerloop_left;
+  return device_param->outerloop_progress;
 }
 
 double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)

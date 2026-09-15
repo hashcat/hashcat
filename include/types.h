@@ -1831,8 +1831,21 @@ typedef struct hc_device_param
   u64     words_done;
 
   u64     outerloop_pos;
+
+  // Base words in the batch the device is working on. The status display indexes the candidate buffer
+  // with it, so it is a count of what is in that buffer and nothing else.
+
   u64     outerloop_left;
+
+  // What --progress-only reports, which is a different question: the base words the speed measurement
+  // covered and the time it took, over a window that can span several batches. These two are read as a
+  // pair and are set once, when the measurement ends.
+
   double  outerloop_msec;
+  u64     outerloop_progress;
+
+  // The running total the pair above is made from.
+
   double  outerloop_words;
 
   u64     innerloop_pos;
