@@ -46,21 +46,21 @@ typedef struct salt
 
 } salt_t;
 
-// Sync with:
-// src/bridges/bridge_rust_generic_hash.c
-// src/modules/module_74000.c
-// OpenCL/m72000-pure.cl
-
+/// Generic IO struct containing buffers for an input (password) and an output (computed hash).
+/// This struct should be in sync with the following files:
+/// - `src/bridges/bridge_rust_generic_hash.c`
+/// - `src/modules/module_74000.c`
+/// - `OpenCL/m72000-pure.cl`
 typedef struct
 {
-    // input
-
+    // password candidate
     u32 pw_buf[64];
+    // password length
     u32 pw_len;
 
-    // output
-
+    // output hashes
     u32 out_buf[32][64];
+    // output hash lengths
     u32 out_len[32];
     u32 out_cnt;
 
@@ -76,8 +76,8 @@ typedef struct
 
 } generic_io_t;
 
-// Sync with bridge_rust_generic_hash.c:
-
+/// Context of a bridge, including parameters and function pointers for the different steps.
+/// This struct should be in sync with the definition in `src/bridges/bridge_rust_generic_hash.c`
 typedef struct bridge_context
 {
     unit_t *units_buf;
