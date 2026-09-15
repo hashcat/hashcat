@@ -3898,7 +3898,18 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   pipe_acc (device_param, PIPE_XFER, &timer_stage);
 
-  if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+  // Attack mode 9 collapses the host salt loop and lets the kernel read the salt from pws_pos + gid.
+  // A bridge runs on the host rather than in the kernel, so it lands on the same salt the way a hook
+  // does: see salt_per_pw in hook_thread_param. A bridge launch carries one candidate, so the
+  // position of that candidate inside the chunk is zero and the base is the whole index.
+
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool salt_per_pw = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
+  const u32 bridge_salt_pos = (salt_per_pw == true) ? (u32) device_param->kernel_param.pws_pos : salt_pos;
+
+  if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, bridge_salt_pos, pws_cnt) == false) return -1;
 
   pipe_acc (device_param, PIPE_LAUNCH, &timer_stage);
 
