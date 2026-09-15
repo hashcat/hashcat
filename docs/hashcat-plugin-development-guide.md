@@ -714,7 +714,7 @@ The file name convention for fast hashes is: `OpenCL/mXXXXX_a[0|1|3]-[pure|optim
 
 #### Kernel: fast hash type (optimized) ####
 
-As you can see from this convention, you actually have to implement six kernels if you want to add a full featured fast hash mode to hashcat. It is up to you if you want to save some time only implementing a pure kernel, only an optimized kernel or both. But in each case you must implement all three attack modes to support all the different attack types supported by hashcat. A seventh kernel, `a4-pure`, is optional and gives attack-mode 4 a device kernel instead of the host fallback.
+As you can see from this convention, you actually have to implement six kernels if you want to add a full featured fast hash mode to hashcat. It is up to you if you want to save some time only implementing a pure kernel, only an optimized kernel or both. But in each case you must implement all three attack modes to support all the different attack types supported by hashcat. A seventh kernel, `a4-pure`, is optional and gives attack-mode 4 a device kernel instead of the host fallback. Write it as `a4-optimized` where the mode has no pure kernel, because that is the name hashconfig looks for there.
 
 Remember we only need to have those three different implementations due to the different ways the password candidate is generated. You may think it would be easier to have like three branches but these branches would already decrease the performance drastically.
 
@@ -737,7 +737,7 @@ The pure kernels are supposed to run slower than optimized kernels, but it is ha
 
 #### Kernel: fast hash type (attack-mode 4) ####
 
-Attack-mode 4 is the PCFG attack, and on a fast hash it amplifies inside the hash kernel the way the rules engine does for attack-mode 0. The file name convention is `OpenCL/mXXXXX_a4-pure.cl`. There is no optimized form.
+Attack-mode 4 is the PCFG attack, and on a fast hash it amplifies inside the hash kernel the way the rules engine does for attack-mode 0. The file name convention is `OpenCL/mXXXXX_a4-pure.cl`, and `OpenCL/mXXXXX_a4-optimized.cl` for a mode that has no pure kernel of its own. The name is the digest convention rather than the candidate layout: the engine hands the candidate over as an array either way, so the optimized file differs only where the mode's own optimized kernel differs, which for a raw hash is the initial state the module already subtracted out of the stored digest.
 
 This kernel is optional. A hash mode without one runs the PCFG attack on the host instead, which is correct and much slower, and hashcat says so on startup rather than failing.
 
@@ -748,7 +748,7 @@ You do not write the kernel. You write four hooks and include the engine, which 
 * `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
 * `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
 
-`OpenCL/inc_pcfg_kernel.cl` documents all four and is worth reading before writing one. `OpenCL/m00100_a4-pure.cl` is the smallest complete example.
+`OpenCL/inc_pcfg_kernel.cl` documents all four and is worth reading before writing one. `OpenCL/m00100_a4-pure.cl` is the smallest complete example, and `OpenCL/m00200_a4-optimized.cl` the smallest of the other kind. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. The existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and not one of them declares a local called `s3`. Name the word buffers `w0` to `w3`, as 49 of the 226 `a4-pure` kernels do.
 
 ### Kernel: slow hash type ###
 

@@ -161,7 +161,7 @@ CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 1454
 # instead of in place of it, so the dispatch has to know which modes still have
 # an oracle left to run. An oracle is a .pm or a .py: a mode is written in one
 # language or the other, never both, so the set is the union of the two.
-PM_MODES=$(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n | tr '\n' ' ')
+PM_MODES=$(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)$/\1/' | sort -u -n | tr '\n' ' ')
 
 # A default run routes each mode to whichever oracle file it has: python for a mode with a .py,
 # perl for a mode with a .pm. -y is the one restriction, cutting the run down to the modes that
@@ -179,9 +179,9 @@ NOT_APPLICABLE_MODES=""
 function oracle_modes()
 {
   if [ "${PYTHON_ENGINE}" -eq 1 ]; then
-    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.py/\1/' | tr '\n' ' '
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.py$/\1/' | tr '\n' ' '
   else
-    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n | tr '\n' ' '
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)$/\1/' | sort -u -n | tr '\n' ' '
   fi
 }
 
@@ -207,9 +207,15 @@ HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 4"
 
-KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
+
+# The modes the pcfg device engine has an optimized kernel for. It asks for the file by the mode's
+# kern_type, so the mode number is not the name: the kern_type is read out of the module the same way
+# attack_exec is above, which keeps the two tests that use this list off a run of hashcat.
+
+A4_OPTIMIZED_ALGOS=$(grep -m1 -H -E '^static const u64 +KERN_TYPE +=' "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c:[^=]*= *([0-9]+).*/\1 \2/' | while read -r a4_mode a4_kern; do if [ -r "$(printf '%s/../OpenCL/m%05d_a4-optimized.cl' "${TDIR}" "${a4_kern}")" ]; then printf '%s ' "${a4_mode}"; fi; done)
 
 # The same list, kept before the additions below, because attack_exec is what decides whether a feed
 # gets its device engine and the additions are not about attack_exec. -a 4 is the one attack mode
@@ -228,7 +234,7 @@ SLOW_ALGOS="${SLOW_ALGOS} 28501 28502 28503 28504 28505 28506 30901 30902 30903 
 # also reads its candidate as hex is given the word in that form to begin with and reports it back
 # the same way, so those are left out.
 
-HEXIFY_PLAIN=$( grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+HEXIFY_PLAIN=$( grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
@@ -961,19 +967,20 @@ function attack_whole_word()
 {
   attack_mode=$1
 
-  # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has no optimized
-  # kernel. hashcat refuses -O for it rather than ignoring the flag, because the digests were already
-  # parsed under it, so the run ends with "The device engine has no optimized kernel. Run this without
-  # -O." and nothing is tested. An optimized pass has nothing to run for such a mode; the pure pass
+  # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine reads the
+  # optimized kernel out of mNNNNN_a4-optimized.cl. Where the mode ships no such file hashcat refuses
+  # -O rather than ignoring the flag, because the digests were already parsed under it, so the run
+  # ends with "The device engine has no optimized kernel for this hash mode. Run this without -O."
+  # and nothing is tested. An optimized pass has nothing to run for such a mode; the pure pass
   # covers the attack mode.
   #
   # A mode whose kernel runs outside is not this case. There the feed builds every candidate on the
   # host, no device engine is asked for, and -a 4 with -O runs and cracks. Measured on this tree:
   # -m 0 and -m 1000 are refused with -O, -m 400 and -m 3200 crack 7 of 7 with it. So the test is on
-  # attack_exec and not on -O alone, or the optimized pass would quietly stop covering -a 4 for every
-  # slow mode, which is the kind of hole this skip exists to avoid making.
+  # attack_exec and on the kernel file, not on -O alone, or the optimized pass would quietly stop
+  # covering -a 4 for every slow mode, which is the kind of hole this skip exists to avoid making.
 
-  if [ "${attack_mode}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && ! is_in_array "${hash_type}" ${HOST_ENGINE_ALGOS}; then
+  if [ "${attack_mode}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && ! is_in_array "${hash_type}" ${HOST_ENGINE_ALGOS} && ! is_in_array "${hash_type}" ${A4_OPTIMIZED_ALGOS}; then
     echo "> Skipping hash type ${hash_type} attack mode 4: it has no optimized kernel, so it runs in the pure pass only." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     return
@@ -6699,10 +6706,11 @@ fi
 # -a 4 asked for on one mode whose kernel runs inside, in an optimized run, has nothing it can do:
 # every cell would be skipped by the test in attack_whole_word (). Saying so here, with the option
 # that does work, costs one line instead of a run that tests nothing. -m all is not this case, and
-# neither is a mode whose kernel runs outside: there -a 4 runs with -O.
+# neither is a mode whose kernel runs outside: there -a 4 runs with -O. A mode that ships its own
+# mNNNNN_a4-optimized.cl is not this case either: the engine loads that file and the run works.
 
 if [ "${ATTACK}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && [ "${HT}" != "65535" ] && echo -n "${HT}" | grep -q '^[0-9]\+$'; then
-  if ! is_in_array "${HT}" ${HOST_ENGINE_ALGOS}; then
+  if ! is_in_array "${HT}" ${HOST_ENGINE_ALGOS} && ! is_in_array "${HT}" ${A4_OPTIMIZED_ALGOS}; then
     echo "! Attack mode 4 has no optimized kernel for hash type ${HT}, and this run is optimized."
     echo "!"
     echo "! -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has a"
@@ -7452,14 +7460,16 @@ if [ "${PACKAGE}" -eq 1 ]; then
   KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
   HEXIFY_PLAIN_PACKAGED=$( echo "${HEXIFY_PLAIN}"  | tr '\n' ' ' | sed 's/ *$//')
   SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
+  A4_OPTIMIZED_ALGOS_PACKAGED=$(echo "${A4_OPTIMIZED_ALGOS}" | tr '\n' ' ' | sed 's/ *$//')
 
-  sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
+  sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test\\.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
     -e "s/^\(PM_MODES\)=\$(.*/\1=\"${PM_MODES_PACKAGED}\"/" \
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
     -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
     -e "s/^\(HEXIFY_PLAIN\)=\$(.*/\1=\"${HEXIFY_PLAIN_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
+    -e "s/^\(A4_OPTIMIZED_ALGOS\)=\$(.*/\1=\"${A4_OPTIMIZED_ALGOS_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \

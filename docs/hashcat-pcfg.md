@@ -570,12 +570,14 @@ kernel carries the whole hash runs the device engine, and a mode with a separate
 `-m 0` is the first kind and `-m 3200` is the second. You can tell them apart from the startup lines,
 which say `pcfg: device engine il=...` on one and nothing about an device engine on the other.
 
-**And a handful of fast hashes do not either.** The device engine needs a kernel of its own per hash
-mode, `OpenCL/mNNNNN_a4-pure.cl`, and 222 of the fast modes have one. The rest do not, because their
-rules kernel does something the shared engine cannot express: it records the crack itself instead of
-handing back four words to compare, or it takes the candidate as register words rather than as an
-array. PKZIP and the Kerberos modes are the shape. Those run the host engine and say so, which is the
-same thing that happens on a slow hash, and nothing about the command line changes.
+**And three fast hashes do not either.** The device engine needs a kernel of its own per hash mode,
+`OpenCL/mNNNNN_a4-pure.cl`, or `_a4-optimized.cl` for a mode whose only kernel is the optimized one,
+and 296 of the 299 fast modes have one. The three that do not are the ones whose rules kernel does
+something the shared engine cannot express. `-m 2000` is `STDOUT` and every entry point it has is
+empty. `-m 5100` compares three times per candidate, at three offsets into a half MD5, where the
+engine hands back one set of four words. `-m 20510` has `NOT AVAILABLE` where its multi hash entry
+point would be. Those run the host engine and say so, which is the same thing that happens on a slow
+hash, and nothing about the command line changes.
 
 That is not a fallback. It is the better half of the attack, and section 7.4 is why. A slow hash wants
 a few hundred thousand candidates a second, one core gives tens of millions, and everything the
@@ -593,11 +595,15 @@ among them, which run at hundreds of millions of hashes a second: on those the c
 produced fast enough by one core, and no amount of them quite keeps up either. On anything genuinely
 slow it makes no difference, because a PCFG attack already feeds bcrypt as fast as a mask does.
 
-This is also why `-O` is refused on a fast hash:
+This is also why `-O` is refused where the engine has no kernel to run under it:
 
 ```
-The device engine has no optimized kernel. Run this without -O.
+The device engine has no optimized kernel for this hash mode. Run this without -O.
 ```
+
+43 fast modes have an `_a4-optimized.cl` and take `-O`. The 253 whose only device kernel is the pure
+one do not, and a mode that has no optimized kernel for a straight attack either never reaches that
+message: hashcat drops the flag before the engine looks for a file, and says so.
 
 **`-r` and `-g` ask for the host engine.** The device engine cannot have rules: the inner loop that
 would apply them is the one walking the cell, and there is no second one. The host engine can, because
@@ -742,7 +748,7 @@ Only the slots the card expanded are named. The ones in front of them are alread
 * **`--stdout` shows you the host engine.** It never starts a kernel, so it gets the host generator,
   escape and all. There is nothing it could show you of the fast path, whose candidates only ever
   exist on the card.
-* **`-O` is refused rather than ignored** on a fast hash. Run without it.
+* **`-O` is refused rather than ignored** on a fast hash whose only device kernel is the pure one. The 43 modes that ship an optimized one take it.
 * **`-i`/`--increment` and the custom charsets `-1` to `-4` are refused.** Both belong to a mask, and
   `-a 4` takes a ruleset rather than a mask. What decides the lengths here is the grammar and
   `costmax`.
