@@ -911,13 +911,19 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
     u32 ci = 0;
     u32 at = 0;
 
+    // Equal lengths mean the token is one byte per character, and the continuation walk below must
+    // not run: a latin-1 or cp1252 list keeps letters in 0x80-0xBF. The same test the kernel and
+    // assemble () make, because all three have to agree on what a character is.
+
+    const bool wide = (tok_len != ent_len);
+
     while ((at < tok_len) && (ci < ent_len))
     {
       if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
 
       at++;
 
-      while (at < tok_len)
+      while ((wide == true) && (at < tok_len))
       {
         if ((wb[mdst_off + at] & 0xc0) != 0x80) break;
 
