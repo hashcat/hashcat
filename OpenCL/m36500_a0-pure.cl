@@ -13,7 +13,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #endif
 
-KERNEL_FQ void m89100_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m36500_mxx (KERN_ATTR_RULES ())
 {
   const u64 gid = get_global_id (0);
   if (gid >= GID_CNT) return;
@@ -46,7 +46,7 @@ KERNEL_FQ void m89100_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m89100_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m36500_sxx (KERN_ATTR_RULES ())
 {
   const u64 gid = get_global_id (0);
   if (gid >= GID_CNT) return;
