@@ -2379,6 +2379,14 @@ static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx)
 
   const bool has_q = mask_ctx->has_q;
 
+  // Recorded now rather than with the rest of the answer, because the miss report reads it too and a
+  // miss reaches none of the assignments below. Left until then it stayed at its zero value, so a
+  // -a 1 run that reached nothing was described as a wordlist and a mask rather than as two
+  // wordlists. Nothing above this can clobber a hit: a round that already found one returns at the
+  // top of this function.
+
+  lookup->has_q = has_q;
+
   // The mirror shape: the mask is the base word and the dictionary amplifies it, which is -a 7 under
   // a pure kernel and -a 12 under one when its mask ends in ?w. The rewrite puts the ?w last, so the
   // mask spells the front of the candidate and one word follows it, and there is nothing to split:
@@ -2449,7 +2457,6 @@ static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx)
     lookup->amp_cnt   = combinator_ctx->combs_cnt;
     lookup->base_len  = css_cnt;
     lookup->q_len     = word_len;
-    lookup->has_q     = false;
     lookup->mask_base = true;
 
     snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
@@ -2601,7 +2608,6 @@ static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx)
   lookup->amp_cnt  = combinator_ctx->combs_cnt;
   lookup->base_len = best_base;
   lookup->q_len    = words_len - best_base;
-  lookup->has_q    = has_q;
 
   snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
 }
