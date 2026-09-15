@@ -23,6 +23,7 @@ static const char *HASH_NAME      = "RACF KDFAES";
 static const u64   KERN_TYPE      = 14200;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_ST_UPPER
                                   | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_NATIVE_THREADS

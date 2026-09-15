@@ -24,6 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_ST_HEX
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
