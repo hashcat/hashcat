@@ -4047,6 +4047,27 @@ function container_gen_dir()
   echo "${cg_dir}"
 }
 
+function copy_container_dir()
+{
+  # The container test volumes a package needs are not all in the tree: the luks
+  # ones are fetched on demand, so a run that tested no luks mode has none to
+  # give. Say so rather than letting cp report it, and copy into a directory the
+  # run may already have created for the family it did test.
+  local cc_src="${1}"
+  local cc_dst="${2}"
+  local cc_name="${3}"
+
+  if [ -z "$(ls -A "${cc_src}" 2>/dev/null)" ]; then
+    echo "ATTENTION: no ${cc_name} test files in ${cc_src}, the package will not carry them."
+
+    return
+  fi
+
+  mkdir -p "${cc_dst}"
+
+  cp "${cc_src}"/* "${cc_dst}/"
+}
+
 function vc_encryption_name()
 {
   # test.sh spells a cascade "aes-twofish-serpent"; veracrypt spells the same
@@ -6826,26 +6847,48 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     exit 1
   fi
 
-  HT_MIN=0
-  HT_MAX=0
+else
 
-  if echo -n "${HT}" | grep -q '^[0-9]\+$'; then
-    HT_MIN=${HT}
-    HT_MAX=${HT}
-  elif echo -n "${HT}" | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
-    HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
-    HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+  # packaging an existing folder: the hash types are the ones its all.sh runs,
+  # not the ones on our command line. If it names none, e.g. because the folder
+  # holds a container only mode, the command line is all we have.
 
-    if [ "${HT_MIN}" -gt "${HT_MAX}" ]; then
-      echo "! hash type range -m ${HT} is not valid ..."
-      usage
-    fi
-  else
-    echo "! hash type is not a number ..."
-    usage
+  HT_FOLDER=$(grep -o -- "-m  *[0-9]*" "${PACKAGE_FOLDER}/all.sh" 2>/dev/null | sed 's/^-m  *//' | sort -u)
+  HT_FOLDER_COUNT=$(echo "${HT_FOLDER}" | grep -c '^[0-9]\+$')
+
+  if [ "${HT_FOLDER_COUNT}" -eq 1 ]; then
+    HT=${HT_FOLDER}
+  elif [ "${HT_FOLDER_COUNT}" -gt 1 ]; then
+    HT=65535
   fi
 
-  HT=${HT_MIN}
+fi
+
+# the hash type range is what decides which container test files a package needs,
+# so it has to be settled whether we run the tests or only package them
+
+HT_MIN=0
+HT_MAX=0
+
+if echo -n "${HT}" | grep -q '^[0-9]\+$'; then
+  HT_MIN=${HT}
+  HT_MAX=${HT}
+elif echo -n "${HT}" | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
+  HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
+  HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+
+  if [ "${HT_MIN}" -gt "${HT_MAX}" ]; then
+    echo "! hash type range -m ${HT} is not valid ..."
+    usage
+  fi
+else
+  echo "! hash type is not a number ..."
+  usage
+fi
+
+HT=${HT_MIN}
+
+if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
   # -S runs on its own: it walks every hash-mode hashcat reports rather than
   # HASH_TYPES, since the whole point is to reach the modes that have no oracle
@@ -7388,28 +7431,23 @@ if [ "${PACKAGE}" -eq 1 ]; then
   fi
 
   if [ "${copy_luks_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/luks_tests/"
-    cp ${LUKS_TESTS_DIR}/* "${OUTD}/luks_tests/"
+    copy_container_dir "${LUKS_TESTS_DIR}" "${OUTD}/luks_tests" luks
   fi
 
   if [ "${copy_luks2_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/luks2_tests/"
-    cp ${TDIR}/luks2_tests/* "${OUTD}/luks2_tests/"
+    copy_container_dir "${LUKS2_TESTS_DIR}" "${OUTD}/luks2_tests" luks2
   fi
 
   if [ "${copy_tc_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/tc_tests/"
-    cp ${TC_TESTS_DIR}/* "${OUTD}/tc_tests/"
+    copy_container_dir "${TC_TESTS_DIR}" "${OUTD}/tc_tests" truecrypt
   fi
 
   if [ "${copy_vc_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/vc_tests/"
-    cp ${VC_TESTS_DIR}/* "${OUTD}/vc_tests/"
+    copy_container_dir "${VC_TESTS_DIR}" "${OUTD}/vc_tests" veracrypt
   fi
 
   if [ "${copy_cl_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/cl_tests/"
-    cp ${TDIR}/cl_tests/* "${OUTD}/cl_tests/"
+    copy_container_dir "${TDIR}/cl_tests" "${OUTD}/cl_tests" cryptoloop
   fi
 
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
@@ -7422,16 +7460,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
     if [ "${?}" -ne 0 ]; then
       MODE=0
-    fi
-
-    HT=$(grep -o -- "-m  *[0-9]*" "${PACKAGE_FOLDER}/all.sh" | sort -u | sed 's/-m  //' 2> /dev/null)
-
-    if [ -n "${HT}" ]; then
-      HT_COUNT=$(echo "${HT}" | wc -l)
-
-      if [ "${HT_COUNT}" -gt 1 ]; then
-        HT=65535
-      fi
     fi
 
     #ATTACK=65535 # more appropriate ?
