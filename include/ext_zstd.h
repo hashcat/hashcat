@@ -64,4 +64,15 @@ const hc_zstd_lib_t *hc_zstd       (void);
 const char          *hc_zstd_error (void);
 const char          *hc_zstd_hint  (void);
 
+// A plugin calls these instead of libzstd, so libzstd's own interface stays in the core. A 7-Zip
+// archive holds one zstd frame when its coder is 0x04f71101.
+//
+// The stream decoder stops at the end of the frame, so bytes after the frame (AES-CBC padding on
+// a 7-Zip hash) are left unread and are not an error. A missing library is a false return, the
+// same as a decode failure, so a plugin that needs zstd should refuse the hash at parse time when
+// hc_zstd_available () is false rather than discovering it later on every candidate.
+
+HC_PLUGIN_API bool hc_zstd_available  (void);
+HC_PLUGIN_API bool hc_zstd_decompress (const unsigned char *in, const size_t in_len, unsigned char *out, const size_t out_len);
+
 #endif // HC_EXT_ZSTD_H

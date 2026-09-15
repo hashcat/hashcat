@@ -116,3 +116,72 @@ const char *hc_zstd_hint (void)
   return "install your distribution's zstd runtime package, named libzstd1 on Debian and Ubuntu and zstd on Arch";
   #endif
 }
+
+bool hc_zstd_available (void)
+{
+  return (hc_zstd () != NULL);
+}
+
+// A single zstd frame, decompressed with the streaming entry points the symbol table already
+// carries. Zero from ZSTD_decompressStream () is libzstd saying a frame ended exactly here and
+// nothing of it is still owed. Filling the output buffer without an error is also success, because
+// a 7-Zip hash may only CRC a prefix.
+
+bool hc_zstd_decompress (const unsigned char *in, const size_t in_len, unsigned char *out, const size_t out_len)
+{
+  const hc_zstd_lib_t *z = hc_zstd ();
+
+  if (z == NULL) return false;
+
+  hc_zstd_dstream_t zds = z->ZSTD_createDStream ();
+
+  if (zds == NULL) return false;
+
+  if (z->ZSTD_isError (z->ZSTD_initDStream (zds)))
+  {
+    z->ZSTD_freeDStream (zds);
+
+    return false;
+  }
+
+  hc_zstd_inbuf zin;
+
+  zin.src  = in;
+  zin.size = in_len;
+  zin.pos  = 0;
+
+  hc_zstd_outbuf zout;
+
+  zout.dst  = out;
+  zout.size = out_len;
+  zout.pos  = 0;
+
+  bool ok = false;
+
+  for (;;)
+  {
+    const size_t rc = z->ZSTD_decompressStream (zds, &zout, &zin);
+
+    if (z->ZSTD_isError (rc)) break;
+
+    if (rc == 0)
+    {
+      ok = true;
+
+      break;
+    }
+
+    if (zout.pos == zout.size)
+    {
+      ok = true;
+
+      break;
+    }
+
+    if (zin.pos == zin.size) break;
+  }
+
+  z->ZSTD_freeDStream (zds);
+
+  return ok;
+}
