@@ -1525,29 +1525,28 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    // -a 0 is answered by reading its wordlist once, and a rule set turns that one pass into one
-    // pass per rule: there is no reading of "sa@ $1 c" that turns a candidate back into the word it
-    // came from, so the only way to answer is to build every candidate the run builds. Writing an
-    // inverse instead would be a fourth implementation of the rule language beside src/rp_cpu.c and
-    // the two device engines, and one that fell behind them would report a candidate the run does
-    // reach as unreachable, which is worse than not answering.
+    // A rule set is applied to the base words, whatever produced them, so an offset given with one in
+    // play names a word the run then changes. -a 0 takes its base words from a wordlist and -a 4
+    // takes them from a grammar, and the answer is wrong in the same way in both. No attack mode is
+    // named in the test because none has to be: -r and -g need attack mode 0, 4, 8 or 9, --lookup
+    // takes 0, 1, 3, 4, 6, 7 and 12, and the two lists meet at exactly those two.
     //
-    // Refused here rather than answered about the base word alone. That answer looks like the ones
-    // the other modes give and is not one: a wordlist that does not hold the word proves nothing
-    // once a rule can make it out of another word.
-    //
-    // Only -a 0 is refused, because -r and -g need attack mode 0, 4, 8 or 9 and --lookup takes 0, 1,
-    // 3, 4, 6, 7 and 12, so -a 4 is the only other place the two can meet. It is left as it is: its
-    // answer comes from the pcfg feed and is about the grammar, not about the wordlist.
+    // Refused rather than answered about the base word alone. That answer looks like the ones the
+    // other modes give and is not one: a base word producer that does not produce the word proves
+    // nothing once a rule can make it out of another word. There is no reading of "sa@ $1 c" that
+    // turns a candidate back into the word it came from, so the only way to answer would be to build
+    // every candidate the run builds. Writing an inverse instead would be a fourth implementation of
+    // the rule language beside src/rp_cpu.c and the two device engines, and one that fell behind
+    // them would report a candidate the run does reach as unreachable, which is worse than not
+    // answering.
 
-    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-     && ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0)))
+    if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
     {
       event_log_error (hashcat_ctx, "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed.");
 
-      event_log_warning (hashcat_ctx, "A rule cannot be inverted, so the answer would have to be found by building every candidate the run builds, which is one pass over the wordlist per rule.");
+      event_log_warning (hashcat_ctx, "A rule cannot be inverted, so the answer would have to be found by building every candidate the run builds, which is one pass over the base words per rule.");
 
-      event_log_warning (hashcat_ctx, "Without rules this attack mode is answered in one pass over the wordlist, and -a 3 is answered without reading anything at all.");
+      event_log_warning (hashcat_ctx, "Without rules an attack --lookup supports is answered in one pass over its base words, and a mask is answered without reading anything at all.");
 
       return -1;
     }

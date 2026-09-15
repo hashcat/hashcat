@@ -84,11 +84,11 @@ cleanup ()
 
 trap cleanup EXIT INT
 
-# A seekdb path of its own, a potfile and a logfile it does not write: a test leaves nothing in the
+# A cache path of its own, a potfile and a logfile it does not write: a test leaves nothing in the
 # tree it ran from.
-COMMON=( --potfile-disable --logfile-disable --seekdb-path="${WORK}/seekdb" )
+COMMON=( --potfile-disable --logfile-disable --cache-path="${WORK}/cache" )
 
-mkdir -p "${WORK}/seekdb"
+mkdir -p "${WORK}/cache"
 
 PASS=0
 FAIL=0
@@ -442,6 +442,17 @@ check_not "no offset is given for it"            "reaches it at -s"
 
 lookup merche03123 -a 0 "${DICT}" -g 20
 check_has "-g with --lookup is refused"          "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed."
+
+# -a 4 applies its rules to what the grammar produces, so an offset with a rule set in play names a
+# word the run then changes, exactly as it does for -a 0. Refused by the same test, which names no
+# attack mode: -r and -g need 0, 4, 8 or 9 and --lookup takes 0, 1, 3, 4, 6, 7 and 12, so these two
+# are the whole of where they meet.
+lookup hashcat123 -a 4 default-passwords -r "${WORK}/one.rule"
+check_has "-a 4 with -r is refused too"          "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed."
+check_not "-a 4 gives no offset for it"          "reaches it at -s"
+
+lookup hashcat123 -a 4 default-passwords -g 20
+check_has "-a 4 with -g is refused too"          "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed."
 
 # Refused before anything is opened, which is the point of doing it in the option check rather than
 # after a pass over the wordlist.
