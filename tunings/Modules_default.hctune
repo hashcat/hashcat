@@ -41,7 +41,6 @@ ALIAS_nv_real_simd                              3       5500    4       A       
 ALIAS_nv_real_simd                              3       5600    2       A       A
 ALIAS_nv_real_simd                              3       8700    4       A       A
 ALIAS_nv_real_simd                              3       9900    2       A       A
-ALIAS_nv_real_simd                              3       11000   4       A       A
 ALIAS_nv_real_simd                              3       11100   2       A       A
 ALIAS_nv_real_simd                              3       11900   2       A       A
 ALIAS_nv_real_simd                              3       13300   4       A       A
@@ -83,7 +82,6 @@ ALIAS_nv_sm50_or_higher                         3       6100    2       A       
 ALIAS_nv_sm50_or_higher                         3       7300    2       A       A
 ALIAS_nv_sm50_or_higher                         3       9720    2       A       A
 ALIAS_nv_sm50_or_higher                         3       9900    4       A       A
-ALIAS_nv_sm50_or_higher                         3       11000   2       A       A
 ALIAS_nv_sm50_or_higher                         3       13711   2       A       A
 ALIAS_nv_sm50_or_higher                         3       13712   2       A       A
 ALIAS_nv_sm50_or_higher                         3       13713   2       A       A
