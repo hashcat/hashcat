@@ -365,20 +365,26 @@ OUTD="test_edge_$(date +%s)"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# The modes the pcfg device engine has an optimized kernel for. It asks for the file by the mode's
+# kern_type, so the mode number is not the name: the kern_type is read out of the module the same way
+# attack_exec is, which keeps both tests below off a run of hashcat.
+
+A4_OPTIMIZED_TYPES=$(grep -m1 -H -E '^static const u64 +KERN_TYPE +=' "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c:[^=]*= *([0-9]+).*/\1 \2/' | while read -r edge_mode edge_kern; do if [ -r "$(printf '%s/../OpenCL/m%05d_a4-optimized.cl' "${TDIR}" "${edge_kern}")" ]; then printf '%s ' "${edge_mode}"; fi; done)
+
 # A mode with OPTS_TYPE_BINARY_HASHFILE takes the path of a container file where every other mode
 # takes a hash string, and test.pl prints that container base64 encoded. The base64 has to be
 # decoded back into a file before hashcat sees it, which is what test.sh already does. A mode that
 # also sets the OPTIONAL variant accepts the hash as text and its test module prints it that way,
 # so those are left out.
 
-BINARY_HASHFILE_TYPES=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | sed -E 's/.*module_0*([0-9]+)\.c/\1/' | tr '\n' ' ')
+BINARY_HASHFILE_TYPES=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
 
 # A mode with OPTS_TYPE_PT_ALWAYS_HEXIFY has its plaintext written out as bare hex whatever the
 # candidate was, so the outfile carries the hex of the word rather than the word. A mode that also
 # reads its candidate as hex is given the word in that form to begin with and reports it back the
 # same way, so those are left out.
 
-HEXIFY_PLAIN_TYPES=$(grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+)\.c/\1/' | tr '\n' ' ')
+HEXIFY_PLAIN_TYPES=$(grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
 
 UNAME=$(uname -s)
 
@@ -924,11 +930,13 @@ fi
 # nothing else, has nothing it can do: the round below would skip every cell. attack_exec is read
 # from the module rather than from --hash-info so that this costs no run of hashcat, the same way
 # tools/test.sh reads it. -K all is not this case, and neither is a mode whose kernel runs outside.
+# A mode that ships its own mNNNNN_a4-optimized.cl is not this case either: the engine loads that
+# file and the round runs.
 
 if [ "${ATTACK_TYPES}" == "4" ] && [ "${KERNEL_TYPE}" == "1" ] && echo -n "${HASH_TYPE}" | grep -q '^[0-9]\+$'; then
   edge_module=$(printf "%s/../src/modules/module_%05d.c" "${TDIR}" "${HASH_TYPE}")
 
-  if [ -r "${edge_module}" ] && ! grep -q ATTACK_EXEC_OUTSIDE_KERNEL "${edge_module}"; then
+  if [ -r "${edge_module}" ] && ! grep -q ATTACK_EXEC_OUTSIDE_KERNEL "${edge_module}" && ! is_in_array "${HASH_TYPE}" ${A4_OPTIMIZED_TYPES}; then
     echo "! Attack type 4 has no optimized kernel for hash type ${HASH_TYPE}, and -K 1 asks for the"
     echo "! optimized one only."
     echo "!"
@@ -951,7 +959,7 @@ MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 145
 # A mode is covered once it has an oracle, and an oracle is a .pm or a .py. Globbing .pm alone left
 # 1000 and 5200 out of the suite from the moment 731f2ed8c gave them a .py one.
 
-for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n); do
+for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)$/\1/' | sort -u -n); do
 
   if [ $HASH_TYPE != "all" ]; then
     if [ $HASH_TYPE -ne $hash_type ]; then continue; fi
@@ -1032,13 +1040,14 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
         slow_hash=1
       fi
 
-      # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has no
-      # optimized kernel: hashcat refuses the optimized flag for it rather than ignoring it. So an
-      # optimized round has nothing to run for attack type 4 on such a mode. A mode whose kernel runs
-      # outside is not this case: there the feed builds every candidate on the host and the round runs,
-      # so the test is on slow_hash and not on the kernel type alone.
+      # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine reads the
+      # optimized kernel out of mNNNNN_a4-optimized.cl. Where the mode ships no such file hashcat
+      # refuses the optimized flag rather than ignoring it, so an optimized round has nothing to run
+      # for attack type 4 on it. A mode whose kernel runs outside is not this case either: there the
+      # feed builds every candidate on the host and the round runs, so the test is on slow_hash and
+      # not on the kernel type alone.
 
-      if [ ${attack_type} -eq 4 ] && [ ${optimized} -eq 1 ] && [ ${slow_hash} -eq 0 ]; then
+      if [ ${attack_type} -eq 4 ] && [ ${optimized} -eq 1 ] && [ ${slow_hash} -eq 0 ] && ! is_in_array "${hash_type}" ${A4_OPTIMIZED_TYPES}; then
         if [ ${VERBOSE} -ge 2 ]; then
           echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} with Attack-Type ${attack_type} and Kernel-Type ${kernel_type} (attack type 4 has no optimized kernel)" | tee -a ${OUTD}/test_edge.details.log
         else

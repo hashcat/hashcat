@@ -348,7 +348,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
     {
       if (highest_pw_len < 16)
       {

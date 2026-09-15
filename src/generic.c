@@ -482,36 +482,26 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // land on has a device engine file, and so does the constant, so the two answers agree today. A
   // mode whose two answers disagreed would reach the missing file again.
 
-  // -O has to be answered before the kernel file is looked for, or the answer is never given.
+  // Two runs reach the same missing kernel file and only one of them is an error, so the lookup below
+  // has to say which one it is looking at.
   //
-  // The name generated below is built from opti_type, so with -O it is the optimized kernel's name.
-  // The device engine ships only a pure kernel, so that file is never there, the lookup clears
-  // dev_enable, and a refusal placed after it never runs because it sits inside a dev_enable test.
-  // What the user gets instead is the host generator, silently: measured on -m 0, 21182.7 kH/s with
-  // -O against 221.0 MH/s without it, and nothing said that -O was the reason.
+  // The name it builds comes from opti_type, so it is the optimized kernel's name whenever that flag
+  // is set. A user who passed -O sets it, and so does interface.c on a mode whose only kernel is the
+  // optimized one, whatever was asked for. Reading the flag therefore refuses a user who never passed
+  // -O, on a mode that is meant to fall back. Reading nothing falls back to the host engine under -O
+  // instead, silently, and nothing in the run says that -O was the reason it got slower. user_options
+  // carries what was asked for rather than what hashconfig settled on, which is the difference between
+  // the two.
   //
-  // The two cases have to be told apart before the lookup, because after it they look identical. A
-  // mode with no device engine kernel is meant to fall back and does. -O is meant to be refused.
-  //
-  // There was an optimized form of the device engine kernel. It kept the md5 block in registers and
-  // padded it once outside the inner loop, and at its own best lane count it measured 4 to 5 per cent
-  // ahead of the pure one. What it cost was 6 kernel bodies, a write path that had to name every word
-  // of the block at compile time, a password length capped at 55 instead of 256, and a candidate
-  // length fixed for the whole inner loop, which is exactly what a grammar with multi byte characters
-  // cannot promise. 5 per cent did not pay for that.
+  // A form of the inner loop that keeps the block in registers needs the candidate length fixed for
+  // the whole loop, and a grammar with multi byte characters cannot promise that, so the engine reads
+  // the candidate as an array instead.
   //
   // -O is refused rather than ignored because hashconfig settled it long before the attack kernel was
   // known, and the hashes were parsed under it on the way: a raw md5 digest has had the initial state
   // subtracted out of it for a kernel that is now not going to run. Clearing the flag here leaves
   // those digests wrong, which shows up as a self-test failure and, with the self-test disabled, as
   // an attack that cracks nothing.
-
-  if ((generic_ctx->dev_enable == true) && (hashcat_ctx->hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL))
-  {
-    event_log_error (hashcat_ctx, "The device engine has no optimized kernel. Run this without -O.");
-
-    return -1;
-  }
 
   if (generic_ctx->dev_enable == true)
   {
@@ -521,7 +511,17 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
                                      hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
                                      hashcat_ctx->folder_config->shared_dir, source_file);
 
-    if (hc_path_read (source_file) == false) generic_ctx->dev_enable = false;
+    if (hc_path_read (source_file) == false)
+    {
+      if (hashcat_ctx->user_options->optimized_kernel == true)
+      {
+        event_log_error (hashcat_ctx, "The device engine has no optimized kernel for this hash mode. Run this without -O.");
+
+        return -1;
+      }
+
+      generic_ctx->dev_enable = false;
+    }
   }
 
   generic_ctx->global_ctx.dev_enable = generic_ctx->dev_enable;

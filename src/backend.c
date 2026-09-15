@@ -2011,6 +2011,24 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
   fprintf (stderr, ", effective %.0f H/s, peak %.0f MB\n", (double) device_param->pipe_cands / (total / 1000.0), (double) hc_peak_rss () / (1024 * 1024));
 }
 
+// A fast hash mode has two kernel shapes, and every site that binds, autotunes, self tests or runs one
+// of them has to pick a side. The optimized shape is entered per password length: kernel1 is
+// m00000_s04 up to 16 bytes, kernel2 is _s08 up to 32, kernel3 is _s16 from there up. The pure shape
+// is kernel4 alone, m00000_sxx.
+//
+// OPTI_TYPE_OPTIMIZED_KERNEL on its own does not say which shape is in play: interface.c sets it for a
+// hash mode that has no pure kernel whatever the user asked for, and the device engine binds kernel4
+// even then, because it reads the candidate as an array. So the attack kern has to be asked as well.
+
+bool is_opti_kernel_no_pcfg (const hashcat_ctx_t *hashcat_ctx)
+{
+  if ((hashcat_ctx->hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) return false;
+
+  if (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) return false;
+
+  return true;
+}
+
 int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune)
 {
   bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -2053,7 +2071,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     pipe_mark (&timer_fast);
 
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
     {
       // this is not perfectly right, only in case algorithm has to add 0x80 (most of the cases for fast optimized kernels)
 
@@ -12442,7 +12460,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
   {
     if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
       {
         // kernel1
 
@@ -12471,7 +12489,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
     }
     else
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
       {
         // kernel1
 
