@@ -65,6 +65,8 @@ bool bridge_load (hashcat_ctx_t *hashcat_ctx, bridge_ctx_t *bridge_ctx, const ch
       #endif
     }
 
+    hcfree (bridge_file);
+
     return false;
   }
 
@@ -73,6 +75,8 @@ bool bridge_load (hashcat_ctx_t *hashcat_ctx, bridge_ctx_t *bridge_ctx, const ch
   if (bridge_ctx->bridge_init == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot load symbol 'bridge_init' in bridge %s", bridge_file);
+
+    hcfree (bridge_file);
 
     return false;
   }

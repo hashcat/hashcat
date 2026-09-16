@@ -145,7 +145,15 @@ static const char *extract_module_name (const char *path)
     module_name = filename;
   }
 
-  return module_name;
+  // The caller gets an allocation whose base is the pointer it was handed. This used to return a
+  // pointer into filename, so the free () the call site suggests would have been handed something
+  // that is not the start of an allocation whenever the path holds a separator.
+
+  const char *module_name_buf = strdup (module_name);
+
+  free (filename);
+
+  return module_name_buf;
 }
 
 static bool units_init (bridge_context_t *bridge_context)
@@ -338,8 +346,10 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   // We should free module_name, but if a user changes the Rust code to
   // use it without copying, we could get a dangling pointer. So we are
-  // leaking it.
-  // free(module_name);
+  // leaking it. The pointer is now the base of its own allocation, so
+  // enabling this line is safe for anyone whose Rust side copies it, as
+  // both bridges in this tree do with String::to_string ().
+  // free ((void *) module_name);
 
   if (!unit_buf->unit_context) return false;
 
