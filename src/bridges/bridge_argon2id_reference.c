@@ -254,7 +254,7 @@ void salt_destroy (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   }
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 
@@ -264,8 +264,6 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   argon2_t *esalts_buf = (argon2_t *) hashes->esalts_buf;
 
-  argon2_t *argon2id = &esalts_buf[salt_pos];
-
   argon2_reference_tmp_t *argon2_reference_tmp = (argon2_reference_tmp_t *) device_param->h_tmps;
 
   argon2_context context;
@@ -274,15 +272,10 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   context.outlen        = (uint32_t)  0;
   context.pwd           = (uint8_t *) NULL;
   context.pwdlen        = (uint32_t)  0;
-  context.salt          = (uint8_t *) argon2id->salt_buf;
-  context.saltlen       = (uint32_t)  argon2id->salt_len;
   context.secret        = NULL;
   context.secretlen     = 0;
   context.ad            = NULL;
   context.adlen         = 0;
-  context.t_cost        = argon2id->t;
-  context.m_cost        = argon2id->m;
-  context.lanes         = argon2id->p;
   context.threads       = 1;
   context.allocate_cbk  = NULL;
   context.free_cbk      = NULL;
@@ -290,8 +283,18 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   context.version       = ARGON2_VERSION_NUMBER;
   context.memory        = unit_buf->memory;
 
+  // The esalt carries this hash's own salt and cost, so it is read per candidate.
+
   for (u64 i = 0; i < pws_cnt; i++)
   {
+    argon2_t *argon2id = &esalts_buf[bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, i)];
+
+    context.salt    = (uint8_t *) argon2id->salt_buf;
+    context.saltlen = (uint32_t)  argon2id->salt_len;
+    context.t_cost  = argon2id->t;
+    context.m_cost  = argon2id->m;
+    context.lanes   = argon2id->p;
+
     context.out    = (uint8_t *) argon2_reference_tmp->h;
     context.outlen = (uint32_t)  argon2id->digest_len;
     context.pwd    = (uint8_t *) argon2_reference_tmp->pw_buf;

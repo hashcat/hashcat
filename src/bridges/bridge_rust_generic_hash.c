@@ -71,7 +71,9 @@ typedef void *(*RS_NEW_CONTEXT)(
   const char *bridge_parameter1,
   const char *bridge_parameter2,
   const char *bridge_parameter3,
-  const char *bridge_parameter4
+  const char *bridge_parameter4,
+
+  bool salt_per_pw
 );
 
 typedef void  (*RS_DROP_CONTEXT)(void *);
@@ -297,7 +299,7 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
   hcfree (bridge_context);
 }
 
-bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -329,7 +331,9 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     bridge_context->bridge_parameter1,
     bridge_context->bridge_parameter2,
     bridge_context->bridge_parameter3,
-    bridge_context->bridge_parameter4
+    bridge_context->bridge_parameter4,
+
+    hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION
   );
 
   // We should free module_name, but if a user changes the Rust code to
@@ -395,7 +399,7 @@ char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_con
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -405,7 +409,10 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   generic_io_tmp_t *generic_io_tmp = (generic_io_tmp_t *) device_param->h_tmps;
 
-  if (!bridge_context->kernel_loop (unit_buf->unit_context, generic_io_tmp, pws_cnt, salt_pos, hashes->salts_buf == hashes->st_salts_buf))
+  // The Rust side is handed the salt the batch starts at and adds the position of the candidate
+  // itself, so the position passed here is zero. The salt_per_pw it was built with tells it to add.
+
+  if (!bridge_context->kernel_loop (unit_buf->unit_context, generic_io_tmp, pws_cnt, bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, 0), hashes->salts_buf == hashes->st_salts_buf))
   {
     return false;
   }

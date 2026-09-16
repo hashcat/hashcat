@@ -29,6 +29,10 @@ pub(crate) struct ThreadContext {
     pub bridge_parameter2: String,
     pub bridge_parameter3: String,
     pub bridge_parameter4: String,
+
+    // Under attack mode 9 salt_id is the salt the batch starts at and each candidate adds its own
+    // position in it. Every other attack has one salt for the whole batch.
+    pub salt_per_pw: bool,
 }
 
 impl ThreadContext {
@@ -77,6 +81,7 @@ pub extern "C" fn new_context(
     bridge_parameter2: *const c_char,
     bridge_parameter3: *const c_char,
     bridge_parameter4: *const c_char,
+    salt_per_pw: bool,
 ) -> *mut c_void {
     assert!(!module_name.is_null());
     assert!(!salts_buf.is_null());
@@ -109,6 +114,7 @@ pub extern "C" fn new_context(
         bridge_parameter2,
         bridge_parameter3,
         bridge_parameter4,
+        salt_per_pw,
     })) as *mut c_void
 }
 
@@ -209,15 +215,21 @@ fn process_batch(
     salt_id: usize,
     is_selftest: bool,
 ) -> Vec<Vec<String>> {
-    let esalt = ctx.get_raw_esalt(salt_id, is_selftest);
-    let salt = unsafe {
-        slice::from_raw_parts(
-            esalt.salt_buf.as_ptr() as *const u8,
-            esalt.salt_len as usize,
-        )
+    let stride = if ctx.salt_per_pw && !is_selftest {
+        1
+    } else {
+        0
     };
     io.iter()
-        .map(|x| {
+        .enumerate()
+        .map(|(i, x)| {
+            let esalt = ctx.get_raw_esalt(salt_id + (i * stride), is_selftest);
+            let salt = unsafe {
+                slice::from_raw_parts(
+                    esalt.salt_buf.as_ptr() as *const u8,
+                    esalt.salt_len as usize,
+                )
+            };
             let pw =
                 unsafe { slice::from_raw_parts(x.pw_buf.as_ptr() as *const u8, x.pw_len as usize) };
             generic_hash::calc_hash(pw, salt)

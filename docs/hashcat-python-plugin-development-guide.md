@@ -102,7 +102,8 @@ def calc_hash(ctx, password, salt_id, is_selftest):
 
 If you want to control all by youself, here's what's important to know:
 
-- salt_id: Basically a index number which tells you about which salt your calculation is about. When you initially receive the context, it will hold all salts at once, and you need to store them in the context. The helper scripts do that for your, but just for you to know, its the salt_id which tells the handle_queue() which salt data to pick before it calls your hash_calc() function.
+- salt_id: Basically a index number which tells you about which salt your calculation is about, except under salt_per_pw below. When you initially receive the context, it will hold all salts at once, and you need to store them in the context. The helper scripts do that for your, but just for you to know, its the salt_id which tells the handle_queue() which salt data to pick before it calls your hash_calc() function.
+- salt_per_pw: True when the attack pairs every candidate with a hash of its own, which is attack mode 9, the association attack. Under it salt_id is not one salt for the whole batch but the salt the batch starts at, and the salt for the candidate at position i in the list you were handed is salt_id + i. Every other attack has one salt for the whole batch and this flag is False. The helper scripts read it out of the context and do the addition for you, so it only matters when you walk the batch yourself.
 - is_selftest: Historically hashcat keeps two parallel structures for the selftest hash and real hash. As such they arrive in the context buffer, and you need to make a decision on that `is_selftest` flag which salt buffer to pick.
 
 ## 5. Esalts and Structured Binary Blobs, and fixed Salts
