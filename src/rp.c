@@ -148,6 +148,16 @@ int conv_itoc (const u8 c)
   return -1;
 }
 
+// get_random_num () includes its upper bound: it returns a value in [min, max]. The draws below that
+// index a buffer therefore need the last index as their bound and not the count. The draws that build
+// a character instead, get_random_num (0x20, 0x7e), were already right and are left alone.
+//
+// grp_pos holds twelve characters, so sizeof (grp_pos) named one past its end. Each *_selection buffer
+// is allocated at the size of the group it draws from, while its count is only what the selection
+// kept, so a count that filled the buffer named one past the end of it and a smaller count named a
+// byte hcmalloc () had zeroed. kernel_rules_generate () refuses an empty alias list, so every count
+// reached here is at least one and the subtraction cannot wrap.
+
 int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min, const u32 rp_gen_func_max, const rp_gen_ops_t *rp_gen_ops)
 {
   // generate them
@@ -162,40 +172,40 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
     u32 p1 = 0;
     u32 p2 = 0;
 
-    const int group_num = get_random_num (0, rp_gen_ops->grp_op_alias_cnt);
+    const int group_num = get_random_num (0, rp_gen_ops->grp_op_alias_cnt - 1);
 
     const int group_num_alias = rp_gen_ops->grp_op_alias_buf[group_num];
 
     switch (group_num_alias)
     {
       case 0:
-        r = get_random_num (0, rp_gen_ops->grp_op_nop_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_nop_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_nop_selection[r];
         break;
 
       case 1:
-        r = get_random_num (0, rp_gen_ops->grp_op_pos_p0_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_p0_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_p0_selection[r];
-        p1 = get_random_num (0, sizeof (grp_pos));
+        p1 = get_random_num (0, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p1];
         break;
 
       case 2:
-        r = get_random_num (0, rp_gen_ops->grp_op_pos_p1_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_p1_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_p1_selection[r];
         p1 = get_random_num (1, 6);
         rule_buf[rule_pos++] = grp_pos[p1];
         break;
 
       case 3:
-        r = get_random_num (0, rp_gen_ops->grp_op_chr_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_chr_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_chr_selection[r];
         p1 = get_random_num (0x20, 0x7e);
         rule_buf[rule_pos++] = (char) p1;
         break;
 
       case 4:
-        r = get_random_num (0, rp_gen_ops->grp_op_chr_chr_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_chr_chr_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_chr_chr_selection[r];
         p1 = get_random_num (0x20, 0x7e);
         rule_buf[rule_pos++] = (char) p1;
@@ -206,33 +216,33 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
         break;
 
       case 5:
-        r = get_random_num (0, rp_gen_ops->grp_op_pos_chr_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_chr_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_chr_selection[r];
-        p1 = get_random_num (0, sizeof (grp_pos));
+        p1 = get_random_num (0, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p1];
         p2 = get_random_num (0x20, 0x7e);
         rule_buf[rule_pos++] = (char) p2;
         break;
 
       case 6:
-        r = get_random_num (0, rp_gen_ops->grp_op_pos_pos0_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_pos0_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_pos0_selection[r];
-        p1 = get_random_num (0, sizeof (grp_pos));
+        p1 = get_random_num (0, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p1];
-        p2 = get_random_num (0, sizeof (grp_pos));
+        p2 = get_random_num (0, sizeof (grp_pos) - 1);
         while (p1 == p2)
-        p2 = get_random_num (0, sizeof (grp_pos));
+        p2 = get_random_num (0, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p2];
         break;
 
       case 7:
-        r = get_random_num (0, rp_gen_ops->grp_op_pos_pos1_cnt);
+        r = get_random_num (0, rp_gen_ops->grp_op_pos_pos1_cnt - 1);
         rule_buf[rule_pos++] = rp_gen_ops->grp_op_pos_pos1_selection[r];
-        p1 = get_random_num (0, sizeof (grp_pos));
+        p1 = get_random_num (0, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p1];
-        p2 = get_random_num (1, sizeof (grp_pos));
+        p2 = get_random_num (1, sizeof (grp_pos) - 1);
         while (p1 == p2)
-        p2 = get_random_num (1, sizeof (grp_pos));
+        p2 = get_random_num (1, sizeof (grp_pos) - 1);
         rule_buf[rule_pos++] = grp_pos[p2];
         break;
     }
@@ -1455,6 +1465,20 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   return 0;
 }
 
+// The eight selection buffers, freed the same way whether the function refuses or succeeds.
+
+static void rp_gen_ops_term (rp_gen_ops_t *rp_gen_ops)
+{
+  hcfree (rp_gen_ops->grp_op_nop_selection);
+  hcfree (rp_gen_ops->grp_op_pos_p0_selection);
+  hcfree (rp_gen_ops->grp_op_pos_p1_selection);
+  hcfree (rp_gen_ops->grp_op_chr_selection);
+  hcfree (rp_gen_ops->grp_op_chr_chr_selection);
+  hcfree (rp_gen_ops->grp_op_pos_chr_selection);
+  hcfree (rp_gen_ops->grp_op_pos_pos0_selection);
+  hcfree (rp_gen_ops->grp_op_pos_pos1_selection);
+}
+
 int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt, const char *rp_gen_func_selection)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1639,6 +1663,21 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   if (rp_gen_ops.grp_op_pos_pos0_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 6; };
   if (rp_gen_ops.grp_op_pos_pos1_cnt) { rp_gen_ops.grp_op_alias_buf[rp_gen_ops.grp_op_alias_cnt++] = 7; };
 
+  // A selection that names no rule function at all leaves every group empty, and an empty alias list
+  // has no index to draw. Refusing here is what lets every draw in generate_random_rule () subtract
+  // one from a count that is at least one.
+
+  if (rp_gen_ops.grp_op_alias_cnt == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --generate-rules-func-sel value specified - it names no rule function.");
+
+    rp_gen_ops_term (&rp_gen_ops);
+
+    hcfree (kernel_rules_buf);
+
+    return -1;
+  }
+
   char *rule_buf = (char *) hcmalloc (RP_RULE_SIZE);
 
   for (kernel_rules_cnt = 0; kernel_rules_cnt < user_options->rp_gen; kernel_rules_cnt++)
@@ -1652,14 +1691,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
 
   hcfree (rule_buf);
 
-  hcfree (rp_gen_ops.grp_op_nop_selection);
-  hcfree (rp_gen_ops.grp_op_pos_p0_selection);
-  hcfree (rp_gen_ops.grp_op_pos_p1_selection);
-  hcfree (rp_gen_ops.grp_op_chr_selection);
-  hcfree (rp_gen_ops.grp_op_chr_chr_selection);
-  hcfree (rp_gen_ops.grp_op_pos_chr_selection);
-  hcfree (rp_gen_ops.grp_op_pos_pos0_selection);
-  hcfree (rp_gen_ops.grp_op_pos_pos1_selection);
+  rp_gen_ops_term (&rp_gen_ops);
 
   *out_cnt = kernel_rules_cnt;
   *out_buf = kernel_rules_buf;
