@@ -275,7 +275,7 @@ void salt_destroy (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   }
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -285,29 +285,27 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   salt_t *salts_buf = (salt_t *) hashes->salts_buf;
 
-  salt_t *salt_buf = &salts_buf[salt_pos];
-
   scrypt_tmp_t *scrypt_tmp = (scrypt_tmp_t *) device_param->h_tmps;
-
-  const u32 N = salt_buf->scrypt_N;
-  const u32 r = salt_buf->scrypt_r;
-  const u32 p = salt_buf->scrypt_p;
-
-  const size_t chunk_bytes = 64 * 2 * r;
-
-  // One ROMix takes 2N steps, N to fill V and N to mix. The p of them run back to back, so the
-  // iteration space is p * 2N, which is what the module reports as salt_iter. hashcat hands us a
-  // slice of that space and we advance every candidate through it by exactly that much.
-
-  const u32 steps_per_romix = N * 2;
 
   const u32 loop_pos = (u32) device_param->kernel_param.loop_pos;
   const u32 loop_cnt = (u32) device_param->kernel_param.loop_cnt;
 
   // hashcat guarantees h_tmps[] is 64 byte aligned
 
+  // The cost lives in the salt, and attack mode 9 gives every candidate one of its own.
+
   for (u64 pw_cnt = 0; pw_cnt < pws_cnt; pw_cnt++)
   {
+    salt_t *salt_buf = &salts_buf[bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, pw_cnt)];
+
+    const u32 N = salt_buf->scrypt_N;
+    const u32 r = salt_buf->scrypt_r;
+    const u32 p = salt_buf->scrypt_p;
+
+    const size_t chunk_bytes = 64 * 2 * r;
+
+    const u32 steps_per_romix = N * 2;
+
     u8 *X = (u8 *) scrypt_tmp->P;
 
     u8 *V = (u8 *) unit_buf->V + (unit_buf->V_stride * pw_cnt);
