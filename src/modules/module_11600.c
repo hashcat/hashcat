@@ -15,6 +15,7 @@
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
 #include "ext_zlib.h"
+#include "ext_zstd.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -316,7 +317,11 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
     {
       ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
     }
-    else // we only support LZMA2 in addition to LZMA1
+    else if (data_type == 8) // ZSTD
+    {
+      ok = hc_zstd_decompress (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
+    }
+    else // we only support LZMA2 in addition to LZMA1 and ZSTD
     {
       ok = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
@@ -569,9 +574,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // this check also returns an error with data_type == 0x80 (special case that means "truncated")
 
-  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7))
+  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7) && (data_type != 8))
   {
     return (PARSER_SALT_VALUE);
+  }
+
+  if ((data_type == 8) && (hc_zstd_available () == false))
+  {
+    return (PARSER_HASH_VALUE);
   }
 
   if (salt_len != 0) return (PARSER_SALT_VALUE);
