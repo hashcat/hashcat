@@ -33,6 +33,8 @@ KERNEL_FQ KERNEL_FA void m36500_mxx (KERN_ATTR_BASIC ())
 
   md4_init (&ctx0);
 
+  md4_ctx_t ctx0_pre = ctx0;
+
   md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
@@ -43,7 +45,21 @@ KERNEL_FQ KERNEL_FA void m36500_mxx (KERN_ATTR_BASIC ())
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx = ctx0_pre;
+
+        md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md4_final (&ctx);
 
@@ -102,6 +118,8 @@ KERNEL_FQ KERNEL_FA void m36500_sxx (KERN_ATTR_BASIC ())
 
   md4_init (&ctx0);
 
+  md4_ctx_t ctx0_pre = ctx0;
+
   md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
@@ -112,7 +130,21 @@ KERNEL_FQ KERNEL_FA void m36500_sxx (KERN_ATTR_BASIC ())
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx = ctx0_pre;
+
+        md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md4_final (&ctx);
 
