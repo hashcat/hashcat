@@ -488,6 +488,7 @@ For a tree full of modules, this does it:
 - Fixed thread entry points returning the wrong type on Windows. CreateThread () reads 4 bytes where these returned 8, and the mismatch was hidden behind a cast at every call site
 - Fixed the Rust plugin build naming rustup in the message it prints when cargo is the thing that is missing
 
+- Fixed -m 24420 rejecting the self-describing $PEM$2 encoding that pem2john.py emits for non-SHA1 PRFs
 - Fixed --keyboard-layout-mapping doing nothing at all for the 15 TrueCrypt and VeraCrypt modes that both take the option and read a container: 6241-6243, 13721-13723, 13741-13743, 13761-13763 and 13781-13783. Those modules parse their own file and so the core never ran module_hash_decode_postprocess, which is where the mapping is loaded, so hashcat accepted the option and hashed the candidates exactly as they came. The hook now runs after a binary parse as well. The 29xxx modes take a hash rather than a container, go through the normal decode and were never affected
 - Fixed the Danish keyboard layout never having worked. layouts/da.hckmap had its tabs replaced by runs of spaces, so it held no mappings at all and every candidate went through unconverted. It ships as tables/layouts/da.table now
 - Fixed a mapping file that yields no mappings at all being accepted, which is what let a file like the Danish one convert nothing without saying so. The file is checked when the option is, because a module loads it from a hook whose result nothing looks at
