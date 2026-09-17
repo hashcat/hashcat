@@ -743,6 +743,13 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   logfile_sub_uint (runtime_start);
   logfile_sub_uint (runtime_stop);
 
+  // hashcat_get_status () memsets the struct it is handed, so whatever the round before this one
+  // put there has to go first or it is lost rather than freed. It adds up twice over: once per
+  // round of an attack, and once per hash mode under -b. accessible is still true here, so the call
+  // does its work rather than returning at the flag the way it does everywhere else.
+
+  status_status_destroy (hashcat_ctx, status_ctx->hashcat_status_final);
+
   if (hashcat_get_status (hashcat_ctx, status_ctx->hashcat_status_final) == -1)
   {
     fprintf (stderr, "Initialization problem: the hashcat status monitoring function returned an unexpected value\n");

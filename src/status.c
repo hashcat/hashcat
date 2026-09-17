@@ -2886,6 +2886,15 @@ void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_delete (status_ctx->mux_display);
   hc_thread_mutex_delete (status_ctx->mux_hwmon);
 
+  // The last round's strings and per device arrays are still in this struct, and this is the only
+  // place left that can give them back. accessible is false by now and status_status_destroy ()
+  // returns early when it is, so the flag is raised for this one call and the memset below clears
+  // it again. Raising it is safe here because every thread has been joined before this runs.
+
+  status_ctx->accessible = true;
+
+  status_status_destroy (hashcat_ctx, status_ctx->hashcat_status_final);
+
   hcfree (status_ctx->hashcat_status_final);
 
   memset (status_ctx, 0, sizeof (status_ctx_t));
@@ -2935,6 +2944,11 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hashcat_status->brain_tx_all            = NULL;
   #endif
 
+  // hwmon_fan_dev below is allocated by status_get_hwmon_fan_dev () next to speed_sec_dev,
+  // guess_candidates_dev and hwmon_dev, and was released by nothing at all. Its declaration in
+  // include/types.h is Apple only and so is this, which is why it sits inside a guard the other
+  // three do not need.
+
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -2942,6 +2956,9 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     hcfree (device_info->speed_sec_dev);
     hcfree (device_info->guess_candidates_dev);
     hcfree (device_info->hwmon_dev);
+    #if defined (__APPLE__)
+    hcfree (device_info->hwmon_fan_dev);
+    #endif
     #ifdef WITH_BRAIN
     hcfree (device_info->brain_link_recv_bytes_dev);
     hcfree (device_info->brain_link_send_bytes_dev);
@@ -2952,6 +2969,9 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     device_info->speed_sec_dev                  = NULL;
     device_info->guess_candidates_dev           = NULL;
     device_info->hwmon_dev                      = NULL;
+    #if defined (__APPLE__)
+    device_info->hwmon_fan_dev                  = NULL;
+    #endif
     #ifdef WITH_BRAIN
     device_info->brain_link_recv_bytes_dev      = NULL;
     device_info->brain_link_send_bytes_dev      = NULL;
