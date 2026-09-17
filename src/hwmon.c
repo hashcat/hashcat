@@ -2368,20 +2368,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   hwmon_ctx_init_sysfs_cpu (hashcat_ctx, hm_adapters_sysfs_cpu, backend_devices_cnt);
 
-  #if defined (__APPLE__)
-  if (backend_ctx->need_iokit == true)
-  {
-    hwmon_ctx->hm_iokit = (IOKIT_PTR *) hcmalloc (sizeof (IOKIT_PTR));
-
-    if (iokit_init (hashcat_ctx) == false)
-    {
-      hcfree (hwmon_ctx->hm_iokit);
-
-      hwmon_ctx->hm_iokit = NULL;
-    }
-  }
-  #endif
-
   if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_sysfs_amdgpu == NULL && hwmon_ctx->hm_sysfs_intelgpu == NULL && hwmon_ctx->hm_sysfs_cpu == NULL && hwmon_ctx->hm_iokit == NULL)
   {
     hcfree (hm_adapters_adl);
@@ -2669,6 +2655,12 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   if (hwmon_ctx->hm_iokit)
   {
     iokit_close (hashcat_ctx);
+
+    // iokit_close () gives back what the subscription holds. The IOKIT_PTR around it is ours.
+
+    hcfree (hwmon_ctx->hm_iokit);
+
+    hwmon_ctx->hm_iokit = NULL;
   }
   #endif
 
