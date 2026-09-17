@@ -35,6 +35,18 @@ if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"})
   $IS_OPTIMIZED = $ENV{"IS_OPTIMIZED"};
 }
 
+# tools/test.sh exports IS_OPTIMIZED, and the test modules read it when they are required, a few
+# lines below. tools/test_edge.sh hands the same flag to the edge subcommand as an argument instead,
+# so under that suite the modules see nothing and every one of them generates its vectors as if the
+# kernel were the optimized one. Put the argument in the environment before the module is loaded.
+
+if (($TYPE eq "edge") && (defined $ARGV[1]) && (($ARGV[1] eq "0") || ($ARGV[1] eq "1")))
+{
+  $IS_OPTIMIZED = $ARGV[1];
+
+  $ENV{"IS_OPTIMIZED"} = $ARGV[1];
+}
+
 is_whole ($MODE) or die "Mode must be a number\n";
 
 my $MODULE_FILE = sprintf ("m%05d.pm", $MODE);
