@@ -1342,6 +1342,11 @@ typedef struct hashes
   void        *hook_salts_buf;
 
   u32          hashes_cnt_orig;
+
+  // hashes_cnt is zeroed by hashes_init_stage4 (), so it cannot bound the hash_info cleanup in
+  // hashes_destroy (). This keeps the count the array was allocated with.
+
+  u32          hash_info_cnt;
   u32          hashes_cnt;
   hash_t      *hashes_buf;
 

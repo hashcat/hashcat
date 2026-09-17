@@ -3339,6 +3339,40 @@ static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, in
   return true;
 }
 
+// Everything a hashinfo_t owns. The struct comes from hccalloc (), so a field the parse never filled
+// is NULL, and this reads the struct rather than the options that produced it: outer_loop () calls
+// hashconfig_destroy () before hashes_destroy () on its normal return, so opts_type cannot be asked.
+
+static void hash_info_destroy (hashinfo_t *hash_info)
+{
+  if (hash_info == NULL) return;
+
+  user_t *user = hash_info->user;
+
+  if (user != NULL)
+  {
+    // user_name, user_gecos and user_home all point into one allocation and user_name is its front.
+
+    hcfree (user->user_name);
+
+    hcfree (user);
+  }
+
+  dynamicx_t *dynamicx = hash_info->dynamicx;
+
+  if (dynamicx != NULL)
+  {
+    hcfree (dynamicx->dynamicx_buf);
+
+    hcfree (dynamicx);
+  }
+
+  hcfree (hash_info->orighash);
+  hcfree (hash_info->split);
+
+  hcfree (hash_info);
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -3684,6 +3718,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
 
+          // stage 1 gave this hash an orighash buffer already, and this assignment used to drop it.
+
+          hcfree (hash_info_tmp->orighash);
+
           hash_info_tmp->orighash = hcstrdup (hash_buf);
         }
 
@@ -3729,6 +3767,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           for (u32 i = 0; i < hashes_per_user; i++)
           {
             user_t **user = &hashes_buf[hashes_cnt + i].hash_info->user;
+
+            // stage 1 already gave this hash a user_t when --username was asked for, and this
+            // assignment used to drop it on the floor.
+
+            hcfree (*user);
 
             *user = (user_t *) hcmalloc (sizeof (user_t));
 
@@ -4048,6 +4091,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             user_t **user = &hashes_buf[hashes_cnt + i].hash_info->user;
 
+            // stage 1 already gave this hash a user_t when --username was asked for, and this
+            // assignment used to drop it on the floor.
+
+            hcfree (*user);
+
             *user = (user_t *) hcmalloc (sizeof (user_t));
 
             user_t *user_ptr = *user;
@@ -4108,6 +4156,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY || user_options->hash_copy == true)
         {
           hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
+
+          // stage 1 gave this hash an orighash buffer already, and this assignment used to drop it.
+
+          hcfree (hash_info_tmp->orighash);
 
           hash_info_tmp->orighash = hcstrdup (hash_buf);
         }
@@ -4429,6 +4481,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
 
+        // stage 1 gave this hash an orighash buffer already, and this assignment used to drop it.
+
+        hcfree (hash_info_tmp->orighash);
+
         hash_info_tmp->orighash = hcstrdup (input_buf);
       }
 
@@ -4653,6 +4709,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
 
     hcfree (rights);
+  }
+
+  // hash_info was pre-allocated for every available slot. A split mode doubles that count for two
+  // halves a line may not both carry, and a line that failed to parse leaves its slot behind. The
+  // array stage 2 builds only covers what parsed, so nothing else gives these back.
+
+  for (u64 hash_pos = hashes_cnt; hash_pos < hashes_avail; hash_pos++)
+  {
+    hash_info_destroy (hashes_buf[hash_pos].hash_info);
+
+    hashes_buf[hash_pos].hash_info = NULL;
   }
 
   if (hashes->parser_token_length_cnt > 0)
@@ -5114,6 +5181,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   hashes->hook_salts_buf    = hook_salts_buf_new;
 
   hashes->hash_info         = hash_info;
+  hashes->hash_info_cnt     = hashes_cnt;
 
   return 0;
 }
@@ -5272,6 +5340,11 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   // at this point we no longer need hash_t* structure
 
   hash_t *hashes_buf = hashes->hashes_buf;
+
+  // potfile_update_hash () and hashes_init_zerohash () attach a pw_buf to individual hashes, and
+  // this is the last point at which the array holding them still exists.
+
+  for (u32 i = 0; i < hashes->hashes_cnt; i++) hcfree (hashes_buf[i].pw_buf);
 
   hcfree (hashes_buf);
 
@@ -5707,9 +5780,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
 
 void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
-  user_options_t *user_options = hashcat_ctx->user_options;
 
   hcfree (hashes->digests_buf);
   hcfree (hashes->digests_shown);
@@ -5717,33 +5788,17 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);
 
-  if ((user_options->username == true) || (user_options->dynamic_x == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (user_options->hash_copy == true))
+  // What each hashinfo_t carries is decided at parse time and recorded in the struct itself, so the
+  // teardown reads the struct rather than the options that produced it. hashinfo_t comes from
+  // hccalloc (), so a field that was never filled is NULL. This matters because outer_loop () calls
+  // hashconfig_destroy () before this function on its normal return, which leaves hashconfig->opts_type
+  // zeroed: a condition on OPTS_TYPE_HASH_COPY or OPTS_TYPE_HASH_SPLIT read here is always false.
+
+  if (hashes->hash_info != NULL)
   {
-    for (u32 hash_pos = 0; hash_pos < hashes->hashes_cnt; hash_pos++)
+    for (u32 hash_pos = 0; hash_pos < hashes->hash_info_cnt; hash_pos++)
     {
-      if (user_options->username == true)
-      {
-        hcfree (hashes->hash_info[hash_pos]->user);
-      }
-
-      if (user_options->dynamic_x == true)
-      {
-        dynamicx_t *dynamicx = hashes->hash_info[hash_pos]->dynamicx;
-
-        if (dynamicx != NULL) hcfree (dynamicx->dynamicx_buf);
-
-        hcfree (dynamicx);
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY || (user_options->hash_copy == true))
-      {
-        hcfree (hashes->hash_info[hash_pos]->orighash);
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
-      {
-        hcfree (hashes->hash_info[hash_pos]->split);
-      }
+      hash_info_destroy (hashes->hash_info[hash_pos]);
     }
   }
 
@@ -5751,6 +5806,16 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (hashes->esalts_buf);
   hcfree (hashes->hook_salts_buf);
+
+  // hashes_init_stage4 () frees this and sets it to NULL, so this is a no-op on a run that got that
+  // far. A run that stopped earlier, on a hash list that parsed into nothing for instance, did not.
+
+  if (hashes->hashes_buf != NULL)
+  {
+    for (u32 i = 0; i < hashes->hashes_cnt; i++) hcfree (hashes->hashes_buf[i].pw_buf);
+  }
+
+  hcfree (hashes->hashes_buf);
 
   hcfree (hashes->out_buf);
   hcfree (hashes->tmp_buf);
