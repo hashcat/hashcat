@@ -56,7 +56,7 @@ static const u32 full80 = 0x80808080;
 // the combinator kernels have no host side index to permute, or rebuild the base word from the work
 // item id, and outfile.c reads that id back unmapped.
 
-static bool length_sort_enabled (const hashcat_ctx_t *hashcat_ctx)
+static bool length_sort_possible (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -64,11 +64,24 @@ static bool length_sort_enabled (const hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->length_sort == false) return false;
 
-  if (user_options->length_sort_disable == true) return false;
-
   if (user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) return false;
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
+
+  return true;
+}
+
+// The option is kept out of length_sort_possible () on purpose. The buffers are sized on that one and
+// charged against accel_limit_host, so an option that also freed the memory would autotune to a
+// different kernel_accel, and the one control anyone has for measuring what the sort is worth would
+// be moving the launch geometry at the same time. The mode decides the footprint, the option decides
+// only whether the sort runs.
+
+static bool length_sort_enabled (const hashcat_ctx_t *hashcat_ctx)
+{
+  if (length_sort_possible (hashcat_ctx) == false) return false;
+
+  if (hashcat_ctx->user_options->length_sort_disable == true) return false;
 
   return true;
 }
@@ -15682,7 +15695,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // beside it. Both belong to the launch rather than to a pipeline slot, so there is one of each
       // however many slots the pipeline has. A run that does not sort allocates neither.
 
-      if (length_sort_enabled (hashcat_ctx) == true)
+      if (length_sort_possible (hashcat_ctx) == true)
       {
         size_pws_sort_idx = size_pws_idx;
         size_pws_sort_map = kernel_power_max * sizeof (u32);
