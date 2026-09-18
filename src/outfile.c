@@ -443,6 +443,10 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   const bool amp = (user_options_extra->attack_kern == ATTACK_KERN_PCFG);
 
+  // The cell belongs to the work item, so it is read at the raw gidvid, while the position below is
+  // the feed's. The two can only be handed to the same call because a length sort and an amplifying
+  // feed never happen together. See length_sort_enabled ().
+
   const pcfg_cell_t *cell = (amp == true) ? &device_param->pcfg_cells_buf[gidvid] : NULL;
 
   const u32 *pool = (amp == true) ? generic_ctx->dev_pool : NULL;

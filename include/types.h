@@ -977,6 +977,7 @@ typedef enum user_options_defaults
   KEYSPACE                 = false,
   TOTAL_CANDIDATES         = false,
   LEFT                     = false,
+  LENGTH_SORT_DISABLE      = false,
   LIMIT                    = 0,
   LOGFILE                  = true,
   LOOPBACK                 = false,
@@ -1021,7 +1022,6 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
-  LENGTH_SORT_DISABLE      = false,
   SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
@@ -1118,6 +1118,7 @@ typedef enum user_options_map
   IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff25,
   IDX_KEYSPACE                  = 0xff26,
   IDX_LEFT                      = 0xff27,
+  IDX_LENGTH_SORT_DISABLE       = 0xff5a,
   IDX_LIMIT                     = 'l',
   IDX_LOGFILE_DISABLE           = 0xff28,
   IDX_LOOKUP                    = 0xff89,
@@ -1170,7 +1171,6 @@ typedef enum user_options_map
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
   IDX_SPEED_ONLY                = 0xff48,
-  IDX_LENGTH_SORT_DISABLE       = 0xff5a,
   IDX_SPIN_DAMP                 = 0xff49,
   IDX_STATUS                    = 0xff4a,
   IDX_STATUS_JSON               = 0xff4b,
@@ -1833,6 +1833,8 @@ typedef struct hc_device_param
   pw_idx_t *pws_sort_idx;
   u32      *pws_sort_map;
   u64       pws_sort_cnt;
+  u64       pws_sort_head; // the work items the first and the last word of the feed window ended up in
+  u64       pws_sort_tail;
 
   void    *h_tmps; // we need this only for bridges
 

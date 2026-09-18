@@ -1062,7 +1062,8 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
       #endif
 
-      device_param->pws_cnt = 0;
+      device_param->pws_cnt      = 0;
+      device_param->pws_sort_cnt = 0;
     }
 
     // the launch is complete, so the slot may go back to the producer

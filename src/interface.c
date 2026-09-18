@@ -146,15 +146,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_load == false) return -1;
 
-  // set all module to have these options by empty default;
-  //  such that this property doesn't have to be declared explicitly by all modules .
-  //  such that we don't break private plugins without this options.
-  module_ctx->module_usage_notice = MODULE_DEFAULT;
-  module_ctx->module_advice_notice = MODULE_DEFAULT;
-  module_ctx->module_length_sort = MODULE_DEFAULT;
+  module_ctx->module_usage_notice = MODULE_DEFAULT; // set all module to have usage_notice by empty default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
+  module_ctx->module_advice_notice = MODULE_DEFAULT; // set all module to have advice_notice empty by default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
+  module_ctx->module_length_sort = MODULE_DEFAULT; // same for length_sort, so a mode that does not want the length sort does not have to say so
   module_ctx->module_init (module_ctx);
 
-  // The two optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
+  // The three optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
   // assigns NULL to one of them instead of leaving it alone gets past every guard: the readers test
   // against MODULE_DEFAULT, not against NULL, and then call it. Seeding them before module_init ()
   // only covers the module that says nothing. This covers the one that says NULL.
@@ -210,6 +207,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_deprecated_notice);
   // CHECK_DEFINED (module_ctx, module_usage_notice); // we don't check this here as it's an optional field
   // CHECK_DEFINED (module_ctx, module_advice_notice); // we don't check this here as it's an optional field
+  // CHECK_DEFINED (module_ctx, module_length_sort); // we don't check this here as it's an optional field
   CHECK_DEFINED (module_ctx, module_dgst_pos0);
   CHECK_DEFINED (module_ctx, module_dgst_pos1);
   CHECK_DEFINED (module_ctx, module_dgst_pos2);

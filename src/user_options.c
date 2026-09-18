@@ -112,6 +112,7 @@ static const struct option long_options[] =
   {"keyspace",                  no_argument,       NULL, IDX_KEYSPACE},
   {"total-candidates",          no_argument,       NULL, IDX_TOTAL_CANDIDATES},
   {"left",                      no_argument,       NULL, IDX_LEFT},
+  {"length-sort-disable",       no_argument,       NULL, IDX_LENGTH_SORT_DISABLE},
   {"limit",                     required_argument, NULL, IDX_LIMIT},
   {"logfile-disable",           no_argument,       NULL, IDX_LOGFILE_DISABLE},
   {"lookup",                    required_argument, NULL, IDX_LOOKUP},
@@ -157,7 +158,6 @@ static const struct option long_options[] =
   {"skip",                      required_argument, NULL, IDX_SKIP},
   {"slow-candidates",           no_argument,       NULL, IDX_SLOW_CANDIDATES},
   {"speed-only",                no_argument,       NULL, IDX_SPEED_ONLY},
-  {"length-sort-disable",       no_argument,       NULL, IDX_LENGTH_SORT_DISABLE},
   {"spin-damp",                 required_argument, NULL, IDX_SPIN_DAMP},
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-json",               no_argument,       NULL, IDX_STATUS_JSON},
@@ -284,6 +284,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keyspace                  = KEYSPACE;
   user_options->total_candidates          = TOTAL_CANDIDATES;
   user_options->left                      = LEFT;
+  user_options->length_sort_disable       = LENGTH_SORT_DISABLE;
   user_options->limit                     = LIMIT;
   user_options->logfile                   = LOGFILE;
   user_options->lookup                    = NULL;
@@ -334,7 +335,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->skip                      = SKIP;
   user_options->slow_candidates           = SLOW_CANDIDATES;
   user_options->speed_only                = SPEED_ONLY;
-  user_options->length_sort_disable       = LENGTH_SORT_DISABLE;
   user_options->spin_damp                 = SPIN_DAMP;
   user_options->status                    = STATUS;
   user_options->status_json               = STATUS_JSON;
@@ -4910,6 +4910,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->total_candidates);
   logfile_top_uint   (user_options->left);
+  logfile_top_uint   (user_options->length_sort_disable);
   logfile_top_uint   (user_options->logfile);
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
@@ -4948,7 +4949,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);
-  logfile_top_uint   (user_options->length_sort_disable);
   logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
   logfile_top_uint   (user_options->status_json);

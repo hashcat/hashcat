@@ -48,9 +48,13 @@ static const u32 full80 = 0x80808080;
 // Whether this run orders its candidates by length before the launch. The mode says whether the sort
 // pays for itself and the user can turn it off, but -a 9 refuses it whatever either of them says: the
 // kernel reads the account index off the work item id there, so a work item that changes places is a
-// candidate tried against a different account. The other attack kernels are out because the work item
-// carries a base word that the device then amplifies, and the length of that base word is not what
-// their launch costs.
+// candidate tried against a different account.
+//
+// The straight kernel is the one that takes a whole candidate per work item, which is what makes the
+// candidate's length the work item's cost. -a 4, -a 5 and -a 8 reach it too, because they run as
+// ATTACK_MODE_GENERIC and a mode that hashes outside the kernel keeps its feed on the host. -a 3 and
+// the combinator kernels have no host side index to permute, or rebuild the base word from the work
+// item id, and outfile.c reads that id back unmapped.
 
 static bool length_sort_enabled (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -88,7 +92,17 @@ static void sort_pws_idx_by_len (hc_device_param_t *device_param, const u64 pws_
 
   memset (bucket, 0, sizeof (bucket));
 
-  for (u64 i = 0; i < pws_cnt; i++) bucket[pws_idx[i].len + 1]++;
+  for (u64 i = 0; i < pws_cnt; i++)
+  {
+    const u32 len = pws_idx[i].len;
+
+    // Every producer clamps to PW_MAX already. Nothing has been written yet at this point, so a feed
+    // that does not leaves the launch unsorted instead of writing past the bucket array.
+
+    if (len > PW_MAX) return;
+
+    bucket[len + 1]++;
+  }
 
   for (u32 len = 1; len <= PW_MAX + 1; len++) bucket[len] += bucket[len - 1];
 
@@ -98,12 +112,22 @@ static void sort_pws_idx_by_len (hc_device_param_t *device_param, const u64 pws_
 
     pws_sort_idx[dst] = pws_idx[i];
     pws_sort_map[dst] = (u32) i;
+
+    // Where the two ends of the feed window went, which is the one thing a reader wants the map the
+    // other way round for. See status_get_guess_candidates_dev ().
+
+    if (i == 0)             device_param->pws_sort_head = dst;
+    if (i == (pws_cnt - 1)) device_param->pws_sort_tail = dst;
   }
 
-  // The entry at pws_cnt is the sentinel that carries the total word count, and it is read right after
-  // this returns. It is not part of the sort and is left where it is.
+  // The entry at pws_cnt is the sentinel carrying the total word count, and the upload reads it right
+  // after this returns, so it travels with the sorted copy. The launch then reads the sorted index and
+  // the pipeline slot keeps the order the producer wrote, which is what stdout.c and the next batch's
+  // bookkeeping still expect of it.
 
-  memcpy (pws_idx, pws_sort_idx, pws_cnt * sizeof (pw_idx_t));
+  pws_sort_idx[pws_cnt] = pws_idx[pws_cnt];
+
+  device_param->pws_idx = pws_sort_idx;
 
   device_param->pws_sort_cnt = pws_cnt;
 }
