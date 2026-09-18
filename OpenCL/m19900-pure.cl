@@ -26,6 +26,8 @@ typedef struct krb5pa_18
   u32 enc_timestamp[32];
   u32 enc_timestamp_len;
 
+  u32 format;
+
 } krb5pa_18_t;
 
 typedef struct krb5pa_18_tmp
