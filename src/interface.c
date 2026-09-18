@@ -534,10 +534,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hashes_count_min         != MODULE_DEFAULT) hashconfig->hashes_count_min        = module_ctx->module_hashes_count_min         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hashes_count_max         != MODULE_DEFAULT) hashconfig->hashes_count_max        = module_ctx->module_hashes_count_max         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hlfmt_disable            != MODULE_DEFAULT) hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_length_sort              != MODULE_DEFAULT) hashconfig->length_sort            = module_ctx->module_length_sort              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_extra_param_size    != MODULE_DEFAULT) hashconfig->hook_extra_param_size   = module_ctx->module_hook_extra_param_size    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_length_sort              != MODULE_DEFAULT) hashconfig->length_sort             = module_ctx->module_length_sort              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_disable    != MODULE_DEFAULT) hashconfig->outfile_check_disable   = module_ctx->module_outfile_check_disable    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_nocomp     != MODULE_DEFAULT) hashconfig->outfile_check_nocomp    = module_ctx->module_outfile_check_nocomp     (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_potfile_disable          != MODULE_DEFAULT) hashconfig->potfile_disable         = module_ctx->module_potfile_disable          (hashconfig, user_options, user_options_extra);

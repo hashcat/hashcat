@@ -45,26 +45,79 @@ static const u32 full01 = 0x01010101;
 static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
-static int pw_idx_len_cmp (const void *a, const void *b)
-{
-  const pw_idx_t *pa = (const pw_idx_t *) a;
-  const pw_idx_t *pb = (const pw_idx_t *) b;
+// Whether this run orders its candidates by length before the launch. The mode says whether the sort
+// pays for itself and the user can turn it off, but -a 9 refuses it whatever either of them says: the
+// kernel reads the account index off the work item id there, so a work item that changes places is a
+// candidate tried against a different account. The other attack kernels are out because the work item
+// carries a base word that the device then amplifies, and the length of that base word is not what
+// their launch costs.
 
-  if (pa->len < pb->len) return -1;
-  if (pa->len > pb->len) return 1;
-  return 0;
+static bool length_sort_enabled (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (hashconfig->length_sort == false) return false;
+
+  if (user_options->length_sort_disable == true) return false;
+
+  if (user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) return false;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
+
+  return true;
 }
+
+// Candidate lengths are bounded by PW_MAX, so this is a counting sort rather than a comparison sort.
+// That is not only cheaper, it is stable, which keeps crack positions ascending inside a length group,
+// and it writes the permutation out while it places the entries, which is what the launch has to give
+// back to every reader of gidvid that means a position in the feed.
 
 static void sort_pws_idx_by_len (hc_device_param_t *device_param, const u64 pws_cnt)
 {
-  // Simple length sort: no kernel-specific constants or cost model.
-  if (pws_cnt < 2) return;
+  pw_idx_t *pws_idx      = device_param->pws_idx;
+  pw_idx_t *pws_sort_idx = device_param->pws_sort_idx;
+  u32      *pws_sort_map = device_param->pws_sort_map;
 
-  pw_idx_t *pws_idx = device_param->pws_idx;
+  if ((pws_idx == NULL) || (pws_sort_idx == NULL) || (pws_sort_map == NULL)) return;
 
-  if (pws_idx == NULL) return;
+  // one bucket per length, offset by one so the prefix sum below turns counts into start positions
 
-  qsort (pws_idx, pws_cnt, sizeof (pw_idx_t), pw_idx_len_cmp);
+  u64 bucket[PW_MAX + 2];
+
+  memset (bucket, 0, sizeof (bucket));
+
+  for (u64 i = 0; i < pws_cnt; i++) bucket[pws_idx[i].len + 1]++;
+
+  for (u32 len = 1; len <= PW_MAX + 1; len++) bucket[len] += bucket[len - 1];
+
+  for (u64 i = 0; i < pws_cnt; i++)
+  {
+    const u64 dst = bucket[pws_idx[i].len]++;
+
+    pws_sort_idx[dst] = pws_idx[i];
+    pws_sort_map[dst] = (u32) i;
+  }
+
+  // The entry at pws_cnt is the sentinel that carries the total word count, and it is read right after
+  // this returns. It is not part of the sort and is left where it is.
+
+  memcpy (pws_idx, pws_sort_idx, pws_cnt * sizeof (pw_idx_t));
+
+  device_param->pws_sort_cnt = pws_cnt;
+}
+
+// Where the word behind a work item sat in the feed, which is what gidvid means everywhere outside the
+// launch. Without a length sort the two are the same number.
+
+u64 gidvid_to_feed_pos (const hc_device_param_t *device_param, const u64 gidvid)
+{
+  if (gidvid >= device_param->pws_sort_cnt) return gidvid;
+
+  const u64 feed_pos = device_param->pws_sort_map[gidvid];
+
+  return feed_pos;
 }
 
 // How long one launch is allowed to take. It was a table of four, selected by -w, and a user who
@@ -4461,11 +4514,16 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   }
   #endif
 
-  // Cluster equal-length candidates per warp for modes that re-hash the password
-  // length-dependently every iteration (length divergence otherwise stalls warps).
-  // Which modes benefit is declared by the module via module_length_sort(), not
-  // hard-coded here, so third-party plugins can opt in too.
-  if ((user_options->length_sort_disable == false) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) && (hashconfig->length_sort == true))
+  // Cluster equal length candidates, for modes whose kernel cost follows the length of the candidate:
+  // a wave otherwise runs at the speed of its longest word. Which modes benefit is declared by the
+  // module through module_length_sort (), so a private plugin can opt in without touching this file.
+  //
+  // The sort renumbers the work items, so pws_sort_cnt is cleared for a launch that does not sort and
+  // gidvid_to_feed_pos () is an identity for it.
+
+  device_param->pws_sort_cnt = 0;
+
+  if (length_sort_enabled (hashcat_ctx) == true)
   {
     sort_pws_idx_by_len (device_param, pws_cnt);
   }
@@ -15440,6 +15498,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u64 size_pcfg_wmap  = 4;
     u64 size_pws_comp = 4;
     u64 size_pws_idx  = 4;
+    u64 size_pws_sort_idx = 0;
+    u64 size_pws_sort_map = 0;
     u64 size_pws_pre  = 4;
     u64 size_pws_base = 4;
     u64 size_tmps     = 4;
@@ -15591,6 +15651,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // size_pws_idx
 
       size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
+
+      // size_pws_sort_idx, size_pws_sort_map
+      //
+      // The length sort places the index into a scratch copy and notes one feed position per work item
+      // beside it. Both belong to the launch rather than to a pipeline slot, so there is one of each
+      // however many slots the pipeline has. A run that does not sort allocates neither.
+
+      if (length_sort_enabled (hashcat_ctx) == true)
+      {
+        size_pws_sort_idx = size_pws_idx;
+        size_pws_sort_map = kernel_power_max * sizeof (u32);
+      }
 
       // size_tmps
 
@@ -15757,6 +15829,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_brain_link_out
         #endif
         + size_pws_pre
+        + size_pws_sort_idx
+        + size_pws_sort_map
         + (size_pws_base * PW_PIPE_SLOTS)
         + (size_pcfg_cells * PW_PIPE_SLOTS)
         + (size_pcfg_wmap * PW_PIPE_SLOTS)
@@ -15871,6 +15945,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    pws_comp x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_comp * PW_PIPE_SLOTS) / MiB);
         event_log_info (hashcat_ctx, "    pws_idx  x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_idx  * PW_PIPE_SLOTS) / MiB);
         event_log_info (hashcat_ctx, "    pws_pre            %" PRIu64 " MiB", size_pws_pre / MiB);
+        event_log_info (hashcat_ctx, "    pws_sort           %" PRIu64 " MiB", (size_pws_sort_idx + size_pws_sort_map) / MiB);
         event_log_info (hashcat_ctx, "    pws_base x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_base * PW_PIPE_SLOTS) / MiB);
         event_log_info (hashcat_ctx, "    host_extra         %" PRIu64 " MiB (reserve, not allocated)", size_host_extra / MiB);
         event_log_info (hashcat_ctx, NULL);
@@ -16073,6 +16148,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->pws_comp     = device_param->pws_slot[0].pws_comp;
     device_param->pws_idx      = device_param->pws_slot[0].pws_idx;
     device_param->pws_base_buf = device_param->pws_slot[0].pws_base;
+
+    if ((size_pws_sort_idx > 0) && (size_pws_sort_map > 0))
+    {
+      device_param->pws_sort_idx = (pw_idx_t *) hcmalloc (size_pws_sort_idx);
+      device_param->pws_sort_map = (u32 *)      hcmalloc (size_pws_sort_map);
+    }
 
     pw_t *combs_buf = (pw_t *) hccalloc (device_param->size_combs_c / sizeof (pw_t), sizeof (pw_t));
 
@@ -16301,6 +16382,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     }
 
     hcfree (device_param->pws_pre_buf);
+    hcfree (device_param->pws_sort_idx);
+    hcfree (device_param->pws_sort_map);
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
     hcfree (device_param->scratch_buf);
@@ -16449,6 +16532,9 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->pws_idx             = NULL;
     device_param->pws_pre_buf         = NULL;
     device_param->pws_base_buf        = NULL;
+    device_param->pws_sort_idx        = NULL;
+    device_param->pws_sort_map        = NULL;
+    device_param->pws_sort_cnt        = 0;
     device_param->combs_buf           = NULL;
     device_param->pcfg_cells_buf      = NULL;
     device_param->hooks_buf           = NULL;

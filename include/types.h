@@ -1825,6 +1825,15 @@ typedef struct hc_device_param
 
   pw_pre_t *pws_base_buf; // for debug mode, a view of the batch being launched
 
+  // The length sort, for a mode that asks for one. pws_sort_map says, for each work item of the launch,
+  // where in the batch the feed put that candidate, and pws_sort_cnt is how many entries of it the
+  // launch being processed wrote. A launch that did not sort leaves it at zero. gidvid_to_feed_pos ()
+  // is the only reader of either.
+
+  pw_idx_t *pws_sort_idx;
+  u32      *pws_sort_map;
+  u64       pws_sort_cnt;
+
   void    *h_tmps; // we need this only for bridges
 
   u64     words_off;
@@ -3920,7 +3929,7 @@ typedef struct module_ctx
   u32         (*module_kernel_threads_min)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_kernel_threads_max)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_length_sort)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *); // opt-in: cluster equal-length candidates per warp
+  bool        (*module_length_sort)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_opts_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_outfile_check_disable)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

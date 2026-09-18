@@ -68,6 +68,8 @@ void pipe_launch_done                       (hc_device_param_t *device_param, co
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
+u64 gidvid_to_feed_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
+
 int copy_pws_idx                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest);
 int copy_pws_comp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest);
 
