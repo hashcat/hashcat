@@ -795,53 +795,157 @@ KERNEL_FQ KERNEL_FA void m00500_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   digest[3] = tmps[gid].digest_buf[3];
 
   /**
+   * Precompute block templates for all 8 iteration patterns.
+   *
+   * md5crypt alternates based on j&1, j%3, j%7:
+   *   Even (j&1==0): dgst + [salt?] + [pw?] + pw_x80     (digest at offset 0, tail is constant)
+   *   Odd  (j&1==1): pw + [salt?] + [pw?] + dgst_x80     (prefix is constant, digest varies)
+   *
+   * By precomputing the constant parts once, the loop body becomes:
+   *   Even: copy digest into block0, copy precomputed tail, transform
+   *   Odd:  copy precomputed prefix, insert digest via memcat16_x80, transform
+   */
+
+  // --- Even templates (j1=0): precompute tail (blocks 1-3) after 16-byte digest ---
+
+  // E_00: dgst + pw_x80
+  u32 e00_b1[4], e00_b2[4], e00_b30, e00_b31;
+
+  {
+    u32 b0[4] = { 0 }, b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    memcat16 (b0, b1, b2, b3, 16, w0_x80);
+
+    e00_b1[0] = b1[0]; e00_b1[1] = b1[1]; e00_b1[2] = b1[2]; e00_b1[3] = b1[3];
+    e00_b2[0] = b2[0]; e00_b2[1] = b2[1]; e00_b2[2] = b2[2]; e00_b2[3] = b2[3];
+    e00_b30 = b3[0]; e00_b31 = b3[1];
+  }
+
+  const u32 e00_len = 16 + pw_len;
+
+  // E_10: dgst + salt + pw_x80
+  u32 e10_b1[4], e10_b2[4], e10_b30, e10_b31;
+
+  {
+    u32 b0[4] = { 0 }, b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    memcat8  (b0, b1, b2, b3, 16, salt_buf);
+    memcat16 (b0, b1, b2, b3, 16 + salt_len, w0_x80);
+
+    e10_b1[0] = b1[0]; e10_b1[1] = b1[1]; e10_b1[2] = b1[2]; e10_b1[3] = b1[3];
+    e10_b2[0] = b2[0]; e10_b2[1] = b2[1]; e10_b2[2] = b2[2]; e10_b2[3] = b2[3];
+    e10_b30 = b3[0]; e10_b31 = b3[1];
+  }
+
+  const u32 e10_len = 16 + salt_len + pw_len;
+
+  // E_01: dgst + pw + pw_x80
+  u32 e01_b1[4], e01_b2[4], e01_b30, e01_b31;
+
+  {
+    u32 b0[4] = { 0 }, b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    memcat16 (b0, b1, b2, b3, 16, w0);
+    memcat16 (b0, b1, b2, b3, 16 + pw_len, w0_x80);
+
+    e01_b1[0] = b1[0]; e01_b1[1] = b1[1]; e01_b1[2] = b1[2]; e01_b1[3] = b1[3];
+    e01_b2[0] = b2[0]; e01_b2[1] = b2[1]; e01_b2[2] = b2[2]; e01_b2[3] = b2[3];
+    e01_b30 = b3[0]; e01_b31 = b3[1];
+  }
+
+  const u32 e01_len = 16 + pw_len + pw_len;
+
+  // E_11: dgst + salt + pw + pw_x80
+  u32 e11_b1[4], e11_b2[4], e11_b30, e11_b31;
+
+  {
+    u32 b0[4] = { 0 }, b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    memcat8  (b0, b1, b2, b3, 16, salt_buf);
+    memcat16 (b0, b1, b2, b3, 16 + salt_len, w0);
+    memcat16 (b0, b1, b2, b3, 16 + salt_len + pw_len, w0_x80);
+
+    e11_b1[0] = b1[0]; e11_b1[1] = b1[1]; e11_b1[2] = b1[2]; e11_b1[3] = b1[3];
+    e11_b2[0] = b2[0]; e11_b2[1] = b2[1]; e11_b2[2] = b2[2]; e11_b2[3] = b2[3];
+    e11_b30 = b3[0]; e11_b31 = b3[1];
+  }
+
+  const u32 e11_len = 16 + salt_len + pw_len + pw_len;
+
+  // --- Odd templates (j1=1): precompute prefix (blocks 0-2), digest inserted at runtime ---
+
+  // O_00: pw + [dgst_x80] — prefix is just pw, no extra storage needed
+
+  const u32 o00_doff = pw_len;
+  const u32 o00_len  = pw_len + 16;
+
+  // O_10: pw + salt + [dgst_x80]
+  u32 o10_b0[4], o10_b1[4], o10_b2[4];
+
+  {
+    u32 b0[4], b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    b0[0] = w0[0]; b0[1] = w0[1]; b0[2] = w0[2]; b0[3] = w0[3];
+
+    memcat8 (b0, b1, b2, b3, pw_len, salt_buf);
+
+    o10_b0[0] = b0[0]; o10_b0[1] = b0[1]; o10_b0[2] = b0[2]; o10_b0[3] = b0[3];
+    o10_b1[0] = b1[0]; o10_b1[1] = b1[1]; o10_b1[2] = b1[2]; o10_b1[3] = b1[3];
+    o10_b2[0] = b2[0]; o10_b2[1] = b2[1]; o10_b2[2] = b2[2]; o10_b2[3] = b2[3];
+  }
+
+  const u32 o10_doff = pw_len + salt_len;
+  const u32 o10_len  = pw_len + salt_len + 16;
+
+  // O_01: pw + pw + [dgst_x80]
+  u32 o01_b0[4], o01_b1[4], o01_b2[4];
+
+  {
+    u32 b0[4], b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    b0[0] = w0[0]; b0[1] = w0[1]; b0[2] = w0[2]; b0[3] = w0[3];
+
+    memcat16 (b0, b1, b2, b3, pw_len, w0);
+
+    o01_b0[0] = b0[0]; o01_b0[1] = b0[1]; o01_b0[2] = b0[2]; o01_b0[3] = b0[3];
+    o01_b1[0] = b1[0]; o01_b1[1] = b1[1]; o01_b1[2] = b1[2]; o01_b1[3] = b1[3];
+    o01_b2[0] = b2[0]; o01_b2[1] = b2[1]; o01_b2[2] = b2[2]; o01_b2[3] = b2[3];
+  }
+
+  const u32 o01_doff = pw_len + pw_len;
+  const u32 o01_len  = pw_len + pw_len + 16;
+
+  // O_11: pw + salt + pw + [dgst_x80]
+  u32 o11_b0[4], o11_b1[4], o11_b2[4];
+
+  {
+    u32 b0[4], b1[4] = { 0 }, b2[4] = { 0 }, b3[4] = { 0 };
+
+    b0[0] = w0[0]; b0[1] = w0[1]; b0[2] = w0[2]; b0[3] = w0[3];
+
+    memcat8  (b0, b1, b2, b3, pw_len, salt_buf);
+    memcat16 (b0, b1, b2, b3, pw_len + salt_len, w0);
+
+    o11_b0[0] = b0[0]; o11_b0[1] = b0[1]; o11_b0[2] = b0[2]; o11_b0[3] = b0[3];
+    o11_b1[0] = b1[0]; o11_b1[1] = b1[1]; o11_b1[2] = b1[2]; o11_b1[3] = b1[3];
+    o11_b2[0] = b2[0]; o11_b2[1] = b2[1]; o11_b2[2] = b2[2]; o11_b2[3] = b2[3];
+  }
+
+  const u32 o11_doff = pw_len + salt_len + pw_len;
+  const u32 o11_len  = pw_len + salt_len + pw_len + 16;
+
+  /**
    * loop
    */
 
-  /* and now, just to make sure things don't run too fast */
-
-  u32 block_len;
-
-  u32 block0[4];
-
-  block0[0] = 0;
-  block0[1] = 0;
-  block0[2] = 0;
-  block0[3] = 0;
-
-  u32 block1[4];
-
-  block1[0] = 0;
-  block1[1] = 0;
-  block1[2] = 0;
-  block1[3] = 0;
-
-  u32 block2[4];
-
-  block2[0] = 0;
-  block2[1] = 0;
-  block2[2] = 0;
-  block2[3] = 0;
-
-  u32 block3[4];
-
-  block3[0] = 0;
-  block3[1] = 0;
-  block3[2] = 0;
-  block3[3] = 0;
-
   for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
-    block1[0] = 0;
-    block1[1] = 0;
-    block1[2] = 0;
-    block1[3] = 0;
-    block2[0] = 0;
-    block2[1] = 0;
-    block2[2] = 0;
-    block2[3] = 0;
-    block3[0] = 0;
-    block3[1] = 0;
+    u32 block0[4];
+    u32 block1[4];
+    u32 block2[4];
+    u32 block3[4];
+
+    u32 block_len;
 
     const u32 j1 = (j & 1) ? 1 : 0;
     const u32 j3 = (j % 3) ? 1 : 0;
@@ -849,71 +953,115 @@ KERNEL_FQ KERNEL_FA void m00500_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
     if (j1)
     {
-      block0[0] = w0[0];
-      block0[1] = w0[1];
-      block0[2] = w0[2];
-      block0[3] = w0[3];
-
-      block_len = pw_len;
+      // Odd iterations: copy precomputed prefix, insert digest via memcat16_x80
 
       if (j3)
       {
-        memcat8 (block0, block1, block2, block3, block_len, salt_buf);
+        if (j7)
+        {
+          // O_11: pw + salt + pw + dgst_x80
+          block0[0] = o11_b0[0]; block0[1] = o11_b0[1]; block0[2] = o11_b0[2]; block0[3] = o11_b0[3];
+          block1[0] = o11_b1[0]; block1[1] = o11_b1[1]; block1[2] = o11_b1[2]; block1[3] = o11_b1[3];
+          block2[0] = o11_b2[0]; block2[1] = o11_b2[1]; block2[2] = o11_b2[2]; block2[3] = o11_b2[3];
+          block3[0] = 0; block3[1] = 0; block3[2] = 0; block3[3] = 0;
 
-        block_len += salt_len;
+          memcat16_x80 (block0, block1, block2, block3, o11_doff, digest);
+
+          block_len = o11_len;
+        }
+        else
+        {
+          // O_10: pw + salt + dgst_x80
+          block0[0] = o10_b0[0]; block0[1] = o10_b0[1]; block0[2] = o10_b0[2]; block0[3] = o10_b0[3];
+          block1[0] = o10_b1[0]; block1[1] = o10_b1[1]; block1[2] = o10_b1[2]; block1[3] = o10_b1[3];
+          block2[0] = o10_b2[0]; block2[1] = o10_b2[1]; block2[2] = o10_b2[2]; block2[3] = o10_b2[3];
+          block3[0] = 0; block3[1] = 0; block3[2] = 0; block3[3] = 0;
+
+          memcat16_x80 (block0, block1, block2, block3, o10_doff, digest);
+
+          block_len = o10_len;
+        }
       }
-
-      if (j7)
+      else
       {
-        memcat16 (block0, block1, block2, block3, block_len, w0);
+        if (j7)
+        {
+          // O_01: pw + pw + dgst_x80
+          block0[0] = o01_b0[0]; block0[1] = o01_b0[1]; block0[2] = o01_b0[2]; block0[3] = o01_b0[3];
+          block1[0] = o01_b1[0]; block1[1] = o01_b1[1]; block1[2] = o01_b1[2]; block1[3] = o01_b1[3];
+          block2[0] = o01_b2[0]; block2[1] = o01_b2[1]; block2[2] = o01_b2[2]; block2[3] = o01_b2[3];
+          block3[0] = 0; block3[1] = 0; block3[2] = 0; block3[3] = 0;
 
-        block_len += pw_len;
+          memcat16_x80 (block0, block1, block2, block3, o01_doff, digest);
+
+          block_len = o01_len;
+        }
+        else
+        {
+          // O_00: pw + dgst_x80
+          block0[0] = w0[0]; block0[1] = w0[1]; block0[2] = w0[2]; block0[3] = w0[3];
+          block1[0] = 0; block1[1] = 0; block1[2] = 0; block1[3] = 0;
+          block2[0] = 0; block2[1] = 0; block2[2] = 0; block2[3] = 0;
+          block3[0] = 0; block3[1] = 0; block3[2] = 0; block3[3] = 0;
+
+          memcat16_x80 (block0, block1, block2, block3, o00_doff, digest);
+
+          block_len = o00_len;
+        }
       }
-
-      memcat16_x80 (block0, block1, block2, block3, block_len, digest);
-
-      block_len += 16;
     }
     else
     {
-      block0[0] = digest[0];
-      block0[1] = digest[1];
-      block0[2] = digest[2];
-      block0[3] = digest[3];
+      // Even iterations: block0 = digest, copy precomputed tail (no memcat needed)
 
-      block_len = 16;
+      block0[0] = digest[0]; block0[1] = digest[1];
+      block0[2] = digest[2]; block0[3] = digest[3];
 
-      if (j3 && j7)
+      if (j3)
       {
-        block1[0] = salt_buf[0];
-        block1[1] = salt_buf[1];
+        if (j7)
+        {
+          // E_11: dgst + salt + pw + pw_x80
+          block1[0] = e11_b1[0]; block1[1] = e11_b1[1]; block1[2] = e11_b1[2]; block1[3] = e11_b1[3];
+          block2[0] = e11_b2[0]; block2[1] = e11_b2[1]; block2[2] = e11_b2[2]; block2[3] = e11_b2[3];
+          block3[0] = e11_b30; block3[1] = e11_b31;
 
-        block_len += salt_len;
+          block_len = e11_len;
+        }
+        else
+        {
+          // E_10: dgst + salt + pw_x80
+          block1[0] = e10_b1[0]; block1[1] = e10_b1[1]; block1[2] = e10_b1[2]; block1[3] = e10_b1[3];
+          block2[0] = e10_b2[0]; block2[1] = e10_b2[1]; block2[2] = e10_b2[2]; block2[3] = e10_b2[3];
+          block3[0] = e10_b30; block3[1] = e10_b31;
 
-        memcat16 (block0, block1, block2, block3, block_len, w0);
-
-        block_len += pw_len;
+          block_len = e10_len;
+        }
       }
-      else if (j3)
+      else
       {
-        block1[0] = salt_buf[0];
-        block1[1] = salt_buf[1];
+        if (j7)
+        {
+          // E_01: dgst + pw + pw_x80
+          block1[0] = e01_b1[0]; block1[1] = e01_b1[1]; block1[2] = e01_b1[2]; block1[3] = e01_b1[3];
+          block2[0] = e01_b2[0]; block2[1] = e01_b2[1]; block2[2] = e01_b2[2]; block2[3] = e01_b2[3];
+          block3[0] = e01_b30; block3[1] = e01_b31;
 
-        block_len += salt_len;
+          block_len = e01_len;
+        }
+        else
+        {
+          // E_00: dgst + pw_x80
+          block1[0] = e00_b1[0]; block1[1] = e00_b1[1]; block1[2] = e00_b1[2]; block1[3] = e00_b1[3];
+          block2[0] = e00_b2[0]; block2[1] = e00_b2[1]; block2[2] = e00_b2[2]; block2[3] = e00_b2[3];
+          block3[0] = e00_b30; block3[1] = e00_b31;
+
+          block_len = e00_len;
+        }
       }
-      else if (j7)
-      {
-        block1[0] = w0[0];
-        block1[1] = w0[1];
-        block1[2] = w0[2];
-        block1[3] = w0[3];
 
-        block_len += pw_len;
-      }
-
-      memcat16 (block0, block1, block2, block3, block_len, w0_x80);
-
-      block_len += pw_len;
+      block3[2] = 0;
+      block3[3] = 0;
     }
 
     block3[2] = block_len * 8;
