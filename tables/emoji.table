@@ -1,0 +1,43 @@
+# Words as emoji.
+#
+# Everything else in tables/ replaces letters. This one replaces whole words, which the longest
+# match rule makes work: a source of several characters is taken over any shorter source that also
+# matches there, so chicken becomes one token rather than seven.
+#
+# Give it alongside the others and they are read into one set:
+#
+#   hashcat -m 0 -a 5 hashes.txt words.txt tables/leetspeak-common.table tables/emoji.table
+#
+# Adding this table to a run does not only add. Longest match takes the whole word as one token, so
+# the letters inside it stop varying: chickenpass under leetspeak-common alone is 162 candidates and
+# includes ch1ckenpass, and with this table it is 54 and does not, because chicken is now one token
+# rather than seven letters. That is the price of matching whole words, and it is worth knowing before
+# you put a common word in here.
+#
+# The list is a starting set. Add what your target audience would actually type.
+
+chicken	🐔
+cat	🐈
+dog	🐕
+heart	❤
+love	❤
+star	⭐
+sun	☀
+moon	🌙
+fire	🔥
+money	💰
+beer	🍺
+coffee	☕
+pizza	🍕
+rocket	🚀
+skull	💀
+ghost	👻
+crown	👑
+key	🔑
+lock	🔒
+music	🎵
+football	⚽
+smile	😀
+ok	👌
+no	❌
+yes	✅

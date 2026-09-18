@@ -14,6 +14,20 @@ use Crypt::CBC;
 use Crypt::ECB;
 use Encode;
 
+# The optimized kernels widen each byte instead of decoding the UTF-8, and
+# module_01000.c:58 documents that as deliberate rather than as a bug, so the two
+# kernel families really do disagree on a multi byte password. The oracle follows
+# whichever one test.sh is about to run: decoding as latin1 reproduces the
+# widening byte for byte, decoding as utf-8 is the conversion the pure kernels do.
+# test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O.
+
+my $PW_CHARSET = "latin1";
+
+if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"} && $ENV{"IS_OPTIMIZED"} == 0)
+{
+  $PW_CHARSET = "utf-8";
+}
+
 sub module_constraints { [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub get_random_dpapimk_salt
@@ -132,11 +146,11 @@ sub module_generate_hash
 
   if ($context == 1)
   {
-    $user_hash = sha1 (encode ("UTF-16LE", $word_buf));
+    $user_hash = sha1 (encode ("UTF-16LE", decode ($PW_CHARSET, $word_buf)));
   }
   elsif ($context == 2)
   {
-    $user_hash = md4 (encode ("UTF-16LE", $word_buf));
+    $user_hash = md4 (encode ("UTF-16LE", decode ($PW_CHARSET, $word_buf)));
   }
 
   $user_derivationKey = hmac_sha1 (encode ("UTF-16LE", $SID . "\x00"), $user_hash);

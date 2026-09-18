@@ -1,5 +1,5 @@
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
-#Name                                           Mode    Type    Width   Accel   Loops
+#Name                                           Kern    Type    Width   Accel   Loops
 
 ##
 ## NVIDIA GB10 (DGX Spark)

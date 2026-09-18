@@ -22,8 +22,20 @@ ifeq ($(PYTHON_SP_INCLUDE),)
 PYTHON_SP_SKIP_SO  := true
 endif
 endif
+# The bridge refuses anything below 3.13 at run time, because that is where a free-threaded build of
+# Python first exists and it is a free-threaded library this loads. The build used to ask for less: it
+# looked for PyInterpreterConfig_OWN_GIL, which arrived in 3.12, so 3.12 headers produced a plugin
+# that built cleanly and then failed on every run. The two ask for the same version now.
+#
+# The version comes from the include directory python3-config named, python3.14 or python3.13t, so a
+# trailing t for a free-threaded build is dropped before comparing. Building against a Python without
+# free-threading is fine and is what the release package does, only running it needs one.
+
+PYTHON_SP_MIN_VERSION := 3.13
+
 ifeq ($(PYTHON_SP_SKIP_SO),false)
-ifeq ($(shell grep -r -q 'PyInterpreterConfig_OWN_GIL' "$(PYTHON_SP_INCLUDE)" && echo true || echo false),false)
+PYTHON_SP_VERSION  := $(patsubst %t,%,$(patsubst python%,%,$(notdir $(PYTHON_SP_INCLUDE))))
+ifeq ($(shell printf '%s\n%s\n' '$(PYTHON_SP_MIN_VERSION)' '$(PYTHON_SP_VERSION)' | sort -V -C && echo true || echo false),false)
 PYTHON_SP_SKIP_SO  := true
 endif
 endif
@@ -61,7 +73,7 @@ BRIDGE_SKIP_bridge_python_generic_hash_sp_$(PLUGIN_PLATFORM_so) := 1
 
 bridges/bridge_python_generic_hash_sp.so:
 	@echo ""
-	@echo "$(RED)WARNING$(RESET): Skipping freethreaded plugin 72000: Python 3.12+ headers not found."
+	@echo "$(RED)WARNING$(RESET): Skipping freethreaded plugin 72000: Python $(PYTHON_SP_MIN_VERSION)+ headers not found."
 	@echo "         To use -m 72000, you must install the required Python headers."
 	@echo "         Otherwise, you can safely ignore this warning."
 	@echo "         For more information, see 'docs/hashcat-python-plugin-requirements.md'."

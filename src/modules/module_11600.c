@@ -134,7 +134,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   return jit_build_options;
 }
 
-bool module_hook_extra_param_init (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
+bool module_hook_extra_param_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
   seven_zip_hook_extra_t *seven_zip_hook_extra = (seven_zip_hook_extra_t *) hook_extra_param;
 
@@ -167,7 +167,7 @@ bool module_hook_extra_param_init (MAYBE_UNUSED const hashconfig_t *hashconfig, 
   return true;
 }
 
-bool module_hook_extra_param_term (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
+bool module_hook_extra_param_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
   seven_zip_hook_extra_t *seven_zip_hook_extra = (seven_zip_hook_extra_t *) hook_extra_param;
 
@@ -298,32 +298,30 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
 
     u8 *compressed_data = (u8 *) out_full;
 
-    SizeT compressed_data_len = aes_len;
+    size_t compressed_data_len = aes_len;
 
     // output buffers and length
 
     unsigned char *decompressed_data = (unsigned char *) seven_zip_hook_extra->unp[device_param->device_id];
 
-    SizeT decompressed_data_len = crc_len;
+    size_t decompressed_data_len = crc_len;
 
-    int ret;
+    bool ok;
 
     if (data_type == 1) // LZMA1
     {
-      ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      ok = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
-    else if (data_type == 7) // inflate using zlib (DEFLATE compression)
+    else if (data_type == 7) // DEFLATE
     {
-      const bool ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
-
-      ret = (ok == true) ? SZ_OK : SZ_ERROR_DATA;
+      ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
     }
     else // we only support LZMA2 in addition to LZMA1
     {
-      ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      ok = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
 
-    if (ret != SZ_OK)
+    if (ok == false)
     {
       hook_item->hook_success = 0;
 
@@ -625,9 +623,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   seven_zip->crc = crc;
 
+  // The data field is stored as u32 words of 8 hex characters each. Its length is only checked
+  // against data_len, which makes it even but not a multiple of 8, so a short last word left
+  // hex_to_u32 reading the characters that follow the token. The tail is padded instead. Real 7-Zip
+  // data is a whole number of AES blocks, so no hash that parses today reaches the second branch.
+
   for (int i = 0, j = 0; j < data_buf_len; i += 1, j += 8)
   {
-    seven_zip->data_buf[i] = hex_to_u32 (data_buf_pos + j);
+    const int rem = data_buf_len - j;
+
+    if (rem >= 8)
+    {
+      seven_zip->data_buf[i] = hex_to_u32 (data_buf_pos + j);
+
+      continue;
+    }
+
+    u8 tmp_buf[8] = { '0', '0', '0', '0', '0', '0', '0', '0' };
+
+    memcpy (tmp_buf, data_buf_pos + j, rem);
+
+    seven_zip->data_buf[i] = hex_to_u32 (tmp_buf);
   }
 
   seven_zip->data_len = data_len;
@@ -757,15 +773,26 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     seven_zip->unpack_size,
     data_buf);
 
+  // snprintf returns the length it would have written and not the length it wrote, so a call that
+  // truncates leaves bytes_written past the end of line_buf. The next call would then start out of
+  // bounds and be handed a negative size, which is converted to an enormous one because snprintf
+  // takes a size_t. Clamping after every call is what keeps the accumulator inside the buffer.
+
+  if (bytes_written >= line_size) bytes_written = line_size - 1;
+
   if (seven_zip->data_type > 0)
   {
     bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "$%u$", seven_zip->crc_len);
+
+    if (bytes_written >= line_size) bytes_written = line_size - 1;
 
     const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
 
     for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
     {
       bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "%02x", ptr[i]);
+
+      if (bytes_written >= line_size) bytes_written = line_size - 1;
     }
   }
 
@@ -813,6 +840,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;

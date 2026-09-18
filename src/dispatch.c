@@ -236,6 +236,32 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   work = MIN (work, max);
 
+  // -a 9 pairs word N with salt N, and a feed that covers several rounds writes them round major, so
+  // the pairing is word N with salt N modulo the salt count. What the kernel is told is the batch's
+  // own offset, one number for the whole batch, so a batch that ran past the end of a round would
+  // carry on into the next one against salts counted from where the batch began. Every word after the
+  // boundary would then be hashed against the wrong account, and nothing anywhere would say so: the
+  // run would simply crack less.
+  //
+  // Cutting the batch at the boundary is what keeps one offset true for all of it. With more accounts
+  // than a launch holds it costs one short batch per round, which is nothing. With fewer, every launch
+  // carries exactly the salt count, which is the ceiling this attack has always had: the kernel reads
+  // the salt index off the work item id, so a launch cannot cover more accounts than there are.
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    const u32 salts_cnt = hashcat_ctx->hashes->salts_cnt;
+
+    if (salts_cnt > 0)
+    {
+      const u64 round_left = salts_cnt - (words_off % salts_cnt);
+
+      work = MIN (work, round_left);
+    }
+  }
+
   status_ctx->words_off += work;
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
@@ -360,6 +386,14 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       #endif
 
       const u64 words_fin = words_off + work;
+
+      // Where this batch starts in the keyspace. fill_generic () sets the same field and this did not,
+      // so under --slow-candidates words_off_launch stayed 0 for every launch and everything that
+      // turns a work item back into a position had only the index inside the launch. The chunk that
+      // contributes the first candidate sets it, because a batch built from several chunks still
+      // begins where its first candidate did.
+
+      if (batch->pws_cnt == 0) batch->words_off = words_off;
 
       batch->words_fin = words_fin;
 
@@ -503,7 +537,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     }
   }
 
-  pipe_acc (PIPE_FEED, &timer_feed);
+  pipe_acc (device_param, PIPE_FEED, &timer_feed);
 
   return 0;
 }
@@ -519,7 +553,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 // later word onto the previous hash, and there is nothing to put in its place. The run stops instead
 // and says which word it was.
 
-static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos)
+static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos, const u32 rect)
 {
   if (reject_fatal == true)
   {
@@ -530,6 +564,14 @@ static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_
   }
 
   batch->words_extra++;
+
+  // A refused word of a feed that amplifies stood for a whole cell rather than one candidate.
+  // reject_amplifier is set for ATTACK_KERN_STRAIGHT and ATTACK_KERN_COMBI only, so for the device
+  // engine it stays zero and the cell was booked nowhere: neither hashed nor rejected, it went
+  // missing out of both counters at once. The rectangle is passed in because the caller has it while
+  // the cell is still this word's.
+
+  if (batch->pcfg_cells != NULL) batch->words_extra_amp += (rect > 0) ? rect : 1;
 
   words_extra[0]++;
 
@@ -705,7 +747,13 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     const u64 words_off = device_param->words_off;
 
-    batch->words_off = words_off;
+    // Where this batch starts, which is where the first candidate in it came from. A batch is usually
+    // one chunk and the two agree, so setting this on every chunk was harmless until a feed began
+    // refusing positions: several chunks are then needed to fill one batch, and the launch was left
+    // reporting the last of them. A crack was named at a position millions of words past the candidate
+    // that produced it. fill_slow () answers the same question the same way.
+
+    if (batch->pws_cnt == 0) batch->words_off = words_off;
 
     if ((gf->seek_known == false) || (gf->seek_pos != words_off))
     {
@@ -733,9 +781,18 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       int pw_len;
 
+      // The cell is read straight after the feed writes it, because a rejected word does not advance
+      // pws_cnt and the next word then overwrites it at the same index.
+
+      u32 cell_rect = 0;
+
       if (gf->amp == true)
       {
+        batch->pcfg_cells[batch->pws_cnt].rect = 0;
+
         pw_len = generic_thread_next_dev (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX, &batch->pcfg_cells[batch->pws_cnt]);
+
+        cell_rect = batch->pcfg_cells[batch->pws_cnt].rect;
       }
       else
       {
@@ -760,6 +817,17 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       gf->seek_pos++;
 
+      // The feed held this position but had no candidate for it. It is booked the same way a word
+      // rejected on its length is, so the position still counts towards the keyspace and the status
+      // screen reports it under Rejected.
+
+      if (pw_len == GENERIC_RC_SKIP)
+      {
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+        continue;
+      }
+
       // A feed reports the true length even when the candidate did not fit and it only wrote the
       // first PW_MAX bytes. If nothing in this run can shorten it then it is simply too long, and
       // -a 0 would have dropped it too.
@@ -768,7 +836,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         if (gf->can_shrink == false)
         {
-          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
@@ -791,7 +859,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         if (pw_len > gf->scratch_size)
         {
-          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
@@ -805,7 +873,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (pw_len < 0)
       {
-        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
         continue;
       }
@@ -816,7 +884,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (pw_len > PW_MAX)
       {
-        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
         continue;
       }
@@ -830,7 +898,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         if ((too_short == true) || (too_long == true))
         {
-          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
@@ -861,7 +929,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     if (status_ctx->run_thread_level1 == false) break;
   }
 
-  pipe_acc (PIPE_FEED, &timer_feed);
+  pipe_acc (device_param, PIPE_FEED, &timer_feed);
 
   return 0;
 }
@@ -898,13 +966,21 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (batch == NULL) break;
 
-    if ((reject_amplifier > 0) && (batch->words_extra > 0))
+    // A feed that amplifies counted its own rejects as they happened, cell by cell, because a
+    // rejected cell is gone by the time the batch gets here. Everyone else multiplies by the one
+    // amplifier the whole run shares.
+
+    const u64 rejected = (batch->words_extra_amp > 0)
+                       ? batch->words_extra_amp
+                       : ((reject_amplifier > 0) ? (batch->words_extra * reject_amplifier) : 0);
+
+    if (rejected > 0)
     {
       hc_thread_mutex_lock (status_ctx->mux_counter);
 
       for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        status_ctx->words_progress_rejected[salt_pos] += batch->words_extra * reject_amplifier;
+        status_ctx->words_progress_rejected[salt_pos] += rejected;
       }
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
@@ -958,7 +1034,7 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         break;
       }
 
-      if (slow == false) pipe_acc (PIPE_COPY, &timer_copy);
+      if (slow == false) pipe_acc (device_param, PIPE_COPY, &timer_copy);
 
       const u64 pws_pos = (slow == true) ? (u64) -1 : words_off;
 
@@ -1003,6 +1079,15 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
 
     if (status_ctx->run_thread_level1 == false) break;
+  }
+
+  // Every way out of the loop above lands here. Leaving it while a checkpoint is being taken is the
+  // point of no return for this device: a later cancel can set the flags back but cannot restart a
+  // thread that has already gone.
+
+  if ((status_ctx->run_thread_level1 == false) && (status_ctx->checkpoint_shutdown == true))
+  {
+    status_ctx->checkpoint_taken = true;
   }
 
   pw_pipe_stop (pipe);
@@ -1311,11 +1396,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_calc (void *p)
-#else
-HC_API_CALL void *thread_calc (void *p)
-#endif
+HC_THREAD_FUNC thread_calc (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
@@ -1359,7 +1440,9 @@ HC_API_CALL void *thread_calc (void *p)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
   }
 
   if (bridge_ctx->enabled == true)

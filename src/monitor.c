@@ -35,6 +35,7 @@ int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
   const int runtime_left = (int) (status_ctx->runtime_start
                                 + user_options->runtime
                                 + (msec_paused / 1000)
+                                + status_ctx->runtime_adjust_sec
                                 - runtime_cur);
 
   return runtime_left;
@@ -133,7 +134,17 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   while (status_ctx->shutdown_inner == false)
   {
-    sleep (sleep_time);
+    // the loop body below counts iterations as seconds, so the cadence stays one second. Only the
+    // waiting is broken up, so a quit is noticed in 100ms instead of up to a full second.
+
+    for (u32 slice = 0; slice < sleep_time * 10; slice++)
+    {
+      if (status_ctx->shutdown_inner == true) break;
+
+      usleep (100000);
+    }
+
+    if (status_ctx->shutdown_inner == true) break;
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
 
@@ -489,11 +500,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_monitor (void *p)
-#else
-HC_API_CALL void *thread_monitor (void *p)
-#endif
+HC_THREAD_FUNC thread_monitor (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 

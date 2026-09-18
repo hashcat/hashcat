@@ -12,112 +12,289 @@
  * vendor specific (or generic) functions
  */
 
+// Every converter below has an OpenCL arm that does not go through vconv32_t or vconv64_t. The
+// union is a type pun, and Mesa does not promote one to registers: each use becomes a store to
+// scratch memory and a load back. whirlpool_transform() takes a byte out of a 64 bit word 1280
+// times per block, which is 2370 scratch operations in mode 6100 where shifting and casting costs
+// 2. Every other backend keeps the union.
+
+// One word of a message block, bounded by how many of its bytes are really inside len. A word the
+// caller never supplied is not read at all. That is what lets a caller pass a buffer sized to its
+// own data rather than to the block, and stop zero padding the remainder.
+//
+// The mask follows the byte order of the words the caller handed over. A caller that supplies
+// little endian words keeps the low avail bytes, and one that supplies big endian words keeps the
+// high avail bytes, because there the first character of a word sits in its top byte. The shift is
+// written over (4 - avail) rather than over avail so that it stays inside 0 to 24 for every avail
+// that reaches it.
+
+DECLSPEC u32 hc_bounded_word_le_S (PRIVATE_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU >> ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32 hc_bounded_word_be_S (PRIVATE_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU << ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32 hc_bounded_word_global_le_S (GLOBAL_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU >> ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32 hc_bounded_word_global_be_S (GLOBAL_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU << ((4 - avail) * 8));
+
+  return r;
+}
+
+// avail comes from len, which is scalar, so every lane of the vector is bounded the same way and
+// the mask stays a scalar.
+
+DECLSPEC u32x hc_bounded_word_le (PRIVATE_AS const u32x *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32x v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32x r = v & (0xffffffffU >> ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32x hc_bounded_word_be (PRIVATE_AS const u32x *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32x v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32x r = v & (0xffffffffU << ((4 - avail) * 8));
+
+  return r;
+}
+
 DECLSPEC u8 v8a_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >>  0);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.a;
+  #endif
 }
 
 DECLSPEC u8 v8b_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >>  8);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.b;
+  #endif
 }
 
 DECLSPEC u8 v8c_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >> 16);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.c;
+  #endif
 }
 
 DECLSPEC u8 v8d_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >> 24);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.d;
+  #endif
 }
 
 DECLSPEC u8 v8a_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >>  0);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.a;
+  #endif
 }
 
 DECLSPEC u8 v8b_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >>  8);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.b;
+  #endif
 }
 
 DECLSPEC u8 v8c_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 16);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.c;
+  #endif
 }
 
 DECLSPEC u8 v8d_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 24);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.d;
+  #endif
 }
 
 DECLSPEC u8 v8e_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 0);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.e;
+  #endif
 }
 
 DECLSPEC u8 v8f_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 8);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.f;
+  #endif
 }
 
 DECLSPEC u8 v8g_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 16);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.g;
+  #endif
 }
 
 DECLSPEC u8 v8h_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 24);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.h;
+  #endif
 }
 
 DECLSPEC u8x v8a_from_v64 (u64x a)
@@ -434,58 +611,97 @@ DECLSPEC u8x v8h_from_v64 (u64x a)
 
 DECLSPEC u16 v16a_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u16 r = (u16) (v32 >>  0);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v16.a;
+  #endif
 }
 
 DECLSPEC u16 v16b_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u16 r = (u16) (v32 >> 16);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v16.b;
+  #endif
 }
 
 DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
 {
+  #ifdef IS_OPENCL
+  const u32 r = ((u32) v16b << 16) | ((u32) v16a >> 0);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v16.a = v16a;
   v.v16.b = v16b;
 
   return v.v32;
+  #endif
 }
 
 DECLSPEC u32 v32a_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 r = (u32) (v64 >>  0);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v32.a;
+  #endif
 }
 
 DECLSPEC u32 v32b_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 r = (u32) (v64 >> 32);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v32.b;
+  #endif
 }
 
 DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
 {
+  // v32a is the low half and v32b the high half. upsample() takes them the other way round. It is
+  // an OpenCL builtin that HIP does not have, so this arm has to stay inside IS_OPENCL.
+
+  #ifdef IS_OPENCL
+  const u64 r = upsample (v32b, v32a);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v32.a = v32a;
   v.v32.b = v32b;
 
   return v.v64;
+  #endif
 }
 
 // unpack function are similar, but always return u32
@@ -953,6 +1169,38 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
   #endif
 }
 
+// No GPU has a native 64 bit rotation, so it always costs two 32 bit funnel shifts. Spelling it
+// this way lets a compiler that recognises a funnel shift emit one instruction per half. n is a
+// literal at every call site, so the swap decision folds away. hl32_to_64_S() puts the halves
+// back together because it is a register pair, where a shift and an or is a real instruction.
+
+#define HC_BITALIGN(hi, lo, n) (((hi) << (32 - (n))) | ((lo) >> (n)))
+
+DECLSPEC u64 hc_rotr64_bitalign_S (const u64 a, const int n)
+{
+  const u32 a0 = (u32) (a >> 32);
+  const u32 a1 = (u32) (a >>  0);
+
+  const int m    = (n >> 0) & 31;
+  const int swap = (n >> 5) & 1;
+
+  // a rotation by a multiple of 32 has no funnel shift in it at all
+
+  if (m == 0)
+  {
+    if (swap == 1) return hl32_to_64_S (a1, a0);
+
+    return a;
+  }
+
+  const u32 t0 = (swap == 1) ? HC_BITALIGN (a0, a1, m) : HC_BITALIGN (a1, a0, m);
+  const u32 t1 = (swap == 1) ? HC_BITALIGN (a1, a0, m) : HC_BITALIGN (a0, a1, m);
+
+  const u64 r = hl32_to_64_S (t0, t1);
+
+  return r;
+}
+
 DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
   #if   defined HC_CPU_OPENCL_EMU_H
@@ -962,7 +1210,9 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotl64 (a, n);
   #else
-  #ifdef USE_ROTATE
+  #if defined IS_AMD_GPU && (VECT_SIZE == 1)
+  return hc_rotr64_bitalign_S (a, 64 - n);
+  #elif defined USE_ROTATE
   return rotate (a, make_u64x (n));
   #else
   return ((a << n) | (a >> (64 - n)));
@@ -979,7 +1229,9 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotr64 (a, n);
   #else
-  #ifdef USE_ROTATE
+  #if defined IS_AMD_GPU && (VECT_SIZE == 1)
+  return hc_rotr64_bitalign_S (a, n);
+  #elif defined USE_ROTATE
   return rotate (a, make_u64x (64 - n));
   #else
   return ((a >> n) | (a << (64 - n)));
@@ -996,7 +1248,9 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotl64_S (a, n);
   #else
-  #ifdef USE_ROTATE
+  #ifdef IS_AMD_GPU
+  return hc_rotr64_bitalign_S (a, 64 - n);
+  #elif defined USE_ROTATE
   return rotate (a, (u64) (n));
   #else
   return ((a << n) | (a >> (64 - n)));
@@ -1013,7 +1267,9 @@ DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotr64_S (a, n);
   #else
-  #ifdef USE_ROTATE
+  #ifdef IS_AMD_GPU
+  return hc_rotr64_bitalign_S (a, n);
+  #elif defined USE_ROTATE
   return rotate (a, (u64) (64 - n));
   #else
   return ((a >> n) | (a << (64 - n)));
@@ -1270,39 +1526,21 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
-  #elif defined IS_METAL || defined IS_APPLE_SILICON
+  #else
+
+  // A 64 bit byte reverse is two 32 bit ones over the halves, and asking for it that way is what
+  // every backend without a byte permute instruction wants. The 64 bit spellings that were here
+  // ask a compiler to see through a chain of 64 bit shifts, and neither AMD compiler does: on a
+  // gfx1100 the bitselect one cost 20 instructions under ROCm and 22 under Mesa, where this costs
+  // 2 and 6.
 
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
 
-  u32x t0 = hc_swap32 (a0);
-  u32x t1 = hc_swap32 (a1);
+  const u32x t0 = hc_swap32 (a0);
+  const u32x t1 = hc_swap32 (a1);
 
   r = hl32_to_64 (t1, t0);
-
-  #else
-
-  #if defined USE_BITSELECT && defined USE_ROTATE
-
-  r = bitselect (bitselect (rotate (v, make_u64x (24)),
-                            rotate (v, make_u64x ( 8)),
-                                       make_u64x (0x000000ff000000ffUL)),
-                 bitselect (rotate (v, make_u64x (56)),
-                            rotate (v, make_u64x (40)),
-                                       make_u64x (0x00ff000000ff0000UL)),
-                                       make_u64x (0xffff0000ffff0000UL));
-  #else
-
-  r = ((v & make_u64x (0xff00000000000000UL)) >> 56)
-    | ((v & make_u64x (0x00ff000000000000UL)) >> 40)
-    | ((v & make_u64x (0x0000ff0000000000UL)) >> 24)
-    | ((v & make_u64x (0x000000ff00000000UL)) >>  8)
-    | ((v & make_u64x (0x00000000ff000000UL)) <<  8)
-    | ((v & make_u64x (0x0000000000ff0000UL)) << 24)
-    | ((v & make_u64x (0x000000000000ff00UL)) << 40)
-    | ((v & make_u64x (0x00000000000000ffUL)) << 56);
-
-  #endif
 
   #endif
   #endif
@@ -1331,30 +1569,16 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
 
-  #elif defined IS_METAL || defined IS_APPLE_SILICON
+  #else
 
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
 
-  u32 t0 = hc_swap32_S (v0);
-  u32 t1 = hc_swap32_S (v1);
+  const u32 t0 = hc_swap32_S (v0);
+  const u32 t1 = hc_swap32_S (v1);
 
   r = hl32_to_64_S (t1, t0);
 
-  #else
-
-  #ifdef USE_SWIZZLE
-  r = as_ulong (as_uchar8 (v).s76543210);
-  #else
-  r = ((v & (u64) 0xff00000000000000UL) >> 56)
-    | ((v & (u64) 0x00ff000000000000UL) >> 40)
-    | ((v & (u64) 0x0000ff0000000000UL) >> 24)
-    | ((v & (u64) 0x000000ff00000000UL) >>  8)
-    | ((v & (u64) 0x00000000ff000000UL) <<  8)
-    | ((v & (u64) 0x0000000000ff0000UL) << 24)
-    | ((v & (u64) 0x000000000000ff00UL) << 40)
-    | ((v & (u64) 0x00000000000000ffUL) << 56);
-  #endif
   #endif
   #endif
 
@@ -1707,30 +1931,25 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 
 #if defined IS_GENERIC && !defined IS_AMD_USE_OPENCL
 
+// All four byte counts are the same funnel shift at a different amount, so the two functions below
+// spell it as one shift rather than as a chain of compares. A compiler with a funnel shift
+// instruction then emits one of those instead of three shifts and three selects. The zero case has
+// to stay a select, because a shift by 32 is a shift by 0 in C and would leave a | b behind.
+
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
-  u32x r = 0;
+  const int s = (c & 3) * 8;
 
-  const int cm = c & 3;
-
-       if (cm == 0) { r = b;                     }
-  else if (cm == 1) { r = (a << 24) | (b >>  8); }
-  else if (cm == 2) { r = (a << 16) | (b >> 16); }
-  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
+  const u32x r = (s == 0) ? b : ((a << (32 - s)) | (b >> s));
 
   return r;
 }
 
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
-  u32 r = 0;
+  const int s = (c & 3) * 8;
 
-  const int cm = c & 3;
-
-       if (cm == 0) { r = b;                     }
-  else if (cm == 1) { r = (a << 24) | (b >>  8); }
-  else if (cm == 2) { r = (a << 16) | (b >> 16); }
-  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
+  const u32 r = (s == 0) ? b : ((a << (32 - s)) | (b >> s));
 
   return r;
 }
@@ -1871,7 +2090,7 @@ DECLSPEC int hash_comp (PRIVATE_AS const u32 *d1, GLOBAL_AS const u32 *d2)
   return (0);
 }
 
-DECLSPEC int find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
+DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -1978,115 +2197,51 @@ DECLSPEC int hc_enc_has_next (PRIVATE_AS hc_enc_t *hc_enc, const int sz)
   return 0;
 }
 
-DECLSPEC int hc_enc_validate_utf8 (PRIVATE_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead)
+DECLSPEC u32 hc_enc_seq_byte (const u32 w0, const u32 w1, const int p, const int j)
 {
-  PRIVATE_AS const u8 *src_ptr = (PRIVATE_AS const u8 *) src_buf;
+  const int k = p + j;
 
-  if (extraBytesToRead == 0)
-  {
-    const u8 c0 = src_ptr[src_pos + 0]; if (c0 >= 0x80) return 0;
-  }
-  else if (extraBytesToRead == 1)
-  {
-    const u8 c0 = src_ptr[src_pos + 0]; if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
-    const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-  }
-  else if (extraBytesToRead == 2)
-  {
-    const u8 c0 = src_ptr[src_pos + 0];
+  const u32 w = (k < 4) ? w0 : w1;
 
-    if ((c0 >= 0xe0) && (c0 <= 0xe0))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xe1) && (c0 <= 0xec))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xed) && (c0 <= 0xed))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xee) && (c0 <= 0xef))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else
-    {
-      return 0;
-    }
-  }
-  else if (extraBytesToRead == 3)
-  {
-    const u8 c0 = src_ptr[src_pos + 0];
-
-    if ((c0 >= 0xf0) && (c0 <= 0xf0))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xf1) && (c0 <= 0xf3))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xf4) && (c0 <= 0xf4))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  return 1;
+  return (w >> ((k & 3) << 3)) & 0xff;
 }
 
-DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead)
+DECLSPEC int hc_enc_validate_utf8 (const u32 w0, const u32 w1, const int src_pos, const int extraBytesToRead)
 {
-  GLOBAL_AS const u8 *src_ptr = (GLOBAL_AS const u8 *) src_buf;
+  const int p = src_pos & 3;
 
   if (extraBytesToRead == 0)
   {
-    const u8 c0 = src_ptr[src_pos + 0]; if (c0 >= 0x80) return 0;
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0); if (c0 >= 0x80) return 0;
   }
   else if (extraBytesToRead == 1)
   {
-    const u8 c0 = src_ptr[src_pos + 0]; if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
-    const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0); if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
+    const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
   }
   else if (extraBytesToRead == 2)
   {
-    const u8 c0 = src_ptr[src_pos + 0];
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0);
 
     if ((c0 >= 0xe0) && (c0 <= 0xe0))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xe1) && (c0 <= 0xec))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xed) && (c0 <= 0xed))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xee) && (c0 <= 0xef))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else
     {
@@ -2095,25 +2250,25 @@ DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const in
   }
   else if (extraBytesToRead == 3)
   {
-    const u8 c0 = src_ptr[src_pos + 0];
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0);
 
     if ((c0 >= 0xf0) && (c0 <= 0xf0))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c3 = hc_enc_seq_byte (w0, w1, p, 3); if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xf1) && (c0 <= 0xf3))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c3 = hc_enc_seq_byte (w0, w1, p, 3); if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xf4) && (c0 <= 0xf4))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c3 = hc_enc_seq_byte (w0, w1, p, 3); if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
     }
     else
     {
@@ -2127,22 +2282,40 @@ DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const in
 // Input buffer and Output buffer size has to be multiple of 4 and at least of size 4.
 // The output buffer is not zero padded, so entire buffer has to be set all zero before entering this function or truncated afterwards.
 
+// All bytes of a utf8 sequence are extracted from a window of two consecutive u32 words that
+// is loaded once and passed to the validator by value, and the output is accumulated into
+// full u32 words before it is stored. This removes the u8 pointers casted from u32 buffers
+// with a variable index on both the read and the write side, which crash the AMDGPU back end
+// of Mesa rusticl (LLVM 21) while compiling gpu_utf8_to_utf16 - the process dies with SIGSEGV
+// inside libLLVM.
+
 DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz)
 {
-  PRIVATE_AS const u8 *src_ptr = (PRIVATE_AS const u8 *) src_buf;
-  PRIVATE_AS       u8 *dst_ptr = (PRIVATE_AS       u8 *) dst_buf;
-
   int src_pos = hc_enc->pos;
   int dst_pos = hc_enc->clen;
 
+  int ret = 0;
+
   dst_buf[0] = hc_enc->cbuf;
+
+  // the low half of the current output word is pending whenever the output position is not aligned
+
+  u32 acc = 0;
+
+  if (hc_enc->clen == 2) acc = hc_enc->cbuf;
 
   hc_enc->clen = 0;
   hc_enc->cbuf = 0;
 
   while ((src_pos < src_len) && (dst_pos < dst_sz))
   {
-    const u8 c = src_ptr[src_pos];
+    const int idx = src_pos >> 2;
+
+    const u32 w0 = src_buf[idx];
+
+    const int p = src_pos & 3;
+
+    const u32 c = (w0 >> (p << 3)) & 0xff;
 
     int extraBytesToRead = -1;
 
@@ -2154,93 +2327,95 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
     {
       extraBytesToRead = 1;
     }
-    else if ((c == 0xe0) || (c == 0xec) || (c == 0xed) || (c == 0xef))
+    else if ((c >= 0xe0) && (c <= 0xef))
     {
       extraBytesToRead = 2;
     }
-    else if ((c == 0xf0) || (c == 0xf3) || (c == 0xf4))
+    else if ((c >= 0xf0) && (c <= 0xf4))
     {
       extraBytesToRead = 3;
     }
 
     if (extraBytesToRead == -1)
     {
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
-    if (hc_enc_validate_utf8 (src_buf, src_pos, extraBytesToRead) == 0)
+    // the second word is loaded only if the sequence crosses the word boundary, because
+    // src_buf[idx + 1] can otherwise read out of bounds (for example word 64 of a u32[64])
+
+    u32 w1 = 0;
+
+    if ((p + extraBytesToRead) > 3)
+    {
+      w1 = src_buf[idx + 1];
+    }
+
+    if (hc_enc_validate_utf8 (w0, w1, src_pos, extraBytesToRead) == 0)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     u32 ch = 0;
 
     switch (extraBytesToRead)
     {
-      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
-      /*
-      case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_5;
-        break;
-      case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_4;
-        break;
-      */
       case 3:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 3);
         ch -= offsetsFromUTF8_3;
         break;
       case 2:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2);
         ch -= offsetsFromUTF8_2;
         break;
       case 1:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1);
         ch -= offsetsFromUTF8_1;
         break;
       case 0:
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0);
         ch -= offsetsFromUTF8_0;
         break;
     }
 
+    src_pos += extraBytesToRead + 1;
+
     /* Target is a character <= 0xFFFF */
     if (ch <= UNI_MAX_BMP)
     {
-      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
-      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+      const u32 u = ch & 0xffff;
+
+      if ((dst_pos & 3) == 0)
+      {
+        acc = u;
+      }
+      else
+      {
+        dst_buf[dst_pos >> 2] = acc | (u << 16);
+      }
+
+      dst_pos += 2;
     }
     else
     {
@@ -2251,20 +2426,54 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
       if ((dst_pos + 2) == dst_sz)
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          acc = a & 0xffff;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+        }
+
+        dst_pos += 2;
 
         hc_enc->cbuf = b & 0xffff;
         hc_enc->clen = 2;
       }
       else
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          dst_buf[dst_pos >> 2] = (a & 0xffff) | ((b & 0xffff) << 16);
+
+          dst_pos += 4;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+
+          dst_pos += 2;
+
+          acc = b & 0xffff;
+
+          dst_pos += 2;
+        }
       }
     }
+  }
+
+  // store a pending low half word, the high half stays zero
+
+  if ((dst_pos & 3) == 2)
+  {
+    dst_buf[dst_pos >> 2] = acc;
+  }
+
+  if (ret == -1)
+  {
+    hc_enc->pos = src_len;
+
+    return -1;
   }
 
   hc_enc->pos = src_pos;
@@ -2274,20 +2483,31 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
 DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz)
 {
-  GLOBAL_AS  const u8 *src_ptr = (GLOBAL_AS  const u8 *) src_buf;
-  PRIVATE_AS       u8 *dst_ptr = (PRIVATE_AS       u8 *) dst_buf;
-
   int src_pos = hc_enc->pos;
   int dst_pos = hc_enc->clen;
 
+  int ret = 0;
+
   dst_buf[0] = hc_enc->cbuf;
+
+  // the low half of the current output word is pending whenever the output position is not aligned
+
+  u32 acc = 0;
+
+  if (hc_enc->clen == 2) acc = hc_enc->cbuf;
 
   hc_enc->clen = 0;
   hc_enc->cbuf = 0;
 
   while ((src_pos < src_len) && (dst_pos < dst_sz))
   {
-    const u8 c = src_ptr[src_pos];
+    const int idx = src_pos >> 2;
+
+    const u32 w0 = src_buf[idx];
+
+    const int p = src_pos & 3;
+
+    const u32 c = (w0 >> (p << 3)) & 0xff;
 
     int extraBytesToRead = -1;
 
@@ -2299,93 +2519,95 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
     {
       extraBytesToRead = 1;
     }
-    else if ((c == 0xe0) || (c == 0xec) || (c == 0xed) || (c == 0xef))
+    else if ((c >= 0xe0) && (c <= 0xef))
     {
       extraBytesToRead = 2;
     }
-    else if ((c == 0xf0) || (c == 0xf3) || (c == 0xf4))
+    else if ((c >= 0xf0) && (c <= 0xf4))
     {
       extraBytesToRead = 3;
     }
 
     if (extraBytesToRead == -1)
     {
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
-    if (hc_enc_validate_utf8_global (src_buf, src_pos, extraBytesToRead) == 0)
+    // the second word is loaded only if the sequence crosses the word boundary, because
+    // src_buf[idx + 1] can otherwise read out of bounds (for example word 64 of a u32[64])
+
+    u32 w1 = 0;
+
+    if ((p + extraBytesToRead) > 3)
+    {
+      w1 = src_buf[idx + 1];
+    }
+
+    if (hc_enc_validate_utf8 (w0, w1, src_pos, extraBytesToRead) == 0)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     u32 ch = 0;
 
     switch (extraBytesToRead)
     {
-      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
-      /*
-      case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_5;
-        break;
-      case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_4;
-        break;
-      */
       case 3:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 3);
         ch -= offsetsFromUTF8_3;
         break;
       case 2:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2);
         ch -= offsetsFromUTF8_2;
         break;
       case 1:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1);
         ch -= offsetsFromUTF8_1;
         break;
       case 0:
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0);
         ch -= offsetsFromUTF8_0;
         break;
     }
 
+    src_pos += extraBytesToRead + 1;
+
     /* Target is a character <= 0xFFFF */
     if (ch <= UNI_MAX_BMP)
     {
-      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
-      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+      const u32 u = ch & 0xffff;
+
+      if ((dst_pos & 3) == 0)
+      {
+        acc = u;
+      }
+      else
+      {
+        dst_buf[dst_pos >> 2] = acc | (u << 16);
+      }
+
+      dst_pos += 2;
     }
     else
     {
@@ -2396,20 +2618,54 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
       if ((dst_pos + 2) == dst_sz)
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          acc = a & 0xffff;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+        }
+
+        dst_pos += 2;
 
         hc_enc->cbuf = b & 0xffff;
         hc_enc->clen = 2;
       }
       else
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          dst_buf[dst_pos >> 2] = (a & 0xffff) | ((b & 0xffff) << 16);
+
+          dst_pos += 4;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+
+          dst_pos += 2;
+
+          acc = b & 0xffff;
+
+          dst_pos += 2;
+        }
       }
     }
+  }
+
+  // store a pending low half word, the high half stays zero
+
+  if ((dst_pos & 3) == 2)
+  {
+    dst_buf[dst_pos >> 2] = acc;
+  }
+
+  if (ret == -1)
+  {
+    hc_enc->pos = src_len;
+
+    return -1;
   }
 
   hc_enc->pos = src_pos;
@@ -2643,22 +2899,31 @@ DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
   return 1;
 }
 
-DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
-{
-  return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
+#define BITMAP_STAGE(tab,t)                                                 \
+{                                                                           \
+  const u32 ht = a + ((t) * b);                                             \
+  const u32 pt = hc_rotl32_S (b, (((t) * 4) + 1)) ^ a;                      \
+                                                                            \
+  const u32 m = (1U << (pt & 31)) | (1U << ((pt >> 5) & 31));               \
+                                                                            \
+  if ((tab[ht & bitmap_mask] & m) != m) return (0);                         \
 }
 
-DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask)
 {
-  if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
-  if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
-  if (check_bitmap (bitmap_s1_c, bitmap_mask, bitmap_shift1, digest[2]) == 0) return (0);
-  if (check_bitmap (bitmap_s1_d, bitmap_mask, bitmap_shift1, digest[3]) == 0) return (0);
+  // must match bitmap_set() in src/bitmap.c, a mismatch is a silent false negative
 
-  if (check_bitmap (bitmap_s2_a, bitmap_mask, bitmap_shift2, digest[0]) == 0) return (0);
-  if (check_bitmap (bitmap_s2_b, bitmap_mask, bitmap_shift2, digest[1]) == 0) return (0);
-  if (check_bitmap (bitmap_s2_c, bitmap_mask, bitmap_shift2, digest[2]) == 0) return (0);
-  if (check_bitmap (bitmap_s2_d, bitmap_mask, bitmap_shift2, digest[3]) == 0) return (0);
+  const u32 a = digest[0] ^ hc_rotl32_S (digest[1], 11) ^ hc_rotl32_S (digest[2], 22) ^ hc_rotl32_S (digest[3],  5);
+  const u32 b = digest[3] ^ hc_rotl32_S (digest[2],  7) ^ hc_rotl32_S (digest[1], 19) ^ hc_rotl32_S (digest[0], 27);
+
+  BITMAP_STAGE (bitmap_s1_a, 0);
+  BITMAP_STAGE (bitmap_s1_b, 1);
+  BITMAP_STAGE (bitmap_s1_c, 2);
+  BITMAP_STAGE (bitmap_s1_d, 3);
+  BITMAP_STAGE (bitmap_s2_a, 4);
+  BITMAP_STAGE (bitmap_s2_b, 5);
+  BITMAP_STAGE (bitmap_s2_c, 6);
+  BITMAP_STAGE (bitmap_s2_d, 7);
 
   return (1);
 }
@@ -2818,7 +3083,7 @@ DECLSPEC int is_valid_printable_32_incl_common_control (const u32 v)
   return 1;
 }
 
-DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, KEYBOARD_MAP_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
@@ -2836,7 +3101,7 @@ DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len
   return -1;
 }
 
-DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, KEYBOARD_MAP_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[32] = { 0 };
 
@@ -2884,6 +3149,17 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
       u32 dst_char = s_keyboard_layout_mapping_buf[idx].dst_char;
       int dst_len  = s_keyboard_layout_mapping_buf[idx].dst_len;
 
+      // A mapping entry may be longer than the character it replaces, so the output grows, and the
+      // only thing that ever leaves this function is the 128 bytes copied back at the end. Ending
+      // the walk here keeps the writes inside out_buf and loses nothing that was ever returned.
+
+      if ((out_len + dst_len) > (int) sizeof (out_buf))
+      {
+        pw_pos = pw_len;
+
+        break;
+      }
+
       switch (dst_len)
       {
         case 1:
@@ -2915,6 +3191,8 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
 
     if (src_len == 0)
     {
+      if ((out_len + 1) > (int) sizeof (out_buf)) break;
+
       out_ptr[out_len] = w_ptr[pw_pos];
 
       out_len++;

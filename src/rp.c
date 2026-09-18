@@ -268,6 +268,36 @@ bool is_hex_notation (const char *rule_buf, u32 rule_len, u32 rule_pos)
   return true;
 }
 
+// How many bytes the rule operand at this position occupies. More than one only when the bytes there
+// are a well formed UTF-8 sequence with every continuation byte present inside the rule, so a rule
+// holding raw bytes or a lone high byte keeps exactly the meaning it has today.
+//
+// The rule engine stays byte oriented. A multibyte operand is sugar for the byte operations a user
+// would otherwise write out by hand, one per byte, and it compiles to exactly those. That is what
+// keeps the host and the device in step: both run the same commands, including at the length limit,
+// where each byte is dropped or kept on its own just as three separate operations would be.
+
+u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
+{
+  const u8 c = (u8) rule_buf[rule_pos];
+
+  u32 need = 0;
+
+  if      ((c & 0xe0) == 0xc0) need = 1;
+  else if ((c & 0xf0) == 0xe0) need = 2;
+  else if ((c & 0xf8) == 0xf0) need = 3;
+  else                         return 1;
+
+  if ((rule_pos + need) >= rule_len) return 1;
+
+  for (u32 i = 1; i <= need; i++)
+  {
+    if (((u8) rule_buf[rule_pos + i] & 0xc0) != 0x80) return 1;
+  }
+
+  return need + 1;
+}
+
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 {
   u32 rule_pos;
@@ -340,14 +370,55 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_APPEND:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 1);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_APPEND & 0xff) | ((rule_buf[rule_pos + 1 + i] & 0xff) << 8);
+          }
+
+          rule_pos += mb;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_PREPEND:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 1);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          // each prepend puts its byte in front of the one before it, so the bytes go in backwards
+          // for the character to come out forwards
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_PREPEND & 0xff) | ((rule_buf[rule_pos + mb - i] & 0xff) << 8);
+          }
+
+          rule_pos += mb;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_DELETE_FIRST:
         SET_NAME (rule, rule_buf[rule_pos]);
@@ -375,22 +446,103 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_INSERT:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          const int p0 = conv_ctoi (rule_buf[rule_pos + 1]);
+
+          if (p0 == -1) return -1;
+
+          // each byte goes one place further along than the one before it, so the character lands whole
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_INSERT & 0xff)
+                                     | (((p0 + (int) i) & 0xff) << 8)
+                                     | ((rule_buf[rule_pos + 2 + i] & 0xff) << 16);
+          }
+
+          rule_pos += mb + 1;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_INSERT_EVERY:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          const int p0 = conv_ctoi (rule_buf[rule_pos + 1]);
+
+          if (p0 == -1) return -1;
+
+          // the interval grows by one per byte, which is exactly what keeps the bytes together as the string grows under them
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_INSERT_EVERY & 0xff)
+                                     | (((p0 + (int) i) & 0xff) << 8)
+                                     | ((rule_buf[rule_pos + 2 + i] & 0xff) << 16);
+          }
+
+          rule_pos += mb + 1;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_OVERSTRIKE:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          const int p0 = conv_ctoi (rule_buf[rule_pos + 1]);
+
+          if (p0 == -1) return -1;
+
+          // consecutive positions, so a character of this many bytes replaces that many bytes
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_OVERSTRIKE & 0xff)
+                                     | (((p0 + (int) i) & 0xff) << 8)
+                                     | ((rule_buf[rule_pos + 2 + i] & 0xff) << 16);
+          }
+
+          rule_pos += mb + 1;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_TRUNCATE_AT:
         SET_NAME    (rule, rule_buf[rule_pos]);
@@ -509,6 +661,11 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_CLASS_BASED: // ~
+        // the class operation is the only one that reads its selector before INCR_POS has moved
+        // onto it, so it needs the length test the macro would otherwise have made
+
+        if ((rule_pos + 1) >= rule_len) return -1;
+
         switch (rule_buf[rule_pos+1])
         {
           case RULE_OP_MANGLE_REPLACE: // ~s?CY
@@ -918,7 +1075,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     if (hc_fopen (&fp, rp_file, "rb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", rp_file, hc_fopen_strerror ());
 
       for (u32 j = 0; j < i; j++)
       {
@@ -966,11 +1123,13 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       if (kernel_rules_avail == kernel_rules_cnt)
       {
-        kernel_rules_buf = (kernel_rule_t *) hcrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
-
         const u32 kernel_rules_avail_old = kernel_rules_avail;
 
-        kernel_rules_avail += INCR_RULES;
+        u32 kernel_rules_incr = kernel_rules_avail / 2;
+
+        kernel_rules_incr = MAX (kernel_rules_incr, INCR_RULES);
+
+        kernel_rules_avail += kernel_rules_incr;
 
         if (kernel_rules_avail < kernel_rules_avail_old) // u32 overflow
         {
@@ -992,6 +1151,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
           return -1;
         }
+
+        kernel_rules_buf = (kernel_rule_t *) hcrealloc (kernel_rules_buf, kernel_rules_avail_old * sizeof (kernel_rule_t), kernel_rules_incr * sizeof (kernel_rule_t));
       }
 
       char in[RP_PASSWORD_SIZE];
@@ -1054,6 +1215,103 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   hcfree (rule_buf);
 
+  // One rule file is already the finished array. Chaining it with nothing copies every chain into a
+  // second array of the same size, which for a large ruleset is hundreds of MiB allocated, filled
+  // and then freed to arrive back at what we already had. The chain-overflow check cannot fire with
+  // one file either, because cpu_rule_to_kernel_rule caps a rule at MAX_KERNEL_RULES commands.
+
+  if (user_options->rp_files_cnt == 1)
+  {
+    kernel_rule_t *kernel_rules_buf = all_kernel_rules_buf[0];
+
+    const u32 kernel_rules_cnt = all_kernel_rules_cnt[0];
+
+    hcfree (all_kernel_rules_cnt);
+    hcfree (all_kernel_rules_buf);
+
+    if (kernel_rules_cnt == 0)
+    {
+      event_log_error (hashcat_ctx, "No valid rules left.");
+
+      hcfree (kernel_rules_buf);
+
+      return -1;
+    }
+
+    *out_cnt = kernel_rules_cnt;
+    *out_buf = kernel_rules_buf;
+
+    return 0;
+  }
+
+  // --rules-concat asks for one list rather than a chain: the rules of every file after each other, so
+  // the count is the sum and not the product. It leaves early for the same reason the single file case
+  // above does, because there is nothing to combine and a second pass would only copy the array.
+
+  if (user_options->rp_files_concat == true)
+  {
+    u32 kernel_rules_cnt = 0;
+
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+    {
+      if (overflow_check_u32_add (kernel_rules_cnt, all_kernel_rules_cnt[i]) == true)
+      {
+        event_log_error (hashcat_ctx, "Unsupported number of rules used in rule concatenation.");
+
+        for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+        {
+          hcfree (all_kernel_rules_buf[j]);
+        }
+
+        hcfree (all_kernel_rules_cnt);
+        hcfree (all_kernel_rules_buf);
+
+        return -1;
+      }
+
+      kernel_rules_cnt += all_kernel_rules_cnt[i];
+    }
+
+    if (kernel_rules_cnt == 0)
+    {
+      event_log_error (hashcat_ctx, "No valid rules left.");
+
+      for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+      {
+        hcfree (all_kernel_rules_buf[j]);
+      }
+
+      hcfree (all_kernel_rules_cnt);
+      hcfree (all_kernel_rules_buf);
+
+      return -1;
+    }
+
+    kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
+
+    u32 offset = 0;
+
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+    {
+      if (all_kernel_rules_cnt[i] > 0)
+      {
+        memcpy (&kernel_rules_buf[offset], all_kernel_rules_buf[i], all_kernel_rules_cnt[i] * sizeof (kernel_rule_t));
+
+        offset += all_kernel_rules_cnt[i];
+      }
+
+      hcfree (all_kernel_rules_buf[i]);
+    }
+
+    hcfree (all_kernel_rules_cnt);
+    hcfree (all_kernel_rules_buf);
+
+    *out_cnt = kernel_rules_cnt;
+    *out_buf = kernel_rules_buf;
+
+    return 0;
+  }
+
   /**
    * merge rules
    */
@@ -1094,6 +1352,11 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   {
     event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for this ruleset.");
 
+    for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+    {
+      hcfree (all_kernel_rules_buf[j]);
+    }
+
     hcfree (all_kernel_rules_cnt);
     hcfree (all_kernel_rules_buf);
 
@@ -1101,6 +1364,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     return -1;
   }
+
+  // Both counters count chains, because both are spent as chains: invalid_cnt is how many slots the
+  // output has skipped so far, so it is the distance between the chain being built and where it is
+  // written, and it is subtracted from kernel_rules_cnt at the end. Counting the functions dropped
+  // instead makes that distance grow faster than i does, and the write index turns negative.
+  //
+  // A chain that does not fit is abandoned at the function that overflows it. The remaining files
+  // have nowhere to put their functions either, so walking them only inflated the count.
 
   u32 invalid_cnt = 0;
   u32 valid_cnt = 0;
@@ -1110,6 +1381,13 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     u32 out_pos = 0;
 
     kernel_rule_t *out = &kernel_rules_buf[i - invalid_cnt];
+
+    // the slot is reused when an earlier chain was dropped, so the functions that chain wrote into
+    // it have to go, or a shorter chain landing here later keeps them and runs them
+
+    memset (out, 0, sizeof (kernel_rule_t));
+
+    bool overflow = false;
 
     for (u32 j = 0; j < user_options->rp_files_cnt; j++)
     {
@@ -1122,17 +1400,24 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          invalid_cnt++;
+          overflow = true;
 
           break;
-        }
-        else
-        {
-          valid_cnt++;
         }
 
         out->cmds[out_pos] = in->cmds[in_pos];
       }
+
+      if (overflow == true) break;
+    }
+
+    if (overflow == true)
+    {
+      invalid_cnt++;
+    }
+    else
+    {
+      valid_cnt++;
     }
   }
 
@@ -1146,6 +1431,11 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   hcfree (repeats);
 
   kernel_rules_cnt -= invalid_cnt;
+
+  for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+  {
+    hcfree (all_kernel_rules_buf[j]);
+  }
 
   hcfree (all_kernel_rules_cnt);
   hcfree (all_kernel_rules_buf);

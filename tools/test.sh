@@ -7,6 +7,40 @@
 
 OPTS="--quiet --potfile-disable --logfile-disable"
 
+# The generated passwords can carry multi byte UTF-8, and hashcat counts a password in bytes.
+# In the C locale so does bash: ${#pass} is a byte count, ${pass:n:1} is one byte and cut -c
+# is cut -b. Under a UTF-8 locale those would count characters instead and the lengths the
+# suite computes would stop matching the lengths the kernels see.
+export LC_ALL=C
+
+# ... but not for every child. veracrypt reads its password through wxWidgets, which decodes
+# argv using the locale, and tcplay is driven through expect, whose Tcl does the same. Under
+# LC_ALL=C both read a UTF-8 password as Latin-1 and re-encode it, so the container ends up
+# built with bytes nobody chose: hand veracrypt '7<U+0939>60778768' under LC_ALL=C and the
+# volume answers to '7<U+00E0><U+00A4><U+00B9>60778768' instead. hashcat is not involved, it
+# gets the bytes it was given.
+#
+#   veracrypt --text --create /tmp/v.vc --volume-type=normal --size=15M --encryption=AES \
+#     --hash=SHA-512 --filesystem=none --pim=0 --keyfiles= --random-source=/dev/urandom \
+#     --password="$(printf '7\xe0\xa4\xb960778768')"
+#   printf '7\xe0\xa4\xb960778768\n' > /tmp/v.txt
+#   ./hashcat -a 0 -m 13721 /tmp/v.vc /tmp/v.txt
+#
+#     created under LC_ALL=C      rc=1, not cracked
+#     created under LC_ALL=C.utf8 rc=0, cracked
+#
+# So those two get a UTF-8 locale, and everything else keeps LC_ALL=C, which is what makes
+# ${#pass} and cut -c count bytes.
+
+UTF8_LOCALE=""
+
+for utf8_candidate in C.UTF-8 C.utf8 en_US.UTF-8 en_US.utf8; do
+  if locale -a 2>/dev/null | grep -qix "${utf8_candidate}"; then
+    UTF8_LOCALE="${utf8_candidate}"
+    break
+  fi
+done
+
 FORCE=0
 RUNTIME=400
 
@@ -20,6 +54,7 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 
 # List of modes which return a different output hash format than the input hash format
 NOCHECK_ENCODING="16800 22000"
+
 
 # List of LUKS modes which have test containers
 LUKS1_LEGACY_MODE="14600"
@@ -52,38 +87,118 @@ PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 RAR_GEN_MODES="12500 13000 23700 23800"
 
 
-# Modes that only -g can reach, kept in HASH_TYPES so that a run which cannot
-# test them says so rather than passing over them in silence.
+# Modes with no test.pl oracle whose ground truth is the module's own self-test
+# vector, read out of hashcat with --hash-info. Every module ships an ST_HASH
+# and ST_PASS pair, a real hash of a real password, so a mode that cannot have
+# a .pm still gets a genuine end to end crack in every run with nothing checked
+# in. See selftest_vector_test(), and -S to run this over every mode.
 #
-# 23800 (RAR3-p, compressed) is the only one: it cannot have a test.pl oracle,
-# because module_23800 includes the unRAR engine and calls hc_decompress_rar(),
-# so a .pm would have to emit a RAR compressed bitstream that only the
-# proprietary compressor can produce. Without -g there is nothing to run, and
-# the run records a skip saying exactly that.
-GEN_ONLY_MODES="23800"
+# 23800 (RAR3-p, compressed) is the case that needs it: an oracle would have to
+# reproduce RAR's compressor, since module_23800 unpacks the archive itself.
+# Before this it could only be reached with -g.
+SELFTEST_MODES="23800"
+
+# 7-Zip and WinZip AES modes generated on-the-fly with -g. Both come out of the
+# same 7z binary, which nearly every machine already has, so one function covers
+# them: 11600 from a .7z, 13600 from a zip whose entries use WinZip AES.
+SEVENZIP_GEN_MODES="11600 13600"
+
+# PDF modes generated on-the-fly with -g, using qpdf. 10400 is what its 40-bit
+# option produces (V1/R2), 10500 covers both its RC4-128 and its AES-128 output,
+# and 10700 its AES-256. 10600 is not here: it is Adobe's R5 extension, which
+# qpdf does not write, and neither is 10510, which wants V1-2 with R3.
+PDF_GEN_MODES="10400 10500 10700"
+
+# OpenSSH private-key mode generated on-the-fly with -g. ssh-keygen -m PEM
+# writes the classic DEK-Info form with AES-128-CBC, which is $sshng$1$ and so
+# 22931. The other ciphers in the family have no generator here: modern
+# ssh-keygen only writes openssh-key-v1, which no 229xx mode parses, and
+# openssl 3 writes PKCS#8 instead of a DEK-Info header.
+SSH_GEN_MODES="22931"
 
 # Every mode -g can build a container for, which is the whole of what -g means.
 # On its own -g runs exactly these, and -g together with a -m that selects none
 # of them is an error rather than a run that walks the list and generates
 # nothing. Each generator adds its modes here.
-GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES}"
+GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES} ${SEVENZIP_GEN_MODES} ${PDF_GEN_MODES} ${SSH_GEN_MODES} ${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES} ${VC_MODES}"
 
 # Of those, the ones whose generator needs root. Everything else builds its
 # container entirely in userspace, so a run that selects none of these never
-# asks for a password. Empty here: GPG, PKZIP and RAR all generate as the user.
-GEN_SUDO_MODES=""
+# asks for a password.
+#
+# LUKS is here because the payload has to be a real filesystem and that means
+# device-mapper, TrueCrypt because tcplay insists on a block device. GPG, PKZIP,
+# RAR, 7-Zip, WinZip AES, PDF, OpenSSH and VeraCrypt all generate as the user.
+GEN_SUDO_MODES="${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES}"
 
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
+
+# The container tests read their volumes from these directories. With -g they
+# are pointed at a directory test.sh fills itself, so the same tests run against
+# freshly built containers instead of the ones shipped in the tree or fetched
+# from hashcat.net.
+TC_TESTS_DIR="${TDIR}/tc_tests"
+VC_TESTS_DIR="${TDIR}/vc_tests"
+LUKS_TESTS_DIR="${TDIR}/luks_tests"
+LUKS2_TESTS_DIR="${TDIR}/luks2_tests"
+
+# The password every generated container is built with, and the one the shipped containers
+# already use. With -g the containers are built by this run, so the password is picked at
+# random instead: a test that only passes because 'hashcat' is baked into both the container
+# and the mask is not testing anything. CONTAINER_MASK is the same string with the last
+# character replaced by ?l, which is what gives the mask attacks a keyspace to search.
+CONTAINER_PASSWORD="hashcat"
+CONTAINER_MASK="hashca?l"
+# The VeraCrypt tests put the ?l in the middle instead of at the end.
+CONTAINER_MASK_MID="hashc?lt"
+
 
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
 
-# PM_MODES is the set of modes that have a test.pl oracle, kept separately from
+# PM_MODES is the set of modes that have an oracle, kept separately from
 # HASH_TYPES because -g now runs a real-container test in addition to the oracle
 # instead of in place of it, so the dispatch has to know which modes still have
-# an oracle left to run.
-PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
-HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${GEN_ONLY_MODES}"
+# an oracle left to run. An oracle is a .pm or a .py: a mode is written in one
+# language or the other, never both, so the set is the union of the two.
+PM_MODES=$(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)$/\1/' | sort -u -n | tr '\n' ' ')
+
+# A default run routes each mode to whichever oracle file it has: python for a mode with a .py,
+# perl for a mode with a .pm. -y is the one restriction, cutting the run down to the modes that
+# have a .py so only the python oracle is exercised. It is recomputed after the option loop, which
+# is where the flag is known.
+
+PYTHON_ENGINE=0
+
+# Modes whose oracle reported that this run's kernel family does not exist for them. They are
+# recorded as a Skip and then left out, so the run does not go on to report 0/0 on them, which
+# reads as a failure rather than as a mode that was never applicable.
+
+NOT_APPLICABLE_MODES=""
+
+function oracle_modes()
+{
+  if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.py$/\1/' | tr '\n' ' '
+  else
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)$/\1/' | sort -u -n | tr '\n' ' '
+  fi
+}
+
+function run_oracle()
+{
+  # Generate with the engine the mode has a file for: python where a mNNNNN.py exists, perl
+  # otherwise. The mode is the second argument at every call site. test_module_runner.py exits 2
+  # to say the mode has no kernel for the family the run asked for, which is not a failure and not
+  # a pass; the caller turns it into a Skip.
+
+  if [ -f "${TDIR}/test_modules/m$(printf '%05d' "$2").py" ]; then
+    python3 "${TDIR}/test_module_runner.py" "$@"
+  else
+    perl "${TDIR}/test.pl" "$@"
+  fi
+}
+HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${SELFTEST_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 # Two widths, because -V all multiplies the whole run by however many are listed and five of them
@@ -92,14 +207,34 @@ HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 4"
 
-KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
+
+# The modes the pcfg device engine has an optimized kernel for. It asks for the file by the mode's
+# kern_type, so the mode number is not the name: the kern_type is read out of the module the same way
+# attack_exec is above, which keeps the two tests that use this list off a run of hashcat.
+
+A4_OPTIMIZED_ALGOS=$(grep -m1 -H -E '^static const u64 +KERN_TYPE +=' "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c:[^=]*= *([0-9]+).*/\1 \2/' | while read -r a4_mode a4_kern; do if [ -r "$(printf '%s/../OpenCL/m%05d_a4-optimized.cl' "${TDIR}" "${a4_kern}")" ]; then printf '%s ' "${a4_mode}"; fi; done)
+
+# The same list, kept before the additions below, because attack_exec is what decides whether a feed
+# gets its device engine and the additions are not about attack_exec. -a 4 is the one attack mode
+# that reads it: the pcfg feed amplifies on the device for a mode whose kernel runs inside, and falls
+# back to building every candidate on the host for a mode whose kernel runs outside.
+
+HOST_ENGINE_ALGOS="${SLOW_ALGOS}"
 
 # fake slow algos, due to specific password pattern (e.g. ?d from "mask_3" is invalid):
 # ("only" drawback is that just -a 0 is tested with this workaround)
 
 SLOW_ALGOS="${SLOW_ALGOS} 28501 28502 28503 28504 28505 28506 30901 30902 30903 30904 30905 30906 34700"
+
+# A mode with OPTS_TYPE_PT_ALWAYS_HEXIFY has its plaintext written out as bare hex whatever the
+# candidate was, so what the output carries is the hex of the word rather than the word. A mode that
+# also reads its candidate as hex is given the word in that form to begin with and reports it back
+# the same way, so those are left out.
+
+HEXIFY_PLAIN=$( grep -l OPTS_TYPE_PT_ALWAYS_HEXIFY "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_PT_HEX | sed -E 's/.*module_0*([0-9]+)\.c$/\1/' | tr '\n' ' ')
 
 OUTD="test_$(date +%s)"
 
@@ -221,6 +356,143 @@ function is_in_array()
   return 1
 }
 
+# The hex form of a string, for a mode whose plaintext hashcat writes that way. printf with a leading
+# quote reads the character as its numeric value and LC_ALL=C makes that value a byte rather than a
+# code point, so no xxd or od dependency creeps in here either. bash 3.2 hands the value back sign
+# extended, which is what the mask is for.
+
+function hexify()
+{
+  local LC_ALL=C
+  local out=""
+  local c
+  local i
+
+  for ((i = 0; i < ${#1}; i++)); do
+    printf -v c '%d' "'${1:i:1}"
+    printf -v c '%02x' "$((c & 0xff))"
+
+    out="${out}${c}"
+  done
+
+  printf '%s' "${out}"
+}
+
+# What the output is searched for in place of the candidate that was sent in.
+
+function expected_plain()
+{
+  if [ "${hexify_plain}" -eq 1 ]; then
+    hexify "${1}"
+
+    return
+  fi
+
+  printf '%s' "${1}"
+}
+
+# What each of the whole word attacks is given after the hash. -a 0 takes its candidates on a pipe
+# and is given nothing, -a 8 names the shipped wordlist feed and the file under it, -a 9 names the
+# list that pairs word N with hash N, and -a 4 names a ruleset directory.
+
+function whole_word_source()
+{
+  local source_attack=$1
+  local source_stem=$2
+
+  if [ "${source_attack}" -eq 4 ]; then
+    printf '%s\n' "${source_stem}_ruleset"
+  elif [ "${source_attack}" -eq 8 ]; then
+    printf 'wordlist %s\n' "${source_stem}_words"
+  elif [ "${source_attack}" -eq 9 ]; then
+    printf '%s\n' "${source_stem}_words"
+  fi
+}
+
+# The smallest ruleset that emits a named list of candidates and nothing else. X is the flat token,
+# so its entries carry their own length and always live in Context/1.txt, and a grammar of one shape
+# at probability 1 makes the run exactly as long as the list under it.
+
+function whole_word_ruleset()
+{
+  local ruleset_attack=$1
+  local ruleset_stem=$2
+
+  if [ "${ruleset_attack}" -ne 4 ]; then
+    return
+  fi
+
+  rm -rf "${ruleset_stem}_ruleset"
+
+  mkdir -p "${ruleset_stem}_ruleset/Grammar" "${ruleset_stem}_ruleset/Context"
+
+  printf 'X1\t1.0\n' > "${ruleset_stem}_ruleset/Grammar/grammar.txt"
+
+  awk '{ printf "%s\t1.0\n", $0 }' "${ruleset_stem}_words" > "${ruleset_stem}_ruleset/Context/1.txt"
+}
+
+# The vector list attack mode 4 runs on. A grammar assembles its candidate out of terminals and the
+# shortest terminal is one character long, so the zero length word the generator draws for a mode
+# whose minimum is zero cannot be written into a ruleset. Every other attack mode takes that word, so
+# the list they share is left as it is and attack mode 4 gets one of its own, with the zero length
+# word replaced by a word of length 1 and by the hash that goes with it, from the same oracle. A mode
+# that cannot produce a word of length 1 keeps the list it had, and the run skips that word.
+
+function whole_word_vectors()
+{
+  local vectors_type=$1
+
+  local vectors_src="${OUTD}/${vectors_type}.sh"
+  local vectors_out="${OUTD}/${vectors_type}_a4.sh"
+
+  rm -f "${vectors_out}" "${OUTD}/${vectors_type}_a4_passwords.txt" "${OUTD}/${vectors_type}_a4_hashes.txt"
+
+  if [ ! -s "${vectors_src}" ]; then
+    return
+  fi
+
+  # A LUKS mode's hashes are the container paths its generator prints, which init () reads into the
+  # real lines after this returns, and mode 10300 takes its hashes out of another field of the same
+  # line. Neither list is the one this builds out of the generator's own output, so those modes keep
+  # the list they had and the round skips the word the way it did before.
+
+  if is_in_array "${vectors_type}" ${LUKS_MODES} || [ "${vectors_type}" -eq 10300 ]; then
+    return
+  fi
+
+  local line
+  local empty=0
+
+  while IFS= read -r line; do
+    if [ -z "$(printf '%s' "${line}" | cut -d' ' -f2)" ]; then
+      empty=1
+    fi
+  done < "${vectors_src}"
+
+  if [ "${empty}" -eq 0 ]; then
+    return
+  fi
+
+  local spare
+
+  spare=$(run_oracle single "${vectors_type}" 1 2>/dev/null | head -1)
+
+  if [ -z "$(printf '%s' "${spare}" | cut -d' ' -f2)" ]; then
+    return
+  fi
+
+  while IFS= read -r line; do
+    if [ -z "$(printf '%s' "${line}" | cut -d' ' -f2)" ]; then
+      printf '%s\n' "${spare}"
+    else
+      printf '%s\n' "${line}"
+    fi
+  done < "${vectors_src}" > "${vectors_out}"
+
+  sed 's/^echo *|.*$//'       "${vectors_out}" | awk '{print $2}'                                                                    > "${OUTD}/${vectors_type}_a4_passwords.txt"
+  sed 's/^echo *|/echo "" |/' "${vectors_out}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${vectors_type}_a4_hashes.txt"
+}
+
 function has_multi_hash()
 {
   # no multi hash checks for these modes (because we only have 1 hash for each of them)
@@ -270,7 +542,7 @@ function init()
 
   #LUKS1
   if is_in_array "$hash_type" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ; then
-    luks_tests_folder="${TDIR}/luks_tests/"
+    luks_tests_folder="${LUKS_TESTS_DIR}/"
 
     if [ ! -d "${luks_tests_folder}" ]; then
       mkdir -p "${luks_tests_folder}"
@@ -331,7 +603,7 @@ function init()
 
   #LUKS2
   if is_in_array "$hash_type" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
-    luks2_tests_folder="${TDIR}/luks2_tests/"
+    luks2_tests_folder="${LUKS2_TESTS_DIR}/"
 
     if [ ! -d "${luks2_tests_folder}" ]; then
       mkdir -p "${luks2_tests_folder}"
@@ -397,6 +669,8 @@ function init()
   # create separate list of password and hashes
   sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords.txt"
   sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
+
+  whole_word_vectors "${hash_type}"
 
   if is_in_array "${hash_type}" ${LUKS_MODES}; then
     # 34100 LUKS2 dynamically generates filenames, we need to cat those to get the hashes
@@ -464,6 +738,11 @@ function init()
           p0=$((p1 - 1))
         fi
 
+        # both halves have to be valid UTF-8 on their own, see utf8_split_point()
+
+        p0=$(utf8_split_point "${pass}" ${p0})
+        p1=$((p0 + 1))
+
         # add splitted password to dicts
         echo "${pass}" | cut -c -${p0} >> "${OUTD}/${hash_type}_dict1"
         echo "${pass}" | cut -c ${p1}- >> "${OUTD}/${hash_type}_dict2"
@@ -526,12 +805,12 @@ function init()
 
       if [ "${fixed_len}" -ne 0 ]; then
         if [ "${fixed_len}" -eq "${i}" ]; then
-          perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+          run_oracle single "${hash_type}" ${i} > "${cmd_file}"
         else
-          perl tools/test.pl single "${hash_type}" ${fixed_len} > "${cmd_file}"
+          run_oracle single "${hash_type}" ${fixed_len} > "${cmd_file}"
         fi
       else
-        perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+        run_oracle single "${hash_type}" ${i} > "${cmd_file}"
       fi
 
       sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
@@ -556,6 +835,11 @@ function init()
       p1=$((p1 + min_len))
 
       while read -r -u 9 pass; do
+
+        # both halves have to be valid UTF-8 on their own, see utf8_split_point()
+
+        p0=$(utf8_split_point "${pass}" ${p0})
+        p1=$((p0 + 1))
 
         # add splitted password to dicts
         echo "${pass}" | cut -c -${p0} >> "${OUTD}/${hash_type}_dict1_multi_${i}"
@@ -674,8 +958,34 @@ function status()
   fi
 }
 
-function attack_0()
+# -a 0, -a 4, -a 8 and -a 9 all hand hashcat whole candidates instead of assembling them from a mask,
+# so one function runs all four and only the source arguments differ. -a 0 pipes the words in, -a 8
+# names the wordlist feed, -a 4 wraps them in the smallest grammar that emits them, and -a 9 pairs
+# word N with hash N. The attack mode to run is the one argument.
+
+function attack_whole_word()
 {
+  attack_mode=$1
+
+  # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine reads the
+  # optimized kernel out of mNNNNN_a4-optimized.cl. Where the mode ships no such file hashcat refuses
+  # -O rather than ignoring the flag, because the digests were already parsed under it, so the run
+  # ends with "The device engine has no optimized kernel for this hash mode. Run this without -O."
+  # and nothing is tested. An optimized pass has nothing to run for such a mode; the pure pass
+  # covers the attack mode.
+  #
+  # A mode whose kernel runs outside is not this case. There the feed builds every candidate on the
+  # host, no device engine is asked for, and -a 4 with -O runs and cracks. Measured on this tree:
+  # -m 0 and -m 1000 are refused with -O, -m 400 and -m 3200 crack 7 of 7 with it. So the test is on
+  # attack_exec and on the kernel file, not on -O alone, or the optimized pass would quietly stop
+  # covering -a 4 for every slow mode, which is the kind of hole this skip exists to avoid making.
+
+  if [ "${attack_mode}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && ! is_in_array "${hash_type}" ${HOST_ENGINE_ALGOS} && ! is_in_array "${hash_type}" ${A4_OPTIMIZED_ALGOS}; then
+    echo "> Skipping hash type ${hash_type} attack mode 4: it has no optimized kernel, so it runs in the pure pass only." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+    return
+  fi
+
   file_only=0
 
   if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
@@ -692,12 +1002,18 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode ${attack_mode}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     max=32
 
     if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
       max=12
+    fi
+
+    vectors="${OUTD}/${hash_type}.sh"
+
+    if [ "${attack_mode}" -eq 4 ] && [ -s "${OUTD}/${hash_type}_a4.sh" ]; then
+      vectors="${OUTD}/${hash_type}_a4.sh"
     fi
 
     i=0
@@ -735,11 +1051,38 @@ function attack_0()
         pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
       fi
 
-      CMD="echo ${pass} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+      # A grammar assembles a candidate out of terminals and the shortest terminal is one character
+      # long, so -a 4 has no way to write an empty password down.
+
+      if [ "${attack_mode}" -eq 4 ] && [ "${#pass}" -eq 0 ]; then
+        echo "skipped, an empty password cannot be written into a ruleset" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+        e_rs=$((e_rs + 1))
+        cnt=$((cnt + 1))
+        i=$((i + 1))
+
+        continue
+      fi
+
+      source_argv=$(whole_word_source "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}")
+
+      if [ "${attack_mode}" -ne 0 ]; then
+        printf '%s\n' "${pass}" > "${OUTD}/${hash_type}_a${attack_mode}_words"
+
+        whole_word_ruleset "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}"
+      fi
 
       echo -n "[ len $((i + 1)) ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-      output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+      if [ "${attack_mode}" -eq 0 ]; then
+        CMD="echo ${pass} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+
+        output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+      else
+        CMD="./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} '${hash}' ${source_argv}"
+
+        output=$(./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} "${hash}" ${source_argv} 2>&1)
+      fi
 
       ret=${?}
 
@@ -750,9 +1093,9 @@ function attack_0()
       if [ "${ret}" -eq 0 ]; then
         if ! (is_in_array "${hash_type}" ${LUKS_MODES}); then
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${pass}"
+            search=":$(expected_plain "${pass}")"
           else
-            search="${hash}:${pass}"
+            search="${hash}:$(expected_plain "${pass}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -763,7 +1106,7 @@ function attack_0()
           # out-of-memory, workaround
 
           if is_in_array "${hash_type}" ${LUKS_MODES}; then
-            search="$(cat ${hash} | tr -d '\n'):${pass}" #hash is a filename for 34100
+            search="$(cat ${hash} | tr -d '\n'):$(expected_plain "${pass}")" #hash is a filename for 34100
             echo "${output}" | grep -E '^\$luks\$' | head -1 > tmp_file_out #cracked hash from hashcat output
           else
             echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out #cracked hash from hashcat output
@@ -804,7 +1147,7 @@ function attack_0()
 
       i=$((i + 1))
 
-    done 9< "${OUTD}/${hash_type}.sh"
+    done 9< "${vectors}"
 
     msg="OK"
 
@@ -818,7 +1161,7 @@ function attack_0()
       msg="Warning"
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attack_mode}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
   fi
 
   # multihash
@@ -827,6 +1170,14 @@ function attack_0()
     # no multi hash checks for these modes (because we only have 1 hash for each of them)
     ! has_multi_hash || return
 
+    # -a 9 gives one candidate to each salt, so a multi hash run needs every hash to sit on a salt of
+    # its own. Nothing here knows whether that holds, and test_edge.sh runs the multi case where it
+    # can tell.
+
+    if [ "${attack_mode}" -eq 9 ]; then
+      return
+    fi
+
     e_ce=0
     e_rs=0
     e_to=0
@@ -834,7 +1185,10 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode ${attack_mode}, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+    check_passwords="${OUTD}/${hash_type}_passwords.txt"
+    check_hashes="${OUTD}/${hash_type}_hashes.txt"
 
     hash_file=${OUTD}/${hash_type}_hashes.txt
 
@@ -859,9 +1213,48 @@ function attack_0()
 
     fi
 
-    CMD="cat ${OUTD}/${hash_type}_passwords.txt | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file}"
+    # -a 4 runs on the list whole_word_vectors () prepared, where the zero length word is a word of
+    # length 1 instead. Where that list could not be made the hash that belongs to an empty password
+    # is left out of the run rather than the run being given up. A file based mode has no line to
+    # leave out, its hashes arrive as one blob, so that one keeps its single hash coverage only.
 
-    output=$(./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file} < ${OUTD}/${hash_type}_passwords.txt 2>&1)
+    if [ "${attack_mode}" -eq 4 ]; then
+      if [ "${file_only}" -eq 1 ]; then
+        return
+      fi
+
+      check_passwords="${OUTD}/${hash_type}_a4_multi_passwords"
+      check_hashes="${OUTD}/${hash_type}_a4_multi_hashes"
+
+      if [ -s "${OUTD}/${hash_type}_a4_passwords.txt" ]; then
+        cp "${OUTD}/${hash_type}_a4_passwords.txt" "${check_passwords}"
+        cp "${OUTD}/${hash_type}_a4_hashes.txt"    "${check_hashes}"
+      else
+        grep -v '^$' "${OUTD}/${hash_type}_passwords.txt" > "${check_passwords}"
+
+        awk 'NR == FNR { keep[FNR] = ($0 != ""); next } keep[FNR] { print }' "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt" > "${check_hashes}"
+      fi
+
+      hash_file="${check_hashes}"
+    fi
+
+    source_argv=$(whole_word_source "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}_multi")
+
+    if [ "${attack_mode}" -ne 0 ]; then
+      cp "${check_passwords}" "${OUTD}/${hash_type}_a${attack_mode}_multi_words"
+
+      whole_word_ruleset "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}_multi"
+    fi
+
+    if [ "${attack_mode}" -eq 0 ]; then
+      CMD="cat ${check_passwords} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file}"
+
+      output=$(./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file} < ${check_passwords} 2>&1)
+    else
+      CMD="./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} ${hash_file} ${source_argv}"
+
+      output=$(./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} ${hash_file} ${source_argv} 2>&1)
+    fi
 
     ret=${?}
 
@@ -873,13 +1266,13 @@ function attack_0()
 
       while read -r -u 9 hash; do
 
-        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
+        pass=$(sed -n ${i}p "${check_passwords}")
 
-        if is_in_array "${hash_type}" ${LUKS_MODES}; then
+        if ! (is_in_array "${hash_type}" ${LUKS_MODES}); then
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${pass}"
+            search=":$(expected_plain "${pass}")"
           else
-            search="${hash}:${pass}"
+            search="${hash}:$(expected_plain "${pass}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -888,7 +1281,7 @@ function attack_0()
         fi
 
         if is_in_array "${hash_type}" ${LUKS_MODES}; then
-          search="$(echo ${hash} | tr -d '\n'):${pass}" #hash is read from file already
+          search="$(echo ${hash} | tr -d '\n'):$(expected_plain "${pass}")" #hash is read from file already
           to_search_in_out="$(echo ${hash} | head -c 200)"
           echo "${output}" | grep -F "$to_search_in_out" | head -1 > tmp_file_out #cracked hash from hashcat output
           echo "${search}" > tmp_file_search
@@ -924,7 +1317,7 @@ function attack_0()
 
         i=$((i + 1))
 
-      done 9< "${OUTD}/${hash_type}_hashes.txt"
+      done 9< "${check_hashes}"
 
     fi
 
@@ -942,7 +1335,7 @@ function attack_0()
       msg="Warning"
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attack_mode}, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
   fi
 }
 
@@ -1078,9 +1471,9 @@ function attack_1()
           line_dict2=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_dict2")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -1211,9 +1604,9 @@ function attack_1()
         line_dict2=$(tail -n ${line_nr} "${OUTD}/${hash_type}_dict2" | head -1)
 
         if [ "${pass_only}" -eq 1 ]; then
-          search=":${line_dict1}${line_dict2}"
+          search=":$(expected_plain "${line_dict1}${line_dict2}")"
         else
-          search="${hash}:${line_dict1}${line_dict2}"
+          search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
         fi
 
         echo "${output}" | grep -F "${search}" &>/dev/null
@@ -1342,7 +1735,9 @@ function attack_3()
           mask="${mask}?d"
         done
 
-        mask="${mask}${pass_part_2}"
+        # the mask covers the first ${i} bytes, the rest of the password follows it literally
+
+        mask="$(mask_literalize "${mask}" "${pass:0:${i}}")${pass_part_2}"
       fi
 
       if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
@@ -1377,15 +1772,15 @@ function attack_3()
 
         if is_in_array "${hash_type}" ${LUKS_MODES}; then
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict}"
+            search=":$(expected_plain "${line_dict}")"
           else
-            search="$(cat ${hash} | tr -d '\n'):${line_dict}" #hash is a filename for 34100
+            search="$(cat ${hash} | tr -d '\n'):$(expected_plain "${line_dict}")" #hash is a filename for 34100
           fi
         else
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict}"
+            search=":$(expected_plain "${line_dict}")"
           else
-            search="${hash}:${line_dict}"
+            search="${hash}:$(expected_plain "${line_dict}")"
           fi
         fi
 
@@ -1514,11 +1909,30 @@ function attack_3()
       need_hcmask=1
     fi
 
+    # This is one run with --increment over passwords of many lengths at once, and a password
+    # can carry a multi byte character wherever tools/test.pl put it, so no single '?d' mask
+    # spells all of them. The hcmask path below already gives hashcat one mask per line, which
+    # is exactly one mask per password, so take it whenever a character is in play and write a
+    # mask per password rather than searching a mask per length.
+    #
+    # The test for a multi byte character is tr deleting every byte that is ASCII and asking whether
+    # anything is left, because -P is a GNU extension: the grep on a Mac answers "invalid option --
+    # P" and exits 2, which 2>/dev/null hides, so the branch was never taken there.
+
+    if [ -n "$(tr -d '\000-\177' < "${OUTD}/${hash_type}_passwords.txt")" ]; then
+      need_hcmask=2
+    fi
+
     if [ "${tail_hashes}" -lt 1 ]; then
       need_hcmask=1
     fi
 
-    if [ ${need_hcmask} -eq 0 ]; then
+    # the hcmask path below spells its digits with '?d' as well, so it has the same reach as the
+    # single mask: at most increment_max positions. It therefore takes the same hashes. Taking every
+    # password instead puts one line in the file per password, and the oracles generate passwords of
+    # up to 128 bytes of nothing but digits, which is a line no mask attack comes back from.
+
+    if [ ${need_hcmask} -eq 2 ] || [ ${need_hcmask} -eq 0 ]; then
       head -n "${head_hashes}" "${OUTD}/${hash_type}_hashes.txt" | tail -n "${tail_hashes}" > "${hash_file}"
     else
       tail_hashes=$(awk "length >= ${increment_min}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
@@ -1539,7 +1953,17 @@ function attack_3()
     mask=""
     cracks_offset=0
 
-    if [ ${need_hcmask} -eq 0 ]; then
+    if [ ${need_hcmask} -eq 2 ]; then
+      cracks_offset=$((head_hashes - tail_hashes))
+
+      mask="${OUTD}/${hash_type}_multi_a3.hcmask"
+
+      : > "${mask}"
+
+      awk "length >= ${increment_min} && length <= ${increment_max}" "${OUTD}/${hash_type}_passwords.txt" | while IFS= read -r a3_pass; do
+        printf '%s\n' "$(mask_literalize "$(mask_dots ${#a3_pass})" "${a3_pass}")" >> "${mask}"
+      done
+    elif [ ${need_hcmask} -eq 0 ]; then
       cracks_offset=$((head_hashes - tail_hashes))
 
       mask=${mask_3[${mask_pos}]}
@@ -1815,9 +2239,9 @@ function attack_3()
         pass=$(sed -n ${line_nr}p "${OUTD}/${hash_type}_passwords.txt")
 
         if [ "${pass_only}" -eq 1 ]; then
-          search=":${pass}"
+          search=":$(expected_plain "${pass}")"
         else
-          search="${hash}:${pass}"
+          search="${hash}:$(expected_plain "${pass}")"
         fi
 
         echo "${output}" | grep -F "${search}" &>/dev/null
@@ -1973,12 +2397,28 @@ function attack_6()
           pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
         fi
 
-        if [ ${#pass} -le ${i} ]; then
+        # The loop index doubles as the length of the mask, so a password no longer than its own
+        # index was skipped. A mode whose passwords are all short then reached an index above every
+        # password and produced no case at all. Cap the mask at one byte less than the password
+        # instead, and skip only a password that cannot be split into a word and a mask.
+
+        mask_len=${i}
+
+        if [ ${mask_len} -ge ${#pass} ]; then
+          mask_len=$((${#pass} - 1))
+        fi
+
+        if [ ${mask_len} -lt 1 ]; then
           i=$((i + 1))
           continue
         fi
 
-        echo "${pass}" | cut -b -$((${#pass} - i)) >> "${dict1_a6}"
+        # the mask covers the last ${mask_len} bytes, or a little more when that offset falls inside
+        # a multi byte character, see utf8_split_point()
+
+        a6_split=$(utf8_split_point "${pass}" $((${#pass} - mask_len)))
+
+        printf '%s\n' "${pass:0:${a6_split}}" >> "${dict1_a6}"
 
         # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
         # we do not really need a shuf, but it's actually better for testing purposes
@@ -2012,9 +2452,11 @@ function attack_6()
 
         mask=""
 
-        for j in $(seq 1 ${i}); do
+        for j in $(seq 1 $((${#pass} - a6_split))); do
           mask="${mask}?d"
         done
+
+        mask="$(mask_literalize "${mask}" "${pass:${a6_split}}")"
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
@@ -2038,9 +2480,9 @@ function attack_6()
           line_dict2=$(sed -n ${line_nr}p "${dict2}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2175,7 +2617,15 @@ function attack_6()
 
       fi
 
-      mask=${mask_6[$i]}
+      # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+      # their characters in the same places: the layout is seeded from the length. A '?d' over
+      # one of those bytes cannot produce it, so the mask spells it instead. Any of the eight
+      # will do as the model.
+
+      multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+      multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+      multi_tail="${multi_model:${#multi_head}}"
+      mask="$(mask_literalize "$(mask_dots ${#multi_tail})" "${multi_tail}")"
 
       CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask}"
 
@@ -2197,9 +2647,9 @@ function attack_6()
           line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2341,7 +2791,15 @@ function attack_7()
 
         fi
 
-        mask=${mask_7[$i]}
+        # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+        # their characters in the same places: the layout is seeded from the length. A '?d' over
+        # one of those bytes cannot produce it, so the mask spells it instead. Any of the eight
+        # will do as the model.
+
+        multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+        multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+        multi_tail="${multi_model:${#multi_head}}"
+        mask="$(mask_literalize "$(mask_dots ${#multi_head})" "${multi_head}")"
 
         # adjust mask if needed
 
@@ -2450,6 +2908,16 @@ function attack_7()
           dict2=${OUTD}/${hash_type}_dict2_custom
         fi
 
+        # -a 7 is mask + dict and dict2 holds the tail of the password, so the mask spells the
+        # head, which is what dict1 holds
+
+        # Built from what dict1 actually holds rather than from mask_7[], because a split that
+        # moved to a character boundary makes dict1 a different length than the array assumed,
+        # and a mask that does not line up with it cannot spell the password.
+
+        dict1_line="$(sed -n ${line_nr}p "${dict1}")"
+        mask="$(mask_literalize "$(mask_dots ${#dict1_line})" "${dict1_line}")"
+
         CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${dict2}"
 
         echo -n "[ len $i ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
@@ -2472,9 +2940,9 @@ function attack_7()
           line_dict2=$(sed -n ${line_nr}p "${dict2}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2591,12 +3059,20 @@ function attack_7()
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
       dict_file=${OUTD}/${hash_type}_dict2_multi_${i}
 
+      # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+      # their characters in the same places. It has to spell the half that dict2 does not hold,
+      # and the split moved to a character boundary, so it comes from what dict1 holds rather
+      # than from mask_7[], which was sized for a split on a byte.
+
+      multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+      multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+
       if [ "${hash_type}" -eq 40001 ]; then
         mask=${mask_7[((i+10))]}
       elif [ "${hash_type}" -eq 40002 ]; then
         mask=${mask_7[((i+10))]}
       else
-        mask=${mask_7[$i]}
+        mask="$(mask_literalize "$(mask_dots ${#multi_head})" "${multi_head}")"
       fi
 
       # if file_only -> decode all base64 "hashes" and put them in the temporary file
@@ -2666,9 +3142,9 @@ function attack_7()
           line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
           if [ "${pass_only}" -eq 1 ]; then
-            search=":${line_dict1}${line_dict2}"
+            search=":$(expected_plain "${line_dict1}${line_dict2}")"
           else
-            search="${hash}:${line_dict1}${line_dict2}"
+            search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
           echo "${output}" | grep -F "${search}" &>/dev/null
@@ -2804,7 +3280,6 @@ function attack_12()
         fi
 
         head_len=$((mask_len / 2))
-        tail_len=$((mask_len - head_len))
 
         word_len=$((pass_len - mask_len))
 
@@ -2813,27 +3288,22 @@ function attack_12()
           continue
         fi
 
-        mask_head=""
-        mask_tail=""
-        mask_full=""
-
-        for j in $(seq 1 ${head_len}); do
-          mask_head="${mask_head}?d"
-        done
-
-        for j in $(seq 1 ${tail_len}); do
-          mask_tail="${mask_tail}?d"
-        done
-
-        for j in $(seq 1 ${mask_len}); do
-          mask_full="${mask_full}?d"
-        done
-
         # The dictionary is a copy of dict1 with the word appended, so the run has to find the word
         # among others rather than being handed a one line file.
 
         dict1_a12=${OUTD}/${hash_type}_dict1_a12
         dict2_a12=${OUTD}/${hash_type}_dict2_a12
+
+        # ?w, ?q and each mask piece are uploaded as buffers of their own and the UTF-16 modes
+        # convert every one of them separately, so a join has to sit on a UTF-8 character
+        # boundary, and a mask position has to spell the byte that belongs there rather than a
+        # '?d' that cannot produce it. See utf8_split_point() and mask_literalize().
+
+        head_end=$(utf8_split_point "${pass}" ${head_len})
+        tail_start=$(utf8_split_point "${pass}" $((head_len + word_len)))
+
+        mask_head="$(mask_literalize "$(mask_dots ${head_end})" "${pass:0:${head_end}}")"
+        mask_tail="$(mask_literalize "$(mask_dots $((pass_len - tail_start)))" "${pass:${tail_start}}")"
 
         for shape in first last middle q; do
 
@@ -2844,19 +3314,23 @@ function attack_12()
           case "${shape}" in
 
             first)
-              word=$(echo "${pass}" | cut -b -${word_len})
-              mask="?w${mask_full}"
+              word_end=$(utf8_split_point "${pass}" ${word_len})
+
+              word="${pass:0:${word_end}}"
+              mask="?w$(mask_literalize "$(mask_dots $((pass_len - word_end)))" "${pass:${word_end}}")"
               dicts="${dict1_a12}"
               ;;
 
             last)
-              word=$(echo "${pass}" | cut -b $((mask_len + 1))-)
-              mask="${mask_full}?w"
+              mask_start=$(utf8_split_point "${pass}" ${mask_len})
+
+              word="${pass:${mask_start}}"
+              mask="$(mask_literalize "$(mask_dots ${mask_start})" "${pass:0:${mask_start}}")?w"
               dicts="${dict1_a12}"
               ;;
 
             middle)
-              word=$(echo "${pass}" | cut -b $((head_len + 1))-$((head_len + word_len)))
+              word="${pass:${head_end}:$((tail_start - head_end))}"
               mask="${mask_head}?w${mask_tail}"
               dicts="${dict1_a12}"
               ;;
@@ -2864,14 +3338,14 @@ function attack_12()
             q)
               # the word itself is cut in two, so that ?w and ?q each carry one half
 
-              q_len=$((word_len / 2))
+              q_end=$(utf8_split_point "${pass}" $((head_end + (tail_start - head_end) / 2)))
 
-              if [ "${q_len}" -lt 1 ]; then
+              if [ "${q_end}" -le "${head_end}" ] || [ "${q_end}" -ge "${tail_start}" ]; then
                 continue
               fi
 
-              word=$(echo "${pass}" | cut -b $((head_len + 1))-$((head_len + q_len)))
-              word_q=$(echo "${pass}" | cut -b $((head_len + q_len + 1))-$((head_len + word_len)))
+              word="${pass:${head_end}:$((q_end - head_end))}"
+              word_q="${pass:${q_end}:$((tail_start - q_end))}"
 
               echo "${word_q}" > "${dict2_a12}"
 
@@ -2896,9 +3370,9 @@ function attack_12()
           if [ "${ret}" -eq 0 ]; then
 
             if [ "${pass_only}" -eq 1 ]; then
-              search=":${pass}"
+              search=":$(expected_plain "${pass}")"
             else
-              search="${hash}:${pass}"
+              search="${hash}:$(expected_plain "${pass}")"
             fi
 
             echo "${output}" | grep -F "${search}" &>/dev/null
@@ -3051,14 +3525,18 @@ function attack_12()
       # of the mask with the first half and behind it with the second. That is what -a 6 and -a 7 do
       # from the same files, and here one attack mode does both.
 
+      multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+      multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+      multi_tail="${multi_model:${#multi_head}}"
+
       for shape in first last; do
 
         if [ "${shape}" = "first" ]; then
           dict=${OUTD}/${hash_type}_dict1_multi_${i}
-          mask="?w${mask_6[$i]}"
+          mask="?w$(mask_literalize "$(mask_dots ${#multi_tail})" "${multi_tail}")"
         else
           dict=${OUTD}/${hash_type}_dict2_multi_${i}
-          mask="${mask_7[$i]}?w"
+          mask="$(mask_literalize "$(mask_dots ${#multi_head})" "${multi_head}")?w"
         fi
 
         CMD="./${BIN} ${OPTS} -a 12 -m ${hash_type} ${hash_file} ${mask} ${dict}"
@@ -3081,9 +3559,9 @@ function attack_12()
             line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
 
             if [ "${pass_only}" -eq 1 ]; then
-              search=":${line_dict1}${line_dict2}"
+              search=":$(expected_plain "${line_dict1}${line_dict2}")"
             else
-              search="${hash}:${line_dict1}${line_dict2}"
+              search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
             fi
 
             echo "${output}" | grep -F "${search}" &>/dev/null
@@ -3148,7 +3626,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha1_aes_${keySize}.img\" --hash sha1 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3157,7 +3635,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha1_serpent_${keySize}.img\" --hash sha1 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3166,7 +3644,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha1_twofish_${keySize}.img\" --hash sha1 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3175,7 +3653,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha256_aes_${keySize}.img\" --hash sha256 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3184,7 +3662,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha256_serpent_${keySize}.img\" --hash sha256 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3193,7 +3671,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha256_twofish_${keySize}.img\" --hash sha256 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3202,7 +3680,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha512_aes_${keySize}.img\" --hash sha512 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3211,7 +3689,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha512_serpent_${keySize}.img\" --hash sha512 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3220,7 +3698,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha512_twofish_${keySize}.img\" --hash sha512 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3229,7 +3707,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_ripemd160_aes_${keySize}.img\" --hash ripemd160 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3238,7 +3716,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_ripemd160_serpent_${keySize}.img\" --hash ripemd160 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3247,7 +3725,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_ripemd160_twofish_${keySize}.img\" --hash ripemd160 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3256,7 +3734,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_whirlpool_aes_${keySize}.img\" --hash whirlpool --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3265,7 +3743,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_whirlpool_serpent_${keySize}.img\" --hash whirlpool --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3274,7 +3752,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_whirlpool_twofish_${keySize}.img\" --hash whirlpool --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3316,6 +3794,685 @@ function cryptoloop_test()
   fi
 }
 
+# Real-container generation for TrueCrypt, VeraCrypt and LUKS1, the -g
+# counterpart of what gpg_test, pkzip_test and rar_test do for their formats.
+# Each one builds the volume with the tool that owns the format, and the
+# existing truecrypt_test, veracrypt_test and luks_test then run against it
+# unchanged, because -g only points TC_TESTS_DIR, VC_TESTS_DIR and
+# LUKS_TESTS_DIR at the directory these functions fill.
+#
+# What each needs:
+#
+#   VeraCrypt : the veracrypt console build. No privileges, it writes the whole
+#               volume itself. 1.26 dropped RIPEMD-160 for new volumes, so
+#               VERACRYPT_BIN pointed at a 1.25.9 or older build is what covers
+#               the RIPEMD-160 modes; a newer one skips them and says so.
+#               No version can write a TrueCrypt volume: -tc/--truecrypt is a
+#               mount-time compatibility flag, never a creation mode.
+#   TrueCrypt : tcplay, plus a loop device and a pty, so sudo and expect. The
+#               format has no free creator left; tcplay is the only one.
+#   LUKS1     : cryptsetup, plus sudo. Writing the header needs no privileges,
+#               but hashcat verifies a LUKS candidate by decrypting the payload
+#               and recognizing a filesystem, so the volume has to be opened and
+#               formatted, and that is device-mapper.
+#
+# Installing what is not packaged:
+#
+#   sudo apt install tcplay expect cryptsetup
+#
+#   # veracrypt is not in any distribution; the console build is a .deb
+#   curl -LO https://launchpad.net/veracrypt/trunk/1.26.24/+download/veracrypt-console-1.26.24-Ubuntu-24.04-amd64.deb
+#   sudo apt install ./veracrypt-console-1.26.24-Ubuntu-24.04-amd64.deb
+#
+#   # 1.26 refuses to create RIPEMD-160 volumes, so the RIPEMD-160 modes need an
+#   # older build. Unpack it beside the current one rather than replacing it,
+#   # and point VERACRYPT_BIN at it only for those runs:
+#   curl -LO https://launchpad.net/veracrypt/trunk/1.25.9/+download/veracrypt-console-1.25.9-Ubuntu-20.04-amd64.deb
+#   dpkg-deb -x veracrypt-console-1.25.9-Ubuntu-20.04-amd64.deb "${HOME}/veracrypt-1.25.9"
+#   VERACRYPT_BIN="${HOME}/veracrypt-1.25.9/usr/bin/veracrypt" ./tools/test.sh -m 13711 -g
+#
+# VERACRYPT_BIN, TCPLAY_BIN and CRYPTSETUP_BIN override the binaries if they
+# live somewhere else.
+
+function container_password()
+{
+  # The password every -g container is built with, from tools/test.pl, which is the same
+  # generator the oracle passwords come from. So a container carries a euro sign, kana or a CJK
+  # character too, and cracking one proves the whole path end to end against a real volume
+  # rather than against a hash test.pl computed itself.
+  #
+  # Mode 0 is asked for it rather than the mode under test, because one -g run covers many
+  # modes and builds its containers with one password. 0 pins no charset and does no UTF-16, so
+  # the generator is free to substitute. Twelve bytes because a multi byte character needs room,
+  # and seven, the length of 'hashcat', does not leave any.
+
+  # A container is a real artifact, so it carries whatever encoding the application wrote and
+  # the optimized path cannot match a multi byte one. A genuine 7-Zip archive built with a euro
+  # sign in its password cracks under -P and is not found under -O, which is the documented
+  # limitation rather than a bug in the test. An -O run therefore builds its containers out of
+  # ASCII; the oracle passwords still carry the characters, through $PW_CHARSET.
+
+  if [[ "${OPTIMIZED}" -eq 1 ]]; then
+    NO_NON_ASCII=1 perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+  else
+    perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+  fi
+}
+
+function container_mask_from_password()
+{
+  # The mask the container tests search: the password with one digit replaced by ?d, so the run
+  # has ten candidates to walk rather than being handed the answer. Every other byte goes in as
+  # a literal, which is what lets a multi byte character sit anywhere in the password.
+  #
+  # $1 = the password, $2 = 'last' or 'first', which digit to give up. The TrueCrypt and LUKS
+  # tests want it near the end and the VeraCrypt tests want it near the start, which is what
+  # 'hashca?l' and 'hashc?lt' used to say.
+
+  local cm_pw="$1"
+  local cm_where="${2:-last}"
+  local cm_len=${#cm_pw}
+  local cm_i
+
+  if [ "${cm_where}" = "first" ]; then
+    for ((cm_i = 0; cm_i < cm_len; cm_i++)); do
+      case "${cm_pw:${cm_i}:1}" in
+        [0-9]) printf '%s?d%s' "${cm_pw:0:${cm_i}}" "${cm_pw:$((cm_i + 1))}"; return ;;
+      esac
+    done
+  else
+    for ((cm_i = cm_len - 1; cm_i >= 0; cm_i--)); do
+      case "${cm_pw:${cm_i}:1}" in
+        [0-9]) printf '%s?d%s' "${cm_pw:0:${cm_i}}" "${cm_pw:$((cm_i + 1))}"; return ;;
+      esac
+    done
+  fi
+
+  # no digit at all, so nothing to search: hand back the password and let the run confirm it
+
+  printf '%s' "${cm_pw}"
+}
+
+function utf8_split_point()
+{
+  # Move a split offset back until it lands on a UTF-8 character boundary, and print the
+  # result. -a 1, -a 6 and -a 7 hand the word and the mask to the kernel as two buffers and
+  # the UTF-16 modes convert each of them on its own, so a character cut in half is two
+  # invalid fragments and the candidate is dropped. Both halves have to be valid UTF-8 by
+  # themselves for those attacks to spell a multi byte password at all.
+  #
+  # $1 = the password, $2 = the wanted offset in bytes, counting from 0
+
+  local up_text="$1"
+  local up_off="$2"
+  local up_back="${up_off}"
+  local up_len=${#up_text}
+
+  while [ "${up_back}" -gt 0 ]; do
+    case "${up_text:${up_back}:1}" in
+      # 0x80 to 0xbf is a continuation byte, so the offset sits inside a character
+      [$'\x80'-$'\xbf']) up_back=$((up_back - 1)) ;;
+      *)                  break ;;
+    esac
+  done
+
+  # Moving back is the right answer unless it lands on 0 while the caller asked for a real
+  # split, which happens when a character sits at the very start of the password. An empty
+  # half is not a candidate the combinator and hybrid attacks can use, so go the other way
+  # and take the first boundary after the offset instead.
+
+  if [ "${up_back}" -eq 0 ] && [ "${up_off}" -gt 0 ]; then
+    while [ "${up_off}" -lt "${up_len}" ]; do
+      case "${up_text:${up_off}:1}" in
+        [$'\x80'-$'\xbf']) up_off=$((up_off + 1)) ;;
+        *)                  break ;;
+      esac
+    done
+
+    printf '%s' "${up_off}"
+
+    return
+  fi
+
+  printf '%s' "${up_back}"
+}
+
+function mask_positions()
+{
+  # How many password bytes a mask covers. A '?x' group is one, any other character is one.
+
+  local mp_mask="$1"
+  local mp_i=0
+  local mp_n=0
+
+  while [ ${mp_i} -lt ${#mp_mask} ]; do
+    if [ "${mp_mask:${mp_i}:1}" = "?" ]; then
+      mp_i=$((mp_i + 2))
+    else
+      mp_i=$((mp_i + 1))
+    fi
+
+    mp_n=$((mp_n + 1))
+  done
+
+  printf '%s' "${mp_n}"
+}
+
+function mask_dots()
+{
+  # A mask of <count> '?d' groups, the shape the suite has always used for a run of digits.
+
+  local md_count="$1"
+  local md_out=""
+  local md_i
+
+  for ((md_i = 0; md_i < md_count; md_i++)); do
+    md_out="${md_out}?d"
+  done
+
+  printf '%s' "${md_out}"
+}
+
+function mask_literalize()
+{
+  # Rewrite a mask so that every position it covers spells the byte that belongs there. The
+  # generated passwords used to be digits from end to end, which is what makes a mask of '?d'
+  # groups work; tools/test.pl can now seed them with multi byte UTF-8, and no '?d' produces a
+  # byte above 0x7f. Those positions become literals, which costs the attack keyspace it was
+  # never searching anyway.
+  #
+  # $1 = the mask, $2 = the exact bytes the mask has to spell. The mask is returned untouched
+  # unless it covers exactly that many bytes, so a caller that hands over the wrong slice, a
+  # mode with its own mask layout for instance, changes nothing.
+
+  local ml_mask="$1"
+  local ml_text="$2"
+
+  local ml_len=${#ml_mask}
+  local ml_pos=0
+  local ml_cnt=0
+  local ml_out=""
+  local ml_tok
+  local ml_byte
+
+  # count the positions first, a '?x' group covers one byte and anything else covers one byte
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_cnt=$((ml_cnt + 1))
+  done
+
+  if [ ${ml_cnt} -ne ${#ml_text} ]; then
+    printf '%s' "${ml_mask}"
+    return
+  fi
+
+  ml_pos=0
+  ml_cnt=0
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_tok="${ml_mask:${ml_pos}:2}"
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_tok="${ml_mask:${ml_pos}:1}"
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_byte="${ml_text:${ml_cnt}:1}"
+    ml_cnt=$((ml_cnt + 1))
+
+    case "${ml_byte}" in
+      [0-9]) ml_out="${ml_out}${ml_tok}"  ;;
+      *)     ml_out="${ml_out}${ml_byte}" ;;
+    esac
+  done
+
+  printf '%s' "${ml_out}"
+}
+
+function container_gen_dir()
+{
+  # Generated volumes go under the run's own output directory, so they never
+  # land next to, or on top of, the ones committed to the tree.
+  local cg_dir="${OUTD}/${1}"
+
+  mkdir -p "${cg_dir}"
+
+  echo "${cg_dir}"
+}
+
+function copy_container_dir()
+{
+  # The container test volumes a package needs are not all in the tree: the luks
+  # ones are fetched on demand, so a run that tested no luks mode has none to
+  # give. Say so rather than letting cp report it, and copy into a directory the
+  # run may already have created for the family it did test.
+  local cc_src="${1}"
+  local cc_dst="${2}"
+  local cc_name="${3}"
+
+  if [ -z "$(ls -A "${cc_src}" 2>/dev/null)" ]; then
+    echo "ATTENTION: no ${cc_name} test files in ${cc_src}, the package will not carry them."
+
+    return
+  fi
+
+  mkdir -p "${cc_dst}"
+
+  cp "${cc_src}"/* "${cc_dst}/"
+}
+
+function vc_encryption_name()
+{
+  # test.sh spells a cascade "aes-twofish-serpent"; veracrypt spells the same
+  # thing "AES(Twofish(Serpent))".
+  local ve_cascade="$1"
+  local ve_out=""
+  local ve_close=""
+  local ve_part
+
+  local IFS='-'
+
+  for ve_part in ${ve_cascade}; do
+    case "${ve_part}" in
+      aes)        ve_part="AES" ;;
+      serpent)    ve_part="Serpent" ;;
+      twofish)    ve_part="Twofish" ;;
+      camellia)   ve_part="Camellia" ;;
+      kuznyechik) ve_part="Kuznyechik" ;;
+      *)          return 1 ;;
+    esac
+
+    if [ -z "${ve_out}" ]; then
+      ve_out="${ve_part}"
+    else
+      ve_out="${ve_out}(${ve_part}"
+      ve_close="${ve_close})"
+    fi
+  done
+
+  echo "${ve_out}${ve_close}"
+}
+
+function veracrypt_generate()
+{
+  # $1 = hash, $2 = cipher cascade, $3 = target file
+  local vg_hash="$1"
+  local vg_cascade="$2"
+  local vg_file="$3"
+
+  local VERACRYPT_BIN="${VERACRYPT_BIN:-veracrypt}"
+
+  if ! command -v "${VERACRYPT_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "veracrypt not found, so no VeraCrypt volume can be generated (set VERACRYPT_BIN=/path/to/veracrypt)"
+    return 1
+  fi
+
+  local vg_encryption
+
+  vg_encryption="$(vc_encryption_name "${vg_cascade}")"
+
+  if [ -z "${vg_encryption}" ]; then
+    record_skip "${hash_type}" "no veracrypt name for cipher cascade ${vg_cascade}"
+    return 1
+  fi
+
+  rm -f "${vg_file}"
+
+  # 1 MiB is over VeraCrypt's minimum and keeps generation to a moment; hashcat
+  # only ever reads the header.
+  LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${VERACRYPT_BIN}" --text --create "${vg_file}" \
+    --size=1M \
+    --password="${CONTAINER_PASSWORD}" \
+    --volume-type=normal \
+    --encryption="${vg_encryption}" \
+    --hash="${vg_hash}" \
+    --filesystem=none \
+    --pim=0 \
+    --keyfiles= \
+    --random-source=/dev/urandom \
+    --non-interactive >/dev/null 2>&1
+
+  if [ ! -s "${vg_file}" ]; then
+    rm -f "${vg_file}"
+
+    if [ "${vg_hash}" = "ripemd160" ]; then
+      # Whether this works depends on the binary rather than on the combination:
+      # VeraCrypt 1.26 dropped RIPEMD-160 for new volumes, 1.25.9 still writes
+      # them, so the message names the way out rather than calling it unsupported.
+      record_skip "${hash_type}" "${VERACRYPT_BIN} will not create RIPEMD-160 volumes; 1.26 dropped them, so point VERACRYPT_BIN at a 1.25.9 or older build to cover these"
+    else
+      record_skip "${hash_type}" "veracrypt refused ${vg_hash} + ${vg_encryption}, which is not a combination it supports"
+    fi
+
+    return 1
+  fi
+
+  return 0
+}
+
+function truecrypt_container_name()
+{
+  # The container each (mode, tcMode) pair wants, as <prf>_<cascade> with _boot
+  # appended for the system-encryption variants. The case statement inside
+  # truecrypt_test() spells the same thing out file by file; this is the same
+  # mapping in the form generation needs, one step ahead of it.
+  # $1 = hashType, $2 = tcMode
+  local tn_type="$1"
+  local tn_mode="$2"
+
+  local tn_group="${tn_type: -2:1}"   # 1 ripemd160, 2 sha512, 3 whirlpool, 4 ripemd160 boot
+  local tn_count="${tn_type: -1:1}"   # ciphers in the cascade
+
+  local tn_prf
+  local tn_boot=""
+
+  case "${tn_group}" in
+    1) tn_prf="ripemd160" ;;
+    2) tn_prf="sha512" ;;
+    3) tn_prf="whirlpool" ;;
+    4) tn_prf="ripemd160"; tn_boot="_boot" ;;
+    *) return 1 ;;
+  esac
+
+  local tn_cascade
+
+  case "${tn_count}${tn_mode}" in
+    10) tn_cascade="aes" ;;
+    11) tn_cascade="serpent" ;;
+    12) tn_cascade="twofish" ;;
+    20) tn_cascade="aes-twofish" ;;
+    21) tn_cascade="serpent-aes" ;;
+    22) tn_cascade="twofish-serpent" ;;
+    30) tn_cascade="aes-twofish-serpent" ;;
+    31) tn_cascade="serpent-twofish-aes" ;;
+    *) return 1 ;;
+  esac
+
+  echo "${tn_prf}_${tn_cascade}${tn_boot}"
+}
+
+function truecrypt_generate()
+{
+  # $1 = prf, $2 = cipher cascade, $3 = target file
+  local tg_prf="$1"
+  local tg_cascade="$2"
+  local tg_file="$3"
+
+  local TCPLAY_BIN="${TCPLAY_BIN:-tcplay}"
+
+  if ! command -v "${TCPLAY_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "tcplay not found, so no TrueCrypt volume can be generated (apt install tcplay, or set TCPLAY_BIN=...)"
+    return 1
+  fi
+
+  if ! command -v expect >/dev/null 2>&1; then
+    record_skip "${hash_type}" "expect not found, and tcplay reads its passphrase from a terminal (apt install expect)"
+    return 1
+  fi
+
+  local tg_prf_name
+
+  case "${tg_prf}" in
+    ripemd160) tg_prf_name="RIPEMD160" ;;
+    sha512)    tg_prf_name="SHA512" ;;
+    whirlpool) tg_prf_name="whirlpool" ;;
+    *)
+      record_skip "${hash_type}" "tcplay has no PBKDF PRF for ${tg_prf}"
+      return 1
+      ;;
+  esac
+
+  # tcplay names a cascade innermost first, TrueCrypt names it outermost first,
+  # so these are the same chains read from opposite ends.
+  local tg_cipher
+
+  case "${tg_cascade}" in
+    aes)                 tg_cipher="AES-256-XTS" ;;
+    serpent)             tg_cipher="SERPENT-256-XTS" ;;
+    twofish)             tg_cipher="TWOFISH-256-XTS" ;;
+    aes-twofish)         tg_cipher="TWOFISH-256-XTS,AES-256-XTS" ;;
+    serpent-aes)         tg_cipher="AES-256-XTS,SERPENT-256-XTS" ;;
+    twofish-serpent)     tg_cipher="SERPENT-256-XTS,TWOFISH-256-XTS" ;;
+    aes-twofish-serpent) tg_cipher="SERPENT-256-XTS,TWOFISH-256-XTS,AES-256-XTS" ;;
+    serpent-twofish-aes) tg_cipher="AES-256-XTS,TWOFISH-256-XTS,SERPENT-256-XTS" ;;
+    *)
+      record_skip "${hash_type}" "tcplay has no cipher chain for ${tg_cascade}"
+      return 1
+      ;;
+  esac
+
+  local tg_expect="${OUTD}/tcplay_create.exp"
+
+  cat > "${tg_expect}" << 'EXPECT_EOF'
+set timeout 600
+set dev  [lindex $argv 0]
+set pass [lindex $argv 1]
+set prf  [lindex $argv 2]
+set ciph [lindex $argv 3]
+set bin  [lindex $argv 4]
+spawn $bin --create --device=$dev --cipher=$ciph --pbkdf-prf=$prf --insecure-erase --weak-keys
+expect "Passphrase:"        { send "$pass\r" }
+expect "Repeat passphrase:" { send "$pass\r" }
+expect "(y/n)"              { send "y\r" }
+expect eof
+catch wait result
+exit [lindex $result 3]
+EXPECT_EOF
+
+  rm -f "${tg_file}"
+
+  # tcplay writes only the header, which is all hashcat reads, but it insists on
+  # a block device
+  truncate -s 2M "${tg_file}" 2>/dev/null
+
+  local tg_loop
+
+  tg_loop=$(sudo losetup --show -f "${tg_file}" 2>/dev/null)
+
+  if [ -z "${tg_loop}" ]; then
+    rm -f "${tg_file}"
+
+    record_skip "${hash_type}" "could not attach a loop device, which tcplay needs (sudo losetup)"
+    return 1
+  fi
+
+  sudo LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" expect "${tg_expect}" "${tg_loop}" "${CONTAINER_PASSWORD}" "${tg_prf_name}" "${tg_cipher}" "${TCPLAY_BIN}" >/dev/null 2>&1
+
+  local tg_rc=$?
+
+  sudo losetup -d "${tg_loop}" 2>/dev/null
+
+  if [ "${tg_rc}" -ne 0 ] || [ ! -s "${tg_file}" ]; then
+    rm -f "${tg_file}"
+
+    record_skip "${hash_type}" "tcplay could not create a ${tg_prf} + ${tg_cascade} volume"
+    return 1
+  fi
+
+  return 0
+}
+
+function luks1_generate()
+{
+  # $1 = hash, $2 = cipher, $3 = chain mode, $4 = key size, $5 = target file
+  local lg_hash="$1"
+  local lg_cipher="$2"
+  local lg_mode="$3"
+  local lg_keysize="$4"
+  local lg_file="$5"
+
+  local CRYPTSETUP_BIN="${CRYPTSETUP_BIN:-cryptsetup}"
+
+  if ! command -v "${CRYPTSETUP_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "cryptsetup not found, so no LUKS1 container can be generated"
+    return 1
+  fi
+
+  # cbc-essiv is written cbc-essiv:sha256 in a cryptsetup cipher spec
+  local lg_chain="${lg_mode}"
+
+  if [ "${lg_mode}" = "cbc-essiv" ]; then
+    lg_chain="cbc-essiv:sha256"
+  fi
+
+  local lg_name="luksgen$$_${lg_keysize}"
+
+  rm -f "${lg_file}"
+
+  truncate -s 20M "${lg_file}" 2>/dev/null
+
+  # 1000 is cryptsetup's floor, and the point here is to test the format rather
+  # than to wait for a realistic KDF
+  if ! sudo "${CRYPTSETUP_BIN}" luksFormat \
+      --batch-mode \
+      --type luks1 \
+      --cipher "${lg_cipher}-${lg_chain}" \
+      --key-size "${lg_keysize}" \
+      --hash "${lg_hash}" \
+      --pbkdf-force-iterations 1000 \
+      "${lg_file}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${lg_file}"
+
+    record_skip "${hash_type}" "cryptsetup refused ${lg_hash} + ${lg_cipher}-${lg_chain} at ${lg_keysize} bits"
+    return 1
+  fi
+
+  # hashcat recognizes a correct LUKS password by the filesystem it uncovers, so
+  # the payload has to be a filesystem and not just bytes
+  if ! sudo "${CRYPTSETUP_BIN}" open "${lg_file}" "${lg_name}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${lg_file}"
+
+    record_skip "${hash_type}" "could not open the generated ${lg_hash} + ${lg_cipher}-${lg_chain} container (device-mapper needs sudo)"
+    return 1
+  fi
+
+  sudo mkfs.ext4 -q "/dev/mapper/${lg_name}" >/dev/null 2>&1
+
+  sudo "${CRYPTSETUP_BIN}" close "${lg_name}" >/dev/null 2>&1
+
+  if [ ! -s "${lg_file}" ]; then
+    record_skip "${hash_type}" "the generated ${lg_hash} + ${lg_cipher}-${lg_chain} container came out empty"
+    return 1
+  fi
+
+  # luks_test reads the password out of a file named pw next to the containers,
+  # the same way the downloaded set ships one
+  echo "${CONTAINER_PASSWORD}" > "$(dirname "${lg_file}")/pw"
+
+  return 0
+}
+
+function luks2_generate()
+{
+  # $1 = cipher mode, $2 = key size, $3 = target file
+  local l2_mode="$1"
+  local l2_keysize="$2"
+  local l2_file="$3"
+
+  local CRYPTSETUP_BIN="${CRYPTSETUP_BIN:-cryptsetup}"
+
+  if ! command -v "${CRYPTSETUP_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "cryptsetup not found, so no LUKS2 container can be generated"
+    return 1
+  fi
+
+  # cbc-essiv is written cbc-essiv:sha256 in a cryptsetup cipher spec
+  local l2_chain="${l2_mode}"
+
+  if [ "${l2_mode}" = "cbc-essiv" ]; then
+    l2_chain="cbc-essiv:sha256"
+  fi
+
+  local l2_name="luks2gen$$_${l2_keysize}"
+
+  rm -f "${l2_file}"
+
+  # LUKS2 keeps a 16 MiB metadata area of its own, so the file has to be larger
+  # than the 20 MiB a LUKS1 container gets or there is no room for a filesystem
+  truncate -s 48M "${l2_file}" 2>/dev/null
+
+  # t=4, m=16 MiB, p=1: the smallest argon2id the format is still itself at, and
+  # the same shape as the luks2-aes-argon2id-t4-m16-p1 container hashcat.net
+  # ships. The point is to test the format rather than to wait for a KDF.
+  if ! sudo "${CRYPTSETUP_BIN}" luksFormat \
+      --batch-mode \
+      --type luks2 \
+      --cipher "aes-${l2_chain}" \
+      --key-size "${l2_keysize}" \
+      --hash sha256 \
+      --pbkdf argon2id \
+      --pbkdf-force-iterations 4 \
+      --pbkdf-memory 16384 \
+      --pbkdf-parallel 1 \
+      "${l2_file}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${l2_file}"
+
+    record_skip "${hash_type}" "cryptsetup refused aes-${l2_chain} at ${l2_keysize} bits for LUKS2"
+    return 1
+  fi
+
+  # hashcat recognizes a correct LUKS password by the filesystem it uncovers, so
+  # the payload has to be a filesystem and not just bytes
+  if ! sudo "${CRYPTSETUP_BIN}" open "${l2_file}" "${l2_name}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${l2_file}"
+
+    record_skip "${hash_type}" "could not open the generated aes-${l2_chain} LUKS2 container (device-mapper needs sudo)"
+    return 1
+  fi
+
+  sudo mkfs.ext4 -q "/dev/mapper/${l2_name}" >/dev/null 2>&1
+
+  sudo "${CRYPTSETUP_BIN}" close "${l2_name}" >/dev/null 2>&1
+
+  if [ ! -s "${l2_file}" ]; then
+    record_skip "${hash_type}" "the generated aes-${l2_chain} LUKS2 container came out empty"
+    return 1
+  fi
+
+  # luks2_test reads the password out of a file named pw next to the containers,
+  # the same way the downloaded set ships one
+  echo "${CONTAINER_PASSWORD}" > "$(dirname "${l2_file}")/pw"
+
+  return 0
+}
+
+function luks2_generate_set()
+{
+  # The combinations mode 34100 accepts: aes only, and a key size the chain mode
+  # can carry. xts splits the key in two, so it needs twice the bits.
+  local l2_mode
+  local l2_keysize
+  local l2_file
+
+  for l2_mode in cbc-essiv cbc-plain64 xts-plain64; do
+    for l2_keysize in 128 256 512; do
+
+      case "${l2_mode}" in
+        cbc-essiv|cbc-plain64)
+          [ "${l2_keysize}" -eq 512 ] && continue
+          ;;
+        xts-plain64)
+          [ "${l2_keysize}" -eq 128 ] && continue
+          ;;
+      esac
+
+      l2_file="${LUKS2_TESTS_DIR}/luks2-aes-argon2id-t4-m16-p1-${l2_mode}-${l2_keysize}.img"
+
+      [ -f "${l2_file}" ] && continue
+
+      luks2_generate "${l2_mode}" "${l2_keysize}" "${l2_file}"
+
+    done
+  done
+}
+
 function truecrypt_test()
 {
   hashType=$1
@@ -3325,18 +4482,37 @@ function truecrypt_test()
   mkdir -p ${OUTD}/tc_tests
   chmod u+x "${TDIR}/truecrypt2hashcat.py"
 
+  # -g builds the volume before the case statement below reaches for it, because
+  # the 293xx branches extract the hash the moment they are evaluated.
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+    tcName=$(truecrypt_container_name "${hashType}" "${tcMode}")
+
+    if [ -n "${tcName}" ]; then
+      tcContainer="${TC_TESTS_DIR}/hashcat_${tcName}.tc"
+
+      if [ ! -f "${tcContainer}" ]; then
+        if [ "$(echo "${tcName}" | cut -d_ -f3)" = "boot" ]; then
+          record_skip "${hash_type}" "tcplay cannot create system-encryption (boot) volumes, so those stay on the containers in the tree"
+          return
+        fi
+
+        truecrypt_generate "$(echo "${tcName}" | cut -d_ -f1)" "$(echo "${tcName}" | cut -d_ -f2)" "${tcContainer}" || return
+      fi
+    fi
+  fi
+
   case $hashType in
 
     6211)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TDIR}/tc_tests/hashcat_ripemd160_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TDIR}/tc_tests/hashcat_ripemd160_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TDIR}/tc_tests/hashcat_ripemd160_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3344,13 +4520,13 @@ function truecrypt_test()
     6212)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TDIR}/tc_tests/hashcat_ripemd160_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3358,10 +4534,10 @@ function truecrypt_test()
     6213)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TDIR}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3369,13 +4545,13 @@ function truecrypt_test()
     6221)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TDIR}/tc_tests/hashcat_sha512_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_aes.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TDIR}/tc_tests/hashcat_sha512_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_serpent.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TDIR}/tc_tests/hashcat_sha512_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_twofish.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3383,13 +4559,13 @@ function truecrypt_test()
     6222)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TDIR}/tc_tests/hashcat_sha512_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TDIR}/tc_tests/hashcat_sha512_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TDIR}/tc_tests/hashcat_sha512_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3397,10 +4573,10 @@ function truecrypt_test()
     6223)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TDIR}/tc_tests/hashcat_sha512_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TDIR}/tc_tests/hashcat_sha512_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3408,13 +4584,13 @@ function truecrypt_test()
     6231)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TDIR}/tc_tests/hashcat_whirlpool_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TDIR}/tc_tests/hashcat_whirlpool_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TDIR}/tc_tests/hashcat_whirlpool_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3422,13 +4598,13 @@ function truecrypt_test()
     6232)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TDIR}/tc_tests/hashcat_whirlpool_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TDIR}/tc_tests/hashcat_whirlpool_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3436,10 +4612,10 @@ function truecrypt_test()
     6233)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TDIR}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3447,13 +4623,13 @@ function truecrypt_test()
     6241)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TDIR}/tc_tests/hashcat_ripemd160_aes_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TDIR}/tc_tests/hashcat_ripemd160_serpent_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TDIR}/tc_tests/hashcat_ripemd160_twofish_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3461,10 +4637,10 @@ function truecrypt_test()
     6242)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3472,7 +4648,7 @@ function truecrypt_test()
     6243)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3480,16 +4656,16 @@ function truecrypt_test()
     29311)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_aes.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3497,16 +4673,16 @@ function truecrypt_test()
     29312)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3514,12 +4690,12 @@ function truecrypt_test()
     29313)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3527,16 +4703,16 @@ function truecrypt_test()
     29321)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_aes.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_serpent.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_twofish.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_twofish.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3544,16 +4720,16 @@ function truecrypt_test()
     29322)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3561,12 +4737,12 @@ function truecrypt_test()
     29323)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3574,16 +4750,16 @@ function truecrypt_test()
     29331)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_aes.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3591,16 +4767,16 @@ function truecrypt_test()
     29332)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3608,12 +4784,12 @@ function truecrypt_test()
     29333)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3621,16 +4797,16 @@ function truecrypt_test()
     29341)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash' ${CONTAINER_MASK}"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3638,12 +4814,12 @@ function truecrypt_test()
     29342)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash' ${CONTAINER_MASK}"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3651,8 +4827,8 @@ function truecrypt_test()
     29343)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29343 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash' hashca?l"
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29343 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3741,22 +4917,26 @@ function veracrypt_test()
 
   [ -n "$cipher_cascade" ] || return
 
-  filename="${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc"
+  filename="${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc"
+
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ ! -f "${filename}" ]; then
+    veracrypt_generate "${hash_function}" "${cipher_cascade}" "${filename}" || return
+  fi
 
   # The hash-cipher combination might be invalid (e.g. RIPEMD-160 + Kuznyechik)
   [ -f "${filename}" ] || return
 
   case "${hash_type:0:3}" in
     137)
-      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${filename}' hashc?lt"
+      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${filename}' ${CONTAINER_MASK_MID}"
       ;;
 
     294)
       mkdir -p ${OUTD}/vc_tests
       chmod u+x "${TDIR}/veracrypt2hashcat.py"
 
-      eval \"${TDIR}/veracrypt2hashcat.py\" \"${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash
-      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash' hashc?lt"
+      eval \"${TDIR}/veracrypt2hashcat.py\" \"${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash
+      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash' ${CONTAINER_MASK_MID}"
       ;;
   esac
 
@@ -3915,59 +5095,71 @@ function luks_test()
       luksPassPartFile1="${OUTD}/${hashType}_dict1"
       luksPassPartFile2="${OUTD}/${hashType}_dict2"
 
-      luksContainer="${TDIR}/luks_tests/hashcat_${luksHash}_${luksCipher}_${luksMode}_${luksKeySize}.luks"
+      luksContainer="${LUKS_TESTS_DIR}/hashcat_${luksHash}_${luksCipher}_${luksMode}_${luksKeySize}.luks"
       luksHashFile="${OUTD}/luks_tests/hashcat_${luksHash}_${luksCipher}_${luksMode}_${luksKeySize}.hash"
 
       case $attackType in
         0)
-          CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${TDIR}/luks_tests/pw'"
+          CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS_TESTS_DIR}/pw'"
           ;;
         1)
-          luksPassPart1Len=$((${#LUKS_PASSWORD} / 2))
-          luksPassPart2Start=$((luksPassPart1Len + 1))
+          luksSplit=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} / 2)))
 
-          echo "${LUKS_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
-          echo "${LUKS_PASSWORD}" | cut -c${luksPassPart2Start}- > "${luksPassPartFile2}" 2>/dev/null
+          printf '%s\n' "${CONTAINER_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+          printf '%s\n' "${CONTAINER_PASSWORD:${luksSplit}}"   > "${luksPassPartFile2}" 2>/dev/null
 
           CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksPassPartFile2}"
           ;;
         3)
-          luksMaskFixedLen=$((${#LUKS_PASSWORD} - 1))
-
-          luksMask="$(echo "${LUKS_PASSWORD}" | cut -c-${luksMaskFixedLen} 2>/dev/null)"
-          luksMask="${luksMask}${luksMainMask}"
+          luksMask="$(container_mask_from_password "${CONTAINER_PASSWORD}" last)"
 
           CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luksHashFile}' ${luksMask}"
           ;;
         6)
-          luksPassPart1Len=$((${#LUKS_PASSWORD} - 1))
+          luksSplit=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} - 1)))
 
-          echo "${LUKS_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
+          printf '%s\n' "${CONTAINER_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+          luksMask="$(container_mask_from_password "${CONTAINER_PASSWORD:${luksSplit}}" last)"
 
           CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksMask}"
           ;;
         7)
-          echo "${LUKS_PASSWORD}" | cut -c2- > "${luksPassPartFile1}" 2>/dev/null
+          luksSplit=$(utf8_split_point "${CONTAINER_PASSWORD}" 1)
+          luksSplit=$((luksSplit > 0 ? luksSplit : 1))
+
+          printf '%s\n' "${CONTAINER_PASSWORD:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+          luksMask="$(container_mask_from_password "${CONTAINER_PASSWORD:0:${luksSplit}}" first)"
 
           CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luksHashFile}' ${luksMask} ${luksPassPartFile1}"
           ;;
       esac
 
+      if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ ! -f "${luksContainer}" ]; then
+        luks1_generate "${luksHash}" "${luksCipher}" "${luksMode}" "${luksKeySize}" "${luksContainer}" || continue
+      fi
+
+      if [ ! -f "${luksContainer}" ]; then
+        record_skip "${hash_type}" "no container for ${luksHash} ${luksCipher} ${luksMode} at ${luksKeySize} bits"
+        continue
+      fi
+
       eval \"${TDIR}/luks2hashcat.py\" \"${luksContainer}\" > "${luksHashFile}"
 
-      luksMode="${luksHash}-${luksCipher}-${luksMode}-${luksKeySize}"
+      # A separate name for the label. Writing it back into luksMode used to
+      # clobber the loop variable, so the next key size never matched the filter
+      # above and every chain mode was tested at one key size instead of the two
+      # or three it has.
+      luksLabel="${luksHash}-${luksCipher}-${luksMode}-${luksKeySize}"
 
       if [ -n "${CMD}" ] && [ ${#CMD} -gt 5 ]; then
-        echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+        echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksLabel}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-        if [ -f "${luks_first_test_file}" ]; then
-          output=$(eval ${CMD} 2>&1)
-          ret=${?}
+        output=$(eval ${CMD} 2>&1)
+        ret=${?}
 
-          echo "${output}" >> "${OUTD}/logfull.txt"
-        else
-          ret=30
-        fi
+        echo "${output}" >> "${OUTD}/logfull.txt"
 
         e_ce=0
         e_rs=0
@@ -3992,7 +5184,7 @@ function luks_test()
           msg="Warning"
         fi
 
-        echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksMode} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+        echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksLabel} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
         status ${ret}
       fi
@@ -4018,7 +5210,6 @@ function luks_legacy_test()
   LUKS_CIPHER_MODES="cbc-essiv cbc-plain64 xts-plain64"
   LUKS_KEYSIZES="128 256 512"
 
-  LUKS_PASSWORD=$(cat "${TDIR}/luks_tests/pw" 2>/dev/null)
 
   for luks_h in ${LUKS_HASHES}; do
     for luks_c in ${LUKS_CIPHERS}; do
@@ -4060,7 +5251,7 @@ function luks_legacy_test()
           esac
 
           luks_mode="${luks_h}-${luks_c}-${luks_m}-${luks_k}"
-          luks_file="${TDIR}/luks_tests/hashcat_${luks_h}_${luks_c}_${luks_m}_${luks_k}.luks"
+          luks_file="${LUKS_TESTS_DIR}/hashcat_${luks_h}_${luks_c}_${luks_m}_${luks_k}.luks"
           luks_main_mask="?l"
           luks_mask="${luks_main_mask}"
 
@@ -4070,34 +5261,37 @@ function luks_legacy_test()
 
           case $attackType in
             0)
-              CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luks_file}' '${TDIR}/luks_tests/pw'"
+              CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luks_file}' '${LUKS_TESTS_DIR}/pw'"
               ;;
             1)
-              luks_pass_part1_len=$((${#LUKS_PASSWORD} / 2))
-              luks_pass_part2_start=$((luks_pass_part1_len + 1))
+              luks_split=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} / 2)))
 
-              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
-              echo "${LUKS_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}" 2>/dev/null
+              printf '%s\n' "${CONTAINER_PASSWORD:0:${luks_split}}" > "${luks_pass_part_file1}" 2>/dev/null
+              printf '%s\n' "${CONTAINER_PASSWORD:${luks_split}}"   > "${luks_pass_part_file2}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luks_file}' ${luks_pass_part_file1} ${luks_pass_part_file2}"
               ;;
             3)
-              luks_mask_fixed_len=$((${#LUKS_PASSWORD} - 1))
-
-              luks_mask="$(echo "${LUKS_PASSWORD}" | cut -c-${luks_mask_fixed_len} 2>/dev/null)"
-              luks_mask="${luks_mask}${luks_main_mask}"
+              luks_mask="$(container_mask_from_password "${CONTAINER_PASSWORD}" last)"
 
               CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luks_file}' ${luks_mask}"
               ;;
             6)
-              luks_pass_part1_len=$((${#LUKS_PASSWORD} - 1))
+              luks_split=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} - 1)))
 
-              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
+              printf '%s\n' "${CONTAINER_PASSWORD:0:${luks_split}}" > "${luks_pass_part_file1}" 2>/dev/null
+
+              luks_mask="$(container_mask_from_password "${CONTAINER_PASSWORD:${luks_split}}" last)"
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luks_file}' ${luks_pass_part_file1} ${luks_mask}"
               ;;
             7)
-              echo "${LUKS_PASSWORD}" | cut -c2- > "${luks_pass_part_file1}" 2>/dev/null
+              luks_split=$(utf8_split_point "${CONTAINER_PASSWORD}" 1)
+          luks_split=$((luks_split > 0 ? luks_split : 1))
+
+          printf '%s\n' "${CONTAINER_PASSWORD:${luks_split}}" > "${luks_pass_part_file1}" 2>/dev/null
+
+          luks_mask="$(container_mask_from_password "${CONTAINER_PASSWORD:0:${luks_split}}" first)"
 
               CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luks_file}' ${luks_mask} ${luks_pass_part_file1}"
               ;;
@@ -4152,7 +5346,7 @@ function luks_legacy_test()
 
 function luks2_test()
 {
-  local LUKS2_PASSWORD=$(cat "${TDIR}/luks2_tests/pw" 2>/dev/null)
+  local LUKS2_PASSWORD="${CONTAINER_PASSWORD}"
 
   hashType=$1
   attackType=$2
@@ -4166,7 +5360,13 @@ function luks2_test()
 
   chmod u+x "${TDIR}/luks2hashcat.py"
 
-  for luks2File in $(ls ${TDIR}/luks2_tests | grep "img$"); do
+  mkdir -p "${LUKS2_TESTS_DIR}"
+
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+    luks2_generate_set
+  fi
+
+  for luks2File in $(ls "${LUKS2_TESTS_DIR}" 2>/dev/null | grep "img$"); do
     luksMainMask="?l"
     luksMask="${luksMainMask}"
 
@@ -4174,41 +5374,44 @@ function luks2_test()
     luksPassPartFile1="${OUTD}/${hashType}_dict1"
     luksPassPartFile2="${OUTD}/${hashType}_dict2"
 
-    luksContainer="${TDIR}/luks2_tests/${luks2File}"
+    luksContainer="${LUKS2_TESTS_DIR}/${luks2File}"
 
     mkdir -p "${OUTD}/luks2_tests"
     luksHashFile="${OUTD}/luks2_tests/${luks2File}.hash"
 
     case $attackType in
       0)
-        CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${TDIR}/luks2_tests/pw'"
+        CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS2_TESTS_DIR}/pw'"
         ;;
       1)
-        luksPassPart1Len=$((${#LUKS2_PASSWORD} / 2))
-        luksPassPart2Start=$((luksPassPart1Len + 1))
+        luksSplit=$(utf8_split_point "${LUKS2_PASSWORD}" $((${#LUKS2_PASSWORD} / 2)))
 
-        echo "${LUKS2_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
-        echo "${LUKS2_PASSWORD}" | cut -c${luksPassPart2Start}- > "${luksPassPartFile2}" 2>/dev/null
+        printf '%s\n' "${LUKS2_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+        printf '%s\n' "${LUKS2_PASSWORD:${luksSplit}}"   > "${luksPassPartFile2}" 2>/dev/null
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksPassPartFile2}"
         ;;
       3)
-        luksMaskFixedLen=$((${#LUKS2_PASSWORD} - 1))
-
-        luksMask="$(echo "${LUKS2_PASSWORD}" | cut -c-${luksMaskFixedLen} 2>/dev/null)"
-        luksMask="${luksMask}${luksMainMask}"
+        luksMask="$(container_mask_from_password "${LUKS2_PASSWORD}" last)"
 
         CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luksHashFile}' ${luksMask}"
         ;;
       6)
-        luksPassPart1Len=$((${#LUKS2_PASSWORD} - 1))
+        luksSplit=$(utf8_split_point "${LUKS2_PASSWORD}" $((${#LUKS2_PASSWORD} - 1)))
 
-        echo "${LUKS2_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
+        printf '%s\n' "${LUKS2_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+        luksMask="$(container_mask_from_password "${LUKS2_PASSWORD:${luksSplit}}" last)"
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksMask}"
         ;;
       7)
-        echo "${LUKS2_PASSWORD}" | cut -c2- > "${luksPassPartFile1}" 2>/dev/null
+        luksSplit=$(utf8_split_point "${LUKS2_PASSWORD}" 1)
+        luksSplit=$((luksSplit > 0 ? luksSplit : 1))
+
+        printf '%s\n' "${LUKS2_PASSWORD:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+        luksMask="$(container_mask_from_password "${LUKS2_PASSWORD:0:${luksSplit}}" first)"
 
         CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luksHashFile}' ${luksMask} ${luksPassPartFile1}"
         ;;
@@ -4221,7 +5424,7 @@ function luks2_test()
     if [ -n "${CMD}" ] && [ ${#CMD} -gt 5 ]; then
       echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, LUKS2-mode ${luksMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-      if [ -f "${luks2_first_test_file}" ]; then
+      if [ -f "${luksContainer}" ]; then
         output=$(eval ${CMD} 2>&1)
         ret=${?}
 
@@ -4375,8 +5578,17 @@ function build_container_cmd()
 
   local dictFile1="${OUTD}/${bc_hashType}_cont_dict1"
   local dictFile2="${OUTD}/${bc_hashType}_cont_dict2"
-  local mainMask="?l"
-  local mask="${mainMask}"
+
+  # The password can carry a multi byte character now, so a split has to land on a character
+  # boundary, see utf8_split_point(), and a mask position over a byte that is not a digit has
+  # to spell that byte rather than hold a '?d'. The masks below give up exactly one digit, so
+  # every attack still has ten candidates to search.
+
+  local bc_len=${#bc_password}
+  local mask
+  local head
+  local tail
+  local split
 
   CONTAINER_CMD=""
 
@@ -4386,31 +5598,41 @@ function build_container_cmd()
       CONTAINER_CMD="./${BIN} ${OPTS} -a 0 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1}"
       ;;
     1)
-      local part1Len=$((${#bc_password} / 2))
-      local part2Start=$((part1Len + 1))
+      split=$(utf8_split_point "${bc_password}" $((bc_len / 2)))
 
-      echo "${bc_password}" | cut -c-${part1Len}    > "${dictFile1}" 2>/dev/null
-      echo "${bc_password}" | cut -c${part2Start}-  > "${dictFile2}" 2>/dev/null
+      printf '%s\n' "${bc_password:0:${split}}" > "${dictFile1}" 2>/dev/null
+      printf '%s\n' "${bc_password:${split}}"   > "${dictFile2}" 2>/dev/null
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 1 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1} ${dictFile2}"
       ;;
     3)
-      local maskFixedLen=$((${#bc_password} - 1))
-
-      mask="$(echo "${bc_password}" | cut -c-${maskFixedLen} 2>/dev/null)"
-      mask="${mask}${mainMask}"
+      mask="$(container_mask_from_password "${bc_password}" last)"
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 3 -m ${bc_hashType} '${bc_hashFile}' ${mask}"
       ;;
     6)
-      local part1Len=$((${#bc_password} - 1))
+      # dict + mask, so the mask has to cover a tail that starts on a character boundary and
+      # holds at least one digit to give up
 
-      echo "${bc_password}" | cut -c-${part1Len} > "${dictFile1}" 2>/dev/null
+      split=$(utf8_split_point "${bc_password}" $((bc_len - 1)))
+      head="${bc_password:0:${split}}"
+      tail="${bc_password:${split}}"
+      mask="$(container_mask_from_password "${tail}" last)"
+
+      printf '%s\n' "${head}" > "${dictFile1}" 2>/dev/null
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 6 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1} ${mask}"
       ;;
     7)
-      echo "${bc_password}" | cut -c2- > "${dictFile1}" 2>/dev/null
+      # mask + dict, the mirror image of -a 6
+
+      split=$(utf8_split_point "${bc_password}" 1)
+      split=$((split > 0 ? split : 1))
+      head="${bc_password:0:${split}}"
+      tail="${bc_password:${split}}"
+      mask="$(container_mask_from_password "${head}" first)"
+
+      printf '%s\n' "${tail}" > "${dictFile1}" 2>/dev/null
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 7 -m ${bc_hashType} '${bc_hashFile}' ${mask} ${dictFile1}"
       ;;
@@ -4447,7 +5669,7 @@ function pkzip_test()
     return
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local zdir="${OUTD}/pkzip_tests"
   local sdir="${zdir}/src"
   mkdir -p "${sdir}"
@@ -4464,11 +5686,11 @@ function pkzip_test()
   rm -f "${zf}"
 
   case ${hashType} in
-    17200) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
-    17210) "${ZIP_BIN}" -0 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
-    17220) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" >/dev/null 2>&1 ;;
-    17225) "${ZIP_BIN}" -e    -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/rand.bin" "${sdir}/t2.txt" >/dev/null 2>&1 ;;
-    17230) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" "${sdir}/t4.txt" >/dev/null 2>&1; j2jflag="-c" ;;
+    17200) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
+    17210) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -0 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
+    17220) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" >/dev/null 2>&1 ;;
+    17225) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -e    -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/rand.bin" "${sdir}/t2.txt" >/dev/null 2>&1 ;;
+    17230) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" "${sdir}/t4.txt" >/dev/null 2>&1; j2jflag="-c" ;;
     *) record_skip "${hashType}" "unsupported PKZIP mode for -g"; return ;;
   esac
 
@@ -4518,7 +5740,7 @@ function gpg_test()
     record_note "${hashType}" "${GPG1_BIN} (GnuPG 1.x) not found, so the classic S2K variants and the AES-128 (aux1) path are skipped; set GPG1_BIN=... if installed elsewhere"
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local gdir="${OUTD}/gpg_tests"
   mkdir -p "${gdir}"
 
@@ -4549,9 +5771,9 @@ EOF
     command -v "${GPG2_BIN}" >/dev/null 2>&1 || return
     local label="$1"; shift
     local H; H="$(mktemp -d)"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" "$@" --quick-generate-key "${label} <${label}@hashcat.test>" rsa1024 sign 0 >/dev/null 2>&1
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" "$@" --quick-generate-key "${label} <${label}@hashcat.test>" rsa1024 sign 0 >/dev/null 2>&1
     local sk="${gdir}/${hashType}_${label}.sk.gpg"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --export-secret-keys 2>/dev/null > "${sk}"
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --export-secret-keys 2>/dev/null > "${sk}"
     local hf="${gdir}/${hashType}_${label}.hash"
     "${GPG2JOHN}" "${sk}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE '^\$gpg\$[^:]*' | head -1 > "${hf}"
     rm -rf "${H}"
@@ -4567,7 +5789,7 @@ EOF
     local label="$1"
     local keytype="$2"
     local H; H="$(mktemp -d)"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" "${keytype}" sign 0 >/dev/null 2>&1
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" "${keytype}" sign 0 >/dev/null 2>&1
     local kf; kf="$(ls "${H}"/private-keys-v1.d/*.key 2>/dev/null | head -1)"
     local hf="${gdir}/${hashType}_${label}.hash"
     if [ -n "${kf}" ] && grep -aq 'openpgp-s2k3-ocb-aes' "${kf}" 2>/dev/null; then
@@ -4615,7 +5837,8 @@ function rar_test()
   # known password, the ground-truth complement to the RAR test.pl oracles.
   #
   # 23800 has no oracle to complement, since a .pm would have to reproduce RAR's
-  # compressor, so this is its only coverage and it needs -g.
+  # compressor. Without -g it is covered by selftest_vector_test() instead, so
+  # this is the stronger check on top rather than its only coverage.
   #
   #   12500 RAR3-hp   -> rar a -ma4 -hp<pw>       -> $RAR3$*0*  (header-encrypted)
   #   23700 RAR3-p    -> rar a -ma4 -m0 -p<pw>    -> $RAR3$*1*  (stored)
@@ -4683,7 +5906,7 @@ function rar_test()
       ;;
   esac
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local rdir="${OUTD}/rar_tests"   # generated per run, nothing checked in
   local sdir="${rdir}/src"
   mkdir -p "${sdir}"
@@ -4697,10 +5920,10 @@ function rar_test()
   rm -f "${arc}"
 
   case ${hashType} in
-    12500) "${RAR_BIN}" a -ma4 -m3 -hp"${password}" -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-hp" ;;
-    23700) "${RAR_BIN}" a -ma4 -m0 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-store" ;;
-    23800) "${RAR_BIN}" a -ma4 -m3 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-compressed" ;;
-    13000) "${RAR_BIN}" a       -p"${password}"     -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar5"; sig='\$rar5\$' ;;
+    12500) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a -ma4 -m3 -hp"${password}" -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-hp" ;;
+    23700) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a -ma4 -m0 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-store" ;;
+    23800) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a -ma4 -m3 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-compressed" ;;
+    13000) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a       -p"${password}"     -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar5"; sig='\$rar5\$' ;;
     *) record_skip "${hashType}" "unsupported RAR mode for -g"; return ;;
   esac
 
@@ -4722,6 +5945,452 @@ function rar_test()
   if [ -n "${CONTAINER_CMD}" ]; then
     container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-container ${label}"
   fi
+}
+
+function sevenzip_test()
+{
+  # Real-archive test for the 7z family: 11600 from a 7-Zip archive and 13600
+  # from a zip whose entries use WinZip AES. Both are built with the 7z binary
+  # and read back with John's extractors.
+  #
+  # 11600 is generated four ways, because the mode's work does not end at the
+  # KDF: after deriving the key it decrypts and decompresses a block and checks
+  # a CRC, so the codec is part of what is under test. Header encryption on and
+  # off change the hash type (0 and 2) as well.
+  hashType=$1
+  attackType=$2
+
+  # both are slow hashes with one kernel each, so a0 suffices
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local SEVENZIP_BIN="${SEVENZIP_BIN:-7z}"
+  local SEVENZIP2JOHN="${SEVENZIP2JOHN:-$(command -v 7z2john.pl 2>/dev/null || echo "${HOME}/john/run/7z2john.pl")}"
+  local ZIP2JOHN="${ZIP2JOHN:-$(command -v zip2john 2>/dev/null || echo "${HOME}/john/run/zip2john")}"
+
+  if ! command -v "${SEVENZIP_BIN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "7z not found (apt install p7zip-full, or set SEVENZIP_BIN=/path/to/7z)"
+    return
+  fi
+
+  local password="${CONTAINER_PASSWORD}"
+  local sdir="${OUTD}/7z_tests"
+
+  mkdir -p "${sdir}"
+
+  # compressible and large enough that the codecs have something to do
+  yes "pattern the quick brown fox jumps over the lazy dog " 2>/dev/null | head -c 8000 > "${sdir}/payload.txt"
+
+  local variants
+
+  case ${hashType} in
+    11600)
+      if [ ! -x "${SEVENZIP2JOHN}" ] && ! command -v "${SEVENZIP2JOHN}" >/dev/null 2>&1; then
+        record_skip "${hashType}" "7z2john.pl not found (set SEVENZIP2JOHN=/path/to/7z2john.pl)"
+        return
+      fi
+
+      if ! perl -MCompress::Raw::Lzma -e 1 >/dev/null 2>&1; then
+        record_skip "${hashType}" "7z2john.pl needs Compress::Raw::Lzma (apt install libcompress-raw-lzma-perl)"
+        return
+      fi
+
+      # label|7z options
+      variants="lzma2-header-encrypted|-mhe=on lzma2-header-plain|-mhe=off stored|-mhe=on:-m0=Copy bzip2|-mhe=on:-m0=BZip2"
+      ;;
+    13600)
+      if [ ! -x "${ZIP2JOHN}" ] && ! command -v "${ZIP2JOHN}" >/dev/null 2>&1; then
+        record_skip "${hashType}" "zip2john not found (set ZIP2JOHN=/path/to/zip2john)"
+        return
+      fi
+
+      variants="aes128|-mem=AES128 aes256|-mem=AES256"
+      ;;
+    *)
+      record_skip "${hashType}" "unsupported 7z mode for -g"
+      return
+      ;;
+  esac
+
+  local variant
+
+  for variant in ${variants}; do
+    local label="${variant%%|*}"
+    local opts="${variant##*|}"
+
+    # options are colon-separated so one variant stays one word above
+    opts="${opts//:/ }"
+
+    local archive="${sdir}/${hashType}_${label}"
+    local hashFile="${sdir}/${hashType}_${label}.hash"
+
+    rm -f "${archive}".7z "${archive}".zip
+
+    if [ "${hashType}" -eq 13600 ]; then
+      archive="${archive}.zip"
+
+      LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${SEVENZIP_BIN}" a -tzip ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
+
+      "${ZIP2JOHN}" "${archive}" 2>/dev/null | grep -oE '^[^:]*:\$zip2\$[^:]*' | sed -E 's/^[^:]*://' | head -1 > "${hashFile}"
+    else
+      archive="${archive}.7z"
+
+      LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${SEVENZIP_BIN}" a ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
+
+      perl "${SEVENZIP2JOHN}" "${archive}" 2>/dev/null | grep -oE '\$7z\$[^:]*' | head -1 > "${hashFile}"
+    fi
+
+    if [ ! -s "${hashFile}" ]; then
+      record_error "${hashType}" "could not read a hash out of the generated ${label} archive"
+      continue
+    fi
+
+    build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "7z-container ${label}"
+    fi
+  done
+}
+
+function pdf_gen_test()
+{
+  # Real-document test for the PDF modes, built with qpdf and read back with
+  # John's pdf2john.pl. qpdf 11 refuses RC4 unless it is told the caller knows,
+  # hence --allow-weak-crypto on the two RC4 variants.
+  hashType=$1
+  attackType=$2
+
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local QPDF_BIN="${QPDF_BIN:-qpdf}"
+  local PDF2JOHN="${PDF2JOHN:-$(command -v pdf2john.pl 2>/dev/null || echo "${HOME}/john/run/pdf2john.pl")}"
+
+  if ! command -v "${QPDF_BIN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "qpdf not found (apt install qpdf, or set QPDF_BIN=/path/to/qpdf)"
+    return
+  fi
+
+  if [ ! -x "${PDF2JOHN}" ] && ! command -v "${PDF2JOHN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "pdf2john.pl not found (set PDF2JOHN=/path/to/pdf2john.pl); the .py needs pyhanko and is not used here"
+    return
+  fi
+
+  local password="${CONTAINER_PASSWORD}"
+  local pdir="${OUTD}/pdf_gen_tests"
+
+  mkdir -p "${pdir}"
+
+  # qpdf encrypts an existing document rather than making one, so there has to
+  # be a document. Ghostscript writes the smallest valid one.
+  local plain="${pdir}/plain.pdf"
+
+  if [ ! -s "${plain}" ]; then
+    if command -v gs >/dev/null 2>&1; then
+      gs -q -o "${plain}" -sDEVICE=pdfwrite -c "showpage" >/dev/null 2>&1
+    fi
+  fi
+
+  if [ ! -s "${plain}" ]; then
+    record_skip "${hashType}" "no gs to write a plain PDF for qpdf to encrypt (apt install ghostscript)"
+    return
+  fi
+
+  local variants
+
+  case ${hashType} in
+    10400) variants="rc4-40|--allow-weak-crypto:--encrypt:PW:PW:40:--" ;;
+    10500) variants="rc4-128|--allow-weak-crypto:--encrypt:PW:PW:128:-- aes-128|--encrypt:PW:PW:128:--use-aes=y:--" ;;
+    10700) variants="aes-256|--encrypt:PW:PW:256:--" ;;
+    *)
+      record_skip "${hashType}" "unsupported PDF mode for -g"
+      return
+      ;;
+  esac
+
+  local variant
+
+  for variant in ${variants}; do
+    local label="${variant%%|*}"
+    local opts="${variant##*|}"
+
+    opts="${opts//:/ }"
+    opts="${opts//PW/${password}}"
+
+    local doc="${pdir}/${hashType}_${label}.pdf"
+    local hashFile="${pdir}/${hashType}_${label}.hash"
+
+    rm -f "${doc}"
+
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${QPDF_BIN}" ${opts} "${plain}" "${doc}" >/dev/null 2>&1
+
+    if [ ! -s "${doc}" ]; then
+      record_skip "${hashType}" "qpdf could not write a ${label} document"
+      continue
+    fi
+
+    perl "${PDF2JOHN}" "${doc}" 2>/dev/null | grep -oE '\$pdf\$[^:]*' | head -1 > "${hashFile}"
+
+    if [ ! -s "${hashFile}" ]; then
+      record_error "${hashType}" "pdf2john produced no hash for the ${label} document"
+      continue
+    fi
+
+    build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "PDF-container ${label}"
+    fi
+  done
+}
+
+function ssh_test()
+{
+  # Real-key test for 22931, built with ssh-keygen and read back with John's
+  # ssh2john.py.
+  #
+  # -m PEM is what makes this work: it writes the classic PEM form with a
+  # DEK-Info header, which is the only OpenSSH key layout hashcat's 229xx modes
+  # parse. Without it ssh-keygen writes openssh-key-v1, whose bcrypt-pbkdf KDF
+  # no released hashcat mode reads.
+  hashType=$1
+  attackType=$2
+
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local SSHKEYGEN_BIN="${SSHKEYGEN_BIN:-ssh-keygen}"
+  local SSH2JOHN="${SSH2JOHN:-$(command -v ssh2john.py 2>/dev/null || echo "${HOME}/john/run/ssh2john.py")}"
+
+  if ! command -v "${SSHKEYGEN_BIN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "ssh-keygen not found (set SSHKEYGEN_BIN=/path/to/ssh-keygen)"
+    return
+  fi
+
+  if [ ! -f "${SSH2JOHN}" ] && ! command -v "${SSH2JOHN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "ssh2john.py not found (set SSH2JOHN=/path/to/ssh2john.py)"
+    return
+  fi
+
+  local password="${CONTAINER_PASSWORD}"
+  local kdir="${OUTD}/ssh_tests"
+
+  mkdir -p "${kdir}"
+
+  local keytype
+
+  for keytype in rsa dsa; do
+    local key="${kdir}/${hashType}_${keytype}"
+    local hashFile="${kdir}/${hashType}_${keytype}.hash"
+
+    rm -f "${key}" "${key}.pub"
+
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${SSHKEYGEN_BIN}" -q -m PEM -t "${keytype}" -N "${password}" -C hashcat -f "${key}" >/dev/null 2>&1
+
+    if [ ! -s "${key}" ]; then
+      record_skip "${hashType}" "ssh-keygen would not write a PEM ${keytype} key"
+      continue
+    fi
+
+    python3 "${SSH2JOHN}" "${key}" 2>/dev/null | grep -oE '\$sshng\$[^:]*' | head -1 > "${hashFile}"
+
+    if [ ! -s "${hashFile}" ]; then
+      record_error "${hashType}" "ssh2john produced no hash for the ${keytype} key"
+      continue
+    fi
+
+    build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "SSH-key ${keytype}"
+    fi
+  done
+}
+
+function selftest_vector_read()
+{
+  # Read a mode's self-test vector out of hashcat itself into the globals
+  # ST_VECTOR_HASH, ST_VECTOR_PASS, ST_VECTOR_FORMAT and ST_VECTOR_DEPRECATED.
+  #
+  # Every module ships an ST_HASH and ST_PASS pair for the startup self test,
+  # and --hash-info publishes it. --machine-readable is the one that can be
+  # trusted here: the human-readable Example.Hash line is truncated past 200
+  # characters, which most container and archive hashes exceed.
+  #
+  # The JSON has a fixed key order, so anchoring each value on the key that
+  # follows it keeps the match correct for hashes that contain almost anything,
+  # including the '*' and ':' separators most of them use.
+  #
+  # $1 = hashType. Returns non-zero when the mode has no usable vector.
+  local sv_hashType="$1"
+  local info
+
+  ST_VECTOR_HASH=""
+  ST_VECTOR_PASS=""
+  ST_VECTOR_FORMAT=""
+  ST_VECTOR_DEPRECATED=0
+
+  info=$(./${BIN} -m "${sv_hashType}" --hash-info --machine-readable 2>/dev/null)
+
+  if [ -z "${info}" ]; then
+    return 1
+  fi
+
+  ST_VECTOR_HASH=$(printf '%s' "${info}"   | sed -n 's/.*"example_hash": "\(.*\)", "example_pass".*/\1/p')
+  ST_VECTOR_PASS=$(printf '%s' "${info}"   | sed -n 's/.*"example_pass": "\(.*\)", "benchmark_mask".*/\1/p')
+  ST_VECTOR_FORMAT=$(printf '%s' "${info}" | sed -n 's/.*"example_hash_format": "\([^"]*\)".*/\1/p')
+
+  # json_encode() escapes backslashes and double quotes, so undo that
+  ST_VECTOR_HASH=$(printf '%s' "${ST_VECTOR_HASH}" | sed -e 's/\\"/"/g' -e 's/\\\\/\\/g')
+
+  if printf '%s' "${info}" | grep -q '"is_deprecated": true'; then
+    ST_VECTOR_DEPRECATED=1
+  fi
+
+  if [ -z "${ST_VECTOR_HASH}" ] || [ -z "${ST_VECTOR_PASS}" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
+function selftest_vector_test()
+{
+  # Crack a mode's own self-test vector. No oracle and nothing checked in: the
+  # hash and the password both come out of the binary under test, and the crack
+  # is a normal run through the normal kernels, so this is an end to end test
+  # rather than the parser check the startup self test performs.
+  #
+  # $1 = hashType, $2 = attackType
+  hashType=$1
+  attackType=$2
+
+  # one vector and one candidate, so attack mode 0 covers it
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  if ! selftest_vector_read "${hashType}"; then
+    record_skip "${hashType}" "no self-test vector published by --hash-info"
+    return
+  fi
+
+  local hashFile="${OUTD}/${hashType}_selftest.hash"
+
+  case "${ST_VECTOR_FORMAT}" in
+    *"binary file only"*)
+      # the module reads its hash file as raw bytes, and --hash-info hands the
+      # vector over hex encoded. printf '%b' keeps this to shell builtins, so
+      # no xxd or od dependency creeps into the default test path.
+      printf '%b' "$(printf '%s' "${ST_VECTOR_HASH}" | sed 's/\(..\)/\\x\1/g')" > "${hashFile}"
+      ;;
+    "N/A")
+      record_skip "${hashType}" "mode has no example hash to crack"
+      return
+      ;;
+    *)
+      # "plain" and "hex-encoded" are both already the literal hash line: the
+      # format names the convention the line itself uses, not the encoding
+      # --hash-info applied to it
+      printf '%s\n' "${ST_VECTOR_HASH}" > "${hashFile}"
+      ;;
+  esac
+
+  if [ ! -s "${hashFile}" ]; then
+    record_error "${hashType}" "could not write the self-test vector to ${hashFile}"
+    return
+  fi
+
+  build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${ST_VECTOR_PASS}"
+
+  if [ -z "${CONTAINER_CMD}" ]; then
+    return
+  fi
+
+  if [ "${ST_VECTOR_DEPRECATED}" -eq 1 ]; then
+    CONTAINER_CMD="${CONTAINER_CMD} --deprecated-check-disable"
+  fi
+
+  # the startup self test would re-derive the same vector on every launch, so
+  # skip it and let the run itself be the test
+  CONTAINER_CMD="${CONTAINER_CMD} --self-test-disable"
+
+  container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "self-test vector"
+}
+
+function selftest_vector_sweep()
+{
+  # -S: run selftest_vector_test() over every hash-mode hashcat knows, or over
+  # the range -m selected, and print one line per mode that did not crack its
+  # own example hash. This is the cheapest possible coverage check: it needs no
+  # oracle, no container, and no external tool, so it reaches the modes the
+  # rest of the suite cannot.
+  local sweep_total=0
+  local sweep_ok=0
+  local sweep_bad=""
+  local sweep_slow=""
+  local sweep_modes
+  local sweep_mode
+
+  sweep_modes=$(./${BIN} --hash-info 2>/dev/null | sed -n 's/^Hash mode #\([0-9]*\)$/\1/p')
+
+  if [ -z "${sweep_modes}" ]; then
+    echo "! could not read the hash-mode list from ./${BIN} --hash-info"
+    return 1
+  fi
+
+  echo "[ ${OUTD} ] > Cracking every hash-mode's own self-test vector"
+
+  for sweep_mode in ${sweep_modes}; do
+
+    if [ "${HT}" -ne 65535 ]; then
+      if [ "${sweep_mode}" -lt "${HT_MIN}" ] || [ "${sweep_mode}" -gt "${HT_MAX}" ]; then
+        continue
+      fi
+    fi
+
+    sweep_total=$((sweep_total + 1))
+
+    local before="${SKIPPED_LIST}"
+    local out
+
+    out=$(selftest_vector_test "${sweep_mode}" 0)
+
+    echo "${out}"
+
+    if echo "${out}" | grep -q '> OK :'; then
+      sweep_ok=$((sweep_ok + 1))
+    elif echo "${out}" | grep -q '> Warning :'; then
+      # hit --runtime before it could finish, which says nothing about the mode
+      sweep_slow="${sweep_slow}${sweep_mode} "
+    elif [ "${SKIPPED_LIST}" = "${before}" ]; then
+      sweep_bad="${sweep_bad}${sweep_mode} "
+    fi
+
+  done
+
+  echo ""
+  echo "[ ${OUTD} ] > ${sweep_ok}/${sweep_total} hash-modes cracked their own self-test vector"
+
+  if [ -n "${sweep_slow}" ]; then
+    echo "[ ${OUTD} ] > hit --runtime ${RUNTIME}, rerun those with -r: ${sweep_slow}"
+  fi
+
+  if [ -n "${sweep_bad}" ]; then
+    echo "[ ${OUTD} ] > did not crack: ${sweep_bad}"
+  fi
+
+  print_skip_summary
+
+  if [ -n "${sweep_bad}" ]; then
+    return 1
+  fi
+
+  return 0
 }
 
 function usage()
@@ -4751,7 +6420,7 @@ OPTIONS:
   -a    Select attack mode :
         'all'       => all attack modes
         (int)       => attack mode integer code (default : 0)
-                       0, 1, 3, 6, 7 and 12
+                       0, 1, 3, 4, 6, 7, 8, 9 and 12
 
   -x    Select cpu architecture :
         '32'        => 32 bit architecture
@@ -4770,6 +6439,10 @@ OPTIONS:
         '2'         => GPU (default)
         '3'         => FPGA, DSP, Co-Processor
         (int)[,int] => multiple comma separated device types from the list above
+
+  -y    Restrict the run to the modes that have a tools/test_modules/mNNNNN.py, so only the
+        python oracle (tools/test_module_runner.py) is exercised. Without -y every mode still
+        runs, each through the oracle it has: python for a .py, perl for a .pm.
 
   -O    Use optimized kernels (default : -O)
 
@@ -4793,15 +6466,29 @@ OPTIONS:
 
   -g    Generate crypto-containers on-the-fly and test those as well as the
         normal test.pl oracles, never instead of them. GPG (gpg1/gpg2), PKZIP
-        (zip) and RAR (a RARLAB rar 6.x or older, see rar_test) need no
-        privileges; only LUKS2 generation requires sudo. Anything that cannot
-        run for want of a tool is reported again in a summary at the end.
+        (zip), RAR (a RARLAB rar 6.x or older, see rar_test), 7-Zip and WinZip
+        AES (7z), PDF (qpdf and ghostscript), OpenSSH keys (ssh-keygen) and
+        VeraCrypt (the veracrypt console build, 1.25.9 or older via
+        VERACRYPT_BIN if the RIPEMD-160 modes matter) need no privileges;
+        LUKS1, LUKS2 and TrueCrypt (tcplay, driven through expect) need sudo,
+        for device-mapper and for a loop device. Anything that cannot run for
+        want of a tool is reported again in a summary at the end.
         Runs only the modes it can build a container for: on its own it runs
         all of them, with -m it runs the ones you selected, and a -m that
         selects none of them is an error that lists the ones it has.
         tools/README.md lists which tool each format needs, where to get it,
         and what is skipped without it. Note that the 2john tools come from
         John jumbo, not from the john package, and that gpg1 is gnupg1.
+
+  -S    Crack every hash-mode's own self-test vector and report which modes
+        cannot. The hash and the password both come from --hash-info, so this
+        needs no oracle, no container and no external tool, and reaches modes
+        the rest of the suite cannot. Runs on its own instead of the normal
+        suite; -m limits it to one mode or a range. Each run is one candidate
+        against one hash, so -r defaults to 60 here rather than 400; modes that
+        hit it are reported separately from modes that failed.
+
+  -M    Minimal mode: test only 24 hash types covering all distinct code paths
 
   -h    Show this help
 
@@ -4822,8 +6509,12 @@ HT_GIVEN=0
 PACKAGE=0
 OPTIMIZED=1
 GENERATE_CONTAINERS=0
+SELFTEST_ALL=0
+RUNTIME_SET=0
+HT_SET=0
+MINIMAL=0
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSyM" opt; do
 
   case ${opt} in
     "V")
@@ -4864,6 +6555,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
       else
         HT=${OPTARG}
       fi
+      HT_SET=1
       ;;
 
     "a")
@@ -4875,10 +6567,16 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
         ATTACK=1
       elif [ "${OPTARG}" = "3" ]; then
         ATTACK=3
+      elif [ "${OPTARG}" = "4" ]; then
+        ATTACK=4
       elif [ "${OPTARG}" = "6" ]; then
         ATTACK=6
       elif [ "${OPTARG}" = "7" ]; then
         ATTACK=7
+      elif [ "${OPTARG}" = "8" ]; then
+        ATTACK=8
+      elif [ "${OPTARG}" = "9" ]; then
+        ATTACK=9
       elif [ "${OPTARG}" = "12" ]; then
         ATTACK=12
       else
@@ -4961,10 +6659,25 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
 
     "r")
       RUNTIME=${OPTARG}
+      RUNTIME_SET=1
+      ;;
+
+    "y")
+      PYTHON_ENGINE=1
+      ;;
+
+    "S")
+      SELFTEST_ALL=1
       ;;
 
     "g")
       GENERATE_CONTAINERS=1
+      ;;
+
+    "M")
+      MINIMAL=1
+      HT=65535
+      VECTOR=1
       ;;
 
     \?)
@@ -4977,6 +6690,20 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
   esac
 
 done
+
+
+# -y cuts the module list down to the modes that have a python oracle and nothing else. PM_MODES
+# and HASH_TYPES are assigned near the top of this file, long before the option loop, so they are
+# recomputed here.
+#
+# HASH_TYPES is only PM_MODES, not the union the default run builds. The container families are
+# tested by test.sh itself against a real artifact and use no oracle at all, so running them under
+# -y would spend hours on TrueCrypt and VeraCrypt volumes to exercise an engine they never call.
+
+if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+  PM_MODES=$(oracle_modes)
+  HASH_TYPES=$(echo -n "${PM_MODES}" | tr ' ' '\n' | grep -v '^$' | sort -u -n | tr '\n' ' ')
+fi
 
 # test.sh is not a thing to run under sudo. Where a generator needs root it asks
 # for it per command, and only for that command. Running the whole script as root
@@ -4997,12 +6724,40 @@ if [ -n "${SUDO_USER:-}" ]; then
   exit 1
 fi
 
+# -a 4 asked for on one mode whose kernel runs inside, in an optimized run, has nothing it can do:
+# every cell would be skipped by the test in attack_whole_word (). Saying so here, with the option
+# that does work, costs one line instead of a run that tests nothing. -m all is not this case, and
+# neither is a mode whose kernel runs outside: there -a 4 runs with -O. A mode that ships its own
+# mNNNNN_a4-optimized.cl is not this case either: the engine loads that file and the run works.
+
+if [ "${ATTACK}" -eq 4 ] && [ "${OPTIMIZED}" -eq 1 ] && [ "${HT}" != "65535" ] && echo -n "${HT}" | grep -q '^[0-9]\+$'; then
+  if ! is_in_array "${HT}" ${HOST_ENGINE_ALGOS} && ! is_in_array "${HT}" ${A4_OPTIMIZED_ALGOS}; then
+    echo "! Attack mode 4 has no optimized kernel for hash type ${HT}, and this run is optimized."
+    echo "!"
+    echo "! -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has a"
+    echo "! pure kernel only. Optimized is the default here, so add -P to run attack mode 4:"
+    echo "!"
+    echo "!     ${0} -m ${HT} -a 4 -P"
+
+    exit 1
+  fi
+fi
+
 # -g on its own means everything -g can build, not the default of -m 0. Mode 0
 # has no generator, so without this the run starts, finds nothing to generate
 # and reports an error for a run nobody asked for.
 
 if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ "${HT_GIVEN}" -eq 0 ]; then
   HT=65535
+fi
+
+# The containers this run builds get a password of their own. The ones shipped in the tree or
+# fetched from hashcat.net were built with 'hashcat' and keep it.
+
+if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+  CONTAINER_PASSWORD="$(container_password)"
+  CONTAINER_MASK="$(container_mask_from_password "${CONTAINER_PASSWORD}" last)"
+  CONTAINER_MASK_MID="$(container_mask_from_password "${CONTAINER_PASSWORD}" first)"
 fi
 
 # handle Apple Silicon
@@ -5020,13 +6775,36 @@ if [ $(uname) == "Darwin" ]; then
   fi
 fi
 
+# Six of these are the first entry of a family list defined near the top of this file, and are read
+# from there rather than typed again, so -M follows the family when the family changes.
+
+if [ "${MINIMAL}" -eq 1 ]; then
+  MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 ${TC_MODES%% *} 11600 12500 ${VC_MODES%% *} 14200 ${CL_MODES%% *} ${LUKS1_LEGACY_MODE} 14900 15400 15700 20510 22000 ${LUKS1_MODES%% *} 33000 33500 ${LUKS2_MODES}"
+  HASH_TYPES="${MINIMAL_MODES}"
+fi
+
 export IS_OPTIMIZED=${OPTIMIZED}
+
+# The LUKS oracles in tools/test_modules build a 20 MiB container to get a hash out of
+# it. Left to themselves they put it, its mount point and their log in /tmp, and never
+# clean up, so a full run leaves gigabytes behind. Point them at this run instead.
+export HCTEST_SCRATCH_DIR="${OUTD}/luks_scratch"
+export HCTEST_MOUNT_DIR="${OUTD}/luks_mnt"
 
 if [ "${OPTIMIZED}" -eq 1 ]; then
   OPTS="${OPTS} -O"
 fi
 
 # set max-runtime
+#
+# -S runs every hash-mode in one go, and each run is a single candidate against
+# a single hash, so the normal ceiling only ever applies to a mode that is not
+# going to finish anyway. Cap it much lower by default and report anything that
+# hits the cap as a timeout rather than a failure. -r still wins.
+
+if [ "${SELFTEST_ALL}" -eq 1 ] && [ "${RUNTIME_SET}" -eq 0 ]; then
+  RUNTIME=60
+fi
 
 OPTS="${OPTS} --runtime ${RUNTIME}"
 
@@ -5069,40 +6847,112 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     exit 1
   fi
 
-  HT_MIN=0
-  HT_MAX=0
+else
 
-  if echo -n "${HT}" | grep -q '^[0-9]\+$'; then
-    HT_MIN=${HT}
-    HT_MAX=${HT}
-  elif echo -n "${HT}" | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
-    HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
-    HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+  # packaging an existing folder: the hash types are the ones its all.sh runs,
+  # not the ones on our command line. If it names none, e.g. because the folder
+  # holds a container only mode, the command line is all we have.
 
-    if [ "${HT_MIN}" -gt "${HT_MAX}" ]; then
-      echo "! hash type range -m ${HT} is not valid ..."
-      usage
-    fi
-  else
-    echo "! hash type is not a number ..."
-    usage
+  HT_FOLDER=$(grep -o -- "-m  *[0-9]*" "${PACKAGE_FOLDER}/all.sh" 2>/dev/null | sed 's/^-m  *//' | sort -u)
+  HT_FOLDER_COUNT=$(echo "${HT_FOLDER}" | grep -c '^[0-9]\+$')
+
+  if [ "${HT_FOLDER_COUNT}" -eq 1 ]; then
+    HT=${HT_FOLDER}
+  elif [ "${HT_FOLDER_COUNT}" -gt 1 ]; then
+    HT=65535
   fi
 
-  HT=${HT_MIN}
+fi
+
+# the hash type range is what decides which container test files a package needs,
+# so it has to be settled whether we run the tests or only package them
+
+HT_MIN=0
+HT_MAX=0
+
+if echo -n "${HT}" | grep -q '^[0-9]\+$'; then
+  HT_MIN=${HT}
+  HT_MAX=${HT}
+elif echo -n "${HT}" | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
+  HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
+  HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+
+  if [ "${HT_MIN}" -gt "${HT_MAX}" ]; then
+    echo "! hash type range -m ${HT} is not valid ..."
+    usage
+  fi
+else
+  echo "! hash type is not a number ..."
+  usage
+fi
+
+HT=${HT_MIN}
+
+if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
+
+  # -S runs on its own: it walks every hash-mode hashcat reports rather than
+  # HASH_TYPES, since the whole point is to reach the modes that have no oracle
+  # and no container, so it has to come before the HASH_TYPES filter below.
+  if [ "${SELFTEST_ALL}" -eq 1 ]; then
+    mkdir -p "${OUTD}"
+
+    # -m defaults to 0, which would quietly sweep exactly one mode
+    if [ "${HT_SET}" -eq 0 ]; then
+      HT=65535
+    fi
+
+    selftest_vector_sweep
+    selftest_rc=$?
+
+    echo "[ ${OUTD} ] > full log: ${OUTD}/logfull.txt"
+
+    exit ${selftest_rc}
+  fi
 
   # filter by hash_type
   if [ "${HT}" -ne 65535 ]; then
 
     # validate filter
 
-    if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
-      echo "! invalid hash type selected ..."
-      usage
-    fi
+    # Naming what is wrong and stopping is more use than the whole option list, which the reader
+    # has not asked for and which buries the one line that matters. -h still prints it.
+    #
+    # A range only has to contain something. The loops below already skip a mode that is not in
+    # HASH_TYPES, so a range may span gaps, and requiring its two endpoints to be modes in their
+    # own right rejected ranges the run would have handled. Under -y that was almost every range,
+    # there being two modes in the list.
 
-    if ! is_in_array "${HT_MAX}" ${HASH_TYPES}; then
-      echo "! invalid hash type selected ..."
-      usage
+    if [ "${HT_MIN}" -eq "${HT_MAX}" ]; then
+      if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
+        if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+          echo "! hash type ${HT_MIN} has no tools/test_modules/m$(printf '%05d' "${HT_MIN}").py, so -y cannot run it"
+          echo "! modes with a python oracle: ${PM_MODES}"
+        else
+          echo "! invalid hash type selected: ${HT_MIN}"
+        fi
+
+        exit 1
+      fi
+    else
+      HT_ANY=0
+
+      for HT_CHECK in ${HASH_TYPES}; do
+        if [ "${HT_CHECK}" -ge "${HT_MIN}" ] && [ "${HT_CHECK}" -le "${HT_MAX}" ]; then
+          HT_ANY=1
+          break
+        fi
+      done
+
+      if [ "${HT_ANY}" -eq 0 ]; then
+        if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+          echo "! no hash type between ${HT_MIN} and ${HT_MAX} has a .py oracle, so -y cannot run any of them"
+          echo "! modes with a python oracle: ${PM_MODES}"
+        else
+          echo "! no valid hash type between ${HT_MIN} and ${HT_MAX}"
+        fi
+
+        exit 1
+      fi
     fi
   fi
 
@@ -5190,6 +7040,15 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     # make new dir
     mkdir -p "${OUTD}"
 
+    # with -g the container tests read the volumes this run builds rather than
+    # the ones in the tree or the ones fetched from hashcat.net
+    if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+      TC_TESTS_DIR="$(container_gen_dir tc_tests_gen)"
+      VC_TESTS_DIR="$(container_gen_dir vc_tests_gen)"
+      LUKS_TESTS_DIR="$(container_gen_dir luks_tests_gen)"
+      LUKS2_TESTS_DIR="$(container_gen_dir luks2_tests_gen)"
+    fi
+
     # generate random test entry
     if [ "${HT}" -eq 65535 ]; then
       for TMP_HT in ${HASH_TYPES}; do
@@ -5200,14 +7059,20 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        # only a mode with a .pm has anything for test.pl to generate. That
-        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
-        # are container-only. LUKS is the one family that has both, and it uses
-        # its .pm only when -g asks for containers to be generated.
+        # only a mode with an oracle, a .pm or a .py, has anything to generate.
+        # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
+        # which are container-only. LUKS is the one family that has both, and it
+        # uses its oracle only when -g asks for containers to be generated.
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              run_oracle single "${TMP_HT}" >> "${OUTD}/all.sh"
+
+              if [ $? -eq 2 ]; then
+                record_skip "${TMP_HT}" "no ${KERNEL_TYPE} kernel for this mode"
+
+                NOT_APPLICABLE_MODES="${NOT_APPLICABLE_MODES} ${TMP_HT}"
+              fi
             fi
           fi
         fi
@@ -5225,14 +7090,20 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        # only a mode with a .pm has anything for test.pl to generate. That
-        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
-        # are container-only. LUKS is the one family that has both, and it uses
-        # its .pm only when -g asks for containers to be generated.
+        # only a mode with an oracle, a .pm or a .py, has anything to generate.
+        # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
+        # which are container-only. LUKS is the one family that has both, and it
+        # uses its oracle only when -g asks for containers to be generated.
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              run_oracle single "${TMP_HT}" >> "${OUTD}/all.sh"
+
+              if [ $? -eq 2 ]; then
+                record_skip "${TMP_HT}" "no ${KERNEL_TYPE} kernel for this mode"
+
+                NOT_APPLICABLE_MODES="${NOT_APPLICABLE_MODES} ${TMP_HT}"
+              fi
             fi
           fi
         fi
@@ -5294,35 +7165,6 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       continue
     fi
 
-    # test.pl produce wrong hashes with Apple
-    # would be necessary to investigate to understand why
-    if [ "${hash_type}" -eq 1800 ]; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        continue
-      fi
-    fi
-
-    # Digest::BLAKE2 is broken on Apple Silicon
-    if [ "${hash_type}" -eq 600 ]; then
-      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
-        continue
-      fi
-    fi
-
-    # Digest::GOST is broken on Apple Silicon
-    if [ "${hash_type}" -eq 6900 ]; then
-      if [ "${IS_APPLE_SILICON}" -eq 1 ]; then
-        continue
-      fi
-    fi
-
-    # Crypt::GCrypt is broken on Apple
-    if [ "${hash_type}" -eq 18600 ]; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        continue
-      fi
-    fi
-
     if [ -z "${PACKAGE_FOLDER}" ]; then
       # init test data
       init
@@ -5335,6 +7177,14 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       # should we check only the pass?
       pass_only=0
       is_in_array "${hash_type}"  ${PASS_ONLY} && pass_only=1
+
+      # is the plaintext written out as bare hex?
+      hexify_plain=0
+      is_in_array "${hash_type}"  ${HEXIFY_PLAIN} && hexify_plain=1
+
+      if is_in_array "${hash_type}" ${NOT_APPLICABLE_MODES}; then
+        continue
+      fi
 
       IS_SLOW=0
       is_in_array "${hash_type}" ${SLOW_ALGOS} && IS_SLOW=1
@@ -5412,15 +7262,51 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 rar_test "${hash_type}" ${ATTACK}
               fi
 
-              # a mode only -g can reach has nothing to run without it, and a
-              # mode that quietly does nothing looks exactly like one that passed
-              if is_in_array "${hash_type}" ${GEN_ONLY_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
-                record_skip "${hash_type}" "no test.pl oracle, needs -g to build a real archive"
+              if is_in_array "${hash_type}" ${SEVENZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real 7-Zip and WinZip AES archives
+                sevenzip_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${PDF_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real encrypted PDFs
+                pdf_gen_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${SSH_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test a real OpenSSH private key
+                ssh_test "${hash_type}" ${ATTACK}
+              fi
+
+              # the module's own self-test vector, in every run
+              if is_in_array "${hash_type}" ${SELFTEST_MODES}; then
+                selftest_vector_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real LUKS1 containers. 14600 is the legacy
+                # format, which reads a whole container rather than an extracted
+                # hash and has no generator here.
+                if [ ${hash_type} -eq 14600 ]; then
+                  record_skip "${hash_type}" "the legacy LUKS format is not generated, so -m 14600 stays on the containers fetched from hashcat.net"
+                else
+                  luks_test "${hash_type}" ${ATTACK}
+                fi
+              fi
+
+              if is_in_array "${hash_type}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real LUKS2 containers
+                luks2_test "${hash_type}" ${ATTACK}
               fi
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
                 # run attack mode 0 (stdin)
-                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_whole_word 0; fi
+
+                # run attack mode 4 (pcfg), 8 (generic) and 9 (association). Each of them costs one
+                # candidate per word, the same as attack mode 0, so a slow hash can afford them too
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 4 ]; then attack_whole_word 4; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 8 ]; then attack_whole_word 8; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 9 ]; then attack_whole_word 9; fi
               fi
             fi
 
@@ -5439,9 +7325,35 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 pkzip_test "${hash_type}" ${ATTACK}
               fi
 
+              if is_in_array "${hash_type}" ${SEVENZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real 7-Zip and WinZip AES archives
+                sevenzip_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${PDF_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real encrypted PDFs
+                pdf_gen_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${SSH_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test a real OpenSSH private key
+                ssh_test "${hash_type}" ${ATTACK}
+              fi
+
               if is_in_array "${hash_type}" ${PM_MODES}; then
                 # run attack mode 0 (stdin)
-                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_whole_word 0; fi
+
+                # run attack mode 4 (pcfg)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 4 ]; then attack_whole_word 4; fi
+
+                # run attack mode 8 (generic, the wordlist feed)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 8 ]; then attack_whole_word 8; fi
+
+                # run attack mode 9 (association). -a 0 does not cover it: it builds the straight
+                # kernels with the salt taken from the global id, so it is different source and has
+                # its own failure modes
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 9 ]; then attack_whole_word 9; fi
 
                 # run attack mode 1 (combinator)
                 if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi
@@ -5519,28 +7431,23 @@ if [ "${PACKAGE}" -eq 1 ]; then
   fi
 
   if [ "${copy_luks_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/luks_tests/"
-    cp ${TDIR}/luks_tests/* "${OUTD}/luks_tests/"
+    copy_container_dir "${LUKS_TESTS_DIR}" "${OUTD}/luks_tests" luks
   fi
 
   if [ "${copy_luks2_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/luks2_tests/"
-    cp ${TDIR}/luks2_tests/* "${OUTD}/luks2_tests/"
+    copy_container_dir "${LUKS2_TESTS_DIR}" "${OUTD}/luks2_tests" luks2
   fi
 
   if [ "${copy_tc_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/tc_tests/"
-    cp ${TDIR}/tc_tests/* "${OUTD}/tc_tests/"
+    copy_container_dir "${TC_TESTS_DIR}" "${OUTD}/tc_tests" truecrypt
   fi
 
   if [ "${copy_vc_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/vc_tests/"
-    cp ${TDIR}/vc_tests/* "${OUTD}/vc_tests/"
+    copy_container_dir "${VC_TESTS_DIR}" "${OUTD}/vc_tests" veracrypt
   fi
 
   if [ "${copy_cl_dir}" -eq 1 ]; then
-    mkdir "${OUTD}/cl_tests/"
-    cp ${TDIR}/cl_tests/* "${OUTD}/cl_tests/"
+    copy_container_dir "${TDIR}/cl_tests" "${OUTD}/cl_tests" cryptoloop
   fi
 
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
@@ -5553,16 +7460,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
     if [ "${?}" -ne 0 ]; then
       MODE=0
-    fi
-
-    HT=$(grep -o -- "-m  *[0-9]*" "${PACKAGE_FOLDER}/all.sh" | sort -u | sed 's/-m  //' 2> /dev/null)
-
-    if [ -n "${HT}" ]; then
-      HT_COUNT=$(echo "${HT}" | wc -l)
-
-      if [ "${HT_COUNT}" -gt 1 ]; then
-        HT=65535
-      fi
     fi
 
     #ATTACK=65535 # more appropriate ?
@@ -5589,14 +7486,18 @@ if [ "${PACKAGE}" -eq 1 ]; then
   PM_MODES_PACKAGED=$(     echo "${PM_MODES}"      | tr '\n' ' ' | sed 's/ *$//')
   HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ *$//')
   KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
+  HEXIFY_PLAIN_PACKAGED=$( echo "${HEXIFY_PLAIN}"  | tr '\n' ' ' | sed 's/ *$//')
   SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
+  A4_OPTIMIZED_ALGOS_PACKAGED=$(echo "${A4_OPTIMIZED_ALGOS}" | tr '\n' ' ' | sed 's/ *$//')
 
-  sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
+  sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test\\.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
     -e "s/^\(PM_MODES\)=\$(.*/\1=\"${PM_MODES_PACKAGED}\"/" \
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
     -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
+    -e "s/^\(HEXIFY_PLAIN\)=\$(.*/\1=\"${HEXIFY_PLAIN_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
+    -e "s/^\(A4_OPTIMIZED_ALGOS\)=\$(.*/\1=\"${A4_OPTIMIZED_ALGOS_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \

@@ -19,6 +19,8 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --hex-wordlist             |      | Assume words in wordlist are given in hex            |
      --force                    |      | Ignore warnings                                      |
      --deprecated-check-disable |      | Enable deprecated plugins                            |
+     --pipeline-stats          |      | Show where each launch's time goes, per device       |
+     --task-time-breakdown     |      | Show where the run's wall clock went, by stage       |
      --status                   |      | Enable automatic update of the status screen         |
      --status-json              |      | Enable JSON format for status output                 |
      --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1
@@ -36,7 +38,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --runtime                  | Num  | Abort session after X seconds of runtime             | --runtime=10
      --session                  | Str  | Define specific session name                         | --session=mysession
      --restore                  |      | Show the command line to resume --session, then stop  |
-     --restore-auto             |      | Resume in one step instead, without showing it first  |
      --restore-disable          |      | Do not write restore file                            |
      --restore-file-path        | File | Specific path to restore file                        | --restore-file-path=x.restore
      --restore-position         |      | Take only the position from the restore file         |
@@ -51,33 +52,33 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --show                     |      | Compare hashlist with potfile; show cracked hashes   |
      --left                     |      | Compare hashlist with potfile; show uncracked hashes |
      --username                 |      | Enable ignoring of usernames in hashfile             |
-     --dynamic-x                |      | Ignore $dynamic_X$ prefix in hashes                  |
+     --dynamic-x                |      | Load hashes written in John's $dynamic_X$ format     |
      --remove                   |      | Enable removal of hashes once they are cracked       |
      --remove-timer             | Num  | Update input hash file each X seconds                | --remove-timer=30
      --potfile-disable          |      | Do not write potfile                                 |
      --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot
      --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15
      --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le
-     --debug-mode               | Num  | Defines the debug mode, requires -r or -g            | --debug-mode=4
+     --debug-mode               | Num  | Defines the debug mode, needs rules or a feed        | --debug-mode=4
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
-     --seekdb-path              | Dir  | Specify the directory to store seek databases in     | --seekdb-path=/mnt/seekdbs
+     --cache-path               | Dir  | Specify the directory hashcat caches everything in   | --cache-path=/mnt/hccache
      --logfile-disable          |      | Disable the logfile                                  |
      --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2
      --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
-     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=german.hckmap
+     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table
      --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png
      --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt
      --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450
      --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500
  -b, --benchmark                |      | Run benchmark of selected hash-modes                 |
+ -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |
      --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |
      --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100
      --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000
      --speed-only               |      | Return expected speed of the attack, then quit       |
      --progress-only            |      | Return ideal progress step size and time to process  |
- -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32
      --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24
      --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24
      --bridge-parameter1        | Str  | Sets the generic parameter 1 for a Bridge            |
@@ -96,11 +97,9 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1
  -Y, --backend-devices-virtmulti| Num  | Spawn X virtual instances on a real device           | -Y 8
  -R, --backend-devices-virthost | Num  | Sets the real device that runs the virtual instances | -R 2
-     --backend-devices-keepfree | Num  | Keep specified percentage of device memory free      | --backend-devices-keepfree=5
  -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1
  -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |
  -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |
- -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3
  -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64
  -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256
  -T, --kernel-threads           | Num  | Manual workload tuning, set thread count to X        | -T 64
@@ -113,9 +112,11 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000
      --keyspace                 |      | Show keyspace base:mod values and quit               |
      --total-candidates         |      | Show total candidate count (base*mod) and quit       |
+     --lookup                   | Str  | Show where this attack reaches candidate X and quit  | --lookup=hashcat
  -j, --rule-left                | Rule | Single rule applied to each word from left wordlist  | -j 'c'
  -k, --rule-right               | Rule | Single rule applied to each word from right wordlist | -k '^-'
  -r, --rules-file               | File | Multiple rules applied to each word from wordlists   | -r rules/best66.rule
+     --rules-concat             |      | Use the -r files as one list instead of chaining them |
  -g, --generate-rules           | Num  | Generate X random rules                              | -g 10000
      --generate-rules-func-min  | Num  | Force min X functions per rule                       |
      --generate-rules-func-max  | Num  | Force max X functions per rule                       |
@@ -174,7 +175,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   5 | timestamp absolute
   6 | timestamp relative
 
-- [ Rule Debugging Modes ] -
+- [ Debugging Modes ] -
 
   # | Format
  ===+========
@@ -183,6 +184,9 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   3 | Original-Word:Finding-Rule
   4 | Original-Word:Finding-Rule:Processed-Word
   5 | Original-Word:Finding-Rule:Processed-Word:Wordlist
+  6 | Original-Word:What-The-Feed-Did:Processed-Word
+
+  Finding-Rule needs -r or -g, except in attack modes 4, 5 and 8, where the feed fills it in.
 
 - [ Attack Modes ] -
 
@@ -192,6 +196,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   1 | Combination
   3 | Brute-force
   4 | PCFG, a trained grammar makes the candidates
+  5 | Table, tables say what each token may become
   6 | Hybrid Wordlist + Mask
   7 | Hybrid Mask + Wordlist
   8 | Generic
@@ -227,15 +232,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
 
 Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.
 
-- [ Workload Profiles ] -
-
-  # | Performance | Runtime | Power Consumption | Desktop Impact
- ===+=============+=========+===================+=================
-  1 | Low         |   2 ms  | Low               | Minimal
-  2 | Default     |  12 ms  | Economic          | Noticeable
-  3 | High        |  96 ms  | High              | Unresponsive
-  4 | Nightmare   | 480 ms  | Insane            | Headless
-
 - [ License ] -
 
   hashcat is licensed under the MIT license
@@ -251,6 +247,7 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Brute-Force      | MD5   | hashcat -a 3 -m 0 example0.hash ?a?a?a?a?a?a
   PCFG             | MD5   | hashcat -a 4 -m 0 example0.hash
   PCFG + ruleset   | MD5   | hashcat -a 4 -m 0 example0.hash /path/to/ruleset
+  Table            | MD5   | hashcat -a 5 -m 0 example0.hash example.dict tables/leetspeak-common.table tables/toggle.table
   Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule

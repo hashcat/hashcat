@@ -44,23 +44,36 @@ char *hipDllPath (char *hipSDKPath)
 int hip_init (void *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+  user_options_t *user_options = ((hashcat_ctx_t *) hashcat_ctx)->user_options;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
   memset (hip, 0, sizeof (HIP_PTR));
 
   #if   defined (_WIN)
-  char *hipSDKPath = getenv ("HIP_PATH");
+  // The SDK keeps its DLLs in bin and puts the HIP version in the name, amdhip64_7.dll. That number
+  // is HIP's own and not the ROCm release: ROCm 10.0 ships a HIP whose version is 7, so a name built
+  // from the path HIP_PATH points at need not exist. The directory is read instead. PATH is searched
+  // after it, which is where the graphics driver leaves its own older copy.
 
-  if (hipSDKPath == NULL) return -1;
+  char hip_bin[MAX_PATH];
 
-  char *hipdllpath = hipDllPath (hipSDKPath);
+  const char *hipSDKPath = getenv ("HIP_PATH");
 
-  if (hipdllpath == NULL) return -1;
+  const char *dirs[1] = { NULL };
 
-  hip->lib = hc_dlopen (hipdllpath);
+  if (hipSDKPath)
+  {
+    const size_t len = strlen (hipSDKPath);
 
-  free (hipdllpath);
+    const char *sep = ((len > 0) && (hipSDKPath[len - 1] == '\\')) ? "" : "\\";
+
+    snprintf (hip_bin, sizeof (hip_bin), "%s%sbin", hipSDKPath, sep);
+
+    dirs[0] = hip_bin;
+  }
+
+  hip->lib = hc_dynlib_open_newest_dll ("amdhip64_", dirs, 1, NULL, 0);
 
   if (hip->lib == NULL)
   {
@@ -88,29 +101,35 @@ int hip_init (void *hashcat_ctx)
   }
 
   #else
-  hip->lib = hc_dlopen ("libamdhip64.so");
+  // Hygon DTK ships libamdhip64.so as an alias for libgalaxyhip.so, so the DTK
+  // runtime is reached through the standard AMD name. Keep libamdhip64 first and
+  // identify the runtime from an exported symbol once the library is open, rather
+  // than from the order in which the names were tried.
 
-  // The unversioned name is a link that only the -dev package ships, so on a distro that splits its
-  // packages the runtime is installed and this still fails. Fall back to the sonames, newest first,
-  // the way the CUDA and NVRTC loaders already do. The range is walked rather than hardcoded so a
-  // later ROCm does not need another edit here.
+  // The unversioned name is a link that only the -dev package ships, so asking for it alone finds
+  // nothing on a distribution that splits its packages. hc_dynlib_open_newest () reads the versioned
+  // names off the disk and takes the newest, and falls back to the plain name for a layout it does
+  // not know, which is how the DTK alias is still reached.
 
-  if (hip->lib == NULL)
-  {
-    char soname[64];
-
-    for (int major = 9; major >= 4; major--)
-    {
-      snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
-
-      hip->lib = hc_dlopen (soname);
-
-      if (hip->lib) break;
-    }
-  }
+  hip->lib = hc_dynlib_open_newest ("libamdhip64", NULL, 0);
   #endif
 
   if (hip->lib == NULL) return -1;
+
+  // DTK's libamdhip64.so is libgalaxyhip.so. Identify the runtime from a symbol
+  // the ROCm library does not export. Hygon currently ships the misspelled
+  // hipExtGetNearstCPU, so probe the correct spelling too in case a later DTK
+  // fixes it.
+  hip->is_dtk = (hc_dlsym (hip->lib, "hipExtGetNearstCPU") != NULL)
+             || (hc_dlsym (hip->lib, "hipExtGetNearestCPU") != NULL);
+
+  if (hip->is_dtk == true)
+  {
+    if (user_options->quiet == false)
+    {
+      event_log_info (hashcat_ctx, "Hygon DTK HIP runtime detected, selecting the DTK ABI.");
+    }
+  }
 
   // finding the right symbol is a PITA,
   #define HC_LOAD_FUNC_HIP(ptr,name,hipname,type,libname,noerr) \
@@ -202,6 +221,10 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP_FALLBACK (hip, hipGetDeviceProperties,    hipGetDevicePropertiesR0600,  hipGetDeviceProperties, HIP_HIPGETDEVICEPROPERTIES,     HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor, HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR, HIP, 1);
 
+  // Both ABIs export the same symbol with the same calling convention. Only
+  // the output structure layout differs, so keep a layout-correct DTK pointer.
+  hip->hipGetDevicePropertiesDTK = (HIP_HIPGETDEVICEPROPERTIES_DTK) hip->hipGetDeviceProperties;
+
   return 0;
 }
 
@@ -215,7 +238,13 @@ void hip_close (void *hashcat_ctx)
   {
     if (hip->lib)
     {
-      hc_dlclose (hip->lib);
+      // Hygon DTK registers C++ exit handlers that call back into libgalaxyhip.so.
+      // Closing the handle here would leave those handlers pointing at unmapped
+      // memory and crash the process during exit, so keep the library loaded.
+      if (hip->is_dtk == false)
+      {
+        hc_dlclose (hip->lib);
+      }
     }
 
     hcfree (backend_ctx->hip);
@@ -471,7 +500,31 @@ int hc_hipDeviceGetAttribute (void *hashcat_ctx, int *pi, hipDeviceAttribute_t a
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const hipError_t HIP_err = hip->hipDeviceGetAttribute (pi, attrib, dev);
+  int attrib_actual = (int) attrib;
+
+  if (hip->is_dtk)
+  {
+    switch (attrib)
+    {
+      case hipDeviceAttributeMaxThreadsPerBlock:            attrib_actual = 18; break;
+      case hipDeviceAttributeMaxSharedMemoryPerBlock:       attrib_actual = 25; break;
+      case hipDeviceAttributeTotalConstantMemory:           attrib_actual = 26; break;
+      case hipDeviceAttributeWarpSize:                      attrib_actual = 27; break;
+      case hipDeviceAttributeMaxRegistersPerBlock:          attrib_actual = 28; break;
+      case hipDeviceAttributeClockRate:                     attrib_actual = 29; break;
+      case hipDeviceAttributeMultiprocessorCount:           attrib_actual = 32; break;
+      case hipDeviceAttributeComputeCapabilityMajor:        attrib_actual = 36; break;
+      case hipDeviceAttributeComputeCapabilityMinor:        attrib_actual = 37; break;
+      case hipDeviceAttributePciBusId:                      attrib_actual = 39; break;
+      case hipDeviceAttributePciDeviceId:                   attrib_actual = 40; break;
+      case hipDeviceAttributeIntegrated:                    attrib_actual = 42; break;
+      case hipDeviceAttributeMaxRegistersPerMultiprocessor: attrib_actual = 69; break;
+      case hipDeviceAttributeKernelExecTimeout:             attrib_actual = 79; break;
+      default:                                             break;
+    }
+  }
+
+  const hipError_t HIP_err = hip->hipDeviceGetAttribute (pi, (hipDeviceAttribute_t) attrib_actual, dev);
 
   if (HIP_err != hipSuccess)
   {
@@ -479,11 +532,11 @@ int hc_hipDeviceGetAttribute (void *hashcat_ctx, int *pi, hipDeviceAttribute_t a
 
     if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %s", dev, attrib, pStr);
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %s", dev, attrib_actual, pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %d", dev, attrib, HIP_err);
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %d", dev, attrib_actual, HIP_err);
     }
 
     return -1;
@@ -826,6 +879,13 @@ int hc_hipInit (void *hashcat_ctx, unsigned int Flags)
 
   if (HIP_err != hipSuccess)
   {
+    // A machine carrying the HIP runtime with no AMD GPU in it reports this on every run, and an
+    // NVIDIA machine with ROCm installed is the ordinary case for it. The caller closes the runtime
+    // and moves on to the next backend, so nothing is wrong and nothing needs saying. Every other
+    // failure still gets named.
+
+    if (HIP_err == hipErrorNoDevice) return -1;
+
     const char *pStr = NULL;
 
     if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
@@ -1498,6 +1558,91 @@ int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevi
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  if (hip->is_dtk)
+  {
+    hipDevicePropDTK_t dprop;
+
+    memset (&dprop, 0, sizeof (dprop));
+
+    const hipError_t HIP_err = hip->hipGetDevicePropertiesDTK (&dprop, dev);
+
+    if (HIP_err != hipSuccess)
+    {
+      const char *pStr = NULL;
+
+      if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+      {
+        event_log_error (hashcat_ctx, "hipGetDeviceProperties(dev=%d): %s", dev, pStr);
+      }
+      else
+      {
+        event_log_error (hashcat_ctx, "hipGetDeviceProperties(dev=%d): %d", dev, HIP_err);
+      }
+
+      return -1;
+    }
+
+    // Map the legacy DTK layout into the ROCm layout hashcat expects elsewhere.
+    memset (prop, 0, sizeof (*prop));
+
+    memcpy (prop->name, dprop.name, sizeof (prop->name) - 1);
+    prop->name[sizeof (prop->name) - 1] = 0;
+    prop->totalGlobalMem       = dprop.totalGlobalMem;
+    prop->sharedMemPerBlock    = dprop.sharedMemPerBlock;
+    prop->regsPerBlock         = dprop.regsPerBlock;
+    prop->warpSize             = dprop.warpSize;
+    prop->maxThreadsPerBlock   = dprop.maxThreadsPerBlock;
+    memcpy (prop->maxThreadsDim, dprop.maxThreadsDim, sizeof (dprop.maxThreadsDim));
+    for (int i = 0; i < 3; i++) prop->maxGridSize[i] = (int) dprop.maxGridSize[i];
+    prop->clockRate            = dprop.clockRate;
+    prop->totalConstMem        = dprop.totalConstMem;
+    prop->major                = dprop.major;
+    prop->minor                = dprop.minor;
+    prop->multiProcessorCount  = dprop.multiProcessorCount;
+    prop->l2CacheSize          = dprop.l2CacheSize;
+    prop->maxThreadsPerMultiProcessor = dprop.maxThreadsPerMultiProcessor;
+    prop->computeMode          = dprop.computeMode;
+    prop->clockInstructionRate = dprop.clockInstructionRate;
+    prop->arch                 = dprop.arch;
+    prop->concurrentKernels    = dprop.concurrentKernels;
+    prop->pciDomainID          = dprop.pciDomainID;
+    prop->pciBusID             = dprop.pciBusID;
+    prop->pciDeviceID          = dprop.pciDeviceID;
+    prop->maxSharedMemoryPerMultiProcessor = dprop.maxSharedMemoryPerMultiProcessor;
+    prop->isMultiGpuBoard      = dprop.isMultiGpuBoard;
+    prop->canMapHostMemory     = dprop.canMapHostMemory;
+    memcpy (prop->gcnArchName, dprop.gcnArchName, sizeof (prop->gcnArchName) - 1);
+    prop->gcnArchName[sizeof (prop->gcnArchName) - 1] = 0;
+    prop->integrated           = dprop.integrated;
+    prop->cooperativeLaunch    = dprop.cooperativeLaunch;
+    prop->cooperativeMultiDeviceLaunch = dprop.cooperativeMultiDeviceLaunch;
+    prop->maxTexture1DLinear   = dprop.maxTexture1DLinear;
+    prop->maxTexture1D         = dprop.maxTexture1D;
+    memcpy (prop->maxTexture2D, dprop.maxTexture2D, sizeof (dprop.maxTexture2D));
+    memcpy (prop->maxTexture3D, dprop.maxTexture3D, sizeof (dprop.maxTexture3D));
+    prop->hdpMemFlushCntl      = dprop.hdpMemFlushCntl;
+    prop->hdpRegFlushCntl      = dprop.hdpRegFlushCntl;
+    prop->memPitch             = dprop.memPitch;
+    prop->textureAlignment     = dprop.textureAlignment;
+    prop->texturePitchAlignment = dprop.texturePitchAlignment;
+    prop->kernelExecTimeoutEnabled = dprop.kernelExecTimeoutEnabled;
+    prop->ECCEnabled           = dprop.ECCEnabled;
+    prop->tccDriver            = dprop.tccDriver;
+    prop->cooperativeMultiDeviceUnmatchedFunc      = dprop.cooperativeMultiDeviceUnmatchedFunc;
+    prop->cooperativeMultiDeviceUnmatchedGridDim   = dprop.cooperativeMultiDeviceUnmatchedGridDim;
+    prop->cooperativeMultiDeviceUnmatchedBlockDim  = dprop.cooperativeMultiDeviceUnmatchedBlockDim;
+    prop->cooperativeMultiDeviceUnmatchedSharedMem = dprop.cooperativeMultiDeviceUnmatchedSharedMem;
+    prop->isLargeBar           = dprop.isLargeBar;
+    prop->asicRevision         = dprop.asicRevision;
+    prop->managedMemory        = dprop.managedMemory;
+    prop->directManagedMemAccessFromHost = dprop.directManagedMemAccessFromHost;
+    prop->concurrentManagedAccess = dprop.concurrentManagedAccess;
+    prop->pageableMemoryAccess = dprop.pageableMemoryAccess;
+    prop->pageableMemoryAccessUsesHostPageTables = dprop.pageableMemoryAccessUsesHostPageTables;
+
+    return 0;
+  }
 
   const hipError_t HIP_err = hip->hipGetDeviceProperties (prop, dev);
 

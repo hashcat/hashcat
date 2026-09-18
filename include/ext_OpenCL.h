@@ -8,7 +8,9 @@
 
 #include "export.h"
 
-#define CL_TARGET_OPENCL_VERSION 120
+#include "requirements.h"
+
+#define CL_TARGET_OPENCL_VERSION HC_CL_TARGET_VERSION
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
@@ -41,102 +43,6 @@ typedef union
 
 // OpenCL extras
 
-typedef enum openclBufferMemoryFlagsId
-{
-  opencl_d_pws_buf_memoryFlags,
-  opencl_d_pws_amp_buf_memoryFlags,
-  opencl_d_pws_comp_buf_memoryFlags,
-  opencl_d_pws_idx_memoryFlags,
-  opencl_d_rules_memoryFlags,
-  opencl_d_rules_c_memoryFlags,
-  opencl_d_combs_memoryFlags,
-  opencl_d_combs_c_memoryFlags,
-  opencl_d_bfs_memoryFlags,
-  opencl_d_bfs_c_memoryFlags,
-  opencl_d_tm_c_memoryFlags,
-  opencl_d_bitmap_s1_a_memoryFlags,
-  opencl_d_bitmap_s1_b_memoryFlags,
-  opencl_d_bitmap_s1_c_memoryFlags,
-  opencl_d_bitmap_s1_d_memoryFlags,
-  opencl_d_bitmap_s2_a_memoryFlags,
-  opencl_d_bitmap_s2_b_memoryFlags,
-  opencl_d_bitmap_s2_c_memoryFlags,
-  opencl_d_bitmap_s2_d_memoryFlags,
-  opencl_d_plain_bufs_memoryFlags,
-  opencl_d_digests_buf_memoryFlags,
-  opencl_d_digests_shown_memoryFlags,
-  opencl_d_salt_bufs_memoryFlags,
-  opencl_d_esalt_bufs_memoryFlags,
-  opencl_d_tmps_memoryFlags,
-  opencl_d_hooks_memoryFlags,
-  opencl_d_result_memoryFlags,
-  opencl_d_extra0_buf_memoryFlags,
-  opencl_d_extra1_buf_memoryFlags,
-  opencl_d_extra2_buf_memoryFlags,
-  opencl_d_extra3_buf_memoryFlags,
-  opencl_d_root_css_buf_memoryFlags,
-  opencl_d_markov_css_buf_memoryFlags,
-  opencl_d_st_digests_buf_memoryFlags,
-  opencl_d_st_salts_buf_memoryFlags,
-  opencl_d_st_esalts_buf_memoryFlags,
-  opencl_d_kernel_param_memoryFlags,
-  opencl_d_pcfg_cells_memoryFlags,
-  opencl_d_pcfg_pool_memoryFlags,
-  opencl_d_pcfg_wmap_memoryFlags,
-  OCL_BUFFER_CNT
-
-} openclBufferMemoryFlagsId_t;
-
-static const cl_mem_flags openclMemoryFlags[OCL_BUFFER_CNT] =
-{
-  [opencl_d_pws_buf_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_pws_amp_buf_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_pws_comp_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_pws_idx_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_rules_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_rules_c_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_combs_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_combs_c_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bfs_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bfs_c_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_tm_c_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s1_a_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s1_b_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s1_c_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s1_d_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s2_a_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s2_b_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s2_c_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_bitmap_s2_d_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_plain_bufs_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_digests_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_digests_shown_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_salt_bufs_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_esalt_bufs_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_tmps_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_hooks_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_result_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_extra0_buf_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_extra1_buf_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_extra2_buf_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_extra3_buf_memoryFlags] = CL_MEM_READ_WRITE,
-  [opencl_d_root_css_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_markov_css_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_st_digests_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_st_salts_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_st_esalts_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_kernel_param_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_pcfg_cells_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_pcfg_pool_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_pcfg_wmap_memoryFlags] = CL_MEM_READ_ONLY
-};
-
-#define HC_OCL_CREATEBUFFER(ctx, size, ptr, buf_name)                                     \
-  do {                                                                                    \
-    if (hc_clCreateBuffer_ext(ctx, device_param->opencl_context,                          \
-                              openclMemoryFlags[opencl_d_##buf_name##_memoryFlags], size, \
-                              ptr, &device_param->opencl_d_##buf_name) == -1) return -1;  \
-  } while (0)
 
 #define CL_PLATFORMS_MAX 16
 

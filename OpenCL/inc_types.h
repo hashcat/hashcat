@@ -8,8 +8,9 @@
 
 #if ATTACK_MODE == 9
 #define BITMAP_MASK         kernel_param->bitmap_mask
-#define BITMAP_SHIFT1       kernel_param->bitmap_shift1
-#define BITMAP_SHIFT2       kernel_param->bitmap_shift2
+#define PCFG_POOL_AT1       kernel_param->pcfg_pool_at1
+#define PCFG_POOL_AT2       kernel_param->pcfg_pool_at2
+#define PCFG_POOL_AT3       kernel_param->pcfg_pool_at3
 #define SALT_POS_HOST       (kernel_param->pws_pos + gid)
 #define SALT_POS_HOST_BID   (kernel_param->pws_pos + bid)
 #define LOOP_POS            kernel_param->loop_pos
@@ -25,8 +26,9 @@
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
-#define BITMAP_SHIFT1       kernel_param->bitmap_shift1
-#define BITMAP_SHIFT2       kernel_param->bitmap_shift2
+#define PCFG_POOL_AT1       kernel_param->pcfg_pool_at1
+#define PCFG_POOL_AT2       kernel_param->pcfg_pool_at2
+#define PCFG_POOL_AT3       kernel_param->pcfg_pool_at3
 #define SALT_POS_HOST       kernel_param->salt_pos_host
 #define SALT_POS_HOST_BID   SALT_POS_HOST
 #define LOOP_POS            kernel_param->loop_pos
@@ -2062,39 +2064,44 @@ typedef struct kernel_param
   // We can only move attributes into this struct which do not use special declarations like __global
 
   u32 bitmap_mask;          // 24
-  u32 bitmap_shift1;        // 25
-  u32 bitmap_shift2;        // 26
-  u32 salt_pos_host;        // 27
-  u64 loop_pos;             // 28
-  u64 loop_cnt;             // 29
-  u64 il_cnt;               // 30
-  u32 digests_cnt;          // 31
-  u32 digests_offset_host;  // 32
-  u32 combs_mode;           // 33
-  u32 salt_repeat;          // 34
-  u64 pws_pos;              // 35
-  u64 gid_max;              // 36
+  u32 salt_pos_host;        // 25
+  u64 loop_pos;             // 26
+  u64 loop_cnt;             // 27
+  u64 il_cnt;               // 28
+  u32 digests_cnt;          // 29
+  u32 digests_offset_host;  // 30
+  u32 combs_mode;           // 31
+  u32 salt_repeat;          // 32
+  u64 pws_pos;              // 33
+  u64 gid_max;              // 34
 
   // Bytes of mask that sit in front of the base word, so the position of ?w inside the mask. Zero
   // puts the word first, which is what every attack mode other than -a 12 does. It replaces
   // combs_mode for -a 12: zero is the -a 6 layout and a value equal to the mask length is -a 7.
 
-  u32 pre_len;              // 37
+  u32 pre_len;              // 35
 
   // The other two mask piece lengths and whether the mask has a ?q. All three are properties of the
   // mask and do not change from one amplifier item to the next, which is what lets an optimized
   // kernel shift by a scalar instead of by a per item length.
 
-  u32 mid_len;              // 38
-  u32 post_len;             // 39
-  u32 has_q;                // 40
+  u32 mid_len;              // 36
+  u32 post_len;             // 37
+  u32 has_q;                // 38
 
   // How many work items every cell gets, when the host has not laid the launch out. Zero means it has,
   // and then the wave map says which cell a wave belongs to. It is not zero for the self-test, which
   // runs the kernel before a cell exists at all, and the value is what the device engine gave every cell
   // before there was a layout to carry.
 
-  u64 pcfg_lane_stride;     // 41
+  u64 pcfg_lane_stride;     // 39
+
+  // Where each part of the device engine's pool begins, in words. Last, so that adding them does not
+  // renumber every field after them.
+
+  u32 pcfg_pool_at1;        // 40
+  u32 pcfg_pool_at2;        // 41
+  u32 pcfg_pool_at3;        // 42
 
 } kernel_param_t;
 
@@ -2315,6 +2322,20 @@ typedef struct pw_idx
 #define PCFG_SLOT_KIND_BYTES 0
 #define PCFG_SLOT_KIND_CASE  1
 
+// A run of the base word, copied rather than looked up.
+//
+// The pool holds what a grammar or a table can produce, which is a fixed set known before the run.
+// A feed whose candidate also contains stretches of the base word itself has nothing in the pool to
+// write them from, and cannot put them there because they are whatever word is in hand. Such a slot
+// names an offset into the base word in pool_off instead, and has a radix of one because a run of a
+// word is not a choice.
+//
+// It reads the base word out of global memory rather than out of w, because w is being rewritten as
+// the odometer walks and a slot that grew has already overwritten what a later one would read. A whole
+// warp shares one cell and therefore one base word, so the read is a broadcast.
+
+#define PCFG_SLOT_KIND_COPY  2
+
 #define PCFG_SLOT_ENT_LEN(p) (((p) >>  0) & 0xff)
 #define PCFG_SLOT_DST_OFF(p) (((p) >>  8) & 0xff)
 #define PCFG_SLOT_KIND(p)    (((p) >> 16) & 0xff)
@@ -2340,6 +2361,18 @@ typedef struct pcfg_slot
 
   u32 pool_off;
   u32 radix;
+
+  // What a capitalisation slot has to know to reach the upper case image of the entry the slot it
+  // follows chose: that image's base in the pool without per entry offsets, and the distance to it
+  // with them. It means nothing on any other kind of slot and every feed leaves it zero there.
+  //
+  // It is NOT a starting digit. pcfg_odo_seed () decomposes il_pos on its own, so a slot cannot be
+  // told to begin part way along its bucket, and a host side rebuild that added a start here would
+  // name a different candidate than the card hashed. A cracked hash would then be written out with a
+  // plaintext that does not hash to it. Giving the odometer a start means changing pcfg_odo_seed (),
+  // pcfg_expand () and the two global_explain () copies together, and paying for it on every slot of
+  // every seed.
+
   u32 digit;
   u32 packed;
 
@@ -2393,6 +2426,15 @@ typedef struct pcfg_cell
 } pcfg_cell_t;
 
 #define PCFG_CELL_VARLEN 1
+
+// How many buffers the pool may be handed over in. inc_pcfg_pool.h says how a read finds its part.
+
+#define PCFG_POOL_PARTS 4
+
+// What the pool is aligned to and rounded up to, so a device whose memory is the host's can be handed
+// the feed's bytes instead of a copy. A multiple of every page size hashcat runs on.
+
+#define PCFG_POOL_ALIGN 65536
 
 typedef struct bf
 {

@@ -16,6 +16,9 @@ Intel and AMD CPUs require "Intel CPU Runtime for OpenCL" or PoCL
 Intel GPUs require "Intel Graphics Compute Runtime" aka NEO
 NVIDIA GPUs require "NVIDIA CUDA Toolkit"
 
+For the versions of each of those that hashcat needs, what it does with a device that is below one,
+and what a package has to carry, see docs/hashcat-requirements.md
+
 ##
 ## Features
 ##

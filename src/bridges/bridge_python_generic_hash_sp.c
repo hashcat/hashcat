@@ -28,6 +28,8 @@
 #include "cpu_features.h"
 #include "dynloader.h"
 
+#include <limits.h>
+
 #if defined (_WIN)
 #include "processenv.h"
 #endif
@@ -762,7 +764,7 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
   hcfree (python_interpreter);
 }
 
-bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -873,6 +875,7 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   int rc = 0;
 
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "module_name",    python->PyUnicode_FromString ((const char *) module_name));
+  rc |= python->PyDict_SetItemString (unit_buf->pContext, "salt_per_pw",    python->PyBool_FromLong (hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_cnt",      python->PyLong_FromLong (hashes->salts_cnt));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_size",     python->PyLong_FromLong (sizeof (salt_t)));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_buf",      python->PyBytes_FromStringAndSize ((const char *) hashes->salts_buf, sizeof (salt_t) * hashes->salts_cnt));
@@ -1022,7 +1025,7 @@ char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_con
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1055,7 +1058,10 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   }
 
   python->PyTuple_SetItem (unit_buf->pArgs, 1, pws);
-  python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (salt_pos));
+  // The plugin is handed the salt the batch starts at and adds the position of the candidate itself,
+  // so the position passed here is zero. salt_per_pw in the context above is what tells it to add.
+
+  python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, 0)));
 
   if (hashes->salts_buf == hashes->st_salts_buf)
   {

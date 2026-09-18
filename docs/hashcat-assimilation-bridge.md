@@ -14,8 +14,8 @@ Hashcat v7 introduces support for an embedded Python interpreter as its premier 
 
 - Hash modes `-m 72000` and `-m 73000` use embedded Python; start with `-m 73000`.
 - These demonstrate a "generic hash" model, enabling full hash mode creation in Python.
-- Users don’t need to recompile when making changes.
-- Python’s crypto ecosystem helps developers or AI generate new hash mode code easily and efficiently.
+- Users don't need to recompile when making changes.
+- Python's crypto ecosystem helps developers or AI generate new hash mode code easily and efficiently.
 - Here's a sample how a user can add `yescrypt` (`$y$...`) support with just one line of code:
 
 ```python

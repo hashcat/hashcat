@@ -1,0 +1,48 @@
+# Leetspeak, extended.
+#
+# Seen regularly, but well behind the common set. Give it alongside that one rather than instead of
+# it. b and q are here rather than in the common set: b to 8 and b to 6 are read as a b far less
+# reliably than a 3 is read as an e, and q to 9 is the least common of the lot.
+#
+# The leetspeak tables are meant to be given together, as many as you want the run to cost:
+#
+#   hashcat -m 0 -a 5 hashes.txt words.txt tables/leetspeak-common.table
+#   hashcat -m 0 -a 5 hashes.txt words.txt tables/leetspeak-common.table tables/leetspeak-extended.table
+#
+# Tables given together are read into one set, so a letter named by more than one of them ends up
+# with the union of what they say. Combine these with tables/toggle.table for case as well.
+#
+# One rule to a line: the source token, a tab, then what to put in its place. Leaving a letter as
+# it was is always one of the choices, so there are no rules here mapping a letter to itself.
+
+b	8
+c	(
+c	{
+c	[
+c	<
+g	6
+i	|
+l	|
+l	7
+t	+
+x	%
+z	2
+b	6
+q	9
+
+B	8
+C	(
+C	{
+C	[
+C	<
+G	6
+I	|
+L	|
+L	7
+T	+
+X	%
+Z	2
+B	6
+Q	9
+
+0	o

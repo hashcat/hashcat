@@ -96,14 +96,11 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
 DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
-  u64x hash = MurmurHash64A (hc->seed, w, len);
+  u32 t[64];
 
-  dgst[0] = l32_from_64 (hash);
-  dgst[1] = h32_from_64 (hash);
-  dgst[2] = 0;
-  dgst[3] = 0;
+  for (u32 i = 0; i < 64; i++) t[i] = w[i];
 
-  return true;
+  return pcfg_hash (hc, t, len, dgst);
 }
 
 #define PCFG_KERNEL_MXX m34200_mxx

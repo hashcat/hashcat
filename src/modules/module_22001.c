@@ -12,6 +12,7 @@
 #include "filehandling.h"
 #include "parser.h"
 #include "memory.h"
+#include "limits.h"
 
 #define DGST_ELEM 4
 
@@ -33,6 +34,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_AUX1
                                   | OPTS_TYPE_AUX2
                                   | OPTS_TYPE_AUX3
@@ -278,11 +280,28 @@ int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 
   if (r == true)
   {
-    struct stat st;
+    // stat () would measure the file on disk, and hc_fopen () above transparently decompresses gzip,
+    // xz and zstd. A compressed hccapx therefore holds far more records than its size on disk
+    // suggests, and the count decides how many hash entries module_hash_binary_parse () may fill.
 
-    stat (hashes->hashfile, &st);
+    char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
-    count = st.st_size / sizeof (hccapx_t);
+    u64 records = 0;
+
+    while (hc_feof (&fp) == false)
+    {
+      const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp);
+
+      if (nread == 0) break;
+
+      records++;
+
+      if (records == INT_MAX) break;
+    }
+
+    hcfree (in);
+
+    count = (int) records;
   }
   else
   {
@@ -323,6 +342,11 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // here we have in line_hash_buf: PMK*essid:password
   // but we don't care about the password
+
+  // The 8 reads below take a fixed 64 characters out of the line, and the check that the separator
+  // sits at offset 64 comes after them. A shorter potfile line is read past its end.
+
+  if (line_len < 64) return (PARSER_HASH_LENGTH);
 
   // PMK
 
@@ -576,8 +600,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param_t kernel_param;
 
   kernel_param.bitmap_mask         = 0;
-  kernel_param.bitmap_shift1       = 0;
-  kernel_param.bitmap_shift2       = 0;
   kernel_param.salt_pos_host       = 0;
   kernel_param.loop_pos            = 0;
   kernel_param.loop_cnt            = 0;
@@ -1372,6 +1394,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;

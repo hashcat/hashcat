@@ -90,8 +90,8 @@ int cuda_init (void *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoD,             cuMemcpyDtoD_v2,           CUDA_CUMEMCPYDTOD,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoH,             cuMemcpyDtoH_v2,           CUDA_CUMEMCPYDTOH,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoD,             cuMemcpyHtoD_v2,           CUDA_CUMEMCPYHTOD,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32,              cuMemsetD32,               CUDA_CUMEMSETD32,               CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8,               cuMemsetD8,                CUDA_CUMEMSETD8,                CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32,              cuMemsetD32_v2,            CUDA_CUMEMSETD32,               CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8,               cuMemsetD8_v2,             CUDA_CUMEMSETD8,                CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoDAsync,        cuMemcpyDtoDAsync_v2,      CUDA_CUMEMCPYDTODASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoHAsync,        cuMemcpyDtoHAsync_v2,      CUDA_CUMEMCPYDTOHASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoDAsync,        cuMemcpyHtoDAsync_v2,      CUDA_CUMEMCPYHTODASYNC,         CUDA, 1);
@@ -209,6 +209,13 @@ int hc_cuInit (void *hashcat_ctx, unsigned int Flags)
 
   if (CU_err != CUDA_SUCCESS)
   {
+    // A machine carrying the CUDA runtime with no NVIDIA GPU in it reports this on every run, and
+    // an AMD or Intel machine with the toolkit installed is the ordinary case for it. The caller
+    // closes the runtime and moves on to the next backend, so nothing is wrong and nothing needs
+    // saying. Every other failure still gets named.
+
+    if (CU_err == CUDA_ERROR_NO_DEVICE) return -1;
+
     const char *pStr = NULL;
 
     if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)

@@ -134,6 +134,23 @@ using namespace metal;
 #define IS_GENERIC
 #endif
 
+// An AMD GPU driven by a runtime whose compiler does not synthesise a 64 bit rotation for itself,
+// which means AMD's own OpenCL and Mesa's rusticl. VENDOR_ID is the platform vendor and cannot see
+// that: rusticl reports the platform as "Mesa/X.org" and lands on VENDOR_ID_GENERIC while the
+// device it exposes is an AMD one, so the device vendor id is what names both.
+//
+// Apple's OpenCL drives AMD GPUs too and is excluded by name. Its compiler does the rotation well
+// and the manual split gets in the way: on a Radeon Pro W5700X that costs SHA3-256 17 percent,
+// which is the same thing NVIDIA's OpenCL compiler does on a larger scale.
+//
+// The IS_GPU qualifier keeps a CPU device exposed by an AMD platform off this path.
+
+#ifndef IS_APPLE
+#if defined DEVICE_VENDOR_ID && defined IS_GPU && (DEVICE_VENDOR_ID == (1 << 0))
+#define IS_AMD_GPU
+#endif
+#endif
+
 #define LOCAL_MEM_TYPE_LOCAL  1
 #define LOCAL_MEM_TYPE_GLOBAL 2
 
@@ -183,6 +200,33 @@ using namespace metal;
 #else
 #define HC_NOINLINE
 #endif
+
+/**
+ * HC_NOINLINE_ALWAYS is the same hard noinline attribute, but always on, and it is not the switch
+ * above. FORCE_NO_INLINE is global and opt-in: the user turns it on for a whole run when a runtime
+ * is too slow to build anything. HC_NOINLINE_ALWAYS is a property of one function, it travels with
+ * that function's definition, and it is for the few helpers that are so large that inlining them
+ * cannot pay off anywhere: the caller gets a copy of thousands of instructions to save one call.
+ *
+ * Use it sparingly, and only where the body is big enough that the call is free by comparison.
+ */
+
+#define HC_NOINLINE_ALWAYS __attribute__ ((noinline))
+
+/**
+ * HC_INLINE_ALWAYS is the other direction, and it is here for one reason: a called function that the
+ * back end has to relax a branch inside. The AMD back end expands a long branch into
+ * s_getpc_b64 s[30:31] / s_add / s_setpc_b64 s[30:31], which overwrites the pair holding the
+ * function's own return address, and nothing restores it, so the function returns into itself and
+ * the card spins forever. A kernel ends in s_endpgm and has no return address to lose, so folding
+ * such a function into its kernel makes the same relaxation harmless.
+ *
+ * The other way out is to keep every called function small enough that no branch needs relaxing,
+ * which is what HC_NOINLINE_ALWAYS does for the TrueCrypt and VeraCrypt header helpers. Use whichever
+ * the body allows, and use neither without a disassembly that shows the clobber.
+ */
+
+#define HC_INLINE_ALWAYS __attribute__ ((always_inline))
 
 // On a device DECLSPEC says how a function is compiled. On the host it says something else, because
 // the host build of these files is compiled into the core and a plugin calls the result: every one

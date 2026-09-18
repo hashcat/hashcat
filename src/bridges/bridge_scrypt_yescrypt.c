@@ -184,8 +184,12 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
 
   salt_t *scrypt_st = (salt_t *) hashes->st_salts_buf;
 
-  size_t largest_V  = 128 * scrypt_st->scrypt_r * scrypt_st->scrypt_N; // yescrypt: the temporary storage V must be 128rN bytes in length
-  size_t largest_XY = 256 * scrypt_st->scrypt_r * scrypt_st->scrypt_p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
+  // The literal was an int and both operands are u32, so these products were evaluated in 32 bits
+  // and a large N wrapped one before it ever reached the size_t it is assigned to. The buffer was
+  // then allocated at the remainder and smix wrote the full 128rN bytes into it.
+
+  size_t largest_V  = 128ULL * scrypt_st->scrypt_r * scrypt_st->scrypt_N; // yescrypt: the temporary storage V must be 128rN bytes in length
+  size_t largest_XY = 256ULL * scrypt_st->scrypt_r * scrypt_st->scrypt_p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
 
   // from here regular hashes
 
@@ -193,8 +197,8 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
 
   for (u32 salt_idx = 0; salt_idx < hashes->salts_cnt; salt_idx++, scrypt++)
   {
-    const size_t sz_V  = 128 * scrypt->scrypt_r * scrypt->scrypt_N; // yescrypt: the temporary storage V must be 128rN bytes in length
-    const size_t sz_XY = 256 * scrypt->scrypt_r * scrypt->scrypt_p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
+    const size_t sz_V  = 128ULL * scrypt->scrypt_r * scrypt->scrypt_N; // yescrypt: the temporary storage V must be 128rN bytes in length
+    const size_t sz_XY = 256ULL * scrypt->scrypt_r * scrypt->scrypt_p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
 
     if (sz_V  > largest_V)  largest_V  = sz_V;
     if (sz_XY > largest_XY) largest_XY = sz_XY;
@@ -208,6 +212,12 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
 
     unit_buf->V  = hcmalloc_bridge_aligned (largest_V,  64);
     unit_buf->XY = hcmalloc_bridge_aligned (largest_XY, 64);
+
+    // A cost parameter out of a hash file decides both sizes, so the allocation can fail. Nothing
+    // checked it, and smix wrote through the null pointer that came back.
+
+    if (unit_buf->V  == NULL) return false;
+    if (unit_buf->XY == NULL) return false;
   }
 
   return true;
@@ -226,7 +236,7 @@ void salt_destroy (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   }
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_scrypt_yescrypt_t *bridge_scrypt_yescrypt = platform_context;
 
@@ -236,14 +246,14 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   salt_t *salts_buf = (salt_t *) hashes->salts_buf;
 
-  salt_t *salt_buf = &salts_buf[salt_pos];
-
   // hashcat guarantees h_tmps[] is 64 byte aligned, so is *B
 
   scrypt_tmp_t *scrypt_tmp = (scrypt_tmp_t *) device_param->h_tmps;
 
   for (u64 pw_cnt = 0; pw_cnt < pws_cnt; pw_cnt++)
   {
+    salt_t *salt_buf = &salts_buf[bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, pw_cnt)];
+
     u8 *B = (u8 *) scrypt_tmp->B;
 
     // We could use p-based parallelization from yescrypt instead,

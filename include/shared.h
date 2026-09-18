@@ -71,6 +71,15 @@ HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 // On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
 bool hc_env_flag (const char *name, int *cache);
 
+// Bounded appenders for a fixed size output buffer, used by outfile.c and potfile.c to build one
+// cracked line. buf_sz is the whole buffer, and 1 byte is always kept back for the caller's trailing
+// null. A field that does not fit is truncated. Each returns the new length.
+
+int hc_append_raw    (char *buf, const int len, const int buf_sz, const u8 *src, int src_len);
+int hc_append_hex    (char *buf, const int len, const int buf_sz, const u8 *src, int src_len);
+int hc_append_hexify (char *buf, const int len, const int buf_sz, const u8 *src, int src_len);
+int hc_append_chr    (char *buf, const int len, const int buf_sz, const char c);
+
 // The candidate a cell reaches at il_pos, written into w, and its byte length as the answer.
 //
 // This is the one host copy of the device engine's expander, exported rather than internal so that
@@ -84,6 +93,13 @@ bool hc_env_flag (const char *name, int *cache);
 // base_len is the base word's length, which is the answer when the cell has no device slots at all and
 // the base word is therefore the whole candidate. -1 means il_pos is past the end of the rectangle.
 
-HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len);
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len);
+
+// What tells this process apart from every other one writing into the same directory, the ones on
+// other machines included. See src/shared.c for what goes into it.
+
+HC_PLUGIN_API u64 hc_tmp_tag (void);
+
+HC_API u64 hc_peak_rss (void);
 
 #endif // HC_SHARED_H

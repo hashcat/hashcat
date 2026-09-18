@@ -14,6 +14,20 @@ use Digest::HMAC_MD5 qw (hmac_md5);
 use Digest::MD4      qw (md4);
 use POSIX            qw (strftime);
 
+# The optimized kernels widen each byte instead of decoding the UTF-8, and
+# module_01000.c:58 documents that as deliberate rather than as a bug, so the two
+# kernel families really do disagree on a multi byte password. The oracle follows
+# whichever one test.sh is about to run: decoding as latin1 reproduces the
+# widening byte for byte, decoding as utf-8 is the conversion the pure kernels do.
+# test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O.
+
+my $PW_CHARSET = "latin1";
+
+if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"} && $ENV{"IS_OPTIMIZED"} == 0)
+{
+  $PW_CHARSET = "utf-8";
+}
+
 sub get_random_kerberos5_salt
 {
   my $custom_salt = shift;
@@ -56,7 +70,7 @@ sub module_generate_hash
 
   my $clear_data = $salt_arr[4];
 
-  my $k = md4 (encode ("UTF-16LE", $word_buf));
+  my $k = md4 (encode ("UTF-16LE", decode ($PW_CHARSET, $word_buf)));
 
   my $k1 = hmac_md5 ("\x01\x00\x00\x00", $k);
 

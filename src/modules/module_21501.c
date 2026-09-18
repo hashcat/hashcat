@@ -162,7 +162,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
-  if (tmp_len < 64) return (PARSER_HASH_LENGTH);
+  // the token is a fixed 88 base64 characters, and 88 of them without padding decode to 66 bytes,
+  // which is 2 more than the digest holds. A valid hash ends in == and decodes to exactly 64.
+
+  if (tmp_len != 64) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, tmp_len);
 
@@ -245,6 +248,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;

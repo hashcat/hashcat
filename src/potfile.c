@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "convert.h"
+#include "dynamicx.h"
 #include "memory.h"
 #include "event.h"
 #include "hashes.h"
@@ -59,8 +60,8 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
 }
 */
 
-// this function is special and only used whenever --username or --dynamic-x and --show are used together:
-// it will sort all tree entries according to the settings stored in hashconfig
+// this function is special and only used whenever --username or --dynamic-x is combined with
+// --show or --left: it will sort all tree entries according to the settings stored in hashconfig
 
 int sort_pot_tree_by_hash (const void *v1, const void *v2)
 {
@@ -199,7 +200,7 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "rb") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, hc_fopen_strerror ());
 
     return -1;
   }
@@ -230,7 +231,7 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "ab") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, hc_fopen_strerror ());
 
     return -1;
   }
@@ -259,20 +260,18 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   if (hashconfig->potfile_disable == true) return;
 
-  u8 *tmp_buf = potfile_ctx->tmp_buf;
+  // The hash and the plaintext both come from the input line, so neither has a length this function
+  // decides. Every write goes through the bounded appenders in shared.c, which clamp to the room left
+  // in tmp_buf and keep 1 byte back for the trailing null below. outfile.c writes the same kind of
+  // line through the same helpers.
+
+  char *tmp_buf = (char *) potfile_ctx->tmp_buf;
 
   int tmp_len = 0;
 
-  if (true)
-  {
-    memcpy (tmp_buf + tmp_len, out_buf, out_len);
+  tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) out_buf, out_len);
 
-    tmp_len += out_len;
-
-    tmp_buf[tmp_len] = hashconfig->separator;
-
-    tmp_len += 1;
-  }
+  tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
 
   if ((hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) == 0)
   {
@@ -280,31 +279,68 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
     if (need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii) == true)
     {
-      tmp_buf[tmp_len++] = '$';
-      tmp_buf[tmp_len++] = 'H';
-      tmp_buf[tmp_len++] = 'E';
-      tmp_buf[tmp_len++] = 'X';
-      tmp_buf[tmp_len++] = '[';
+      tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) "$HEX[", 5);
 
-      const size_t hex_len = exec_hexify ((const u8 *) plain_ptr, plain_len, tmp_buf + tmp_len);
+      tmp_len = hc_append_hexify (tmp_buf, tmp_len, HCBUFSIZ_LARGE, plain_ptr, (int) plain_len);
 
-      tmp_len += (int) hex_len;
-
-      tmp_buf[tmp_len++] = ']';
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ']');
     }
     else
     {
-      memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
-
-      tmp_len += plain_len;
+      tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, plain_ptr, (int) plain_len);
     }
   }
 
   tmp_buf[tmp_len] = 0;
 
+  // inside a batch the lock is already held and the flush happens when the batch ends, so a launch
+  // that returns tens of thousands of results locks and flushes once rather than that many times
+
+  if (potfile_ctx->batch_depth > 0)
+  {
+    hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
+
+    return;
+  }
+
   hc_lockfile (&potfile_ctx->fp);
 
   hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
+
+  hc_fflush (&potfile_ctx->fp);
+
+  if (hc_unlockfile (&potfile_ctx->fp))
+  {
+    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
+  }
+}
+
+void potfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t      *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+  if (potfile_ctx->enabled == false) return;
+  if (hashconfig->potfile_disable == true) return;
+
+  if (potfile_ctx->batch_depth == 0) hc_lockfile (&potfile_ctx->fp);
+
+  potfile_ctx->batch_depth++;
+}
+
+void potfile_batch_end (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t      *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+  if (potfile_ctx->enabled == false) return;
+  if (hashconfig->potfile_disable == true) return;
+
+  if (potfile_ctx->batch_depth == 0) return;
+
+  potfile_ctx->batch_depth--;
+
+  if (potfile_ctx->batch_depth > 0) return;
 
   hc_fflush (&potfile_ctx->fp);
 
@@ -343,6 +379,17 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
   }
 }
 
+// One potfile line, against a hash list that may hold the same hash many times over.
+//
+// The password is left on the tree entry and handed to the hashes afterwards, by
+// potfile_apply_hashes. Walking the entry's list here instead would cost one pass over every copy
+// of the hash for every potfile line naming it, and a potfile that has been written to across many
+// runs names the same hash more than once. Two hundred thousand copies against two hundred thousand
+// lines is a minute of that; the same list against a potfile that names each hash once is instant,
+// which is what made it look like the shape of the hash list was the problem.
+//
+// The last line naming a hash still wins, as it did when each line wrote straight through.
+
 void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *line_pw_buf, int line_pw_len, pot_tree_entry_t *tree)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -369,15 +416,124 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
   {
     pot_tree_entry_t *found_entry = (pot_tree_entry_t *) *found;
 
-    pot_hash_node_t *node = found_entry->nodes;
+    hcfree (found_entry->pw_buf);
 
-    while (node)
+    found_entry->pw_buf = (char *) hcmalloc (line_pw_len + 1);
+    found_entry->pw_len = line_pw_len;
+
+    if (line_pw_buf != NULL) memcpy (found_entry->pw_buf, line_pw_buf, line_pw_len);
+
+    found_entry->pw_buf[line_pw_len] = 0;
+  }
+}
+
+// Hand what the potfile had to every copy of the hash, once the whole potfile has been read.
+
+static void potfile_apply_hashes (hashcat_ctx_t *hashcat_ctx, pot_tree_entry_t **entries, const u32 entries_cnt)
+{
+  for (u32 i = 0; i < entries_cnt; i++)
+  {
+    pot_tree_entry_t *entry = entries[i];
+
+    if (entry->pw_buf == NULL) continue;
+
+    for (pot_hash_node_t *node = entry->nodes; node != NULL; node = node->next)
     {
-      potfile_update_hash (hashcat_ctx, node->hash_buf, line_pw_buf, line_pw_len);
+      potfile_update_hash (hashcat_ctx, node->hash_buf, entry->pw_buf, entry->pw_len);
+    }
 
-      node = node->next;
+    hcfree (entry->pw_buf);
+
+    entry->pw_buf = NULL;
+  }
+}
+
+// A potfile lookup is a binary search over the whole sorted digest array, once per potfile line. On
+// a list of tens of millions that is around 27 probes spread across gigabytes, and every one of them
+// is a cache miss. Bucketing the array by the top 16 bits of its leading digest word turns that into
+// a lookup plus around 11 probes inside a window of tens of kilobytes.
+//
+// Which word leads is not fixed. The array is sorted on dgst_pos3 first, but several unsalted modes
+// leave that word zero for every hash, 200, 3000, 5100, 16000 and 34211 among them, and those are
+// exactly the modes people run against hundred million line lists. Keying on a constant word would
+// put every hash in one bucket and buy nothing, so the first word that actually varies is used. The
+// array is sorted on the earlier words too, so it is still ordered by whichever word is picked.
+
+#define POTFILE_PREFIX_BITS    16
+#define POTFILE_PREFIX_BUCKETS (1 << POTFILE_PREFIX_BITS)
+#define POTFILE_PREFIX_MINIMUM (1 << 16)
+
+typedef struct potfile_prefix
+{
+  u32 *bounds;
+  u32  word;
+
+} potfile_prefix_t;
+
+static bool potfile_prefix_build (potfile_prefix_t *prefix, const hash_t *hashes_buf, const u32 hashes_cnt, const hashconfig_t *hashconfig)
+{
+  prefix->bounds = NULL;
+
+  if (hashconfig->is_salted == true) return false;
+  if (hashes_cnt < POTFILE_PREFIX_MINIMUM) return false;
+
+  const u32 *first = (const u32 *) hashes_buf[0].digest;
+  const u32 *last  = (const u32 *) hashes_buf[hashes_cnt - 1].digest;
+
+  const u32 order[4] = { hashconfig->dgst_pos3, hashconfig->dgst_pos2, hashconfig->dgst_pos1, hashconfig->dgst_pos0 };
+
+  u32 word = 0;
+
+  bool varies = false;
+
+  for (u32 i = 0; i < 4; i++)
+  {
+    if (first[order[i]] == last[order[i]]) continue;
+
+    word = order[i];
+
+    varies = true;
+
+    break;
+  }
+
+  // every hash carries the same digest, so there is nothing to narrow
+
+  if (varies == false) return false;
+
+  u32 *bounds = (u32 *) hccalloc (POTFILE_PREFIX_BUCKETS + 1, sizeof (u32));
+
+  if (bounds == NULL) return false;
+
+  // one pass, not one binary search per bucket
+
+  u32 bucket_pos = 0;
+
+  for (u32 i = 0; i < hashes_cnt; i++)
+  {
+    const u32 *digest = (const u32 *) hashes_buf[i].digest;
+
+    const u32 bucket = digest[word] >> (32 - POTFILE_PREFIX_BITS);
+
+    while (bucket_pos <= bucket)
+    {
+      bounds[bucket_pos] = i;
+
+      bucket_pos++;
     }
   }
+
+  while (bucket_pos <= POTFILE_PREFIX_BUCKETS)
+  {
+    bounds[bucket_pos] = hashes_cnt;
+
+    bucket_pos++;
+  }
+
+  prefix->bounds = bounds;
+  prefix->word   = word;
+
+  return true;
 }
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
@@ -399,6 +555,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
+
+  // only for the plain path below. A module with its own potfile decoder, and the keep-all-hashes
+  // mode, both take a different route and are left exactly as they were.
+
+  potfile_prefix_t prefix;
+
+  const bool prefix_ok = (module_ctx->module_hash_decode_potfile == MODULE_DEFAULT)
+                      && (hashconfig->potfile_keep_all_hashes == false)
+                      && (potfile_prefix_build (&prefix, hashes_buf, hashes_cnt, hashconfig) == true);
 
   // no solution for these special hash types (for instance because they use hashfile in output etc)
 
@@ -428,12 +593,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
   }
 
-  // we only need this variable in a very specific situation:
-  // whenever we use --username or --dynamic-x and --show together we want to keep all hashes sorted within a nice structure
+  // we only need these in a very specific situation: whenever --username or --dynamic-x is combined
+  // with --show or --left we want to keep all hashes sorted within a nice structure
 
-  pot_tree_entry_t *all_hashes_tree  = NULL;
-  pot_tree_entry_t *tree_entry_cache = NULL;
-  pot_hash_node_t  *tree_nodes_cache = NULL;
+  pot_tree_entry_t  *all_hashes_tree  = NULL;
+  pot_tree_entry_t  *tree_entry_cache = NULL;
+  pot_hash_node_t   *tree_nodes_cache = NULL;
+  pot_tree_entry_t **tree_entries     = NULL;
+
+  u32 tree_entries_cnt = 0;
 
   if (hashconfig->potfile_keep_all_hashes == true)
   {
@@ -443,6 +611,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     // we need *always exactly* one linked list for every hash
     tree_nodes_cache = (pot_hash_node_t  *) hccalloc (hashes_cnt, sizeof (pot_hash_node_t));
+
+    // the entries that made it into the tree, so that they can be walked afterwards without it
+
+    tree_entries = (pot_tree_entry_t **) hccalloc (hashes_cnt, sizeof (pot_tree_entry_t *));
 
     for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
     {
@@ -490,6 +662,8 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       if (found_entry == new_entry)
       {
         // no updates to the linked list required (since it is the first one!)
+
+        tree_entries[tree_entries_cnt++] = new_entry;
       }
       // case 3: if we have found an already existing entry
       else
@@ -592,7 +766,20 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         continue;
       }
 
-      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
+      hash_t *search_buf = hashes_buf;
+      u32     search_cnt = hashes_cnt;
+
+      if (prefix_ok == true)
+      {
+        const u32 *digest = (const u32 *) hash_buf.digest;
+
+        const u32 bucket = digest[prefix.word] >> (32 - POTFILE_PREFIX_BITS);
+
+        search_buf = hashes_buf + prefix.bounds[bucket];
+        search_cnt = prefix.bounds[bucket + 1] - prefix.bounds[bucket];
+      }
+
+      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, search_buf, search_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
 
       potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
     }
@@ -605,12 +792,17 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     hcfree (tmps);
   }
 
+  if (prefix_ok == true) hcfree (prefix.bounds);
+
   potfile_read_close (hashcat_ctx);
 
   if (hashconfig->potfile_keep_all_hashes == true)
   {
+    potfile_apply_hashes (hashcat_ctx, tree_entries, tree_entries_cnt);
+
     pot_tree_destroy (all_hashes_tree); // this could be slow (should we just skip it?)
 
+    hcfree (tree_entries);
     hcfree (tree_nodes_cache);
     hcfree (tree_entry_cache);
   }
@@ -635,10 +827,29 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// --dynamic-x: the tag goes back in front of the hash. What --show and --left reproduce is a line
+// of John's, and John will not read it back without it. Nothing goes between the two, the tag ends
+// with the $ that John writes before the hash.
+
+static int potfile_dynamicx_prefix (const hashinfo_t *hash_info, u8 *out_buf)
+{
+  if (hash_info == NULL) return 0;
+
+  const dynamicx_t *dynamicx = hash_info->dynamicx;
+
+  if (dynamicx == NULL) return 0;
+  if (dynamicx->dynamicx_buf == NULL) return 0;
+
+  memcpy (out_buf, dynamicx->dynamicx_buf, dynamicx->dynamicx_len);
+
+  return (int) dynamicx->dynamicx_len;
+}
+
 int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   hashes_t      *hashes      = hashcat_ctx->hashes;
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   u32     salts_cnt  = hashes->salts_cnt;
@@ -646,8 +857,20 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
-  pot_orig_line_entry_t *final_buf = (pot_orig_line_entry_t *) hccalloc (hashes->hashes_cnt, sizeof (pot_orig_line_entry_t));
-  u32                    final_cnt = 0;
+  // outfile_write() has already written the line when an outfile is open, and both event handlers
+  // return without reading anything in that case. Collecting, sorting and freeing the lines then
+  // produces nothing, so skip the whole chain rather than only the allocation.
+
+  const bool collect_lines = (outfile_ctx->fp.pfp == NULL);
+
+  pot_orig_line_entry_t *final_buf = NULL;
+
+  if (collect_lines == true)
+  {
+    final_buf = (pot_orig_line_entry_t *) hccalloc (hashes->hashes_cnt, sizeof (pot_orig_line_entry_t));
+  }
+
+  u32 final_cnt = 0;
 
   if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
@@ -694,12 +917,16 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
+        const int tag_len = potfile_dynamicx_prefix (hash1->hash_info, out_buf);
+
+        int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
 
         if (hash2)
         {
-          out_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
+          hash_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len + hash_len, HCBUFSIZ_LARGE - tag_len - hash_len, salt_idx, split_neighbor);
         }
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -719,62 +946,61 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           username[user_len] = 0;
         }
 
-        // dynamic-x
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
-
-        if (dynamicx)
-        {
-          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-          dynamicx_len = dynamicx->dynamicx_len;
-
-          dynamicx_buf[dynamicx_len] = 0;
-        }
-
         u8 *tmp_buf = potfile_ctx->tmp_buf;
 
         tmp_buf[0] = 0;
 
+        // The two halves of a split hash are joined here. Both lengths come out of the potfile and
+        // neither is clamped on the way in, so each copy takes only the room that is left. A half
+        // hashcat wrote is at most 7 characters and MASKED_PLAIN is 10, so 20 is exactly enough for
+        // anything a clean run produces and nothing legitimate is shortened.
+
         u8 mixed_buf[20] = { 0 };
 
-        u8 mixed_len = 0;
+        size_t mixed_len = 0;
 
         if (digests_shown[hashes_idx] == 1)
         {
-          memcpy (mixed_buf + mixed_len, hash1->pw_buf, hash1->pw_len);
+          const size_t take = MIN ((size_t) hash1->pw_len, sizeof (mixed_buf) - mixed_len);
 
-          mixed_len += hash1->pw_len;
+          memcpy (mixed_buf + mixed_len, hash1->pw_buf, take);
+
+          mixed_len += take;
         }
         else
         {
-          memcpy (mixed_buf + mixed_len, MASKED_PLAIN, strlen (MASKED_PLAIN));
+          const size_t take = MIN (strlen (MASKED_PLAIN), sizeof (mixed_buf) - mixed_len);
 
-          mixed_len += strlen (MASKED_PLAIN);
+          memcpy (mixed_buf + mixed_len, MASKED_PLAIN, take);
+
+          mixed_len += take;
         }
 
         if (hash2)
         {
           if (digests_shown[split_neighbor] == 1)
           {
-            memcpy (mixed_buf + mixed_len, hash2->pw_buf, hash2->pw_len);
+            const size_t take = MIN ((size_t) hash2->pw_len, sizeof (mixed_buf) - mixed_len);
 
-            mixed_len += hash2->pw_len;
+            memcpy (mixed_buf + mixed_len, hash2->pw_buf, take);
+
+            mixed_len += take;
           }
           else
           {
-            memcpy (mixed_buf + mixed_len, MASKED_PLAIN, strlen (MASKED_PLAIN));
+            const size_t take = MIN (strlen (MASKED_PLAIN), sizeof (mixed_buf) - mixed_len);
 
-            mixed_len += strlen (MASKED_PLAIN);
+            memcpy (mixed_buf + mixed_len, MASKED_PLAIN, take);
+
+            mixed_len += take;
           }
         }
 
         const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, (u8 *) mixed_buf, mixed_len, 0, username, user_len, true, (char *) tmp_buf);
 
         //EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
+
+        if (collect_lines == false) continue;
 
         final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
 
@@ -808,7 +1034,11 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        const int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        const int tag_len = potfile_dynamicx_prefix (hash->hash_info, out_buf);
+
+        const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -828,25 +1058,6 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
-          }
-        }
-
-        // dynamicx
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        if (hash->hash_info != NULL)
-        {
-          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
-
-          if (dynamicx)
-          {
-            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-            dynamicx_len = dynamicx->dynamicx_len;
-
-            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 
@@ -884,6 +1095,8 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         //EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
 
+        if (collect_lines == false) continue;
+
         final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
 
         memcpy (final_buf[final_cnt].hash_buf, tmp_buf, tmp_len);
@@ -897,13 +1110,16 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  qsort (final_buf, final_cnt, sizeof (pot_orig_line_entry_t), sort_pot_orig_line);
-
-  for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
+  if (collect_lines == true)
   {
-    EVENT_DATA (EVENT_POTFILE_HASH_SHOW, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+    qsort (final_buf, final_cnt, sizeof (pot_orig_line_entry_t), sort_pot_orig_line);
 
-    hcfree (final_buf[final_pos].hash_buf);
+    for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
+    {
+      EVENT_DATA (EVENT_POTFILE_HASH_SHOW, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+
+      hcfree (final_buf[final_pos].hash_buf);
+    }
   }
 
   hcfree (final_buf);
@@ -916,6 +1132,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   hashes_t      *hashes      = hashcat_ctx->hashes;
   module_ctx_t  *module_ctx  = hashcat_ctx->module_ctx;
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   u32     salts_cnt  = hashes->salts_cnt;
@@ -923,8 +1140,20 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
-  pot_orig_line_entry_t *final_buf = (pot_orig_line_entry_t *) hccalloc (hashes->hashes_cnt, sizeof (pot_orig_line_entry_t));
-  u32                    final_cnt = 0;
+  // outfile_write() has already written the line when an outfile is open, and both event handlers
+  // return without reading anything in that case. Collecting, sorting and freeing the lines then
+  // produces nothing, so skip the whole chain rather than only the allocation.
+
+  const bool collect_lines = (outfile_ctx->fp.pfp == NULL);
+
+  pot_orig_line_entry_t *final_buf = NULL;
+
+  if (collect_lines == true)
+  {
+    final_buf = (pot_orig_line_entry_t *) hccalloc (hashes->hashes_cnt, sizeof (pot_orig_line_entry_t));
+  }
+
+  u32 final_cnt = 0;
 
   if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
@@ -971,12 +1200,16 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
+        const int tag_len = potfile_dynamicx_prefix (hash1->hash_info, out_buf);
+
+        int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
 
         if (hash2)
         {
-          out_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
+          hash_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len + hash_len, HCBUFSIZ_LARGE - tag_len - hash_len, salt_idx, split_neighbor);
         }
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -996,22 +1229,6 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           username[user_len] = 0;
         }
 
-        // dynamic-x
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
-
-        if (dynamicx)
-        {
-          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-          dynamicx_len = dynamicx->dynamicx_len;
-
-          dynamicx_buf[dynamicx_len] = 0;
-        }
-
         u8 *tmp_buf = potfile_ctx->tmp_buf;
 
         tmp_buf[0] = 0;
@@ -1019,6 +1236,8 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
         const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, true, (char *) tmp_buf);
 
         //EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
+
+        if (collect_lines == false) continue;
 
         final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
 
@@ -1048,6 +1267,8 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         if (digests_shown[hashes_idx] == 1) continue;
 
+        hash_t *hash = &hashes_buf[hashes_idx];
+
         u8 *out_buf = potfile_ctx->out_buf;
 
         int out_len;
@@ -1071,12 +1292,14 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+          const int tag_len = potfile_dynamicx_prefix (hash->hash_info, out_buf);
+
+          const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
+
+          out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
         }
 
         out_buf[out_len] = 0;
-
-        hash_t *hash = &hashes_buf[hashes_idx];
 
         // user
         unsigned char *username = NULL;
@@ -1097,25 +1320,6 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
-        // dynamicx
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        if (hash->hash_info != NULL)
-        {
-          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
-
-          if (dynamicx)
-          {
-            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-            dynamicx_len = dynamicx->dynamicx_len;
-
-            dynamicx_buf[dynamicx_len] = 0;
-          }
-        }
-
         const bool print_eol = (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0;
 
         u8 *tmp_buf = potfile_ctx->tmp_buf;
@@ -1125,6 +1329,8 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
         const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, NULL, 0, 0, username, user_len, print_eol, (char *) tmp_buf);
 
         //EVENT_DATA (EVENT_POTFILE_HASH_LEFT, tmp_buf, tmp_len);
+
+        if (collect_lines == false) continue;
 
         final_buf[final_cnt].hash_buf = (u8 *) hcmalloc (tmp_len);
 
@@ -1139,49 +1345,52 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  qsort (final_buf, final_cnt, sizeof (pot_orig_line_entry_t), sort_pot_orig_line);
-
-  for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
+  if (collect_lines == true)
   {
-    u8 *event_data = NULL;
+    qsort (final_buf, final_cnt, sizeof (pot_orig_line_entry_t), sort_pot_orig_line);
 
-    int event_len = 0;
-
-    // add EOL after hash, but only if NOT binary:
-
-    if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
+    for (u32 final_pos = 0; final_pos < final_cnt; final_pos++)
     {
-      u8 *eol_chars = (u8 *) EOL;
+      u8 *event_data = NULL;
 
-      int eol_len = (int) strlen (EOL);
+      int event_len = 0;
 
-      event_len = final_buf[final_pos].hash_len + eol_len;
+      // add EOL after hash, but only if NOT binary:
 
-      event_data = (u8 *) hcmalloc (event_len);
-
-      memcpy (event_data, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
-
-      // only difference (add EOL to the buffer):
-
-      for (int i = 0, j = event_len - eol_len; i < eol_len; i++, j++)
+      if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
       {
-        event_data[j] = eol_chars[i];
+        u8 *eol_chars = (u8 *) EOL;
+
+        int eol_len = (int) strlen (EOL);
+
+        event_len = final_buf[final_pos].hash_len + eol_len;
+
+        event_data = (u8 *) hcmalloc (event_len);
+
+        memcpy (event_data, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+
+        // only difference (add EOL to the buffer):
+
+        for (int i = 0, j = event_len - eol_len; i < eol_len; i++, j++)
+        {
+          event_data[j] = eol_chars[i];
+        }
       }
+      else
+      {
+        event_len = final_buf[final_pos].hash_len;
+
+        event_data = (u8 *) hcmalloc (event_len);
+
+        memcpy (event_data, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
+      }
+
+      EVENT_DATA (EVENT_POTFILE_HASH_LEFT, event_data, event_len);
+
+      hcfree (event_data);
+
+      hcfree (final_buf[final_pos].hash_buf);
     }
-    else
-    {
-      event_len = final_buf[final_pos].hash_len;
-
-      event_data = (u8 *) hcmalloc (event_len);
-
-      memcpy (event_data, final_buf[final_pos].hash_buf, final_buf[final_pos].hash_len);
-    }
-
-    EVENT_DATA (EVENT_POTFILE_HASH_LEFT, event_data, event_len);
-
-    hcfree (event_data);
-
-    hcfree (final_buf[final_pos].hash_buf);
   }
 
   hcfree (final_buf);

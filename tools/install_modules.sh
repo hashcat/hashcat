@@ -238,23 +238,28 @@ else
 
   echo "> Installing python3 deps ..."
 
-  pip3 install git+https://github.com/matrix/pygost
+  # One file lists what the test modules import, so a contributor writing a module has one place
+  # to read and one place to add to.
+
+  pip3 install -r "${TOOLS_DIR}/requirements.txt"
   ERRORS=$((ERRORS+$?))
 
-  pip3 install pycryptoplus
-  ERRORS=$((ERRORS+$?))
+  # A python import that fails inside a test module is invisible from here. The module shells out
+  # to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
+  # error. Import each one now, while the cause is still in front of you.
 
-  pip3 install pycryptodome
-  ERRORS=$((ERRORS+$?))
+  PYTHON_MODULES="CryptoPlus Crypto pygost cryptography argon2"
 
-  pip3 install cryptography
-  ERRORS=$((ERRORS+$?))
+  for python_module in ${PYTHON_MODULES}; do
 
-  pip3 install setuptools
-  ERRORS=$((ERRORS+$?))
+    if python3 -c "import ${python_module}" > /dev/null 2>&1; then
+      echo "  ok      ${python_module}"
+    else
+      echo "  FAILED  ${python_module}"
+      FAILED_MODULES="${FAILED_MODULES} ${python_module}"
+    fi
 
-  pip3 install argon2-cffi
-  ERRORS=$((ERRORS+$?))
+  done
 
 fi
 
@@ -272,10 +277,19 @@ if [ -n "${FAILED_MODULES}" ]; then
 
 fi
 
-# The check that actually matters. tools/test.pl loads every module under tools/test_modules no
-# matter which hash mode is asked for, so a single missing one makes the suite report
-# "Error : 0/0 not found" on every mode, which reads as hashcat failing rather than as a setup
-# problem. Catching it here, where the cause is still in front of you, is the whole point.
+# The check that actually matters. tools/test.pl loads only the module for the mode it is asked
+# for, so a missing dependency costs the modes that need it and nothing else. What this catches is
+# the case where the perl environment itself is unusable, which makes the suite report
+# "Error : 0/0 not found" on every mode and reads as hashcat failing rather than as a setup
+# problem.
+
+if ! python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | grep -q hashcat; then
+
+  echo "[ WARN ] tools/test_module_runner.py cannot generate hashes. Only the modes with a .py"
+  echo "         oracle are affected; test.sh runs each of those through it by default."
+  echo
+
+fi
 
 if perl "${TOOLS_DIR}/test.pl" single 0 2> /dev/null | grep -q hashcat; then
 

@@ -204,8 +204,8 @@ check_exports ()
 {
   DIRECTORY="$1"
   PREFIX="$2"
-  EXPECTED="$3"
-  EXPECTED_ALT="${4:-}"
+  REQUIRED="$3"
+  OPTIONAL="${4:-}"
 
   SEEN=0
   WRONG=0
@@ -217,18 +217,32 @@ check_exports ()
 
     NAMES="$(plugin_exports "$PLUGIN" | sort | tr '\n' ' ' | sed 's/ $//')"
 
-    if [ "$NAMES" = "$EXPECTED" ]; then
-      continue
-    fi
+    BAD=""
 
-    if [ "$NAMES" = "$EXPECTED_ALT" ]; then
-      continue
-    fi
+    # everything the core resolves has to be there
+
+    for WANT in $REQUIRED; do
+      case " $NAMES " in
+        *" $WANT "*) ;;
+        *) BAD="$BAD missing:$WANT" ;;
+      esac
+    done
+
+    # and nothing beyond the entry points a plugin is allowed to leave out
+
+    for HAVE in $NAMES; do
+      case " $REQUIRED $OPTIONAL " in
+        *" $HAVE "*) ;;
+        *) BAD="$BAD unexpected:$HAVE" ;;
+      esac
+    done
+
+    [ -z "$BAD" ] && continue
 
     WRONG=$((WRONG + 1))
 
     if [ "$WRONG" -le 3 ]; then
-      printf '      %s exports: %s\n' "$PLUGIN" "$NAMES"
+      printf '      %s%s\n' "$PLUGIN" "$BAD"
     fi
   done
 
@@ -237,7 +251,7 @@ check_exports ()
   elif [ "$WRONG" -eq 0 ]; then
     pass "all $SEEN plugins in $DIRECTORY/ export exactly what the core resolves"
   else
-    fail "$WRONG of $SEEN plugins in $DIRECTORY/ do not export exactly: $EXPECTED"
+    fail "$WRONG of $SEEN plugins in $DIRECTORY/ export the wrong set, required: $REQUIRED"
   fi
 }
 
@@ -245,15 +259,17 @@ check_exports ()
 # itself, and which of those names stay in its dynamic symbol table is up to the platform's linker,
 # so there is nothing to hold it to here.
 #
-# A feed has two shapes it may take. One generates candidates on the host alone. One also generates
-# them on the device, and it exports global_dev_init () and thread_next_dev () on top for that, so
-# both name lists are given here.
+# A feed names what every feed has to, and may add the entry points for the parts it takes on. A feed
+# that generates candidates on the device as well as the host exports global_dev_init () and
+# thread_next_dev (), and one that can say how it made a candidate exports global_explain (). Listing
+# the optional names rather than every combination of them keeps the next one from doubling the list,
+# and a feed that exports a name from neither list is still caught.
 
 if [ -n "$LIBRARY" ]; then
   check_exports modules module_ "module_init"
   check_exports bridges bridge_ "bridge_init"
   check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term" \
-                                 "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_dev_init global_init global_keyspace global_term thread_init thread_next thread_next_dev thread_seek thread_term"
+                                 "global_dev_init thread_next_dev global_explain"
 fi
 
 # and the other direction. Where there is a core library, a plugin calls the core through it and
@@ -317,6 +333,41 @@ if [ -n "$LIBRARY" ]; then
   check_core_link feeds
 fi
 
+# Every folder the package is supposed to carry.
+#
+# cp writes its complaint to stderr and carries on, so a folder renamed in the tree leaves an archive
+# without it and nothing about the build says so. layouts became tables/layouts and that is what
+# happened: the archive built fine, listed every module, and had no table for -a 5 to read and no
+# mapping file for --keyboard-layout-mapping to find. A missing directory is what this file exists to
+# catch, so it is named here rather than left to the first user of the feature.
+
+MISSING_DIRS=""
+
+for folder in OpenCL Python Rust bridges charsets docs extra feeds masks modules pcfg rules tables tables/layouts tunings; do
+  [ -d "$folder" ] && continue
+  MISSING_DIRS="$MISSING_DIRS $folder"
+done
+
+if [ -z "$MISSING_DIRS" ]; then
+  pass "every shipped folder is in the package"
+else
+  fail "the package is missing:$MISSING_DIRS"
+fi
+
+# and a folder that is there but empty ships nothing, which reads the same to a user
+
+EMPTY_DIRS=""
+
+for folder in charsets feeds masks modules rules tables tables/layouts tunings; do
+  [ -d "$folder" ] || continue
+  [ -n "$(ls -A "$folder" 2>/dev/null)" ] && continue
+  EMPTY_DIRS="$EMPTY_DIRS $folder"
+done
+
+if [ -n "$EMPTY_DIRS" ]; then
+  fail "these folders are in the package and empty:$EMPTY_DIRS"
+fi
+
 # a package without example.dict starts, lists every module, and still cannot run the attack every
 # first time user runs. Whether the words come out the other end is asked further down, because
 # reading them means starting the candidate pipeline and that wants a backend platform.
@@ -325,6 +376,91 @@ if [ -f example.dict ]; then
   pass "example.dict is in the package, $(count < example.dict) words"
 else
   fail "no example.dict here, the package is incomplete"
+fi
+
+# Reading a compressed wordlist, which wants no device either.
+#
+# --keyspace counts the lines of a wordlist through the feed, so it decompresses the whole file
+# rather than merely opening it. That makes it a real check: a decompressor that is wrong gives a
+# count that is wrong, and the count is compared against the same words uncompressed rather than
+# against a number written down here.
+#
+# The compressed libraries are loaded at runtime and are not a build dependency, so a machine
+# without one is a normal machine and is reported rather than failed. What is failed is a library
+# that is there and answers with the wrong number of words.
+#
+# The file to read has to be made first, and the tools for that are not everywhere: macOS ships
+# gzip and neither of the others. Python's standard library covers gzip and xz where it is
+# installed, so between the two most machines can check most formats, and whatever is left over
+# says so.
+#
+# The seek database goes in the scratch directory rather than where it normally lives, so that
+# every run starts without one. A run that finds a database it built earlier answers out of it and
+# never opens the wordlist, which would leave this passing without decompressing anything.
+
+make_fixture ()
+{
+  FIXTURE_EXT="$1"
+
+  case "$FIXTURE_EXT" in
+    gz)
+      command -v gzip >/dev/null 2>&1 && gzip -c example.dict > "$WORK/example.dict.gz" 2>/dev/null && return 0
+      command -v python3 >/dev/null 2>&1 && python3 -c "import gzip,shutil,sys; shutil.copyfileobj (open ('example.dict','rb'), gzip.open (sys.argv[1],'wb'))" "$WORK/example.dict.gz" 2>/dev/null && return 0
+      ;;
+    xz)
+      command -v xz >/dev/null 2>&1 && xz -c example.dict > "$WORK/example.dict.xz" 2>/dev/null && return 0
+      command -v python3 >/dev/null 2>&1 && python3 -c "import lzma,shutil,sys; shutil.copyfileobj (open ('example.dict','rb'), lzma.open (sys.argv[1],'wb'))" "$WORK/example.dict.xz" 2>/dev/null && return 0
+      ;;
+    zst)
+      command -v zstd >/dev/null 2>&1 && zstd -q -c example.dict > "$WORK/example.dict.zst" 2>/dev/null && return 0
+      ;;
+  esac
+
+  return 1
+}
+
+check_compressed ()
+{
+  COMPRESSED_EXT="$1"
+
+  if make_fixture "$COMPRESSED_EXT"; then
+    COMPRESSED_OUT="$("$HC" -a 0 --keyspace --cache-path "$WORK" "$WORK/example.dict.$COMPRESSED_EXT" 2>&1)"
+
+    case "$COMPRESSED_OUT" in
+      *"support is unavailable"*)
+        printf '      .%s not checked, this machine has no library for it\n' "$COMPRESSED_EXT"
+        printf '        %s\n' "$(printf '%s' "$COMPRESSED_OUT" | tr -d '\r' | grep -o 'tried:.*' | head -1)"
+        return
+        ;;
+    esac
+
+    COMPRESSED_GOT="$(printf '%s' "$COMPRESSED_OUT" | tr -d '[:space:]')"
+
+    if [ "$COMPRESSED_GOT" = "$PLAIN_KEYSPACE" ]; then
+      pass "a .$COMPRESSED_EXT wordlist reads back the same $PLAIN_KEYSPACE words"
+    else
+      fail "a .$COMPRESSED_EXT wordlist answered '$COMPRESSED_GOT' where the same words uncompressed answer $PLAIN_KEYSPACE"
+    fi
+  else
+    printf '      .%s not checked, nothing here to make the file with\n' "$COMPRESSED_EXT"
+  fi
+}
+
+if [ -f example.dict ]; then
+  PLAIN_KEYSPACE="$("$HC" -a 0 --keyspace --cache-path "$WORK" example.dict 2>/dev/null | tr -d '[:space:]')"
+
+  case "$PLAIN_KEYSPACE" in
+    "" | *[!0-9]*)
+      fail "--keyspace on example.dict answered '$PLAIN_KEYSPACE' rather than a count of words"
+      ;;
+    *)
+      pass "--keyspace reads example.dict without a device, $PLAIN_KEYSPACE words"
+
+      check_compressed gz
+      check_compressed xz
+      check_compressed zst
+      ;;
+  esac
 fi
 
 if [ "$WANT_DEVICE" -eq 0 ]; then

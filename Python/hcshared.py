@@ -66,12 +66,15 @@ def get_scrypt_N(salt: dict) -> int:
 def get_scrypt_r(salt: dict) -> int:
   return salt["esalt"]["scrypt_r"]
 
-def _worker_batch(passwords, salt_id, is_selftest, user_fn, salts, st_salts):
-    salt = st_salts[salt_id] if is_selftest else salts[salt_id]
+def _worker_batch(passwords, salt_id, is_selftest, user_fn, salts, st_salts, salt_per_pw=False):
+    # salt_id is one salt for the whole batch, except under salt_per_pw, where it is the salt the
+    # batch starts at and each candidate adds its own position.
+    table = st_salts if is_selftest else salts
+    stride = 1 if (salt_per_pw and not is_selftest) else 0
     hashes = []
-    for pw in passwords:
+    for i, pw in enumerate(passwords):
         try:
-            hash=user_fn(pw, salt)
+            hash=user_fn(pw, table[salt_id + (i * stride)])
             hashes.append(hash)
         except Exception as e:
             print(e, file=sys.stderr)

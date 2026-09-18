@@ -51,7 +51,7 @@ DECLSPEC bool pcfg_hash_global (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *h
   blake2b_ctx_t ctx;
 
   blake2b_256_init (&ctx);
-  blake2b_update   (&ctx, w, len);
+  blake2b_update_global (&ctx, w, len);
   blake2b_final    (&ctx);
 
   dgst[0] = h32_from_64_S (ctx.h[0]);

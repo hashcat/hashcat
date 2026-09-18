@@ -57,12 +57,25 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
     u32 i;
 
+    // snprintf returns the length it would have written and not the length it wrote, so once the
+    // list fills the buffer tmp_len runs past it. HCBUFSIZ_TINY - tmp_len is then negative, and
+    // snprintf takes its size as a size_t, so the next name would be written out of bounds with no
+    // limit at all. Enough -r arguments, or long enough paths, is all that takes. The list is
+    // truncated instead, and the terminator below always lands inside the buffer.
+
     for (i = 0; i < user_options->rp_files_cnt - 1; i++)
     {
       tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s, ", user_options->rp_files[i]);
+
+      if (tmp_len >= HCBUFSIZ_TINY) break;
     }
 
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s", user_options->rp_files[i]);
+    if (tmp_len < HCBUFSIZ_TINY)
+    {
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s", user_options->rp_files[i]);
+    }
+
+    if (tmp_len >= HCBUFSIZ_TINY) tmp_len = HCBUFSIZ_TINY - 1;
 
     tmp_buf[tmp_len] = 0;
 
@@ -378,7 +391,15 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     {
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hook_salts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
+      int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hook_salts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
+
+      // A module that builds its line with snprintf returns what it would have written rather than
+      // what it did. hash_encode clamps that for the callers that go through it, and this arm does
+      // not, so the length is clamped to the buffer here as well.
+
+      if (tmp_len < 0) tmp_len = 0;
+
+      if (tmp_len >= HCBUFSIZ_LARGE) tmp_len = HCBUFSIZ_LARGE - 1;
 
       char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 
@@ -1139,35 +1160,35 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   return display;
 }
 
-int status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done;
 }
 
-int status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_pot;
 }
 
-int status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_zero;
 }
 
-int status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_new;
 }
 
-int status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
@@ -1192,14 +1213,43 @@ double status_get_digests_percent_new (const hashcat_ctx_t *hashcat_ctx)
   return ((double) hashes->digests_done_new / (double) hashes->digests_cnt) * 100;
 }
 
-int status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->salts_done;
 }
 
-int status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
+// How many amplifiers the run applies to each base word, and how many iterations the current salt
+// costs. Both are what the per device positions on the Restore.Sub line count towards, so the line
+// above prints them and the rows underneath stay short.
+
+u64 status_get_amplifier_cnt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) return straight_ctx->kernel_rules_cnt;
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    return combinator_ctx->combs_cnt;
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)       return mask_ctx->bfs_cnt;
+
+  return 1;
+}
+
+u32 status_get_iteration_cnt (const hashcat_ctx_t *hashcat_ctx, const int salt_pos)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashes->salts_buf == NULL) return 0;
+  if (salt_pos < 0) return 0;
+  if (salt_pos >= (int) hashes->salts_cnt) return 0;
+
+  return hashes->salts_buf[salt_pos].salt_iter;
+}
+
+u32 status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
@@ -1519,14 +1569,18 @@ u64 status_get_brain_rejects_hashes (const hashcat_ctx_t *hashcat_ctx)
 
 double status_get_progress_rejected_percent (const hashcat_ctx_t *hashcat_ctx)
 {
-  const u64 progress_cur      = status_get_progress_cur      (hashcat_ctx);
-  const u64 progress_rejected = status_get_progress_rejected (hashcat_ctx);
+  // The status line prints this percentage next to the fraction it belongs to, and that fraction is
+  // measured against the work this run was asked for. Measuring the percentage against the whole
+  // keyspace instead made the two disagree as soon as --skip left anything out.
+
+  const u64 progress_cur_relative_skip = status_get_progress_cur_relative_skip (hashcat_ctx);
+  const u64 progress_rejected          = status_get_progress_rejected          (hashcat_ctx);
 
   double percent_rejected = 0;
 
-  if (progress_cur)
+  if (progress_cur_relative_skip)
   {
-    percent_rejected = ((double) (progress_rejected) / (double) progress_cur) * 100;
+    percent_rejected = ((double) (progress_rejected) / (double) progress_cur_relative_skip) * 100;
   }
 
   return percent_rejected;
@@ -1678,18 +1732,32 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // -a 9 splitting its own hash file runs its rounds as one attack, so the progress it counts is the
-  // whole queue and the total it is measured against has to be the whole queue too.
+  // -a 9 splitting its own hash file runs its phases as one attack, so the progress it counts is the
+  // whole run and the total it is measured against has to be the whole run too.
   //
-  // The multiplication is exact rather than an estimate. Every round pairs one word with every digest,
-  // and generic_association_in_sync refuses any round where that is not true, so a round is always
-  // words_cnt candidates and there are dicts_cnt of them.
+  // It used to multiply this phase by the number of phases, which was right while a phase was one word
+  // position and every one of them was the same size. Phases are not: running a rule list over every
+  // hash is a thousand times the work of trying the words alone, and the grammar phase has no end at
+  // all. Multiplying therefore made a finished phase read as a fraction of itself.
+  //
+  // The total is everything sized so far instead, which is what words_walk_cnt already holds. It is not
+  // known in full at the start, because sizing a phase means opening it and the grammar phase takes
+  // seconds to load, so it grows when a phase opens. What that buys is a progress that never resets and
+  // never goes backwards, and a percentage that is honest about the work hashcat has actually measured.
+  //
+  // --limit is left alone. It is refused for more than one phase, so where it applies there is only one
+  // phase and the two answers are the same anyway.
 
   if (user_options_extra->association_autosplit == true)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    if (status_ctx->words_limit == 0)
+    {
+      // A queue holding a phase whose keyspace does not fit a u64 saturates the sum, and then there is
+      // no denominator to give. Zero is how the rest of this function says that, and the progress line
+      // prints the count on its own, which is what every attack hashcat cannot size already does.
 
-    if (straight_ctx->dicts_cnt > 1) progress_end *= straight_ctx->dicts_cnt;
+      progress_end = (status_ctx->words_walk_cnt == (u64) -1) ? 0 : status_ctx->words_walk_cnt;
+    }
   }
 
   return progress_end;
@@ -2645,7 +2713,7 @@ u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int backend
   if (device_param->skipped == true) return 0;
   if (device_param->skipped_warning == true) return 0;
 
-  return device_param->outerloop_left;
+  return device_param->outerloop_progress;
 }
 
 double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
@@ -2682,6 +2750,20 @@ int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int bac
 
   if (device_param->skipped == true) return 0;
   if (device_param->skipped_warning == true) return 0;
+
+  // The device engine has no loop count to report: a base word becomes its whole cell of candidates in
+  // one launch, and kernel_loops is pinned and unread there. What the field means for every other
+  // attack, how many candidates one base word turns into, is the mean cell, which is the same figure
+  // the progress total and --keyspace already multiply by.
+
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+  {
+    const u32 dev_avg = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+    if (dev_avg > 0) return (int) dev_avg;
+  }
 
   if (device_param->kernel_loops_prev) return device_param->kernel_loops_prev;
 
@@ -2782,6 +2864,7 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx->shutdown_outer      = false;
 
   status_ctx->checkpoint_shutdown = false;
+  status_ctx->checkpoint_taken    = false;
   status_ctx->finish_shutdown     = false;
 
   status_ctx->hashcat_status_final = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
@@ -2802,6 +2885,15 @@ void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_delete (status_ctx->mux_counter);
   hc_thread_mutex_delete (status_ctx->mux_display);
   hc_thread_mutex_delete (status_ctx->mux_hwmon);
+
+  // The last round's strings and per device arrays are still in this struct, and this is the only
+  // place left that can give them back. accessible is false by now and status_status_destroy ()
+  // returns early when it is, so the flag is raised for this one call and the memset below clears
+  // it again. Raising it is safe here because every thread has been joined before this runs.
+
+  status_ctx->accessible = true;
+
+  status_status_destroy (hashcat_ctx, status_ctx->hashcat_status_final);
 
   hcfree (status_ctx->hashcat_status_final);
 
@@ -2852,6 +2944,11 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hashcat_status->brain_tx_all            = NULL;
   #endif
 
+  // hwmon_fan_dev below is allocated by status_get_hwmon_fan_dev () next to speed_sec_dev,
+  // guess_candidates_dev and hwmon_dev, and was released by nothing at all. Its declaration in
+  // include/types.h is Apple only and so is this, which is why it sits inside a guard the other
+  // three do not need.
+
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -2859,6 +2956,9 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     hcfree (device_info->speed_sec_dev);
     hcfree (device_info->guess_candidates_dev);
     hcfree (device_info->hwmon_dev);
+    #if defined (__APPLE__)
+    hcfree (device_info->hwmon_fan_dev);
+    #endif
     #ifdef WITH_BRAIN
     hcfree (device_info->brain_link_recv_bytes_dev);
     hcfree (device_info->brain_link_send_bytes_dev);
@@ -2869,6 +2969,9 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     device_info->speed_sec_dev                  = NULL;
     device_info->guess_candidates_dev           = NULL;
     device_info->hwmon_dev                      = NULL;
+    #if defined (__APPLE__)
+    device_info->hwmon_fan_dev                  = NULL;
+    #endif
     #ifdef WITH_BRAIN
     device_info->brain_link_recv_bytes_dev      = NULL;
     device_info->brain_link_send_bytes_dev      = NULL;

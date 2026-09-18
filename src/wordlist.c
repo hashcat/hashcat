@@ -86,24 +86,44 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
     transform->rule_buf = rule_buf;
   }
 
-  if (generic_ctx->iconv_enable == false) return 0;
+  const bool iconv_wanted = (generic_ctx->iconv_enable == true) && (strcmp (user_options->encoding_from, user_options->encoding_to) != 0);
 
-  if (strcmp (user_options->encoding_from, user_options->encoding_to) == 0) return 0;
-
-  transform->iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
-
-  if (transform->iconv_ctx == (iconv_t) -1)
+  if (iconv_wanted == true)
   {
-    event_log_error (hashcat_ctx, "iconv_open: %s", strerror (errno));
+    // iconv is loaded at runtime and only this path needs it, so a machine without one runs every
+    // attack that does not change encoding and hears about the library the first time one does.
 
-    transform->iconv_ctx = NULL;
+    const hc_iconv_lib_t *iconv_lib = hc_iconv ();
 
-    return -1;
+    if (iconv_lib == NULL)
+    {
+      event_log_error (hashcat_ctx, "iconv support is unavailable: %s. To fix this, %s", hc_iconv_error (), hc_iconv_hint ());
+
+      return -1;
+    }
+
+    transform->iconv_lib = iconv_lib;
+
+    transform->iconv_ctx = iconv_lib->iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+    if (transform->iconv_ctx == HC_ICONV_ERR)
+    {
+      event_log_error (hashcat_ctx, "Cannot convert from encoding '%s' to '%s': %s", user_options->encoding_from, user_options->encoding_to, strerror (errno));
+
+      transform->iconv_ctx = NULL;
+
+      return -1;
+    }
+
+    transform->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    transform->iconv_enabled = true;
   }
 
-  transform->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+  const bool others = transform->pt_hex | transform->pt_uppercase | transform->iconv_enabled;
+  const bool rules  = (run_rule_engine (transform->rule_len, transform->rule_buf) != 0);
 
-  transform->iconv_enabled = true;
+  transform->autohex_only = (others == false) && (rules == false);
 
   return 0;
 }
@@ -112,13 +132,14 @@ void pw_transform_term (pw_transform_t *transform)
 {
   if (transform->iconv_enabled == false) return;
 
-  iconv_close (transform->iconv_ctx);
+  transform->iconv_lib->iconv_close (transform->iconv_ctx);
 
   hcfree (transform->iconv_tmp);
 
   transform->iconv_enabled = false;
   transform->iconv_ctx     = NULL;
   transform->iconv_tmp     = NULL;
+  transform->iconv_lib     = NULL;
 }
 
 // Whether a candidate can come out shorter than it arrived. Only these three can do that, and without
@@ -139,6 +160,25 @@ bool pw_transform_shrinks (const pw_transform_t *transform)
 
 int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len, const int buf_size)
 {
+  // The ordinary wordlist run has no inline rule, no encoding change, no hex mode and no forced
+  // uppercase, so the only step below that could fire is the autohex one, and that needs the word to
+  // spell $HEX[ and to be an even number of bytes at least 6 long. Those are the first three things
+  // is_hexify () checks, so a word that fails them here would have failed there, and every step below
+  // it is off. Checking them inline keeps a call out of the per candidate path.
+
+  if (transform->autohex_only == true)
+  {
+    if (transform->wordlist_autohex == false) return len;
+
+    if (len < 6)        return len;
+    if ((len & 1) == 1) return len;
+    if (buf[0] != '$')  return len;
+    if (buf[1] != 'H')  return len;
+    if (buf[2] != 'E')  return len;
+    if (buf[3] != 'X')  return len;
+    if (buf[4] != '[')  return len;
+  }
+
   int out_len = len;
 
   // 1. how the line spells the password
@@ -189,7 +229,7 @@ int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len,
     char  *in_buf = (char *) buf;
     size_t in_len = (size_t) out_len;
 
-    if (iconv (transform->iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
+    if (transform->iconv_lib->iconv (transform->iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
 
     const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
 
@@ -259,9 +299,10 @@ void pw_batch_reset (pw_batch_t *batch)
   batch->pws_base_cnt = 0;
   batch->pcfg_waves   = 0;
 
-  batch->words_off   = 0;
-  batch->words_fin   = 0;
-  batch->words_extra = 0;
+  batch->words_off       = 0;
+  batch->words_fin       = 0;
+  batch->words_extra     = 0;
+  batch->words_extra_amp = 0;
 
   batch->pws_idx[0].off = 0;
   batch->pws_idx[0].cnt = 0;

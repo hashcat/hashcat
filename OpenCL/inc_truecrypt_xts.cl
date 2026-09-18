@@ -165,7 +165,7 @@ DECLSPEC void twofish256_decrypt_xts_next (PRIVATE_AS const u32 *in, PRIVATE_AS 
 
 // 512 bit
 
-DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -219,7 +219,7 @@ DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signatu
   return 1;
 }
 
-DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2)
 {
   u32 ks_serpent[140];
 
@@ -273,7 +273,7 @@ DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 sig
   return 1;
 }
 
-DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2)
 {
   u32 sk_twofish[4];
   u32 lk_twofish[40];
@@ -330,7 +330,7 @@ DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 sig
 
 // 1024 bit
 
-DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -391,7 +391,7 @@ DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32
   return 1;
 }
 
-DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_serpent[140];
   u32 ks_aes[60];
@@ -450,7 +450,7 @@ DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32
   return 1;
 }
 
-DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4)
 {
   u32 sk_twofish[4];
   u32 lk_twofish[40];
@@ -513,7 +513,7 @@ DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const
 
 // 1536 bit
 
-DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, PRIVATE_AS const u32 *ukey5, PRIVATE_AS const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, PRIVATE_AS const u32 *ukey5, PRIVATE_AS const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -580,7 +580,7 @@ DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, c
   return 1;
 }
 
-DECLSPEC int verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, PRIVATE_AS const u32 *ukey5, PRIVATE_AS const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC HC_NOINLINE_ALWAYS int verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, PRIVATE_AS const u32 *ukey5, PRIVATE_AS const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_serpent[140];
 

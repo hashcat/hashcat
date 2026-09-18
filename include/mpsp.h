@@ -35,6 +35,9 @@ u32   mp_get_length (const char *mask, const u32 opts_type);
 
 void  sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
 
+void  mask_ctx_lookup_report  (hashcat_ctx_t *hashcat_ctx);
+void  combi_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx);
+
 int   mask_ctx_update_loop    (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
 void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);

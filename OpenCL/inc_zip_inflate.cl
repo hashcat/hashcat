@@ -486,19 +486,25 @@ DECLSPEC mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 }
 
 
-DECLSPEC void zlib_memcpy_g (PRIVATE_AS void *dest, MAYBE_GLOBAL const void *src, int n, mz_streamp pStream)
-{
-  MAYBE_GLOBAL char *csrc = (MAYBE_GLOBAL char *) src;
+// tinfl_decompress() stays out of line, everywhere, on purpose.
+//
+// This is miniz's decompressor written as one coroutine: a single function that holds the whole
+// inflate state machine, a few hundred basic blocks of it. Inlining it saves one call and costs the
+// caller a copy of all of that, so there is no device on which it is a win.
+//
+// It is also what makes the three PKZIP modes that decompress fail to build at all on PoCL. Once
+// DECLSPEC gained its `static`, the helpers became internal and the runtime is free to inline them,
+// so hc_inflate() -> mz_inflate() -> tinfl_decompress() collapses into the kernel body. Building
+// that kernel sends a PoCL function pass into a recursion that does not terminate: hashcat dies
+// with SIGSEGV inside clGetProgramInfo(), before a single candidate is hashed. The stack is not
+// simply too small: raising the limit 16x only makes the recursion 16x deeper, from 14,119 frames
+// at 8 MB to 226,668 at 128 MB. Measured on PoCL 5.0 with LLVM 16.
+//
+// Keeping this one function out of line is enough for all three to build and crack again. 17210 and
+// 17230 never touch inflate and were never affected, and 21800 inflates from a slow hash's _comp
+// kernel, which is small to begin with.
 
-  PRIVATE_AS char *cdest = (PRIVATE_AS char *) dest;
-
-  for (int i = 0; i < n; i++)
-  {
-    cdest[i] = pIn_xor_byte (csrc[i], pStream);
-  }
-}
-
-DECLSPEC tinfl_status tinfl_decompress (PRIVATE_AS tinfl_decompressor *r, MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, PRIVATE_AS size_t *pIn_buf_size, PRIVATE_AS mz_uint8 *pOut_buf_start, PRIVATE_AS mz_uint8 *pOut_buf_next, PRIVATE_AS size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
+DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_decompressor *r, MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, PRIVATE_AS size_t *pIn_buf_size, PRIVATE_AS mz_uint8 *pOut_buf_start, PRIVATE_AS mz_uint8 *pOut_buf_next, PRIVATE_AS size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
 {
 
     const int s_length_base[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
@@ -565,32 +571,29 @@ DECLSPEC tinfl_status tinfl_decompress (PRIVATE_AS tinfl_decompressor *r, MAYBE_
             {
                 TINFL_CR_RETURN_FOREVER(39, TINFL_STATUS_FAILED);
             }
-            while ((counter) && (num_bits))
+            // hashcat-patched: miniz copies a stored block straight out of the input buffer in bulk,
+            // and reads whatever the bit buffer already holds one byte at a time beside it. Here
+            // every byte of that block has to be taken through the ZipCrypto stream on its own, so
+            // the bulk copy is not a bulk copy and the second path buys nothing. The whole block is
+            // read through the bit buffer instead, which is the path the rest of the decoder uses.
+            //
+            // The bulk path also produced wrong results on both AMD backends, in HIP and in OpenCL,
+            // while the same source is correct on an Intel OpenCL CPU device and when compiled for
+            // the host. A stored block decoded there returned no output at all and reported the
+            // stream as finished, so a correct password was never found.
+
+            while (counter)
             {
                 TINFL_GET_BITS(51, dist, 8);
+
                 while (pOut_buf_cur >= pOut_buf_end)
                 {
                     TINFL_CR_RETURN(52, TINFL_STATUS_HAS_MORE_OUTPUT);
                 }
+
                 *pOut_buf_cur++ = (mz_uint8)dist;
+
                 counter--;
-            }
-            while (counter)
-            {
-                size_t n;
-                while (pOut_buf_cur >= pOut_buf_end)
-                {
-                    TINFL_CR_RETURN(9, TINFL_STATUS_HAS_MORE_OUTPUT);
-                }
-                while (pIn_buf_cur >= pIn_buf_end)
-                {
-                    TINFL_CR_RETURN(38, (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS);
-                }
-                n = MZ_MIN(MZ_MIN((size_t)(pOut_buf_end - pOut_buf_cur), (size_t)(pIn_buf_end - pIn_buf_cur)), counter);
-                zlib_memcpy_g(pOut_buf_cur, pIn_buf_cur, n, pStream);
-                pIn_buf_cur += n;
-                pOut_buf_cur += n;
-                counter -= (mz_uint)n;
             }
         }
         else if (r->m_type == 3)

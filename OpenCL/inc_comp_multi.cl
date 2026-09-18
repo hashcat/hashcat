@@ -14,13 +14,11 @@ if (check (digest_tp,
              bitmaps_buf_s2_b,
              bitmaps_buf_s2_c,
              bitmaps_buf_s2_d,
-             BITMAP_MASK,
-             BITMAP_SHIFT1,
-             BITMAP_SHIFT2))
+             BITMAP_MASK))
 {
-  int digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+  const u32 digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-  if (digest_pos != -1)
+  if (digest_pos != (u32) -1)
   {
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 

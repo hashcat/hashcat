@@ -28,6 +28,8 @@
 #include "cpu_features.h"
 #include "dynloader.h"
 
+#include <limits.h>
+
 #if defined (_WIN)
 #include "processenv.h"
 #endif
@@ -39,6 +41,7 @@
 typedef void                (PYTHON_API_CALL *PY_INITIALIZE)                    ();
 typedef void                (PYTHON_API_CALL *PY_FINALIZE)                      ();
 typedef void                (PYTHON_API_CALL *PY_DECREF)                        (PyObject *);
+typedef void                (PYTHON_API_CALL *PY_INCREF)                        (PyObject *);
 typedef PyObject           *(PYTHON_API_CALL *PYBOOL_FROMLONG)                  (long);
 typedef PyObject           *(PYTHON_API_CALL *PYBYTES_FROMSTRINGANDSIZE)        (const char *, Py_ssize_t);
 typedef int                 (PYTHON_API_CALL *PYDICT_DELITEMSTRING)             (PyObject *, const char *);
@@ -95,6 +98,7 @@ typedef struct hc_python_lib
   PY_INITIALIZE                     Py_Initialize;
   PY_FINALIZE                       Py_Finalize;
   PY_DECREF                         Py_DecRef;
+  PY_INCREF                         Py_IncRef;
   PYBOOL_FROMLONG                   PyBool_FromLong;
   PYBYTES_FROMSTRINGANDSIZE         PyBytes_FromStringAndSize;
   PYDICT_DELITEMSTRING              PyDict_DelItemString;
@@ -533,7 +537,14 @@ static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, us
 
   if (python->lib == NULL)
   {
-    event_log_error (hashcat_ctx, "Awww, unable to find Python shared library.");
+    event_log_error (hashcat_ctx, "Unable to find suitable Python library for -m 73000.");
+    event_log_info (hashcat_ctx, "This mode wants an ordinary Python built as a shared library, not the free-threaded one.");
+    event_log_info (hashcat_ctx, "* On Windows, use the installer from https://www.python.org/downloads/windows/ and leave 'free-threaded' unchecked.");
+    event_log_info (hashcat_ctx, "* On Linux and MacOS, use `pyenv` and select a version with no `t` on the end (for instance `3.14.7`).");
+    event_log_info (hashcat_ctx, "  `pyenv versions` lists what is installed. A version selected but never installed looks exactly like this.");
+    event_log_info (hashcat_ctx, "  For -m 72000 instead, the version needs the `t`, and the two are separate installs.");
+    event_log_info (hashcat_ctx, NULL);
+    event_log_info (hashcat_ctx, NULL);
 
     return false;
   }
@@ -589,6 +600,7 @@ static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, us
   HC_LOAD_FUNC_PYTHON (python, Py_Initialize,                     Py_Initialize,                      PY_INITIALIZE,                    PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_Finalize,                       Py_Finalize,                        PY_FINALIZE,                      PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_DecRef,                         Py_DecRef,                          PY_DECREF,                        PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, Py_IncRef,                         Py_IncRef,                          PY_INCREF,                        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBool_FromLong,                   PyBool_FromLong,                    PYBOOL_FROMLONG,                  PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBytes_FromStringAndSize,         PyBytes_FromStringAndSize,          PYBYTES_FROMSTRINGANDSIZE,        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyDict_DelItemString,              PyDict_DelItemString,               PYDICT_DELITEMSTRING,             PYTHON, 1);
@@ -740,7 +752,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     if (user_options->machine_readable == false)
     {
       event_log_error (hashcat_ctx, "Attention!!! Falling back to single-threaded mode.");
-      event_log_info (hashcat_ctx, " Windows and MacOS ds not support multiprocessing module cleanly!");
+      event_log_info (hashcat_ctx, " Windows and MacOS do not support the multiprocessing module cleanly!");
       event_log_info (hashcat_ctx, " For multithreading on Windows and MacOS, please use -m 72000 instead.");
       event_log_info (hashcat_ctx, NULL);
     }
@@ -852,11 +864,13 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
 
   unit_buf->gstate = python->PyGILState_Ensure ();
 
+  // Only the two objects this file created are ours to release. pContext belongs to pArgs, because
+  // PyTuple_SetItem () steals the reference it is given, so dropping the tuple drops the dict with it.
+  // pFunc_Init, pFunc_Term and pFunc_kernel_loop are borrowed from pGlobals by PyDict_GetItemString ()
+  // and were never owned here. Releasing all four took their counts below what they really were, and
+  // the interpreter then freed live objects during its last collection.
+
   python->Py_DecRef (unit_buf->pArgs);
-  python->Py_DecRef (unit_buf->pContext);
-  python->Py_DecRef (unit_buf->pFunc_kernel_loop);
-  python->Py_DecRef (unit_buf->pFunc_Term);
-  python->Py_DecRef (unit_buf->pFunc_Init);
   python->Py_DecRef (unit_buf->pGlobals);
 
   //python->PyEval_RestoreThread (python_interpreter->tstate);
@@ -868,7 +882,7 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
   hcfree (python_interpreter);
 }
 
-bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -886,6 +900,7 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "module_name",    python->PyUnicode_FromString ((const char *) module_name));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "parallelism",    python->PyLong_FromLong (unit_buf->parallelism));
+  rc |= python->PyDict_SetItemString (unit_buf->pContext, "salt_per_pw",    python->PyBool_FromLong (hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_cnt",      python->PyLong_FromLong (hashes->salts_cnt));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_size",     python->PyLong_FromLong (sizeof (salt_t)));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_buf",      python->PyBytes_FromStringAndSize ((const char *) hashes->salts_buf, sizeof (salt_t) * hashes->salts_cnt));
@@ -915,6 +930,12 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     return false;
   }
 
+  // PyTuple_SetItem () steals the reference it is handed, and pContext is already owned by
+  // unit_buf->pArgs. Handing that one reference to a second tuple gives two owners one count, so this
+  // tuple takes a reference of its own and gives it back when it goes.
+
+  python->Py_IncRef (unit_buf->pContext);
+
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   PyObject *pReturn = python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
@@ -923,10 +944,14 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   {
     python->PyErr_Print ();
 
+    python->Py_DecRef (pArgs);
+
     return false;
   }
 
   python->Py_DecRef (pReturn);
+
+  python->Py_DecRef (pArgs);
 
   python->PyGILState_Release (unit_buf->gstate);
 
@@ -954,9 +979,15 @@ void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     return;
   }
 
+  // As in units_init (): a reference of this tuple's own, given back below.
+
+  python->Py_IncRef (unit_buf->pContext);
+
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   python->PyObject_CallObject (unit_buf->pFunc_Term, pArgs);
+
+  python->Py_DecRef (pArgs);
 
   python->PyDict_DelItemString (unit_buf->pContext, "salts_cnt");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_size");
@@ -1012,7 +1043,7 @@ char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_con
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1047,7 +1078,10 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   }
 
   python->PyTuple_SetItem (unit_buf->pArgs, 1, pws);
-  python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (salt_pos));
+  // The plugin is handed the salt the batch starts at and adds the position of the candidate itself,
+  // so the position passed here is zero. salt_per_pw in the context above is what tells it to add.
+
+  python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, 0)));
 
   if (hashes->salts_buf == hashes->st_salts_buf)
   {

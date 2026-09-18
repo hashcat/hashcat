@@ -116,69 +116,11 @@ DECLSPEC bool pcfg_hash (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIV
 
 DECLSPEC bool pcfg_hash_global (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
-  u32 hash = 17;
+  u32 t[64];
 
-  u8  scratch[16] = { 0 };
+  for (u32 i = 0; i < 64; i++) t[i] = w[i];
 
-  PRIVATE_AS u8 *input = (PRIVATE_AS u8 *) w;
-
-  for (u32 i = 0; i < 5; i++)
-  {
-    for (u32 j = 0; j < len; j++)
-    {
-      int idx = 15 - (j & 15);
-
-      scratch[idx] ^= input[j];
-    }
-
-    for (u32 j = 0; j < 16; j += 2)
-    {
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[15]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[14]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[13]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[12]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[11]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[10]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 9]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 8]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 7]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 6]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 5]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 4]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 3]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 2]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 1]]);
-      hash = (hash >> 8 ^ PE_CONST[hash & 0xff] ^ PE_CONST[scratch[ 0]]);
-
-      scratch[j]     = (unsigned char)( hash       & 0xff);
-      scratch[j + 1] = (unsigned char)((hash >> 8) & 0xff);
-    }
-  }
-
-  u8 target[16] = { 0 };
-
-  for (u32 i = 0; i < 16; i++)
-  {
-    u8 lower = (scratch[i] & 0x7f);
-
-    if ((lower >= 'A' && lower <= 'Z') || (lower >= 'a' && lower <= 'z'))
-    {
-      target[i] = lower;
-    }
-    else
-    {
-      target[i] = (u8)((scratch[i] >> 4) + 0x61);
-    }
-  }
-
-  PRIVATE_AS u32 *digest = (PRIVATE_AS u32 *) target;
-
-  dgst[0] = digest[DGST_R0];
-  dgst[1] = digest[DGST_R1];
-  dgst[2] = digest[DGST_R2];
-  dgst[3] = digest[DGST_R3];
-
-  return true;
+  return pcfg_hash (hc, t, len, dgst);
 }
 
 #define PCFG_KERNEL_MXX m26200_mxx
