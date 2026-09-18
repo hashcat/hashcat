@@ -1538,6 +1538,24 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   status_ctx->shutdown_inner = false;
 
+  // The monitor thread is what turns --runtime into an abort, and nothing else reads the option.
+  // The block below does not start it under --stdout, so without this the limit would be accepted
+  // and then have no effect. The monitor's other jobs stay off on conditions of their own.
+
+  if ((user_options->stdout_flag == true) && (user_options->runtime > 0))
+  {
+    if (hc_thread_create_ok (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx) == true)
+    {
+      inner_threads_cnt++;
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "Could not start the monitor thread.");
+
+      return -1;
+    }
+  }
+
   /**
     * Outfile remove
     */
