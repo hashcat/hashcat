@@ -12,7 +12,7 @@ hashcat is a highly optimized password recovery platform for GPUs, CPUs, and lar
 * Multi-device: several devices, and mixed device types, in one system
 * Multi-hash: cracks large numbers of hashes at once
 * Over 590 hash modes, each written with performance in mind
-* 5 attack modes: wordlist, brute-force, PCFG, hybrid and association
+* 10 attack modes: wordlist, combination, brute-force, PCFG, table, two hybrids, a mask that says where the word goes, generic plugin feeds and association
 * Assimilation bridge: add a hash mode in C, Python or Rust, without writing a kernel
 * Brain: skips candidates an earlier session already tried
 * Distributed cracking networks, using an overlay

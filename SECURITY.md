@@ -44,8 +44,6 @@ Information disclosure crosses the boundary too. If crafted data can make hashca
 
 A restore file stores the command line of an interrupted session. `--restore` does not execute it. It prints the stored command line and exits. The printed line is quoted. Bytes outside printable ASCII are escaped. The user decides whether to run it. A crafted restore file that can exploit the parser, break the quoting or disguise what is printed is inside the boundary. **Read the printed command line before you run it.**
 
-`--restore-auto` resumes in one step instead and executes the stored command line. Supplying that flag is the trust decision, like loading a bridge. **Do not use `--restore-auto` with a restore file from an untrusted source.**
-
 Some data formats are expressive. A rule file is a small program in the rule language. That does not turn it into code in the sense above. The rule engine may only transform and reject password candidates. A rule file, however complex, must stay inside that function. If a crafted rule file can escape the rule engine, that is a vulnerability.
 
 ## Bugs are still bugs

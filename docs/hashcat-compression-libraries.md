@@ -12,9 +12,28 @@ opened, so hashcat starts and runs normally on a machine that has none of them.
 
 On macOS the names are `libz.1.dylib`, `liblzma.5.dylib` and `libzstd.1.dylib`.
 
-Only the format you actually use needs its library. Opening a `.zst` on a machine with no
-libzstd fails with a message naming every file name it tried and what to install. Nothing else
-about that run is affected.
+Opening a `.zst` on a machine with no libzstd fails with a message naming every file name it
+tried and what to install. Another format is unaffected: a `.gz` still opens on a machine that
+has zlib and no libzstd.
+
+## Two things need a library without you opening a compressed file
+
+Reading a compressed file is not the only thing that reaches for one, so a machine with none of
+these libraries is not simply a machine that cannot open `.gz`, `.xz` and `.zst`.
+
+The Markov statistics hashcat ships, `hashcat.hcstat2`, are LZMA2 compressed. They are 128 MiB
+expanded and 235 KiB on disk, and there is no uncompressed version, so every attack that walks a
+mask loads liblzma before it starts. That is `-a 1`, `-a 3`, `-a 6`, `-a 7` and `-a 12`, and
+`--benchmark` as well, because it runs `-a 3`. Without liblzma those fail at startup naming the
+file and the library. `-a 0`, `-a 4`, `-a 5`, `-a 8` and `-a 9` never load the table and are
+unaffected.
+
+7-Zip hashes, `-m 11600`, carry the compressed data inside the hash line and hashcat decompresses
+it to verify a candidate. Which library that needs depends on how the archive was written:
+liblzma for an LZMA1 or LZMA2 archive, zlib for a DEFLATE one.
+
+Both of these were compiled into hashcat before this release, so a machine that ran them before
+may need a package installed now.
 
 ## Seeking inside a compressed wordlist
 

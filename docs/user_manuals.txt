@@ -1,3 +1,0 @@
-The user manuals are constantly updated. That's why they are not part of the distribution.
-
-For more detailed information and advanced hashcat usage visit our Wiki: https://hashcat.net/wiki
