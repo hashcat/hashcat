@@ -611,8 +611,17 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   // A name that could not be built leaves the directory as it was rather than a NULL every path below
   // would be written against.
+  //
+  // cache_dir is its own allocation here whenever it is not still install_dir under another name.
+  // Replacing it with cache_root without freeing that allocation first would leak it, and freeing it
+  // when it is install_dir would free memory the struct still needs later.
 
-  if (cache_root != NULL) cache_dir = cache_root;
+  if (cache_root != NULL)
+  {
+    if (cache_dir != install_dir) hcfree (cache_dir);
+
+    cache_dir = cache_root;
+  }
 
   /**
    * kernel cache, we need to make sure folder exist
@@ -651,6 +660,14 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
   // cache_dir is always its own allocation now, where it used to be install_dir under another name.
 
   if (folder_config->cache_dir != folder_config->install_dir) hcfree (folder_config->cache_dir);
+
+  // profile_dir, session_dir and shared_dir are each their own allocation when the running binary
+  // is in the install folder, and install_dir under another name everywhere else, same as cache_dir
+  // used to be.
+
+  if (folder_config->profile_dir != folder_config->install_dir) hcfree (folder_config->profile_dir);
+  if (folder_config->session_dir != folder_config->install_dir) hcfree (folder_config->session_dir);
+  if (folder_config->shared_dir  != folder_config->install_dir) hcfree (folder_config->shared_dir);
 
   hcfree (folder_config->install_dir);
 
