@@ -158,7 +158,7 @@ sub module_verify_hash
 
   return unless (length $rc4key == 10);
 
-  # The plain is packed for the computation but returned in the form it came in, because test.pl
+  # The plain is packed for the computation but returned in the form it came in, because test_module_runner.pl
   # compares the returned pair against the line it read, and hashcat writes a plain that carries the
   # separator, ends in whitespace or is not printable as $HEX[...].
 

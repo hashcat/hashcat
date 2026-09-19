@@ -27,7 +27,7 @@ my $JUNIPER_KEY  = pack ("H*", "a6707a7e8df91059dea70ae52f9c2442");
 my $JUNIPER_SALT = "danastre";
 
 # There is no salt in the stored string, so the 12-byte IV takes the salt slot:
-# 24 hex characters, which is what test.pl's numeric salt happens to be.
+# 24 hex characters, which is what test_module_runner.pl's numeric salt happens to be.
 sub module_constraints { [[0, 256], [24, 24], [0, 15], [24, 24], [-1, -1]] }
 
 sub module_generate_hash

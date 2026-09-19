@@ -120,7 +120,7 @@ sub module_verify_hash
   # one are accepted as well, for a pair that came from somewhere else.
   #
   # The key is packed for the computation and returned in the form it came in, the way
-  # m00000.pm does it, because test.pl compares the returned pair against the line it read.
+  # m00000.pm does it, because test_module_runner.pl compares the returned pair against the line it read.
 
   my $word_packed = pack_if_HEX_notation ($word);
 

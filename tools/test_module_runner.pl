@@ -23,7 +23,7 @@ eval {
     require Data::Types;  Data::Types->import(qw(is_count is_whole));
     require Digest::MD4;  Digest::MD4->import('md4_hex');
     1;
-} or die "Missing Perl modules, read: docs/hashcat-plugin-development-guide.md (search test.pl), and run: ./tools/install_modules.sh\n";
+} or die "Missing Perl modules, read: docs/hashcat-plugin-development-guide.md (search test_module_runner.pl), and run: ./tools/install_modules.sh\n";
 
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";

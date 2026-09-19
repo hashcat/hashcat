@@ -7,7 +7,7 @@ Each pair should be set to -1 if the hash mode is not supporting the appropriate
 * The first parameter to `module_generate_hash` is the password, which can be either in ASCII or binary (packed) form. The second parameter is the salt *which can be undefined for unsalted hash modes).
 * The `module_verify_hash` function accepts a line from the cracks file, without the newline characters.
 
-During `single` and `passthrough` tests the `module_generate_hash` function must provide random values (e.g. salt) for hash generation if necessary. The test.pl script offers a few handy functions like `random_hex_string`, `random_numeric_string` and `random_bytes`. You can implement your own salt generation functions, if your mode has specific requirements.
+During `single` and `passthrough` tests the `module_generate_hash` function must provide random values (e.g. salt) for hash generation if necessary. The test_module_runner.pl script offers a few handy functions like `random_hex_string`, `random_numeric_string` and `random_bytes`. You can implement your own salt generation functions, if your mode has specific requirements.
 
 During `verify` tests the `module_verify_hash` function must parse the hash:password line and calculate a hash by passing all necessary data to `module_generate_hash`. How you pass it is up to you, as long as the first parameter is the password.
 

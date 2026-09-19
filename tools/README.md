@@ -9,7 +9,7 @@ Hashcat's unit tests. Full background in
 cd tools
 ./install_dependencies.sh   # system packages, cpanm, pyenv, and the -g tools
 exec "${SHELL}"             # pick up the PATH lines the above appended
-./install_modules.sh        # perl and python modules the test.pl oracles need
+./install_modules.sh        # perl and python modules the test_module_runner.pl oracles need
 ```
 
 ### Run
@@ -35,7 +35,7 @@ command, for that command only.
 ### What `-g` builds
 
 `-g` builds a real encrypted container and cracks that as well as the mode's
-normal `test.pl` oracle, never instead of it. On its own it runs every mode
+normal `test_module_runner.pl` oracle, never instead of it. On its own it runs every mode
 below; with a `-m` outside them it says so and stops. A missing tool is a skip
 that names it, for that format only, repeated in a summary at the end.
 
@@ -43,7 +43,7 @@ that names it, for that format only, repeated in a summary at the end.
 |---|---|---|---|
 | GPG | 17010, 17020, 17030, 17040, 17050 | `gpg2`, `gpg1`, `gpg2john` | No `gpg1`: only what `gpg2` writes by default is covered, which drops the classic S2K combinations and the AES-128 (aux1) path. A note, not a skip. No `gpg2john`: skipped. |
 | PKZIP | 17200, 17210, 17220, 17225, 17230 | `zip`, `zip2john` | Skipped. |
-| RAR | 12500, 13000, 23700, 23800 | `rar` 6.x or older, `rar2john` | Only RAR5 (13000) is built, the RAR3 modes are skipped. 23800 has no `test.pl` oracle at all, so without `-g` it is skipped whatever is installed. |
+| RAR | 12500, 13000, 23700, 23800 | `rar` 6.x or older, `rar2john` | Only RAR5 (13000) is built, the RAR3 modes are skipped. 23800 has no `test_module_runner.pl` oracle at all, so without `-g` it is skipped whatever is installed. |
 | 7-Zip | 11600 | `7z`, `7z2john.pl`, `Compress::Raw::Lzma` | Skipped. |
 | WinZip AES | 13600 | `7z`, `zip2john` | Skipped. |
 | PDF | 10400, 10500, 10700 | `qpdf`, `gs`, `pdf2john.pl` | Skipped. `gs` writes the plain PDF that `qpdf` then encrypts. |

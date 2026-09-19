@@ -87,7 +87,7 @@ PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 RAR_GEN_MODES="12500 13000 23700 23800"
 
 
-# Modes with no test.pl oracle whose ground truth is the module's own self-test
+# Modes with no test_module_runner.pl oracle whose ground truth is the module's own self-test
 # vector, read out of hashcat with --hash-info. Every module ships an ST_HASH
 # and ST_PASS pair, a real hash of a real password, so a mode that cannot have
 # a .pm still gets a genuine end to end crack in every run with nothing checked
@@ -195,7 +195,7 @@ function run_oracle()
   if [ -f "${TDIR}/test_modules/m$(printf '%05d' "$2").py" ]; then
     python3 "${TDIR}/test_module_runner.py" "$@"
   else
-    perl "${TDIR}/test.pl" "$@"
+    perl "${TDIR}/test_module_runner.pl" "$@"
   fi
 }
 HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${SELFTEST_MODES}"
@@ -1910,7 +1910,7 @@ function attack_3()
     fi
 
     # This is one run with --increment over passwords of many lengths at once, and a password
-    # can carry a multi byte character wherever tools/test.pl put it, so no single '?d' mask
+    # can carry a multi byte character wherever tools/test_module_runner.pl put it, so no single '?d' mask
     # spells all of them. The hcmask path below already gives hashcat one mask per line, which
     # is exactly one mask per password, so take it whenever a character is in play and write a
     # mask per password rather than searching a mask per length.
@@ -2617,7 +2617,7 @@ function attack_6()
 
       fi
 
-      # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+      # The eight passwords of a length share this mask, which is why tools/test_module_runner.pl gives them
       # their characters in the same places: the layout is seeded from the length. A '?d' over
       # one of those bytes cannot produce it, so the mask spells it instead. Any of the eight
       # will do as the model.
@@ -2791,7 +2791,7 @@ function attack_7()
 
         fi
 
-        # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+        # The eight passwords of a length share this mask, which is why tools/test_module_runner.pl gives them
         # their characters in the same places: the layout is seeded from the length. A '?d' over
         # one of those bytes cannot produce it, so the mask spells it instead. Any of the eight
         # will do as the model.
@@ -3059,7 +3059,7 @@ function attack_7()
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
       dict_file=${OUTD}/${hash_type}_dict2_multi_${i}
 
-      # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+      # The eight passwords of a length share this mask, which is why tools/test_module_runner.pl gives them
       # their characters in the same places. It has to spell the half that dict2 does not hold,
       # and the split moved to a character boundary, so it comes from what dict1 holds rather
       # than from mask_7[], which was sized for a split on a byte.
@@ -3836,10 +3836,10 @@ function cryptoloop_test()
 
 function container_password()
 {
-  # The password every -g container is built with, from tools/test.pl, which is the same
+  # The password every -g container is built with, from tools/test_module_runner.pl, which is the same
   # generator the oracle passwords come from. So a container carries a euro sign, kana or a CJK
   # character too, and cracking one proves the whole path end to end against a real volume
-  # rather than against a hash test.pl computed itself.
+  # rather than against a hash test_module_runner.pl computed itself.
   #
   # Mode 0 is asked for it rather than the mode under test, because one -g run covers many
   # modes and builds its containers with one password. 0 pins no charset and does no UTF-16, so
@@ -3853,9 +3853,9 @@ function container_password()
   # ASCII; the oracle passwords still carry the characters, through $PW_CHARSET.
 
   if [[ "${OPTIMIZED}" -eq 1 ]]; then
-    NO_NON_ASCII=1 perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+    NO_NON_ASCII=1 perl "${TDIR}/test_module_runner.pl" password 0 12 2>/dev/null
   else
-    perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+    perl "${TDIR}/test_module_runner.pl" password 0 12 2>/dev/null
   fi
 }
 
@@ -3977,7 +3977,7 @@ function mask_literalize()
 {
   # Rewrite a mask so that every position it covers spells the byte that belongs there. The
   # generated passwords used to be digits from end to end, which is what makes a mask of '?d'
-  # groups work; tools/test.pl can now seed them with multi byte UTF-8, and no '?d' produces a
+  # groups work; tools/test_module_runner.pl can now seed them with multi byte UTF-8, and no '?d' produces a
   # byte above 0x7f. Those positions become literals, which costs the attack keyspace it was
   # never searching anyway.
   #
@@ -5644,7 +5644,7 @@ function pkzip_test()
   # Real-container test for the traditional PKWARE / ZipCrypto modes.
   # Builds genuine archives with InfoZip 'zip', extracts the hash with John's
   # zip2john, and confirms hashcat cracks the known password. This is the
-  # ground-truth complement to the self-contained test.pl oracles.
+  # ground-truth complement to the self-contained test_module_runner.pl oracles.
   hashType=$1
   attackType=$2
 
@@ -5834,7 +5834,7 @@ function rar_test()
 {
   # Real-container test for RAR. Builds genuine archives with the RARLAB 'rar'
   # CLI, extracts the hash with John's rar2john, and confirms hashcat cracks the
-  # known password, the ground-truth complement to the RAR test.pl oracles.
+  # known password, the ground-truth complement to the RAR test_module_runner.pl oracles.
   #
   # 23800 has no oracle to complement, since a .pm would have to reproduce RAR's
   # compressor. Without -g it is covered by selftest_vector_test() instead, so
@@ -6465,7 +6465,7 @@ OPTIONS:
         (string)    => path to folder
 
   -g    Generate crypto-containers on-the-fly and test those as well as the
-        normal test.pl oracles, never instead of them. GPG (gpg1/gpg2), PKZIP
+        normal test_module_runner.pl oracles, never instead of them. GPG (gpg1/gpg2), PKZIP
         (zip), RAR (a RARLAB rar 6.x or older, see rar_test), 7-Zip and WinZip
         AES (7z), PDF (qpdf and ghostscript), OpenSSH keys (ssh-keygen) and
         VeraCrypt (the veracrypt console build, 1.25.9 or older via
@@ -6708,7 +6708,7 @@ fi
 # test.sh is not a thing to run under sudo. Where a generator needs root it asks
 # for it per command, and only for that command. Running the whole script as root
 # instead moves HOME, which hides the perl modules install_modules.sh put in the
-# calling user's ${HOME}/.perl5, and test.pl then fails to load a module for every
+# calling user's ${HOME}/.perl5, and test_module_runner.pl then fails to load a module for every
 # mode. That surfaces as "Error : 0/0 not found" on all of them, which reads as
 # hashcat being broken rather than as a setup mistake, so it is worth stopping for.
 
@@ -7249,7 +7249,7 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
               luks2_test "${hash_type}" ${ATTACK}
             else
               # -g adds a real-container run, it does not take the place of the
-              # test.pl oracle. A run with -g has to cover at least what a run
+              # test_module_runner.pl oracle. A run with -g has to cover at least what a run
               # without it covers, otherwise asking for more coverage quietly
               # removes some.
               if is_in_array "${hash_type}" ${GPG_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
@@ -7319,7 +7319,7 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
               cryptoloop_test "${hash_type}" 256
             else
               # as in the slow-hash branch above, -g is an addition to the
-              # test.pl oracle rather than a replacement for it
+              # test_module_runner.pl oracle rather than a replacement for it
               if is_in_array "${hash_type}" ${PKZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
                 # generate + test real PKZIP/ZipCrypto containers
                 pkzip_test "${hash_type}" ${ATTACK}

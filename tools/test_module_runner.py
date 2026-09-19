@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-# The python counterpart to tools/test.pl. Same idea: load the module for one hash mode at run
+# The python counterpart to tools/test_module_runner.pl. Same idea: load the module for one hash mode at run
 # time and call the hooks it defines. tools/test.sh reaches it for any mode that has a .py.
 #
 # A module deals in bytes for the password and str for everything else. A password really is an
@@ -31,12 +31,12 @@ SINGLE_OUTPUTS = 8
 GIVEUP_AT      = 1000000
 
 # test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O. Unset means optimized,
-# which is what running tools/test.pl by hand does too.
+# which is what running tools/test_module_runner.pl by hand does too.
 
 IS_OPTIMIZED = os.environ.get("IS_OPTIMIZED", "1") != "0"
 
 # The characters an edge case password is sprinkled with, and the rules for where they may land.
-# These are tools/test.pl's, because tools/test_edge.sh reads the two engines' output the same way:
+# These are tools/test_module_runner.pl's, because tools/test_edge.sh reads the two engines' output the same way:
 # it rewrites the '?d' at a position whose byte is not a digit into that byte, so a mask can spell
 # a character wherever it turns up, and the eight passwords of a length share one mask. That is why
 # the layout below is seeded from the length rather than drawn at random.
@@ -247,7 +247,7 @@ def usage_exit():
     " {0} potthrough  <mode> [iter]\n"
     " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
     "\n"
-    "password is not implemented in test_module_runner.py yet, use tools/test.pl.\n"
+    "password is not implemented in test_module_runner.py yet, use tools/test_module_runner.pl.\n"
     "\n".format(name))
 
   sys.exit(1)
@@ -264,7 +264,7 @@ def load_module(mode):
 
 def constraints(mod):
   # No substitution in either direction. A mode that has no kernel for the family the run asked
-  # for is not applicable and says so, and test.sh turns exit 2 into a Skip. test.pl instead
+  # for is not applicable and says so, and test.sh turns exit 2 into a Skip. test_module_runner.pl instead
   # copies the constraints across and rewrites IS_OPTIMIZED to match, so a -O run on a mode with
   # no optimized kernel silently reports on the pure one.
   #
@@ -290,8 +290,8 @@ def length_pool(len_min, len_max, descending):
   # always covered, the rest come off a shuffled pool, and a short range is padded by
   # duplicating an element.
   #
-  # The sort is test.pl's: by digit count rather than by value, so both engines pick the same
-  # shape. It leaves lengths above 9 unordered, which is a question for test.pl rather than
+  # The sort is test_module_runner.pl's: by digit count rather than by value, so both engines pick the same
+  # shape. It leaves lengths above 9 unordered, which is a question for test_module_runner.pl rather than
   # something to diverge on here.
 
   if len_min == -1 or len_max == -1:
@@ -348,7 +348,7 @@ def make_word(mod, count):
 
 
 def edge_constraints(mod, optimized):
-  # tools/test.pl copies one family's word and salt pairs over the other when a mode has a kernel
+  # tools/test_module_runner.pl copies one family's word and salt pairs over the other when a mode has a kernel
   # for only one of them, and edge keeps that rather than refusing the way constraints () does.
   # tools/test_edge.sh picks the family from hashcat's own Kernel.Type(s) instead of from the
   # module, and it counts an empty vector list as an error, so refusing here would report a mode
@@ -671,7 +671,7 @@ def main():
   kind, mode = argv[0], argv[1]
 
   if kind == "password":
-    sys.exit("%s is not implemented in test_module_runner.py yet, use tools/test.pl\n" % kind)
+    sys.exit("%s is not implemented in test_module_runner.py yet, use tools/test_module_runner.pl\n" % kind)
 
   if kind not in ("edge", "single", "passthrough", "potthrough", "verify"):
     usage_exit()

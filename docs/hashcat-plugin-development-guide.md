@@ -75,20 +75,20 @@ The optional unit-test stub originally was made only to automate the task of plu
 
 From our experience in the last years adding new hashcat hash-modes we cannot stress enough how important it is to have a POC (as described earlier) to print intermediate values. If we do not already have some sort of POC, we use this optional unit-test stub as a POC replacement. Writing a unit-test is typically done from a high-level programming language, thus Perl is a good candidate to do so, but there is also some unit-test stubs written in python e.g. [m11750.pm](/tools/test_modules/m11750.pm). At this point we already created some synergy because you can use it as a POC to start with the development and later it acts as a normal unit-test stub and you do not have to write it twice. If you do not care about POC's and unit-test you can directly jump to the module subsection from here.
 
-The Test Suite is a Perl Framework. The main program (tools/test.pl) loads at runtime the hash-mode specific code written like a plugin. The structure of this perl module is standardized. We have already mentioned that all existing code to the 300+ hash-modes from previous hashcat versions have been refactored. Also all 300+ hash-mode specific unit-test stubs have been refactored into this new Test Suite Framework. The same way the before mentioned modules and kernels act as a reference, the unit-test stubs can also be used as reference. In most of the cases you can simply copy/paste from an existing unit-test stubs, change a small piece of code and both are ready, the POC and the unit-test stub.
+The Test Suite is a Perl Framework. The main program (tools/test_module_runner.pl) loads at runtime the hash-mode specific code written like a plugin. The structure of this perl module is standardized. We have already mentioned that all existing code to the 300+ hash-modes from previous hashcat versions have been refactored. Also all 300+ hash-mode specific unit-test stubs have been refactored into this new Test Suite Framework. The same way the before mentioned modules and kernels act as a reference, the unit-test stubs can also be used as reference. In most of the cases you can simply copy/paste from an existing unit-test stubs, change a small piece of code and both are ready, the POC and the unit-test stub.
 
 The test suite itself consists of four files:
 
-* tools/test.pl: This program generates random passwords, salts and loads the unit-test stub code which you will develop.
+* tools/test_module_runner.pl: This program generates random passwords, salts and loads the unit-test stub code which you will develop.
 * tools/test_module_runner.py: The same thing for a stub written in Python. It loads the module for one hash mode at run time and calls the same hooks.
-* tools/test.sh: This script compares the generated passwords from test.pl with the output from hashcat. It calls the hashcat binary multiple times, each time with a different set options to test your implementation on a deep level.
-* tools/test_edge.sh: This script tests the length edge cases of your implementation. It calls test.pl in edge mode, which reads your module_constraints() and emits the shortest and longest password and salt the module claims to accept, and then runs each of them through hashcat for every attack type and both kernel families.
+* tools/test.sh: This script compares the generated passwords from test_module_runner.pl with the output from hashcat. It calls the hashcat binary multiple times, each time with a different set options to test your implementation on a deep level.
+* tools/test_edge.sh: This script tests the length edge cases of your implementation. It calls test_module_runner.pl in edge mode, which reads your module_constraints() and emits the shortest and longest password and salt the module claims to accept, and then runs each of them through hashcat for every attack type and both kernel families.
 
 The filename of your unit-test stub has to be tools/test_modules/m[hash_mode].pm for a Perl stub, or tools/test_modules/m[hash_mode].py for a Python one. A mode is written in one language or the other, never both, and tools/test.sh routes each mode to whichever file it finds. A Python stub defines the same hooks under the same names, module_constraints(), module_generate_hash() and module_verify_hash(), and deals in bytes for the password and str for the hash and the salt, because a password can be bytes that are not text at all once $HEX[...] is unwrapped. Shared helpers live in tools/test_modules/test_helpers.py.
 
-### test.pl ###
+### test_module_runner.pl ###
 
-The tools/test.pl Script has six different use cases:
+The tools/test_module_runner.pl Script has six different use cases:
 
 * Edge
 * Single (default)
@@ -97,7 +97,7 @@ The tools/test.pl Script has six different use cases:
 * Potthrough
 * Verify
 
-When calling tools/test.pl from the command line, the first parameter you have to give is the use case type. It should be one of "edge", "single", "password", "passthrough", "potthrough" or "verify".
+When calling tools/test_module_runner.pl from the command line, the first parameter you have to give is the use case type. It should be one of "edge", "single", "password", "passthrough", "potthrough" or "verify".
 
 The three described below are the ones you will use while writing a module. Of the others, "edge" writes one comma separated record per length edge case, which tools/test_edge.sh consumes, "password" prints a single random password for the mode and nothing else, which tools/test.sh uses to build its containers, and "potthrough" is passthrough with the output written as hash:plain, the shape a potfile takes.
 
@@ -107,13 +107,13 @@ You need to implement three methods in your unit test stub. Note that the use ca
 * module_generate_hash()
 * module_verify_hash()
 
-The second parameter is the hash-mode itself. In case of "verify" you have to give some additional parameters. For the exact syntax please see `tools/test.pl --help`.
+The second parameter is the hash-mode itself. In case of "verify" you have to give some additional parameters. For the exact syntax please see `tools/test_module_runner.pl --help`.
 
-In order to get `tools/test.pl` running you need to install a lot of perl modules. To help you install them quickly, we have developed a simple script `tools/install_modules.sh`. You may want to take a look inside before you execute it. At this time, none of the perl modules require a special version which means you can also use the perl modules which your distribution offers to you (if you prefer it that way, for instance the GCrypt perl module with `apt install libcrypt-gcrypt-perl` on Debian/Ubuntu).
+In order to get `tools/test_module_runner.pl` running you need to install a lot of perl modules. To help you install them quickly, we have developed a simple script `tools/install_modules.sh`. You may want to take a look inside before you execute it. At this time, none of the perl modules require a special version which means you can also use the perl modules which your distribution offers to you (if you prefer it that way, for instance the GCrypt perl module with `apt install libcrypt-gcrypt-perl` on Debian/Ubuntu).
 
 #### Single Mode ####
 
-In single mode, a number of random passwords are generated for the selected hash mode. Each of the generated passwords is passed to the module_generate_hash() method (which is one of the methods you have to populate with code) and thus a hash is generated. In the end, both information, password and final hash line (which typically also contains the salt) are output to stdout, so that you can execute the output as if it would be a real shell script. If your hash-mode requires one (or more) salts, this will also be created automatically. The most important thing is that test.pl generates passwords of different lengths, with the guarantee that the minimum and maximum length password are always included.
+In single mode, a number of random passwords are generated for the selected hash mode. Each of the generated passwords is passed to the module_generate_hash() method (which is one of the methods you have to populate with code) and thus a hash is generated. In the end, both information, password and final hash line (which typically also contains the salt) are output to stdout, so that you can execute the output as if it would be a real shell script. If your hash-mode requires one (or more) salts, this will also be created automatically. The most important thing is that test_module_runner.pl generates passwords of different lengths, with the guarantee that the minimum and maximum length password are always included.
 
 Attention: The testing suite expects that the module_generate_hash() method will return the output of the final hash line. You have to return this as a string in the exact format that hashcat will later accept.
 
@@ -129,7 +129,7 @@ The module_constraints() method is easy to understand. It returns exactly 5 inte
 
 If you do not need one of the named pairs or the pair does not make sense because it is not applicable, you must use -1 for minimum and maximum. Please note that there is a strong difference between pure and optimized kernels. We have not discussed this concept so far, therefore let us stick to pure kernels. With a few exceptions, slow hash types have no implementation of an optimized mode, because the performance does not drop too much because of register pressure, but because of the iteration count, which you cannot optimize. We will come to the different kernel modes in the kernel section.
 
-Another important note about salts. Often one or more salts are needed. Possible iteration counts, IV or random content data can also be seen here as "salt". This data can be so different that it does not fit into a single policy / interface. Therefore, test.pl cannot standardize this complex situation. For simple forms of salts only, test.pl provides you with a simple form of random salt data. You can specify the length constraints (min/max) of the salt data in the constraints section. In more complex situations, you will not be able to avoid creating your own salts by calling some helper functions that test.pl provides you with, directly in the module_generate_hash() method.
+Another important note about salts. Often one or more salts are needed. Possible iteration counts, IV or random content data can also be seen here as "salt". This data can be so different that it does not fit into a single policy / interface. Therefore, test_module_runner.pl cannot standardize this complex situation. For simple forms of salts only, test_module_runner.pl provides you with a simple form of random salt data. You can specify the length constraints (min/max) of the salt data in the constraints section. In more complex situations, you will not be able to avoid creating your own salts by calling some helper functions that test_module_runner.pl provides you with, directly in the module_generate_hash() method.
 
 Example:
 
@@ -142,12 +142,12 @@ my $user_iv   = shift // random_hex_string (32)
 
 #### Passthrough Mode #####
 
-In passthrough mode, test.pl expects the *passwords* from you, quite the opposite of single mode where they were generated automatically. Every password that you send via stdin (e.g. pipe) is passed to the module_generate_hash() method and the resulting hash is sent to stdout. The rest is identical to single mode.
+In passthrough mode, test_module_runner.pl expects the *passwords* from you, quite the opposite of single mode where they were generated automatically. Every password that you send via stdin (e.g. pipe) is passed to the module_generate_hash() method and the resulting hash is sent to stdout. The rest is identical to single mode.
 
 Example:
 
 ```
-$ echo hashcat | tools/test.pl passthrough 1600
+$ echo hashcat | tools/test_module_runner.pl passthrough 1600
 $apr1$93341$gNT2pItX5h6Lc/XjTWuyb1
 ```
 
@@ -182,18 +182,18 @@ sub module_generate_hash
 The script is called with the following command line parameters:
 
 ```
-perl tools/test.pl verify 18900 hash_list.txt cracked_list.txt verified_list.txt
+perl tools/test_module_runner.pl verify 18900 hash_list.txt cracked_list.txt verified_list.txt
 ```
 
 After the command line parameter "verify" the hash mode is specified ("18900" in this example), followed by the original hash list (hash_list.txt) without passwords. After the hashfile the path of the file with the list of cracked hashes, including passwords is given. The format of this file is simply hash[:salt]:password the same way as hashcat would output them. Note that you can have multiple lines. The third parameter specifies the output file. It contains the lines that have been verified as correct and that also appear in the original hash list.
 
-You should also always test that the exit code of test.pl is 0, otherwise it could be that the output file was not overwritten.
+You should also always test that the exit code of test_module_runner.pl is 0, otherwise it could be that the output file was not overwritten.
 
 The verify mode is an excellent replacement for a missing POC.
 
 ### test.sh ###
 
-The test.sh is an overlay for test.pl, which actually calls the hashcat binary based on the return values from test.pl in single mode (it interacts with both). The test.sh shell script also compares the return values of the hashcat binary with the expected result. This includes tests such as whether all hashes have been cracked, whether the associated password is the correct one and not any other from the test.pl return, whether the output hash is displayed in the correct format, etc.
+The test.sh is an overlay for test_module_runner.pl, which actually calls the hashcat binary based on the return values from test_module_runner.pl in single mode (it interacts with both). The test.sh shell script also compares the return values of the hashcat binary with the expected result. This includes tests such as whether all hashes have been cracked, whether the associated password is the correct one and not any other from the test_module_runner.pl return, whether the output hash is displayed in the correct format, etc.
 
 Furthermore, the script has many different options (when called in the command line) with which you can narrow down to specific tests. You typically want to make use of this feature, because a complete test run across all hash modes can take several days.
 
@@ -543,9 +543,9 @@ This option tells hashcat that your hash is salted. Not all hashes are salted (m
 
 ### module_st_hash() ###
 
-Here you provide a hash for the self-test functionality. You also need to provide the correct password for this hash later. Please only use artificial hashes which you generated yourself. Typically this is a hash with the password "hashcat" which you have generated by using test.pl in passthrough mode.
+Here you provide a hash for the self-test functionality. You also need to provide the correct password for this hash later. Please only use artificial hashes which you generated yourself. Typically this is a hash with the password "hashcat" which you have generated by using test_module_runner.pl in passthrough mode.
 
-Note that this hash will also be used as reference for the benchmark mode. In some rare circumstances to have a not too long running iteration count to reduce startup time delays. A good example for this is iTunes 10+ `src/modules/module_14800.c`. This can also be done using test.pl.
+Note that this hash will also be used as reference for the benchmark mode. In some rare circumstances to have a not too long running iteration count to reduce startup time delays. A good example for this is iTunes 10+ `src/modules/module_14800.c`. This can also be done using test_module_runner.pl.
 
 The --example-hashes command line argument together with a specific hash mode (-m) will also instruct hashcat to show the example hash and example password.
 
