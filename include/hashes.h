@@ -30,6 +30,8 @@ int hashes_init_selftest  (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_zerohash  (hashcat_ctx_t *hashcat_ctx);
 
+void hash_info_destroy (hashinfo_t *hash_info);
+
 void hashes_destroy (hashcat_ctx_t *hashcat_ctx);
 
 void hashes_logger (hashcat_ctx_t *hashcat_ctx);

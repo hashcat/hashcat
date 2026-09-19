@@ -3343,7 +3343,7 @@ static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, in
 // is NULL, and this reads the struct rather than the options that produced it: outer_loop () calls
 // hashconfig_destroy () before hashes_destroy () on its normal return, so opts_type cannot be asked.
 
-static void hash_info_destroy (hashinfo_t *hash_info)
+void hash_info_destroy (hashinfo_t *hash_info)
 {
   if (hash_info == NULL) return;
 

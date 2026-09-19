@@ -2199,10 +2199,9 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 }
 
 // Everything autodetect_hashmode_test () builds for one module's attempt, given back in one place.
-// hash_info owns four blocks of its own and hcfree () on the struct does not reach them, which is
-// what hash_info_destroy () exists for on the loader's side. This probe allocates those four itself
-// and no module writes anything else into them, so this is the whole set. hcfree () takes a NULL, so
-// the two optional buffers need no test of their own.
+// hash_info owns blocks of its own that hcfree () on the struct does not reach, so the loader's
+// hash_info_destroy () gives those back and the struct with them. hcfree () takes a NULL, so the two
+// optional buffers need no test of their own.
 
 static void autodetect_hashmode_test_destroy (hashes_t *hashes, void *digest, salt_t *salt, void *esalt, void *hook_salt, hashinfo_t *hash_info, hash_t *hashes_buf)
 {
@@ -2211,15 +2210,8 @@ static void autodetect_hashmode_test_destroy (hashes_t *hashes, void *digest, sa
   hcfree (esalt);
   hcfree (hook_salt);
 
-  if (hash_info != NULL)
-  {
-    hcfree (hash_info->dynamicx);
-    hcfree (hash_info->user);
-    hcfree (hash_info->orighash);
-    hcfree (hash_info->split);
-  }
+  hash_info_destroy (hash_info);
 
-  hcfree (hash_info);
   hcfree (hashes_buf);
 
   // hashes carries a pointer to each of these for the probe's own sake, and they are gone now.
