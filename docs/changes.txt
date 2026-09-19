@@ -1006,6 +1006,11 @@ time. Results depend on the device, runtime and workload.
   requires "chcp 65001"
 - Fixed stderr message colors being applied to the console used by stdout, where terminal detection
   checked stdout regardless of the stream being written
+- Fixed hashcat having to be started from its own folder, where the path of the running binary was
+  never read and every folder resolved against the working directory. A Unicode folder still has to
+  be the working directory on CUDA, whose runtime compiler cannot open such an include path
+- Fixed a UNC install path leaving the kernel include path empty, where the leading "//" of
+  "//server/share" inside a "-D" value was read as the start of a C comment
 
 ## Build and packaging
 

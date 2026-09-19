@@ -40,9 +40,21 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  memset (exec_path, 0, exec_path_sz);
+  // The application manifest declares activeCodePage as UTF-8, so the process code page is UTF-8
+  // before the CRT starts and the narrow call writes UTF-8 straight into exec_path. There is no wide
+  // buffer to convert and no error path to free one on.
+  //
+  // GetModuleFileName answers nSize for a path that does not fit and leaves a truncated name behind,
+  // so a full buffer is a failure here. Letting it through would build install_dir, and every folder
+  // taken from it, out of half a path.
 
-  const int len = 0;
+  const DWORD win_len = GetModuleFileNameA (NULL, exec_path, (DWORD) (exec_path_sz - 1));
+
+  if (win_len == 0) return -1;
+
+  if (win_len >= (DWORD) (exec_path_sz - 1)) return -1;
+
+  const size_t len = (size_t) win_len;
 
   #elif defined (__APPLE__)
 
