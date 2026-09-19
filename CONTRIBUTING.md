@@ -25,6 +25,7 @@ Match the code around you. The rules below are what that code already does, and 
 ### Layout
 
 * 2 spaces for indentation. A tab only where the format demands one, such as a Makefile.
+* No trailing whitespace. A line ends at its last visible character.
 * [Allman braces](https://en.wikipedia.org/wiki/Indent_style#Allman_style). The opening brace goes on its own line, for functions and for `if`, `else`, `for`, `while` and `switch`.
 * Omit the braces when the body is a single statement that fits on one line: `if (rc == -1) return -1;`
 * Two or more statements, or any nested block, always gets braces.
