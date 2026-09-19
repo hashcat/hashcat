@@ -14,6 +14,7 @@
 # into source, a command line or a format string, so a quote, a dollar or a percent in it means
 # nothing anywhere on the path.
 
+import glob
 import importlib
 import os
 import random
@@ -33,6 +34,187 @@ GIVEUP_AT      = 1000000
 # which is what running tools/test.pl by hand does too.
 
 IS_OPTIMIZED = os.environ.get("IS_OPTIMIZED", "1") != "0"
+
+# The characters an edge case password is sprinkled with, and the rules for where they may land.
+# These are tools/test.pl's, because tools/test_edge.sh reads the two engines' output the same way:
+# it rewrites the '?d' at a position whose byte is not a digit into that byte, so a mask can spell
+# a character wherever it turns up, and the eight passwords of a length share one mask. That is why
+# the layout below is seeded from the length rather than drawn at random.
+
+NON_ASCII_CHARS = (
+  b"\xe0\xa4\xb9",      # U+0939  devanagari letter ha
+  b"\xe2\x82\xac",      # U+20AC  euro sign
+  b"\xe3\x81\x8b",      # U+304B  hiragana letter ka
+  b"\xe3\x82\xab",      # U+30AB  katakana letter ka
+  b"\xe4\xb8\xad",      # U+4E2D  cjk ideograph 'middle'
+  b"\xe6\x96\x87",      # U+6587  cjk ideograph 'script'
+  b"\xe7\xa0\x81",      # U+7801  cjk ideograph 'code'
+  b"\xe9\xbe\x8d",      # U+9F8D  cjk ideograph 'dragon'
+  b"\xea\xb0\x80",      # U+AC00  hangul syllable ga
+  b"\xef\xbc\xa1",      # U+FF21  fullwidth latin capital a
+  b"\xf0\x9f\x98\x80",  # U+1F600 grinning face
+)
+
+NON_ASCII_SKIP_BYTES = 0
+NON_ASCII_MIN_SPARE  = 1
+NON_ASCII_RATE       = 0.34
+
+
+def sprinkle_non_ascii(text):
+  # Replace some of the digits with multi byte UTF-8 characters, in place, so the byte length of
+  # the password does not change and it still fits whatever Pwd.Len.Max the mode declares. A
+  # character is only ever written where a whole one fits and the scan then steps over it, so the
+  # result is always valid UTF-8.
+
+  data = bytearray(text.encode("ascii"))
+
+  length = len(data)
+
+  seed = (length * 2654435761) % 4294967291
+
+  def rnd():
+    nonlocal seed
+
+    seed = (seed * 1103515245 + 12345) % 2147483648
+
+    return seed / 2147483648
+
+  pos = NON_ASCII_SKIP_BYTES
+
+  while pos < length:
+    char = NON_ASCII_CHARS[int(rnd() * len(NON_ASCII_CHARS))]
+
+    char_len = len(char)
+
+    spare = length - NON_ASCII_MIN_SPARE + (1 if pos > 0 else 0)
+
+    if (pos + char_len) <= spare and rnd() < NON_ASCII_RATE:
+      data[pos:pos + char_len] = char
+
+      pos += char_len
+    else:
+      pos += 1
+
+  return bytes(data)
+
+
+def utf16_decoding_helpers():
+  # Split the inc_hash_* conversion helpers into the ones that decode UTF-8 through hc_enc and the
+  # ones that only widen the bytes. The scalar UTF-16LE variants decode; the vector ones, the HMAC
+  # ones and every UTF-16BE variant do not.
+
+  decoding = set()
+
+  for inc in glob.glob(os.path.join(TDIR, "..", "OpenCL", "inc_hash_*.cl")):
+    try:
+      with open(inc, "r", errors="replace") as handle:
+        src = handle.read()
+    except OSError:
+      continue
+
+    for chunk in src.split("\nDECLSPEC "):
+      match = re.match(r"\w[\w ]*?\s(\w+)\s*\(", chunk)
+
+      if match is None:
+        continue
+
+      name = match.group(1)
+
+      if "utf16" not in name:
+        continue
+
+      if "hc_enc_next" in chunk:
+        decoding.add(name)
+
+  return decoding
+
+
+def non_ascii_supported(mode, mod):
+  # Whether this mode can be handed a password that is not 7 bit ASCII. hashcat has no single flag
+  # for it, so the module source is read for the option bits that pin the plaintext to a charset,
+  # the same way tools/test.sh reads OPTS_TYPE_SUGGEST_KG and friends straight out of src/modules.
+
+  if "NO_NON_ASCII" in os.environ:
+    return False
+
+  # a module that builds the password out of the generated string, a bitcoin seed or a NetNTLM
+  # response for instance, needs that string in the format it expects
+
+  if hasattr(mod, "module_get_random_password"):
+    return False
+
+  try:
+    with open(os.path.join(TDIR, "..", "src", "modules", "module_%05d.c" % mode),
+              "r", errors="replace") as handle:
+      src = handle.read()
+  except OSError:
+    return False
+
+  # OPTS_TYPE_PT_ALWAYS_ASCII says the plaintext is ASCII by definition, PT_LM and PT_UPPER case
+  # fold it, which the kernels only do for ASCII, and PT_HEX, PT_BASE58 and PT_ALWAYS_HEXIFY spell
+  # the password in an alphabet of their own.
+
+  for opt in ("OPTS_TYPE_PT_ALWAYS_ASCII",
+              "OPTS_TYPE_PT_ALWAYS_HEXIFY",
+              "OPTS_TYPE_PT_BASE58",
+              "OPTS_TYPE_PT_HEX",
+              "OPTS_TYPE_PT_LM",
+              "OPTS_TYPE_PT_LOWER",
+              "OPTS_TYPE_PT_UPPER"):
+    if opt in src:
+      return False
+
+  # A kernel that needs UTF-16 either decodes the UTF-8 with hc_enc or widens the bytes, and a
+  # password above 0x7f only survives the first kind.
+
+  decoding = utf16_decoding_helpers()
+
+  any_utf16    = False
+  pure_decodes = False
+
+  for kernel in glob.glob(os.path.join(TDIR, "..", "OpenCL", "m%05d*.cl" % mode)):
+    try:
+      with open(kernel, "r", errors="replace") as handle:
+        ksrc = handle.read()
+    except OSError:
+      continue
+
+    decodes = re.search(r"\bhc_enc_next\s*\(", ksrc) is not None
+    widens  = re.search(r"\bmake_utf16", ksrc) is not None
+
+    if widens:
+      any_utf16 = True
+
+    for name in re.findall(r"\b(\w+_utf16\w*)\s*\(", ksrc):
+      any_utf16 = True
+
+      if name in decoding:
+        decodes = True
+      else:
+        widens = True
+
+    if kernel.endswith("-pure.cl"):
+      pure_decodes = pure_decodes or decodes
+
+  # nothing in this mode ever decodes, UTF-16BE for instance has no hc_enc path at all
+
+  if any_utf16 and not pure_decodes:
+    return False
+
+  return True
+
+
+def random_non_ascii_string(count, non_ascii_ok):
+  # A password for a mode that can take one that is not 7 bit ASCII. Comes back as plain digits for
+  # a mode that cannot take one, and for a password too short to hold one, so a caller gets a valid
+  # password either way and never has to ask which.
+
+  text = random_numeric_string(count)
+
+  if non_ascii_ok is False:
+    return text.encode("ascii")
+
+  return sprinkle_non_ascii(text)
 
 
 
@@ -59,12 +241,13 @@ def usage_exit():
 
   sys.stderr.write(
     "\nUsage:\n"
+    " {0} edge        <mode> [attack-type] [optimized]\n"
     " {0} single      <mode> [length]\n"
     " {0} passthrough <mode> [iter]\n"
     " {0} potthrough  <mode> [iter]\n"
     " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
     "\n"
-    "edge and password are not implemented in test_module_runner.py yet, use tools/test.pl.\n"
+    "password is not implemented in test_module_runner.py yet, use tools/test.pl.\n"
     "\n".format(name))
 
   sys.exit(1)
@@ -162,6 +345,193 @@ def make_word(mod, count):
     word = mod.module_get_random_password(word)
 
   return word
+
+
+def edge_constraints(mod, optimized):
+  # tools/test.pl copies one family's word and salt pairs over the other when a mode has a kernel
+  # for only one of them, and edge keeps that rather than refusing the way constraints () does.
+  # tools/test_edge.sh picks the family from hashcat's own Kernel.Type(s) instead of from the
+  # module, and it counts an empty vector list as an error, so refusing here would report a mode
+  # as broken for having nothing to say about a kernel it does not have.
+
+  pairs = [list(pair) for pair in mod.module_constraints()]
+
+  if pairs[0] == [-1, -1]:
+    pairs[0] = list(pairs[2])
+    pairs[1] = list(pairs[3])
+  elif pairs[2] == [-1, -1]:
+    pairs[2] = list(pairs[0])
+    pairs[3] = list(pairs[1])
+
+  word = pairs[2] if optimized else pairs[0]
+  salt = pairs[3] if optimized else pairs[1]
+  comb = pairs[4] if optimized else [-1, -1]
+
+  return word, salt, comb
+
+
+def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok):
+  while True:
+    word = random_non_ascii_string(word_len, non_ascii_ok)
+    salt = random_numeric_string(salt_len)
+
+    if hasattr(mod, "module_get_random_password"):
+      word = mod.module_get_random_password(word)
+
+    digest = mod.module_generate_hash(word, salt)
+
+    # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
+    # again rather than passed on
+
+    if mode == 30901 and (digest is None or len(digest) != 34):
+      continue
+
+    break
+
+  if digest is None:
+    return
+
+  # The word, the salt and the hash go out hex encoded. tools/test_edge.sh reads these fields into
+  # shell variables, and a comma or a quote in one of them would otherwise end the field early or
+  # unbalance the quoting around it. Hex contains neither, so a field stays separable whatever the
+  # module puts in it, and the consumer decodes rather than parses.
+
+  sys.stdout.write("%d,%d,%d,%d,%d,%s,%s,%s\n" % (
+    mode, attack_type, 1 if optimized else 0, word_len, salt_len,
+    word.hex(), salt.encode("ascii").hex(), digest.encode("utf-8").hex()))
+
+
+def edge(mod, mode, attack_type, optimized):
+  if attack_type not in (0, 1, 3, 4, 6, 7, 8, 9, 12):
+    return -1
+
+  word, salt, comb = edge_constraints(mod, optimized)
+
+  word_min, word_max = word
+  salt_min, salt_max = salt
+  comb_max           = comb[1]
+
+  non_ascii_ok = non_ascii_supported(mode, mod)
+
+  if attack_type != 3 and optimized:
+    if word_min != word_max and word_max > 31:
+      word_max = 31
+
+  # An attack that cuts the word in two needs a word with two halves. Attack types 0, 4, 8 and 9
+  # hand the whole word to hashcat in one piece, so a one character word is a valid test for them.
+
+  if attack_type not in (0, 4, 8, 9):
+    word_min = max(word_min, 2)
+
+  # Attack type 4 assembles its candidate out of grammar terminals and the shortest terminal is one
+  # character long, so there is no way to hand it an empty word. A mode whose minimum is zero gets
+  # a one character word for that corner instead, which is a case the attack can express.
+
+  if attack_type == 4 and word_min == 0:
+    word_min = 1
+
+  def emit(word_len, salt_len):
+    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+
+  # word_min, salt_min / word_min, salt_max / word_max, salt_min / word_max, salt_max
+
+  if word_min != -1:
+    if salt_min != salt_max:
+      if salt_min != -1:
+        emit(word_min, salt_min)
+
+      if salt_max != -1:
+        salt_len = salt_max
+
+        if optimized:
+          salt_len = min(salt_len, 51)
+
+          if comb_max != -1 and (word_min + salt_len) > comb_max:
+            off = word_min + salt_len - comb_max
+
+            if salt_len > off:
+              salt_len -= off
+
+        emit(word_min, salt_len)
+    elif salt_min != -1:
+      emit(word_min, salt_min)
+    else:
+      emit(word_min, 0)
+
+  if word_max == -1:
+    return 0
+
+  if salt_min == salt_max:
+    if salt_min == -1:
+      emit(word_max, 0)
+
+      return 0
+
+    word_len = word_max
+    salt_len = salt_max
+
+    if optimized and comb_max != -1 and (word_len + salt_len) > comb_max:
+      off = word_len + salt_len - comb_max
+
+      if word_len > off:
+        word_len = max(word_len - off, word_min)
+
+    emit(word_len, salt_len)
+
+    return 0
+
+  last_word_len = -1
+
+  if salt_min != -1:
+    word_len = word_max
+    salt_len = salt_min
+
+    if optimized:
+      comb_max_cur = comb_max if comb_max != -1 else 55
+
+      if (word_len + salt_len) > comb_max_cur:
+        off = word_len + salt_len - comb_max_cur
+
+        if word_len <= off:
+          sys.stdout.write("ERROR with MODE %d, WORD %d, SALT %d, MAX %d"
+                           % (mode, word_len, salt_len, comb_max_cur))
+
+          sys.exit(1)
+
+        word_len -= off
+
+    emit(word_len, salt_len)
+
+    last_word_len = word_len
+
+  if salt_max != -1:
+    word_len = word_max
+    salt_len = salt_max
+
+    if optimized:
+      comb_max_cur = comb_max if comb_max != -1 else 55
+
+      salt_len = min(salt_len, 51)
+
+      if (word_len + salt_len) > comb_max_cur:
+        off = word_len + salt_len - comb_max_cur
+
+        if last_word_len == word_len:
+          word_len -= off
+
+          if word_len < word_min:
+            salt_len -= word_min - word_len
+            word_len  = word_min
+        else:
+          salt_len -= off
+
+          if salt_len < salt_min:
+            word_len -= salt_min - salt_len
+            salt_len  = salt_min
+
+    emit(word_len, salt_len)
+
+  return 0
 
 
 def single(mod, mode, length):
@@ -300,17 +670,29 @@ def main():
 
   kind, mode = argv[0], argv[1]
 
-  if kind in ("edge", "password"):
+  if kind == "password":
     sys.exit("%s is not implemented in test_module_runner.py yet, use tools/test.pl\n" % kind)
 
-  if kind not in ("single", "passthrough", "potthrough", "verify"):
+  if kind not in ("edge", "single", "passthrough", "potthrough", "verify"):
     usage_exit()
 
   if not mode.isdigit():
     sys.exit("Mode must be a number\n")
 
   mode = int(mode)
-  mod  = load_module(mode)
+
+  # tools/test.sh exports IS_OPTIMIZED, but tools/test_edge.sh hands the same flag to the edge
+  # subcommand as an argument instead. A module reads the variable when it is imported, so the
+  # argument has to be in the environment before that happens.
+
+  if kind == "edge" and len(argv) > 3 and argv[3] in ("0", "1"):
+    global IS_OPTIMIZED
+
+    os.environ["IS_OPTIMIZED"] = argv[3]
+
+    IS_OPTIMIZED = argv[3] != "0"
+
+  mod = load_module(mode)
 
   for hook in ("module_constraints", "module_generate_hash", "module_verify_hash"):
     if not hasattr(mod, hook):
@@ -323,6 +705,15 @@ def main():
     verify(mod, argv[2], argv[3], argv[4])
 
     return
+
+  if kind == "edge":
+    attack_type = argv[2] if len(argv) > 2 else "0"
+    optimized   = argv[3] if len(argv) > 3 else "0"
+
+    if not attack_type.isdigit() or optimized not in ("0", "1"):
+      usage_exit()
+
+    sys.exit(0 if edge(mod, mode, int(attack_type), optimized == "1") == 0 else 1)
 
   extra = argv[2] if len(argv) > 2 else None
 

@@ -365,6 +365,18 @@ OUTD="test_edge_$(date +%s)"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+function run_oracle()
+{
+  # Generate with the engine the mode has a file for: python where a mNNNNN.py exists, perl
+  # otherwise. The mode is the second argument at every call site. Same dispatch as tools/test.sh.
+
+  if [ -f "${TDIR}/test_modules/m$(printf '%05d' "$2").py" ]; then
+    python3 "${TDIR}/test_module_runner.py" "$@"
+  else
+    perl "${TDIR}/test.pl" "$@"
+  fi
+}
+
 # The modes the pcfg device engine has an optimized kernel for. It asks for the file by the mode's
 # kern_type, so the mode number is not the name: the kern_type is read out of the module the same way
 # attack_exec is, which keeps both tests below off a run of hashcat.
@@ -1004,15 +1016,6 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
     continue
   fi
 
-  # An edge case run needs the oracle's edge entry point and only tools/test.pl has one, which
-  # test_module_runner.py says of itself. So a mode whose oracle is a .py is named here and skipped,
-  # rather than left out of the loop with nothing said.
-
-  if [ ! -f "${TDIR}/test_modules/m$(printf '%05d' ${hash_type}).pm" ]; then
-    echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (edge is implemented in tools/test.pl only, and this mode's oracle is a .py)" | tee -a ${OUTD}/test_edge.details.log
-    continue
-  fi
-
   build_failed_err=0
   test_vectors_err=0
 
@@ -1110,7 +1113,7 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
 
       edge_out="${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}.out"
 
-      ./tools/test.pl edge ${hash_type} ${attack_type} ${optimized} 2>/dev/null > ${edge_out}
+      run_oracle edge ${hash_type} ${attack_type} ${optimized} 2>/dev/null > ${edge_out}
 
       if [ ${VERBOSE} -ge 2 ]; then
         cat ${edge_out}

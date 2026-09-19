@@ -625,6 +625,8 @@ time. Results depend on the device, runtime and workload.
   "-M" option selects 24 modes spanning every distinct path with vector width 1, and
   "tools/test_coverage.sh" requires every untestable mode to carry an explicit exemption
 - Test modules may be Python or Perl, and generated passwords now include multibyte characters
+- "tools/test_module_runner.py" implements the edge entry point, so "tools/test_edge.sh" covers a
+  mode whose oracle is a Python module instead of skipping it
 - Added "tools/README.md", "tools/install_dependencies.sh" and "tools/requirements.txt" for test
   suite prerequisites. Perl module installation now reports each package that failed instead of
   only a count
