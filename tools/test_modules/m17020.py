@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-import gpg
+from lib import gpg
 
 # GPG symmetric secret key protection, S2K iterated and salted, AES-128 or AES-256 in CFB.
 # Integrity is the trailing SHA-1 over the decrypted data, secret key usage 254, which is what

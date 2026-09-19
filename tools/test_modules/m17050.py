@@ -7,8 +7,8 @@
 
 from Crypto.Cipher import AES
 
-import gpg
-from test_helpers import random_bytes, random_number
+from lib import gpg
+from lib.test_helpers import random_bytes, random_number
 
 # GPG symmetric secret key protection with AES-128 in OCB, which carries no trailing SHA-1: the
 # kernel decides on the first decrypted block instead, which has to read "(((1:" then the name of

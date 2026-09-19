@@ -9,7 +9,7 @@ import base64
 import hashlib
 import hmac
 
-from test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number
 
 # mega.nz password protected link. The link body is base64url of
 #

@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-import diskcryptor
+from lib import diskcryptor
 
 # DiskCryptor with a 1024 bit key: up to two ciphers, so four 256 bit keys. A cascade takes its
 # data keys from the front half and its tweak keys from the back half.

@@ -16,8 +16,8 @@
 from Crypto.Cipher import AES
 from Crypto.Util.strxor import strxor
 
-from pyserpent import Serpent
-from pytwofish import Twofish
+from .pyserpent import Serpent
+from .pytwofish import Twofish
 
 
 class _Aes:

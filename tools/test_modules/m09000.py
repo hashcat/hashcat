@@ -11,7 +11,7 @@ import struct
 
 from Crypto.Cipher import Blowfish
 
-from test_helpers import random_bytes
+from lib.test_helpers import random_bytes
 
 # Password Safe v2. Like m05200 this is OPTS_TYPE_BINARY_HASHFILE, so the oracle prints the file
 # in base64 and test.sh decodes it back before handing it to hashcat.

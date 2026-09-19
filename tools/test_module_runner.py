@@ -25,7 +25,7 @@ TDIR = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.insert(0, os.path.join(TDIR, "test_modules"))
 
-from test_helpers import random_number, random_numeric_string  # noqa: E402
+from lib.test_helpers import random_number, random_numeric_string  # noqa: E402
 
 SINGLE_OUTPUTS = 8
 GIVEUP_AT      = 1000000

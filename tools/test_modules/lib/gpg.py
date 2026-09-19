@@ -18,7 +18,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from test_helpers import random_bytes, random_number
+from .test_helpers import random_bytes, random_number
 
 USAGE = 254  # the secret key usage octet that says the protected data ends in a SHA-1 checksum
 

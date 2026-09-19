@@ -9,8 +9,8 @@ import hashlib
 
 from Crypto.Cipher import CAST
 
-import gpg
-from test_helpers import random_bytes, random_number
+from lib import gpg
+from lib.test_helpers import random_bytes, random_number
 
 # GPG symmetric secret key protection with CAST5 in CFB. The S2K is SHA-1 either way, but the
 # mode has two shapes and a run covers both: iterated and salted, which carries a count, and

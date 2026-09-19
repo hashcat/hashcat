@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-import diskcryptor
+from lib import diskcryptor
 
 # DiskCryptor with a 1536 bit key: up to three ciphers, so six 256 bit keys.
 

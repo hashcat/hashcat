@@ -11,7 +11,7 @@ import json
 
 from Crypto.Cipher import AES
 
-from test_helpers import random_bytes
+from lib.test_helpers import random_bytes
 
 # Dogechain.info wallet. The stored string is
 #

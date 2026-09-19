@@ -10,7 +10,7 @@ import hmac
 
 from argon2.low_level import Type, hash_secret_raw
 
-from test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number
 
 # KeePass 4 with the Argon2 KDF. What hashcat verifies is the HMAC-SHA256 over the database
 # header, and the chain to its key is

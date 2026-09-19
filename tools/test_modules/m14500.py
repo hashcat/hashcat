@@ -11,7 +11,7 @@ from Crypto.Cipher import AES
 from Crypto.Hash import RIPEMD160
 from Crypto.Util.strxor import strxor
 
-from test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number
 
 # Linux Kernel Crypto API (2.4). This is a known plaintext attack, not a hash:
 #

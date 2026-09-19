@@ -10,7 +10,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number
 
 # Android FDE <= 4.3. The stored string is
 #

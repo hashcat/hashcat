@@ -14,8 +14,8 @@
 
 import hashlib
 
-from test_helpers import random_bytes, random_number
-from xts import Xts
+from .test_helpers import random_bytes, random_number
+from .xts import Xts
 
 ITERATIONS = 1000
 SALT_LEN   = 64

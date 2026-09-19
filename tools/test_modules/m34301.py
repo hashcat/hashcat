@@ -10,7 +10,7 @@ import hmac
 
 from Crypto.Cipher import AES
 
-from test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number
 
 # KeePass 4 with the AES key derivation function, which is the same database and the same header
 # HMAC as m34300 with a different way of getting to the key:

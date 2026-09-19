@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-import diskcryptor
+from lib import diskcryptor
 
 # DiskCryptor with a 512 bit key: one cipher, so two 256 bit keys, one for the data and one for
 # the tweak.
