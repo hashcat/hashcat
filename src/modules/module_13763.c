@@ -194,7 +194,12 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   hc_fclose (&fp);
 
-  if (n != VC_HEADER_LEN) return (PARSER_VC_FILE_SIZE);
+  if (n != VC_HEADER_LEN)
+  {
+    hcfree (in);
+
+    return (PARSER_VC_FILE_SIZE);
+  }
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
@@ -202,7 +207,12 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, VC_HEADER_LEN);
 
-  if (parser_status != PARSER_OK) return 0;
+  if (parser_status != PARSER_OK)
+  {
+    hcfree (in);
+
+    return 0;
+  }
 
   hcfree (in);
 
