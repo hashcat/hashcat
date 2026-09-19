@@ -248,7 +248,7 @@ else
   # to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
   # error. Import each one now, while the cause is still in front of you.
 
-  PYTHON_MODULES="CryptoPlus Crypto pygost cryptography argon2"
+  PYTHON_MODULES="Crypto cryptography argon2 gostcrypto"
 
   for python_module in ${PYTHON_MODULES}; do
 

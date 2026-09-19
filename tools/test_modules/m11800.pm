@@ -17,8 +17,8 @@ sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
 my $PY = <<'PYCODE';
 import binascii
 import sys
-from pygost import gost34112012512
-digest = gost34112012512.new (bytes.fromhex (sys.argv[1])).digest ()
+import gostcrypto
+digest = bytes (gostcrypto.gosthash.new ("streebog512", data = bytearray (bytes.fromhex (sys.argv[1]))).digest ())
 print (binascii.hexlify (digest[::-1]).decode (), end = "")
 PYCODE
 

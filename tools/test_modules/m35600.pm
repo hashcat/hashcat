@@ -13,10 +13,20 @@ sub module_constraints { [[0, 256], [0, 16], [-1, -1], [-1, -1], [-1, -1]] }
 # The password goes over argv as hex. It is arbitrary bytes, and a Python b"..."
 # literal can only hold ASCII, so interpolating it into the source turns every
 # candidate above 0x7f into a SyntaxError.
+#
+# Every message below is hashed in one call. gostcrypto's update () only keeps
+# the state right when what it has been fed so far is a whole number of 64 byte
+# blocks, so a message streamed in pieces of any other size hashes to something
+# else. The two places that used to stream one are the 'a' context and the
+# password repeat, and the second of those was already H (pwd * len (pwd)) in
+# its other branch, so the branch is gone with it.
 
 my $PY = <<'PYCODE';
 import sys
-from pygost import gost34112012512
+import gostcrypto
+
+def streebog512 (data = b""):
+    return gostcrypto.gosthash.new ("streebog512", data = bytearray (data))
 
 _c_digest_offsets = (
     (0, 3), (5, 1), (5, 3), (1, 2), (5, 1), (5, 3), (1, 3),
@@ -65,24 +75,18 @@ def encode_transposed_bytes(source: bytes, offsets) -> bytes:
 
 def gost12_512_crypt(pwd: bytes, salt: str, rounds: int) -> str:
     salt = salt.encode('ascii')
-    H = gost34112012512.new
+    H = streebog512
     db = H(pwd + salt + pwd).digest()
 
-    a_ctx = H(pwd + salt)
-    a_ctx.update((db * ((len(pwd) + len(db) - 1) // len(db)))[:len(pwd)])
+    a_buf = bytearray(pwd + salt)
+    a_buf += (db * ((len(pwd) + len(db) - 1) // len(db)))[:len(pwd)]
     i = len(pwd)
     while i:
-        a_ctx.update(db if i & 1 else pwd)
+        a_buf += db if i & 1 else pwd
         i >>= 1
-    da = a_ctx.digest()
+    da = H(bytes(a_buf)).digest()
 
-    if len(pwd) < 96:
-        dp = (H(pwd * len(pwd)).digest() * ((len(pwd) + 63) // 64))[:len(pwd)]
-    else:
-        tmp = H(pwd)
-        for _ in range(len(pwd) - 1):
-            tmp.update(pwd)
-        dp = (tmp.digest() * ((len(pwd) + 63) // 64))[:len(pwd)]
+    dp = (H(pwd * len(pwd)).digest() * ((len(pwd) + 63) // 64))[:len(pwd)]
 
     ds = H(salt * (16 + da[0])).digest()[: len(salt)]
     perms = [dp, dp + dp, dp + ds, dp + ds + dp, ds + dp, ds + dp + dp]
