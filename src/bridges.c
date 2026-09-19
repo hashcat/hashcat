@@ -429,5 +429,12 @@ void bridges_salt_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->salt_destroy == MODULE_DEFAULT) return;
 
+  // enabled is set before the library is loaded, so it is still true when platform_init () gave up and
+  // returned no context. A salt_destroy hook is written against a context it built, and the three C
+  // bridges in this tree dereference it without checking, so a run that never got one has nothing to
+  // give back.
+
+  if (bridge_ctx->platform_context == NULL) return;
+
   bridge_ctx->salt_destroy (hashcat_ctx, bridge_ctx->platform_context, hashconfig, hashes);
 }

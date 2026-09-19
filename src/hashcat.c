@@ -524,7 +524,13 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     const int rc_autotune = inner2_autotune (hashcat_ctx, threads_param, c_threads);
 
-    if (rc_autotune != 0) return rc_autotune;
+    if (rc_autotune != 0)
+    {
+      hcfree (c_threads);
+      hcfree (threads_param);
+
+      return rc_autotune;
+    }
   }
 
   /**
@@ -903,6 +909,51 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 // outer_loop iterates through hash_modes (in benchmark mode)
 // also initializes stuff that depend on hash mode
 
+// Everything outer_loop () brings up, given back in the order that function has always used. Each of
+// these is safe on a context that was never built: most return on a flag such a context still has
+// false, hashconfig_destroy () has a branch for a module that never loaded, and hashes_destroy () and
+// status_progress_destroy () free a zeroed one. Being called a second time is a different question,
+// and this does not answer it: module_unload () closes the module handle without clearing it. No
+// caller asks, because every return in outer_loop () calls this and returns.
+
+static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  #ifdef WITH_BRAIN
+  brain_ctx_destroy       (hashcat_ctx);
+  #endif
+
+  bridges_salt_destroy    (hashcat_ctx);
+  bridges_destroy         (hashcat_ctx);
+  bitmap_ctx_destroy      (hashcat_ctx);
+  combinator_ctx_destroy  (hashcat_ctx);
+  cpt_ctx_destroy         (hashcat_ctx);
+  hashconfig_destroy      (hashcat_ctx);
+  hashes_destroy          (hashcat_ctx);
+  mask_ctx_destroy        (hashcat_ctx);
+  status_progress_destroy (hashcat_ctx);
+  generic_ctx_destroy     (hashcat_ctx);
+  straight_ctx_destroy    (hashcat_ctx);
+}
+
+// The monitor and outfile-check threads read the contexts outer_loop_destroy () gives back, so they
+// have to be off before it runs. Upstream reached this only at the end of a run, where the wait
+// already stood. Putting a teardown on the error returns as well brings the wait with it, because the
+// last of those returns is taken with the monitor thread already up.
+
+static void inner_threads_destroy (hashcat_ctx_t *hashcat_ctx, hc_thread_t *inner_threads, const int inner_threads_cnt)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  status_ctx->shutdown_inner = true;
+
+  for (int thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
+  {
+    hc_thread_wait (1, &inner_threads[thread_idx]);
+  }
+
+  hcfree (inner_threads);
+}
+
 static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 {
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
@@ -936,6 +987,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (hashconfig_init (hashcat_ctx) == -1)
   {
     event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -973,6 +1026,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
         }
         else
         {
+          outer_loop_destroy (hashcat_ctx);
+
           return 0;
         }
       }
@@ -981,6 +1036,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
         const char *module_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, user_options, user_options_extra);
 
         event_log_error (hashcat_ctx, "%s", module_deprecated_notice);
+
+        outer_loop_destroy (hashcat_ctx);
 
         return 0;
       }
@@ -991,7 +1048,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * generate hashlist filename for later use
    */
 
-  if (hashes_init_filename (hashcat_ctx) == -1) return -1;
+  if (hashes_init_filename (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * load hashes, stage 1
@@ -1003,13 +1065,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_HASHLIST_PARSE_INPUT_POST);
 
-  if (hashes_stage1_rc == -1) return -1;
+  if (hashes_stage1_rc == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
     if (hashes->hashes_cnt == 0)
     {
       event_log_error (hashcat_ctx, "No hashes loaded.");
+
+      outer_loop_destroy (hashcat_ctx);
 
       return -1;
     }
@@ -1021,7 +1090,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   hashes->hashes_cnt_orig = hashes->hashes_cnt;
 
-  if (hashes_init_stage2 (hashcat_ctx) == -1) return -1;
+  if (hashes_init_stage2 (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * potfile removes
@@ -1050,13 +1124,23 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * zero hash removes
    */
 
-  if (hashes_init_zerohash (hashcat_ctx) == -1) return -1;
+  if (hashes_init_zerohash (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * load hashes, stage 3, update cracked results from potfile
    */
 
-  if (hashes_init_stage3 (hashcat_ctx) == -1) return -1;
+  if (hashes_init_stage3 (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * potfile show/left handling
@@ -1068,9 +1152,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     outfile_write_open (hashcat_ctx);
 
-    if (potfile_handle_show (hashcat_ctx) == -1) return -1;
+    if (potfile_handle_show (hashcat_ctx) == -1)
+    {
+      outer_loop_destroy (hashcat_ctx);
+
+      return -1;
+    }
 
     outfile_write_close (hashcat_ctx);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return 0;
   }
@@ -1081,9 +1172,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     outfile_write_open (hashcat_ctx);
 
-    if (potfile_handle_left (hashcat_ctx) == -1) return -1;
+    if (potfile_handle_left (hashcat_ctx) == -1)
+    {
+      outer_loop_destroy (hashcat_ctx);
+
+      return -1;
+    }
 
     outfile_write_close (hashcat_ctx);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return 0;
   }
@@ -1096,12 +1194,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     event_log_error (hashcat_ctx, "Not enough hashes loaded - minimum is %u for this hash-mode.", hashconfig->hashes_count_min);
 
+    outer_loop_destroy (hashcat_ctx);
+
     return -1;
   }
 
   if (hashes->digests_cnt > hashconfig->hashes_count_max)
   {
     event_log_error (hashcat_ctx, "Too many hashes loaded - maximum is %u for this hash-mode.", hashconfig->hashes_count_max);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -1118,11 +1220,18 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       {
         const int rc = save_hash (hashcat_ctx);
 
-        if (rc == -1) return -1;
+        if (rc == -1)
+        {
+          outer_loop_destroy (hashcat_ctx);
+
+          return -1;
+        }
       }
     }
 
     EVENT (EVENT_POTFILE_ALL_CRACKED);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return 0;
   }
@@ -1131,25 +1240,45 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * load hashes, stage 4, automatic Optimizers
    */
 
-  if (hashes_init_stage4 (hashcat_ctx) == -1) return -1;
+  if (hashes_init_stage4 (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * load hashes, selftest
    */
 
-  if (hashes_init_selftest (hashcat_ctx) == -1) return -1;
+  if (hashes_init_selftest (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * load hashes, post automatisation
    */
 
-  if (hashes_init_stage5 (hashcat_ctx) == -1) return -1;
+  if (hashes_init_stage5 (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * load hashes, benchmark
    */
 
-  if (hashes_init_benchmark (hashcat_ctx) == -1) return -1;
+  if (hashes_init_benchmark (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * Done loading hashes, log results
@@ -1165,7 +1294,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   // only during the attack. Everything below this point costs time and device memory, and a hash list
   // the check directory already accounts for needs none of it.
 
-  if (outcheck_preflight (hashcat_ctx) == -1) return -1;
+  if (outcheck_preflight (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
@@ -1177,7 +1311,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     {
       if (hashes->digests_saved != hashes->digests_done)
       {
-        if (save_hash (hashcat_ctx) == -1) return -1;
+        if (save_hash (hashcat_ctx) == -1)
+        {
+          outer_loop_destroy (hashcat_ctx);
+
+          return -1;
+        }
       }
     }
 
@@ -1186,6 +1325,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       event_log_info (hashcat_ctx, "INFO: All hashes were already found in the outfile check directory.");
       event_log_info (hashcat_ctx, NULL);
     }
+
+    outer_loop_destroy (hashcat_ctx);
 
     return 0;
   }
@@ -1196,7 +1337,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_BITMAP_INIT_PRE);
 
-  if (bitmap_ctx_init (hashcat_ctx) == -1) return -1;
+  if (bitmap_ctx_init (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   EVENT (EVENT_BITMAP_INIT_POST);
 
@@ -1215,7 +1361,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   // amplify with the mask and the mask is only sized once per round, so the feed keyspace is left in
   // base words here and straight_ctx_update_loop finishes it.
 
-  if (generic_ctx_init (hashcat_ctx) == -1) return -1;
+  if (generic_ctx_init (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   // Whether the device engine runs is settled by the feed, not by the attack mode: -a 4, -a 5 and a
   // feed on -a 8 or -a 9 all reach it, and any of them falls back to the host engine when the feed
@@ -1232,6 +1383,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     event_log_warning (hashcat_ctx, "The device engine turns a base word into its whole cell of candidates in one launch, so there is no loop count to set.");
     event_log_warning (hashcat_ctx, NULL);
 
+    outer_loop_destroy (hashcat_ctx);
+
     return -1;
   }
 
@@ -1243,19 +1396,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   // thread waits on it, and the status mapping at the end of this file then makes that
   // RC_FINAL_ERROR. A question that was answered is not a failure.
   //
-  // The destroys are the ones the tail of this function would have run for what has been initialised
-  // so far. generic_ctx_destroy () is the one that matters: it calls global_term (), so the feed
-  // gives its grammar back rather than leaving it to process exit.
+  // outer_loop_destroy () gives back whatever has been initialised so far. generic_ctx_destroy ()
+  // inside it is the one that matters here: it calls global_term (), so the feed gives its grammar
+  // back rather than leaving it to process exit.
 
   if (generic_ctx_described (hashcat_ctx) == true)
   {
     status_ctx->devices_status = STATUS_RUNNING;
 
-    generic_ctx_destroy (hashcat_ctx);
-    cpt_ctx_destroy     (hashcat_ctx);
-    bitmap_ctx_destroy  (hashcat_ctx);
-    hashes_destroy      (hashcat_ctx);
-    hashconfig_destroy  (hashcat_ctx);
+    outer_loop_destroy (hashcat_ctx);
 
     return 0;
   }
@@ -1266,13 +1415,23 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * straight mode init
    */
 
-  if (straight_ctx_init (hashcat_ctx) == -1) return -1;
+  if (straight_ctx_init (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * combinator mode init
    */
 
-  if (combinator_ctx_init (hashcat_ctx) == -1) return -1;
+  if (combinator_ctx_init (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   // -a 1 has now chosen which of its two dictionaries is the base, which is the last thing needed to
   // say which of -j and -k applies to a base word and which to an amplifier word.
@@ -1283,7 +1442,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * charsets : keep them together for more easy maintenance
    */
 
-  if (mask_ctx_init (hashcat_ctx) == -1) return -1;
+  if (mask_ctx_init (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   EVENT (EVENT_CANDIDATE_SOURCE_POST);
 
@@ -1302,6 +1466,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     {
       event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with multiple dictionaries or --stdout.");
 
+      outer_loop_destroy (hashcat_ctx);
+
       return -1;
     }
 
@@ -1313,6 +1479,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     if ((restore_ctx->restore_execute == true) && (mask_ctx->masks_cnt > 1))
     {
       event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with --restore over several masks.");
+
+      outer_loop_destroy (hashcat_ctx);
 
       return -1;
     }
@@ -1328,6 +1496,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     {
       event_log_error (hashcat_ctx, "Use of --keyspace is not supported with multiple dictionaries.");
 
+      outer_loop_destroy (hashcat_ctx);
+
       return -1;
     }
   }
@@ -1340,6 +1510,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     event_log_error (hashcat_ctx, "Use of -m/--hash-type is not supported with --stdout.");
 
+    outer_loop_destroy (hashcat_ctx);
+
     return -1;
   }
 
@@ -1347,7 +1519,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 
-  if (status_progress_init (hashcat_ctx) == -1) return -1;
+  if (status_progress_init (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * main screen
@@ -1378,25 +1555,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
-      #ifdef WITH_BRAIN
-      brain_ctx_destroy       (hashcat_ctx);
-      #endif
-
-      bridges_destroy         (hashcat_ctx);
-      bitmap_ctx_destroy      (hashcat_ctx);
-      combinator_ctx_destroy  (hashcat_ctx);
-      cpt_ctx_destroy         (hashcat_ctx);
-      hashconfig_destroy      (hashcat_ctx);
-      hashes_destroy          (hashcat_ctx);
-      mask_ctx_destroy        (hashcat_ctx);
-      status_progress_destroy (hashcat_ctx);
-      generic_ctx_destroy     (hashcat_ctx);
-      straight_ctx_destroy    (hashcat_ctx);
+      outer_loop_destroy (hashcat_ctx);
 
       return 0;
     }
 
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -1410,6 +1576,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (bridges_salt_prepare (hashcat_ctx) == false)
   {
     event_log_error (hashcat_ctx, "Bridge salt preparation for hash-mode '%u' failed.", user_options->hash_mode);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -1434,27 +1602,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
         // clean up
 
-        #ifdef WITH_BRAIN
-        brain_ctx_destroy       (hashcat_ctx);
-        #endif
-
-        bridges_salt_destroy    (hashcat_ctx);
-        bridges_destroy         (hashcat_ctx);
-        bitmap_ctx_destroy      (hashcat_ctx);
-        combinator_ctx_destroy  (hashcat_ctx);
-        cpt_ctx_destroy         (hashcat_ctx);
-        hashconfig_destroy      (hashcat_ctx);
-        hashes_destroy          (hashcat_ctx);
-        mask_ctx_destroy        (hashcat_ctx);
-        status_progress_destroy (hashcat_ctx);
-        generic_ctx_destroy     (hashcat_ctx);
-        straight_ctx_destroy    (hashcat_ctx);
+        outer_loop_destroy (hashcat_ctx);
 
         return 0;
       }
     }
 
     backend_session_destroy (hashcat_ctx);
+
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -1519,6 +1675,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
         backend_ctx->self_test_warnings = true;
 
+        outer_loop_destroy (hashcat_ctx);
+
         return -1;
       }
     }
@@ -1533,7 +1691,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * the weak hash check was removed maybe we can move this more to the bottom now
    */
 
-  if (potfile_write_open (hashcat_ctx) == -1) return -1;
+  if (potfile_write_open (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
 
   /**
    * status and monitor threads
@@ -1559,6 +1722,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     {
       event_log_error (hashcat_ctx, "Could not start the monitor thread.");
 
+      inner_threads_destroy (hashcat_ctx, inner_threads, inner_threads_cnt);
+
+      outer_loop_destroy (hashcat_ctx);
+
       return -1;
     }
   }
@@ -1577,6 +1744,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     {
       event_log_error (hashcat_ctx, "Could not start the monitor thread.");
 
+      inner_threads_destroy (hashcat_ctx, inner_threads, inner_threads_cnt);
+
+      outer_loop_destroy (hashcat_ctx);
+
       return -1;
     }
 
@@ -1589,6 +1760,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       else
       {
         event_log_error (hashcat_ctx, "Could not start the outfile-check thread.");
+
+        inner_threads_destroy (hashcat_ctx, inner_threads, inner_threads_cnt);
+
+        outer_loop_destroy (hashcat_ctx);
 
         return -1;
       }
@@ -1681,14 +1856,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   // wait for inner threads
 
-  status_ctx->shutdown_inner = true;
-
-  for (int thread_idx = 0; thread_idx < inner_threads_cnt; thread_idx++)
-  {
-    hc_thread_wait (1, &inner_threads[thread_idx]);
-  }
-
-  hcfree (inner_threads);
+  inner_threads_destroy (hashcat_ctx, inner_threads, inner_threads_cnt);
 
   EVENT (EVENT_INNERLOOP1_FINISHED);
 
@@ -1702,21 +1870,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   // clean up
 
-  #ifdef WITH_BRAIN
-  brain_ctx_destroy       (hashcat_ctx);
-  #endif
-
-  bridges_salt_destroy    (hashcat_ctx);
-  bridges_destroy         (hashcat_ctx);
-  bitmap_ctx_destroy      (hashcat_ctx);
-  combinator_ctx_destroy  (hashcat_ctx);
-  cpt_ctx_destroy         (hashcat_ctx);
-  hashconfig_destroy      (hashcat_ctx);
-  hashes_destroy          (hashcat_ctx);
-  mask_ctx_destroy        (hashcat_ctx);
-  status_progress_destroy (hashcat_ctx);
-  generic_ctx_destroy     (hashcat_ctx);
-  straight_ctx_destroy    (hashcat_ctx);
+  outer_loop_destroy (hashcat_ctx);
 
   return 0;
 }
@@ -2044,6 +2198,39 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   return 0;
 }
 
+// Everything autodetect_hashmode_test () builds for one module's attempt, given back in one place.
+// hash_info owns four blocks of its own and hcfree () on the struct does not reach them, which is
+// what hash_info_destroy () exists for on the loader's side. This probe allocates those four itself
+// and no module writes anything else into them, so this is the whole set. hcfree () takes a NULL, so
+// the two optional buffers need no test of their own.
+
+static void autodetect_hashmode_test_destroy (hashes_t *hashes, void *digest, salt_t *salt, void *esalt, void *hook_salt, hashinfo_t *hash_info, hash_t *hashes_buf)
+{
+  hcfree (digest);
+  hcfree (salt);
+  hcfree (esalt);
+  hcfree (hook_salt);
+
+  if (hash_info != NULL)
+  {
+    hcfree (hash_info->dynamicx);
+    hcfree (hash_info->user);
+    hcfree (hash_info->orighash);
+    hcfree (hash_info->split);
+  }
+
+  hcfree (hash_info);
+  hcfree (hashes_buf);
+
+  // hashes carries a pointer to each of these for the probe's own sake, and they are gone now.
+
+  hashes->hashes_buf     = NULL;
+  hashes->digests_buf    = NULL;
+  hashes->salts_buf      = NULL;
+  hashes->esalts_buf     = NULL;
+  hashes->hook_salts_buf = NULL;
+}
+
 bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -2160,7 +2347,12 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   {
     char *input_buf = user_options_extra->hc_hash;
 
-    if (!input_buf) return false;
+    if (input_buf == NULL)
+    {
+      autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
+
+      return false;
+    }
 
     size_t input_len = strlen (input_buf);
 
@@ -2174,7 +2366,12 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
     if (hash_len < 1)     hash_fmt_error = true;
     if (hash_buf == NULL) hash_fmt_error = true;
 
-    if (hash_fmt_error) return false;
+    if (hash_fmt_error == true)
+    {
+      autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
+
+      return false;
+    }
 
     const int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
 
@@ -2186,7 +2383,12 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
 
     int error_count = 0;
 
-    if (hc_fopen (&fp, hashfile, "rb") == false) return false;
+    if (hc_fopen (&fp, hashfile, "rb") == false)
+    {
+      autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
+
+      return false;
+    }
 
     char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -2253,25 +2455,7 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  hcfree (digest);
-  hcfree (salt);
-  hcfree (hash_info);
-  hcfree (hashes_buf);
-
-  if (hashconfig->esalt_size > 0)
-  {
-    hcfree (esalt);
-  }
-
-  if (hashconfig->hook_salt_size > 0)
-  {
-    hcfree (hook_salt);
-  }
-
-  hashes->digests_buf    = NULL;
-  hashes->salts_buf      = NULL;
-  hashes->esalts_buf     = NULL;
-  hashes->hook_salts_buf = NULL;
+  autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
 
   return success;
 }
@@ -2428,6 +2612,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
           event_log_warning (hashcat_ctx, NULL);
         }
       }
+
+      hcfree (usage_sort_buf);
 
       return -1;
     }
