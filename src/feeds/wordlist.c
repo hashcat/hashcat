@@ -243,11 +243,18 @@ static bool source_add_path (generic_global_ctx_t *global_ctx, feed_global_t *fe
 
     if (source_add (global_ctx, feed_global, files[i]) == false)
     {
+      // scan_directory () allocates one string per file plus the array holding them, and source_add ()
+      // keeps a copy of the path rather than the pointer, so the strings go back here with the array.
+
+      for (int j = 0; files[j] != NULL; j++) hcfree (files[j]);
+
       hcfree (files);
 
       return false;
     }
   }
+
+  for (int i = 0; files[i] != NULL; i++) hcfree (files[i]);
 
   hcfree (files);
 

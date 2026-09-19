@@ -3379,6 +3379,12 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
   // place, so the segments are dropped rather than left to be read in the wrong unit. Guess.Base
   // still names the wordlist and the tables, which global_init () sets.
 
+  // dropped means given back: the wordlist_keyspace () call above fills these two in when it gets
+  // that far, and wordlist_term () finds the fields already NULL.
+
+  hcfree ((void *) global_ctx->segment_names);
+  hcfree ((void *) global_ctx->segment_first);
+
   global_ctx->segments_cnt  = 0;
   global_ctx->segment_names = NULL;
   global_ctx->segment_first = NULL;
