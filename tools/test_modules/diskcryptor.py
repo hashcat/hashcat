@@ -29,8 +29,11 @@ FLAGS = ("02000400", "02000500", "02000800")
 
 
 def _keys(word, salt_raw, count):
-  # The password is widened byte by byte rather than decoded, which is what the kernel does and
-  # what Encode::encode did for the .pm this replaces.
+  # The password is widened byte by byte rather than decoded, which is what Encode::encode did for
+  # the .pm this replaces. It is worth saying that neither is right: hashcat cracks a multi byte
+  # password under this mode with neither, so tools/test.sh reports it as not found either way, on
+  # master as well. Matching the .pm keeps the two engines saying the same thing about a mode that
+  # is already failing.
 
   wide = word.decode("latin1").encode("utf-16-le")
 

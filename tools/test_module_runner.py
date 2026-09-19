@@ -35,6 +35,11 @@ GIVEUP_AT      = 1000000
 
 IS_OPTIMIZED = os.environ.get("IS_OPTIMIZED", "1") != "0"
 
+# Whether this mode may be handed a password that is not 7 bit ASCII. Decided once, after the
+# module is loaded, because the answer depends on the module as well as on the mode.
+
+NON_ASCII_OK = False
+
 # The characters an edge case password is sprinkled with, and the rules for where they may land.
 # These are tools/test_module_runner.pl's, because tools/test_edge.sh reads the two engines' output the same way:
 # it rewrites the '?d' at a position whose byte is not a digit into that byte, so a mask can spell
@@ -243,11 +248,10 @@ def usage_exit():
     "\nUsage:\n"
     " {0} edge        <mode> [attack-type] [optimized]\n"
     " {0} single      <mode> [length]\n"
+    " {0} password    <mode> [length]\n"
     " {0} passthrough <mode> [iter]\n"
     " {0} potthrough  <mode> [iter]\n"
     " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
-    "\n"
-    "password is not implemented in test_module_runner.py yet, use tools/test_module_runner.pl.\n"
     "\n".format(name))
 
   sys.exit(1)
@@ -339,7 +343,7 @@ def salt_lengths(salt):
 
 
 def make_word(mod, count):
-  word = random_numeric_string(count).encode("ascii")
+  word = random_non_ascii_string(count, NON_ASCII_OK)
 
   if hasattr(mod, "module_get_random_password"):
     word = mod.module_get_random_password(word)
@@ -534,6 +538,20 @@ def edge(mod, mode, attack_type, optimized):
   return 0
 
 
+def password(count):
+  # One password for this mode, on stdout, nothing else. tools/test.sh builds its -g containers
+  # with it, so a container gets the same multi byte characters the oracle passwords get, and the
+  # same per mode gate decides whether it gets any.
+  #
+  # A real archive or volume carries whatever encoding the application wrote, and the optimized
+  # path cannot match a multi byte one: a genuine 7-Zip archive built with a euro sign in its
+  # password cracks under -P and comes back not found under -O. So a -O run has to build its
+  # containers out of ASCII, and tools/test.sh sets NO_NON_ASCII to ask for that, which
+  # non_ascii_supported () reads.
+
+  sys.stdout.buffer.write(random_non_ascii_string(count, NON_ASCII_OK) + b"\n")
+
+
 def single(mod, mode, length):
   word, salt, comb = constraints(mod)
 
@@ -670,10 +688,7 @@ def main():
 
   kind, mode = argv[0], argv[1]
 
-  if kind == "password":
-    sys.exit("%s is not implemented in test_module_runner.py yet, use tools/test_module_runner.pl\n" % kind)
-
-  if kind not in ("edge", "single", "passthrough", "potthrough", "verify"):
+  if kind not in ("edge", "single", "password", "passthrough", "potthrough", "verify"):
     usage_exit()
 
   if not mode.isdigit():
@@ -698,6 +713,10 @@ def main():
     if not hasattr(mod, hook):
       sys.exit("Module function '%s' not found\n" % hook)
 
+  global NON_ASCII_OK
+
+  NON_ASCII_OK = non_ascii_supported(mode, mod)
+
   if kind == "verify":
     if len(argv) != 5:
       usage_exit()
@@ -716,6 +735,14 @@ def main():
     sys.exit(0 if edge(mod, mode, int(attack_type), optimized == "1") == 0 else 1)
 
   extra = argv[2] if len(argv) > 2 else None
+
+  if kind == "password":
+    if len(argv) > 3:
+      usage_exit()
+
+    password(int(extra) if extra is not None and extra.isdigit() else 12)
+
+    return
 
   if kind == "single":
     single(mod, mode, int(extra) if extra is not None and extra.isdigit() else None)
