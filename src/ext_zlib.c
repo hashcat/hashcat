@@ -43,6 +43,12 @@ static const char *const ZLIB_SONAMES[] =
 // gzseek64 through a macro when the build wants large files, and a macro is not something dlsym can
 // follow, so the names that carry the 64 bit offset are written out.
 //
+// That macro only fires when zlib's own build enables the large file API, and on Apple platforms it
+// never does. off_t is already 64 bit there, so zlib's configure has nothing to gain from it, and the
+// system libz exports gzopen, gzseek and gztell with no 64 suffix at all. Asking for the suffixed
+// names on that platform refuses a library that can do everything hashcat wants, so the unsuffixed
+// names are asked for there instead, into the same struct fields.
+//
 // gzopen64 rather than gzdopen, and this matters more than it looks. gzdopen takes a descriptor,
 // and on Windows a descriptor belongs to the C runtime that produced it. hashcat links the UCRT
 // while a zlib1.dll on that machine is usually built against msvcrt, so a descriptor handed over
@@ -52,14 +58,26 @@ static const char *const ZLIB_SONAMES[] =
 
 static const hc_dynlib_sym_t ZLIB_SYMS[] =
 {
-  HC_DYNLIB_SYM (hc_zlib_lib_t, gzopen64,      true),
+  #if defined (__APPLE__)
+  HC_DYNLIB_SYM_AS (hc_zlib_lib_t, gzopen64, "gzopen", true),
+  #else
+  HC_DYNLIB_SYM    (hc_zlib_lib_t, gzopen64,           true),
+  #endif
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzbuffer,      false),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzread,        true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzwrite,       true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzerror,       true),
-  HC_DYNLIB_SYM (hc_zlib_lib_t, gzseek64,      true),
+  #if defined (__APPLE__)
+  HC_DYNLIB_SYM_AS (hc_zlib_lib_t, gzseek64, "gzseek", true),
+  #else
+  HC_DYNLIB_SYM    (hc_zlib_lib_t, gzseek64,           true),
+  #endif
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzrewind,      true),
-  HC_DYNLIB_SYM (hc_zlib_lib_t, gztell64,      true),
+  #if defined (__APPLE__)
+  HC_DYNLIB_SYM_AS (hc_zlib_lib_t, gztell64, "gztell", true),
+  #else
+  HC_DYNLIB_SYM    (hc_zlib_lib_t, gztell64,           true),
+  #endif
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzputc,        true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzgetc,        true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzgets,        true),
