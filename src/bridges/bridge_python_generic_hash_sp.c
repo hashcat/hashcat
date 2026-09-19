@@ -233,7 +233,14 @@ const char *extract_module_name (const char *path)
     module_name = filename;
   }
 
-  return module_name;
+  // the caller gets an allocation whose base is the pointer it was handed. Returning a pointer into
+  // filename left the strdup () above with no owner at all, once per call.
+
+  const char *module_name_buf = strdup (module_name);
+
+  free (filename);
+
+  return module_name_buf;
 }
 
 static char *expand_pyenv_libpath (const char *prefix, const int maj, const int min)
@@ -711,6 +718,19 @@ static void units_term (python_interpreter_t *python_interpreter)
   }
 }
 
+// Everything platform_init () has brought up by the point one of its returns is taken. The context
+// comes from hcmalloc (), which zeroes, so a field a return has not reached yet is NULL and the free
+// of it is a no-op.
+
+static void platform_init_fail (python_interpreter_t *python_interpreter)
+{
+  hcfree (python_interpreter->units_buf);
+
+  hcfree (python_interpreter->python);
+
+  hcfree (python_interpreter);
+}
+
 void *platform_init (hashcat_ctx_t *hashcat_ctx)
 {
   MAYBE_UNUSED user_options_t  *user_options  = hashcat_ctx->user_options;
@@ -727,7 +747,12 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   python_interpreter->python = python;
 
-  if (init_python (hashcat_ctx, python, user_options) == false) return NULL;
+  if (init_python (hashcat_ctx, python, user_options) == false)
+  {
+    platform_init_fail (python_interpreter);
+
+    return NULL;
+  }
 
   python->Py_Initialize ();
 
@@ -735,9 +760,26 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   python_interpreter->source_filename = (user_options->bridge_parameter1 == NULL) ? DEFAULT_SOURCE_FILENAME : user_options->bridge_parameter1;
 
+  // The mp bridge reads the source here, where a failure can still be reported as a bridge that did
+  // not come up. On this one the first read was in st_update_hash (), which returns a string and has
+  // no way to say no, so an unreadable source carried on into a run with no self test hash.
+
+  char *source = file_to_buffer (python_interpreter->source_filename);
+
+  if (source == NULL)
+  {
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", python_interpreter->source_filename, strerror (errno));
+
+    platform_init_fail (python_interpreter);
+
+    return NULL;
+  }
+
+  free (source);
+
   if (units_init (python_interpreter) == false)
   {
-    hcfree (python_interpreter);
+    platform_init_fail (python_interpreter);
 
     return NULL;
   }
@@ -762,6 +804,10 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
   units_term (python_interpreter);
 
   hcfree (python_interpreter);
+
+  // platform_init () allocated this one beside the interpreter, and only the interpreter was given back.
+
+  hcfree (python);
 }
 
 bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
@@ -804,7 +850,14 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   char *source = file_to_buffer (python_interpreter->source_filename);
 
-  if (source == NULL) return NULL;
+  if (source == NULL)
+  {
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", python_interpreter->source_filename, strerror (errno));
+
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
+    return false;
+  }
 
   PyObject *code = python->Py_CompileStringExFlags (source, python_interpreter->source_filename, Py_file_input, NULL, -1);
 
@@ -813,6 +866,8 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   if (code == NULL)
   {
     python->PyErr_Print ();
+
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
 
     return false;
   }
@@ -826,6 +881,8 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   if (result == NULL)
   {
     python->PyErr_Print ();
+
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
 
     return false;
   }
@@ -875,6 +932,9 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   int rc = 0;
 
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "module_name",    python->PyUnicode_FromString ((const char *) module_name));
+
+  free ((void *) module_name);
+
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salt_per_pw",    python->PyBool_FromLong (hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_cnt",      python->PyLong_FromLong (hashes->salts_cnt));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_size",     python->PyLong_FromLong (sizeof (salt_t)));
@@ -1156,6 +1216,11 @@ const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   {
     event_log_error (hashcat_ctx, "ERROR: %s: %s", python_interpreter->source_filename, strerror (errno));
 
+    // PyEval_RestoreThread () at the top of this function attached the thread state, and leaving it
+    // attached makes the next attach a fatal CPython error rather than an error hashcat can report.
+
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
     return NULL;
   }
 
@@ -1167,7 +1232,9 @@ const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   {
     python->PyErr_Print ();
 
-    return false;
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
+    return NULL;
   }
 
   PyObject *pGlobals = python->PyDict_New ();
@@ -1180,7 +1247,9 @@ const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   {
     python->PyErr_Print ();
 
-    return false;
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
+    return NULL;
   }
 
   python->Py_DecRef (result);
@@ -1196,7 +1265,8 @@ const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
-  python->Py_DecRef (constant);
+  // constant is borrowed from pGlobals by PyDict_GetItemString (), so it is not ours to release,
+  // and s points into that object's own buffer: releasing it here frees what we are about to return.
 
   python_interpreter->thread_state = python->PyEval_SaveThread ();
 
@@ -1221,7 +1291,16 @@ const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 
   char *source = file_to_buffer (python_interpreter->source_filename);
 
-  if (source == NULL) return NULL;
+  if (source == NULL)
+  {
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", python_interpreter->source_filename, strerror (errno));
+
+    // the thread state is attached here, and leaving it so makes the next attach a fatal CPython error
+
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
+    return NULL;
+  }
 
   PyObject *code = python->Py_CompileStringExFlags (source, python_interpreter->source_filename, Py_file_input, NULL, -1);
 
@@ -1231,7 +1310,9 @@ const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   {
     python->PyErr_Print ();
 
-    return false;
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
+    return NULL;
   }
 
   PyObject *pGlobals = python->PyDict_New ();
@@ -1244,7 +1325,9 @@ const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   {
     python->PyErr_Print ();
 
-    return false;
+    python_interpreter->thread_state = python->PyEval_SaveThread ();
+
+    return NULL;
   }
 
   python->Py_DecRef (result);
@@ -1260,7 +1343,8 @@ const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
-  python->Py_DecRef (constant);
+  // constant is borrowed from pGlobals by PyDict_GetItemString (), so it is not ours to release,
+  // and s points into that object's own buffer: releasing it here frees what we are about to return.
 
   python_interpreter->thread_state = python->PyEval_SaveThread ();
 
