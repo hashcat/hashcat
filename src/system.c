@@ -102,16 +102,29 @@ void setup_umask (void)
 
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
 {
-  if (rp_gen_seed_chgd == true)
-  {
-    srand (rp_gen_seed);
-  }
-  else
+  u32 seed = rp_gen_seed;
+
+  if (rp_gen_seed_chgd == false)
   {
     const time_t ts = time (NULL); // don't tell me that this is an insecure seed
 
-    srand ((unsigned int) ts);
+    seed = (u32) ts;
   }
+
+  // get_random_num () below draws from rand () under _WIN and from random () everywhere else, and
+  // the two keep their own state. Seeding rand () on a platform that draws from random () left
+  // random () at its default seed, so every run produced the same sequence and the seed did nothing.
+  // glibc hides it by making srand () an alias of srandom (). A libc that keeps the two apart does not.
+
+  #if defined (_WIN)
+
+  srand (seed);
+
+  #else
+
+  srandom (seed);
+
+  #endif
 }
 
 u32 get_random_num (const u32 min, const u32 max)
