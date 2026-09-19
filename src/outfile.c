@@ -381,7 +381,10 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   const user_options_t        *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
-  const u64 gidvid = plain->gidvid;
+  // A length sort renumbers the work items of a launch, and a crack position counts words in the feed,
+  // so this is the position the work item's word came in at.
+
+  const u64 feed_pos = gidvid_to_feed_pos (device_param, plain->gidvid);
   const u32 il_pos = plain->il_pos;
 
   // The batch being launched, and not the one the producer has moved on to filling.
@@ -393,25 +396,25 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     // The host already applied the amplifier, so the work item is a candidate and nothing multiplies
     // it. It still needs the launch's own offset, which is what every other branch here adds.
 
-    crackpos += gidvid;
+    crackpos += feed_pos;
   }
   else
   {
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      crackpos += gidvid;
+      crackpos += feed_pos;
       crackpos *= straight_ctx->kernel_rules_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      crackpos += gidvid;
+      crackpos += feed_pos;
       crackpos *= combinator_ctx->combs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
     else if (user_options_extra->attack_kern == ATTACK_MODE_BF)
     {
-      crackpos += gidvid;
+      crackpos += feed_pos;
       crackpos *= mask_ctx->bfs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
@@ -440,6 +443,10 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   const bool amp = (user_options_extra->attack_kern == ATTACK_KERN_PCFG);
 
+  // The cell belongs to the work item, so it is read at the raw gidvid, while the position below is
+  // the feed's. The two can only be handed to the same call because a length sort and an amplifying
+  // feed never happen together. See length_sort_enabled ().
+
   const pcfg_cell_t *cell = (amp == true) ? &device_param->pcfg_cells_buf[gidvid] : NULL;
 
   const u32 *pool = (amp == true) ? generic_ctx->dev_pool : NULL;
@@ -448,7 +455,7 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   // the work item inside it, which is the same arithmetic build_crackpos () makes before it multiplies
   // by whatever amplifies.
 
-  const u64 pos = device_param->words_off_launch + gidvid;
+  const u64 pos = device_param->words_off_launch + gidvid_to_feed_pos (device_param, gidvid);
 
   const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, cell, pool, base, base_len, (amp == true) ? il_pos : 0, pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
 
@@ -476,7 +483,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (user_options->slow_candidates == true)
   {
-    pw_pre_t *pw_base = device_param->pws_base_buf + gidvid;
+    pw_pre_t *pw_base = device_param->pws_base_buf + gidvid_to_feed_pos (device_param, gidvid);
 
     // save rule
     if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))

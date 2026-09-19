@@ -977,6 +977,7 @@ typedef enum user_options_defaults
   KEYSPACE                 = false,
   TOTAL_CANDIDATES         = false,
   LEFT                     = false,
+  LENGTH_SORT_DISABLE      = false,
   LIMIT                    = 0,
   LOGFILE                  = true,
   LOOPBACK                 = false,
@@ -1117,6 +1118,7 @@ typedef enum user_options_map
   IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff25,
   IDX_KEYSPACE                  = 0xff26,
   IDX_LEFT                      = 0xff27,
+  IDX_LENGTH_SORT_DISABLE       = 0xff5a,
   IDX_LIMIT                     = 'l',
   IDX_LOGFILE_DISABLE           = 0xff28,
   IDX_LOOKUP                    = 0xff89,
@@ -1434,6 +1436,7 @@ typedef struct hashconfig
   u32 forced_outfile_format;
 
   bool hlfmt_disable;
+  bool length_sort;
   bool warmup_disable;
   bool outfile_check_disable;
   bool outfile_check_nocomp;
@@ -1821,6 +1824,17 @@ typedef struct hc_device_param
   u64       pws_pre_cnt;
 
   pw_pre_t *pws_base_buf; // for debug mode, a view of the batch being launched
+
+  // The length sort, for a mode that asks for one. pws_sort_map says, for each work item of the launch,
+  // where in the batch the feed put that candidate, and pws_sort_cnt is how many entries of it the
+  // launch being processed wrote. A launch that did not sort leaves it at zero. gidvid_to_feed_pos ()
+  // is the only reader of either.
+
+  pw_idx_t *pws_sort_idx;
+  u32      *pws_sort_map;
+  u64       pws_sort_cnt;
+  u64       pws_sort_head; // the work items the first and the last word of the feed window ended up in
+  u64       pws_sort_tail;
 
   void    *h_tmps; // we need this only for bridges
 
@@ -2676,6 +2690,7 @@ typedef struct user_options
   bool         show;
   bool         slow_candidates;
   bool         speed_only;
+  bool         length_sort_disable;
   bool         status;
   bool         status_json;
   bool         pipeline_stats;
@@ -3916,6 +3931,7 @@ typedef struct module_ctx
   u32         (*module_kernel_threads_min)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_kernel_threads_max)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_length_sort)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_opts_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_outfile_check_disable)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

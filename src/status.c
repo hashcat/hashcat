@@ -1083,8 +1083,14 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
     return display;
   }
 
-  const u64 outerloop_first = 0;
-  const u64 outerloop_last  = device_param->outerloop_left - 1;
+  // The ends of the batch, in the order the feed produced it. A length sort renumbers the work items,
+  // so slot 0 is then the shortest candidate rather than the first one and this field stops saying
+  // where in the wordlist the run has got to. The sort noted where the two ends went.
+
+  const bool sorted = (device_param->pws_sort_cnt == device_param->outerloop_left);
+
+  const u64 outerloop_first = (sorted == true) ? device_param->pws_sort_head : 0;
+  const u64 outerloop_last  = (sorted == true) ? device_param->pws_sort_tail : device_param->outerloop_left - 1;
 
   const u64 innerloop_first = 0;
   const u64 innerloop_last  = device_param->innerloop_left - 1;

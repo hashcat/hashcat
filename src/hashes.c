@@ -2066,7 +2066,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       // of. build_crackpos takes the same number and multiplies it by the amplifier; debug mode 5
       // wants it before that.
 
-      u64 word_pos = device_param->words_off_launch + plain->gidvid;
+      u64 word_pos = device_param->words_off_launch + gidvid_to_feed_pos (device_param, plain->gidvid);
 
       // --slow-candidates expands the amplifier on the host, so a position in that keyspace counts
       // candidates where the feed's segment table counts lines. Dividing brings the two back into the
