@@ -42,9 +42,17 @@ sub module_generate_hash
   my $realm     = shift // "realm";
   my $checksum  = shift;
   my $enc_timestamp    = shift;
+  my $format           = shift;
 
-  my $mysalt = uc $realm;
-  $mysalt = $mysalt . $user;
+  # three layouts: 1 is hashcat's, 2 is krb5pa-sha1 with an empty salt field,
+  # 3 is krb5pa-sha1 with the salt filled in. The layout alternates on the salt
+  # so a sweep covers all three
+
+  my $salt_given = defined ($salt) && length ($salt);
+
+  $format = $salt_given ? ((substr ($salt, 0, 1) % 3) + 1) : 1 unless defined $format;
+
+  my $mysalt = ($format == 3) ? $salt : uc ($realm) . $user;
 
   # first we generate the 'seed'
   my $iter = 4096;
@@ -158,7 +166,20 @@ sub module_generate_hash
 
   $enc_timestamp = $tmp . $b_enc_ticket_n_1_block . $b_enc_last_block;
 
-  my $tmp_hash = sprintf ('$krb5pa$17$%s$%s$%s%s', $user, $realm, unpack ("H*", $enc_timestamp), $checksum);
+  my $tmp_hash;
+
+  if ($format == 3)
+  {
+    $tmp_hash = sprintf ('$krb5pa$17$%s$%s$%s$%s%s', $user, $realm, $salt, unpack ("H*", $enc_timestamp), $checksum);
+  }
+  elsif ($format == 2)
+  {
+    $tmp_hash = sprintf ('$krb5pa$17$%s$%s$$%s%s', $user, $realm, unpack ("H*", $enc_timestamp), $checksum);
+  }
+  else
+  {
+    $tmp_hash = sprintf ('$krb5pa$17$%s$%s$%s%s', $user, $realm, unpack ("H*", $enc_timestamp), $checksum);
+  }
 
   return $tmp_hash;
 }
@@ -174,7 +195,7 @@ sub module_verify_hash
 
   my @data = split ('\$', $hash);
 
-  return unless scalar @data == 6;
+  return unless (scalar @data == 6 || scalar @data == 7);
 
   shift @data;
 
@@ -182,6 +203,7 @@ sub module_verify_hash
   my $algorithm = shift @data;
   my $user      = shift @data;
   my $realm     = shift @data;
+  my $salt      = (scalar @data == 2) ? shift @data : undef;
   my $edata     = shift @data;
 
 
@@ -195,7 +217,11 @@ sub module_verify_hash
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, undef, $user, $realm, $checksum, $enc_timestamp);
+  my $format = 1;
+
+  $format = (defined ($salt) && length ($salt)) ? 3 : 2 if defined $salt;
+
+  my $new_hash = module_generate_hash ($word_packed, $salt, $user, $realm, $checksum, $enc_timestamp, $format);
 
   return ($new_hash, $word);
 }

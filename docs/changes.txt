@@ -485,6 +485,7 @@ For a tree full of modules, this does it:
 ##
 ## Bugs
 ##
+- Fixed -m 19800 and -m 19900 ignoring the salt field that krb5pa-sha1 writes, so a principal whose salt is not realm+user never cracked and John the Ripper's output could not be loaded at all
 - Fixed thread entry points returning the wrong type on Windows. CreateThread () reads 4 bytes where these returned 8, and the mismatch was hidden behind a cast at every call site
 - Fixed the Rust plugin build naming rustup in the message it prints when cargo is the thing that is missing
 
