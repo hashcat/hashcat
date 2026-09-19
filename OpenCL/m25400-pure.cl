@@ -317,6 +317,17 @@ KERNEL_FQ KERNEL_FA void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
 KERNEL_FQ KERNEL_FA void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
+  /**
+   * modifier
+   */
+
+  // DIGESTS_OFFSET_HOST is a function of gid in attack mode 9, so the initialiser below needs it in
+  // scope, and behind the bound: that initialiser is also the first read of esalt_bufs.
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= GID_CNT) return;
+
   const u32 digest[4] =
   {
     esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[0],
@@ -336,13 +347,6 @@ KERNEL_FQ KERNEL_FA void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     0xfea90c2f,
     0x7a695364
   };
-
-  /**
-   * modifier
-   */
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT) return;
 
   const u64 lid = get_local_id (0);
 
