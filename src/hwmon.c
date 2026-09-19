@@ -2655,12 +2655,6 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   if (hwmon_ctx->hm_iokit)
   {
     iokit_close (hashcat_ctx);
-
-    // iokit_close () gives back what the subscription holds. The IOKIT_PTR around it is ours.
-
-    hcfree (hwmon_ctx->hm_iokit);
-
-    hwmon_ctx->hm_iokit = NULL;
   }
   #endif
 
