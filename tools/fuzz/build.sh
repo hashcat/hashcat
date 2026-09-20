@@ -32,6 +32,13 @@ fi
 
 mkdir -p "$OUT" "$WORK"
 
+# Absolute from here on. OUT defaults to a relative path, the seed corpora are zipped from inside
+# the directory they live in, and a relative OUT does not survive that cd: zip reports
+# "Could not create output file" and the build fails on a machine that took the default.
+
+OUT=$(cd "$OUT" && pwd)
+WORK=$(cd "$WORK" && pwd)
+
 # What a target is linked against: the code the entry points actually reach,
 # and nothing else. The file layer, the folder layout and the random generator
 # are stubbed in tools/fuzz/stubs.c rather than linked, which keeps the
