@@ -10,7 +10,13 @@
 #
 # $HEX[...] is not here on purpose. test_module_runner.py unwraps it before a module ever sees the
 # line, so no module carries that call.
+#
+# Every helper here draws through _rand (), which is either python's own generator or, when
+# HCTEST_SEED is set, the same arithmetic tools/test_module_runner.pl uses under that variable.
+# Seeded, the two engines draw the same characters in the same order, which is what lets
+# tools/test_engine_compare.py hand a mode to both and compare what comes back.
 
+import os
 import random
 
 HEX_CHARS       = "0123456789abcdef"
@@ -20,9 +26,35 @@ UPPERCASE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 MIXEDCASE_CHARS = UPPERCASE_CHARS + LOWERCASE_CHARS
 STRING_CHARS    = UPPERCASE_CHARS + LOWERCASE_CHARS + NUMERIC_CHARS
 
+_STATE = None
+
+
+def seed(value):
+  # The mix is what the perl engine does with HCTEST_SEED, so that the same number means the same
+  # stream on both sides.
+
+  global _STATE
+
+  _STATE = (value * 2654435761) % 4294967291
+
+
+def _rand(n=1.0):
+  global _STATE
+
+  if _STATE is None:
+    return random.random() * n
+
+  _STATE = ((_STATE * 1103515245) + 12345) % 2147483648
+
+  return (_STATE / 2147483648) * n
+
 
 def _pick(chars, count):
-  return "".join(random.choice(chars) for _ in range(count))
+  return "".join(chars[int(_rand(len(chars)))] for _ in range(count))
+
+
+if os.environ.get("HCTEST_SEED"):
+  seed(int(os.environ["HCTEST_SEED"]))
 
 
 def random_count(maximum):
@@ -31,14 +63,14 @@ def random_count(maximum):
   if maximum < 1:
     return None
 
-  return random.randint(1, maximum)
+  return int(_rand(maximum - 1)) + 1
 
 
 def random_number(minimum, maximum):
   if minimum > maximum:
     return None
 
-  return random.randint(minimum, maximum)
+  return int(_rand((maximum + 1) - minimum)) + minimum
 
 
 def random_string(count):

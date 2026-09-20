@@ -25,6 +25,7 @@ TDIR = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.insert(0, os.path.join(TDIR, "test_modules"))
 
+from lib import test_helpers  # noqa: E402
 from lib.test_helpers import random_number, random_numeric_string  # noqa: E402
 
 SINGLE_OUTPUTS = 8
@@ -101,6 +102,21 @@ def sprinkle_non_ascii(text):
       pos += 1
 
   return bytes(data)
+
+
+def hc_shuffle(items):
+  # Seeded, this is the Fisher Yates that tools/test_module_runner.pl runs under HCTEST_SEED, so
+  # both engines lay out the same lengths. Unseeded it is python's own shuffle, as before.
+
+  if os.environ.get("HCTEST_SEED"):
+    for i in range(len(items) - 1, 0, -1):
+      j = int(test_helpers._rand(i + 1))
+
+      items[i], items[j] = items[j], items[i]
+
+    return
+
+  random.shuffle(items)
 
 
 def utf16_decoding_helpers():
@@ -304,11 +320,11 @@ def length_pool(len_min, len_max, descending):
   pool = [n for n in range(len_min, len_max + 1) if n != 0] or [len_min]
 
   while len(pool) < SINGLE_OUTPUTS:
-    random.shuffle(pool)
+    hc_shuffle(pool)
 
     pool.append(pool[0])
 
-  random.shuffle(pool)
+  hc_shuffle(pool)
 
   out = [len_min, len_max] + pool[:SINGLE_OUTPUTS - 2]
 
