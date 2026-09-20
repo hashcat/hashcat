@@ -128,12 +128,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt = 4;
 
-  if (line_buf[token.len[0]] == '2' && line_buf[token.len[0] + 1] == '3' && line_buf[token.len[0] + 2] == '$')
+  // the bytes after the signature are read before they are known to be there: a line that is only
+  // the signature has none of them, and the line is line_len bytes whatever follows it in the
+  // caller's buffer
+
+  if ((line_len > (token.len[0] + 2))
+   && (line_buf[token.len[0]] == '2') && (line_buf[token.len[0] + 1] == '3') && (line_buf[token.len[0] + 2] == '$'))
   {
-    if (line_buf[token.len[0] + 3] == '*')
+    if ((line_len > (token.len[0] + 3)) && (line_buf[token.len[0] + 3] == '*'))
     {
       const char *account_info_start = line_buf + 12; // we want the * char included
-      const char *account_info_stop  = strchr (account_info_start + 1, '*');
+
+      // hc_strchr_next, not strchr: the field ends where the line ends, not at a NUL the caller
+      // is not required to put there
+
+      const int account_info_left = line_len - (int) (account_info_start + 1 - line_buf);
+
+      const char *account_info_stop = (const char *) hc_strchr_next ((const u8 *) account_info_start + 1, account_info_left, '*');
 
       if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -275,7 +286,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *edata_ptr = (u8 *) krb5tgs->edata2;
 
-  for (int i = 0; i < data_len; i += 2)
+  // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < data_len; i += 2)
   {
     const u8 p0 = data_pos[i + 0];
     const u8 p1 = data_pos[i + 1];

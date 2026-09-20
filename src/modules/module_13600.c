@@ -277,7 +277,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *data_buf_ptr = (u8 *) zip2->data_buf;
 
-  for (int i = 0; i < data_len; i += 2)
+  // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < data_len; i += 2)
   {
     const u8 p0 = data_buf[i + 0];
     const u8 p1 = data_buf[i + 1];
@@ -297,7 +300,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *auth_ptr = (u8 *) zip2->auth_buf;
 
-  for (int i = 0; i < auth_len; i += 2)
+  // i + 1, not i: the loop reads two characters per byte, so an odd auth_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < auth_len; i += 2)
   {
     const u8 p0 = auth_buf[i + 0];
     const u8 p1 = auth_buf[i + 1];

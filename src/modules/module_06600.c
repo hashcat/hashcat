@@ -125,7 +125,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *saltbuf_ptr = (u8 *) salt->salt_buf;
 
-  for (int i = 0; i < salt_len; i += 2)
+  // i + 1, not i: the loop reads two characters per byte, so an odd salt_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < salt_len; i += 2)
   {
     const u8 p0 = salt_pos[i + 0];
     const u8 p1 = salt_pos[i + 1];

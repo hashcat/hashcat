@@ -152,7 +152,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   size_t parse_off = 0;
 
-  if (line_buf[token.len[0]] == '2' && line_buf[token.len[0] + 1] == '3' && line_buf[token.len[0] + 2] == '$')
+  // the three bytes that tell the two formats apart are read before they are known to be there
+
+  if ((line_len > (token.len[0] + 2))
+   && (line_buf[token.len[0]] == '2') && (line_buf[token.len[0] + 1] == '3') && (line_buf[token.len[0] + 2] == '$'))
   {
     // hashcat format
     krb5asrep->format = 1;
@@ -165,7 +168,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
 
   const char *account_info_start = line_buf + strlen (SIGNATURE_KRB5ASREP) + parse_off;
-  const char *account_info_stop  = strchr (account_info_start, ':');
+
+  // hc_strchr_next, not strchr: the field ends where the line ends, not at a NUL the caller is not
+  // required to put there
+
+  const int account_info_left = line_len - (int) (account_info_start - line_buf);
+
+  if (account_info_left < 0) return (PARSER_SALT_LENGTH);
+
+  const char *account_info_stop = (const char *) hc_strchr_next ((const u8 *) account_info_start, account_info_left, ':');
 
   if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -259,7 +270,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *edata_ptr = (u8 *) krb5asrep->edata2;
 
-  for (int i = 0; i < data_len; i += 2)
+  // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < data_len; i += 2)
   {
     const u8 p0 = data_pos[i + 0];
     const u8 p1 = data_pos[i + 1];
