@@ -304,6 +304,19 @@ typedef enum wl_mode
 // on the attack mode that ran afterwards then silently meant something else, and --loopback stopped
 // working with no message because of exactly that.
 
+// Whether a mask is a feed's source rather than the device's own generator, and which feed. No
+// kernel both generates a candidate and applies a rule to it, so an attack whose candidates come
+// from a mask is rewritten to -a 8 when rules are given, and the mask processor becomes the feed's
+// generator. MASK is -a 3, HYBRID is -a 1, -a 6, -a 7 and -a 12, which are one attack by then.
+
+typedef enum mask_feed_kind
+{
+  MASK_FEED_NONE   = 0,
+  MASK_FEED_MASK   = 1,
+  MASK_FEED_HYBRID = 2,
+
+} mask_feed_kind_t;
+
 typedef enum base_source
 {
   BASE_SOURCE_NONE = 0,
@@ -3076,6 +3089,12 @@ typedef struct mask_ctx
   cs_t  *mp_usr;
 
   u64    bfs_cnt;
+
+  // How many candidates this round's mask holds, which is what the mask feed reports as its
+  // keyspace. bfs_cnt is the part of the mask the device generates and is not the same number: it
+  // is a suffix of the mask, and under the feed there is no device side at all.
+
+  u64    feed_keyspace;
 
   cs_t  *css_buf;
   u32    css_cnt;

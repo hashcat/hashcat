@@ -393,7 +393,10 @@ static int mp_set_w_marker (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, co
   // that are rewritten into attack-mode 12 carry a ?w this put there. A user who writes their own ?w
   // into an aliased mode's mask ends up with two of them and the check below says so.
 
-  if (user_options->attack_mode != ATTACK_MODE_HYBRID)
+  // The hybrid feed is attack-mode 12 rewritten once more, into -a 8, so its masks still carry the
+  // markers and still mean what they meant. Only the generator moved.
+
+  if ((user_options->attack_mode != ATTACK_MODE_HYBRID) && (mask_feed_kind (user_options) != MASK_FEED_HYBRID))
   {
     event_log_error (hashcat_ctx, "?w is supported in attack-mode 12 only. Failed mask: %s", mask_buf);
 
@@ -421,7 +424,7 @@ static int mp_set_q_marker (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, co
   mask_ctx_t           *mask_ctx     = hashcat_ctx->mask_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->attack_mode != ATTACK_MODE_HYBRID)
+  if ((user_options->attack_mode != ATTACK_MODE_HYBRID) && (mask_feed_kind (user_options) != MASK_FEED_HYBRID))
   {
     event_log_error (hashcat_ctx, "?q is supported in attack-mode 12 only. Failed mask: %s", mask_buf);
 
@@ -652,7 +655,9 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
   // in this mode. Checked here rather than at option parsing time because a mask file supplies masks
   // one at a time and every one of them has to carry the marker.
 
-  if ((hashcat_ctx->user_options->attack_mode == ATTACK_MODE_HYBRID) && (mask_ctx->has_w == false))
+  const bool wants_w = (hashcat_ctx->user_options->attack_mode == ATTACK_MODE_HYBRID) || (mask_feed_kind (hashcat_ctx->user_options) == MASK_FEED_HYBRID);
+
+  if ((wants_w == true) && (mask_ctx->has_w == false))
   {
     event_log_error (hashcat_ctx, "Attack-mode 12 needs a ?w in the mask to say where the word goes. Failed mask: %s", mask_buf);
 
@@ -1893,6 +1898,42 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
   return 0;
 }
 
+// Whether the mask is a feed's source rather than the device's own generator.
+//
+// -a 3 given rules cannot generate on the device, because no kernel both walks a mask and applies a
+// rule, so user_options_alias_attack_mode () rewrites it to -a 8 with the mask feed and the rules
+// amplify the feed's candidates the way they do for every other feed. attack_mode_typed is what the
+// user asked for and survives the rewrite, so the pair is what identifies the case.
+//
+// Everything the mask processor does is still wanted here. The one thing it must not do is cut the
+// mask in two so that a suffix is generated on the device, because under the feed there is no
+// device side to generate it.
+
+mask_feed_kind_t mask_feed_kind (const user_options_t *user_options)
+{
+  if (user_options->attack_mode != ATTACK_MODE_GENERIC) return MASK_FEED_NONE;
+
+  // What the user typed is what says which feed this is, because the rewrite has already happened by
+  // the time anyone asks. -a 1, -a 6 and -a 7 are one attack below the option parser, so all four of
+  // the hybrid shapes answer together.
+
+  if (user_options->attack_mode_typed == ATTACK_MODE_BF) return MASK_FEED_MASK;
+
+  if (user_options->attack_mode_typed == ATTACK_MODE_COMBI)   return MASK_FEED_HYBRID;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID1) return MASK_FEED_HYBRID;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2) return MASK_FEED_HYBRID;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID)  return MASK_FEED_HYBRID;
+
+  return MASK_FEED_NONE;
+}
+
+bool mask_is_feed (const user_options_t *user_options)
+{
+  const bool is_feed = (mask_feed_kind (user_options) != MASK_FEED_NONE);
+
+  return is_feed;
+}
+
 u32 mp_get_length (const char *mask, const u32 opts_type)
 {
   bool ignore_next = false;
@@ -2032,7 +2073,114 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  // The two feeds are asked about first, because their attack_kern is ATTACK_KERN_STRAIGHT and they
+  // would answer neither of the two tests below.
+
+  if (mask_feed_kind (user_options) == MASK_FEED_HYBRID)
+  {
+    mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+
+    // This is where the markers are found, so has_w, has_q, pre_len and mid_len are settled by it,
+    // and those are what say where the words go in the candidate.
+
+    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+
+    // No length check on the mask here, unlike the other three arms. The mask is one piece of the
+    // candidate and the words are the rest, so a three character mask under a hash mode with an
+    // eight character minimum is not too short: it is a mask that will be given five more.
+
+    u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof (u32 *));
+
+    for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc (CHARSIZ * sizeof (u32));
+
+    mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+    for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+    hcfree (uniq_tbls);
+
+    // How many values this mask holds, and nothing else. The ?q wordlist is not multiplied in here
+    // the way the combinator arm multiplies it, because the feed owns both wordlists and counts them
+    // itself. What the feed cannot count is the mask, so that is what this reports.
+
+    if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
+    {
+      event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+      return -1;
+    }
+
+    // Nothing carries any of this to a device. There is no combinator on the device to tell about
+    // the mask pieces, no mask processor kernel to load the tables into, and the css buffers are
+    // allocated four bytes wide for a straight kernel, so writing them over would be a write into an
+    // allocation that was never made for them.
+  }
+  else if (mask_feed_kind (user_options) == MASK_FEED_MASK)
+  {
+    mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+
+    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+
+    // A mask the hash mode cannot take is passed over rather than run, exactly as it is for -a 3.
+    // The rules do not change which lengths the mode accepts: they are applied to this candidate on
+    // the device and a rule that lengthens it is the mode's business, not the mask's.
+
+    if ((mask_ctx->css_cnt < hashconfig->pw_min) || (mask_ctx->css_cnt > hashconfig->pw_max))
+    {
+      if (mask_ctx->css_cnt < hashconfig->pw_min)
+      {
+        event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is smaller than the minimum password length.", mask_ctx->mask);
+        event_log_warning (hashcat_ctx, NULL);
+      }
+
+      if (mask_ctx->css_cnt > hashconfig->pw_max)
+      {
+        event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is larger than the maximum password length.", mask_ctx->mask);
+        event_log_warning (hashcat_ctx, NULL);
+      }
+
+      mask_ctx->lookup.skipped++;
+
+      logfile_sub_msg ("STOP");
+
+      return -1;
+    }
+
+    // No utf16 expansion and no appended salt. Both rewrite the mask into the bytes the kernel wants
+    // to see, and what the kernel is given here is a base word that the rule engine will rewrite
+    // again. Expanding it first would have the rule mangle the padding, and appending the salt first
+    // would have the rule mangle the salt.
+
+    u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof (u32 *));
+
+    for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc (CHARSIZ * sizeof (u32));
+
+    mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+    for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+    hcfree (uniq_tbls);
+
+    // The whole mask, because the feed produces the whole candidate. status_ctx->words_cnt is not
+    // set here: the feed reports this as its keyspace and straight_ctx_update_loop multiplies it by
+    // the rule count, which is the same arrangement every other feed is counted under.
+
+    if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
+    {
+      event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+      return -1;
+    }
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
   {
   // The mask is the base word source, so its size is the base word count and the amplifier count
     // belongs to the wordlist. That is -a 7 under a pure kernel, and -a 12 under a pure kernel
@@ -2943,8 +3091,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version      == true) return 0;
 
   if (user_options->attack_mode  == ATTACK_MODE_STRAIGHT)    return 0;
-  if (user_options->attack_mode  == ATTACK_MODE_GENERIC)     return 0;
   if (user_options->attack_mode  == ATTACK_MODE_ASSOCIATION) return 0;
+
+  // -a 8 has no mask of its own, except when the mask is what the feed reads. Then the mask
+  // processor is the feed's generator and everything below is still its work to do.
+
+  if ((user_options->attack_mode == ATTACK_MODE_GENERIC) && (mask_is_feed (user_options) == false)) return 0;
 
   mask_ctx->enabled = true;
 
@@ -2995,13 +3147,19 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_BF)
+  if ((user_options->attack_mode == ATTACK_MODE_BF) || (mask_feed_kind (user_options) == MASK_FEED_MASK))
   {
     if (user_options->benchmark == false)
     {
-      if (user_options_extra->hc_workc)
+      // A feed reads its work arguments with the feed name in front of them, so the mask sits one
+      // place further along than it does under -a 3. Everything after it is still the queue: several
+      // masks, or several mask files, are what they always were.
+
+      const int mask_from = (mask_feed_kind (user_options) == MASK_FEED_MASK) ? 1 : 0;
+
+      if (user_options_extra->hc_workc > mask_from)
       {
-        char *arg = user_options_extra->hc_workv[0];
+        char *arg = user_options_extra->hc_workv[mask_from];
 
         if (hc_path_exist (arg) == false)
         {
@@ -3011,7 +3169,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           mask_ctx->mask_from_file = true;
 
-          for (int i = 0; i < user_options_extra->hc_workc; i++)
+          for (int i = mask_from; i < user_options_extra->hc_workc; i++)
           {
             arg = user_options_extra->hc_workv[i];
 
@@ -3084,13 +3242,18 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (mask_append (hashcat_ctx, mask, NULL) == -1) return -1;
     }
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID) || (mask_feed_kind (user_options) == MASK_FEED_HYBRID))
   {
     // display
 
-    // -a 6 writes the mask last and -a 12 writes it first, and either way it can be a mask file
+    // The mask is the first work argument, and the dictionaries follow it. The hybrid feed reads the
+    // same arguments with its own name in front of them, so there the mask is one place further
+    // along. Either way it is one argument and it can be a mask file: what comes after it is a
+    // dictionary and must not be read as another mask.
 
-    char *arg = user_options_extra->hc_workv[(user_options->attack_mode == ATTACK_MODE_HYBRID) ? 0 : (user_options_extra->hc_workc - 1)];
+    const int mask_at = (mask_feed_kind (user_options) == MASK_FEED_HYBRID) ? 1 : 0;
+
+    char *arg = user_options_extra->hc_workv[mask_at];
 
     // mod
 

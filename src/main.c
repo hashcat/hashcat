@@ -19,6 +19,7 @@
 #include "thread.h"
 #include "status.h"
 #include "shared.h"
+#include "mpsp.h"
 #include "system.h"
 #include "dynloader.h"
 #include "event.h"
@@ -737,6 +738,16 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
       event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
       event_log_advice (hashcat_ctx, NULL);
     }
+  }
+
+  if (mask_is_feed (user_options) == true)
+  {
+    event_log_advice (hashcat_ctx, "ATTENTION! The mask is being generated on the host.");
+    event_log_advice (hashcat_ctx, "No kernel both walks a mask and applies a rule, so a mask attack given rules builds");
+    event_log_advice (hashcat_ctx, "its candidates on the host and the rules amplify them on the device.");
+    event_log_advice (hashcat_ctx, "A slow hash barely notices. A fast hash with a small ruleset loses most of its speed,");
+    event_log_advice (hashcat_ctx, "and a larger ruleset wins some of it back by asking more of each candidate.");
+    event_log_advice (hashcat_ctx, NULL);
   }
 
   if (user_options->keep_guessing == true)

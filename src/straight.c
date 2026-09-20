@@ -16,6 +16,7 @@
 #include "rp.h"
 #include "wordlist.h"
 #include "convert.h"
+#include "mpsp.h"
 #include "feed_ctx.h"
 #include "feed.h"
 #include "straight.h"
@@ -461,11 +462,32 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       amplifier = generic_ctx->dev_avg;
     }
 
+    // A feed that reads a mask cannot say its keyspace when it is asked, because a mask is sized once
+    // per round by mask_ctx_update_loop a few lines above this and the feed was asked long before the
+    // first round. So the feed says what it can count and the round's own mask supplies the rest.
+    // That is the arrangement hashcat already uses the other way round for -a 6 and -a 7, whose
+    // amplifier is the mask for the same reason.
+    //
+    // The mask feed's candidates are the mask, so the mask is the whole base. The hybrid feed's are a
+    // word and a mask together, so the feed counts the words it holds, both wordlists where the mask
+    // has a ?q, and the mask is the factor it cannot count for itself.
+
+    u64 base_cnt = generic_ctx->keyspace;
+
+    const mask_feed_kind_t mask_feed = mask_feed_kind (user_options);
+
+    if (mask_feed == MASK_FEED_MASK) base_cnt = mask_ctx->feed_keyspace;
+
+    if (mask_feed == MASK_FEED_HYBRID)
+    {
+      base_cnt = (overflow_check_u64_mul (generic_ctx->keyspace, mask_ctx->feed_keyspace) == true) ? UINT64_MAX : (generic_ctx->keyspace * mask_ctx->feed_keyspace);
+    }
+
     // As above: the feed's keyspace is the base and is what the run is addressed by, so a product
     // that does not fit saturates rather than ending the run. A feed that generates its base words
     // is the only producer whose base is large enough to reach that.
 
-    status_ctx->words_base_given = generic_ctx->keyspace;
+    status_ctx->words_base_given = base_cnt;
 
     // Where the feed knows exactly how many candidates it produces, that is the total. The amplifier
     // it would otherwise be multiplied by is a mean rounded down to an integer, so the product is
@@ -477,7 +499,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      status_ctx->words_cnt = (overflow_check_u64_mul (generic_ctx->keyspace, amplifier) == true) ? UINT64_MAX : (generic_ctx->keyspace * amplifier);
+      status_ctx->words_cnt = (overflow_check_u64_mul (base_cnt, amplifier) == true) ? UINT64_MAX : (base_cnt * amplifier);
     }
 
     return 0;

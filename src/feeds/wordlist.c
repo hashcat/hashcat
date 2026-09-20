@@ -29,6 +29,7 @@
 #include "timer.h"
 #include "event.h"
 #include "feed.h"
+#include "feed_error.h"
 #include "wordlist.h"
 
 #if defined (_WIN)
@@ -47,33 +48,6 @@ static bool source_restart (feed_thread_t *feed_thread);
 #include "seekdb.c"
 
 static int wordlist_next (generic_global_ctx_t *global_ctx, feed_global_t *feed_global, generic_thread_ctx_t *thread_ctx, feed_thread_t *feed_thread, u8 *out_buf, const int out_size);
-
-static void error_set (generic_global_ctx_t *global_ctx, const char *fmt, ...)
-{
-  global_ctx->error = true;
-
-  va_list ap;
-  va_start (ap, fmt);
-
-  vsnprintf (global_ctx->error_msg, sizeof (global_ctx->error_msg), fmt, ap);
-
-  va_end (ap);
-}
-
-// The four per device entry points report here instead, so that one device's failure does not speak
-// for the others and does not stay set for the rest of the run.
-
-static void thread_error_set (generic_thread_ctx_t *thread_ctx, const char *fmt, ...)
-{
-  thread_ctx->error = true;
-
-  va_list ap;
-  va_start (ap, fmt);
-
-  vsnprintf (thread_ctx->error_msg, sizeof (thread_ctx->error_msg), fmt, ap);
-
-  va_end (ap);
-}
 
 // Hand out the word that starts here, and say where the next one starts. Finding the end of it and
 // taking the line ending off is hc_line_next () in memchr.h, which is the same code the stdin feed and

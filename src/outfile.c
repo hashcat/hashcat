@@ -147,7 +147,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
   else
   {
-    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+    if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
     {
       pw_t pw;
 
@@ -233,7 +233,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
         }
       }
     }
-    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
       u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
       u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
@@ -249,7 +249,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       plain_len = (int) mask_ctx->css_cnt;
     }
-    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source == BASE_SOURCE_MASK))
+    else if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (user_options_extra->base_source == BASE_SOURCE_MASK))
     {
       // The mask is the base word and the wordlist amplifies it, so the candidate is put back together
       // the way -a 7 puts it together under a pure kernel: the mask from the outer loop position, then
@@ -271,7 +271,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       plain_len += (int) comb_len;
     }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
       pw_t pw;
 
@@ -412,7 +412,7 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       crackpos *= combinator_ctx->combs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
-    else if (user_options_extra->attack_kern == ATTACK_MODE_BF)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
       crackpos += feed_pos;
       crackpos *= mask_ctx->bfs_cnt;
@@ -471,11 +471,16 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
   const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
-  if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)) return 0;
+  // The straight kernel is the one that applies a rule, so it is the one that has a rule to report.
+  // That is attack mode 0, 8 and 9 as it always was, and now also the mask attacks, which reach it
+  // through a feed once they are given rules.
+
+  if ((user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) && (user_options_extra->attack_kern != ATTACK_KERN_PCFG)) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
 

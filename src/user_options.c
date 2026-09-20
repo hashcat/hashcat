@@ -1219,9 +1219,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_COMBI) && (user_options->attack_mode != ATTACK_MODE_BF) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) && (user_options->attack_mode != ATTACK_MODE_HYBRID))
     {
-      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 4, 5, 8 or 9.");
+      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 1, 3, 4, 5, 6, 7, 8, 9 or 12.");
 
       return -1;
     }
@@ -1715,9 +1715,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->debug_mode > 0)
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    // The attack modes whose candidates are built from a mask have a rule to write as soon as they
+    // are given one: the rules make them a feed and the rule becomes the amplifier, which is exactly
+    // what modes 1 to 5 report. Without rules their candidates are made on the device and there is
+    // no rule that made any of them.
+
+    const bool rules_given = (user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0);
+
+    const bool mask_is_typed = (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_BF) || (user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2) || (user_options->attack_mode == ATTACK_MODE_HYBRID);
+
+    const bool mask_has_rules = (mask_is_typed == true) && (rules_given == true);
+
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) && (mask_has_rules == false))
     {
-      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight), 4 (pcfg), 5 (table), 8 (generic) or 9 (association).");
+      event_log_error (hashcat_ctx, "Parameter --debug-mode writes the rule that made a candidate, so it needs an attack that has one.");
+      event_log_error (hashcat_ctx, "That is attack mode 0 (straight), 4 (pcfg), 5 (table), 8 (generic) or 9 (association),");
+      event_log_error (hashcat_ctx, "or attack mode 1, 3, 6, 7 or 12 given -r/--rules-file or -g/--rules-generate.");
 
       return -1;
     }
@@ -2721,7 +2734,24 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   const u32 attack_mode = user_options->attack_mode;
 
-  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG) && (attack_mode != ATTACK_MODE_TABLE)) return;
+  // -a 3 is rewritten only when it was given rules. Without them the mask belongs on the device,
+  // which is what makes brute force fast, and nothing here should touch it. With them no kernel can
+  // both walk the mask and apply the rule, so the mask becomes a feed and the straight kernel
+  // amplifies its candidates.
+
+  const bool rules_given = (user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0);
+
+  const bool mask_takes_rules = (attack_mode == ATTACK_MODE_BF) && (rules_given == true);
+
+  // -a 1, -a 6 and -a 7 are rewritten into -a 12 below whether or not there are rules. With rules
+  // they are rewritten once more, into -a 8 with the hybrid feed, and -a 12 itself joins them there:
+  // it is the one shape that has nothing to do here otherwise.
+
+  const bool hybrid_is_typed = (attack_mode == ATTACK_MODE_COMBI) || (attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2) || (attack_mode == ATTACK_MODE_HYBRID);
+
+  const bool hybrid_takes_rules = (hybrid_is_typed == true) && (rules_given == true);
+
+  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG) && (attack_mode != ATTACK_MODE_TABLE) && (mask_takes_rules == false) && (hybrid_takes_rules == false)) return;
 
   // The argument count was checked against the mode the user typed, so anything that did not pass
   // that check is left alone for the error to be reported the way it always was.
@@ -2753,6 +2783,16 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
     hc_argc_new++;
 
     work_from = 1;
+  }
+
+  // A feed reads its own name first. Every arm below writes the mask before anything else, so the
+  // name goes in here rather than three times over.
+
+  if (hybrid_takes_rules == true)
+  {
+    hc_argv[hc_argc_new] = "hybrid";
+
+    hc_argc_new++;
   }
 
   const int work_cnt = hc_argc - work_from;
@@ -2805,6 +2845,40 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
     user_options->attack_mode = ATTACK_MODE_HYBRID;
   }
+  else if (attack_mode == ATTACK_MODE_HYBRID)
+  {
+    // Already the shape every other hybrid mode is rewritten into, so the mask and the dictionaries
+    // are copied as they were typed and the feed name in front of them is the whole of the change.
+
+    if (work_cnt < 2) { hcfree (hc_argv); return; }
+
+    for (int i = work_from; i < hc_argc; i++)
+    {
+      hc_argv[hc_argc_new] = user_options->hc_argv[i];
+
+      hc_argc_new++;
+    }
+  }
+  else if (attack_mode == ATTACK_MODE_BF)
+  {
+    // The whole rewrite is the feed name in front of the work arguments, the same shape -a 4 and
+    // -a 5 take. What follows it is what the mask processor reads either way: a mask, several masks,
+    // or the mask files holding them. -a 3 with no work argument at all keeps its default mask,
+    // because the feed name alone leaves the queue empty and that is what DEF_MASK answers.
+
+    hc_argv[hc_argc_new] = "mask";
+
+    hc_argc_new++;
+
+    for (int i = work_from; i < hc_argc; i++)
+    {
+      hc_argv[hc_argc_new] = user_options->hc_argv[i];
+
+      hc_argc_new++;
+    }
+
+    user_options->attack_mode = ATTACK_MODE_GENERIC;
+  }
   else
   {
     // -a 4 and -a 5 are feed attacks whose feed is already known, so the whole rewrite is the feed
@@ -2841,6 +2915,12 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
     user_options->attack_mode = ATTACK_MODE_GENERIC;
   }
+
+  // The arms above left the hybrid shapes at -a 12, which is what they are without rules. With them
+  // the attack is a feed, and that is -a 8. The marker policy each arm set stays as it is: it is how
+  // the mask gets its ?w, and that happens inside the mask processor either way.
+
+  if (hybrid_takes_rules == true) user_options->attack_mode = ATTACK_MODE_GENERIC;
 
   user_options->hc_argv_alias = hc_argv;
 
@@ -3686,15 +3766,24 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options_extra->hybrid_q = false;
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+  // Whether the mask names a second word, which is asked of the command line rather than of the mask
+  // because it has to be answered before any mask is parsed: the wordlist it names has to be counted
+  // first. The hybrid feed reads its own name in front of the same arguments, so there everything is
+  // one place further along.
+
+  const mask_feed_kind_t mask_feed = mask_feed_kind (user_options);
+
+  if ((user_options->attack_mode == ATTACK_MODE_HYBRID) || (mask_feed == MASK_FEED_HYBRID))
   {
+    const int named = user_options_extra->hc_workc - ((mask_feed == MASK_FEED_HYBRID) ? 1 : 0);
+
     if (user_options->attack_mode_typed == ATTACK_MODE_COMBI)
     {
       user_options_extra->hybrid_q = true;
     }
     else if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID)
     {
-      user_options_extra->hybrid_q = (user_options_extra->hc_workc == 3);
+      user_options_extra->hybrid_q = (named == 3);
     }
   }
 

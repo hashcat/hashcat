@@ -161,7 +161,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   outfile_ctx_t        *outfile_ctx        = hashcat_ctx->outfile_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
 
   // prevent wrong candidates in output when backend_ctx->backend_devices_active > 1
 
@@ -222,7 +221,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   int rc = 0;
 
-  if (user_options->attack_mode == ATTACK_MODE_BF)
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
@@ -327,7 +326,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         if (rc == -1) break;
       }
 
-      if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+      if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
       {
         bool done_parallel = false;
 
@@ -471,7 +470,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
           pw_idx++;
         }
       }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
         char mask_buf[256];
 
