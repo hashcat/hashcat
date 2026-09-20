@@ -283,11 +283,15 @@ static int rounds_count_length (const char *input_buf, const int input_len)
 
     if (memcmp (input_buf, rounds, 7) == 0)
     {
-      const char *next_pos = strchr (input_buf + 8, '$');
+      // hc_strchr_next rather than strchr: the caller says how long the input is, and that is not
+      // always where the buffer ends. hashes.c hands a parser a slice of the line it read, so a
+      // '$' further along the line is not part of this hash and must not end the rounds field.
+
+      const u8 *next_pos = hc_strchr_next ((const u8 *) input_buf + 8, input_len - 8, '$');
 
       if (next_pos == NULL) return -1;
 
-      const int rounds_len = next_pos - input_buf;
+      const int rounds_len = (const char *) next_pos - input_buf;
 
       return rounds_len;
     }
