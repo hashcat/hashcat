@@ -23,6 +23,19 @@ Needs clang, because libFuzzer is a clang feature. The script builds with Addres
 `CFLAGS` says otherwise, and it takes `CC`, `CFLAGS`, `LIB_FUZZING_ENGINE`, `OUT` and `WORK` from
 the environment where they are set, which is how the same script serves OSS-Fuzz.
 
+One target across every core is `-fork`, which runs that many workers against one shared corpus:
+
+    ./fuzz_out/fuzz_rule corpus/rule fuzz_out/work/seeds/rule -dict=tools/fuzz/fuzz_rule.dict \
+        -fork=$(nproc) -ignore_crashes=0 -artifact_prefix=crashes/
+
+Measured here on an idle core count of 12, twenty seconds on one mode: 5.2 million executions
+without it, 15.5 million with `-fork=6`. A finding still stops the run and still lands in
+`crashes/`, because `-ignore_crashes` stays off; with it on, the run keeps going and collects
+every distinct crash instead, which is what a long overnight run wants.
+
+Use `-fork` when fuzzing one target, and the loop below when fuzzing many: both fill the machine,
+and running both at once only splits it.
+
 Reproducing one input is the same binary with the input as an argument:
 
     ./fuzz_out/fuzz_rule crashes/crash-3cdf2936da2fc556bfa533ab1eb59ce710ac80e5

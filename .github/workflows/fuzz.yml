@@ -85,11 +85,18 @@ jobs:
 
           echo "corpus holds $(find corpus -type f | wc -l) inputs before this run"
 
+          # -fork puts every core of the runner on this one target rather than
+          # leaving the rest idle: libFuzzer runs that many workers against one
+          # shared corpus, and a finding still stops the job and still lands in
+          # crashes/, because -ignore_crashes stays off.
+
           ./fuzz_out/fuzz_${{ matrix.target }} \
             corpus \
             fuzz_out/work/seeds/${{ matrix.target }} \
             -dict=tools/fuzz/fuzz_${TARGET%%_*}.dict \
             -artifact_prefix=crashes/ \
+            -fork=$(nproc) \
+            -ignore_crashes=0 \
             -max_total_time=${duration} \
             -timeout=25 \
             -print_final_stats=1
