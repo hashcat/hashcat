@@ -4878,13 +4878,24 @@ function veracrypt_test()
   cipher_variation=$1
 
   hash_function=""
+  boot_suffix=""
+
+  # 4, 6 and 8 are the boot-mode hash types and share their PRF with 1, 5 and 7. What differs is
+  # the container: one built for a system drive, which is the _boot the filename picks up below.
 
   hash_digit="${hash_type:3:1}"
   [ "$hash_digit" -eq "1" ] && hash_function="ripemd160"
   [ "$hash_digit" -eq "2" ] && hash_function="sha512"
   [ "$hash_digit" -eq "3" ] && hash_function="whirlpool"
+  [ "$hash_digit" -eq "4" ] && hash_function="ripemd160"
   [ "$hash_digit" -eq "5" ] && hash_function="sha256"
+  [ "$hash_digit" -eq "6" ] && hash_function="sha256"
   [ "$hash_digit" -eq "7" ] && hash_function="streebog"
+  [ "$hash_digit" -eq "8" ] && hash_function="streebog"
+
+  [ "$hash_digit" -eq "4" ] && boot_suffix="_boot"
+  [ "$hash_digit" -eq "6" ] && boot_suffix="_boot"
+  [ "$hash_digit" -eq "8" ] && boot_suffix="_boot"
 
   [ -n "$hash_function" ] || return
 
@@ -4917,9 +4928,30 @@ function veracrypt_test()
 
   [ -n "$cipher_cascade" ] || return
 
-  filename="${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc"
+  filename="${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}${boot_suffix}.vc"
 
-  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ ! -f "${filename}" ]; then
+  # A container whose name carries _pim<N> was built with that personal iterations multiplier, and
+  # hashcat needs to be told, or it derives the header key with the default count and finds nothing.
+
+  pim_opts=""
+
+  if [ ! -f "${filename}" ]; then
+    for pim_candidate in "${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}${boot_suffix}"_pim*.vc; do
+      [ -f "${pim_candidate}" ] || continue
+      pim_value="${pim_candidate##*_pim}"
+      pim_value="${pim_value%.vc}"
+
+      case "${pim_value}" in ''|*[!0-9]*) continue ;; esac
+
+      filename="${pim_candidate}"
+      pim_opts="--veracrypt-pim-start ${pim_value} --veracrypt-pim-stop ${pim_value}"
+      break
+    done
+  fi
+
+  # veracrypt_generate () asks for --volume-type=normal, so -g cannot build a system-drive container.
+
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ -z "${boot_suffix}" ] && [ ! -f "${filename}" ]; then
     veracrypt_generate "${hash_function}" "${cipher_cascade}" "${filename}" || return
   fi
 
@@ -4928,15 +4960,15 @@ function veracrypt_test()
 
   case "${hash_type:0:3}" in
     137)
-      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${filename}' ${CONTAINER_MASK_MID}"
+      CMD="./${BIN} ${OPTS} ${pim_opts} -a 3 -m ${hash_type} '${filename}' ${CONTAINER_MASK_MID}"
       ;;
 
     294)
       mkdir -p ${OUTD}/vc_tests
       chmod u+x "${TDIR}/veracrypt2hashcat.py"
 
-      eval \"${TDIR}/veracrypt2hashcat.py\" \"${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash
-      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash' ${CONTAINER_MASK_MID}"
+      eval \"${TDIR}/veracrypt2hashcat.py\" \"${filename}\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}${boot_suffix}.hash
+      CMD="./${BIN} ${OPTS} ${pim_opts} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}${boot_suffix}.hash' ${CONTAINER_MASK_MID}"
       ;;
   esac
 
