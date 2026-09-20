@@ -21,6 +21,7 @@
 #include "rp_cpu.h"
 
 #include "feed_ctx.h"
+#include "feed.h"
 #include "mpsp.h"
 
 #ifdef WITH_BRAIN
@@ -28,9 +29,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:z";
+static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbBw:OMSY:R:z";
 #else
-static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:";
+static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbBw:OMSY:R:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -42,7 +43,6 @@ static const struct option long_options[] =
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
   {"backend-devices-virtmulti", required_argument, NULL, IDX_BACKEND_DEVICES_VIRTMULTI},
   {"backend-devices-virthost",  required_argument, NULL, IDX_BACKEND_DEVICES_VIRTHOST},
-  {"backend-devices-keepfree",  required_argument, NULL, IDX_BACKEND_DEVICES_KEEPFREE},
   {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
   {"backend-ignore-hip",        no_argument,       NULL, IDX_BACKEND_IGNORE_HIP},
   #if defined (__APPLE__)
@@ -56,6 +56,7 @@ static const struct option long_options[] =
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
   {"benchmark-max",             required_argument, NULL, IDX_BENCHMARK_MAX},
   {"benchmark-min",             required_argument, NULL, IDX_BENCHMARK_MIN},
+  {"benchmark-pure",            no_argument,       NULL, IDX_BENCHMARK_PURE},
   {"benchmark",                 no_argument,       NULL, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, NULL, IDX_BITMAP_MAX},
   {"bitmap-min",                required_argument, NULL, IDX_BITMAP_MIN},
@@ -63,6 +64,7 @@ static const struct option long_options[] =
   {"bridge-parameter2",         required_argument, NULL, IDX_BRIDGE_PARAMETER2},
   {"bridge-parameter3",         required_argument, NULL, IDX_BRIDGE_PARAMETER3},
   {"bridge-parameter4",         required_argument, NULL, IDX_BRIDGE_PARAMETER4},
+  {"cache-path",                required_argument, NULL, IDX_CACHE_PATH},
   {"cpu-affinity",              required_argument, NULL, IDX_CPU_AFFINITY},
   {"custom-charset1",           required_argument, NULL, IDX_CUSTOM_CHARSET_1},
   {"custom-charset2",           required_argument, NULL, IDX_CUSTOM_CHARSET_2},
@@ -110,8 +112,10 @@ static const struct option long_options[] =
   {"keyspace",                  no_argument,       NULL, IDX_KEYSPACE},
   {"total-candidates",          no_argument,       NULL, IDX_TOTAL_CANDIDATES},
   {"left",                      no_argument,       NULL, IDX_LEFT},
+  {"length-sort-disable",       no_argument,       NULL, IDX_LENGTH_SORT_DISABLE},
   {"limit",                     required_argument, NULL, IDX_LIMIT},
   {"logfile-disable",           no_argument,       NULL, IDX_LOGFILE_DISABLE},
+  {"lookup",                    required_argument, NULL, IDX_LOOKUP},
   {"loopback",                  no_argument,       NULL, IDX_LOOPBACK},
   {"machine-readable",          no_argument,       NULL, IDX_MACHINE_READABLE},
   {"markov-classic",            no_argument,       NULL, IDX_MARKOV_CLASSIC},
@@ -136,7 +140,6 @@ static const struct option long_options[] =
   {"quiet",                     no_argument,       NULL, IDX_QUIET},
   {"remove",                    no_argument,       NULL, IDX_REMOVE},
   {"remove-timer",              required_argument, NULL, IDX_REMOVE_TIMER},
-  {"restore-auto",              no_argument,       NULL, IDX_RESTORE_AUTO},
   {"restore-disable",           no_argument,       NULL, IDX_RESTORE_DISABLE},
   {"restore-file-path",         required_argument, NULL, IDX_RESTORE_FILE_PATH},
   {"restore-position",          no_argument,       NULL, IDX_RESTORE_POSITION},
@@ -144,10 +147,9 @@ static const struct option long_options[] =
   {"rule-left",                 required_argument, NULL, IDX_RULE_BUF_L},
   {"rule-right",                required_argument, NULL, IDX_RULE_BUF_R},
   {"rules-file",                required_argument, NULL, IDX_RP_FILE},
+  {"rules-concat",              no_argument,       NULL, IDX_RP_FILE_CONCAT},
   {"runtime",                   required_argument, NULL, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, NULL, IDX_SCRYPT_TMTO},
-  {"seekdb-path",               required_argument, NULL, IDX_SEEKDB_PATH},
-  {"segment-size",              required_argument, NULL, IDX_SEGMENT_SIZE},
   {"self-test-disable",         no_argument,       NULL, IDX_SELF_TEST_DISABLE},
   {"separator",                 required_argument, NULL, IDX_SEPARATOR},
   {"seperator",                 required_argument, NULL, IDX_SEPARATOR},
@@ -159,6 +161,8 @@ static const struct option long_options[] =
   {"spin-damp",                 required_argument, NULL, IDX_SPIN_DAMP},
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-json",               no_argument,       NULL, IDX_STATUS_JSON},
+  {"pipeline-stats",            no_argument,       NULL, IDX_PIPELINE_STATS},
+  {"task-time-breakdown",       no_argument,       NULL, IDX_TASK_TIME_BREAKDOWN},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
@@ -207,7 +211,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->backend_devices           = NULL;
   user_options->backend_devices_virtmulti = BACKEND_DEVICES_VIRTMULTI;
   user_options->backend_devices_virthost  = BACKEND_DEVICES_VIRTHOST;
-  user_options->backend_devices_keepfree  = BACKEND_DEVICES_KEEPFREE;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_hip        = BACKEND_IGNORE_HIP;
   #if defined (__APPLE__)
@@ -219,9 +222,11 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->benchmark_all             = BENCHMARK_ALL;
   user_options->benchmark_max             = BENCHMARK_MAX;
   user_options->benchmark_min             = BENCHMARK_MIN;
+  user_options->benchmark_pure            = BENCHMARK_PURE;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
   user_options->bitmap_min                = BITMAP_MIN;
+  user_options->cache_path                = NULL;
   #ifdef WITH_BRAIN
   user_options->brain_client              = BRAIN_CLIENT;
   user_options->brain_feed                = false;
@@ -279,8 +284,11 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keyspace                  = KEYSPACE;
   user_options->total_candidates          = TOTAL_CANDIDATES;
   user_options->left                      = LEFT;
+  user_options->length_sort_disable       = LENGTH_SORT_DISABLE;
   user_options->limit                     = LIMIT;
   user_options->logfile                   = LOGFILE;
+  user_options->lookup                    = NULL;
+  user_options->lookup_alias              = NULL;
   user_options->loopback                  = LOOPBACK;
   user_options->machine_readable          = MACHINE_READABLE;
   user_options->markov_classic            = MARKOV_CLASSIC;
@@ -308,8 +316,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->restore_enable            = RESTORE_ENABLE;
   user_options->restore_file_path         = NULL;
   user_options->restore                   = RESTORE;
-  user_options->restore_auto              = RESTORE_AUTO;
   user_options->restore_position          = RESTORE_POSITION;
+  user_options->rp_files_concat           = false;
   user_options->restore_timer             = RESTORE_TIMER;
   user_options->rp_gen_func_max           = RP_GEN_FUNC_MAX;
   user_options->rp_gen_func_min           = RP_GEN_FUNC_MIN;
@@ -320,8 +328,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->rule_buf_r                = RULE_BUF_R;
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
-  user_options->seekdb_path               = NULL;
-  user_options->segment_size              = SEGMENT_SIZE;
   user_options->self_test                 = SELF_TEST;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
@@ -332,6 +338,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->spin_damp                 = SPIN_DAMP;
   user_options->status                    = STATUS;
   user_options->status_json               = STATUS_JSON;
+  user_options->pipeline_stats            = PIPELINE_STATS;
+  user_options->task_time_breakdown       = TASK_TIME_BREAKDOWN;
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag               = STDOUT_FLAG;
@@ -343,7 +351,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
   user_options->wordlist_autohex          = WORDLIST_AUTOHEX;
-  user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
   user_options->hc_bin                    = PROGNAME;
@@ -360,6 +367,8 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (user_options->rp_files);
 
   hcfree (user_options->hc_argv_alias);
+
+  hcfree (user_options->lookup_alias);
 
   if (user_options->backend_info > 0)
   {
@@ -421,7 +430,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_VECTOR_WIDTH:
       case IDX_BYPASS_DELAY:
       case IDX_BYPASS_THRESHOLD:
-      case IDX_WORKLOAD_PROFILE:
       case IDX_KERNEL_ACCEL:
       case IDX_KERNEL_LOOPS:
       case IDX_KERNEL_THREADS:
@@ -431,7 +439,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_NONCE_ERROR_CORRECTIONS:
       case IDX_VERACRYPT_PIM_START:
       case IDX_VERACRYPT_PIM_STOP:
-      case IDX_SEGMENT_SIZE:
       case IDX_SCRYPT_TMTO:
       case IDX_BITMAP_MIN:
       case IDX_BITMAP_MAX:
@@ -440,7 +447,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HOOK_THREADS:
       case IDX_BACKEND_DEVICES_VIRTMULTI:
       case IDX_BACKEND_DEVICES_VIRTHOST:
-      case IDX_BACKEND_DEVICES_KEEPFREE:
       case IDX_BENCHMARK_MAX:
       case IDX_BENCHMARK_MIN:
       #ifdef WITH_BRAIN
@@ -477,7 +483,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HELP:                      user_options->usage++;                                                     break;
       case IDX_VERSION:                   user_options->version                   = true;                            break;
       case IDX_RESTORE:                   user_options->restore                   = true;                            break;
-      case IDX_RESTORE_AUTO:              user_options->restore_auto              = true;                            break;
       case IDX_RESTORE_POSITION:          user_options->restore_position          = true;                            break;
       case IDX_QUIET:                     user_options->quiet                     = true;                            break;
       case IDX_SHOW:                      user_options->show                      = true;                            break;
@@ -511,19 +516,25 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BENCHMARK_ALL:             user_options->benchmark_all             = true;                            break;
       case IDX_BENCHMARK_MAX:             user_options->benchmark_max             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BENCHMARK_MIN:             user_options->benchmark_min             = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_BENCHMARK_PURE:            user_options->benchmark                 = true;
+                                          user_options->benchmark_pure            = true;                            break;
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
+      case IDX_LENGTH_SORT_DISABLE:       user_options->length_sort_disable       = true;                            break;
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
       case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
-      case IDX_SEEKDB_PATH:               user_options->seekdb_path               = optarg;                          break;
+      case IDX_CACHE_PATH:                user_options->cache_path                = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
+      case IDX_PIPELINE_STATS:            user_options->pipeline_stats            = true;                            break;
+      case IDX_TASK_TIME_BREAKDOWN:       user_options->task_time_breakdown       = true;                            break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
+      case IDX_LOOKUP:                    user_options->lookup                    = optarg;                          break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
       case IDX_SESSION:                   user_options->session                   = optarg;
                                           user_options->session_chgd              = true;                            break;
@@ -536,6 +547,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
                                           user_options->attack_mode_chgd          = true;                            break;
       case IDX_RP_FILE:                   user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
+      case IDX_RP_FILE_CONCAT:            user_options->rp_files_concat           = true;                            break;
       case IDX_RP_GEN:                    user_options->rp_gen                    = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_RP_GEN_FUNC_MIN:           user_options->rp_gen_func_min           = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_RP_GEN_FUNC_MAX:           user_options->rp_gen_func_max           = hc_strtoul (optarg, NULL, 10);   break;
@@ -559,6 +571,13 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex          = false;                           break;
+
+      // -w chose one of four launch budgets and the frugality margin that went with it. There is one
+      // budget now, so there is nothing left for it to select. Every tutorial, wiki page and cracking
+      // front end in the world passes it, so it is still accepted and now does nothing. Warning about
+      // it would put a line on the screen of every one of those runs for no benefit.
+
+      case IDX_WORKLOAD_PROFILE:                                                                     break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
@@ -577,7 +596,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
       case IDX_BACKEND_DEVICES_VIRTMULTI: user_options->backend_devices_virtmulti = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BACKEND_DEVICES_VIRTHOST:  user_options->backend_devices_virthost  = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_BACKEND_DEVICES_KEEPFREE:  user_options->backend_devices_keepfree  = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_BYPASS_DELAY:              user_options->bypass_delay              = hc_strtoul (optarg, NULL, 10);
@@ -587,8 +605,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
       case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel          = true;                            break;
       case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel            = false;                           break;
-      case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
-                                          user_options->workload_profile_chgd     = true;                            break;
       case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
                                           user_options->kernel_accel_chgd         = true;                            break;
       case IDX_KERNEL_LOOPS:              user_options->kernel_loops              = hc_strtoul (optarg, NULL, 10);
@@ -611,8 +627,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->veracrypt_pim_start_chgd  = true;                            break;
       case IDX_VERACRYPT_PIM_STOP:        user_options->veracrypt_pim_stop        = hc_strtoul (optarg, NULL, 10);
                                           user_options->veracrypt_pim_stop_chgd   = true;                            break;
-      case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
-                                          user_options->segment_size_chgd         = true;                            break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);
                                           user_options->scrypt_tmto_chgd          = true;                            break;
       case IDX_SEPARATOR:                 user_options->separator                 = optarg;
@@ -889,6 +903,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID)
      && (user_options->attack_mode != ATTACK_MODE_BF)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
+     && (user_options->attack_mode != ATTACK_MODE_TABLE)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in slow-candidates mode.");
@@ -903,6 +918,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_COMBI)
      && (user_options->attack_mode != ATTACK_MODE_BF)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
+     && (user_options->attack_mode != ATTACK_MODE_TABLE)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in brain-client mode.");
@@ -920,6 +936,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
+     && (user_options->attack_mode != ATTACK_MODE_TABLE)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC)
      && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
      && (user_options->attack_mode != ATTACK_MODE_NONE))
@@ -1007,12 +1024,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->backend_devices_keepfree > 100)
-  {
-    event_log_error (hashcat_ctx, "Invalid --backend-devices-keepfree value specified.");
-
-    return -1;
-  }
 
   if (user_options->outfile_format == 0)
   {
@@ -1124,6 +1135,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_TABLE))
+  {
+    event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 5 (table).");
+
+    return -1;
+  }
+
   if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 4 (pcfg).");
@@ -1192,11 +1210,18 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->rp_files_concat == true) && (user_options->rp_files_cnt == 0))
+  {
+    event_log_error (hashcat_ctx, "Parameter --rules-concat requires -r/--rules-file.");
+
+    return -1;
+  }
+
   if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_COMBI) && (user_options->attack_mode != ATTACK_MODE_BF) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) && (user_options->attack_mode != ATTACK_MODE_HYBRID))
     {
-      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 4, 8 or 9.");
+      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 1, 3, 4, 5, 6, 7, 8, 9 or 12.");
 
       return -1;
     }
@@ -1209,9 +1234,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->bitmap_max > 31)
+  if (user_options->bitmap_max > 28)
   {
-    event_log_error (hashcat_ctx, "Invalid --bitmap-max value specified - must be lower than 32.");
+    event_log_error (hashcat_ctx, "Invalid --bitmap-max value specified - must not be higher than 28.");
 
     return -1;
   }
@@ -1229,7 +1254,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "The manual use of the -n option (or --kernel-accel) is outdated.");
 
-      event_log_warning (hashcat_ctx, "Please consider using the -w option instead.");
+      event_log_warning (hashcat_ctx, "Autotune sizes the launch itself.");
       event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
       event_log_warning (hashcat_ctx, NULL);
 
@@ -1266,7 +1291,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "The manual use of the -u option (or --kernel-loops) is outdated.");
 
-      event_log_warning (hashcat_ctx, "Please consider using the -w option instead.");
+      event_log_warning (hashcat_ctx, "Autotune sizes the launch itself.");
       event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
       event_log_warning (hashcat_ctx, NULL);
 
@@ -1313,13 +1338,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if ((user_options->workload_profile < 1) || (user_options->workload_profile > 4))
-  {
-    event_log_error (hashcat_ctx, "workload-profile %u is not available.", user_options->workload_profile);
-
-    return -1;
-  }
-
   if (user_options->backend_vector_width_chgd == true)
   {
     if (is_power_of_2 (user_options->backend_vector_width) == false || user_options->backend_vector_width > 16)
@@ -1337,11 +1355,21 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->show == true) && ((user_options->username == true) || (user_options->dynamic_x == true)))
-  {
-    event_log_error (hashcat_ctx, "Mixing --show with --username or --dynamic-x can cause exponential delay in output.");
+  // Same reason --keyspace is refused below. An association attack takes its candidates out of the
+  // hash file, and --stdout never reads a hash file: its one argument is the wordlist. Without this
+  // the hash file is opened as a wordlist and the run ends on a line count that does not match a salt
+  // count of one, which reads like a broken hash file rather than like a question nothing can answer.
 
-    return 0;
+  if (user_options->stdout_flag == true)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      event_log_error (hashcat_ctx, "Combining -a 9 with --stdout is not allowed.");
+
+      event_log_warning (hashcat_ctx, "An association attack takes its candidates from the hash file, which --stdout does not read. Use --debug-mode to see what a run is trying.");
+
+      return -1;
+    }
   }
 
   if (user_options->show == true && (user_options->restore == true || user_options->restore_position == true))
@@ -1413,6 +1441,193 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "An association attack takes its keyspace from the hash file, which --keyspace does not read.");
 
       return -1;
+    }
+  }
+
+  // --lookup asks where a run reaches one candidate and answers from the tables that run would
+  // enumerate, so it sizes every round exactly as --keyspace does and then reports instead of
+  // summing. It is refused everywhere --keyspace is, on its own name, because it only turns into
+  // --keyspace in user_options_preprocess and that runs after this.
+
+  if (user_options->lookup != NULL)
+  {
+    if (strlen (user_options->lookup) == 0)
+    {
+      event_log_error (hashcat_ctx, "Invalid --lookup value - must not be empty.");
+
+      return -1;
+    }
+
+    // A candidate is bytes, and a ?b mask reaches bytes no shell can pass. $HEX[...] is the spelling
+    // the potfile and --show already use for exactly that, so it is accepted here as well and the
+    // length that has to fit a mask is the decoded one.
+
+    if (is_hexify ((const u8 *) user_options->lookup, strlen (user_options->lookup)) == false)
+    {
+      if (strlen (user_options->lookup) > PW_MAX)
+      {
+        event_log_error (hashcat_ctx, "Invalid --lookup value - must not be longer than %d characters.", PW_MAX);
+
+        return -1;
+      }
+    }
+    else
+    {
+      if (((strlen (user_options->lookup) - 6) / 2) > PW_MAX)
+      {
+        event_log_error (hashcat_ctx, "Invalid --lookup value - must not decode to more than %d bytes.", PW_MAX);
+
+        return -1;
+      }
+    }
+
+    if (user_options->show == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --show with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->left == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --left with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->keyspace == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --keyspace with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->total_candidates == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --total-candidates with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->stdout_flag == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --stdout with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->benchmark == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --benchmark with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->speed_only == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --speed-only with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->progress_only == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --progress-only with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    // -a 4 answers this question already, from tables only its feed has, so --lookup is carried to it
+    // as the setting it already understands rather than reimplemented beside it. That happens in
+    // user_options_alias_attack_mode (), which is where -a 4's command line is rewritten anyway.
+    //
+    // Every other mode is refused, and refused for a reason worth stating: not because there is
+    // nowhere to hang the answer, but because nothing has been written that can invert it yet. A run
+    // that quietly answered nothing would be worse than one that says so.
+
+    if ((user_options->attack_mode != ATTACK_MODE_BF)
+     && (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_COMBI)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID)
+     && (user_options->attack_mode != ATTACK_MODE_PCFG))
+    {
+      event_log_error (hashcat_ctx, "--lookup is supported in attack-modes 0, 1, 3, 4, 6, 7 and 12 only.");
+
+      event_log_warning (hashcat_ctx, "The other attack modes have no inversion yet, so there is no offset to give rather than a wrong one.");
+
+      return -1;
+    }
+
+    // A rule set is applied to the base words, whatever produced them, so an offset given with one in
+    // play names a word the run then changes. -a 0 takes its base words from a wordlist and -a 4
+    // takes them from a grammar, and the answer is wrong in the same way in both. No attack mode is
+    // named in the test because none has to be: -r and -g need attack mode 0, 4, 8 or 9, --lookup
+    // takes 0, 1, 3, 4, 6, 7 and 12, and the two lists meet at exactly those two.
+    //
+    // Refused rather than answered about the base word alone. That answer looks like the ones the
+    // other modes give and is not one: a base word producer that does not produce the word proves
+    // nothing once a rule can make it out of another word. There is no reading of "sa@ $1 c" that
+    // turns a candidate back into the word it came from, so the only way to answer would be to build
+    // every candidate the run builds. Writing an inverse instead would be a fourth implementation of
+    // the rule language beside src/rp_cpu.c and the two device engines, and one that fell behind
+    // them would report a candidate the run does reach as unreachable, which is worse than not
+    // answering.
+
+    if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
+    {
+      event_log_error (hashcat_ctx, "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed.");
+
+      event_log_warning (hashcat_ctx, "A rule cannot be inverted, so the answer would have to be found by building every candidate the run builds, which is one pass over the base words per rule.");
+
+      event_log_warning (hashcat_ctx, "Without rules an attack --lookup supports is answered in one pass over its base words, and a mask is answered without reading anything at all.");
+
+      return -1;
+    }
+
+    // A restored session is handed its command line by the restore file and its position in the
+    // queue by the restore data, and --lookup reads neither: it walks the queue from the front to
+    // number it. Left alone the two produce an answer against the default mask rather than against
+    // the attack that was restored, which is a wrong answer rather than an error.
+
+    if ((user_options->restore == true) || (user_options->restore_position == true))
+    {
+      event_log_error (hashcat_ctx, "Combining --restore with --lookup is not allowed.");
+
+      event_log_warning (hashcat_ctx, "Give --lookup the command line of the run instead. It answers about the attack, not about how far a session got.");
+
+      return -1;
+    }
+
+    // The most natural command line for this option is the run the user has just done with --lookup
+    // added to it, and that one has a hash file in front of the mask. It cannot be taken. --lookup
+    // reads no hashes, exactly as --keyspace reads none, so every argument is work and a hash file
+    // would be opened as the mask. Saying that beats the usage banner the argument count check at
+    // the end of this function would otherwise print.
+
+    // Only the two modes whose command line is one work argument are checked here. The rest take two
+    // or three, and the count table at the end of this function is what knows which.
+
+    if ((user_options->attack_mode == ATTACK_MODE_BF) || (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
+    {
+      const char *want = (user_options->attack_mode == ATTACK_MODE_BF) ? "mask" : "wordlist";
+
+      if (user_options->hc_argc > 1)
+      {
+        event_log_error (hashcat_ctx, "--lookup takes the %s on its own, with no hash file, exactly as --keyspace does.", want);
+
+        event_log_warning (hashcat_ctx, "It answers about the attack and reads no hashes, so the hash file would be read as the %s.", want);
+
+        return -1;
+      }
+
+      if (user_options->hc_argc == 0)
+      {
+        event_log_error (hashcat_ctx, "--lookup needs a %s to look in.", want);
+
+        return -1;
+      }
     }
   }
 
@@ -1491,28 +1706,64 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->debug_mode > 0)
-  {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
-    {
-      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight), 4 (pcfg), 8 (generic) or 9 (association).");
-
-      return -1;
-    }
-
-    if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
-    {
-      event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
-
-      return -1;
-    }
-  }
-
-  if (user_options->debug_mode > 5)
+  if (user_options->debug_mode > DEBUG_MODE_FEED)
   {
     event_log_error (hashcat_ctx, "Invalid --debug-mode value specified.");
 
     return -1;
+  }
+
+  if (user_options->debug_mode > 0)
+  {
+    // The attack modes whose candidates are built from a mask have a rule to write as soon as they
+    // are given one: the rules make them a feed and the rule becomes the amplifier, which is exactly
+    // what modes 1 to 5 report. Without rules their candidates are made on the device and there is
+    // no rule that made any of them.
+
+    const bool rules_given = (user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0);
+
+    const bool mask_is_typed = (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_BF) || (user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2) || (user_options->attack_mode == ATTACK_MODE_HYBRID);
+
+    const bool mask_has_rules = (mask_is_typed == true) && (rules_given == true);
+
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) && (mask_has_rules == false))
+    {
+      event_log_error (hashcat_ctx, "Parameter --debug-mode writes the rule that made a candidate, so it needs an attack that has one.");
+      event_log_error (hashcat_ctx, "That is attack mode 0 (straight), 4 (pcfg), 5 (table), 8 (generic) or 9 (association),");
+      event_log_error (hashcat_ctx, "or attack mode 1, 3, 6, 7 or 12 given -r/--rules-file or -g/--rules-generate.");
+
+      return -1;
+    }
+
+    // Modes 1 to 5 write the rule that made a candidate, so they want rules. Mode 6 writes what the
+    // feed did instead, which is the answer for an attack that has no rules at all: a table applies
+    // substitutions and a grammar picks terminals. Whether this feed can actually say is settled when
+    // it is loaded, because nothing here has opened it yet.
+
+    const bool has_feed = (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_TABLE) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
+    if (user_options->debug_mode == DEBUG_MODE_FEED)
+    {
+      if (has_feed == false)
+      {
+        event_log_error (hashcat_ctx, "Parameter --debug-mode %d is only allowed in an attack that has a feed, which is attack mode 4 (pcfg), 5 (table), 8 (generic) and 9 (association).", DEBUG_MODE_FEED);
+
+        return -1;
+      }
+    }
+    else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+    {
+      // Rules are what modes 1 to 5 name, so without them there is nothing to write. An attack with
+      // a feed is the exception: it has no rules by nature, and its feed can say what it did, so the
+      // rule field is filled from the feed rather than the option being refused.
+
+      if (has_feed == false)
+      {
+        event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
+
+        return -1;
+      }
+    }
   }
 
   if (user_options->induction_dir != NULL)
@@ -1593,6 +1844,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       // forces benchmark-all to be enabled if benchmark-min and benchmark_max are also set
       user_options->benchmark_all = true;
+    }
+
+    if (user_options->benchmark_pure == true)
+    {
+      if (user_options->optimized_kernel == true)
+      {
+        event_log_error (hashcat_ctx, "Can't combine --benchmark-pure (-B) with --optimized-kernel-enable (-O).");
+
+        return -1;
+      }
     }
 
     if (user_options->attack_mode_chgd == true)
@@ -1737,7 +1998,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->markov_threshold != 0) // is 0 by default
   {
-    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_TABLE) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
     {
       event_log_error (hashcat_ctx, "Option --markov-threshold is not allowed in combination with --attack mode %d", user_options->attack_mode);
 
@@ -1747,8 +2008,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   // --restore prints the command line the restore file holds and stops. --restore-position is what
   // that printed command line carries, and it takes only the position out of the file. The two are
-  // the two halves of one resume and cannot be given together. --restore-auto is the way back to
-  // resuming in one step, so it only means anything alongside --restore.
+  // the two halves of one resume and cannot be given together.
 
   if ((user_options->restore == true) && (user_options->restore_position == true))
   {
@@ -1756,13 +2016,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     event_log_warning (hashcat_ctx, "--restore prints the command line to run. --restore-position belongs to that printed command line.");
     event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
-
-  if ((user_options->restore_auto == true) && (user_options->restore == false))
-  {
-    event_log_error (hashcat_ctx, "Option --restore-auto only works together with --restore.");
 
     return -1;
   }
@@ -1777,22 +2030,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->seekdb_path != NULL)
+  if (user_options->cache_path != NULL)
   {
-    if (strlen (user_options->seekdb_path) == 0)
+    if (strlen (user_options->cache_path) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --seekdb-path value - must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --cache-path value - must not be empty.");
 
       return -1;
     }
 
     // A directory that is not there is worth stopping for, because the alternative is a run that
-    // quietly rebuilds its seek database every time and never says why. Not being able to write to
-    // one is fine and deliberately not checked: a read only share is a normal way to use this.
+    // quietly rebuilds everything every time and never says why. Not being able to write to one is
+    // fine and deliberately not checked: a read only share is a normal way to use this.
 
-    if (hc_path_is_directory (user_options->seekdb_path) == false)
+    if (hc_path_is_directory (user_options->cache_path) == false)
     {
-      event_log_error (hashcat_ctx, "Invalid --seekdb-path value - must be an existing directory.");
+      event_log_error (hashcat_ctx, "Invalid --cache-path value - must be an existing directory.");
 
       return -1;
     }
@@ -1952,6 +2205,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 5 (table).");
+
+      return -1;
+    }
+
     if (user_options->attack_mode == ATTACK_MODE_PCFG)
     {
       event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 4 (pcfg).");
@@ -1977,7 +2237,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     bool mask_is_missing = true;
 
-    if (user_options->keyspace == true || user_options->total_candidates == true) // special case if --keyspace was used: we need the mask but no hash file
+    if (user_options->keyspace == true || user_options->total_candidates == true || user_options->lookup != NULL) // special case if --keyspace was used: we need the mask but no hash file
     {
       if (user_options->hc_argc > 0) mask_is_missing = false;
     }
@@ -2087,11 +2347,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
-  else if (user_options->keyspace == true || user_options->total_candidates == true)
+  else if (user_options->keyspace == true || user_options->total_candidates == true || user_options->lookup != NULL)
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if (user_options->hc_argc == 1)
+      // Several wordlists are one keyspace, so sizing a run has to accept as many of them as running it
+      // does. One argument is still the minimum: no argument at all is stdin, which has no keyspace.
+
+      if (user_options->hc_argc >= 1)
       {
         show_error = false;
       }
@@ -2117,9 +2380,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       show_error = false;
     }
+    else if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      // at least one wordlist and the table, and settings after them
+
+      if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
+    }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
-      if (user_options->hc_argc == 2)
+      // at least one wordlist, and the mask
+
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -2135,7 +2409,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
-      if (user_options->hc_argc == 2)
+      // the mask, and at least one wordlist
+
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -2185,6 +2461,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       // or a setting, which is what the feed reads either way.
 
       show_error = false;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      // at least one wordlist and the table, and settings after them
+
+      if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
@@ -2278,6 +2563,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       // Nothing after it runs the pair hashcat ships.
 
       if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      // the hash file, at least one wordlist, and the table
+
+      if (user_options->hc_argc >= 3)
       {
         show_error = false;
       }
@@ -2380,6 +2674,11 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "keyspace";
     }
 
+    if (user_options->lookup != NULL)
+    {
+      user_options->session = "lookup";
+    }
+
     if (user_options->stdout_flag == true)
     {
       user_options->session = "stdout";
@@ -2435,7 +2734,24 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   const u32 attack_mode = user_options->attack_mode;
 
-  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG)) return;
+  // -a 3 is rewritten only when it was given rules. Without them the mask belongs on the device,
+  // which is what makes brute force fast, and nothing here should touch it. With them no kernel can
+  // both walk the mask and apply the rule, so the mask becomes a feed and the straight kernel
+  // amplifies its candidates.
+
+  const bool rules_given = (user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0);
+
+  const bool mask_takes_rules = (attack_mode == ATTACK_MODE_BF) && (rules_given == true);
+
+  // -a 1, -a 6 and -a 7 are rewritten into -a 12 below whether or not there are rules. With rules
+  // they are rewritten once more, into -a 8 with the hybrid feed, and -a 12 itself joins them there:
+  // it is the one shape that has nothing to do here otherwise.
+
+  const bool hybrid_is_typed = (attack_mode == ATTACK_MODE_COMBI) || (attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2) || (attack_mode == ATTACK_MODE_HYBRID);
+
+  const bool hybrid_takes_rules = (hybrid_is_typed == true) && (rules_given == true);
+
+  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG) && (attack_mode != ATTACK_MODE_TABLE) && (mask_takes_rules == false) && (hybrid_takes_rules == false)) return;
 
   // The argument count was checked against the mode the user typed, so anything that did not pass
   // that check is left alone for the error to be reported the way it always was.
@@ -2447,13 +2763,16 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   if ((hc_argc < 1) && (attack_mode != ATTACK_MODE_PCFG)) return;
 
-  char **hc_argv = (char **) hccalloc (hc_argc + 2, sizeof (char *));
+  // Two spare slots for the feed name and the terminator, and a third for the setting --lookup is
+  // carried in as. Only the -a 4 branch below uses the third.
+
+  char **hc_argv = (char **) hccalloc (hc_argc + 3, sizeof (char *));
 
   int hc_argc_new = 0;
 
   // the hash file, or the first work argument when there is no hash file
 
-  const bool has_hash_file = (user_options->benchmark == false) && (user_options->hash_info == 0) && (user_options->backend_info == 0) && (user_options->keyspace == false) && (user_options->total_candidates == false) && (user_options->stdout_flag == false);
+  const bool has_hash_file = (user_options->benchmark == false) && (user_options->hash_info == 0) && (user_options->backend_info == 0) && (user_options->keyspace == false) && (user_options->total_candidates == false) && (user_options->lookup == NULL) && (user_options->stdout_flag == false);
 
   int work_from = 0;
 
@@ -2464,6 +2783,16 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
     hc_argc_new++;
 
     work_from = 1;
+  }
+
+  // A feed reads its own name first. Every arm below writes the mask before anything else, so the
+  // name goes in here rather than three times over.
+
+  if (hybrid_takes_rules == true)
+  {
+    hc_argv[hc_argc_new] = "hybrid";
+
+    hc_argc_new++;
   }
 
   const int work_cnt = hc_argc - work_from;
@@ -2516,13 +2845,28 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
     user_options->attack_mode = ATTACK_MODE_HYBRID;
   }
-  else
+  else if (attack_mode == ATTACK_MODE_HYBRID)
   {
-    // -a 4 is a feed attack whose feed is already known, so the whole rewrite is the feed name in
-    // front of the work arguments. A ruleset directory is the first of them, and everything after it
-    // is a second ruleset or a setting, which is what the feed reads either way.
+    // Already the shape every other hybrid mode is rewritten into, so the mask and the dictionaries
+    // are copied as they were typed and the feed name in front of them is the whole of the change.
 
-    hc_argv[hc_argc_new] = "pcfg";
+    if (work_cnt < 2) { hcfree (hc_argv); return; }
+
+    for (int i = work_from; i < hc_argc; i++)
+    {
+      hc_argv[hc_argc_new] = user_options->hc_argv[i];
+
+      hc_argc_new++;
+    }
+  }
+  else if (attack_mode == ATTACK_MODE_BF)
+  {
+    // The whole rewrite is the feed name in front of the work arguments, the same shape -a 4 and
+    // -a 5 take. What follows it is what the mask processor reads either way: a mask, several masks,
+    // or the mask files holding them. -a 3 with no work argument at all keeps its default mask,
+    // because the feed name alone leaves the queue empty and that is what DEF_MASK answers.
+
+    hc_argv[hc_argc_new] = "mask";
 
     hc_argc_new++;
 
@@ -2535,6 +2879,48 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
     user_options->attack_mode = ATTACK_MODE_GENERIC;
   }
+  else
+  {
+    // -a 4 and -a 5 are feed attacks whose feed is already known, so the whole rewrite is the feed
+    // name in front of the work arguments. What follows it is what that feed reads either way: for
+    // pcfg a ruleset and settings, for table the wordlists, the table and settings.
+
+    hc_argv[hc_argc_new] = (attack_mode == ATTACK_MODE_PCFG) ? "pcfg" : "table";
+
+    hc_argc_new++;
+
+    for (int i = work_from; i < hc_argc; i++)
+    {
+      hc_argv[hc_argc_new] = user_options->hc_argv[i];
+
+      hc_argc_new++;
+    }
+
+    // --lookup is the one spelling of the question, and this is the mode that already answers it. The
+    // answer is the feed's to give: it depends on which engine the run got and on device-tuned sizing,
+    // and neither leaves the feed. So the option is carried in as the setting the feed already reads,
+    // rather than reimplemented next to it out of tables the core does not have.
+    //
+    // Appended last, so a lookup= the user typed themselves is the one further to the left and this
+    // one wins, which is what a command line option should do against a positional setting.
+
+    if ((user_options->lookup != NULL) && (attack_mode == ATTACK_MODE_PCFG))
+    {
+      hc_asprintf (&user_options->lookup_alias, "lookup=%s", user_options->lookup);
+
+      hc_argv[hc_argc_new] = user_options->lookup_alias;
+
+      hc_argc_new++;
+    }
+
+    user_options->attack_mode = ATTACK_MODE_GENERIC;
+  }
+
+  // The arms above left the hybrid shapes at -a 12, which is what they are without rules. With them
+  // the attack is a feed, and that is -a 8. The marker policy each arm set stays as it is: it is how
+  // the mask gets its ?w, and that happens inside the mask processor either way.
+
+  if (hybrid_takes_rules == true) user_options->attack_mode = ATTACK_MODE_GENERIC;
 
   user_options->hc_argv_alias = hc_argv;
 
@@ -2592,6 +2978,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->keyspace         == true
    || user_options->total_candidates == true
+   || user_options->lookup           != NULL
    || user_options->speed_only       == true
    || user_options->progress_only    == true
    || user_options->identify         == true
@@ -2612,7 +2999,12 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->show                = false;
     user_options->status              = false;
     user_options->status_timer        = 0;
-    if (user_options->speed_only == false)
+    // A measuring run has to build the bitmap the real attack would build. Without it every
+    // candidate falls through to the hash table search and the measurement describes an attack
+    // nobody is going to launch. progress_only is only promoted to speed_only further down, so
+    // testing speed_only alone leaves it clamped.
+
+    if ((user_options->speed_only == false) && (user_options->progress_only == false))
     {
       user_options->bitmap_min          = 1;
       user_options->bitmap_max          = 1;
@@ -2646,10 +3038,12 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->brain_client        = false;
     #endif
 
-    if (user_options->workload_profile_chgd == false)
+    // -b reports the fastest number a mode can produce, which is the optimized kernel wherever one
+    // exists. -B is the same benchmark against the kernel a real attack gets by default.
+
+    if (user_options->benchmark_pure == false)
     {
       user_options->optimized_kernel  = true;
-      user_options->workload_profile  = 3;
     }
   }
 
@@ -2673,6 +3067,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet = true;
   }
 
+  if (user_options->lookup != NULL)
+  {
+    user_options->quiet = true;
+  }
+
   if (user_options->keyspace == true)
   {
     user_options->quiet = true;
@@ -2684,6 +3083,21 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (user_options->total_candidates == true)
+  {
+    user_options->keyspace = true;
+  }
+
+  // Every mode, -a 4 included, and there is no exception to it: --lookup never takes a hash file.
+  // The feed's answer depends on which engine the run gets and on device-tuned sizing, and none of
+  // that comes from a device -- the engine follows from -m and -S, and the sizing is a plugin call
+  // with no device in it. Verified by asking the same question both ways and getting the same -s.
+  //
+  // --lookup sizes every round of the queue and then reports where one candidate falls in it, which
+  // is what --keyspace already does minus the reporting. Borrowing it rather than repeating it is
+  // also what keeps the two answers in the same units: a --lookup that named an offset --keyspace
+  // did not count would send the user somewhere the run never goes.
+
+  if (user_options->lookup != NULL)
   {
     user_options->keyspace = true;
   }
@@ -2763,11 +3177,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->markov_threshold == 0)
   {
     user_options->markov_threshold = 0x100;
-  }
-
-  if (user_options->segment_size_chgd == true)
-  {
-    user_options->segment_size *= (1024 * 1024);
   }
 
   #if !defined (WITH_HWMON)
@@ -2868,16 +3277,9 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
     // from the start whatever it was told.
   }
 
-  // Splitting the hash file is what --username already does, so it is turned on rather than reinvented.
-  // The hash side is then the text after the first separator, which is what the hash parser has to see,
-  // and the username side is kept per hash, which is where the feed picks the words up. Saying
-  // --username as well is not a contradiction and not an error, it asks for the half of this that it
-  // has always asked for.
-
-  if (user_options_extra->association_autosplit == true)
-  {
-    user_options->username = true;
-  }
+  // Whether the hash file has to be split into username and hash is settled in
+  // user_options_extra_init_late (), because the answer depends on the module and the module is not
+  // loaded yet.
 }
 
 void user_options_info (hashcat_ctx_t *hashcat_ctx)
@@ -2896,6 +3298,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->benchmark_all == true)
     {
       event_log_info (hashcat_ctx, "* --benchmark-all");
+    }
+
+    if (user_options->benchmark_pure == true)
+    {
+      event_log_info (hashcat_ctx, "* --benchmark-pure");
     }
 
     if (user_options->hash_mode_chgd == false)
@@ -2966,11 +3373,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --kernel-threads=%u", user_options->kernel_threads);
     }
 
-    if (user_options->workload_profile_chgd == true)
-    {
-      event_log_info (hashcat_ctx, "* --workload-profile=%u", user_options->workload_profile);
-    }
-
     event_log_info (hashcat_ctx, NULL);
   }
   else
@@ -2978,6 +3380,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->benchmark_all == true)
     {
       event_log_info (hashcat_ctx, "# option: --benchmark-all");
+    }
+
+    if (user_options->benchmark_pure == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --benchmark-pure");
     }
 
     if (user_options->benchmark_max != BENCHMARK_MAX)
@@ -3045,10 +3452,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --kernel-threads=%u", user_options->kernel_threads);
     }
 
-    if (user_options->workload_profile_chgd == true)
-    {
-      event_log_info (hashcat_ctx, "# option: --workload-profile=%u", user_options->workload_profile);
-    }
   }
 }
 
@@ -3134,8 +3537,27 @@ static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
 void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig         = hashcat_ctx->hashconfig;
+  const module_ctx_t   *module_ctx         = hashcat_ctx->module_ctx;
   const user_options_t *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // Whether -a 9 splitting its own hash file has to split it into username and hash.
+  //
+  // For most modes the account name in front of the hash is the only thing hashcat knows about whoever
+  // chose the password, and --username is what cuts it off, so it is turned on rather than reinvented.
+  // A module that answers module_hash_hints itself knows something better, and its hash file may have
+  // no account name at all: a WPA capture is one line of its own format and splitting it at the first
+  // separator would destroy it.
+  //
+  // So the module decides, and this is where it can be asked: hashconfig_init () has loaded it and the
+  // hash file has not been read yet. Deciding it earlier and taking it back here would need a record of
+  // what the user asked for, which is a piece of state kept only to undo a decision made too soon.
+  // Nothing here ever turns --username off, so there is nothing to remember.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    if (module_ctx->module_hash_hints == default_hash_hints) hashcat_ctx->user_options->username = true;
+  }
 
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
 
@@ -3266,6 +3688,10 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     user_options_extra->rule_len_base = user_options_extra->rule_len_r;
   }
 
+  // --dynamic-x
+
+  user_options_extra->dynamicx_num = -1;
+
   // hc_hash and hc_work*
 
   user_options_extra->hc_hash  = NULL;
@@ -3306,6 +3732,10 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   //
   // --keyspace and --stdout have no hash file at all, and their single argument is the wordlist, which
   // is why hc_hash rather than the argument count is what this asks.
+  //
+  // A key=value argument is a setting rather than a wordlist, and settings are how every attack-mode 8
+  // feed is configured. So a run that names only settings is still taking its words out of the hash
+  // file, and phases= can say which phases of the attack to run.
 
   user_options_extra->association_autosplit = false;
 
@@ -3313,7 +3743,16 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->hc_hash != NULL)
     {
-      if (user_options_extra->hc_workc == 0) user_options_extra->association_autosplit = true;
+      u32 sources = 0;
+
+      for (int i = 0; i < user_options_extra->hc_workc; i++)
+      {
+        if (feed_param_is_setting (user_options_extra->hc_workv[i]) == true) continue;
+
+        sources++;
+      }
+
+      if (sources == 0) user_options_extra->association_autosplit = true;
     }
   }
 
@@ -3327,15 +3766,24 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options_extra->hybrid_q = false;
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+  // Whether the mask names a second word, which is asked of the command line rather than of the mask
+  // because it has to be answered before any mask is parsed: the wordlist it names has to be counted
+  // first. The hybrid feed reads its own name in front of the same arguments, so there everything is
+  // one place further along.
+
+  const mask_feed_kind_t mask_feed = mask_feed_kind (user_options);
+
+  if ((user_options->attack_mode == ATTACK_MODE_HYBRID) || (mask_feed == MASK_FEED_HYBRID))
   {
+    const int named = user_options_extra->hc_workc - ((mask_feed == MASK_FEED_HYBRID) ? 1 : 0);
+
     if (user_options->attack_mode_typed == ATTACK_MODE_COMBI)
     {
       user_options_extra->hybrid_q = true;
     }
     else if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID)
     {
-      user_options_extra->hybrid_q = (user_options_extra->hc_workc == 3);
+      user_options_extra->hybrid_q = (named == 3);
     }
   }
 
@@ -3611,6 +4059,14 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     for (int i = 0; i < user_options_extra->hc_workc; i++)
     {
       char *wlfile = user_options_extra->hc_workv[i];
+
+      // -a 9 taking its words out of the hash file has no wordlist to name, and what it takes instead
+      // is settings. A setting is not a path and must not be looked for as one.
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        if (feed_param_is_setting (wlfile) == true) continue;
+      }
 
       if (hc_path_exist (wlfile) == false)
       {
@@ -3926,36 +4382,44 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     // The first argument is a plugin name and only falls back to being a path, so it is checked
     // against the shipped feeds first. A name that matches neither is reported as the path it would
     // have been, because that is the form the user typed.
+    //
+    // There may be no argument at all. --backend-info and --hash-info answer without running an
+    // attack, so they leave hc_workv null whatever else is on the command line, and reading
+    // hc_workv[0] read through it. --benchmark leaves it null for the same reason but refuses -a
+    // before reaching here, so it cannot get this far today.
 
-    char *plugin_name = user_options_extra->hc_workv[0];
-
-    bool by_name = false;
-
-    char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
-
-    hcfree (library_filename);
-
-    if (by_name == false)
+    if (user_options_extra->hc_workc > 0)
     {
-      if (hc_path_exist (plugin_name) == false)
+      char *plugin_name = user_options_extra->hc_workv[0];
+
+      bool by_name = false;
+
+      char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
+
+      hcfree (library_filename);
+
+      if (by_name == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+        if (hc_path_exist (plugin_name) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-        return -1;
-      }
+          return -1;
+        }
 
-      if (hc_path_is_directory (plugin_name) == true)
-      {
-        event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
+        if (hc_path_is_directory (plugin_name) == true)
+        {
+          event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
 
-        return -1;
-      }
+          return -1;
+        }
 
-      if (hc_path_read (plugin_name) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+        if (hc_path_read (plugin_name) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-        return -1;
+          return -1;
+        }
       }
     }
 
@@ -4468,6 +4932,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->bridge_parameter2);
   logfile_top_string (user_options->bridge_parameter3);
   logfile_top_string (user_options->bridge_parameter4);
+  logfile_top_string (user_options->cache_path);
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);
   logfile_top_string (user_options->custom_charset_2);
@@ -4505,11 +4970,11 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);
   logfile_top_uint   (user_options->backend_devices_virthost);
-  logfile_top_uint   (user_options->backend_devices_keepfree);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->benchmark_max);
   logfile_top_uint   (user_options->benchmark_min);
+  logfile_top_uint   (user_options->benchmark_pure);
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);
@@ -4534,6 +4999,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->total_candidates);
   logfile_top_uint   (user_options->left);
+  logfile_top_uint   (user_options->length_sort_disable);
   logfile_top_uint   (user_options->logfile);
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
@@ -4557,7 +5023,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->remove);
   logfile_top_uint   (user_options->remove_timer);
   logfile_top_uint   (user_options->restore);
-  logfile_top_uint   (user_options->restore_auto);
   logfile_top_uint   (user_options->restore_enable);
   logfile_top_uint   (user_options->restore_position);
   logfile_top_uint   (user_options->restore_timer);
@@ -4566,10 +5031,9 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->rp_gen_func_max);
   logfile_top_uint   (user_options->rp_gen_func_min);
   logfile_top_uint   (user_options->rp_gen_seed);
+  logfile_top_uint   (user_options->rp_files_concat);
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
-  logfile_top_string (user_options->seekdb_path);
-  logfile_top_uint   (user_options->segment_size);
   logfile_top_uint   (user_options->self_test);
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
@@ -4584,7 +5048,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->veracrypt_pim_start);
   logfile_top_uint   (user_options->veracrypt_pim_stop);
   logfile_top_uint   (user_options->version);
-  logfile_top_uint   (user_options->workload_profile);
   #ifdef WITH_BRAIN
   logfile_top_uint   (user_options->brain_client);
   logfile_top_uint   (user_options->brain_client_features);

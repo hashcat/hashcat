@@ -26,7 +26,7 @@ sub MurmurHash
 
   $hash += 0xdeadbeef;
 
-  my @chars = unpack ("c*", $word);
+  my @chars = unpack ("C*", $word);
 
   my $len = length $word;
 

@@ -43,6 +43,29 @@ KERNEL_FQ KERNEL_FA void m01100_m04 (KERN_ATTR_RULES ())
    * salt
    */
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its salt from the global id, so the copy thread zero makes would be
+  // handed to every other thread of the workgroup along with the wrong salt. Each thread reads its
+  // own out of global memory instead, and word 10, which the shared copy rewrites in place, is
+  // computed where it is read, because nothing is written back to global memory.
+
+  if (gid >= GID_CNT) return;
+
+  #define salt_buf00 salt_bufs[SALT_POS_HOST].salt_buf[ 0]
+  #define salt_buf01 salt_bufs[SALT_POS_HOST].salt_buf[ 1]
+  #define salt_buf02 salt_bufs[SALT_POS_HOST].salt_buf[ 2]
+  #define salt_buf03 salt_bufs[SALT_POS_HOST].salt_buf[ 3]
+  #define salt_buf04 salt_bufs[SALT_POS_HOST].salt_buf[ 4]
+  #define salt_buf05 salt_bufs[SALT_POS_HOST].salt_buf[ 5]
+  #define salt_buf06 salt_bufs[SALT_POS_HOST].salt_buf[ 6]
+  #define salt_buf07 salt_bufs[SALT_POS_HOST].salt_buf[ 7]
+  #define salt_buf08 salt_bufs[SALT_POS_HOST].salt_buf[ 8]
+  #define salt_buf09 salt_bufs[SALT_POS_HOST].salt_buf[ 9]
+  #define salt_buf10 ((16 + salt_bufs[SALT_POS_HOST].salt_len) * 8)
+
+  #else
+
   LOCAL_VK salt_t s_salt_buf[1];
 
   if (lid == 0)
@@ -67,6 +90,8 @@ KERNEL_FQ KERNEL_FA void m01100_m04 (KERN_ATTR_RULES ())
   #define salt_buf08 s_salt_buf[0].salt_buf[ 8]
   #define salt_buf09 s_salt_buf[0].salt_buf[ 9]
   #define salt_buf10 s_salt_buf[0].salt_buf[10]
+
+  #endif
 
   /**
    * loop
@@ -262,6 +287,29 @@ KERNEL_FQ KERNEL_FA void m01100_s04 (KERN_ATTR_RULES ())
    * salt
    */
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its salt from the global id, so the copy thread zero makes would be
+  // handed to every other thread of the workgroup along with the wrong salt. Each thread reads its
+  // own out of global memory instead, and word 10, which the shared copy rewrites in place, is
+  // computed where it is read, because nothing is written back to global memory.
+
+  if (gid >= GID_CNT) return;
+
+  #define salt_buf00 salt_bufs[SALT_POS_HOST].salt_buf[ 0]
+  #define salt_buf01 salt_bufs[SALT_POS_HOST].salt_buf[ 1]
+  #define salt_buf02 salt_bufs[SALT_POS_HOST].salt_buf[ 2]
+  #define salt_buf03 salt_bufs[SALT_POS_HOST].salt_buf[ 3]
+  #define salt_buf04 salt_bufs[SALT_POS_HOST].salt_buf[ 4]
+  #define salt_buf05 salt_bufs[SALT_POS_HOST].salt_buf[ 5]
+  #define salt_buf06 salt_bufs[SALT_POS_HOST].salt_buf[ 6]
+  #define salt_buf07 salt_bufs[SALT_POS_HOST].salt_buf[ 7]
+  #define salt_buf08 salt_bufs[SALT_POS_HOST].salt_buf[ 8]
+  #define salt_buf09 salt_bufs[SALT_POS_HOST].salt_buf[ 9]
+  #define salt_buf10 ((16 + salt_bufs[SALT_POS_HOST].salt_len) * 8)
+
+  #else
+
   LOCAL_VK salt_t s_salt_buf[1];
 
   if (lid == 0)
@@ -286,6 +334,8 @@ KERNEL_FQ KERNEL_FA void m01100_s04 (KERN_ATTR_RULES ())
   #define salt_buf08 s_salt_buf[0].salt_buf[ 8]
   #define salt_buf09 s_salt_buf[0].salt_buf[ 9]
   #define salt_buf10 s_salt_buf[0].salt_buf[10]
+
+  #endif
 
   /**
    * digest

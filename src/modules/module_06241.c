@@ -157,7 +157,12 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   hc_fclose (&fp);
 
-  if (n != TC_HEADER_SIZE) return (PARSER_TC_FILE_SIZE);
+  if (n != TC_HEADER_SIZE)
+  {
+    hcfree (in);
+
+    return (PARSER_TC_FILE_SIZE);
+  }
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
@@ -165,7 +170,12 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, TC_HEADER_SIZE);
 
-  if (parser_status != PARSER_OK) return 0;
+  if (parser_status != PARSER_OK)
+  {
+    hcfree (in);
+
+    return 0;
+  }
 
   hcfree (in);
 
@@ -289,6 +299,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = MODULE_DEFAULT;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;

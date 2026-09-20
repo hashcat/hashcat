@@ -50,11 +50,38 @@ KERNEL_FQ KERNEL_FA void m00140_mxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
+  #if VECT_SIZE == 1
+
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
+  #endif
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    #if VECT_SIZE == 1
+
+    w[0] = hc_swap32_S (w0);
+
+    sha1_ctx_t ctx = ctx0;
+
+    sha1_update_utf16le_swap (&ctx, w, pw_len);
+
+    sha1_final (&ctx);
+
+    #else
 
     w[0] = w0;
 
@@ -65,6 +92,8 @@ KERNEL_FQ KERNEL_FA void m00140_mxx (KERN_ATTR_VECTOR ())
     sha1_update_vector_utf16beN (&ctx, w, pw_len);
 
     sha1_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
@@ -123,11 +152,38 @@ KERNEL_FQ KERNEL_FA void m00140_sxx (KERN_ATTR_VECTOR ())
 
   u32x w0l = w[0];
 
+  #if VECT_SIZE == 1
+
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
+  #endif
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
+
+    #if VECT_SIZE == 1
+
+    w[0] = hc_swap32_S (w0);
+
+    sha1_ctx_t ctx = ctx0;
+
+    sha1_update_utf16le_swap (&ctx, w, pw_len);
+
+    sha1_final (&ctx);
+
+    #else
 
     w[0] = w0;
 
@@ -138,6 +194,8 @@ KERNEL_FQ KERNEL_FA void m00140_sxx (KERN_ATTR_VECTOR ())
     sha1_update_vector_utf16beN (&ctx, w, pw_len);
 
     sha1_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];

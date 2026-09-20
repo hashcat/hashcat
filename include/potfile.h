@@ -18,6 +18,8 @@ int  potfile_read_open        (hashcat_ctx_t *hashcat_ctx);
 void potfile_read_close       (hashcat_ctx_t *hashcat_ctx);
 int  potfile_write_open       (hashcat_ctx_t *hashcat_ctx);
 void potfile_write_close      (hashcat_ctx_t *hashcat_ctx);
+void potfile_batch_begin   (hashcat_ctx_t *hashcat_ctx);
+void potfile_batch_end     (hashcat_ctx_t *hashcat_ctx);
 void potfile_write_append     (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, u8 *plain_ptr, unsigned int plain_len);
 int  potfile_remove_parse     (hashcat_ctx_t *hashcat_ctx);
 void potfile_destroy          (hashcat_ctx_t *hashcat_ctx);

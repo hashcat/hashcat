@@ -92,6 +92,11 @@ There's some more BRIDGE PARAMETERs that you should know:
 +  BRIDGE_TYPE_UPDATE_SELFTEST     = updates the selftest configured in the module. Can be useful for generic hash modes such as the python plugin
 +  BRIDGE_TYPE_LOOP_CHUNKED        = launch_loop() honours kernel_param.loop_pos and .loop_cnt, so hashcat may split the salt's iteration space into chunks and call the bridge once per chunk. Without it the bridge is handed the whole range in a single call, which is what a one-shot implementation needs. Set this only if your compute can stop and resume mid-iteration, which means keeping any per candidate state alive between calls
 
+Two sets of flags were removed with no substitute, so a bridge written against the older interface
+names a symbol that no longer exists and does not compile: `BRIDGE_TYPE_MATCH_TUNINGS`, and the nine
+`BRIDGE_TYPE_FORCE_WORKITEMS_001` through `BRIDGE_TYPE_FORCE_WORKITEMS_256`. Delete them from your
+`BRIDGE_TYPE`. What replaced them is described next.
+
 There is no flag to match tunings any more. hashcat derives the workitem count from what
 `get_workitem_count()` reports, for every bridge, and sizes the launch and the device buffers from
 that. The count is treated as a maximum the bridge will never be asked to exceed.

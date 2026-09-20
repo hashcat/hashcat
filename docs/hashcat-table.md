@@ -1,0 +1,345 @@
+# The Table Attack
+
+The table attack reads a wordlist and one or more tables that define token replacements. We choose a replacement independently for each token position in a word, then generate the full cross product of those choices.
+
+Every argument after the wordlist is a table, and we read them all into one set. A leetspeak table and a case table given together make one attack rather than two runs, which is what the example below does. Section 3 covers how lines from different tables merge.
+
+```
+hashcat -m 0 -a 5 hashes.txt rockyou.txt tables/leetspeak-common.table tables/toggle.table
+```
+
+The attack was available as `-a 5` in hashcat-legacy, but was removed in 3.00 because it was considered unsuitable for GPU execution. We now run it on the GPU. On a GeForce RTX 4090 against MD5, over the whole of rockyou, the same run measures 65 MH/s unamplified, 1197 MH/s through the case table, 1227 MH/s through leetspeak, 13442 MH/s through both at once, and 19687 MH/s with the extended leetspeak tier added to those.
+
+## 1. What it is for
+
+A leetspeak table generates candidates such as `p@ssw0rd` from `password`. A case table tries every combination of uppercase and lowercase letters. Keyboard layout tables reproduce passwords typed with the wrong layout active. Transliteration tables provide ASCII spellings for words that contain accents or use another script.
+
+### Each position chooses for itself
+
+A rule substitutes every occurrence at once. `ss$` turns `password` into `pa$$word` and `ss5` turns it into `pa55word`, and no rule in between produces `pa5$word` or `pa$5word`. The two positions cannot be given different replacements, because a rule has no way to name one occurrence and not the other.
+
+```
+$ cat s.rule
+:
+ss$
+ss5
+$ hashcat -a 0 --stdout words.txt -r s.rule
+password
+pa$$word
+pa55word
+```
+
+The table attack chooses at each position separately, so the same two replacements give all 9 spellings:
+
+```
+$ cat s.table
+s	$
+s	5
+$ hashcat -a 5 --stdout words.txt s.table
+password
+pas$word
+pas5word
+pa$sword
+pa$$word
+pa$5word
+pa5sword
+pa5$word
+pa55word
+```
+
+This is the reason the attack exists. Mixed spellings are what people type, and they are the ones a ruleset skips. The gap grows with the word. A password with 4 `s` in it has 81 spellings of its `s` alone, counting the ones left as they are, and the ruleset above reaches 3 of them.
+
+### It hardly generates duplicates
+
+A ruleset can be written to reach some of these by naming positions, but it repeats enormous amounts of work. A generated leetspeak ruleset applies `sa4` to every word, including words with no `a` in them. Those come out unchanged and duplicate the identity rule.
+
+Take 6 letters with 2 replacements each. As a ruleset that is 729 combinations, and as a table it is 12 lines. Over the first 10000 passwords of rockyou:
+
+| | emitted | distinct |
+|---|---|---|
+| 729 rules | 7290000 | 294875 |
+| 12 table lines | 1081542 | 1080795 |
+
+96 percent of the ruleset run is duplicates, because every rule is applied to every word and `sa4` on a word with no `a` hands back the word. The table only enumerates replacements for tokens the word actually contains, so almost nothing it emits is a repeat.
+
+The table also reaches 3.7 times as many distinct candidates as the ruleset does, which is the point rather than a side effect: `sa4` changes every `a` in a word at once, and the table changes them independently.
+
+No word can repeat itself when the replacements are all the length of what they replace, which covers leetspeak and case toggling. The 747 repeats above are two words meeting rather than one word repeating: rockyou holds `password` and `passw0rd`, and both reach `passw0rd`. It holds `sarah1` and `sarahi`, and both reach `$4r4h1`. That is what a wordlist contains, not something the table does.
+
+A table that changes length can repeat within one word, where a replacement runs into the token beside it: with `a` to `ab` and `bc` to `c`, the word `abc` reaches `abc` twice, once by changing nothing and once by making both changes. It takes a table written to do it, and the cost is one wasted candidate rather than the 96 percent above.
+
+Rules also cannot replace one character with two, or match several characters at once. Neither `f` to `ph` nor `th` to `7h` can be expressed that way, whatever the size of the ruleset.
+
+### Typed in the wrong layout
+
+Somebody types a Russian password with a US layout active, or a boot loader offers nothing but a US layout. What reaches the hash is the US letters at those key positions, so a Russian wordlist has to be converted before it is any use. The layout tables do that conversion, and `identity=0` makes it a conversion rather than a set of variations:
+
+```
+$ cat words.txt
+пароль
+$ hashcat -a 5 --stdout words.txt tables/layouts/ru.table identity=0
+gfhjkm
+```
+
+Each of the 6 letters is one line of the table, and the whole word converts at once:
+
+```
+п	g
+а	f
+р	h
+о	j
+л	k
+ь	m
+```
+
+The reverse table takes a wordlist of what was typed back to what was meant:
+
+```
+$ hashcat -a 5 --stdout typed.txt tables/layouts/ru-reverse.table identity=0
+пароль
+```
+
+This is what `--keyboard-layout-mapping` was added for, and that option reaches 30 of 595 hash modes, all of them TrueCrypt and VeraCrypt, and it is refused outright for every other mode including most of the TrueCrypt and VeraCrypt ones. The same files as a table work for every hash mode and every attack the feed serves.
+
+Leaving the unchanged choice on is a different attack rather than a broken one. `пароль` has 6 covered letters, so the default gives 2^6 candidates with `gfhjkm` among them, which is what you want for a password where the layout was switched partway through. It is not what you want when the whole word was typed on the wrong layout.
+
+### The wordlist as a template
+
+Everything above changes a word a little. A table can also replace a whole word with a different one, and that turns the attack into something else.
+
+People build a password around something they care about, and the thing itself is interchangeable while the shape around it is not. rockyou holds `football1`, `ilovefootball`, `football!`, `Football2010` and thousands more of the same shape. Somebody who follows a different sport wrote the same shapes around a different word. A table that maps each sport to every other sport reaches all of them:
+
+```
+$ hashcat -m 0 -a 5 hashes.txt rockyou.txt tables/sports.table identity=0 template=1
+```
+
+Two settings make it work. `identity=0` takes away the choice of leaving the word alone, because the original is already in the wordlist you gave and trying it again is wasted. `template=1` says never hand a word back unchanged, which is what turns the wordlist into a set of patterns.
+
+`template=1` covers two things that are really one rule. A word the table never matched can only come out as itself, so it is dropped entirely. A word the table did match still had the candidate that changes nothing, and that goes too:
+
+```
+$ cat words.txt
+footballman
+$ cat t.table
+football	basketball
+man	woman
+$ hashcat -a 5 --stdout words.txt t.table
+footballman
+footballwoman
+basketballman
+basketballwoman
+$ hashcat -a 5 --stdout words.txt t.table template=1
+basketballwoman
+basketballman
+footballwoman
+```
+
+If you want a wordlist attack you can run `-a 0`, and that is the argument for it: over several tables against one wordlist you would otherwise pay for the wordlist once per table.
+
+The difference is the whole point. Over 400000 lines of rockyou with a 20 sport table:
+
+| | candidates |
+|---|---|
+| `identity=0` alone | 419727 |
+| `identity=0 template=1` | 20767 |
+
+Every one of those 20767 is in both runs: the table builds the same candidates either way. The other 398960 are the wordlist handed straight back, which is 95 percent of the first run. The second says how many words it dropped and why:
+
+```
+table: template on, 398961 of 400000 words matched no rule and were dropped
+```
+
+A word dropped for matching nothing is counted apart from a word dropped because the hash mode would take none of its candidates. They are different things to be told.
+
+What makes this worth doing is that the patterns are real. Nobody sits down and writes `ilove<thing>` and `<thing>2010` and `<thing>!` and gets the distribution right. A cracked wordlist already has it, measured from people, and the table lifts those shapes off one subject and puts them on another.
+
+The idea is not sports. Build the list for bands, cars, cities, football clubs, films, pets, or a company's own product names, and use a wordlist of passwords rather than a dictionary. A list of n things is n * (n - 1) lines, one per pair, and `tables/sports.table` is there as a starting shape rather than as a recommendation.
+
+Matching is by bytes, so `football` and `Football` are two different sources. Add `tables/toggle.table` if you want the case covered as well.
+
+## 2. The table file
+
+Each line defines one replacement for a source token. We write the source first, followed by a tab and the replacement.
+
+```
+a	4
+a	@
+e	3
+ss	$$
+h	$HEX[]
+```
+
+To give a source several replacements, we list it on separate lines. Each line adds another choice, so `a` in this example becomes either `4` or `@`. We split each line at its tab and preserve the replacement exactly, including any spaces at the end of it.
+
+* Source tokens and replacements can both hold several bytes and both are UTF-8. `th` to `7h` matches two characters, and `f` to `ph` produces two.
+* An empty replacement deletes the source token. Write it as `$HEX[]` so it survives editors that strip trailing whitespace.
+* Blank lines and lines beginning with `#` are ignored. So is any other line that does not hold exactly one tab, which is what lets a table carry a header without a comment marker.
+* Either side accepts `$HEX[..]` wrapping the whole side. That is the only way to write a newline, or a `#` in the first column.
+* Repeating the same source and the same replacement would generate the same candidate twice, so we discard exact duplicates.
+
+When several source tokens match at the same position, we match **longest first** and do not try other ways to split the word. With both `s` and `ss` in a table, `ss` is always one token. To cover both readings, give the `ss` bucket the cross product of the `s` bucket with itself.
+
+The order of entries controls the order we try replacements. The odometer starts with the first entry of each bucket, so putting the most promising replacements first gives them priority during the run.
+
+### Leaving a token alone
+
+Leaving a token unchanged is always one of its choices, and a table does not have to say so. A table cannot be asked to spell that out for characters nobody thought of. One that names the letters of a single language would otherwise force a substitution on every letter it happens to cover while leaving every other letter alone, and the two halves of the word would not compose. Because the unchanged choice comes first in every bucket, the first candidate for a word is the word itself, so the attack includes a straight wordlist run.
+
+A conversion table wants the opposite. It should convert the whole word rather than try every mixture of converted and unconverted tokens, so it turns the unchanged choice off with `identity=0`. The layout tables say so in their headers. Without it, a layout table over a word of n covered letters produces 2^n candidates instead of the one conversion that was wanted.
+
+## 3. Several tables at once
+
+Every argument after the wordlist is a table, and we read them all into one set. Where several tables define the same source, their replacements merge in the order the tables were given and exact duplicates are dropped:
+
+```
+hashcat -m 0 -a 5 hashes.txt words.txt tables/leetspeak-common.table tables/toggle.table
+```
+
+This is how leetspeak and case are combined, rather than by shipping a table that has both merged into it already. 2 leetspeak tiers, a case table and an emoji table give 15 combinations from 4 files. The status display names the count on its `Guess.Base` line, as `Feed (words.txt + 2 tables)`.
+
+Combining tables changes which candidates we generate, not only how many.
+
+**Adding a table can take candidates away.** Because the longest match wins, an entry for a whole word beats the entries for its individual letters. With `leetspeak-common.table` alone, `chickenpass` produces 162 candidates, `ch1ckenpass` among them. Adding `emoji.table` brings that down to 54 and drops that candidate, because `chicken` now matches as one token instead of as seven letters.
+
+**Mixing conversion and variation changes the attack.** A layout table with `identity=0` converts each word completely. Merged with a leetspeak table, every shared letter can now be left alone, replaced with leetspeak, or converted to the other layout. That covers a password typed with the layout switched partway through, but it is no longer the complete conversion on its own. The counts multiply rather than add. To keep conversion and variation apart, run two attacks.
+
+## 4. The tables that ship
+
+| table | what it does |
+|---|---|
+| `tables/leetspeak-common.table` | the substitutions people actually make |
+| `tables/leetspeak-extended.table` | seen regularly, well behind the common set |
+| `tables/toggle.table` | case, both directions, Latin, Greek and Cyrillic |
+| `tables/emoji.table` | whole words as emoji |
+| `tables/layouts/<lang>.table` | that keyboard layout to US, for `identity=0` |
+| `tables/layouts/<lang>-reverse.table` | US to that keyboard layout, for `identity=0` |
+| `tables/sports.table` | one sport for another, for `identity=0 template=1` |
+
+The same layout tables are what `--keyboard-layout-mapping` reads. See `keyboard-layout-mapping.md`.
+
+## 5. Settings
+
+Settings are `key=value` arguments and go after the tables.
+
+| setting | default | what it does |
+|---|---|---|
+| `maxperm` | 1048576 | how much of one word's cross product the host enumerates, 0 for no limit |
+| `template` | 0 | `1` never hands back a word of the wordlist unchanged, which reads it as a set of patterns |
+| `identity` | 1 | whether leaving a token alone is one of its choices, `identity=0` for a table that converts |
+| `single` | 0 | `1` makes a candidate carry one substitution instead of the cross product of every position |
+| `cap` | 0 | how many replacements one source may carry, 0 for no limit |
+
+### maxperm
+
+The candidate count for a word is the product of its radices, and a radix is the number of replacement choices at one token position. That product grows exponentially with the length of the word while the likely benefit does not.
+
+Of rockyou's 14344391 lines, 14222506 are 16 bytes or fewer and 121885 are longer, which is 0.85 percent of the file. Run through `leetspeak-common.table` and `toggle.table` together with no limit, the short ones alone are worth 2216157954021 candidates. Add the 121885 long ones and the total saturates a 64 bit counter, and hashcat says as much on startup: the widest single word wants more than 2^64 candidates by itself. Without a limit the attack never gets past the first few long words it meets.
+
+Which candidates we give up matters as much as the limit. Simply taking the first ones favours changes at the end of a word, because the odometer advances its last position fastest. Truncating that sequence means `administratorpassword1234` never starts with a `4`, even where there is budget to spare.
+
+So we spend the budget on **how many** substitutions a candidate makes rather than on where they fall. We try the word itself first, then every candidate that changes one token, then every candidate that changes two, and so on until the budget runs out or we reach eight changes, whichever comes first. Eight is the width of the table that counts them and it is generous: a word that wants a ninth change in the part the host walks has already spent far more budget than the default gives it. Every position stays reachable at every weight. What we leave out is the candidates that change many tokens at once, not the positions near the start of the word. A word whose full cross product fits in the budget still gets all of it.
+
+What the budget buys is the part the host walks, not the whole word. The graphics card expands a cell of up to 8 token positions and that cell is never cut down, because cutting it down is giving up the amplification the attack exists for. So the budget is divided by the size of the cell and spent on the rest, and a word is worth at least one whole cell however small `maxperm` is set. With the shipped tables a cell reaches a few hundred thousand candidates, so `maxperm=1` and `maxperm=100000` ask for much the same thing. The setting bites on the long words it was written for, where the part in front of the cell is what runs away.
+
+Changing `maxperm` changes the order of candidates, so it is part of the identity of the attack. A restore point taken before the change is not valid after it.
+
+### single
+
+`single=1` makes each candidate carry exactly one substitution. The word itself is still tried, once, and then every replacement of every source the table matches anywhere in it. There is no cross product, so `maxperm` has nothing to cut and is ignored.
+
+This is a different attack rather than a cheaper one. The cross product asks what a word looks like when several letters are swapped at once. `single=1` asks what it looks like when one is, which is what a person who typed `p@ssword` actually did.
+
+It also changes what a table means. The cross product has to divide a word into non-overlapping tokens, because two choices cannot both claim the same bytes, and it takes the longest source that matches at each point. A shorter source underneath a longer one therefore never gets a turn: with both `s` and `ss` in the table, `ss` claims both letters of `password` and `pa$sword` is unreachable. One substitution has no such conflict, so every source is offered wherever it matches and nothing is covered:
+
+```
+$ cat s.table
+s	$
+ss	5
+$ hashcat -a 5 --stdout words.txt s.table
+password
+pa5word
+$ hashcat -a 5 --stdout words.txt s.table single=1
+pa5word
+password
+pa$sword
+pas$word
+```
+
+Against 200000 rockyou words and 60000 other rockyou passwords as targets, using a harvested table of 8285769 lines over 234785 sources, `single=1` recovered 91.72 percent on 6975690596 candidates where the full cross product recovered 87.44 percent on 15016588492. More cracks for less than half the candidates.
+
+It is not free. A cell reaches one position rather than eight, so the card amplifies about 1852 times where the cross product amplifies about 73989 times, and the host has to feed 3765707 base words instead of 205410. On MD5 that run takes 44 seconds against the cross product's 13, so on a fast hash `single=1` is more work per second even though it is less work per crack. On a slow hash, where the candidate count is what costs, it wins outright.
+
+`identity=0` cannot be combined with `single=1`, because one substitution needs the other positions left alone and `identity=0` is the instruction to convert them all. `template=1` works, and takes away the one candidate that changes nothing.
+
+### cap
+
+Nothing in a table file bounds how many replacements one source may carry. A table written by hand carries a handful. A table harvested from cracked passwords can carry thousands: the one measured above averages 35 replacements across its 234785 sources and its widest source carries 13510.
+
+That is what makes such a table expensive, rather than the number of sources in it, and it is the part `single=1` does not reach. One substitution removes the combinations between positions and leaves the replacement lists exactly as they were.
+
+`cap=N` keeps the first N replacements of each source and drops the rest, in both attacks. The first N are the ones the table files give first, because a table line carries no count to rank them by. If your table came out of a harvest, write it in the order you want kept.
+
+```
+table: cap 8, 79149 of 234785 sources reached it and 7335944 lines were left out
+```
+
+What a cap buys depends entirely on what the hash costs. On the run above, with `single=1`:
+
+| | candidates | recovered | on MD5 |
+|---|---|---|---|
+| no cap | 6975690596 | 91.72% | 44 s |
+| `cap=32` | 97885487 | 61.70% | 37 s |
+| `cap=16` | 51405879 | 49.41% | 34 s |
+| `cap=8` | 26960600 | 36.19% | 33 s |
+| `cap=4` | 14077682 | 24.62% | 32 s |
+
+`cap=32` throws away 98.6 percent of the candidates and keeps two thirds of the cracks. That is a poor trade on MD5, where the 7 seconds it saves come out of a 44 second run whose time goes on reading an 8285769 line table and feeding 3.7 million base words rather than on hashing. The cap barely touches either: it shortens the replacement list at each place without changing how many places a word has, so the base word count falls only from 3765707 to 3664044.
+
+On a slow hash the arithmetic inverts, because there the candidate count is the cost. The same `cap=32` is 71 times less work for two thirds of the cracks. Set the cap by what a candidate costs you, not by the size of the table.
+
+The cap changes the table, so it changes the attack's identity and its keyspace index the same way editing the table file would.
+
+## 6. The lines it prints
+
+```
+table: device engine, 614 buckets, 9868 byte pool, mean cell 1346, entries of several lengths
+table: 22494678 base words for 31362630643 candidates (x1394)
+table: 1 words left out, no candidate of theirs is between the 0 and 256 bytes this hash mode accepts
+table: maxperm 1048576, 22158 words held to it, the widest wanting more than 2^64
+```
+
+* **device engine.** Each base word is expanded into its candidates on the GPU, inside the hash kernel. A slow hash reports `host engine` instead and builds every candidate on the CPU.
+* **mean cell 1346.** The average number of candidates the GPU makes from one base word. Expanding there is what gets past the generation speed of a single CPU core.
+* **entries of several lengths.** Some replacement differs in length from its source, so a candidate cannot keep the layout of its base word. Handling that costs a little speed.
+* **one pass over the wordlist.** We read it once to learn the length of the attack and where a seek lands. A pass that takes more than a second reports how long it took, on a line of its own, and the run above was quick enough not to. What the pass learned is written to `cache/feeds/table`, so a run that finds it there does not read the wordlist again and the line does not appear. A file there is described by the wordlist, the tables and the settings together, so changing any of them measures again rather than reusing the wrong answer. `--cache-path` points the directory somewhere several machines share. This cache tolerates a read only directory, since a run writes only when it had to measure and carries on from memory when the write fails, but the compiled kernels are under the same option and they do not, so a shared directory wants to be writable.
+
+Two more lines appear when they apply. `table: identity off` says the unchanged choice was turned off, and `table: template on` counts the words that matched no rule and were dropped. A word left out for its length and a word left out for matching nothing are counted apart, because they are different things to be told.
+
+## 7. Seeing which lines fired
+
+`--debug-mode` writes down how a candidate was made. It was built for rules, so its first five modes report the rule that made a crack, and a table attack has no rules. In an attack that has a feed we fill that field from the feed instead, so every mode works here and reports the table lines that fired:
+
+```
+$ hashcat -m 0 -a 5 hashes.txt words.txt t.table --debug-mode 6 --debug-file fired.txt
+$ cat fired.txt
+footballman:football->basketball,man->woman:basketballwoman
+footballman:football->basketball:basketballman
+footballman:man->woman:footballwoman
+sunshine::sunshine
+```
+
+The base word, the rules that fired, and the candidate they produced. Only the rules that actually fired are named: a word carries a choice for every token the table covers, and listing the ones that changed nothing would bury the ones that did. A line with an empty middle is a candidate no rule changed.
+
+`--debug-mode 6` is the shape above, the same three fields as mode 4. The other modes pick their own: mode 1 writes the substitutions alone, mode 2 the base word alone, mode 3 both without the candidate, and mode 5 adds the wordlist position field, which an attack with a feed fills with `<generic>` rather than a number. None of them needs `-r` here.
+
+What every mode needs here is the graphics card: the lines that fired are recovered from the cell the card was handed, so on a hash slow enough to run the host engine there is no cell to read and the middle stays empty.
+
+A table too wide for one cell has its leading substitutions made on the host and carried in the base word, so those do not appear in the middle either. The base word is printed beside them, so the two together still account for the candidate.
+
+Rules and a table can be combined, and then none of this is available. Stacking rules gives up the feed's own kernel, so the table's candidates become the base words that the rules work on. The first five modes go back to reporting the rule, and the base word they name is the table's output rather than the wordlist entry. Mode 6 has no cell left to read, so its middle field is empty.
+
+## 8. Notes
+
+Rules given with `-r` work with the table attack. Stacking rules gives up the feed's own kernel for the attack mode 0 one, which costs the speed the table attack gets from expanding inside the hash kernel.
+
+The tokenizer matches bytes rather than characters, so a source that is only a UTF-8 continuation byte could match inside a character and produce invalid UTF-8. Sensible tables have no such entry. We match bytes because a character aware tokenizer would break tables written for single byte encodings.

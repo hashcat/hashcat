@@ -7,7 +7,7 @@ bridge, that allows you to write custom hash-matching algorithms in
 Rust. This plugin system fits into the regular cracking workflow,
 replacing or extending internal kernel routines.
 
-When enabled, Hashcat uses the plugin’s `calc_hash()` function to
+When enabled, Hashcat uses the plugin's `calc_hash()` function to
 compute hash candidates. This makes it easy to experiment with new or
 obscure algorithms without modifying core C code or writing
 OpenCL/CUDA kernels.
@@ -56,7 +56,7 @@ portion to it. The appended settings must start and end with a `$`.
 
 ### Plugin Code
 
-Install Rust. If you’re on Windows, also ensure `rustup` is installed
+Install Rust. If you're on Windows, also ensure `rustup` is installed
 and the Windows target is added to the Rust toolchain:
 
     rustup target add x86_64-pc-windows-gnu
@@ -93,12 +93,12 @@ and build the plugin:
     cd Rust/bridges/generic_hash
     cargo build --release
 
-or, if you’re on Windows:
+or, if you're on Windows:
 
     cd Rust/bridges/generic_hash
     cargo build --release --target x86_64-pc-windows-gnu
 
-That’s it.
+That's it.
 
 ### Benchmark
 

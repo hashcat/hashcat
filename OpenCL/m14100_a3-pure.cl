@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif
 
-DECLSPEC void m14100m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_BASIC ())
+DECLSPEC void m14100m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_BASIC ())
 {
   /**
    * modifiers are taken from args
@@ -100,7 +100,7 @@ DECLSPEC void m14100m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
   }
 }
 
-DECLSPEC void m14100s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_BASIC ())
+DECLSPEC void m14100s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_BASIC ())
 {
   /**
    * modifiers are taken from args

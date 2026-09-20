@@ -13,11 +13,7 @@
 // The producer. It owns one slot at a time and never touches the one being launched, so the only
 // thing the two sides share is the pair of counting semaphores.
 
-#if defined (_WIN)
-static HC_API_CALL DWORD pw_pipe_thread (void *p)
-#else
-static HC_API_CALL void *pw_pipe_thread (void *p)
-#endif
+static HC_THREAD_FUNC pw_pipe_thread (void *p)
 {
   pw_pipe_t *pipe = (pw_pipe_t *) p;
 
@@ -115,7 +111,12 @@ int pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   for (int i = 0; i < PW_PIPE_SLOTS; i++) hc_thread_sem_post (pipe->sem_free);
 
-  hc_thread_create (pipe->thread, pw_pipe_thread, pipe);
+  if (hc_thread_create_ok (pipe->thread, pw_pipe_thread, pipe) == false)
+  {
+    pipe->thread_live = false;
+
+    return -1;
+  }
 
   pipe->thread_live = true;
 

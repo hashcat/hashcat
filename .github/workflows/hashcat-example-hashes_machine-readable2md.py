@@ -10,7 +10,7 @@ import json
 import os
 import re
 
-# Replace LUKS v1 hashes, they're too big: Github no longer shows the .md "(Sorry about that, but we can’t show files that are this big right now.)"
+# Replace LUKS v1 and v2 hashes, they're too big: Github no longer shows the .md "(Sorry about that, but we can’t show files that are this big right now.)"
 EXAMPLE_HASH_REPLACEMENTS = {
     "14600": "https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z",
     "29511": "https://hashcat.net/misc/example_hashes/hashcat_luks_sha1_aes_cbc-essiv_128.txt",
@@ -25,6 +25,7 @@ EXAMPLE_HASH_REPLACEMENTS = {
     "29541": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_aes_cbc-essiv_256.txt",
     "29542": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_serpent_xts-plain64_256.txt",
     "29543": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_twofish_cbc-plain64_128.txt",
+    "34100": "https://hashcat.net/misc/example_hashes/hashcat_luks2_argon2id_sha256_aes_xts-plain64_512.txt",
 }
 
 OPENCL_DIR = "../../OpenCL"

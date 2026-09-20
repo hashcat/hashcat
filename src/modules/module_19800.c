@@ -55,6 +55,8 @@ typedef struct krb5pa_17
   u32 enc_timestamp[32];
   u32 enc_timestamp_len;
 
+  u32 format;
+
 } krb5pa_17_t;
 
 typedef struct krb5pa_17_tmp
@@ -99,14 +101,30 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * $krb5pa$17$*user*realm*$enc_timestamp+checksum
-   */
-
   // assume no signature found
   if (line_len < 11) return (PARSER_SALT_LENGTH);
 
-  // assume $krb5pa$17$user$realm$enc_timestamp+checksum
+  // three layouts reach this parser:
+  //
+  //   1  $krb5pa$17$user$realm$enc_timestamp+checksum
+  //   2  $krb5pa$17$user$realm$$enc_timestamp+checksum
+  //   3  $krb5pa$17$user$realm$salt$enc_timestamp+checksum
+  //
+  // 1 is what hashcat has always written. krb5pa-sha1 always writes the salt
+  // field and leaves it empty when the salt is the default, which is 2, and
+  // fills it when the principal's salt is something else, which is 3. The
+  // layout is taken from the field count rather than by parsing one shape and
+  // retrying another, so a malformed line still reports its own error
+
+  int sep_cnt = 0;
+
+  for (int i = 0; i < line_len; i++)
+  {
+    if (line_buf[i] == '$') sep_cnt++;
+  }
+
+  krb5pa->format = (sep_cnt >= 6) ? 2 : 1;
+
   token.token_cnt  = 4;
 
   token.sep[1]     = '$';
@@ -119,11 +137,29 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[2] = 512;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[3]     = '$';
-  token.len_min[3] = 104;
-  token.len_max[3] = 112;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  if (krb5pa->format == 2)
+  {
+    token.token_cnt  = 5;
+
+    token.sep[3]     = '$';
+    token.len_min[3] = 0;
+    token.len_max[3] = 512;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[4]     = '$';
+    token.len_min[4] = 104;
+    token.len_max[4] = 112;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+  }
+  else
+  {
+    token.sep[3]     = '$';
+    token.len_min[3] = 104;
+    token.len_max[3] = 112;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -149,22 +185,44 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (krb5pa->domain, domain_pos, domain_len);
 
-  data_pos = token.buf[3];
-  data_len = token.len[3];
-
-  account_info_len = token.len[2] + token.len[1];
-
   u8 *account_info_ptr = (u8 *) krb5pa->account_info;
 
-  // domain must be uppercase
+  if ((krb5pa->format == 2) && (token.len[3] > 0))
+  {
+    // the salt is given, so realm and user are carried for the encoder only
 
-  u8 domain[512];
+    krb5pa->format = 3;
 
-  memcpy (domain, domain_pos, domain_len);
-  uppercase (domain, domain_len);
+    const u8 *salt_pos = token.buf[3];
 
-  memcpy (account_info_ptr, domain, domain_len);
-  memcpy (account_info_ptr + domain_len, user_pos, user_len);
+    account_info_len = token.len[3];
+
+    memcpy (account_info_ptr, salt_pos, account_info_len);
+
+    data_pos = token.buf[4];
+    data_len = token.len[4];
+  }
+  else
+  {
+    // uppercase(realm) + user: what AD derives for a user account. RFC 4120
+    // section 4 puts the realm in verbatim, and realms are uppercase by
+    // convention rather than by rule
+
+    u8 domain[512];
+
+    memcpy (domain, domain_pos, domain_len);
+    uppercase (domain, domain_len);
+
+    account_info_len = token.len[2] + token.len[1];
+
+    memcpy (account_info_ptr, domain, domain_len);
+    memcpy (account_info_ptr + domain_len, user_pos, user_len);
+
+    const int data_idx = (krb5pa->format == 2) ? 4 : 3;
+
+    data_pos = token.buf[data_idx];
+    data_len = token.len[data_idx];
+  }
 
   krb5pa->account_info_len = account_info_len;
 
@@ -219,14 +277,46 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     snprintf (data + j, 3, "%02x", ptr_enc_timestamp[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%s%08x%08x%08x",
-    SIGNATURE_KRB5PA,
-    (const char *) krb5pa->user,
-    (const char *) krb5pa->domain,
-    data,
-    krb5pa->checksum[0],
-    krb5pa->checksum[1],
-    krb5pa->checksum[2]);
+  int line_len;
+
+  if (krb5pa->format == 3)
+  {
+    char salt_str[512 + 1] = { 0 };
+
+    memcpy (salt_str, (const char *) krb5pa->account_info, krb5pa->account_info_len);
+
+    line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s%08x%08x%08x",
+      SIGNATURE_KRB5PA,
+      (const char *) krb5pa->user,
+      (const char *) krb5pa->domain,
+      salt_str,
+      data,
+      krb5pa->checksum[0],
+      krb5pa->checksum[1],
+      krb5pa->checksum[2]);
+  }
+  else if (krb5pa->format == 2)
+  {
+    line_len = snprintf (line_buf, line_size, "%s%s$%s$$%s%08x%08x%08x",
+      SIGNATURE_KRB5PA,
+      (const char *) krb5pa->user,
+      (const char *) krb5pa->domain,
+      data,
+      krb5pa->checksum[0],
+      krb5pa->checksum[1],
+      krb5pa->checksum[2]);
+  }
+  else
+  {
+    line_len = snprintf (line_buf, line_size, "%s%s$%s$%s%08x%08x%08x",
+      SIGNATURE_KRB5PA,
+      (const char *) krb5pa->user,
+      (const char *) krb5pa->domain,
+      data,
+      krb5pa->checksum[0],
+      krb5pa->checksum[1],
+      krb5pa->checksum[2]);
+  }
 
   return line_len;
 }
@@ -268,6 +358,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;

@@ -37,6 +37,18 @@
 #define GENERIC_RC_EOF   -1
 #define GENERIC_RC_ERROR -2
 
+// A position the feed holds but has no candidate for. The position is spent either way, so the next
+// call carries on at the one behind it and the run books this one as rejected, the same as a word a
+// wordlist holds that no hash mode can take.
+//
+// A wordlist never needs it, because every line it holds is a candidate. A grammar does: it counts
+// the candidates a structure can spell before it knows what the words are, and a rule that only the
+// words can answer therefore lands after the counting. Skipping the position rather than leaving it
+// out of the count is what keeps a position the same candidate on every run, which is what --skip,
+// --limit and a restore all rest on.
+
+#define GENERIC_RC_SKIP  -3
+
 // What global_keyspace () may say. A feed that cannot count itself returns GENERIC_KEYSPACE_UNKNOWN
 // and hashcat runs it without a denominator. GENERIC_KEYSPACE_ERROR is hashcat's own value and a
 // plugin never returns it, it is what the wrapper reports when the plugin failed. The two were the
@@ -56,6 +68,13 @@ typedef enum generic_plugin_options
   // thread_next_dev (), and hashcat runs the device engine kernel instead of the straight one.
 
   GENERIC_PLUGIN_OPTIONS_DEVICE       = 1 << 3,
+
+  // The feed can say how it made a candidate, and exports global_explain () for it. --debug-mode
+  // writes the rule that made a candidate, and a feed makes them some other way: a table applies
+  // substitutions, a grammar picks terminals. A feed that declares this can put that in the same
+  // place, so somebody tuning a table or a ruleset can see which of its lines actually fired.
+
+  GENERIC_PLUGIN_OPTIONS_EXPLAIN      = 1 << 4,
 
   GENERIC_PLUGIN_OPTIONS_UNDEFINED = 0,
 
@@ -106,6 +125,23 @@ HC_PLUGIN_ENTRY bool thread_seek     (generic_global_ctx_t *global_ctx, generic_
 
 HC_PLUGIN_ENTRY bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *avg, u32 *maxword, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe);
 HC_PLUGIN_ENTRY int  thread_next_dev (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size, pcfg_cell_t *cell);
+
+// How this candidate was made, as text, for --debug-mode.
+//
+// It is given the same four things pcfg_expand () rebuilds a candidate from, so a feed answers by
+// walking what it already knows how to walk: the cell the base word was handed with, the pool the
+// cell points into, the base word itself, and which of the cell's candidates this was. It runs once
+// per crack rather than once per candidate, so it may take its time.
+//
+// A feed that does not amplify has none of those. cell and pool are NULL for it and il_pos is zero, and
+// what it gets instead is pos, which is where this candidate sat in its own keyspace. A feed that
+// decides what to make from the position can answer from that alone. Both are always passed, so a feed
+// answers from whichever it works in.
+//
+// Writes at most out_size bytes and returns how many, or -1 when it has nothing to say. Only a feed
+// declaring GENERIC_PLUGIN_OPTIONS_EXPLAIN exports it.
+
+HC_PLUGIN_ENTRY int  global_explain (generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, const u8 *base, const int base_len, const u32 il_pos, const u64 pos, char *out_buf, const int out_size);
 
 // ---------------------------------------------------------------------------------------------
 // what the device is doing while a feed runs

@@ -36,12 +36,17 @@ COPY --from=builder-toolchain /opt /opt
 COPY --from=builder-toolchain /root/toolchain-info.log /root/toolchain-info.log
 
 RUN apt-get update && apt-get -y --no-install-recommends install apt-utils && apt-get -y --no-install-recommends install \
+    autoconf \
+    automake \
+    autopoint \
     build-essential \
     ca-certificates curl \
     dos2unix \
+    gettext \
     git \
     libc6-dev \
     libomp-dev \
+    libtool \
     m4 \
     make \
     time \
@@ -83,22 +88,94 @@ ENV SEVEN_ZIP_VERSION=${SEVEN_ZIP_VERSION}
 RUN cd $WD/src && git clone --depth 1 --branch ${SEVEN_ZIP_VERSION} https://github.com/ip7z/7zip.git && \
     cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc CFLAGS_WARN_WALL="-Wall -Wextra" -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
 
-# win-iconv
+# The compressors the Windows package ships.
+#
+# hashcat loads these at runtime rather than linking them, and a Linux or macOS box gets them from
+# the system. Windows has no system that provides them, so without these the package cannot read its
+# own hashcat.hcstat2 and every mask attack fails. They are built here from pinned upstream tags
+# rather than committed as binaries, so nothing binary lives in the repository, the version that went
+# into a package is recorded in this file, and refreshing one for a security fix is a version bump
+# and a rebuild.
+#
+# iconv is deliberately absent. hashcat converts encodings with the Windows API itself, so the
+# win-iconv build that used to be here had no consumer: it was built into /opt and never packaged.
 
-ARG WIN_ICONV_VERSION=0.0.10
-ENV WIN_ICONV_VERSION=${WIN_ICONV_VERSION}
+ARG XZ_VERSION=5.8.3
+ARG ZLIB_VERSION=1.3.2
+ARG ZSTD_VERSION=1.5.7
 
-RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://github.com/win-iconv/win-iconv.git && cd win-iconv && \
-    cmake \
-    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
-    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
-    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
-    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
-    -D CMAKE_SYSTEM_NAME=Windows \
-    -D CMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-    -D CMAKE_C_STANDARD_LIBRARIES="-static-libgcc" \
-    -D CMAKE_CXX_STANDARD_LIBRARIES="-static-libgcc -static-libstdc++" \
-    . && make install && cd $WD/src && rm -rf win-iconv
+ENV XZ_VERSION=${XZ_VERSION} \
+    ZLIB_VERSION=${ZLIB_VERSION} \
+    ZSTD_VERSION=${ZSTD_VERSION}
+
+ENV WIN_DLL_DIR=/opt/win-dll-64
+
+RUN mkdir -p ${WIN_DLL_DIR}
+
+# liblzma, for hashcat.hcstat2. Public domain, and the one the package cannot do without.
+#
+# The source is taken from the git tag rather than from a release tarball. The 5.6.0 and 5.6.1
+# backdoor was present only in the tarballs, so the tag is the artifact worth building from, at the
+# price of running autogen.sh here. autogen.sh calls aclocal, autoconf, autoheader, automake,
+# autopoint and libtoolize, none of which come with build-essential, which is what autoconf,
+# automake, autopoint, gettext and libtool are installed for above. autopoint is named separately
+# because Debian and Ubuntu ship it as its own package that gettext only suggests, so an install
+# passing --no-install-recommends never pulls it in.
+#
+# -static-libgcc is carried in CC rather than in LDFLAGS. libtool 2.4.6, which is what the default
+# base release has, passes neither -static-libgcc nor anything else matching -static-* through to
+# the line that links the DLL, so in LDFLAGS the flag reaches the compile and is dropped from the
+# link. This mingw GCC keeps libgcc_s off the default link path, so the link then fails outright on
+# a missing -lgcc_s rather than quietly producing a DLL that needs libgcc_s_seh-1.dll beside it.
+
+RUN cd $WD/src && git clone --depth 1 --branch v${XZ_VERSION} https://github.com/tukaani-project/xz.git && cd xz && \
+    ./autogen.sh --no-po4a && \
+    ./configure --host=x86_64-w64-mingw32 --enable-shared --disable-static --disable-xz --disable-xzdec \
+                --disable-lzmadec --disable-lzmainfo --disable-scripts --disable-doc --disable-nls \
+                CC="x86_64-w64-mingw32-gcc -static-libgcc" && \
+    make -j && cp src/liblzma/.libs/liblzma-5.dll ${WIN_DLL_DIR}/liblzma.dll && \
+    cd $WD/src && rm -rf xz
+
+# zlib, for .gz wordlists.
+#
+# The zlib1.dll target is named rather than letting the default target run, which also builds 4 test
+# programs the package has no use for.
+
+RUN cd $WD/src && git clone --depth 1 --branch v${ZLIB_VERSION} https://github.com/madler/zlib.git && cd zlib && \
+    make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- LDFLAGS="-static-libgcc" -j zlib1.dll && \
+    cp zlib1.dll ${WIN_DLL_DIR}/ && \
+    cd $WD/src && rm -rf zlib
+
+# libzstd, for .zst wordlists.
+#
+# TARGET_SYSTEM is what selects the Windows build, and it defaults to $(OS), which is empty on Linux.
+# Without it the makefile builds a Linux .so and the DLL target does not exist at all. The target is
+# libzstd, which resolves to dll/libzstd.dll on Windows; there is no libzstd.dll target.
+
+RUN cd $WD/src && git clone --depth 1 --branch v${ZSTD_VERSION} https://github.com/facebook/zstd.git && cd zstd/lib && \
+    make -j CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar \
+         TARGET_SYSTEM=Windows LDFLAGS="-static-libgcc" libzstd && \
+    cp dll/libzstd.dll ${WIN_DLL_DIR}/ && \
+    cd $WD/src && rm -rf zstd
+
+# What the package will actually ship has to load on a machine that has only Windows on it, so the
+# three are checked here rather than after somebody reports that a mask attack fails. A DLL that
+# imports a mingw runtime library would need that library beside hashcat.exe as well, and the
+# package does not carry one.
+
+RUN for dll in liblzma.dll zlib1.dll libzstd.dll; do \
+      if [ -f ${WIN_DLL_DIR}/$dll ]; then \
+        echo "== $dll" >> /root/win_dll_imports.log; \
+      else \
+        echo "! $dll was not built"; exit 1; \
+      fi; \
+      x86_64-w64-mingw32-objdump -f ${WIN_DLL_DIR}/$dll | grep -q 'pei-x86-64' || { echo "! $dll is not a 64 bit Windows DLL"; exit 1; }; \
+      x86_64-w64-mingw32-objdump -p ${WIN_DLL_DIR}/$dll | grep 'DLL Name' >> /root/win_dll_imports.log; \
+    done && \
+    cat /root/win_dll_imports.log && \
+    if grep -iE 'DLL Name: *(libgcc|libwinpthread|libstdc\+\+|libssp|cyg)' /root/win_dll_imports.log; then \
+      echo "! a shipped DLL imports a mingw runtime library that the package does not carry"; exit 1; \
+    fi
 
 # GMP
 
@@ -245,7 +322,9 @@ ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
 
 RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
     echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
-    echo "WIN_ICONV_VERSION: ${WIN_ICONV_VERSION}" >> /root/toolchain-info.log && \
+    echo "XZ_VERSION: ${XZ_VERSION}" >> /root/toolchain-info.log && \
+    echo "ZLIB_VERSION: ${ZLIB_VERSION}" >> /root/toolchain-info.log && \
+    echo "ZSTD_VERSION: ${ZSTD_VERSION}" >> /root/toolchain-info.log && \
     echo "GMP_VERSION: ${GMP_VERSION}" >> /root/toolchain-info.log && \
     echo "SEVEN_ZIP_VERSION: ${SEVEN_ZIP_VERSION}" >> /root/toolchain-info.log && \
     echo "RUST_VERSION: ${RUST_VERSION}" >> /root/toolchain-info.log && \

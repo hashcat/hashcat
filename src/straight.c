@@ -15,7 +15,10 @@
 #include "folder.h"
 #include "rp.h"
 #include "wordlist.h"
+#include "convert.h"
+#include "mpsp.h"
 #include "feed_ctx.h"
+#include "feed.h"
 #include "straight.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
@@ -43,48 +46,182 @@ static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
   return 0;
 }
 
-// The rounds of -a 9 splitting its own hash file. There is no file per round: a round is "try the Nth
-// word of every account name", so the list is as long as the widest account name in the file.
+// The sources of -a 9 splitting its own hash file. There is no file to name: a source is one phase of
+// the attack, and a phase is one way of turning an account's own words into candidates.
 //
-// The names are walked here rather than the count being asked of the feed, because the round list has to
-// exist before any round is opened and the feed is opened one round at a time.
+// A phase is not a round. A round is "try the Nth candidate of every account", and a phase holds as many
+// of them as it needs. The feed writes them round major, every account once and then every account
+// again, because the attack pairs word N with salt N and the salts are walked in order. So the queue is
+// as long as the phase list and not as long as the widest account name, and how many rounds a phase
+// covers is settled by the feed when it reports its keyspace.
+//
+// Rounds used to be sources of their own, which meant a name with eight words made eight attacks out of
+// one. The run restarted its progress, its elapsed time and its estimate at each of them, which is what
+// a user watching the status screen complains about. Eight was already awkward to read, and the phases
+// below reach numbers that would be unreadable.
 
 static int straight_ctx_add_association_rounds (hashcat_ctx_t *hashcat_ctx)
 {
-  const hashes_t *hashes = hashcat_ctx->hashes;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-  u32 words_max = 1;
+  static const char *const known[] = ASSOCIATION_PHASES;
 
-  if (hashes->hash_info)
+  const u32 known_cnt = sizeof (known) / sizeof (known[0]);
+
+  // Which phases to run, comma separated, cheapest first. The default is the one phase that is
+  // bounded. The grammar phase does not run out, so a run that asks for it runs until it is stopped,
+  // and that is not something an attack should start doing because it was upgraded.
+
+  // Read here rather than with feed_param_lookup (), which skips the first argument because a feed's
+  // own name sits there. These are hashcat's work arguments and the first of them is an argument like
+  // any other.
+
+  const char *want = NULL;
+
+  u32 want_cnt = 0;
+
+  for (int i = 0; i < user_options_extra->hc_workc; i++)
   {
-    hlfmt_word_t words[ASSOCIATION_WORDS_MAX];
+    const char *arg = user_options_extra->hc_workv[i];
 
-    for (u32 i = 0; i < hashes->digests_cnt; i++)
-    {
-      const user_t *user = hashes->hash_info[i]->user;
+    if (feed_param_is_setting (arg) == false) continue;
 
-      if (user == NULL) continue;
+    if (strncmp (arg, "phases=", 7) != 0) continue;
 
-      const u32 words_cnt = hlfmt_user_words (user->user_name, user->user_len, words, ASSOCIATION_WORDS_MAX);
+    want = arg + 7;
 
-      if (words_cnt > words_max) words_max = words_cnt;
-    }
+    want_cnt++;
   }
 
-  straight_ctx->dicts = (char **) hcmalloc (words_max * sizeof (char *));
+  // A setting given twice is refused rather than letting the last one win, which is what the feed layer
+  // does with every other setting and what the documentation promises. phases= never reaches a feed,
+  // because it carries no phase prefix, so the refusal has to be here.
 
-  straight_ctx->dicts_avail = words_max;
-  straight_ctx->dicts_cnt   = words_max;
-
-  for (u32 i = 0; i < words_max; i++)
+  if (want_cnt > 1)
   {
-    char *name = NULL;
+    event_log_error (hashcat_ctx, "phases: given more than once");
 
-    hc_asprintf (&name, "%u", i);
+    return -1;
+  }
 
-    straight_ctx->dicts[i] = name;
+  if (want == NULL) want = ASSOCIATION_PHASES_DEFAULT;
+
+  char *spec = hcstrdup (want);
+
+  if (spec == NULL) return -1;
+
+  u32 cnt = 1;
+
+  for (const char *c = spec; *c; c++) if (*c == ',') cnt++;
+
+  straight_ctx->dicts = (char **) hcmalloc (cnt * sizeof (char *));
+
+  straight_ctx->dicts_avail = cnt;
+  straight_ctx->dicts_cnt   = 0;
+
+  char *save = NULL;
+
+  for (char *p = strtok_r (spec, ",", &save); p != NULL; p = strtok_r (NULL, ",", &save))
+  {
+    bool ok = false;
+
+    for (u32 i = 0; i < known_cnt; i++)
+    {
+      if (strcmp (p, known[i]) != 0) continue;
+
+      ok = true;
+
+      break;
+    }
+
+    if (ok == false)
+    {
+      event_log_error (hashcat_ctx, "%s: no such attack phase. -a 9 runs phases= out of this list, comma separated:", p);
+
+      for (u32 i = 0; i < known_cnt; i++) event_log_error (hashcat_ctx, "  %s", known[i]);
+
+      hcfree (spec);
+
+      return -1;
+    }
+
+    straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (p);
+
+    straight_ctx->dicts_cnt++;
+  }
+
+  hcfree (spec);
+
+  if (straight_ctx->dicts_cnt == 0)
+  {
+    event_log_error (hashcat_ctx, "phases= names no phase to run");
+
+    return -1;
+  }
+
+  // Every other setting says which phase it is for, because a phase runs a feed of its own and two
+  // phases run two different feeds. A key with no prefix reaches no feed at all, and so does one
+  // prefixed for a phase this run is not doing, so neither was ever reported and the run quietly
+  // differed from what was asked for: "rulemax=300" with the prefix forgotten ran the full thousand
+  // rules and said nothing. The feed layer refuses a key it does not know, and this is that refusal one
+  // level up, where the phase list is what a prefix is checked against.
+
+  for (int i = 0; i < user_options_extra->hc_workc; i++)
+  {
+    const char *arg = user_options_extra->hc_workv[i];
+
+    if (feed_param_is_setting (arg) == false) continue;
+
+    if (strncmp (arg, "phases=", 7) == 0) continue;
+
+    const char *eq  = strchr (arg, '=');
+    const char *dot = strchr (arg, '.');
+
+    const size_t prefix_len = ((dot != NULL) && (dot < eq)) ? (size_t) (dot - arg) : 0;
+
+    bool running = false;
+
+    for (u32 k = 0; k < straight_ctx->dicts_cnt; k++)
+    {
+      if (strlen (straight_ctx->dicts[k]) != prefix_len) continue;
+      if (strncmp (arg, straight_ctx->dicts[k], prefix_len) != 0) continue;
+
+      running = true;
+
+      break;
+    }
+
+    if (running == true) continue;
+
+    // The prefix names a phase hashcat has, and the run is not doing it. Saying which phase would have
+    // read the setting is what turns this from a refusal into an answer.
+
+    bool spelled = false;
+
+    for (u32 k = 0; k < known_cnt; k++)
+    {
+      if (strlen (known[k]) != prefix_len) continue;
+      if (strncmp (arg, known[k], prefix_len) != 0) continue;
+
+      spelled = true;
+
+      break;
+    }
+
+    if (spelled == true)
+    {
+      event_log_error (hashcat_ctx, "%s: the %.*s phase is not in phases=, so nothing would read this setting.", arg, (int) prefix_len, arg);
+
+      return -1;
+    }
+
+    event_log_error (hashcat_ctx, "%s: no such setting. -a 9 takes phases=, and a setting for a phase it is running, written with that phase in front of it:", arg);
+
+    for (u32 k = 0; k < straight_ctx->dicts_cnt; k++) event_log_error (hashcat_ctx, "  %s.<setting>=<value>", straight_ctx->dicts[k]);
+
+    return -1;
   }
 
   return 0;
@@ -182,7 +319,7 @@ static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dic
 
     if (hc_fopen (&fp, dict, "rb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dict, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", dict, hc_fopen_strerror ());
 
       return GENERIC_KEYSPACE_ERROR;
     }
@@ -325,11 +462,32 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       amplifier = generic_ctx->dev_avg;
     }
 
+    // A feed that reads a mask cannot say its keyspace when it is asked, because a mask is sized once
+    // per round by mask_ctx_update_loop a few lines above this and the feed was asked long before the
+    // first round. So the feed says what it can count and the round's own mask supplies the rest.
+    // That is the arrangement hashcat already uses the other way round for -a 6 and -a 7, whose
+    // amplifier is the mask for the same reason.
+    //
+    // The mask feed's candidates are the mask, so the mask is the whole base. The hybrid feed's are a
+    // word and a mask together, so the feed counts the words it holds, both wordlists where the mask
+    // has a ?q, and the mask is the factor it cannot count for itself.
+
+    u64 base_cnt = generic_ctx->keyspace;
+
+    const mask_feed_kind_t mask_feed = mask_feed_kind (user_options);
+
+    if (mask_feed == MASK_FEED_MASK) base_cnt = mask_ctx->feed_keyspace;
+
+    if (mask_feed == MASK_FEED_HYBRID)
+    {
+      base_cnt = (overflow_check_u64_mul (generic_ctx->keyspace, mask_ctx->feed_keyspace) == true) ? UINT64_MAX : (generic_ctx->keyspace * mask_ctx->feed_keyspace);
+    }
+
     // As above: the feed's keyspace is the base and is what the run is addressed by, so a product
     // that does not fit saturates rather than ending the run. A feed that generates its base words
     // is the only producer whose base is large enough to reach that.
 
-    status_ctx->words_base_given = generic_ctx->keyspace;
+    status_ctx->words_base_given = base_cnt;
 
     // Where the feed knows exactly how many candidates it produces, that is the total. The amplifier
     // it would otherwise be multiplied by is a mean rounded down to an integer, so the product is
@@ -341,7 +499,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      status_ctx->words_cnt = (overflow_check_u64_mul (generic_ctx->keyspace, amplifier) == true) ? UINT64_MAX : (generic_ctx->keyspace * amplifier);
+      status_ctx->words_cnt = (overflow_check_u64_mul (base_cnt, amplifier) == true) ? UINT64_MAX : (base_cnt * amplifier);
     }
 
     return 0;
@@ -367,10 +525,20 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // The pure kernel amplifies with the dictionary and takes its base words from the mask, so the
     // keyspace is the mask size times the dictionary, and the dictionary was counted once by the
     // amplifier instance.
+    //
+    // The base is the mask and the amplifier is the dictionary, in that order. Stating them the other
+    // way round makes the run walk one base word per dictionary word over a mask that has a different
+    // number of values in it, and the product is right while both of its factors are wrong:
+    //
+    //   500 words, ?d?d   50000 candidates, 250000 walked, every one of them five times over
+    //   500 words, ?d?d?d 500000 candidates, 250000 walked, and half of them never tried at all
+    //
+    // The second is the one that matters. A run that quietly covers half its own keyspace reports
+    // Exhausted having never guessed the password, and nothing in the status screen says so.
 
     const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
 
-    if (straight_ctx_words_apply (hashcat_ctx, words_cnt, mask_ctx->bfs_cnt, straight_ctx->dict) == -1) return -1;
+    if (straight_ctx_words_apply (hashcat_ctx, mask_ctx->bfs_cnt, words_cnt, straight_ctx->dict) == -1) return -1;
 
     if (status_ctx->words_cnt == 0)
     {
@@ -381,6 +549,115 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   return 0;
+}
+
+// Where a wordlist attack reaches the candidate --lookup asked about.
+//
+// -a 0 has no arithmetic to invert. Its base words are the lines of a file, in the order they are in
+// the file, so the answer is the line the word is on and the only work is finding it. That makes the
+// answer exact and a refusal a proof, and both rest on the wordlist being the whole attack. A rule
+// would turn one base word into many candidates and break that, so a rule with --lookup is refused
+// in user_options_sanity () and never reaches here.
+//
+// Read once through the feed rather than through the file, because the file is not necessarily one
+// file: a folder or several dictionaries are laid end to end into one keyspace and only the feed
+// knows the order. The index that comes back is already in --skip units.
+
+void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->lookup == NULL) return;
+
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return;
+
+  const u8 *arg     = (const u8 *) user_options->lookup;
+  const u32 arg_len = (u32) strlen (user_options->lookup);
+
+  u8 cand[PW_MAX];
+
+  u32 cand_len = 0;
+
+  // A wordlist can hold a line no shell can pass. $HEX[...] is how the potfile and --show write one,
+  // so it is how --lookup takes one.
+
+  if (is_hexify (arg, arg_len) == true)
+  {
+    cand_len = (u32) exec_unhexify (arg, arg_len, cand, sizeof (cand));
+  }
+  else
+  {
+    if (arg_len > sizeof (cand)) return;
+
+    memcpy (cand, arg, arg_len);
+
+    cand_len = arg_len;
+  }
+
+  event_log_info (hashcat_ctx, "lookup: '%s'", user_options->lookup);
+
+  u64 index = 0;
+  u64 more  = 0;
+  u64 words = 0;
+
+  const int rc = generic_ctx_word_index (hashcat_ctx, GENERIC_ROLE_BASE, cand, cand_len, &index, &more, &words);
+
+  if (rc == -1)
+  {
+    event_log_info (hashcat_ctx, "lookup: this wordlist could not be read through");
+
+    return;
+  }
+
+  if (rc == 0)
+  {
+    // A proof, not a guess: the wordlist is the whole attack here, so a word it does not hold is a
+    // word the run never tries.
+
+    event_log_info (hashcat_ctx, "lookup: nothing in this run produces it. the wordlist does not hold it, and without rules the wordlist is the whole attack");
+
+    return;
+  }
+
+  const char *segment = generic_ctx_segment_of (hashcat_ctx, GENERIC_ROLE_BASE, index);
+
+  if (segment != NULL)
+  {
+    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 ", in %s", index, words, segment);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 "", index, words);
+  }
+
+  if (more > 0)
+  {
+    event_log_info (hashcat_ctx, "lookup: it is in this wordlist %" PRIu64 " more times, and the run reaches the first of them", more);
+  }
+
+  const double pct = (status_ctx->words_walk_base > 0) ? ((double) index * 100.0 / (double) status_ctx->words_walk_base) : 0.0;
+
+  event_log_info (hashcat_ctx, "lookup: %.4f%% into the run", pct);
+
+  event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -a 0 counts -s in words", index);
+
+  event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one word", index);
+
+  if ((user_options->skip != 0) || (user_options->limit != 0))
+  {
+    const u64 from = user_options->skip;
+    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+
+    if ((index >= from) && (index < upto))
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+    }
+  }
 }
 
 int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -446,10 +723,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 0;
   }
 
-  // -a 9 splitting its own hash file has no dictionaries. Its rounds are the words one account name
-  // becomes, so the list is a round per word and the widest name in the file says how many. Every round
-  // hands out one word per hash, and an account with fewer words repeats its last one, because the
-  // kernel reads the salt index off the word's position in the batch and no account can sit a round out.
+  // -a 9 splitting its own hash file has no dictionaries. Its sources are the phases of the attack, and
+  // the list is one entry per phase. straight_ctx_add_association_rounds () builds it and says how a
+  // phase differs from a round.
 
   if (user_options_extra->association_autosplit == true)
   {

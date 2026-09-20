@@ -13,10 +13,15 @@
 #include "folder.h"
 #include "rp.h"
 #include "mpsp.h"
+#include "wordlist.h"
+#include "hlfmt.h"
 #include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
 #include "backend.h"
+#include "terminal.h"
+#include "timer.h"
+#include "status.h"
 
 #include <inttypes.h>
 
@@ -93,7 +98,6 @@ static bool generic_global_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
 
   generic_ctx->global_ctx.cache_dir   = folder_config->cache_dir;
   generic_ctx->global_ctx.profile_dir = folder_config->profile_dir;
-  generic_ctx->global_ctx.seekdb_dir  = user_options->seekdb_path;
   generic_ctx->global_ctx.shared_dir  = folder_config->shared_dir;
 
   // ok we can also add hashcat_ctx, which might be hard to bind, but we make it optional
@@ -187,7 +191,8 @@ int generic_thread_next_dev (hashcat_ctx_t *hashcat_ctx, const generic_role_t ro
 
   if (out_len < 0)
   {
-    if (out_len == GENERIC_RC_EOF) return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_EOF)  return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_SKIP) return GENERIC_RC_SKIP;
 
     event_log_error (hashcat_ctx, "%s: thread_next_dev returned %d", generic_ctx->dynlib_filename, out_len);
 
@@ -210,7 +215,8 @@ int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, 
 
   if (out_len < 0)
   {
-    if (out_len == GENERIC_RC_EOF) return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_EOF)  return GENERIC_RC_EOF;
+    if (out_len == GENERIC_RC_SKIP) return GENERIC_RC_SKIP;
 
     event_log_error (hashcat_ctx, "%s: thread_next returned %d", generic_ctx->dynlib_filename, out_len);
 
@@ -322,6 +328,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   generic_ctx->iconv_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_ICONV)   ? true : false;
   generic_ctx->rules_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_RULES)   ? true : false;
   generic_ctx->dev_enable     = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE)     ? true : false;
+  generic_ctx->explain_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_EXPLAIN)    ? true : false;
 
   const bool dev_offered = generic_ctx->dev_enable;
 
@@ -341,6 +348,35 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   {
     HC_LOAD_FUNC_GENERIC (generic_ctx, global_dev_init, GENERIC_GLOBAL_DEV_INIT);
     HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next_dev, GENERIC_THREAD_NEXT_DEV);
+  }
+
+  // Whether this feed can answer the question --debug-mode asks. The option is checked for shape when
+  // the command line is read, but nothing had opened the feed by then, so this is where a feed that
+  // cannot explain itself is reported rather than quietly writing nothing.
+  //
+  // Mode 6 always asks the feed. Modes 1, 3, 4 and 5 ask it only when the run has no rules, because
+  // then there is no rule for them to name and the feed is the only thing that can fill the field.
+  // Mode 2 writes the base word alone, so it never needs an answer.
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const u32 debug_mode = user_options->debug_mode;
+
+  const bool wants_rule = (debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5);
+  const bool no_rules = (user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0);
+
+  const bool asks_feed = (debug_mode == DEBUG_MODE_FEED) || ((wants_rule == true) && (no_rules == true));
+
+  if ((asks_feed == true) && (generic_ctx->explain_enable == false))
+  {
+    event_log_error (hashcat_ctx, "%s: this feed cannot say how it made a candidate, so --debug-mode %u has nothing to write.", generic_ctx->plugin_name, debug_mode);
+
+    return -1;
+  }
+
+  if (generic_ctx->explain_enable == true)
+  {
+    HC_LOAD_FUNC_GENERIC (generic_ctx, global_explain, GENERIC_GLOBAL_EXPLAIN);
   }
 
   // Whether the device engine is going to be used, settled here and nowhere else.
@@ -449,6 +485,27 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // land on has a device engine file, and so does the constant, so the two answers agree today. A
   // mode whose two answers disagreed would reach the missing file again.
 
+  // Two runs reach the same missing kernel file and only one of them is an error, so the lookup below
+  // has to say which one it is looking at.
+  //
+  // The name it builds comes from opti_type, so it is the optimized kernel's name whenever that flag
+  // is set. A user who passed -O sets it, and so does interface.c on a mode whose only kernel is the
+  // optimized one, whatever was asked for. Reading the flag therefore refuses a user who never passed
+  // -O, on a mode that is meant to fall back. Reading nothing falls back to the host engine under -O
+  // instead, silently, and nothing in the run says that -O was the reason it got slower. user_options
+  // carries what was asked for rather than what hashconfig settled on, which is the difference between
+  // the two.
+  //
+  // A form of the inner loop that keeps the block in registers needs the candidate length fixed for
+  // the whole loop, and a grammar with multi byte characters cannot promise that, so the engine reads
+  // the candidate as an array instead.
+  //
+  // -O is refused rather than ignored because hashconfig settled it long before the attack kernel was
+  // known, and the hashes were parsed under it on the way: a raw md5 digest has had the initial state
+  // subtracted out of it for a kernel that is now not going to run. Clearing the flag here leaves
+  // those digests wrong, which shows up as a self-test failure and, with the self-test disabled, as
+  // an attack that cracks nothing.
+
   if (generic_ctx->dev_enable == true)
   {
     char source_file[256];
@@ -457,7 +514,17 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
                                      hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
                                      hashcat_ctx->folder_config->shared_dir, source_file);
 
-    if (hc_path_read (source_file) == false) generic_ctx->dev_enable = false;
+    if (hc_path_read (source_file) == false)
+    {
+      if (hashcat_ctx->user_options->optimized_kernel == true)
+      {
+        event_log_error (hashcat_ctx, "The device engine has no optimized kernel for this hash mode. Run this without -O.");
+
+        return -1;
+      }
+
+      generic_ctx->dev_enable = false;
+    }
   }
 
   generic_ctx->global_ctx.dev_enable = generic_ctx->dev_enable;
@@ -523,31 +590,33 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
       return -1;
     }
 
-    user_options_extra->attack_kern = ATTACK_KERN_PCFG;
+    // An empty inner loop is the feed saying it has no base word for this engine. The run moves to
+    // the host engine, and source_ident carries the same mark the earlier fallbacks give it, so a
+    // restore point taken on the device engine is not handed to a host engine run.
 
-    // The device engine has one kernel and it is the pure one.
-    //
-    // There was an optimized form. It kept the md5 block in registers and padded it once outside the
-    // inner loop, and at its own best lane count it measured four to five per cent ahead of the pure
-    // one. What it cost was six kernel bodies, a write path that had to name every word of the block
-    // at compile time, a password length capped at fifty five instead of two hundred and fifty six,
-    // and a candidate length fixed for the whole inner loop, which is exactly what a grammar with
-    // multi byte characters cannot promise. Five per cent did not pay for that.
-    //
-    // -O is refused rather than ignored. hashconfig settled it long before the attack kernel was
-    // known, because the device engine only announces itself here, and the hashes were parsed under it on
-    // the way: a raw md5 digest has had the initial state subtracted out of it for a kernel that is
-    // now not going to run. Clearing the flag at this point leaves those digests wrong, which shows up
-    // as a self-test failure and, with the self-test disabled, as an attack that cracks nothing.
-
-    if (hashcat_ctx->hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    if (generic_ctx->dev_il_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "The device engine has no optimized kernel. Run this without -O.");
+      generic_ctx->dev_enable            = false;
+      generic_ctx->global_ctx.dev_enable = false;
 
-      return -1;
+      generic_ctx->global_ctx.source_ident ^= 0x50434647534c4f57ULL;
+    }
+    else
+    {
+      user_options_extra->attack_kern = ATTACK_KERN_PCFG;
     }
 
   }
+
+  // A feed whose settings asked it a question has answered it by now, and there is nothing here to
+  // run. Both engines can answer, but not in the same place: the device engine counts base words,
+  // and the tables that number comes from are built inside global_dev_init (), so the device half of
+  // an answer does not exist until the call above has returned. Testing it here catches both.
+  //
+  // The keyspace is not asked for and no device thread is started. thread_init () is where a feed
+  // starts its producer threads, and there is nothing left for them to produce.
+
+  if (generic_ctx->global_ctx.described == true) return 0;
 
   const u64 log_mark_rest = event_log_count (hashcat_ctx);
 
@@ -661,6 +730,38 @@ static int generic_instance_open (hashcat_ctx_t *hashcat_ctx, const generic_role
 // An induction dictionary is a file hashcat wrote itself. Only the array is owned, as everywhere else:
 // the plugin takes its own copy of every path while it is initialising.
 
+// Whether the user gave this phase a setting of their own for this key.
+//
+// A phase carries defaults, and a feed refuses a key it is given twice rather than letting the last one
+// win, so a default has to stand aside for a setting rather than be overridden by it. setting names the
+// default, "rulemax=1000", and only the part in front of the equals sign is compared.
+
+static bool generic_phase_setting_given (const user_options_extra_t *user_options_extra, const char *prefix, const size_t prefix_len, const char *setting)
+{
+  const char *eq = strchr (setting, '=');
+
+  if (eq == NULL) return false;
+
+  const size_t key_len = (size_t) (eq - setting);
+
+  for (int i = 0; i < user_options_extra->hc_workc; i++)
+  {
+    const char *arg = user_options_extra->hc_workv[i];
+
+    if (strncmp (arg, prefix, prefix_len) != 0) continue;
+
+    const char *key = arg + prefix_len;
+
+    if (strncmp (key, setting, key_len) != 0) continue;
+
+    if (key[key_len] != '=') continue;
+
+    return true;
+  }
+
+  return false;
+}
+
 int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
 {
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -669,20 +770,171 @@ int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
 
   generic_instance_destroy (hashcat_ctx, generic_ctx);
 
+  // -a 9 splitting its own hash file has no file to name per source. Its sources are the phases of the
+  // attack, and a phase says which feed runs it and what to tell that feed.
+  //
+  // The grammar phase is the pcfg feed rather than a second implementation of one. It is handed the
+  // hint ruleset and told to take its words from the account names, which is the whole of the wiring:
+  // everything else about it, the cost ordering, the index, the seek and --debug-mode, is what a pcfg
+  // attack already does.
+  //
+  // Only the array is owned. The strings are literals or belong to the source list.
+
+  const bool autosplit = (user_options_extra->association_autosplit == true);
+
+  const bool phase_pcfg  = (autosplit == true) && (strcmp (path, "pcfg")  == 0);
+  const bool phase_rules = (autosplit == true) && (strcmp (path, "rules") == 0);
+  const bool phase_words = (autosplit == true) && (strcmp (path, "words") == 0);
+
+  // A setting the user wrote for this phase, which is one prefixed with the phase's name. A phase runs a
+  // feed of its own and two phases run two different feeds, so an unprefixed setting would have to be
+  // understood by both or refused by one, and every feed would have to stop reporting a key it does not
+  // know. That is the report that catches a typo, so the prefix is what keeps it.
+  //
+  // The prefix is stripped by pointing past it rather than by copying, so "rules.rulemax=500" is handed
+  // over as "rulemax=500" with no allocation. Where they sit does not matter: feed_param_parse ()
+  // refuses a key it is given twice rather than keeping one of them, which is why a default has to be
+  // left out rather than overridden.
+
+  const char *prefix = "rules.";
+
+  if (phase_pcfg  == true) prefix = "pcfg.";
+  if (phase_words == true) prefix = "words.";
+
+  const size_t prefix_len = strlen (prefix);
+
+  // Where the grammar phase takes its words from is not the user's to choose. It is the account attack:
+  // one hash, one set of words, taken from whatever the hash mode can say about that hash. Naming a
+  // word set instead would be a different attack, and the feed refuses the pair because a hint ruleset
+  // takes its words from one place. Said here instead, because the setting it collides with is one
+  // hashcat added and the user never wrote, so the feed's message named a setting nobody typed.
+
+  // The words phase has no rule list: a round is one word and the candidate is that word. The feed takes
+  // rulefile and rulemax because the rules phase needs them, so a key naming one here would be accepted
+  // and then never read, which is the silence every other setting refusal exists to stop.
+
+  if (phase_words == true)
+  {
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "rulefile=") == true)
+    {
+      event_log_error (hashcat_ctx, "%srulefile: the words phase of -a 9 applies no rules, so it has no rule list. Did you mean rules.rulefile?", prefix);
+
+      return -1;
+    }
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "rulemax=") == true)
+    {
+      event_log_error (hashcat_ctx, "%srulemax: the words phase of -a 9 applies no rules, so it has no rule list. Did you mean rules.rulemax?", prefix);
+
+      return -1;
+    }
+  }
+
+  if (phase_pcfg == true)
+  {
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "hintwords=") == true)
+    {
+      event_log_error (hashcat_ctx, "%shintwords: the grammar phase of -a 9 takes its words from the hashes, so it cannot be given a word list as well.", prefix);
+
+      return -1;
+    }
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, "hintfile=") == true)
+    {
+      event_log_error (hashcat_ctx, "%shintfile: the grammar phase of -a 9 takes its words from the hashes, so it cannot be given a word list as well.", prefix);
+
+      return -1;
+    }
+  }
+
+  int extra = 0;
+
+  if (autosplit == true)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      if (strncmp (user_options_extra->hc_workv[i], prefix, prefix_len) != 0) continue;
+
+      extra++;
+    }
+  }
+
   generic_ctx->workc = 2;
-  generic_ctx->workv = (char **) hcmalloc (2 * sizeof (char *));
 
-  // -a 9 splitting its own hash file has no file to name per round. Its rounds are the words one account
-  // name becomes, so the source is which of those words this round is trying.
+  if (phase_pcfg  == true) generic_ctx->workc = 3;
+  if (phase_rules == true) generic_ctx->workc = 4;
+  if (phase_words == true) generic_ctx->workc = 2;
 
-  generic_ctx->workv[0] = (user_options_extra->association_autosplit == true) ? "association" : "wordlist";
-  generic_ctx->workv[1] = (char *) path;
+  generic_ctx->workc += extra;
+
+  generic_ctx->workv = (char **) hcmalloc ((size_t) generic_ctx->workc * sizeof (char *));
+
+  int at = 0;
+
+  if (phase_pcfg == true)
+  {
+    generic_ctx->workv[at++] = "pcfg";
+    generic_ctx->workv[at++] = ASSOCIATION_PCFG_RULESET;
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, ASSOCIATION_PCFG_HINTS) == false) generic_ctx->workv[at++] = ASSOCIATION_PCFG_HINTS;
+  }
+  else if (phase_words == true)
+  {
+    generic_ctx->workv[at++] = "association";
+    generic_ctx->workv[at++] = (char *) path;
+  }
+  else if (phase_rules == true)
+  {
+    generic_ctx->workv[at++] = "association";
+    generic_ctx->workv[at++] = (char *) path;
+
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, ASSOCIATION_RULES_FILE) == false) generic_ctx->workv[at++] = ASSOCIATION_RULES_FILE;
+    if (generic_phase_setting_given (user_options_extra, prefix, prefix_len, ASSOCIATION_RULES_MAX)  == false) generic_ctx->workv[at++] = ASSOCIATION_RULES_MAX;
+  }
+  else
+  {
+    // Every phase of the autosplit form is named above, so what is left here is the form that was given
+    // a wordlist to pair with the hashes by line number.
+
+    generic_ctx->workv[at++] = "wordlist";
+    generic_ctx->workv[at++] = (char *) path;
+  }
+
+  if (autosplit == true)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      char *arg = user_options_extra->hc_workv[i];
+
+      if (strncmp (arg, prefix, prefix_len) != 0) continue;
+
+      generic_ctx->workv[at++] = arg + prefix_len;
+    }
+  }
+
+  // A default that stood aside left a slot unused, so the count is what was written rather than what
+  // was budgeted for.
+
+  generic_ctx->workc = at;
 
   generic_ctx->workv_owned = true;
 
   const int rc = generic_instance_init (hashcat_ctx, generic_ctx, false);
 
   return rc;
+}
+
+// Give the base word instance up before its round would normally replace it.
+//
+// An induction round reads a dictionary hashcat wrote itself and deletes it once it is consumed. The
+// instance that read it is otherwise held until the next round opens over the top, and on Windows a
+// file that is still open cannot be deleted, so the delete failed, the scan found the same file
+// again, and the run never moved on. Closing here costs nothing anywhere else: the next round opens
+// its own instance regardless.
+
+void generic_ctx_base_close (hashcat_ctx_t *hashcat_ctx)
+{
+  generic_instance_destroy (hashcat_ctx, &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE]);
 }
 
 // Read and throw away the first count base words, so that a source which cannot be seeked still
@@ -778,21 +1030,61 @@ static bool generic_amp_is_wordlist (const hashcat_ctx_t *hashcat_ctx)
   return inverted;
 }
 
-// -a 9 pairs word N with salt N, so the two counts have to agree exactly. Asked at init and again per
-// round, because a scope that knows its keyspace at init should be refused before any device is brought
-// up rather than after the self-test, and a scope that reads one dictionary per round can only be asked
+// -a 9 pairs word N with salt N, so the counts have to agree. Asked at init and again per round,
+// because a scope that knows its keyspace at init should be refused before any device is brought up
+// rather than after the self-test, and a scope that reads one dictionary per round can only be asked
 // once that round's dictionary has been counted.
 //
-// A hash-mode with no salt is the common way to arrive here: every one of its hashes shares the single
-// salt, so there is one salt to pair with however many words there are. Naming the file the words came
-// out of is what makes that readable, and the autosplit form has no such file to name.
+// The attack only exists where every hash has a salt of its own, because the kernel reaches both the
+// salt and the digest by the same index. A hash-mode with no salt is the common way to arrive here:
+// every one of its hashes shares the single salt, so there is one salt to pair with however many words
+// there are. Naming the file the words came out of is what makes that readable, and the autosplit form
+// has no such file to name.
+//
+// The autosplit feed may cover several rounds in one instance. It writes them round major, one word per
+// salt in salt order and then the next round over the same salts, so its pairing is word N with salt N
+// modulo the salt count and its keyspace is a whole multiple rather than equal. A remainder is a stream
+// that runs off the end of the salt list part way through a round, which pairs the tail of it with the
+// wrong hashes and reports nothing wrong.
+//
+// A wordlist the user brought is held to equality still. It does not say how many rounds it means, so a
+// file that happens to be twice as long as the hash list is a miscount far more often than it is a
+// second round, and reading it as one would run the whole attack against the wrong hashes.
 
 int generic_association_in_sync (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx)
 {
   const hashes_t             *hashes             = hashcat_ctx->hashes;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (generic_ctx->keyspace == hashes->salts_cnt) return 0;
+  if ((hashes->salts_cnt > 0) && (hashes->salts_cnt == hashes->digests_cnt))
+  {
+    if (generic_ctx->keyspace == hashes->salts_cnt) return 0;
+
+    if (user_options_extra->association_autosplit == true)
+    {
+      if (generic_ctx->keyspace >= hashes->salts_cnt)
+      {
+        if ((generic_ctx->keyspace % hashes->salts_cnt) == 0) return 0;
+      }
+    }
+  }
+
+  // Two different refusals, and they need two different messages. This one is the hash-mode: the kernel
+  // reaches the salt and the digest by the same index, so an attack that pairs one candidate with one
+  // hash only exists where every hash has a salt of its own. An unsalted mode gives every hash the same
+  // salt slot, and the run would test the first digest of it and nothing else. Saying the word count is
+  // out of sync would print two numbers that agree and name the wrong thing.
+
+  if (hashes->salts_cnt != hashes->digests_cnt)
+  {
+    event_log_error (hashcat_ctx, "Attack mode 9 pairs one candidate with one hash, so every hash needs a salt of its own.");
+
+    event_log_error (hashcat_ctx, "Hash-mode %u does not give one, so a candidate would be tested against a salt several hashes share.", hashcat_ctx->hashconfig->hash_mode);
+
+    event_log_error (hashcat_ctx, "Hashes: %u, salts: %u", hashes->digests_cnt, hashes->salts_cnt);
+
+    return -1;
+  }
 
   if (user_options_extra->association_autosplit == true)
   {
@@ -806,6 +1098,461 @@ int generic_association_in_sync (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t
   event_log_error (hashcat_ctx, "Words: %" PRIu64 ", salts: %d", generic_ctx->keyspace, hashes->salts_cnt);
 
   return -1;
+}
+
+// Whether any feed instance was asked to describe the attack rather than to run it. Both roles are
+// asked, because -a 1 counts its two dictionaries as two instances and either of them can be the one
+// that was handed the question.
+
+bool generic_ctx_described (const hashcat_ctx_t *hashcat_ctx)
+{
+  for (int role = 0; role < GENERIC_ROLE_CNT; role++)
+  {
+    const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+    if (generic_ctx->enabled == false) continue;
+
+    if (generic_ctx->global_ctx.described == true) return true;
+  }
+
+  return false;
+}
+
+// A word as the run would compare it, and whether the index it sits at moves on when the run throws
+// it away.
+//
+// A feed hands back the line. The run does not compare against the line: pw_transform_apply () has
+// had it first, and --hex-wordlist, $HEX[], the -j or -k rule, a mode that hashes in upper case and
+// an encoding change all happen in there. Comparing against the line instead answers about a string
+// the run never builds, which is worse than not answering: it reports a password the run does reach
+// as absent, and hands out an offset for one it does not.
+//
+// The two roles book a refusal differently and both are deliberate. A base word keeps its position
+// whatever happens to it, because --skip addresses that stream positionally and the dispatcher
+// advances seek_pos before it tests anything. An amplifier word gives its slot up, because the fill
+// packs what it accepted and everything after a refusal moves up.
+
+static bool generic_word_transform (const pw_transform_t *transform, u8 *buf, const int out_len, const size_t buf_size, u32 *len_out)
+{
+  // A position the feed skipped has no bytes to transform, and it holds its place in the count the
+  // same way a word too long for the transform does.
+
+  if (out_len < 0) return false;
+
+  if (out_len > PW_MAX) return false;
+
+  const int len = pw_transform_apply (transform, buf, out_len, (int) buf_size);
+
+  if (len < 0) return false;
+
+  *len_out = (u32) len;
+
+  return true;
+}
+
+// Feedback for a lookup that reads long enough to look like a hang.
+//
+// A wordlist lookup is one pass over the whole file, and on a hundred gigabytes that is minutes in
+// which nothing is printed. A run that says nothing cannot be told from a stuck one, so once the
+// read has been going for LOOKUP_SAY_MS the progress is reported, and again every LOOKUP_SAY_MS
+// after that.
+//
+// Nothing at all is said before then, which is the point: a wordlist small enough to answer in an
+// instant is answered without a word of noise, so the common case is untouched.
+//
+// Written with event_log_info_nn (), the same self-erasing line the dictionary cache build uses.
+// main_log () remembers the length of a line that had no newline and wipes it before the next
+// message, so the answer lands on a clean line with no trace of the counting. That wipe is an ANSI
+// sequence, so this only runs on a terminal: a redirected lookup carries its answer and nothing
+// else.
+
+#define LOOKUP_SAY_MS   2000.0
+#define LOOKUP_SAY_MASK 0xffff
+#define LOOKUP_SAY_BAR  24
+
+typedef struct
+{
+  hc_timer_t start;             // when the read began, which is what the rate is measured over
+  double     last;              // when it last said something, so it says it no more often than that
+  u64        total;
+  bool       enabled;
+
+} lookup_say_t;
+
+static void lookup_say_init (lookup_say_t *say, const u64 total)
+{
+  hc_timer_set (&say->start);
+
+  say->last = 0.0;
+
+  // A feed that does not know its own keyspace, which is what stdin is, still gets a count. Only the
+  // fraction and the estimate need a denominator.
+
+  say->total   = (total == GENERIC_KEYSPACE_UNKNOWN) ? 0 : total;
+  say->enabled = is_stdout_terminal ();
+}
+
+// Called once every LOOKUP_SAY_MASK + 1 words rather than on every one. hc_timer_get () is a clock
+// read, and this loop does about twenty five nanoseconds of work per word, so asking the clock each
+// time would cost more than the search.
+
+static void lookup_say (hashcat_ctx_t *hashcat_ctx, lookup_say_t *say, const u64 done)
+{
+  if (say->enabled == false) return;
+
+  const double msec = hc_timer_get (say->start);
+
+  if ((msec - say->last) < LOOKUP_SAY_MS) return;
+
+  say->last = msec;
+
+  // A hybrid reads the wordlist once per mask in its queue, so a bare percentage would run from
+  // nothing to full once per round with nothing to say how many rounds are left. -a 0 has no queue
+  // and no round to name.
+
+  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  char round[64];
+
+  round[0] = 0;
+
+  if (mask_ctx->masks_cnt > 1)
+  {
+    snprintf (round, sizeof (round), "round %u of %u, ", mask_ctx->masks_pos + 1, mask_ctx->masks_cnt);
+  }
+
+  if (say->total == 0)
+  {
+    event_log_info_nn (hashcat_ctx, "lookup: %s%" PRIu64 " words read", round, done);
+
+    return;
+  }
+
+  double frac = (double) done / (double) say->total;
+
+  if (frac > 1.0) frac = 1.0;
+
+  char bar[LOOKUP_SAY_BAR + 1];
+
+  const int filled = (int) (frac * LOOKUP_SAY_BAR);
+
+  for (int i = 0; i < LOOKUP_SAY_BAR; i++) bar[i] = (i < filled) ? '#' : '-';
+
+  bar[LOOKUP_SAY_BAR] = 0;
+
+  // An estimate made from a fraction close to zero is worse than none, because a short elapsed time
+  // divided by almost nothing is an enormous number that says only that the read has begun.
+
+  if (frac < 0.01)
+  {
+    event_log_info_nn (hashcat_ctx, "lookup: %s[%s] %.1f%%, %" PRIu64 " of %" PRIu64 " words", round, bar, frac * 100.0, done, say->total);
+
+    return;
+  }
+
+  // Rate over the whole read rather than the last window, since a wordlist is read at a steady pace
+  // and the average is the steadier number to divide by.
+
+  const double left = ((double) say->total - (double) done) / ((double) done / (msec / 1000.0));
+
+  time_t sec_left = (time_t) left;
+
+  struct tm  tm_left;
+  struct tm *tmp_left = gmtime_r (&sec_left, &tm_left);
+
+  char eta[HCBUFSIZ_TINY];
+
+  format_timer_display (tmp_left, eta, sizeof (eta));
+
+  event_log_info_nn (hashcat_ctx, "lookup: %s[%s] %.1f%%, %" PRIu64 " of %" PRIu64 " words, ETA %s", round, bar, frac * 100.0, done, say->total, eta);
+}
+
+// Where a feed reaches a candidate: the index of the first word it produces that equals it, and how
+// many more of them there are behind it.
+//
+// There is no index to consult and there is nowhere to put one. A feed is a stream; the only thing
+// that knows what its Nth word is is the feed, and the nine functions it exports have no
+// where-is-this-word among them. So the answer is found the way the run finds it, by reading forward
+// from the start, and it costs one pass. That is what the run's own first pass costs and what
+// grep -n costs, and there is no sublinear answer to pretend to.
+//
+// Read on thread slot 0, brought up and torn down here. No device thread is competing for it:
+// --lookup borrows --keyspace, so the loop that would have initialised one slot per device never
+// ran, and nothing else in the process is reading this feed. global_keyspace () borrows the same slot
+// to count the file and gives it back, so it is free by the time this is called.
+//
+// The index is the answer in --skip units without conversion. A word the length filters will reject
+// still advances it, and so does a duplicate, because the feed counts lines and nothing else - which
+// is also what makes "grep -n minus one" a correct oracle for this.
+
+int generic_ctx_word_index (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *cand, const u32 cand_len, u64 *out_index, u64 *out_more, u64 *out_words)
+{
+  generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  if (generic_ctx->enabled == false)
+  {
+    event_log_error (hashcat_ctx, "lookup: no feed instance is open for this role");
+
+    return -1;
+  }
+
+  // A feed with a device engine builds device resources in thread_init (), and there is no device
+  // here to build them on, so it is refused rather than initialised onto whatever was current. The
+  // wordlist feed offers no device engine and builds nothing: it allocates its reader and opens no
+  // file until it is told where to start.
+
+  if (generic_ctx->dev_enable == true)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s has a device engine and cannot be read without a device", generic_ctx->dynlib_filename);
+
+    return -1;
+  }
+
+  // thread_init () and thread_term () are called without the device bind that wraps them everywhere
+  // else. That bind makes one device current for a feed that builds resources on it, and this runs
+  // with no devices at all: --lookup borrows --keyspace, so backend_ctx_init () returned before any
+  // device was opened and there is nothing to make current. The test above is what makes that safe.
+
+  if (generic_ctx->thread_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]) == false)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s: %s", generic_ctx->dynlib_filename, generic_ctx->thread_ctx[0].error_msg);
+
+    generic_ctx->thread_ctx[0].error = false;
+
+    return -1;
+  }
+
+  // A feed opens nothing until it is told where to start, so the seek is not an optimisation here but
+  // the thing that makes the first word exist.
+
+  pw_transform_t transform;
+
+  if (pw_transform_init (&transform, hashcat_ctx, role, (int) hashcat_ctx->user_options_extra->rule_len_base, hashcat_ctx->user_options_extra->rule_buf_base) == -1)
+  {
+    generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+    return -1;
+  }
+
+  int rc = -1;
+
+  if (generic_thread_seek (hashcat_ctx, role, 0, 0) == GENERIC_RC_ERROR)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s: seek to the first word failed", generic_ctx->dynlib_filename);
+  }
+  else
+  {
+    u8 buf[HCBUFSIZ_TINY];
+
+    u64 index = 0;
+    u64 first = 0;
+    u64 more  = 0;
+
+    bool found = false;
+
+    lookup_say_t say;
+
+    lookup_say_init (&say, generic_ctx->keyspace);
+
+    rc = 0;
+
+    while (true)
+    {
+      if ((index & LOOKUP_SAY_MASK) == 0) lookup_say (hashcat_ctx, &say, index);
+
+      const int out_len = generic_thread_next (hashcat_ctx, role, 0, buf, sizeof (buf));
+
+      if (out_len == GENERIC_RC_EOF) break;
+
+      if (out_len == GENERIC_RC_ERROR)
+      {
+        rc = -1;
+
+        break;
+      }
+
+      u32 len = 0;
+
+      if (generic_word_transform (&transform, buf, out_len, sizeof (buf), &len) == true)
+      {
+        if ((len == cand_len) && (memcmp (buf, cand, cand_len) == 0))
+        {
+          if (found == false)
+          {
+            found = true;
+            first = index;
+          }
+          else
+          {
+            more++;
+          }
+        }
+      }
+
+      index++;
+    }
+
+    if (rc == 0)
+    {
+      *out_words = index;
+
+      if (found == true)
+      {
+        *out_index = first;
+        *out_more  = more;
+
+        rc = 1;
+      }
+    }
+  }
+
+  pw_transform_term (&transform);
+
+  generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+  generic_ctx->thread_ctx[0].error = false;
+
+  return rc;
+}
+
+// The first index at which a feed produces each of a family of words, in one pass.
+//
+// A -a 12 candidate is mask, base word, mask, ?q word, mask, and only the two word lengths are free.
+// That does not make the words independent: whatever the split, the base word is a prefix of what
+// follows the mask in front of it and the ?q word is a suffix of what precedes the mask behind it. So
+// every length can be tested with one comparison per feed word, and every length at once with one
+// pass, rather than one pass per split.
+//
+// anchor is the candidate byte the family is measured from. Going forward, a word of length L must
+// equal anchor[0..L). Going backward, it must equal anchor[-L..0), which is the ?q case: the ?q word
+// ends where the mask behind it begins, and that end is fixed while its start is not.
+//
+// out_index[L - min_len] is the first index of a word of length L, or GENERIC_KEYSPACE_UNKNOWN when
+// no word of that length matched.
+
+int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *anchor, const u32 min_len, const u32 max_len, const bool backward, u64 *out_index, u64 *out_words)
+{
+  generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  if (generic_ctx->enabled == false) return -1;
+
+  if (generic_ctx->dev_enable == true) return -1;
+
+  if (min_len > max_len) return -1;
+
+  for (u32 i = 0; i <= (max_len - min_len); i++) out_index[i] = GENERIC_KEYSPACE_UNKNOWN;
+
+  if (generic_ctx->thread_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]) == false)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s: %s", generic_ctx->dynlib_filename, generic_ctx->thread_ctx[0].error_msg);
+
+    generic_ctx->thread_ctx[0].error = false;
+
+    return -1;
+  }
+
+  // The base word keeps its position when the run throws it away and the amplifier word does not, so
+  // the index only always moves on for the base. See generic_word_transform () above.
+
+  const bool advance_on_reject = (role == GENERIC_ROLE_BASE);
+
+  const int   rule_len = (int) ((role == GENERIC_ROLE_BASE) ? hashcat_ctx->user_options_extra->rule_len_base : hashcat_ctx->user_options_extra->rule_len_amp);
+  const char *rule_buf =        (role == GENERIC_ROLE_BASE) ? hashcat_ctx->user_options_extra->rule_buf_base : hashcat_ctx->user_options_extra->rule_buf_amp;
+
+  pw_transform_t transform;
+
+  if (pw_transform_init (&transform, hashcat_ctx, role, rule_len, rule_buf) == -1)
+  {
+    generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+    return -1;
+  }
+
+  int rc = -1;
+
+  if (generic_thread_seek (hashcat_ctx, role, 0, 0) != GENERIC_RC_ERROR)
+  {
+    u8 buf[HCBUFSIZ_TINY];
+
+    u64 index = 0;
+
+    lookup_say_t say;
+
+    lookup_say_init (&say, generic_ctx->keyspace);
+
+    rc = 0;
+
+    while (true)
+    {
+      if ((index & LOOKUP_SAY_MASK) == 0) lookup_say (hashcat_ctx, &say, index);
+
+      const int out_len = generic_thread_next (hashcat_ctx, role, 0, buf, sizeof (buf));
+
+      if (out_len == GENERIC_RC_EOF) break;
+
+      if (out_len == GENERIC_RC_ERROR)
+      {
+        rc = -1;
+
+        break;
+      }
+
+      u32 len = 0;
+
+      if (generic_word_transform (&transform, buf, out_len, sizeof (buf), &len) == false)
+      {
+        if (advance_on_reject == true) index++;
+
+        continue;
+      }
+
+      if ((len >= min_len) && (len <= max_len))
+      {
+        const u8 *want = (backward == true) ? (anchor - len) : anchor;
+
+        if (memcmp (buf, want, len) == 0)
+        {
+          if (out_index[len - min_len] == GENERIC_KEYSPACE_UNKNOWN) out_index[len - min_len] = index;
+        }
+      }
+
+      index++;
+    }
+
+    if (rc == 0) *out_words = index;
+  }
+
+  pw_transform_term (&transform);
+
+  generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+  generic_ctx->thread_ctx[0].error = false;
+
+  return rc;
+}
+
+// Which of a feed's sources a word index lands in, for a base that is several dictionaries or a
+// folder laid end to end. The feed publishes the two arrays in global_keyspace (); a feed that
+// publishes none is one source and has nothing to say.
+
+const char *generic_ctx_segment_of (const hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u64 index)
+{
+  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
+  if (global_ctx->segments_cnt < 2) return NULL;
+
+  const char *name = NULL;
+
+  for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+  {
+    if (global_ctx->segment_first[i] > index) break;
+
+    name = global_ctx->segment_names[i];
+  }
+
+  return name;
 }
 
 int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)

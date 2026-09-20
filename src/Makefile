@@ -8,7 +8,7 @@
 ##
 ## Four kinds of thing come out of a build. The core, which is a shared library and holds everything
 ## hashcat knows how to do. The frontend, hashcat or hashcat.exe, which is a small program that calls
-## the core. The plugins, which are the 593 modules, the bridges and the feeds, each a shared object
+## the core. The plugins, which are the 595 modules, the bridges and the feeds, each a shared object
 ## that the core loads at runtime. And the kernels under OpenCL/, which are not compiled here at all,
 ## because the GPU driver compiles them when hashcat runs.
 ##
@@ -33,13 +33,7 @@ MACOS_UNIVERSAL_BINARY  ?= 0
 ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
-ENABLE_UNRAR            ?= 1
-USE_SYSTEM_LZMA         ?= 0
-USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
-USE_SYSTEM_XXHASH       ?= 0
-## do not change, requires some hacks
-USE_SYSTEM_UNRAR        ?= 0
 MAINTAINER_MODE         ?= 0
 
 ##
@@ -69,10 +63,10 @@ endif
 ##
 ## Arrangement of the core
 ##
-## The core is one shared library and everything else links against it: the frontend, the 593
+## The core is one shared library and everything else links against it: the frontend, the 595
 ## modules, the bridges and the feeds. Statically it is copied into each of them instead, and a
 ## module that calls input_tokenizer drags in the tokenizer, the file handling under it, and from
-## there the whole of LZMA, zlib and minizip, none of which a module ever calls. That is 90 percent
+## there the file handling under it, none of which a module ever calls. That is 90 percent
 ## of what the release ships, the same core 603 times over.
 ##
 ## SHARED=0 builds the static arrangement instead. It is kept because it needs nothing from the
@@ -247,6 +241,7 @@ endif
 # command line. Under the platform name they are what every rule below asks for.
 
 CC_NATIVE               := $(CC)
+WINDRES_NATIVE          := windres
 CXX_NATIVE              := $(CXX)
 AR_NATIVE               := $(AR)
 
@@ -257,11 +252,11 @@ CXX_LINUX               := g++
 AR_LINUX                := ar
 
 CC_WIN                  := x86_64-w64-mingw32-gcc
+WINDRES_WIN             := x86_64-w64-mingw32-windres
 CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-# See BUILD_WSL.md to make these
-WIN_ICONV               := /opt/win-iconv-64
+# See BUILD_WSL.md to make this
 WIN_PYTHON              := /opt/win-python
 
 endif
@@ -313,6 +308,12 @@ ifeq ($(PRODUCTION),1)
 VERSION_TAG             := $(PRODUCTION_VERSION)
 else
 VERSION_TAG             := $(shell git describe --tags --dirty=+ || echo $(PRODUCTION_VERSION))
+
+# A Windows version resource is four numbers. VERSION_TAG is a git description, so the release is
+# taken from the front of it and the commit count becomes the fourth field. Both forms work:
+# v7.1.2 gives 7,1,2,0 and v7.1.2-40-gabc1234 gives 7,1,2,40.
+
+VERSION_NUM             := $(shell echo "$(VERSION_TAG)" | sed -e 's/^v//' -e 's/+$$//' -e 's/-g[0-9a-f]*$$//' -e 's/-/./' | awk -F. '{printf "%d,%d,%d,%d", $$1+0, $$2+0, $$3+0, $$4+0}')
 endif # PRODUCTION
 
 VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
@@ -337,36 +338,10 @@ LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 ## Dependencies paths
 ##
 
-ifeq ($(USE_SYSTEM_LZMA),0)
-DEPS_LZMA_PATH          := deps/LZMA-SDK/C
-else
-DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
-ifeq ($(USE_SYSTEM_ZLIB),0)
-DEPS_ZLIB_PATH          := deps/zlib
-else
-DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
 DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
-ifeq ($(USE_SYSTEM_XXHASH),0)
-DEPS_XXHASH_PATH        := deps/xxHash
-else
-DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-DEPS_UNRAR_PATH         := deps/unrar
-else
-DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
 endif
 
 DEPS_SSE2NEON           := deps/sse2neon
@@ -408,11 +383,13 @@ endif # Darwin
 ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
+RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
+RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
 endif # MSYS2
 
 # make install and make uninstall run on this machine and touch nothing a cross build wrote
@@ -478,6 +455,28 @@ ifeq ($(HAVE_MCPU_NATIVE),1)
 MCPU_NATIVE             := -mcpu=native -mtune=native
 endif
 
+# MCPU names the core to build for, for a build that has to run on a machine other than this one.
+# It replaces the native flags rather than joining them, which is the whole point: -march=native is
+# this machine's architecture, and a binary built for a newer architecture and merely tuned for an
+# older core faults on the older one. On its own -mcpu carries the right architecture with it, so
+# naming the core is all it takes: cortex-a53 and cortex-a72 bring armv8-a, cortex-a76 armv8.2-a.
+
+# The probe wants a clean run and not only a zero exit, because -mcpu is not an x86 flag and gcc
+# there takes it as a deprecated spelling of -mtune, says so on stderr, and exits 0 anyway. Taking
+# that would swap -march=native for a tuning flag and lose the architecture, which is the fault this
+# variable exists to avoid. clang on x86 refuses the flag outright and needs no help.
+
+ifneq ($(MCPU),)
+MCPU_PROBE              := $(shell echo | $(CC_NATIVE) -mcpu=$(MCPU) -E - 2>&1 >/dev/null)
+HAVE_MCPU               := $(if $(MCPU_PROBE),0,1)
+
+ifeq ($(HAVE_MCPU),0)
+$(error MCPU=$(MCPU) is not a core $(CC_NATIVE) builds for with -mcpu)
+endif
+
+CFLAGS_HOST_ONLY        += -mcpu=$(MCPU)
+else
+
 ifeq ($(UNAME),Darwin)
 # a universal binary is built for two architectures at once, so it cannot be built for this one
 ifeq ($(MACOS_UNIVERSAL_BINARY),0)
@@ -490,13 +489,71 @@ else
 CFLAGS_HOST_ONLY        += $(MARCH_NATIVE)
 endif
 endif
+
 endif
 
 ifeq ($(UNAME),Linux)
-IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo && echo 1 || echo 0)
+
+IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo 2>/dev/null && echo 1 || echo 0)
 
 ifeq ($(IS_RPI),1)
-CFLAGS_HOST_ONLY        += -mcpu=cortex-a72
+
+# What -march=native leaves out on a Raspberry Pi. It resolves the architecture, and on a Pi 4 that is
+# armv8-a, but it leaves the scheduling model at "generic", and -mtune=native does not name the core
+# either. -mcpu does, and this is where the old -mcpu=cortex-a72 came from.
+#
+# Which core, though, is read from the "CPU part" line of /proc/cpuinfo rather than assumed. The board
+# name says Raspberry Pi for machines whose cores are three generations apart, a Cortex-A53 on a Pi 3,
+# an A72 on a Pi 4 and an A76 on a Pi 5, so a single hardcoded name tunes two of the three for the
+# wrong machine.
+#
+# The test stays inside the Raspberry Pi branch on purpose. Every other aarch64 machine keeps the
+# flags it has today, because naming a core for hardware nobody asked about would be a change to
+# machines this is not about.
+#
+# -mcpu=native would answer the same question in one flag and is not used, because on a Pi 4 with
+# clang 19 it answers it wrongly: it adds +aes and +sha2, which the BCM2711 does not have, and a
+# binary that uses them dies with SIGILL on the machine that compiled it. /proc/cpuinfo there lists
+# "fp asimd evtstrm crc32 cpuid" and no crypto.
+#
+# Only when every core reports the same part, because a name taken from one half of a big.LITTLE pair
+# tunes for a core that half the threads never run on. And only when the compiler accepts the name,
+# which also drops the 32 bit cores of the older boards, since a 64 bit build cannot target them.
+
+CPU_PARTS               := $(shell awk '/^CPU part/ { print $$4 }' /proc/cpuinfo 2>/dev/null | sort -u)
+
+MCPU_PART_0xd03         := cortex-a53
+MCPU_PART_0xd07         := cortex-a57
+MCPU_PART_0xd08         := cortex-a72
+MCPU_PART_0xd0b         := cortex-a76
+
+ifeq ($(MCPU),)
+ifeq ($(words $(CPU_PARTS)),1)
+MCPU_TUNE               := $(MCPU_PART_$(CPU_PARTS))
+
+# The list covers every 64 bit Raspberry Pi there is, so a part it does not know is a board newer than
+# this file. The build still works, because -march=native already got the architecture right and only
+# the scheduling model is missing, so this says so rather than stopping.
+
+ifeq ($(MCPU_TUNE),)
+$(warning Raspberry Pi with CPU part $(CPU_PARTS), which this Makefile has no -mcpu name for)
+$(warning building without it, which costs scheduling only; add MCPU_PART_$(CPU_PARTS) or pass MCPU=)
+endif
+
+endif
+endif
+
+ifneq ($(MCPU_TUNE),)
+MCPU_TUNE_PROBE         := $(shell echo | $(CC_NATIVE) -mcpu=$(MCPU_TUNE) -E - 2>&1 >/dev/null)
+HAVE_MCPU_TUNE          := $(if $(MCPU_TUNE_PROBE),0,1)
+
+ifeq ($(HAVE_MCPU_TUNE),1)
+CFLAGS_HOST_ONLY        += -mcpu=$(MCPU_TUNE)
+endif
+endif
+
+endif
+
 endif
 endif
 
@@ -509,75 +566,6 @@ CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
 endif
 
-## because LZMA SDK
-ifeq ($(or $(filter 1,$(CC_NATIVE_CLANG)),$(filter cc,$(CC))),1)
-CFLAGS                  += -Wno-typedef-redefinition
-endif
-
-ifeq ($(USE_SYSTEM_LZMA),0)
-CFLAGS_LZMA             += -D_7ZIP_ST
-ifeq ($(CC_NATIVE_CLANG),0)
-CFLAGS_LZMA             += -Wno-misleading-indentation
-endif
-endif
-
-## because ZLIB
-ifeq ($(USE_SYSTEM_ZLIB),0)
-CFLAGS_ZLIB             += -Wno-implicit-fallthrough
-CFLAGS_ZLIB             += -Wno-implicit-function-declaration
-CFLAGS_ZLIB             += -Wno-unused-parameter
-CFLAGS_ZLIB             += -DIOAPI_NO_64
-CFLAGS_ZLIB             += -DUNZ_BUFSIZE=262144
-ifeq ($(CC_NATIVE_CLANG),1)
-CFLAGS_ZLIB             += -Wno-deprecated-non-prototype -Wno-unknown-warning-option
-endif
-endif
-
-## because UNRAR
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-ifeq ($(UNAME),Darwin)
-CFLAGS_UNRAR            += -std=c++14
-endif
-ifeq ($(CC_NATIVE_CLANG),0)
-ifeq ($(filter FreeBSD OpenBSD,$(UNAME)),)
-CFLAGS_UNRAR            += -Wno-class-memaccess
-endif
-CFLAGS_UNRAR            += -Wno-misleading-indentation
-ifneq ($(UNAME),OpenBSD)
-CFLAGS_UNRAR            += -Wno-format-overflow
-endif
-else
-ifeq ($(IS_APPLE_SILICON),0)
-ifneq ($(filter $(UNAME),FreeBSD OpenBSD NetBSD DragonFly),$(UNAME))
-## -Wno-nontrivial-memcall names a warning that older clang does not have, and an unknown -Wno- name
-## is itself a warning, once per file compiled. The two travel together so that naming a warning the
-## compiler may not know costs nothing.
-CFLAGS_UNRAR            += -Wno-unknown-warning-option
-CFLAGS_UNRAR            += -Wno-nontrivial-memcall
-endif
-endif
-endif
-CFLAGS_UNRAR            += -Wno-missing-braces
-CFLAGS_UNRAR            += -Wno-unused-variable
-CFLAGS_UNRAR            += -Wno-unused-parameter
-CFLAGS_UNRAR            += -Wno-unused-function
-CFLAGS_UNRAR            += -Wno-sign-compare
-CFLAGS_UNRAR            += -Wno-dangling-else
-CFLAGS_UNRAR            += -Wno-switch
-CFLAGS_UNRAR            += -Wno-parentheses
-CFLAGS_UNRAR            += -Wno-implicit-fallthrough
-CFLAGS_UNRAR            += -Wno-extra
-CFLAGS_UNRAR            += -Wno-unknown-pragmas
-CFLAGS_UNRAR            += -Wno-unused-but-set-variable
-CFLAGS_UNRAR            += -Wno-deprecated-declarations
-#Not supported on macOS 12.3
-#CFLAGS_UNRAR            += -Wno-format-overflow
-#Added hashcat 7.0.0
-#CFLAGS_UNRAR            += -Wno-class-memaccess
-CFLAGS_UNRAR            += -Wno-misleading-indentation
-endif
-endif
 
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2 -fomit-frame-pointer
@@ -631,18 +619,6 @@ endif
 
 CFLAGS                  += -pipe -Iinclude/ -IOpenCL/
 
-# LZMA
-CFLAGS                  += -I$(DEPS_LZMA_PATH)
-ifeq ($(USE_SYSTEM_LZMA),1)
-LFLAGS                  += -llzmasdk
-endif
-
-# ZLIB
-CFLAGS                  += -I$(DEPS_ZLIB_PATH) -I$(DEPS_ZLIB_PATH)/contrib
-ifeq ($(USE_SYSTEM_ZLIB),1)
-LFLAGS                  += -lz -lminizip
-endif
-
 # OpenCL
 CFLAGS                  += -I$(DEPS_OPENCL_PATH)
 
@@ -651,67 +627,9 @@ ifeq ($(ENABLE_BRAIN),1)
 CFLAGS                  += -DWITH_BRAIN
 endif
 
-# xxHash. The two feeds that hash with it include it inline and need only the header. The brain is
-# the one part of the core that calls the library, so the library is asked for when the brain is
-# built and not otherwise, which is the same condition the vendored object is compiled under.
-
-CFLAGS                  += -I$(DEPS_XXHASH_PATH)
-ifeq ($(ENABLE_BRAIN),1)
-ifeq ($(USE_SYSTEM_XXHASH),1)
-LFLAGS                  += -lxxhash
-endif
-endif
-
 # CUDA binary cache
 ifeq ($(ENABLE_CUBIN),1)
 CFLAGS                  += -DWITH_CUBIN
-endif
-
-# unrar
-ifeq ($(ENABLE_UNRAR),1)
-CFLAGS                  += -I$(DEPS_UNRAR_PATH)
-# UnRAR is C++ and everything that links it needs the runtime named, which is the C++ standard library
-# the system's own compiler uses: libc++ where clang is the system compiler and libstdc++ where gcc is.
-# FreeBSD, NetBSD and DragonFly fell through this without naming one, so on those systems the single
-# module that calls UnRAR, 23800, was linked short of what it needs. Nothing said so until a plugin was
-# actually loaded, because a lazily bound symbol nobody calls costs nothing.
-
-ifeq ($(UNAME),OpenBSD)
-LFLAGS                  += -lc++
-else
-ifeq ($(UNAME),FreeBSD)
-LFLAGS                  += -lc++
-else
-ifeq ($(UNAME),DragonFly)
-# DragonFly sits with the clang systems by name only. Its base compiler is gcc and its c++ is that
-# gcc, so the runtime it wants is libstdc++, and naming libc++ ended the link at "cannot find -lc++"
-# whichever compiler drove it, because the image carries no libc++ to find. When a clang from a
-# package drives the build instead, CC_NATIVE_CLANG says so and libc++ is the right name again. The
-# rule this block states is that the runtime follows the compiler, so here it asks the compiler.
-ifeq ($(CC_NATIVE_CLANG),1)
-LFLAGS                  += -lc++
-else
-LFLAGS                  += -lstdc++
-endif
-else
-ifeq ($(UNAME),NetBSD)
-LFLAGS                  += -lstdc++
-else
-ifeq ($(UNAME),Darwin)
-LFLAGS                  += -lstdc++
-else
-ifeq ($(UNAME),MSYS2)
-LFLAGS                  += -lstdc++
-else
-ifeq ($(UNAME),Linux)
-LFLAGS                  += -lstdc++
-endif
-endif
-endif
-endif
-endif
-endif
-endif
 endif
 
 # Under SHARED=0 the core is copied into each artifact and nothing crosses a library boundary, so the
@@ -725,9 +643,6 @@ endif
 # CCFLAGS only for C compiler
 CCFLAGS                 := -std=gnu99
 
-# CXXFLAGS only for C++ compiler
-CXXFLAGS                :=
-
 ##
 ## Flags of the NATIVE platform
 ##
@@ -740,7 +655,6 @@ LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -L$(PREFIX)/lib
 $(info Android environment detected.)
 else ifeq ($(UNAME),Linux)
@@ -763,7 +677,6 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/local/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 endif
 endif # FreeBSD
 
@@ -777,7 +690,6 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/local/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 endif
 endif # OpenBSD
 
@@ -789,12 +701,12 @@ LFLAGS_NATIVE           += -L /usr/pkg/lib
 # -L is where the linker looks, and the runtime loader does not read it. On the other systems here the
 # prefix the packages live in is already on the loader's own path, so the two questions never came
 # apart. NetBSD keeps packages under /usr/pkg and that is not a path the loader searches, so a build
-# that linked cleanly produced a binary that stopped at "Shared object libiconv.so.2 not found" before
-# reaching main. The rpath records the same directory for the loader.
+# that linked cleanly produced a binary that stopped before reaching main on a shared object it could
+# not find. The rpath records the same directory for the loader, which covers both what is linked
+# from there and what hashcat opens by name at runtime.
 LFLAGS_NATIVE           += -Wl,-rpath,/usr/pkg/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 endif # NetBSD
 
 ifeq ($(UNAME),Darwin)
@@ -814,7 +726,6 @@ LFLAGS_NATIVE           += -framework IOKit
 LFLAGS_NATIVE           += -framework Metal
 LFLAGS_NATIVE           += -lIOReport
 LFLAGS_NATIVE           += -lpthread
-LFLAGS_NATIVE           += -liconv
 
 ifeq ($(MACOS_UNIVERSAL_BINARY),1)
 ifeq ($(IS_APPLE_SILICON),1)
@@ -839,7 +750,6 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
-LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
@@ -847,9 +757,14 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
-LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
+
+# Every library that is not part of Windows goes INTO the binary that needs it, because no runtime
+# DLL is shipped beside these binaries and the working directory is no longer searched for one. A
+# plugin is loaded by path, but the libraries that plugin imports are still looked up, and the only
+# places left to look are the directory hashcat.exe lives in and the system directory. Anything the
+# toolchain would otherwise resolve out of MSYS2's own bin directory is therefore linked statically.
 endif # MSYS2
 
 # A core object is linked into shared objects, so it is compiled position independent. The two cross
@@ -865,9 +780,8 @@ CFLAGS_PIC_NATIVE       := -fpic
 ## each, with HC_API or HC_PLUGIN_API out of include/export.h, and nowhere else.
 ## -fvisibility=hidden is what makes that true rather than decorative: a name is private unless its
 ## declaration says otherwise, so a plugin that reaches for anything else does not link and the error
-## names the symbol. The vendored dependencies are compiled the same way, which is why LZMA, zlib,
-## minizip, xxHash and unrar are inside the core and are not part of what it offers.
-##
+## names the symbol. The vendored dependencies are compiled the same way, so they sit inside the core
+## and are not part of what it offers.
 ## Two names get out that nobody declared, _ZTI8RAR_EXIT and _ZTS8RAR_EXIT, so the library's table
 ## holds 1,035. They are the C++ type description of the value UnRAR throws and catches inside
 ## itself, and the compiler gives the type description of a thrown type default visibility whatever
@@ -919,7 +833,6 @@ endif
 
 CFLAGS_WIN              := $(filter-out $(CFLAGS_HOST_ONLY),$(CFLAGS))
 CFLAGS_WIN              += -fPIC
-CFLAGS_WIN              += -I$(WIN_ICONV)/include/
 CFLAGS_WIN              += -DWITH_HWMON
 
 # clang is one compiler for every target and has to be told which one it is building for. A cross gcc
@@ -952,20 +865,6 @@ LFLAGS_LINUX            += -ldl
 LFLAGS_LINUX            += -lm
 LFLAGS_LINUX            += -static-libgcc
 
-# The C++ runtime goes INTO the library, for the same reason it goes into the Windows binaries and by
-# the same means. The archive is named directly because -static-libstdc++ only governs the libstdc++
-# the driver adds by itself, and the unrar block above puts an explicit -lstdc++ on the line. Without
-# this the released tree needs a libstdc++.so.6 on the target machine, which it never did before: the
-# C++ in unrar used to sit in module_23800 alone, and now it sits in the core everything links to.
-
-ifeq ($(CC_LINUX_CLANG),1)
-LFLAGS_LINUX            += -stdlib=libc++
-else
-LFLAGS_LINUX            := $(filter-out -lstdc++,$(LFLAGS_LINUX))
-LFLAGS_LINUX            += -l:libstdc++.a
-LFLAGS_LINUX            += -static-libstdc++
-endif
-
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(CC_LINUX_CLANG),1)
 LFLAGS_LINUX            += -fuse-ld=lld
@@ -975,24 +874,6 @@ endif
 endif
 
 LFLAGS_WIN              := $(filter-out $(LFLAGS_HOST_ONLY),$(LFLAGS))
-
-# The C++ runtime goes INTO the binary that needs it, because no runtime DLL is shipped beside them.
-# Only module_23800 references any C++ at all, through unrar, so it was the one binary in the package
-# importing libstdc++-6.dll, and LoadLibrary failed on every Windows machine that did not happen to
-# have one on the search path. A module that references no C++ links nothing extra and does not grow.
-#
-# The static archive is named directly rather than asking for -static-libstdc++. That flag only governs
-# the libstdc++ a driver adds by itself, so it cannot override an explicit -lstdc++, and clang reports
-# it as an unused argument and links the import library anyway.
-#
-# The explicit one arrives here in LFLAGS, from the unrar block, so it has to be taken back out. Naming
-# the archive while it is still on the line links both, and then every symbol in libsupc++ is defined
-# twice and lld stops.
-
-ifneq ($(UNAME),Darwin)
-LFLAGS_WIN              := $(filter-out -lstdc++,$(LFLAGS_WIN))
-LFLAGS_WIN              += -l:libstdc++.a
-endif
 
 LFLAGS_WIN              += -lpsapi
 LFLAGS_WIN              += -lws2_32
@@ -1213,7 +1094,7 @@ $(foreach P,$(PLATFORMS),$(eval LFLAGS_$(P) += $(REPRO_LFLAGS_$(FORMAT_$(P)))))
 ## A plugin is glue. A module says what a hash mode looks like, decodes a hash line and hands every
 ## byte of real work to the core, and the two modules in the tree that carry a hook body spend it
 ## inside the core as well. So the flags that describe this machine buy a plugin nothing, and asking
-## the compiler to tune 593 shared objects for the host processor is close to a third of the build
+## the compiler to tune 595 shared objects for the host processor is close to a third of the build
 ## for code that is not in a loop.
 ##
 ## The core keeps them, because there they are worth something. The rule engine runs 5.90 s over
@@ -1242,25 +1123,6 @@ $(foreach P,$(PLATFORMS),$(eval CFLAGS_PLUGIN_$(P) += -fvisibility=hidden))
 ## platform that needs more says so.
 ##
 
-CFLAGS_LZMA_NATIVE      := $(CFLAGS_LZMA)
-CFLAGS_ZLIB_NATIVE      := $(CFLAGS_ZLIB)
-CFLAGS_UNRAR_NATIVE     := $(CFLAGS_UNRAR)
-
-CFLAGS_LZMA_LINUX       := $(CFLAGS_LZMA)
-CFLAGS_ZLIB_LINUX       := $(CFLAGS_ZLIB)
-CFLAGS_UNRAR_LINUX      := $(CFLAGS_UNRAR)
-
-CFLAGS_LZMA_WIN         := $(CFLAGS_LZMA)
-CFLAGS_ZLIB_WIN         := $(CFLAGS_ZLIB)
-CFLAGS_UNRAR_WIN        := $(CFLAGS_UNRAR)
-
-ifeq ($(UNAME),Darwin)
-CFLAGS_LZMA_WIN         += -Wno-misleading-indentation
-
-CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
-CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
-endif
-
 ##
 ## The instruction set a plugin may use
 ##
@@ -1274,6 +1136,12 @@ ifeq ($(MAINTAINER_MODE),0)
 SIMD_LINUX              := -mavx2
 SIMD_WIN                := -mavx2
 
+ifneq ($(MCPU),)
+# the same core the frontend is built for, or the three bridges below would be the one part of the
+# artifact still built for the machine that compiled it
+SIMD_NATIVE             := -mcpu=$(MCPU)
+else
+
 ifeq ($(UNAME),Darwin)
 ifeq ($(IS_APPLE_SILICON),0)
 SIMD_NATIVE             := -mavx2
@@ -1284,6 +1152,8 @@ SIMD_NATIVE             := $(MCPU_NATIVE)
 else
 SIMD_NATIVE             := $(MARCH_NATIVE)
 endif
+endif
+
 endif
 endif
 
@@ -1322,7 +1192,7 @@ LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -W
 LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
 ## A plugin is a shared object too, so it meets the same wall the library does on OpenBSD, where the
 ## driver does not link libc into one and -z,defs then reads the whole of libc as undefined. Guarding
-## only the library left the library linking and all 593 plugins failing on abort. See the note beside
+## only the library left the library linking and all 595 plugins failing on abort. See the note beside
 ## LIBRARY_LFLAGS_NATIVE for why -lc is not the answer.
 ifneq ($(UNAME),OpenBSD)
 LFLAGS_PLUGIN_NATIVE    += -Wl,-z,defs
@@ -1366,7 +1236,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zlib feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1380,46 +1250,6 @@ ifeq ($(UNAME),Darwin)
 OBJS_METAL              := ext_metal ext_iokit
 
 CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_METAL),obj/$(OBJ).METAL.NATIVE.o)
-endif
-
-ifeq ($(USE_SYSTEM_LZMA),0)
-OBJS_LZMA               := 7zCrc 7zCrcOpt 7zFile 7zStream Alloc Bra Bra86 BraIA64 CpuArch Delta LzmaDec Lzma2Dec MtDec Sha256 Sha256Opt Threads Xz XzCrc64 XzCrc64Opt XzDec XzIn
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.WIN.o)
-endif
-
-ifeq ($(USE_SYSTEM_ZLIB),0)
-OBJS_ZLIB               := adler32 crc32 deflate inflate inffast inftrees trees gzread gzwrite gzclose zutil gzlib contrib/minizip/unzip contrib/minizip/ioapi
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).ZLIB.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).ZLIB.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).ZLIB.WIN.o)
-endif
-
-# the brain is the only thing in the core that hashes with xxhash, so it is compiled in beside it.
-# The two feeds that hash with it compile their own copy, because a feed is a plugin and xxhash is
-# not something the core promises a plugin.
-
-ifeq ($(ENABLE_BRAIN),1)
-ifeq ($(USE_SYSTEM_XXHASH),0)
-OBJS_XXHASH             := xxhash
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).XXHASH.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).XXHASH.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).XXHASH.WIN.o)
-endif
-endif
-
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-OBJS_UNRAR              := strlist strfn pathfn smallfn global file filefn filcreat archive arcread unicode system isnt crypt crc rawread encname resource match timefn rdwrfn consio options errhnd rarvm secpassword rijndael getbits sha1 sha256 blake2s hash extinfo extract volume list find unpack headers threadpool rs16 cmddata ui filestr recvol rs scantree qopen hc_decompress_rar
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).UNRAR.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).UNRAR.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).UNRAR.WIN.o)
-endif
 endif
 
 ##
@@ -1440,12 +1270,6 @@ BRIDGES_ALL             := $(patsubst src/bridges/%.c,%,$(BRIDGES_SRC))
 MODULES_DISABLE         ?=
 BRIDGES_DISABLE         ?=
 FEEDS_DISABLE           ?=
-
-ifeq ($(ENABLE_UNRAR),0)
-MODULES_SRC             := $(filter-out src/modules/module_23800.c,$(MODULES_SRC))
-MODULES_DISABLE         += modules/module_23800.so
-MODULES_DISABLE         += modules/module_23800.dll
-endif
 
 $(MODULES_DISABLE): ;
 $(BRIDGES_DISABLE): ;
@@ -1474,6 +1298,8 @@ TOOLS                   += $(wildcard tools/*hashcat.py)
 ##
 ## A fragment may still declare a rule of its own. An explicit rule beats the pattern rules below
 ## whatever order they are read in.
+
+include src/rust_toolchain.mk
 
 include $(wildcard src/modules/*.mk)
 include $(wildcard src/bridges/*.mk)
@@ -1521,7 +1347,7 @@ DEPS_ALL                := $(wildcard obj/*.d obj/*/*.d obj/*/*/*.d)
 ## Rules: the headers a plugin is built against
 ##
 ## The API is declared in headers, so the development install ships the headers it is declared in and
-## everything those include, rather than all 92. The set is asked of the compiler instead of written
+## everything those include, rather than all 99. The set is asked of the compiler instead of written
 ## down here, out of a translation unit that includes every header the API starts from.
 ##
 ## Three things start it. The headers that carry HC_API, HC_PLUGIN_API or HC_PLUGIN_ENTRY, which is
@@ -1553,15 +1379,14 @@ API_INCLUDES             = $(shell $(CC_NATIVE) $(CCFLAGS) $(CFLAGS_NATIVE) $(CF
 
 API_HEADERS              = $(sort $(filter include/%.h,$(API_INCLUDES)))
 
-# The vendored headers the set reaches are installed with it. types.h names an LZMA type and a zlib
-# handle, so a plugin that includes it needs the SDK's header and zlib's, and an install that leaves
-# them out is one nothing can be built against. Which headers those are is not a decision either: it
-# is the same dependency output. They are laid out under one directory the way the include paths in
-# this file lay them out, so a plugin build points at that directory and finds all of it.
+# The vendored headers the set reaches are installed with it, and an install that leaves them out is
+# one nothing can be built against. Which headers those are is not a decision either: it is the same
+# dependency output. They are laid out under one directory the way the include paths in this file
+# lay them out, so a plugin build points at that directory and finds all of it.
 
 API_DEP_HEADERS          = $(sort $(filter deps/%.h,$(API_INCLUDES)))
 
-API_DEP_ROOTS           := $(DEPS_ZLIB_PATH)/contrib $(DEPS_LZMA_PATH) $(DEPS_ZLIB_PATH) $(DEPS_OPENCL_PATH) $(DEPS_XXHASH_PATH)
+API_DEP_ROOTS           := $(DEPS_OPENCL_PATH)
 
 obj/api.c: $(API_HEADER_ROOTS)
 	printf '#include "common.h"\n#include "types.h"\n' > $@
@@ -1605,28 +1430,6 @@ define CORE_RULES
 obj/%.$(1).o: src/%.c obj/arrangement
 	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
 
-ifeq ($(USE_SYSTEM_LZMA),0)
-obj/%.LZMA.$(1).o: $$(DEPS_LZMA_PATH)/%.c obj/arrangement
-	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(CFLAGS_LZMA_$(1)) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-
-ifeq ($(USE_SYSTEM_ZLIB),0)
-obj/%.ZLIB.$(1).o: $$(DEPS_ZLIB_PATH)/%.c obj/arrangement
-	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(CFLAGS_ZLIB_$(1)) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-
-ifeq ($(USE_SYSTEM_XXHASH),0)
-obj/%.XXHASH.$(1).o: $$(DEPS_XXHASH_PATH)/%.c obj/arrangement
-	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-obj/%.UNRAR.$(1).o: $$(DEPS_UNRAR_PATH)/%.cpp obj/arrangement
-	$$(CXX_$(1)) $$(CXXFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(CFLAGS_UNRAR_$(1)) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-endif
-
 obj/combined.$(1).a: $$(CORE_OBJS_$(1))
 	$$(ARCHIVE_CLEAN_$(1))
 	$$(AR_$(1)) rcs $$@ $$(CORE_OBJS_$(1))
@@ -1649,11 +1452,9 @@ endif
 ## belongs to the command line program is inside the library.
 ##
 ## -z,defs makes a symbol the library cannot resolve a link error here rather than a dlopen failure
-## on a user's machine. It found nine undefined unz* symbols on the first attempt, from the minizip
-## objects in a subdirectory that the archive had been swallowing without a word. A DLL is refused
-## for an undefined symbol whatever is asked, so Windows gets the same check for free, and it found
-## the same minizip objects and then iconv. An archive hands out only what is asked for, so the
-## iconv the wordlist reader calls had been left to the frontend to supply. The library carries it.
+## on a user's machine. A vendored object sitting in a subdirectory that the archive had been
+## swallowing without a word is the case it catches. A DLL is refused for an undefined symbol
+## whatever is asked, so Windows gets the same check for free.
 ##
 ## The install_name is @rpath rather than the directory make install would write to, so the library
 ## is found beside the frontend in an unpacked tree and through the install prefix after an install,
@@ -1666,11 +1467,6 @@ LIBRARY_LFLAGS_LINUX    := -shared
 LIBRARY_LFLAGS_WIN      := -shared
 
 ifeq ($(FORMAT_NATIVE),MACHO)
-## the library is linked with the C++ driver because UnRAR is C++, and that driver names the C++
-## runtime itself. Naming it a second time is a duplicate the linker reports on every build. It is
-## taken out of the flags the library link uses and left in the ones the frontend and the plugins
-## use, because those are linked with the C driver and do need it named.
-LFLAGS_NATIVE_LIBRARY_FILTER := -lstdc++
 LIBRARY_LFLAGS_NATIVE   += -install_name @rpath/$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -current_version $(VERSION_PURE)
 LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(VERSION_MAJOR)
@@ -1713,10 +1509,6 @@ LIBRARY_LFLAGS_LINUX    += -Wl,-Bsymbolic-functions
 
 LIBRARY_LFLAGS_WIN      += $(TARGET_WIN)
 
-ifneq (,$(filter LINUX,$(PLATFORMS)))
-LIBRARY_INPUTS_WIN      := $(WIN_ICONV)/lib/libiconv.a
-endif
-
 ##
 ## The plugin interface version, and how a stale plugin is refused
 ##
@@ -1740,8 +1532,8 @@ endif
 
 define LIBRARY_RULES
 
-$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) obj/arrangement
-	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) -o $$@ $$(filter-out $$(LFLAGS_$(1)_LIBRARY_FILTER),$$(LFLAGS_$(1))) $$(LIBRARY_LFLAGS_$(1))
+$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) obj/arrangement
+	$$(CC_$(1)) $$(CORE_OBJS_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 
@@ -1764,8 +1556,28 @@ FRONTEND_DEFINES_WIN    := $(FRONTEND_DEFINES)
 
 frontend_link = $(CC_$(1)) $(CCFLAGS) $(CFLAGS_$(1)) $(HARDEN_FRONTEND_$(1)) $(DEPFLAGS) -MF $(2) src/main.c $(CORE_$(1)) $(3) -o $@ $(LFLAGS_$(1)) $(if $(filter $(1),$(SHARED_PLATFORMS)),$(LFLAGS_FRONTEND_$(1))) $(4) $(FRONTEND_DEFINES_$(1))
 
-$(HASHCAT_FRONTEND): src/main.c $(CORE_NATIVE) obj/arrangement
-	$(call frontend_link,NATIVE,obj/main.NATIVE.d,,)
+##
+## Rules: the Windows resource section
+##
+## src/hashcat.rc carries the application manifest and the version block. The manifest is the part
+## that matters: it declares the process code page as UTF-8, which is the only way to set it, and
+## without it every narrow filesystem call on Windows reads a path through the legacy code page.
+## Only the two Windows frontends link this. Everything else has no resource section at all.
+##
+
+resource_compile = $(WINDRES_$(1)) -I src -DHC_VERSION_NUM=$(VERSION_NUM) -DHC_VERSION_STR='\"$(VERSION_TAG)\"' src/hashcat.rc -o $@
+
+obj/hashcat.res.WIN.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
+	$(call resource_compile,WIN)
+
+obj/hashcat.res.NATIVE.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
+	$(call resource_compile,NATIVE)
+
+# A native build is a Windows one on MSYS2 and CYGWIN, and those get the resource section too. On
+# every other platform RESOURCE_NATIVE is empty and the link is unchanged.
+
+$(HASHCAT_FRONTEND): src/main.c $(CORE_NATIVE) $(RESOURCE_NATIVE) obj/arrangement
+	$(call frontend_link,NATIVE,obj/main.NATIVE.d,$(RESOURCE_NATIVE),)
 
 ##
 ## Rules: the plugins
@@ -1833,6 +1645,14 @@ $(foreach P,$(PLUGIN_PLATFORMS),$(foreach B,$(BRIDGES_ALL), \
 .PHONY: default
 default: $(HASHCAT_FRONTEND) modules bridges feeds
 
+# The version this build stamps into the binary. tools/package_bin.sh asks for it so an archive is
+# named after what it holds, rather than the release number being written out a second time where it
+# drifts the moment a package is built from anything but the release commit.
+
+.PHONY: version
+version:
+	@echo $(VERSION_TAG)
+
 .PHONY: clean
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
@@ -1875,7 +1695,10 @@ clean:
 	$(RM) -f core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
+	$(RM) -rf cache
 	$(RM) -rf kernels
+	$(RM) -rf seekdbs
+	$(RM) -rf pcfgdbs
 	$(RM) -rf Rust/bridges/*/target
 	$(RM) -rf Rust/feeds/*/target
 	$(RM) -rf Rust/hashcat-sys/src/bindings.rs
@@ -1921,11 +1744,8 @@ endif
 hashcat.bin: src/main.c $(CORE_LINUX) obj/arrangement
 	$(call frontend_link,LINUX,obj/main.LINUX.d,,)
 
-# the frontend keeps iconv on its own link line for the arrangement where there is no library to
-# carry it, and links nothing extra out of it when there is
-
-hashcat.exe: src/main.c $(CORE_WIN) $(WIN_ICONV)/lib/libiconv.a obj/arrangement
-	$(call frontend_link,WIN,obj/main.WIN.d,$(WIN_ICONV)/lib/libiconv.a,)
+hashcat.exe: src/main.c $(CORE_WIN) obj/hashcat.res.WIN.o obj/arrangement
+	$(call frontend_link,WIN,obj/main.WIN.d,obj/hashcat.res.WIN.o,)
 
 endif
 
@@ -1948,9 +1768,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_feeds install_hashcat
 else
-install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_feeds install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -1969,9 +1789,9 @@ install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/charsets
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/docs
-	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/layouts
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/masks
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/rules
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/tables
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
 	$(INSTALL) -m 644 example.dict                                          $(DESTDIR)$(DOCUMENT_FOLDER)/
@@ -1988,12 +1808,12 @@ install_docs: install_make_shared_root
 	$(FIND) charsets/ -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) docs/     -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) docs/     -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) layouts/  -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) layouts/  -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) masks/    -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) tables/   -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) tables/   -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
@@ -2011,16 +1831,26 @@ install_tunings: install_shared
 
 ## A ruleset ships the way tunings do, under the shared folder, because that is the one hashcat
 ## resolves at run time. A ruleset named rather than pathed on the command line is looked for in
-## here, see pcfg_resolve_root () in src/feeds/feed_pcfg.c. It is not in the document folder with
-## rules and masks, because nothing resolves that folder: -r rules/best66.rule is a relative path the
-## C library resolves against the working directory, which is why that example only works from inside
-## an unpacked tree.
+## here, see pcfg_resolve_root () in src/feeds/feed_pcfg.c.
 
 .PHONY: install_pcfg
 install_pcfg: install_shared
 	$(INSTALL) -m 755 -d                                                 $(DESTDIR)$(SHARED_FOLDER)/pcfg
 	$(FIND) pcfg/     -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d  $(DESTDIR)$(SHARED_FOLDER)/pcfg/{} \;
 	$(FIND) pcfg/     -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/pcfg/{} \;
+
+## The rule lists ship under the shared folder for the same reason a ruleset does. Attack-mode 9 runs
+## a rule list by default and names it rather than pathing it, and the rules phase looks for a name it
+## cannot find beside the working directory in here. The copy under the document folder stays, because
+## that is where somebody reads them, but nothing resolves that folder: -r rules/best66.rule is a
+## relative path the C library resolves against the working directory, which is why that example only
+## works from inside an unpacked tree.
+
+.PHONY: install_rules
+install_rules: install_shared
+	$(INSTALL) -m 755 -d                                                 $(DESTDIR)$(SHARED_FOLDER)/rules
+	$(FIND) rules/    -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d  $(DESTDIR)$(SHARED_FOLDER)/rules/{} \;
+	$(FIND) rules/    -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/rules/{} \;
 
 .PHONY: install_kernels
 install_kernels: install_shared

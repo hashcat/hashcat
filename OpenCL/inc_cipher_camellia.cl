@@ -1,19 +1,24 @@
-/*                                                                *
- * This is an OpenCL implementation of the encryption algorithm:  *
- *                                                                *
- *   Camellia by Kazumaro Aoki, Masayuki Kanda, Shiho Moriai,     *
- *               Tetsuya Ichikawa, Mitsuru Matsui,                *
- *               Junko Nakajima and Toshio Tokita                 *
- *                                                                *
- * http://info.isl.ntt.co.jp/crypt/eng/camellia/technology.html   *
- *                                                                *
- * Copyright of the ANSI-C implementation:                        *
- *                                                                *
- *   Mitsubishi Electric Corp 2000-2001                           *
- *                                                                *
- * Adapted for GPU use with hashcat by Ruslan Yushaev.            *
- *                                                                *
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ *
+ * Camellia is the 128 bit block cipher designed by Kazumaro Aoki, Tetsuya Ichikawa, Masayuki Kanda,
+ * Mitsuru Matsui, Shiho Moriai, Junko Nakajima and Toshio Tokita.
+ *
+ * This was written from the algorithm description in RFC 3713, "A Description of the Camellia
+ * Encryption Algorithm", https://www.rfc-editor.org/rfc/rfc3713.txt. Section 2.2 is the key
+ * schedule, section 2.3 the rounds, and section 2.4 the F, FL and FLINV functions together with
+ * the SBOX1 table. The example data in Appendix A is what it was checked against.
  */
+
+// Only the 256 bit key size is here, because that is the only one hashcat asks for: the VeraCrypt
+// legacy cascades and BestCrypt.
+//
+// Two things about the shape of the code. A word holds four bytes of the block in the order they
+// arrived, so the first byte of the block sits in bits 0 to 7, and hc_swap32_S () is what turns a
+// word into the number the RFC's shifts and rotations are written against. Everything else is
+// bitwise and does not care. And the F function's eight output equations share subexpressions, so
+// they are grouped here rather than written out one XOR at a time. The values are the same ones.
 
 #include "inc_vendor.h"
 #include "inc_types.h"
@@ -21,7 +26,10 @@
 #include "inc_common.h"
 #include "inc_cipher_camellia.h"
 
-CONSTANT_VK u32a c_sbox[256] =
+// SBOX1 of section 2.4.1. SBOX2, SBOX3 and SBOX4 are that same table read differently, which is how
+// the RFC defines them, so one table is all that is stored.
+
+CONSTANT_VK u32a camellia_sbox1[256] =
 {
   0x70, 0x82, 0x2c, 0xec, 0xb3, 0x27, 0xc0, 0xe5,
   0xe4, 0x85, 0x57, 0x35, 0xea, 0x0c, 0xae, 0x41,
@@ -57,118 +65,112 @@ CONSTANT_VK u32a c_sbox[256] =
   0x15, 0xe3, 0xad, 0xf4, 0x77, 0xc7, 0x80, 0x9e
 };
 
-#define c_sbox1(n) c_sbox[(n)]
-#define c_sbox2(n) (((c_sbox[(n)] >> 7) ^ (c_sbox[(n)] << 1)) & 0xff)
-#define c_sbox3(n) (((c_sbox[(n)] >> 1) ^ (c_sbox[(n)] << 7)) & 0xff)
-#define c_sbox4(n) c_sbox[(((n) << 1) ^ ((n) >> 7)) & 0xff]
+// SBOX2[x] = SBOX1[x] <<< 1, SBOX3[x] = SBOX1[x] <<< 7 and SBOX4[x] = SBOX1[x <<< 1], where <<< is
+// an 8 bit rotation. Section 2.4.1 again.
 
-#define cam_rotate(a,b,n) hc_swap32_S ((u[(a)] << (n)) ^ (u[(b)] >> (32 - (n))))
+#define CAMELLIA_SBOX1(x) camellia_sbox1[(x)]
+#define CAMELLIA_SBOX2(x) (((camellia_sbox1[(x)] << 1) | (camellia_sbox1[(x)] >> 7)) & 0xff)
+#define CAMELLIA_SBOX3(x) (((camellia_sbox1[(x)] << 7) | (camellia_sbox1[(x)] >> 1)) & 0xff)
+#define CAMELLIA_SBOX4(x) camellia_sbox1[(((x) << 1) | ((x) >> 7)) & 0xff]
 
-DECLSPEC void cam_feistel (PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *k, PRIVATE_AS u32 *y)
+// One 128 bit left rotation of a key, as four words, taking the two halves the RFC's subkey table
+// asks for. w is how many whole words the rotation moves and s what is left over, so KA <<< 45 is
+// w = 1 and s = 13. Every rotation in section 2.2 other than the two by 0 leaves an s between 1 and
+// 31, and the two by 0 are a copy and are written as one. k is a key as four numbers and the four
+// words written out are in this file's byte order.
+
+#define CAMELLIA_ROTL128(dst,k,w,s)                                                            \
+  do {                                                                                         \
+    (dst)[0] = hc_swap32_S (((k)[((w) + 0) & 3] << (s)) | ((k)[((w) + 1) & 3] >> (32 - (s)))); \
+    (dst)[1] = hc_swap32_S (((k)[((w) + 1) & 3] << (s)) | ((k)[((w) + 2) & 3] >> (32 - (s)))); \
+    (dst)[2] = hc_swap32_S (((k)[((w) + 2) & 3] << (s)) | ((k)[((w) + 3) & 3] >> (32 - (s)))); \
+    (dst)[3] = hc_swap32_S (((k)[((w) + 3) & 3] << (s)) | ((k)[((w) + 0) & 3] >> (32 - (s)))); \
+  } while (0)
+
+// One Feistel round, which is the RFC's "D2 = D2 ^ F(D1, k)": the F function of section 2.4.1 with
+// its result XORed into the other half.
+//
+// The RFC numbers the eight bytes of F_IN from its most significant end, and that is the order the
+// bytes of the block lie in here, so t1 is the low byte of x[0] and t8 the high byte of x[1].
+
+DECLSPEC void camellia_feistel (PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *ke, PRIVATE_AS u32 *y)
 {
-  const u32 xk0 = x[0] ^ k[0];
-  const u32 xk1 = x[1] ^ k[1];
+  const u32 x0 = x[0] ^ ke[0];
+  const u32 x1 = x[1] ^ ke[1];
 
-  const u32 b0 = c_sbox1 (unpack_v8a_from_v32_S (xk0));
-  const u32 b1 = c_sbox2 (unpack_v8b_from_v32_S (xk0));
-  const u32 b2 = c_sbox3 (unpack_v8c_from_v32_S (xk0));
-  const u32 b3 = c_sbox4 (unpack_v8d_from_v32_S (xk0));
-  const u32 b4 = c_sbox2 (unpack_v8a_from_v32_S (xk1));
-  const u32 b5 = c_sbox3 (unpack_v8b_from_v32_S (xk1));
-  const u32 b6 = c_sbox4 (unpack_v8c_from_v32_S (xk1));
-  const u32 b7 = c_sbox1 (unpack_v8d_from_v32_S (xk1));
+  const u32 t1 = CAMELLIA_SBOX1 (unpack_v8a_from_v32_S (x0));
+  const u32 t2 = CAMELLIA_SBOX2 (unpack_v8b_from_v32_S (x0));
+  const u32 t3 = CAMELLIA_SBOX3 (unpack_v8c_from_v32_S (x0));
+  const u32 t4 = CAMELLIA_SBOX4 (unpack_v8d_from_v32_S (x0));
+  const u32 t5 = CAMELLIA_SBOX2 (unpack_v8a_from_v32_S (x1));
+  const u32 t6 = CAMELLIA_SBOX3 (unpack_v8b_from_v32_S (x1));
+  const u32 t7 = CAMELLIA_SBOX4 (unpack_v8c_from_v32_S (x1));
+  const u32 t8 = CAMELLIA_SBOX1 (unpack_v8d_from_v32_S (x1));
 
-  /*
-  const u32 t0a = b0 ^      b2 ^ b3 ^      b5 ^ b6 ^ b7;
-  const u32 t0b = b0 ^ b1 ^      b3 ^ b4 ^      b6 ^ b7;
-  const u32 t0c = b0 ^ b1 ^ b2 ^      b4 ^ b5 ^      b7;
-  const u32 t0d =      b1 ^ b2 ^ b3 ^ b4 ^ b5 ^ b6     ;
+  // The RFC writes the output bytes as
+  //
+  //   y1 = t1 ^ t3 ^ t4 ^ t6 ^ t7 ^ t8      y5 = t1 ^ t2 ^ t6 ^ t7 ^ t8
+  //   y2 = t1 ^ t2 ^ t4 ^ t5 ^ t7 ^ t8      y6 = t2 ^ t3 ^ t5 ^ t7 ^ t8
+  //   y3 = t1 ^ t2 ^ t3 ^ t5 ^ t6 ^ t8      y7 = t3 ^ t4 ^ t5 ^ t6 ^ t8
+  //   y4 = t2 ^ t3 ^ t4 ^ t5 ^ t6 ^ t7      y8 = t1 ^ t4 ^ t5 ^ t6 ^ t7
+  //
+  // Each of the first four leaves out one of the four pairs (t1,t8), (t2,t5), (t3,t6) and (t4,t7),
+  // so all four are the XOR of everything with one pair put back. The other four leave out three
+  // values each and share a term in the same way.
 
-  const u32 t1a = b0 ^ b1 ^                b5 ^ b6 ^ b7;
-  const u32 t1b =      b1 ^ b2 ^      b4 ^      b6 ^ b7;
-  const u32 t1c =           b2 ^ b3 ^ b4 ^ b5 ^      b7;
-  const u32 t1d = b0 ^           b3 ^ b4 ^ b5 ^ b6     ;
-  */
+  const u32 t18 = t1 ^ t8;
+  const u32 t25 = t2 ^ t5;
+  const u32 t36 = t3 ^ t6;
+  const u32 t47 = t4 ^ t7;
 
-  const u32 b14 = b1 ^ b4;
-  const u32 b25 = b2 ^ b5;
-  const u32 b36 = b3 ^ b6;
-  const u32 b07 = b0 ^ b7;
+  const u32 a = t18 ^ t25 ^ t36 ^ t47;
 
-  const u32 b01234567 = b14 ^ b25 ^ b36 ^ b07;
+  const u32 y1 = a ^ t25;
+  const u32 y2 = a ^ t36;
+  const u32 y3 = a ^ t47;
+  const u32 y4 = a ^ t18;
 
-  const u32 t0a = b01234567 ^ b14;
-  const u32 t0b = b01234567 ^ b25;
-  const u32 t0c = b01234567 ^ b36;
-  const u32 t0d = b01234567 ^ b07;
+  const u32 a2 = a ^ t2;
+  const u32 a4 = a ^ t4;
 
-  /*
-  const u32 t1a = b01234567 ^ b2 ^ b3 ^ b4;
-  const u32 t1b = b01234567 ^ b0 ^ b3 ^ b5;
-  const u32 t1c = b01234567 ^ b0 ^ b1 ^ b6;
-  const u32 t1d = b01234567 ^ b1 ^ b2 ^ b7;
-  */
+  const u32 y5 = a4 ^ t3 ^ t5;
+  const u32 y6 = a4 ^ t1 ^ t6;
+  const u32 y7 = a2 ^ t1 ^ t7;
+  const u32 y8 = a2 ^ t3 ^ t8;
 
-  const u32 b0_234567 = b01234567 ^ b1;
-  const u32 b012_4567 = b01234567 ^ b3;
-
-  const u32 t1a = b012_4567 ^ b2 ^ b4;
-  const u32 t1b = b012_4567 ^ b0 ^ b5;
-  const u32 t1c = b0_234567 ^ b0 ^ b6;
-  const u32 t1d = b0_234567 ^ b2 ^ b7;
-
-  const u32 t0 = (t0a <<  0)
-               | (t0b <<  8)
-               | (t0c << 16)
-               | (t0d << 24);
-
-  const u32 t1 = (t1a <<  0)
-               | (t1b <<  8)
-               | (t1c << 16)
-               | (t1d << 24);
-
-  y[0] ^= t0;
-  y[1] ^= t1;
+  y[0] ^= (y1 <<  0) | (y2 <<  8) | (y3 << 16) | (y4 << 24);
+  y[1] ^= (y5 <<  0) | (y6 <<  8) | (y7 << 16) | (y8 << 24);
 }
 
-DECLSPEC void cam_fl (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *kl, PRIVATE_AS const u32 *kr)
+// The FL function on the left half and the FLINV function on the right half, which is where the
+// rounds in section 2.3.2 always put them, so the two are one step here. Section 2.4.2 defines both.
+//
+// Only the one bit rotation cares about byte order, so it is the only place that swaps.
+
+DECLSPEC void camellia_fl (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *ke1, PRIVATE_AS const u32 *ke2)
 {
-  u32 t[4];
-  u32 u[4];
-  u32 v[4];
+  // FL: x2 = x2 ^ ((x1 & k1) <<< 1), then x1 = x1 ^ (x2 | k2)
 
-  t[0] = hc_swap32_S (x[0]);
-  t[1] = hc_swap32_S (x[1]);
-  t[2] = hc_swap32_S (x[2]);
-  t[3] = hc_swap32_S (x[3]);
+  const u32 fl = hc_swap32_S (x[0] & ke1[0]);
 
-  u[0] = hc_swap32_S (kl[0]);
-  u[1] = hc_swap32_S (kl[1]);
-  u[2] = hc_swap32_S (kl[2]);
-  u[3] = hc_swap32_S (kl[3]);
+  x[1] ^= hc_swap32_S (hc_rotl32_S (fl, 1));
+  x[0] ^= x[1] | ke1[1];
 
-  v[0] = hc_swap32_S (kr[0]);
-  v[1] = hc_swap32_S (kr[1]);
-  v[2] = hc_swap32_S (kr[2]);
-  v[3] = hc_swap32_S (kr[3]);
+  // FLINV: y1 = y1 ^ (y2 | k2), then y2 = y2 ^ ((y1 & k1) <<< 1)
 
-  t[1] ^= (t[0] & u[0]) << 1;
-  t[1] ^= (t[0] & u[0]) >> 31;
+  x[2] ^= x[3] | ke2[1];
 
-  t[0] ^= t[1] | u[1];
-  t[2] ^= t[3] | v[1];
+  const u32 flinv = hc_swap32_S (x[2] & ke2[0]);
 
-  t[3] ^= (t[2] & v[0]) << 1;
-  t[3] ^= (t[2] & v[0]) >> 31;
-
-  x[0] = hc_swap32_S (t[0]);
-  x[1] = hc_swap32_S (t[1]);
-  x[2] = hc_swap32_S (t[2]);
-  x[3] = hc_swap32_S (t[3]);
+  x[3] ^= hc_swap32_S (hc_rotl32_S (flinv, 1));
 }
 
 DECLSPEC void camellia256_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
+  // Sigma1 to Sigma6 of section 2.2, each 64 bit constant as its two 32 bit halves in this file's
+  // byte order. The RFC writes them as 0xA09E667F3BCC908B, 0xB67AE8584CAA73B2, 0xC6EF372FE94F82BE,
+  // 0x54FF53A5F1D36F1C, 0x10E527FADE682D1D and 0xB05688C2B3E6C1FD.
+
   const u32 sigma[12] =
   {
     0x7f669ea0, 0x8b90cc3b, 0x58e87ab6, 0xb273aa4c,
@@ -176,172 +178,139 @@ DECLSPEC void camellia256_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *uke
     0xfa27e510, 0x1d2d68de, 0xc28856b0, 0xfdc1e6b3
   };
 
-  u32 tmp[8];
+  // For a 256 bit key, KL is its leftmost 128 bits and KR its rightmost. KA and KB come out of the
+  // six Feistel steps below, with d holding the RFC's D1 and D2 side by side.
 
-  tmp[0] = ukey[0] ^ ukey[4];
-  tmp[1] = ukey[1] ^ ukey[5];
-  tmp[2] = ukey[2] ^ ukey[6];
-  tmp[3] = ukey[3] ^ ukey[7];
+  u32 d[4];
 
-  cam_feistel (&tmp[0], &sigma[0], &tmp[2]);
-  cam_feistel (&tmp[2], &sigma[2], &tmp[0]);
+  d[0] = ukey[0] ^ ukey[4];
+  d[1] = ukey[1] ^ ukey[5];
+  d[2] = ukey[2] ^ ukey[6];
+  d[3] = ukey[3] ^ ukey[7];
 
-  tmp[0] ^= ukey[0];
-  tmp[1] ^= ukey[1];
-  tmp[2] ^= ukey[2];
-  tmp[3] ^= ukey[3];
+  camellia_feistel (&d[0], &sigma[0], &d[2]);  // D2 = D2 ^ F (D1, Sigma1)
+  camellia_feistel (&d[2], &sigma[2], &d[0]);  // D1 = D1 ^ F (D2, Sigma2)
 
-  cam_feistel (&tmp[0], &sigma[4], &tmp[2]);
-  cam_feistel (&tmp[2], &sigma[6], &tmp[0]);
+  d[0] ^= ukey[0];                             // D1 = D1 ^ (KL >> 64)
+  d[1] ^= ukey[1];
+  d[2] ^= ukey[2];                             // D2 = D2 ^ (KL & MASK64)
+  d[3] ^= ukey[3];
 
-  tmp[4] = tmp[0] ^ ukey[4];
-  tmp[5] = tmp[1] ^ ukey[5];
-  tmp[6] = tmp[2] ^ ukey[6];
-  tmp[7] = tmp[3] ^ ukey[7];
+  camellia_feistel (&d[0], &sigma[4], &d[2]);  // D2 = D2 ^ F (D1, Sigma3)
+  camellia_feistel (&d[2], &sigma[6], &d[0]);  // D1 = D1 ^ F (D2, Sigma4)
 
-  cam_feistel (&tmp[4], &sigma[8],  &tmp[6]);
-  cam_feistel (&tmp[6], &sigma[10], &tmp[4]);
+  // KA is now in d. Two more Feistel steps turn KA and KR into KB, which e ends up holding.
 
-  // used in cam_rotate macro
-  u32 u[16];
+  u32 e[4];
 
-  u[0] = hc_swap32_S (ukey[0]);
-  u[1] = hc_swap32_S (ukey[1]);
-  u[2] = hc_swap32_S (ukey[2]);
-  u[3] = hc_swap32_S (ukey[3]);
+  e[0] = d[0] ^ ukey[4];
+  e[1] = d[1] ^ ukey[5];
+  e[2] = d[2] ^ ukey[6];
+  e[3] = d[3] ^ ukey[7];
 
-  u[4] = hc_swap32_S (tmp[0]);
-  u[5] = hc_swap32_S (tmp[1]);
-  u[6] = hc_swap32_S (tmp[2]);
-  u[7] = hc_swap32_S (tmp[3]);
+  camellia_feistel (&e[0], &sigma[8],  &e[2]); // D2 = D2 ^ F (D1, Sigma5)
+  camellia_feistel (&e[2], &sigma[10], &e[0]); // D1 = D1 ^ F (D2, Sigma6)
 
-  u[8]  = hc_swap32_S (ukey[4]);
-  u[9]  = hc_swap32_S (ukey[5]);
-  u[10] = hc_swap32_S (ukey[6]);
-  u[11] = hc_swap32_S (ukey[7]);
+  // The subkey table of section 2.2 rotates all four keys, and a rotation is arithmetic, so the
+  // four are taken as numbers here. The two subkey pairs that are not rotated are a copy instead.
 
-  u[12] = hc_swap32_S (tmp[4]);
-  u[13] = hc_swap32_S (tmp[5]);
-  u[14] = hc_swap32_S (tmp[6]);
-  u[15] = hc_swap32_S (tmp[7]);
+  u32 kl[4];
+  u32 kr[4];
+  u32 ka[4];
+  u32 kb[4];
 
-  ks[0] = hc_swap32_S (u[0]);
-  ks[1] = hc_swap32_S (u[1]);
-  ks[2] = hc_swap32_S (u[2]);
-  ks[3] = hc_swap32_S (u[3]);
-  ks[4] = hc_swap32_S (u[12]);
-  ks[5] = hc_swap32_S (u[13]);
-  ks[6] = hc_swap32_S (u[14]);
-  ks[7] = hc_swap32_S (u[15]);
+  kl[0] = hc_swap32_S (ukey[0]);
+  kl[1] = hc_swap32_S (ukey[1]);
+  kl[2] = hc_swap32_S (ukey[2]);
+  kl[3] = hc_swap32_S (ukey[3]);
 
-  ks[8]  = cam_rotate (8,  9,  15);
-  ks[9]  = cam_rotate (9,  10, 15);
-  ks[10] = cam_rotate (10, 11, 15);
-  ks[11] = cam_rotate (11, 8,  15);
-  ks[12] = cam_rotate (4,  5,  15);
-  ks[13] = cam_rotate (5,  6,  15);
-  ks[14] = cam_rotate (6,  7,  15);
-  ks[15] = cam_rotate (7,  4,  15);
+  kr[0] = hc_swap32_S (ukey[4]);
+  kr[1] = hc_swap32_S (ukey[5]);
+  kr[2] = hc_swap32_S (ukey[6]);
+  kr[3] = hc_swap32_S (ukey[7]);
 
-  ks[16] = cam_rotate (8,  9,  30);
-  ks[17] = cam_rotate (9,  10, 30);
-  ks[18] = cam_rotate (10, 11, 30);
-  ks[19] = cam_rotate (11, 8,  30);
-  ks[20] = cam_rotate (12, 13, 30);
-  ks[21] = cam_rotate (13, 14, 30);
-  ks[22] = cam_rotate (14, 15, 30);
-  ks[23] = cam_rotate (15, 12, 30);
+  ka[0] = hc_swap32_S (d[0]);
+  ka[1] = hc_swap32_S (d[1]);
+  ka[2] = hc_swap32_S (d[2]);
+  ka[3] = hc_swap32_S (d[3]);
 
-  ks[24] = cam_rotate (1, 2, 13);
-  ks[25] = cam_rotate (2, 3, 13);
-  ks[26] = cam_rotate (3, 0, 13);
-  ks[27] = cam_rotate (0, 1, 13);
-  ks[28] = cam_rotate (5, 6, 13);
-  ks[29] = cam_rotate (6, 7, 13);
-  ks[30] = cam_rotate (7, 4, 13);
-  ks[31] = cam_rotate (4, 5, 13);
+  kb[0] = hc_swap32_S (e[0]);
+  kb[1] = hc_swap32_S (e[1]);
+  kb[2] = hc_swap32_S (e[2]);
+  kb[3] = hc_swap32_S (e[3]);
 
-  ks[32] = cam_rotate (1,  2,  28);
-  ks[33] = cam_rotate (2,  3,  28);
-  ks[34] = cam_rotate (3,  0,  28);
-  ks[35] = cam_rotate (0,  1,  28);
-  ks[36] = cam_rotate (9,  10, 28);
-  ks[37] = cam_rotate (10, 11, 28);
-  ks[38] = cam_rotate (11, 8,  28);
-  ks[39] = cam_rotate (8,  9,  28);
-  ks[40] = cam_rotate (13, 14, 28);
-  ks[41] = cam_rotate (14, 15, 28);
-  ks[42] = cam_rotate (15, 12, 28);
-  ks[43] = cam_rotate (12, 13, 28);
+  ks[0] = ukey[0];  // kw1, kw2 = KL <<< 0
+  ks[1] = ukey[1];
+  ks[2] = ukey[2];
+  ks[3] = ukey[3];
 
-  ks[44] = cam_rotate (2, 3, 13);
-  ks[45] = cam_rotate (3, 0, 13);
-  ks[46] = cam_rotate (0, 1, 13);
-  ks[47] = cam_rotate (1, 2, 13);
-  ks[48] = cam_rotate (6, 7, 13);
-  ks[49] = cam_rotate (7, 4, 13);
-  ks[50] = cam_rotate (4, 5, 13);
-  ks[51] = cam_rotate (5, 6, 13);
+  ks[4] = e[0];     // k1, k2 = KB <<< 0
+  ks[5] = e[1];
+  ks[6] = e[2];
+  ks[7] = e[3];
 
-  ks[52] = cam_rotate (10, 11, 30);
-  ks[53] = cam_rotate (11, 8,  30);
-  ks[54] = cam_rotate (8,  9,  30);
-  ks[55] = cam_rotate (9,  10, 30);
-  ks[56] = cam_rotate (6,  7,  30);
-  ks[57] = cam_rotate (7,  4,  30);
-  ks[58] = cam_rotate (4,  5,  30);
-  ks[59] = cam_rotate (5,  6,  30);
-
-  ks[60] = cam_rotate (3,  0,  15);
-  ks[61] = cam_rotate (0,  1,  15);
-  ks[62] = cam_rotate (1,  2,  15);
-  ks[63] = cam_rotate (2,  3,  15);
-  ks[64] = cam_rotate (15, 12, 15);
-  ks[65] = cam_rotate (12, 13, 15);
-  ks[66] = cam_rotate (13, 14, 15);
-  ks[67] = cam_rotate (14, 15, 15);
+  CAMELLIA_ROTL128 (&ks[8],  kr, 0, 15);  // k3,  k4  = KR <<<  15
+  CAMELLIA_ROTL128 (&ks[12], ka, 0, 15);  // k5,  k6  = KA <<<  15
+  CAMELLIA_ROTL128 (&ks[16], kr, 0, 30);  // ke1, ke2 = KR <<<  30
+  CAMELLIA_ROTL128 (&ks[20], kb, 0, 30);  // k7,  k8  = KB <<<  30
+  CAMELLIA_ROTL128 (&ks[24], kl, 1, 13);  // k9,  k10 = KL <<<  45
+  CAMELLIA_ROTL128 (&ks[28], ka, 1, 13);  // k11, k12 = KA <<<  45
+  CAMELLIA_ROTL128 (&ks[32], kl, 1, 28);  // ke3, ke4 = KL <<<  60
+  CAMELLIA_ROTL128 (&ks[36], kr, 1, 28);  // k13, k14 = KR <<<  60
+  CAMELLIA_ROTL128 (&ks[40], kb, 1, 28);  // k15, k16 = KB <<<  60
+  CAMELLIA_ROTL128 (&ks[44], kl, 2, 13);  // k17, k18 = KL <<<  77
+  CAMELLIA_ROTL128 (&ks[48], ka, 2, 13);  // ke5, ke6 = KA <<<  77
+  CAMELLIA_ROTL128 (&ks[52], kr, 2, 30);  // k19, k20 = KR <<<  94
+  CAMELLIA_ROTL128 (&ks[56], ka, 2, 30);  // k21, k22 = KA <<<  94
+  CAMELLIA_ROTL128 (&ks[60], kl, 3, 15);  // k23, k24 = KL <<< 111
+  CAMELLIA_ROTL128 (&ks[64], kb, 3, 15);  // kw3, kw4 = KB <<< 111
 }
+
+// The 24 rounds of section 2.3.2, with the FL and FLINV pair after every sixth. out holds D1 in its
+// first two words and D2 in its last two.
 
 DECLSPEC void camellia256_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
-  out[0] = in[0] ^ ks[0];
+  out[0] = in[0] ^ ks[0];  // prewhitening with kw1 and kw2
   out[1] = in[1] ^ ks[1];
   out[2] = in[2] ^ ks[2];
   out[3] = in[3] ^ ks[3];
 
-  cam_feistel (&out[0], &ks[4],  &out[2]);
-  cam_feistel (&out[2], &ks[6],  &out[0]);
-  cam_feistel (&out[0], &ks[8],  &out[2]);
-  cam_feistel (&out[2], &ks[10], &out[0]);
-  cam_feistel (&out[0], &ks[12], &out[2]);
-  cam_feistel (&out[2], &ks[14], &out[0]);
+  camellia_feistel (&out[0], &ks[4],  &out[2]);  // rounds 1 to 6, k1 to k6
+  camellia_feistel (&out[2], &ks[6],  &out[0]);
+  camellia_feistel (&out[0], &ks[8],  &out[2]);
+  camellia_feistel (&out[2], &ks[10], &out[0]);
+  camellia_feistel (&out[0], &ks[12], &out[2]);
+  camellia_feistel (&out[2], &ks[14], &out[0]);
 
-  cam_fl (out, &ks[16], &ks[18]);
+  camellia_fl (out, &ks[16], &ks[18]);           // ke1 and ke2
 
-  cam_feistel (&out[0], &ks[20], &out[2]);
-  cam_feistel (&out[2], &ks[22], &out[0]);
-  cam_feistel (&out[0], &ks[24], &out[2]);
-  cam_feistel (&out[2], &ks[26], &out[0]);
-  cam_feistel (&out[0], &ks[28], &out[2]);
-  cam_feistel (&out[2], &ks[30], &out[0]);
+  camellia_feistel (&out[0], &ks[20], &out[2]);  // rounds 7 to 12, k7 to k12
+  camellia_feistel (&out[2], &ks[22], &out[0]);
+  camellia_feistel (&out[0], &ks[24], &out[2]);
+  camellia_feistel (&out[2], &ks[26], &out[0]);
+  camellia_feistel (&out[0], &ks[28], &out[2]);
+  camellia_feistel (&out[2], &ks[30], &out[0]);
 
-  cam_fl (out, &ks[32], &ks[34]);
+  camellia_fl (out, &ks[32], &ks[34]);           // ke3 and ke4
 
-  cam_feistel (&out[0], &ks[36], &out[2]);
-  cam_feistel (&out[2], &ks[38], &out[0]);
-  cam_feistel (&out[0], &ks[40], &out[2]);
-  cam_feistel (&out[2], &ks[42], &out[0]);
-  cam_feistel (&out[0], &ks[44], &out[2]);
-  cam_feistel (&out[2], &ks[46], &out[0]);
+  camellia_feistel (&out[0], &ks[36], &out[2]);  // rounds 13 to 18, k13 to k18
+  camellia_feistel (&out[2], &ks[38], &out[0]);
+  camellia_feistel (&out[0], &ks[40], &out[2]);
+  camellia_feistel (&out[2], &ks[42], &out[0]);
+  camellia_feistel (&out[0], &ks[44], &out[2]);
+  camellia_feistel (&out[2], &ks[46], &out[0]);
 
-  cam_fl (out, &ks[48], &ks[50]);
+  camellia_fl (out, &ks[48], &ks[50]);           // ke5 and ke6
 
-  cam_feistel (&out[0], &ks[52], &out[2]);
-  cam_feistel (&out[2], &ks[54], &out[0]);
-  cam_feistel (&out[0], &ks[56], &out[2]);
-  cam_feistel (&out[2], &ks[58], &out[0]);
-  cam_feistel (&out[0], &ks[60], &out[2]);
-  cam_feistel (&out[2], &ks[62], &out[0]);
+  camellia_feistel (&out[0], &ks[52], &out[2]);  // rounds 19 to 24, k19 to k24
+  camellia_feistel (&out[2], &ks[54], &out[0]);
+  camellia_feistel (&out[0], &ks[56], &out[2]);
+  camellia_feistel (&out[2], &ks[58], &out[0]);
+  camellia_feistel (&out[0], &ks[60], &out[2]);
+  camellia_feistel (&out[2], &ks[62], &out[0]);
+
+  // postwhitening with kw3 and kw4, and the two halves change places on the way out
 
   u32 tmp[2];
 
@@ -354,6 +323,9 @@ DECLSPEC void camellia256_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u3
   out[3] = tmp[1] ^ ks[67];
 }
 
+// The same rounds with the subkeys taken in the order section 2.3.3 gives for decryption, which is
+// the encryption order reversed and the two members of each FL and FLINV pair exchanged.
+
 DECLSPEC void camellia256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   out[0] = in[0] ^ ks[64];
@@ -361,39 +333,39 @@ DECLSPEC void camellia256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u3
   out[2] = in[2] ^ ks[66];
   out[3] = in[3] ^ ks[67];
 
-  cam_feistel (&out[0], &ks[62], &out[2]);
-  cam_feistel (&out[2], &ks[60], &out[0]);
-  cam_feistel (&out[0], &ks[58], &out[2]);
-  cam_feistel (&out[2], &ks[56], &out[0]);
-  cam_feistel (&out[0], &ks[54], &out[2]);
-  cam_feistel (&out[2], &ks[52], &out[0]);
+  camellia_feistel (&out[0], &ks[62], &out[2]);
+  camellia_feistel (&out[2], &ks[60], &out[0]);
+  camellia_feistel (&out[0], &ks[58], &out[2]);
+  camellia_feistel (&out[2], &ks[56], &out[0]);
+  camellia_feistel (&out[0], &ks[54], &out[2]);
+  camellia_feistel (&out[2], &ks[52], &out[0]);
 
-  cam_fl (out, &ks[50], &ks[48]);
+  camellia_fl (out, &ks[50], &ks[48]);
 
-  cam_feistel (&out[0], &ks[46], &out[2]);
-  cam_feistel (&out[2], &ks[44], &out[0]);
-  cam_feistel (&out[0], &ks[42], &out[2]);
-  cam_feistel (&out[2], &ks[40], &out[0]);
-  cam_feistel (&out[0], &ks[38], &out[2]);
-  cam_feistel (&out[2], &ks[36], &out[0]);
+  camellia_feistel (&out[0], &ks[46], &out[2]);
+  camellia_feistel (&out[2], &ks[44], &out[0]);
+  camellia_feistel (&out[0], &ks[42], &out[2]);
+  camellia_feistel (&out[2], &ks[40], &out[0]);
+  camellia_feistel (&out[0], &ks[38], &out[2]);
+  camellia_feistel (&out[2], &ks[36], &out[0]);
 
-  cam_fl (out, &ks[34], &ks[32]);
+  camellia_fl (out, &ks[34], &ks[32]);
 
-  cam_feistel (&out[0], &ks[30], &out[2]);
-  cam_feistel (&out[2], &ks[28], &out[0]);
-  cam_feistel (&out[0], &ks[26], &out[2]);
-  cam_feistel (&out[2], &ks[24], &out[0]);
-  cam_feistel (&out[0], &ks[22], &out[2]);
-  cam_feistel (&out[2], &ks[20], &out[0]);
+  camellia_feistel (&out[0], &ks[30], &out[2]);
+  camellia_feistel (&out[2], &ks[28], &out[0]);
+  camellia_feistel (&out[0], &ks[26], &out[2]);
+  camellia_feistel (&out[2], &ks[24], &out[0]);
+  camellia_feistel (&out[0], &ks[22], &out[2]);
+  camellia_feistel (&out[2], &ks[20], &out[0]);
 
-  cam_fl (out, &ks[18], &ks[16]);
+  camellia_fl (out, &ks[18], &ks[16]);
 
-  cam_feistel (&out[0], &ks[14], &out[2]);
-  cam_feistel (&out[2], &ks[12], &out[0]);
-  cam_feistel (&out[0], &ks[10], &out[2]);
-  cam_feistel (&out[2], &ks[8],  &out[0]);
-  cam_feistel (&out[0], &ks[6],  &out[2]);
-  cam_feistel (&out[2], &ks[4],  &out[0]);
+  camellia_feistel (&out[0], &ks[14], &out[2]);
+  camellia_feistel (&out[2], &ks[12], &out[0]);
+  camellia_feistel (&out[0], &ks[10], &out[2]);
+  camellia_feistel (&out[2], &ks[8],  &out[0]);
+  camellia_feistel (&out[0], &ks[6],  &out[2]);
+  camellia_feistel (&out[2], &ks[4],  &out[0]);
 
   u32 tmp[2];
 
@@ -406,9 +378,9 @@ DECLSPEC void camellia256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u3
   out[3] = tmp[1] ^ ks[3];
 }
 
-#undef c_sbox1
-#undef c_sbox2
-#undef c_sbox3
-#undef c_sbox4
+#undef CAMELLIA_SBOX1
+#undef CAMELLIA_SBOX2
+#undef CAMELLIA_SBOX3
+#undef CAMELLIA_SBOX4
 
-#undef cam_rotate
+#undef CAMELLIA_ROTL128

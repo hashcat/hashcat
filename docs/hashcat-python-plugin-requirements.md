@@ -14,7 +14,7 @@ The `multiprocessing` module is not fully supported in this embedded environment
 
 ### On Linux
 
-The `multiprocessing` module functions correctly, allowing full CPU utilization through parallel worker processes. However, since threading is managed by Python, it relies on `fork()` and inter-process communication (IPC). This adds complexity and code bloat to Hashcat, effectively duplicating modules and bridge plugins, making the codebase harder to understand for those exploring how it all works. We could switch to a free-threaded Python runtime, but it's still unstable at the time of writing even on Linux (see the `cffi` problem below). For now, we’ve chosen to use the `multiprocessing` module as a more practical solution.
+The `multiprocessing` module functions correctly, allowing full CPU utilization through parallel worker processes. However, since threading is managed by Python, it relies on `fork()` and inter-process communication (IPC). This adds complexity and code bloat to Hashcat, effectively duplicating modules and bridge plugins, making the codebase harder to understand for those exploring how it all works. We could switch to a free-threaded Python runtime, but it's still unstable at the time of writing even on Linux (see the `cffi` problem below). For now, we've chosen to use the `multiprocessing` module as a more practical solution.
 
 **On Linux**: Use `pyenv`. It's the easiest way to install and manage Python versions, see below section
 
@@ -22,11 +22,26 @@ The `multiprocessing` module functions correctly, allowing full CPU utilization 
 
 In order to have multithreading on Windows/macOS, we were looking into Python 3.13 which introduces optional GIL-free support. This allows multithreading to work even in embedded Python. However, it has a major downside. Most relevant modules such as `cffi` still lacks support for running with the Python free-threaded ABI. But if your hash-mode does not rely on modules with `cffi` you should be fine using `-m 72000` no matter the OS.
 
-At the time of writing, several Linux distributions, including Ubuntu 24.04, do not ship with Python 3.13 because it was released after the distro’s feature freeze. You will likely need to install it manually, which is one of the reason we are refering to use `pyenv`.
+At the time of writing, several Linux distributions, including Ubuntu 24.04, do not ship with Python 3.13 because it was released after the distro's feature freeze. You will likely need to install it manually, which is one of the reason we are refering to use `pyenv`.
 
 ### Real-world best practice
 
 For now, multiprocessing (-m 73000) supports most modules and is generally better for real-world workloads, but it works only on Linux. Developers on Windows/macOS may use `-m 72000` for development, except if `cffi` modules are requested and in this case switch back to `-m 73000`. Then use Linux (or WSL2 on Windows) for long running tasks.
+
+## Minimum versions
+
+```
+-m 72000   Python 3.13   and a free-threaded build to run it
+-m 73000   Python 3.10
+```
+
+Both are checked when hashcat starts, and the 72000 build refuses headers below 3.13 as well, so a
+plugin that could only fail at run time is not produced in the first place. Building 72000 does not
+itself need a free-threaded Python, only running it does, which is why the release package is built
+against an ordinary one.
+
+Ubuntu 24.04 carries 3.12, so neither 3.13 nor a free-threaded build comes from the distribution.
+Use `pyenv`, as described below.
 
 ### Pyenv
 

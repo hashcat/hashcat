@@ -19,7 +19,7 @@ static const char CL_VENDOR_APPLE_USE_INTEL[]   = "Intel";
 static const char CL_VENDOR_APPLE_USE_INTEL2[]  = "Intel Inc.";
 static const char CL_VENDOR_INTEL_BEIGNET[]     = "Intel";
 static const char CL_VENDOR_INTEL_SDK[]         = "Intel(R) Corporation";
-static const char CL_VENDOR_MESA[]              = "Mesa";
+static const char CL_VENDOR_MESA[]              = "Mesa/X.org";
 static const char CL_VENDOR_NV[]                = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]              = "The pocl project";
 static const char CL_VENDOR_MICROSOFT[]         = "Microsoft";
@@ -61,59 +61,41 @@ void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *cache_
 
 bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
 
-// Where a launch's wall clock goes, split by the stage that spent it. A launch is a chain of host
-// steps around one device step, and the steps live in different files, so the buckets are global and
-// printed together. HASHCAT_PIPE=1 turns it on, and nothing is measured or timed otherwise.
-
-typedef enum pipe_slot
-{
-  PIPE_FEED   = 0,  // building the candidate batch on the host, off the critical path
-  PIPE_COPY   = 1,  // uploading it and running the decompress kernel
-  PIPE_INIT   = 2,  // amplifier, utf16 conversion and the init kernel
-  PIPE_XFER   = 3,  // tmps out to the host and back
-  PIPE_LAUNCH = 4,  // the loop itself, kernel or bridge
-  PIPE_COMP   = 5,  // the comp kernel
-
-  PIPE_SLOTS  = 6,
-
-} pipe_slot_t;
-
+void pipe_enable                            (const bool enabled, const bool json);
 void pipe_mark                              (hc_timer_t *timer);
-void pipe_acc                               (const pipe_slot_t slot, hc_timer_t *timer);
-void pipe_launch_done                       (const u64 cands);
+void pipe_acc                               (hc_device_param_t *device_param, const pipe_slot_t slot, hc_timer_t *timer);
+void pipe_launch_done                       (hc_device_param_t *device_param, const u64 cands);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+
+u64 gidvid_to_feed_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
 
 int copy_pws_idx                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest);
 int copy_pws_comp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest);
 
+bool is_opti_kernel_no_pcfg                 (const hashcat_ctx_t *hashcat_ctx);
+
 int choose_kernel                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune);
 
-int run_cuda_kernel_atinit                  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num);
-int run_cuda_kernel_utf8toutf16le           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num);
-int run_cuda_kernel_memset                  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 offset, const u8  value, const u64 size);
-int run_cuda_kernel_memset32                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 offset, const u32 value, const u64 size);
-int run_cuda_kernel_bzero                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 size);
+// The device primitives. Each of these is the one place a backend is chosen for the operation it
+// names, so code above them works in slots and sizes rather than in four runtimes.
 
-int run_hip_kernel_atinit                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 num);
-int run_hip_kernel_utf8toutf16le            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 num);
-int run_hip_kernel_memset                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 offset, const u8  value, const u64 size);
-int run_hip_kernel_memset32                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 offset, const u32 value, const u64 size);
-int run_hip_kernel_bzero                    (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hipDeviceptr_t buf, const u64 size);
+void *hc_dev_kern_arg                       (hc_device_param_t *device_param, const hc_dev_buf_t slot);
+void *hc_dev_kern_arg_pool                  (hc_device_param_t *device_param, const u32 i);
 
-#if defined (__APPLE__)
-int run_metal_kernel_atinit                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, mtl_mem_t buf, const u64 num);
-int run_metal_kernel_utf8toutf16le          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, mtl_mem_t buf, const u64 num);
-int run_metal_kernel_memset                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, mtl_mem_t buf, const u64 offset, const u8  value, const u64 size);
-int run_metal_kernel_memset32               (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, mtl_mem_t buf, const u64 offset, const u32 value, const u64 size);
-int run_metal_kernel_bzero                  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, mtl_mem_t buf, const u64 size);
-#endif
+int hc_dev_bind                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
+int hc_dev_unbind                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
+int hc_dev_synchronize                      (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
+int hc_dev_queue_flush                      (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 
-int run_opencl_kernel_atinit                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num);
-int run_opencl_kernel_utf8toutf16le         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num);
-int run_opencl_kernel_memset                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 offset, const u8  value, const u64 size);
-int run_opencl_kernel_memset32              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 offset, const u32 value, const u64 size);
-int run_opencl_kernel_bzero                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
+int hc_dev_memcpy_h2d                       (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const void *src, const u64 size);
+int hc_dev_memcpy_d2h                       (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, void *dst, hc_dev_mem_t mem, const u64 offset, const u64 size);
+int hc_dev_memcpy_d2d                       (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t dst, const u64 dst_offset, hc_dev_mem_t src, const u64 src_offset, const u64 size);
+
+int run_kernel_atinit                       (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 num);
+int run_kernel_utf8toutf16le                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 num);
+int run_kernel_bzero                        (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 size);
+int run_kernel_memset32                     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const u32 value, const u64 size);
 
 int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration, const bool is_autotune);
 int run_bridge_loop                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt, const u32 loop_pos, const u32 loop_cnt, const u32 event_update);
@@ -125,12 +107,7 @@ int run_copy                                (hashcat_ctx_t *hashcat_ctx, hc_devi
 int pcfg_seed_cells                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt);
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD hook12_thread (void *p);
-HC_API_CALL DWORD hook23_thread (void *p);
-#else
-HC_API_CALL void *hook12_thread (void *p);
-HC_API_CALL void *hook23_thread (void *p);
-#endif
+HC_THREAD_FUNC hook12_thread (void *p);
+HC_THREAD_FUNC hook23_thread (void *p);
 
 #endif // HC_BACKEND_H

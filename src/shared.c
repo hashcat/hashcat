@@ -6,7 +6,18 @@
 #include "common.h"
 #include "types.h"
 #include "shared.h"
+
+#if defined (_WIN)
+#include <psapi.h>
+#else
+#include <sys/resource.h>
+#endif
 #include "memory.h"
+#include "convert.h"
+#include "paw64.h"
+#include "timer.h"
+
+#include <stdarg.h>
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
@@ -110,9 +121,69 @@ bool is_power_of_2 (const u32 v)
   return (v && !(v & (v - 1)));
 }
 
+// The odd part of v, which is v with every trailing zero bit shifted out. Zero has no odd part, and
+// the lowest set bit of zero is zero, so the division has to be guarded rather than attempted. A
+// caller reaches this with zero by overflowing an iteration count: a salt holding UINT32_MAX passes
+// a plain non-zero test, and one more than it is zero.
+
 u32 smallest_repeat_double (const u32 v)
 {
+  if (v == 0) return 0;
+
   return (v / (v & -v));
+}
+
+// A name no other writer will pick, for the file a cache is written under before it is renamed into
+// place.
+//
+// Everything hashcat caches is written that way, so that a reader finds either the whole of a file
+// or none of it, and that name carried a pid alone. A pid tells two processes on one host apart and
+// says nothing at all between hosts, while --cache-path is there to point a whole cluster at one
+// directory: two hosts that pick the same pid open the same temporary file, write into it at once,
+// and the rename publishes whatever the two of them left behind.
+//
+// So the pid is only a part of it. The host name separates two machines, and neither separates two
+// containers on one host that were given the same name and both start at pid 1, which is why the
+// clock and an address off this stack go in as well: the first differs between two runs however
+// close together they start, and the second differs again wherever the loader puts them.
+//
+// They are folded rather than spelled out, because the result becomes part of a path that a caller
+// keeps in a fixed buffer, and a fold is the same sixteen characters whatever went into it.
+//
+// The answer is a new one on every call, which is what a name for one write wants to be: two threads
+// writing two caches at once are asking for two names, not one.
+
+u64 hc_tmp_tag (void)
+{
+  char host[256];
+
+  memset (host, 0, sizeof (host));
+
+  #if defined (_WIN)
+  DWORD host_len = (DWORD) sizeof (host) - 1;
+
+  if (GetComputerNameA (host, &host_len) == 0) host[0] = 0;
+  #else
+  if (gethostname (host, sizeof (host) - 1) != 0) host[0] = 0;
+  #endif
+
+  host[sizeof (host) - 1] = 0;
+
+  hc_timer_t now;
+
+  hc_timer_set (&now);
+
+  const void *here = (const void *) &now;
+
+  paw64_ctx_t state;
+
+  paw64_init (&state, (u64) HC_GETPID ());
+
+  paw64_update (&state, host, strlen (host));
+  paw64_update (&state, &now, sizeof (now));
+  paw64_update (&state, &here, sizeof (here));
+
+  return paw64_final (&state);
 }
 
 u32 mydivc32 (const u32 dividend, const u32 divisor)
@@ -635,6 +706,82 @@ bool hc_env_flag (const char *name, int *cache)
   return result;
 }
 
+// Bounded appenders for a fixed size output buffer.
+//
+// A cracked hash is written out by src/outfile.c and by src/potfile.c, and both build the line in one
+// buffer of HCBUFSIZ_LARGE. The username, the hash and the plaintext all originate in the input line,
+// so none of the 3 has a length this code decides. Every write is therefore clamped to the room
+// actually left, and 1 byte is always kept back so that the caller's trailing null lands inside the
+// buffer. A field that does not fit is truncated and the entry itself is still written out.
+//
+// buf_sz is the size of the whole buffer, not the room remaining. Each function returns the new length.
+//
+// These lived in src/outfile.c alone. potfile.c builds the same kind of line into the same size of
+// buffer and had no bound of any kind, which is exactly the shape a second copy of security relevant
+// code takes when it is not shared, so there is one copy and both callers use it.
+
+int hc_append_raw (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if (src_len > room)
+  {
+    src_len = (room > 0) ? room : 0;
+  }
+
+  memcpy (buf + len, src, (size_t) src_len);
+
+  const int out_len = len + src_len;
+
+  return out_len;
+}
+
+// hex_encode () writes 2 bytes per input byte and no terminator.
+
+int hc_append_hex (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const int out_len = len + hex_encode (src, src_len, (u8 *) buf + len);
+
+  return out_len;
+}
+
+// exec_hexify () writes 2 bytes per input byte and then a terminator, which is what the byte held
+// back above is for. It also clamps its own input to PW_MAX, so it can write less than asked.
+
+int hc_append_hexify (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const size_t hex_len = exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
+
+  const int out_len = len + (int) hex_len;
+
+  return out_len;
+}
+
+int hc_append_chr (char *buf, const int len, const int buf_sz, const char c)
+{
+  if (len >= (buf_sz - 1)) return len;
+
+  buf[len] = c;
+
+  const int out_len = len + 1;
+
+  return out_len;
+}
+
 // Expanding a PCFG cell on the host, so that a crack can be reported as the candidate that produced it
 // rather than as the base word the device started from. This is the same walk as pcfg_expand () in
 // OpenCL/inc_pcfg.cl and has to stay the same walk: the device decides which candidate matched, and
@@ -643,7 +790,7 @@ bool hc_env_flag (const char *name, int *cache)
 // Bytes are addressed directly here rather than through shifts, which is the same thing on a little
 // endian host and is what the kernel's word arithmetic amounts to.
 
-HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len)
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len)
 {
   if (pool == NULL) return -1;
 
@@ -675,25 +822,19 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
 
     if (radix == 0) return false;
 
-    // A capitalisation slot's digit field carries the upper case image base rather than a starting
-    // digit, so it contributes nothing to the decomposition. An ordinary slot's is always zero today
-    // and is reserved for a rectangle wider than the inner loop.
+    // The position in the rectangle is the whole of it. A slot's digit field is not a starting digit
+    // and is never added here, because pcfg_odo_seed () in the kernel decomposes il_pos alone and this
+    // has to name the candidate the card actually hashed. See pcfg_slot_t for what the field does mean.
 
-    // A capitalisation slot's digit field carries something other than a starting digit either way: the
-    // upper case image's base without per entry offsets and the distance to it with them.
+    digit[j] = (u32) (carry % radix);
 
-    const u64 start = ((PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_CASE) || (varlen == true)) ? 0 : (u64) cell->slots[j].digit;
-
-    const u64 t = start + carry;
-
-    digit[j] = (u32) (t % radix);
-
-    carry = t / radix;
+    carry = carry / radix;
   }
 
   if (carry != 0) return -1;
 
   const u8 *pb = (const u8 *) pool;
+  const u8 *bb = (const u8 *) base;
 
   u8 *wb = (u8 *) w;
 
@@ -710,6 +851,27 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
     const u32 packed = cell->slots[j].packed;
 
     const u32 kind = PCFG_SLOT_KIND (packed);
+
+    // A run of the base word is not in the pool and its length is in the descriptor either way, so it
+    // is settled before the two that read the pool to find out.
+
+    if (kind == PCFG_SLOT_KIND_COPY)
+    {
+      const u32 ent_len = PCFG_SLOT_ENT_LEN (packed);
+      const u32 dst_off = (varlen == true) ? pos : PCFG_SLOT_DST_OFF (packed);
+      const u32 src     = cell->slots[j].pool_off;
+
+      dpos[j] = dst_off;
+
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        wb[dst_off + k] = bb[src + k];
+      }
+
+      pos += ent_len;
+
+      continue;
+    }
 
     const u32 ent_len = (varlen == true) ? (pool[cell->slots[j].pool_off + digit[j] + 1] - pool[cell->slots[j].pool_off + digit[j]]) : PCFG_SLOT_ENT_LEN (packed);
     const u32 dst_off = (varlen == true) ? pos                                                                                      : PCFG_SLOT_DST_OFF (packed);
@@ -749,13 +911,19 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
     u32 ci = 0;
     u32 at = 0;
 
+    // Equal lengths mean the token is one byte per character, and the continuation walk below must
+    // not run: a latin-1 or cp1252 list keeps letters in 0x80-0xBF. The same test the kernel and
+    // assemble () make, because all three have to agree on what a character is.
+
+    const bool wide = (tok_len != ent_len);
+
     while ((at < tok_len) && (ci < ent_len))
     {
       if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
 
       at++;
 
-      while (at < tok_len)
+      while ((wide == true) && (at < tok_len))
       {
         if ((wb[mdst_off + at] & 0xc0) != 0x80) break;
 
@@ -768,12 +936,49 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
     }
   }
 
-  // How long the candidate is. The device slots are a suffix of the structure, so the last of them is
-  // where the candidate ends whether or not the lengths vary, and the running offset says where that
-  // is. A cell with no device slots rewrote nothing and its candidate is the base word, which only the
-  // caller knows the length of.
+  // How long the candidate is, and it has to be the length the kernel hashed or a crack is reported as
+  // a password that does not produce its own digest.
+  //
+  // Where the entries are all one length the kernel hashes the base word's length, because the slots
+  // write over bytes that were already there and nothing moves. The running offset is not that length:
+  // it stops where the last slot stopped. For a grammar the two agree, because its slots are a suffix
+  // of the structure and the last of them ends the candidate. For a table they do not, because a slot
+  // is wherever a token varies, so a word that does not end in one leaves the offset short and the
+  // plaintext was reported truncated.
+  //
+  // Where the entries vary in length the offset is the length, and it is what the kernel returns too.
 
-  const int len = (int) pos;
+  const int len = (varlen == true) ? (int) pos : base_len;
 
   return len;
+}
+
+// Peak resident memory of this process, in bytes, or 0 where the platform will not say.
+//
+// The three platforms disagree about the unit as well as the call: ru_maxrss is kilobytes on Linux
+// and bytes on macOS, and Windows does not have getrusage at all.
+
+u64 hc_peak_rss (void)
+{
+  #if defined (_WIN)
+
+  PROCESS_MEMORY_COUNTERS pmc;
+
+  if (GetProcessMemoryInfo (GetCurrentProcess (), &pmc, sizeof (pmc)) == 0) return 0;
+
+  return (u64) pmc.PeakWorkingSetSize;
+
+  #else
+
+  struct rusage ru;
+
+  if (getrusage (RUSAGE_SELF, &ru) != 0) return 0;
+
+  #if defined (__APPLE__)
+  return (u64) ru.ru_maxrss;
+  #else
+  return (u64) ru.ru_maxrss * 1024;
+  #endif
+
+  #endif
 }

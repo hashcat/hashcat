@@ -1,0 +1,25 @@
+PPMd var.H, with the carryless range coder by Dmitry Subbotin
+============================================================
+
+hashcat compiles in the PPMd var.H codec to decode the PPM coding path of a RAR3 stream. The files
+are in src/modules/rar3/ppmd7 and are byte identical to the 7-Zip source distribution they came from.
+src/modules/rar3/ppmd7/ORIGIN.txt records which release, with checksums.
+
+Every file states its own authorship and licence in its first lines, and those lines are untouched.
+The chain, as written at the top of Ppmd7aDec.c:
+
+  /* Ppmd7aDec.c -- PPMd7a (PPMdH) Decoder
+  2023-09-07 : Igor Pavlov : Public domain
+  This code is based on:
+    PPMd var.H (2001): Dmitry Shkarin : Public domain
+    Carryless rangecoder (1999): Dmitry Subbotin : Public domain */
+
+All three authors placed their work in the public domain.
+
+Dmitry Shkarin states the terms of the original in the read_me.txt of his own distribution at
+https://compression.ru/ds/ppmdh.rar. He reserves two things and nothing else: authorship must not be
+misappropriated, and the algorithm must not be patented. hashcat does neither. The PPMonstr
+non-commercial clause in that same file applies to a separate program whose source is not part of the
+distribution and is not used here.
+
+Igor Pavlov places his implementation in the public domain in the header of each file.

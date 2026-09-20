@@ -321,11 +321,11 @@ KERNEL_FQ KERNEL_FA void m17040_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     // Use raw bytes from salt_buf and pws[].i (no swaps, no padding, no repeats)
     u8 one[320] = { 0 }; // plenty
     // copy 8-byte salt
-    PRIVATE_AS const u8 *salt8 = (PRIVATE_AS const u8 *) salt_bufs[SALT_POS_HOST].salt_buf;
+    GLOBAL_AS const u8 *salt8 = (GLOBAL_AS const u8 *) salt_bufs[SALT_POS_HOST].salt_buf;
     for (u32 i = 0; i < salt_bufs[SALT_POS_HOST].salt_len; i++) one[i] = salt8[i];
 
     // copy password bytes
-    PRIVATE_AS const u8 *pw8 = (PRIVATE_AS const u8 *) pws[gid].i;
+    GLOBAL_AS const u8 *pw8 = (GLOBAL_AS const u8 *) pws[gid].i;
     for (u32 i = 0; i < pw_len; i++) one[salt_bufs[SALT_POS_HOST].salt_len + i] = pw8[i];
 
     // Feed exactly those bytes. Buffer is in native order → use _swap

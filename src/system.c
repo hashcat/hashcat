@@ -64,10 +64,10 @@ void setup_environment_variables (const folder_config_t *folder_config, const us
       putenv ((char *) "DISPLAY=:0");
   }
 
-  #if defined (DEBUG)
-  if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
-    putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
+  // a debug build turns off our own kernel cache, so the runtime caches have to go too, or a stale
+  // binary from an earlier run is what gets executed
 
+  #if defined (DEBUG)
   if (getenv ("CUDA_CACHE_DISABLE") == NULL)
     putenv ((char *) "CUDA_CACHE_DISABLE=1");
 
@@ -86,18 +86,9 @@ void setup_environment_variables (const folder_config_t *folder_config, const us
     // we can't free tmpdir at this point!
   }
 
-  // creates too much cpu load
-  if (getenv ("AMD_DIRECT_DISPATCH") == NULL)
-    putenv ((char *) "AMD_DIRECT_DISPATCH=0");
-
   if (user_options->hash_mode == 72000) // ugly but rare hack, we might move this to modules at a later stage
     if (getenv ("PYTHON_GIL") == NULL)
      putenv ((char *) "PYTHON_GIL=0");
-
-  /*
-  if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
-    putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
-  */
 
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);
@@ -111,16 +102,29 @@ void setup_umask (void)
 
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
 {
-  if (rp_gen_seed_chgd == true)
-  {
-    srand (rp_gen_seed);
-  }
-  else
+  u32 seed = rp_gen_seed;
+
+  if (rp_gen_seed_chgd == false)
   {
     const time_t ts = time (NULL); // don't tell me that this is an insecure seed
 
-    srand ((unsigned int) ts);
+    seed = (u32) ts;
   }
+
+  // get_random_num () below draws from rand () under _WIN and from random () everywhere else, and
+  // the two keep their own state. Seeding rand () on a platform that draws from random () left
+  // random () at its default seed, so every run produced the same sequence and the seed did nothing.
+  // glibc hides it by making srand () an alias of srandom (). A libc that keeps the two apart does not.
+
+  #if defined (_WIN)
+
+  srand (seed);
+
+  #else
+
+  srandom (seed);
+
+  #endif
 }
 
 u32 get_random_num (const u32 min, const u32 max)

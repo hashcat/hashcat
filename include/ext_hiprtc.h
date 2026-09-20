@@ -50,6 +50,7 @@ typedef const char *  (HIPRTC_API_CALL *HIPRTC_HIPRTCGETERRORSTRING)     (hiprtc
 typedef struct hc_hiprtc_lib
 {
   hc_dynlib_t lib;
+  bool is_dtk;
 
   HIPRTC_HIPRTCCOMPILEPROGRAM     hiprtcCompileProgram;
   HIPRTC_HIPRTCCREATEPROGRAM      hiprtcCreateProgram;

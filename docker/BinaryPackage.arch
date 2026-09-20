@@ -18,7 +18,6 @@ RUN pacman -Sy --noconfirm \
     clang \
     lld \
     git \
-    cmake \
     unzip \
     wget \
     zstd \
@@ -36,18 +35,9 @@ RUN pacman -Sy --noconfirm \
 # Set source working directory
 WORKDIR /root
 
-# Clone hashcat and win-iconv repositories
-RUN git clone https://github.com/win-iconv/win-iconv.git
-
-# Build win-iconv for Windows target
-WORKDIR /root/win-iconv
-RUN cmake \
-    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
-    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
-    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
-    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
-    . && \
-    make -j$(nproc) && make install
+# This image does not build the Windows compressors that the release image builds, so the package it
+# writes carries a hashcat.exe with no liblzma.dll beside it. Use docker/hashcat_binaries.ubuntu for
+# a Windows package meant to be handed to anyone.
 
 # GMP for Linux and for Windows
 

@@ -56,6 +56,10 @@ Jeremi "epixoip" Gosney <jgosney@terahash.com> (@jmgosney)
 * Moderating the hashcat forum
 * Helping tons of new users find their way into the hashcat universe
 
+magnum
+
+* RAR3 Huffman validity check in the -m 23800 kernel module
+
 Other contributors to hashcat
 
 * A full list and their commits can be found here:
@@ -63,12 +67,31 @@ Other contributors to hashcat
 
 # hashcat relies on some libraries, including:
 
-* xxHash by Yann Collet (@Cyan4973)
-* LZMA-SDK by Igor Pavlov
-* zlib by Jean-loup Gailly and Mark Adler
-* win-iconv by Yukihiro Nakadaira
+* liblzma by Lasse Collin and Igor Pavlov (loaded at runtime)
+* zlib by Jean-loup Gailly and Mark Adler (loaded at runtime)
+* zstd by Yann Collet (@Cyan4973) (loaded at runtime)
 * micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
-* UnRAR by Alexander Roshal
+* PPMd var.H by Dmitry Shkarin and Dmitry Subbotin, in Igor Pavlov's 7-Zip implementation (vendored)
+
+# hashcat implements the following algorithms designed by others:
+
+* Probabilistic Context-Free Grammars for password guessing, by Matt Weir (@lakiw),
+  with Sudhir Aggarwal, Breno de Medeiros and Bill Glodek
+  The -a 4 attack is built on that model, and it reads the rulesets Matt Weir's
+  pcfg_cracker trains. hashcat carries none of its code and enumerates the grammar
+  its own way, but the attack is theirs.
+
+* OMEN, an ordered Markov enumerator for password guessing, by Markus Duermuth,
+  Fabian Angelstorf, Claude Castelluccia, Daniele Perito and Abdelberi Chaabane
+  A ruleset trained below full coverage puts the mass the grammar did not cover on
+  an escape, and OMEN is the model that fills it in. hashcat walks it on the host
+  engine, where a trellis can be walked, and says so when it cannot carry it.
+
+* xxHash by Yann Collet (@Cyan4973)
+  paw64, hashcat's own 64 bit identity hash, carries no xxHash code and produces
+  different digests, but it follows the ground xxHash broke: that a short input
+  deserves a different shape from a long one, and that a multiply, a fold and a
+  strong final avalanche are enough.
 
 # Furthermore the following persons helped the project:
 
@@ -100,5 +123,14 @@ Costin Enache <costin@detack.de>
 * RACF KDFAES module
 * IBM AS400 DES and SSHA1 modules
 * Cisco-ISE Hashed Password (SHA256) module
+
+Shooter3k
+* Multibyte characters written directly in rule operands, and UTF-8 console output on Windows
+* Narrowing the potfile search and batching the cracked result writes
+* A breakdown of where a run's wall clock goes, and the pipeline instrument as an option
+* Long-standing bugfix ideas in rule file loading, --show and --left, --loopback, and checkpointing
+* Rules applied to the fully assembled candidate in the mask and hybrid attack modes
+* Moving a running attack through its keyspace, and extending its deadline, from the status screen
+* Faster --stdout rules, an early outfile check, and a report of devices that did not start
 
 !!! All the package maintainers of hashcat !!!

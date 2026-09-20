@@ -13,16 +13,6 @@ This limitation on salt lengths only affects generic hash modes, such as md5(pas
 Dedicated hash modes allow unlimited salt length support.
 
 ##
-## File and folder names including UTF-16 characters are not supported
-##
-
-UTF-16 is mostly seen on Windows. UTF-8 (as mostly used on Linux and macOS) are fine.
-
-Important: That does not mean UTF-16 file content, which is fully supported.
-
-It only means the filename itself.
-
-##
 ## Hashing algorithms that internally use UTF-16 characters could in special cases lead to false negatives
 ##
 
@@ -36,8 +26,8 @@ because we basically add a zero byte every second byte within the kernel convers
 Since hashcat v6.2.1 there is true UTF-16 support for pure kernels. UTF-16 is fully supported.
 
 There is an exception for mask attacks combined with compute devices that require vector data-types
-to achieve full performance. For example a modern CPU. For these devices, the recommendation is to use a
-combination of mask processor piped to hashcat. For modern GPUs it works as expected.
+to achieve full performance. For example a modern CPU. On those devices a mask attack over characters
+outside ASCII needs --backend-vector-width 1. For modern GPUs it works as expected.
 
 ##
 ## The use of --keep-guessing eventually skips reporting duplicate passwords
@@ -98,7 +88,9 @@ The only way to free it is to destroy the CUDA context.
 
 In normal runs this has no impact, since the context is destroyed at program exit.
 
-In benchmarks, however, where the same context is kept across multiple hash-mode tests,
-available device memory decreases over time. This has a negative impact on benchmark
-performance and can lead to runtime errors.
+In benchmarks the same context used to be kept across every hash-mode test, so available device
+memory fell as the run went on, which cost benchmark performance and could end in a runtime error.
+Hashcat now drops and recreates the context between modes, which gives the memory back. A device
+whose context cannot be recreated is skipped rather than used through a handle that no longer
+exists.
 

@@ -71,7 +71,9 @@ typedef void *(*RS_NEW_CONTEXT)(
   const char *bridge_parameter1,
   const char *bridge_parameter2,
   const char *bridge_parameter3,
-  const char *bridge_parameter4
+  const char *bridge_parameter4,
+
+  bool salt_per_pw
 );
 
 typedef void  (*RS_DROP_CONTEXT)(void *);
@@ -143,7 +145,15 @@ static const char *extract_module_name (const char *path)
     module_name = filename;
   }
 
-  return module_name;
+  // The caller gets an allocation whose base is the pointer it was handed. This used to return a
+  // pointer into filename, so the free () the call site suggests would have been handed something
+  // that is not the start of an allocation whenever the path holds a separator.
+
+  const char *module_name_buf = strdup (module_name);
+
+  free (filename);
+
+  return module_name_buf;
 }
 
 static bool units_init (bridge_context_t *bridge_context)
@@ -297,7 +307,7 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
   hcfree (bridge_context);
 }
 
-bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -329,13 +339,17 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     bridge_context->bridge_parameter1,
     bridge_context->bridge_parameter2,
     bridge_context->bridge_parameter3,
-    bridge_context->bridge_parameter4
+    bridge_context->bridge_parameter4,
+
+    hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION
   );
 
   // We should free module_name, but if a user changes the Rust code to
   // use it without copying, we could get a dangling pointer. So we are
-  // leaking it.
-  // free(module_name);
+  // leaking it. The pointer is now the base of its own allocation, so
+  // enabling this line is safe for anyone whose Rust side copies it, as
+  // both bridges in this tree do with String::to_string ().
+  // free ((void *) module_name);
 
   if (!unit_buf->unit_context) return false;
 
@@ -395,7 +409,7 @@ char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_con
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -405,7 +419,10 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   generic_io_tmp_t *generic_io_tmp = (generic_io_tmp_t *) device_param->h_tmps;
 
-  if (!bridge_context->kernel_loop (unit_buf->unit_context, generic_io_tmp, pws_cnt, salt_pos, hashes->salts_buf == hashes->st_salts_buf))
+  // The Rust side is handed the salt the batch starts at and adds the position of the candidate
+  // itself, so the position passed here is zero. The salt_per_pw it was built with tells it to add.
+
+  if (!bridge_context->kernel_loop (unit_buf->unit_context, generic_io_tmp, pws_cnt, bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, 0), hashes->salts_buf == hashes->st_salts_buf))
   {
     return false;
   }

@@ -9,9 +9,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
+
+#if defined (_WIN)
+#include <io.h>
+#else
+#include <unistd.h>
 #include <fcntl.h>
+#endif
 
 int hc_lockfile   (HCFILE *fp);
 int hc_unlockfile (HCFILE *fp);

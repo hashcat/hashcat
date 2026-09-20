@@ -31,6 +31,14 @@
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"
 
+// Everything hashcat derives and can rebuild goes under this one folder inside the cache directory:
+// the compiled kernels, the seek databases, the pcfg counts and the table indexes. A build running
+// from its own tree has that tree as its cache directory, so without this level they all land beside
+// the binary and beside the folders hashcat ships. It also gives the whole lot one name to delete and
+// one option to move.
+
+#define CACHE_FOLDER    "cache"
+
 HC_PLUGIN_API int count_dictionaries (char **dictionary_files);
 
 HC_PLUGIN_API char *first_file_in_directory (const char *path);

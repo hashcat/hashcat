@@ -1283,12 +1283,35 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_APPEND:
         NEXT_RULEPOS (rule_pos);
-        out_len = mangle_append (out, out_len, rule_new[rule_pos]);
+        {
+          // the same expansion cpu_rule_to_kernel_rule () compiles, so this reference and the
+          // device run the identical sequence of byte operations
+
+          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            out_len = mangle_append (out, out_len, rule_new[rule_pos + i]);
+          }
+
+          rule_pos += mb - 1;
+        }
         break;
 
       case RULE_OP_MANGLE_PREPEND:
         NEXT_RULEPOS (rule_pos);
-        out_len = mangle_prepend (out, out_len, rule_new[rule_pos]);
+        {
+          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+
+          // backwards, so the character comes out forwards
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            out_len = mangle_prepend (out, out_len, rule_new[rule_pos + mb - 1 - i]);
+          }
+
+          rule_pos += mb - 1;
+        }
         break;
 
       case RULE_OP_MANGLE_DELETE_FIRST:
@@ -1325,21 +1348,48 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        out_len = mangle_insert (out, out_len, upos, rule_new[rule_pos]);
+        {
+          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            out_len = mangle_insert (out, out_len, upos + (int) i, rule_new[rule_pos + i]);
+          }
+
+          rule_pos += mb - 1;
+        }
         break;
 
       case RULE_OP_MANGLE_INSERT_EVERY:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        out_len = mangle_insert_every (out, out_len, upos, rule_new[rule_pos]);
+        {
+          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            out_len = mangle_insert_every (out, out_len, upos + (int) i, rule_new[rule_pos + i]);
+          }
+
+          rule_pos += mb - 1;
+        }
         break;
 
       case RULE_OP_MANGLE_OVERSTRIKE:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
-        out_len = mangle_overstrike (out, out_len, upos, rule_new[rule_pos]);
+        {
+          const u32 mb = rule_utf8_len (rule_new, rule_len, rule_pos);
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            out_len = mangle_overstrike (out, out_len, upos + (int) i, rule_new[rule_pos + i]);
+          }
+
+          rule_pos += mb - 1;
+        }
         break;
 
       case RULE_OP_MANGLE_TRUNCATE_AT:
@@ -1520,11 +1570,18 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_EQUAL_FIRST:
         NEXT_RULEPOS (rule_pos);
+
+        // a candidate an earlier function reduced to nothing has no first and no last character,
+        // so both rejects turn it away. out[out_len - 1] reads the byte before the buffer, and
+        // out[0] reads a byte memcpy never wrote.
+
+        if (out_len == 0) return (RULE_RC_REJECT_ERROR);
         if (out[0] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_LAST:
         NEXT_RULEPOS (rule_pos);
+        if (out_len == 0) return (RULE_RC_REJECT_ERROR);
         if (out[out_len - 1] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
@@ -1689,6 +1746,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
+            if (out_len == 0) return (RULE_RC_REJECT_ERROR);
             switch (rule_new[rule_pos])
             {
               case '?':
@@ -1729,6 +1787,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
+            if (out_len == 0) return (RULE_RC_REJECT_ERROR);
             switch (rule_new[rule_pos])
             {
               case '?':

@@ -124,7 +124,7 @@ int hm_SYSFS_AMDGPU_get_fan_speed_current (void *hashcat_ctx, const int backend_
 
   if (hc_fopen (&fp_cur, path_cur, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path_cur, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path_cur, hc_fopen_strerror ());
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -152,7 +152,7 @@ int hm_SYSFS_AMDGPU_get_fan_speed_current (void *hashcat_ctx, const int backend_
 
   if (hc_fopen (&fp_max, path_max, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path_max, hc_fopen_strerror ());
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -214,7 +214,7 @@ int hm_SYSFS_AMDGPU_get_temperature_current (void *hashcat_ctx, const int backen
 
   if (hc_fopen (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
 
     hcfree (path);
 
@@ -259,7 +259,7 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_sclk (void *hashcat_ctx, const int backend_device
 
   if (hc_fopen (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
 
     hcfree (path);
 
@@ -314,7 +314,7 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device
 
   if (hc_fopen (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
 
     hcfree (path);
 
@@ -369,7 +369,7 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device
 
   if (hc_fopen (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
 
     hcfree (path);
 
@@ -420,7 +420,7 @@ int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_d
 
   if (hc_fopen (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
 
     hcfree (path);
 
@@ -471,7 +471,7 @@ int hm_SYSFS_AMDGPU_get_mem_info_vram_used (void *hashcat_ctx, const int backend
 
   if (hc_fopen (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
 
     hcfree (path);
 

@@ -367,6 +367,14 @@ int yescrypt_hash_decode (u32 *digest, salt_t *salt, u32 *flags_out, u32 *t_out,
 
   if (r < 1) return (PARSER_SALT_VALUE);
 
+  // r had no upper bound, and 128 * r * N is a u64 that a large r wraps to exactly zero. The tuning
+  // block then divides the available memory by it. The first limit is what upstream yescrypt allows
+  // for r times p, which is r alone here because this parser forces p to 1.
+
+  if (r >= (1 << 30)) return (PARSER_SALT_VALUE);
+
+  if ((u64) r > (0xffffffffffffffffULL / 128 / N)) return (PARSER_SALT_VALUE);
+
   u32 p = 1;
   u32 t = 0;
   u32 g = 0;
@@ -663,7 +671,12 @@ const char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_
 
   const u64 fixed_mem = (128 * 1024 * 1024); // some storage we need for pws[], tmps[], and others
 
-  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - fixed_mem;
+  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+
+  // a device that reports less than the reserve would underflow this on a u64, and the accel
+  // computed from the wrapped value asks for far more memory than the device has
+
+  const u64 available_mem = (usable_mem > fixed_mem) ? usable_mem - fixed_mem : 0;
 
   u32 kernel_accel_new;
 
