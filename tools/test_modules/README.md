@@ -44,3 +44,24 @@ it as `from lib import gpg`.
 * For a body shared across a family, see [m17010.py](m17010.py) and [lib/gpg.py](lib/gpg.py)
 * For a mode that drives its own cipher chaining, see [m20011.py](m20011.py) and
 [lib/diskcryptor.py](lib/diskcryptor.py)
+
+#### Comparing the two engines ####
+
+A conversion replaces `mXXXXX.pm` with `mXXXXX.py` in one commit, and the suite passing afterwards
+only says the mode still cracks. `tools/test_engine_compare.py` says whether the two oracles behave
+the same:
+
+    tools/test_engine_compare.py 17010
+    tools/test_engine_compare.py --all
+
+It takes the `.pm` out of git where the conversion already removed it, `--ref` naming where to look,
+and runs both engines over the entry points the suites drive. Two comparisons, because one of them
+is not always possible. Cross verification always: each engine verifies what the other generated,
+which needs no seed and is what a mode whose `.pm` shells out to python3 can be held to. Byte
+comparison where both engines are seedable: `HCTEST_SEED` puts both on one generator, so the same
+salts and words come out and the output can be compared line for line. The tool runs each engine
+twice under the seed to find out which case it is in, and says which one it used.
+
+`HCTEST_SEED` is worth knowing about on its own. Set it, and a run of either engine repeats: the
+same salts, the same passwords, the same lengths. Leave it unset and both draw at random, which is
+what the suites want, because a mode that only works for one salt is a mode that is broken.
