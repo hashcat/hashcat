@@ -3906,7 +3906,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (is_autotune == true)
     {
-      if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, work_dim, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
+      // This event is never read: the enqueue below overwrites the handle before anything looks at
+      // it, and only that second one reaches hc_clReleaseEvent (). Asking for none leaves nothing
+      // to leak.
+
+      if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, work_dim, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
     }
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, work_dim, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
@@ -6832,6 +6836,15 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->kernel_builds     = NULL;
   backend_ctx->kernel_builds_cnt = 0;
 
+  #if defined (__APPLE__)
+  // backend_ctx_init () allocates this before it knows whether any device will turn up, and the
+  // return just below is the path taken when none does, so it goes back here rather than past it.
+
+  hcfree (backend_ctx->metal_runtimeVersionStr);
+
+  backend_ctx->metal_runtimeVersionStr = NULL;
+  #endif
+
   if (backend_ctx->enabled == false) return;
 
   hcfree (backend_ctx->devices_param);
@@ -8062,9 +8075,12 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       device_param->opencl_device_version     = "";
       device_param->opencl_driver_version     = "";
 
+      // This is one of four fields freed together behind is_opencl, which a Metal device is not.
+      // The other three are literals here, and this was the only one of them that allocated.
+
       // or just to make sure they are not NULL
 
-      device_param->opencl_device_vendor     = strdup ("Apple");
+      device_param->opencl_device_vendor     = "Apple";
       device_param->opencl_device_c_version  = "";
 
       // device_name
@@ -11778,24 +11794,24 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
       if (backend_ctx->nvrtc_driver_version >= 12000)
       {
-        nvrtc_options[nvrtc_options_idx++] = "--std=c++14";
+        nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--std=c++14");
       }
 
-      //nvrtc_options[nvrtc_options_idx++] = "--restrict";
-      nvrtc_options[nvrtc_options_idx++] = "--gpu-architecture";
+      //nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--restrict");
+      nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--gpu-architecture");
 
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "compute_%d", (device_param->sm_major * 10) + device_param->sm_minor);
 
       if (backend_ctx->nvrtc_driver_version >= 12010)
       {
-        nvrtc_options[nvrtc_options_idx++] = "--split-compile";
+        nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--split-compile");
 
         hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "%d", 0);
       }
 
       if (backend_ctx->nvrtc_driver_version >= 12040)
       {
-        nvrtc_options[nvrtc_options_idx++] = "--minimal";
+        nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--minimal");
       }
 
       #if defined (_WIN)
@@ -11821,6 +11837,11 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       const int num_options = nvrtc_options_idx + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + nvrtc_options_idx);
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, nvrtc_program, num_options, (const char * const *) nvrtc_options);
+
+      // Everything up to nvrtc_options_idx was built here. What nvrtc_make_options_array_from_string ()
+      // appended past it points into nvrtc_options_string, which is freed as one piece just below.
+
+      for (int i = 0; i < nvrtc_options_idx; i++) hcfree (nvrtc_options[i]);
 
       hcfree (nvrtc_options_string);
       hcfree (nvrtc_options);
@@ -12073,6 +12094,11 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       const int num_options = hiprtc_options_idx + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + hiprtc_options_idx);
 
       const int rc_hiprtcCompileProgram = hc_hiprtcCompileProgram (hashcat_ctx, hiprtc_program, num_options, (const char * const *) hiprtc_options);
+
+      // Same split as the nvrtc path above: this range was built here, what follows it points into
+      // hiprtc_options_string.
+
+      for (int i = 0; i < hiprtc_options_idx; i++) hcfree (hiprtc_options[i]);
 
       hcfree (hiprtc_options_string);
       hcfree (hiprtc_options);
@@ -14586,6 +14612,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
               device_param->overtune_unfriendly = true;
             }
           }
+
+          // Every module builds this with hc_asprintf () and nothing downstream takes it over. The
+          // copy into build_options_module_buf and the sscanf () reads are both done with it here.
+
+          hcfree (jit_build_options);
         }
       }
 
