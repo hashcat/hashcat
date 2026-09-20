@@ -85,7 +85,13 @@ on that file again is the whole reproduction.
 
 Buffers are sized from the module's own `dgst_size`, `esalt_size` and `hook_salt_size`, so an
 overflow in a target is an overflow of what hashcat would allocate. The `hashconfig` the parser
-reads is built from the module's own getters, the way `interface.c` builds it.
+reads is built from the module's own getters, the way `interface.c` builds it, by
+[hashconfig.c](../asan/hashconfig.c), which the harness in `tools/asan/` uses for the same reason.
+
+A target links the code the entry points reach and nothing else. The file layer, the folder layout
+and the random generator behind `generate_random_rule ()` are stubbed in
+[stubs.c](stubs.c) rather than linked, because no target opens a file or generates a rule, and
+stubbing them keeps the compression libraries and the rest of the tool out of the binary.
 
 #### The token spec is part of the input ####
 
@@ -123,9 +129,6 @@ with a reproducer attached.
 596 of the 600 modes. The four in `FUZZ_MODES` are a starting set, and the cost of adding one is a
 line in that list plus the machine time to fuzz it, which is the part that has to stay within what
 the nightly job can spend.
-
-`build_hashconfig ()` in `fuzz_parse.c` is a copy of the one in `tools/asan/parse_harness.c`.
-Whichever of the two lands second should drop its copy and share one.
 
 If the project ever wants this run continuously rather than nightly,
 [OSS-Fuzz](https://google.github.io/oss-fuzz/getting-started/new-project-guide/) is where that

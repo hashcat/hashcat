@@ -60,10 +60,10 @@ esac
 # ASan-instrumented one linked here, hence the rpath below. Mismatch there is
 # what produces "Your application is linked against incompatible ASan runtimes".
 $CC -std=gnu99 -DDEBUG -Og -ggdb -fsanitize=$SANITIZE -fno-omit-frame-pointer \
-    -Iinclude/ -IOpenCL/ -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
+    -Iinclude/ -IOpenCL/ -Itools/asan -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
     -Ideps/OpenCL-Headers -Ideps/xxHash -Ideps/unrar \
     -DWITH_BRAIN -DWITH_HWMON -DHC_PLUGIN_ABI_VERSION=720 \
-    tools/asan/parse_harness.c ./libhashcat.so.7 -ldl \
+    tools/asan/parse_harness.c tools/asan/hashconfig.c ./libhashcat.so.7 -ldl \
     -o "$OUT" -Wl,-rpath,'$ORIGIN'
 
 echo "built $OUT (-fsanitize=$SANITIZE)"
