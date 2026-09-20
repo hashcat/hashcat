@@ -2523,6 +2523,11 @@ typedef struct restore_ctx
   int     argc;
   char  **argv;
 
+  // read_restore () either fills rd->argv with strings of its own or points it at the argv above,
+  // which belongs to main (). Only the first case is ours to give back.
+
+  bool    rd_argv_owned;
+
   char   *eff_restore_file;
   char   *new_restore_file;
 

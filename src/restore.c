@@ -368,6 +368,10 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
 
       hcfree (buf);
 
+      for (u32 j = 0; j < i; j++) hcfree (rd->argv[j]);
+
+      hcfree (rd->argv);
+
       return -1;
     }
 
@@ -379,6 +383,12 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
   }
 
   hcfree (buf);
+
+  // Only here is the array complete. Both returns between the allocation and this point give the array
+  // back before they return, so a flag set beside the allocation would still be true with nothing left
+  // for it to describe.
+
+  restore_ctx->rd_argv_owned = true;
 
   hc_fclose (&fp);
 
@@ -852,6 +862,16 @@ void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (restore_ctx->eff_restore_file);
   hcfree (restore_ctx->new_restore_file);
+
+  if ((restore_ctx->rd_argv_owned == true) && (restore_ctx->rd != NULL))
+  {
+    restore_data_t *rd = restore_ctx->rd;
+
+    for (u32 i = 0; i < rd->argc; i++) hcfree (rd->argv[i]);
+
+    hcfree (rd->argv);
+  }
+
   hcfree (restore_ctx->rd);
 
   memset (restore_ctx, 0, sizeof (restore_ctx_t));
