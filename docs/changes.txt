@@ -4,7 +4,7 @@
 ## Release Highlights
 ##
 
-This release expands candidate generation, improves large-scale operatios and removes several
+This release expands candidate generation, improves large-scale operations and removes several
 longstanding bottlenecks in hash management, device setup and distributed work.
 
 1. Plugin-based candidate generation with attack-mode 8: "feeds"
@@ -14,14 +14,18 @@ connected through stdin, a feed runs one instance per device and participates in
 calculation, distribution, restore, status and debug output. Feeds can be written in C or Rust and
 selected by name.
 
-The included feeds are "wordlist", "stdin", "random", "rust_random", "association", "pcfg" and
-"table". Wordlist and stdin processing now use the feed interface. The wordlist feed supplies the
-dictionaries used by attack-modes 0, 1, 6, 7 and 12, and the one word per hash form of
-attack-mode 9. This gives those attacks a continuous keyspace across multiple wordlists,
-directories, masks and increment lengths where applicable. A position then addresses the complete
-run rather than one file, so "--skip", "--limit" and "--keyspace" divide the whole set and a device
-can start at its own share instead of reading and discarding every line before it. The seek
-databases described below are what make that start cheap.
+The included feeds are "wordlist", "stdin", "random", "rust_random", "association", "pcfg",
+"table", "hybrid" and "mask". Wordlist and stdin processing now use the feed interface. The
+wordlist feed supplies the dictionaries used by attack-modes 0, 1, 6, 7 and 12, and the one word
+per hash form of attack-mode 9. With rules, the hybrid and mask feeds generate candidates for
+attack-modes 1, 3, 6, 7 and 12 on the host.
+
+The wordlist feed lays every source it receives end to end in one keyspace, including multiple
+wordlists and directories. Mask files and increment lengths likewise form one queue. A position
+addresses the whole feed or mask queue rather than one source, so "--skip", "--limit" and
+"--keyspace" divide that set and a device can start at its own share instead of reading and
+discarding every earlier line. The seek databases described below make that start cheap. Dynamic
+dictionary queues and association phases remain separate rounds, as described under migration.
 
 The feed interface also introduces backend-controlled GPU execution for candidate generators. A
 feed can compile and launch a kernel of its own without directly managing the compute backend. The
@@ -57,10 +61,10 @@ file of words it draws from, a hint ruleset names "H1", a slot filled at run tim
 operator supplied. The included ruleset is not trained separately: "tools/pcfg_hints.py" derives it
 from "default-passwords", and the same script turns any ruleset you trained yourself into one.
 
-Attack-mode 9 reuses the "hints" ruleset for a different workflow. It obtains a separate set of hints
-from each account name, hash line or module, then pairs those candidates with individually salted
-hashes. It is intended to process many accounts at once rather than concentrate the attack on one
-hash.
+Attack-mode 9 reuses the "hints" ruleset for a different workflow. It obtains a separate set of
+hints from each account name, hash line or module, then pairs those candidates with individually
+salted hashes. It is intended to process many accounts at once rather than concentrate the attack
+on one hash.
 
 Fast hashes use device amplification. Slow hashes and modes without a suitable kernel use the host
 engine.
@@ -152,6 +156,23 @@ under a virtual-memory limit.
 The new "--brain-feed" option adds candidates from stdin to a running session without stopping the
 server. See "docs/hashcat-brain.md".
 
+8. Rules in every attack-mode
+
+Rules were previously limited to attack-modes 0 and 9. Attack-modes 1, 3, 6, 7 and 12 now also
+accept "-r" and "-g". Hashcat generates their candidates on the host and sends them to the device
+as base words for rule amplification, matching the pipeline used by feed-based attack-modes 4, 5
+and 8.
+
+The existing mask processor still handles parsing, custom charsets and Markov tables. Mask files,
+"--increment", "--markov-threshold" and custom charset options therefore behave as they do in
+attack-mode 3. The "-j" and "-k" options still apply to the base and amplifier words rather than
+the mask, and "--debug-mode" reports the rule that produced each candidate.
+
+Host-side candidate generation costs fast hash modes most of their performance but has little
+effect on slow modes, so hashcat reports the switch at startup. Larger rulesets amortize that cost
+by doing more work per base candidate. Attacks without rules are unchanged and still generate
+candidates on the device.
+
 ##
 ## Migration and Compatibility
 ##
@@ -163,14 +184,14 @@ have to act on rather than one you will simply notice.
 
 ## Distributed work and progress
 
-- Multiple wordlists, wordlist directories, mask files and increment lengths now form one virtual
-  keyspace where supported. The "--skip", "--limit" and "--keyspace" options address the complete
-  run instead of one file or mask, so a distribution overlay can divide it
+- Attack-modes 0, 6 and 7 treat multiple wordlists, directories, masks and increment lengths as one
+  virtual keyspace; the left input to attack-mode 1 may now be a directory. The "--skip", "--limit"
+  and "--keyspace" options address the complete run, so a distribution overlay can divide it
 - Keyspace units still count base words before amplification. Rules and remaining mask positions
   multiply them afterward
-- A dictionary queue cannot be divided, so the "--skip" and "--limit" options are rejected with
-  several queued dictionaries, including the default 3-phase association attack. The "--limit"
-  option is rejected with "--loopback", and both when "--restore" spans several masks
+- Separate dictionary rounds cannot be divided, so "--skip", "--limit" and "--keyspace" are rejected
+  when several are queued, including multi-phase association. The "--limit" option is rejected with
+  "--loopback", and both range options when "--restore" spans several masks
 - Progress reporting is relative to the requested range in human-readable, JSON and
   machine-readable output. The "CURKU" and "Restore.Point" fields remain absolute positions in the
   complete keyspace, so monitoring integrations must no longer add "--skip" to "PROGRESS"
@@ -183,14 +204,11 @@ have to act on rather than one you will simply notice.
 - Commands that cannot be represented safely for the current shell are shown as an escaped argument
   list. This includes non-printable bytes and Windows arguments containing "%", "!" or unsuitable
   quotes
-- Restore directories now terminate the fixed 256-byte field before passing it to "chdir()" or an
-  error message
 
 ## Runtime libraries and compressed input
 
-- Compression support is loaded from system zlib, liblzma and libzstd instead of bundled zlib and
-  LZMA sources. Hashcat starts without them and reports a missing library only when it is required.
-  See "docs/hashcat-compression-libraries.md"
+- Compression support loads zlib, liblzma and libzstd on demand. Hashcat starts without them and
+  reports a missing library only when it is required. See "docs/hashcat-compression-libraries.md"
 - Attack-modes 1, 3, 6, 7 and 12, and therefore "--benchmark", require liblzma for the compressed
   "hashcat.hcstat2" table. Mode 11600 requires liblzma for LZMA or LZMA2 archives and zlib for
   DEFLATE, and without the library the attack runs but verifies nothing
@@ -200,13 +218,13 @@ have to act on rather than one you will simply notice.
   and the BSDs provide system implementations, and Windows now uses native conversion APIs. Windows
   no longer supports EBCDIC, ISO-2022, "//TRANSLIT" or "//IGNORE", and rejects unsupported names
 
-## Commands, paths and tuning
+## Commands, devices, paths and tuning
 
 - The "-c" and "--segment-size" options were removed with the old segmented wordlist reader. They
   now produce an unknown-option error, and "-c" will not be reassigned
 - The "--dynamic-x" option takes the hash mode from the first line's "$dynamic_N$" tag. A missing or
   unknown tag is rejected, and later lines with another number are skipped with a warning. An
-  explicit "-m" does not override the tag
+  explicit "-m" still wins and warns when it disagrees with the tag
 - Included keyboard layouts moved from "layouts/*.hckmap" to "tables/layouts/*.table", so
   "--keyboard-layout-mapping layouts/de.hckmap" becomes "tables/layouts/de.table". The old files
   were removed, and a custom file in the previous format still works
@@ -215,12 +233,16 @@ have to act on rather than one you will simply notice.
   automatically, but hashcat reports the old directory and both new locations
 - All rebuilt data now sits below one "cache" directory: kernels under "cache/kernels" and feed data
   under "cache/feeds/<feed>". Scripts that clear compiled kernels must update their path
-- The "--cache-path" option relocates the complete cache and can point several hosts at shared data.
-  Feed caches tolerate read-only storage and fall back to memory. Kernel-cache writes must succeed,
-  so a shared cache should be writable
-- The "--backend-devices-keepfree" option was removed. Measured free memory is used without
-  adjustment. When no runtime or monitoring API can report it, hashcat probes allocations and
-  applies the 34% reserve only if probing is unavailable
+- The "--backend-devices-keepfree" option was removed. Hashcat uses free memory reported by CUDA,
+  HIP, AMD OpenCL or hardware monitoring, and probes allocations if needed. The setting
+  "HASHCAT_NO_AMD_FREE_MEM=1" ignores the AMD query; the desktop reserve is the last fallback
+- Integrated GPUs are disabled by default when a discrete GPU is present. The "-d" option can
+  select them explicitly, and systems with no discrete GPU are unaffected
+- A device explicitly selected with "-d" now stops the run if it cannot start; "--force" continues
+  with the remaining devices. Without "-d", failures are named and compatible devices continue
+- Minimum backend and operating-system requirements changed; see "docs/hashcat-requirements.md".
+  OpenCL 1.0 and 1.1 devices and the accelerator device type are no longer supported, and "-D 3"
+  reports their removal instead of selecting accelerators
 - The "-w" and "--workload-profile" options remain accepted but are ignored and omitted from
   "--help". Every run uses the former profile 3 launch budget, so a run that used "-w 1" or "-w 2"
   may gain throughput and lose desktop responsiveness
@@ -251,14 +273,27 @@ have to act on rather than one you will simply notice.
 - The core now exports an explicit plugin API instead of every symbol used by an in-tree plugin.
   Host hash and cipher entry points are available even when no bundled plugin calls them
 - Module porting removes "module_dictstat_disable", adds default assignments for
-  "module_hash_hints", "module_usage_notice" and "module_advice_notice", and adds "hashcat_ctx" to
-  the extra-parameter initialization and termination hooks
+  "module_hash_hints", "module_length_sort", "module_usage_notice" and "module_advice_notice", and
+  adds "hashcat_ctx" to the extra-parameter initialization and termination hooks
 - The "hc_device_param_t" structure now stores kernels, programs and backend buffers in arrays
   indexed by "hc_dev_kern_t", "hc_dev_program_t" and "hc_dev_buf_t". Code using the old numbered
   members must be updated
 - Bridge entry points now take "hashcat_ctx". Bridges must provide work-item granularity and the 7
   hardware-monitor hooks, or assign "BRIDGE_DEFAULT" when sensor data is unavailable, and the
   removed matching and forced-work-item flags have no replacement
+- Bridges must use "bridge_salt_pos()" and "salt_per_pw" to select the per-candidate salt in
+  association attacks
+- Modules may declare a fifth auxiliary kernel with "OPTS_TYPE_AUX5". It reuses the bit formerly
+  assigned to the removed "OPTS_TYPE_PT_ADD02" flag
+- Native builds now target the build processor. Set "MAINTAINER_MODE=1" for distributable builds or
+  "MCPU=<core>" to choose one explicitly. Raspberry Pi targets may be read from "/proc/cpuinfo",
+  and mixed native and cross-compilation targets are rejected
+- Rust plugins now require Cargo 1.85. Plugin 72000 requires Python 3.13 headers, and the bundled
+  Python runtime was updated to 3.14.6
+- Source builds now default to "PRODUCTION=0". Release packaging must set "PRODUCTION=1" to pin the
+  release version; "SOURCE_DATE_EPOCH" makes repeated builds of that commit reproducible
+- Build scripts must drop "USE_SYSTEM_ZLIB", "USE_SYSTEM_LZMA", "ENABLE_UNRAR",
+  "USE_SYSTEM_UNRAR" and "USE_SYSTEM_XXHASH"; these settings are no longer recognized
 - The plugin development guide at "docs/hashcat-plugin-development-guide.md" contains the complete
   core-library contract and the source changes required to port a plugin from v7.1.2
 
@@ -291,20 +326,24 @@ have to act on rather than one you will simply notice.
 
 - Mode 23800 now uses hashcat's own RAR3 decoder. It supports both coding paths and all 6 standard
   RAR3 filters, and reports how many candidates reached an unsupported construct
+- Mode 11000 accepts PrestaShop salts from 56 to 64 bytes. Its optimized kernels were removed
+  because they cannot represent the longer salts
+- Iteration counts allow 8 digits, up from 6, in modes 10000, 10900, 12000, 12100, 20200, 20300
+  and 20400
+- GPG (CAST5 (SHA-1($pass))) now supports nonzero IVs and "s2ktype" 3
 - Added the dynamic hash plugin for mode 74000. A description in "--bridge-parameter2" can compose
   12 digests from MD2 through SHA-3, HMAC and PBKDF2-HMAC families, bcrypt, slicing, UTF-16LE, case
   conversion, and hex or base64 conversion
 - Wordlists, hash lists and rule files now support zstd compression alongside gzip and xz.
   Multi-frame files produced by "pzstd" can be sought directly
-- The "--dynamic-x" option now selects the hash mode from John's "$dynamic_N$" prefix and supports
-  56 built-in formats. The "--show", "--left" and "--remove" options preserve John's spelling
+- John's dynamic format now supports 56 built-in formats. The "--show", "--left" and "--remove"
+  options preserve John's spelling
 - Added "--hash-copy" to preserve each cracked hash exactly as supplied in the input when writing
   the outfile, potfile and status display
 - Added "--encrypt-with-pubkey" to protect recovered plaintexts with an RSA public key of at least
   3344 bits. It loads OpenSSL 3 only when used, hides plaintext-bearing status fields, and refuses
   options that would write plaintext or restore state. See "docs/hashcat-encrypted-plains.md"
-- The Windows binary now opts into long paths and UTF-8 process arguments through its application
-  manifest, and carries native version information
+- The Windows build now opts into long paths and carries native version information
 
 ## Candidate generation and inspection
 
@@ -314,6 +353,17 @@ have to act on rather than one you will simply notice.
   is their sum rather than their product
 - Added "--lookup" to report the position at which an attack reaches a candidate. It accepts
   "$HEX[...]" input and reports progress and an ETA for longer wordlist scans
+- Rules now work in every attack-mode. Attack-modes 1, 3, 6, 7 and 12 generate candidates on the
+  host and amplify them with rules on the device
+- The "--debug-mode" option now reports the rule that produced a candidate in attack-modes 1, 3,
+  6, 7 and 12, as it already does in attack-mode 0
+- Stdin supports "--skip", "--limit" and "--restore" when the same stream is supplied again
+- Attack-modes 1, 6 and 7 now support "--slow-candidates"
+- Feed attacks support "--debug-mode" without "-r" or "-g" and describe their contribution in
+  "Finding-Rule". The new "--debug-mode 6" writes the attack-mode 4 layout
+- Added rule operations "h" and "H" for lowercase and uppercase hexadecimal conversion, "vNX" to
+  insert "X" after every N characters, "S" to shift character case, and "BNX" to add byte X at
+  position N
 
 ## Runtime control and reporting
 
@@ -326,66 +376,122 @@ have to act on rather than one you will simply notice.
   "docs/hashcat-task-time-breakdown.md"
 - Added "--pipeline-stats" for per-device feeding, copy, initialization, transfer, loop and
   comparison timings, including effective hash rate and machine-readable JSON output
+- The "--cache-path" option relocates the complete cache and can point several hosts at shared data.
+  Feed caches tolerate read-only storage and fall back to memory, but kernel-cache writes must
+  succeed
 
 ## Extraction tools
 
 - Added "tools/rar32hashcat.py" for mode 23800 RAR3 archives
 - Added "tools/gpg-ocb-aes2hashcat.py" for mode 17050 GnuPG keys in "private-keys-v1.d"
-- Added "tools/mozilla2hashcat.py" for mode 26150 Firefox 146 "key4.db" files
-- Extraction scripts and modules now identify the corresponding hash mode or extraction tool more
-  consistently
+- Updated "tools/mozilla2hashcat.py" for mode 26150 Firefox 146 "key4.db" files
 
 ##
 ## Performance
 ##
 
-These measurements highlight changes with a material effect on throughput, memory use or startup
-time. Results depend on the device, runtime and workload.
+This section collects changes with a material effect on throughput, memory use or startup time.
+Measurements depend on the device, runtime and workload.
 
-- Brain sharding cuts resident-memory overhead from 26 percent to 1.3 percent
-- Brain sharding cuts commit, lookup and insertion time by 92 to 99 percent at 300 million entries
-- PKZIP mode 17200 delivers 12.8 times the throughput on an RTX 4090
-- PKZIP mode 17200 gains 87 percent on an RX 7900 XTX
+- Brain sharding cuts commit, lookup and insertion time by 92 to 99 percent and resident-memory
+  overhead by 95 percent
+- PKZIP mode 17200 delivers 12.8 times the throughput on an RTX 4090 and gains 87 percent on an
+  RX 7900 XTX
 - DPAPI mode 15910 gains 19 percent on NVIDIA and 97 percent on AMD
 - Kernels using at least 8192 bytes of private memory per item now run one warp or wavefront, making
   PKZIP 2.5 times faster on an RTX 4090 and 3.2 times on an RX 7900 XTX
 - Fitting launch size from a few measurements, and reusing the lead device's result across
-  equivalent devices and association rounds, cuts autotune time 32 percent across 2025 device-mode
-  pairs
+  equivalent devices and association rounds, cuts measured autotune time by 32 percent
+- Rate-based launch selection prevents fast device-amplified attacks from choosing a starved
+  one-unit launch inside the autotune tie margin, restoring 4.5 to 5.6 times the PCFG throughput
+  on tested NVIDIA and AMD GPUs
+- Candidate preparation now overlaps device execution in a separate thread. Brain clients retain
+  their serialized reserve, lookup and commit path, and "HASHCAT_PIPE_SYNC" can select that path for
+  every attack
+- Candidate staging now clears only the first unwritten index rather than whole buffers, avoiding
+  hundreds of megabytes of redundant memory clearing in large batches
+- An unused event backlog was removed, saving 160 MiB of resident memory per attack
+- The "--show" and "--left" options with "-o" no longer build, sort and copy per-hash records that
+  their output handlers discard
+- Devices that need the same kernel now coordinate through its cache filename and compile it only
+  once
+- Excluded CUDA devices no longer create a context merely to query memory, reducing backend setup
+  time in heavily virtualized configurations
 - Omitting an integrated GPU cuts cold mode 0 startup 26 percent at a 1 percent throughput cost
 - Omitting a helper an OpenCL kernel never calls cuts cold builds 42 percent and backend-info
   startup 70 percent under ROCm 7.0.1
 - Register-spill reserves sized from resident work items rather than the whole launch cut the
-  reserve from 3774 MiB to 51 MiB on a GeForce RTX 4090 running mode 0
+  reserve by 99 percent on a GeForce RTX 4090 running mode 0
 - A unified-memory device now reserves the host buffers the run needs rather than half its pool,
-  where mode 8900 left 11 GB of a 24 GB device unused
+  avoiding a fixed reserve that could leave nearly half the device unused
+- Argon2 buffers are sized from the attack rather than the smaller self-test launch, allowing larger
+  acceleration values without reserving unused memory
 - Bitmap filters sized from the hash count and the device memory hierarchy, with probes mixing all 4
   digest words, make very large NTLM lists much faster and also help smaller ones
 - Counting, parsing, sorting, deduplicating and indexing a hash list across all host cores makes
   large salted and unsalted lists much faster to load
 - Duplicate hashes sharing one stored plaintext keep a duplicate-heavy list from costing excessive
   time and memory
+- A hash list already completed by another run skips bitmap construction, kernel builds, device
+  buffers and autotune. The "--outfile-check-dir" option is scanned before attack initialization
+- Outfiles and potfiles are opened, locked and flushed once per launch rather than once per crack,
+  and unsalted potfile lookups use digest-prefix buckets instead of scanning the complete list
+- Sorting LM split halves and using binary search makes pairing scale near-linearly rather than
+  quadratically
 - Rule-file buffers that grow geometrically, a single "-r" file going straight to the amplifier, and
   reuse of the parsed rule make large rule files much faster to load and smaller in memory
+- AVX2 or NEON line scanning and line-oriented stream locking accelerate initial wordlist and hash
+  list scans
 - Piped input supplied in blocks rather than one candidate at a time removes a major bottleneck in
   multi-device attacks
+- Wide bridge units receive the complete iteration range per call and choose their launch size from
+  2 measurements, avoiding repeated fill and drain work and a full autotune search
+- Uncompressed wordlist seek-index scanning is more than 20 times faster, cutting measured database
+  build time by 72 percent
+- The "paw64" identity hash is 1.6 times faster than the xxHash it replaces in the brain and seek
+  databases
+- Parallel parsing, compact storage and cached unit tables cut large PCFG startup time by up to 95
+  percent and memory use by more than 75 percent
+- Hash-indexed table loading and linear-time longest-match indexing make construction of large
+  generated tables scale linearly rather than quadratically
 - The "--stdout" option applies rules across host cores with byte-for-byte identical output, avoids
   a device readback and uses a larger output buffer, making large rule workloads much faster
-- Ordering candidates by length is worth 50 to 200 percent on the 19 modes that request it
+- Ordering candidates by length improves the 19 modes that request it by 50 to 200 percent.
+  Modules opt in with "module_length_sort()", and "--length-sort-disable" turns it off
 - Vector width 2 on Apple M-series GPUs improves 7 fast modes by 3.0 to 35.6 percent under Metal and
   OpenCL
 - Reading "u32" words in the UTF-8 to UTF-16 decoder, rather than casting to bytes, improves 41
   modes by 2.3 to 9.0 percent
 - One table lookup per AES round-key byte instead of 2 improves modes 16600, 22500, 22931, 22941,
   22951 and 23001 through 23003 by 15 to 41 percent on an RTX 4090
-- OpenCL funnel shifts improve mode 1700 by 27.6 percent on an RX 7900 XTX
-- AMD OpenCL byte operations improve Argon2 modes by 2 to 79 percent
-- Big-endian funnel alignment improves mode 100 by 4.1 percent on an RX 9070 XT with Mesa rusticl
+- Native AMD OpenCL byte operations improve Argon2 modes by 2 to 79 percent and mode 1700 by 27.6
+  percent on an RX 7900 XTX
+- Keeping yescrypt state in registers improves modes 36100 and 36200 by 13 to 45 percent, while
+  local S-box placement can add another 39 percent
+- Big-endian alignment using the same native operations improves mode 100 by 4.1 percent on an RX
+  9070 XT with Mesa rusticl
 - Compiler-generated byte-swap and bit-field code, in place of handwritten assembly, improves HIP
   modes 0, 1700 and 10800 by 0.4 to 0.7 percent
 - A SHA-1-order shared hex table improves mode 18500 by 0.7 percent on an RX 7900 XTX
 - Width conversion without the union type punning that Mesa rusticl lowered to scratch memory
   improves mode 6100
+- Removing unnecessary 128-register limits lets modes 01800, 08300, 10700 and 16600 use the
+  compiler's normal register allocation
+- The native RAR3 decoder lowers per-device memory use compared with the former UnRAR path
+- Straight wordlist attacks no longer reserve device memory for mask buffers they do not create
+- Ending the outfile check thread without waiting for its polling interval reduces short-run
+  shutdown latency
+- Adaptive scrypt TMTO values beyond 2 improve underfilled, high-memory GPU configurations by 5 to
+  46 percent without changing configurations that already fill the device
+- Precomputing message templates for the md5crypt loop improves the optimized mode 500 kernel by 5
+  to 33 percent across AMD, NVIDIA and Intel GPUs
+- Removing always-zero message words from the optimized mode 0 kernels improves combinator
+  attacks by 10 to 92 percent across AMD, NVIDIA and Intel GPUs
+- Reporting the true RACF KDFAES iteration count instead of fixing "kernel_loops" at 8 lets
+  autotune select the launch size, improving throughput by 27 percent on an RX 7900 XTX and 14
+  percent on an RTX 4070 Ti Super
+- Specializing the shared RC4 cipher for each caller improves 5 modes on an RTX 4090, including
+  mode 9700 by 34.7 percent, mode 9800 by 30.4 percent and mode 10500 by 16.4 percent
 
 ##
 ## Improvements
@@ -393,44 +499,26 @@ time. Results depend on the device, runtime and workload.
 
 ## Backends: OpenCL, tuning and memory
 
-- Device memory budgeting now prefers measured free memory from CUDA, HIP, AMD OpenCL or hardware
-  monitoring. The 34% desktop reserve applies only to estimates. AMD OpenCL devices therefore no
-  longer lose one third of measured memory and performance in memory-bound modes
-- Excluded devices no longer create a context merely to query memory. OpenCL clones share contexts
-  and programs by default, divide the physical device's memory budget, and clean up together after a
-  failed clone. Set "HASHCAT_CLSHARE=0" to restore separate contexts
-- Minimum driver, compute-runtime, SDK and operating-system requirements were updated. An
-  unsupported backend is disabled or the device is skipped with a diagnostic, while another
-  compatible backend can still use it. See "docs/hashcat-requirements.md"
+- OpenCL clones share contexts and programs by default, divide the physical device's memory budget,
+  and clean up together after a failed clone. Set "HASHCAT_CLSHARE=0" to restore separate contexts
 - Runtime discovery now selects the newest versioned NVRTC, HIPRTC and HIP library, so Linux needs
   only runtime packages. It no longer probes nonexistent NVRTC names or derives HIP DLL names from
   the ROCm release in "HIP_PATH"
 - HIP chooses its ABI from the loaded runtime, allowing one binary to support both ROCm and Hygon
-  DTK. The Windows version check now compares compatible version scales instead of accepting every
-  runtime
-- OpenCL 1.0 and 1.1 devices are rejected at startup with their reported version. OpenCL 1.2 devices
-  no longer need extension strings for atomics or byte-addressable stores, and Beignet or Mesa
-  version strings no longer trigger the obsolete unstable-driver rejection
-- Integrated GPUs are disabled by default when a discrete GPU is present, avoiding another
-  architecture to compile and another device to autotune. The "-d" option overrides the rule, and
-  systems with no discrete GPU are unaffected
-- Hardware monitoring now supports AMD GPUs under Mesa rusticl. Their PCI address is obtained
-  through the "cl_khr_pci_bus_info" extension, restoring temperature, fan and clock readings
-- OpenCL accelerator devices were removed. The "-D 3" option now reports the removal instead of
-  selecting that device type
+  DTK
+- Hardware monitoring now supports AMD GPUs under Mesa rusticl by obtaining their PCI address
+  through "cl_khr_pci_bus_info". Temperature, fan and clock readings are now available
 - Bridged modes accept "-n" and "--kernel-accel" values through 16384 candidates per launch. Other
   modes retain the 1024 limit
-- Hardware and tuning diagnostics were expanded: throttling uses NVML on Linux, out-of-range "-u"
-  values name the accepted range, "HASHCAT_MEMORY" explains every device memory budget, and "-I"
-  reports device cache size and bridge units
+- Hardware and tuning diagnostics were expanded: NVIDIA throttling uses documented NVML reasons
+  instead of NVAPI, out-of-range "-u" values name the accepted range, "HASHCAT_MEMORY" explains
+  every device memory budget, and "-I" reports device cache size and bridge units
 - Hashcat no longer sets "AMD_DIRECT_DISPATCH=0" for HIP, previously used to reduce host CPU load.
   On ROCm 7 it affects neither waiting thread CPU usage nor cracking speed, measured across several
   hash modes on a Radeon RX 7900 XTX
 - The obsolete AMD setting "OCL_CODE_CACHE_ENABLE" and the old Intel CPU workaround
   "CL_CONFIG_USE_VECTORIZER" were removed. The "CUDA_CACHE_DISABLE" and "POCL_KERNEL_CACHE"
   settings remain for debug builds
-- Candidate preparation now overlaps device execution in a separate thread. Brain clients retain a
-  serialized reserve, lookup and commit path, which "HASHCAT_PIPE_SYNC" can select for every attack
 
 ## Autotune and tuning database
 
@@ -440,36 +528,22 @@ time. Results depend on the device, runtime and workload.
   the device, and Metal uses the compiled pipeline limit instead of capping every kernel at its
   32-thread SIMD width
 - The "HASHCAT_AUTOTUNE2_VERBOSE" environment variable prints probe timings, the fitted cost model
-  and the selected launch
+  and the selected launch. See "docs/hashcat-tuningdb.md" for row selection and custom tunings
 
 ## Kernels
 
-- AMD OpenCL can now use the byte-alignment, byte-permutation and bit-field instructions previously
-  exposed only through HIP. This improves Argon2 modes 34000, 34100 and 34300, mode 1700 through
-  32-bit funnel shifts, and mode 100 through simplified big-endian alignment
-- The "inv_mod()" function now uses a fixed-iteration safegcd inverse, while
-  "USE_LEGACY_BINARY_GCD_INV_MOD" restores the old binary GCD. Repeated Jacobian-to-affine
-  conversion moved into "point_to_affine()"
 - The "HASHCAT_FORCE_NO_INLINE" environment variable builds kernels with "FORCE_NO_INLINE" for
   runtimes that compile inlined helpers slowly
 
 ## Attack modes and candidate input
 
-- Candidates are ordered by length for the hash modes whose kernel cost follows the candidate
-  length, so a wave no longer runs at the speed of its longest word. It applies where a kernel takes
-  one whole candidate per work item, in "-a 0", "-a 4", "-a 5" and "-a 8"
-- The "--length-sort-disable" option turns length sorting off. A module requests it with
-  "module_length_sort()", so a plugin outside the tree can opt in, and attack-mode 9 is excluded
-  because there the work item id selects the account
-- Attack-mode 0 treats multiple wordlists and directories as one keyspace. Attack-modes 6 and 7 do
-  the same across their wordlists, and the left input to attack-mode 1 may now be a directory
-- Stdin supports "--skip", "--limit" and "--restore" when the same stream is supplied again
-- Attack-modes 1, 6 and 7 support "--slow-candidates". Pure-kernel attack-mode 7 retains its faster
-  mask-first path for one wordlist, while directories and multiple wordlists use the general path
 - Wordlist keyspace counts physical lines. Progress includes unusable lines and reports them as
   rejected instead of shifting every later position
-- Feed attacks support "--debug-mode" without "-r" or "-g". The feed describes its contribution in
-  "Finding-Rule", and the new "--debug-mode 6" writes the mode 4 layout
+- The "HASHCAT_A0_LEGACY_READER=1" environment setting restores the previous attack-mode 0
+  wordlist reader. Loopback and induction select it automatically because their inputs change by
+  round
+- Pure-kernel attack-mode 7 retains its mask-first path for one wordlist, while directories
+  and multiple wordlists use the general path
 - The "HASHCAT_SALT_INNER=1" environment setting tests each amplifier item against every active
   salt before moving to the next item, prioritizing the leading candidates when a run is
   interrupted
@@ -478,23 +552,15 @@ time. Results depend on the device, runtime and workload.
 
 ## Hash lists and potfile
 
-- Outfiles and potfiles are opened, locked and flushed once per launch rather than once per crack.
-  Unsalted potfile lookups use digest-prefix buckets instead of searching the full list
-- A hash list already completed by another run skips bitmap construction, kernel builds, device
-  buffers and autotune. The "--outfile-check-dir" option is also scanned once before attack
-  initialization
-- The "--show" and "--left" options avoid unused copies with "-o" and again support "--username"
-  together with "--dynamic-x". The "--bitmap-max" option rejects values above 28 instead of
-  accepting unusable sizes
+- The "--show" and "--left" options support "--username" together with "--dynamic-x"
 
-## Rule engine
+## Extraction tools
 
-- Added "h" and "H" for lowercase and uppercase hexadecimal conversion, "vNX" to insert "X" after
-  every N characters, "S" to shift every character's case, and "BNX" to add byte X at position N
+- Extraction scripts and modules now identify the corresponding hash mode or extraction tool more
+  consistently
 
 ## Wordlists and compression
 
-- Wordlist and hash-list line scanning selects AVX2 on x86 or NEON on arm64 at startup
 - Invalid "--encoding-from" or "--encoding-to" values now produce an explicit diagnostic instead of
   ending the run without explanation
 
@@ -502,21 +568,14 @@ time. Results depend on the device, runtime and workload.
 
 - Status, machine-readable and JSON output now split "Brain.Rejects" into position ranges reserved
   by another client and individual candidates already seen by the server
-- Brain attack identities include "--skip", so partial runs no longer collide with the full attack
 
 ## Startup and diagnostics
 
-- Kernel cache keys now use all 64 bits of "paw64", so existing kernels rebuild once. Devices that
-  need the same kernel coordinate through its cache filename and compile it only once
-- Disabling a mode's JIT kernel cache no longer disables the shared, Markov and amplifier caches
-- Removed an unused event backlog and redundant clearing of fully overwritten candidate staging
-  buffers
+- Kernel cache keys now use all 64 bits of "paw64". Existing entries that used the shorter key
+  rebuild once
 - Hashes supplied on the command line are now named in parse errors. Separator and token-length
   errors quote the failing text and state the expected separator or length
-- Initial wordlist scans report throughput in MiB/s, and line-oriented stream locking improves scan
-  performance
-- Keyboard layout mappings are validated before startup and reject empty mappings or more than one
-  replacement per source
+- Initial wordlist scans now report throughput in MiB/s
 
 ## Interface and status
 
@@ -530,14 +589,9 @@ time. Results depend on the device, runtime and workload.
   greater than one
 - Candidate windows, bridge speed lines and grouped temperatures now summarize large device sets
   instead of printing one row per device or unit on every update
-- The startup "Bitmaps" row no longer prints a rotation count for shifts removed from the kernel
-  parameters
 
 ## Benchmark
 
-- Added a workaround for a CUDA benchmark memory leak caused by register spilling
-- The "--benchmark-all" option initializes each mode's bridge when it reaches that mode, and skips a
-  mode whose bridge cannot be loaded
 - Default "-b" modes now include yescrypt, gost-yescrypt, scryptcrypt, KeePass KDBX4 and Kerberos 5
   etype 23 AS-REP, and MyBB replaces vBulletin
 - Removed redundant "md5($pass.$salt)" benchmark modes. The "md5($salt.$pass)" forms remain because
@@ -545,10 +599,8 @@ time. Results depend on the device, runtime and workload.
 
 ## Plugins and bridges
 
-- Bridges use "bridge_salt_pos()" and "salt_per_pw" to select the correct per-candidate salt in
-  association attacks. Out-of-tree bridges must do the same
-- Autotune now measures bridge work instead of an empty loop placeholder. Bridge hardware sensors,
-  unit names and "--hwmon-temp-abort" also refer to the hardware performing the work
+- Bridge hardware sensors, unit names and "--hwmon-temp-abort" now refer to the hardware performing
+  the work
 - Mode 70100 allocates one "128 * r * N" scratch area per candidate, sizes batches from free host
   memory, reports "2 * N * p" iterations, and launches scrypt-jane in "-u" chunks so large N values
   show progress
@@ -560,33 +612,23 @@ time. Results depend on the device, runtime and workload.
   longer need block-sized zero padding. Existing padded callers remain compatible
 - The file layer adds "hc_fopen_mem()" for code that needs to read an existing memory buffer through
   the normal file interface
-- Rust bridges share "hashcat-sys", read the saved hashcat context from a file, and build every
-  crate under "Rust/bridges" into "bridges/subs". CI now checks and tests the Rust code
-- Modules may declare a fifth auxiliary kernel with "OPTS_TYPE_AUX5". It reuses the bit formerly
-  assigned to the removed "OPTS_TYPE_PT_ADD02" flag. No included module uses the fifth slot
+- Rust bridges share "hashcat-sys" and build every crate under "Rust/bridges" into "bridges/subs".
+  Python bridge examples can save and reload the hashcat context for standalone debugging. CI now
+  checks and tests both plugin families
 
 ## Modules
 
-- Mode 11000 accepts a PrestaShop salt of up to 64 bytes, up from 56 bytes
-- Mode 3000 rejects wordlist entries longer than 7 characters instead of truncating them
-- Iteration counts allow 8 digits, up from 6, in 10000, 10900, 12000, 12100, 20200, 20300, 20400
-- GPG (CAST5 (SHA-1($pass))) now supports nonzero IVs and "s2ktype" 3
-- Mode 23800 uses a native decoder with lower per-device memory requirements than the previous
-  UnRAR path
-- The 11 hash modes that used "--separator" internally now read and write a colon between their
-  hash fields, leaving "--separator" with one meaning
 - Modes 8500, 14200, 16000, 22001, 27000 and 27100 now declare support for ASCII passwords only,
   which "--hash-info" identifies, other plaintext being shown as "$HEX[...]"
 - Mode "-m 34300" is now named "KeePass Argon2 (KDBX v4)", which tells it apart from "-m 34301",
   the KDBX v4 AESKDF mode
-- Added the "module_usage_notice()" hook, set by 45 modules, and "module_advice_notice()", set by
-  "-m 1000"
+- Usage notices now guide users of 45 modes, and mode 1000 can show an additional advice notice
 
 ## Package maintainers
 
 - The "ENABLE_LTO=1" build setting enables link-time optimization and is used for releases. Linking
-  the frontend and all plugins to one shared core reduces the unpacked release from about 413 MB
-  to about 91 MB
+  the frontend and all plugins to one shared core reduces the unpacked release size by about 78
+  percent
 - Development installs contain the public plugin headers and an unversioned "libhashcat.so" for
   "-lhashcat". The "make install" target also installs feeds, rule files and PCFG rulesets in the
   shared data directory
@@ -594,26 +636,16 @@ time. Results depend on the device, runtime and workload.
   support for the scrypt-jane bridge through sse2neon. OpenBSD now builds with its base compiler
 - Apple Silicon builds are native by default. The "MACOS_UNIVERSAL_BINARY=1" build setting produces
   arm64 and x86_64 output on an Apple Silicon host and disables LTO
-- Native builds target the build processor. The "MAINTAINER_MODE=1" setting disables this for
-  distributable builds, "MCPU=" selects an explicit core, and Raspberry Pi targets can be read
-  from "/proc/cpuinfo". Make rejects mixed native and cross-compilation targets
-- Release builds record their hardening flags and are reproducible from the same commit through
-  "SOURCE_DATE_EPOCH" and "PRODUCTION=1"
-- Rust plugin builds require Cargo 1.85 and fail early with the installed version. The Python 72000
-  plugin requires 3.13 headers, and the bundled Python was updated to 3.14.6
 - Added the "hashcat_binaries" cross-compilation container and Ubuntu 26.04 CUDA and AMD runtime
   images. Image patches are isolated under "docker/patches", fail the build when they do not apply,
   and packaging images honor "HASHCAT_REF"
 - CI builds FreeBSD and Pi 4 Linux ARM64 on every push, and OpenBSD, NetBSD and DragonFlyBSD weekly.
   Every artifact runs through "tools/test_package.sh" before upload
 - Dependency tracking now rebuilds consumers of shared module bodies, feed headers and bundled
-  libraries. The "DEBUG=2" build setting now links successfully with AddressSanitizer
-- Bundled "deps/zlib" and "deps/LZMA-SDK" were removed in favor of system libraries, along with
-  the "USE_SYSTEM_ZLIB" and "USE_SYSTEM_LZMA" build switches. See
-  "docs/hashcat-compression-libraries.md"
-- Hashcat's RAR3 decoder replaces "deps/unrar", removes the "ENABLE_UNRAR" and
-  "USE_SYSTEM_UNRAR" build switches, and removes the C++ compiler and runtime requirement
-- The "paw64" hash replaces "deps/xxHash", and the "USE_SYSTEM_XXHASH" build switch was removed
+  libraries
+- Bundled zlib and LZMA sources were removed in favor of system libraries
+- Hashcat's RAR3 decoder replaces "deps/unrar" and removes the C++ compiler and runtime requirement
+- The "paw64" hash replaces the bundled xxHash library
 
 ## Testing framework
 
@@ -631,11 +663,7 @@ time. Results depend on the device, runtime and workload.
 
 ## Documentation and licensing
 
-- Added "docs/hashcat-pcfg.md", "docs/hashcat-table.md", "docs/hashcat-association.md",
-  "docs/hashcat-task-time-breakdown.md" and "docs/hashcat-rust-plugin-quickstart.md"
-- Added "docs/hashcat-requirements.md" for the minimum supported runtime versions, the system
-  requirements and the contents of the required packages
-- Added "docs/hashcat-generic-attack-mode.md" and its development guide
+- Added "docs/hashcat-rust-plugin-quickstart.md" for building a Rust bridge or feed
 - Added "docs/packages.md" with what a package has to ship, the runtime libraries it depends on and
   the build settings a maintainer needs
 - Rewrote the Camellia kernel from RFC 3713 under the project license with identical results in its
@@ -664,8 +692,9 @@ time. Results depend on the device, runtime and workload.
 - Fixed modules reporting encoded hash lengths larger than their output buffers, so callers wrote a
   terminator past the end. The "hash_encode()" function now limits the length it returns, and the
   potfile and status display paths that bypass it enforce bounds themselves
-- Fixed a "0x80" padding byte being written one byte beyond a full buffer, in modules 00111, 01411,
-  01711, 05300, 05400, 11400, 13100, 13600 and 18200
+- Fixed a "0x80" padding byte being written beyond a full buffer, in modules 00111, 01411, 01711,
+  05300, 05400, 11400, 13100, 13600 and 18200. The pure kernels of modes 00111, 01411 and 01711
+  now also accept their advertised 256-byte salts
 - Fixed encoding buffer overflows seen with "--show" and "--left" at the maximum data length, in
   modules 13100, 16900, 18200, 19600, 19700, 32100 and 32200
 - Fixed a heap buffer overflow when constructing outfile lines, where a long username, hash or
@@ -679,6 +708,8 @@ time. Results depend on the device, runtime and workload.
 - Fixed hccapx handling in modules 02500, 02501, 22000 and 22001: compressed files no longer size
   decompressed arrays, ESSID and EAPOL lengths are validated, and short potfile lines are not read
   as 64 characters
+- Fixed modules 16800 and 16801 reading short potfile lines past their end before checking the
+  64-character PMKID
 - Fixed KeePass parsers accepting invalid content lengths and writing oversized encodings in
   modules 13400, 29700 and 34300
 - Fixed module 34300 indexing backward from the end of KeePass 4 hash lines shorter than 70 bytes
@@ -706,8 +737,9 @@ time. Results depend on the device, runtime and workload.
   for 32 bytes while the parser accepts 64
 - Fixed module 26900 reading beyond the esalt on an SNMPv3 engine ID of nothing but zero bytes,
   and again while encoding for "--show" and the potfile
-- Fixed module 32300 writing beyond its esalt's 256 byte salt fields when it joins a fixed string
-  to a salt near the maximum length, and a heap buffer overflow in its hash parser
+- Fixed mode 32300 accepting salts longer than its optimized kernel can hold, writing beyond its
+  256-byte fields when joining fixed strings to salts near the maximum length, and overflowing the
+  heap in its hash parser
 - Fixed a base64 target hash overflowing the heap digest buffer in module 34000, and a base64 salt
   overflowing the stack decode buffer in module 23400
 - Fixed the GPG modes 17010, 17020 and 17030 printing uninitialized bytes with "--show" and "--left"
@@ -715,6 +747,8 @@ time. Results depend on the device, runtime and workload.
 - Fixed bridge scratch handling: modes 70100 and 70200 validate "N", "r" and "p", yescrypt sizes
   its buffers without 32-bit overflow, and scrypt-jane, yescrypt and Argon2 check allocation failure
 - Fixed reads beyond buffer bounds in secp256k1 "point_mul_xy()" when the scalar is zero
+- Fixed TrueCrypt and VeraCrypt modes leaking their container header on both error returns from
+  "module_hash_binary_parse()", losing 512 bytes per rejected container across 36 modes
 
 ## Memory safety: candidates, rules and masks
 
@@ -733,6 +767,8 @@ time. Results depend on the device, runtime and workload.
 - Fixed masks over 255 characters, and masks grown by a long custom charset, overflowing the 256
   byte buffers "--increment" uses to reverse and truncate them, and a heap buffer overflow with
   "--increment" and mask files
+- Fixed "-g" drawing an index past the end of its selected group in 17 selection paths, and an empty
+  "--generate-rules-func-sel" value causing division by zero instead of being rejected
 
 ## Memory safety: services and interface
 
@@ -749,9 +785,16 @@ time. Results depend on the device, runtime and workload.
   file could reach
 - Fixed an "snprintf()" length calculation error in the 7-Zip hash encoder for "-m 11600". No hash
   the parser accepts is long enough to trigger it
+- Fixed substantial allocations retained by early returns from "outer_loop()" and the "--identify"
+  probe, including rejected option combinations
+- Fixed "profile_dir", "session_dir" and "shared_dir" leaking when hashcat runs from its install
+  directory
+- Fixed the argument vector loaded from a restore file leaking once per libhashcat session
 
 ## Hash modes and kernels
 
+- Fixed mode 3000 silently truncating wordlist entries longer than 7 characters instead of rejecting
+  them
 - Fixed "-m 19800" and "-m 19900" ignoring the salt field, so a principal whose salt is not the
   realm followed by the user never cracked, and a hash line carrying that field would not load
 - Fixed the 41 modes that convert UTF-8 to UTF-16 in the kernel rejecting a correct password holding
@@ -808,8 +851,6 @@ time. Results depend on the device, runtime and workload.
   memory as global memory
 - Fixed "-m 17220 -a 3" build failures from including "inc_checksum_crc32.cl", renamed during CRC
   restructuring
-- Fixed modules 01800, 08300, 10700 and 16600 declaring the "Register-Limit" optimizer, which held
-  their CUDA kernels to 128 registers with no performance benefit
 - Fixed "-m 73000" crashing after a run under Python 3.14, where its bridge released 4 Python
   references it did not own and leaked 2 tuples
 - Fixed 11 hash modes writing "--separator" between internal hash fields, which hid where the
@@ -822,6 +863,10 @@ time. Results depend on the device, runtime and workload.
 
 ## Backends: OpenCL, tuning and memory
 
+- Fixed the Windows HIP runtime version check accepting every version because it compared
+  incompatible version scales
+- Fixed OpenCL 1.2 devices requiring extension strings for atomics and byte-addressable stores, and
+  Beignet or Mesa version strings triggering the obsolete unstable-driver rejection
 - Fixed "-cl-std=" being chosen from the platform's OpenCL version rather than the device's, which
   also made the too-old diagnostic name the wrong version
 - Fixed an optimized kernel built with rules never starting on Apple Silicon under OpenCL at
@@ -840,18 +885,26 @@ time. Results depend on the device, runtime and workload.
   treated as too old. The version is now reported once and the device stays available
 - Fixed a device being dropped when a tuning row pinned an acceleration value too large for its
   memory. The pinned value is now lowered, but only after every other fit has been tried
+- Fixed autotune deriving an invalid acceleration for one-thread kernels and using misaligned
+  thread-count steps across wavefront boundaries
 - Fixed underflow in the scrypt and argon2 available memory calculations, where a device reporting
   less memory than the reserve asked for an enormous allocation
 - Fixed OpenCL kernel lookup returning "aux1" for all 4 auxiliary kernels, so register spill
   reserves were calculated from "aux1" alone
 - Fixed OpenCL launching "vector_width" times too many work items in the "loop2" kernel, in modes
   14800, 15310, 15910, 27500 and 27600
+- Fixed per-work-item buffers being sized from the unrounded launch count, which let vectorized
+  kernels read and write past their ends
+- Fixed disabling a mode's JIT kernel cache also disabling the shared, Markov and amplifier caches
 - Fixed hashcat continuing after a required thread failed to start, and joining an uninitialized
   thread handle afterwards. A worker that cannot start now runs its work on the calling thread, and
   a cracking, monitor or outfile check thread that fails to start is reported
 
 ## Backends: Metal and resource lifecycle
 
+- Fixed a CUDA benchmark retaining register-spill allocations between modes
+- Fixed 6 backend leaks: the NVRTC and HIPRTC option arrays, a string returned by
+  "module_jit_build_options()", an autotune event and 2 Metal strings
 - Fixed larger kernels, mostly the SHA-512 modes, failing to compile on Metal, which now builds
   its libraries optimized for size
 - Fixed Metal leaking one placeholder buffer per launch and 25 pipeline objects per device. The
@@ -860,7 +913,6 @@ time. Results depend on the device, runtime and workload.
 - Fixed a failure to read the Metal runtime version ending the whole macOS run, and disabling the
   OpenCL devices with it. It now disables only Metal and falls back to OpenCL
 - Fixed crashes on macOS Tahoe when maximizing concurrent Metal pipeline compilation
-- Fixed straight wordlist runs reserving device memory for mask buffers they never create
 - Fixed the AMD "V_PERM_B32" probe indexing with the device total instead of the loop counter when
   it reuses a neighboring device's result, so it compared with the last enumerated device rather
   than the preceding one and could take a result from an unprobed slot, disabling support
@@ -873,6 +925,12 @@ time. Results depend on the device, runtime and workload.
 
 ## Backends: bridges and hardware monitoring
 
+- Fixed bridged modes autotuning an empty loop placeholder instead of measuring bridge work
+- Fixed the first bridge unit's tuning result overwriting every other unit even when their widths
+  and performance differed
+- Fixed wide bridge units sizing launch buffers as though "kernel_accel" counted candidates instead
+  of waves, which could underallocate them and cause an illegal memory access. The "-n" option now
+  counts waves, and bridge speed lines report "Accel" instead of "Batch"
 - Fixed the Python bridges dropping a borrowed reference and then returning a pointer into it, and
   early returns leaving the thread state attached, which ended the process on the next attach
 - Fixed a bridged hash mode ignoring "-d" and running every bridge unit, and accepting a device
@@ -897,11 +955,15 @@ time. Results depend on the device, runtime and workload.
   Intel CPU devices and AMD, NVIDIA and Apple GPU devices. The message now names the device's vendor
 - Fixed "-I" listing one backend device per bridge unit rather than per physical device
 - Fixed a modified kernel not being recompiled, because the cache key omitted the kernel source
+- Fixed Apple IOKit initialization running twice and leaking an SMC connection and an IOReport
+  subscription on every run
 
 ## Attack modes and candidates
 
 - Fixed "--generate-rules-seed" having no effect outside Windows, where the seed went to "srand()"
   while "-g" drew from "random()", so every run produced the same rules
+- Fixed 3 attack-mode 9 paths launching more work items than salts, which could read beyond the salt
+  buffer and abort on small hash lists
 - Fixed bridged association attacks reusing one launch salt. Modes 70000, 72000, 73000 and 74000
   previously recovered only one hash, while 70100 and 70200 failed when per-hash costs differed
 - Fixed 2 large rule files incorrectly reporting completion after a keyspace of 65536
@@ -935,14 +997,11 @@ time. Results depend on the device, runtime and workload.
   not match the cracked digest
 - Fixed "-a 7" writing malformed outfile records for a candidate longer than 256 bytes, where the
   outfile cursor advanced beyond the hex output actually written
-- Fixed "--show" corrupting LM output for a hash with an unusable right half, and split LM hash
-  pairing, which is now much faster
+- Fixed "--show" corrupting LM output for a hash with an unusable right half, and incorrect split LM
+  hash pairing
 - Fixed "--outfile-check" racing with cracking threads on digest counters
 - Fixed an undeletable induction dictionary being rediscovered and read indefinitely after use.
   Induction now stops and reports the reason
-- Fixed the outfile check thread adding about 0.7 seconds to every run by waiting a full second
-  between checks. The thread runs by default and is joined at shutdown, not only under
-  "--outfile-check-dir"
 - Fixed scanned induction dictionary paths leaking on every rescan, the loopback filename leaking
   once per round, and the 4 KB loopback buffer allocated at startup never being freed, which
   together accumulated throughout a "--loopback" run
@@ -952,6 +1011,8 @@ time. Results depend on the device, runtime and workload.
 ## Brain
 
 - Fixed a 32 bit overflow in the brain session hash
+- Fixed partial runs colliding with the full attack in the brain database because attack identities
+  did not include "--skip"
 - Fixed the brain server not saving databases on "SIGTERM" and not flushing redirected logs after
   each line. Service and container stops now preserve both session data and final diagnostics
 - Fixed a brain client carrying on without deduplication when it could not reach the server. A
@@ -963,6 +1024,9 @@ time. Results depend on the device, runtime and workload.
 
 ## Interface and status
 
+- Fixed "--bitmap-max" accepting unusable values above 28 instead of rejecting them
+- Fixed the startup "Bitmaps" row reporting a rotation count for shifts removed from the kernel
+  parameters
 - Fixed "--runtime" having no effect with "--stdout", because the monitor thread that enforces it
   only started when "--stdout" was off
 - Fixed the final status struct being overwritten once per round rather than released, and a
@@ -975,6 +1039,8 @@ time. Results depend on the device, runtime and workload.
   speeds for a large hash list
 - Fixed "--progress-only" measuring with the bitmap filter forced to one bit, which substantially
   understated the progress step for large hash lists and ignored "--bitmap-min" and "--bitmap-max"
+- Fixed "--progress-only" reporting speed hundreds of times too low when a fast attack required
+  several base-word batches, because it paired the final batch count with all elapsed time
 - Fixed messages from different threads overwriting one another, where every message was formatted
   into one shared buffer. That buffer now has its own lock, because a log event cannot take the
   event mutex handlers already hold
@@ -1014,6 +1080,9 @@ time. Results depend on the device, runtime and workload.
 
 ## Build and packaging
 
+- Fixed archives built from development commits carrying the 7.1.2 release name. Package archive
+  names now use the version stamped into the built binary
+- Fixed "DEBUG=2" failing to link with AddressSanitizer
 - Fixed a failed build step leaving partially written output behind, which a later "make" then
   treated as up to date
 - Fixed "make linux" building every module, bridge and feed against the native core instead of the
@@ -1042,6 +1111,18 @@ time. Results depend on the device, runtime and workload.
 - Fixed "tools/test.pl" quoting fields without escaping their contents, and "test_edge.sh" decoding
   those fields with "eval". Words, salts and hashes are now passed hex encoded
 - Fixed Perl test modules for modes 30901 to 30905 calling deprecated "Bitcoin::Crypto" symbols
+- Fixed the edge test suite not telling 43 test modules which kernel was under test, causing every
+  module to generate optimized-kernel vectors even when the pure kernel was under test
+- Fixed edge tests for binary-container modes 5200 and 9000 passing hashes on the command line, and
+  a 1-character mode 99999 hash being treated as an empty vector
+- Fixed multi-hash tests accepting swapped hash and plaintext pairs, and edge tests reading cracks
+  from stdout where warnings could mix into the results
+- Fixed test modules 28504 and 30904 generating no P2WPKH hashes from uncompressed keys, and mode
+  30906 declaring a password limit below its own vectors
+- Fixed the test dependency installer using a PyPI "pycryptoplus" package incompatible with current
+  setuptools. It now verifies every Python dependency after installation
+- Fixed test modules 14400 and 15000 deriving password lengths from the wrong budget, and the mode
+  25700 oracle treating non-ASCII candidate bytes as signed values
 
 * changes v7.1.1 -> v7.1.2
 

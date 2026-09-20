@@ -129,5 +129,8 @@ Shooter3k
 * Narrowing the potfile search and batching the cracked result writes
 * A breakdown of where a run's wall clock goes, and the pipeline instrument as an option
 * Long-standing bugfix ideas in rule file loading, --show and --left, --loopback, and checkpointing
+* Rules applied to the fully assembled candidate in the mask and hybrid attack modes
+* Moving a running attack through its keyspace, and extending its deadline, from the status screen
+* Faster --stdout rules, an early outfile check, and a report of devices that did not start
 
 !!! All the package maintainers of hashcat !!!
