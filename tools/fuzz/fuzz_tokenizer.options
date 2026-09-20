@@ -1,0 +1,3 @@
+[libfuzzer]
+dict = fuzz_tokenizer.dict
+max_len = 512

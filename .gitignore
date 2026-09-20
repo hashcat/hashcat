@@ -97,3 +97,8 @@ __pycache__/
 /asan-sweep/
 /asan-gpu-sweep/
 /asan-repro/
+
+# fuzzing output (tools/fuzz/)
+/fuzz_out/
+/corpus/
+/crashes/

@@ -1,0 +1,3 @@
+[libfuzzer]
+dict = fuzz_rule.dict
+max_len = 256
