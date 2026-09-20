@@ -7,18 +7,23 @@
 # the example hash of every mode is the ST_HASH in its module.
 #
 # Usage:
-#   tools/fuzz/seeds.sh <outdir>
+#   tools/fuzz/seeds.sh <outdir> [mode ...]
 #
-# Writes <outdir>/rule and <outdir>/tokenizer, one input per file.
+# Writes <outdir>/rule, <outdir>/tokenizer and one <outdir>/parse_<mode> per
+# mode named on the command line, one input per file.
 
 set -eu
 
 OUTDIR=${1:-}
 
 if [ -z "$OUTDIR" ]; then
-  echo "usage: tools/fuzz/seeds.sh <outdir>" >&2
+  echo "usage: tools/fuzz/seeds.sh <outdir> [mode ...]" >&2
   exit 2
 fi
+
+shift || true
+
+MODES="$*"
 
 if [ ! -f src/rp.c ]; then
   echo "error: run this from the hashcat source root" >&2
@@ -28,7 +33,7 @@ fi
 rm -rf "${OUTDIR}/rule" "${OUTDIR}/tokenizer"
 mkdir -p "${OUTDIR}/rule" "${OUTDIR}/tokenizer"
 
-python3 - "$OUTDIR" <<'PY'
+python3 - "$OUTDIR" $MODES <<'PY'
 import glob
 import hashlib
 import os
@@ -139,4 +144,34 @@ for path in sorted(glob.glob("src/modules/module_*.c")):
         written += 1
 
 print("seeds: %d tokenizer inputs" % written)
+
+# 3. one directory per parser target, holding that mode's example hash. One
+# seed is enough to start from: it is a line the parser accepts all the way
+# through, which is the only input a mutation has to begin with.
+
+for mode in sys.argv[2:]:
+    path = "src/modules/module_%s.c" % mode
+
+    if not os.path.exists(path):
+        continue
+
+    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        match = re.search(r'static const char \*ST_HASH\s*=\s*"((?:[^"\\]|\\.)*)"', fh.read())
+
+    if match is None:
+        continue
+
+    try:
+        line = match.group(1).encode("utf-8").decode("unicode_escape").encode("latin1")
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        continue
+
+    target = os.path.join(outdir, "parse_%d" % int(mode))
+
+    os.makedirs(target, exist_ok=True)
+
+    with open(os.path.join(target, "example"), "wb") as out:
+        out.write(line)
+
+    print("seeds: 1 line for -m %d" % int(mode))
 PY

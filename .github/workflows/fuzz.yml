@@ -50,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [rule, tokenizer]
+        target: [rule, tokenizer, parse_7400, parse_17225, parse_22000, parse_29100]
 
     steps:
       - uses: actions/checkout@v7
@@ -72,6 +72,11 @@ jobs:
         run: |
           mkdir -p corpus crashes
 
+          # every parser target shares one dictionary, so the name is cut at
+          # the first underscore: parse_17225 reads fuzz_parse.dict
+
+          TARGET=${{ matrix.target }}
+
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             duration=120
           else
@@ -83,7 +88,7 @@ jobs:
           ./fuzz_out/fuzz_${{ matrix.target }} \
             corpus \
             fuzz_out/work/seeds/${{ matrix.target }} \
-            -dict=tools/fuzz/fuzz_${{ matrix.target }}.dict \
+            -dict=tools/fuzz/fuzz_${TARGET%%_*}.dict \
             -artifact_prefix=crashes/ \
             -max_total_time=${duration} \
             -timeout=25 \

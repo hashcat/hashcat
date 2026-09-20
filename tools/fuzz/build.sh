@@ -2,10 +2,12 @@
 #
 # Build the fuzz targets in tools/fuzz.
 #
-# The same script builds them locally and inside OSS-Fuzz. OSS-Fuzz sets CC,
+# One script for a local build and for a build service. A service sets CC,
 # CFLAGS, LIB_FUZZING_ENGINE, OUT and WORK, and whatever it sets has to be used
 # verbatim, because that is how it selects the engine and the sanitizer. Where
 # they are unset this builds a local libFuzzer plus AddressSanitizer binary.
+# OSS-Fuzz is the service this shape comes from, should the project ever want
+# these run there.
 #
 # Usage:
 #   tools/fuzz/build.sh            # from the hashcat source root
@@ -54,12 +56,34 @@ CORE="src/rp.c
       src/system.c
       src/memchr.c
       src/cpu_features.c
+      src/bitops.c
+      src/plugin_abi.c
       tools/fuzz/stubs.c"
 
+# Some modules reach into the OpenCL emulation, because a parser that has to
+# undo what a kernel did calls the same code the kernel does. Which ones is not
+# worth tracking by hand, so every emu file is compiled and the linker takes
+# what it needs.
+
+CORE="$CORE $(ls src/emu_*.c)"
+
 INCLUDES="-Iinclude/ -IOpenCL/ -Ideps/OpenCL-Headers"
-DEFINES="-DWITH_BRAIN -DWITH_HWMON"
+
+# The plugin interface version comes out of src/Makefile rather than being
+# written here twice, because a module refuses to compile without it and a
+# stale copy would be a confusing way to find that out.
+
+ABI=$(sed -n 's/^MODULE_INTERFACE_VERSION *:*= *\([0-9]*\).*/\1/p' src/Makefile | head -1)
+
+if [ -z "$ABI" ]; then
+  echo "error: no MODULE_INTERFACE_VERSION in src/Makefile" >&2
+  exit 2
+fi
+
+DEFINES="-DWITH_BRAIN -DWITH_HWMON -DHC_PLUGIN_ABI_VERSION=${ABI} -DMODULE_INTERFACE_VERSION_CURRENT=${ABI}"
 
 objs=""
+targets=""
 
 for src in $CORE; do
   obj="${WORK}/$(basename "$src" .c).o"
@@ -76,7 +100,7 @@ for target in rule tokenizer; do
   # shellcheck disable=SC2086
   $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "tools/fuzz/fuzz_${target}.c" -o "$obj"
 
-  # OSS-Fuzz links every target with the C++ driver, C project or not
+  # the C++ driver links every target, C project or not
   # shellcheck disable=SC2086
   $CXX $CXXFLAGS "$obj" $objs $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_${target}"
 
@@ -84,15 +108,65 @@ for target in rule tokenizer; do
   cp "tools/fuzz/fuzz_${target}.options" "${OUT}/"
 
   echo "built ${OUT}/fuzz_${target}"
+
+  targets="$targets ${target}"
 done
 
-# Seed corpora. OSS-Fuzz picks up <target>_seed_corpus.zip beside the binary;
-# a local run takes the directories the same script writes.
+# One parser target per mode, because every src/modules/module_XXXXX.c defines
+# module_init, module_hash_decode and the rest of the API with external
+# linkage: two modules in one link is a duplicate symbol. Each target links its
+# own module statically, so there is no plugin to ship beside the binary, and
+# each keeps its own corpus, which is what a per mode format deserves anyway.
+#
+# The list is a starting set rather than all 600: the modes whose parsers have
+# needed a memory safety fix before, one that carries a rounds field, and one
+# whose format is a long chain of star separated fields.
 
-tools/fuzz/seeds.sh "${WORK}/seeds"
+FUZZ_MODES=${FUZZ_MODES:-"07400 17225 22000 29100"}
+
+for mode in $FUZZ_MODES; do
+  module="src/modules/module_${mode}.c"
+
+  if [ ! -f "$module" ]; then
+    echo "warning: no ${module}, skipping" >&2
+    continue
+  fi
+
+  # -DFUZZ_HASH_MODE takes the mode as hashcat writes it on the command line. 10# rather than
+  # stripping the zeros with sed, which turns 00000 into nothing at all and hands the compiler an
+  # empty -DFUZZ_HASH_MODE=
+
+  hash_mode=$((10#$mode))
+
+  # shellcheck disable=SC2086
+  $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DFUZZ_HASH_MODE=${hash_mode} \
+      -c tools/fuzz/fuzz_parse.c -o "${WORK}/fuzz_parse_${hash_mode}.o"
+
+  # shellcheck disable=SC2086
+  $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "$module" -o "${WORK}/module_${mode}.o"
+
+  # shellcheck disable=SC2086
+  $CXX $CXXFLAGS "${WORK}/fuzz_parse_${hash_mode}.o" "${WORK}/module_${mode}.o" $objs \
+      $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_${hash_mode}"
+
+  cp "tools/fuzz/fuzz_parse.dict" "${OUT}/"
+
+  printf '[libfuzzer]\ndict = fuzz_parse.dict\nmax_len = 8192\n' > "${OUT}/fuzz_parse_${hash_mode}.options"
+
+  echo "built ${OUT}/fuzz_parse_${hash_mode}"
+
+  targets="$targets parse_${hash_mode}"
+done
+
+# Seed corpora. A build service picks up <target>_seed_corpus.zip beside the
+# binary; a local run takes the directories the same script writes.
+
+tools/fuzz/seeds.sh "${WORK}/seeds" $FUZZ_MODES
 
 if command -v zip >/dev/null 2>&1; then
-  for target in rule tokenizer; do
+  for target in $targets; do
+    [ -d "${WORK}/seeds/${target}" ] || continue
+
     (cd "${WORK}/seeds/${target}" && zip -q -r "${OUT}/fuzz_${target}_seed_corpus.zip" .)
 
     echo "built ${OUT}/fuzz_${target}_seed_corpus.zip"
