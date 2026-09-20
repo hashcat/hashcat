@@ -1,9 +1,10 @@
 ### Coverage guided fuzzing ###
 
-Two entry points sit under everything that reads attacker controlled text in hashcat, and neither
-had direct coverage: `cpu_rule_to_kernel_rule ()` compiles one line of a rule file, and
-`input_tokenizer ()` splits one hash line into fields for a module parser. Both walk a buffer by
-hand with a length that the caller supplies.
+Everything that reads attacker controlled text in hashcat runs through three functions, and none of
+them had direct coverage. `module_hash_decode ()` reads a hash line for one mode.
+`input_tokenizer ()` splits that line into the fields the parser reads. `cpu_rule_to_kernel_rule ()`
+compiles one line of a rule file. All three walk a buffer by hand with a length the caller supplies,
+and hash files and rule files are both downloaded and used without review.
 
 `tools/fuzz` builds one libFuzzer target for each:
 
@@ -11,6 +12,7 @@ hand with a length that the caller supplies.
 | --- | --- | --- |
 | `fuzz_rule` | `cpu_rule_to_kernel_rule ()` in `src/rp.c` | the rule, byte for byte |
 | `fuzz_tokenizer` | `input_tokenizer ()` in `src/parser.c` | a token spec, then the line |
+| `fuzz_parse_<mode>` | `module_hash_decode ()` of that mode | the hash line, byte for byte |
 
 #### Build and run ####
 
@@ -46,6 +48,45 @@ every mode is the `ST_HASH` in its module. The dictionaries hold the rule comman
 signatures, separators and field shapes the formats are built out of, so the fuzzer does not spend
 executions rediscovering which bytes are syntax.
 
+#### One parser target per mode ####
+
+Every `src/modules/module_XXXXX.c` defines `module_init`, `module_hash_decode` and the rest of the
+API with external linkage, so two modules cannot be linked into one binary. Each parser target
+links its own module statically and takes the mode from `-DFUZZ_HASH_MODE`, which means no
+`dlopen ()` and no plugin to ship beside the binary. It also means one corpus per mode, which is
+what a per mode format deserves: an input that reaches deep into the pkzip parser says nothing
+about sha256crypt.
+
+`FUZZ_MODES` in `build.sh` holds the list, four to begin with rather than all 600: 17225 and 22000
+have both needed a memory safety fix in their parsers, 29100 is the mode whose overflow the
+structural harness in `tools/asan/` only reached by accident, and 7400 carries a rounds field. Add
+a mode by putting it in that list; nothing else knows about the set.
+
+    FUZZ_MODES="07400 13600" tools/fuzz/build.sh
+
+Every mode at once is the same variable, filled from the tree:
+
+    FUZZ_MODES="$(ls src/modules/module_*.c | sed 's#.*module_##;s#\.c##')" tools/fuzz/build.sh
+
+That is about 13 minutes of building here and 6 GB of binaries, one per mode at roughly 10 MB, and
+running each of them for a minute takes ten hours in a row. In parallel it is closer to an hour:
+
+    tools/fuzz/seeds.sh fuzz_out/work/seeds $(ls src/modules/module_*.c | sed 's#.*module_##;s#\.c##')
+
+    ls fuzz_out/fuzz_parse_* | grep -v '\.' | xargs -P "$(nproc)" -I{} sh -c '
+      mode=$(basename {} | sed "s/fuzz_parse_//")
+      mkdir -p corpus/$mode crashes
+      {} corpus/$mode fuzz_out/work/seeds/parse_$mode -dict=fuzz_out/fuzz_parse.dict \
+         -artifact_prefix=crashes/$mode- -max_total_time=60 -timeout=20 > /dev/null 2>&1 ||
+        echo "$mode reported something"'
+
+A mode whose target exits non zero has written its input into `crashes/`, and running that binary
+on that file again is the whole reproduction.
+
+Buffers are sized from the module's own `dgst_size`, `esalt_size` and `hook_salt_size`, so an
+overflow in a target is an overflow of what hashcat would allocate. The `hashconfig` the parser
+reads is built from the module's own getters, the way `interface.c` builds it.
+
 #### The token spec is part of the input ####
 
 A module declares how many fields its format has, what separates them, how long each may be and
@@ -77,27 +118,19 @@ written by a pull request lives in that pull request's scope and is deleted with
 A crash fails the job and the input is uploaded as an artifact, so a finding arrives as a red cross
 with a reproducer attached.
 
-#### OSS-Fuzz ####
-
-`tools/fuzz/oss-fuzz/` holds the three files OSS-Fuzz needs, ready to be copied into
-`projects/hashcat/` in a pull request against `google/oss-fuzz`. That buys continuous fuzzing on
-Google's hardware, a corpus that is kept for us, crash deduplication and bisection to the commit
-that introduced a finding.
-
-Two things have to be settled before that pull request is worth opening. `primary_contact` must be
-a hashcat maintainer with a Google account, because that address is how OSS-Fuzz verifies the
-integration is wanted and it is who gets the reports. And OSS-Fuzz publishes a bug 30 days after it
-is fixed or 90 days after it is reported, whichever comes first, which is a policy decision for the
-project rather than a detail of the integration.
-
 #### What is not covered ####
 
-`module_hash_decode ()` itself, which is the parser these two functions serve. A target for it
-needs a `hashconfig` built the way `interface.c` builds one, and the harness in `tools/asan/` does
-that already, so the target belongs there rather than here.
+596 of the 600 modes. The four in `FUZZ_MODES` are a starting set, and the cost of adding one is a
+line in that list plus the machine time to fuzz it, which is the part that has to stay within what
+the nightly job can spend.
 
-It also needs a decision this integration does not make. Every `src/modules/module_XXXXX.c` defines
-`module_init`, `module_hash_decode` and the rest of the API with external linkage, so two modules
-cannot be linked into one binary: it is one target per mode, 600 corpora, or a binary that
-`dlopen ()`s the module the way `tools/asan/parse_harness.c` does. A handful of hand picked modes
-is the sane way in.
+`build_hashconfig ()` in `fuzz_parse.c` is a copy of the one in `tools/asan/parse_harness.c`.
+Whichever of the two lands second should drop its copy and share one.
+
+If the project ever wants this run continuously rather than nightly,
+[OSS-Fuzz](https://google.github.io/oss-fuzz/getting-started/new-project-guide/) is where that
+belongs: it keeps the corpus, deduplicates crashes and bisects each finding to the commit that
+introduced it, and the build here already takes `CC`, `CFLAGS` and `LIB_FUZZING_ENGINE` from the
+environment the way its build does. It needs a maintainer's address as `primary_contact` and a
+decision about its disclosure deadline, so it is a separate conversation rather than a file in this
+directory.
