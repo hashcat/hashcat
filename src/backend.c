@@ -15681,7 +15681,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 bridge_power = (u64) bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
 
-      const u64 kernel_power_max = (device_is_bridged == true) ? bridge_power * kernel_accel_max : device_processors * kernel_threads * kernel_accel_max;
+      const u64 kernel_power_raw = (device_is_bridged == true) ? bridge_power * kernel_accel_max : device_processors * kernel_threads * kernel_accel_max;
+
+      // A kernel built for a vector width handles VECT_SIZE consecutive entries per work item and
+      // reads and writes every one of them, while the launch rounds the work item count up. The last
+      // work item therefore reaches past the count whenever that is not a multiple of the width.
+      // Rounding the count here covers every buffer sized from it, at a cost of at most
+      // vector_width - 1 entries each.
+      //
+      // The width goes through MAX because on a CPU device it is whatever the runtime answered to
+      // CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG or _INT, and nothing between that answer and here rejects
+      // a zero.
+
+      const u64 vector_width = MAX (device_param->vector_width, 1);
+
+      const u64 kernel_power_max = CEILDIV (kernel_power_raw, vector_width) * vector_width;
 
       // size_spilling
       //
