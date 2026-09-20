@@ -1,0 +1,117 @@
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+## Coverage guided fuzzing of the host side parsers.
+##
+## The corpus is what makes this worth running. A campaign that starts from the
+## seed corpus every night relearns the same paths and never reaches past them,
+## so each target keeps its corpus in the actions cache and takes it up again
+## the next night.
+##
+## Three things about that cache decide whether it works:
+##
+##   a cache entry cannot be written twice under the same key, so the key
+##   carries the run id and the restore falls back to the newest entry with the
+##   same prefix,
+##
+##   an entry is evicted after seven days without a read, which is why this
+##   runs nightly and not weekly,
+##
+##   and the repository holds 10 GB of cache in total and evicts the least
+##   recently used entry when it is full, which is why every run merges the
+##   corpus down to what still reaches new code before it saves it.
+##
+## Only the scheduled run on the default branch saves. A pull request reads the
+## corpus and fuzzes for two minutes as a smoke test, because a cache written by
+## a pull request lives in that pull request's scope and is deleted with it.
+
+name: fuzz
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/fuzz/**'
+      - '.github/workflows/fuzz.yml'
+      - 'src/parser.c'
+      - 'src/rp.c'
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [rule, tokenizer]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compiler
+        run: clang --version
+
+      - name: Build the fuzz targets
+        run: tools/fuzz/build.sh
+
+      - name: Restore the corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: corpus
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
+
+      - name: Fuzz
+        run: |
+          mkdir -p corpus crashes
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            duration=120
+          else
+            duration=900
+          fi
+
+          echo "corpus holds $(find corpus -type f | wc -l) inputs before this run"
+
+          ./fuzz_out/fuzz_${{ matrix.target }} \
+            corpus \
+            fuzz_out/work/seeds/${{ matrix.target }} \
+            -dict=tools/fuzz/fuzz_${{ matrix.target }}.dict \
+            -artifact_prefix=crashes/ \
+            -max_total_time=${duration} \
+            -timeout=25 \
+            -print_final_stats=1
+
+      - name: Merge the corpus down
+        if: success()
+        run: |
+          mkdir -p corpus_merged
+
+          ./fuzz_out/fuzz_${{ matrix.target }} -merge=1 corpus_merged corpus \
+            fuzz_out/work/seeds/${{ matrix.target }}
+
+          rm -rf corpus && mv corpus_merged corpus
+
+          echo "corpus holds $(find corpus -type f | wc -l) inputs after merging"
+
+      - name: Save the corpus
+        if: success() && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: corpus
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+
+      - name: Upload the crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashes-${{ matrix.target }}
+          path: crashes/
+          if-no-files-found: ignore
