@@ -670,6 +670,9 @@ Measurements depend on the device, runtime and workload.
   16 modes. Added license texts for bundled Argon2, scrypt-jane, yescrypt, PPMd and the Windows
   liblzma and libzstd libraries
 - Added "SECURITY.md", "CONTRIBUTING.md" and "AGENTS.md", and rewrote "README.md"
+- Corrected the "--keep-guessing" section of "docs/limits.txt", which said valid passwords are
+  always reported. Two candidates that match one hash inside one kernel invocation lose one of
+  them, and the section now says so and separates the fast and slow hash cases
 
 ##
 ## Bug Fixes
@@ -793,6 +796,9 @@ Measurements depend on the device, runtime and workload.
 
 ## Hash modes and kernels
 
+- Fixed modes 22000 and 22001 refusing the old PMKID format when it was written with ":" separators
+  rather than "*". The line was rewritten into the current format by copying it whole, which left all
+  4 fields as one token
 - Fixed mode 3000 silently truncating wordlist entries longer than 7 characters instead of rejecting
   them
 - Fixed "-m 19800" and "-m 19900" ignoring the salt field, so a principal whose salt is not the
@@ -960,6 +966,8 @@ Measurements depend on the device, runtime and workload.
 
 ## Attack modes and candidates
 
+- Fixed "--stdout" writing a candidate that contains a line ending as two lines. Candidates now use
+  the same "$HEX[...]" form as the outfile, so one candidate is always one line
 - Fixed "--generate-rules-seed" having no effect outside Windows, where the seed went to "srand()"
   while "-g" drew from "random()", so every run produced the same rules
 - Fixed 3 attack-mode 9 paths launching more work items than salts, which could read beyond the salt

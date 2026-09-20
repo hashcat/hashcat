@@ -804,10 +804,16 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     if (fp->bom_size)
     {
       // atm just skip bom
+      //
+      // The size travels back through the caller's struct, so the compiler cannot see that
+      // hc_string_bom_size () never answers more than sizeof (check). Clamping says so here, and
+      // keeps the read inside the buffer whatever a later writer puts in the field.
 
-      const int nread = fread (check, sizeof (char), fp->bom_size, fp->pfp);
+      const size_t bom_size = MIN ((size_t) fp->bom_size, sizeof (check));
 
-      if (nread != fp->bom_size) return false;
+      const size_t nread = fread (check, sizeof (char), bom_size, fp->pfp);
+
+      if (nread != bom_size) return false;
     }
   }
 

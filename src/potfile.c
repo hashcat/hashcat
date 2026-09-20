@@ -713,6 +713,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (line_hash_len == 0) continue;
 
+    // One digest buffer serves every line, so a decoder that leaves part of it alone starts from
+    // whatever the line before wrote. Only the four words at dgst_pos0 to dgst_pos3 are ever
+    // compared, and no decoder in the tree writes one of those on one line and skips it on the next,
+    // so today the bytes that survive are zero on both sides. That holds because of what the
+    // decoders happen to do and not because of anything here, which is why the three buffers below
+    // are cleared as well.
+
+    memset (hash_buf.digest, 0, hashconfig->dgst_size);
+
     if (hash_buf.salt)
     {
       memset (hash_buf.salt, 0, sizeof (salt_t));

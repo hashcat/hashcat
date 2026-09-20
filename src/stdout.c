@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "event.h"
+#include "convert.h"
 #include "locking.h"
 #include "emu_inc_rp.h"
 #include "emu_inc_rp_optimized.h"
@@ -32,28 +33,67 @@ static void out_flush (out_t *out)
   out->len = 0;
 }
 
+// Write one candidate and the line ending that closes it, and answer how many bytes that took.
+//
+// A candidate can hold any byte, a line ending among them, and written out as it stands that turns
+// one candidate into two lines with nothing to tell the halves apart. A reader cannot put them back
+// together, and piping --stdout into another hashcat feeds it two words. The $HEX[] form the outfile
+// already uses for the same reason keeps one candidate on one line.
+//
+// The widest a candidate can get is "$HEX[" plus two characters a byte plus "]" plus the line
+// ending, which is what STDOUT_CAND_MAX below reserves for it.
+
+static size_t stdout_append (char *dst, const u8 *pw_buf, const int pw_len, const bool always_ascii)
+{
+  size_t len = 0;
+
+  if (need_hexify (pw_buf, (size_t) pw_len, 0, always_ascii) == true)
+  {
+    memcpy (dst, "$HEX[", 5);
+
+    len += 5;
+
+    len += exec_hexify (pw_buf, (size_t) pw_len, (u8 *) dst + len);
+
+    dst[len] = ']';
+
+    len += 1;
+  }
+  else
+  {
+    memcpy (dst, pw_buf, (size_t) pw_len);
+
+    len += (size_t) pw_len;
+  }
+
+  #if defined (_WIN)
+
+  dst[len + 0] = '\r';
+  dst[len + 1] = '\n';
+
+  len += 2;
+
+  #else
+
+  dst[len] = '\n';
+
+  len += 1;
+
+  #endif
+
+  return len;
+}
+
 static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 {
   char *ptr = out->buf + out->len;
 
-  memcpy (ptr, pw_buf, pw_len);
+  out->len += (int) stdout_append (ptr, pw_buf, pw_len, out->always_ascii);
 
-  #if defined (_WIN)
+  // the flush has to leave room for a whole candidate, because the next one is written before the
+  // buffer is looked at again
 
-  ptr[pw_len + 0] = '\r';
-  ptr[pw_len + 1] = '\n';
-
-  out->len += pw_len + 2;
-
-  #else
-
-  ptr[pw_len] = '\n';
-
-  out->len += pw_len + 1;
-
-  #endif
-
-  if (out->len >= STDOUT_BUFSIZ - 300)
+  if (out->len >= (int) (STDOUT_BUFSIZ - STDOUT_CAND_MAX))
   {
     out_flush (out);
   }
@@ -90,6 +130,7 @@ typedef struct stdout_rule_job
 
   const kernel_rule_t *rules;
   bool                 optimized;
+  bool                 always_ascii;
   u32                  pw_max;
 
   char                *buf;
@@ -135,20 +176,7 @@ static HC_THREAD_FUNC stdout_rule_worker (void *p)
 
     if (plain_len > (int) job->pw_max) plain_len = (int) job->pw_max;
 
-    memcpy (job->buf + job->len, plain_ptr, (size_t) plain_len);
-
-    job->len += (size_t) plain_len;
-
-    #if defined (_WIN)
-    job->buf[job->len + 0] = '\r';
-    job->buf[job->len + 1] = '\n';
-
-    job->len += 2;
-    #else
-    job->buf[job->len] = '\n';
-
-    job->len += 1;
-    #endif
+    job->len += stdout_append (job->buf + job->len, plain_ptr, plain_len, job->always_ascii);
   }
 
   return 0;
@@ -171,6 +199,10 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   out_t out;
 
   out.write_failed = false;
+
+  const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+
+  out.always_ascii = always_ascii;
 
   if (filename)
   {
@@ -342,7 +374,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
         if (threads > 1)
         {
-          const size_t cand_max = (size_t) hashconfig->pw_max + 2;
+          const size_t cand_max = ((size_t) hashconfig->pw_max * 2) + 8;
 
           u64 pairs_per_round = STDOUT_RULE_ROUND_BYTES / cand_max;
 
@@ -390,6 +422,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
                 jobs[t].rules         = straight_ctx->kernel_rules_buf;
                 jobs[t].optimized     = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? true : false;
                 jobs[t].pw_max        = hashconfig->pw_max;
+                jobs[t].always_ascii  = always_ascii;
                 jobs[t].buf           = pool + ((size_t) t * worker_buf_sz);
                 jobs[t].len           = 0;
 

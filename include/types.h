@@ -2569,6 +2569,10 @@ typedef struct pidfile_ctx
 
 #define STDOUT_BUFSIZ 0x10000
 
+// The widest one candidate can be written as: "$HEX[", two characters a byte, "]", and a CRLF.
+
+#define STDOUT_CAND_MAX ((PW_MAX * 2) + 8)
+
 typedef struct out
 {
   HCFILE fp;
@@ -2576,6 +2580,7 @@ typedef struct out
   char   buf[STDOUT_BUFSIZ];
   int    len;
   bool   write_failed;
+  bool   always_ascii;
 
 } out_t;
 
