@@ -200,7 +200,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ciphertext offset within the blob
 
-  const u32 ct_offset = hc_strtoul ((const char *) token.buf[7], NULL, 10);
+  // The last token runs to the end of the line, and hc_strtoul () reads digits until it meets one
+  // that is not, so on this token it reads to whatever follows the line rather than stopping at a
+  // separator the way it does on every other numeric field. Convert a copy that ends where the
+  // token does.
+
+  char ct_offset_str[16];
+
+  const int ct_offset_len = MIN (token.len[7], (int) sizeof (ct_offset_str) - 1);
+
+  memcpy (ct_offset_str, token.buf[7], ct_offset_len);
+
+  ct_offset_str[ct_offset_len] = 0;
+
+  const u32 ct_offset = hc_strtoul (ct_offset_str, NULL, 10);
 
   // the blob, kept whole for the encoder
 
