@@ -19,9 +19,17 @@ Two comparisons, because one of them is not always possible:
   out to python3, because that embedded script draws from its own generator and no seed reaches it.
 
   Byte comparison, where both engines are seedable. HCTEST_SEED puts both on one generator, so the
-  same salts and the same words come out and the hashes can be compared line for line. The tool
-  finds out by running each engine twice: an engine that gives two different answers to one seed is
-  not seedable, and says so instead of failing.
+  same salts and the same words come out and the hashes can be compared. The tool finds out by
+  running each engine against one seed several times, through both of the entry points the
+  comparison draws a salt from: an engine that gives two different answers to one seed is not
+  seedable, and says so instead of failing.
+
+  The comparison is on the set of lines, not the sequence. The perl engine has no order of its own:
+  single () emits from a hash under a comparator that ties for words of equal byte length, and perl
+  randomises hash key order per process, so two runs of one seed come back in a different order.
+
+One seed proves nothing much, so --seed takes a handful and every one of them is run. A check has
+to hold under all of them.
 
 Both are run for the optimized and the unoptimized kernel, and the invalid input list has to be
 rejected by both.
@@ -32,7 +40,8 @@ where to find it, origin/master by default.
 Usage:
   tools/test_engine_compare.py 17010
   tools/test_engine_compare.py --all
-  tools/test_engine_compare.py --ref HEAD~5 --seed 42 --verbose 9000 14500
+  tools/test_engine_compare.py --seed 7 32700
+  tools/test_engine_compare.py --ref HEAD~5 --seed 42,1337 --verbose 9000 14500
 """
 
 import argparse
@@ -177,12 +186,34 @@ def env_for(seed, optimized):
 
 
 def seedable(engine, env, mode, words):
-  # two runs of one seed, and whatever comes back has to be the same twice
+  # Runs of one seed, and whatever comes back has to be the same every time. Sorted, for the reason
+  # in compare (): the perl engine reorders its own output between runs at one seed.
+  #
+  # Both entry points the byte comparison draws a salt through are probed. A mode can be stable in
+  # one and not the other: m20011's .pm answers potthrough the same way twice and gives single one
+  # of two answers, so probing potthrough alone called the comparison meaningful when it was not.
+  #
+  # Three runs rather than two, because an oracle that flips a coin agrees with itself half the
+  # time. Three leaves a quarter, and every seed is probed in turn, so a coin flip has to come up
+  # the same way ten times running to get past all of them.
 
-  first  = engine(env, "potthrough", str(mode), stdin=words)
-  second = engine(env, "potthrough", str(mode), stdin=words)
+  runs = 3
 
-  return first.stdout == second.stdout, first.stdout, first.returncode
+  first = engine(env, "potthrough", str(mode), stdin=words)
+
+  answers = [sorted(first.stdout.splitlines())]
+
+  for _ in range(runs - 1):
+    answers.append(sorted(engine(env, "potthrough", str(mode), stdin=words).stdout.splitlines()))
+
+  same = all(answer == answers[0] for answer in answers)
+
+  if same:
+    answers = [sorted(engine(env, "single", str(mode)).stdout.splitlines()) for _ in range(runs)]
+
+    same = all(answer == answers[0] for answer in answers)
+
+  return same, first.stdout, first.returncode
 
 
 def cross_verify(source, checker, env, mode, workdir, pairs, tag):
@@ -226,11 +257,23 @@ def cross_verify(source, checker, env, mode, workdir, pairs, tag):
 
 
 def compare(label, left, right, verbose):
-  if left == right:
+  # Sorted, because the perl engine has no order of its own to compare against. single () collects
+  # its vectors in a hash and emits them with
+  #
+  #   for my $word (sort { length $a <=> length $b } keys %{$db_prev})
+  #
+  # which ties for every pair of words of the same byte length, and perl randomises hash key order
+  # per process, so two runs of one seed come back in a different order. What the engines produced
+  # is the question; which order perl happened to walk its keys in is not.
+
+  left_lines  = sorted(left.splitlines())
+  right_lines = sorted(right.splitlines())
+
+  if left_lines == right_lines:
     return True, "%-34s same" % label
 
-  diff = list(difflib.unified_diff(left.decode("utf-8", "replace").splitlines(),
-                                   right.decode("utf-8", "replace").splitlines(),
+  diff = list(difflib.unified_diff([line.decode("utf-8", "replace") for line in left_lines],
+                                   [line.decode("utf-8", "replace") for line in right_lines],
                                    "perl", "python", lineterm="", n=1))
 
   shown = diff if verbose else [line[:160] for line in diff[:10]]
@@ -263,9 +306,52 @@ def reject_invalid(engine, env, mode, workdir, tag):
   return got
 
 
-def check_mode(mode, ref, seed, verbose):
-  results = []
+def label_of(text):
+  # every line a check produces starts with a %-34s label, which is what the seeds are merged on
 
+  return text.split("\n")[0][:34].rstrip()
+
+
+def merge(per_seed):
+  # one line per check, from the first seed that had something to say against it. A check that
+  # passed under four seeds and failed under the fifth is a failing check, and the line names the
+  # seed so the run can be repeated.
+
+  rank = {"fail": 2, "perl": 1, "ok": 0}
+
+  merged = {}
+  order  = []
+
+  for seed, results in per_seed:
+    for state, text in results:
+      state = state if isinstance(state, str) else ("ok" if state else "fail")
+
+      key = label_of(text)
+
+      if key not in merged:
+        merged[key] = (state, text, seed)
+
+        order.append(key)
+
+        continue
+
+      if rank[state] > rank[merged[key][0]]:
+        merged[key] = (state, text, seed)
+
+  out = []
+
+  for key in order:
+    state, text, seed = merged[key]
+
+    if state != "ok" and len(per_seed) > 1:
+      text = text.replace("\n", "  (seed %d)\n" % seed, 1) if "\n" in text else text + "  (seed %d)" % seed
+
+    out.append((state, text))
+
+  return out
+
+
+def check_mode(mode, ref, seeds, verbose):
   if not os.path.exists(os.path.join(TOOLS, "test_modules", "m%05d.py" % mode)):
     return [(False, "m%05d has no python oracle" % mode)]
 
@@ -280,110 +366,119 @@ def check_mode(mode, ref, seed, verbose):
 
       return [(True, "m%05d: %s, nothing to compare" % (mode, origin))]
 
-    results.append((True, "%-34s %s" % ("perl oracle from", origin)))
 
     perl = Engine("perl", ["perl", perl_runner], os.path.join(workdir, "tools"))
     py   = Engine("python", ["python3", os.path.join(TOOLS, "test_module_runner.py")], ROOT)
 
     words = b"\n".join(WORDS) + b"\n"
 
-    for optimized in (False, True):
-      env = env_for(seed, optimized)
+    per_seed = []
 
-      tag = "-O" if optimized else "  "
+    for seed in seeds:
+      results = []
 
-      perl_stable, perl_pairs, perl_rc = seedable(perl, env, mode, words)
-      py_stable,   py_pairs,   py_rc   = seedable(py, env, mode, words)
+      for optimized in (False, True):
+        env = env_for(seed, optimized)
 
-      # A mode with no kernel of the family the run asked for is not applicable, and the two
-      # engines say so differently on purpose: the python one exits 2, which tools/test.sh turns
-      # into a Skip, while the perl one copies the other family's constraints and reports as if
-      # the kernel were there. That is a documented difference rather than a defect, so the rest
-      # of the checks for this kernel family are not run.
+        tag = "-O" if optimized else "  "
 
-      if py_rc == 2:
-        results.append((True, "%-34s not applicable, the python engine skips the mode and the "
-                        "perl one substitutes the other kernel" % ("kernel family %s" % tag)))
+        perl_stable, perl_pairs, perl_rc = seedable(perl, env, mode, words)
+        py_stable,   py_pairs,   py_rc   = seedable(py, env, mode, words)
 
-        continue
+        # A mode with no kernel of the family the run asked for is not applicable, and the two
+        # engines say so differently on purpose: the python one exits 2, which tools/test.sh turns
+        # into a Skip, while the perl one copies the other family's constraints and reports as if
+        # the kernel were there. That is a documented difference rather than a defect, so the rest
+        # of the checks for this kernel family are not run.
 
-      # one engine generating where the other does not is a difference in its own right, and the
-      # checks below would quietly skip it
+        if py_rc == 2:
+          results.append((True, "%-34s not applicable, the python engine skips the mode and the "
+                          "perl one substitutes the other kernel" % ("kernel family %s" % tag)))
 
-      if bool(perl_pairs.strip()) != bool(py_pairs.strip()):
-        has, has_not = ("perl", "python") if perl_pairs.strip() else ("python", "perl")
+          continue
 
-        results.append((False, "%-34s %s generated %d lines, %s generated none"
-                        % ("passthrough %s" % tag, has,
-                           len([line for line in (perl_pairs if has == "perl" else py_pairs).splitlines() if line.strip()]),
-                           has_not)))
+        # one engine generating where the other does not is a difference in its own right, and the
+        # checks below would quietly skip it
 
-      # 1. self verification first. An engine that cannot account for its own output says nothing
-      # about the other one, and several .pm files on master are in exactly that state, so the
-      # cross check below is only reported as a failure where the checker passed this.
+        if bool(perl_pairs.strip()) != bool(py_pairs.strip()):
+          has, has_not = ("perl", "python") if perl_pairs.strip() else ("python", "perl")
 
-      perl_self_ok, perl_self = cross_verify(perl, perl, env, mode, workdir, perl_pairs,
-                                             "perl verifies perl %s" % tag)
+          results.append((False, "%-34s %s generated %d lines, %s generated none"
+                          % ("passthrough %s" % tag, has,
+                             len([line for line in (perl_pairs if has == "perl" else py_pairs).splitlines() if line.strip()]),
+                             has_not)))
 
-      py_self_ok, py_self = cross_verify(py, py, env, mode, workdir, py_pairs,
-                                         "python verifies python %s" % tag)
+        # 1. self verification first. An engine that cannot account for its own output says nothing
+        # about the other one, and several .pm files on master are in exactly that state, so the
+        # cross check below is only reported as a failure where the checker passed this.
 
-      results.append(("ok" if perl_self_ok else "perl", perl_self))
-      results.append(("ok" if py_self_ok else "fail", py_self))
+        perl_self_ok, perl_self = cross_verify(perl, perl, env, mode, workdir, perl_pairs,
+                                               "perl verifies perl %s" % tag)
 
-      # 2. cross verification, which needs no seed at all
+        py_self_ok, py_self = cross_verify(py, py, env, mode, workdir, py_pairs,
+                                           "python verifies python %s" % tag)
 
-      ok, text = cross_verify(perl, py, env, mode, workdir, perl_pairs,
-                              "python verifies perl %s" % tag)
+        results.append(("ok" if perl_self_ok else "perl", perl_self))
+        results.append(("ok" if py_self_ok else "fail", py_self))
 
-      results.append(("ok" if (ok or not py_self_ok) else "fail",
-                      text if ok else text + "\n      "
-                      "(the python oracle does not verify its own output either)"))
+        # 2. cross verification, which needs no seed at all
 
-      ok, text = cross_verify(py, perl, env, mode, workdir, py_pairs,
-                              "perl verifies python %s" % tag)
+        ok, text = cross_verify(perl, py, env, mode, workdir, perl_pairs,
+                                "python verifies perl %s" % tag)
 
-      results.append(("ok" if ok else ("perl" if not perl_self_ok else "fail"),
-                      text if ok else text + "\n      "
-                      "(the perl oracle does not verify its own output either, so this is its own defect)"))
+        results.append(("ok" if (ok or not py_self_ok) else "fail",
+                        text if ok else text + "\n      "
+                        "(the python oracle does not verify its own output either)"))
 
-      # 3. byte comparison, where the seed reaches both
+        ok, text = cross_verify(py, perl, env, mode, workdir, py_pairs,
+                                "perl verifies python %s" % tag)
 
-      if perl_stable and py_stable:
-        results.append(compare("potthrough %s" % tag, perl_pairs, py_pairs, verbose))
+        results.append(("ok" if ok else ("perl" if not perl_self_ok else "fail"),
+                        text if ok else text + "\n      "
+                        "(the perl oracle does not verify its own output either, so this is its own defect)"))
 
-        p = perl(env, "single", str(mode)).stdout
-        y = py(env, "single", str(mode)).stdout
+        # 3. byte comparison, where the seed reaches both
 
-        results.append(compare("single %s" % tag, p, y, verbose))
+        if perl_stable and py_stable:
+          results.append(compare("potthrough %s" % tag, perl_pairs, py_pairs, verbose))
 
-        for attack in (0, 1, 3):
-          p = perl(env, "edge", str(mode), str(attack), "1" if optimized else "0").stdout
-          y = py(env, "edge", str(mode), str(attack), "1" if optimized else "0").stdout
+          p = perl(env, "single", str(mode)).stdout
+          y = py(env, "single", str(mode)).stdout
 
-          results.append(compare("edge a%d %s" % (attack, tag), p, y, verbose))
-      else:
-        which = " and ".join(name for name, stable in
-                             (("the perl oracle", perl_stable), ("the python oracle", py_stable))
-                             if not stable)
+          results.append(compare("single %s" % tag, p, y, verbose))
 
-        results.append((True, "%-34s skipped, %s draws from a generator HCTEST_SEED does not reach"
-                        % ("byte comparison %s" % tag, which)))
+          for attack in (0, 1, 3):
+            p = perl(env, "edge", str(mode), str(attack), "1" if optimized else "0").stdout
+            y = py(env, "edge", str(mode), str(attack), "1" if optimized else "0").stdout
 
-      # 4. invalid input, which both have to refuse
+            results.append(compare("edge a%d %s" % (attack, tag), p, y, verbose))
+        else:
+          which = " and ".join(name for name, stable in
+                               (("the perl oracle", perl_stable), ("the python oracle", py_stable))
+                               if not stable)
 
-      left  = reject_invalid(perl, env, mode, workdir, tag)
-      right = reject_invalid(py, env, mode, workdir, tag)
+          results.append((True, "%-34s skipped, %s draws from a generator HCTEST_SEED does not reach"
+                          % ("byte comparison %s" % tag, which)))
 
-      ok, text = compare("invalid input %s" % tag, left, right, verbose)
+        # 4. invalid input, which both have to refuse
 
-      if ok and left.strip():
-        ok, text = False, "%-34s both engines accepted:\n      %s" % (
-          "invalid input %s" % tag, left.decode("utf-8", "replace").strip()[:200])
+        left  = reject_invalid(perl, env, mode, workdir, tag)
+        right = reject_invalid(py, env, mode, workdir, tag)
 
-      results.append((ok, text))
+        ok, text = compare("invalid input %s" % tag, left, right, verbose)
 
-    return results
+        if ok and left.strip():
+          ok, text = False, "%-34s both engines accepted:\n      %s" % (
+            "invalid input %s" % tag, left.decode("utf-8", "replace").strip()[:200])
+
+        results.append((ok, text))
+
+      per_seed.append((seed, results))
+
+    header = [(True, "%-34s %s" % ("perl oracle from", origin)),
+              (True, "%-34s %s" % ("seeds", " ".join(str(s) for s in seeds)))]
+
+    return header + merge(per_seed)
   finally:
     shutil.rmtree(workdir, ignore_errors=True)
 
@@ -394,10 +489,16 @@ def main():
   parser.add_argument("modes", nargs="*", type=int, help="hash modes to compare")
   parser.add_argument("--all", action="store_true", help="every mode with a python oracle")
   parser.add_argument("--ref", default="origin/master", help="where to read a .pm the tree no longer has")
-  parser.add_argument("--seed", type=int, default=1, help="HCTEST_SEED handed to both engines")
+  parser.add_argument("--seed", default="1,2,3,4,5",
+                      help="comma separated HCTEST_SEED values, every one of them run")
   parser.add_argument("--verbose", action="store_true", help="print the whole difference")
 
   args = parser.parse_args()
+
+  seeds = [int(seed) for seed in args.seed.split(",") if seed.strip() != ""]
+
+  if not seeds:
+    parser.error("--seed needs at least one value")
 
   modes = args.modes
 
@@ -416,7 +517,7 @@ def main():
   for mode in modes:
     print("m%05d" % mode)
 
-    results = check_mode(mode, args.ref, args.seed, args.verbose)
+    results = check_mode(mode, args.ref, seeds, args.verbose)
 
     states = [(state if isinstance(state, str) else ("ok" if state else "fail"), text)
               for state, text in results]
@@ -439,12 +540,14 @@ def main():
           % (len(perl_defect), len(modes), " ".join("m%05d" % m for m in perl_defect)))
 
   if failed:
-    print("engines disagree on %d of %d modes: %s"
-          % (len(failed), len(modes), " ".join("m%05d" % m for m in failed)))
+    print("engines disagree on %d of %d modes, over %d seed%s each: %s"
+          % (len(failed), len(modes), len(seeds), "" if len(seeds) == 1 else "s",
+             " ".join("m%05d" % m for m in failed)))
 
     return 1
 
-  print("engines agree on all %d modes" % len(modes))
+  print("engines agree on all %d modes, over %d seed%s each"
+        % (len(modes), len(seeds), "" if len(seeds) == 1 else "s"))
 
   return 0
 
