@@ -432,7 +432,8 @@ produce 12 characters and they carry 1.4 percent of the probability, so `pwmin=1
 of 12 character passwords leaves the run doing almost none of the work it would otherwise do.
 
 Both only ever narrow what the hash-mode already allows, so neither is a way to ask for a length the
-kernel cannot take, and `0` means say nothing and take the hash-mode's own bound.
+kernel cannot take, and `0` means say nothing and take the hash-mode's own bound. A value that would
+widen it is named and ignored rather than dropped without a word.
 
 `scale` is hashcat's own setting and is not read from the ruleset, so it reads `scale 1` on the status
 screen until you ask for something else. It is unrelated to `--coverage` in the trainer, which is set
