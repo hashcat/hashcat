@@ -21,11 +21,32 @@
 #include <limits.h>
 #include <inttypes.h>
 
+#if defined (_WIN)
+#include <locale.h>
+#endif
+
 #include "thread.h"
 #include "timer.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE | GENERIC_PLUGIN_OPTIONS_EXPLAIN;
+
+// strtod () resolves to mingw's own implementation here, and that one does not scale across the
+// preload workers that parse the terminal lists. _strtod_l () reaches msvcrt's parser instead, which
+// does. The locale is not what costs: passing a handle is only how the header reaches that parser.
+//
+// The handle is made once in global_init (), before any worker exists, and is read only after that.
+// It is never released, because this file can be instantiated twice in one run, once as the base
+// and once as the amplifier, and the two share this static. NULL when it could not be made, and the
+// call falls back to strtod ().
+
+#if defined (_WIN)
+static _locale_t pcfg_loc_c = NULL;
+
+#define PCFG_STRTOD(s,e) ((pcfg_loc_c != NULL) ? _strtod_l ((s), (e), pcfg_loc_c) : strtod ((s), (e)))
+#else
+#define PCFG_STRTOD(s,e) strtod ((s), (e))
+#endif
 
 #define PCFG_MAXTOK   24
 #define PCFG_MAXSLOT  (PCFG_MAXTOK * 2)
@@ -1910,7 +1931,7 @@ static bool merge_read (pcfg_merge_t *m, const pcfg_root_t *r, const char *rel)
       *tab = 0;
 
       const size_t vlen = strlen (line);
-      const double p    = strtod (tab + 1, NULL);
+      const double p    = PCFG_STRTOD (tab + 1, NULL);
 
       if ((vlen > 0) && (p > 0.0)) merge_add (m, (const u8 *) line, (u32) vlen, p * w);
 
@@ -9585,6 +9606,10 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   pg->omen_want = (omen != 0);
   pg->cache_ok  = (cache != 0);
   pg->lookup    = lookup;
+
+  #if defined (_WIN)
+  if (pcfg_loc_c == NULL) pcfg_loc_c = _create_locale (LC_ALL, "C");
+  #endif
 
   pg->hint_rank = PCFG_HINT_RANK_ZIPF;
 
