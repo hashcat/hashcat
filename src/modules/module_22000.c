@@ -996,15 +996,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     wpa->pmkid_data[2] = (mac_ap[0]  <<  0)
                        | (mac_ap[1]  <<  8)
                        | (mac_ap[2]  << 16)
-                       | (mac_ap[3]  << 24);
+                       | ((u32) mac_ap[3] << 24);
     wpa->pmkid_data[3] = (mac_ap[4]  <<  0)
                        | (mac_ap[5]  <<  8)
                        | (mac_sta[0] << 16)
-                       | (mac_sta[1] << 24);
+                       | ((u32) mac_sta[1] << 24);
     wpa->pmkid_data[4] = (mac_sta[2] <<  0)
                        | (mac_sta[3] <<  8)
                        | (mac_sta[4] << 16)
-                       | (mac_sta[5] << 24);
+                       | ((u32) mac_sta[5] << 24);
 
     // hash
 
