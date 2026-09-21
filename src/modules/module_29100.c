@@ -100,7 +100,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   memcpy (salt->salt_buf, line_buf, salt_len);
-  salt->salt_buf[salt_len] = '\0';
+
+  // salt_buf is u32[64] and salt_len counts bytes, so indexing it directly wrote element 77 of 64
+  // for a salt this token is allowed to be. The terminator belongs at byte salt_len.
+
+  ((u8 *) salt->salt_buf)[salt_len] = 0;
 
   u8 tmp_buf[100] = { 0 };
 
