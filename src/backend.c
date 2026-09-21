@@ -2172,7 +2172,7 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 
   fprintf (stderr, "[host] device #%u, %" PRIu64 " launches, %.0f ms total", device_param->device_id + 1, device_param->pipe_launches, total);
 
-  for (int i = 0; i < PIPE_SLOTS; i++)
+  for (int i = 0; i < PIPE_TOTAL_END; i++)
   {
     // feed sits outside the total for the same reason it sits outside the critical path, so quoting
     // it a share of that total is how it ended up reading as more than all of it.
@@ -2184,17 +2184,22 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
       continue;
     }
 
-    if (i >= PIPE_TOTAL_END)
-    {
-      fprintf (stderr, ", %s %.0f (%.1f%% of copy, %.2f ms)", names[i], device_param->pipe_msec[i], (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
-
-      continue;
-    }
-
     fprintf (stderr, ", %s %.0f (%.1f%%, %.2f ms)", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
   }
 
   fprintf (stderr, ", effective %.0f H/s, peak %.0f MB\n", (double) device_param->pipe_cands / (total / 1000.0), (double) hc_peak_rss () / (1024 * 1024));
+
+  // The stages above partition the total. The five below are measured inside copy, so they are a
+  // different quantity and get a line of their own rather than a further 220 characters on that one.
+
+  fprintf (stderr, "[host] device #%u", device_param->device_id + 1);
+
+  for (int i = PIPE_TOTAL_END; i < PIPE_SLOTS; i++)
+  {
+    fprintf (stderr, ", %s %.0f (%.1f%% of copy, %.2f ms)", names[i], device_param->pipe_msec[i], (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+  }
+
+  fprintf (stderr, "\n");
 }
 
 // A fast hash mode has two kernel shapes, and every site that binds, autotunes, self tests or runs one
@@ -2477,6 +2482,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
             }
 
+            // The loop kernels are the launch on this path, and a mode whose loop is all of its work
+            // was reading zero here with PIPE_OTHER holding the whole run.
+
+            pipe_acc (device_param, PIPE_LAUNCH, &timer_stage);
+
             if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)
             {
               // only let the bridge write the exec_msec ring when it replaced the loop kernel.
@@ -2486,6 +2496,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               const u32 event_update = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) ? true : false;
 
               if (run_bridge_loop (hashcat_ctx, device_param, salt_pos, pws_cnt, loop_pos, loop_left, event_update) == -1) return -1;
+
+              // run_bridge_loop () books its own span against PIPE_XFER and PIPE_LAUNCH, so the mark
+              // keeps it out of the accumulator above rather than counting it in both.
+
+              pipe_mark (&timer_stage);
             }
 
             //bug?
