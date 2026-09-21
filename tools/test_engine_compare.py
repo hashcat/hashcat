@@ -372,6 +372,36 @@ def check_mode(mode, ref, seeds, verbose):
 
     words = b"\n".join(WORDS) + b"\n"
 
+    # Whether an engine is seedable is a property of the mode, not of one seed, so it is settled for
+    # every seed before any comparison runs. An oracle that flips a coin agrees with itself some of
+    # the time: probing inside the seed loop called the byte comparison meaningful at the seeds
+    # where the coin came up the same way three times, reported a difference there, and reported it
+    # skipped at the others, which are two answers to one question. m20012 does that three runs in
+    # four.
+    #
+    # The probe is run once per seed all the same, because a mode can be steady under one seed and
+    # not another, and the pairs it produces are kept rather than drawn again.
+
+    probe  = {}
+    stable = {}
+
+    for optimized in (False, True):
+      perl_ok = True
+      py_ok   = True
+
+      for seed in seeds:
+        env = env_for(seed, optimized)
+
+        perl_seed_ok, perl_pairs, perl_rc = seedable(perl, env, mode, words)
+        py_seed_ok,   py_pairs,   py_rc   = seedable(py, env, mode, words)
+
+        probe[(seed, optimized)] = (perl_pairs, perl_rc, py_pairs, py_rc)
+
+        perl_ok = perl_ok and perl_seed_ok
+        py_ok   = py_ok   and py_seed_ok
+
+      stable[optimized] = (perl_ok, py_ok)
+
     per_seed = []
 
     for seed in seeds:
@@ -382,8 +412,9 @@ def check_mode(mode, ref, seeds, verbose):
 
         tag = "-O" if optimized else "  "
 
-        perl_stable, perl_pairs, perl_rc = seedable(perl, env, mode, words)
-        py_stable,   py_pairs,   py_rc   = seedable(py, env, mode, words)
+        perl_pairs, perl_rc, py_pairs, py_rc = probe[(seed, optimized)]
+
+        perl_stable, py_stable = stable[optimized]
 
         # A mode with no kernel of the family the run asked for is not applicable, and the two
         # engines say so differently on purpose: the python one exits 2, which tools/test.sh turns
@@ -440,22 +471,40 @@ def check_mode(mode, ref, seeds, verbose):
         # 3. byte comparison, where the seed reaches both
 
         if perl_stable and py_stable:
-          results.append(compare("potthrough %s" % tag, perl_pairs, py_pairs, verbose))
+          byte = [compare("potthrough %s" % tag, perl_pairs, py_pairs, verbose)]
 
           p = perl(env, "single", str(mode)).stdout
           y = py(env, "single", str(mode)).stdout
 
-          results.append(compare("single %s" % tag, p, y, verbose))
+          byte.append(compare("single %s" % tag, p, y, verbose))
 
           for attack in (0, 1, 3):
             p = perl(env, "edge", str(mode), str(attack), "1" if optimized else "0").stdout
             y = py(env, "edge", str(mode), str(attack), "1" if optimized else "0").stdout
 
-            results.append(compare("edge a%d %s" % (attack, tag), p, y, verbose))
-        else:
-          which = " and ".join(name for name, stable in
+            byte.append(compare("edge a%d %s" % (attack, tag), p, y, verbose))
+
+          # A difference is checked before it is reported. Proving an oracle seedable means
+          # sampling it, and an oracle that flips a weighted coin can come up the same way every
+          # time it is asked and still not be seedable, so the probe above can let one through.
+          # Asking again costs nothing on the runs that agree, and the answer here is the one that
+          # goes in the report.
+
+          if any(state is False for state, _ in byte):
+            perl_stable = seedable(perl, env, mode, words)[0]
+            py_stable   = seedable(py,   env, mode, words)[0]
+
+            if perl_stable and py_stable:
+              results.extend(byte)
+            else:
+              stable[optimized] = (perl_stable, py_stable)
+          else:
+            results.extend(byte)
+
+        if not (perl_stable and py_stable):
+          which = " and ".join(name for name, is_stable in
                                (("the perl oracle", perl_stable), ("the python oracle", py_stable))
-                               if not stable)
+                               if not is_stable)
 
           results.append((True, "%-34s skipped, %s draws from a generator HCTEST_SEED does not reach"
                           % ("byte comparison %s" % tag, which)))
