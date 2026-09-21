@@ -93,6 +93,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   int i;
   int j;
 
+  if (salt_len & 1) return (PARSER_TOKEN_LENGTH);
+
   // i + 1, not i: hex_to_u8 () reads two characters, so an odd salt_len read one past the token
 
   for (i = 0, j = 0; (i + 1) < salt_len; i += 2, j += 1)

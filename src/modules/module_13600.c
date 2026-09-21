@@ -277,6 +277,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *data_buf_ptr = (u8 *) zip2->data_buf;
 
+  if (data_len & 1) return (PARSER_TOKEN_LENGTH);
+
   // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
   // token, which is the next field of the line or the caller's terminator
 
@@ -299,6 +301,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int auth_len = token.len[8];
 
   u8 *auth_ptr = (u8 *) zip2->auth_buf;
+
+  if (auth_len & 1) return (PARSER_TOKEN_LENGTH);
 
   // i + 1, not i: the loop reads two characters per byte, so an odd auth_len read one past the
   // token, which is the next field of the line or the caller's terminator

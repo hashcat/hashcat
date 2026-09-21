@@ -170,6 +170,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *saltbuf_ptr = (u8 *) salt->salt_buf;
 
+  if (salt_len & 1) return (PARSER_TOKEN_LENGTH);
+
   // i + 1, not i: the loop reads two characters per byte, so an odd salt_len read one past the
   // token, which is the next field of the line or the caller's terminator
 
@@ -203,6 +205,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int data_len = token.len[3];
 
   u8 *databuf_ptr = (u8 *) cloudkey->data_buf;
+
+  if (data_len & 1) return (PARSER_TOKEN_LENGTH);
 
   // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
   // token, which is the next field of the line or the caller's terminator

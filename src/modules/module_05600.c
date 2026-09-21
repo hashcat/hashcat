@@ -163,6 +163,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * handle server challenge encoding
    */
 
+  if (srvchall_len & 1) return (PARSER_TOKEN_LENGTH);
+
   // i + 1, not i: the loop reads two characters per byte, so an odd srvchall_len read one past the
   // token, which is the next field of the line or the caller's terminator
 
@@ -178,6 +180,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   /**
    * handle client challenge encoding
    */
+
+  if (clichall_len & 1) return (PARSER_TOKEN_LENGTH);
 
   // i + 1, not i: the loop reads two characters per byte, so an odd clichall_len read one past the
   // token, which is the next field of the line or the caller's terminator
