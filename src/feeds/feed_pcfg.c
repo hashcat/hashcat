@@ -9561,6 +9561,12 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   const char *weights = NULL;
   const char *lookup  = NULL;
 
+  // 0 is "say nothing", which leaves the bound the hash mode already carries. They only ever narrow
+  // that bound, so naming a length the kernel cannot take is not a way to ask for one.
+
+  u64 pwmin = 0;
+  u64 pwmax = 0;
+
   const feed_param_t params[] =
   {
     { "scale",   FEED_PARAM_TYPE_U64, &scale,   1, 64, "quantisation steps per bit" },
@@ -9579,6 +9585,8 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "hintrepeat", FEED_PARAM_TYPE_U64, &hintrepeat, 0, 1, "let one candidate spell the same hint word more than once, which naming that word twice does for one word alone" },
     { "weights", FEED_PARAM_TYPE_STR, &weights, 0, 0, "share of the grammar each ruleset carries, colon separated, one per ruleset" },
     { "lookup",  FEED_PARAM_TYPE_STR, &lookup,  0, 0, "ask where this attack reaches a candidate instead of running it" },
+    { "pwmin",   FEED_PARAM_TYPE_U64, &pwmin,   0, PW_MAX, "shortest candidate to produce, 0 to take what the hash mode allows" },
+    { "pwmax",   FEED_PARAM_TYPE_U64, &pwmax,   0, PW_MAX, "longest candidate to produce, 0 to take what the hash mode allows. A run against a list of one known length spends nothing on the others" },
     { NULL, 0, NULL, 0, 0, NULL }
   };
 
@@ -9592,6 +9600,28 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   if ((maxword != 0) && ((maxword % 16) != 0))
   {
     gerr (global_ctx, "maxword must be a multiple of 16, which is one hash block");
+
+    return false;
+  }
+
+  // The length bound is read where the keyspace is counted and again where a candidate is unranked,
+  // so narrowing it here takes the shorter and longer candidates out of the job rather than throwing
+  // them away once made. On a list of one known length that is most of the work: of the 23159 shapes
+  // in the included ruleset, 1370 can produce 12 characters, and they carry 1.4 percent of it.
+
+  if (pwmin != 0)
+  {
+    if ((u32) pwmin > pg->pwmin) pg->pwmin = (u32) pwmin;
+  }
+
+  if (pwmax != 0)
+  {
+    if ((pg->pwmax == 0) || ((u32) pwmax < pg->pwmax)) pg->pwmax = (u32) pwmax;
+  }
+
+  if ((pg->pwmax != 0) && (pg->pwmin > pg->pwmax))
+  {
+    gerr (global_ctx, "pwmin %u is longer than pwmax %u, which leaves no candidate to produce", pg->pwmin, pg->pwmax);
 
     return false;
   }

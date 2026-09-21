@@ -421,6 +421,18 @@ Most people never need any of them.
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
 | `hintrepeat` | 0 | Let one candidate spell the same hint word twice. See section 4. |
 | `hintaccount` | 0 | Words to take from each hash instead, which is what `-a 9` uses. See `hashcat-association.md`. |
+| `pwmin` | from the hash-mode | Shortest candidate to produce. |
+| `pwmax` | from the hash-mode | Longest candidate to produce. |
+
+`pwmin` and `pwmax` are worth knowing about when you already know how long the passwords are, which
+is common: a list extracted by length, or a format that fixes it. The bound is read where the keyspace
+is counted, not where a candidate is written out, so the shorter and longer candidates are never built
+rather than being built and dropped. Against the included ruleset, 1370 of its 23159 shapes can
+produce 12 characters and they carry 1.4 percent of the probability, so `pwmin=12 pwmax=12` on a list
+of 12 character passwords leaves the run doing almost none of the work it would otherwise do.
+
+Both only ever narrow what the hash-mode already allows, so neither is a way to ask for a length the
+kernel cannot take, and `0` means say nothing and take the hash-mode's own bound.
 
 `scale` is hashcat's own setting and is not read from the ruleset, so it reads `scale 1` on the status
 screen until you ask for something else. It is unrelated to `--coverage` in the trainer, which is set
