@@ -190,7 +190,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   oldoffice34->rc4key[1] = 0;
   oldoffice34->rc4key[0] = 0;
 
-  oldoffice34->rc4key[0] |= hex_convert (rc4key_pos[0]) << 28;
+  oldoffice34->rc4key[0] |= (u32) hex_convert (rc4key_pos[0]) << 28;
   oldoffice34->rc4key[0] |= hex_convert (rc4key_pos[1]) << 24;
   oldoffice34->rc4key[0] |= hex_convert (rc4key_pos[2]) << 20;
   oldoffice34->rc4key[0] |= hex_convert (rc4key_pos[3]) << 16;
