@@ -456,17 +456,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_pmkid->pmkid_data[0] = 0x204b4d50; // "PMK "
   wpa_pmkid->pmkid_data[1] = 0x656d614e; // "Name"
-  wpa_pmkid->pmkid_data[2] = (wpa_pmkid->orig_mac_ap[0]  <<  0)
-                           | (wpa_pmkid->orig_mac_ap[1]  <<  8)
-                           | (wpa_pmkid->orig_mac_ap[2]  << 16)
-                           | ((u32) wpa_pmkid->orig_mac_ap[3] << 24);
-  wpa_pmkid->pmkid_data[3] = (wpa_pmkid->orig_mac_ap[4]  <<  0)
-                           | (wpa_pmkid->orig_mac_ap[5]  <<  8)
-                           | (wpa_pmkid->orig_mac_sta[0] << 16)
+  wpa_pmkid->pmkid_data[2] = ((u32) wpa_pmkid->orig_mac_ap[0]  <<  0)
+                           | ((u32) wpa_pmkid->orig_mac_ap[1]  <<  8)
+                           | ((u32) wpa_pmkid->orig_mac_ap[2]  << 16)
+                           | ((u32) wpa_pmkid->orig_mac_ap[3]  << 24);
+  wpa_pmkid->pmkid_data[3] = ((u32) wpa_pmkid->orig_mac_ap[4]  <<  0)
+                           | ((u32) wpa_pmkid->orig_mac_ap[5]  <<  8)
+                           | ((u32) wpa_pmkid->orig_mac_sta[0] << 16)
                            | ((u32) wpa_pmkid->orig_mac_sta[1] << 24);
-  wpa_pmkid->pmkid_data[4] = (wpa_pmkid->orig_mac_sta[2] <<  0)
-                           | (wpa_pmkid->orig_mac_sta[3] <<  8)
-                           | (wpa_pmkid->orig_mac_sta[4] << 16)
+  wpa_pmkid->pmkid_data[4] = ((u32) wpa_pmkid->orig_mac_sta[2] <<  0)
+                           | ((u32) wpa_pmkid->orig_mac_sta[3] <<  8)
+                           | ((u32) wpa_pmkid->orig_mac_sta[4] << 16)
                            | ((u32) wpa_pmkid->orig_mac_sta[5] << 24);
 
   // salt
