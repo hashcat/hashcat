@@ -77,9 +77,10 @@ From our experience in the last years adding new hashcat hash-modes we cannot st
 
 The main program (tools/test_module_runner.py) loads at runtime the hash-mode specific code written like a plugin. The structure of this python module is standardized. We have already mentioned that all existing code to the 300+ hash-modes from previous hashcat versions have been refactored. Also all 300+ hash-mode specific unit-test stubs have been refactored into this new Test Suite Framework. The same way the before mentioned modules and kernels act as a reference, the unit-test stubs can also be used as reference. In most of the cases you can simply copy/paste from an existing unit-test stubs, change a small piece of code and both are ready, the POC and the unit-test stub.
 
-The test suite itself consists of three files:
+The test suite itself consists of four files:
 
 * tools/test_module_runner.py: This program generates random passwords, salts and loads the unit-test stub code which you will develop.
+* tools/test_module_runner.pl: The same program for a mode whose unit-test stub is still a m[hash_mode].pm. Both scripts take the same arguments and the two shell scripts below pick whichever one the mode has a stub for.
 * tools/test.sh: This script compares the generated passwords from test_module_runner.py with the output from hashcat. It calls the hashcat binary multiple times, each time with a different set options to test your implementation on a deep level.
 * tools/test_edge.sh: This script tests the length edge cases of your implementation. It calls test_module_runner.py in edge mode, which reads your module_constraints() and emits the shortest and longest password and salt the module claims to accept, and then runs each of them through hashcat for every attack type and both kernel families.
 
