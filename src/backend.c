@@ -13489,7 +13489,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_id, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
 
         if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
       }
@@ -13544,41 +13544,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // tuning db
 
-      tuning_db_entry_t *tuningdb_entry = NULL;
+      tuning_db_entry_t *tuningdb_entry;
 
-      for (int i = 0; i < 2; i++)
+      if (user_options->slow_candidates == true)
       {
-        char *search_name = NULL;
-
-        // Two passes, the same as the kernel_accel lookup below. A module registers its row under
-        // MODULE_<device id>_<device name>, which a search by the device name alone cannot reach. The
-        // first pass carries no vendor id, so a vendor row cannot answer before that name is tried.
-
-        cl_uint search_vendor_id = 0;
-
-        if (i == 0)
-        {
-          hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, device_param->device_name);
-        }
-        else
-        {
-          search_name = device_param->device_name;
-
-          search_vendor_id = tuningdb_vendor_id;
-        }
-
-        if (user_options->slow_candidates == true)
-        {
-          tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
-        }
-        else
-        {
-          tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
-        }
-
-        if (i == 0) hcfree (search_name);
-
-        if (tuningdb_entry != NULL) break;
+        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_id, device_param->opencl_device_type, tuningdb_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
+      }
+      else
+      {
+        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_id, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
       }
 
       if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
@@ -13724,39 +13698,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     tuning_db_entry_t *tuningdb_entry = NULL;
 
-    for (int i = 0; i < 2; i++)
+    if (user_options->slow_candidates == true)
     {
-      char *search_name = NULL;
-
-      // The first pass looks for a row a module generated for this one device, under a name no vendor
-      // alias can belong to. It passes no vendor id, so that pass cannot be answered by a vendor row
-      // and finish the search before the device's real name is ever tried.
-
-      cl_uint search_vendor_id = 0;
-
-      if (i == 0)
-      {
-        hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, device_param->device_name);
-      }
-      else
-      {
-        search_name = device_param->device_name;
-
-        search_vendor_id = tuningdb_vendor_id;
-      }
-
-      if (user_options->slow_candidates == true)
-      {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
-      }
-      else
-      {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
-      }
-
-      if (i == 0) hcfree (search_name);
-
-      if (tuningdb_entry != NULL) break;
+      tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_id, device_param->opencl_device_type, tuningdb_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
+    }
+    else
+    {
+      tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_id, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
     }
 
     // user commandline option override tuning db
