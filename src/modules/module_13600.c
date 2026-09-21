@@ -144,17 +144,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
+  // BASE16, not HEX: both are read as a base 16 number rather than decoded into bytes, one with
+  // sscanf ("%4x") and one with hc_strtoul (), and both take a len_min of 1. The example hash of
+  // this mode carries a compress_length of "0".
+
   token.sep[5]     = '*';
   token.len_min[5] = 1;
   token.len_max[5] = 6;
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_BASE16;
 
   token.sep[6]     = '*';
   token.len_min[6] = 1;
   token.len_max[6] = 6;
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_BASE16;
 
   token.sep[7]     = '*';
   token.len_min[7] = 0;

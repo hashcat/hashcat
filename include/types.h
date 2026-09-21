@@ -1220,6 +1220,12 @@ typedef enum token_attr
   TOKEN_ATTR_VERIFY_BASE58      = 1 << 11,
   TOKEN_ATTR_VERIFY_BECH32      = 1 << 12,
 
+  // TOKEN_ATTR_VERIFY_HEX is hex that decodes to bytes, so it also rejects an odd length. This is
+  // the one for a field of hex characters that is read as characters or as a number, where a length
+  // of 1 is as meaningful as a length of 4.
+
+  TOKEN_ATTR_VERIFY_BASE16      = 1 << 13,
+
 } token_attr_t;
 
 #ifdef WITH_BRAIN

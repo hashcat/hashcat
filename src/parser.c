@@ -519,6 +519,18 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
 
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)
     {
+      // Two characters make one byte, so a token that decodes to bytes has an even length. An odd
+      // one is a line that does not mean what it says, and every caller would drop the trailing
+      // character and report success. A field of hex characters that is not decoded to bytes takes
+      // TOKEN_ATTR_VERIFY_BASE16 instead.
+
+      if (token->len[token_idx] & 1) return (PARSER_TOKEN_LENGTH);
+
+      if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE16)
+    {
       if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
     }
 
