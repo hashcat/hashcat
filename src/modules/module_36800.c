@@ -218,7 +218,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // the encrypted section has to leave one AES block to verify against
 
-  if ((ct_offset + 16) > (u32) data_len) return (PARSER_SALT_VALUE);
+  // ct_offset comes off the line as a decimal and is added to before it is compared, so a value
+  // near UINT32_MAX wrapped and passed a check it could not pass, and the read below then started
+  // that far into the blob. Subtract from data_len instead, which cannot wrap.
+
+  if (data_len < 16) return (PARSER_SALT_VALUE);
+
+  if (ct_offset > (u32) (data_len - 16)) return (PARSER_SALT_VALUE);
 
   sshng->ct_offset = ct_offset;
 
