@@ -50,6 +50,15 @@ size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
 #include "filehandling.h"
 
+bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
+{
+  (void) fp;
+  (void) path;
+  (void) mode;
+
+  return false;
+}
+
 bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 {
   (void) fp;
@@ -95,6 +104,15 @@ u32 get_random_num (const u32 min, const u32 max)
 // A module that can also read a binary capture file, m22000 for instance,
 // names the file layer from module_hash_binary_parse (). The target only ever
 // calls module_hash_decode (), so these say the file is empty.
+
+int hc_fseek (HCFILE *fp, off_t offset, int whence)
+{
+  (void) fp;
+  (void) offset;
+  (void) whence;
+
+  return -1;
+}
 
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {

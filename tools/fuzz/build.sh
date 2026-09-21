@@ -54,6 +54,13 @@ CORE="src/rp.c
       src/paw64.c
       src/timer.c
       src/bitops.c
+      src/cpu_crc32.c
+      src/keyboard_layout.c
+      src/ext_lzma.c
+      src/ext_zlib.c
+      src/dynloader.c
+      src/folder.c
+      src/path.c
       src/plugin_abi.c
       tools/asan/hashconfig.c
       tools/fuzz/stubs.c"
