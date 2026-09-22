@@ -317,6 +317,7 @@ have to act on rather than one you will simply notice.
 - Added mode 35500: WordPress bcrypt(hmac-sha384($pass))
 - Added mode 35700: phpass(md5($pass))
 - Added mode 35800: Symfony Legacy SHA256
+- Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
 
 ##
 ## New Features and Options
@@ -385,6 +386,8 @@ have to act on rather than one you will simply notice.
 - Added "tools/rar32hashcat.py" for mode 23800 RAR3 archives
 - Added "tools/gpg-ocb-aes2hashcat.py" for mode 17050 GnuPG keys in "private-keys-v1.d"
 - Updated "tools/mozilla2hashcat.py" for mode 26150 Firefox 146 "key4.db" files
+- Added "tools/routeros2hashcat.py" for mode 38000 RouterOS backups, unpacked backup directories
+  and monolithic config stores
 
 ##
 ## Performance
@@ -553,6 +556,8 @@ Measurements depend on the device, runtime and workload.
 ## Hash lists and potfile
 
 - The "--show" and "--left" options support "--username" together with "--dynamic-x"
+- A hash list read as anything other than the default hashcat format now names the format it was
+  read as, because that choice reinterprets every line in the file
 
 ## Extraction tools
 
@@ -910,6 +915,9 @@ Measurements depend on the device, runtime and workload.
 - Fixed hashcat continuing after a required thread failed to start, and joining an uninitialized
   thread handle afterwards. A worker that cannot start now runs its work on the calling thread, and
   a cracking, monitor or outfile check thread that fails to start is reported
+- Fixed the "Vector_Width" column of a tuning row a module generates being ignored, because only the
+  "kernel_accel" lookup searched the name those rows are registered under and the "vector_width" one
+  did not
 
 ## Backends: Metal and resource lifecycle
 
@@ -1020,6 +1028,15 @@ Measurements depend on the device, runtime and workload.
   together accumulated throughout a "--loopback" run
 - Fixed "--slow-candidates" reporting a crack position relative to the batch rather than the
   keyspace, which "--outfile-format 4" then wrote as a position from the launch start
+- Fixed the potfile, outfile, loopback, logfile and stdout paths discarding a failure from
+  "hc_lockfile()" or "hc_unlockfile()", so a write could go into a file hashcat did not hold
+- Fixed the potfile and the debug file warning on every cracked hash when a file lock cannot be
+  taken, so a run on a filesystem that refuses locking outright buried its own output
+- Fixed a hash list being read as a pwdump, passwd or shadow file on the strength of a single
+  matching line, which took one column of every other line as its hash and loaded a file full of
+  the wrong strings without a word about it
+- Fixed hash list format detection settling on the last format to outscore the one before it rather
+  than the format matching the most lines
 
 ## Brain
 
@@ -1063,6 +1080,11 @@ Measurements depend on the device, runtime and workload.
   error now identifies the nonexistent device number
 - Fixed "--help" examples and "docs/hashcat-brain.md" naming "rules/best64.rule" instead of
   "rules/best66.rule", so a copied command failed
+- Fixed "--hash-info" naming no kernel type for the 5 hash modes that pick their kernel from the
+  hash, m14500, m14600, m16500, m16501 and m24600
+- Fixed the status line and the hash list loading progress rounding a percentage up to 100.00%
+  before it was complete and down to 0.00% before it was empty, so a run one digest short of the
+  whole list reported full recovery
 
 ## Windows
 
@@ -1136,6 +1158,10 @@ Measurements depend on the device, runtime and workload.
   setuptools. It now verifies every Python dependency after installation
 - Fixed test modules 14400 and 15000 deriving password lengths from the wrong budget, and the mode
   25700 oracle treating non-ASCII candidate bytes as signed values
+- Fixed "tools/test.sh" running no test at all for the 18 VeraCrypt boot-mode hash types, and added
+  the 3 Streebog boot containers they need
+- Fixed "tools/test_edge.sh" reporting success for a hash mode that names no kernel type, where the
+  loop over those types ran no test at all
 
 * changes v7.1.1 -> v7.1.2
 
