@@ -303,19 +303,13 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
     return;
   }
 
-  if (hc_lockfile (&potfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to lock file.", potfile_ctx->filename);
-  }
+  hc_lockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 
   hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
 
   hc_fflush (&potfile_ctx->fp);
 
-  if (hc_unlockfile (&potfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 }
 
 void potfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
@@ -326,13 +320,7 @@ void potfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
   if (potfile_ctx->enabled == false) return;
   if (hashconfig->potfile_disable == true) return;
 
-  if (potfile_ctx->batch_depth == 0)
-  {
-    if (hc_lockfile (&potfile_ctx->fp) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: Failed to lock file.", potfile_ctx->filename);
-    }
-  }
+  if (potfile_ctx->batch_depth == 0) hc_lockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 
   potfile_ctx->batch_depth++;
 }
@@ -353,10 +341,7 @@ void potfile_batch_end (hashcat_ctx_t *hashcat_ctx)
 
   hc_fflush (&potfile_ctx->fp);
 
-  if (hc_unlockfile (&potfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 }
 
 void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_pw_buf, int line_pw_len)

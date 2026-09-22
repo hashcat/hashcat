@@ -1322,6 +1322,7 @@ typedef struct outfile_data
 typedef struct logfile_ctx
 {
   bool  enabled;
+  bool  lock_warned;
 
   char *logfile;
   char *topid;
@@ -2407,6 +2408,7 @@ typedef struct debugfile_ctx
   HCFILE  fp;
 
   bool    enabled;
+  bool    lock_warned;
 
   char   *filename;
   u32     mode;
@@ -2427,6 +2429,7 @@ typedef struct loopback_ctx
 
   bool    enabled;
   bool    unused;
+  bool    lock_warned;
 
   char   *filename;
 
@@ -2473,6 +2476,7 @@ typedef struct outfile_ctx
   bool    outfile_autohex;
   bool    outfile_json;
   bool    is_fifo;
+  bool    lock_warned;
 
   char   *filename;
 
@@ -2496,6 +2500,7 @@ typedef struct potfile_ctx
   HCFILE   fp;
 
   bool     enabled;
+  bool     lock_warned;
 
   char    *filename;
 

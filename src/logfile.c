@@ -53,10 +53,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
     return;
   }
 
-  if (hc_lockfile (&fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to lock file.", logfile_ctx->logfile);
-  }
+  hc_lockfile_warn (hashcat_ctx, &fp, logfile_ctx->logfile, &logfile_ctx->lock_warned);
 
   va_list ap;
 
@@ -70,10 +67,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   hc_fflush (&fp);
 
-  if (hc_unlockfile (&fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", logfile_ctx->logfile);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &fp, logfile_ctx->logfile, &logfile_ctx->lock_warned);
 
   hc_fclose (&fp);
 }

@@ -76,10 +76,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
     if ((debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5) || (debug_mode == DEBUG_MODE_FEED)) hc_fputc (':', &debugfile_ctx->fp);
   }
 
-  if (hc_lockfile (&debugfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to lock file.", debugfile_ctx->filename);
-  }
+  hc_lockfile_warn (hashcat_ctx, &debugfile_ctx->fp, debugfile_ctx->filename, &debugfile_ctx->lock_warned);
 
   // The rule is rebuilt from the compiled form, so an operand that was written as an escape in the
   // rule file arrives here as the byte it stands for. Written straight out, a rule such as "^\x0a"
@@ -141,10 +138,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
   hc_fflush (&debugfile_ctx->fp);
 
-  if (hc_unlockfile (&debugfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", debugfile_ctx->filename);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &debugfile_ctx->fp, debugfile_ctx->filename, &debugfile_ctx->lock_warned);
 }
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)
