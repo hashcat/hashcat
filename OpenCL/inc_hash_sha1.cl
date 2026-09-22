@@ -2061,7 +2061,7 @@ DECLSPEC void sha1_hmac_init_global_utf16le_swap (PRIVATE_AS sha1_hmac_ctx_t *ct
     {
       // forced full decode in one round
 
-      u32 enc_buf[256];
+      u32 enc_buf[256] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
