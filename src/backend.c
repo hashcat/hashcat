@@ -2084,6 +2084,18 @@ static double pipe_booked (const hc_device_param_t *device_param)
   return booked;
 }
 
+// Page locked only when every slot is, because a refusal is answered slot by slot.
+
+static bool pipe_cells_pinned (const hc_device_param_t *device_param)
+{
+  for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+  {
+    if (device_param->pws_slot[slot_pos].pcfg_cells_pinned == false) return false;
+  }
+
+  return true;
+}
+
 void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 {
   if (pipe_enabled () == false) return;
@@ -2165,7 +2177,7 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
       fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent\": %.2f, \"per_launch_ms\": %.4f }", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
     }
 
-    fprintf (stderr, " }, \"effective_hs\": %.0f, \"peak_rss\": %" PRIu64 " }\n", (double) device_param->pipe_cands / (total / 1000.0), hc_peak_rss ());
+    fprintf (stderr, " }, \"cells_pinned\": %s, \"effective_hs\": %.0f, \"peak_rss\": %" PRIu64 " }\n", (pipe_cells_pinned (device_param) == true) ? "true" : "false", (double) device_param->pipe_cands / (total / 1000.0), hc_peak_rss ());
 
     return;
   }
@@ -2187,7 +2199,7 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
     fprintf (stderr, ", %s %.0f (%.1f%%, %.2f ms)", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
   }
 
-  fprintf (stderr, ", effective %.0f H/s, peak %.0f MB\n", (double) device_param->pipe_cands / (total / 1000.0), (double) hc_peak_rss () / (1024 * 1024));
+  fprintf (stderr, ", cells_pinned %s, effective %.0f H/s, peak %.0f MB\n", (pipe_cells_pinned (device_param) == true) ? "yes" : "no", (double) device_param->pipe_cands / (total / 1000.0), (double) hc_peak_rss () / (1024 * 1024));
 
   // The stages above partition the total. The five below are measured inside copy, so they are a
   // different quantity and get a line of their own rather than a further 220 characters on that one.
@@ -4623,6 +4635,121 @@ int pcfg_seed_cells (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PCFG_CELLS], 0, device_param->pcfg_cells_buf, size) == -1) return -1;
 
   return 0;
+}
+
+// Asked once for the device: per slot would read the free memory after the first slot took its share.
+
+static bool pcfg_cells_may_pin (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u64 want_pinned)
+{
+  if (device_param->device_host_unified_memory != 0) return false;
+
+  // The HIP pair is optional, so a runtime without it is refused here rather than one allocation at a time.
+
+  if (device_param->is_hip == true)
+  {
+    const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+    const HIP_PTR       *hip         = backend_ctx->hip;
+
+    if (hip->hipHostMalloc == NULL) return false;
+    if (hip->hipHostFree   == NULL) return false;
+  }
+
+  u64 free_host_now = 0;
+
+  if (get_free_memory (&free_host_now) == false) return false;
+
+  if (want_pinned > (free_host_now / 8)) return false;
+
+  return true;
+}
+
+// Leaves the pointer NULL where it cannot, which the caller answers with hcmalloc (). pws_comp and
+// pws_idx are left alone: rebuild_pws_compressed_append () replaces them behind this function's back.
+
+static void pcfg_cells_pin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *slot, const u64 size_cells)
+{
+  void *pinned = NULL;
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuMemAllocHost (hashcat_ctx, &pinned, size_cells) == -1) return;
+
+    slot->pcfg_cells        = (pcfg_cell_t *) pinned;
+    slot->pcfg_cells_pinned = true;
+
+    return;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipHostMalloc (hashcat_ctx, &pinned, size_cells) == -1) return;
+
+    slot->pcfg_cells        = (pcfg_cell_t *) pinned;
+    slot->pcfg_cells_pinned = true;
+
+    return;
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    // OpenCL page locks nothing on request, so this is host memory of the runtime's choosing, mapped
+    // once. Mapped for reading too: pcfg_order_batch () sorts in place and write only may be combined.
+
+    cl_mem mem = NULL;
+
+    if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size_cells, NULL, &mem) == -1) return;
+
+    void *mapped = NULL;
+
+    if (hc_clEnqueueMapBuffer (hashcat_ctx, device_param->opencl_command_queue, mem, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, size_cells, 0, NULL, NULL, &mapped) == -1)
+    {
+      hc_clReleaseMemObject (hashcat_ctx, mem);
+
+      return;
+    }
+
+    slot->pcfg_cells        = (pcfg_cell_t *) mapped;
+    slot->pcfg_cells_pinned = true;
+    slot->pcfg_cells_clmem  = (void *) mem;
+
+    return;
+  }
+
+  // No Metal arm: the memory Metal covers is the host's, so the caller's test has already refused it.
+}
+
+// The caller is what has made the device's context current, which the CUDA call needs.
+
+static void pcfg_cells_unpin_slot (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *slot)
+{
+  if (slot->pcfg_cells_pinned == false) return;
+
+  if (device_param->is_cuda == true)
+  {
+    hc_cuMemFreeHost (hashcat_ctx, slot->pcfg_cells);
+  }
+  else if (device_param->is_hip == true)
+  {
+    hc_hipHostFree (hashcat_ctx, slot->pcfg_cells);
+  }
+  else if (device_param->is_opencl == true)
+  {
+    hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, (cl_mem) slot->pcfg_cells_clmem, slot->pcfg_cells, 0, NULL, NULL);
+    hc_clReleaseMemObject      (hashcat_ctx, (cl_mem) slot->pcfg_cells_clmem);
+  }
+
+  slot->pcfg_cells        = NULL;
+  slot->pcfg_cells_pinned = false;
+  slot->pcfg_cells_clmem  = NULL;
+  slot->pcfg_cells_size   = 0;
+}
+
+static void pcfg_cells_unpin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+{
+  for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+  {
+    pcfg_cells_unpin_slot (hashcat_ctx, device_param, &device_param->pws_slot[slot_pos]);
+  }
 }
 
 int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
@@ -16348,6 +16475,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       slot->pws_base   = (pw_pre_t *)    hcmalloc (size_pws_base);
       slot->pcfg_cells = (pcfg_cell_t *) hcmalloc (size_pcfg_cells);
       slot->pcfg_wmap  = (u32 *)         hcmalloc (size_pcfg_wmap);
+
+      // Page locked later, by backend_session_pin_cells (), once the autotune has settled the size.
+
+      slot->pcfg_cells_pinned = false;
+      slot->pcfg_cells_clmem  = NULL;
+      slot->pcfg_cells_size   = size_pcfg_cells;
     }
 
     device_param->pws_comp     = device_param->pws_slot[0].pws_comp;
@@ -16561,6 +16694,76 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   return rc;
 }
 
+// backend_session_begin () is too early: it sizes the buffer for kernel_power_max, the ceiling, and
+// the autotune settles below it, so page locking there would lock what no launch touches and would put
+// that figure to pcfg_cells_may_pin (). Runs once per attack, as inner2_loop () does.
+
+void backend_session_pin_cells (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (backend_ctx->enabled == false) return;
+
+  if (user_options_extra->attack_kern != ATTACK_KERN_PCFG) return;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    // Every producer path adds with kernel_power as the bound, so pws_cnt never passes it.
+
+    const u64 size_used = (u64) device_param->kernel_power * sizeof (pcfg_cell_t);
+
+    if (size_used == 0) continue;
+
+    const u64 want_pinned = size_used * PW_PIPE_SLOTS;
+
+    const bool may_pin = pcfg_cells_may_pin (hashcat_ctx, device_param, want_pinned);
+
+    if (device_param->is_cuda == true)
+    {
+      if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) continue;
+    }
+
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+      const bool big_enough = (slot->pcfg_cells_size >= size_used);
+
+      if ((big_enough == true) && (slot->pcfg_cells_pinned == true)) continue;
+      if ((big_enough == true) && (may_pin == false)) continue;
+
+      pcfg_cells_unpin_slot (hashcat_ctx, device_param, slot);
+
+      hcfree (slot->pcfg_cells);
+
+      slot->pcfg_cells = NULL;
+
+      if (may_pin == true) pcfg_cells_pin (hashcat_ctx, device_param, slot, size_used);
+
+      if (slot->pcfg_cells == NULL) slot->pcfg_cells = (pcfg_cell_t *) hcmalloc (size_used);
+
+      slot->pcfg_cells_size = size_used;
+    }
+
+    if (device_param->is_cuda == true)
+    {
+      CUcontext cuda_context_unused;
+
+      hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_unused);
+    }
+
+    // The view the launch reads the cells through, which pointed at the buffer just handed back.
+
+    device_param->pcfg_cells_buf = device_param->pws_slot[0].pcfg_cells;
+  }
+}
+
 void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -16582,8 +16785,11 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hcfree (slot->pws_comp);
       hcfree (slot->pws_idx);
       hcfree (slot->pws_base);
-      hcfree (slot->pcfg_cells);
       hcfree (slot->pcfg_wmap);
+
+      // A page locked one goes back further down, where its context is current.
+
+      if (slot->pcfg_cells_pinned == false) hcfree (slot->pcfg_cells);
     }
 
     hcfree (device_param->pws_pre_buf);
@@ -16606,6 +16812,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) continue;
     }
+
+    pcfg_cells_unpin (hashcat_ctx, device_param);
 
     // Every buffer the session allocated, released by slot. This list and the one that allocates
     // them used to be written out per backend, and a buffer that reached one and not the other was a
@@ -16725,11 +16933,14 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       pw_batch_t *slot = &device_param->pws_slot[slot_pos];
 
-      slot->pws_comp   = NULL;
-      slot->pws_idx    = NULL;
-      slot->pws_base   = NULL;
-      slot->pcfg_cells = NULL;
-      slot->pcfg_wmap  = NULL;
+      slot->pws_comp          = NULL;
+      slot->pws_idx           = NULL;
+      slot->pws_base          = NULL;
+      slot->pcfg_cells        = NULL;
+      slot->pcfg_cells_pinned = false;
+      slot->pcfg_cells_clmem  = NULL;
+      slot->pcfg_cells_size   = 0;
+      slot->pcfg_wmap         = NULL;
     }
 
     device_param->h_tmps              = NULL;

@@ -546,6 +546,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   backend_ctx_devices_update_power (hashcat_ctx);
 
   /**
+   * and with a launch's size settled, the pcfg cell buffers can be page locked to it
+   */
+
+  backend_session_pin_cells (hashcat_ctx);
+
+  /**
    * Begin loopback recording
    */
 
