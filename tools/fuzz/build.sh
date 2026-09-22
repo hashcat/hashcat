@@ -32,6 +32,8 @@ fi
 
 mkdir -p "$OUT" "$WORK"
 
+rm -f "${OUT}/build_failures.txt"
+
 # Absolute from here on. OUT defaults to a relative path, the seed corpora are zipped from inside
 # the directory they live in, and a relative OUT does not survive that cd: zip reports
 # "Could not create output file" and the build fails on a machine that took the default.
@@ -166,15 +168,24 @@ for mode in $FUZZ_MODES; do
   hash_mode=$((10#$mode))
 
   # shellcheck disable=SC2086
-  $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DFUZZ_HASH_MODE=${hash_mode} \
-      -c tools/fuzz/fuzz_parse.c -o "${WORK}/fuzz_parse_${hash_mode}.o"
+  if ! { $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DFUZZ_HASH_MODE=${hash_mode} \
+             -c tools/fuzz/fuzz_parse.c -o "${WORK}/fuzz_parse_${hash_mode}.o" &&
+         $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "$module" -o "${WORK}/module_${mode}.o" &&
+         $CXX $CXXFLAGS "${WORK}/fuzz_parse_${hash_mode}.o" "${WORK}/module_${mode}.o" $objs \
+             $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_${hash_mode}"; }; then
 
-  # shellcheck disable=SC2086
-  $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "$module" -o "${WORK}/module_${mode}.o"
+    # FUZZ_KEEP_GOING=1 is for a CI shard of forty modes, where one module that does not build
+    # should not take the other thirty nine down with it. It is still a failure: the mode is
+    # written to build_failures.txt and the caller decides what to do about it.
 
-  # shellcheck disable=SC2086
-  $CXX $CXXFLAGS "${WORK}/fuzz_parse_${hash_mode}.o" "${WORK}/module_${mode}.o" $objs \
-      $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_${hash_mode}"
+    if [ "${FUZZ_KEEP_GOING:-0}" = "1" ]; then
+      echo "error: fuzz_parse_${hash_mode} did not build" >&2
+      echo "${hash_mode}" >> "${OUT}/build_failures.txt"
+      continue
+    fi
+
+    exit 1
+  fi
 
   cp "tools/fuzz/fuzz_parse.dict" "${OUT}/"
 

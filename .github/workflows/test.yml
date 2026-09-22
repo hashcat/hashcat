@@ -1,0 +1,200 @@
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+## tools/test.sh on the CPU, through PoCL, because a runner has no GPU.
+##
+## When it runs, and what:
+##
+##   pull request   every mode the pull request changes, at most 30, with every
+##                  attack mode and a single hash. A change to code modes share
+##                  adds test.sh -M, the 24 modes that cover the distinct code
+##                  paths, on attack mode 0.
+##
+##   weekly         every mode, in 16 shards, every attack mode, single and
+##                  multi hash, and only if master has had a commit in the last
+##                  seven days.
+##
+##   manual         the weekly run, or the modes given as input, and with
+##                  "campaign" set the pure kernels as well as the optimized
+##                  ones, for a larger run before a release.
+##
+## .github/workflows/ci_matrix.py decides which modes and which shard.
+##
+## test.sh reports a failure in its output and exits 0 either way, so a job
+## here fails on any result line that is not "OK", and on a mode that gave no
+## result line at all.
+
+name: test
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      modes:
+        description: 'Modes to test, "all" or a space separated list'
+        default: 'all'
+      campaign:
+        description: 'Run the pure kernels too'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'OpenCL/**'
+      - 'src/**'
+      - 'include/**'
+      - 'deps/**'
+      - 'Makefile'
+      - 'tools/test.sh'
+      - 'tools/test_module_runner.*'
+      - 'tools/test_modules/**'
+      - 'tools/install_modules.sh'
+      - 'tools/requirements.txt'
+      - '.github/workflows/test.yml'
+      - '.github/workflows/ci_matrix.py'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          MODES: ${{ inputs.modes }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            python3 .github/workflows/ci_matrix.py test pr "$BASE" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
+            python3 .github/workflows/ci_matrix.py test list "$MODES" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ] &&
+               [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
+            echo "no commit on master in the last seven days, nothing new to test"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            python3 .github/workflows/ci_matrix.py test all | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 330 }}
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    name: test.sh ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install PoCL and what the perl oracles build against
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+               pocl-opencl-icd ocl-icd-libopencl1 clinfo \
+               build-essential cpanminus liblocal-lib-perl libcompress-raw-lzma-perl \
+               libssl-dev libgmp-dev zlib1g-dev libxml2-dev libkrb5-dev libffi-dev
+          clinfo -l
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Python oracles
+        run: pip install -r tools/requirements.txt
+
+      - name: Restore the perl modules
+        uses: actions/cache@v4
+        with:
+          path: ~/perl5
+          key: perl5-${{ runner.os }}-${{ hashFiles('tools/install_modules.sh') }}
+
+      - name: Perl oracles
+        run: |
+          eval "$(perl -I"$HOME/perl5/lib/perl5" -Mlocal::lib)"
+
+          for var in PATH PERL5LIB PERL_LOCAL_LIB_ROOT PERL_MB_OPT PERL_MM_OPT; do
+            echo "${var}=${!var}" >> "$GITHUB_ENV"
+          done
+
+          # the pyenv part of it has nothing to do here, setup-python above is the python
+
+          bash tools/install_modules.sh
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: test.sh
+        env:
+          EVENT: ${{ github.event_name }}
+          MODES: ${{ matrix.modes }}
+          CAMPAIGN: ${{ inputs.campaign }}
+        run: |
+          if [ "$MODES" = "minimal" ]; then
+            runs=("-M -a 0 -t single")
+          elif [ "$EVENT" = "pull_request" ]; then
+            runs=("-a all -t single")
+          elif [ "$CAMPAIGN" = "true" ]; then
+            runs=("-a all -t all" "-a all -t all -P")
+          else
+            runs=("-a all -t all")
+          fi
+
+          # -M names its own 24 modes, so it goes without an -m
+
+          : > results.log
+
+          for mode in $MODES; do
+            sel="-m ${mode}"
+
+            [ "$mode" = "minimal" ] && sel=""
+
+            for opts in "${runs[@]}"; do
+              echo "::group::test.sh ${sel} ${opts}"
+
+              # shellcheck disable=SC2086
+              tools/test.sh ${sel} ${opts} -D 1 -f -r 120 2>&1 | tee run.log || true
+
+              if ! grep -q 'Kernel-Type.*\] > ' run.log; then
+                echo "test.sh ${sel} ${opts}: no result" >> results.log
+              fi
+
+              grep 'Kernel-Type.*\] > ' run.log | grep -v '\] > OK : ' | sed "s/^/${sel} ${opts}: /" >> results.log || true
+
+              echo "::endgroup::"
+            done
+          done
+
+          if [ -s results.log ]; then
+            echo "::error::$(wc -l < results.log) results that are not OK"
+            cat results.log
+            exit 1
+          fi
+
+      - name: Upload the test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs-${{ matrix.name }}
+          path: |
+            results.log
+            test_*/
+          if-no-files-found: ignore

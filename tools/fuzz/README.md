@@ -122,28 +122,38 @@ tokenizer bounded that advance the way it already bounds a fixed length token.
 
 #### In CI ####
 
-`.github/workflows/fuzz.yml` runs both targets nightly and keeps each corpus in the actions cache
-between runs. A campaign that starts from the seed corpus every time relearns the same paths and
-never reaches past them, so the cache is not an optimisation here, it is the thing that makes a
-scheduled run worth more than the run before it.
+`.github/workflows/fuzz.yml` runs at three sizes, and
+[ci_matrix.py](../../.github/workflows/ci_matrix.py) picks the modes for each:
+
+* a pull request fuzzes the parser of every mode it changes, at most 20, for 120 seconds each. One
+  that changes host code the targets link also gets `rule`, `tokenizer` and the four starting modes.
+* once a week, if master has had a commit in the last seven days, every mode in 16 shards for 60
+  seconds each, so about 40 minutes a shard.
+* by hand, with the modes and the seconds a target as inputs, for a longer run before a release.
+
+Each shard keeps its corpus in the actions cache between runs. A campaign that starts from the seed
+corpus every time relearns the same paths and never reaches past them, so the cache is not an
+optimisation here, it is the thing that makes a scheduled run worth more than the run before it. A
+mode lands in the shard its number hashes to, so it keeps its corpus when other modes come and go.
 
 The cache rules that decide whether this works: an entry cannot be written twice under one key, so
 the key carries the run id and the restore falls back to the newest entry with the same prefix; an
-entry is evicted after seven days without a read, which is why this is nightly and not weekly; and
-the repository holds 10 GB of cache and evicts the least recently used entry when full, which is
-why every run merges the corpus down before it saves. Only the scheduled run saves, because a cache
-written by a pull request lives in that pull request's scope and is deleted with it.
+entry is evicted after seven days without a read, which a weekly run only just beats and a quiet
+week does not, so a second schedule on Thursday reads every shard's corpus and does nothing else;
+and the repository holds 10 GB of cache and evicts the least recently used entry when full, which
+is why every run merges the corpus down before it saves. Only a scheduled or manual run on master
+saves, because a cache written by a pull request lives in that pull request's scope and is deleted
+with it.
 
 A crash fails the job and the input is uploaded as an artifact, so a finding arrives as a red cross
-with a reproducer attached.
+with a reproducer attached. A module that does not build as a target fails its shard too, after the
+rest of the shard has run.
 
 #### What is not covered ####
 
-596 of the 600 modes. The four in `FUZZ_MODES` are a starting set, and the cost of adding one is a
-line in that list plus the machine time to fuzz it, which is the part that has to stay within what
-the nightly job can spend.
+Anything past the parser: a target stops where `module_hash_decode ()` returns.
 
-If the project ever wants this run continuously rather than nightly,
+If the project ever wants this run continuously rather than weekly,
 [OSS-Fuzz](https://google.github.io/oss-fuzz/getting-started/new-project-guide/) is where that
 belongs: it keeps the corpus, deduplicates crashes and bisects each finding to the commit that
 introduced it, and the build here already takes `CC`, `CFLAGS` and `LIB_FUZZING_ENGINE` from the
