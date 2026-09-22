@@ -29,15 +29,14 @@ FLAGS = ("02000400", "02000500", "02000800")
 
 
 def _keys(word, salt_raw, count):
-  # The password is widened byte by byte rather than decoded, which is what Encode::encode did for
-  # the .pm this replaces. It is worth saying that neither is right: hashcat cracks a multi byte
-  # password under this mode with neither, so tools/test.sh reports it as not found either way, on
-  # master as well. Matching the .pm keeps the two engines saying the same thing about a mode that
-  # is already failing.
+  # The kernel decodes the UTF-8 rather than widening the bytes, and the mode has no optimized
+  # kernel, so there is no second behaviour to follow and no IS_OPTIMIZED switch either. Both this
+  # helper and the kernel's own decode widened before, which is why no multi byte password was ever
+  # cracked under these modes.
 
-  wide = word.decode("latin1").encode("utf-16-le")
+  utf16le = word.decode("utf-8").encode("utf-16-le")
 
-  key = hashlib.pbkdf2_hmac("sha512", wide, salt_raw, ITERATIONS, count * 32)
+  key = hashlib.pbkdf2_hmac("sha512", utf16le, salt_raw, ITERATIONS, count * 32)
 
   return [key[off:off + 32] for off in range(0, len(key), 32)]
 
