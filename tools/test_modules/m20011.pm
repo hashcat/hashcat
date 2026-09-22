@@ -317,7 +317,11 @@ sub module_generate_hash
     output_len => 64
   );
 
-  my $word_utf16le = encode ("UTF-16LE", $word);
+  # The kernel decodes the UTF-8 instead of widening the bytes, and the mode has no
+  # optimized kernel, so there is no second behaviour to follow and no IS_OPTIMIZED
+  # switch either.
+
+  my $word_utf16le = encode ("UTF-16LE", decode ("UTF-8", $word));
 
   my $salt_bin = pack ("H*", $salt);
 
