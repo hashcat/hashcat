@@ -688,6 +688,23 @@ u32 next_power_of_two (const u32 x)
   return r;
 }
 
+// What to print for a percentage that is shown with two decimals.
+//
+// Two decimals round, so a run one hash short of the whole list reads as 100.00% and a run one hash
+// short of none reads as 0.00%. Those two values are the ones a reader acts on, so hold the printed
+// figure off them until the fraction has really arrived.
+
+double hc_percent_display (const double percent)
+{
+  if (percent >= 100.0) return 100.0;
+  if (percent <= 0.0) return 0.0;
+
+  if (percent > 99.99) return 99.99;
+  if (percent < 0.01) return 0.01;
+
+  return percent;
+}
+
 // Whether an on/off environment switch is set, looked up once.
 //
 // Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each would otherwise

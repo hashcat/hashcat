@@ -68,6 +68,10 @@ HC_API const char *stroptitype (const u32 opti_type);
 HC_PLUGIN_API u32 previous_power_of_two (const u32 x);
 HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 
+// A percentage on its way to a two decimal print, held off 0 and 100 until the fraction gets there.
+
+HC_API double hc_percent_display (const double percent);
+
 // On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
 bool hc_env_flag (const char *name, int *cache);
 

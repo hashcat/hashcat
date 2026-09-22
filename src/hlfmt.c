@@ -904,6 +904,7 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32 max_check)
   u32 *formats_cnt = (u32 *) hccalloc (HLFMTS_CNT, sizeof (u32));
 
   u32 num_check = 0;
+  u32 lines_cnt = 0;
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -912,6 +913,8 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32 max_check)
     const size_t line_len = fgetl (fp, line_buf, HCBUFSIZ_LARGE);
 
     if (line_len == 0) continue;
+
+    lines_cnt++;
 
     if (hlfmt_detect_pwdump (hashcat_ctx, line_buf, line_len)) formats_cnt[HLFMT_PWDUMP]++;
     if (hlfmt_detect_passwd (hashcat_ctx, line_buf, line_len)) formats_cnt[HLFMT_PASSWD]++;
@@ -924,12 +927,21 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32 max_check)
 
   hcfree (line_buf);
 
+  // Nothing counts a line as HLFMT_HASHCAT, so its entry stays at zero and any other format wins on a
+  // single line. One passwd line in a hash list is then enough to read the whole file as /etc/passwd
+  // and take the field between the first and second colon as the hash of every line, which loads a
+  // file full of the wrong strings and says nothing about it. A file is in one of these formats when
+  // most of it is, so the winner has to hold a majority of the lines that were looked at, and it has
+  // to be the format with the most lines rather than the last one to beat the format before it.
+
   u32 hashlist_format = HLFMT_HASHCAT;
+  u32 format_cnt_max  = lines_cnt / 2;
 
   for (u32 i = 1; i < HLFMTS_CNT; i++)
   {
-    if (formats_cnt[i - 1] >= formats_cnt[i]) continue;
+    if (formats_cnt[i] <= format_cnt_max) continue;
 
+    format_cnt_max  = formats_cnt[i];
     hashlist_format = i;
   }
 
