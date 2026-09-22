@@ -2079,7 +2079,7 @@ DECLSPEC void sha1_hmac_init_global_utf16le_swap (PRIVATE_AS sha1_hmac_ctx_t *ct
 
         sha1_init (&tmp);
 
-        sha1_update_utf16le_swap (&tmp, enc_buf, enc_len);
+        sha1_update_swap (&tmp, enc_buf, enc_len);
 
         sha1_final (&tmp);
 

@@ -1530,7 +1530,7 @@ DECLSPEC void sha256_hmac_init_global_utf16le_swap (PRIVATE_AS sha256_hmac_ctx_t
 
         sha256_init (&tmp);
 
-        sha256_update_utf16le_swap (&tmp, enc_buf, enc_len);
+        sha256_update_swap (&tmp, enc_buf, enc_len);
 
         sha256_final (&tmp);
 
