@@ -1020,6 +1020,16 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
 
     kernel_types=$(./hashcat -m ${hash_type} -HH | grep 'Kernel.Type(s' | cut -d: -f2 | xargs | sed -e 's/,//g')
 
+    # No kernel family means no round below, which used to end the run at "All tests done" with
+    # nothing tested and no errors reported. A mode that tests nothing while looking green is worse
+    # than one that fails, so say so and count it.
+
+    if [ -z "${kernel_types}" ]; then
+      echo "[ ${OUTD} ] !> error detected with Hash-Type ${hash_type}: hashcat -HH names no kernel type, nothing to test" | tee -a ${OUTD}/test_edge.details.log
+      ((errors++))
+      continue
+    fi
+
     for kernel_type in ${kernel_types}; do
 
       kernel_type_pad=$(printf "%9s\n" ${kernel_type})
