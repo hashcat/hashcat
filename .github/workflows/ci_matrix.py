@@ -41,7 +41,7 @@ FUZZ_DEFAULT_MODES = [7400, 17225, 22000, 29100]
 FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|timer|bitops|cpu_crc32|"
                          r"keyboard_layout|ext_lzma|ext_zlib|dynloader|folder|path|plugin_abi|emu_[a-z0-9_]+)\.c"
                          r"|include/.*|tools/fuzz/.*|tools/asan/hashconfig\.[ch]"
-                         r"|\.github/workflows/(fuzz\.yml|ci_matrix\.py))$")
+                         r"|\.github/workflows/(fuzz\.yml|fuzz_report\.py|ci_matrix\.py))$")
 
 # Everything test.sh builds on or runs through that does not belong to one mode.
 

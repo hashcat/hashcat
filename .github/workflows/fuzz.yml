@@ -63,6 +63,7 @@ on:
       - 'tools/asan/hashconfig.*'
       - '.github/workflows/fuzz.yml'
       - '.github/workflows/ci_matrix.py'
+      - '.github/workflows/fuzz_report.py'
 
 permissions:
   contents: read
@@ -158,7 +159,10 @@ jobs:
             [ -x "$bin" ] && targets="$targets ${bin#fuzz_out/fuzz_}"
           done
 
+          set -o pipefail
+
           failed=""
+          reports=""
 
           for target in $targets; do
             mkdir -p "corpus/${target}" "crashes/${target}"
@@ -182,8 +186,9 @@ jobs:
                    -ignore_crashes=0 \
                    -max_total_time=${duration} \
                    -timeout=25 \
-                   -print_final_stats=1; then
+                   -print_final_stats=1 2>&1 | tee "fuzz_${target}.log"; then
               failed="$failed ${target}"
+              reports="${reports}$(python3 .github/workflows/fuzz_report.py "${target}" "fuzz_${target}.log" "crashes/${target}")"$'\n'
             fi
 
             # merge down to what still reaches new code before the cache sees it
@@ -199,13 +204,17 @@ jobs:
             echo "::endgroup::"
           done
 
+          # the annotations go out after the groups are closed, so they are not folded away in one
+
+          printf '%s' "$reports"
+
           if [ -s fuzz_out/build_failures.txt ]; then
-            echo "::error::parser targets that did not build: $(tr '\n' ' ' < fuzz_out/build_failures.txt)"
+            echo "::error title=did not build::parser targets that did not build: $(tr '\n' ' ' < fuzz_out/build_failures.txt)"
             failed="$failed build"
           fi
 
           if [ -n "$failed" ]; then
-            echo "::error::failed:${failed}"
+            echo "found something in:${failed}. The job summary has the input and a command for each."
             exit 1
           fi
 
