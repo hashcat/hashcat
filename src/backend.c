@@ -2067,6 +2067,23 @@ void pipe_acc (hc_device_param_t *device_param, const pipe_slot_t slot, hc_timer
   hc_timer_set (timer);
 }
 
+// What the stages in the total have claimed so far, PIPE_OTHER aside, because working PIPE_OTHER out
+// is what this is for.
+
+static double pipe_booked (const hc_device_param_t *device_param)
+{
+  double booked = 0;
+
+  for (int i = PIPE_TOTAL_FIRST; i < PIPE_TOTAL_END; i++)
+  {
+    if (i == PIPE_OTHER) continue;
+
+    booked += device_param->pipe_msec[i];
+  }
+
+  return booked;
+}
+
 void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 {
   if (pipe_enabled () == false) return;
@@ -2074,18 +2091,48 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
   device_param->pipe_launches++;
   device_param->pipe_cands += cands;
 
+  // The clock starts with the first launch rather than with the first report, and remembers what the
+  // stages had claimed by then, or the two would cover different windows: a clock that starts at the
+  // report is short by every launch before it, and the subtraction below then reads zero on a device
+  // whose stages are busy. What the first launch itself did not book is outside both, which is where
+  // the warm up belongs.
+
+  if (device_param->pipe_wall_set == false)
+  {
+    hc_timer_set (&device_param->pipe_wall);
+
+    device_param->pipe_wall_base = pipe_booked (device_param);
+    device_param->pipe_wall_set  = true;
+  }
+
   if ((device_param->pipe_launches % pipe_every ()) != 0) return;
 
-  static const char *names[PIPE_SLOTS] = { "feed", "copy", "init", "xfer", "launch", "comp" };
+  static const char *names[PIPE_SLOTS] = { "feed", "copy", "init", "xfer", "launch", "comp", "wait", "other", "sort", "cells", "pwsio", "decomp", "sync" };
 
-  // feed is deliberately left out of the total. It runs on the producer thread, so it costs the
-  // launch nothing, and counting it would make every other share look smaller than it is.
+  // feed is left out of the total because it runs on the producer thread, and the five shares after
+  // other are left out because they are inside copy rather than beside it. See pipe_slot_t for both.
+
+  // The stages are bracketed one at a time, so anything between two of them is dropped rather than
+  // booked, and a report that is only their sum cannot say so. Measuring the launches against a clock
+  // of their own is what turns that silence into a number, and today it holds the slow hash loop, the
+  // hooks and both bridge paths.
+  //
+  // The clock is never restarted and the residue is assigned rather than accumulated, because every
+  // figure the report prints is a running total. The sum it is measured against leaves PIPE_OTHER out,
+  // or it would be measured against itself.
+
+  const double wall   = hc_timer_get (device_param->pipe_wall);
+  const double booked = pipe_booked (device_param) - device_param->pipe_wall_base;
+
+  device_param->pipe_msec[PIPE_OTHER] = (wall > booked) ? wall - booked : 0;
 
   double total = 0;
 
-  for (int i = PIPE_COPY; i < PIPE_SLOTS; i++) total += device_param->pipe_msec[i];
+  for (int i = PIPE_TOTAL_FIRST; i < PIPE_TOTAL_END; i++) total += device_param->pipe_msec[i];
 
   if (total <= 0.0) return;
+
+  const double copy_ms = device_param->pipe_msec[PIPE_COPY];
 
   if (g_pipe_json == true)
   {
@@ -2098,7 +2145,19 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 
       if (i == PIPE_FEED)
       {
-        fprintf (stderr, " \"%s\": { \"ms\": %.3f, \"per_launch_ms\": %.4f, \"in_critical_path\": false }", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+        // On the critical path where the producer has no thread of its own. See pipe_serial.
+
+        fprintf (stderr, " \"%s\": { \"ms\": %.3f, \"per_launch_ms\": %.4f, \"in_critical_path\": %s }", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches, (device_param->pipe_serial == true) ? "true" : "false");
+
+        continue;
+      }
+
+      // A sub-stage is quoted against the copy it sits inside, not against the total, because a share
+      // of the total would read as if it were beside copy rather than part of it.
+
+      if (i >= PIPE_TOTAL_END)
+      {
+        fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent_of_copy\": %.2f, \"per_launch_ms\": %.4f, \"counted_in\": \"copy\" }", names[i], device_param->pipe_msec[i], (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
 
         continue;
       }
@@ -2113,14 +2172,14 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 
   fprintf (stderr, "[host] device #%u, %" PRIu64 " launches, %.0f ms total", device_param->device_id + 1, device_param->pipe_launches, total);
 
-  for (int i = 0; i < PIPE_SLOTS; i++)
+  for (int i = 0; i < PIPE_TOTAL_END; i++)
   {
     // feed sits outside the total for the same reason it sits outside the critical path, so quoting
     // it a share of that total is how it ended up reading as more than all of it.
 
     if (i == PIPE_FEED)
     {
-      fprintf (stderr, ", %s %.0f (ahead, %.2f ms)", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+      fprintf (stderr, ", %s %.0f (%s, %.2f ms)", names[i], device_param->pipe_msec[i], (device_param->pipe_serial == true) ? "inside wait" : "ahead", device_param->pipe_msec[i] / (double) device_param->pipe_launches);
 
       continue;
     }
@@ -2129,6 +2188,18 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
   }
 
   fprintf (stderr, ", effective %.0f H/s, peak %.0f MB\n", (double) device_param->pipe_cands / (total / 1000.0), (double) hc_peak_rss () / (1024 * 1024));
+
+  // The stages above partition the total. The five below are measured inside copy, so they are a
+  // different quantity and get a line of their own rather than a further 220 characters on that one.
+
+  fprintf (stderr, "[host] device #%u", device_param->device_id + 1);
+
+  for (int i = PIPE_TOTAL_END; i < PIPE_SLOTS; i++)
+  {
+    fprintf (stderr, ", %s %.0f (%.1f%% of copy, %.2f ms)", names[i], device_param->pipe_msec[i], (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+  }
+
+  fprintf (stderr, "\n");
 }
 
 // A fast hash mode has two kernel shapes, and every site that binds, autotunes, self tests or runs one
@@ -2411,6 +2482,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
             }
 
+            // The loop kernels are the launch on this path, and a mode whose loop is all of its work
+            // was reading zero here with PIPE_OTHER holding the whole run.
+
+            pipe_acc (device_param, PIPE_LAUNCH, &timer_stage);
+
             if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)
             {
               // only let the bridge write the exec_msec ring when it replaced the loop kernel.
@@ -2420,6 +2496,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               const u32 event_update = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) ? true : false;
 
               if (run_bridge_loop (hashcat_ctx, device_param, salt_pos, pws_cnt, loop_pos, loop_left, event_update) == -1) return -1;
+
+              // run_bridge_loop () books its own span against PIPE_XFER and PIPE_LAUNCH, so the mark
+              // keeps it out of the accumulator above rather than counting it in both.
+
+              pipe_mark (&timer_stage);
             }
 
             //bug?
@@ -4362,6 +4443,14 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
 int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
 {
+  // Timed at the definition so that every call site is covered. What this measures is the enqueue and
+  // nothing else: the launch below is asynchronous on every backend, so the kernel's own execution is
+  // paid for at the next synchronising call and belongs to whatever stage makes it.
+
+  hc_timer_t timer_decompress;
+
+  pipe_mark (&timer_decompress);
+
   device_param->kernel_params_decompress_buf64[3] = num;
 
   u64 num_elements = num;
@@ -4425,6 +4514,8 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL) == -1) return -1;
   }
+
+  pipe_acc (device_param, PIPE_DECOMP, &timer_decompress);
 
   return 0;
 }
@@ -4566,7 +4657,13 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
   if (length_sort_enabled (hashcat_ctx) == true)
   {
+    hc_timer_t timer_sort;
+
+    pipe_mark (&timer_sort);
+
     sort_pws_idx_by_len (device_param, pws_cnt);
+
+    pipe_acc (device_param, PIPE_SORT, &timer_sort);
   }
 
   // The cells go up with the base words they belong to. There is one per base word and the two arrays
@@ -4576,11 +4673,17 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   {
     // The layout was built with the batch, on the producer thread. See pcfg_plan_cell () in dispatch.c.
 
+    hc_timer_t timer_cells;
+
+    pipe_mark (&timer_cells);
+
     const u64 size  = pws_cnt * sizeof (pcfg_cell_t);
     const u64 wsize = device_param->pcfg_lane_total * sizeof (u32);
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PCFG_CELLS], 0, device_param->pcfg_cells_buf, size) == -1) return -1;
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PCFG_WMAP],  0, device_param->pcfg_wmap_buf,  wsize) == -1) return -1;
+
+    pipe_acc (device_param, PIPE_CELLS, &timer_cells);
   }
 
   if (user_options->slow_candidates == true)
@@ -4605,6 +4708,10 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
     if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
     {
+      hc_timer_t timer_pwsio;
+
+      pipe_mark (&timer_pwsio);
+
       if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_IDX], 0, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
 
       const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
@@ -4615,6 +4722,8 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
       {
         if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_COMP_BUF], 0, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
       }
+
+      pipe_acc (device_param, PIPE_PWSIO, &timer_pwsio);
 
       if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
     }
@@ -4710,6 +4819,14 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     }
   }
 
+  // The copies above are synchronous but the decompress kernel is not, so this is where its execution
+  // is actually paid for. Timed on its own, because a wait is not a transfer and the two want different
+  // fixes.
+
+  hc_timer_t timer_sync;
+
+  pipe_mark (&timer_sync);
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
@@ -4731,6 +4848,8 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   {
     if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
+
+  pipe_acc (device_param, PIPE_SYNC, &timer_sync);
 
   return 0;
 }

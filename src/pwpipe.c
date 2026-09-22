@@ -104,6 +104,10 @@ int pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   pipe->serial = (serial == true) || (pw_pipe_sync () == true);
 
+  // Told to the device, because the profiler reports per device and cannot see the pipe.
+
+  device_param->pipe_serial = pipe->serial;
+
   if (pipe->serial == true) return 0;
 
   hc_thread_sem_init (pipe->sem_free);
