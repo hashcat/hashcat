@@ -19,24 +19,33 @@
 #ifdef IS_CPU
 
 // Pattern linear
+//
+// One S box per work item, laid out end to end, which is the same 64 u32 per work item the buffer
+// is declared with: LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE]. There are no banks to dodge on a CPU, so
+// the bank avoiding interleave below buys nothing here, but the work item still has to own its own
+// 256 bytes. Leaving lid out of the address gives the whole group one S box, which is only sound
+// when the group holds one work item, and nothing in the header said so.
+//
+// At FIXED_LOCAL_SIZE 1, which is what every other caller compiles with on a CPU, lid is always 0
+// and these are the same addresses as before.
 
-DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, MAYBE_UNUSED const RC4_LID_TYPE lid)
+DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
-  return S8[k];
+  return S8[(lid * 256) + k];
 }
 
-DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, MAYBE_UNUSED const RC4_LID_TYPE lid)
+DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
-  S8[k] = v;
+  S8[(lid * 256) + k] = v;
 }
 
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED const RC4_LID_TYPE lid)
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const RC4_LID_TYPE lid)
 {
-  S[k] = v;
+  S[(lid * 64) + k] = v;
 }
 
 #else
