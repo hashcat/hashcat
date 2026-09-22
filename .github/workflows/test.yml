@@ -122,7 +122,8 @@ jobs:
         run: pip install -r tools/requirements.txt
 
       - name: Restore the perl modules
-        uses: actions/cache@v4
+        id: perl5
+        uses: actions/cache/restore@v4
         with:
           path: ~/perl5
           key: perl5-${{ runner.os }}-${{ hashFiles('tools/install_modules.sh') }}
@@ -138,6 +139,16 @@ jobs:
           # the pyenv part of it has nothing to do here, setup-python above is the python
 
           bash tools/install_modules.sh
+
+      # saved here rather than at the end of the job, which a failed mode would skip, and the next
+      # run would spend half an hour installing the same modules again
+
+      - name: Save the perl modules
+        if: steps.perl5.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/perl5
+          key: perl5-${{ runner.os }}-${{ hashFiles('tools/install_modules.sh') }}
 
       - name: Build
         run: make -j$(nproc)
