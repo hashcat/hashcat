@@ -248,7 +248,7 @@ else
   # to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
   # error. Import each one now, while the cause is still in front of you.
 
-  PYTHON_MODULES="CryptoPlus Crypto pygost cryptography argon2"
+  PYTHON_MODULES="Crypto cryptography argon2 gostcrypto"
 
   for python_module in ${PYTHON_MODULES}; do
 
@@ -277,7 +277,7 @@ if [ -n "${FAILED_MODULES}" ]; then
 
 fi
 
-# The check that actually matters. tools/test.pl loads only the module for the mode it is asked
+# The check that actually matters. tools/test_module_runner.pl loads only the module for the mode it is asked
 # for, so a missing dependency costs the modes that need it and nothing else. What this catches is
 # the case where the perl environment itself is unusable, which makes the suite report
 # "Error : 0/0 not found" on every mode and reads as hashcat failing rather than as a setup
@@ -291,9 +291,9 @@ if ! python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | gre
 
 fi
 
-if perl "${TOOLS_DIR}/test.pl" single 0 2> /dev/null | grep -q hashcat; then
+if perl "${TOOLS_DIR}/test_module_runner.pl" single 0 2> /dev/null | grep -q hashcat; then
 
-  echo "[  OK  ] tools/test.pl can generate hashes, the suite is usable"
+  echo "[  OK  ] tools/test_module_runner.pl can generate hashes, the suite is usable"
 
   if [ -n "${FAILED_MODULES}" ]; then
     echo "         The modules above only affect the hash modes that need them."
@@ -303,7 +303,7 @@ if perl "${TOOLS_DIR}/test.pl" single 0 2> /dev/null | grep -q hashcat; then
 
 fi
 
-echo "[ FAIL ] tools/test.pl cannot generate hashes. The suite would report 'Error : 0/0' on"
+echo "[ FAIL ] tools/test_module_runner.pl cannot generate hashes. The suite would report 'Error : 0/0' on"
 echo "         every mode, which is a setup failure and not a hashcat one. Fix the modules above"
 echo "         and run this script again."
 
