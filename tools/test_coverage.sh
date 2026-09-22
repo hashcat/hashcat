@@ -15,7 +15,7 @@
 #
 # A mode counts as covered when it has an oracle in tools/test_modules/ or
 # appears in one of test.sh's container mode lists. An oracle is an m<mode>.pm,
-# read by test.pl, or an m<mode>.py, read by test_module_runner.py: a mode is
+# read by test_module_runner.pl, or an m<mode>.py, read by test_module_runner.py: a mode is
 # written in one language or the other, never both, so the set is the union of
 # the two, the same way test.sh builds it. Those lists are read out of test.sh
 # rather than repeated here, so this stays correct when they change.

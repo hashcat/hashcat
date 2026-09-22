@@ -962,7 +962,15 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   while (status_ctx->run_thread_level1 == true)
   {
+    // In the total, because a launch thread with no batch to launch is not launching. See pipe_slot_t.
+
+    hc_timer_t timer_take;
+
+    pipe_mark (&timer_take);
+
     pw_batch_t *batch = pw_pipe_take (pipe);
+
+    pipe_acc (device_param, PIPE_TAKE, &timer_take);
 
     if (batch == NULL) break;
 
@@ -1023,9 +1031,12 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (pws_cnt)
     {
+      // Measured on the slow candidate path as well, because the stages inside run_copy () are measured
+      // on both and a share of a stage that no one timed is not a share.
+
       hc_timer_t timer_copy;
 
-      if (slow == false) pipe_mark (&timer_copy);
+      pipe_mark (&timer_copy);
 
       if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
       {
@@ -1034,7 +1045,7 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         break;
       }
 
-      if (slow == false) pipe_acc (device_param, PIPE_COPY, &timer_copy);
+      pipe_acc (device_param, PIPE_COPY, &timer_copy);
 
       const u64 pws_pos = (slow == true) ? (u64) -1 : words_off;
 
@@ -1332,7 +1343,17 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         device_param->words_off_launch = words_off;
 
-        if (run_copy    (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
+        // The mask producer has a loop of its own, and the copy is timed in it for the same reason as
+        // in pipe_run ().
+
+        hc_timer_t timer_copy;
+
+        pipe_mark (&timer_copy);
+
+        if (run_copy (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
+
+        pipe_acc (device_param, PIPE_COPY, &timer_copy);
+
         if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) return -1;
 
         device_param->pws_cnt = 0;

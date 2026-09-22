@@ -4277,13 +4277,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Recovered........: %u/%u (%.2f%%) Digests (total), %u/%u (%.2f%%) Digests (new), %u/%u (%.2f%%) Salts",
       hashcat_status->digests_done,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent,
+      hc_percent_display (hashcat_status->digests_percent),
       hashcat_status->digests_done_new,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent_new,
+      hc_percent_display (hashcat_status->digests_percent_new),
       hashcat_status->salts_done,
       hashcat_status->salts_cnt,
-      hashcat_status->salts_percent);
+      hc_percent_display (hashcat_status->salts_percent));
   }
   else
   {
@@ -4291,10 +4291,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Recovered........: %u/%u (%.2f%%) Digests (total), %u/%u (%.2f%%) Digests (new)",
       hashcat_status->digests_done,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent,
+      hc_percent_display (hashcat_status->digests_percent),
       hashcat_status->digests_done_new,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent_new);
+      hc_percent_display (hashcat_status->digests_percent_new));
   }
 
   if (hashcat_status->digests_cnt > 1000)
@@ -4310,13 +4310,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx,
         "Remaining........: %u (%.2f%%) Digests, %u (%.2f%%) Salts",
         digests_remain,
-        digests_remain_percent,
+        hc_percent_display (digests_remain_percent),
         salts_remain,
-        salts_remain_percent);
+        hc_percent_display (salts_remain_percent));
     }
     else
     {
-      event_log_info (hashcat_ctx, "Remaining........: %u (%.2f%%) Digests", digests_remain, digests_remain_percent);
+      event_log_info (hashcat_ctx, "Remaining........: %u (%.2f%%) Digests", digests_remain, hc_percent_display (digests_remain_percent));
     }
 
     event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
@@ -4342,13 +4342,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
           "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
           hashcat_status->progress_cur_relative_skip,
           hashcat_status->progress_end_relative_skip,
-          hashcat_status->progress_finished_percent);
+          hc_percent_display (hashcat_status->progress_finished_percent));
 
         event_log_info (hashcat_ctx,
           "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
           hashcat_status->progress_rejected,
           hashcat_status->progress_cur_relative_skip,
-          hashcat_status->progress_rejected_percent);
+          hc_percent_display (hashcat_status->progress_rejected_percent));
 
         break;
 
@@ -4557,7 +4557,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
           "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)%s",
           hashcat_status->restore_point,
           hashcat_status->restore_total,
-          hashcat_status->restore_percent,
+          hc_percent_display (hashcat_status->restore_percent),
           totals_buf);
 
         break;

@@ -168,13 +168,13 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   loopback_format_plain (hashcat_ctx, plain_ptr, plain_len);
 
-  hc_lockfile (&loopback_ctx->fp);
+  hc_lockfile_warn (hashcat_ctx, &loopback_ctx->fp, loopback_ctx->filename, &loopback_ctx->lock_warned);
 
   hc_fwrite (EOL, strlen (EOL), 1, &loopback_ctx->fp);
 
   hc_fflush (&loopback_ctx->fp);
 
-  hc_unlockfile (&loopback_ctx->fp);
+  hc_unlockfile_warn (hashcat_ctx, &loopback_ctx->fp, loopback_ctx->filename, &loopback_ctx->lock_warned);
 
   loopback_ctx->unused = false;
 }

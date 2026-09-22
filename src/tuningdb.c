@@ -561,14 +561,28 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
   return entry;
 }
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, const cl_uint device_vendor_id, const int attack_kern, const int hash_mode)
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const int device_id, const cl_device_type device_type, const cl_uint device_vendor_id, const int attack_kern, const int hash_mode)
 {
+  tuning_db_entry_t *entry = NULL;
+
+  // A module generates its rows for one device, and they are registered under a name no vendor alias
+  // can belong to. That name goes first and carries no vendor alias, so a vendor row cannot answer
+  // before the row the module built for this device has been looked for.
+
+  char *module_name = NULL;
+
+  hc_asprintf (&module_name, "MODULE_%02d_%s", device_id, device_name);
+
+  entry = tuning_db_search_real (hashcat_ctx, module_name, device_type, NULL, attack_kern, hash_mode);
+
+  hcfree (module_name);
+
+  if (entry) return entry;
+
   // Worked out once, and from the name exactly as the device reported it, because the searches below
   // retry with a vendor prefix stripped off the front and that prefix is one of the things it reads.
 
   const char *vendor_alias = tuning_db_vendor_alias (device_type, device_vendor_id, device_name);
-
-  tuning_db_entry_t *entry = NULL;
 
   const char *NV_prefix = (const char *) "NVIDIA ";
 

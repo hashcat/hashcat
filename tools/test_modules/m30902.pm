@@ -75,7 +75,7 @@ sub module_get_random_password
 {
   my $seed = shift;
 
-  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test.pl
+  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test_module_runner.pl
   my $derived_key = $master_key->derive_key ("m/0'");
 
   my $priv = $derived_key->get_basic_key ();

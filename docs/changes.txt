@@ -317,6 +317,7 @@ have to act on rather than one you will simply notice.
 - Added mode 35500: WordPress bcrypt(hmac-sha384($pass))
 - Added mode 35700: phpass(md5($pass))
 - Added mode 35800: Symfony Legacy SHA256
+- Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
 
 ##
 ## New Features and Options
@@ -385,6 +386,8 @@ have to act on rather than one you will simply notice.
 - Added "tools/rar32hashcat.py" for mode 23800 RAR3 archives
 - Added "tools/gpg-ocb-aes2hashcat.py" for mode 17050 GnuPG keys in "private-keys-v1.d"
 - Updated "tools/mozilla2hashcat.py" for mode 26150 Firefox 146 "key4.db" files
+- Added "tools/routeros2hashcat.py" for mode 38000 RouterOS backups, unpacked backup directories
+  and monolithic config stores
 
 ##
 ## Performance
@@ -553,6 +556,8 @@ Measurements depend on the device, runtime and workload.
 ## Hash lists and potfile
 
 - The "--show" and "--left" options support "--username" together with "--dynamic-x"
+- A hash list read as anything other than the default hashcat format now names the format it was
+  read as, because that choice reinterprets every line in the file
 
 ## Extraction tools
 
@@ -657,6 +662,11 @@ Measurements depend on the device, runtime and workload.
   "-M" option selects 24 modes spanning every distinct path with vector width 1, and
   "tools/test_coverage.sh" requires every untestable mode to carry an explicit exemption
 - Test modules may be Python or Perl, and generated passwords now include multibyte characters
+- "tools/requirements.txt" installs from PyPI only. "gostcrypto" replaces the pygost checkout, and
+  the XTS the DiskCryptor oracles need is built in "tools/test_modules" over pycryptodome, which
+  retires the pycryptoplus checkout as well
+- "tools/test.pl" is now "tools/test_module_runner.pl", beside the Python engine it shares its
+  name with
 - Added "tools/README.md", "tools/install_dependencies.sh" and "tools/requirements.txt" for test
   suite prerequisites. Perl module installation now reports each package that failed instead of
   only a count
@@ -670,6 +680,9 @@ Measurements depend on the device, runtime and workload.
   16 modes. Added license texts for bundled Argon2, scrypt-jane, yescrypt, PPMd and the Windows
   liblzma and libzstd libraries
 - Added "SECURITY.md", "CONTRIBUTING.md" and "AGENTS.md", and rewrote "README.md"
+- Corrected the "--keep-guessing" section of "docs/limits.txt", which said valid passwords are
+  always reported. Two candidates that match one hash inside one kernel invocation lose one of
+  them, and the section now says so and separates the fast and slow hash cases
 
 ##
 ## Bug Fixes
@@ -793,6 +806,9 @@ Measurements depend on the device, runtime and workload.
 
 ## Hash modes and kernels
 
+- Fixed modes 22000 and 22001 refusing the old PMKID format when it was written with ":" separators
+  rather than "*". The line was rewritten into the current format by copying it whole, which left all
+  4 fields as one token
 - Fixed mode 3000 silently truncating wordlist entries longer than 7 characters instead of rejecting
   them
 - Fixed "-m 19800" and "-m 19900" ignoring the salt field, so a principal whose salt is not the
@@ -899,6 +915,9 @@ Measurements depend on the device, runtime and workload.
 - Fixed hashcat continuing after a required thread failed to start, and joining an uninitialized
   thread handle afterwards. A worker that cannot start now runs its work on the calling thread, and
   a cracking, monitor or outfile check thread that fails to start is reported
+- Fixed the "Vector_Width" column of a tuning row a module generates being ignored, because only the
+  "kernel_accel" lookup searched the name those rows are registered under and the "vector_width" one
+  did not
 
 ## Backends: Metal and resource lifecycle
 
@@ -960,6 +979,8 @@ Measurements depend on the device, runtime and workload.
 
 ## Attack modes and candidates
 
+- Fixed "--stdout" writing a candidate that contains a line ending as two lines. Candidates now use
+  the same "$HEX[...]" form as the outfile, so one candidate is always one line
 - Fixed "--generate-rules-seed" having no effect outside Windows, where the seed went to "srand()"
   while "-g" drew from "random()", so every run produced the same rules
 - Fixed 3 attack-mode 9 paths launching more work items than salts, which could read beyond the salt
@@ -1007,6 +1028,15 @@ Measurements depend on the device, runtime and workload.
   together accumulated throughout a "--loopback" run
 - Fixed "--slow-candidates" reporting a crack position relative to the batch rather than the
   keyspace, which "--outfile-format 4" then wrote as a position from the launch start
+- Fixed the potfile, outfile, loopback, logfile and stdout paths discarding a failure from
+  "hc_lockfile()" or "hc_unlockfile()", so a write could go into a file hashcat did not hold
+- Fixed the potfile and the debug file warning on every cracked hash when a file lock cannot be
+  taken, so a run on a filesystem that refuses locking outright buried its own output
+- Fixed a hash list being read as a pwdump, passwd or shadow file on the strength of a single
+  matching line, which took one column of every other line as its hash and loaded a file full of
+  the wrong strings without a word about it
+- Fixed hash list format detection settling on the last format to outscore the one before it rather
+  than the format matching the most lines
 
 ## Brain
 
@@ -1050,6 +1080,11 @@ Measurements depend on the device, runtime and workload.
   error now identifies the nonexistent device number
 - Fixed "--help" examples and "docs/hashcat-brain.md" naming "rules/best64.rule" instead of
   "rules/best66.rule", so a copied command failed
+- Fixed "--hash-info" naming no kernel type for the 5 hash modes that pick their kernel from the
+  hash, m14500, m14600, m16500, m16501 and m24600
+- Fixed the status line and the hash list loading progress rounding a percentage up to 100.00%
+  before it was complete and down to 0.00% before it was empty, so a run one digest short of the
+  whole list reported full recovery
 
 ## Windows
 
@@ -1123,6 +1158,10 @@ Measurements depend on the device, runtime and workload.
   setuptools. It now verifies every Python dependency after installation
 - Fixed test modules 14400 and 15000 deriving password lengths from the wrong budget, and the mode
   25700 oracle treating non-ASCII candidate bytes as signed values
+- Fixed "tools/test.sh" running no test at all for the 18 VeraCrypt boot-mode hash types, and added
+  the 3 Streebog boot containers they need
+- Fixed "tools/test_edge.sh" reporting success for a hash mode that names no kernel type, where the
+  loop over those types ran no test at all
 
 * changes v7.1.1 -> v7.1.2
 

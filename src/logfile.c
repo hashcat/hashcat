@@ -53,7 +53,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
     return;
   }
 
-  hc_lockfile (&fp);
+  hc_lockfile_warn (hashcat_ctx, &fp, logfile_ctx->logfile, &logfile_ctx->lock_warned);
 
   va_list ap;
 
@@ -67,7 +67,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   hc_fflush (&fp);
 
-  hc_unlockfile (&fp);
+  hc_unlockfile_warn (hashcat_ctx, &fp, logfile_ctx->logfile, &logfile_ctx->lock_warned);
 
   hc_fclose (&fp);
 }

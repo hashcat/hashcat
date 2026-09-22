@@ -129,7 +129,7 @@ sub module_verify_hash
 
   return unless $rc4key =~ m/^[0-9a-fA-F]{10}$/;
 
-  ## packed for the computation, returned in the form it came in: test.pl compares the
+  ## packed for the computation, returned in the form it came in: test_module_runner.pl compares the
   ## line it read against the regenerated hash, the rc4key digest and this word joined
   ## back together, so a $HEX[...] plain has to go back out as $HEX[...]
 

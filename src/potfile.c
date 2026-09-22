@@ -303,16 +303,13 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
     return;
   }
 
-  hc_lockfile (&potfile_ctx->fp);
+  hc_lockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 
   hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
 
   hc_fflush (&potfile_ctx->fp);
 
-  if (hc_unlockfile (&potfile_ctx->fp))
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 }
 
 void potfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
@@ -323,7 +320,7 @@ void potfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
   if (potfile_ctx->enabled == false) return;
   if (hashconfig->potfile_disable == true) return;
 
-  if (potfile_ctx->batch_depth == 0) hc_lockfile (&potfile_ctx->fp);
+  if (potfile_ctx->batch_depth == 0) hc_lockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 
   potfile_ctx->batch_depth++;
 }
@@ -344,10 +341,7 @@ void potfile_batch_end (hashcat_ctx_t *hashcat_ctx)
 
   hc_fflush (&potfile_ctx->fp);
 
-  if (hc_unlockfile (&potfile_ctx->fp))
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &potfile_ctx->fp, potfile_ctx->filename, &potfile_ctx->lock_warned);
 }
 
 void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_pw_buf, int line_pw_len)
@@ -712,6 +706,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     line_hash_buf[line_hash_len] = 0;
 
     if (line_hash_len == 0) continue;
+
+    // One digest buffer serves every line, so a decoder that leaves part of it alone starts from
+    // whatever the line before wrote. Only the four words at dgst_pos0 to dgst_pos3 are ever
+    // compared, and no decoder in the tree writes one of those on one line and skips it on the next,
+    // so today the bytes that survive are zero on both sides. That holds because of what the
+    // decoders happen to do and not because of anything here, which is why the three buffers below
+    // are cleared as well.
+
+    memset (hash_buf.digest, 0, hashconfig->dgst_size);
 
     if (hash_buf.salt)
     {

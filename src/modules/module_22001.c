@@ -771,9 +771,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
+    // The line is rebuilt from the tokens rather than copied, because the old format is written with
+    // either separator and the new one only knows '*'. Copying a line that used ':' left all 4 fields
+    // as one token for the parser below, which then refused its own old format.
     if (rc_tokenizer == PARSER_OK)
     {
-      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA*01*%s***", line_buf);
+      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA*01*%.*s*%.*s*%.*s*%.*s***",
+        token.len[0], (const char *) token.buf[0],
+        token.len[1], (const char *) token.buf[1],
+        token.len[2], (const char *) token.buf[2],
+        token.len[3], (const char *) token.buf[3]);
 
       input_buf = tmp_buf;
       input_len = tmp_len;

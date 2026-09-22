@@ -11,7 +11,7 @@
 #include "locking.h"
 #include "debugfile.h"
 
-static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const u32 plain_len)
+static void debugfile_format_field (hashcat_ctx_t *hashcat_ctx, const u8 *field_ptr, const u32 field_len)
 {
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
 
@@ -19,23 +19,23 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
 
   int needs_hexify = 0;
 
-  for (u32 i = 0; i < plain_len; i++)
+  for (u32 i = 0; i < field_len; i++)
   {
-    if (plain_ptr[i] < 0x20)
+    if (field_ptr[i] < 0x20)
     {
       needs_hexify = 1;
 
       break;
     }
 
-    if (plain_ptr[i] > 0x7f)
+    if (field_ptr[i] > 0x7f)
     {
       needs_hexify = 1;
 
       break;
     }
 
-    if (plain_ptr[i] == ':')
+    if (field_ptr[i] == ':')
     {
       needs_hexify = 1;
 
@@ -47,16 +47,16 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
   {
     hc_fprintf (&debugfile_ctx->fp, "$HEX[");
 
-    for (u32 i = 0; i < plain_len; i++)
+    for (u32 i = 0; i < field_len; i++)
     {
-      hc_fprintf (&debugfile_ctx->fp, "%02x", plain_ptr[i]);
+      hc_fprintf (&debugfile_ctx->fp, "%02x", field_ptr[i]);
     }
 
     hc_fprintf (&debugfile_ctx->fp, "]");
   }
   else
   {
-    hc_fwrite (plain_ptr, plain_len, 1, &debugfile_ctx->fp);
+    hc_fwrite (field_ptr, field_len, 1, &debugfile_ctx->fp);
   }
 }
 
@@ -71,23 +71,25 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
   if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5) || (debug_mode == DEBUG_MODE_FEED))
   {
-    debugfile_format_plain (hashcat_ctx, orig_plain_ptr, orig_plain_len);
+    debugfile_format_field (hashcat_ctx, orig_plain_ptr, orig_plain_len);
 
     if ((debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5) || (debug_mode == DEBUG_MODE_FEED)) hc_fputc (':', &debugfile_ctx->fp);
   }
 
-  if (hc_lockfile (&debugfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to lock file.", debugfile_ctx->filename);
-  }
+  hc_lockfile_warn (hashcat_ctx, &debugfile_ctx->fp, debugfile_ctx->filename, &debugfile_ctx->lock_warned);
 
-  hc_fwrite (rule_buf, rule_len, 1, &debugfile_ctx->fp);
+  // The rule is rebuilt from the compiled form, so an operand that was written as an escape in the
+  // rule file arrives here as the byte it stands for. Written straight out, a rule such as "^\x0a"
+  // puts a line ending in the middle of the line and splits one entry across two. The same test the
+  // two plain fields get keeps it on one line.
+
+  debugfile_format_field (hashcat_ctx, rule_buf, rule_len);
 
   if ((debug_mode == 4) || (debug_mode == 5) || (debug_mode == DEBUG_MODE_FEED))
   {
     hc_fputc (':', &debugfile_ctx->fp);
 
-    debugfile_format_plain (hashcat_ctx, mod_plain_ptr, mod_plain_len);
+    debugfile_format_field (hashcat_ctx, mod_plain_ptr, mod_plain_len);
   }
 
   if (debug_mode == 5)
@@ -136,10 +138,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
   hc_fflush (&debugfile_ctx->fp);
 
-  if (hc_unlockfile (&debugfile_ctx->fp))
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", debugfile_ctx->filename);
-  }
+  hc_unlockfile_warn (hashcat_ctx, &debugfile_ctx->fp, debugfile_ctx->filename, &debugfile_ctx->lock_warned);
 }
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)

@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "locking.h"
 #include "shared.h"
 
@@ -90,3 +91,37 @@ int hc_unlockfile (HCFILE *fp)
 }
 
 #endif // F_SETLKW
+
+// hc_lockfile () already retries EAGAIN and ENOLCK and tolerates EINTR, so a -1 out of it means a
+// bad descriptor or a filesystem that refuses F_SETLKW outright. Such a filesystem refuses it on
+// every attempt, not on one of them. The potfile, the outfile, the loopback file and the debug file
+// are all written on the way out of a cracked hash, so a warning that spoke every time would put
+// hundreds of thousands of lines on the terminal for a run against a large list. These two warn on
+// the first failure for a file and stay quiet after it.
+//
+// The flag lives with the caller because it has to outlive the descriptor. The outfile is reopened
+// around every write and logfile_append () opens a handle of its own on each call, so a flag carried
+// in the HCFILE would be back to false before the next failure. One flag covers both directions: a
+// file hashcat cannot lock is a file it cannot unlock either.
+
+void hc_lockfile_warn (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *filename, bool *warned)
+{
+  if (hc_lockfile (fp) == 0) return;
+
+  if (*warned == true) return;
+
+  *warned = true;
+
+  event_log_error (hashcat_ctx, "%s: Failed to lock file.", filename);
+}
+
+void hc_unlockfile_warn (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *filename, bool *warned)
+{
+  if (hc_unlockfile (fp) == 0) return;
+
+  if (*warned == true) return;
+
+  *warned = true;
+
+  event_log_error (hashcat_ctx, "%s: Failed to unlock file.", filename);
+}

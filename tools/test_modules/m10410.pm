@@ -105,7 +105,7 @@ sub module_verify_hash
   ## OUTFILE_FMT_HEXPLAIN for every OPTS_TYPE_PT_ALWAYS_HEXIFY mode and src/potfile.c strips
   ## the "$HEX[" and the "]" for a collider mode, so a real crack line carries the 5 byte key
   ## as 10 bare hex digits. it is unhexified for the computation and returned in the form it
-  ## came in, the way m00000.pm does it, because test.pl compares the returned pair against
+  ## came in, the way m00000.pm does it, because test_module_runner.pl compares the returned pair against
   ## the line it read
 
   my $word_packed = pack_if_HEX_notation ($word);

@@ -594,7 +594,7 @@ void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->is_fifo == true && outfile_ctx->fp.pfp != NULL)
   {
-    hc_unlockfile (&outfile_ctx->fp);
+    hc_unlockfile_warn (hashcat_ctx, &outfile_ctx->fp, outfile_ctx->filename, &outfile_ctx->lock_warned);
 
     hc_fclose (&outfile_ctx->fp);
   }
@@ -684,7 +684,7 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  hc_unlockfile (&outfile_ctx->fp);
+  hc_unlockfile_warn (hashcat_ctx, &outfile_ctx->fp, outfile_ctx->filename, &outfile_ctx->lock_warned);
 
   hc_fclose (&outfile_ctx->fp);
 }

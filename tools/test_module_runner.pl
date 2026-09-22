@@ -23,7 +23,7 @@ eval {
     require Data::Types;  Data::Types->import(qw(is_count is_whole));
     require Digest::MD4;  Digest::MD4->import('md4_hex');
     1;
-} or die "Missing Perl modules, read: docs/hashcat-plugin-development-guide.md (search test.pl), and run: ./tools/install_modules.sh\n";
+} or die "Missing Perl modules, read: docs/hashcat-plugin-development-guide.md (search test_module_runner.pl), and run: ./tools/install_modules.sh\n";
 
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";
@@ -56,6 +56,56 @@ eval { require $MODULE_FILE } or die "Could not load test module: $MODULE_FILE\n
 exists &{module_constraints}   or die "Module function 'module_constraints' not found\n";
 exists &{module_generate_hash} or die "Module function 'module_generate_hash' not found\n";
 exists &{module_verify_hash}   or die "Module function 'module_verify_hash' not found\n";
+
+# Random generation, seeded or not.
+#
+# Unseeded, this is perl's rand () and two runs of a mode give different salts, which is what the
+# suites want: a mode that only works for one salt is a mode that is broken. Seeded through
+# HCTEST_SEED, every helper below draws from the generator here instead, and the same seed gives
+# the same stream. tools/test_engine_compare.py needs that: the python engine implements this
+# generator too, character for character, so the two engines can be handed the same inputs and
+# their output compared rather than eyeballed.
+#
+# The generator is the one sprinkle_non_ascii () already uses, so there is one shape of arithmetic
+# in this file rather than two.
+
+my $RAND_STATE = undef;
+
+if (exists $ENV{"HCTEST_SEED"} && defined $ENV{"HCTEST_SEED"} && ($ENV{"HCTEST_SEED"} ne ""))
+{
+  $RAND_STATE = ($ENV{"HCTEST_SEED"} * 2654435761) % 4294967291;
+}
+
+sub hc_shuffle
+{
+  # List::Util's shuffle draws from perl's generator, which HCTEST_SEED does not reach. Seeded, this
+  # is a Fisher Yates over hc_rand (), matching what the python engine does under the same variable
+  # so that both engines lay out the same lengths.
+
+  my @list = @_;
+
+  return shuffle (@list) if ! defined $RAND_STATE;
+
+  for (my $i = scalar (@list) - 1; $i > 0; $i--)
+  {
+    my $j = int (hc_rand ($i + 1));
+
+    @list[$i, $j] = @list[$j, $i];
+  }
+
+  return @list;
+}
+
+sub hc_rand
+{
+  my $n = shift // 1;
+
+  return rand ($n) if ! defined $RAND_STATE;
+
+  $RAND_STATE = (($RAND_STATE * 1103515245) + 12345) % 2147483648;
+
+  return ($RAND_STATE / 2147483648) * $n;
+}
 
 my $giveup_at      = 1000000;
 my $single_outputs = 8;
@@ -826,12 +876,12 @@ sub init_db_word_rand
 
   while (scalar @pool < $single_outputs)
   {
-    @pool = shuffle (@pool);
+    @pool = hc_shuffle (@pool);
 
     push @pool, $pool[0];
   }
 
-  @pool = shuffle (@pool);
+  @pool = hc_shuffle (@pool);
 
   my $db_out;
 
@@ -880,12 +930,12 @@ sub init_db_salt_rand
 
   while (scalar @pool < $single_outputs)
   {
-    @pool = shuffle (@pool);
+    @pool = hc_shuffle (@pool);
 
     push @pool, $pool[0];
   }
 
-  @pool = shuffle (@pool);
+  @pool = hc_shuffle (@pool);
 
   my $db_out;
 
@@ -930,7 +980,7 @@ sub random_count
 
   return unless is_count ($max);
 
-  return int ((rand ($max - 1)) + 1);
+  return int ((hc_rand ($max - 1)) + 1);
 }
 
 # random_number (min, max)
@@ -941,7 +991,7 @@ sub random_number
 
   return if $min > $max;
 
-  return int ((rand (($max + 1) - $min)) + $min);
+  return int ((hc_rand (($max + 1) - $min)) + $min);
 }
 
 sub random_bytes
@@ -961,7 +1011,7 @@ sub random_hex_string
 
   my $string = "";
 
-  $string .= sprintf ("%x", rand 16) for (1 .. $count);
+  $string .= sprintf ("%x", hc_rand (16)) for (1 .. $count);
 
   return $string;
 }
@@ -976,7 +1026,7 @@ sub random_lowercase_string
 
   my $string = "";
 
-  $string .= $chars[rand @chars] for (1 .. $count);
+  $string .= $chars[hc_rand (scalar @chars)] for (1 .. $count);
 
   return $string;
 }
@@ -991,7 +1041,7 @@ sub random_uppercase_string
 
   my $string = "";
 
-  $string .= $chars[rand @chars] for (1 .. $count);
+  $string .= $chars[hc_rand (scalar @chars)] for (1 .. $count);
 
   return $string;
 }
@@ -1006,7 +1056,7 @@ sub random_mixedcase_string
 
   my $string = "";
 
-  $string .= $chars[rand @chars] for (1 .. $count);
+  $string .= $chars[hc_rand (scalar @chars)] for (1 .. $count);
 
   return $string;
 }
@@ -1021,7 +1071,7 @@ sub random_numeric_string
 
   my $string = "";
 
-  $string .= $chars[rand @chars] for (1 .. $count);
+  $string .= $chars[hc_rand (scalar @chars)] for (1 .. $count);
 
   return $string;
 }
@@ -1225,7 +1275,7 @@ sub random_string
 
   my $string = "";
 
-  $string .= $chars[rand @chars] for (1 .. $count);
+  $string .= $chars[hc_rand (scalar @chars)] for (1 .. $count);
 
   return $string;
 }

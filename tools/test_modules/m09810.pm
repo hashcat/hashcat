@@ -102,7 +102,7 @@ sub module_verify_hash
   # format to hash:hexplain, see the branch on it in src/outfile.c, so an outfile line and a
   # --show line carry the key as bare hex, and a potfile line carries the same key as $HEX[...].
   # Both are decoded here, and the plain is handed back in the form it came in, the way m00000.pm
-  # does it, because test.pl compares the returned pair against the line it read. A raw 5 byte key
+  # does it, because test_module_runner.pl compares the returned pair against the line it read. A raw 5 byte key
   # is 5 characters long and never matches the bare hex form, so a hand written line still works.
 
   my $word_packed = pack_if_HEX_notation ($word);

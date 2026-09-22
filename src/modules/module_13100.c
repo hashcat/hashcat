@@ -142,7 +142,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       const int account_info_len = account_info_stop - account_info_start;
 
-      if (account_info_len > (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
+      if (account_info_len >= (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
 
       token.token_cnt++;
 
@@ -208,7 +208,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     token.sep[1]     = ':';
     token.len_min[1] = 0;
-    token.len_max[1] = 2048;
+    token.len_max[1] = (int) sizeof (krb5tgs->account_info) - 1;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     // checksum

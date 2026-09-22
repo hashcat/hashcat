@@ -1322,6 +1322,7 @@ typedef struct outfile_data
 typedef struct logfile_ctx
 {
   bool  enabled;
+  bool  lock_warned;
 
   char *logfile;
   char *topid;
@@ -1628,7 +1629,37 @@ typedef enum pipe_slot
   PIPE_LAUNCH = 4,  // the loop itself, kernel or bridge
   PIPE_COMP   = 5,  // the comp kernel
 
-  PIPE_SLOTS  = 6,
+  // On the critical path and counted in the total with the five above it: a launch thread that has not
+  // been handed a batch is not launching, and leaving this out is what kept the stages from adding up
+  // to the wall clock.
+  //
+  // Named for the call rather than for the wait it measures, because PIPE_WAIT is a named pipe
+  // constant in winbase.h and an enumerator of that name compiles everywhere except Windows.
+
+  PIPE_TAKE   = 6,  // waiting on the producer for a filled batch, in pw_pipe_take ()
+
+  // In the total with the six above it, and the reason the total can be trusted: it holds the launch
+  // time none of them claimed. See pipe_launch_done ().
+
+  PIPE_OTHER  = 7,
+
+  // The five below are measured inside PIPE_COPY rather than beside it, and are deliberately left out
+  // of the total: they are not stages of their own, they are what the copy is made of, and adding them
+  // would book the same milliseconds twice. They are reported as a share of copy for the same reason.
+
+  PIPE_SORT   = 8,  // clustering equal length candidates, for the modes that ask for it
+  PIPE_CELLS  = 9,  // the pcfg cell and word map upload
+  PIPE_PWSIO  = 10, // the pws_idx and pws_comp upload
+  PIPE_DECOMP = 11, // enqueueing the decompress kernel, which returns before it has run
+  PIPE_SYNC   = 12, // waiting at the end of run_copy () for what that enqueue left running
+
+  PIPE_SLOTS  = 13,
+
+  // The half open range that adds up to the critical path: the copy through the residue, and nothing
+  // after it. PIPE_FEED is before it because it runs on the producer thread.
+
+  PIPE_TOTAL_FIRST = PIPE_COPY,
+  PIPE_TOTAL_END   = PIPE_SORT,
 
 } pipe_slot_t;
 
@@ -1641,6 +1672,21 @@ typedef struct hc_device_param
   double    pipe_msec[PIPE_SLOTS];
   u64       pipe_launches;
   u64       pipe_cands;
+
+  // Whether this device's producer runs on the launch thread rather than on one of its own. It changes
+  // what the stages above mean: with no producer thread the feed happens inside the wait, so its time
+  // is on the critical path and is already counted there, and reporting it as being off the critical
+  // path would be untrue.
+
+  bool      pipe_serial;
+
+  // The wall clock the stages above are measured against, so that what none of them claims can be
+  // named rather than lost, and what they had claimed when it started. Both are taken once, at the
+  // end of the first launch, and the difference of the two is what the residue is worked out from.
+
+  hc_timer_t pipe_wall;
+  double     pipe_wall_base;
+  bool       pipe_wall_set;
 
   int     device_id;
 
@@ -2362,6 +2408,7 @@ typedef struct debugfile_ctx
   HCFILE  fp;
 
   bool    enabled;
+  bool    lock_warned;
 
   char   *filename;
   u32     mode;
@@ -2382,6 +2429,7 @@ typedef struct loopback_ctx
 
   bool    enabled;
   bool    unused;
+  bool    lock_warned;
 
   char   *filename;
 
@@ -2428,6 +2476,7 @@ typedef struct outfile_ctx
   bool    outfile_autohex;
   bool    outfile_json;
   bool    is_fifo;
+  bool    lock_warned;
 
   char   *filename;
 
@@ -2451,6 +2500,7 @@ typedef struct potfile_ctx
   HCFILE   fp;
 
   bool     enabled;
+  bool     lock_warned;
 
   char    *filename;
 
@@ -2569,6 +2619,10 @@ typedef struct pidfile_ctx
 
 #define STDOUT_BUFSIZ 0x10000
 
+// The widest one candidate can be written as: "$HEX[", two characters a byte, "]", and a CRLF.
+
+#define STDOUT_CAND_MAX ((PW_MAX * 2) + 8)
+
 typedef struct out
 {
   HCFILE fp;
@@ -2576,6 +2630,7 @@ typedef struct out
   char   buf[STDOUT_BUFSIZ];
   int    len;
   bool   write_failed;
+  bool   always_ascii;
 
 } out_t;
 

@@ -30,22 +30,32 @@ to achieve full performance. For example a modern CPU. On those devices a mask a
 outside ASCII needs --backend-vector-width 1. For modern GPUs it works as expected.
 
 ##
-## The use of --keep-guessing eventually skips reporting duplicate passwords
+## The use of --keep-guessing can miss a colliding password
 ##
 
-This does not mean that valid passwords are skipped; they are always reported.
+Hashcat reports cracked hashes through a buffer that holds one entry for every hash loaded, and that
+buffer is emptied after each kernel invocation. Whichever candidate reaches a hash first takes its
+entry. Without --keep-guessing that is all you need, because hashcat stops looking for a hash once it
+is cracked.
 
-Only if you hit the same password twice for the same hash the password may be shown only once.
+With --keep-guessing the hash stays in the attack, so a second candidate can match it inside the same
+kernel invocation. There is no entry left to put that one in, and it is dropped. The candidate that
+survives is whichever the device reached first, so running the same two candidates in the other order
+can report the other password.
 
-If --keep-guessing is not used, this can not occur.
-
-This limitation cannot be fixed, because it would require too much device (GPU/CPU) memory. If we wanted
-to report back all possible password candidates executed in a single kernel invocation, it would require
-this much memory per device:
+Reporting every candidate of one kernel invocation would need an entry for every candidate that
+invocation runs:
 
 Number-of-MCU * Max-threads * Max-accel * Max-inner-loops * sizeof (plain_t)
 
-For example, on a Vega64: 64 * 1024 * 1024 * 1024 * 20 = 1,374,389,534,720 bytes = 1280 GB VRAM
+For example, on an RTX 4090: 128 * 1024 * 1024 * 1024 * 40 = 5,497,558,138,880 bytes = 5120 GB VRAM
+
+That settles it for a fast hash. It does not settle it for a slow one. A slow hash reports from its
+_comp kernel once per work item, and its _loop kernel iterates the key derivation against the same
+candidate rather than producing new ones, so the inner loop factor drops out and the bound is the
+number of work items. On an RX 7900 XTX that is 17 MB of entries for mode 11600 and 396 MB for modes
+23100, 24410 and 24420. No buffer of that shape is allocated today, so those modes lose collisions
+the same way the fast ones do, but for them the memory to keep every collision is within reach.
 
 ##
 ## Hashcat GPU memory usage may be limited by maximum memory allocation sizes of OpenCL drivers

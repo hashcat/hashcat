@@ -824,6 +824,28 @@ static int wordlist_next_source (generic_global_ctx_t *global_ctx, feed_global_t
   return word_len;
 }
 
+// How many bytes of byte order mark the front of a source carries.
+//
+// hc_string_bom_size () reads a fixed five bytes, which a wordlist shorter than that does not have,
+// and a mapped file whose length is a multiple of the page size has nothing readable behind it. The
+// bytes in hand are copied into a padded buffer so the test stays the one the rest of hashcat makes,
+// and a mark that claims more bytes than the source holds is no mark at all.
+
+static size_t wordlist_bom_size (const u8 *buf, const size_t len)
+{
+  u8 head[8] = { 0 };
+
+  const size_t take = MIN (len, sizeof (head));
+
+  memcpy (head, buf, take);
+
+  const size_t bom = (size_t) hc_string_bom_size (head);
+
+  if (bom > len) return 0;
+
+  return bom;
+}
+
 static int wordlist_next (generic_global_ctx_t *global_ctx, feed_global_t *feed_global, generic_thread_ctx_t *thread_ctx, feed_thread_t *feed_thread, u8 *out_buf, const int out_size)
 {
   // A mapped source always has the whole file in front of it. A compressed one has a window, and
@@ -847,13 +869,22 @@ static int wordlist_next (generic_global_ctx_t *global_ctx, feed_global_t *feed_
 
   const size_t remaining = fd_len - fd_off;
 
+  // A byte order mark belongs to the file rather than to the first word in it. hc_fopen () drops one
+  // for every caller that goes through it, but a plain wordlist is opened raw and mapped, and a
+  // compressed one carries its mark inside the compressed bytes, so neither has been looked at yet.
+  // Only the first line of a source can hold one, so this costs a predictable branch per word.
+
+  const size_t bom = (feed_thread->fd_line == 0) ? wordlist_bom_size (fd_mem + fd_off, remaining) : 0;
+
+  const size_t avail = remaining - bom;
+
   size_t word_len = 0;
 
-  const size_t step = process_word (feed_thread->memchr, fd_mem + fd_off, remaining, out_buf, out_size, &word_len);
+  const size_t step = process_word (feed_thread->memchr, fd_mem + fd_off + bom, avail, out_buf, out_size, &word_len);
 
-  if (step < remaining)
+  if (step < avail)
   {
-    feed_thread->fd_off += step + 1;
+    feed_thread->fd_off += bom + step + 1;
   }
   else
   {
@@ -863,7 +894,7 @@ static int wordlist_next (generic_global_ctx_t *global_ctx, feed_global_t *feed_
 
     feed_thread->fd_off += remaining;
 
-    if (feed_thread->compressed == true) word_len = source_finish_line (feed_thread, fd_mem + fd_off, remaining);
+    if (feed_thread->compressed == true) word_len = source_finish_line (feed_thread, fd_mem + fd_off + bom, avail);
   }
 
   feed_thread->fd_line++;
