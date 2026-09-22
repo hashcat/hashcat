@@ -441,56 +441,53 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->has_optimized_kernel  = false;
   hashconfig->has_pure_kernel       = false;
 
-  if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
+  // some kernels do not have an optimized kernel, simply because they do not need them
+  // or because they are not yet converted, for them we should switch off optimized mode
+  //
+  // a mode that tells hashcat its exact hash-mode inside the parser (eg. luks and jwt) is answered
+  // from the kern_type it declares, because backend.c only asks it for the real one once a hash has
+  // been read, and hashconfig_init () runs before that
+
+  char source_file[256] = { 0 };
+
+  generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+  hashconfig->has_pure_kernel = hc_path_read (source_file);
+
+  generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+
+  hashconfig->has_optimized_kernel = hc_path_read (source_file);
+
+  if (user_options->hash_info == 0 || user_options->hash_info > 1)
   {
-    // some hash modes tell hashcat about their exact hash-mode inside the parser (eg. luks and jwt)
-  }
-  else
-  {
-    // some kernels do not have an optimized kernel, simply because they do not need them
-    // or because they are not yet converted, for them we should switch off optimized mode
-
-    char source_file[256] = { 0 };
-
-    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
-
-    hashconfig->has_pure_kernel = hc_path_read (source_file);
-
-    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
-
-    hashconfig->has_optimized_kernel = hc_path_read (source_file);
-
-    if (user_options->hash_info == 0 || user_options->hash_info > 1)
+    if (user_options->optimized_kernel == true)
     {
-      if (user_options->optimized_kernel == true)
+      if (hashconfig->has_optimized_kernel == false)
       {
-        if (hashconfig->has_optimized_kernel == false)
+        if (user_options->quiet == false)
         {
-          if (user_options->quiet == false)
-          {
-            event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
-            event_log_warning (hashcat_ctx, "Optimized kernel requested, but not available or not required");
-            event_log_warning (hashcat_ctx, "Falling back to pure kernel");
-            event_log_warning (hashcat_ctx, NULL);
-          }
-        }
-        else
-        {
-          hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+          event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
+          event_log_warning (hashcat_ctx, "Optimized kernel requested, but not available or not required");
+          event_log_warning (hashcat_ctx, "Falling back to pure kernel");
+          event_log_warning (hashcat_ctx, NULL);
         }
       }
       else
       {
-        if (hashconfig->has_pure_kernel == false)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
+        hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+      }
+    }
+    else
+    {
+      if (hashconfig->has_pure_kernel == false)
+      {
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
 
-          hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
-        }
-        else
-        {
-          // nothing to do
-        }
+        hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+      }
+      else
+      {
+        // nothing to do
       }
     }
   }

@@ -21,11 +21,32 @@
 #include <limits.h>
 #include <inttypes.h>
 
+#if defined (_WIN)
+#include <locale.h>
+#endif
+
 #include "thread.h"
 #include "timer.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE | GENERIC_PLUGIN_OPTIONS_EXPLAIN;
+
+// strtod () resolves to mingw's own implementation here, and that one does not scale across the
+// preload workers that parse the terminal lists. _strtod_l () reaches msvcrt's parser instead, which
+// does. The locale is not what costs: passing a handle is only how the header reaches that parser.
+//
+// The handle is made once in global_init (), before any worker exists, and is read only after that.
+// It is never released, because this file can be instantiated twice in one run, once as the base
+// and once as the amplifier, and the two share this static. NULL when it could not be made, and the
+// call falls back to strtod ().
+
+#if defined (_WIN)
+static _locale_t pcfg_loc_c = NULL;
+
+#define PCFG_STRTOD(s,e) ((pcfg_loc_c != NULL) ? _strtod_l ((s), (e), pcfg_loc_c) : strtod ((s), (e)))
+#else
+#define PCFG_STRTOD(s,e) strtod ((s), (e))
+#endif
 
 #define PCFG_MAXTOK   24
 #define PCFG_MAXSLOT  (PCFG_MAXTOK * 2)
@@ -1910,7 +1931,7 @@ static bool merge_read (pcfg_merge_t *m, const pcfg_root_t *r, const char *rel)
       *tab = 0;
 
       const size_t vlen = strlen (line);
-      const double p    = strtod (tab + 1, NULL);
+      const double p    = PCFG_STRTOD (tab + 1, NULL);
 
       if ((vlen > 0) && (p > 0.0)) merge_add (m, (const u8 *) line, (u32) vlen, p * w);
 
@@ -4022,7 +4043,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     {
       if (global_ctx->quiet == false)
       {
-        pmsg (pg, "pcfg: every structure lies outside the %u to %u bytes this hash mode accepts, so the escape is all that is left", pg->pwmin, pg->pwmax);
+        pmsg (pg, "pcfg: every structure lies outside the %u to %u bytes this attack is held to, so the escape is all that is left", pg->pwmin, pg->pwmax);
       }
     }
     else if (dropped_t > 0)
@@ -5037,7 +5058,7 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
     }
     else if (ln_drop > 0)
     {
-      pmsg (pg, "pcfg: OMEN escape dropped, no length it holds is one this hash mode accepts");
+      pmsg (pg, "pcfg: OMEN escape dropped, no length it holds is one this attack takes");
     }
     else
     {
@@ -9354,7 +9375,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     lookup_struct_name (pg, hit.si, name, sizeof (name));
 
     // Ranking fails for two reasons now, and naming the wrong one sends the reader looking in the
-    // wrong place. A terminal this hash mode's length limits put out of reach is not a cost problem:
+    // wrong place. A terminal the length limits of this attack put out of reach is not a cost problem:
     // no costmax raises it, because the run does not enumerate that bucket at any level.
 
     const pcfg_struct_t *ls = &pg->structs[hit.si];
@@ -9370,9 +9391,9 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if (bounded == true)
     {
-      event_log_info (pg->hcctx, "lookup: structure %s derives it, but one of its terminals is outside the %u to %u bytes this hash mode takes", name, pg->pwmin, pg->pwmax);
+      event_log_info (pg->hcctx, "lookup: structure %s derives it, but one of its terminals is outside the %u to %u bytes this attack is held to", name, pg->pwmin, pg->pwmax);
       event_log_info (pg->hcctx, "lookup: so this run does not enumerate it at all: no -s reaches it, and no costmax raises it");
-      event_log_info (pg->hcctx, "lookup: a hash mode whose limits admit that length reaches it, and so does -a 0 over the same words");
+      event_log_info (pg->hcctx, "lookup: a wider pwmin or pwmax, or a hash mode whose limits admit that length, reaches it, and so does -a 0 over the same words");
 
       return;
     }
@@ -9540,6 +9561,12 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   const char *weights = NULL;
   const char *lookup  = NULL;
 
+  // 0 is "say nothing", which leaves the bound the hash mode already carries. They only ever narrow
+  // that bound, so naming a length the kernel cannot take is not a way to ask for one.
+
+  u64 pwmin = 0;
+  u64 pwmax = 0;
+
   const feed_param_t params[] =
   {
     { "scale",   FEED_PARAM_TYPE_U64, &scale,   1, 64, "quantisation steps per bit" },
@@ -9558,6 +9585,8 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "hintrepeat", FEED_PARAM_TYPE_U64, &hintrepeat, 0, 1, "let one candidate spell the same hint word more than once, which naming that word twice does for one word alone" },
     { "weights", FEED_PARAM_TYPE_STR, &weights, 0, 0, "share of the grammar each ruleset carries, colon separated, one per ruleset" },
     { "lookup",  FEED_PARAM_TYPE_STR, &lookup,  0, 0, "ask where this attack reaches a candidate instead of running it" },
+    { "pwmin",   FEED_PARAM_TYPE_U64, &pwmin,   0, PW_MAX, "shortest candidate to produce, 0 to take what the hash mode allows" },
+    { "pwmax",   FEED_PARAM_TYPE_U64, &pwmax,   0, PW_MAX, "longest candidate to produce, 0 to take what the hash mode allows. A run against a list of one known length spends nothing on the others" },
     { NULL, 0, NULL, 0, 0, NULL }
   };
 
@@ -9575,6 +9604,46 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
+  // The length bound is read where the keyspace is counted and again where a candidate is unranked,
+  // so narrowing it here takes the shorter and longer candidates out of the job rather than throwing
+  // them away once made. On a list of one known length that is most of the work: of the 23159 shapes
+  // in the included ruleset, 1370 can produce 12 characters, and they carry 1.4 percent of it.
+
+  // Naming the bound the hash mode already carries is not a value being dropped, so only a request
+  // to go outside it is worth reporting. Dropping that one without a word is what makes an ignored
+  // pwmin look like it worked.
+
+  if (pwmin != 0)
+  {
+    if ((u32) pwmin > pg->pwmin)
+    {
+      pg->pwmin = (u32) pwmin;
+    }
+    else if ((u32) pwmin < pg->pwmin)
+    {
+      if (global_ctx->quiet == false) pmsg (pg, "pcfg: pwmin %u ignored, this hash mode takes nothing shorter than %u bytes", (u32) pwmin, pg->pwmin);
+    }
+  }
+
+  if (pwmax != 0)
+  {
+    if ((pg->pwmax == 0) || ((u32) pwmax < pg->pwmax))
+    {
+      pg->pwmax = (u32) pwmax;
+    }
+    else if ((u32) pwmax > pg->pwmax)
+    {
+      if (global_ctx->quiet == false) pmsg (pg, "pcfg: pwmax %u ignored, this hash mode takes nothing longer than %u bytes", (u32) pwmax, pg->pwmax);
+    }
+  }
+
+  if ((pg->pwmax != 0) && (pg->pwmin > pg->pwmax))
+  {
+    gerr (global_ctx, "pwmin %u is longer than pwmax %u, which leaves no candidate to produce", pg->pwmin, pg->pwmax);
+
+    return false;
+  }
+
   pg->scale   = scale;
   pg->costmax = costmax * scale;
   pg->kbits   = (u32) kbits;
@@ -9585,6 +9654,10 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   pg->omen_want = (omen != 0);
   pg->cache_ok  = (cache != 0);
   pg->lookup    = lookup;
+
+  #if defined (_WIN)
+  if (pcfg_loc_c == NULL) pcfg_loc_c = _create_locale (LC_ALL, "C");
+  #endif
 
   pg->hint_rank = PCFG_HINT_RANK_ZIPF;
 
@@ -9955,7 +10028,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
     if ((pg->structs_cnt == 0) && (pg->out_of_range > 0))
     {
-      gerr (global_ctx, "%s: nothing to enumerate, the %u to %u bytes this hash mode accepts leave the grammar empty and the escape holds no length in range", named, pg->pwmin, pg->pwmax);
+      gerr (global_ctx, "%s: nothing to enumerate, the %u to %u bytes this attack is held to leave the grammar empty and the escape holds no length in range", named, pg->pwmin, pg->pwmax);
     }
     else if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
     {

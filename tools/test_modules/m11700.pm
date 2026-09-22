@@ -14,14 +14,14 @@ sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
 # literal can only hold ASCII, so interpolating it into the source turns every
 # candidate above 0x7f into a SyntaxError.
 #
-# PyGOST outputs digests in little-endian order, while the kernels expect them in
-# big-endian; hence the digest[::-1] mirroring.
+# The library outputs digests in little-endian order, while the kernels expect them
+# in big-endian; hence the digest[::-1] mirroring.
 
 my $PY = <<'PYCODE';
 import binascii
 import sys
-from pygost import gost34112012256
-digest = gost34112012256.new (bytes.fromhex (sys.argv[1])).digest ()
+import gostcrypto
+digest = bytes (gostcrypto.gosthash.new ("streebog256", data = bytearray (bytes.fromhex (sys.argv[1]))).digest ())
 print (binascii.hexlify (digest[::-1]).decode (), end = "")
 PYCODE
 

@@ -95,7 +95,7 @@ sub module_verify_hash
   return unless defined $word;
 
   # The plain is packed for the computation but returned in the form it came in, the way
-  # m00000.pm does it, because test.pl compares the returned pair against the line it read.
+  # m00000.pm does it, because test_module_runner.pl compares the returned pair against the line it read.
   # hashcat writes a plain that carries the separator, ends in whitespace or is not printable
   # as $HEX[...], and the packed form would no longer match that line.
 

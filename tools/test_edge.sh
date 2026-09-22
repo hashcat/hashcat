@@ -71,7 +71,7 @@ function is_in_array()
   return 1
 }
 
-# tools/test.pl emits the word, the salt and the hash hex encoded, so a field carries whatever the
+# tools/test_module_runner.pl emits the word, the salt and the hash hex encoded, so a field carries whatever the
 # module put in it without a comma splitting it or a quote unbalancing the line. Every one of them
 # comes back through here.
 #
@@ -302,7 +302,7 @@ function mask_literalize()
 {
   # Rewrite a mask so that every position it covers spells the byte that belongs there. The
   # generated passwords used to be digits from end to end, which is what makes a mask of '?d'
-  # groups work; tools/test.pl can now seed them with multi byte UTF-8, and no '?d' produces a
+  # groups work; tools/test_module_runner.pl can now seed them with multi byte UTF-8, and no '?d' produces a
   # byte above 0x7f. Those positions become literals, which costs the attack keyspace it was
   # never searching anyway. Same function as the one in tools/test.sh.
   #
@@ -365,6 +365,18 @@ OUTD="test_edge_$(date +%s)"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+function run_oracle()
+{
+  # Generate with the engine the mode has a file for: python where a mNNNNN.py exists, perl
+  # otherwise. The mode is the second argument at every call site. Same dispatch as tools/test.sh.
+
+  if [ -f "${TDIR}/test_modules/m$(printf '%05d' "$2").py" ]; then
+    python3 "${TDIR}/test_module_runner.py" "$@"
+  else
+    perl "${TDIR}/test_module_runner.pl" "$@"
+  fi
+}
+
 # The modes the pcfg device engine has an optimized kernel for. It asks for the file by the mode's
 # kern_type, so the mode number is not the name: the kern_type is read out of the module the same way
 # attack_exec is, which keeps both tests below off a run of hashcat.
@@ -372,7 +384,7 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 A4_OPTIMIZED_TYPES=$(grep -m1 -H -E '^static const u64 +KERN_TYPE +=' "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+)\.c:[^=]*= *([0-9]+).*/\1 \2/' | while read -r edge_mode edge_kern; do if [ -r "$(printf '%s/../OpenCL/m%05d_a4-optimized.cl' "${TDIR}" "${edge_kern}")" ]; then printf '%s ' "${edge_mode}"; fi; done)
 
 # A mode with OPTS_TYPE_BINARY_HASHFILE takes the path of a container file where every other mode
-# takes a hash string, and test.pl prints that container base64 encoded. The base64 has to be
+# takes a hash string, and test_module_runner.pl prints that container base64 encoded. The base64 has to be
 # decoded back into a file before hashcat sees it, which is what test.sh already does. A mode that
 # also sets the OPTIONAL variant accepts the hash as text and its test module prints it that way,
 # so those are left out.
@@ -434,7 +446,7 @@ METAL_FORCE_KEEPFREE="8900 22700 27700 28200 29800"
 
 # 14000, 14100, 31500 and 31600 crack a plaintext other than the one the hash was made from,
 # and 22000 and 22001 write the cracked line as the parts of the handshake rather than as the
-# hash and the plaintext. Neither can be compared against what test.pl generated.
+# hash and the plaintext. Neither can be compared against what test_module_runner.pl generated.
 
 SKIP_OUT_MATCH_HASH_TYPES="14000 14100 22000 22001 31500 31600"
 SKIP_SAME_SALT_HASH_TYPES="6600 7100 7200 8200 13200 13400 15300 15310 15900 15910 16900 18300 18900 20200 20300 20400 27000 27100 29700 29930 29940"
@@ -1004,21 +1016,22 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
     continue
   fi
 
-  # An edge case run needs the oracle's edge entry point and only tools/test.pl has one, which
-  # test_module_runner.py says of itself. So a mode whose oracle is a .py is named here and skipped,
-  # rather than left out of the loop with nothing said.
-
-  if [ ! -f "${TDIR}/test_modules/m$(printf '%05d' ${hash_type}).pm" ]; then
-    echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (edge is implemented in tools/test.pl only, and this mode's oracle is a .py)" | tee -a ${OUTD}/test_edge.details.log
-    continue
-  fi
-
   build_failed_err=0
   test_vectors_err=0
 
   for attack_type in ${ATTACK_TYPES}; do
 
     kernel_types=$(./hashcat -m ${hash_type} -HH | grep 'Kernel.Type(s' | cut -d: -f2 | xargs | sed -e 's/,//g')
+
+    # No kernel family means no round below, which used to end the run at "All tests done" with
+    # nothing tested and no errors reported. A mode that tests nothing while looking green is worse
+    # than one that fails, so say so and count it.
+
+    if [ -z "${kernel_types}" ]; then
+      echo "[ ${OUTD} ] !> error detected with Hash-Type ${hash_type}: hashcat -HH names no kernel type, nothing to test" | tee -a ${OUTD}/test_edge.details.log
+      ((errors++))
+      continue
+    fi
 
     for kernel_type in ${kernel_types}; do
 
@@ -1110,7 +1123,7 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
 
       edge_out="${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}.out"
 
-      ./tools/test.pl edge ${hash_type} ${attack_type} ${optimized} 2>/dev/null > ${edge_out}
+      run_oracle edge ${hash_type} ${attack_type} ${optimized} 2>/dev/null > ${edge_out}
 
       if [ ${VERBOSE} -ge 2 ]; then
         cat ${edge_out}
@@ -1277,7 +1290,7 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
                   fi
 
                   # No '?d' produces a byte above 0x7f, so a mask ending in one cannot spell a
-                  # password that tools/test.pl seeded with a multi byte character. Spell those
+                  # password that tools/test_module_runner.pl seeded with a multi byte character. Spell those
                   # positions instead. The word and the mask are one string here, so a split that
                   # lands inside a character still reassembles to the right bytes.
 
@@ -1679,7 +1692,7 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
                   fi
 
                   # No '?d' produces a byte above 0x7f, so a mask ending in one cannot spell a
-                  # password that tools/test.pl seeded with a multi byte character. Spell those
+                  # password that tools/test_module_runner.pl seeded with a multi byte character. Spell those
                   # positions instead. The word and the mask are one string here, so a split that
                   # lands inside a character still reassembles to the right bytes.
 
@@ -1858,7 +1871,7 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
                 fi
 
                 # -a 9 gives one candidate to each salt and wants a single iteration count across the
-                # whole set. test.pl picks an iteration count per test vector for some hash modes, so
+                # whole set. test_module_runner.pl picks an iteration count per test vector for some hash modes, so
                 # hashcat says so and stops before it runs. That is the attack telling the suite what
                 # it takes, not a defect to report.
 

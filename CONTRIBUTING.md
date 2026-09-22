@@ -25,6 +25,7 @@ Match the code around you. The rules below are what that code already does, and 
 ### Layout
 
 * 2 spaces for indentation. A tab only where the format demands one, such as a Makefile.
+* No trailing whitespace. A line ends at its last visible character.
 * [Allman braces](https://en.wikipedia.org/wiki/Indent_style#Allman_style). The opening brace goes on its own line, for functions and for `if`, `else`, `for`, `while` and `switch`.
 * Omit the braces when the body is a single statement that fits on one line: `if (rc == -1) return -1;`
 * Two or more statements, or any nested block, always gets braces.
@@ -155,7 +156,7 @@ If a mode you touched cannot be tested on your hardware, say so. Leaving the out
 
 ## A new hash mode should come with a test module
 
-A mode is only covered by the test suites once a test module exists at `tools/test_modules/mXXXXX.pm`. That is what lets them generate fresh hashes and check that hashcat cracks them, instead of the mode resting on one self-test vector forever. See [tools/test_modules/README.md](tools/test_modules/README.md) for the functions it has to provide, and the [plugin development guide](docs/hashcat-plugin-development-guide.md) for how it fits into the rest of a plugin.
+A mode is only covered by the test suites once a test module exists at `tools/test_modules/mXXXXX.py`. That is what lets them generate fresh hashes and check that hashcat cracks them, instead of the mode resting on one self-test vector forever. See [tools/test_modules/README.md](tools/test_modules/README.md) for the functions it has to provide, and the [plugin development guide](docs/hashcat-plugin-development-guide.md) for how it fits into the rest of a plugin.
 
 Writing it is not a hard requirement, and a mode with a good proof of concept behind it is still worth having without one. Writing it first tends to pay for itself, because it doubles as the proof of concept you need while developing the kernel.
 

@@ -8,7 +8,7 @@
 # based off m10500 but added the owner password part ($o) to be able to test the edit password
 
 # easy test shortcut for debugging
-# a=$(echo 1 | tools/test.pl passthrough 25400 | tail -n1); echo $a; echo 1 | ./hashcat --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 0 -m 25400 $a
+# a=$(echo 1 | tools/test_module_runner.pl passthrough 25400 | tail -n1); echo $a; echo 1 | ./hashcat --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 0 -m 25400 $a
 
 use strict;
 use warnings;

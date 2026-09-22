@@ -551,7 +551,10 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   if (filename)
   {
-    hc_unlockfile (&out.fp);
+    if (hc_unlockfile (&out.fp) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s: Failed to unlock file.", filename);
+    }
 
     hc_fclose (&out.fp);
   }

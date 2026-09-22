@@ -594,7 +594,10 @@ void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->is_fifo == true && outfile_ctx->fp.pfp != NULL)
   {
-    hc_unlockfile (&outfile_ctx->fp);
+    if (hc_unlockfile (&outfile_ctx->fp) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s: Failed to unlock file.", outfile_ctx->filename);
+    }
 
     hc_fclose (&outfile_ctx->fp);
   }
@@ -684,7 +687,10 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  hc_unlockfile (&outfile_ctx->fp);
+  if (hc_unlockfile (&outfile_ctx->fp) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", outfile_ctx->filename);
+  }
 
   hc_fclose (&outfile_ctx->fp);
 }

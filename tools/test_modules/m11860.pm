@@ -18,10 +18,14 @@ my $PY = <<'PYCODE';
 import binascii
 import hmac
 import sys
-from pygost import gost34112012512
+import gostcrypto
+
+def streebog (data = b""):
+  return gostcrypto.gosthash.new ("streebog512", data = bytearray (data))
+
 key    = bytes.fromhex (sys.argv[2])
 msg    = bytes.fromhex (sys.argv[1])
-digest = hmac.new (key, msg, gost34112012512).digest ()
+digest = hmac.new (key, msg, streebog).digest ()
 print (binascii.hexlify (digest[::-1]).decode (), end = "")
 PYCODE
 
