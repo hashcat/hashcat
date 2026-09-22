@@ -4043,7 +4043,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     {
       if (global_ctx->quiet == false)
       {
-        pmsg (pg, "pcfg: every structure lies outside the %u to %u bytes this hash mode accepts, so the escape is all that is left", pg->pwmin, pg->pwmax);
+        pmsg (pg, "pcfg: every structure lies outside the %u to %u bytes this attack is held to, so the escape is all that is left", pg->pwmin, pg->pwmax);
       }
     }
     else if (dropped_t > 0)
@@ -5058,7 +5058,7 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
     }
     else if (ln_drop > 0)
     {
-      pmsg (pg, "pcfg: OMEN escape dropped, no length it holds is one this hash mode accepts");
+      pmsg (pg, "pcfg: OMEN escape dropped, no length it holds is one this attack takes");
     }
     else
     {
@@ -9375,7 +9375,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     lookup_struct_name (pg, hit.si, name, sizeof (name));
 
     // Ranking fails for two reasons now, and naming the wrong one sends the reader looking in the
-    // wrong place. A terminal this hash mode's length limits put out of reach is not a cost problem:
+    // wrong place. A terminal the length limits of this attack put out of reach is not a cost problem:
     // no costmax raises it, because the run does not enumerate that bucket at any level.
 
     const pcfg_struct_t *ls = &pg->structs[hit.si];
@@ -9391,9 +9391,9 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if (bounded == true)
     {
-      event_log_info (pg->hcctx, "lookup: structure %s derives it, but one of its terminals is outside the %u to %u bytes this hash mode takes", name, pg->pwmin, pg->pwmax);
+      event_log_info (pg->hcctx, "lookup: structure %s derives it, but one of its terminals is outside the %u to %u bytes this attack is held to", name, pg->pwmin, pg->pwmax);
       event_log_info (pg->hcctx, "lookup: so this run does not enumerate it at all: no -s reaches it, and no costmax raises it");
-      event_log_info (pg->hcctx, "lookup: a hash mode whose limits admit that length reaches it, and so does -a 0 over the same words");
+      event_log_info (pg->hcctx, "lookup: a wider pwmin or pwmax, or a hash mode whose limits admit that length, reaches it, and so does -a 0 over the same words");
 
       return;
     }
@@ -9609,14 +9609,32 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   // them away once made. On a list of one known length that is most of the work: of the 23159 shapes
   // in the included ruleset, 1370 can produce 12 characters, and they carry 1.4 percent of it.
 
+  // Naming the bound the hash mode already carries is not a value being dropped, so only a request
+  // to go outside it is worth reporting. Dropping that one without a word is what makes an ignored
+  // pwmin look like it worked.
+
   if (pwmin != 0)
   {
-    if ((u32) pwmin > pg->pwmin) pg->pwmin = (u32) pwmin;
+    if ((u32) pwmin > pg->pwmin)
+    {
+      pg->pwmin = (u32) pwmin;
+    }
+    else if ((u32) pwmin < pg->pwmin)
+    {
+      if (global_ctx->quiet == false) pmsg (pg, "pcfg: pwmin %u ignored, this hash mode takes nothing shorter than %u bytes", (u32) pwmin, pg->pwmin);
+    }
   }
 
   if (pwmax != 0)
   {
-    if ((pg->pwmax == 0) || ((u32) pwmax < pg->pwmax)) pg->pwmax = (u32) pwmax;
+    if ((pg->pwmax == 0) || ((u32) pwmax < pg->pwmax))
+    {
+      pg->pwmax = (u32) pwmax;
+    }
+    else if ((u32) pwmax > pg->pwmax)
+    {
+      if (global_ctx->quiet == false) pmsg (pg, "pcfg: pwmax %u ignored, this hash mode takes nothing longer than %u bytes", (u32) pwmax, pg->pwmax);
+    }
   }
 
   if ((pg->pwmax != 0) && (pg->pwmin > pg->pwmax))
@@ -10010,7 +10028,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
     if ((pg->structs_cnt == 0) && (pg->out_of_range > 0))
     {
-      gerr (global_ctx, "%s: nothing to enumerate, the %u to %u bytes this hash mode accepts leave the grammar empty and the escape holds no length in range", named, pg->pwmin, pg->pwmax);
+      gerr (global_ctx, "%s: nothing to enumerate, the %u to %u bytes this attack is held to leave the grammar empty and the escape holds no length in range", named, pg->pwmin, pg->pwmax);
     }
     else if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
     {
