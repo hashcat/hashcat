@@ -391,6 +391,34 @@ function expected_plain()
   printf '%s' "${1}"
 }
 
+function output_has_crack()
+{
+  # Whether hashcat's output ($1) holds the crack of hash $3 that the line $2, hash:password, stands
+  # for. A mode whose algorithm drops bits of the password can print a different password that gives
+  # the same hash: DES keeps 7 bits of every byte, and module_01500.c prints the byte with the top
+  # bit cleared. So a line that is not there as generated is looked for by hash, and a password the
+  # oracle's verify turns back into that hash counts as the crack. A search without a hash, the
+  # password only modes, has nothing to verify against and is left to the plain comparison.
+
+  echo "${1}" | grep -F -- "${2}" &>/dev/null && return 0
+
+  [ "${2:0:1}" = ":" ] && return 1
+
+  local och_dir="${OUTD}/verify_${hash_type}"
+
+  mkdir -p "${och_dir}"
+
+  echo "${1}" | grep -F -- "${3}:" > "${och_dir}/cracks" || return 1
+
+  printf '%s\n' "${3}" > "${och_dir}/hashes"
+
+  : > "${och_dir}/out"
+
+  run_oracle verify "${hash_type}" "${och_dir}/hashes" "${och_dir}/cracks" "${och_dir}/out" &>/dev/null
+
+  [ -s "${och_dir}/out" ]
+}
+
 # What each of the whole word attacks is given after the hash. -a 0 takes its candidates on a pipe
 # and is given nothing, -a 8 names the shipped wordlist feed and the file under it, -a 9 names the
 # list that pairs word N with hash N, and -a 4 names a ruleset directory.
@@ -1098,7 +1126,7 @@ function attack_whole_word()
             search="${hash}:$(expected_plain "${pass}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
           newRet=$?
         fi
 
@@ -1275,7 +1303,7 @@ function attack_whole_word()
             search="${hash}:$(expected_plain "${pass}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
         fi
@@ -1476,7 +1504,7 @@ function attack_1()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -1609,7 +1637,7 @@ function attack_1()
           search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
         fi
 
-        echo "${output}" | grep -F "${search}" &>/dev/null
+        output_has_crack "${output}" "${search}" "${hash}"
 
         newRet=$?
 
@@ -1784,7 +1812,7 @@ function attack_3()
           fi
         fi
 
-        echo "${output}" | grep -F "${search}" &>/dev/null
+        output_has_crack "${output}" "${search}" "${hash}"
 
         newRet=$?
 
@@ -2244,7 +2272,7 @@ function attack_3()
           search="${hash}:$(expected_plain "${pass}")"
         fi
 
-        echo "${output}" | grep -F "${search}" &>/dev/null
+        output_has_crack "${output}" "${search}" "${hash}"
 
         newRet=$?
 
@@ -2485,7 +2513,7 @@ function attack_6()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -2652,7 +2680,7 @@ function attack_6()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -2945,7 +2973,7 @@ function attack_7()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -3147,7 +3175,7 @@ function attack_7()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -3375,7 +3403,7 @@ function attack_12()
               search="${hash}:$(expected_plain "${pass}")"
             fi
 
-            echo "${output}" | grep -F "${search}" &>/dev/null
+            output_has_crack "${output}" "${search}" "${hash}"
 
             newRet=$?
 
@@ -3564,7 +3592,7 @@ function attack_12()
               search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
             fi
 
-            echo "${output}" | grep -F "${search}" &>/dev/null
+            output_has_crack "${output}" "${search}" "${hash}"
 
             newRet=$?
 
