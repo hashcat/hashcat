@@ -3888,7 +3888,25 @@ function container_mask_from_password()
     done
   fi
 
-  # no digit at all, so nothing to search: hand back the password and let the run confirm it
+  # The password may have no digit to give up: the shipped containers use 'hashcat', which has none.
+  # Fall back to a lower case letter, so a mask class still stands in for one character. Never return
+  # the password unchanged: with -a 3 a mask argument that names an existing file is read as a mask
+  # file, and test.sh runs from the directory that holds ./hashcat, so the mask 'hashcat' would be
+  # read as that binary instead of as a literal.
+
+  if [ "${cm_where}" = "first" ]; then
+    for ((cm_i = 0; cm_i < cm_len; cm_i++)); do
+      case "${cm_pw:${cm_i}:1}" in
+        [a-z]) printf '%s?l%s' "${cm_pw:0:${cm_i}}" "${cm_pw:$((cm_i + 1))}"; return ;;
+      esac
+    done
+  else
+    for ((cm_i = cm_len - 1; cm_i >= 0; cm_i--)); do
+      case "${cm_pw:${cm_i}:1}" in
+        [a-z]) printf '%s?l%s' "${cm_pw:0:${cm_i}}" "${cm_pw:$((cm_i + 1))}"; return ;;
+      esac
+    done
+  fi
 
   printf '%s' "${cm_pw}"
 }
