@@ -128,9 +128,13 @@ u64 argon2_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
 
   const u64 size_argon2 = device_param->kernel_accel_max * size_per_accel;
 
-  // and room for the self-test, which is one work item of whatever the self-test hash asks for
+  // Room for the self-test, which runs a single work item. backend.c splits the extra buffer into
+  // four equal sub-buffers (d_extra0 to d_extra3), so that one work item lands in a sub-buffer of
+  // about a quarter of the total. Reserve four self-test hashes' worth, so its sub-buffer holds the
+  // whole self-test hash however large it is, rather than a crack sized slice of it. Without this
+  // the self-test of a hash whose memory is larger than the loaded hashes' reads past its sub-buffer.
 
-  const u64 size_selftest = ARGON2_BLOCK_SIZE * get_selftest_memory_block_count (hashconfig, hashes);
+  const u64 size_selftest = 4 * ARGON2_BLOCK_SIZE * get_selftest_memory_block_count (hashconfig, hashes);
 
   return MAX (size_argon2, size_selftest);
 }
