@@ -10,7 +10,7 @@ This guide demonstrates how to quickly customize such an algorithm using pure Py
 
 No C required. No recompilation. Just write your logic in Python using `calc_hash()`, and you're ready to crack.
 
-You can use any Python modules you like.
+You can use any importable Python module that is compatible with the selected Python runtime.
 
 ## Quick Start
 
@@ -62,7 +62,7 @@ pip install pyescrypt
 
 Then in your plugin (either `generic_hash_mp.py` for `-m 73000` or `generic_hash_sp.py` for `-m 72000`):
 
-**Note for Windows and MacOS users:** Mode `73000` automatically switches to `generic_hash_sp.py`, so be sure to edit that file.
+**Note for Windows and macOS users:** Mode `73000` automatically switches to `generic_hash_sp.py`, so be sure to edit that file.
 
 ```python
 from pyescrypt import Yescrypt, Mode

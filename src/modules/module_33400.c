@@ -89,6 +89,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   mega_t *mega = (mega_t *) esalt_buf;
 
+  // the two signature bytes are read before the line is known to hold two
+
+  if (line_len < 2) return (PARSER_SALT_LENGTH);
+
   if (line_buf[0] != 'P' || line_buf[1] != '!') return (PARSER_SIGNATURE_UNMATCHED);
 
   // the base64-decoded data after the P! is either 88 or 104 bytes, depending on whether it is a folder or a file link

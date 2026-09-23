@@ -35,7 +35,7 @@
 #define RULE_OP_MANGLE_CHR_SHIFTL        'L'  // bitwise shift left char at pos N.  ex: hello0 -> hello`
 #define RULE_OP_MANGLE_CHR_SHIFTR        'R'  // bitwise shift right char at pos N. ex: hello` -> hello0
 #define RULE_OP_MANGLE_CHR_INCR          '+'  // bytewise increase at pos N. ex: hello0 -> hello1
-#define RULE_OP_MANGLE_CHR_DECR          '-'  // bytewise decreate at pos N. ex: hello1 -> hello0
+#define RULE_OP_MANGLE_CHR_DECR          '-'  // bytewise decrease at pos N. ex: hello1 -> hello0
 #define RULE_OP_MANGLE_CHR_ADD           'B'  // add byte value of X at pos N, bytewise. ex: hello0 -> hello`
 #define RULE_OP_MANGLE_REPLACE_NP1       '.'  // replaces char @ n with value at @ n plus 1
 #define RULE_OP_MANGLE_REPLACE_NM1       ','  // replaces char @ n with value at @ n minus 1
@@ -83,8 +83,7 @@
 
 /* writing a byte that is not typeable, including any character outside ASCII */
 
-Any rule operand that takes a character accepts \xHH in place of that character, so a rule can
-emit a byte the keyboard cannot produce. Two hex digits, lower or upper case.
+Any rule operand that takes a character accepts \xHH in place of that character, so a rule can emit a byte the keyboard cannot produce. Two hex digits, lower or upper case.
 
   $\x41          append 'A'
   ^\x41          prepend 'A'
@@ -92,30 +91,17 @@ emit a byte the keyboard cannot produce. Two hex digits, lower or upper case.
   o0\x41         overwrite position 0 with 'A'
   s\x41\x42      replace every 'A' with 'B'
 
-A character outside ASCII is more than one byte in UTF-8. It can be written one \xHH per byte, and
-it can also be written as itself. These two rules are the same rule, and both append U+2116:
+A character outside ASCII is more than one byte in UTF-8. It can be written one \xHH per byte, and it can also be written as itself. These two rules are the same rule, and both append U+2116:
 
   $\xe2$\x84$\x96
   $<the character>
 
-The five operations that emit bytes take a character written directly: '$', '^', 'i', 'v' and 'o'.
-A character there compiles to one byte operation per byte, which is what the first form spells out
-by hand, so nothing about the rule engine changes. It stays byte oriented, and the two forms cost
-the same number of the 31 operations a rule may hold: a 3 byte character costs 3, and a rule that
-would need more than 31 is rejected with a message naming it.
+The five operations that emit bytes take a character written directly: '$', '^', 'i', 'v' and 'o'. A character there compiles to one byte operation per byte, which is what the first form spells out by hand, so nothing about the rule engine changes. It stays byte oriented, and the two forms cost the same number of the 31 operations a rule may hold: a 3 byte character costs 3, and a rule that would need more than 31 is rejected with a message naming it.
 
-Bytes that are not a complete UTF-8 sequence keep the meaning they have today, one byte, so a rule
-file holding raw bytes is unaffected.
+Bytes that are not a complete UTF-8 sequence keep the meaning they have today, one byte, so a rule file holding raw bytes is unaffected.
 
-Order matters and it is not the same for every operation. Append, insert and overwrite take the
-bytes left to right. Prepend does not: '^' puts its byte at position 0, so each byte lands in
-front of the one before it and the bytes have to be written back to front. Prepending U+00E9,
-which is c3 a9, is:
+Order matters and it is not the same for every operation. Append, insert and overwrite take the bytes left to right. Prepend does not: '^' puts its byte at position 0, so each byte lands in front of the one before it and the bytes have to be written back to front. Prepending U+00E9, which is c3 a9, is:
 
   ^\xa9^\xc3
 
-The rule engine works on bytes throughout, and this does not change that. Rules that match or
-count rather than emit stay byte oriented, so '@', 's', 'e' and the reject rules test single
-bytes and will happily split a multi-byte character. Position arguments such as those of 'D',
-'x' and 'O' are byte positions, and the length used by '<' and '>' is a byte length, so a word
-of 6 non-ASCII characters can be 12 bytes long as far as those rules are concerned.
+The rule engine works on bytes throughout, and this does not change that. Rules that match or count rather than emit stay byte oriented, so '@', 's', 'e' and the reject rules test single bytes and will happily split a multi-byte character. Position arguments such as those of 'D', 'x' and 'O' are byte positions, and the length used by '<' and '>' is a byte length, so a word of 6 non-ASCII characters can be 12 bytes long as far as those rules are concerned.

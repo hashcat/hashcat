@@ -260,6 +260,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[3 + o];
 
+  // hex_decode () returns the whole pairs it could read and says nothing about the character it
+  // left behind, so an odd length is taken as a field one character shorter than it declared
+
+  if (token.len[3 + o] & 1) return (PARSER_TOKEN_LENGTH);
+
   salt->salt_len = hex_decode (salt_pos, token.len[3 + o], (u8 *) salt->salt_buf);
 
   // iter
@@ -292,6 +297,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *data_pos = token.buf[7 + o];
   const int data_len = token.len[7 + o];
+
+  if (data_len & 1) return (PARSER_TOKEN_LENGTH);
 
   pkcs->data_len = hex_decode (data_pos, data_len, (u8 *) pkcs->data_buf);
 

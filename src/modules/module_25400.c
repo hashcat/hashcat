@@ -339,18 +339,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // detect hashformat including the user-password
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *V_pos      = token.buf[1];
-  const u8 *R_pos      = token.buf[2];
-  const u8 *bits_pos   = token.buf[3];
-  const u8 *P_pos      = token.buf[4];
-  const u8 *enc_md_pos = token.buf[5];
-  const u8 *id_len_pos = token.buf[6];
-  const u8 *id_buf_pos = token.buf[7];
-  const u8 *u_len_pos  = token.buf[8];
-  const u8 *u_buf_pos  = token.buf[9];  // user hash
-  const u8 *o_len_pos  = token.buf[10];
-  const u8 *o_buf_pos  = token.buf[11]; // owner hash
-  const u8 *u_pass_buf_pos  = token.buf[12]; // user password (optional)
+  const u8 *V_pos          = token.buf[1];
+  const u8 *R_pos          = token.buf[2];
+  const u8 *bits_pos       = token.buf[3];
+  const u8 *P_pos          = token.buf[4];
+  const u8 *enc_md_pos     = token.buf[5];
+  const u8 *id_len_pos     = token.buf[6];
+  const u8 *id_buf_pos     = token.buf[7];
+  const u8 *u_len_pos      = token.buf[8];
+  const u8 *u_buf_pos      = token.buf[9];  // user hash
+  const u8 *o_len_pos      = token.buf[10];
+  const u8 *o_buf_pos      = token.buf[11]; // owner hash
+  const u8 *u_pass_buf_pos = token.buf[12]; // user password (optional)
   // we don't use the user-password in the attack now (as we don't need it),
   //  however we could use it in the comparison of the decrypted o-value,
   //  yet it may make this attack a bit more fragile, as now we just check for ASCII

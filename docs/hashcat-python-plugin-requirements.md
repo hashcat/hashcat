@@ -1,66 +1,45 @@
 # Hashcat Python Plugin Requirements
 
-## Windows/macOS and Linux
+## The two Python modes
 
-There are significant differences between Windows/macOS and Linux when embedding Python as done here.
+Hashcat ships two Python bridges with the same module interface but different parallel execution models.
 
-### On Windows/macOS
+- Mode `72000` loads a free-threaded Python 3.13 or newer. It creates one bridge unit per online logical processor, with a separate subinterpreter for each unit. Python extension modules used by the plugin must support the free-threaded ABI.
+- Mode `73000` loads an ordinary Python 3.10 or newer. On Linux it creates one bridge unit backed by a `multiprocessing` pool sized to the online logical processors.
 
-The `multiprocessing` module is not fully supported in this embedded environment, so only a single process can run effectively. In contrast, even though `threading` module does work correctly on Windows/macOS for starting threads and enabling parallelism, most cryptographic functions like `sha256()` block the Global Interpreter Lock (GIL). Since we often run CPU-intensive algorithms (e.g., 10,000 iterations of `sha256()`), this monopolizes the GIL, making the program effectively single-threaded. To achieve true multithreading on Windows/macOS, we need to move to a free-threaded Python runtime.
+On Windows and macOS, mode 73000 cannot use that multiprocessing design. The bridge reports the fallback and loads `Python/generic_hash_sp.py`, so it effectively runs single-threaded. Use mode 72000 there when its extension-module requirements can be met.
 
-**On Windows**: Use the official installer from https://www.python.org/downloads/windows/ and ensure you check the "Install free-threaded" option - it's disabled by default. Do not use python from Microsoft Store it's too old.
-
-**On macOS**: Use `pyenv`. It's the easiest way to install and manage Python versions, see below section
-
-### On Linux
-
-The `multiprocessing` module functions correctly, allowing full CPU utilization through parallel worker processes. However, since threading is managed by Python, it relies on `fork()` and inter-process communication (IPC). This adds complexity and code bloat to Hashcat, effectively duplicating modules and bridge plugins, making the codebase harder to understand for those exploring how it all works. We could switch to a free-threaded Python runtime, but it's still unstable at the time of writing even on Linux (see the `cffi` problem below). For now, we've chosen to use the `multiprocessing` module as a more practical solution.
-
-**On Linux**: Use `pyenv`. It's the easiest way to install and manage Python versions, see below section
-
-### Free-threaded Python (3.13+)
-
-In order to have multithreading on Windows/macOS, we were looking into Python 3.13 which introduces optional GIL-free support. This allows multithreading to work even in embedded Python. However, it has a major downside. Most relevant modules such as `cffi` still lacks support for running with the Python free-threaded ABI. But if your hash-mode does not rely on modules with `cffi` you should be fine using `-m 72000` no matter the OS.
-
-At the time of writing, several Linux distributions, including Ubuntu 24.04, do not ship with Python 3.13 because it was released after the distro's feature freeze. You will likely need to install it manually, which is one of the reason we are refering to use `pyenv`.
-
-### Real-world best practice
-
-For now, multiprocessing (-m 73000) supports most modules and is generally better for real-world workloads, but it works only on Linux. Developers on Windows/macOS may use `-m 72000` for development, except if `cffi` modules are requested and in this case switch back to `-m 73000`. Then use Linux (or WSL2 on Windows) for long running tasks.
-
-## Minimum versions
+## Build and runtime requirements
 
 ```
--m 72000   Python 3.13   and a free-threaded build to run it
--m 73000   Python 3.10
+-m 72000   Python 3.13+ headers to build, a free-threaded Python 3.13+ to run
+-m 73000   Python headers to build, an ordinary Python 3.10+ to run
 ```
 
-Both are checked when hashcat starts, and the 72000 build refuses headers below 3.13 as well, so a
-plugin that could only fail at run time is not produced in the first place. Building 72000 does not
-itself need a free-threaded Python, only running it does, which is why the release package is built
-against an ordinary one.
+The mode 72000 build checks for Python 3.13 or newer headers. The headers themselves may come from an ordinary build. Only the shared library loaded at runtime must be free-threaded. Mode 73000 requires an ordinary, non-free-threaded shared library.
 
-Ubuntu 24.04 carries 3.12, so neither 3.13 nor a free-threaded build comes from the distribution.
-Use `pyenv`, as described below.
+Hashcat loads Python dynamically. A precompiled hashcat package therefore needs the matching runtime library and any Python modules imported by the selected plugin, but it does not need development headers.
 
-### Pyenv
+Ubuntu 24.04 carries Python 3.12, so its distribution packages cannot provide the mode 72000 runtime. `pyenv` can install both runtime variants without changing the system Python.
 
-Pyenv is great for managing local python versions, and also frees us from using virtual environments while at the same time to not break global system installs when using `pip` to install new modules.
+### Windows
 
-Check out https://github.com/pyenv/pyenv in order how to install `pyenv`.
+Use the installer from https://www.python.org/downloads/windows/. Enable the optional free-threaded runtime for mode 72000. Leave it disabled for mode 73000.
 
-After install, if you are fine with `-m 73000`
+### Linux and macOS with pyenv
+
+See https://github.com/pyenv/pyenv for installation instructions. For mode 73000, select an ordinary build:
 
 ```
 pyenv install 3.13
 pyenv local 3.13
 ```
 
-In order to use `-m 72000`
+For mode 72000, select a free-threaded build whose version ends in `t`:
 
 ```
 pyenv install 3.13t
 pyenv local 3.13t
 ```
 
-Note that unlike on Windows, there is no combined Python 3.13 + 3.13t version. This can be a bit confusing. If you plan to use `-m 72000`, you must switch your pyenv to Python `3.13t` beforehand. Similarly, you need to switch back to Python `3.13` before using `-m 73000`.
+The ordinary and free-threaded runtimes are separate installations. Use `pyenv versions` to see which one is active before starting hashcat.

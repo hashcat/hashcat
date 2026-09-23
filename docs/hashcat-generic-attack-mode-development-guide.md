@@ -5,7 +5,7 @@
 
 ## General
 
-The new attack mode 8 is similar to the assimilation bridge in that we have added a standardized interface that allows users to easily add new functions and extend the customization of hashcat. Unlike the assimilation bridge, which operates on the output channel, this plugin interface operates on the input channel, the password candidate generator side.
+Attack mode 8 is similar to the assimilation bridge in that we have added a standardized interface that allows users to easily add new functions and extend the customization of hashcat. Unlike the assimilation bridge, which operates on the output channel, this plugin interface operates on the input channel, the password candidate generator side.
 
 Such generators are often implemented as standalone tools and connected to hashcat through the stdin interface. However, that approach comes with limitations and bottlenecks, which are discussed in the user guide: `docs/hashcat-generic-attack-mode.md`. If you have not read it yet, start there.
 
@@ -24,18 +24,17 @@ This open design allows for:
 
 ## Example Feeds
 
-We provide four sample feeds. Between them they cover the three shapes a feed can have: one that can seek freely, one that can only start over, and one that cannot go back at all.
+Four small feeds serve as interface examples. Between them they cover the three shapes a feed can have: one that can seek freely, one that can only start over, and one that cannot go back at all.
 
-Two more feeds ship as attacks rather than as samples, and both are described further down: `feed_pcfg`, which is what `-a 4` runs, and `feed_association`, which is what `-a 9` runs.
+Other shipped feeds implement complete attacks. The PCFG and table feeds run `-a 4` and `-a 5`, while the association feed supplies account-derived candidates to `-a 9`. The mask and hybrid feeds handle the rule-bearing forms of `-a 3` and the hybrid attacks. The wordlist feed also supplies the word-based legacy modes, including `-a 0`.
 
 1. `feed_wordlist`
 
-	- A simple wordlist loader, and the feed -a 0 itself is built on
+	- The seekable wordlist loader that ordinary `-a 0` now uses
 	- Takes any number of wordlists and directories, laid end to end into a single keyspace
 	- Because it is one keyspace rather than one attack per file, `--skip` and `--limit` address the whole set rather than each file
-	- Much higher performance than classical -a 0 due to improved seeking
-	- Uses a seek database instead of the traditional dictstat file, allowing efficient random access without repeatedly calling next()
-	- Especially beneficial on multi-GPU systems
+	- Uses a seek database instead of the traditional dictstat file, allowing efficient random access without repeatedly calling `thread_next()`
+	- Direct range seeking is especially useful on multi-GPU systems
 
 2. `feed_stdin`
 
@@ -76,7 +75,9 @@ A feed is normally named on the command line after `-a 8`. A feed that ships wit
 
 The rewrite inserts the plugin name and leaves everything else where it was, so `workv[0]` still holds the plugin name and the feed cannot tell which spelling the user used. Both spellings therefore produce the same run and the same brain session.
 
-`-a 5` is the same for the table feed, rewritten into `-a 8 hashes.txt table wordlist table-file`. The same function serves `-a 1`, `-a 6` and `-a 7`, which are rewritten into `-a 12`. Adding a number for a new feed is a line in that function plus an `ATTACK_MODE_*` constant, and the sanity checks that name the mode.
+`-a 5` is the same for the table feed, rewritten into `-a 8 hashes.txt table wordlist table-file`. The function also expresses `-a 1`, `-a 6` and `-a 7` as the unified hybrid mode `-a 12`. If rules are supplied, those modes and `-a 12` use the hybrid feed, while `-a 3` uses the mask feed. Without rules, `-a 3` keeps its device-side mask engine and the hybrid modes remain `-a 12`.
+
+Other modes select feeds without this command-line rewrite. The wordlist and stdin feeds supply the word-based attacks, and `-a 9` selects the association, PCFG or wordlist feed for each phase of the account-aware attack.
 
 ## Design Philosophy
 
@@ -86,7 +87,7 @@ Early experiments showed success reimplementing legacy hashcat attacks such as -
 
 ## Required Functions
 
-There are seven functions you can implement. In theory, only one `thread_next()` is mandatory, but for a proper implementation you will likely want to define several functions.
+Every feed must export the seven functions below. The loader refuses a feed if any one is missing. `thread_next()` is the hot path that produces candidates. The other functions define its lifetime, keyspace and positioning.
 
 ### Main Function
 
@@ -102,17 +103,15 @@ This function is called whenever hashcat needs the next password candidate. Writ
 bool global_init     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
 void global_term     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
 u64  global_keyspace (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
-bool thread_init     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx)
-void thread_term     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx)
-int  thread_next     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size)
-bool thread_seek     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u64 offset)
+bool thread_init     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx);
+void thread_term     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx);
+int  thread_next     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size);
+bool thread_seek     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u64 offset);
 ```
 
 ### hashcat_ctx_t
 
-Hashcat will provide the full `hashcat_ctx_t` context. In most cases you do not need it. It is complex and not suitable for wrapper languages. For that reason it is only optionally available to global functions.
-
-If you do use it, you can call the `EVENT_DATA()` functions to write messages that follow the hashcat API format. This allows external applications that use the hashcat API to receive callbacks. This is optional.
+Hashcat passes the full `hashcat_ctx_t` to all three global functions. Most feeds do not need to inspect it. Use `feed_say()` for user-facing messages so output follows `--quiet` and `--stdout`. The section on output routing below explains why.
 
 ### generic_global_ctx_t
 
@@ -128,7 +127,7 @@ typedef struct generic_global_ctx
 
   char  *profile_dir;
   char  *cache_dir;
-  char  *seekdb_dir;
+  char  *shared_dir;
 
   char   guess_base[256];
 
@@ -137,6 +136,10 @@ typedef struct generic_global_ctx
   const u64   *segment_first;
 
   u64 source_ident;
+  u64 dev_total;
+
+  bool dev_enable;
+  bool described;
 
   bool   error;
   char   error_msg[256];
@@ -148,15 +151,18 @@ typedef struct generic_global_ctx
 
 Notes:
 
-- This structure may change over time as we learn more about what developers need.
-- To handle compatibility, your feed library will be built with a version string. Hashcat will use this to check if your feed matches the current structures.
-- Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1]. That holds for a feed with an attack mode of its own too, where the user never typed the name and hashcat put it there, see the section on attack modes of their own above.
+- The feed interface version records the structure layout. Hashcat refuses a library built for an incompatible version instead of interpreting the wrong fields.
+- Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1]. That also holds for a feed with an attack mode of its own: hashcat inserts the name even though the user never typed it. See the section on attack modes of their own above.
 - `cache_dir` is where everything hashcat can rebuild lives. It is `<cache directory>/cache` by default and whatever the user named with `--cache-path` otherwise, which is how a cluster is pointed at storage several machines share so a cache is built once for all of it rather than once per host. A feed that caches something puts it in `cache_dir/feeds/<your feed name>`, named after the feed the way the plugin is, so somebody looking at the folder can tell which of the feeds beside it in `feeds/` wrote the contents. The `feeds` level may not exist yet, so create the path with `hc_mkdir_rec ()` rather than `hc_mkdir ()`, and only when you are about to write. Name each file after everything that describes it, so one built on one machine is found and trusted on another, and refuse one that does not match what you have in hand. Expect the directory to be read only: write only when you had to build something, and carry on with what is in memory when the write fails. Do not treat a failed write as an error, because the run has everything it needs without it.
+- `shared_dir` is where hashcat keeps shipped data such as feeds and rulesets.
 - `guess_base` is what the status display puts inside `Guess.Base.......: Feed (...)`. Write your own during `global_init()` if the plugin name alone is not informative: `Feed (rockyou.pcfg)` tells the user something that `Feed (pcfg)` does not. Leave it empty and hashcat uses the plugin name.
 - The three `segment_*` fields are optional and only worth filling if your feed draws from several named sources laid end to end. Publish where each one begins in the keyspace, ascending, and the status display names the source the run has reached instead of whatever `guess_base` holds: `Guess.Base.......: Feed ([6/18] d06.txt)`. Leave `segments_cnt` at zero and nothing changes. Fill these once the offsets are actually known, which for the wordlist feed means in `global_keyspace()` and not in `global_init()`, because the offset a source starts at is only known after every earlier source has been counted. The arrays and the strings they point at have to stay valid until `global_term()`, and freeing them is your job.
 - `source_ident` is one number saying what your feed reads from, so that something which has to tell two runs apart can do it without knowing what a source is. Fill it during `global_init()` or `global_keyspace()` if you can. The brain is what needs it: it keys its record of covered keyspace on the attack, so a feed whose inputs have changed since the last run has to come out different or that run is told its work was already done. A path is not enough, because the same path holds different words on different days. The wordlist feed already has the answer for free: it names its seek database after a hash of each file's size and both of its ends, and folds those together. Leave it at zero if your feed cannot say, which is what the stdin feed does.
+- `dev_total` can provide the exact candidate total for a device-amplifying feed when an integer average would lose information.
+- `dev_enable` tells a feed before `global_init()` whether its device engine will actually be used.
+- `described` lets a feed report that it answered a descriptive query and no candidate loop should start.
 - The error field on this structure is for the three global functions only. The four per device functions report through their own thread context, see below. Set it only if a real error occurs. An end of file condition is not an error. When you set this field, you may also provide an error message in error_msg.
-- If you print messages to the console, check the quiet flag first. This flag is set when the user runs hashcat with `--quiet`.
+- Use `feed_say()` for user-facing messages. It handles `--quiet` and routes output safely when `--stdout` is active.
 
 ### generic_thread_ctx_t
 
@@ -183,6 +189,8 @@ typedef struct generic_thread_ctx
 {
   bool   error;
   char   error_msg[256];
+
+  int    device_id;
 
   void  *thrdata; // super generic
 
@@ -211,7 +219,7 @@ This function is called once before hashcat exits. Use it to close files, free m
 
 - global_keyspace()
 
-This function is called once at startup. It is optional but important. Return the total number of candidates that your implementation will produce, based on the command line arguments. For example, return the number of words in a wordlist.
+This required function is called once at startup. Return the total number of candidates that your implementation will produce, based on the command line arguments. For example, return the number of words in a wordlist.
 
 Count everything you will hand out, including candidates hashcat will go on to reject for being too long or for failing an encoding conversion. Rejections belong in the `Rejected` counter, not in a smaller keyspace, and a keyspace that skips them cannot be seeked by offset.
 
@@ -221,7 +229,7 @@ If the keyspace cannot be determined because something went wrong, set the error
 
 - thread_init()
 
-This function is called only once when hashcat is starting up and before it starts it main cracking activity and specific to the called thread. You probably want to use this opportunity to allocate storage space that will be accessible for this thread and store it in `thrdata`.
+This function is called once for each device thread before cracking starts. Allocate thread-local state here and store it in `thrdata`. The `device_id` field already identifies the backend device this thread feeds.
 
 - thread_term()
 
@@ -275,31 +283,20 @@ This model gives you flexibility. You can centralize some work in the global fun
 
 ## Using The Device
 
-A feed runs on the host, but the device hashcat is feeding is right there and is often idle while the
-feed thinks. A feed that has work the device could do better may simply do it.
+A feed runs on the host, but the device hashcat is feeding is right there and is often idle while the feed thinks. A feed that has work the device could do better may simply do it.
 
 ### The device is current
 
-The device this thread feeds is current inside `thread_init()`, `thread_term()`, `thread_next()` and
-`thread_seek()`. You do not have to make it current yourself and you should not try.
+The device this thread feeds is current inside `thread_init()`, `thread_term()`, `thread_next()` and `thread_seek()`. You do not have to make it current yourself and you should not try.
 
-That is a promise the core makes rather than a rule you follow, because the ways to get it wrong are
-not diagnosable by whoever gets them wrong. There are four different hashcat threads that can call
-into a feed and only one of them used to make the device current, so a feed that wanted to talk to
-the device carried a push and a pop around every call it made. Popping a CUDA context into
-`device_param->cuda_context` rather than into a local corrupts hashcat's own handle from another
-thread, and it surfaces much later as an unrelated failure somewhere else.
+That is a promise the core makes rather than a rule you follow, because the ways to get it wrong are not diagnosable by whoever gets them wrong. There are four different hashcat threads that can call into a feed and only one of them used to make the device current, so a feed that wanted to talk to the device carried a push and a pop around every call it made. Popping a CUDA context into `device_param->cuda_context` rather than into a local corrupts hashcat's own handle from another thread, and it surfaces much later as an unrelated failure somewhere else.
 
 Two things the core cannot do for you, and both still apply:
 
-* **Never cache a context across calls.** hashcat destroys and recreates every CUDA context on each
-  outer loop iteration after the first, so a `CUcontext` read once and kept is a stale handle. Read
-  it fresh each time, or let the helpers below do it.
-* **HIP has no context handle at all.** What makes a HIP device current is a property of the thread,
-  not a handle you could hold.
+* **Never cache a context across calls.** hashcat destroys and recreates every CUDA context on each outer loop iteration after the first, so a `CUcontext` read once and kept is a stale handle. Read it fresh each time, or let the helpers below do it.
+* **HIP has no context handle at all.** What makes a HIP device current is a property of the thread, not a handle you could hold.
 
-`feed_device_param (hashcat_ctx, thread_ctx->device_id)` gives you hashcat's own record for the
-device this thread feeds, or NULL if there is no backend.
+`feed_device_param (hashcat_ctx, thread_ctx->device_id)` gives you hashcat's own record for the device this thread feeds, or NULL if there is no backend.
 
 ### Running your own kernel
 
@@ -315,9 +312,7 @@ bool feed_gpu_read  (feed_gpu_t *gp, const int slot, void *dst, const size_t siz
 bool feed_gpu_run   (feed_gpu_t *gp, const u64 items, const feed_gpu_arg_t *args, const u32 arg_cnt);
 ```
 
-CUDA, HIP and OpenCL do not appear in your feed, and neither does the compiled kernel cache, the build
-option list, the stream, or the twenty reasons a device may turn out not to be usable. You describe
-the kernel once:
+CUDA, HIP and OpenCL do not appear in your feed, and neither does the compiled kernel cache, the build option list, the stream, or the twenty reasons a device may turn out not to be usable. You describe the kernel once:
 
 ```c
 const feed_gpu_desc_t desc =
@@ -340,18 +335,11 @@ if (gp == NULL)
 }
 ```
 
-Build it in `thread_init()` and give it back in `thread_term()`, which hashcat runs one device at a
-time on one thread.
+Build it in `thread_init()` and give it back in `thread_term()`, which hashcat runs one device at a time on one thread.
 
-**`feed_gpu_init()` returning NULL is not a failure.** It returns NULL and a sentence for every reason
-not to use that device, and none of them is fatal by itself, because your host path answers the same
-question more slowly. Keeping the host path as the fallback also keeps it as the reference the device
-is checked against, which is the only cheap way to find out that a kernel and a host function have
-stopped agreeing.
+**`feed_gpu_init()` returning NULL is not a failure.** It returns NULL and a sentence for every reason not to use that device, and none of them is fatal by itself, because your host path answers the same question more slowly. Keeping the host path as the fallback also keeps it as the reference the device is checked against, which is the only cheap way to find out that a kernel and a host function have stopped agreeing.
 
-Buffers are numbered slots rather than names, because a slot number is what a kernel argument list
-refers to. Kernel arguments are positional, so `args[i]` is the kernel's i'th parameter, and each one
-is either one of your slots or an immediate read at launch:
+Buffers are numbered slots rather than names, because a slot number is what a kernel argument list refers to. Kernel arguments are positional, so `args[i]` is the kernel's i'th parameter, and each one is either one of your slots or an immediate read at launch:
 
 ```c
 const u64 arg_first = first;
@@ -368,57 +356,29 @@ feed_gpu_run (gp, len, args, 3);
 feed_gpu_read (gp, MYFEED_SLOT_OUT, verdict, len);
 ```
 
-`feed_gpu_run()` launches on a stream your feed owns and waits for it before returning, so it never
-lands inside the timing hashcat keeps for its own kernels. It is refused while hashcat is autotuning.
-Ask `feed_gpu_threads()` for the work group size you actually got, which may be lower than the one you
-asked for.
+`feed_gpu_run()` launches on a stream your feed owns and waits for it before returning, so it never lands inside the timing hashcat keeps for its own kernels. It is refused while hashcat is autotuning. Ask `feed_gpu_threads()` for the work group size you actually got, which may be lower than the one you asked for.
 
 ### What the layer takes care of, and why
 
-Six of the things it does for you are worth knowing about, because every one of them is a decision
-somebody had to make once and each one has a reason that is not obvious from the outside.
+Six of the things it does for you are worth knowing about, because every one of them is a decision somebody had to make once and each one has a reason that is not obvious from the outside.
 
-**The compiled kernel cache.** Your kernel is cached under hashcat's own cache directory, keyed on
-your feed's name, the device, the build options and a hash of the source. The name is in the key so
-that two feeds building two different kernels cannot collide over one file. The source is in the key
-because the build timestamp does not move when an editable `.cl` next to the binary changes, so
-editing your kernel in place is enough to invalidate the build. An entry is written under a temporary
-name and renamed into place, so two hashcat processes sharing a cache directory cannot read a half
-written file.
+**The compiled kernel cache.** Your kernel is cached under hashcat's own cache directory, keyed on your feed's name, the device, the build options and a hash of the source. The name is in the key so that two feeds building two different kernels cannot collide over one file. The source is in the key because the build timestamp does not move when an editable `.cl` next to the binary changes, so editing your kernel in place is enough to invalidate the build. An entry is written under a temporary name and renamed into place, so two hashcat processes sharing a cache directory cannot read a half written file.
 
-**Metal is declined.** `hc_mtlBuildOptionsToDict()` does not hand the option string to a compiler,
-and `load_kernel()` writes no `.metallib`, so a Metal feed kernel would be a full cold build at every
-session start with no cache to fall back on.
+**Metal is declined.** `hc_mtlBuildOptionsToDict()` does not hand the option string to a compiler, and `load_kernel()` writes no `.metallib`, so a Metal feed kernel would be a full cold build at every session start with no cache to fall back on.
 
-**An OpenCL CPU device is declined** unless your descriptor asks for it. That device is the same
-silicon your host path already runs on, with a cold kernel build in front of it. `--stdout` forces
-exactly those devices, and `thread_init()` walks devices one at a time, so without this the first
-`--stdout` run on a machine with an Intel or pocl runtime stalls with nothing on screen for longer
-than the whole attack would have taken.
+**An OpenCL CPU device is declined** unless your descriptor asks for it. That device is the same silicon your host path already runs on, with a cold kernel build in front of it. `--stdout` forces exactly those devices, and `thread_init()` walks devices one at a time, so without this the first `--stdout` run on a machine with an Intel or pocl runtime stalls with nothing on screen for longer than the whole attack would have taken.
 
-**The stream is yours, never hashcat's.** hashcat's own stream does not exist when `thread_init()`
-runs and is already destroyed when `thread_term()` runs, so there is nothing to borrow at either end.
-Sharing it would also put your launches inside the event pair hashcat uses to time the cracking
-kernel, which is what feeds the `Exec` column, `--spin-damp` and the TDR abort, so your work would be
-counted as hashcat's. The layer creates one for you and waits on that one alone, and never calls
-`cuCtxSynchronize()`, which takes no stream and would wait on hashcat's work as well.
+**The stream is yours, never hashcat's.** hashcat's own stream does not exist when `thread_init()` runs and is already destroyed when `thread_term()` runs, so there is nothing to borrow at either end. Sharing it would also put your launches inside the event pair hashcat uses to time the cracking kernel, which is what feeds the `Exec` column, `--spin-damp` and the TDR abort, so your work would be counted as hashcat's. The layer creates one for you and waits on that one alone, and never calls `cuCtxSynchronize()`, which takes no stream and would wait on hashcat's work as well.
 
-**No launch reaches the card while autotune is measuring.** `feed_gpu_run()` refuses during that
-window. Nothing can reach it today, because autotune joins its own threads before any device thread
-exists, but checking is what keeps that true when somebody adds a background warm up later.
+**No launch reaches the card while autotune is measuring.** `feed_gpu_run()` refuses during that window. Nothing can reach it today, because autotune joins its own threads before any device thread exists, but checking is what keeps that true when somebody adds a background warm up later.
 
 **Output routing**, which is the next section.
 
 ### Saying things
 
-Use `feed_say (hashcat_ctx, fmt, ...)` for anything your feed has to tell the user, rather than
-`event_log_info()` or `event_log_warning()`. Both of those write to stdout and neither is guarded by
-`--quiet`, and under `--stdout` that stream is the candidate list, so a helpful line would be handed
-to whatever is reading as a password to try. `feed_say()` says nothing under `--quiet`, puts it on
-stderr under `--stdout`, and on the screen otherwise.
+Use `feed_say (hashcat_ctx, fmt, ...)` for anything your feed has to tell the user, rather than `event_log_info()` or `event_log_warning()`. Both of those write to stdout and neither is guarded by `--quiet`, and under `--stdout` that stream is the candidate list, so a helpful line would be handed to whatever is reading as a password to try. `feed_say()` says nothing under `--quiet`, puts it on stderr under `--stdout`, and on the screen otherwise.
 
-The line most worth saying is usually that a device was declined and the run is now a great deal
-slower. Swallowing that is how a session silently takes a week.
+The line most worth saying is usually that a device was declined and the run is now a great deal slower. Swallowing that is how a session silently takes a week.
 
 ## Advantages Over A Pipe
 
@@ -439,10 +399,7 @@ Put your code in `src/feeds/` and prefix it with `feed_`, for example `src/feeds
 
 C Skeleton: `src/feeds/feed_random.c`
 
-A feed includes `include/feed.h`, and that one header is the whole contract: the functions above, the
-return codes, the options below, the settings parser, and the device helpers further down. There is a
-second header, `include/feed_ctx.h`, which holds the functions hashcat uses to drive feeds. A feed
-must not include it and cannot: it refuses to compile outside the core.
+A feed includes `include/feed.h`, and that one header is the whole contract: the functions above, the return codes, the options below, the settings parser, and the device helpers further down. There is a second header, `include/feed_ctx.h`, which holds the functions hashcat uses to drive feeds. A feed must not include it and cannot: it refuses to compile outside the core.
 
 ### Rust
 
@@ -463,11 +420,13 @@ For a C feed, set it to `FEEDS_INTERFACE_VERSION_CURRENT`, which the build passe
 
 Do not write the number out in your source either, for the same reason. It would survive an interface change and go on claiming a compatibility the source no longer has, which is a silent failure rather than a loud one. A Rust feed reads it from the environment variable `FEEDS_INTERFACE_VERSION_CURRENT`, which `src/feeds/rust_support.mk` sets when it invokes cargo, and `Rust/feeds/random` shows how to parse it in a const context. Built by hand with nothing in the environment it comes out as 0 and hashcat refuses the feed, which is the intended outcome.
 
-The second defines which post processing features of hashcat your feed should allow. Current options are:
+The second declares which optional processing and interface features the feed supports:
 
-- `GENERIC_PLUGIN_OPTIONS_AUTOHEX`: Allow hashcat to decode `$HEX[]` encoded candidates.
-- `GENERIC_PLUGIN_OPTIONS_ICONV`: Allow encoding conversion with `--encoding-from` and `--encoding-to`.
-- `GENERIC_PLUGIN_OPTIONS_RULES`: Allow application of rules defined with `-j`.
+- `GENERIC_PLUGIN_OPTIONS_AUTOHEX`: Allow hashcat to decode `$HEX[]` candidates.
+- `GENERIC_PLUGIN_OPTIONS_ICONV`: Allow `--encoding-from` and `--encoding-to`.
+- `GENERIC_PLUGIN_OPTIONS_RULES`: Allow hashcat's rule engine, including `-r`, `-j` and generated rules.
+- `GENERIC_PLUGIN_OPTIONS_DEVICE`: Export `global_dev_init()` and `thread_next_dev()` to amplify candidates in a device kernel.
+- `GENERIC_PLUGIN_OPTIONS_EXPLAIN`: Export `global_explain()` so `--debug-mode` can describe how a candidate was made.
 
-You can disable all three by setting the value to 0 for a small speed boost. This makes sense for feeds where none of these options apply. You can also enable or disable individual features depending on your feed.
+Set the value to 0 when none apply, or combine only the flags the feed actually implements. Advertising `DEVICE` or `EXPLAIN` makes the corresponding extra exports mandatory.
 

@@ -22,7 +22,7 @@ writing RSA key
 
 The customer keeps `private.pem` and never sends it anywhere. They send you `public.pem` together with the hash. The public key is not a secret - it can only lock, not unlock.
 
-Use 4096 bits. Hashcat rejects anything smaller, and the error message explains why.
+Use 4096 bits. Hashcat currently needs at least 3344 bits to hold its largest possible payload, and recommends the common 4096-bit size. The error message reports the required minimum if the key is too small.
 
 ### Step 2: The operator cracks the hash
 
@@ -50,7 +50,7 @@ Candidates.#02...: [Protected]
 
 You can see it cracked. You cannot see what it cracked, or how far it got.
 
-Candidates are hidden because as hashcat walks the keyspace the right candidate would appear in that display like any other. The position is hidden for a different reason: on a job that runs for days, the exact offset is a ready made starting point. Someone could restart without encryption and jump straight to the part of the keyspace that matters, instead of repeating the whole search. For the same reason a protected run writes __no restore file__.
+Candidates are hidden because as hashcat walks the keyspace the right candidate would appear in that display like any other. The position is hidden for a different reason: on a job that runs for days, the exact offset is a ready-made starting point. Someone could restart without encryption and jump straight to the part of the keyspace that matters, instead of repeating the whole search. For the same reason a protected run writes __no restore file__.
 
 Speed and estimated time are still shown. Whoever started the run knows how long it has been going, so they can already approximate the position from the speed - only the exact offset is worth withholding, and losing the ETA would make a multi-day job impossible to supervise.
 
@@ -93,7 +93,7 @@ You get four lines back, not just the password:
 ```
 v1                    <- format version
 449f17fa8d64e8...     <- SHA-256 of the hash line this password belongs to
-1786365128            <- when the cracking run started (unix time)
+1786365128            <- when the cracking run started (Unix time)
 13LEXON               <- the password
 ```
 
@@ -140,7 +140,7 @@ __Some options are refused.__ These would write a password, its source word, or 
 | `--debug-mode` | Records the originating word in the clear |
 | `--restore` | A protected run writes no restore file, so there is nothing to resume from |
 
-__The key must be RSA and at least 4096 bits.__ Elliptic curve and Ed25519 keys are rejected. The size is checked once at startup, before any cracking. A 2048-bit key can only hold 190 bytes, and a 24-word BIP39 seed phrase can reach 215 - a seed phrase cut short is worth nothing, so hashcat refuses the key rather than risk it. If encryption fails during a run for any reason, hashcat aborts instead of falling back to writing the password in the clear.
+__The key must be RSA and large enough for every payload.__ Elliptic curve and Ed25519 keys are rejected. The size is checked once at startup, before any cracking. With the current 256-byte password limit and 96-byte binding header, RSA-OAEP with SHA-256 needs at least 3344 bits. A 4096-bit key is recommended. A 2048-bit key can carry only 190 bytes after OAEP overhead, so hashcat refuses it rather than risk reaching a password that cannot be encrypted. If encryption fails during a run for any reason, hashcat aborts instead of writing the password in the clear.
 
 __You need OpenSSL 3 at runtime.__ Hashcat loads it only when you use this option, and is not linked against it, so a machine without OpenSSL runs hashcat normally and only complains if you ask for encryption.
 

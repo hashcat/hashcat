@@ -4,9 +4,9 @@ The purpose of this document is to introduce you to the development of plugins f
 
 With hashcat 6.0.0, a new interface has been designed which enables you to add new hash-modes more easily than in older hashcat versions. The plugin interface is an essential new feature of hashcat 6.0.0.
 
-One of our goals was to have the new interface to be independent from future versions of hashcat. This is achieved by hashcat loading your plugin code dynamically from a .so/.dll/.dylib library on startup. Another goal was to give the author of the plugin the option to share the plugin as source or in binary form. This is achieved by a clear separation between hashcat core code and plugin code. There is no longer a need to change hashcat core sources in order to add a new hash-mode. All existing hash-modes (300+) from older hashcat versions have been refactored to this new interface.
+The interface separates hash-mode code from the core. Hashcat loads modules from `.so`, `.dll` or `.dylib` files at startup, so an author can distribute either source or a compiled plugin without changing the core sources. Every included hash mode uses this interface.
 
-We are well aware that as a developer you want to see as little change as possible on this interface. That is why our third goal was to get the interface to a fairly final state and minimize the risk of changing it once it is released. That is not an easy task. When you are designing such an interface, there is always a chance that you are missing some details for rare use cases. The refactorization of the 300+ existing hash-modes served both as a reference check and a feasibility study. We do not plan to change the interface except if there is a strong need for it. For that unlikely event of a major change, there is an automatic version check which is added automatically to your module at compile time.
+The interface changes only when a real need justifies it. A compile-time interface version lets hashcat reject an incompatible binary before calling into it. Rebuild an external binary plugin whenever that version changes. Source plugins are compiled against the installed headers.
 
 To make kernel development as easy as possible, we have already started in previous hashcat versions to include GPU-optimized OpenSSL-like crypto interfaces and finalized it with hashcat 6.0.0. If you are familiar with that interface, you know it typically uses a chain of context init(), update() and final() function calls. In all refactored pure kernel sources, you can see this interface type design being used. It is also our hope that the structure of the well known interface will make it easy for developers to use the existing kernel source as a useful reference.
 
@@ -17,7 +17,7 @@ Developing a hashcat plugin can be very overwhelming at first. Do not get discou
 Let us jump right in. To develop a plugin for hashcat, you basically just need to create two files:
 
 * Module: This is where you do all the initial hash-mode configuration work. It is the code which executes on the CPU of the host system. Note that we are not talking about the compute-intense crypto stuff. For instance, the module is responsible for decoding of the hash file entries and to copy the data to the standardized hashcat memory structures. It features many different functions which you can use for special handling of your hash file data. You can choose much easier the rich library for decoding, encoding and converting you want to use. The modules are stored in the folder `src/modules/`.
-* Kernel: This is the place where you put the real crypto implementation of your hash mode. This is the time-consuming code which is executed on the compute devices. The kernels are stored in the folder `OpenCL/`. Note that CUDA kernels also will be stored in that folder and have a .cl filename suffix. This may change in the future.
+* Kernel: This is where you put the compute-intensive implementation of your hash mode. Kernels are stored in `OpenCL/`. The CUDA backend also compiles these `.cl` sources through NVRTC.
 
 You will read the terms "module" and "kernel" quite often from now on. Just for terminology, the combination of both "module" and "kernel" is what we call a hashcat "plugin".
 
@@ -50,9 +50,9 @@ Another preparation you need to make before you start coding is to pick the righ
 In theory there is no special hardware required for hashcat plugin development. However, there are some recommendations that we can give you:
 
 * Stick as close as possible to the hardware on which the plugin is supposed to run on. For instance, If you write a plugin which is supposed to be used by pentesters (like Kerberos), you probably want to use a mobile GPU for development. If you write a plugin which is probably used on private computers (like crypto-currency wallets), use a discrete mid-range GPU. If you write a plugin being used in digital forensics (like TC), you probably want to use a discrete high-end GPU.
-* If you plan to use an NVIDIA GPU you will have the least unwanted side effects. Additionally this has the advantage you can test it on both the new CUDA and the old OpenCL backend. Since hashcat version 6.0.0 there is a backend which supports both compute API. Note that you will need to install the CUDA SDK in case you want to use the CUDA backend. The CUDA SDK is required for both developing and running CUDA kernels. This goes back to the problem that the NVIDIA driver does not support JIT compiling the kernels. That is the advantage of OpenCL over CUDA. You only need the drivers and the ICD installed.
-* If you plan to use an AMD GPU, please use ROCm drivers. This limits you to use Linux. At the time of writing this document, the use of amdgpu-pro drivers is a pain. Do yourself a favor and do not try to develop on amdgpu-pro drivers.
-* If you plan to use a CPU for development, make sure that you install and use the Intel OpenCL Runtime. Interestingly, even if you are using an AMD CPU, the Intel runtime runs very smoothly with them. Do not try to use MESA, POCL or Beignet/NEO drivers. Also note that on a CPU there is no such thing like shared memory that we have on GPUs. If your algorithm is making heavy use of shared memory you will not see the effects of it.
+* An NVIDIA GPU lets you test the same kernel through both CUDA and OpenCL. The CUDA backend needs the CUDA Toolkit because the driver can execute compiled code but cannot compile the CUDA C source. NVRTC, supplied by the toolkit, performs that compilation. OpenCL obtains its compiler from the vendor runtime.
+* For an AMD GPU, use ROCm on Linux or the Adrenalin driver with the AMD HIP SDK on Windows. Testing through both HIP and OpenCL is useful when both runtimes are available.
+* For CPU testing, use the Intel CPU Runtime for OpenCL or PoCL 5.0 or newer, and test both where practical. A GPU runtime such as Intel NEO is not a CPU substitute. CPU local memory does not behave like dedicated GPU shared memory, so it cannot reveal every performance effect of a local-memory-heavy kernel.
 
 One of the most important factors for choosing the right compute API is that it supports using printf() from inside the kernel. In the past this way of debugging was not possible, which made kernel development a real pain. With the current OpenCL drivers this works pretty well. Get used to the idea that printf() becomes your primary debugging utility. Since you only write a very small piece of code in the kernel it is not as bad as you may think.
 
@@ -65,8 +65,6 @@ Some more remarks for the hardware of your development platform:
 * High-End GPUs can have a negative effect on development since they ship with a lot of specialized hardware instructions. Since the JiT will always try to optimize your code as much as possible, these additional instructions will complicate the optimizers task.
 * Low-END GPUs can have a negative effect on development since they lack resources. You will maybe write your code in a too resource saving way, hurting the performance on a High-End GPUs.
 
-My Development at the time of writing this document (beginning of 2020) is an Intel I5 generation 6 with a regular SSD and 16GB memory. The system runs on Ubuntu 18.04 Server. The GPU is an NVIDIA GTX 980. Additionally I am using Intel OpenCL runtime, but only to test the code on the CPU afterwards.
-
 Before you actually start with your implementation make sure you have already cloned hashcat from GitHub master, that you are able to compile it on your system and that it runs smoothly. Make sure you have a clean installation with no previous version artifacts laying around.
 
 ## Test Suite ##
@@ -75,7 +73,7 @@ The optional unit-test stub originally was made only to automate the task of plu
 
 From our experience in the last years adding new hashcat hash-modes we cannot stress enough how important it is to have a POC (as described earlier) to print intermediate values. If we do not already have some sort of POC, we use this optional unit-test stub as a POC replacement. Writing a unit-test is typically done from a high-level programming language, and Python is what a stub is written in, for instance [m17010.py](/tools/test_modules/m17010.py). At this point we already created some synergy because you can use it as a POC to start with the development and later it acts as a normal unit-test stub and you do not have to write it twice. If you do not care about POC's and unit-test you can directly jump to the module subsection from here.
 
-The main program (tools/test_module_runner.py) loads at runtime the hash-mode specific code written like a plugin. The structure of this python module is standardized. We have already mentioned that all existing code to the 300+ hash-modes from previous hashcat versions have been refactored. Also all 300+ hash-mode specific unit-test stubs have been refactored into this new Test Suite Framework. The same way the before mentioned modules and kernels act as a reference, the unit-test stubs can also be used as reference. In most of the cases you can simply copy/paste from an existing unit-test stubs, change a small piece of code and both are ready, the POC and the unit-test stub.
+The main program, `tools/test_module_runner.py`, loads the mode-specific Python code at runtime through a standard interface. Existing test modules are useful references. In many cases you can copy a test module for a similar format, change its algorithm and parsing, and use it both as the proof of concept and as the permanent test.
 
 The test suite itself consists of four files:
 
@@ -230,7 +228,7 @@ To see all available options, see tools/test_edge.sh --help
 
 ## Module ##
 
-The first really needed ingredient to create a plugin is the module. The module is a single .c source code file in which you can freely implement the 76 different interface functions or add your own auxiliary functions. No worries, I have never had a module which required me to implement all 76 functions. Many functions are really only required in special cases. In the best cast you only need to implement 2 functions.
+The first required part of a hash-mode plugin is its module. A module is one `.c` source file that assigns the interface functions it needs and may add its own helpers. Most interface functions cover special cases and remain at `MODULE_DEFAULT`. A simple mode may need only a few.
 
 The integration in hashcat is very easy. Your module is compiled to a .so shared object on Linux and macOS (or .dll on Windows). The moment when hashcat starts, it loads the shared object corresponding to the hashmode the user specified by the -m option (default is -m 0).
 
@@ -296,7 +294,7 @@ module_ctx->module_hash_name = module_hash_name;
 
 For all functions that you do not use, please use the macro MODULE_DEFAULT. Using this macro, hashcat can see that its module_ctx_t structure is in the correct version (if you only want to distribute a binary). For instance, if a new function is added in a future version, the structure in the binary-distributed older version is one address too short and contains the value NULL. With this approach, hashcat can ensure that you work with your compatible module_ctx_t structure.
 
-The only two mandatory functions that you normally have to program for a minimal plugin integration, are the decoder function module_hash_decode() and the encoder function module_hash_encode(). The other remaining mandatory function which typically only consists of static configuration items, but not code. Here is each of them explained:
+For a minimal plugin, the two mandatory functions that normally require substantial code are `module_hash_decode()` and `module_hash_encode()`. Most other mandatory functions return static configuration values. The following sections explain each one.
 
 ### module_attack_exec() ###
 
@@ -397,7 +395,7 @@ static const u64 KERN_TYPE = 7100;
 This configuration item is a bitmask field. There are a few switches which you can enable and disable. But be careful, some of them have the potential to break your plugin. I recommend being very cautious using these flags. As always, the list of flags can be found here: `include/types.h`. I will comment the ones which exist right now:
 
 * OPTI_TYPE_OPTIMIZED_KERNEL: This flag indicates if an optimized kernel should be used (otherwise a pure kernel will be used). It can be set by the hashcat user by passing the -O option on the command line or by hashcat if it detects that no pure kernel for that particular hash-mode exists in the `OpenCL/` folder. Note that it can also be automatically deactivated by hashcat if the user set the -O option on the command line but no optimized kernel was found. Do not set this flag from within your module.
-* OPTI_TYPE_ZERO_BYTE: This indicates that the zero byte auto-optimizer is active. I have described the zero byte optimizations here: https://hashcat.net/events/p13/js-ocohaaaa.pdf. Note that with today's OpenCL/CUDA JiT many optimizations that had to be optimized by hand are done by these compilers automatically. Therefore this flag acts as a documentation flag only (it is shown as an optimizer on hashcat startup). Some other optimizers are actually used by the kernel. The downside of this is that you cannot disable these kinds of Jit compiler optimizations selectively. You can only disable them all by using the `-cl-opt-disable` flag in the JiT compiler options. there is a special function module_jit_build_options() which you can use if you want to pass it to the JiT compiler.
+* OPTI_TYPE_ZERO_BYTE: This indicates that the zero byte auto-optimizer is active. I have described the zero byte optimizations here: https://hashcat.net/events/p13/js-ocohaaaa.pdf. Note that with today's OpenCL/CUDA JiT many optimizations that had to be optimized by hand are done by these compilers automatically. Therefore this flag acts as a documentation flag only (it is shown as an optimizer on hashcat startup). Some other optimizers are actually used by the kernel. The downside of this is that you cannot disable these kinds of Jit compiler optimizations selectively. You can only disable them all by using the `-cl-opt-disable` flag in the JiT compiler options. There is a special function, `module_jit_build_options()`, for passing options to the JIT compiler.
 * OPTI_TYPE_PRECOMPUTE_INIT: similar to OPTI_TYPE_ZERO_BYTE.
 * OPTI_TYPE_MEET_IN_MIDDLE: similar to OPTI_TYPE_ZERO_BYTE.
 * OPTI_TYPE_EARLY_SKIP: similar to OPTI_TYPE_ZERO_BYTE.
@@ -405,7 +403,7 @@ This configuration item is a bitmask field. There are a few switches which you c
 * OPTI_TYPE_NOT_ITERATED: similar to OPTI_TYPE_ZERO_BYTE.
 * OPTI_TYPE_PREPENDED_SALT: similar to OPTI_TYPE_ZERO_BYTE.
 * OPTI_TYPE_APPENDED_SALT: Appended salts can be optimized as if they do not exist in some circumstances. Typically this flag makes sense for generic raw hash primitives. For instance, sha1($p.$s). This flag copies the salt data to the end of a mask in an -a 3 attack automatically. From the perspective of the mask processor (password candidate generator) the salt is a static part given by the user as part of the password. By doing so, we can save the append branch of the salt in the inner loop of the kernel which improves the performance. If the hash cracks, hashcat will automatically remove it from the mask.
-* OPTI_TYPE_SINGLE_HASH: For fast hashes this will select the sXX kernels instead of the mXX kernels. The sXX kernels do not need to go through a bloom filter and no binary tree search is performed. Instead, they will store the target hash (which is just a single one) on the register level. As a result, the comparison will be much faster, and the speed improves. This flag is set by hashcat automatically on startup. Do not set this flag from within your module.
+* OPTI_TYPE_SINGLE_HASH: For fast hashes this selects the sXX kernels instead of the mXX kernels. The sXX kernels keep the single target digest in registers and avoid the bitmap prefilter and binary search used for multiple hashes. This flag is set by hashcat automatically on startup. Do not set it in your module.
 * OPTI_TYPE_SINGLE_SALT: similar to OPTI_TYPE_ZERO_BYTE.
 * OPTI_TYPE_BRUTE_FORCE: This flag is a requirement for some other flags, such as OPTI_TYPE_APPENDED_SALT. Only when this flag is active, can OPTI_TYPE_APPENDED_SALT be exploited. This flag is set by hashcat automatically on startup. Do not set this flag from within your module.
 * OPTI_TYPE_RAW_HASH: This flag is a requirement for some other flags, such as OPTI_TYPE_APPENDED_SALT. If this flag is active, then OPTI_TYPE_APPENDED_SALT can be exploited. This flag needs to be set from within the module, based on whether the kernel can make use of OPTI_TYPE_APPENDED_SALT.
@@ -518,12 +516,12 @@ This configuration item is a bitmask field and is very similar to the module_opt
 * OPTS_TYPE_MT_HEX: Assume that mask is always given in hex.
 * OPTS_TYPE_HASH_COPY: This copies the original input hash line as it is into a buffer so that it can be used later. This is required if the original input hash line ships with the same data which is not copied into salt_t or esalt buffer because it is overhead data which is not used in any way. The hash line is copied to the buffer hash_info->orighash and can be used from the encoder function by simply returning hash_info->orighash. Please do not abuse this functionality, for two reasons: First, by being able to reconstruct the original hash line from only the hashcat data we verify that the correct amount of data has been stored in the hashcat memory structures (IOW, it is a good verification process). Second, the host memory requirement for saving this data increases drastically.
 * OPTS_TYPE_HASH_SPLIT: This needs to be used if the hash actually contains multiple hashes in the same hash line. A good example is the LM hash which is typically stored as a 128 bit hash, but actually is built on two 64 bit hashes.
-* OPTS_TYPE_LOOP_PREPARE: TBD
+* OPTS_TYPE_LOOP_PREPARE: Adds an `_loop_prepare` kernel. Hashcat runs it once before the `_loop` sequence for each salt repeat, making it useful for state that must be reset before the iteration chunks begin.
 * OPTS_TYPE_LOOP_EXTENDED: This flag can be used if you want to execute a *_loop_extended kernel directly each time a _loop kernel is finished. This actually means directly after each _loop kernel invocation when no final values are ready. The _loop kernel typically only iterates for a maximum of 1024 iterations and then returns. This provides low kernel runtimes, which reduces GPU screen lags and avoids driver watchdog events. However, some algorithms can be exploited by working on exactly these intermediate values.
 * OPTS_TYPE_HOOK12: Execute a hook kernel (CPU code) between _init and _loop kernel. A hook kernel is a normal kernel which can be used to select/copy very specific intermediate data and copy it to a so-called hook transfer buffer. This transfer buffer exists on both GPU and CPU. After the kernel is completed, the GPU buffer is copied to the corresponding CPU buffer so it can be processed. Then, the real hook function from your module is called from which you can read the intermediate data, process it as you need and then store it back. After your CPU function is finished, the buffer is copied back to the GPU automatically. The typical use case for this is if you need to deal with algorithms which include libraries which have no GPU implementation. Hashcat will automatically spawn a number of threads for you, so this is a multi threaded process. All buffers which are not constant buffers are thread-safe.
 * OPTS_TYPE_HOOK23: Same as OPTS_TYPE_HOOK12 but the hook is between the _loop and the _comp kernel. Do not confuse this with OPTS_TYPE_LOOP_EXTENDED. A hook is always when the final values are ready to be processed. We believe most algorithms that need hook code will use this hook instead of OPTS_TYPE_HOOK12.
 * OPTS_TYPE_INIT2: Some algorithms (usually updated from previous crypto schemes) execute two different types of compute intensive derivation functions. A good example is iTunes 10+. In iTunes 9 there is an algorithm with 10,000 iterations of SHA256. However, Apple updated this algorithm to be backward compatible. They use the output of the iTunes 9 KDF as the password to a new KDF which is 10,000,000 iterations of SHA256. The problem is that even for a KDF with 10,000 iteration we need to split this. In this instance we split this into 10 calls to a _loop kernel with 1,000 iteration otherwise users get massive screen lags or some watchdogs restart the drivers. In such a case, you can use OPTS_TYPE_INIT2 and OPTS_TYPE_LOOP2 kernels where you can execute the updated KDF with 10,000,000 iterations and also split it into 1,000 iteration chunks.
-* OPTS_TYPE_LOOP2_PREPARE: TBD
+* OPTS_TYPE_LOOP2_PREPARE: Adds an `_loop2_prepare` kernel with the same role before the secondary `_loop2` sequence.
 * OPTS_TYPE_LOOP2: See OPTS_TYPE_INIT2
 * OPTS_TYPE_AUX1: Some hash algorithms, often those with backward compatibility, share the same KDF (for instance, PBKDF2-HMAC-SHA1) but also use the derived key differently, depending on a version number. In theory you can check this version in the _comp kernel and build two different branches inside the _comp kernel. In many cases this is implemented like this. The AUX kernels are an alternative where you can assign the different branches to specific kernels. This greatly reduces instruction cache misses and helps the JiT to produce better code. It can also help in cases where both branches require a certain amount of shared memory that is larger then you are able to allocate. In case you use AUX kernels, the _comp kernel is executed, but it is expected to be empty.
 * OPTS_TYPE_AUX2: See OPTS_TYPE_AUX1, but for a different branch.
@@ -667,7 +665,7 @@ There is no need for you to change anything. This section is only for informatio
 * void *bfs_buf: This is the buffer which holds the modifier part of the password mask. In fast hash mode you want to read this buffer from the inner loop in your _a3 kernels.
 * void *tmps: This is the generic context buffer. It is available only in slow hash kernel mode. In slow hash mode you want to read and write this buffer. There is one entry for each work item.
 * void *hooks: This is the generic hook buffer. It is available only in slow hash kernel mode and if hooks are enabled. In slow hash mode you want to read and write this buffer. There is one entry for each work item.
-* u32 *bitmaps_buf_s1_a: This is the bitmap for the bloom filter which is used in a fast-hash multi-hash kernel.
+* u32 *bitmaps_buf_s1_a: This is part of the bitmap prefilter used by a fast-hash multi-hash kernel.
 * u32 *bitmaps_buf_s1_b: See bitmaps_buf_s1_a.
 * u32 *bitmaps_buf_s1_c: See bitmaps_buf_s1_a.
 * u32 *bitmaps_buf_s1_d: See bitmaps_buf_s1_a.
@@ -676,12 +674,12 @@ There is no need for you to change anything. This section is only for informatio
 * u32 *bitmaps_buf_s2_c: See bitmaps_buf_s1_a.
 * u32 *bitmaps_buf_s2_d: See bitmaps_buf_s1_a.
 * plain_t *plains_buf: This is where hashcat stores the index to the base password and the modifier (if used) of a cracked hash. This buffer is used by hashcat to reproduce the password on the host and print it to the user along with the hash. The buffer has as many entries as there are unique digests.
-* digest_t *digests_buf: This is the one big buffer which holds all unique digests. It is searched using a binary search after the hash passed the bloom filter.
+* digest_t *digests_buf: This buffer holds all unique digests. It is searched with a binary search after the candidate passes the bitmap prefilter.
 * u32 *hashes_shown: This is a buffer which marks individual hashes as cracked after they have been cracked. This way we do not report the same hash cracked twice or more often.
 * salt_t *salt_bufs: This is the buffer which holds the fixed size salt data. See the salt_t section below for details. If you are using a fixed size salt data, read from here. There are as many entries as there are unique salt_t buffers, but you do not need to iterate through them from inside the kernel. Use the SALT_POS_HOST macro (see below) to index the current one.
 * void *esalt_bufs: This is the buffer which holds the generic size salt data. You need to cast this type from inside the kernel manually. There are as many entries as there are unique digests, but you do not need to iterate through them from inside the kernel. Use the DIGESTS_OFFSET_HOST macro (see below) to index the current one.
 * u32 *d_return_buf: This buffer is used to indicate to hashcat that a hash has been cracked and should be shown to the user.
-* void *d_extra0_buf: This buffer is used to workaround the OpenCL memory limitation that only a maximum of 1/4 of the total device memory can be used from a single allocation. Some algorithms, especially memory hard algorithms, can make use of this.
+* void *d_extra0_buf: This and the other extra buffers let a memory-hard mode split storage across several allocations when one allocation cannot hold the required amount.
 * void *d_extra1_buf: See d_extra0_buf.
 * void *d_extra2_buf: See d_extra0_buf.
 * void *d_extra3_buf: See d_extra0_buf.
@@ -689,7 +687,7 @@ There is no need for you to change anything. This section is only for informatio
 
 These are the members, with the macro to read each one:
 
-* u32 bitmap_mask (BITMAP_MASK): This is the mask for the bloom filter. It depends on the bitmap size which was automatically calculated from hashcat on startup.
+* u32 bitmap_mask (BITMAP_MASK): This mask indexes the bitmap prefilter. Hashcat derives it from the selected bitmap size at startup.
 * u32 salt_pos_host (SALT_POS_HOST): This is used to index the current salt_t entry. You want to use this when you access the salt_bufs buffer. Under attack mode 9 the macro expands to the work item's own position instead. Use SALT_POS_HOST_BID where the index has to follow the block id rather than the global id.
 * u64 loop_pos (LOOP_POS): This is the current iteration number to start with. If you have a slow hash kernel, this variable is relevant in the _loop kernel. Since the _loop kernel is limited to a maximum iteration count of 1024, some algorithms have higher iteration counts and have iteration count depending logic implemented.
 * u64 loop_cnt (LOOP_CNT): This is the number of iteration counts to loop in the inner loop in the _loop kernel. Typically not higher than 1024.
@@ -725,7 +723,7 @@ The modification is depending on the attack-mode. Attack-mode 1, attack-mode 6 a
 
 Attack-mode 4, the PCFG attack, is a fourth kernel and it is optional. See the section on it below.
 
-The file name convention for fast hashes is: `OpenCL/mXXXXX_a[0|1|3]-[pure|optimized].cl`
+The file name convention for fast hashes is `OpenCL/mXXXXX_a[0|1|3|4]-[pure|optimized].cl`. The attack-mode 4 file is optional.
 
 #### Kernel: fast hash type (optimized) ####
 
@@ -735,8 +733,7 @@ Remember we only need to have those three different implementations due to the d
 
 Each fast hash kernel source in optimized mode has to provide the following kernel functions with this convention: `mXXXXX_[m|s][04|08|16]`.
 
-As always, the XXXXX is the hash mode with leading zeros. The `m` or `s` defines the multi-hash and single-hash implementation. In single hashes, often we can store the target hash on the register which makes the final test much faster compared to checking it on GPU memory. The `m` and `s` therefore often look almost the same. The only difference is that in the `s` kernel at some point you will store the target hash in a register. The final comparison function macro for `m` is COMPARE_M_SIMD() and for `s` is COMPARE_S_SIMD().
-For single-hash this will add code to do on-register comparison. For multi-hash this will add the code to run the bloom filter and a binary tree search. For both cases, the macros expect you to provide 4 times 32 bit values in the same order as you have configured in the module functions module_dgst_pos0() - module_dgst_pos3(). Note that it always has to be 4 times 32 bit values, also for hashes which provide much more or much less bits output size. See the sections about `module_dgst_pos0()` - `module_dgst_pos3()` for details.
+As always, the XXXXX is the hash mode with leading zeros. The `m` or `s` defines the multi-hash and single-hash implementation. In single hashes, often we can store the target hash on the register which makes the final test much faster compared to checking it on GPU memory. The `m` and `s` therefore often look almost the same. The only difference is that in the `s` kernel at some point you will store the target hash in a register. The final comparison function macro for `m` is COMPARE_M_SIMD() and for `s` is COMPARE_S_SIMD(). For a single hash this adds an on-register comparison. For multiple hashes it uses a bitmap prefilter followed by a binary search. In both cases, the macros expect four 32-bit values in the order configured by `module_dgst_pos0()` through `module_dgst_pos3()`. This is always four values even when the full digest is larger or smaller. See the corresponding module-function sections for details.
 
 The `[04|08|16]` from the function name denotes the maximum password candidate length in 4-byte words. The `04` function limits the candidates to 16 bytes, `08` limits to 32 bytes, and `16` to 64 bytes. Only the brute-force `a3` set of kernels need to implement all of the `04`, `08`, and `16` length variants. The `a0` and `a1` sets of kernels should only implement the `04` function and create the `08` and `16` variants as empty stubs. The candidate generation for the fast `a0` and `a1` kernels are proportionally slow enough that the length optimizations of the `08` and `16` variants simply don't provide significant benefit over the "pure" variant.
 
@@ -763,7 +760,7 @@ You do not write the kernel. You write four hooks and include the engine, which 
 * `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
 * `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
 
-`OpenCL/inc_pcfg_kernel.cl` documents all four and is worth reading before writing one. `OpenCL/m00100_a4-pure.cl` is the smallest complete example, and `OpenCL/m00200_a4-optimized.cl` the smallest of the other kind. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. The existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and not one of them declares a local called `s3`. Name the word buffers `w0` to `w3`, as 49 of the 226 `a4-pure` kernels do.
+`OpenCL/inc_pcfg_kernel.cl` documents all four and is worth reading before writing one. `OpenCL/m00100_a4-pure.cl` is the smallest complete example, and `OpenCL/m00200_a4-optimized.cl` the smallest of the other kind. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
 
 ### Kernel: slow hash type ###
 
@@ -822,7 +819,7 @@ In hashcat, we have two different types of salt structures. There is a fixed siz
 
 ### salt_t ###
 
-The salt_t is a fixed size data type which is defined in `OpenCL/inc_types.h` and holds a number of configuration settings and buffers with different meanings. However, they all are using 32 bit integers exclusively. This goes back to the fact that GPU registers are always 32 bit. You can work with 8 bit integers, but will make the GPU slower because it has to emulate an 8 bit register behavior (which is done transparently from your perspective). We however are trying to avoid this by sticking to u32 data type buffers for your entire kernel to achieve best performance. I will now explain the components of the salt_t structure in detail:
+The `salt_t` fixed-size structure is defined in `OpenCL/inc_types.h`. Its buffers and configuration fields use 32-bit integers, giving host code and every compute backend the same stable, device-friendly layout. Kernels generally process these buffers as `u32` words, but this does not mean every GPU register is limited to 32 bits. The fields are described below:
 
 * u32 salt_buf[64]: This is the main buffer to store your salt in. The salt is limited to 64 times 32 bit (which is 4 bytes, 4 * 8 bits) elements, so 256 bytes. You need to guarantee that your salt buffer will never exceed 256 bytes, otherwise you can not store the salt in the salt_t structure. But for most cases, this is enough. If the salt buffer exceeds the 256 byte range, you need to use an esalt structure which is explained later.
 * u32 salt_buf_pc[64]: This is an additional buffer to store precomputed values (typically based on the salt buffer). For instance, if you have an algorithm like sha1($p.md5($s)) you do not need to compute the md5($s) part for every try. It is enough to compute it once. The buffer is used to store the result of the md5($s) which you can access from within your kernel.
@@ -841,8 +838,7 @@ The salt_t is a fixed size data type which is defined in `OpenCL/inc_types.h` an
 
 ### esalt ###
 
-Of course there are also generic buffers in case the data of your hash mode simply covers additional data like encrypted data, IV, etc. or simply salt buffers which are too long to fit into the standardized salt_t structure. To define your own struct, you need to define it in the module as well as in the kernel. Since both source codes are independent from each other, you need to maintain them and guarantee that they are synchronized. The esalt buffers and structs in the corresponding `src/modules/` and `OpenCL/` plugin files need to be the same and any change in one of these esalt structs in one of these source files would need to be accompanied by a change of the other file too.  Other than that, it is a simple process. As described in the decoder section, hashcat needs to know the size of the structure so it can allocate enough memory space for it at the initialization phase. In order to inform the hashcat host binary of the esalt size, you must provide it via the function module_esalt_size(). It could be either a maximum size (upper limit) or a constant size. This depends on the algorithm.
-That is all. You can now cast the void *esalt_buf which is provided to you in the decoder and encoder functions to your esalt structure type. Note this address is maintained by hashcat. It guarantees a fresh buffer for each invocation of module_hash_decode(). Therefore, you can simply cast it for instance like this:
+Use an esalt for additional data such as encrypted blocks, IVs or salts too large for `salt_t`. Define the same structure in the module and kernel and keep both definitions synchronized. `module_esalt_size()` returns the fixed allocation size of that structure. Individual fields inside it may still describe variable-length content. That is all. You can now cast the void *esalt_buf which is provided to you in the decoder and encoder functions to your esalt structure type. Note this address is maintained by hashcat. It guarantees a fresh buffer for each invocation of module_hash_decode(). Therefore, you can simply cast it for instance like this:
 
 ```
 wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) esalt_buf;
@@ -866,13 +862,13 @@ But why is that? It is an optimization. If we have different data stored in salt
 
 A good example is the WPA mode. The crypto scheme in this mode requires multiple salt fields (IVs, mac addresses, encrypted data, etc). To derive the PMK master key (the slow part in the algorithms), only the ESSID (the network name) is required. If we want to crack WPA, typically we capture multiple handshakes, however all handshakes could be belonging to the same network. If we are clever we can exploit this weakness. In the parser we would set only the ESSID in the salt_t struct and all other data (IV, MAC addresses, etc.) go into the esalt. By doing so, hashcat will only spawn that many _init and _loop kernels as there are unique ESSIDs in the generic salt_t buffers. If we have captured 100 handshakes of the same network, hashcat only needs to run the compute intensive _loop kernel one time, not 100 times. But how to use the _comp kernel in this case?
 
-Now let us talk about the three different types of _comp kernels. The first type is if we have an easy crypto algorithm which only contains a single salt buffer in the salt_t struct. Imagine we have ten real hashes but they all share the same salt. In such a case there is still no need to run the _init and the slow _loop kernel ten times. A single invocation of both is enough. In the _comp kernel hashcat will search a database if the digest exists in a database which is important. We only need to search this database for the existence of the hash, we do not need to decrypt something. This database is created automatically by hashcat at the very start. Every digest which we assign to the digest_t struct will be sorted and stored inside this database. Inside the _comp kernel, if we assign the final digest to r0 to r3 and call the #include COMPARE_M macro, the database gets searched. This code is highly optimized and is using a bloom filter and an additional binary tree search. So it can handle millions of hashes very efficiently. See `OpenCL/m00500-pure.cl` as an easy example.
+Now let us talk about the three different types of _comp kernels. The first type is if we have an easy crypto algorithm which only contains a single salt buffer in the salt_t struct. Imagine we have ten real hashes but they all share the same salt. In such a case there is still no need to run the _init and the slow _loop kernel ten times. A single invocation of both is enough. In the _comp kernel hashcat will search a database if the digest exists in a database which is important. We only need to search this database for the existence of the hash, we do not need to decrypt something. This database is created automatically by hashcat at the very start. Every digest which we assign to the digest_t struct will be sorted and stored inside this database. Inside the _comp kernel, if we assign the final digest to r0 to r3 and call the #include COMPARE_M macro, the database gets searched. This code uses a bitmap prefilter followed by a binary search, so it can handle millions of hashes efficiently. See `OpenCL/m00500-pure.cl` as an easy example.
 
 Sometimes this is not enough. For instance, if we do not have a final digest which we could search for "existence" in the database. This happens if we have to decrypt some data and match the content of the decrypted data against some known pattern. It is obvious if we match data in this case we can not search the data for existence, right? In this case we actually need to iterate through all entries in the database. This is something very irregular from the general hashcat concept but there is a way to deal with it. Of course, if you only support single targets this is not a problem. The recommended way to deal with this is to verify if the salt_buf data you are using is unique. The goal is to force hashcat to call the _comp kernel as many times as it loads unique hashes from your hash list and iterates through all of them individually. If we choose to use this mode, it is essential for the salt_t buffer to be exactly as unique as the esalt buffer (the same number of entries). This could be achieved by using parts of encrypted data and copying it to salt->salt_buf[]. Hashcat will be forced to increment the `digests_offset` variable for each iteration which gives you the opportunity to index the different hashes individually. A good example for such a _comp kernel can be found in `OpenCL/m14700-pure.cl`.
 
 There is even a third mode which is close to the second mode, but does not have the disadvantage of syncing the salt_t with the esalt, giving you the opportunity to exploit salt specific vulnerabilities in the algorithm (like in WPA). This mode can be activated by setting OPTS_TYPE_DEEP_COMP_KERNEL flag in the module. In this case hashcat will know that it has to call the _comp kernel for that many entries that are bound to a unique salt_t entry. This mode should therefore only be used in very rare cases and is discouraged if not applicable. See `OpenCL/m22000-pure.cl` as an example.
 
-Most kernels today go for the second mode. However, if possible we should use the first mode because it is much more elegant. There is a trick to step down from the second mode to the first mode. In case we need to match some data after decryption but we know 100% of the data it is better to encrypt the known plaintext data instead of decrypting the encrypted data. In this case our final value can be searched in a database for "existence" and we can operate in first mode (i.e. make a "lookup").
+Use the first mode whenever the format permits it. One way to avoid the second mode is to turn a verification step into a lookup. In case we need to match some data after decryption but we know 100% of the data it is better to encrypt the known plaintext data instead of decrypting the encrypted data. In this case our final value can be searched in a database for "existence" and we can operate in first mode (i.e. make a "lookup").
 
 ## Tokenizer ##
 
@@ -882,7 +878,7 @@ Of course we could have used a regular expression engine to do the same. But if 
 
 One very unique feature is that the tokenizer allows you to have both dynamic length columns and fixed length columns in the same hash line. This is sometimes the only way to read a hash line. Another unique feature is that it allows you to change the separator character for different columns in the same hash line. This is why you have to specify the separator character for each column separately.
 
-The first step after declaring the tokenizer context buffer is to create its configuration. There is just one mandatory parameter and a maximum of 128 optional configuration items (columns). The mandatory configuration item needs to be set to the number of columns/fields which the hash line includes. Note that this is a fixed value. For more complex hash lines with a dynamic column count you need to create multiple tokenizer instances (e.g. use a second configuration, if the first one failed), but in most of the times this is not required.
+The first step after declaring the tokenizer context buffer is to create its configuration. Set the mandatory `token_cnt` field to the number of columns in the hash line. The tokenizer supports at most 128 columns in total. Note that this is a fixed value. For more complex hash lines with a dynamic column count you need to create multiple tokenizer instances (e.g. use a second configuration, if the first one failed), but in most of the times this is not required.
 
 ```
 hc_token_t token;
@@ -899,7 +895,7 @@ token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                  | TOKEN_ATTR_VERIFY_HEX;
 ```
 
-The parameters len_min and len_max always define a valid range in bytes. Since it is always 32 byte, we simply set 32 to both parameters. With the configuration item `TOKEN_ATTR_VERIFY_LENGTH` we inform the tokenizer to verify the data length. If the length does not match, we will refuse the hash. The same goes for the configuration item `TOKEN_ATTR_VERIFY_HEX`. As you can imagine, this informs the tokenizer to verify if the data contains only hex characters (no matter the case). For more verification configuration items please see `include/types.h`.
+The parameters len_min and len_max always define a valid range in bytes. Since it is always 32 byte, we simply set 32 to both parameters. With the configuration item `TOKEN_ATTR_VERIFY_LENGTH` we inform the tokenizer to verify the data length. If the length does not match, we will refuse the hash. The same goes for the configuration item `TOKEN_ATTR_VERIFY_HEX`. As you can imagine, this informs the tokenizer to verify if the data contains only hex characters (no matter the case). It also rejects an odd length, because two characters make one byte and a token that decodes to bytes therefore has an even length. If your token is hex characters that you read as characters or as a base 16 number rather than decoding into bytes, use `TOKEN_ATTR_VERIFY_BASE16` instead, which checks the characters and says nothing about the length. For more verification configuration items please see `include/types.h`.
 
 Finally the tokenizer is called. If any of the verification configuration items do not pass, the tokenizer will return a specific error code. As always, the error codes can be found in `include/types.h`.
 
@@ -939,11 +935,11 @@ There is one more configuration item which I want to describe:
 
 This section is about how your plugin is built and how it is loaded. It is not about what you write inside it. You can write your first module without reading any of this. You will want it the day you hand somebody a compiled plugin, or the day a plugin of yours stops loading after a hashcat update.
 
-Your module does not carry a copy of the hashcat core. It used to. A single call to `input_tokenizer()` pulled in the tokenizer, the file handling underneath it, and from there the whole of LZMA, zlib and minizip, and no module ever calls any of that. One call cost 229,920 bytes, and 545 of the 595 modules in the tree make that call. So the core is built once as a library now, and everything links against it: the frontend, the modules, the bridges and the feeds. `module_00000.so` went from 243,752 bytes to 14,288, and the whole modules folder from 181.8 MB to 16.5 MB plus a 2.3 MB library. Nothing in your module source changes because of this. You write the same C file and `make` still finds it by itself.
+Your module does not carry a copy of the hashcat core. It used to, so a common call such as `input_tokenizer()` could pull file handling and compression dependencies into nearly every module. The core is now built once as a library, and the frontend, modules, bridges and feeds link against it. In the build used to measure that change, `module_00000.so` fell from about 244 KB to 14 KB and the modules directory from about 182 MB to 17 MB plus the core library. Nothing in module source changes: you write the same C file and `make` still finds it.
 
 The library is `libhashcat.so.7` on Linux, `libhashcat.7.dylib` on macOS and `hashcat.dll` on Windows. It sits next to the hashcat binary, which is one directory above `modules/`, and that is where a plugin looks for it. On Linux and macOS the plugin carries an rpath which says "one directory up". On Windows the executable imports the DLL from its own directory, so the library is in the process before the first plugin is loaded. Nobody has to set an environment variable, and the package is still unzip and run. If you build a plugin outside the tree, name the library file on your link line the way `src/Makefile` does, and keep the library one directory above your module.
 
-The library does not export everything it defines. It defines 2,766 names and offers 1,033 of them. The rest is internal machinery that nothing outside the core is meant to call, and a name that is exported is a name a plugin can bind to and that we can then not change.
+The library does not export everything it defines. Most names are internal machinery that plugins must not call. An exported name is part of an interface a plugin can bind to, so its visibility is declared explicitly rather than inferred from whether a current module happens to use it.
 
 Which names those are is written in the declaration of each one. `include/export.h` defines two macros and a function carries one of them or it is private:
 
@@ -961,9 +957,9 @@ module_12345.c:(.text+0x184): undefined reference to `hashes_init_stage1'
 
 That is on purpose. Without the check the plugin links happily and the first anyone hears of it is an undefined symbol out of dlopen(), in the middle of somebody's run. If the function is one that plugins ought to be able to call, say so in your pull request and put the macro on its declaration.
 
-Your plugin exports one name back. `module_init` for a module, `bridge_init` for a bridge, and for a feed the nine names the core looks up by string. A plugin is compiled hidden too, so everything else it defines stays inside it. The functions you write for the module context are reached through that context and never by name, which is why they do not have to be visible and why nothing should be relying on them being visible.
+A module exports `module_init`, and a bridge exports `bridge_init`. A feed exports two constants and seven base callbacks, plus any callbacks its option flags advertise. Plugins are compiled hidden too, so everything else they define stays inside them. The functions you write for the module context are reached through that context and never by name, which is why they do not have to be visible and why nothing should be relying on them being visible.
 
-Installing the library for development installs the headers this contract is declared in, everything those headers include, and the vendored headers they reach. That is 61 of the 99 in `include/`. It is a closure and not a hand written list: `types.h` is the shape of everything your plugin is handed, and it reaches `brain.h`, `hwmon.h`, `rp.h`, `terminal.h`, `user_options.h` and the backend headers for the structs it embeds, so those come with it and nothing compiles without them. Being installed is not being promised. What the core offers is decided by the macro on each declaration, so a plugin that calls one of the functions those headers declare compiles and then does not link.
+Installing the library for development installs the headers that declare this contract, the headers they include and the vendored headers they reach. The list is dependency-derived rather than handwritten: `types.h` is the shape of everything your plugin is handed, and it reaches `brain.h`, `hwmon.h`, `rp.h`, `terminal.h`, `user_options.h` and the backend headers for the structs it embeds, so those come with it and nothing compiles without them. Being installed is not being promised. What the core offers is decided by the macro on each declaration, so a plugin that calls one of the functions those headers declare compiles and then does not link.
 
 If you build a plugin outside the tree, this is the compile line. The interface version is on it, and there is no default for it, so leaving it off is a compile error and not a plugin that loads against anything:
 
@@ -1017,12 +1013,7 @@ Nothing at load time catches that. A static plugin is complete, it exports the s
 
 This section is about feeds, the `-a 8` plugins, and how one takes settings from the user.
 
-A feed is handed its arguments as strings and nothing parses them for it. That is not an oversight
-that a later release will fix: hashcat's own `getopt` runs before it knows which plugin it is going
-to load, so it cannot know that `--model` belongs to your feed rather than being a typo, and by the
-time your feed exists the command line has long been read and accepted. Anything after the plugin
-name is yours, and `global_ctx->workv` is where it arrives, with `workv[0]` being the name the user
-typed for your feed.
+A feed is handed its arguments as strings and nothing parses them for it. That is not an oversight that a later release will fix: hashcat's own `getopt` runs before it knows which plugin it is going to load, so it cannot know that `--model` belongs to your feed rather than being a typo, and by the time your feed exists the command line has long been read and accepted. Anything after the plugin name is yours, and `global_ctx->workv` is where it arrives, with `workv[0]` being the name the user typed for your feed.
 
 So a setting is written as `key=value` among the sources:
 
@@ -1030,23 +1021,13 @@ So a setting is written as `key=value` among the sources:
 hashcat -a 8 -m 0 hashes.txt myfeed model.dat mode=2 pwlen=6:16
 ```
 
-and not as `--myfeed-mode 2`. That is worth being explicit about, because the second form looks more
-like the rest of hashcat and is the wrong shape for two reasons that have nothing to do with taste.
+and not as `--myfeed-mode 2`. That is worth being explicit about, because the second form looks more like the rest of hashcat and is the wrong shape for two reasons that have nothing to do with taste.
 
-The first is that a work argument is part of the attack's identity and an option is not. The brain
-hashes every one of your arguments into the attack id it keys its record of covered keyspace on, so
-two runs that differ only in `mode=2` against `mode=4` are two attacks and neither is told the other
-already covered its keyspace. A setting that arrived some other way would have to be added to that
-hash by hand, and when it is forgotten nothing reports it: the second run is simply told there is
-nothing left to do. The restore file records the arguments for the same reason, so a resumed session
-comes back with the settings it started with.
+The first is that a work argument is part of the attack's identity and an option is not. The brain hashes every one of your arguments into the attack id it keys its record of covered keyspace on, so two runs that differ only in `mode=2` against `mode=4` are two attacks and neither is told the other already covered its keyspace. A setting that arrived some other way would have to be added to that hash by hand, and when it is forgotten nothing reports it: the second run is simply told there is nothing left to do. The restore file records the arguments for the same reason, so a resumed session comes back with the settings it started with.
 
-The second is that the user's shell has already agreed to leave your arguments alone. hashcat stops
-reading options at the plugin name, so `mode=2` reaches you whatever it is called and cannot collide
-with any of hashcat's own option names, now or in a later release.
+The second is that the user's shell has already agreed to leave your arguments alone. hashcat stops reading options at the plugin name, so `mode=2` reaches you whatever it is called and cannot collide with any of hashcat's own option names, now or in a later release.
 
-You do not have to write the parser. Declare what your feed takes and let `feed_param_parse()` read
-it:
+You do not have to write the parser. Declare what your feed takes and let `feed_param_parse()` read it:
 
 ```c
 static const char *model   = NULL;
@@ -1076,29 +1057,17 @@ bool global_init (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **threa
 }
 ```
 
-Whatever your variables held before the call is the default, because a setting that was not given is
-not written. `min` and `max` bound a `FEED_PARAM_TYPE_U64` and are ignored by the other types; a pair
-left at zero means the feed did not want a range.
+Whatever your variables held before the call is the default, because a setting that was not given is not written. `min` and `max` bound a `FEED_PARAM_TYPE_U64` and are ignored by the other types. A pair left at zero means the feed did not want a range.
 
-A key your table does not list is an error, and that is the point of the call rather than a side
-effect of it. Your settings are invisible to `--help` and to tab completion, so a misspelled one has
-nothing else to catch it, and a feed that quietly ignored what it did not recognise would run a
-different attack than the one it was asked for and say so nowhere. `mode=2 mode=4` is refused for the
-same reason: last-one-wins reads as a preference being applied when it is a mistake.
+A key your table does not list is an error, and that is the point of the call rather than a side effect of it. Your settings are invisible to `--help` and to tab completion, so a misspelled one has nothing else to catch it, and a feed that quietly ignored what it did not recognise would run a different attack than the one it was asked for and say so nowhere. `mode=2 mode=4` is refused for the same reason: last-one-wins reads as a preference being applied when it is a mistake.
 
 The other three helpers are there for the cases the table does not cover:
 
-* `feed_param_is_setting()` says whether an argument is a setting, which is how a feed walks its own
-  arguments and picks out the sources: skip the settings and what is left are the paths.
-* `feed_param_lookup()` returns the value of one key as a string, for a feed that wants to read
-  something without declaring it.
-* `feed_param_usage()` writes the table out one setting per line, for a feed to print when its
-  arguments make no sense.
+* `feed_param_is_setting()` says whether an argument is a setting, which is how a feed walks its own arguments and picks out the sources: skip the settings and what is left are the paths.
+* `feed_param_lookup()` returns the value of one key as a string, for a feed that wants to read something without declaring it.
+* `feed_param_usage()` writes the table out one setting per line, for a feed to print when its arguments make no sense.
 
-An argument counts as a setting when it is `key=value` with a key that could not be a path: a letter
-followed by letters, digits, dashes or underscores, and no directory separator in front of the `=`.
-Everything else is a source. A file whose name really does look like a setting is still reachable as
-`./mode=2`, because that has a separator in it.
+An argument counts as a setting when it is `key=value` with a key that could not be a path: a letter followed by letters, digits, dashes or underscores, and no directory separator in front of the `=`. Everything else is a source. A file whose name really does look like a setting is still reachable as `./mode=2`, because that has a separator in it.
 
 ## Porting a plugin from 7.1.2 ##
 
@@ -1106,15 +1075,9 @@ The section above is the whole story of how a plugin is built and loaded. This o
 
 What you need to do:
 
-A feed includes `feed.h` where it used to include `generic.h`, which is gone. The contract in it has
-not changed, so that is the whole edit for a feed that only produces candidates. What moved is the
-other half of the old header: the functions hashcat uses to drive feeds are in `feed_ctx.h` now, and a
-feed cannot include that one. If your feed called one of them it was reaching into hashcat's own
-bookkeeping from a plugin thread, and the build will tell you so rather than the run.
+A feed includes `feed.h` where it used to include `generic.h`, which is gone. The contract in it has not changed, so that is the whole edit for a feed that only produces candidates. What moved is the other half of the old header: the functions hashcat uses to drive feeds are in `feed_ctx.h` now, and a feed cannot include that one. If your feed called one of them it was reaching into hashcat's own bookkeeping from a plugin thread, and the build will tell you so rather than the run.
 
-`feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h`
-with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for
-them.
+`feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
 One hook is gone: `module_dictstat_disable`, so remove the line in `module_init()` that registers it. Three are new. `module_usage_notice` and `module_advice_notice` let a module print a usage or an advice line of its own, and `module_hash_hints` says what a hash tells hashcat about whoever chose the password, which is what attack-mode 9 guesses from. All three are optional, so registering them as `MODULE_DEFAULT` leaves your plugin behaving exactly as it did.
 

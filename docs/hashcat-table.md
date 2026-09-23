@@ -8,7 +8,7 @@ Every argument after the wordlist is a table, and we read them all into one set.
 hashcat -m 0 -a 5 hashes.txt rockyou.txt tables/leetspeak-common.table tables/toggle.table
 ```
 
-The attack was available as `-a 5` in hashcat-legacy, but was removed in 3.00 because it was considered unsuitable for GPU execution. We now run it on the GPU. On a GeForce RTX 4090 against MD5, over the whole of rockyou, the same run measures 65 MH/s unamplified, 1197 MH/s through the case table, 1227 MH/s through leetspeak, 13442 MH/s through both at once, and 19687 MH/s with the extended leetspeak tier added to those.
+The attack was available as `-a 5` in hashcat-legacy, but was removed in 3.00 because it was considered unsuitable for GPU execution. It now runs on the GPU. In one recorded GeForce RTX 4090 test against MD5 over the full rockyou wordlist, adding both case and leetspeak tables raised throughput from 65 MH/s unamplified to 13.4 GH/s, and the extended leetspeak tier reached 19.7 GH/s.
 
 ## 1. What it is for
 
@@ -99,7 +99,7 @@ $ hashcat -a 5 --stdout typed.txt tables/layouts/ru-reverse.table identity=0
 пароль
 ```
 
-This is what `--keyboard-layout-mapping` was added for, and that option reaches 30 of 595 hash modes, all of them TrueCrypt and VeraCrypt, and it is refused outright for every other mode including most of the TrueCrypt and VeraCrypt ones. The same files as a table work for every hash mode and every attack the feed serves.
+This is what `--keyboard-layout-mapping` was added for. That option is enabled for 30 TrueCrypt and VeraCrypt modes and refused for other modes, including the remaining TrueCrypt and VeraCrypt variants. The same files as a table work for every hash mode and every attack the feed serves.
 
 Leaving the unchanged choice on is a different attack rather than a broken one. `пароль` has 6 covered letters, so the default gives 2^6 candidates with `gfhjkm` among them, which is what you want for a password where the layout was switched partway through. It is not what you want when the whole word was typed on the wrong layout.
 

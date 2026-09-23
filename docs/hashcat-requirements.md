@@ -2,8 +2,7 @@
 
 What hashcat needs from a machine, for someone installing it and for someone packaging it.
 
-Everything here is what hashcat checks at startup. A device that does not meet a requirement is
-either skipped, with the reason printed, or handed to a backend that can drive it.
+Everything here is what hashcat checks at startup. A device that does not meet a requirement is either skipped, with the reason printed, or handed to a backend that can drive it.
 
 ## The short answer
 
@@ -28,13 +27,9 @@ OpenCL    libOpenCL.so.1, OpenCL.dll               inside the vendor's driver   
 Metal     Metal.framework                          inside the framework               yes
 ```
 
-A machine with the NVIDIA driver and no CUDA Toolkit has no CUDA backend. The same card still works
-through OpenCL, which is slower, and hardware monitoring is unaffected. The same is true of an AMD
-machine with the graphics driver and no HIP.
+A machine with the NVIDIA driver and no CUDA Toolkit has no CUDA backend. The same card still works through OpenCL, which is slower, and hardware monitoring is unaffected. The same is true of an AMD machine with the graphics driver and no HIP.
 
-For a package maintainer that means the CUDA and HIP compiler libraries are runtime dependencies of
-the corresponding backend, not of hashcat, and hashcat runs without any of them as long as one
-OpenCL runtime is present.
+For a package maintainer that means the CUDA and HIP compiler libraries are runtime dependencies of the corresponding backend, not of hashcat, and hashcat runs without any of them as long as one OpenCL runtime is present.
 
 ## Minimum versions
 
@@ -55,55 +50,38 @@ AMD OpenCL driver              3000        the device is skipped, --force overri
 NVIDIA OpenCL driver           500         the device is skipped, --force overrides
 ```
 
-The CUDA and HIP minimums are set by what a current distribution can install rather than by what the
-vendor still lists as supported. Ubuntu 24.04 is the oldest release targeted. Its own archive carries
-nvidia-cuda-toolkit 12.0.140 and offers driver 535, which is CUDA 12.2, so CUDA 12.0 is met there
-with nothing added. It ships no ROCm, and AMD publishes 6.2.4 for it, so HIP 6.2.0 is reachable.
-PoCL stays at 5.0 because that is exactly what 24.04 ships.
+The CUDA and HIP minimums are set by what a current distribution can install rather than by what the vendor still lists as supported. Ubuntu 24.04 is the oldest release targeted. Its own archive carries nvidia-cuda-toolkit 12.0.140 and offers driver 535, which is CUDA 12.2, so CUDA 12.0 is met there with nothing added. It ships no ROCm, and AMD publishes 6.2.4 for it, so HIP 6.2.0 is reachable. PoCL stays at 5.0 because that is exactly what 24.04 ships.
 
-Every number in that table is defined once, in `include/requirements.h`, and used from there by the
-runtime checks and by the headers that set the API level the build targets. Changing a floor means
-changing that file and this page together.
+Every number in that table is defined once, in `include/requirements.h`, and used from there by the runtime checks and by the headers that set the API level the build targets. Changing a floor means changing that file and this page together.
 
-PoCL stays at 5.0 for a second reason beyond what 24.04 ships. No PoCL release has been good for
-hashcat, because of the compilers it has been built against, so asking for a newer one would refuse
-installs without making anything work better.
+PoCL stays at 5.0 for a second reason beyond what 24.04 ships. No PoCL release has been good for hashcat, because of the compilers it has been built against, so asking for a newer one would refuse installs without making anything work better.
 
 ## Runtimes with no enforced minimum
 
-hashcat checks no version for Intel's Graphics Compute Runtime, for Mesa's rusticl, or for any
-runtime it does not recognise. They are used on a best effort basis. If one of them misbehaves,
-check its version by hand, because hashcat will not do it for you.
+hashcat checks no version for Intel's Graphics Compute Runtime, for Mesa's rusticl, or for any runtime it does not recognise. They are used on a best effort basis. If one of them misbehaves, check its version by hand, because hashcat will not do it for you.
 
-A version string hashcat cannot parse is not treated as an old driver. It says so once and uses the
-device anyway.
+A version string hashcat cannot parse is not treated as an old driver. It says so once and uses the device anyway.
 
-## What a device needs whatever the runtime
+## Hard capability checks
 
-These are properties of the device rather than of the driver, and `--force` does not override them,
-because a run that ignored them could not produce correct results.
+These checks describe capabilities that hashcat needs to run kernels correctly. `--force` does not override them.
 
 ```
-constant memory     at least 65536 bytes
-local memory        at least 32768 bytes, where the device has real local memory
-byte order          little endian
-compiler            the runtime must report one for the device
-compute units       more than one
+OpenCL                  OpenCL and OpenCL C 1.2, device, compiler and kernel execution available, little endian
+CUDA, HIP, Metal        at least 32768 bytes of shared memory
+OpenCL with CL_LOCAL    at least 32768 bytes of local memory
+CUDA, OpenCL CL_LOCAL   at least 65536 bytes of constant memory
 ```
 
 ## What --force does
 
-It overrides the driver version checks in the table above, and nothing else. It does not override the
-OpenCL 1.2 minimum, the OpenCL C 1.2 minimum, or any of the device requirements. Results from a run
-that needed `--force` should not be reported as bugs.
+The CUDA/NVRTC and HIP version floors are backend-wide checks and cannot be overridden with `--force`. For OpenCL, the option bypasses the recognized driver floors in the table and some known compatibility guards. It also bypasses unstable-mode warnings and the Windows HIP hardware guard. It cannot provide a missing runtime, API, compiler or device capability. Results from a run that needed `--force` should not be reported as bugs.
 
-`--backend-info` skips the driver checks entirely, so it lists devices that a real run would refuse.
+`--backend-info` is diagnostic. It suppresses some per-device driver and compatibility checks so hashcat can describe the hardware, but the backend must still load and hard capability checks still apply.
 
 ## The Python and Rust plugins
 
-4 hash-modes are not compiled into hashcat and reach a language runtime instead. They are optional in
-both directions: hashcat runs without any of them, and the toolchains below are needed to build them,
-not to run the rest of hashcat.
+Three optional hash modes use a language runtime. Hashcat runs without them, and their toolchains are not needed to build or run the rest of hashcat.
 
 ```
 mode     needs                          minimum   why that number
@@ -111,23 +89,17 @@ mode     needs                          minimum   why that number
 72000    Python, free-threaded          3.13      free-threaded builds start there
 73000    Python, multiprocessing        3.10      the oldest carrying every symbol it loads
 74000    Rust                           1.85      the crates are edition 2024
--a 4     the Rust feed                  1.85      same crates
 ```
 
-Both minimums are above what Ubuntu 24.04 delivers, which is Python 3.12 and Rust 1.75, so these come
-from pyenv and rustup rather than from a distribution. That is the documented way to install them
-anyway, and it is the one case in this page where the distribution is not the anchor.
+The normal PCFG (`-a 4`) and table (`-a 5`) feeds are written in C and need no language runtime. The optional `rust_random` sample feed used through `-a 8` needs the same Rust toolchain as mode 74000. Mode 70000 is also a C assimilation bridge and adds no separate runtime requirement.
 
-A build without the toolchain still succeeds. The plugin is skipped, the build says which one and
-why, and everything else is produced as usual.
+The Python 3.13 and Rust 1.85 minimums are above what Ubuntu 24.04 delivers, so use pyenv and rustup when building those plugins. A build without either toolchain still succeeds: it skips the affected plugin, reports why, and produces everything else.
 
-`docs/hashcat-python-plugin-requirements.md` and `docs/hashcat-rust-plugin-requirements.md` cover
-each in full.
+`docs/hashcat-python-plugin-requirements.md` and `docs/hashcat-rust-plugin-requirements.md` cover each runtime in full.
 
 ## Hardware monitoring
 
-Optional everywhere. hashcat cracks without it and loses the temperature, fan, clock and bus columns
-of the status display.
+Optional everywhere. hashcat cracks without it and loses the temperature, fan, clock and bus columns of the status display.
 
 ```
               Linux            Windows          macOS
@@ -137,15 +109,10 @@ Intel GPU     sysfs            nothing          not applicable
 Apple         not applicable   not applicable   IOKit
 ```
 
-NVML comes from the NVIDIA driver, so a maintainer should treat libnvidia-ml as an optional runtime
-dependency rather than a required one. On AMD under Linux nothing needs installing, because the
-readings come from sysfs.
+NVML comes from the NVIDIA driver, so a maintainer should treat libnvidia-ml as an optional runtime dependency rather than a required one. On AMD under Linux nothing needs installing, because the readings come from sysfs.
 
-What is reported is temperature, fan speed, utilisation, core and memory clocks and bus width. On an
-NVIDIA card there is also a warning when the card is being slowed down by heat or by a power brake,
-which comes from NVML and therefore works wherever NVML does.
+What is reported can include temperature, fan speed, power, utilisation, core and memory clocks and bus width. On an NVIDIA card there is also a warning when heat or a power brake slows the card. That information comes from NVML and therefore works wherever NVML does.
 
 ## Building
 
-See BUILD.md. The build requirements are separate from everything above: a machine that builds
-hashcat does not need any GPU runtime, and a machine that runs it does not need a compiler toolchain.
+See BUILD.md. The build requirements are separate from everything above: a machine that builds hashcat does not need any GPU runtime, and a machine that runs it does not need a compiler toolchain.

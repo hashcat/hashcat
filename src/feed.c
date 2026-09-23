@@ -416,10 +416,10 @@ int feed_param_usage (const feed_param_t *params, char *out_buf, const size_t ou
 
     switch (p->type)
     {
-      case FEED_PARAM_TYPE_STR:  type = "=<str>";  break;
+      case FEED_PARAM_TYPE_STR:  type = "=<str>";    break;
       case FEED_PARAM_TYPE_BOOL: type = "=<yes|no>"; break;
-      case FEED_PARAM_TYPE_U64:  type = "=<num>";  break;
-      case FEED_PARAM_TYPE_DBL:  type = "=<real>"; break;
+      case FEED_PARAM_TYPE_U64:  type = "=<num>";    break;
+      case FEED_PARAM_TYPE_DBL:  type = "=<real>";   break;
     }
 
     char lhs[128];

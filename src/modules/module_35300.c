@@ -156,12 +156,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
   {
     const size_t after_etype = sig_len + 3;
 
-    if (line_buf[after_etype] == '*')
+    if ((line_len > (int) after_etype) && (line_buf[after_etype] == '*'))
     {
       // format 1: include leading '*' and trailing "*$" in account_info
       const char *acct_start = line_buf + after_etype;        // at leading '*'
-      const char *star2 = strchr (acct_start + 1, '*');
+
+      // hc_strchr_next, not strchr: the field ends where the line ends, not at a NUL the caller is
+      // not required to put there
+
+      const int acct_left = line_len - (int) (acct_start + 1 - line_buf);
+
+      const char *star2 = (const char *) hc_strchr_next ((const u8 *) acct_start + 1, acct_left, '*');
+
       if (star2 == NULL) return PARSER_SEPARATOR_UNMATCHED;
+      if ((star2 + 1) >= (line_buf + line_len)) return PARSER_SEPARATOR_UNMATCHED;
       if (star2[1] != '$') return PARSER_SEPARATOR_UNMATCHED; // must end with "*$"
 
       const char *acct_stop_incl = star2 + 2;                 // include "*$"
@@ -273,7 +281,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   u8 *edata_ptr = (u8 *) krb5tgs->edata2;
 
-  for (int i = 0; i < data_len; i += 2)
+  if (data_len & 1) return (PARSER_TOKEN_LENGTH);
+
+  // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < data_len; i += 2)
   {
     const u8 p0 = data_pos[i + 0];
     const u8 p1 = data_pos[i + 1];

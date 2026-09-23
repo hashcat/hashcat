@@ -179,7 +179,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * handle server challenge encoding
    */
 
-  for (int i = 0; i < srvchall_len; i += 2)
+  if (srvchall_len & 1) return (PARSER_TOKEN_LENGTH);
+
+  // i + 1, not i: the loop reads two characters per byte, so an odd srvchall_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < srvchall_len; i += 2)
   {
     const u8 p0 = srvchall_pos[i + 0];
     const u8 p1 = srvchall_pos[i + 1];
@@ -192,7 +197,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * handle client challenge encoding
    */
 
-  for (int i = 0; i < clichall_len; i += 2)
+  if (clichall_len & 1) return (PARSER_TOKEN_LENGTH);
+
+  // i + 1, not i: the loop reads two characters per byte, so an odd clichall_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < clichall_len; i += 2)
   {
     const u8 p0 = clichall_pos[i + 0];
     const u8 p1 = clichall_pos[i + 1];

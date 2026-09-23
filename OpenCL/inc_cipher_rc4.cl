@@ -8,6 +8,28 @@
 #define RC4_LID_TYPE_DEFAULT
 #endif
 
+// A caller asks with RC4_FOLD_ON_POCL for the S box entry points to be folded into it rather than
+// left as calls. PoCL does not keep a __local array across a call it leaves standing: it reads back
+// as zeros in the callee while the caller still sees what rc4_init_128 () put there. Folding them
+// in is the only thing that answers it, and it has to be the key schedule and the stream step
+// together, because either one on its own leaves the other standing.
+//
+// Only a PoCL build takes it. Every other build is what it was, which matters most where folding a
+// four times unrolled stream step into a kernel costs registers.
+
+#if defined RC4_FOLD_ON_POCL && defined IS_POCL && !defined RC4_DECLSPEC
+#define RC4_DECLSPEC DECLSPEC HC_INLINE_ALWAYS
+#define RC4_DECLSPEC_DEFAULT
+#endif
+
+// RC4_DECLSPEC on its own is the same switch without the device test, for a caller that wants the
+// qualifier changed whatever it is built for.
+
+#ifndef RC4_DECLSPEC
+#define RC4_DECLSPEC DECLSPEC
+#define RC4_DECLSPEC_DEFAULT
+#endif
+
 #include "inc_cipher_rc4.h"
 
 #ifdef IS_HIP
@@ -19,25 +41,39 @@
 #ifdef IS_CPU
 
 // Pattern linear
+//
+// One S box per work item, laid out end to end, which is the same 64 u32 per work item the buffer
+// is declared with: LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE]. There are no banks to dodge on a CPU, so
+// the bank avoiding interleave below buys nothing here, but each work item still owns its own 256
+// bytes, so lid selects the work item's S box.
+//
+// At FIXED_LOCAL_SIZE 1, which is what every other caller compiles with on a CPU, lid is 0, so the
+// address collapses to the bare index k.
 
-DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, MAYBE_UNUSED const RC4_LID_TYPE lid)
+#define KEY8(t,k)  (((t) * 256) + (k))
+#define KEY32(t,k) (((t) *  64) + (k))
+
+DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
-  return S8[k];
+  return S8[KEY8 (lid, k)];
 }
 
-DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, MAYBE_UNUSED const RC4_LID_TYPE lid)
+DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
-  S8[k] = v;
+  S8[KEY8 (lid, k)] = v;
 }
 
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED const RC4_LID_TYPE lid)
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const RC4_LID_TYPE lid)
 {
-  S[k] = v;
+  S[KEY32 (lid, k)] = v;
 }
+
+#undef KEY8
+#undef KEY32
 
 #else
 
@@ -265,7 +301,7 @@ DECLSPEC void rc4_init_104 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC
 
 #ifndef RC4_INIT_128_PREFETCH
 
-DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
+RC4_DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -332,7 +368,7 @@ DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC
   s_i = (j == idx) ? s_i : s_next;          \
 }
 
-DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
+RC4_DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
 {
   u32 v = 0x07060504;
   u32 a = 0x04040404;
@@ -569,7 +605,7 @@ DECLSPEC u8 rc4_next_4 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS cons
 
 #ifdef RC4_NEXT_16_PREFETCH
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
+RC4_DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -667,7 +703,7 @@ DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS con
 
 #else
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
+RC4_DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -903,7 +939,7 @@ DECLSPEC RC4_NOINLINE u8 rc4_next_12_global (LOCAL_AS u32 *S, const u8 i, const 
 
 #endif
 
-DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
+RC4_DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -968,6 +1004,11 @@ DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const 
 
   return b;
 }
+
+#ifdef RC4_DECLSPEC_DEFAULT
+#undef RC4_DECLSPEC_DEFAULT
+#undef RC4_DECLSPEC
+#endif
 
 #ifdef RC4_LID_TYPE_DEFAULT
 #undef RC4_LID_TYPE_DEFAULT

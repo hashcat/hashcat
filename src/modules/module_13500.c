@@ -111,7 +111,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *pstoken_ptr = (u8 *) pstoken->salt_buf;
 
-  for (int i = 0, j = 0; i < salt_len; i += 2, j += 1)
+  if (salt_len & 1) return (PARSER_TOKEN_LENGTH);
+
+  // i + 1, not i: hex_to_u8 () reads two characters, so an odd salt_len read one past the token
+
+  for (int i = 0, j = 0; (i + 1) < salt_len; i += 2, j += 1)
   {
     pstoken_ptr[j] = hex_to_u8 (salt_pos + i);
   }
