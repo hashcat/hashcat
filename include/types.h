@@ -1502,6 +1502,12 @@ typedef struct pw_batch
 
   pcfg_cell_t *pcfg_cells;
 
+  // A refusal is answered slot by slot, so none of the three can be inferred from the device.
+
+  bool  pcfg_cells_pinned;
+  void *pcfg_cells_clmem;
+  u64   pcfg_cells_size;
+
   // and the wave map that goes with them: which cell each wave of the launch belongs to, and how many
   // waves that comes to. It is built here, one cell at a time as the cells are, because this runs on
   // the producer thread where the feed already runs for free. Building it on the launch thread instead

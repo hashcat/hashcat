@@ -44,6 +44,7 @@ void backend_ctx_devices_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 
 void backend_session_context_reset          (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_begin                  (hashcat_ctx_t *hashcat_ctx);
+void backend_session_pin_cells              (hashcat_ctx_t *hashcat_ctx);
 void backend_session_destroy                (hashcat_ctx_t *hashcat_ctx);
 void backend_session_reset                  (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_combinator      (hashcat_ctx_t *hashcat_ctx);

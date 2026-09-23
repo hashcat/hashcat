@@ -1356,6 +1356,8 @@ int hc_cuMemcpyHtoDAsync       (void *hashcat_ctx, CUdeviceptr dstDevice, const 
 int hc_cuMemsetD32Async        (void *hashcat_ctx, CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream);
 int hc_cuMemsetD8Async         (void *hashcat_ctx, CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream);
 HC_PLUGIN_API int hc_cuMemFree               (void *hashcat_ctx, CUdeviceptr dptr);
+int hc_cuMemAllocHost          (void *hashcat_ctx, void **pp, size_t bytesize);
+int hc_cuMemFreeHost           (void *hashcat_ctx, void *p);
 int hc_cuMemGetInfo            (void *hashcat_ctx, size_t *free, size_t *total);
 HC_PLUGIN_API int hc_cuModuleGetFunction     (void *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
 int hc_cuModuleGetGlobal       (void *hashcat_ctx, CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name);

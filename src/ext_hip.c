@@ -196,6 +196,8 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,        HIP_HIPLAUNCHKERNEL,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemAlloc,               hipMalloc,                    HIP_HIPMEMALLOC,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                      HIP_HIPMEMFREE,                 HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipHostMalloc,             hipHostMalloc,                HIP_HIPHOSTMALLOC,              HIP, -1);
+  HC_LOAD_FUNC_HIP (hip, hipHostFree,               hipHostFree,                  HIP_HIPHOSTFREE,                HIP, -1);
   HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,                HIP_HIPMEMGETINFO,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoD,             hipMemcpyDtoD,                HIP_HIPMEMCPYDTOD,              HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoH,             hipMemcpyDtoH,                HIP_HIPMEMCPYDTOH,              HIP, 1);
@@ -922,6 +924,56 @@ int hc_hipMemAlloc (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize)
     else
     {
       event_log_error (hashcat_ctx, "hipMemAlloc(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipHostMalloc (void *hashcat_ctx, void **pp, size_t bytesize)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  if (hip->hipHostMalloc == NULL) return -1;
+
+  const hipError_t HIP_err = hip->hipHostMalloc (pp, bytesize, 0);
+
+  if (HIP_err != hipSuccess)
+  {
+    // Deliberately quiet. The one caller falls back to ordinary memory when this fails, and page
+    // locking a large buffer is exactly the allocation a loaded machine is entitled to refuse.
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipHostFree (void *hashcat_ctx, void *p)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  if (hip->hipHostFree == NULL) return -1;
+
+  const hipError_t HIP_err = hip->hipHostFree (p);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipHostFree(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipHostFree(): %d", HIP_err);
     }
 
     return -1;
