@@ -150,6 +150,34 @@ jobs:
           path: ~/perl5
           key: perl5-${{ runner.os }}-${{ hashFiles('tools/install_modules.sh') }}
 
+      # The luks2 containers for -m 34100 are a large download test.sh would otherwise fetch in the
+      # middle of a run. Pull them here and cache them, so only the first run downloads them, and
+      # only for jobs that actually test 34100.
+
+      - name: Restore the luks2 test containers
+        id: luks2
+        if: matrix.modes == 'minimal' || contains(matrix.modes, '34100')
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v1
+
+      - name: Fetch the luks2 test containers
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools/luks2_tests
+          cd tools/luks2_tests
+          wget -q https://hashcat.net/misc/example_hashes/luks2_tests.7z
+          7z x -y luks2_tests.7z >/dev/null
+          rm -f luks2_tests.7z
+
+      - name: Save the luks2 test containers
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v1
+
       - name: Build
         run: make -j$(nproc)
 
