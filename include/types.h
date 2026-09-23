@@ -3357,6 +3357,13 @@ typedef struct generic_ctx
   generic_global_ctx_t  global_ctx;
   generic_thread_ctx_t *thread_ctx;
 
+  // Which devices thread_init () was run for. The set of devices that reach teardown is not the set
+  // that reached startup: a device is refused inside backend_session_begin (), which runs after the
+  // feed has been opened, and is marked skipped there. Terminating by the flags as they stand at
+  // teardown walks past exactly those devices and leaves their feed threads running.
+
+  bool *thread_inited;
+
   // what the user asked for, and the file that turned out to be
 
   char *plugin_name;
