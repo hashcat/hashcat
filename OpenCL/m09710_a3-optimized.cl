@@ -13,7 +13,9 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_FOLD_ON_POCL
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_FOLD_ON_POCL
 #endif
 
 typedef struct oldoffice01

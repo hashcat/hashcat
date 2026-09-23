@@ -14,7 +14,9 @@
 #include M2S(INCLUDE_PATH/inc_rp.h)
 #include M2S(INCLUDE_PATH/inc_rp.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_FOLD_ON_POCL
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_FOLD_ON_POCL
 #endif
 
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
