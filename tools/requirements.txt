@@ -1,11 +1,14 @@
 # Python packages the test modules under tools/test_modules need.
 # tools/install_modules.sh installs from this file.
+#
+# Pinned, so that a release of one of these cannot change what the suite reports overnight. A new
+# version comes in by changing the line here, in a commit of its own, with the suite run on it.
 
-pycryptodome
-cryptography
-argon2-cffi
+pycryptodome==3.23.0
+cryptography==50.0.1
+argon2-cffi==25.1.0
 
 # gostcrypto's update () is only correct while what it has been fed is a whole number of 64
 # byte blocks, so a Streebog message goes into it in one call rather than in pieces.
 
-gostcrypto
+gostcrypto==1.2.5
