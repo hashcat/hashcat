@@ -141,3 +141,19 @@ def split_hash_salt_word(line):
     return None
 
   return (parts[0].decode(errors="replace"), parts[1].decode(errors="replace"), parts[2])
+
+
+def pack_hex(s):
+  # perl's pack ("H*", s), for the modules that relied on what it does with input that is not hex:
+  # a letter counts as its low 4 bits plus 9, anything else as its low 4 bits, and an odd length
+  # leaves the last byte's low nibble zero. For a string of hex digits this is bytes.fromhex ().
+
+  if isinstance(s, bytes):
+    s = s.decode("latin-1")
+
+  nibbles = [((ord(c) + 9) if ("A" <= c <= "Z" or "a" <= c <= "z") else ord(c)) & 0xf for c in s]
+
+  if len(nibbles) % 2:
+    nibbles.append(0)
+
+  return bytes((nibbles[i] << 4) | nibbles[i + 1] for i in range(0, len(nibbles), 2))

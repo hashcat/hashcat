@@ -7,17 +7,11 @@
 
 import hashlib
 
-from lib.test_helpers import random_hex_string, random_number, split_hash_word
+from lib.test_helpers import pack_hex, random_hex_string, random_number, split_hash_word
 
 # JKS Java Key Store private keys (SUN): the password widened to UTF-16BE byte by byte, a SHA-1
 # keystream XORed over the encrypted key, and SHA-1 over the password and the plain key as the
 # check.
-
-
-def pack_hex(s):
-  # what perl's pack ("H*") does with an odd length: the last nibble is padded with a zero
-
-  return bytes.fromhex(s + "0" * (len(s) % 2))
 
 
 def module_constraints():
