@@ -224,11 +224,11 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
     ctx.len = 40 + 2;
 
-    sha1_update      (&ctx, hc->s, hc->salt_len);
-    sha1_update      (&ctx, hc->glue, 2);
+    sha1_update             (&ctx, hc->s,    hc->salt_len);
+    sha1_update             (&ctx, hc->glue, 2);
     sha1_update_global_swap (&ctx, w, len);
-    sha1_update      (&ctx, hc->glue, 2);
-    sha1_update      (&ctx, hc->k, hc->site_key_len);
+    sha1_update             (&ctx, hc->glue, 2);
+    sha1_update             (&ctx, hc->k,    hc->site_key_len);
 
     sha1_final (&ctx);
   }

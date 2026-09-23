@@ -2992,10 +2992,10 @@ static bool hashlist_parse_threaded (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32
   u32 hashes_cnt = *hashes_cnt_ptr;
   u32 line_num   = *line_num_ptr;
 
-  size_t keep     = 0;
-  bool   overlong = false;
-  u64    dropped  = 0;
-  bool   changed  = false;
+  size_t keep         = 0;
+  bool   overlong     = false;
+  u64    dropped      = 0;
+  bool   changed      = false;
   u32    changed_line = 0;
 
   time_t prev = 0;

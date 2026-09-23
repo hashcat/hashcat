@@ -76,7 +76,7 @@ static const hc_dynlib_sym_t ZLIB_SYMS[] =
   #if defined (__APPLE__)
   HC_DYNLIB_SYM_AS (hc_zlib_lib_t, gztell64, "gztell", true),
   #else
-  HC_DYNLIB_SYM    (hc_zlib_lib_t, gztell64,           true),
+  HC_DYNLIB_SYM (hc_zlib_lib_t, gztell64,      true),
   #endif
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzputc,        true),
   HC_DYNLIB_SYM (hc_zlib_lib_t, gzgetc,        true),

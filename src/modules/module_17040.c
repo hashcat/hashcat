@@ -212,7 +212,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // initial vector - twice the amount of bytes because its interpreted as characters
-  token.sep[10]     = '*';
+  token.sep[10]      = '*';
   token.len_min[10]  = 16;
   token.len_max[10]  = 32;
   token.attr[10]     = TOKEN_ATTR_VERIFY_LENGTH
