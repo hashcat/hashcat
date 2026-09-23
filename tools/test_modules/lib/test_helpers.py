@@ -102,3 +102,42 @@ def random_bytes(count):
   # way would take the two engines off the same stream
 
   return bytes.fromhex(random_hex_string(2 * count))
+
+
+# The kernels that need UTF-16 either decode the UTF-8 or widen each byte, and a mode whose two
+# kernel families disagree follows the one test.sh is about to run: latin-1 reproduces the widening
+# byte for byte, utf-8 is the decoding. test.sh exports IS_OPTIMIZED from the value it uses for -O.
+
+def kernel_charset():
+  return "utf-8" if os.environ.get("IS_OPTIMIZED") == "0" else "latin-1"
+
+
+def utf16le(word, charset="utf-8"):
+  # errors="replace" is what perl's decode () does with a byte that is not UTF-8
+
+  return word.decode(charset, errors="replace").encode("utf-16-le")
+
+
+def utf16be(word, charset="utf-8"):
+  return word.decode(charset, errors="replace").encode("utf-16-be")
+
+
+# The two line shapes most modules verify. The password is everything after the separator, colons
+# and all, which is where a perl split (':') used to cut it short.
+
+def split_hash_word(line):
+  idx = line.find(b":")
+
+  if idx < 0:
+    return None
+
+  return (line[:idx].decode(errors="replace"), line[idx + 1:])
+
+
+def split_hash_salt_word(line):
+  parts = line.split(b":", 2)
+
+  if len(parts) != 3:
+    return None
+
+  return (parts[0].decode(errors="replace"), parts[1].decode(errors="replace"), parts[2])
