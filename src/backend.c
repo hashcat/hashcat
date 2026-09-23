@@ -4638,6 +4638,9 @@ int pcfg_seed_cells (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 }
 
 // Asked once for the device: per slot would read the free memory after the first slot took its share.
+//
+// And never more than an eighth of what is free, which is a chosen bound rather than a derived one: it
+// is there to stop a machine that needs the memory back from losing a share it will miss.
 
 static bool pcfg_cells_may_pin (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u64 want_pinned)
 {

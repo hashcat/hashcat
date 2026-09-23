@@ -594,6 +594,9 @@ int hc_cuMemAllocHost (void *hashcat_ctx, void **pp, size_t bytesize)
 
   if (CU_err != CUDA_SUCCESS)
   {
+    // Deliberately quiet. The one caller falls back to ordinary memory when this fails, and page
+    // locking a large buffer is exactly the allocation a loaded machine is entitled to refuse.
+
     return -1;
   }
 
