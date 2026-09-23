@@ -23,7 +23,10 @@ import subprocess
 import sys
 import zlib
 
-SHARDS = 16
+# test.sh takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
+# runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
+
+SHARDS = {"test": 48, "fuzz": 16}
 
 # A pull request is bounded by this many modes. Past it the rest is left to the
 # weekly run, and the summary says which were left out.
@@ -88,8 +91,8 @@ def changed_files(base):
     return [line for line in out.splitlines() if line]
 
 
-def shard_of(mode):
-    return zlib.crc32(str(mode).encode()) % SHARDS
+def shard_of(kind, mode):
+    return zlib.crc32(str(mode).encode()) % SHARDS[kind]
 
 
 def entries(kind, modes, rule_tok):
@@ -98,7 +101,7 @@ def entries(kind, modes, rule_tok):
     by_shard = {}
 
     for mode in sorted(modes):
-        by_shard.setdefault(shard_of(mode), []).append(mode)
+        by_shard.setdefault(shard_of(kind, mode), []).append(mode)
 
     if kind == "fuzz" and rule_tok:
         by_shard.setdefault(0, [])

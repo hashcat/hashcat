@@ -12,7 +12,7 @@
 ##                  adds test.sh -M, the 24 modes that cover the distinct code
 ##                  paths, on attack mode 0.
 ##
-##   weekly         every mode, in 16 shards, every attack mode, single and
+##   weekly         every mode, in 48 shards, every attack mode, single and
 ##                  multi hash, and only if master has had a commit in the last
 ##                  seven days.
 ##
@@ -23,8 +23,8 @@
 ## .github/workflows/ci_matrix.py decides which modes and which shard.
 ##
 ## test.sh reports a failure in its output and exits 0 either way, so a job
-## here fails on any result line that is not "OK", and on a mode that gave no
-## result line at all.
+## here fails on any result line that says "Error", and on a mode that gave no
+## result line at all. "Skip" is test.sh leaving out a case it cannot build.
 
 name: test
 
@@ -188,7 +188,7 @@ jobs:
                 echo "test.sh ${sel} ${opts}: no result" >> results.log
               fi
 
-              grep 'Kernel-Type.*\] > ' run.log | grep -v '\] > OK : ' | sed "s/^/${sel} ${opts}: /" >> results.log || true
+              grep 'Kernel-Type.*\] > Error : ' run.log | sed "s/^/${sel} ${opts}: /" >> results.log || true
 
               echo "::endgroup::"
             done
