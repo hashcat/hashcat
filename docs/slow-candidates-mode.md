@@ -1,14 +1,14 @@
 ## Generic password candidate interface, aka "slow candidates" mode ##
 
-The first goal of this new interface is to allow attachment of advanced password candidate generators in the future (for example hashcat's table attack, kwprocessor, PassGAN, princeprocessor, etc.). The attack modes that have been added are hashcat's straight attack (including rules engine), combinator attack, mask attack (AKA brute-force with Markov optimizer), the PCFG attack of `-a 4` and the generic attack mode of `-a 8`. You can enable this new general password-candidate interface by using the new -S/--slow-candidates option.
+Option `-S`/`--slow-candidates` makes hashcat generate complete password candidates on the host before sending them to a compute device. It is available with attack modes 0, 1, 3, 4, 5, 6, 7, 8 and 12, and it forces the backend vector width to 1. It cannot be combined with `--stdout`, benchmark mode, or candidates read from stdin.
 
-On `-a 4` the option does one thing more than it does elsewhere. That attack has two engines, one on the host and one in the hash kernel, and `-S` is what selects the host one. See `hashcat-pcfg.md`.
+For the PCFG attack (`-a 4`), the option also selects the host generator instead of the feed's device-side generator. See `hashcat-pcfg.md`. A brain client enables slow-candidates mode automatically and accepts the same attack modes: 0, 1, 3, 4, 5, 6, 7, 8 and 12.
 
-The second goal of the slow candidates engine is to generate password candidates on-host (on CPU). This is useful when attacking large hashlists with fast hashes (but many salts), or generally with slow hashes. Sometimes we cannot fully run large wordlists in combination with rules, because it simply takes too much time. But if we know of a useful pattern that works well with rules, we often want to use rules with a smaller, targeted wordlist instead, in order to exploit the pattern. On GPU, this creates a bottleneck in hashcat's architecture - because hashcat can only assign the words from the wordlist to the GPU compute units.
+Generating candidates on the host is useful for slow hashes, fast hashes with many salts, and attacks whose small base wordlist is expanded by a large ruleset. In those cases the device often needs fewer candidates per second than the host can prepare, while fully expanded candidates give hashcat enough independent work to keep every device busy.
 
-A common workaround for this is to use a pipe, and feed hashcat to itself. But this traditional piping approach came at a cost - no ETA, no way to easily distribute chunks, etc. It was also completely incompatible with overlays like Hashtopolis. And if piping hashcat to itself isn't feasible for some reason, you quickly run into performance problems with small wordlists and large rulesets.
+A traditional workaround is to pipe hashcat's `--stdout` output into another hashcat process. That loses an exact ETA and straightforward keyspace distribution, and makes integration with overlays such as Hashtopolis harder. Slow-candidates mode keeps the generator inside the same session.
 
-To demonstrate this, here's an example where you have a very small wordlist with just a single word in the wordlist, but a huge ruleset to exploit some pattern:
+For example, consider one word expanded by a large ruleset:
 
 ```
 $ wc -l wordlist.txt
@@ -17,7 +17,7 @@ $ wc -l pattern.rule
 99092 pattern.rule
 ```
 
-Since the total number of candidates is ([number-of-words-from-wordlist] * [number-of-rules]), this attack should theoretically be enough to fully feed all GPU compute units. But in practice, hashcat works differently internally - mostly to deal with fast hashes. This makes the performance of such an attack terrible:
+Without `-S`, the small base wordlist can leave the device underused:
 
 ```
 $ ./hashcat -m 400 example400.hash wordlist.txt -r pattern.rule --speed-only
@@ -25,12 +25,12 @@ $ ./hashcat -m 400 example400.hash wordlist.txt -r pattern.rule --speed-only
 Speed.#2.........:      145 H/s (0.07ms)
 ```
 
-This is where slow candidates comes into play. To feed the GPU compute units more efficiently, hashcat applies rules on-host instead, creating a virtual wordlist in memory for fast access. But more importantly from hashcat's perspective, we now have a large wordlist, which allows hashcat to supply all GPU compute units with candidates. Since hashcat still needs to transfer the candidates over PCI-Express, this slows down cracking performance. In exchange, we get a large overall performance increase - multiple times higher, even considering the PCI-Express bottleneck - for both slow hashes and salted fast hashes with many salts,
-
-Here's the exact same attack, but using the new -S option to turn on slow candidates:
+With `-S`, hashcat applies the rules on the host and sends the expanded candidates to the device:
 
 ```
 $ ./hashcat -m 400 example400.hash wordlist.txt -r pattern.rule --speed-only -S
 ...
 Speed.#2.........:   361.3 kH/s (3.54ms)
 ```
+
+The host-to-device transfer still has a cost, so `-S` is not automatically faster. It is most useful when candidate generation or a lack of independent base words would otherwise leave the compute device idle.

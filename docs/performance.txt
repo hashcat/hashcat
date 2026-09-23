@@ -2,8 +2,7 @@ Performance Notes:
 ==================
 
 - Always use the latest display driver
-- Cracking with a mask with a fixed prefix can be slow.
-  Instead, consider using a mode with salt as a prefix and set salt to that fixed prefix.
+- Cracking with a mask with a fixed prefix can be slow. Instead, consider using a mode with salt as a prefix and set salt to that fixed prefix.
 
 Also read this:
 

@@ -87,7 +87,7 @@ A phase is one way of turning those words into candidates. They run cheapest fir
 
 **`words`** is every word of every account, unmodified, and no more than that. It is a few guesses per account and it is where a password that is just the surname falls.
 
-**`rules`** runs the first 1000 rules of `rules/rockyou-30000.rule`, which is ordered by how often each rule won, over every word of every account. The first rule of that file is the do-nothing rule, so this phase also tries every word unmodified, which means it repeats the phase in front of it. That is eight repeats in eight thousand and eight on an eight word account, and the alternative is a phase whose content depends on which other phases you asked for.
+**`rules`** runs the first 1000 rules of `rules/rockyou-30000.rule`, which is ordered by how often each rule won, over every word of every account. The first rule of that file is the do-nothing rule, so this phase also tries every word unmodified, which means it repeats the phase in front of it. On an eight-word account, that is eight repeated guesses among 8,008, and the alternative is a phase whose content depends on which other phases you asked for.
 
 Inside the rules phase the order over its two axes is a merge and not a nesting. Both axes are priced the same way, by the log of the rank, so the eighth word of a name costs what the eighth rule costs and neither axis is spent before the other is touched. Nesting would put all thousand rules on the first word before the second word was tried at all. The do-nothing rule is the exception: it is priced at zero on any word, which is what puts all of an account's words in the first few guesses of the run.
 
@@ -184,7 +184,7 @@ On a slow hash none of this matters, because the card is the limit whatever the 
 
 * **A cracked password need not appear in any file.** The words are cut out of the hash file and the phases build on them, so no file holds them to grep.
 
-* **`--skip` and `--limit` are refused with more than one phase**, the same way they are refused for several wordlists.
+* **`--skip` and `--limit` are refused with more than one phase**, because each phase is a separate round with its own keyspace.
 
 * **The potfile is disabled for this attack.** A password that cracked one account is not a candidate for another, so writing it to the potfile would add no candidate and reading it would match none.
 
