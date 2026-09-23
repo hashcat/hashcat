@@ -948,10 +948,12 @@ function status()
         ;;
 
       *)
-        # A code above 128 is a process killed by a signal (139 is SIGSEGV), which is a crash rather
-        # than a result. Say so, instead of calling it an unhandled code the reader then has to look up.
+        # A code from 129 to 192 is a process killed by a signal (139 is SIGSEGV), which is a crash
+        # rather than a result. Say so, instead of calling it an unhandled code the reader then has to
+        # look up. hashcat's own error codes are negative and wrap to 245 and above (255 is -1), so
+        # they are not signals and fall through to the unhandled branch as before.
 
-        if [ "${RET}" -gt 128 ]; then
+        if [ "${RET}" -gt 128 ] && [ "${RET}" -lt 193 ]; then
           echo "hashcat crashed, killed by signal $((RET - 128)), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
           echo "! hashcat crashed (signal $((RET - 128))), see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
         else
