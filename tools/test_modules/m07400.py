@@ -5,12 +5,16 @@
 ## License.....: MIT
 ##
 
-import crypt_r
+import hashlib
 
 from lib import shacrypt
 
-# sha256crypt $5$, SHA256 (Unix). crypt_r is libc's crypt, the same routine the perl module reached,
-# so the crypt string matches byte for byte.
+# sha256crypt $5$, SHA256 (Unix), see lib/shacrypt.py. The perl module used a salt up to 20 bytes and
+# did not truncate it, unlike libc crypt which stops at 16, so this hashes the whole salt.
+
+
+def sha256(data):
+  return hashlib.sha256(data).digest()
 
 
 def module_constraints():
@@ -19,11 +23,11 @@ def module_constraints():
 
 def module_generate_hash(word, salt, iterations=None):
   if iterations is None:
-    setting = "$5$%s$" % salt
-  else:
-    setting = "$5$rounds=%d$%s$" % (int(iterations), salt)
+    return "$5$%s$%s" % (salt, shacrypt.crypt_bin(sha256, 256, word, salt.encode(), 5000))
 
-  return crypt_r.crypt(word.decode("latin-1"), setting)
+  rounds = min(max(int(iterations), 1000), 999999999)
+
+  return "$5$rounds=%d$%s$%s" % (rounds, salt, shacrypt.crypt_bin(sha256, 256, word, salt.encode(), rounds))
 
 
 def module_verify_hash(line):
