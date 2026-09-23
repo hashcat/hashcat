@@ -245,16 +245,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   pdf->rc4key[1] = 0;
   pdf->rc4key[0] = 0;
 
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[0]) << 28;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[1]) << 24;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[2]) << 20;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[3]) << 16;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[4]) << 12;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[5]) <<  8;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[6]) <<  4;
-  pdf->rc4key[0] |= hex_convert (rc4key_pos[7]) <<  0;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[0]) << 28;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[1]) << 24;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[2]) << 20;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[3]) << 16;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[4]) << 12;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[5]) <<  8;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[6]) <<  4;
+  pdf->rc4key[0] |= (u32) hex_convert (rc4key_pos[7]) <<  0;
   pdf->rc4key[1] |= (u32) hex_convert (rc4key_pos[8]) << 28;
-  pdf->rc4key[1] |= hex_convert (rc4key_pos[9]) << 24;
+  pdf->rc4key[1] |= (u32) hex_convert (rc4key_pos[9]) << 24;
 
   pdf->rc4key[0] = byte_swap_32 (pdf->rc4key[0]);
   pdf->rc4key[1] = byte_swap_32 (pdf->rc4key[1]);
