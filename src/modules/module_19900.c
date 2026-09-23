@@ -237,7 +237,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *edata_ptr = (u8 *) krb5pa->enc_timestamp;
 
-  for (int i = 0; i < data_len; i += 2)
+  if (data_len & 1) return (PARSER_TOKEN_LENGTH);
+
+  // i + 1, not i: the loop reads two characters per byte, so an odd data_len read one past the
+  // token, which is the next field of the line or the caller's terminator
+
+  for (int i = 0; (i + 1) < data_len; i += 2)
   {
     const u8 p0 = data_pos[i + 0];
     const u8 p1 = data_pos[i + 1];

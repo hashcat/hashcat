@@ -150,16 +150,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   oldoffice01->rc4key[1] = 0;
   oldoffice01->rc4key[0] = 0;
 
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[0]) << 28;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[1]) << 24;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[2]) << 20;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[3]) << 16;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[4]) << 12;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[5]) <<  8;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[6]) <<  4;
-  oldoffice01->rc4key[0] |= hex_convert (rc4key_pos[7]) <<  0;
-  oldoffice01->rc4key[1] |= hex_convert (rc4key_pos[8]) << 28;
-  oldoffice01->rc4key[1] |= hex_convert (rc4key_pos[9]) << 24;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[0]) << 28;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[1]) << 24;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[2]) << 20;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[3]) << 16;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[4]) << 12;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[5]) <<  8;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[6]) <<  4;
+  oldoffice01->rc4key[0] |= (u32) hex_convert (rc4key_pos[7]) <<  0;
+  oldoffice01->rc4key[1] |= (u32) hex_convert (rc4key_pos[8]) << 28;
+  oldoffice01->rc4key[1] |= (u32) hex_convert (rc4key_pos[9]) << 24;
 
   oldoffice01->rc4key[0] = byte_swap_32 (oldoffice01->rc4key[0]);
   oldoffice01->rc4key[1] = byte_swap_32 (oldoffice01->rc4key[1]);

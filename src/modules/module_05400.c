@@ -147,17 +147,29 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (ikepsk->msg_len[5] >= 512) return (PARSER_SALT_LENGTH);
   if (ikepsk->nr_len  >= 64)  return (PARSER_SALT_LENGTH);
 
+  // tokens 0 to 7 take a len_min of 0, so an odd length reaches the loops below, where
+  // hex_to_u8 () reads two characters from a token that has one left
+
+  if (token.len[0] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[1] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[2] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[3] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[4] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[5] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[6] & 1) return (PARSER_TOKEN_LENGTH);
+  if (token.len[7] & 1) return (PARSER_TOKEN_LENGTH);
+
   u8 *ptr1 = (u8 *) ikepsk->msg_buf;
   u8 *ptr2 = (u8 *) ikepsk->nr_buf;
 
-  for (int i = 0; i < token.len[0]; i += 2) *ptr1++ = hex_to_u8 (token.buf[0] + i);
-  for (int i = 0; i < token.len[1]; i += 2) *ptr1++ = hex_to_u8 (token.buf[1] + i);
-  for (int i = 0; i < token.len[2]; i += 2) *ptr1++ = hex_to_u8 (token.buf[2] + i);
-  for (int i = 0; i < token.len[3]; i += 2) *ptr1++ = hex_to_u8 (token.buf[3] + i);
-  for (int i = 0; i < token.len[4]; i += 2) *ptr1++ = hex_to_u8 (token.buf[4] + i);
-  for (int i = 0; i < token.len[5]; i += 2) *ptr1++ = hex_to_u8 (token.buf[5] + i);
-  for (int i = 0; i < token.len[6]; i += 2) *ptr2++ = hex_to_u8 (token.buf[6] + i);
-  for (int i = 0; i < token.len[7]; i += 2) *ptr2++ = hex_to_u8 (token.buf[7] + i);
+  for (int i = 0; (i + 1) < token.len[0]; i += 2) *ptr1++ = hex_to_u8 (token.buf[0] + i);
+  for (int i = 0; (i + 1) < token.len[1]; i += 2) *ptr1++ = hex_to_u8 (token.buf[1] + i);
+  for (int i = 0; (i + 1) < token.len[2]; i += 2) *ptr1++ = hex_to_u8 (token.buf[2] + i);
+  for (int i = 0; (i + 1) < token.len[3]; i += 2) *ptr1++ = hex_to_u8 (token.buf[3] + i);
+  for (int i = 0; (i + 1) < token.len[4]; i += 2) *ptr1++ = hex_to_u8 (token.buf[4] + i);
+  for (int i = 0; (i + 1) < token.len[5]; i += 2) *ptr1++ = hex_to_u8 (token.buf[5] + i);
+  for (int i = 0; (i + 1) < token.len[6]; i += 2) *ptr2++ = hex_to_u8 (token.buf[6] + i);
+  for (int i = 0; (i + 1) < token.len[7]; i += 2) *ptr2++ = hex_to_u8 (token.buf[7] + i);
 
   *ptr1++ = 0x80;
   *ptr2++ = 0x80;

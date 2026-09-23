@@ -1105,7 +1105,11 @@ u64 v64_from_v32ab (const u32 v32a, const u32 v32b)
 
 int hex_decode (const u8 *in_buf, const int in_len, u8 *out_buf)
 {
-  for (int i = 0, j = 0; i < in_len; i += 2, j += 1)
+  // i + 1, not i: hex_to_u8 () reads two characters, so an odd in_len read one past the input. The
+  // return value already counts whole pairs, so the trailing character was never part of the
+  // answer, only of the read.
+
+  for (int i = 0, j = 0; (i + 1) < in_len; i += 2, j += 1)
   {
     out_buf[j] = hex_to_u8 (&in_buf[i]);
   }

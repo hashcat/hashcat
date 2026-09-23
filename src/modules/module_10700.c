@@ -312,6 +312,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *enc_md_pos = token.buf[5];
   const u8 *u_len_pos  = token.buf[8];
   const u8 *u_buf_pos  = token.buf[9];
+  const int u_buf_len  = token.len[9];
 
   // validate data
 
@@ -344,6 +345,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // framework allows to be as short as nothing, so its own length is what has to be checked.
 
   if (token.len[9] < 80) return (PARSER_SALT_LENGTH);
+
+  // 80 characters are validated here and read below, so the field has to hold 80. u_len is the
+  // length the line declares for itself, which is not the length of the field the tokenizer
+  // measured, and the token is allowed to be shorter than that.
+
+  if (u_buf_len < 80) return (PARSER_SALT_LENGTH);
 
   if (is_valid_hex_string (u_buf_pos, 80) == false) return (PARSER_SALT_ENCODING);
 

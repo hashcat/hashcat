@@ -107,11 +107,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   // assume no signature found
-  // the strchr() below starts at offset 12, so admitting a 11-byte line lets it
-  // start one past the terminator
   if (line_len < 12) return (PARSER_SALT_LENGTH);
 
-  const char *spn_info_start  = strchr (line_buf + 11 + 1, '*');
+  // hc_strchr_next, not strchr: the field ends where the line ends. strchr () ended it at the
+  // first NUL instead, which is the caller's terminator where there is one and whatever follows
+  // the hash on the line where the caller passed a slice of it.
+
+  const char *spn_info_start = (const char *) hc_strchr_next ((const u8 *) line_buf + 11 + 1, line_len - (11 + 1), '*');
 
   int is_spn_provided = 0;
 
@@ -138,7 +140,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume $krb5db$17$user$realm$*spn*$hash
   else
   {
-    const char *spn_info_stop = strchr (spn_info_start + 1, '*');
+    // bounded for the same reason as the search above: the field ends where the line ends
+
+    const int spn_info_left = line_len - (int) (spn_info_start + 1 - line_buf);
+
+    const char *spn_info_stop = (const char *) hc_strchr_next ((const u8 *) spn_info_start + 1, spn_info_left, '*');
 
     if (spn_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
