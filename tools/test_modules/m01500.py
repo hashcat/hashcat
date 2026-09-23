@@ -20,7 +20,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return crypt_r.crypt(word.decode("latin-1"), salt)
+  return crypt_r.crypt(word.decode("utf-8"), salt)
 
 
 def module_verify_hash(line):

@@ -25,7 +25,7 @@ def module_generate_hash(word, salt, iterations=None, n_log2=14, r=8, p=1):
   setting = "$7$%s%s%s%s$" % (yescrypt.ITOA64[n_log2], yescrypt.encode_uint(r, 5),
                               yescrypt.encode_uint(p, 5), salt)
 
-  return crypt_r.crypt(word.decode("latin-1"), setting)
+  return crypt_r.crypt(word.decode("utf-8"), setting)
 
 
 def module_verify_hash(line):

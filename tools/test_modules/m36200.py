@@ -23,7 +23,7 @@ def module_generate_hash(word, salt, iterations=None, params="j9T"):
 
   setting = "$gy$%s$%s$" % (params, yescrypt.encode64(salt.encode("latin-1")))
 
-  return crypt_r.crypt(word.decode("latin-1"), setting)
+  return crypt_r.crypt(word.decode("utf-8"), setting)
 
 
 def module_verify_hash(line):
