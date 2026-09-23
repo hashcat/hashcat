@@ -12,3 +12,9 @@ argon2-cffi==25.1.0
 # byte blocks, so a Streebog message goes into it in one call rather than in pieces.
 
 gostcrypto==1.2.5
+
+# The crypt module python 3.13 removed, lifted out of the standard library. The modes whose oracle
+# is libc's crypt (), DES crypt and the yescrypt family, need it, and it calls the same crypt_r ()
+# perl's crypt () does.
+
+crypt-r==3.13.1
