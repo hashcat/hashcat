@@ -29,24 +29,30 @@
 // At FIXED_LOCAL_SIZE 1, which is what every other caller compiles with on a CPU, lid is always 0
 // and these are the same addresses as before.
 
+#define KEY8(t,k)  (((t) * 256) + (k))
+#define KEY32(t,k) (((t) *  64) + (k))
+
 DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
-  return S8[(lid * 256) + k];
+  return S8[KEY8 (lid, k)];
 }
 
 DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
-  S8[(lid * 256) + k] = v;
+  S8[KEY8 (lid, k)] = v;
 }
 
 DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const RC4_LID_TYPE lid)
 {
-  S[(lid * 64) + k] = v;
+  S[KEY32 (lid, k)] = v;
 }
+
+#undef KEY8
+#undef KEY32
 
 #else
 
