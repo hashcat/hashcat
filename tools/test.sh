@@ -948,8 +948,16 @@ function status()
         ;;
 
       *)
-        echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-        echo "! unhandled return code, see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
+        # A code above 128 is a process killed by a signal (139 is SIGSEGV), which is a crash rather
+        # than a result. Say so, instead of calling it an unhandled code the reader then has to look up.
+
+        if [ "${RET}" -gt 128 ]; then
+          echo "hashcat crashed, killed by signal $((RET - 128)), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+          echo "! hashcat crashed (signal $((RET - 128))), see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
+        else
+          echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+          echo "! unhandled return code ${RET}, see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
+        fi
 
         e_nf=$((e_nf + 1))
         ;;
