@@ -1220,6 +1220,12 @@ typedef enum token_attr
   TOKEN_ATTR_VERIFY_BASE58      = 1 << 11,
   TOKEN_ATTR_VERIFY_BECH32      = 1 << 12,
 
+  // TOKEN_ATTR_VERIFY_HEX is hex that decodes to bytes, so it also rejects an odd length. This is
+  // the one for a field of hex characters that is read as characters or as a number, where a length
+  // of 1 is as meaningful as a length of 4.
+
+  TOKEN_ATTR_VERIFY_BASE16      = 1 << 13,
+
 } token_attr_t;
 
 #ifdef WITH_BRAIN
@@ -3356,6 +3362,13 @@ typedef struct generic_ctx
 
   generic_global_ctx_t  global_ctx;
   generic_thread_ctx_t *thread_ctx;
+
+  // Which devices thread_init () was run for. The set of devices that reach teardown is not the set
+  // that reached startup: a device is refused inside backend_session_begin (), which runs after the
+  // feed has been opened, and is marked skipped there. Terminating by the flags as they stand at
+  // teardown walks past exactly those devices and leaves their feed threads running.
+
+  bool *thread_inited;
 
   // what the user asked for, and the file that turned out to be
 

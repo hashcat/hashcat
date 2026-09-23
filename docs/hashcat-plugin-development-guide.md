@@ -895,7 +895,7 @@ token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                  | TOKEN_ATTR_VERIFY_HEX;
 ```
 
-The parameters len_min and len_max always define a valid range in bytes. Since it is always 32 byte, we simply set 32 to both parameters. With the configuration item `TOKEN_ATTR_VERIFY_LENGTH` we inform the tokenizer to verify the data length. If the length does not match, we will refuse the hash. The same goes for the configuration item `TOKEN_ATTR_VERIFY_HEX`. As you can imagine, this informs the tokenizer to verify if the data contains only hex characters (no matter the case). For more verification configuration items please see `include/types.h`.
+The parameters len_min and len_max always define a valid range in bytes. Since it is always 32 byte, we simply set 32 to both parameters. With the configuration item `TOKEN_ATTR_VERIFY_LENGTH` we inform the tokenizer to verify the data length. If the length does not match, we will refuse the hash. The same goes for the configuration item `TOKEN_ATTR_VERIFY_HEX`. As you can imagine, this informs the tokenizer to verify if the data contains only hex characters (no matter the case). It also rejects an odd length, because two characters make one byte and a token that decodes to bytes therefore has an even length. If your token is hex characters that you read as characters or as a base 16 number rather than decoding into bytes, use `TOKEN_ATTR_VERIFY_BASE16` instead, which checks the characters and says nothing about the length. For more verification configuration items please see `include/types.h`.
 
 Finally the tokenizer is called. If any of the verification configuration items do not pass, the tokenizer will return a specific error code. As always, the error codes can be found in `include/types.h`.
 

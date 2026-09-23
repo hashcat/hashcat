@@ -315,6 +315,8 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->thread_ctx = hccalloc (sizeof (generic_thread_ctx_t), DEVICES_MAX);
 
+  generic_ctx->thread_inited = hccalloc (sizeof (bool), DEVICES_MAX);
+
   // These are indexed by device id everywhere, so each one can say which device it belongs to. It is
   // set here rather than in generic_thread_init () because global_keyspace () runs before any device
   // thread starts and plugins call their own thread_init () on thread_ctx[0] from inside it.
@@ -633,6 +635,8 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
     if (device_param->skipped_warning == true) continue;
 
     if (generic_thread_init (hashcat_ctx, generic_ctx, device_param->device_id) == false) return -1;
+
+    generic_ctx->thread_inited[device_param->device_id] = true;
   }
 
   // global_keyspace () and thread_init () are inside the block too. A feed that reports its keyspace
@@ -666,15 +670,22 @@ static void generic_instance_destroy (hashcat_ctx_t *hashcat_ctx, generic_ctx_t 
 
   if (generic_ctx->enabled == false) return;
 
+  // Closed for every device it was opened for, whatever that device's skip flags say now. A device
+  // refused in backend_session_begin () is marked skipped after this feed started its threads, and
+  // reading the flags here walks past those threads and leaves them running into the free below.
+
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
-    if (device_param->skipped == true) continue;
-    if (device_param->skipped_warning == true) continue;
+    if (generic_ctx->thread_inited[device_param->device_id] == false) continue;
 
     generic_thread_term (hashcat_ctx, generic_ctx, device_param->device_id);
+
+    generic_ctx->thread_inited[device_param->device_id] = false;
   }
+
+  hcfree (generic_ctx->thread_inited);
 
   hcfree (generic_ctx->thread_ctx);
 

@@ -3474,7 +3474,7 @@ DECLSPEC void undo_utf16le (PRIVATE_AS const u32x *in1, PRIVATE_AS const u32x *i
 DECLSPEC void set_mark_1x4 (PRIVATE_AS u32 *v, const u32 offset)
 {
   const u32 c = (offset & 15) / 4;
-  const u32 r = 0xff << ((offset & 3) * 8);
+  const u32 r = 0xffu << ((offset & 3) * 8);
 
   v[0] = (c == 0) ? r : 0;
   v[1] = (c == 1) ? r : 0;

@@ -11,7 +11,9 @@
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_FOLD_ON_POCL
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_FOLD_ON_POCL
 #endif
 
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
@@ -317,6 +319,19 @@ KERNEL_FQ KERNEL_FA void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
 KERNEL_FQ KERNEL_FA void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
+  /**
+   * modifier
+   */
+
+  // DIGESTS_OFFSET_HOST reads gid under -a 9, so gid has to be in hand before the first use of it
+  // rather than after, which is where the rest of this kernel's modifier block used to sit.
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= GID_CNT) return;
+
+  const u64 lid = get_local_id (0);
+
   const u32 digest[4] =
   {
     esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[0],
@@ -336,16 +351,6 @@ KERNEL_FQ KERNEL_FA void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     0xfea90c2f,
     0x7a695364
   };
-
-  /**
-   * modifier
-   */
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT) return;
-
-  const u64 lid = get_local_id (0);
-
 
   #define il_pos 0
 
