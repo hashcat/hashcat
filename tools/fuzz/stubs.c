@@ -4,9 +4,10 @@
  *
  * The event log is how the core reports to the outside world, and reaching the
  * real implementation means linking the whole hashcat_ctx into every fuzz
- * target. The targets do not read what is logged, so these three take its
- * place. Everything else a target calls is the real code, compiled from the
- * same source the binary is built from.
+ * target. The targets do not read what is logged, so the three event_log
+ * functions below take its place. The file layer and the random generator are
+ * stubbed further down, for the rule compiler. Everything else a target calls
+ * is the real code, compiled from the same source the binary is built from.
  */
 
 #include "common.h"
@@ -45,8 +46,7 @@ size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
 // The rule compiler reaches the file layer and the random generator behind
 // generate_random_rule (). No target opens a file or generates a rule, so the
-// file layer says "no file" and the generator is a constant. Everything else a
-// target calls is the real code.
+// file layer says "no file" and the generator is a constant.
 
 #include "filehandling.h"
 
