@@ -439,7 +439,10 @@ MINIMAL=0
 
 OPTS="--quiet --potfile-disable --machine-readable --logfile-disable"
 
-SKIP_HASH_TYPES="" #2000 2500 2501 16800 16801 99999 32000"
+# 2000 is STDOUT: its kernel is empty and it never cracks, so edge-cracking it only produces errors.
+# It is tested by the --stdout round trip in test.sh/test.py instead. The deprecated WPA modes
+# 2500/2501/16800/16801 are skipped further down by the "is deprecated" check.
+SKIP_HASH_TYPES="2000" # 99999 32000
 SKIP_HASH_TYPES_METAL="21800"
 
 METAL_FORCE_KEEPFREE="8900 22700 27700 28200 29800"
