@@ -58,10 +58,14 @@ for so in modules/module_*.so; do
        | grep -oP "^[^ ]+: runtime error: .*" | sort -u | wc -l)
   total=$(( ${errs:-0} + ${inline:-0} + ${ub:-0} ))
 
+  # The harness returns 1 when the sanitizer reported a finding, 2 when it
+  # could not run the module at all, and 0 for a clean run. A finding can also
+  # show up as text (a UBSan run has no callback into the harness), so it is
+  # counted either way.
   if [ "$rc" = "124" ]; then
     echo "m${mode}: TIMEOUT (600s)" | tee -a "$LOG"
-  elif [ "$total" -gt 0 ]; then
-    echo "m${mode}: *** ${total} SANITIZER ERRORS *** (asan=$(( ${errs:-0} + ${inline:-0} )) ubsan=${ub:-0})" | tee -a "$LOG"
+  elif [ "$total" -gt 0 ] || [ "$rc" = "1" ]; then
+    echo "m${mode}: *** ${total} SANITIZER ERRORS *** (asan=$(( ${errs:-0} + ${inline:-0} )) ubsan=${ub:-0} rc=$rc)" | tee -a "$LOG"
     { cat "$OUT"/tmp_asan.* 2>/dev/null; cat "$OUT/m${mode}.out"; } \
       | grep -oP "ERROR: AddressSanitizer: \K[a-z-]+" | sort -u \
       | sed 's/^/    /' | tee -a "$LOG"
@@ -74,6 +78,15 @@ for so in modules/module_*.so; do
     mkdir -p "$OUT/findings/m${mode}"
     cat "$OUT"/tmp_asan.* > "$OUT/findings/m${mode}/asan.log" 2>/dev/null
     cp "$OUT/m${mode}.out" "$OUT/findings/m${mode}/" 2>/dev/null
+  elif [ "$rc" != "0" ]; then
+    # rc 2 is the harness's own "could not run": a failed dlopen, a missing
+    # module_init, or a stale plugin tree (context size mismatch, rebuild the
+    # plugins). Any other nonzero rc is an unexpected harness failure. Neither
+    # is a clean run, and a stale tree would otherwise mark every module clean.
+    echo "m${mode}: NOT RUN (harness rc=$rc)" | tee -a "$LOG"
+    grep -m1 "^harness:" "$OUT/m${mode}.out" 2>/dev/null | sed 's/^/    /' | tee -a "$LOG"
+    mkdir -p "$OUT/findings/m${mode}"
+    cp "$OUT/m${mode}.out" "$OUT/findings/m${mode}/" 2>/dev/null
   else
     echo "m${mode}: clean" >> "$LOG"
   fi
@@ -84,5 +97,6 @@ rm -f "$OUT"/tmp_asan.* 2>/dev/null
 echo "=== ASAN PARSER SWEEP DONE ===" | tee -a "$LOG"
 grep -c ": clean$"      "$LOG" | sed 's/^/clean modes:       /' | tee -a "$LOG"
 grep -c "SANITIZER ERRORS" "$LOG" | sed 's/^/modes with errors: /' | tee -a "$LOG"
+grep -c ": NOT RUN"     "$LOG" | sed 's/^/modes not run:     /' | tee -a "$LOG"
 grep -c "TIMEOUT"       "$LOG" | sed 's/^/timeouts:          /' | tee -a "$LOG"
 echo "per-finding logs: $OUT/findings/"

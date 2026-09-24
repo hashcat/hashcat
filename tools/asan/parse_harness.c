@@ -52,6 +52,20 @@ typedef void (*MODULE_INIT_FN) (module_ctx_t *);
 
 static int g_findings = 0;
 
+// libasan invokes this on every error it reports, even under halt_on_error=0.
+// The harness uses it to turn a sanitizer finding into a distinct exit code,
+// so a sweep can tell a real finding from a clean run without reparsing the
+// log. Declared weak so a build without ASan, UBSan alone, still links, where
+// the callback is simply never registered.
+extern void __asan_set_error_report_callback (void (*cb) (const char *)) __attribute__ ((weak));
+
+static void asan_finding_cb (const char *report)
+{
+  (void) report;
+
+  g_findings++;
+}
+
 static void *xalloc (const size_t sz)
 {
   // deliberately NOT calloc: hashcat's own buffers are calloc'd, but for
@@ -363,6 +377,8 @@ int main (int argc, char **argv)
     return 2;
   }
 
+  if (__asan_set_error_report_callback != NULL) __asan_set_error_report_callback (asan_finding_cb);
+
   const char *so_path   = argv[1];
   const int   hash_mode = atoi (argv[2]);
 
@@ -486,5 +502,10 @@ int main (int argc, char **argv)
 
   if (handle != NULL) dlclose (handle);
 
-  return g_findings ? 1 : 0;
+  // A distinct exit code per outcome, so a sweep classifies without reparsing:
+  // 2 for a harness that could not run (returned above), 1 for a sanitizer
+  // finding, 0 for a clean run.
+  if (g_findings > 0) return 1;
+
+  return 0;
 }
