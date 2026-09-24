@@ -139,6 +139,9 @@ jobs:
 
       - name: Fuzz
         if: env.KEEPALIVE != 'true'
+        # A step that runs out of time fails where a job that does is cancelled, and only the
+        # first still lets the corpus be saved. The fuzzing below is sized to end well before this.
+        timeout-minutes: 270
         env:
           EVENT: ${{ github.event_name }}
           SECONDS_INPUT: ${{ inputs.seconds }}
@@ -153,7 +156,11 @@ jobs:
 
           case "$EVENT" in
             pull_request)      replay=true; duration=0 ;;
-            workflow_dispatch) duration=${SECONDS_INPUT} ;;
+            workflow_dispatch)
+              case "$SECONDS_INPUT" in
+                ''|*[!0-9]*) echo "::error::seconds must be a whole number, got '${SECONDS_INPUT}'"; exit 1 ;;
+              esac
+              duration=${SECONDS_INPUT} ;;
             *)                 duration=60 ;;
           esac
 
@@ -165,6 +172,19 @@ jobs:
             case "$bin" in *.zip|*.options|*.dict) continue ;; esac
             [ -x "$bin" ] && targets="$targets ${bin#fuzz_out/fuzz_}"
           done
+
+          # The largest shard holds about 50 targets. Fuzzing gets 240 of the job's 300 minutes, the
+          # rest goes to the build, the merges and the save, so the seconds a target are cut down to
+          # fit rather than let the job be cancelled with its corpus unsaved.
+
+          count=$(echo $targets | wc -w)
+          budget=$((240 * 60))
+
+          if [ "$replay" != "true" ] && [ "$count" -gt 0 ] && [ $((duration * count)) -gt "$budget" ]; then
+            echo "::notice::${duration}s a target for ${count} targets does not fit the job, using $((budget / count))s"
+
+            duration=$((budget / count))
+          fi
 
           set -o pipefail
 
