@@ -2560,14 +2560,6 @@ def main():
 
         continue
 
-      # test.sh skips the deprecated hccapx passphrase modes (test.sh:7263): their oracle is
-      # exercised through the compare, not a crack here, and the skip prints no line. This sits
-      # after the no-kernel check above, because test.sh reaches its kernel skip (test.sh:7170)
-      # first, so 2500/16800 still print the "no Optimized kernel" Skip under -O. The PMK modes
-      # 2501 and 16801 take the 32 byte PMK as the candidate and are cracked normally.
-      if mode in (2500, 16800):
-        continue
-
       file_only = is_file_only(mode)
       pass_only = file_only or mode in NOCHECK_ENCODING
 

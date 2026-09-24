@@ -7306,13 +7306,6 @@ print(nf, len(w))
       fi
     fi
 
-    # skip the hccapx passphrase modes, whose oracle is exercised through the compare rather than a
-    # crack here. The PMK modes 2501 and 16801 take the 32 byte PMK as the candidate and are cracked
-    # normally, so they are not skipped.
-    if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 16800 ] ; then
-      continue
-    fi
-
     # STDOUT (2000) is not a crack: its kernel is empty, so it is tested by a --stdout round trip
     # rather than the attack loops below, which do not apply to it. test.py does the same.
     if [ "${hash_type}" -eq 2000 ]; then
