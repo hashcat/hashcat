@@ -29,6 +29,7 @@ import re
 import struct
 import subprocess
 import sys
+import types
 
 
 def _root():
@@ -52,6 +53,8 @@ import hcshared  # noqa: E402
 import hcsp      # noqa: E402
 
 SALT_MAX = 1024
+
+PLUGIN_NAME = "test_bridge_plugin"
 
 ST_PASS = "hashcat"
 ST_HASH = "74ee1fae245edd6f27bf36efc3604942479fceefbadab5dc5c0b538c196eb0f1*0:o:ODc0M2I1MjA2M2NkODQwOTdhNjVkMTYzM2Y1Yzc0ZjU="
@@ -123,6 +126,17 @@ def kernel_loop(ctx, passwords, salt_id, is_selftest):
 
 def init(ctx):
   hcsp.init(ctx, extract_esalts)
+
+  # hcsp finds calc_hash by importing ctx["module_name"], which the bridge sets to this file's
+  # name. Only ./Python is on sys.path, so that import fails for a plugin kept in tools/. Register
+  # calc_hash under a name the import resolves from sys.modules instead.
+
+  plugin = types.ModuleType(PLUGIN_NAME)
+  plugin.calc_hash = calc_hash
+
+  sys.modules[PLUGIN_NAME] = plugin
+
+  ctx["module_name"] = PLUGIN_NAME
 
 
 def term(ctx):
