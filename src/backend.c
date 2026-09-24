@@ -14688,7 +14688,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // name, so one key serves all three, and none of them is a per hash-mode kernel. The shared digest
     // therefore covers every source they are built from.
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
+    // The amplifier, markov and shared kernels are CUDA kernels too, so the
+    // same DEBUG marker keeps their cached binaries apart from a release build's.
+
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u"
+    #if defined (DEBUG)
+    "-debug"
+    #endif
+    ,
       backend_ctx->comptime,
       backend_ctx->kernel_shared_chksum,
       backend_ctx->cuda_driver_version,
@@ -14924,7 +14931,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
+      // A DEBUG build compiles CUDA kernels with NVRTC line info and a
+      // different NVRTC program name, so its cached binaries must never be
+      // reused by a release build or the other way round. The Makefile can pin
+      // comptime to SOURCE_DATE_EPOCH, so comptime alone does not tell the two
+      // apart. This marker is present in DEBUG builds only, so it separates the
+      // keys while leaving the release key unchanged.
+
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
+      #if defined (DEBUG)
+      "-debug"
+      #endif
+      ,
         backend_ctx->comptime,
         backend_ctx->kernel_shared_chksum,
         source_chksum,
