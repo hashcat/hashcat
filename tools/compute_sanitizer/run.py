@@ -312,6 +312,12 @@ def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
 
     if ns.sweep:
         triage.append_sweep_finding(base, run_dir.name, summary)
+        # hashcat's own exit code stays authoritative for the sweep row, but a
+        # log that was missing or could not be parsed produced no verdict at
+        # all. Surface that as nonzero even when hashcat exited 0, so a gate
+        # reading this return does not mistake a lost run for a clean one.
+        if summary["sanitizer"]["parse_ok"] == False:
+            return hashcat_rc_raw if hashcat_rc_raw != 0 else 2
         return hashcat_rc_raw
 
     print(text)

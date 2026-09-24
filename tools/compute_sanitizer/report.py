@@ -53,12 +53,20 @@ def render_table(runs):
         d = r["data"]
         hc_rc = d["run"].get("hashcat_rc_signed")
         san = d["sanitizer"]
-        verdict = "PASS" if san["primary_errors"] == 0 else "FAIL"
+        # A log that was missing or could not be parsed has primary_errors 0,
+        # which would otherwise read as PASS. Report it as NO-LOG instead, so a
+        # run that never produced a verdict is not counted as a clean one.
+        if not san["parse_ok"]:
+            verdict = "NO-LOG"
+            err_col = "?"
+        else:
+            verdict = "PASS" if san["primary_errors"] == 0 else "FAIL"
+            err_col = str(san["primary_errors"])
         first = next((f for f in d["errors"] if f.get("relevance") == "primary"), None)
         frame = first.get("first_source_frame") if first else None
         loc = f"{frame['file']}:{frame['line']}" if frame else ""
 
-        print(f"{name:<40} {str(hc_rc):<7} {verdict:<10} {san['primary_errors']:<12} {loc}")
+        print(f"{name:<40} {str(hc_rc):<7} {verdict:<10} {err_col:<12} {loc}")
 
 
 def main(argv=None):

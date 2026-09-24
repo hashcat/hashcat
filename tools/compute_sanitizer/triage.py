@@ -426,9 +426,14 @@ def append_sweep_finding(sweep_dir, run_name, summary):
     frame = first.get("first_source_frame") if first else None
     location = f"{frame['file']}:{frame['line']}" if frame else ""
 
+    # A missing or unparseable log has primary_errors 0. Without a status column
+    # that row is indistinguishable from a clean run, so a sweep that produced
+    # no verdict would look like a pass. Record NO-LOG so it stands out.
+    status = "ok" if san["parse_ok"] else "NO-LOG"
+
     with open(tsv_path, "a") as f:
         if is_new:
-            f.write("run\thc_rc\ttool\tprimary_errors\tsecondary_errors\tfirst_kind\tfirst_location\n")
+            f.write("run\thc_rc\ttool\tstatus\tprimary_errors\tsecondary_errors\tfirst_kind\tfirst_location\n")
         f.write(f"{run_name}\t{summary['run'].get('hashcat_rc_signed')}\t{san['tool']}\t"
-                f"{san['primary_errors']}\t{san['secondary_errors']}\t"
+                f"{status}\t{san['primary_errors']}\t{san['secondary_errors']}\t"
                 f"{first['kind'] if first else ''}\t{location}\n")
