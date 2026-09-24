@@ -386,13 +386,20 @@ def run_single(opts, mode, pairs, args, width, file_only, pass_only, tmp):
   report(args, mode, "single", width, c)
 
 
-def run_multi(opts, mode, pairs, args, width, pass_only, tmp):
+def run_multi(opts, mode, pairs, args, width, file_only, pass_only, tmp):
   c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
 
   hash_file = os.path.join(tmp, "m%05d_hashes.txt" % mode)
 
-  with open(hash_file, "wb") as fh:
-    fh.write(b"\n".join(d.encode("ascii") for _, d in pairs) + b"\n")
+  if file_only:
+    # test.sh:1225: every base64 hash decoded and concatenated into one file (22000/22001 keep their
+    # raw line), the way decode_hashfile splits it.
+    with open(hash_file, "wb") as fh:
+      for _, digest in pairs:
+        fh.write(decode_hashfile(mode, digest))
+  else:
+    with open(hash_file, "wb") as fh:
+      fh.write(b"\n".join(d.encode("ascii") for _, d in pairs) + b"\n")
 
   stdin_bytes = b"\n".join(w for w, _ in pairs) + b"\n"
 
@@ -431,13 +438,13 @@ def attack_0(r):
     run_single(r.opts, r.mode, r.pairs, r.args, r.width, r.file_only, r.pass_only, r.tmp)
 
   if "multi" in r.targets:
-    # A binary hashfile holds one hash per file, so there is no multi-hash run to make. This is
-    # test.sh's has_multi_hash reason ("we only have 1 hash for each of them"), which its hardcoded
-    # list misses for these modes.
-    if r.file_only:
-      report_skip(r.args, r.mode, "multi", r.width, "binary hashfile mode has one hash per file")
-    else:
-      run_multi(r.opts, r.mode, r.pairs, r.args, r.width, r.pass_only, r.tmp)
+    # test.sh gives the has_multi_hash modes one hash each, so there is no multi run and no line.
+    # Everything else, binary hashfile included, runs one multi as test.sh does (its has_multi_hash
+    # list omits the binary hashfile modes, so for those it runs a one-hash multi that ends Error).
+    if has_multi_hash(r.mode):
+      return
+
+    run_multi(r.opts, r.mode, r.pairs, r.args, r.width, r.file_only, r.pass_only, r.tmp)
 
 
 def build_ruleset(ruleset_dir, words):
