@@ -45,6 +45,17 @@ if ! nm -D ./libhashcat.so.7 | grep -q asan; then
   echo "         Bugs inside core helpers will not be reported. Rebuild with DEBUG=2." >&2
 fi
 
+# The plugin interface version comes out of src/Makefile rather than being
+# written here twice, so a bump in the Makefile does not leave a stale copy
+# that makes every module refuse to load. tools/fuzz/build.sh reads it the
+# same way.
+ABI=$(sed -n 's/^MODULE_INTERFACE_VERSION *:*= *\([0-9]*\).*/\1/p' src/Makefile | head -1)
+
+if [ -z "$ABI" ]; then
+  echo "error: no MODULE_INTERFACE_VERSION in src/Makefile" >&2
+  exit 2
+fi
+
 case "$SANITIZE" in
   *undefined*)
     if ! nm -D ./libhashcat.so.7 | grep -q ubsan; then
@@ -62,7 +73,7 @@ esac
 $CC -std=gnu99 -DDEBUG -Og -ggdb -fsanitize=$SANITIZE -fno-omit-frame-pointer \
     -Iinclude/ -IOpenCL/ -Itools/asan -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
     -Ideps/OpenCL-Headers -Ideps/xxHash -Ideps/unrar \
-    -DWITH_BRAIN -DWITH_HWMON -DHC_PLUGIN_ABI_VERSION=720 \
+    -DWITH_BRAIN -DWITH_HWMON -DHC_PLUGIN_ABI_VERSION="$ABI" \
     tools/asan/parse_harness.c tools/asan/hashconfig.c ./libhashcat.so.7 -ldl \
     -o "$OUT" -Wl,-rpath,'$ORIGIN'
 

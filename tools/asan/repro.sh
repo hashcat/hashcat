@@ -54,6 +54,17 @@ mkdir -p "$OUT"
 
 MOD=$(printf "module_%05d" "$MODE")
 
+# The plugin interface version comes out of src/Makefile rather than being
+# written here twice, so a bump in the Makefile does not leave a stale copy
+# that makes the module refuse to compile. tools/fuzz/build.sh reads it the
+# same way.
+ABI=$(sed -n 's/^MODULE_INTERFACE_VERSION *:*= *\([0-9]*\).*/\1/p' src/Makefile | head -1)
+
+if [ -z "$ABI" ]; then
+  echo "error: no MODULE_INTERFACE_VERSION in src/Makefile" >&2
+  exit 2
+fi
+
 # -DSTATIC_MODULE links the module directly rather than dlopen()ing its .so.
 #
 # MODULE_INTERFACE_VERSION_CURRENT is normally injected per-plugin by
@@ -63,7 +74,7 @@ $CC -std=gnu99 -DDEBUG -DSTATIC_MODULE -g -O1 \
     -Iinclude/ -IOpenCL/ -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
     -Ideps/OpenCL-Headers -Ideps/xxHash -Ideps/unrar \
     -DWITH_BRAIN -DWITH_HWMON \
-    -DHC_PLUGIN_ABI_VERSION=720 -DMODULE_INTERFACE_VERSION_CURRENT=720 \
+    -DHC_PLUGIN_ABI_VERSION="$ABI" -DMODULE_INTERFACE_VERSION_CURRENT="$ABI" \
     tools/asan/parse_harness.c "src/modules/${MOD}.c" $EXTRA \
     "$CORE" -ldl -o "$OUT/repro_${TOOL}_m${MODE}" -Wl,-rpath,"$CORE_DIR"
 
