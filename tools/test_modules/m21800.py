@@ -135,9 +135,9 @@ def module_generate_hash(word, salt=None, iterations=None):
     if (len(compressed_data) + 15) <= MAX_DATA_LEN:
       continue
 
-    # Deviation from m21800.pm: the .pm accepts a first deflate block byte of 0x04 or 0x05 here but
-    # its verify only accepts 0x05, so a 0x04 hash it emits does not round trip. We keep only 0x05,
-    # which is what version 5 needs, so generate and verify agree.
+    # Deviation from the perl oracle this replaces: it accepted a first deflate block byte of 0x04
+    # or 0x05 here but its verify only accepts 0x05, so a 0x04 hash it emitted did not round trip.
+    # We keep only 0x05, which is what version 5 needs, so generate and verify agree.
 
     if (compressed_data[2] & 0x07) != 0x05:
       continue
@@ -206,8 +206,9 @@ def module_verify_hash(line):
   if decrypted_data[0:2] != b"\x78\x9c":
     return ("", word)
 
-  # Deviation from m21800.pm: the .pm accepts only a 0x05 rate byte here. generate can emit 0x04 as
-  # well (see there), so 0x04 is accepted too and both engines can account for each other's output.
+  # Deviation from the perl oracle this replaces: it accepted only a 0x05 rate byte here. generate
+  # can emit 0x04 as well (see there), so 0x04 is accepted too and both engines account for each
+  # other's output.
 
   if (decrypted_data[2] & 0x07) not in (0x04, 0x05):
     return ("", word)

@@ -1227,8 +1227,8 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
 
               # These modes take the path of a container file, and hashcat prints that path where a
               # cracked hash would normally go, so the output comparison further down matches on it
-              # too. m05200.pm and m09000.pm print the container base64 encoded and it has to be
-              # decoded back into a file. m14600.pm builds a real LUKS image and prints its path,
+              # too. m05200.py and m09000.py print the container base64 encoded and it has to be
+              # decoded back into a file. m14600.py builds a real LUKS image and prints its path,
               # so that one is already a container and must be passed through untouched.
 
               if [ ${binary_hashfile} -eq 1 ]; then
