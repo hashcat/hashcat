@@ -73,9 +73,9 @@ _BARE_ADDRESS_RE = re.compile(r"^Address (0x[0-9a-fA-F]+)\s*$")
 # "ERROR SUMMARY: N errors were not printed. Use --print-limit ..." line,
 # which starts with the same literal but isn't the real total.
 _ERROR_SUMMARY_RE = re.compile(r"^ERROR SUMMARY:\s*(\d+) errors?\s*$")
-# racecheck doesn't use "ERROR SUMMARY:" at all; its own tool-specific
+# racecheck doesn't use "ERROR SUMMARY:" at all. Its own tool-specific
 # footer is "RACECHECK SUMMARY: N hazards displayed (X errors, Y warnings)".
-# Confirmed against a real clean run; without this, that line falls through
+# Confirmed against a real clean run. Without this, that line falls through
 # to the generic "new block" branch and gets misclassified as a spurious
 # "Unknown" finding on every racecheck run, clean or not.
 _RACECHECK_SUMMARY_RE = re.compile(
@@ -248,8 +248,8 @@ def first_source_frame(finding):
 
 
 def classify_relevance(findings):
-    """Marks each finding's "relevance": a real memory/race/sync fault is
-    "primary"; a CudaAPIError block is "secondary" (a consequence of an
+    """Marks each finding's "relevance". A real memory/race/sync fault is
+    "primary". A CudaAPIError block is "secondary" (a consequence of an
     earlier real fault poisoning the CUDA context) unless it is the only
     finding in the run, in which case it's promoted to "primary" (pure CUDA
     API misuse with no preceding memory fault is still worth surfacing)."""

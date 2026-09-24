@@ -68,7 +68,7 @@ fi
 # -DSTATIC_MODULE links the module directly rather than dlopen()ing its .so.
 #
 # MODULE_INTERFACE_VERSION_CURRENT is normally injected per-plugin by
-# src/Makefile; a standalone compile has to supply it by hand.
+# src/Makefile. A standalone compile has to supply it by hand.
 $CC -std=gnu99 -DDEBUG -DSTATIC_MODULE -g -O1 \
     $SAN -fno-omit-frame-pointer \
     -Iinclude/ -IOpenCL/ -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
@@ -78,7 +78,7 @@ $CC -std=gnu99 -DDEBUG -DSTATIC_MODULE -g -O1 \
     tools/asan/parse_harness.c "src/modules/${MOD}.c" $EXTRA \
     "$CORE" -ldl -o "$OUT/repro_${TOOL}_m${MODE}" -Wl,-rpath,"$CORE_DIR"
 
-# Pin the loader to the core we just linked against; libhashcat.so.7 can
+# Pin the loader to the core we just linked against. libhashcat.so.7 can
 # otherwise resolve to another copy on the search path.
 export LD_LIBRARY_PATH="$CORE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 

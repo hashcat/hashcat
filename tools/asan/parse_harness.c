@@ -44,7 +44,7 @@
 #include <dlfcn.h>
 #include <inttypes.h>
 
-// interface.c calls these through the module context; we resolve the same way
+// interface.c calls these through the module context. We resolve them the same way.
 
 typedef void (*MODULE_INIT_FN) (module_ctx_t *);
 
@@ -328,7 +328,11 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
       bool all_digit = true;
       for (int i = start; i < end; i++)
       {
-        if (hash[i] < '0' || hash[i] > '9') { all_digit = false; break; }
+        if ((hash[i] < '0') || (hash[i] > '9'))
+        {
+          all_digit = false;
+          break;
+        }
       }
       const char fill = all_digit ? '1' : 'a';
 
@@ -441,7 +445,7 @@ int main (int argc, char **argv)
     return 2;
   }
 
-  if (!IS_SET (module_ctx.module_hash_decode))
+  if (IS_SET (module_ctx.module_hash_decode) == false)
   {
     printf ("-m %d: no module_hash_decode (nothing host-side to test)\n", hash_mode);
     return 0;
@@ -464,7 +468,7 @@ int main (int argc, char **argv)
 
   if (hash == NULL)
   {
-    if (!IS_SET (module_ctx.module_st_hash))
+    if (IS_SET (module_ctx.module_st_hash) == false)
     {
       printf ("-m %d: no example hash available, skipping\n", hash_mode);
       return 0;

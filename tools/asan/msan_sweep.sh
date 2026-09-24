@@ -11,7 +11,7 @@
 # MSan-instrumented harness and links a PLAIN (uninstrumented) core.
 #
 # IMPORTANT: this UNDER-reports by construction. Only the harness, the named
-# module and whatever EXTRA names are instrumented; uninitialized values that
+# module and whatever EXTRA names are instrumented. Uninitialized values that
 # originate inside the uninstrumented core are invisible. A clean result here
 # means "no finding in the instrumented part", never "no finding".
 #
@@ -23,12 +23,12 @@
 #
 # Confirmed instance: every module calling b58dec() (m28501/2/5/6, m30901/2/5/6)
 # reports `pubkey` uninitialized, because b58dec lives in libhashcat.so.7. It
-# writes all 64 bytes on success; instrument it and the finding vanishes.
+# writes all 64 bytes on success. Instrument it and the finding vanishes.
 #
 # So THIS SWEEP IS A SCREEN, NOT A VERDICT. Two stages:
 #
 #   1. this script: fast, narrow instrumentation, flags candidates
-#   2. per candidate, re-run with the core widely instrumented; a finding that
+#   2. per candidate, re-run with the core widely instrumented. A finding that
 #      survives is real, one that disappears was a core artifact:
 #
 #      CC=clang-11 TOOL=msan OUT=/tmp/msan-wide \

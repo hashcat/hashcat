@@ -80,7 +80,7 @@ void harness_build_hashconfig (hashconfig_t *hashconfig, module_ctx_t *m,
   // example hash with PARSER_SALT_LENGTH, which would look like the harness
   // "passing" while never exercising a single line of parser code.
   // The interface.c versions are not exported (-fvisibility=hidden), so the
-  // logic is restated here; keep in sync with src/interface.c:820,910.
+  // logic is restated here. Keep in sync with src/interface.c:820,910.
 
   const bool utf16_salt = (hashconfig->opts_type & (OPTS_TYPE_ST_UTF16LE | OPTS_TYPE_ST_UTF16BE)) != 0;
 
