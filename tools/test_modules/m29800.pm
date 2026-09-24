@@ -27,7 +27,9 @@ sub module_generate_hash
   my $iv   = shift // random_bytes (16);
   my $data = shift;
 
-  my $word_utf16be = encode ('UTF-16BE', $word);
+  # The m27700 kernel decodes the UTF-8 password with hc_enc before widening it to UTF-16BE, so
+  # decode here too. Widening the raw bytes produced a wrong key for any non ASCII password.
+  my $word_utf16be = encode ('UTF-16BE', decode ('UTF-8', $word));
 
   my $key = scrypt_raw ($word_utf16be, $salt, $SCRYPT_N, $SCRYPT_R, $SCRYPT_P, 32);
 
