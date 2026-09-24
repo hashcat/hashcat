@@ -23,8 +23,12 @@
 ## .github/workflows/ci_matrix.py decides which modes and which shard.
 ##
 ## test.sh reports a failure in its output and exits 0 either way, so a job
-## here fails on any result line that says "Error", and on a mode that gave no
-## result line at all. "Skip" is test.sh leaving out a case it cannot build.
+## here reads that output. It fails on an Error or a Compare Error result line,
+## on a container test that could not produce its input, on a kernel that did
+## not compile (test.sh counts that as a skip), and on a mode that gave no
+## result line at all. A Warning, a case that ran into the time limit, is
+## annotated and does not fail the job. Any other "Skip" is test.sh leaving out
+## a case it cannot build.
 
 name: test
 
@@ -216,7 +220,25 @@ jobs:
                 echo "test.sh ${sel} ${opts}: no result" >> results.log
               fi
 
-              grep 'Kernel-Type.*\] > Error : ' run.log | sed "s/^/${sel} ${opts}: /" >> results.log || true
+              # An Error or a Compare Error result line, and a record_error line, which names no
+              # Kernel-Type because it is about a container test that could not produce its input.
+
+              grep -E '\] > (Compare )?Error : ' run.log | sed "s/^/${sel} ${opts}: /" >> results.log || true
+
+              # A kernel that fails to compile makes hashcat exit -5, and test.sh counts that as a skip
+              # and logs it as a main kernel build error. A change that breaks a kernel must not pass
+              # on that, so the log of this run is read for it.
+
+              outd=$(grep -o -m1 '^\[ test_[0-9]* \]' run.log | tr -d '[] ')
+
+              if [ -n "${outd}" ] && [ -f "${outd}/logfull.txt" ]; then
+                grep 'main kernel build error' "${outd}/logfull.txt" | sed "s/^/${sel} ${opts}: /" >> results.log || true
+              fi
+
+              # A Warning is a case that ran into -r 120. On a shared runner that is the time budget
+              # running out rather than a fault, so it is annotated and the job goes on.
+
+              grep 'Kernel-Type.*\] > Warning : ' run.log | sed "s/^/::warning::${sel} ${opts}: /" || true
 
               echo "::endgroup::"
             done
