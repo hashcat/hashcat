@@ -21,8 +21,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_FRAMEWORK;
 static const char *HASH_NAME      = "Apache Shiro 1 SHA-512";
 static const u64   KERN_TYPE      = 12150;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_USES_BITS_64
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                                  | OPTI_TYPE_USES_BITS_64;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_BASE64
