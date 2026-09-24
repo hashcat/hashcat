@@ -1,20 +1,20 @@
 # The hashcat tuning database
 
-Autotune measures your device on every run and picks a launch size for it. The tuning database is how you overrule that measurement, either because you know better or because autotune cannot see what you are after.
+Autotune measures your device on every run and picks a launch size for it. The tuning database overrides that measurement when a known value performs better or autotune cannot account for a specific workload.
 
-This document explains what the database is, how hashcat picks a row out of it, and how to write a row of your own. The format reference lives beside the files, in `tunings/README.md`. This is the part that tells you why you would want to.
+This document explains what the database contains, how hashcat selects a row, and how to add one. The file-format reference is in `tunings/README.md`.
 
 ## What it is
 
 Every file ending in `.hctune` under the `tunings` folder is read at startup. There is no single database file. hashcat loads all of them, in whatever order the directory hands them over, and the rows go into one table. The current tree carries 322 tuning rows across 12 files, plus 329 alias definitions in `Alias.hctune`.
 
-The split into files is for the people maintaining them, not for hashcat. `Modules_default.hctune` holds broadly applicable rows and `Device_GB10.hctune` holds rows for one GPU family. Several module files contain measurement instructions but no rows. `Module_09300.hctune` is the scrypt example. Your own file sits beside them and is read the same way.
+The split into files is for the people maintaining them, not for hashcat. File `Modules_default.hctune` holds broadly applicable rows, while `Device_GB10.hctune` holds rows for one GPU family. Several module files contain measurement instructions but no rows. File `Module_09300.hctune` is the scrypt example. Your own file sits beside them and is read the same way.
 
 The database is skipped entirely for `--help`, `-I`, `--hash-info`, `--keyspace`, `--left`, `--show`, `--version` and `--identify`, because none of those launch a kernel.
 
-## What a row says
+## What a row defines
 
-Six columns. The first three decide whether the row applies, the last three are what it sets.
+Each row has six columns. The first three determine whether the row applies, and the last three define its settings.
 
 ```
 #Device                    Attack  Hash    Vector  Kernel  Kernel
@@ -35,7 +35,7 @@ A row that sets `A` in both of the last two columns is still worth writing, beca
 
 ## How a device finds its row
 
-The lookup has two nested kinds of fallback, and their order matters. First hashcat performs the full search with the artificial name `MODULE_<device id>_<device name>`, which is where a module can register generated rows. It then searches a vendor-prefix-stripped name, where applicable, followed by the full device name.
+The lookup uses two nested fallback sequences, and their order matters. First hashcat performs the full search with the artificial name `MODULE_<device id>_<device name>`, which is where a module can register generated rows. It then searches a vendor-prefix-stripped name, where applicable, followed by the full device name.
 
 For each name, these attack and hash combinations are tried in order:
 
@@ -54,7 +54,7 @@ Two kinds of alias exist and they work differently.
 
 A vendor alias is derived instead of looked up. hashcat takes the vendor id the backend already recorded when it enumerated the device, and turns it into `ALIAS_NV`, `ALIAS_AMD` or `ALIAS_INTEL`. CUDA, HIP and Metal each hardcode that id, and an OpenCL device gets one from its vendor string, so one field answers for every backend. A card released tomorrow gets its vendor's rows without anyone editing a file.
 
-Three cases are deliberately left out, because the id does not say whose silicon is underneath. Metal reports Apple for every device it drives, including an AMD card in an Intel Mac. Mesa reports itself. The id AMD's runtime uses for an Intel CPU is the string `GenuineIntel`, which means the opposite of what it looks like. For those, hashcat falls back to the vendor prefix in the device name, which covers `NVIDIA `, `AMD `, `Intel` and `Apple M`.
+Three cases are deliberately excluded because the vendor ID does not identify the underlying silicon. Metal reports Apple for every device it drives, including an AMD card in an Intel Mac. Mesa reports itself. AMD's runtime reports the string `GenuineIntel` for an Intel CPU, which does not identify the runtime vendor. For those, hashcat falls back to the vendor prefix in the device name, which covers `NVIDIA `, `AMD `, `Intel` and `Apple M`.
 
 Vendor aliases apply to GPUs only. An AMD or Intel CPU reports its maker's vendor id exactly as that maker's GPUs do, and without that gate a Ryzen would start taking tuning measured on a Radeon.
 
@@ -62,7 +62,7 @@ A vendor alias is tried after the file's own alias, so a row written for a narro
 
 ## Writing your own row
 
-Put a file ending in `.hctune` in the `tunings` folder. Nothing else is needed. A row that gets the device name wrong is ignored rather than reported, so check the name against what hashcat prints at startup, and remember the underscores.
+Put a file ending in `.hctune` in the `tunings` folder. No additional setup is required. A row with an incorrect device name is ignored without an error. Check the name against the startup output and remember to replace spaces with underscores.
 
 To find a Kernel-Accel value worth pinning, sweep `-n` against a hash of the mode you care about and read the speed back. The comment block at the top of `Module_09300.hctune` walks through it for scrypt, which is the case where it matters most.
 

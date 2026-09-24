@@ -1,8 +1,8 @@
-# hashcat and its predecessors has been developed and is maintained by:
+# hashcat and its predecessors were developed and are maintained by:
 
 Jens "atom" Steube <jens.steube@gmail.com> (@hashcat)
 
-# The following persons made code contributions to hashcat:
+# The following people contributed code to hashcat:
 
 Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 
@@ -74,28 +74,28 @@ Other contributors to hashcat
 
 # hashcat implements the following algorithms designed by others:
 
-* Probabilistic Context-Free Grammars for password guessing, by Matt Weir (@lakiw), with Sudhir Aggarwal, Breno de Medeiros and Bill Glodek The -a 4 attack is built on that model, and it reads the rulesets Matt Weir's pcfg_cracker trains. hashcat carries none of its code and enumerates the grammar its own way, but the attack is theirs.
+* Probabilistic Context-Free Grammars for password guessing, by Matt Weir (@lakiw), with Sudhir Aggarwal, Breno de Medeiros and Bill Glodek. Attack mode 4 uses this model and reads rulesets trained by Matt Weir's pcfg_cracker. hashcat contains none of its code and enumerates the grammar differently, but the attack is based on their work.
 
-* OMEN, an ordered Markov enumerator for password guessing, by Markus Duermuth, Fabian Angelstorf, Claude Castelluccia, Daniele Perito and Abdelberi Chaabane A ruleset trained below full coverage puts the mass the grammar did not cover on an escape, and OMEN is the model that fills it in. hashcat walks it on the host engine, where a trellis can be walked, and says so when it cannot carry it.
+* OMEN, an ordered Markov enumerator for password guessing, by Markus Duermuth, Fabian Angelstorf, Claude Castelluccia, Daniele Perito and Abdelberi Chaabane. A ruleset trained below full coverage assigns the probability mass not covered by the grammar to an escape. OMEN supplies that escape model, which hashcat evaluates on the host where its trellis can be traversed.
 
-* xxHash by Yann Collet (@Cyan4973) paw64, hashcat's own 64 bit identity hash, carries no xxHash code and produces different digests, but it follows the ground xxHash broke: that a short input deserves a different shape from a long one, and that a multiply, a fold and a strong final avalanche are enough.
+* xxHash by Yann Collet (@Cyan4973). paw64, hashcat's 64-bit identity hash, contains no xxHash code and produces different digests. It follows the design principles established by xxHash: short and long inputs benefit from different processing, while multiplication, folding and a strong final avalanche provide sufficient mixing.
 
-# Furthermore the following persons helped the project:
+# The following people also helped the project:
 
 Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)
 
-* For the first person presenting hashcat in his talks and tutorials to a larger audience
-* For pushing hashcat to Kali
+* First to present hashcat to a wider audience through talks and tutorials
+* Helped bring hashcat to Kali
 
 Per Thorsheim <per@thorsheim.net> (@thorsheim)
 
-* For running the "PasswordsCon" conference, first of its kind
-* For convincing me to speak publicly about my work
+* Organized PasswordsCon, the first conference of its kind
+* Encouraged public presentations about the project
 
 Rick "Minga" Redman and KoreLogic <mingakore@gmail.com> (@CrackMeIfYouCan)
 
-* For running the "Crack Me If You Can" password cracking contest, first of its kind
-* For pushing password cracking techniques forward
+* Organized Crack Me If You Can, the first password-cracking contest of its kind
+* Advanced password-cracking techniques
 
 Brandon Chalk <brandon@casaba.com> (@brandoncasaba)
 * Kerberos Pre-Auth 17/18 kernel module, ported from @Fist0urs TGS kernel modules
@@ -114,7 +114,7 @@ Costin Enache <costin@detack.de>
 Shooter3k
 * Multibyte characters written directly in rule operands, and UTF-8 console output on Windows
 * Narrowing the potfile search and batching the cracked result writes
-* A breakdown of where a run's wall clock goes, and the pipeline instrument as an option
+* An optional breakdown of where a run's wall-clock time is spent
 * Long-standing bugfix ideas in rule file loading, --show and --left, --loopback, and checkpointing
 * Rules applied to the fully assembled candidate in the mask and hybrid attack modes
 * Moving a running attack through its keyspace, and extending its deadline, from the status screen

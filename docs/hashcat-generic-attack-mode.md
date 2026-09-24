@@ -1,11 +1,11 @@
 
-# Introducing Attack-Mode 8: Generic Password Candidate Generator Mode
+# Attack mode 8: Generic password candidate generator
 
-Attack-Mode 8 is a generic interface that allows hashcat users to customize the password candidate input channel with their own code, most often to implement custom password generator logic.
+Attack mode 8 is a generic interface for supplying password candidates from custom code. Its plugins, called feeds, most often implement custom candidate generators.
 
-Hashcat includes several embedded attack modes: 0, 1, 3, 4, 5, 6, 7, 9, and 12. Each attack mode represents a specific password candidate generator implementation. These embedded generators were designed primarily to run efficiently on GPUs. For example, they can read a wordlist and apply rules, generate a virtual wordlist from a mask, or combine both. The purpose of these generators is that they support a multiplier logic. Multiplier logic helps work around the PCIe bottleneck and ensures maximum performance when attacking very fast hashes.
+hashcat includes several built-in attack modes: 0, 1, 3, 4, 5, 6, 7, 9 and 12. Each mode implements a particular candidate generator, such as reading a wordlist and applying rules, generating candidates from a mask or combining both. Most are designed to amplify a smaller amount of host data on the compute device. This reduces PCIe transfers and keeps fast hash modes supplied with candidates.
 
-For slow hashes, however, overcoming the PCIe bottleneck is less important, and other features become more useful. Their focus is usually not on multiplier logic but on candidate quality, and therefore they can be considered "advanced" generators. In our terminology, any generator that does not fit into the existing multiplier logic is defined as an "advanced" password generator.
+For slow hashes, the PCIe bottleneck matters less than candidate quality and generator flexibility. Attack mode 8 accommodates generators that do not fit the amplification model of the built-in attacks.
 
 Examples of advanced generators include:
 
@@ -19,13 +19,13 @@ Examples of advanced generators include:
 
 ## 1. Usage
 
-When starting an attack-mode 8 session, the user must specify a plugin as the first parameter. This is by design to provide flexibility. Attack-mode 8 itself does not assign numbers to specific generators but instead lets the user name a plugin. This makes it possible to have an unlimited number of plugins, including custom plugins that are not part of hashcat's base package.
+An attack mode 8 command names the feed as its first positional argument. Individual generators do not need their own attack-mode numbers, so hashcat can load any number of bundled or third-party feeds.
 
 A feed that ships with hashcat can also be given an attack-mode number of its own. The PCFG feed has one: `-a 4 hashes.txt ruleset` is rewritten into `-a 8 hashes.txt pcfg ruleset` before anything downstream reads it, so the two spellings are the same attack. The table feed has `-a 5`, which was the number hashcat-legacy used for the same attack. See `hashcat-pcfg.md` and `hashcat-table.md` for those attacks, and the section on aliases in `hashcat-generic-attack-mode-development-guide.md` for how a feed gets a number.
 
-Since there are now multiple plugin types in hashcat, we need naming to distinguish them. Password generator plugins are called `feeds`, and the feeds we provide can be found in the "feeds" folder.
+hashcat uses the term *feed* to distinguish candidate-generator plugins from its other plugin types. Bundled feeds are in the `feeds` directory.
 
-Typically, a feed requires parameters, which hashcat passes from the command line. The shipped wordlist feed is also the implementation used by ordinary `-a 0`. With that shorter form, the user specifies a wordlist directly:
+A feed can accept additional positional arguments from the command line. The shipped wordlist feed is also the implementation used by ordinary `-a 0`. With that shorter form, the user specifies a wordlist directly:
 
 ```
 ./hashcat -m 0 example0.hash -a 0 example.dict
@@ -37,13 +37,13 @@ The explicit attack-mode 8 form names the feed first and passes the remaining po
 ./hashcat -m 0 example0.hash -a 8 wordlist example.dict
 ```
 
-A feed is named, not pathed, the same way `-m 0` names a module. Hashcat looks under the `feeds/` folder of its shared directory and tries `feed_<name>`, then `rust_<name>`, then `<name>`. If none of those exist, the name is used as a path, so a feed you built yourself somewhere else still works:
+A feed is normally selected by name, much like `-m 0` selects a module. hashcat looks under the `feeds/` folder of its shared directory and tries `feed_<name>`, then `rust_<name>`, then `<name>`. If none of those exist, the name is used as a path, so a feed you built yourself somewhere else still works:
 
 ```
 ./hashcat -m 0 example0.hash -a 8 /tmp/myfeed.so example.dict
 ```
 
-In this example, the feed handles the next parameters `example.dict`. What it does with these parameters depends entirely on the feed design. In this case, the feed opens and reads the wordlist. Another feed could instead connect to a network socket and accept an IP address, for example.
+In this example, the feed receives `example.dict` as an argument and opens it as a wordlist. Each feed defines the meaning of its own arguments. A network feed, for example, could accept an IP address instead.
 
 The wordlist feed takes as many wordlists and directories as you give it, and lays them end to end into a single keyspace:
 
@@ -55,25 +55,25 @@ A directory contributes the files directly inside it, in name order. Because thi
 
 The status display names the feed on the `Guess.Base` line. A feed may name what it is generating from rather than itself, so the wordlist feed shows `Guess.Base.......: Feed (example.dict)`.
 
-Keep in mind that hashcat always parses the full command line first. All options are interpreted by hashcat's getopt process, and only the `loose parameters` are forwarded to the feed.
+hashcat parses the complete command line before loading the feed. It handles every recognized option itself and forwards only the remaining positional arguments to the feed.
 
 ## 2. Main Features
 
 ### 2.1. Parallelization
 
-We debated how useful such an interface is, given that hashcat already provides a generic `STDIN` interface for connecting custom generators. However, there are several reasons why STDIN is good but not optimal.
+Standard input already provides a generic connection to an external candidate generator, but it cannot offer every capability of an in-process feed.
 
-Standard input is one sequential stream. Hashcat now uses one reader thread to fill large blocks and lets device threads drain different blocks in parallel, so the old per-line mutex bottleneck is gone. The stream still cannot be counted or independently seeked, however: a position has meaning only if the same input is supplied again in the same order.
+Standard input is one sequential stream. hashcat now uses one reader thread to fill large blocks and lets device threads drain different blocks in parallel, so the old per-line mutex bottleneck is gone. The stream still cannot be counted or positioned independently, however: a position has meaning only if the same input is supplied again in the same order.
 
 A purpose-built feed can do more. A wordlist feed, for example, opens independent file handles and seeks each device directly to its assigned range. A generator can also keep separate state per device or connect each device thread to its own data source. This is where attack mode 8 gains scalability beyond what a single stream can provide.
 
 ### 2.2. Integration into hashcat
 
-Shipping a candidate generator with hashcat simplifies integration with third-party overlays. For example, when using Hashtopolis, distributing a separate executable to agents adds work beyond distributing the hashcat package. A bundled feed remains part of that package and runs inside the hashcat process.
+Bundling a candidate generator with hashcat simplifies integration with third-party orchestration systems. For example, when using Hashtopolis, distributing a separate executable to agents adds work beyond distributing the hashcat package. A bundled feed remains part of that package and runs inside the hashcat process.
 
-Only one program needs to run, and no pipe is required between two processes. There is no need to monitor two programs or handle unexpected shutdowns.
+Only one process needs to run, with no pipe or separate generator process to monitor.
 
-Special flags such as `--skip` (-s), `--limit` (-l), `--keyspace`, `--total-candidates`, `--progress-only`, and `--speed-only` also become accessible and standardized.
+Feeds can also provide consistent support for options such as `--skip` (`-s`), `--limit` (`-l`), `--keyspace`, `--total-candidates`, `--progress-only` and `--speed-only`.
 
 ## 3. Optional Features
 
@@ -81,7 +81,7 @@ Special flags such as `--skip` (-s), `--limit` (-l), `--keyspace`, `--total-cand
 
 A feed may return an exact keyspace or report that it is unknown. An unknown keyspace is useful for streams and open-ended generators, but it prevents an exact progress denominator and ETA and makes range scheduling less direct. The stdin and random sample feeds both use this form.
 
-A feed with a countable source should report its keyspace. Hashcat can then divide ranges among devices and apply `--skip` and `--limit` precisely. Efficient restore also depends on how directly `thread_seek()` can reach the requested offset.
+A feed with a countable source should report its keyspace. hashcat can then divide ranges among devices and apply `--skip` and `--limit` precisely. Efficient restore also depends on how directly `thread_seek()` can reach the requested offset.
 
 ### 3.2. Wordlist modifiers
 
@@ -101,9 +101,9 @@ Attack mode 8 gives every feed a `thread_seek()` entry point, but direct random 
 
 ## 4. Interface Design
 
-The strength of this feature lies in the simplicity of its interface. We designed it to be simple to encourage users to implement their own custom feeds.
+The interface is intentionally small so that custom feeds require little integration code.
 
-Hashcat provides feed skeletons in C and Rust. The interface is a small shared-library ABI, so another language can be used if it can export the same C-compatible symbols and data layouts.
+hashcat provides feed skeletons in C and Rust. The interface is a small shared-library ABI, so another language can be used if it can export the same C-compatible symbols and data layouts.
 
 See `hashcat-generic-attack-mode-development-guide.md` for the complete interface and both skeletons.
 
@@ -117,9 +117,9 @@ Standard input uses its own stdin feed. Per-round sources such as induction and 
 
 ## 6. Amplifiers
 
-One final note. Attack-mode 8 reuses attack-mode 0 kernels. That means you can optionally add `-r` rules, including stacked rules, exactly as in -a 0 mode.
+Attack mode 8 reuses the attack mode 0 kernels, so rules can be added with `-r` and stacked exactly as they can in attack mode 0.
 
 A feed may instead provide data for a device-side amplifier. The PCFG and table feeds do this. On a fast hash, hashcat passes the feed's base candidate and amplification cell to the mode's `OpenCL/mNNNNN_a4-pure.cl` or `_a4-optimized.cl` kernel, which creates the expanded candidates in device memory. Adding `-r` is still allowed, but it selects the feed's host generator and the attack-mode 0 kernel instead. See `hashcat-pcfg.md` and `hashcat-table.md` for the two attacks.
 
-This also makes the mode useful for `fast hashes` and allows very high speeds. Ideally a feed is designed so that it is aware that users can add rules and returns candidates with this in mind. Even better, the feed developer may publish a feed with a matching ruleset, but this is not required.
+Device-side amplification also makes feeds practical for fast hashes. Feed authors should account for the fact that users can apply additional rules, and may provide a matching ruleset when useful.
 
