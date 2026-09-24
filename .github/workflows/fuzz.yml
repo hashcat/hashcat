@@ -7,10 +7,12 @@
 ##
 ## When it runs, and for how long:
 ##
-##   pull request   the parser of every mode the pull request changes, and the
+##   pull request   replays the saved corpus and the seeds, once each, for the
+##                  parser of every mode the pull request changes, and for the
 ##                  rule and tokenizer targets plus a starting set of four
-##                  parsers when it changes host code they link. 120 seconds a
-##                  target, at most 20 modes.
+##                  parsers when it changes host code they link, at most 20
+##                  modes. It generates no new inputs, so a rerun gives the same
+##                  answer; exploring is left to the weekly and manual runs.
 ##
 ##   weekly         every mode, in 16 shards, 60 seconds a target, and only if
 ##                  master has had a commit in the last seven days.
@@ -144,8 +146,13 @@ jobs:
         run: |
           mkdir -p corpus crashes
 
+          # A pull request replays what is there and does not explore: a gate
+          # that generates inputs can answer differently on a rerun.
+
+          replay=false
+
           case "$EVENT" in
-            pull_request)      duration=120 ;;
+            pull_request)      replay=true; duration=0 ;;
             workflow_dispatch) duration=${SECONDS_INPUT} ;;
             *)                 duration=60 ;;
           esac
@@ -167,7 +174,11 @@ jobs:
           for target in $targets; do
             mkdir -p "corpus/${target}" "crashes/${target}"
 
-            echo "::group::${target}, ${duration}s, corpus holds $(find "corpus/${target}" -type f | wc -l) inputs"
+            if [ "$replay" = "true" ]; then
+              echo "::group::${target}, replay, corpus holds $(find "corpus/${target}" -type f | wc -l) inputs"
+            else
+              echo "::group::${target}, ${duration}s, corpus holds $(find "corpus/${target}" -type f | wc -l) inputs"
+            fi
 
             # every parser target shares one dictionary, so the name is cut at
             # the first underscore: parse_17225 reads fuzz_parse.dict
@@ -176,6 +187,26 @@ jobs:
             # than leaving the rest idle, and a finding still stops the target
             # and still lands in crashes/, because -ignore_crashes stays off.
             # One target that finds something does not stop the next one.
+
+            if [ "$replay" = "true" ]; then
+              # -runs=0 executes every input of the corpus and the seeds once
+              # and mutates none, so the answer is the same on every rerun.
+
+              if ! ./fuzz_out/fuzz_${target} \
+                     "corpus/${target}" \
+                     "fuzz_out/work/seeds/${target}" \
+                     -artifact_prefix="crashes/${target}/" \
+                     -runs=0 \
+                     -timeout=25 \
+                     -print_final_stats=1 2>&1 | tee "fuzz_${target}.log"; then
+                failed="$failed ${target}"
+                reports="${reports}$(python3 .github/workflows/fuzz_report.py "${target}" "fuzz_${target}.log" "crashes/${target}")"$'\n'
+              fi
+
+              echo "::endgroup::"
+
+              continue
+            fi
 
             if ! ./fuzz_out/fuzz_${target} \
                    "corpus/${target}" \
