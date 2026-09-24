@@ -6,8 +6,6 @@
 # CFLAGS, LIB_FUZZING_ENGINE, OUT and WORK, and whatever it sets has to be used
 # verbatim, because that is how it selects the engine and the sanitizer. Where
 # they are unset this builds a local libFuzzer plus AddressSanitizer binary.
-# OSS-Fuzz is the service this shape comes from, should the project ever want
-# these run there.
 #
 # Usage:
 #   tools/fuzz/build.sh            # from the hashcat source root

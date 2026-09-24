@@ -21,7 +21,7 @@ and hash files and rule files are both downloaded and used without review.
 
 Needs clang, because libFuzzer is a clang feature. The script builds with AddressSanitizer unless
 `CFLAGS` says otherwise, and it takes `CC`, `CFLAGS`, `LIB_FUZZING_ENGINE`, `OUT` and `WORK` from
-the environment where they are set, which is how the same script serves OSS-Fuzz.
+the environment where they are set, so the engine and the sanitizer can be swapped without editing it.
 
 One target across every core is `-fork`, which runs that many workers against one shared corpus:
 
@@ -125,8 +125,10 @@ tokenizer bounded that advance the way it already bounds a fixed length token.
 `.github/workflows/fuzz.yml` runs at three sizes, and
 [ci_matrix.py](../../.github/workflows/ci_matrix.py) picks the modes for each:
 
-* a pull request fuzzes the parser of every mode it changes, at most 20, for 120 seconds each. One
-  that changes host code the targets link also gets `rule`, `tokenizer` and the four starting modes.
+* a pull request replays the saved corpus and the seeds, once each (`-runs=0`), through the parser
+  of every mode it changes, at most 20. One that changes host code the targets link also gets
+  `rule`, `tokenizer` and the four starting modes. It generates no new inputs, so a rerun gives the
+  same answer; exploring is what the weekly and manual runs are for.
 * once a week, if master has had a commit in the last seven days, every mode in 16 shards for 60
   seconds each, so about 40 minutes a shard.
 * by hand, with the modes and the seconds a target as inputs, for a longer run before a release.
@@ -152,11 +154,3 @@ rest of the shard has run.
 #### What is not covered ####
 
 Anything past the parser: a target stops where `module_hash_decode ()` returns.
-
-If the project ever wants this run continuously rather than weekly,
-[OSS-Fuzz](https://google.github.io/oss-fuzz/getting-started/new-project-guide/) is where that
-belongs: it keeps the corpus, deduplicates crashes and bisects each finding to the commit that
-introduced it, and the build here already takes `CC`, `CFLAGS` and `LIB_FUZZING_ENGINE` from the
-environment the way its build does. It needs a maintainer's address as `primary_contact` and a
-decision about its disclosure deadline, so it is a separate conversation rather than a file in this
-directory.
