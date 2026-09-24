@@ -2426,8 +2426,8 @@ def targets_for(spec):
 
 
 def base_opts(args):
-  # --deprecated-check-disable matches test.sh's global OPTS: 2501 and 16801 are deprecated plugins
-  # that hashcat refuses to run without it, and it is a no-op for every non-deprecated mode.
+  # --deprecated-check-disable matches test.sh's global OPTS: 2500/2501/16800/16801 are deprecated
+  # plugins hashcat refuses to run without it, and it is a no-op for every non-deprecated mode.
   opts = ["--quiet", "--potfile-disable", "--logfile-disable", "--deprecated-check-disable"]
 
   if not args.pure:

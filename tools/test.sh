@@ -8,8 +8,8 @@
 OPTS="--quiet --potfile-disable --logfile-disable"
 
 # 2500/2501/16800/16801 are deprecated plugins, and hashcat aborts on a deprecated mode unless
-# this is passed. 2500/16800 are skipped below, but the PMK modes 2501 and 16801 are cracked, so
-# the crack path needs the flag too. It is a no-op for every non-deprecated mode.
+# this is passed. All four are cracked by the suite, so the crack path needs the flag. It is a
+# no-op for every non-deprecated mode.
 OPTS="${OPTS} --deprecated-check-disable"
 
 # The generated passwords can carry multi byte UTF-8, and hashcat counts a password in bytes.
