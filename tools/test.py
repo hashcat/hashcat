@@ -47,6 +47,17 @@ LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 295
 
 MULTI_ONE_HASH = {14000, 14100, 14600, 14900, 15400}
 
+# The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES,
+# line 99): no .pm and no .py oracle, so the ground truth is the module's own example hash read from
+# --hash-info. 23800 is the only member today. -S runs the same path over every mode.
+
+SELFTEST_MODES = {23800}
+
+# test.sh caps a -S sweep at --runtime 60 rather than the usual 400, since a mode that has not
+# cracked by then is not going to (test.sh:6865).
+
+SELFTEST_RUNTIME = 60
+
 # test.sh's attack order for -a all (test.sh:7362-7431). A slow mode only runs the attacks that
 # cost one candidate per word (the whole word attacks), so it gets 0, 4, 8 and 9 and nothing else,
 # even when another attack is asked for by number.
@@ -93,6 +104,13 @@ def discover_modes():
 def select_modes(spec, modes):
   # test.sh's -m rules: a single value must be a member, a range must intersect the set and may
   # span gaps, "all" is every member.
+
+  # A SELFTEST_MODES member has no .py oracle but is still selectable, because test.sh runs its
+  # self-test vector in a normal run (test.sh:7341). Fold it into the set so a single -m 23800, a
+  # range that spans it, and "all" all accept it; the main loop then picks the self-test path for a
+  # mode that has no .py.
+
+  modes = sorted(set(modes) | SELFTEST_MODES)
 
   if spec == "all":
     return modes
@@ -2001,6 +2019,395 @@ ATTACKS = {
 }
 
 
+# The self-test vector path (test.sh selftest_vector_read / selftest_vector_test /
+# selftest_vector_sweep, plus the build_container_cmd and container_run_and_report parts they reach).
+# It cracks a mode's own example hash, read out of the binary, so it needs no oracle and reaches a
+# mode that has neither a .pm nor a .py. Every value here stays bytes until it is written to a file
+# or handed to hashcat.
+
+
+def sed_capture(info, pattern):
+  # Mirror sed -n 's/.*<pattern>.*/\1/p' applied line by line, which is how selftest_vector_read
+  # pulls a value out of the --machine-readable JSON (test.sh:6303-6305). The wrapping .* are greedy,
+  # so the value is anchored on the key that follows it; only the one JSON line matches here.
+
+  rx = re.compile(b".*" + pattern + b".*")
+
+  out = []
+
+  for line in info.split(b"\n"):
+    m = rx.fullmatch(line)
+
+    if m is not None:
+      out.append(m.group(1))
+
+  return b"\n".join(out)
+
+
+def selftest_vector_read(mode):
+  # test.sh selftest_vector_read (test.sh:6274): read a mode's self-test vector out of hashcat with
+  # --hash-info --machine-readable. The machine-readable form is the trustworthy one, since the
+  # human-readable Example.Hash line is truncated past 200 characters. Returns
+  # (hash, pass, format, deprecated) as bytes/str/bool, or None when the mode has no usable vector.
+
+  proc = subprocess.run([BIN, "-m", str(mode), "--hash-info", "--machine-readable"],
+                        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+  info = proc.stdout
+
+  if info == b"":
+    return None
+
+  vhash = sed_capture(info, rb'"example_hash": "(.*)", "example_pass"')
+  vpass = sed_capture(info, rb'"example_pass": "(.*)", "benchmark_mask"')
+  vfmt  = sed_capture(info, rb'"example_hash_format": "([^"]*)"')
+
+  # json_encode() escapes a backslash and a double quote, so undo that, in the same order test.sh
+  # does: '\"' back to '"' first, then '\\' back to '\' (test.sh:6308).
+
+  vhash = vhash.replace(b'\\"', b'"').replace(b"\\\\", b"\\")
+
+  deprecated = b'"is_deprecated": true' in info
+
+  if vhash == b"" or vpass == b"":
+    return None
+
+  return (vhash, vpass, vfmt.decode("ascii", "replace"), deprecated)
+
+
+def selftest_write_hash(mode, vhash, vfmt, path):
+  # test.sh selftest_vector_test's hash-file write (test.sh:6344-6361). A binary-file mode is handed
+  # its vector hex encoded, so it is decoded back to raw bytes; "N/A" has no hash to crack; every
+  # other format is already the literal hash line. Returns True when a file was written.
+
+  if "binary file only" in vfmt:
+    with open(path, "wb") as fh:
+      fh.write(bytes.fromhex(vhash.decode("ascii")))
+
+    return True
+
+  if vfmt == "N/A":
+    return False
+
+  with open(path, "wb") as fh:
+    fh.write(vhash + b"\n")
+
+  return True
+
+
+def container_mask_from_password(pw, where):
+  # test.sh container_mask_from_password (test.sh:3890): the password with one digit given up as a
+  # '?d', so the run has ten candidates rather than being handed the answer, every other byte staying
+  # literal. 'first' or 'last' picks which digit; no digit means nothing to search, so hand the
+  # password back as a literal mask.
+
+  n = len(pw)
+
+  order = range(0, n) if where == "first" else range(n - 1, -1, -1)
+
+  for i in order:
+    if b"0" <= pw[i:i + 1] <= b"9":
+      return pw[:i] + b"?d" + pw[i + 1:]
+
+  return pw
+
+
+def build_container_extra(mode, attack, vpass, tmp):
+  # test.sh build_container_cmd (test.sh:5628), the branches the self-test path reaches. It returns
+  # the argv that follows the hash for run_hashcat: a wordlist for -a 0, two dicts for -a 1, a mask
+  # for -a 3, dict then mask for -a 6, mask then dict for -a 7. None for an attack it does not build.
+
+  dict1 = os.path.join(tmp, "%d_cont_dict1" % mode)
+  dict2 = os.path.join(tmp, "%d_cont_dict2" % mode)
+
+  plen = len(vpass)
+
+  if attack == 0:
+    with open(dict1, "wb") as fh:
+      fh.write(vpass + b"\n")
+
+    return [dict1]
+
+  if attack == 1:
+    split = utf8_split_point(vpass, plen // 2)
+
+    with open(dict1, "wb") as fh:
+      fh.write(vpass[:split] + b"\n")
+
+    with open(dict2, "wb") as fh:
+      fh.write(vpass[split:] + b"\n")
+
+    return [dict1, dict2]
+
+  if attack == 3:
+    return [container_mask_from_password(vpass, "last")]
+
+  if attack == 6:
+    split = utf8_split_point(vpass, plen - 1)
+
+    with open(dict1, "wb") as fh:
+      fh.write(vpass[:split] + b"\n")
+
+    return [dict1, container_mask_from_password(vpass[split:], "last")]
+
+  if attack == 7:
+    split = utf8_split_point(vpass, 1)
+
+    if split <= 0:
+      split = 1
+
+    with open(dict1, "wb") as fh:
+      fh.write(vpass[split:] + b"\n")
+
+    return [container_mask_from_password(vpass[:split], "first"), dict1]
+
+  return None
+
+
+def selftest_status(rc):
+  # test.sh status() as container_run_and_report calls it (test.sh:885, 5608): bucket the raw hashcat
+  # exit code. Unlike the oracle attacks there is no cracked-but-not-matched rewrite, because the
+  # self-test path checks the exit code alone, not the output.
+
+  e = {"ce": 0, "rs": 0, "to": 0, "nf": 0, "nm": 0}
+
+  if rc == 0:
+    return e
+
+  if rc == 246 or rc == 30 or rc in (248, 249, 250, 251, 252, 253):
+    e["rs"] += 1
+  elif rc == 1:
+    e["nf"] += 1
+  elif rc == 4:
+    e["to"] += 1
+  elif rc == 10:
+    e["nm"] += 1
+  elif rc == 20:
+    e["ce"] += 1
+    e["nm"] += 1
+  else:
+    e["nf"] += 1
+
+  return e
+
+
+def selftest_verdict(e):
+  # test.sh container_run_and_report's message (test.sh:5612), with cnt fixed at 1.
+
+  if e["ce"]:
+    return "Compare Error"
+
+  if e["rs"]:
+    return "Skip"
+
+  if e["nf"] or e["nm"]:
+    return "Error"
+
+  if e["to"]:
+    return "Warning"
+
+  return "OK"
+
+
+def selftest_context(args, mode, attack, width_label):
+  # Like context() but for the self-test line: it always says single, carries the width as a label so
+  # the sweep can pass "default", and ends with the ", self-test vector" tag container_run_and_report
+  # adds (test.sh:5623).
+
+  return ("[ test.py ] [ Type %d, Attack %d, Mode single, Device-Type %s, Kernel-Type %s, "
+          "Vector-Width %s, self-test vector ]"
+          % (mode, attack, DEVICE_LABEL.get(args.device, args.device),
+             "Pure" if args.pure else "Optimized", width_label))
+
+
+def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
+  # test.sh selftest_vector_test (test.sh:6321): crack a mode's own example hash. Returns the output
+  # lines (a Skip, an Error, or the one report line) so the caller can print them and, for the sweep,
+  # read the verdict back. attack 65535 means -a all, which this path runs as a single -a 0 run.
+
+  if attack == 65535:
+    attack = 0
+
+  lines = []
+
+  vector = selftest_vector_read(mode)
+
+  if vector is None:
+    lines.append("[ test.py ] [ Type %d ] > Skip : no self-test vector published by --hash-info"
+                 % mode)
+
+    return lines
+
+  vhash, vpass, vfmt, deprecated = vector
+
+  hash_file = os.path.join(tmp, "%d_selftest.hash" % mode)
+
+  if vfmt == "N/A":
+    lines.append("[ test.py ] [ Type %d ] > Skip : mode has no example hash to crack" % mode)
+
+    return lines
+
+  selftest_write_hash(mode, vhash, vfmt, hash_file)
+
+  if not os.path.isfile(hash_file) or os.path.getsize(hash_file) == 0:
+    lines.append("[ test.py ] [ Type %d ] > Error : could not write the self-test vector to %s"
+                 % (mode, hash_file))
+
+    return lines
+
+  extra = build_container_extra(mode, attack, vpass, tmp)
+
+  if extra is None:
+    return lines
+
+  if deprecated:
+    # A deprecated mode is refused without this (test.sh:6374).
+    extra = extra + ["--deprecated-check-disable"]
+
+  # The startup self test would re-derive the same vector on every launch, so skip it and let the
+  # run itself be the test (test.sh:6380).
+
+  extra = extra + ["--self-test-disable"]
+
+  rc, _ = run_hashcat(opts, mode, hash_file, None, attack=attack, extra=extra)
+
+  e   = selftest_status(rc)
+  msg = selftest_verdict(e)
+
+  lines.append("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
+               % (selftest_context(args, mode, attack, width_label),
+                  msg, e["nf"], e["nm"], e["to"], e["rs"]))
+
+  return lines
+
+
+def run_selftest_normal(args, mode, widths, tmp):
+  # test.sh normal run (test.sh:7341): a slow SELFTEST_MODES member cracks its own example hash once
+  # per vector width, with the requested attack (-a all becomes -a 0 inside selftest_vector_test).
+
+  attack = 65535 if args.attack == "all" else int(args.attack)
+
+  for width in widths:
+    opts = base_opts(args) + ["--backend-vector-width", str(width)]
+
+    for line in selftest_vector_test(args, opts, mode, attack, str(width), tmp):
+      print(line)
+
+
+def selftest_opts(args):
+  # test.sh -S run options: the base options with --runtime 60 and no --backend-vector-width, since
+  # the sweep leaves VECTOR at "default" (test.sh:6865, 6869).
+
+  opts = ["--quiet", "--potfile-disable", "--logfile-disable"]
+
+  if not args.pure:
+    opts.append("-O")
+
+  opts += ["--runtime", str(SELFTEST_RUNTIME), "-D", args.device]
+
+  if args.force:
+    opts.append("--force")
+
+  return opts
+
+
+def sweep_range(spec):
+  # test.sh's -S range: "all" walks every mode hashcat reports, a single value or a range narrows it
+  # (test.sh:6410-6414). Returns (lo, hi, all_modes).
+
+  if spec == "all":
+    return (0, 0, True)
+
+  if re.fullmatch(r"[0-9]+", spec):
+    v = int(spec)
+
+    return (v, v, False)
+
+  m = re.fullmatch(r"([0-9]+)-([0-9]+)", spec)
+
+  if m is None:
+    die("! invalid hash type selected: %s" % spec)
+
+  lo, hi = int(m.group(1)), int(m.group(2))
+
+  if lo > hi:
+    die("! invalid hash type range: %d-%d" % (lo, hi))
+
+  return (lo, hi, False)
+
+
+def selftest_vector_sweep(args):
+  # test.sh selftest_vector_sweep (test.sh:6385): crack every hash-mode's own example hash, or the
+  # ones in the -m range, and print one line per mode that did not crack. Returns the exit code.
+
+  proc = subprocess.run([BIN, "--hash-info"], cwd=ROOT,
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+  sweep_modes = []
+
+  for line in proc.stdout.split(b"\n"):
+    m = re.fullmatch(rb"Hash mode #([0-9]+)", line)
+
+    if m is not None:
+      sweep_modes.append(int(m.group(1)))
+
+  if not sweep_modes:
+    print("! could not read the hash-mode list from %s --hash-info" % BIN)
+
+    return 1
+
+  lo, hi, all_modes = sweep_range(args.mode)
+
+  opts = selftest_opts(args)
+
+  sweep_total = 0
+  sweep_ok    = 0
+  sweep_bad   = ""
+  sweep_slow  = ""
+
+  print("[ test.py ] > Cracking every hash-mode's own self-test vector")
+
+  with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
+    for sweep_mode in sweep_modes:
+      if not all_modes and (sweep_mode < lo or sweep_mode > hi):
+        continue
+
+      sweep_total += 1
+
+      out_lines = selftest_vector_test(args, opts, sweep_mode, 0, "default", tmp)
+
+      for line in out_lines:
+        print(line)
+
+      text = "\n".join(out_lines)
+
+      # test.sh buckets on the captured output. Its SKIPPED_LIST check for a skipped mode always
+      # falls through to "did not crack", because selftest_vector_test runs in a $(...) subshell and
+      # its record_skip never reaches the parent's list (test.sh:6418-6432). So anything that is not
+      # OK or Warning, a skip included, is counted as not cracked, and print_skip_summary at the end
+      # of the sweep prints nothing.
+
+      if "> OK :" in text:
+        sweep_ok += 1
+      elif "> Warning :" in text:
+        sweep_slow += "%d " % sweep_mode
+      else:
+        sweep_bad += "%d " % sweep_mode
+
+  print("")
+  print("[ test.py ] > %d/%d hash-modes cracked their own self-test vector"
+        % (sweep_ok, sweep_total))
+
+  if sweep_slow:
+    print("[ test.py ] > hit --runtime %d, rerun those with -r: %s"
+          % (SELFTEST_RUNTIME, sweep_slow))
+
+  if sweep_bad:
+    print("[ test.py ] > did not crack: %s" % sweep_bad)
+
+  return 1 if sweep_bad else 0
+
+
 def widths_for(spec):
   if spec in ("default", "all"):
     return [1, 4]
@@ -2045,17 +2452,25 @@ def main():
   ap.add_argument("-P", dest="pure", action="store_true", help="pure kernels")
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
+  ap.add_argument("-S", dest="selftest_all", action="store_true",
+                  help="crack every mode's own self-test vector (the -m range, or all modes)")
 
   args = ap.parse_args()
+
+  if not os.path.isfile(BIN):
+    die("! no hashcat binary at %s, build it first" % BIN)
+
+  # -S runs on its own: it walks every hash-mode hashcat reports rather than the .py oracle set, so
+  # it reaches the modes that have no oracle, and it needs no oracle engine (test.sh:6956).
+
+  if args.selftest_all:
+    sys.exit(selftest_vector_sweep(args))
 
   if args.attack != "all" and (not args.attack.isdigit() or int(args.attack) not in ATTACK_ORDER):
     die("! invalid attack mode: %s" % args.attack)
 
   if args.attack != "all" and int(args.attack) not in ATTACKS:
     die("! -a %s is not implemented in test.py yet, tools/test.sh still covers it" % args.attack)
-
-  if not os.path.isfile(BIN):
-    die("! no hashcat binary at %s, build it first" % BIN)
 
   # Confirm the oracle engine is here before the run: a missing script would exit 2, which is the
   # code the engine uses for "no kernel for this family", so without this a missing engine would
@@ -2065,6 +2480,7 @@ def main():
     die("! no oracle engine at %s" % RUNNER)
 
   modes    = discover_modes()
+  py_modes = set(modes)
   selected = select_modes(args.mode, modes)
   targets  = targets_for(args.target)
   widths   = widths_for(args.vector)
@@ -2074,6 +2490,16 @@ def main():
 
   with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
     for mode in selected:
+      # A SELFTEST_MODES member with no .py oracle takes the self-test vector path. test.sh runs it
+      # only for a slow mode, in the else branch of its per-width loop (test.sh:7341), so a mode
+      # that is not slow prints no line, just as test.sh does. 23800 is the only member and is slow.
+
+      if mode not in py_modes:
+        if is_slow(mode):
+          run_selftest_normal(args, mode, widths, tmp)
+
+        continue
+
       pairs = oracle_vectors(mode, not args.pure)
 
       if pairs is None:
