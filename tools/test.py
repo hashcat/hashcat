@@ -1221,6 +1221,551 @@ def attack_3(r):
     attack_3_multi(r)
 
 
+# -a 6 and -a 7 are the two hybrid attacks, a wordlist on one side and a mask on the other. Both
+# reuse the single-hash dict split from attack_1 (split_for_combinator) for their word halves and
+# the mask helpers from attack_3. Their multi-hash runs need one more thing, a fresh batch of eight
+# passwords per length split into a word file and a mask, the way test.sh init () builds
+# dict1_multi/dict2_multi (test.sh:818-880). MULTI_CACHE holds each batch so a length is asked of the
+# oracle once, not once per width and attack.
+
+MULTI_CACHE = {}
+
+
+def sed_line(lines, n):
+  # test.sh reads a dict line with 'sed -n ${n}p', which prints nothing when n is past the end of
+  # the file. Some hybrid special cases build a one line custom dict and then index it by a larger
+  # line number, so an out of range read has to come back empty rather than raise.
+
+  if 1 <= n <= len(lines):
+    return lines[n - 1]
+
+  return b""
+
+
+def hybrid_extra(items):
+  # test.sh passes the mask unquoted, so an empty mask expands to no argument at all rather than to
+  # an empty one. Drop an empty byte string here to keep the same argv the shell would build. Only
+  # the mask is ever bytes and ever empty; the dict paths are non-empty strings.
+
+  return [x for x in items if not (isinstance(x, bytes) and x == b"")]
+
+
+def multi_len_params(mode):
+  # test.sh init () multi split (test.sh:791-816). min_len shifts the split toward the tail, and a
+  # fixed_len mode draws every length slot at that one length except the slot that already matches.
+
+  min_len   = 0
+  fixed_len = 0
+
+  if mode == 2500:
+    min_len = 7
+  elif mode == 14000:
+    min_len = 7
+  elif mode == 14100:
+    min_len = 23
+  elif mode == 14900:
+    min_len = 9
+  elif mode == 15400:
+    min_len = 31
+  elif mode == 16800:
+    min_len = 7
+  elif mode == 22000:
+    min_len = 7
+  elif mode == 33500:
+    fixed_len = 5
+  elif mode == 33501:
+    min_len   = 5
+    fixed_len = 9
+  elif mode == 33502:
+    min_len   = 5
+    fixed_len = 13
+
+  return min_len, fixed_len
+
+
+def multi_pairs(mode, i, optimized):
+  # test.sh init () (test.sh:834-845): the eight passwords for length slot i, from the same oracle
+  # run_oracle uses. A fixed_len mode asks for fixed_len instead, except when the slot already is
+  # that length. Empty when the requested length is outside the mode's word range, which is what an
+  # empty _multi_${i} file is in test.sh.
+
+  min_len, fixed_len = multi_len_params(mode)
+
+  if fixed_len != 0:
+    length = i if fixed_len == i else fixed_len
+  else:
+    length = i
+
+  key = (mode, length, optimized)
+
+  if key in MULTI_CACHE:
+    return MULTI_CACHE[key]
+
+  env = dict(os.environ)
+  env["IS_OPTIMIZED"] = "1" if optimized else "0"
+
+  proc = subprocess.run([sys.executable, RUNNER, "single", str(mode), str(length)],
+                        env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+  pairs = []
+
+  if proc.returncode == 0:
+    for line in proc.stdout.splitlines():
+      m = LINE.match(line)
+
+      if m is not None:
+        pairs.append((m.group(1).rstrip(b" "), m.group(2).decode("ascii")))
+
+  MULTI_CACHE[key] = pairs
+
+  return pairs
+
+
+def build_multi_dicts(mode, i, pairs):
+  # test.sh init () (test.sh:858-876): split each length-i password into dict1_multi (head) and
+  # dict2_multi (tail) at i/2 + min_len, moved back to a UTF-8 boundary. The offset carries from one
+  # password to the next exactly as the shell loop leaves it, which only matters once a split lands
+  # inside a multi byte character.
+
+  min_len, _ = multi_len_params(mode)
+
+  p0 = i // 2 + min_len
+
+  dict1 = []
+  dict2 = []
+
+  for word, _ in pairs:
+    p0 = utf8_split_point(word, p0)
+
+    dict1.append(word[:p0])
+    dict2.append(word[p0:])
+
+  return dict1, dict2
+
+
+def write_hashes(path, pairs, mode, file_only):
+  # The hash file a multi run reads: one digest per line, or the decoded binary hashfiles
+  # concatenated for a file based mode. An empty batch gives an empty file, as test.sh's awk does.
+
+  with open(path, "wb") as fh:
+    for _, digest in pairs:
+      if file_only:
+        fh.write(decode_hashfile(mode, digest))
+      else:
+        fh.write(digest.encode("ascii") + b"\n")
+
+
+def a6_single_params(mode):
+  # test.sh attack_6 single (test.sh:2333-2359). mask_offset drives a first-line custom split that
+  # attack_6 builds but never runs, so only min and max are read here.
+
+  min_i, max_i = 1, 8
+
+  if mode == 2500:
+    max_i = 6
+  elif mode in (14000, 14100, 14900, 15400):
+    min_i, max_i = 0, 1
+  elif mode == 16800:
+    max_i = 6
+  elif mode == 22000:
+    max_i = 6
+
+  return min_i, max_i
+
+
+def attack_6_single(r):
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  min_i, max_i = a6_single_params(r.mode)
+
+  dict1_lines, dict2_lines = split_for_combinator(r.pairs, r.mode)
+
+  temp_file = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
+  dict1_a6  = os.path.join(r.tmp, "m%05d_a6_dict1" % r.mode)
+
+  for idx, (word, digest) in enumerate(r.pairs):
+    i = idx + 1
+
+    # test.sh:2393: a slow mode stops after the sixth hash.
+    if i > 6 and is_timeout(r.mode):
+      break
+
+    if i > min_i:
+      if r.file_only:
+        with open(temp_file, "wb") as fh:
+          fh.write(decode_hashfile(r.mode, digest))
+
+        target = temp_file
+      else:
+        target = digest
+
+      pass_b = word
+
+      if r.mode == 20510:
+        # PKZIP master key: hashcat is fed the key without its 6 byte prefix.
+        pass_b = pass_b[6:]
+
+      # test.sh:2433: the index is the mask length, capped one byte below the password so a mode
+      # with only short passwords still produces a case. A password that leaves no room for a word
+      # is skipped and does not count.
+
+      mask_len = i
+
+      if mask_len >= len(pass_b):
+        mask_len = len(pass_b) - 1
+
+      if mask_len < 1:
+        continue
+
+      a6_split = utf8_split_point(pass_b, len(pass_b) - mask_len)
+
+      # dict1 plus this one head word. test.sh shuffles the file here, which only reorders the
+      # candidates hashcat tries them all, so the shuffle is left out.
+
+      write_dict(dict1_a6, dict1_lines + [pass_b[:a6_split]])
+
+      mask = mask_literalize(b"?d" * (len(pass_b) - a6_split), pass_b[a6_split:])
+
+      rc, out = run_hashcat(r.opts, r.mode, target, None, attack=6,
+                            extra=hybrid_extra([dict1_a6, mask]))
+
+      # The search reconstructs the password from the unmodified single dicts at line i-1, so it
+      # carries the whole password even for 20510 whose run word was cut (test.sh:2501-2514).
+
+      line_nr = i - 1 if i > 1 else 1
+
+      search_word = sed_line(dict1_lines, line_nr) + sed_line(dict2_lines, line_nr)
+
+      matched = output_has_crack(r.mode, out, search_word, digest,
+                                 r.pass_only, r.tmp) if rc == 0 else False
+
+      classify(rc, matched, c)
+
+    if i == max_i:
+      break
+
+  report(r.args, r.mode, "single", r.width, c, attack=6)
+
+
+def a6_multi_params(mode):
+  # test.sh attack_6 multi (test.sh:2587-2615).
+
+  min_i, max_i = 1, 9
+
+  if mode == 2500:
+    max_i = 5
+  elif mode == 3000:
+    max_i = 8
+  elif mode in (7700, 7701):
+    max_i = 8
+  elif mode == 8500:
+    max_i = 8
+  elif mode == 16800:
+    max_i = 5
+  elif mode == 22000:
+    max_i = 5
+  elif mode == 33500:
+    min_i = 5
+  elif mode in (33501, 33502):
+    min_i = 8
+
+  if is_timeout(mode):
+    max_i = 5
+
+    if mode == 3200:
+      max_i = 3
+
+  return min_i, max_i
+
+
+def attack_6_multi(r):
+  if has_multi_hash(r.mode):
+    return
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  min_i, max_i = a6_multi_params(r.mode)
+  optimized    = not r.args.pure
+
+  hash_file = os.path.join(r.tmp, "m%05d_a6_hashes_multi.txt" % r.mode)
+  dict1_mp  = os.path.join(r.tmp, "m%05d_a6_dict1_multi" % r.mode)
+
+  i = 2
+
+  while i < max_i:
+    if i < min_i:
+      i += 1
+
+      continue
+
+    pairs  = multi_pairs(r.mode, i, optimized)
+    d1, d2 = build_multi_dicts(r.mode, i, pairs)
+
+    write_hashes(hash_file, pairs, r.mode, r.file_only)
+    write_dict(dict1_mp, d1)
+
+    # The eight passwords of a length share one mask over the tail dict1 does not hold, spelled by
+    # any of them since the length seeds their layout (test.sh:2653-2656).
+
+    multi_model = pairs[0][0] if pairs else b""
+    multi_head  = d1[0] if d1 else b""
+    multi_tail  = multi_model[len(multi_head):]
+
+    mask = mask_literalize(mask_dots(len(multi_tail)), multi_tail)
+
+    rc, out = run_hashcat(r.opts, r.mode, hash_file, None, attack=6,
+                          extra=hybrid_extra([dict1_mp, mask]))
+
+    matched = rc == 0
+
+    if rc == 0:
+      for j, (_, digest) in enumerate(pairs):
+        if not output_has_crack(r.mode, out, sed_line(d1, j + 1) + sed_line(d2, j + 1),
+                                digest, r.pass_only, r.tmp):
+          matched = False
+
+          break
+
+    classify(rc, matched, c)
+
+    i += 1
+
+  report(r.args, r.mode, "multi", r.width, c, attack=6)
+
+
+def attack_6(r):
+  # test.sh attack_6: the wordlist plus a mask on the right. dict1 holds the head of the password
+  # and the mask spells the tail, single hash then multi hash.
+
+  if "single" in r.targets:
+    attack_6_single(r)
+
+  if "multi" in r.targets:
+    attack_6_multi(r)
+
+
+def a7_single_params(mode):
+  # test.sh attack_7 single (test.sh:2743-2770). mask_offset drives the min == 0 custom split.
+
+  min_i, max_i, mask_offset = 1, 8, 0
+
+  if mode == 2500:
+    max_i = 5
+  elif mode == 14000:
+    min_i, max_i, mask_offset = 0, 1, 4
+  elif mode == 14100:
+    min_i, max_i, mask_offset = 0, 1, 3
+  elif mode == 14900:
+    min_i, max_i, mask_offset = 0, 1, 5
+  elif mode == 15400:
+    min_i, max_i, mask_offset = 0, 1, 3
+  elif mode == 16800:
+    max_i = 5
+  elif mode == 22000:
+    max_i = 5
+
+  return min_i, max_i, mask_offset
+
+
+def attack_7_single(r):
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  min_i, max_i, mask_offset = a7_single_params(r.mode)
+  optimized = not r.args.pure
+
+  dict1_lines, dict2_lines = split_for_combinator(r.pairs, r.mode)
+
+  temp_file  = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
+  dict2_base = os.path.join(r.tmp, "m%05d_a7_dict2" % r.mode)
+  dict2_cust = os.path.join(r.tmp, "m%05d_a7_dict2_custom" % r.mode)
+
+  write_dict(dict2_base, dict2_lines)
+
+  # The min == 0 modes build a one line custom pair from the first password, split at mask_offset
+  # (test.sh:2774-2800). The custom mask test.sh forms there is overwritten below, so only the dicts
+  # matter. test.sh's earlier mask from the length-slot files, and the 2500/16800/22000 prefix
+  # tweaks, are overwritten the same way and left out.
+
+  custom_active = (min_i == 0)
+  cust_d1       = None
+  cust_d2       = None
+
+  if custom_active:
+    first   = sed_line(dict1_lines, 1) + sed_line(dict2_lines, 1)
+    cust_d1 = [first[:mask_offset]]
+    cust_d2 = [first[mask_offset:]]
+
+    write_dict(dict2_cust, cust_d2)
+
+  for idx, (word, digest) in enumerate(r.pairs):
+    i = idx + 1
+
+    if i > min_i:
+      if r.file_only:
+        with open(temp_file, "wb") as fh:
+          fh.write(decode_hashfile(r.mode, digest))
+
+        target = temp_file
+      else:
+        target = digest
+
+      line_nr = i - 1 if i > 1 else 1
+
+      d1_lines = dict1_lines
+      d2_lines = dict2_lines
+      d2_path  = dict2_base
+      active   = custom_active
+
+      if r.mode == 20510:
+        # test.sh:2901-2927. The length-slot mask only sizes the split, then a one line custom pair
+        # is rebuilt around the 6 byte prefix the mode drops.
+        pass_full = sed_line(dict1_lines, line_nr) + sed_line(dict2_lines, line_nr)
+
+        if len(pass_full) <= 6:
+          continue
+
+        mpairs     = multi_pairs(20510, i, optimized) if "multi" in r.targets else []
+        md1, _     = build_multi_dicts(20510, i, mpairs)
+        multi_head = md1[0] if md1 else b""
+        slot_mask  = mask_literalize(mask_dots(len(multi_head)), multi_head)
+        mask_len   = len(slot_mask) // 2
+
+        cut     = pass_full[6:]
+        cust_d1 = [pass_full[:6 + mask_len]]
+        cust_d2 = [cut[mask_len:]]
+
+        write_dict(dict2_cust, cust_d2)
+
+        active = True
+
+      if active:
+        d1_lines = cust_d1
+        d2_lines = cust_d2
+        d2_path  = dict2_cust
+
+      # -a 7 is mask plus dict, dict2 holds the tail, so the mask spells the head that dict1 holds.
+      # It is built from what dict1 actually holds rather than from a fixed table, because a split
+      # moved to a character boundary changes dict1's length (test.sh:2946-2947).
+
+      dict1_line = sed_line(d1_lines, line_nr)
+      mask       = mask_literalize(mask_dots(len(dict1_line)), dict1_line)
+
+      rc, out = run_hashcat(r.opts, r.mode, target, None, attack=7,
+                            extra=hybrid_extra([mask, d2_path]))
+
+      search_word = sed_line(d1_lines, line_nr) + sed_line(d2_lines, line_nr)
+
+      matched = output_has_crack(r.mode, out, search_word, digest,
+                                 r.pass_only, r.tmp) if rc == 0 else False
+
+      classify(rc, matched, c)
+
+    if i == max_i:
+      break
+
+  report(r.args, r.mode, "single", r.width, c, attack=7)
+
+
+def a7_multi_max(mode):
+  # test.sh attack_7 multi (test.sh:3047-3082). 33500 sets a min the loop never reads, so only max
+  # is carried here.
+
+  max_i = 9
+
+  if mode == 2500:
+    max_i = 5
+  elif mode == 3000:
+    max_i = 8
+  elif mode in (7700, 7701):
+    max_i = 8
+  elif mode == 8500:
+    max_i = 8
+  elif mode in (14000, 14100, 14900, 15400, 16800, 22000):
+    max_i = 5
+  elif mode in (33501, 33502):
+    max_i = 3
+
+  if is_timeout(mode):
+    max_i = 7
+
+    if mode == 3200:
+      max_i = 4
+
+  return max_i
+
+
+def attack_7_multi(r):
+  if has_multi_hash(r.mode):
+    return
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  max_i     = a7_multi_max(r.mode)
+  optimized = not r.args.pure
+
+  hash_file  = os.path.join(r.tmp, "m%05d_a7_hashes_multi.txt" % r.mode)
+  dict2_mp   = os.path.join(r.tmp, "m%05d_a7_dict2_multi" % r.mode)
+  dict2_long = os.path.join(r.tmp, "m%05d_a7_dict2_multi_longer" % r.mode)
+
+  i = 2
+
+  while i < max_i:
+    pairs  = multi_pairs(r.mode, i, optimized)
+    d1, d2 = build_multi_dicts(r.mode, i, pairs)
+
+    # The mask spells the head dict2 does not hold. 40001 and 40002 read it from a table instead,
+    # but neither has a python oracle so neither is reached here (test.sh:3098-3104).
+
+    multi_head = d1[0] if d1 else b""
+    mask       = mask_literalize(mask_dots(len(multi_head)), multi_head)
+
+    write_hashes(hash_file, pairs, r.mode, r.file_only)
+
+    if r.file_only:
+      # test.sh:3125-3145: a file based mode keeps the mask short by moving the rest of each
+      # password into a dict of its own, since a mode like WPA has a minimum length of 8.
+      mask_len   = len(mask) // 2
+      long_lines = [(d1[j] + d2[j])[mask_len:] for j in range(len(pairs))]
+
+      write_dict(dict2_long, long_lines)
+
+      dict_file = dict2_long
+    else:
+      write_dict(dict2_mp, d2)
+
+      dict_file = dict2_mp
+
+    rc, out = run_hashcat(r.opts, r.mode, hash_file, None, attack=7,
+                          extra=hybrid_extra([mask, dict_file]))
+
+    matched = rc == 0
+
+    if rc == 0:
+      for j, (_, digest) in enumerate(pairs):
+        if not output_has_crack(r.mode, out, sed_line(d1, j + 1) + sed_line(d2, j + 1),
+                                digest, r.pass_only, r.tmp):
+          matched = False
+
+          break
+
+    classify(rc, matched, c)
+
+    i += 1
+
+  report(r.args, r.mode, "multi", r.width, c, attack=7)
+
+
+def attack_7(r):
+  # test.sh attack_7: a mask on the left plus the wordlist. The mask spells the head of the password
+  # and dict2 holds the tail, single hash then multi hash.
+
+  if "single" in r.targets:
+    attack_7_single(r)
+
+  if "multi" in r.targets:
+    attack_7_multi(r)
+
+
 # One function per attack mode, each printing test.sh's summary lines for that attack. An attack
 # that is not here yet is reported once on stderr and left to test.sh.
 
@@ -1229,6 +1774,8 @@ ATTACKS = {
   1: attack_1,
   3: attack_3,
   4: attack_4,
+  6: attack_6,
+  7: attack_7,
   8: attack_8,
   9: attack_9,
 }
