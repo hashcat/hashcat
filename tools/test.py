@@ -1766,6 +1766,225 @@ def attack_7(r):
     attack_7_multi(r)
 
 
+# -a 12 is both hybrids and more: the mask says where the dict word goes rather than the attack mode
+# saying it, so one password is tried with the word in front of the mask, behind it, between two mask
+# pieces, and with a ?w?q pair pulling a second word in behind the first. Its dicts are the single
+# dict1 (split_for_combinator) with the run word appended, and its masks reuse the attack_3 helpers.
+# The multi path builds the same length-slot dicts attack_6 and attack_7 do, so it reuses
+# a6_multi_params, multi_pairs and build_multi_dicts.
+
+# The modes attack_12 reports Skip for outright: a mode that accepts one candidate length only has
+# nothing for a mask on both sides of the word to vary, and 20510 reports a plaintext that is not the
+# candidate it was given. attack_6 and attack_7 already cover these (test.sh:3261-3263, 3515-3517).
+
+A12_SKIP = {14000, 14100, 14900, 15400, 20510}
+
+
+def a12_single_max(mode):
+  # test.sh attack_12 single (test.sh:3244-3253): the highest 1-based hash index a single run covers.
+
+  if mode in (2500, 16800, 22000):
+    return 6
+
+  return 8
+
+
+def report_skip_counts(r, target_name):
+  # test.sh attack_12 forces the summary to Skip for an A12_SKIP mode while still printing the zeroed
+  # counts line, not the reason form report_skip uses (test.sh:3460-3464, 3634-3638). The loop breaks
+  # before any candidate runs, so every count is zero.
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  print("%s > Skip : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped"
+        % (context(r.args, r.mode, target_name, r.width, 12),
+           c["nf"], c["cnt"], c["nm"], c["cnt"], c["to"], c["cnt"], c["rs"], c["cnt"]))
+
+
+def attack_12_single(r):
+  if r.mode in A12_SKIP:
+    report_skip_counts(r, "single")
+
+    return
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  max_i = a12_single_max(r.mode)
+
+  dict1_lines, dict2_lines = split_for_combinator(r.pairs, r.mode)
+
+  temp_file = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
+  dict1_a12 = os.path.join(r.tmp, "m%05d_a12_dict1" % r.mode)
+  dict2_a12 = os.path.join(r.tmp, "m%05d_a12_dict2" % r.mode)
+
+  for idx, (word, digest) in enumerate(r.pairs):
+    i = idx + 1
+
+    # test.sh:3271: a slow mode stops after the sixth hash.
+    if i > 6 and is_timeout(r.mode):
+      break
+
+    if i > 1:
+      if r.file_only:
+        with open(temp_file, "wb") as fh:
+          fh.write(decode_hashfile(r.mode, digest))
+
+        target = temp_file
+      else:
+        target = digest
+
+      pass_len = len(word)
+
+      # Some of the password becomes mask, the rest is the word. The mask is split between the two
+      # sides of the word so the shape with a mask on both sides has something on both, and it is
+      # capped at four characters because -a 12 uploads the mask rather than expanding it on the
+      # device (test.sh:3304-3308).
+
+      mask_len = i
+
+      if mask_len > 4:
+        mask_len = 4
+
+      head_len = mask_len // 2
+      word_len = pass_len - mask_len
+
+      # test.sh:3314: no room for a word means the hash is skipped and does not count.
+      if word_len >= 1:
+        head_end   = utf8_split_point(word, head_len)
+        tail_start = utf8_split_point(word, head_len + word_len)
+
+        mask_head = mask_literalize(mask_dots(head_end), word[:head_end])
+        mask_tail = mask_literalize(mask_dots(pass_len - tail_start), word[tail_start:])
+
+        for shape in ("first", "last", "middle", "q"):
+          dicts = [dict1_a12]
+
+          if shape == "first":
+            word_end  = utf8_split_point(word, word_len)
+            head_word = word[:word_end]
+            mask      = b"?w" + mask_literalize(mask_dots(pass_len - word_end), word[word_end:])
+          elif shape == "last":
+            mask_start = utf8_split_point(word, mask_len)
+            head_word  = word[mask_start:]
+            mask       = mask_literalize(mask_dots(mask_start), word[:mask_start]) + b"?w"
+          elif shape == "middle":
+            head_word = word[head_end:tail_start]
+            mask      = mask_head + b"?w" + mask_tail
+          else:
+            # The word itself is cut in two, so ?w and ?q each carry one half (test.sh:3369-3381).
+            q_end = utf8_split_point(word, head_end + (tail_start - head_end) // 2)
+
+            if q_end <= head_end or q_end >= tail_start:
+              continue
+
+            head_word = word[head_end:q_end]
+
+            write_dict(dict2_a12, [word[q_end:tail_start]])
+
+            mask  = mask_head + b"?w?q" + mask_tail
+            dicts = [dict1_a12, dict2_a12]
+
+          # dict1 with the run word appended, so hashcat finds it among others (test.sh:3319-3320,
+          # 3386). test.sh shuffles the file here, which only reorders candidates it tries all of,
+          # so the shuffle is left out.
+
+          write_dict(dict1_a12, dict1_lines + [head_word])
+
+          rc, out = run_hashcat(r.opts, r.mode, target, None, attack=12,
+                                extra=hybrid_extra([mask] + dicts))
+
+          matched = output_has_crack(r.mode, out, word, digest,
+                                     r.pass_only, r.tmp) if rc == 0 else False
+
+          classify(rc, matched, c)
+
+    if i == max_i:
+      break
+
+  report(r.args, r.mode, "single", r.width, c, attack=12)
+
+
+def attack_12_multi(r):
+  if has_multi_hash(r.mode):
+    return
+
+  if r.mode in A12_SKIP:
+    report_skip_counts(r, "multi")
+
+    return
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  # test.sh's -a 12 multi window matches attack_6's exactly (test.sh:3483-3511 vs 2587-2615).
+
+  min_i, max_i = a6_multi_params(r.mode)
+  optimized    = not r.args.pure
+
+  hash_file = os.path.join(r.tmp, "m%05d_a12_hashes_multi.txt" % r.mode)
+  dict1_mp  = os.path.join(r.tmp, "m%05d_a12_dict1_multi" % r.mode)
+  dict2_mp  = os.path.join(r.tmp, "m%05d_a12_dict2_multi" % r.mode)
+
+  i = 2
+
+  while i < max_i:
+    if i < min_i:
+      i += 1
+
+      continue
+
+    pairs  = multi_pairs(r.mode, i, optimized)
+    d1, d2 = build_multi_dicts(r.mode, i, pairs)
+
+    write_hashes(hash_file, pairs, r.mode, r.file_only)
+    write_dict(dict1_mp, d1)
+    write_dict(dict2_mp, d2)
+
+    # The two halves of the length let one shape put the word in front of the mask and the other
+    # behind it, the tail and head dict1 and dict2 already hold (test.sh:3556-3567).
+
+    multi_model = pairs[0][0] if pairs else b""
+    multi_head  = d1[0] if d1 else b""
+    multi_tail  = multi_model[len(multi_head):]
+
+    for shape in ("first", "last"):
+      if shape == "first":
+        dict_file = dict1_mp
+        mask      = b"?w" + mask_literalize(mask_dots(len(multi_tail)), multi_tail)
+      else:
+        dict_file = dict2_mp
+        mask      = mask_literalize(mask_dots(len(multi_head)), multi_head) + b"?w"
+
+      rc, out = run_hashcat(r.opts, r.mode, hash_file, None, attack=12,
+                            extra=hybrid_extra([mask, dict_file]))
+
+      matched = rc == 0
+
+      if rc == 0:
+        for j, (_, digest) in enumerate(pairs):
+          if not output_has_crack(r.mode, out, sed_line(d1, j + 1) + sed_line(d2, j + 1),
+                                  digest, r.pass_only, r.tmp):
+            matched = False
+
+            break
+
+      classify(rc, matched, c)
+
+    i += 1
+
+  report(r.args, r.mode, "multi", r.width, c, attack=12)
+
+
+def attack_12(r):
+  # test.sh attack_12: the mask says where the dict word goes, so one password is tried with the word
+  # before the mask, after it, between two mask pieces, and with a ?w?q pair, single then multi hash.
+
+  if "single" in r.targets:
+    attack_12_single(r)
+
+  if "multi" in r.targets:
+    attack_12_multi(r)
+
+
 # One function per attack mode, each printing test.sh's summary lines for that attack. An attack
 # that is not here yet is reported once on stderr and left to test.sh.
 
@@ -1778,6 +1997,7 @@ ATTACKS = {
   7: attack_7,
   8: attack_8,
   9: attack_9,
+  12: attack_12,
 }
 
 
