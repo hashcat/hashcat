@@ -886,12 +886,348 @@ def attack_1(r):
     run_combinator_multi(r, dict1_path, dict2_path)
 
 
+def mask_dots(count):
+  # test.sh mask_dots (test.sh:3989): a mask of <count> '?d' groups.
+
+  return b"?d" * count
+
+
+def mask_3(pos):
+  # test.sh mask_3[] (test.sh:246): 'pos' '?d' groups, but never more than 15 of them; the length
+  # beyond position 15 is spelled with literal '0's instead.
+
+  if pos <= 15:
+    return b"?d" * pos
+
+  return b"?d" * 15 + b"0" * (pos - 15)
+
+
+def mask_literalize(mask, text):
+  # test.sh mask_literalize (test.sh:4004): rewrite a mask so each position spells the byte that
+  # belongs there. A '?x' group and a bare byte each cover one position. If the mask does not cover
+  # exactly len(text) bytes it is returned untouched; otherwise a position keeps its token when the
+  # matching byte is an ASCII digit and becomes that literal byte otherwise, so a '?d' run can spell
+  # a password that carries a multi byte character no '?d' produces.
+
+  tokens = []
+  pos = 0
+
+  while pos < len(mask):
+    if mask[pos:pos + 1] == b"?":
+      tokens.append(mask[pos:pos + 2])
+      pos += 2
+    else:
+      tokens.append(mask[pos:pos + 1])
+      pos += 1
+
+  if len(tokens) != len(text):
+    return mask
+
+  out = b""
+
+  for k, tok in enumerate(tokens):
+    byte = text[k:k + 1]
+
+    if b"0" <= byte <= b"9":
+      out += tok
+    else:
+      out += byte
+
+  return out
+
+
+def run_verify(mode, digest, crack_lines, tmp):
+  # test.sh output_has_crack fallback (test.sh:411): hand the module's own verify the crack lines
+  # that carry this hash and let it say whether one of them hashes back to it.
+
+  hashes_file = os.path.join(tmp, "m%05d_verify_hashes" % mode)
+  cracks_file = os.path.join(tmp, "m%05d_verify_cracks" % mode)
+  out_file    = os.path.join(tmp, "m%05d_verify_out" % mode)
+
+  with open(hashes_file, "wb") as fh:
+    fh.write(digest.encode("ascii") + b"\n")
+
+  with open(cracks_file, "wb") as fh:
+    for line in crack_lines:
+      fh.write(line + b"\n")
+
+  open(out_file, "wb").close()
+
+  subprocess.run([sys.executable, RUNNER, "verify", str(mode), hashes_file, cracks_file, out_file],
+                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+  return os.path.getsize(out_file) > 0
+
+
+def output_has_crack(mode, out, word, digest, pass_only, tmp):
+  # test.sh output_has_crack (test.sh:394). The recovered line hash:password is looked for as it was
+  # generated first. A mode that drops bits of the password can print a different password with the
+  # same hash, so DES for one keeps 7 bits per byte, and a line that is not there verbatim is
+  # re-checked by hash through the module's verify. A password only search has no hash to verify
+  # against and stops at the plain comparison.
+
+  if match_search(digest, word, pass_only) in out:
+    return True
+
+  if pass_only:
+    return False
+
+  prefix = digest.encode("ascii") + b":"
+  crack_lines = [line for line in out.split(b"\n") if prefix in line]
+
+  if not crack_lines:
+    return False
+
+  return run_verify(mode, digest, crack_lines, tmp)
+
+
+def a3_single_max(mode):
+  # test.sh attack_3 single (test.sh:1697): the number of hashes a single-hash run covers. Some
+  # modes cap it lower because they carry a minimum password length.
+
+  if mode in (14000, 14100, 14900, 15400):
+    return 1
+
+  if mode in (2500, 16800, 22000):
+    return 7
+
+  return 8
+
+
+def a3_single_mask(mode, word, i):
+  # test.sh attack_3 single mask (test.sh:1755): the first i bytes become a '?d' run rewritten to
+  # spell them and the rest of the password trails as literals. 14000 and 14100 hand hashcat the
+  # whole password as a literal mask instead, and 20510 drops the leading groups the mode does not
+  # keep (test.sh:1777).
+
+  if mode in (14000, 14100):
+    return word
+
+  mask = mask_literalize(mask_dots(i), word[:i]) + word[i:]
+
+  if mode == 20510:
+    cut_pos = 13 if i > 6 else i + 7
+    mask = mask[cut_pos - 1:]
+
+  return mask
+
+
+def attack_3_single(r):
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  max_i     = a3_single_max(r.mode)
+  temp_file = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
+
+  i = 1
+
+  for word, digest in r.pairs:
+    # test.sh:1721: a slow mode stops after the sixth hash.
+    if i > 6 and is_timeout(r.mode):
+      break
+
+    # test.sh:1748: a mask cannot produce a password shorter than itself, so that hash is skipped
+    # and does not count.
+    if len(word) < i:
+      i += 1
+
+      continue
+
+    # test.sh:1771: PKZIP master key needs at least two '?d' groups to keep after the cut.
+    if r.mode == 20510 and i <= 1:
+      i += 1
+
+      continue
+
+    if r.file_only:
+      with open(temp_file, "wb") as fh:
+        fh.write(decode_hashfile(r.mode, digest))
+
+      target = temp_file
+    else:
+      target = digest
+
+    mask = a3_single_mask(r.mode, word, i)
+
+    rc, out = run_hashcat(r.opts, r.mode, target, None, attack=3, extra=[mask])
+
+    matched = output_has_crack(r.mode, out, word, digest, r.pass_only, r.tmp)
+
+    classify(rc, matched, c)
+
+    if i == max_i:
+      break
+
+    i += 1
+
+  report(r.args, r.mode, "single", r.width, c, attack=3)
+
+
+def a3_multi_increment(mode):
+  # test.sh attack_3 multi (test.sh:1882): the --increment window. A slow mode narrows it, and the
+  # modes with a minimum password length move it up.
+
+  increment_min = 1
+  increment_max = 5 if is_timeout(mode) else 8
+
+  if mode in (2500, 16800, 22000):
+    increment_min = 8
+    increment_max = 9
+
+  return increment_min, increment_max
+
+
+def a3_custom_charsets(mode, sel_passwords):
+  # test.sh attack_3 multi (test.sh:2009): 2500, 16800 and 22000 pin the mask to ?d?d?d?d?d?1?2?3?4
+  # and build the -1..-4 charsets out of the bytes the passwords carry at positions 6, 7, 8 and 9.
+  # All three run outside the kernel, so a mode-3 run never reaches this today; it is kept so the
+  # port stays faithful to test.sh.
+
+  if mode not in (2500, 16800, 22000):
+    return []
+
+  args = []
+
+  for n, pos in ((1, 6), (2, 7), (3, 8), (4, 9)):
+    if not sel_passwords:
+      charset = str(n).encode("ascii")
+    else:
+      chars = set()
+
+      for pw in sel_passwords:
+        chars.add(pw[pos - 1:pos])
+
+      charset = b"".join(sorted(chars))
+
+    args += ["-%d" % n, charset]
+
+  return args
+
+
+def attack_3_multi(r):
+  # test.sh:1873: the modes with one hash each have no multi-hash run.
+  if has_multi_hash(r.mode):
+    return
+
+  increment_min, increment_max = a3_multi_increment(r.mode)
+
+  words   = [w for w, _ in r.pairs]
+  digests = [d for _, d in r.pairs]
+
+  head_hashes = sum(1 for w in words if len(w) <= increment_max)
+  tail_hashes = sum(1 for w in words if increment_min <= len(w) <= increment_max)
+
+  # test.sh:1934: one --increment run cannot spell a password that carries a multi byte character,
+  # so an hcmask file with one mask per password is used whenever a character is in play, and when
+  # no password falls in the increment window at all.
+
+  need_hcmask = 0
+
+  if tail_hashes > head_hashes:
+    need_hcmask = 1
+
+  if any(b > 0x7f for w in words for b in w):
+    need_hcmask = 2
+
+  if tail_hashes < 1:
+    need_hcmask = 1
+
+  hash_file   = os.path.join(r.tmp, "m%05d_multihash_bruteforce.txt" % r.mode)
+  hcmask_path = os.path.join(r.tmp, "m%05d_multi_a3.hcmask" % r.mode)
+  dict_path   = os.path.join(r.tmp, "m%05d_passwords.txt" % r.mode)
+
+  if need_hcmask in (0, 2):
+    sel = list(range(head_hashes - tail_hashes, head_hashes))
+  else:
+    tail_hashes = sum(1 for w in words if len(w) >= increment_min)
+
+    if tail_hashes < 1:
+      return
+
+    sel = list(range(len(words) - tail_hashes, len(words)))
+
+  if r.file_only:
+    with open(hash_file, "wb") as fh:
+      for k in sel:
+        fh.write(decode_hashfile(r.mode, digests[k]))
+  else:
+    with open(hash_file, "wb") as fh:
+      fh.write(b"\n".join(digests[k].encode("ascii") for k in sel) + b"\n")
+
+  mask_pos = max(8, increment_min)
+
+  if need_hcmask == 2:
+    cracks_offset = head_hashes - tail_hashes
+
+    with open(hcmask_path, "wb") as fh:
+      for w in words:
+        if increment_min <= len(w) <= increment_max:
+          fh.write(mask_literalize(mask_dots(len(w)), w) + b"\n")
+
+    mask_arg = hcmask_path
+  elif need_hcmask == 0:
+    cracks_offset = head_hashes - tail_hashes
+    mask_arg      = mask_3(mask_pos)
+  else:
+    cracks_offset = len(words) - tail_hashes
+
+    with open(dict_path, "wb") as fh:
+      for w in words:
+        fh.write(w + b"\n")
+
+    mask_arg = dict_path
+
+  # The custom-charset modes replace the mask outright; increment_charset_opts carries the charsets
+  # only on the plain --increment path (test.sh:2005, 2242).
+
+  custom = a3_custom_charsets(r.mode, words[:len(sel)])
+
+  if r.mode in (2500, 16800, 22000):
+    mask_arg = b"?d?d?d?d?d?1?2?3?4"
+
+  increment_opts = []
+
+  if need_hcmask == 0:
+    increment_opts = ["--increment", "--increment-min", str(increment_min),
+                      "--increment-max", str(increment_max)] + custom
+
+  rc, out = run_hashcat(r.opts, r.mode, hash_file, None, attack=3,
+                        extra=increment_opts + [mask_arg])
+
+  # test.sh:2260: one hashcat run scored as one test; every selected pair must be in the output,
+  # matched by hash where the printed password differs from the generated one.
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  if rc == 0:
+    matched = all(output_has_crack(r.mode, out, words[idx + cracks_offset], digests[k],
+                                   r.pass_only, r.tmp)
+                  for idx, k in enumerate(sel))
+  else:
+    matched = False
+
+  classify(rc, matched, c)
+
+  report(r.args, r.mode, "multi", r.width, c, attack=3)
+
+
+def attack_3(r):
+  # test.sh attack_3: the mask (brute force) attack. Each password is turned into a mask that
+  # regenerates exactly it, single hash then multi hash.
+
+  if "single" in r.targets:
+    attack_3_single(r)
+
+  if "multi" in r.targets:
+    attack_3_multi(r)
+
+
 # One function per attack mode, each printing test.sh's summary lines for that attack. An attack
 # that is not here yet is reported once on stderr and left to test.sh.
 
 ATTACKS = {
   0: attack_0,
   1: attack_1,
+  3: attack_3,
   4: attack_4,
   8: attack_8,
   9: attack_9,
