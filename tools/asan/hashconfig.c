@@ -43,6 +43,37 @@ void harness_build_hashconfig (hashconfig_t *hashconfig, module_ctx_t *m,
   if (IS_SET (m->module_esalt_size))      hashconfig->esalt_size     = m->module_esalt_size      (hashconfig, uo, uoe);
   if (IS_SET (m->module_hook_salt_size))  hashconfig->hook_salt_size = m->module_hook_salt_size  (hashconfig, uo, uoe);
   if (IS_SET (m->module_tmp_size))        hashconfig->tmp_size       = m->module_tmp_size        (hashconfig, uo, uoe);
+
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
+
+  // interface.c strips the optimized-only opts and opti flags when the kernel
+  // is pure (src/interface.c:495). The harness represents the pure kernel that
+  // hashcat builds by default, so a parser here has to see the same opts_type
+  // it sees in production, not the optimized-only flags the module still
+  // declares. Keep in sync with src/interface.c:495.
+  if (optimized_kernel == false)
+  {
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16LE;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD01;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD06;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD80;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS14;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS15;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_UTF16LE;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_UTF16BE;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD01;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD02;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD80;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS14;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
+
+    hashconfig->opti_type &= ~OPTI_TYPE_PRECOMPUTE_INIT;
+    hashconfig->opti_type &= ~OPTI_TYPE_MEET_IN_MIDDLE;
+    hashconfig->opti_type &= ~OPTI_TYPE_PREPENDED_SALT;
+    hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
+  }
+
   // Defaults, mirroring default_pw_max()/default_salt_max() in interface.c.
   // These are NOT optional: most modules leave these fields to the defaults,
   // and a zero salt_max makes every generic salted parser reject its own
@@ -51,8 +82,7 @@ void harness_build_hashconfig (hashconfig_t *hashconfig, module_ctx_t *m,
   // The interface.c versions are not exported (-fvisibility=hidden), so the
   // logic is restated here; keep in sync with src/interface.c:820,910.
 
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
-  const bool utf16_salt       = (hashconfig->opts_type & (OPTS_TYPE_ST_UTF16LE | OPTS_TYPE_ST_UTF16BE)) != 0;
+  const bool utf16_salt = (hashconfig->opts_type & (OPTS_TYPE_ST_UTF16LE | OPTS_TYPE_ST_UTF16BE)) != 0;
 
   if (IS_SET (m->module_pw_min))   hashconfig->pw_min   = m->module_pw_min   (hashconfig, uo, uoe);
   else                             hashconfig->pw_min   = PW_MIN;
