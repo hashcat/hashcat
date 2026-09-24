@@ -35,8 +35,20 @@ PR_MODE_CAP = {"test": 30, "fuzz": 20}
 
 # A PR that touches shared code, but no mode of its own, still gets a run:
 # test.sh -M for the kernels, and the starting set of parser targets for fuzz.
+# That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
+# each mode is written down, and it is read from there so the two cannot drift.
 
-FUZZ_DEFAULT_MODES = [7400, 17225, 22000, 29100]
+def fuzz_default_modes():
+    with open("tools/fuzz/build.sh") as fh:
+        m = re.search(r'^FUZZ_MODES=\$\{FUZZ_MODES:-"([0-9 ]+)"\}', fh.read(), re.M)
+
+    if m is None:
+        sys.exit("ci_matrix.py: no FUZZ_MODES default found in tools/fuzz/build.sh")
+
+    return [int(x) for x in m.group(1).split()]
+
+
+FUZZ_DEFAULT_MODES = fuzz_default_modes()
 
 # The host files the fuzz targets link, which is the CORE list in
 # tools/fuzz/build.sh, plus what builds and drives them.
