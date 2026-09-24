@@ -12,13 +12,15 @@
 ##                  rule and tokenizer targets plus a starting set of four
 ##                  parsers when it changes host code they link, at most 20
 ##                  modes. It generates no new inputs, so a rerun gives the same
-##                  answer; exploring is left to the weekly and manual runs.
+##                  answer. Exploring is left to the weekly and manual runs.
 ##
 ##   weekly         every mode, in 16 shards, 60 seconds a target, and only if
 ##                  master has had a commit in the last seven days.
 ##
 ##   manual         the same shards, with the modes and the seconds a target
 ##                  given as inputs, for a longer campaign before a release.
+##                  The seconds a target are cut down when a shard would not
+##                  fit the job, so its corpus is still saved.
 ##
 ## .github/workflows/ci_matrix.py decides which modes and which shard.
 ##

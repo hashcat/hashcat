@@ -30,7 +30,7 @@ One target across every core is `-fork`, which runs that many workers against on
 
 Measured here on an idle core count of 12, twenty seconds on one mode: 5.2 million executions
 without it, 15.5 million with `-fork=6`. A finding still stops the run and still lands in
-`crashes/`, because `-ignore_crashes` stays off; with it on, the run keeps going and collects
+`crashes/`, because `-ignore_crashes` stays off. With it on, the run keeps going and collects
 every distinct crash instead, which is what a long overnight run wants.
 
 Use `-fork` when fuzzing one target, and the loop below when fuzzing many: both fill the machine,
@@ -73,7 +73,7 @@ about sha256crypt.
 `FUZZ_MODES` in `build.sh` holds the list, four to begin with rather than all 600: 17225 and 22000
 have both needed a memory safety fix in their parsers, 29100 is the mode whose overflow the
 structural harness in `tools/asan/` only reached by accident, and 7400 carries a rounds field. Add
-a mode by putting it in that list; nothing else knows about the set.
+a mode by putting it in that list. ci_matrix.py reads the same list, so nothing else needs changing.
 
     FUZZ_MODES="07400 13600" tools/fuzz/build.sh
 
@@ -128,24 +128,30 @@ tokenizer bounded that advance the way it already bounds a fixed length token.
 * a pull request replays the saved corpus and the seeds, once each (`-runs=0`), through the parser
   of every mode it changes, at most 20. One that changes host code the targets link also gets
   `rule`, `tokenizer` and the four starting modes. It generates no new inputs, so a rerun gives the
-  same answer; exploring is what the weekly and manual runs are for.
+  same answer. Exploring is what the weekly and manual runs are for.
 * once a week, if master has had a commit in the last seven days, every mode in 16 shards for 60
   seconds each, so about 40 minutes a shard.
 * by hand, with the modes and the seconds a target as inputs, for a longer run before a release.
+  The seconds a target are cut down when a shard would not fit the job, so its corpus still gets
+  saved.
 
 Each shard keeps its corpus in the actions cache between runs. A campaign that starts from the seed
 corpus every time relearns the same paths and never reaches past them, so the cache is not an
 optimisation here, it is the thing that makes a scheduled run worth more than the run before it. A
 mode lands in the shard its number hashes to, so it keeps its corpus when other modes come and go.
 
-The cache rules that decide whether this works: an entry cannot be written twice under one key, so
-the key carries the run id and the restore falls back to the newest entry with the same prefix; an
-entry is evicted after seven days without a read, which a weekly run only just beats and a quiet
-week does not, so a second schedule on Thursday reads every shard's corpus and does nothing else;
-and the repository holds 10 GB of cache and evicts the least recently used entry when full, which
-is why every run merges the corpus down before it saves. Only a scheduled or manual run on master
-saves, because a cache written by a pull request lives in that pull request's scope and is deleted
-with it.
+Three cache rules decide whether this works:
+
+* an entry cannot be written twice under one key, so the key carries the run id and the restore
+  falls back to the newest entry with the same prefix.
+* an entry is evicted after seven days without a read, which a weekly run only just beats and a
+  quiet week does not, so a second schedule on Thursday reads every shard's corpus and does nothing
+  else.
+* the repository holds 10 GB of cache and evicts the least recently used entry when full, which is
+  why every run merges the corpus down before it saves.
+
+Only a scheduled or manual run on master saves, because a cache written by a pull request lives in
+that pull request's scope and is deleted with it.
 
 A crash fails the job and the input is uploaded as an artifact, so a finding arrives as a red cross
 with a reproducer attached. A module that does not build as a target fails its shard too, after the
