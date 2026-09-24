@@ -5,12 +5,10 @@
 ## License.....: MIT
 ##
 
-# A python manager for the -a 0 path, the counterpart to tools/test.sh for the modes that have a
-# python oracle. It asks tools/test_module_runner.py for test vectors, runs ./hashcat on them and
-# reports the same OK/Error/Skip summary line test.sh prints, so the two can be compared. Scope is
-# deliberately small: straight attack (-a 0), target types single and multi, vector widths 1 and
-# 4, and only the modes that have a tools/test_modules/mNNNNN.py. test.sh still owns everything
-# else.
+# A python manager, the counterpart to tools/test.sh for the modes that have a python oracle. It
+# asks tools/test_module_runner.py for test vectors, runs ./hashcat on them and reports the same
+# OK/Error/Skip summary line test.sh prints, so the two can be compared line for line. It is being
+# grown one attack mode at a time; ATTACKS lists the ones it runs, and test.sh still owns the rest.
 
 import argparse
 import base64
@@ -35,6 +33,20 @@ RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
 # hash we started from, so the match is on ":password" alone (test.sh PASS_ONLY, line 6876).
 
 NOCHECK_ENCODING = {16800, 22000}
+
+# test.sh's attack order for -a all (test.sh:7362-7431). A slow mode only runs the attacks that
+# cost one candidate per word (the whole word attacks), so it gets 0, 4, 8 and 9 and nothing else,
+# even when another attack is asked for by number.
+
+ATTACK_ORDER = [0, 4, 8, 9, 1, 3, 6, 7, 12]
+WHOLE_WORD   = (0, 4, 8, 9)
+
+# SLOW_ALGOS is every module with ATTACK_EXEC_OUTSIDE_KERNEL plus these, whose generated passwords
+# the mask attacks cannot express (test.sh:212, 230). 400 is run as a fast hash on purpose, to cover
+# the AMP kernel (test.sh:7253).
+
+FAKE_SLOW = {28501, 28502, 28503, 28504, 28505, 28506, 30901, 30902, 30903, 30904, 30905, 30906,
+             34700}
 
 # The oracle writes one shell line per vector: echo <word> | ./hashcat ${OPTS} -a 0 -m <n> '<h>'.
 # The word is padded to 31 with trailing spaces by the "%-31s" the oracle uses; the hash is single
@@ -95,14 +107,32 @@ def select_modes(spec, modes):
   return hit
 
 
-def is_file_only(mode):
-  src = os.path.join(ROOT, "src", "modules", "module_%05d.c" % mode)
-
+def module_source(mode):
   try:
-    with open(src, "rb") as fh:
-      return b"OPTS_TYPE_BINARY_HASHFILE" in fh.read()
+    with open(os.path.join(ROOT, "src", "modules", "module_%05d.c" % mode), "rb") as fh:
+      return fh.read()
   except OSError:
+    return b""
+
+
+def is_file_only(mode):
+  return b"OPTS_TYPE_BINARY_HASHFILE" in module_source(mode)
+
+
+def is_slow(mode):
+  if mode == 400:
     return False
+
+  return mode in FAKE_SLOW or b"ATTACK_EXEC_OUTSIDE_KERNEL" in module_source(mode)
+
+
+def attacks_for(spec, mode):
+  wanted = ATTACK_ORDER if spec == "all" else [int(spec)]
+
+  if is_slow(mode):
+    wanted = [a for a in wanted if a in WHOLE_WORD]
+
+  return wanted
 
 
 def decode_hashfile(mode, digest):
@@ -188,8 +218,8 @@ def verdict(c):
   return "OK"
 
 
-def run_hashcat(opts, mode, target, stdin_bytes):
-  cmd = [BIN] + opts + ["-a", "0", "-m", str(mode), target]
+def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
+  cmd = [BIN] + opts + ["-a", str(attack), "-m", str(mode), target] + list(extra)
 
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
   # there rather than in whatever directory the manager was invoked from.
@@ -200,26 +230,26 @@ def run_hashcat(opts, mode, target, stdin_bytes):
   return proc.returncode, proc.stdout + proc.stderr
 
 
-def context(args, mode, target_name, width):
+def context(args, mode, target_name, width, attack=0):
   # test.sh pads the multi label with a second space so the Device-Type column lines up under the
   # longer "single" (test.sh:1019 vs 1187). Kept so the part after the leading label matches it
   # byte for byte.
 
   mode_field = "single, " if target_name == "single" else "multi,  "
 
-  return ("[ test.py ] [ Type %d, Attack 0, Mode %sDevice-Type %s, Kernel-Type %s, Vector-Width %d ]"
-          % (mode, mode_field, DEVICE_LABEL.get(args.device, args.device),
+  return ("[ test.py ] [ Type %d, Attack %d, Mode %sDevice-Type %s, Kernel-Type %s, Vector-Width %d ]"
+          % (mode, attack, mode_field, DEVICE_LABEL.get(args.device, args.device),
              "Pure" if args.pure else "Optimized", width))
 
 
-def report(args, mode, target_name, width, c):
+def report(args, mode, target_name, width, c, attack=0):
   print("%s > %s : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped"
-        % (context(args, mode, target_name, width), verdict(c),
+        % (context(args, mode, target_name, width, attack), verdict(c),
            c["nf"], c["cnt"], c["nm"], c["cnt"], c["to"], c["cnt"], c["rs"], c["cnt"]))
 
 
-def report_skip(args, mode, target_name, width, reason):
-  print("%s > Skip : %s" % (context(args, mode, target_name, width), reason))
+def report_skip(args, mode, target_name, width, reason, attack=0):
+  print("%s > Skip : %s" % (context(args, mode, target_name, width, attack), reason))
 
 
 def match_search(digest, word, pass_only):
@@ -278,6 +308,45 @@ def run_multi(opts, mode, pairs, args, width, pass_only, tmp):
   report(args, mode, "multi", width, c)
 
 
+class Run:
+  # What one attack function needs for one mode at one vector width.
+
+  def __init__(self, args, mode, pairs, width, opts, targets, file_only, pass_only, tmp):
+    self.args      = args
+    self.mode      = mode
+    self.pairs     = pairs
+    self.width     = width
+    self.opts      = opts
+    self.targets   = targets
+    self.file_only = file_only
+    self.pass_only = pass_only
+    self.tmp       = tmp
+
+
+def attack_0(r):
+  # test.sh attack_whole_word 0: the word on stdin, single then multi.
+
+  if "single" in r.targets:
+    run_single(r.opts, r.mode, r.pairs, r.args, r.width, r.file_only, r.pass_only, r.tmp)
+
+  if "multi" in r.targets:
+    # A binary hashfile holds one hash per file, so there is no multi-hash run to make. This is
+    # test.sh's has_multi_hash reason ("we only have 1 hash for each of them"), which its hardcoded
+    # list misses for these modes.
+    if r.file_only:
+      report_skip(r.args, r.mode, "multi", r.width, "binary hashfile mode has one hash per file")
+    else:
+      run_multi(r.opts, r.mode, r.pairs, r.args, r.width, r.pass_only, r.tmp)
+
+
+# One function per attack mode, each printing test.sh's summary lines for that attack. An attack
+# that is not here yet is reported once on stderr and left to test.sh.
+
+ATTACKS = {
+  0: attack_0,
+}
+
+
 def widths_for(spec):
   if spec in ("default", "all"):
     return [1, 4]
@@ -313,7 +382,7 @@ def main():
   ap = argparse.ArgumentParser(description="python manager for the hashcat -a 0 test path")
 
   ap.add_argument("-m", dest="mode", default="all", help="N | all | min-max")
-  ap.add_argument("-a", dest="attack", default="0", help="attack mode (only 0 is supported)")
+  ap.add_argument("-a", dest="attack", default="0", help="0 | 1 | 3 | 4 | 6 | 7 | 8 | 9 | 12 | all")
   ap.add_argument("-t", dest="target", default="all", choices=["single", "multi", "all"])
   ap.add_argument("-D", dest="device", default="2", help="OpenCL device type")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is
@@ -325,8 +394,11 @@ def main():
 
   args = ap.parse_args()
 
-  if args.attack not in ("0", "all"):
-    die("! only -a 0 is supported by test.py")
+  if args.attack != "all" and (not args.attack.isdigit() or int(args.attack) not in ATTACK_ORDER):
+    die("! invalid attack mode: %s" % args.attack)
+
+  if args.attack != "all" and int(args.attack) not in ATTACKS:
+    die("! -a %s is not implemented in test.py yet, tools/test.sh still covers it" % args.attack)
 
   if not os.path.isfile(BIN):
     die("! no hashcat binary at %s, build it first" % BIN)
@@ -343,7 +415,8 @@ def main():
   targets  = targets_for(args.target)
   widths   = widths_for(args.vector)
 
-  skips = []
+  skips   = []
+  missing = set()
 
   with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
     for mode in selected:
@@ -361,20 +434,33 @@ def main():
       file_only = is_file_only(mode)
       pass_only = file_only or mode in NOCHECK_ENCODING
 
+      # PKZIP master key only has a single hash test; a forced multi run is skipped outright
+      # (test.sh:7258-7263).
+
+      mode_targets = targets
+
+      if mode == 20510:
+        if targets == ["multi"]:
+          continue
+
+        mode_targets = ["single"]
+
       for width in widths:
         opts = base_opts(args) + ["--backend-vector-width", str(width)]
 
-        if "single" in targets:
-          run_single(opts, mode, pairs, args, width, file_only, pass_only, tmp)
+        r = Run(args, mode, pairs, width, opts, mode_targets, file_only, pass_only, tmp)
 
-        if "multi" in targets:
-          # A binary hashfile holds one hash per file, so there is no multi-hash run to make. This
-          # is test.sh's has_multi_hash reason ("we only have 1 hash for each of them"), which its
-          # hardcoded list misses for these modes.
-          if file_only:
-            report_skip(args, mode, "multi", width, "binary hashfile mode has one hash per file")
-          else:
-            run_multi(opts, mode, pairs, args, width, pass_only, tmp)
+        for attack in attacks_for(args.attack, mode):
+          if attack not in ATTACKS:
+            missing.add(attack)
+
+            continue
+
+          ATTACKS[attack](r)
+
+  if missing:
+    sys.stderr.write("! not implemented in test.py yet, tools/test.sh still covers: -a %s\n"
+                     % ", ".join(str(a) for a in sorted(missing)))
 
   if skips:
     print()
