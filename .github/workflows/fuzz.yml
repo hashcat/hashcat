@@ -174,6 +174,13 @@ jobs:
           for target in $targets; do
             mkdir -p "corpus/${target}" "crashes/${target}"
 
+            # libFuzzer exits on a corpus directory that does not exist, so a target without seeds
+            # is given none rather than a missing path.
+
+            seeds=()
+
+            [ -d "fuzz_out/work/seeds/${target}" ] && seeds=("fuzz_out/work/seeds/${target}")
+
             if [ "$replay" = "true" ]; then
               echo "::group::${target}, replay, corpus holds $(find "corpus/${target}" -type f | wc -l) inputs"
             else
@@ -194,7 +201,7 @@ jobs:
 
               if ! ./fuzz_out/fuzz_${target} \
                      "corpus/${target}" \
-                     "fuzz_out/work/seeds/${target}" \
+                     "${seeds[@]}" \
                      -artifact_prefix="crashes/${target}/" \
                      -runs=0 \
                      -timeout=25 \
@@ -210,7 +217,7 @@ jobs:
 
             if ! ./fuzz_out/fuzz_${target} \
                    "corpus/${target}" \
-                   "fuzz_out/work/seeds/${target}" \
+                   "${seeds[@]}" \
                    -dict=tools/fuzz/fuzz_${target%%_*}.dict \
                    -artifact_prefix="crashes/${target}/" \
                    -fork=$(nproc) \
@@ -226,10 +233,16 @@ jobs:
 
             mkdir -p "corpus_merged/${target}"
 
-            ./fuzz_out/fuzz_${target} -merge=1 "corpus_merged/${target}" "corpus/${target}" \
-              "fuzz_out/work/seeds/${target}" > /dev/null 2>&1 || true
+            # A merge that fails leaves an empty or partial directory. The corpus is only replaced
+            # when the merge succeeded, so a failure costs one week's growth and not the whole corpus.
 
-            rm -rf "corpus/${target}" && mv "corpus_merged/${target}" "corpus/${target}"
+            if ./fuzz_out/fuzz_${target} -merge=1 "corpus_merged/${target}" "corpus/${target}" \
+                 "${seeds[@]}" > /dev/null 2>&1; then
+              rm -rf "corpus/${target}" && mv "corpus_merged/${target}" "corpus/${target}"
+            else
+              echo "::warning::fuzz_${target}: the corpus merge failed, the unmerged corpus is kept"
+              rm -rf "corpus_merged/${target}"
+            fi
 
             echo "corpus holds $(find "corpus/${target}" -type f | wc -l) inputs after merging"
             echo "::endgroup::"
