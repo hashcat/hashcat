@@ -131,7 +131,7 @@ jobs:
           tools/fuzz/build.sh
 
       - name: Restore the corpus
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: corpus
           key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}
@@ -286,7 +286,7 @@ jobs:
         if: >-
           !cancelled() && env.KEEPALIVE != 'true' && github.event_name != 'pull_request' &&
           github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: corpus
           key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}

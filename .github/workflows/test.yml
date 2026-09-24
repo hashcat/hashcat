@@ -127,7 +127,7 @@ jobs:
 
       - name: Restore the perl modules
         id: perl5
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/perl5
           key: perl5-${{ runner.os }}-${{ hashFiles('tools/install_modules.sh') }}
@@ -149,7 +149,7 @@ jobs:
 
       - name: Save the perl modules
         if: steps.perl5.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/perl5
           key: perl5-${{ runner.os }}-${{ hashFiles('tools/install_modules.sh') }}
@@ -161,7 +161,7 @@ jobs:
       - name: Restore the luks2 test containers
         id: luks2
         if: matrix.modes == 'minimal' || contains(matrix.modes, '34100')
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: tools/luks2_tests
           key: luks2-tests-v1
@@ -177,7 +177,7 @@ jobs:
 
       - name: Save the luks2 test containers
         if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: tools/luks2_tests
           key: luks2-tests-v1
