@@ -33,7 +33,10 @@ if [ ! -x ./hashcat ]; then
 fi
 
 if [ -z "$MODES" ]; then
-  MODES=$(ls tools/test_modules/*.pm | sed -E 's/.*m0*([0-9]+)\.pm/\1/' \
+  # Some modes have a test module only as .py (e.g. 1000, 5200, 8800, 9000,
+  # 14500, 17010-17050), so listing only .pm would silently skip them.
+  MODES=$(ls tools/test_modules/*.pm tools/test_modules/*.py 2>/dev/null \
+          | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' \
           | sort -n -u | awk -v f="$FROM" '$1>=f')
 fi
 
@@ -71,7 +74,11 @@ for mode in $MODES; do
   # UBSan does not use log_path: it prints "file.c:12:34: runtime error: ..."
   # to stderr, which lands in m<mode>.out. Checking only the ASan logs would
   # silently discard every UBSan finding on a SANITIZE=address,undefined tree.
-  uerrs=$(grep -c "runtime error:" "$OUT/m${mode}.out" 2>/dev/null || echo 0)
+  # No "|| echo 0": grep -c already prints 0 on no match, and the fallback
+  # would append a second line, giving "0\n0" and an "integer expression
+  # expected" error from the -gt test below on every clean mode. A missing
+  # file leaves uerrs empty, which the ${uerrs:-0} default below handles.
+  uerrs=$(grep -c "runtime error:" "$OUT/m${mode}.out" 2>/dev/null)
 
   if [ "${errs:-0}" -gt 0 ] || [ "${uerrs:-0}" -gt 0 ]; then
     echo "m${mode}: *** ${errs} ASAN / ${uerrs} UBSAN ERRORS *** (${dur}s, rc=$rc)" | tee -a "$LOG"
