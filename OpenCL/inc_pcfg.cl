@@ -174,6 +174,59 @@ DECLSPEC u32 pcfg_pool_u32 (PCFG_POOL_ARGS, const u32 at)
   #endif
 }
 
+// The escape reads these, and it reads them once per step of every candidate rather than once per
+// slot. They skip the part search because what they read is in the first part by construction: the
+// feed puts the tables the walk reads per step at the front of the pool for exactly this. Routing
+// those reads through the search instead costs an order of magnitude in instructions and in global
+// loads per candidate.
+
+DECLSPEC u32 pcfg_pool_lo (PCFG_POOL_ARGS, const u32 at)
+{
+  const u32 v = pool0[at];
+
+  return v;
+}
+
+DECLSPEC u32 pcfg_pool_byte_lo (PCFG_POOL_ARGS, const u32 off)
+{
+  GLOBAL_AS const u8 *pb = (GLOBAL_AS const u8 *) pool0;
+
+  const u32 b = pb[off];
+
+  return b;
+}
+
+DECLSPEC u64 pcfg_pool_u64 (PCFG_POOL_ARGS, const u32 at)
+{
+  // The part is found once for the pair, not once a word. This is the escape's weight table, read
+  // twice for every transition of every step, so it is the one place where walking the search a
+  // second time is worth avoiding.
+
+  u32 base = 0;
+  u32 end  = 0;
+
+  GLOBAL_AS const u32 *p = pcfg_pool_span (PCFG_POOL_PASS, at, &base, &end);
+
+  if ((at + 1) < end)
+  {
+    const u32 i = at - base;
+
+    const u64 lo = p[i];
+    const u64 hi = p[i + 1];
+
+    const u64 v = (hi << 32) | lo;
+
+    return v;
+  }
+
+  const u64 lo = pcfg_pool_u32 (PCFG_POOL_PASS, at);
+  const u64 hi = pcfg_pool_u32 (PCFG_POOL_PASS, at + 1);
+
+  const u64 v = (hi << 32) | lo;
+
+  return v;
+}
+
 DECLSPEC u32 pcfg_ent_off (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, const u32 j, const u32 n)
 {
   #if PCFG_DEV_VARLEN
@@ -191,7 +244,7 @@ DECLSPEC u32 pcfg_ent_off (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, con
   #endif
 }
 
-DECLSPEC u32 pcfg_ent_len (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, const u32 j, const u32 n)
+DECLSPEC u32 pcfg_ent_len (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, const u32 j, MAYBE_UNUSED const u32 n)
 {
   #if PCFG_DEV_VARLEN
 

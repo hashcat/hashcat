@@ -557,6 +557,10 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   const hashes_t     *hashes     = hashcat_ctx->hashes;
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
+  // The one attack whose launch does not divide. See the tie below.
+
+  const bool engine_rules = (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true);
+
   const bool verbose = (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL);
 
   *out_accel = accel_min;
@@ -723,6 +727,20 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    innerloop_cnt = hashcat_ctx->combinator_ctx->combs_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       innerloop_cnt = hashcat_ctx->mask_ctx->bfs_cnt;
 
+    // The device engine has no amplifier of its own to chunk: a base word becomes its whole cell in
+    // one launch whatever the loop count, which is why the loop count is pinned for it. Applying the
+    // rules inside the engine gives it the straight attack's amplifier, and then the ruleset is what
+    // the launch is a chunk of, exactly as it is for -a 0.
+    //
+    // Left at 1 the model reads every loop count as one launch, so raising it cannot pay for itself
+    // in the launch count and the fit buys accel with the budget instead, which leaves the loop axis
+    // running past the last rule and the launch far below the one the same ruleset gets in -a 0.
+
+    else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+    {
+      if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) innerloop_cnt = hashcat_ctx->straight_ctx->kernel_rules_cnt;
+    }
+
     if (innerloop_cnt > 0) work = (double) innerloop_cnt;
   }
 
@@ -859,10 +877,33 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     // saves is paid outside the kernel try_run times, so where the probe sees no difference there is
     // still one.
 
-    if (rate > (best_rate * 0.98))
-    {
-      if (rate > best_rate) best_rate = rate;
+    // The device engine applying the rules itself is the one attack where that is not the whole story,
+    // because a launch there walks each base word's cell from its first candidate. A chunk of the
+    // ruleset half as long repeats the walk rather than halving the launch, so the loop count buys
+    // something the accel cannot. It is taken first, and the tie above then decides only between
+    // candidates carrying the same number of loops, which is where the band still belongs.
 
+    bool take;
+
+    if (engine_rules == true)
+    {
+      if      (loops > best_loops) take = true;
+      else if (loops < best_loops) take = false;
+      else                         take = (rate > (best_rate * 0.98));
+    }
+    else
+    {
+      take = (rate > (best_rate * 0.98));
+    }
+
+    // Outside the test, so that a tie is measured against the best rate the walk has seen rather than
+    // against the last one it took. It changes nothing for the band above, where a rate that raises the
+    // best is always inside it.
+
+    if (rate > best_rate) best_rate = rate;
+
+    if (take == true)
+    {
       best_accel = accel;
       best_loops = loops;
     }
