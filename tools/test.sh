@@ -948,8 +948,18 @@ function status()
         ;;
 
       *)
-        echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-        echo "! unhandled return code, see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
+        # A code from 129 to 192 is a process killed by a signal (139 is SIGSEGV), which is a crash
+        # rather than a result. Say so, instead of calling it an unhandled code the reader then has to
+        # look up. hashcat's own error codes are negative and wrap to 245 and above (255 is -1), so
+        # they are not signals and fall through to the unhandled branch as before.
+
+        if [ "${RET}" -gt 128 ] && [ "${RET}" -lt 193 ]; then
+          echo "hashcat crashed, killed by signal $((RET - 128)), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+          echo "! hashcat crashed (signal $((RET - 128))), see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
+        else
+          echo "! unhandled return code ${RET}, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+          echo "! unhandled return code ${RET}, see ${OUTD}/logfull.txt or ${OUTD}/test_report.log for details."
+        fi
 
         e_nf=$((e_nf + 1))
         ;;
@@ -3889,10 +3899,10 @@ function container_mask_from_password()
   fi
 
   # The password may have no digit to give up: the shipped containers use 'hashcat', which has none.
-  # Fall back to a lower case letter, so a mask class still stands in for one character. Never return
-  # the password unchanged: with -a 3 a mask argument that names an existing file is read as a mask
-  # file, and test.sh runs from the directory that holds ./hashcat, so the mask 'hashcat' would be
-  # read as that binary instead of as a literal.
+  # Fall back to a lower case letter, so a mask class stands in for one character rather than the
+  # whole password. That matters with -a 3, where a mask argument that names a file is read as a mask
+  # file: 'hashcat' is the ./hashcat binary test.sh runs beside, so the bare password would be read
+  # as that binary.
 
   if [ "${cm_where}" = "first" ]; then
     for ((cm_i = 0; cm_i < cm_len; cm_i++)); do
@@ -3907,6 +3917,11 @@ function container_mask_from_password()
       esac
     done
   fi
+
+  # Neither a digit nor an ASCII lower case letter to give up. -g can reach this: container_password ()
+  # may hand back a kana or CJK password. Such a password names no file, so there is no mask file to
+  # misread, and the run gets the password back as a literal mask and confirms it rather than
+  # searching for it.
 
   printf '%s' "${cm_pw}"
 }

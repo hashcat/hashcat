@@ -1,8 +1,8 @@
-# Assimilation Bridge in Hashcat v7
+# Assimilation Bridge in hashcat v7
 
 ## Overview
 
-Hashcat normally runs hash kernels through its CUDA, HIP, OpenCL and Metal backends. An assimilation bridge lets a hash-mode module replace or supplement part of that pipeline with a shared-library plugin. The plugin can run reference CPU code, an embedded language runtime, remote hardware, or another compute system that does not fit the normal backend interface.
+hashcat normally runs hash kernels through its CUDA, HIP, OpenCL and Metal backends. An assimilation bridge lets a hash-mode module replace or supplement part of that pipeline with a shared-library plugin. The plugin can run reference CPU code, an embedded language runtime, remote hardware, or another compute system that does not fit the normal backend interface.
 
 Bridges are optional and selected by the hash-mode module. Modes that do not declare one continue to use the normal backend path.
 
@@ -25,13 +25,13 @@ Mode 70100 shows the hybrid design: a normal backend and a bridge can own differ
 
 ## Other possible uses
 
-A bridge can be written for hardware-backed operations such as TPM requests, for a remote service, or to wrap a compatible implementation from another project. These are interface use cases, not features included in the current package.
+A bridge can support hardware-backed operations such as TPM requests, delegate work to a remote service, or wrap a compatible implementation from another project. These are possible uses of the interface, not features included in the current package.
 
 ## Selecting units
 
 A bridge reports one or more *bridge units*, and each becomes one virtual backend device. Device options therefore operate on units:
 
-- `-d` selects which units run. `-d 2` runs unit 2 alone, while `-d 1,3` runs units 1 and 3.
+- Option `-d` selects which units run. For example, `-d 2` runs unit 2 alone, while `-d 1,3` runs units 1 and 3.
 - `-R` selects the physical backend device that generates candidates, which is a separate choice.
 
 `hashcat -I -m <hash mode>` lists the units that mode would use, and the `Assimilation Bridge` block at startup lists them again. A bridge is selected by its hash mode, so `-I` without `-m` cannot enumerate bridge units. The same unit numbering is used by `-d`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog.

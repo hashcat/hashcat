@@ -1,5 +1,5 @@
 ##
-## Maximum password lengths vary depending on kernel, hash type, and encoding
+## Maximum password length depends on the kernel, hash type and encoding
 ##
 
 See https://hashcat.net/faq/lengths
@@ -11,24 +11,24 @@ See https://hashcat.net/faq/lengths
 Hash modes that use the generic salt structure, such as md5(pass.salt), can store at most 256 bytes of salt. A dedicated mode can place additional data in its own extended-salt structure, but its format and module still define a finite limit.
 
 ##
-## Hashing algorithms that internally use UTF-16 characters could in special cases lead to false negatives
+## Optimized kernels can produce false negatives for some UTF-16 input
 ##
 
 This applies to optimized kernels (-O) only:
 
-The UTF-16 conversion implementation used within the kernel code is optimized for performance. For that reason, hashcat does not respect all complicated encoding rules required to correctly convert, for instance, ASCII or UTF-8 to UTF-16LE (or UTF-16BE). The implementation most likely fails with multi-byte characters, because we basically add a zero byte every second byte within the kernel conversion code.
+The optimized in-kernel conversion favors performance over complete encoding support. It does not implement every rule required to convert encodings such as UTF-8 to UTF-16LE or UTF-16BE. In particular, multibyte characters can fail because the optimized path generally inserts a zero byte after each input byte.
 
-Since hashcat v6.2.1 there is true UTF-16 support for pure kernels. UTF-16 is fully supported.
+Pure kernels have provided complete UTF-16 conversion since hashcat v6.2.1.
 
-There is an exception for mask attacks combined with compute devices that require vector data-types to achieve full performance. For example a modern CPU. On those devices a mask attack over characters outside ASCII needs --backend-vector-width 1. For modern GPUs it works as expected.
+One exception applies to mask attacks on devices that require vector data types for full performance, such as modern CPUs. A mask containing characters outside ASCII requires `--backend-vector-width 1` on those devices. Modern GPUs handle the conversion as expected.
 
 ##
-## The use of --keep-guessing can miss a colliding password
+## --keep-guessing can miss a colliding password
 ##
 
-Hashcat reports cracked hashes through a buffer that holds one entry for every hash loaded, and that buffer is emptied after each kernel invocation. Whichever candidate reaches a hash first takes its entry. Without --keep-guessing that is all you need, because hashcat stops looking for a hash once it is cracked.
+hashcat reports cracked hashes through a buffer with one entry for each loaded hash. The buffer is emptied after every kernel invocation, and the first candidate to reach a hash occupies its entry. Without `--keep-guessing`, this is sufficient because hashcat stops searching for a hash after it is cracked.
 
-With --keep-guessing the hash stays in the attack, so a second candidate can match it inside the same kernel invocation. There is no entry left to put that one in, and it is dropped. The candidate that survives is whichever the device reached first, so running the same two candidates in the other order can report the other password.
+With `--keep-guessing`, the hash remains active and a second candidate can match it during the same kernel invocation. No free entry remains for that result, so it is dropped. Whichever candidate the device reaches first survives, and reversing the candidate order can therefore report a different password.
 
 Reporting every candidate of one kernel invocation would need an entry for every candidate that invocation runs:
 
@@ -36,7 +36,9 @@ Number-of-MCU * Max-threads * Max-accel * Max-inner-loops * sizeof (plain_t)
 
 For example, on an RTX 4090: 128 * 1024 * 1024 * 1024 * 40 = 5,497,558,138,880 bytes = 5120 GB VRAM
 
-That settles it for a fast hash. It does not settle it for a slow one. A slow hash reports from its _comp kernel once per work item, and its _loop kernel iterates the key derivation against the same candidate rather than producing new ones, so the inner loop factor drops out and the bound is the number of work items. On an RX 7900 XTX that is 17 MB of entries for mode 11600 and 396 MB for modes 23100, 24410 and 24420. No buffer of that shape is allocated today, so those modes lose collisions the same way the fast ones do, but for them the memory to keep every collision is within reach.
+This requirement is impractical for a fast hash, but slow hashes have a lower bound. A slow hash reports from its `_comp` kernel once per work item, while its `_loop` kernel repeats key derivation for the same candidate instead of producing new candidates. The inner-loop factor therefore drops out, leaving the number of work items as the bound.
+
+On an RX 7900 XTX, the required entries occupy 17 MB for mode 11600 and 396 MB for modes 23100, 24410 and 24420. hashcat does not currently allocate such a buffer, so those modes can lose collisions in the same way as fast hashes. Unlike the fast-hash case, however, retaining every collision would require a practical amount of memory.
 
 ##
 ## Device memory usage may be limited by the maximum size of one allocation
@@ -47,24 +49,24 @@ Most hashcat buffers must each fit in one contiguous device-memory allocation. T
 Only a few modes, such as scrypt, split their storage across several allocations.
 
 ##
-## The maximum number of functions per rule is limited to 31
+## A rule can contain at most 31 functions
 ##
 
-This makes each rule 128 bytes. The maximum number of rules that fits on a device therefore depends on the largest single allocation its backend and runtime permit, as well as the memory available. Supporting more functions per rule would make every rule larger and reduce that limit.
+This limit makes each rule 128 bytes. The number of rules that fit on a device therefore depends on the available memory and the largest single allocation permitted by its backend and runtime. Supporting more functions would enlarge every rule and reduce the number that fits.
 
 ##
-## Position identifiers in rules are limited to 36
+## Rules support 36 position identifiers
 ##
 
-The upper limit of maximum 36 positions for various rule functions (0-9, A-Z) was a design decision by the original authors of the rule engine.
+The original rule-engine design limits position arguments to the 36 identifiers `0-9` and `A-Z`.
 
 ##
-## Known Issue: Unreleased memory after register spilling
+## Register-spill memory remains allocated
 ##
 
 When a kernel requires more registers than the hardware can provide, the CUDA runtime automatically spills register data into global memory. After the kernel finishes, this reserved memory is not released by the CUDA runtime. The only way to free it is to destroy the CUDA context.
 
-In normal runs this has no impact, since the context is destroyed at program exit.
+This has no effect on a normal run because the context is destroyed when hashcat exits.
 
-In benchmarks the same context used to be kept across every hash-mode test, so available device memory fell as the run went on, which cost benchmark performance and could end in a runtime error. Hashcat now drops and recreates the context between modes, which gives the memory back. A device whose context cannot be recreated is skipped rather than used through a handle that no longer exists.
+Benchmarks previously kept the same context across every hash-mode test. Available device memory consequently decreased throughout the run, reducing performance and sometimes causing a runtime error. hashcat now destroys and recreates the context between modes to release that memory. If a device context cannot be recreated, hashcat skips the device instead of using an invalid handle.
 

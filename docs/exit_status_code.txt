@@ -1,5 +1,5 @@
-status codes on exit:
-=====================
+Exit Status Codes:
+==================
 
 -11 = self-test failed
 -10 = autotune failure

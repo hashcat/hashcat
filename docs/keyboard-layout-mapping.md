@@ -1,29 +1,33 @@
-## Some notes about the --keyboard-layout-mapping feature ##
+## Keyboard layout mapping ##
 
-The `--keyboard-layout-mapping` option handles how TrueCrypt and VeraCrypt system encryption treats keyboard layouts. During pre-boot authentication, the firmware uses a US keyboard layout regardless of the layout printed on the keyboard.
+The `--keyboard-layout-mapping` option reproduces how TrueCrypt and VeraCrypt system encryption handles keyboard layouts. During pre-boot authentication, the firmware uses a US layout regardless of the layout printed on the physical keyboard.
 
-During setup, both applications temporarily switch the operating system to the US layout while their password prompt is open. They restore the configured layout when the prompt closes. This makes the password bytes entered during setup match the bytes produced later at pre-boot.
+During setup, both applications temporarily switch the operating system to the US layout while their password prompt is open. They restore the configured layout when the prompt closes. This ensures that the password bytes entered during setup match those produced later during pre-boot authentication.
 
-This matters when cracking the password. A German keyboard is QWERTZ while a US keyboard is QWERTY, so `y` and `z` exchange positions and most symbols move as well.
+This behavior matters when cracking the password. A German keyboard uses QWERTZ while a US keyboard uses QWERTY, so `y` and `z` exchange positions and most symbols also move.
 
-And when it comes to non-Latin based languages, this behaviour gets completely out of control. Just one example: If the user enters the password بين التخصصات (interdisciplinary) on an Arabic keyboard, the password we need to guess is: fdk hgjowwhj[g.
+The difference is even greater for non-Latin layouts. For example, entering the password بين التخصصات ("interdisciplinary") on an Arabic keyboard produces the password bytes represented by `fdk hgjowwhj[g` under the US layout.
 
 You therefore need to know which physical keyboard layout was used when the password was created. Mapping tables ship in `tables/layouts`. For a German keyboard, add `--keyboard-layout-mapping tables/layouts/de.table` to the command line.
 
-Unfortunately, since I don't own all of the existing keyboards, it will be necessary for hashcat users to contribute the rest of the missing mapping tables - ideally, as a GitHub PR. Almost every language I know has special keyboard layouts. There's even a difference between the UK and US layouts.
+The repository does not include every physical keyboard layout. Contributions of missing mapping tables are welcome as GitHub pull requests. Even closely related layouts, such as UK and US English, require different tables.
 
-Here's how you can help. To create a language-specific mapping table, open a text editor, and press every key on the keyboard, starting from the top left to the top right. Press Enter after every key. Use only keys which represent a real character, and ignore control keys such as Backspace, Caps Lock, etc. Then move to the next row below and repeat the process from the left to the right, and so on until you reach the space character. At that point, repeat exactly the same sequence, but with Shift pressed. When done, add a Tab after each character (Tab is used as separator character). Then switch the keyboard layout to English and repeat the entire process exactly in the same order, adding each character after the tab character. Hashcat accepts one- to four-byte tokens on both sides of the mapping table. As an example, see the tables/layouts/de.table file.
+To create a language-specific mapping table, open a text editor and press each character-producing key from left to right, beginning with the top row. Press Enter after every key and omit control keys such as Backspace and Caps Lock. Continue row by row through the space bar, then repeat the same sequence while holding Shift.
 
-Note that when it comes to Alt/AltGr, this behavior is exploitable. TC/VC does not accept those modifier keys. If a user uses AltGr while entering the password, a window appears that tells the user that the use of this key is not allowed. For instance, on my German keyboard layout, I need to use AltGr+q to get the "@" character. As a consequence of this, we know that the TC/VC password cannot include any of the characters ("@", "[", "]", "\", "€", "|", "{", "}", "~") if the user was using a German keyboard to enter the password.
+Add a tab after each recorded character. Switch the operating system to the US layout and repeat the sequence in exactly the same order, placing each new character after the corresponding tab. hashcat accepts tokens of one to four bytes on either side of the tab. See `tables/layouts/de.table` for an example.
+
+TrueCrypt and VeraCrypt reject Alt and AltGr during password entry, which narrows the possible character set. On a German layout, for example, AltGr+q produces `@`. A password created with that layout therefore cannot contain `@`, `[`, `]`, `\`, `€`, `|`, `{`, `}` or `~`.
 
 The left side of a mapping contains only characters reachable without a modifier or with Shift. A character with no mapping is left unchanged.
 
 ## The mapping file format ##
 
-A mapping file uses the same table format as the table attack (`-a 5`). One rule to a line: the source token, a tab, then what to put in its place. Blank lines are skipped, lines beginning with # are comments, and a line that does not hold exactly one tab is not a mapping and is passed over. A token that would otherwise be read as a comment, or that carries a tab, is written as $HEX[..]. A file that turns out to hold no mappings at all is refused, rather than converting nothing and saying nothing about it.
+A mapping file uses the same format as a table attack (`-a 5`). Each line contains a source token, a tab and its replacement. Blank lines are ignored, lines beginning with `#` are comments, and lines without exactly one tab are skipped. Write a token as `$HEX[...]` if it would otherwise be interpreted as a comment or contains a tab. hashcat rejects a file with no valid mappings instead of silently leaving every candidate unchanged.
 
-Keys that produce the same character in both layouts are left out of the shipped tables. They are what the mapping does not change, so listing them says nothing.
+Keys that produce the same character in both layouts are left out of the shipped tables. The mapping leaves them unchanged, so listing them provides no additional information.
 
-Each language also has a reverse table, tables/layouts/de-reverse.table and so on, which converts the other way, for a wordlist in the US layout whose password was typed with the other layout active. Those are table attack files rather than mapping files. Where two keys of one layout produce the same character on the other, the reverse of that is one character with two replacements, which the table attack offers as a choice and a mapping cannot express at all. hashcat refuses such a file for this option rather than picking one of the two silently.
+Each language also has a reverse table, such as `tables/layouts/de-reverse.table`. It converts a US-layout wordlist into candidates typed with the other layout active. Reverse tables are table attack files, not keyboard mapping files.
 
-These files are also tables for the table attack, which converts layouts for any hash mode rather than only for TrueCrypt and VeraCrypt. See hashcat-table.md.
+If two keys in one layout produce the same character in another, the reverse conversion gives one source character two possible replacements. A table attack can offer both choices, but a keyboard mapping cannot represent that ambiguity. hashcat therefore rejects such a file for `--keyboard-layout-mapping` instead of silently choosing one replacement.
+
+These files are also tables for the table attack, which converts layouts for any hash mode rather than only for TrueCrypt and VeraCrypt. See `hashcat-table.md`.
