@@ -29,36 +29,36 @@ SINGLE_MAX = 32     # test.sh caps a single-target run at 32 hashes
 RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
 
 # A binary-hashfile mode (OPTS_TYPE_BINARY_HASHFILE) is handed a file, not a hash string, so the
-# oracle prints the file base64 encoded and the manager decodes it back to a file (test.sh:894,
-# 1062). For those, and for the two encoding exceptions, the recovered line does not carry the
-# hash we started from, so the match is on ":password" alone (test.sh PASS_ONLY, line 6876).
+# oracle prints the file base64 encoded and the manager decodes it back to a file (test.sh).
+# For those, and for the two encoding exceptions, the recovered line does not carry the
+# hash we started from, so the match is on ":password" alone (test.sh PASS_ONLY).
 
 NOCHECK_ENCODING = {16800, 16801, 22000}
 
 # The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
-# leaves their -a 4 list alone (test.sh:487); 10300 takes its hash from another field and is excluded
+# leaves their -a 4 list alone (test.sh); 10300 takes its hash from another field and is excluded
 # there too.
 
 LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
               34100}
 
 # The modes test.sh's has_multi_hash reports true for: one hash each, so no multi-hash run at all
-# (test.sh:524).
+# (test.sh).
 
 MULTI_ONE_HASH = {14000, 14100, 14600, 14900, 15400}
 
-# The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES,
-# line 99): no .pm and no .py oracle, so the ground truth is the module's own example hash read from
+# The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
+# no .pm and no .py oracle, so the ground truth is the module's own example hash read from
 # --hash-info. 23800 is the only member today. -S runs the same path over every mode.
 
 SELFTEST_MODES = {23800}
 
 # test.sh caps a -S sweep at --runtime 60 rather than the usual 400, since a mode that has not
-# cracked by then is not going to (test.sh:6865).
+# cracked by then is not going to (test.sh).
 
 SELFTEST_RUNTIME = 60
 
-# test.sh's attack order for -a all (test.sh:7362-7431). A slow mode only runs the attacks that
+# test.sh's attack order for -a all (test.sh). A slow mode only runs the attacks that
 # cost one candidate per word (the whole word attacks), so it gets 0, 4, 8 and 9 and nothing else,
 # even when another attack is asked for by number.
 
@@ -66,8 +66,8 @@ ATTACK_ORDER = [0, 4, 8, 9, 1, 3, 6, 7, 12]
 WHOLE_WORD   = (0, 4, 8, 9)
 
 # SLOW_ALGOS is every module with ATTACK_EXEC_OUTSIDE_KERNEL plus these, whose generated passwords
-# the mask attacks cannot express (test.sh:212, 230). 400 is run as a fast hash on purpose, to cover
-# the AMP kernel (test.sh:7253).
+# the mask attacks cannot express (test.sh). 400 is run as a fast hash on purpose, to cover
+# the AMP kernel (test.sh).
 
 FAKE_SLOW = {28501, 28502, 28503, 28504, 28505, 28506, 30901, 30902, 30903, 30904, 30905, 30906,
              34700}
@@ -79,7 +79,7 @@ FAKE_SLOW = {28501, 28502, 28503, 28504, 28505, 28506, 30901, 30902, 30903, 3090
 LINE = re.compile(rb"^echo (.*) \| \./hashcat \$\{OPTS\} -a 0 -m \d+ '(.*)'$")
 
 # -a 4 asks the pcfg device engine for OpenCL/mNNNNN_a4-optimized.cl by the mode's kern_type, not by
-# the mode number, so the file test is on the kern_type read out of the module (test.sh:218).
+# the mode number, so the file test is on the kern_type read out of the module (test.sh).
 
 KERN_TYPE_RE = re.compile(rb"^static const u64\s+KERN_TYPE\s+=\s*([0-9]+)", re.M)
 
@@ -106,7 +106,7 @@ def select_modes(spec, modes):
   # span gaps, "all" is every member.
 
   # A SELFTEST_MODES member has no .py oracle but is still selectable, because test.sh runs its
-  # self-test vector in a normal run (test.sh:7341). Fold it into the set so a single -m 23800, a
+  # self-test vector in a normal run (test.sh). Fold it into the set so a single -m 23800, a
   # range that spans it, and "all" all accept it; the main loop then picks the self-test path for a
   # mode that has no .py.
 
@@ -163,21 +163,21 @@ def is_slow(mode):
 
 
 def host_engine(mode):
-  # test.sh HOST_ENGINE_ALGOS is the plain ATTACK_EXEC_OUTSIDE_KERNEL set (test.sh:225), taken before
+  # test.sh HOST_ENGINE_ALGOS is the plain ATTACK_EXEC_OUTSIDE_KERNEL set (test.sh), taken before
   # the fake-slow additions, so it is read straight off the module and does not carry FAKE_SLOW.
 
   return b"ATTACK_EXEC_OUTSIDE_KERNEL" in module_source(mode)
 
 
 def is_timeout(mode):
-  # test.sh TIMEOUT_ALGOS is SLOW_ALGOS as written (test.sh:7183), which keeps 400 that is_slow drops
+  # test.sh TIMEOUT_ALGOS is SLOW_ALGOS as written (test.sh), which keeps 400 that is_slow drops
   # for attack selection. It caps a single-hash whole-word run at 12 vectors instead of 32.
 
   return mode in FAKE_SLOW or host_engine(mode)
 
 
 def a4_optimized(mode):
-  # Whether the mode ships an optimized pcfg kernel, named by its kern_type (test.sh:218).
+  # Whether the mode ships an optimized pcfg kernel, named by its kern_type (test.sh).
 
   m = KERN_TYPE_RE.search(module_source(mode))
 
@@ -188,7 +188,7 @@ def a4_optimized(mode):
 
 
 def a4_optimized_skip(mode, optimized):
-  # test.sh:1011: an optimized -a 4 pass on a mode whose kernel runs inside the device and that ships
+  # test.sh: an optimized -a 4 pass on a mode whose kernel runs inside the device and that ships
   # no optimized pcfg kernel would be refused by hashcat, so the pass is skipped and, unlike a normal
   # skip, prints no summary line. The pure pass covers the attack for such a mode.
 
@@ -200,7 +200,7 @@ def has_multi_hash(mode):
 
 
 def oracle_spare(mode, optimized, length):
-  # test.sh whole_word_vectors:506: one vector of a fixed length from the same oracle, to stand in for
+  # test.sh whole_word_vectors: one vector of a fixed length from the same oracle, to stand in for
   # a word -a 4 cannot express. Returns (word, digest) or None.
 
   env = dict(os.environ)
@@ -222,7 +222,7 @@ def oracle_spare(mode, optimized, length):
 
 
 def a4_vectors(mode, pairs, optimized):
-  # test.sh whole_word_vectors (test.sh:469): a grammar builds its candidate out of terminals of at
+  # test.sh whole_word_vectors (test.sh): a grammar builds its candidate out of terminals of at
   # least one character, so the zero length word the -a 0 vectors carry for a min-zero mode cannot be
   # written into a ruleset. Where one is present it is swapped for a spare word of length 1 and the
   # hash that goes with it. Returns the substituted pairs, or None to fall back to the -a 0 vectors,
@@ -255,7 +255,7 @@ def attacks_for(spec, mode):
 
 
 def decode_hashfile(mode, digest):
-  # test.sh:894/1062: the base64 decodes to the file hashcat reads. 22000/22001 are handed their
+  # test.sh/1062: the base64 decodes to the file hashcat reads. 22000/22001 are handed their
   # line as is instead.
 
   if mode in (22000, 22001):
@@ -300,7 +300,7 @@ def oracle_vectors(mode, optimized):
 
 def classify(rc, matched, c):
   # Mirror test.sh exactly. A hashcat run that exits 0 but whose output does not carry the pair is
-  # rewritten to code 10 (test.sh:987, 1157), then status() buckets by the code (test.sh:737-839):
+  # rewritten to code 10 (test.sh), then status() buckets by the code (test.sh):
   # 1 exhausted, 4 --runtime, 10 not matched, the specific runtime-skip codes to skipped, and any
   # other code, 247 included, to not found through the default case. The set is spelled out rather
   # than as a range because test.sh omits 247.
@@ -351,7 +351,7 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
 
 def context(args, mode, target_name, width, attack=0):
   # test.sh pads the multi label with a second space so the Device-Type column lines up under the
-  # longer "single" (test.sh:1019 vs 1187). Kept so the part after the leading label matches it
+  # longer "single" (test.sh vs 1187). Kept so the part after the leading label matches it
   # byte for byte.
 
   mode_field = "single, " if target_name == "single" else "multi,  "
@@ -372,7 +372,7 @@ def report_skip(args, mode, target_name, width, reason, attack=0):
 
 
 def match_search(digest, word, pass_only):
-  # test.sh:950-954: normally the recovered line is hash:password; for a file based or
+  # test.sh: normally the recovered line is hash:password; for a file based or
   # encoding-exception mode only the password half is ours to check.
 
   if pass_only:
@@ -410,7 +410,7 @@ def run_multi(opts, mode, pairs, args, width, file_only, pass_only, tmp):
   hash_file = os.path.join(tmp, "m%05d_hashes.txt" % mode)
 
   if file_only:
-    # test.sh:1225: every base64 hash decoded and concatenated into one file (22000/22001 keep their
+    # test.sh: every base64 hash decoded and concatenated into one file (22000/22001 keep their
     # raw line), the way decode_hashfile splits it.
     with open(hash_file, "wb") as fh:
       for _, digest in pairs:
@@ -424,7 +424,7 @@ def run_multi(opts, mode, pairs, args, width, file_only, pass_only, tmp):
   rc, out = run_hashcat(opts, mode, hash_file, stdin_bytes)
 
   # test.sh scores the whole batch as one test: one hashcat run, every pair has to be in the
-  # output, and status is called once (test.sh:1116-1173). So the count here is 1, not one per hash
+  # output, and status is called once (test.sh). So the count here is 1, not one per hash
   # the way single is, and classify does the "cracked but a pair is missing" rewrite.
 
   matched = all(match_search(digest, word, pass_only) in out for word, digest in pairs)
@@ -466,7 +466,7 @@ def attack_0(r):
 
 
 def build_ruleset(ruleset_dir, words):
-  # test.sh whole_word_ruleset (test.sh:444): the smallest pcfg that emits exactly this word list. X
+  # test.sh whole_word_ruleset (test.sh): the smallest pcfg that emits exactly this word list. X
   # is the flat token, so X1 at probability 1 is one terminal per entry, each carrying its own length,
   # all living in Context/1.txt. The run is then as long as the list and emits nothing else.
 
@@ -484,7 +484,7 @@ def build_ruleset(ruleset_dir, words):
 
 
 def whole_word_source(attack, words_file, ruleset_dir):
-  # test.sh whole_word_source (test.sh:426): the argv each whole-word attack takes after the hash. -a
+  # test.sh whole_word_source (test.sh): the argv each whole-word attack takes after the hash. -a
   # 8 names the wordlist feed and its file, -a 9 the file pairing word N with hash N, -a 4 the ruleset
   # directory. -a 0 pipes its words in and is handled by attack_0.
 
@@ -511,7 +511,7 @@ def whole_word_single(r, attack):
   else:
     vectors = r.pairs
 
-  # test.sh:1035: a single-hash run stops at 32 vectors, or 12 for a slow mode.
+  # test.sh: a single-hash run stops at 32 vectors, or 12 for a slow mode.
 
   max_n = 12 if is_timeout(r.mode) else 32
 
@@ -524,11 +524,11 @@ def whole_word_single(r, attack):
 
     if r.mode == 20510:
       # PKZIP master key: hashcat is fed the key without its 6 byte prefix, the recovered line still
-      # carries the whole password (test.sh:1078).
+      # carries the whole password (test.sh).
       candidate = word[6:]
 
     if attack == 4 and len(candidate) == 0:
-      # A ruleset cannot write an empty candidate, so it is skipped rather than run (test.sh:1085).
+      # A ruleset cannot write an empty candidate, so it is skipped rather than run (test.sh).
       c["rs"]  += 1
       c["cnt"] += 1
 
@@ -560,7 +560,7 @@ def whole_word_single(r, attack):
 
 
 def whole_word_multi(r, attack):
-  # test.sh:1196: the modes with one hash each have no multi-hash run, -a 9 gives one candidate per
+  # test.sh: the modes with one hash each have no multi-hash run, -a 9 gives one candidate per
   # salt so its multi case is left to test_edge.sh, and a binary hashfile has no line to drop so -a 4
   # keeps its single coverage only.
 
@@ -578,7 +578,7 @@ def whole_word_multi(r, attack):
   optimized = not r.args.pure
 
   if attack == 4:
-    # test.sh:1249: -a 4 runs on the substituted list, or on the -a 0 list with the empty word
+    # test.sh: -a 4 runs on the substituted list, or on the -a 0 list with the empty word
     # dropped where no spare could be drawn.
     subst  = a4_vectors(r.mode, r.pairs, optimized)
     mpairs = subst if subst is not None else [(w, d) for w, d in r.pairs if w != b""]
@@ -590,7 +590,7 @@ def whole_word_multi(r, attack):
   ruleset_dir = os.path.join(r.tmp, "m%05d_a%d_multi_ruleset" % (r.mode, attack))
 
   if r.file_only:
-    # test.sh:1225: every base64 hash decoded and concatenated into one file, the raw line kept for
+    # test.sh: every base64 hash decoded and concatenated into one file, the raw line kept for
     # 22000/22001. decode_hashfile carries that split.
     with open(hash_file, "wb") as fh:
       for _, digest in mpairs:
@@ -620,7 +620,7 @@ def whole_word_multi(r, attack):
 
 def whole_word(r, attack):
   if attack == 4 and a4_optimized_skip(r.mode, not r.args.pure):
-    # No summary line at all, the same as test.sh which logs the skip to logfull only (test.sh:1011).
+    # No summary line at all, the same as test.sh which logs the skip to logfull only (test.sh).
     return
 
   if "single" in r.targets:
@@ -665,7 +665,7 @@ def utf8_split_point(text, off):
 
 
 def combinator_init_params(mode):
-  # init()'s per mode line skip and split offset for the single-build dicts (test.sh:721-742).
+  # init()'s per mode line skip and split offset for the single-build dicts (test.sh).
   # init_min lines are left out of the dicts, min_offset shifts the split toward the tail.
 
   init_min = 1
@@ -694,7 +694,7 @@ def combinator_init_params(mode):
 
 
 def split_for_combinator(pairs, mode):
-  # Reproduce init()'s dict1/dict2 build (test.sh:744-789) as two byte-string lists, one line per
+  # Reproduce init()'s dict1/dict2 build (test.sh) as two byte-string lists, one line per
   # password whose 1-based index exceeds init_min. dict1[k] . dict2[k] is that kept password, so
   # the combinator concatenates the halves back to the word. Kept in its own helper because -a 6
   # and -a 7 reuse the same split.
@@ -738,7 +738,7 @@ def split_for_combinator(pairs, mode):
 
 
 def combinator_single_range(mode):
-  # attack_1 single processes hashes whose 1-based index is in (min, max] (test.sh:1388-1405).
+  # attack_1 single processes hashes whose 1-based index is in (min, max] (test.sh).
 
   smin, smax = 1, 8
 
@@ -751,7 +751,7 @@ def combinator_single_range(mode):
 
 
 def combinator_multi_offset(mode):
-  # attack_1 multi takes the last offset hashes as one batch (test.sh:1576-1586).
+  # attack_1 multi takes the last offset hashes as one batch (test.sh).
 
   if mode in (5800, 3000):
     return 6
@@ -760,7 +760,7 @@ def combinator_multi_offset(mode):
 
 
 def pkzip_masterkey_dicts(dict1, dict2, line_nr):
-  # test.sh:1439-1484, PKZIP master key. Rebuild the two dicts with line line_nr replaced by the
+  # test.sh, PKZIP master key. Rebuild the two dicts with line line_nr replaced by the
   # split the mode needs: the first 6 bytes of dict1 are dropped, and when dict1 is shorter than
   # 6 bytes the remainder is stolen from dict2. The search still uses the unmodified halves, so
   # only the run dicts change here. head/echo/tail in test.sh drops the line just after line_nr;
@@ -825,7 +825,7 @@ def run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path):
 
       if r.mode == 20510:
         # dict line for this hash: min 0 counts from 1, otherwise it trails the hash by one
-        # because init() left the length 1 line out (test.sh:1428-1434).
+        # because init() left the length 1 line out (test.sh).
         if smin == 0:
           line_nr = i
         elif i > 1:
@@ -843,7 +843,7 @@ def run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path):
       rc, out = run_hashcat(r.opts, r.mode, target, b"", attack=1, extra=[d1p, d2p])
 
       # dict1[k] . dict2[k] reconstructs the word, so the expected plain is the password itself,
-      # the same string -a 0 searches for (test.sh:1498-1505).
+      # the same string -a 0 searches for (test.sh).
 
       matched = match_search(digest, word, r.pass_only) in out
 
@@ -864,7 +864,7 @@ def run_combinator_multi(r, dict1_path, dict2_path):
   hash_file = os.path.join(r.tmp, "m%05d_multihash_combi.bin" % r.mode)
 
   if r.file_only:
-    # test.sh concatenates the decoded files with no separator (test.sh:1597-1605). Reached only
+    # test.sh concatenates the decoded files with no separator (test.sh). Reached only
     # if a non-slow binary hashfile mode ever gains a .py oracle; today none do.
     with open(hash_file, "wb") as fh:
       for _, digest in sel:
@@ -875,7 +875,7 @@ def run_combinator_multi(r, dict1_path, dict2_path):
 
   rc, out = run_hashcat(r.opts, r.mode, hash_file, b"", attack=1, extra=[dict1_path, dict2_path])
 
-  # One hashcat run scored as one test (test.sh:1619-1659): every selected pair has to be in the
+  # One hashcat run scored as one test (test.sh): every selected pair has to be in the
   # output, and each expected plain is the password because the halves rejoin to it.
 
   matched = all(match_search(digest, word, r.pass_only) in out for word, digest in sel)
@@ -905,13 +905,13 @@ def attack_1(r):
 
 
 def mask_dots(count):
-  # test.sh mask_dots (test.sh:3989): a mask of <count> '?d' groups.
+  # test.sh mask_dots (test.sh): a mask of <count> '?d' groups.
 
   return b"?d" * count
 
 
 def mask_3(pos):
-  # test.sh mask_3[] (test.sh:246): 'pos' '?d' groups, but never more than 15 of them; the length
+  # test.sh mask_3[] (test.sh): 'pos' '?d' groups, but never more than 15 of them; the length
   # beyond position 15 is spelled with literal '0's instead.
 
   if pos <= 15:
@@ -921,7 +921,7 @@ def mask_3(pos):
 
 
 def mask_literalize(mask, text):
-  # test.sh mask_literalize (test.sh:4004): rewrite a mask so each position spells the byte that
+  # test.sh mask_literalize (test.sh): rewrite a mask so each position spells the byte that
   # belongs there. A '?x' group and a bare byte each cover one position. If the mask does not cover
   # exactly len(text) bytes it is returned untouched; otherwise a position keeps its token when the
   # matching byte is an ASCII digit and becomes that literal byte otherwise, so a '?d' run can spell
@@ -955,7 +955,7 @@ def mask_literalize(mask, text):
 
 
 def run_verify(mode, digest, crack_lines, tmp):
-  # test.sh output_has_crack fallback (test.sh:411): hand the module's own verify the crack lines
+  # test.sh output_has_crack fallback (test.sh): hand the module's own verify the crack lines
   # that carry this hash and let it say whether one of them hashes back to it.
 
   hashes_file = os.path.join(tmp, "m%05d_verify_hashes" % mode)
@@ -978,7 +978,7 @@ def run_verify(mode, digest, crack_lines, tmp):
 
 
 def output_has_crack(mode, out, word, digest, pass_only, tmp):
-  # test.sh output_has_crack (test.sh:394). The recovered line hash:password is looked for as it was
+  # test.sh output_has_crack (test.sh). The recovered line hash:password is looked for as it was
   # generated first. A mode that drops bits of the password can print a different password with the
   # same hash, so DES for one keeps 7 bits per byte, and a line that is not there verbatim is
   # re-checked by hash through the module's verify. A password only search has no hash to verify
@@ -1000,7 +1000,7 @@ def output_has_crack(mode, out, word, digest, pass_only, tmp):
 
 
 def a3_single_max(mode):
-  # test.sh attack_3 single (test.sh:1697): the number of hashes a single-hash run covers. Some
+  # test.sh attack_3 single (test.sh): the number of hashes a single-hash run covers. Some
   # modes cap it lower because they carry a minimum password length.
 
   if mode in (14000, 14100, 14900, 15400):
@@ -1013,10 +1013,10 @@ def a3_single_max(mode):
 
 
 def a3_single_mask(mode, word, i):
-  # test.sh attack_3 single mask (test.sh:1755): the first i bytes become a '?d' run rewritten to
+  # test.sh attack_3 single mask (test.sh): the first i bytes become a '?d' run rewritten to
   # spell them and the rest of the password trails as literals. 14000 and 14100 hand hashcat the
   # whole password as a literal mask instead, and 20510 drops the leading groups the mode does not
-  # keep (test.sh:1777).
+  # keep (test.sh).
 
   if mode in (14000, 14100):
     return word
@@ -1039,18 +1039,18 @@ def attack_3_single(r):
   i = 1
 
   for word, digest in r.pairs:
-    # test.sh:1721: a slow mode stops after the sixth hash.
+    # test.sh: a slow mode stops after the sixth hash.
     if i > 6 and is_timeout(r.mode):
       break
 
-    # test.sh:1748: a mask cannot produce a password shorter than itself, so that hash is skipped
+    # test.sh: a mask cannot produce a password shorter than itself, so that hash is skipped
     # and does not count.
     if len(word) < i:
       i += 1
 
       continue
 
-    # test.sh:1771: PKZIP master key needs at least two '?d' groups to keep after the cut.
+    # test.sh: PKZIP master key needs at least two '?d' groups to keep after the cut.
     if r.mode == 20510 and i <= 1:
       i += 1
 
@@ -1081,7 +1081,7 @@ def attack_3_single(r):
 
 
 def a3_multi_increment(mode):
-  # test.sh attack_3 multi (test.sh:1882): the --increment window. A slow mode narrows it, and the
+  # test.sh attack_3 multi (test.sh): the --increment window. A slow mode narrows it, and the
   # modes with a minimum password length move it up.
 
   increment_min = 1
@@ -1095,7 +1095,7 @@ def a3_multi_increment(mode):
 
 
 def a3_custom_charsets(mode, sel_passwords):
-  # test.sh attack_3 multi (test.sh:2009): 2500, 16800 and 22000 pin the mask to ?d?d?d?d?d?1?2?3?4
+  # test.sh attack_3 multi (test.sh): 2500, 16800 and 22000 pin the mask to ?d?d?d?d?d?1?2?3?4
   # and build the -1..-4 charsets out of the bytes the passwords carry at positions 6, 7, 8 and 9.
   # All three run outside the kernel, so a mode-3 run never reaches this today; it is kept so the
   # port stays faithful to test.sh.
@@ -1122,7 +1122,7 @@ def a3_custom_charsets(mode, sel_passwords):
 
 
 def attack_3_multi(r):
-  # test.sh:1873: the modes with one hash each have no multi-hash run.
+  # test.sh: the modes with one hash each have no multi-hash run.
   if has_multi_hash(r.mode):
     return
 
@@ -1134,7 +1134,7 @@ def attack_3_multi(r):
   head_hashes = sum(1 for w in words if len(w) <= increment_max)
   tail_hashes = sum(1 for w in words if increment_min <= len(w) <= increment_max)
 
-  # test.sh:1934: one --increment run cannot spell a password that carries a multi byte character,
+  # test.sh: one --increment run cannot spell a password that carries a multi byte character,
   # so an hcmask file with one mask per password is used whenever a character is in play, and when
   # no password falls in the increment window at all.
 
@@ -1195,7 +1195,7 @@ def attack_3_multi(r):
     mask_arg = dict_path
 
   # The custom-charset modes replace the mask outright; increment_charset_opts carries the charsets
-  # only on the plain --increment path (test.sh:2005, 2242).
+  # only on the plain --increment path (test.sh).
 
   custom = a3_custom_charsets(r.mode, words[:len(sel)])
 
@@ -1211,7 +1211,7 @@ def attack_3_multi(r):
   rc, out = run_hashcat(r.opts, r.mode, hash_file, None, attack=3,
                         extra=increment_opts + [mask_arg])
 
-  # test.sh:2260: one hashcat run scored as one test; every selected pair must be in the output,
+  # test.sh: one hashcat run scored as one test; every selected pair must be in the output,
   # matched by hash where the printed password differs from the generated one.
 
   c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
@@ -1243,7 +1243,7 @@ def attack_3(r):
 # reuse the single-hash dict split from attack_1 (split_for_combinator) for their word halves and
 # the mask helpers from attack_3. Their multi-hash runs need one more thing, a fresh batch of eight
 # passwords per length split into a word file and a mask, the way test.sh init () builds
-# dict1_multi/dict2_multi (test.sh:818-880). MULTI_CACHE holds each batch so a length is asked of the
+# dict1_multi/dict2_multi (test.sh). MULTI_CACHE holds each batch so a length is asked of the
 # oracle once, not once per width and attack.
 
 MULTI_CACHE = {}
@@ -1269,7 +1269,7 @@ def hybrid_extra(items):
 
 
 def multi_len_params(mode):
-  # test.sh init () multi split (test.sh:791-816). min_len shifts the split toward the tail, and a
+  # test.sh init () multi split (test.sh). min_len shifts the split toward the tail, and a
   # fixed_len mode draws every length slot at that one length except the slot that already matches.
 
   min_len   = 0
@@ -1302,7 +1302,7 @@ def multi_len_params(mode):
 
 
 def multi_pairs(mode, i, optimized):
-  # test.sh init () (test.sh:834-845): the eight passwords for length slot i, from the same oracle
+  # test.sh init () (test.sh): the eight passwords for length slot i, from the same oracle
   # run_oracle uses. A fixed_len mode asks for fixed_len instead, except when the slot already is
   # that length. Empty when the requested length is outside the mode's word range, which is what an
   # empty _multi_${i} file is in test.sh.
@@ -1340,7 +1340,7 @@ def multi_pairs(mode, i, optimized):
 
 
 def build_multi_dicts(mode, i, pairs):
-  # test.sh init () (test.sh:858-876): split each length-i password into dict1_multi (head) and
+  # test.sh init () (test.sh): split each length-i password into dict1_multi (head) and
   # dict2_multi (tail) at i/2 + min_len, moved back to a UTF-8 boundary. The offset carries from one
   # password to the next exactly as the shell loop leaves it, which only matters once a split lands
   # inside a multi byte character.
@@ -1374,7 +1374,7 @@ def write_hashes(path, pairs, mode, file_only):
 
 
 def a6_single_params(mode):
-  # test.sh attack_6 single (test.sh:2333-2359). mask_offset drives a first-line custom split that
+  # test.sh attack_6 single (test.sh). mask_offset drives a first-line custom split that
   # attack_6 builds but never runs, so only min and max are read here.
 
   min_i, max_i = 1, 8
@@ -1404,7 +1404,7 @@ def attack_6_single(r):
   for idx, (word, digest) in enumerate(r.pairs):
     i = idx + 1
 
-    # test.sh:2393: a slow mode stops after the sixth hash.
+    # test.sh: a slow mode stops after the sixth hash.
     if i > 6 and is_timeout(r.mode):
       break
 
@@ -1423,7 +1423,7 @@ def attack_6_single(r):
         # PKZIP master key: hashcat is fed the key without its 6 byte prefix.
         pass_b = pass_b[6:]
 
-      # test.sh:2433: the index is the mask length, capped one byte below the password so a mode
+      # test.sh: the index is the mask length, capped one byte below the password so a mode
       # with only short passwords still produces a case. A password that leaves no room for a word
       # is skipped and does not count.
 
@@ -1448,7 +1448,7 @@ def attack_6_single(r):
                             extra=hybrid_extra([dict1_a6, mask]))
 
       # The search reconstructs the password from the unmodified single dicts at line i-1, so it
-      # carries the whole password even for 20510 whose run word was cut (test.sh:2501-2514).
+      # carries the whole password even for 20510 whose run word was cut (test.sh).
 
       line_nr = i - 1 if i > 1 else 1
 
@@ -1466,7 +1466,7 @@ def attack_6_single(r):
 
 
 def a6_multi_params(mode):
-  # test.sh attack_6 multi (test.sh:2587-2615).
+  # test.sh attack_6 multi (test.sh).
 
   min_i, max_i = 1, 9
 
@@ -1523,7 +1523,7 @@ def attack_6_multi(r):
     write_dict(dict1_mp, d1)
 
     # The eight passwords of a length share one mask over the tail dict1 does not hold, spelled by
-    # any of them since the length seeds their layout (test.sh:2653-2656).
+    # any of them since the length seeds their layout (test.sh).
 
     multi_model = pairs[0][0] if pairs else b""
     multi_head  = d1[0] if d1 else b""
@@ -1563,7 +1563,7 @@ def attack_6(r):
 
 
 def a7_single_params(mode):
-  # test.sh attack_7 single (test.sh:2743-2770). mask_offset drives the min == 0 custom split.
+  # test.sh attack_7 single (test.sh). mask_offset drives the min == 0 custom split.
 
   min_i, max_i, mask_offset = 1, 8, 0
 
@@ -1600,7 +1600,7 @@ def attack_7_single(r):
   write_dict(dict2_base, dict2_lines)
 
   # The min == 0 modes build a one line custom pair from the first password, split at mask_offset
-  # (test.sh:2774-2800). The custom mask test.sh forms there is overwritten below, so only the dicts
+  # (test.sh). The custom mask test.sh forms there is overwritten below, so only the dicts
   # matter. test.sh's earlier mask from the length-slot files, and the 2500/16800/22000 prefix
   # tweaks, are overwritten the same way and left out.
 
@@ -1635,7 +1635,7 @@ def attack_7_single(r):
       active   = custom_active
 
       if r.mode == 20510:
-        # test.sh:2901-2927. The length-slot mask only sizes the split, then a one line custom pair
+        # test.sh. The length-slot mask only sizes the split, then a one line custom pair
         # is rebuilt around the 6 byte prefix the mode drops.
         pass_full = sed_line(dict1_lines, line_nr) + sed_line(dict2_lines, line_nr)
 
@@ -1663,7 +1663,7 @@ def attack_7_single(r):
 
       # -a 7 is mask plus dict, dict2 holds the tail, so the mask spells the head that dict1 holds.
       # It is built from what dict1 actually holds rather than from a fixed table, because a split
-      # moved to a character boundary changes dict1's length (test.sh:2946-2947).
+      # moved to a character boundary changes dict1's length (test.sh).
 
       dict1_line = sed_line(d1_lines, line_nr)
       mask       = mask_literalize(mask_dots(len(dict1_line)), dict1_line)
@@ -1685,7 +1685,7 @@ def attack_7_single(r):
 
 
 def a7_multi_max(mode):
-  # test.sh attack_7 multi (test.sh:3047-3082). 33500 sets a min the loop never reads, so only max
+  # test.sh attack_7 multi (test.sh). 33500 sets a min the loop never reads, so only max
   # is carried here.
 
   max_i = 9
@@ -1732,7 +1732,7 @@ def attack_7_multi(r):
     d1, d2 = build_multi_dicts(r.mode, i, pairs)
 
     # The mask spells the head dict2 does not hold. 40001 and 40002 read it from a table instead,
-    # but neither has a python oracle so neither is reached here (test.sh:3098-3104).
+    # but neither has a python oracle so neither is reached here (test.sh).
 
     multi_head = d1[0] if d1 else b""
     mask       = mask_literalize(mask_dots(len(multi_head)), multi_head)
@@ -1740,7 +1740,7 @@ def attack_7_multi(r):
     write_hashes(hash_file, pairs, r.mode, r.file_only)
 
     if r.file_only:
-      # test.sh:3125-3145: a file based mode keeps the mask short by moving the rest of each
+      # test.sh: a file based mode keeps the mask short by moving the rest of each
       # password into a dict of its own, since a mode like WPA has a minimum length of 8.
       mask_len   = len(mask) // 2
       long_lines = [(d1[j] + d2[j])[mask_len:] for j in range(len(pairs))]
@@ -1793,13 +1793,13 @@ def attack_7(r):
 
 # The modes attack_12 reports Skip for outright: a mode that accepts one candidate length only has
 # nothing for a mask on both sides of the word to vary, and 20510 reports a plaintext that is not the
-# candidate it was given. attack_6 and attack_7 already cover these (test.sh:3261-3263, 3515-3517).
+# candidate it was given. attack_6 and attack_7 already cover these (test.sh).
 
 A12_SKIP = {14000, 14100, 14900, 15400, 20510}
 
 
 def a12_single_max(mode):
-  # test.sh attack_12 single (test.sh:3244-3253): the highest 1-based hash index a single run covers.
+  # test.sh attack_12 single (test.sh): the highest 1-based hash index a single run covers.
 
   if mode in (2500, 16800, 22000):
     return 6
@@ -1809,7 +1809,7 @@ def a12_single_max(mode):
 
 def report_skip_counts(r, target_name):
   # test.sh attack_12 forces the summary to Skip for an A12_SKIP mode while still printing the zeroed
-  # counts line, not the reason form report_skip uses (test.sh:3460-3464, 3634-3638). The loop breaks
+  # counts line, not the reason form report_skip uses (test.sh). The loop breaks
   # before any candidate runs, so every count is zero.
 
   c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
@@ -1838,7 +1838,7 @@ def attack_12_single(r):
   for idx, (word, digest) in enumerate(r.pairs):
     i = idx + 1
 
-    # test.sh:3271: a slow mode stops after the sixth hash.
+    # test.sh: a slow mode stops after the sixth hash.
     if i > 6 and is_timeout(r.mode):
       break
 
@@ -1856,7 +1856,7 @@ def attack_12_single(r):
       # Some of the password becomes mask, the rest is the word. The mask is split between the two
       # sides of the word so the shape with a mask on both sides has something on both, and it is
       # capped at four characters because -a 12 uploads the mask rather than expanding it on the
-      # device (test.sh:3304-3308).
+      # device (test.sh).
 
       mask_len = i
 
@@ -1866,7 +1866,7 @@ def attack_12_single(r):
       head_len = mask_len // 2
       word_len = pass_len - mask_len
 
-      # test.sh:3314: no room for a word means the hash is skipped and does not count.
+      # test.sh: no room for a word means the hash is skipped and does not count.
       if word_len >= 1:
         head_end   = utf8_split_point(word, head_len)
         tail_start = utf8_split_point(word, head_len + word_len)
@@ -1889,7 +1889,7 @@ def attack_12_single(r):
             head_word = word[head_end:tail_start]
             mask      = mask_head + b"?w" + mask_tail
           else:
-            # The word itself is cut in two, so ?w and ?q each carry one half (test.sh:3369-3381).
+            # The word itself is cut in two, so ?w and ?q each carry one half (test.sh).
             q_end = utf8_split_point(word, head_end + (tail_start - head_end) // 2)
 
             if q_end <= head_end or q_end >= tail_start:
@@ -1902,8 +1902,8 @@ def attack_12_single(r):
             mask  = mask_head + b"?w?q" + mask_tail
             dicts = [dict1_a12, dict2_a12]
 
-          # dict1 with the run word appended, so hashcat finds it among others (test.sh:3319-3320,
-          # 3386). test.sh shuffles the file here, which only reorders candidates it tries all of,
+          # dict1 with the run word appended, so hashcat finds it among others (test.sh).
+          # test.sh shuffles the file here, which only reorders candidates it tries all of,
           # so the shuffle is left out.
 
           write_dict(dict1_a12, dict1_lines + [head_word])
@@ -1933,7 +1933,7 @@ def attack_12_multi(r):
 
   c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
 
-  # test.sh's -a 12 multi window matches attack_6's exactly (test.sh:3483-3511 vs 2587-2615).
+  # test.sh's -a 12 multi window matches attack_6's exactly (test.sh vs 2587-2615).
 
   min_i, max_i = a6_multi_params(r.mode)
   optimized    = not r.args.pure
@@ -1958,7 +1958,7 @@ def attack_12_multi(r):
     write_dict(dict2_mp, d2)
 
     # The two halves of the length let one shape put the word in front of the mask and the other
-    # behind it, the tail and head dict1 and dict2 already hold (test.sh:3556-3567).
+    # behind it, the tail and head dict1 and dict2 already hold (test.sh).
 
     multi_model = pairs[0][0] if pairs else b""
     multi_head  = d1[0] if d1 else b""
@@ -2028,7 +2028,7 @@ ATTACKS = {
 
 def sed_capture(info, pattern):
   # Mirror sed -n 's/.*<pattern>.*/\1/p' applied line by line, which is how selftest_vector_read
-  # pulls a value out of the --machine-readable JSON (test.sh:6303-6305). The wrapping .* are greedy,
+  # pulls a value out of the --machine-readable JSON (test.sh). The wrapping .* are greedy,
   # so the value is anchored on the key that follows it; only the one JSON line matches here.
 
   rx = re.compile(b".*" + pattern + b".*")
@@ -2045,7 +2045,7 @@ def sed_capture(info, pattern):
 
 
 def selftest_vector_read(mode):
-  # test.sh selftest_vector_read (test.sh:6274): read a mode's self-test vector out of hashcat with
+  # test.sh selftest_vector_read (test.sh): read a mode's self-test vector out of hashcat with
   # --hash-info --machine-readable. The machine-readable form is the trustworthy one, since the
   # human-readable Example.Hash line is truncated past 200 characters. Returns
   # (hash, pass, format, deprecated) as bytes/str/bool, or None when the mode has no usable vector.
@@ -2063,7 +2063,7 @@ def selftest_vector_read(mode):
   vfmt  = sed_capture(info, rb'"example_hash_format": "([^"]*)"')
 
   # json_encode() escapes a backslash and a double quote, so undo that, in the same order test.sh
-  # does: '\"' back to '"' first, then '\\' back to '\' (test.sh:6308).
+  # does: '\"' back to '"' first, then '\\' back to '\' (test.sh).
 
   vhash = vhash.replace(b'\\"', b'"').replace(b"\\\\", b"\\")
 
@@ -2076,7 +2076,7 @@ def selftest_vector_read(mode):
 
 
 def selftest_write_hash(mode, vhash, vfmt, path):
-  # test.sh selftest_vector_test's hash-file write (test.sh:6344-6361). A binary-file mode is handed
+  # test.sh selftest_vector_test's hash-file write (test.sh). A binary-file mode is handed
   # its vector hex encoded, so it is decoded back to raw bytes; "N/A" has no hash to crack; every
   # other format is already the literal hash line. Returns True when a file was written.
 
@@ -2096,7 +2096,7 @@ def selftest_write_hash(mode, vhash, vfmt, path):
 
 
 def container_mask_from_password(pw, where):
-  # test.sh container_mask_from_password (test.sh:3890): the password with one digit given up as a
+  # test.sh container_mask_from_password (test.sh): the password with one digit given up as a
   # '?d', so the run has ten candidates rather than being handed the answer, every other byte staying
   # literal. 'first' or 'last' picks which digit; no digit means nothing to search, so hand the
   # password back as a literal mask.
@@ -2113,7 +2113,7 @@ def container_mask_from_password(pw, where):
 
 
 def build_container_extra(mode, attack, vpass, tmp):
-  # test.sh build_container_cmd (test.sh:5628), the branches the self-test path reaches. It returns
+  # test.sh build_container_cmd (test.sh), the branches the self-test path reaches. It returns
   # the argv that follows the hash for run_hashcat: a wordlist for -a 0, two dicts for -a 1, a mask
   # for -a 3, dict then mask for -a 6, mask then dict for -a 7. None for an attack it does not build.
 
@@ -2165,7 +2165,7 @@ def build_container_extra(mode, attack, vpass, tmp):
 
 
 def selftest_status(rc):
-  # test.sh status() as container_run_and_report calls it (test.sh:885, 5608): bucket the raw hashcat
+  # test.sh status() as container_run_and_report calls it (test.sh): bucket the raw hashcat
   # exit code. Unlike the oracle attacks there is no cracked-but-not-matched rewrite, because the
   # self-test path checks the exit code alone, not the output.
 
@@ -2192,7 +2192,7 @@ def selftest_status(rc):
 
 
 def selftest_verdict(e):
-  # test.sh container_run_and_report's message (test.sh:5612), with cnt fixed at 1.
+  # test.sh container_run_and_report's message (test.sh), with cnt fixed at 1.
 
   if e["ce"]:
     return "Compare Error"
@@ -2212,7 +2212,7 @@ def selftest_verdict(e):
 def selftest_context(args, mode, attack, width_label):
   # Like context() but for the self-test line: it always says single, carries the width as a label so
   # the sweep can pass "default", and ends with the ", self-test vector" tag container_run_and_report
-  # adds (test.sh:5623).
+  # adds (test.sh).
 
   return ("[ test.py ] [ Type %d, Attack %d, Mode single, Device-Type %s, Kernel-Type %s, "
           "Vector-Width %s, self-test vector ]"
@@ -2221,7 +2221,7 @@ def selftest_context(args, mode, attack, width_label):
 
 
 def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
-  # test.sh selftest_vector_test (test.sh:6321): crack a mode's own example hash. Returns the output
+  # test.sh selftest_vector_test (test.sh): crack a mode's own example hash. Returns the output
   # lines (a Skip, an Error, or the one report line) so the caller can print them and, for the sweep,
   # read the verdict back. attack 65535 means -a all, which this path runs as a single -a 0 run.
 
@@ -2261,11 +2261,11 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
     return lines
 
   if deprecated:
-    # A deprecated mode is refused without this (test.sh:6374).
+    # A deprecated mode is refused without this (test.sh).
     extra = extra + ["--deprecated-check-disable"]
 
   # The startup self test would re-derive the same vector on every launch, so skip it and let the
-  # run itself be the test (test.sh:6380).
+  # run itself be the test (test.sh).
 
   extra = extra + ["--self-test-disable"]
 
@@ -2282,7 +2282,7 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
 
 
 def run_selftest_normal(args, mode, widths, tmp):
-  # test.sh normal run (test.sh:7341): a slow SELFTEST_MODES member cracks its own example hash once
+  # test.sh normal run (test.sh): a slow SELFTEST_MODES member cracks its own example hash once
   # per vector width, with the requested attack (-a all becomes -a 0 inside selftest_vector_test).
 
   attack = 65535 if args.attack == "all" else int(args.attack)
@@ -2296,7 +2296,7 @@ def run_selftest_normal(args, mode, widths, tmp):
 
 def selftest_opts(args):
   # test.sh -S run options: the base options with --runtime 60 and no --backend-vector-width, since
-  # the sweep leaves VECTOR at "default" (test.sh:6865, 6869).
+  # the sweep leaves VECTOR at "default" (test.sh).
 
   opts = ["--quiet", "--potfile-disable", "--logfile-disable"]
 
@@ -2313,7 +2313,7 @@ def selftest_opts(args):
 
 def sweep_range(spec):
   # test.sh's -S range: "all" walks every mode hashcat reports, a single value or a range narrows it
-  # (test.sh:6410-6414). Returns (lo, hi, all_modes).
+  # (test.sh). Returns (lo, hi, all_modes).
 
   if spec == "all":
     return (0, 0, True)
@@ -2337,7 +2337,7 @@ def sweep_range(spec):
 
 
 def selftest_vector_sweep(args):
-  # test.sh selftest_vector_sweep (test.sh:6385): crack every hash-mode's own example hash, or the
+  # test.sh selftest_vector_sweep (test.sh): crack every hash-mode's own example hash, or the
   # ones in the -m range, and print one line per mode that did not crack. Returns the exit code.
 
   proc = subprocess.run([BIN, "--hash-info"], cwd=ROOT,
@@ -2383,7 +2383,7 @@ def selftest_vector_sweep(args):
 
       # test.sh buckets on the captured output. Its SKIPPED_LIST check for a skipped mode always
       # falls through to "did not crack", because selftest_vector_test runs in a $(...) subshell and
-      # its record_skip never reaches the parent's list (test.sh:6418-6432). So anything that is not
+      # its record_skip never reaches the parent's list (test.sh). So anything that is not
       # OK or Warning, a skip included, is counted as not cracked, and print_skip_summary at the end
       # of the sweep prints nothing.
 
@@ -2504,7 +2504,7 @@ def main():
     die("! no hashcat binary at %s, build it first" % BIN)
 
   # -S runs on its own: it walks every hash-mode hashcat reports rather than the .py oracle set, so
-  # it reaches the modes that have no oracle, and it needs no oracle engine (test.sh:6956).
+  # it reaches the modes that have no oracle, and it needs no oracle engine (test.sh).
 
   if args.selftest_all:
     sys.exit(selftest_vector_sweep(args))
@@ -2540,7 +2540,7 @@ def main():
         continue
 
       # A SELFTEST_MODES member with no .py oracle takes the self-test vector path. test.sh runs it
-      # only for a slow mode, in the else branch of its per-width loop (test.sh:7341), so a mode
+      # only for a slow mode, in the else branch of its per-width loop (test.sh), so a mode
       # that is not slow prints no line, just as test.sh does. 23800 is the only member and is slow.
 
       if mode not in py_modes:
@@ -2564,7 +2564,7 @@ def main():
       pass_only = file_only or mode in NOCHECK_ENCODING
 
       # PKZIP master key only has a single hash test; a forced multi run is skipped outright
-      # (test.sh:7258-7263).
+      # (test.sh).
 
       mode_targets = targets
 

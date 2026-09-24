@@ -84,6 +84,9 @@ u8 lo = (code >> 0) & 0xF;
 
 * `//` for a comment. `/** ... */` only for the file header.
 * A comment goes on its own line above the code it describes, not trailing it.
+* Do not cite another file by line number in a comment. Line numbers go stale the moment either
+  file changes, so `see test.sh:7263` is wrong within a commit or two. Name the file, and the
+  function or variable if it helps, instead: `see test.sh` or `mirrors test.sh PASS_ONLY`.
 * Project includes first, then system includes, separated by a blank line.
 * Every source file opens with:
 
