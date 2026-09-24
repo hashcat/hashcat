@@ -107,21 +107,33 @@ def header(token_cnt, sep):
 
     return bytes(out)
 
+# ST_HASH as the module spells it. C joins adjacent string literals, and a long example hash
+# is sometimes written as several of them, so every literal up to the ';' is taken. A module
+# whose ST_HASH is NULL or not a literal gives None.
+
+ST_HASH_RE = re.compile(r'static const char \*ST_HASH\s*=\s*((?:\s*"(?:[^"\\]|\\.)*")+)\s*;')
+LITERAL_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+def st_hash(source):
+    match = ST_HASH_RE.search(source)
+
+    if match is None:
+        return None
+
+    text = "".join(LITERAL_RE.findall(match.group(1)))
+
+    try:
+        return text.encode("utf-8").decode("unicode_escape").encode("latin1")
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        return None
+
 written = 0
 
 for path in sorted(glob.glob("src/modules/module_*.c")):
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
         source = fh.read()
 
-    match = re.search(r'static const char \*ST_HASH\s*=\s*"((?:[^"\\]|\\.)*)"', source)
-
-    if match is None:
-        continue
-
-    try:
-        line = match.group(1).encode("utf-8").decode("unicode_escape").encode("latin1")
-    except (UnicodeDecodeError, UnicodeEncodeError):
-        continue
+    line = st_hash(source)
 
     if not line:
         continue
@@ -156,19 +168,19 @@ for mode in sys.argv[2:]:
         continue
 
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
-        match = re.search(r'static const char \*ST_HASH\s*=\s*"((?:[^"\\]|\\.)*)"', fh.read())
+        line = st_hash(fh.read())
 
-    if match is None:
-        continue
-
-    try:
-        line = match.group(1).encode("utf-8").decode("unicode_escape").encode("latin1")
-    except (UnicodeDecodeError, UnicodeEncodeError):
-        continue
+    # The directory is made even without an example hash (14600 has ST_HASH NULL): fuzz.yml hands
+    # it to libFuzzer, which exits on a corpus directory that does not exist.
 
     target = os.path.join(outdir, "parse_%d" % int(mode))
 
     os.makedirs(target, exist_ok=True)
+
+    if not line:
+        print("seeds: no example hash for -m %d, its seed directory is empty" % int(mode))
+
+        continue
 
     with open(os.path.join(target, "example"), "wb") as out:
         out.write(line)
