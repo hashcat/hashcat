@@ -1,30 +1,19 @@
 # PCFG attacks in hashcat
 
-This document is for someone who has never used a PCFG before. It explains what a PCFG is, how to run
-one in hashcat, and how hashcat's version differs from the original. It does not cover training a
-ruleset. Training is a separate job done by a separate tool, and everything here assumes somebody has
-already handed you a trained ruleset directory.
+This document introduces PCFG attacks to users who have not worked with one before. It explains what a PCFG is, how to run one in hashcat, and how hashcat's version differs from the original. It does not cover training a ruleset. Training is performed by a separate tool. The examples assume that a trained ruleset directory is already available.
 
 ## 1. The idea
 
-Real passwords have a shape. People do not pick random characters, they pick a word and then decorate
-it. `monkey12`, `nicole2010`, `soccer!` and `Daniel99` are all the same idea with different parts
-filled in.
+Real passwords have recognizable structures. Instead of selecting random characters, people often choose a word and decorate it. `monkey12`, `nicole2010`, `soccer!` and `Daniel99` are all the same idea with different parts filled in.
 
-A PCFG, which stands for Probabilistic Context Free Grammar, is a way of writing that down. It splits
-a password into two questions:
+A PCFG, or Probabilistic Context-Free Grammar, represents those structures explicitly. It splits a password into two questions:
 
 1. **What shape is it?** `monkey12` is a six letter word followed by two digits.
 2. **Which word and which digits?** The word is `monkey` and the digits are `12`.
 
-A trained ruleset answers both questions with probabilities. It has learned that "six letters then two
-digits" is a common shape, that `monkey` is a common six letter word, and that `12` is a common pair
-of digits.
+A trained ruleset answers both questions with probabilities. It has learned that "six letters then two digits" is a common shape, that `monkey` is a common six letter word, and that `12` is a common pair of digits.
 
-Multiply the three together and you get the probability of `monkey12`. Do that for every shape and
-every filling, sort by the result, and you have a list of password guesses in order of how likely they
-are. That ordering is the whole point. A wordlist has no opinion about which line is worth trying
-first. A PCFG does.
+Multiplying the three values gives the probability of `monkey12`. Repeating that calculation for every shape and set of terminals produces password guesses ordered by probability. This ordering is the primary benefit. A wordlist does not express which line is most promising, while a PCFG does.
 
 ## 2. What a ruleset looks like
 
@@ -35,7 +24,7 @@ $ ls ruleset
 Alpha  Capitalization  Context  Digits  Grammar  Keyboard  Omen  Other  Years
 ```
 
-`Grammar/grammar.txt` holds the shapes, most likely first:
+File `Grammar/grammar.txt` holds the shapes in descending probability order:
 
 ```
 M       0.40004227816694393
@@ -46,22 +35,19 @@ A7      0.025911933402529241
 A8      0.024715511666296652
 ```
 
-`D6` is "six digits". `A6` is "six alphabetic characters". `A6D2` is "six letters then two digits",
-and it is the shape `monkey12` has. `M` is the other half of the model, a Markov chain rather than a
-grammar shape, and it has section 7.4 to itself. The letters tell you which directory to look in:
+Token `D6` means six digits, `A6` means six alphabetic characters and `A6D2` means six letters followed by two digits, the structure of `monkey12`. Token `M` represents the other half of the model, a Markov chain rather than a grammar structure, and is covered in section 7.4. The letters identify the corresponding directory:
 
 | letter | directory | what it holds |
 |---|---|---|
 | `A` | `Alpha` | words, lowercased |
-| `C` | `Capitalization` | which letters of the word before it are upper case |
+| `C` | `Capitalization` | which letters of the preceding word are uppercase |
 | `D` | `Digits` | runs of digits |
 | `O` | `Other` | runs of symbols |
 | `K` | `Keyboard` | keyboard walks like `qwerty` or `1qaz2wsx` |
 | `X` | `Context` | things that do not fit the others |
 | `Y` | `Years` | four digit years |
 
-The number after the letter is a length, and it is also the file name. So `A6` means
-`Alpha/6.txt`:
+The number after the letter is a length, and it is also the file name. So `A6` means `Alpha/6.txt`:
 
 ```
 $ head -4 ruleset/Alpha/6.txt
@@ -81,9 +67,7 @@ $ head -4 ruleset/Digits/2.txt
 10      0.033652927222128988
 ```
 
-Capitalization is worth a word of its own, because it is the one that surprises people. Words in
-`Alpha` are always stored lowercase. Every `A` token carries a hidden `C` token of the same length
-that says which letters to upper case afterwards:
+Capitalization requires separate explanation because it is represented indirectly. Words in `Alpha` are always stored lowercase. Every `A` token carries a hidden `C` token of the same length that specifies which letters to uppercase afterward:
 
 ```
 $ head -4 ruleset/Capitalization/6.txt
@@ -93,9 +77,7 @@ UUUUUU  0.0099566830879285681
 LLLLLU  0.0013423768152759595
 ```
 
-`LLLLLL` means leave it alone, and it is what most six letter words do. `ULLLLL` means
-capitalise the first letter. This is why `monkey` and `Monkey` are one entry in `Alpha/6.txt` and not
-two: the ruleset stores the word once and the shape decides the case.
+Mask `LLLLLL` leaves a six-letter word lowercase and is the most common case. Mask `ULLLLL` capitalizes its first letter. This is why `monkey` and `Monkey` are one entry in `Alpha/6.txt` and not two: the ruleset stores the word once and the shape decides the case.
 
 So `monkey12` is `A6` + `C6` + `D2`, and its probability is:
 
@@ -103,15 +85,11 @@ So `monkey12` is `A6` + `C6` + `D2`, and its probability is:
 P(A6D2) x P("monkey") x P("LLLLLL") x P("12")
 ```
 
-which is `0.0378 x 0.00263 x 0.865 x 0.0817`, or about one in 142,000. Every candidate in the run gets
-a number like that, and the run walks them from the largest down.
+The result is `0.0378 x 0.00263 x 0.865 x 0.0817`, or approximately one in 142,000. Every candidate receives such a value, and the attack enumerates them from highest to lowest probability.
 
-hashcat reads the directories in the table above, plus `Grammar` and plus `Omen` for the `M` shape. A
-ruleset from the trainer also has `Prince`, `Masks`, `Emails` and `Websites` directories and a
-`config.ini`. hashcat ignores those, so you can delete them if you want the ruleset smaller.
+hashcat reads the directories in the table above, along with `Grammar` and, for the `M` structure, `Omen`. A ruleset from the trainer also has `Prince`, `Masks`, `Emails` and `Websites` directories and a `config.ini`. hashcat ignores those, so you can delete them if you want the ruleset smaller.
 
-A ruleset does not have to be a directory. The whole of it in one `.tar.xz` works wherever a ruleset
-is named, and a ruleset trained on `example.dict` is 3.2 MB as a directory and 275 KB as one file:
+A ruleset does not have to be a directory. The whole of it in one `.tar.xz` works wherever a ruleset is named, and a ruleset trained on `example.dict` is 3.2 MB as a directory and 275 KB as one file:
 
 ```
 tar cf - -C /path/to/ruleset . | xz -9 > ruleset.tar.xz
@@ -119,12 +97,9 @@ tar cf - -C /path/to/ruleset . | xz -9 > ruleset.tar.xz
 ./hashcat -m 0 -a 4 example0.hash ruleset.tar.xz
 ```
 
-A `./` in front of every member, or one directory every member shares, is stripped, so it does not
-matter which way the archive was built.
+hashcat strips a leading `./` or one common top-level directory from every member, so either archive layout works.
 
-Single files may be compressed instead, with `.xz` appended: hashcat looks for `Alpha/8.txt` and then
-for `Alpha/8.txt.xz`. Compress the whole ruleset, part of it, or none of it, and the run is the same
-run either way.
+Single files may be compressed instead, with `.xz` appended: hashcat looks for `Alpha/8.txt` and then for `Alpha/8.txt.xz`. Compress the whole ruleset, part of it, or none of it, and the run is the same run either way.
 
 ```
 find /path/to/ruleset -type f -exec xz -9 {} +
@@ -132,7 +107,7 @@ find /path/to/ruleset -type f -exec xz -9 {} +
 
 ## 3. Running it
 
-PCFG is attack-mode 4, and it needs nothing but a hash file:
+PCFG uses attack mode 4 and can run with only a hash file:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash
@@ -146,43 +121,33 @@ To use your own instead, name it after the hash file:
 ./hashcat -m 0 -a 4 example0.hash /path/to/ruleset
 ```
 
-Name several and they run together, each with an equal share of the run. Merging rulesets that know
-different things reaches candidates none of them reaches alone, which is what section 6 is about, and
-`weights=` says how much of the run each one is worth. Every other setting is yours to change.
+Name several rulesets to merge them with equal shares by default. Combining rulesets trained on different data can produce candidates that none can reach alone, as described in section 6. Setting `weights=` controls the share assigned to each ruleset.
 
-A ruleset that is installed, whether hashcat's or your own, is named rather than pathed, the same way
-`-m 0` names a hash mode and `-a 8 wordlist` names a feed:
+An installed ruleset, whether bundled or user-provided, can be selected by name just as `-m 0` selects a hash mode and `-a 8 wordlist` selects a feed:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash example
 ```
 
-A name is looked for in two places, yours first:
+hashcat searches two locations for a named ruleset, checking the user location first:
 
 ```
 <profile>/pcfg/<name>        $XDG_DATA_HOME/hashcat/pcfg, or ~/.local/share/hashcat/pcfg
 <shared>/pcfg/<name>         where make install puts what hashcat ships
 ```
 
-and in each of them a directory is preferred to a `<name>.tar.xz` of the same name. **Anything holding
-a slash is a path and is never looked for**, so every ruleset already named by path keeps meaning
-exactly what it did. A name that matches nothing is tried as a path too, so a ruleset directory
-sitting in the working directory still works.
+In each location, a directory takes precedence over a `<name>.tar.xz` archive with the same name. **Any value containing a slash is treated as a path and is not searched by name**, preserving the behavior of existing commands. An unmatched name is also tried as a path, so a ruleset directory in the working directory still works.
 
 ### 3.1. The rulesets hashcat ships
 
-Two. `-a 4` with no ruleset named runs the first.
+hashcat ships two rulesets. Attack mode 4 uses the first when none is specified.
 
 | ruleset | what it is |
 |---|---|
 | `default-passwords` | trained on passwords, which is what a password guesser wants first |
 | `hints` | the same grammar with the words taken out, for when you supply them yourself. Section 4 |
 
-A ruleset trained on ordinary language covers words a password list does not have, and merging one
-with `default-passwords` reaches candidates neither reaches alone. hashcat does not ship such a
-ruleset, because the text it would be trained on carries a licence of its own, and shipping a model
-built from that text asks a question nobody needs asked. `pcfg/README.md` in the hashcat tree has the
-tool that builds one, so the text is yours to fetch and the ruleset is yours to train.
+A ruleset trained on ordinary language covers words a password list does not have, and merging one with `default-passwords` reaches candidates neither reaches alone. hashcat does not ship such a ruleset, because the training text carries a licence of its own. Train one with `pcfg_cracker`, whose ruleset format the feed reads directly, using text you are permitted to obtain and process.
 
 Name your own beside the shipped one and both run:
 
@@ -196,16 +161,13 @@ Two rulesets get an even split. Weight it toward whichever you trust more:
 ./hashcat -m 0 -a 4 example0.hash default-passwords my-russian weights=2:1
 ```
 
-What runs underneath is a feed for attack-mode 8, which is hashcat's mode for a generator plugin, and
-`-a 4` is rewritten into it before anything else reads the command line. See
-`hashcat-generic-attack-mode.md` for what attack-mode 8 is in general. The longer form still works and
-is the same attack, so a script written before `-a 4` existed keeps running:
+Internally, PCFG is an attack mode 8 feed, and `-a 4` is rewritten to that generic form before downstream code reads the command line. See `hashcat-generic-attack-mode.md` for what attack-mode 8 is in general. The longer form still works and is the same attack, so a script written before `-a 4` existed keeps running:
 
 ```
 ./hashcat -m 0 -a 8 example0.hash pcfg /path/to/ruleset
 ```
 
-Everything below is written in the short form.
+The remaining examples use the shorter attack mode 4 form.
 
 Here is a real run against hashcat's own example hashes, stopped after twenty seconds:
 
@@ -225,8 +187,7 @@ Candidate.Engine.: Device Generator
 Candidates.#01...: MOnTpeL55 -> NACHTEn55
 ```
 
-Three quarters of the list in twenty seconds, having looked at one candidate in every sixty eight
-thousand. That ratio is what a PCFG is for.
+The run recovers three quarters of the list in 20 seconds after testing approximately one candidate in every 68,000. Prioritizing that small fraction is the purpose of a PCFG.
 
 The passwords it finds look like what the grammar describes:
 
@@ -256,20 +217,13 @@ pcfg: device engine il=134217728, terminal pool 3417 KiB, 240901302469 base word
 
 Line by line:
 
-* **3582 structures, 134 terminal lists.** How many shapes the ruleset knows and how many value files
-  were loaded for them.
-* **device engine.** Which half of the feed your hash mode picked. Read this one first: everything below
-  it is a fast hash's, and a slow hash prints different lines. Section 7.3 says where the line is drawn.
-* **candidate bound 63 bytes.** The longest candidate this run will produce. It is chosen from the
-  ruleset. A ruleset with very long entries gets a bigger bound and pays a little speed for it.
-* **inner loop 27 bits, 7414 candidates to a cell.** How many candidates the graphics card will
-  generate from one base word, near the start of the run. Also chosen from the ruleset.
-* **240901302469 base words for 1308976582820259 candidates (x5434).** The important one. Your CPU
-  produces 240 billion base words and the card turns them into 1.3 quadrillion candidates, so each
-  base word is worth about 5434 candidates. This is why a PCFG attack in hashcat is not limited by how
-  fast one CPU core can generate guesses.
+* The **3582 structures, 134 terminal lists** line reports the number of known shapes and loaded value files.
+* The **device engine** line identifies which implementation the hash mode selected. The remaining lines in this example describe a fast hash. A slow hash prints different details, as explained in section 7.3.
+* The **candidate bound** is the longest candidate the run can produce, as derived from the ruleset. Very long entries increase this bound and impose a small performance cost.
+* The **inner loop** and **candidates to a cell** values describe how many candidates the GPU generates from one base word near the beginning of the run. These values are also derived from the ruleset.
+* The **base words for candidates** line shows device amplification. Here, the host produces 240 billion base words and the GPU expands them into 1.3 quadrillion candidates, averaging approximately 5,434 candidates per base word. This prevents candidate generation by one CPU core from limiting the attack.
 
-A slow hash says this instead:
+A slow hash reports this instead:
 
 ```
 pcfg: 1427 structures, 51 terminal lists
@@ -284,16 +238,13 @@ Guess.Base.......: Feed (/path/to/ruleset (scale 1, host, OMEN))
 Guess.Base.......: Feed (/path/to/ruleset (scale 1, device))
 ```
 
-Section 7.3 says where the line between the two is drawn and section 7.4 says what the escape is.
+Section 7.3 explains how hashcat selects between the two engines, and section 7.4 describes the escape.
 
 ## 4. Attacking one person with what you know about them
 
-A trained ruleset answers two questions, "what shape is it" and "which word". Sometimes you already
-know the word. You are cracking one person's password and you know their partner's name, the year they
-were born, the car they drive and the team they support. What you do not know is what they did to it.
+A trained ruleset answers two questions: what is the structure, and which word fills it? Sometimes you already know the word. You are cracking one person's password and you know their partner's name, the year they were born, the car they drive and the team they support. What you do not know is what they did to it.
 
-`hints` is the second ruleset hashcat ships, and it is the first question without the second. Name the
-words and it wraps them in everything people wrap words in:
+The bundled `hints` ruleset provides the structures without supplying the words. Provide the known words and the grammar applies common surrounding patterns:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash hints hintwords=tom,sarah,1992,bmw,bears,chicago
@@ -308,30 +259,15 @@ tombears tomchicago sarah1992 1992sarah bmwtom bearstom chicagotom Bmw Bears Chi
 TOM tom13 tom10 tom01 tom22 tom23 tom21 tom99 sarah12 sarah11 199212 ...
 ```
 
-Every word on its own, every pair of them in both orders, every one with the digits and years and
-symbols people actually append, capitalised and uppercased, and it does not stop. The order is the
-trained one: `tom123` comes before `tomchicago` because a word followed by three digits is a more
-common shape than two words joined, and no hand written rule put it there.
+The attack tries each word alone, every pair in both orders, and common combinations with digits, years, symbols and capitalization. The grammar is unbounded. The order is the trained one: `tom123` comes before `tomchicago` because a word followed by three digits is a more common shape than two words joined, and no hand written rule put it there.
 
-What is not in there is `tomtom`. Each word is a fact about one person, and a password built on a fact
-holds it once, so a candidate spells each of your words at most once and a shape with two word slots
-joins two different words. The grammar on its own has no such opinion: it learned that a password is
-often two letter runs with something between them, and once every letter run is one token those shapes
-read `football2football5football` as readily as `tom1sarah`. Over the first 2 million candidates of the
-six words above, 53 per cent of them were a word against itself.
+Candidate `tomtom` is intentionally absent. Each word is a fact about one person, and a password built on a fact holds it once, so a candidate spells each of your words at most once and a shape with two word slots joins two different words. The grammar on its own has no such opinion: it learned that a password is often two letter runs with something between them, and once every letter run is one token those shapes read `football2football5football` as readily as `tom1sarah`. Over the first 2 million candidates of the six words above, 53 per cent of them were a word against itself.
 
-The rule is on the word rather than on the bytes, so `tomTom` goes with `tomtom`. The years and digits
-the grammar appends are its own and are not counted against you, so `1992` as a hint still meets `1992`
-as a year, which is why `19921992` survives.
+The rule is on the word rather than on the bytes, so `tomTom` goes with `tomtom`. The years and digits the grammar appends are its own and are not counted against you, so `1992` as a hint still meets `1992` as a year, which is why `19921992` survives.
 
-Two ways to ask for the doubles. Name a word twice, `hintwords=tom,tom,sarah`, and it becomes two words
-of the list, which lets a two slot shape take both and costs you `tom` twice wherever one slot was
-enough. Or give `hintrepeat=1` and the whole rule is off.
+There are two ways to allow repeated hints. Naming a word twice, as in `hintwords=tom,tom,sarah`, creates two list entries that can fill a two-slot structure, at the cost of duplicating `tom` wherever one slot is sufficient. Setting `hintrepeat=1` disables the restriction for every hint.
 
-This is the attack to reach for when a targeted rule attack has failed and you have facts rather than
-a wordlist. It is not a wordlist attack with extra steps. A wordlist has no opinion about which line to
-try first, and no way to join two of its lines together. This has both, and it got them from the
-training data rather than from a rule somebody wrote.
+This is the attack to reach for when a targeted rule attack has failed and you have facts rather than a wordlist. It is not a wordlist attack with extra steps. A wordlist has no opinion about which line to try first, and no way to join two of its lines together. This has both, derived from the training data rather than a manually written rule.
 
 For more words than fit on a command line, put them in a file:
 
@@ -339,11 +275,9 @@ For more words than fit on a command line, put them in a file:
 ./hashcat -m 0 -a 4 example0.hash hints hintfile=facts.txt
 ```
 
-one per line. A line may carry a tab and a probability behind it, which is the format every terminal
-file in a ruleset is written in, so a list you already trained drops straight in.
+Place one word on each line. A line can include a tab followed by a probability, matching the format of ruleset terminal files and allowing a previously trained list to be used directly.
 
-A word with no probability of its own is worth what its position implies, and `hintrank` decides what
-that is:
+A word with no probability of its own is worth what its position implies, and `hintrank` decides what that is:
 
 | `hintrank` | what it assumes | when to use it |
 |---|---|---|
@@ -351,63 +285,35 @@ that is:
 | `linear` | each word is half as likely as the one before it | a few words you ranked carefully. Word n costs n bits, so only the first `costmax` words of a file are kept at all, 64 of them by default, and the ones in front of that reach less of the grammar the later they are |
 | `flat` | all equally likely | a list in no particular order. Every word is tried on its own before any of them is decorated |
 
-`hints` is derived from `default-passwords` rather than trained separately. `tools/pcfg_hints.py`
-builds it: every letter run in the trained grammar becomes one hint token whatever its length, the
-probabilities of the structures that then collapse together are added up, and the capitalisation masks
-become three that work at any length. 23159 structures become 5104 shapes, and the top of that list is
-the word alone, the word and one to four digits, the word twice, and the word and a year. Retrain the
-default ruleset and rebuild this one from it.
+The `hints` ruleset is derived from `default-passwords` rather than trained separately. Script `tools/pcfg_hints.py` replaces every alphabetic run with one length-independent hint token, adds the probabilities of structures that collapse together and reduces capitalization to three masks that work at any length.
 
-There is no OMEN escape here, deliberately. The trained grammar carries one as the `M` structure,
-worth 40 per cent of its mass, and an OMEN guess is a whole password written character by character
-from a Markov model. It contains none of your words, which is the one thing every candidate in this
-attack is supposed to contain, so carrying it would spend most of the run answering a different
-question. A structure with no letter run in it at all goes for the same reason, and those are another
-10 per cent: a password of only digits is not built on a word you gave. The mass is not lost, it is
-renormalised over the shapes that remain, which is what makes those shapes conditional on the password
-containing one of your words. A hint ruleset therefore has no `M` line at all, the same as a ruleset
-trained at `--coverage 1.0`, and section 7.4 does not apply to it. `-a 4` already drops the escape on
-every fast hash for its own reasons.
+This process converts 23,159 structures into 5,104 shapes. The highest-ranked shapes are a word alone, a word with one to four digits, a repeated word and a word with a year. Retraining the default ruleset requires rebuilding `hints` from it.
 
-What it cannot do is guess a word you did not give it. Every candidate contains one of your words, so
-the attack is only as good as what you know.
+The `hints` ruleset deliberately has no OMEN escape. In the trained grammar, structure `M` represents approximately 40 percent of the probability mass and generates complete passwords character by character from a Markov model. Those candidates contain none of the supplied hints, so retaining the escape would spend most of the run on a different problem.
 
-`-a 9` runs this ruleset too, and takes the words out of the hash file rather than from you: one set
-per hash, cut out of whatever that hash carries about its owner. That is the `hintaccount` setting, and
-`hashcat-association.md` is where it is written up. The once rule is not applied there and `hintrepeat`
-is refused: that attack pairs word N with salt N, so a candidate it declines to build is a hash it
-guesses nothing for, and it has nothing to put in the gap.
+Structures without an alphabetic run are removed for the same reason and account for another approximately 10 percent. Their probability mass is renormalized over the remaining shapes, making the result conditional on the password containing a supplied word. A hint ruleset therefore has no `M` entry, like a ruleset trained with `--coverage 1.0`, and section 7.4 does not apply. Fast hashes already omit the escape for the reasons described there.
 
-It is also slower per candidate than an ordinary ruleset, and section 7.3 says why. A hint word lives
-in hashcat's memory rather than in the ruleset, so the graphics card cannot read it and the slot has
-to stay on the host. What the card is left to expand is whatever comes after the hint, which on many
-of these shapes is no slot at all, so a run makes about two candidates per base word where the trained
-ruleset makes several thousand. It matters less than it sounds, because this attack is aimed at one
-person and the whole point is that it does not need to make quadrillions of guesses. `-r` still
-amplifies on the card if you want the speed back.
+What it cannot do is guess a word you did not give it. Every candidate contains one of your words, so the attack is only as good as what you know.
 
-The status screen reports a large `Rejected` on this ruleset, and that number is the once rule doing its
-work. A position whose words repeat is walked and stepped over rather than left out of the count, so it
-shows up there exactly as an over-length word from a wordlist does. The six words above reject about
-half the positions at the front of the run and about four in five a billion candidates in, and what the
-card is given is the rest. A shape that wants more of your words than you named holds nothing at all, so
-those are dropped when the grammar is read instead, and the line under it says how many. That is most of
-the grammar for a run naming one word: every shape with two word slots.
+Attack mode 9 also uses this ruleset, taking words from the hash file rather than the command line: one set per hash, cut out of whatever that hash carries about its owner. That is the `hintaccount` setting, and `hashcat-association.md` is where it is written up. The once rule is not applied there and `hintrepeat` is refused: that attack pairs word N with salt N, so declining a candidate leaves that hash without a guess and provides no replacement for the gap.
+
+A hint attack also generates candidates more slowly than an ordinary ruleset, for the reason explained in section 7.3. A hint word lives in hashcat's memory rather than in the ruleset, so the graphics card cannot read it and the slot has to stay on the host. What the card is left to expand is whatever comes after the hint, which on many of these shapes is no slot at all, so a run makes about two candidates per base word where the trained ruleset makes several thousand. It matters less than it sounds, because this attack is aimed at one person and the whole point is that it does not need to make quadrillions of guesses. `-r` still amplifies on the card if you want the speed back.
+
+The status display reports a large `Rejected` value for this ruleset because the no-repeat rule discards many positions. A position whose words repeat is walked and stepped over rather than left out of the count, so it shows up there exactly as an over-length word from a wordlist does. The six words above reject about half the positions at the front of the run and about four in five a billion candidates in, and what the card is given is the rest. A shape requiring more words than were supplied produces no candidates. hashcat drops those shapes while loading the grammar and reports their count in the following line. That is most of the grammar for a run naming one word: every shape with two word slots.
 
 ## 5. Settings
 
-Settings are `key=value` arguments after the ruleset path, the same convention every attack-mode 8
-feed uses:
+Settings are `key=value` arguments after the ruleset path, the same convention every attack-mode 8 feed uses:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash /path/to/ruleset scale=4 costmax=48
 ```
 
-Most people never need any of them.
+The defaults are suitable for most attacks.
 
 | setting | default | what it does |
 |---|---|---|
-| `scale` | 1 | How finely probabilities are graded. Higher is closer to true probability order and costs memory and startup time. Nothing to do with the trainer's `--coverage`. |
+| `scale` | 1 | How finely probabilities are graded. Higher is closer to true probability order and costs memory and startup time. Unrelated to the trainer's `--coverage`. |
 | `costmax` | 64 | How deep to enumerate, in bits. This is what bounds the keyspace; the grammar's real keyspace is far larger. |
 | `weights` | even | The share each ruleset carries when you give more than one. See below. |
 | `threads` | auto | CPU cores used to produce candidates. `0` produces them on the calling thread. The default is 16 on a fast hash and 8 on a slow one, both measured, and capped by the machine. |
@@ -415,7 +321,7 @@ Most people never need any of them.
 | `maxword` | auto | How long a candidate the card will build, in 4 byte words. Must be a multiple of 16. |
 | `maxgain` | 1.5 | How much wider the expansion has to get before the bigger candidate buffer is worth taking. |
 | `walk` | 1 | Steps to the next base word where it can instead of working it out from its position. It produces exactly the same run either way, so this is only here to turn off. |
-| `omen` | 1 | Carries the OMEN escape on a slow hash. See section 7.4. A fast hash cannot carry it whatever this says. |
+| `omen` | 1 | Carries the OMEN escape on a slow hash. See section 7.4. A fast hash cannot carry it regardless of this setting. |
 | `hintwords` | none | The words a hint ruleset is given, comma separated. See section 4. |
 | `hintfile` | none | The same words out of a file, one per line. |
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
@@ -424,135 +330,81 @@ Most people never need any of them.
 | `pwmin` | from the hash-mode | Shortest candidate to produce. |
 | `pwmax` | from the hash-mode | Longest candidate to produce. |
 
-`pwmin` and `pwmax` are worth knowing about when you already know how long the passwords are, which
-is common: a list extracted by length, or a format that fixes it. The bound is read where the keyspace
-is counted, not where a candidate is written out, so the shorter and longer candidates are never built
-rather than being built and dropped. Against the included ruleset, 1370 of its 23159 shapes can
-produce 12 characters and they carry 1.4 percent of the probability, so `pwmin=12 pwmax=12` on a list
-of 12 character passwords leaves the run doing almost none of the work it would otherwise do.
+Settings `pwmin` and `pwmax` are useful when the password length is known, such as with a list grouped by length or a format that fixes it. The limits apply while counting the keyspace, so candidates outside the range are never generated.
 
-Both only ever narrow what the hash-mode already allows, so neither is a way to ask for a length the
-kernel cannot take, and `0` means say nothing and take the hash-mode's own bound. A value that would
-widen it is named and ignored rather than dropped without a word.
+In the bundled ruleset, 1,370 of 23,159 shapes can produce 12-character passwords and together carry 1.4 percent of the probability mass. Setting `pwmin=12 pwmax=12` for a list of 12-character passwords therefore eliminates almost all unrelated work.
 
-`scale` is hashcat's own setting and is not read from the ruleset, so it reads `scale 1` on the status
-screen until you ask for something else. It is unrelated to `--coverage` in the trainer, which is set
-when the ruleset is built and cannot be changed afterwards. If a ruleset was trained at a coverage
-below 1.0 and you are cracking a fast hash, section 7.4 is the part that matters.
+Both settings can only narrow the range allowed by the hash mode. They cannot request a length unsupported by the kernel. A value of `0` leaves the corresponding hash-mode limit unchanged, while a value that would widen the range is reported and ignored.
 
-`scale`, `costmax` and `omen` all change which candidate sits at which position in the run, so they
-are part of the attack's identity. Change one and a restore point from before is no longer valid. They
-travel as arguments, which is what the brain hashes and what the restore file records, so hashcat
-notices.
+Setting `scale` belongs to hashcat and is not read from the ruleset. The status display therefore shows `scale 1` unless another value is requested. It is unrelated to `--coverage` in the trainer, which is set when the ruleset is built and cannot be changed afterwards. If a ruleset was trained at a coverage below 1.0 and you are cracking a fast hash, section 7.4 is the part that matters.
+
+Settings `scale`, `costmax` and `omen` change the candidate at each position and are therefore part of the attack identity. Change one and a restore point from before is no longer valid. They travel as arguments, which is what the brain hashes and what the restore file records, so hashcat notices.
 
 ## 6. Using more than one ruleset
 
-You can give several ruleset directories at once:
+Several ruleset directories can be supplied at once:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash /path/to/names /path/to/rockyou
 ```
 
-They become **one grammar**, not two attacks run back to back. Every probability in the result is the
-weighted average of what each ruleset said, for the shapes and for every value file.
+The rulesets become **one grammar**, not a sequence of separate attacks. Every probability in the result is the weighted average of the probabilities defined by each ruleset, for both shapes and value files.
 
-This matters when the rulesets know different things. A ruleset trained on a list of names knows a lot
-of names and has almost no digits or years, because the list it learned from had none. A ruleset
-trained on leaked passwords has the digits and years and none of the names. On their own, neither one
-can produce `hüseyin1`. Merged, the shape "word then one digit" that the password ruleset learned is
-available over the words the name ruleset learned, and it can.
+Merging is useful when rulesets contain complementary knowledge. A ruleset trained on a list of names knows a lot of names and has almost no digits or years, because the list it learned from had none. A ruleset trained on leaked passwords has the digits and years and none of the names. On their own, neither one can produce `hüseyin1`. Merged, the shape "word then one digit" that the password ruleset learned is available over the words the name ruleset learned, and it can.
 
-`weights` sets the split, and the numbers are relative, so `weights=3:1` and `weights=75:25` are the
-same thing:
+Setting `weights` sets the split, and the numbers are relative, so `weights=3:1` and `weights=75:25` are the same thing:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash /path/to/names /path/to/rockyou weights=1:3
 ```
 
-An even split is the default and it is often not what you want. Merging in a ruleset that describes
-nothing about your target costs you most of the run, because half the probability mass goes to
-candidates that were never going to be right. Against hashcat's pure ASCII example hashes, a rockyou
-ruleset on its own recovers 2042 plaintexts in a fixed budget. Merged evenly with a non-Latin name
-ruleset it recovers 616, and at `weights=3:1` toward rockyou it recovers 1080.
+An even split is the default but may not fit the target. A ruleset unrelated to the target can consume much of the run because half the probability mass is assigned to unlikely candidates. Against hashcat's pure ASCII example hashes, a rockyou ruleset on its own recovers 2042 plaintexts in a fixed budget. Merged evenly with a non-Latin name ruleset it recovers 616, and at `weights=3:1` toward rockyou it recovers 1080.
 
 Two things this is not, and both are worth knowing:
 
-* It is not the same as running both attacks and interleaving the results. That would need duplicate
-  detection across the whole stream, which is not possible without giving up `--skip` and `--restore`.
-* It is not the same as training one ruleset on both source lists. A real training run weighs each
-  value file by how many tokens went into it. This weighs everything in a ruleset by one number.
+* It is not the same as running both attacks and interleaving the results. That would need duplicate detection across the whole stream, which is not possible without giving up `--skip` and `--restore`.
+* It is not the same as training one ruleset on both source lists. A real training run weighs each value file by how many tokens went into it. This weighs everything in a ruleset by one number.
 
 Merging a ruleset with itself gives that ruleset back exactly, which is a useful sanity check.
 
 ### 6.1. What the merge actually does
 
-The merge runs once per file, at load time, and the same routine handles the grammar and every
-terminal list. Nothing about it happens again during the run.
+The merge runs once per file, at load time, and the same routine handles the grammar and every terminal list. The merge operation does not repeat during the run.
 
-**The weights are normalised first.** Whatever you write in `weights` is divided by the sum of all of
-them, so `weights=3:1` and `weights=75:25` both become 0.75 and 0.25. That is why the numbers are
-relative, and it is what makes the result a weighted average rather than a weighted sum.
+**Weights are normalized first.** Each value in `weights` is divided by their sum, so `weights=3:1` and `weights=75:25` both become 0.75 and 0.25. That is why the numbers are relative, and it is what makes the result a weighted average rather than a weighted sum.
 
-**Each line's probability is scaled by its ruleset's share, then added.** A file is a list of
-`value <tab> probability` lines. Reading ruleset *i*'s copy of a file contributes `p * w[i]` for every
-line in it. There is no division anywhere afterwards: the average falls out because the shares sum
-to 1.
+**Each line probability is scaled by its ruleset share, then added.** A file contains `value <tab> probability` lines. Reading ruleset *i*'s copy of a file contributes `p * w[i]` for every line in it. There is no division anywhere afterwards: the average falls out because the shares sum to 1.
 
-**Values are matched by their bytes.** Entries go into an open-addressed hash table keyed on the value
-itself, FNV-1a over its bytes, with linear probing. A value that two rulesets both know is found on
-the second insert and its probability is accumulated into the entry that is already there, so it ends
-up with both contributions and appears once.
+**Values are matched by byte sequence.** Entries use an open-addressed hash table keyed by FNV-1a over the value bytes, with linear probing. A value that two rulesets both know is found on the second insert and its probability is accumulated into the entry that is already there, so it ends up with both contributions and appears once.
 
-That is the mechanism behind the `hüseyin1` example above. It is also why a value both rulesets know
-comes out **earlier** in the run than either ruleset alone would have put it: cost is
-`-log2(p) * scale`, so a larger probability is a smaller cost.
+That is the mechanism behind the `hüseyin1` example above. It is also why a value both rulesets know comes out **earlier** in the run than either ruleset alone would have put it: cost is `-log2(p) * scale`, so a larger probability is a smaller cost.
 
-**Deduplication is switched off for a single ruleset.** The hash table is only built when more than
-one ruleset was given. One ruleset appends straight to the list and never hashes anything, so it pays
-nothing for a feature it cannot use. This is also why merging a ruleset with itself is a real test
-rather than a trivial one: it takes the other path and has to come back with the same answer.
+**A single ruleset bypasses deduplication.** The hash table is built only when several rulesets are supplied. One ruleset appends straight to the list and never hashes anything, so it incurs no deduplication cost. This is also why merging a ruleset with itself is a real test rather than a trivial one: it takes the other path and has to come back with the same answer.
 
-**A file one ruleset does not have is not an error.** It contributes nothing and the rulesets that do
-have it carry the merged list. A grammar trained on names has no `Years/1.txt`, and that is exactly
-the case merging is for.
+**A missing file in one ruleset is not an error.** That ruleset contributes no entries for the file, while the available copies form the merged list. A grammar trained on names has no `Years/1.txt`, and that is exactly the case merging is for.
 
-**The merged list is sorted by probability, descending, and ties are broken by insertion order.**
-Without the tiebreak two runs of the same merge could order equal-probability values differently,
-depending on the sort implementation, and a restore point would not land where it was taken.
+**The merged list is sorted by probability, descending, and ties are broken by insertion order.** Without the tiebreak two runs of the same merge could order equal-probability values differently, depending on the sort implementation, and a restore point would not land where it was taken.
 
-**Nothing is renormalised at the end.** The merged probabilities are the weighted sums, and they go
-straight into the cost as they are.
+**The result is not normalized again.** The weighted probability sums are converted directly into costs.
 
-**The weights are part of the attack's identity.** Two runs that differ only in `weights` describe
-different attacks: the same position means a different candidate. The feed folds the ruleset count and
-every share into the value hashcat uses to tell attacks apart, so the brain will not credit one run's
-work to the other and a restore point taken under one split will not resume under another. A single
-ruleset is deliberately left out of that, because its share is always exactly 1 and nothing about its
-enumeration changed.
+**Weights are part of the attack identity.** Two runs that differ only in `weights` describe different attacks: the same position means a different candidate. The feed folds the ruleset count and every share into the value hashcat uses to distinguish attacks, so the brain will not credit one run's work to the other and a restore point taken under one split will not resume under another. A single ruleset is deliberately left out of that, because its share is always exactly 1 and its enumeration is unchanged.
 
 ## 7. How this differs from the original PCFG
 
-hashcat's PCFG is based on the same model as lakiw's `pcfg_cracker`, but it is not a port of it. Five
-things differ, and the first two are two sides of one decision.
+hashcat's PCFG is based on the same model as lakiw's `pcfg_cracker`, but it is not a port of it. Five things differ, and the first two are two sides of one decision.
 
-### 7.1. It can be counted and jumped into
+### 7.1. The keyspace supports counting and random access
 
-A probability is a real number, and a list sorted by a real number has no arithmetic that takes you to
-the ten billionth entry. The only way to reach it is to produce the first 9,999,999,999. That is why a
-PCFG guesser is normally something you pipe into a cracker and let run, with no way to split it, stop
-it, or resume it.
+A list ordered by real-valued probabilities has no direct calculation for locating its ten-billionth entry. The only way to reach it is to produce the first 9,999,999,999. That is why a PCFG guesser is normally something you pipe into a cracker and let run, with no way to split it, stop it, or resume it.
 
-hashcat rounds each probability to a whole number of steps first. Candidates then fall into groups of
-equal cost, the size of each group can be worked out in advance, and "the ten billionth candidate" has
-an answer you can compute in microseconds. That is what gives you:
+hashcat first quantizes each probability into a whole number of cost steps. Candidates then fall into groups of equal cost, the size of each group can be worked out in advance, and "the ten billionth candidate" has an answer you can compute in microseconds. That is what gives you:
 
 ```
 $ ./hashcat -m 0 -a 4 --keyspace
 12747516022634
 ```
 
-and `--skip`, `--limit`, `--restore`, splitting one attack across several GPUs, and the brain. All of
-those need a keyspace with a fixed order and a way to jump into the middle of it.
+and `--skip`, `--limit`, `--restore`, splitting one attack across several GPUs, and the brain. All of those need a keyspace with a fixed order and a way to jump into the middle of it.
 
 ```
 ./hashcat -m 0 -a 4 example0.hash /path/to/ruleset --skip 1000000 --limit 200000
@@ -560,53 +412,29 @@ those need a keyspace with a fixed order and a way to jump into the middle of it
 
 ### 7.2. The price is that the ordering is approximate
 
-Rounding puts candidates of slightly different probability into the same group, and within a group the
-order is arbitrary. So the run is in probability order only down to the size of a group.
+Quantization places candidates with slightly different probabilities into the same cost group, where their internal order is arbitrary. The attack therefore preserves probability order only at the granularity of a group.
 
-At the default `scale=1` that costs very little. Measured against an exact enumerator over the same
-number of guesses, it reaches 99.83% of the probability mass and 99.994% of the cracks. Raising
-`scale` narrows the groups and recovers the rest, at the cost of memory and startup time.
+At the default `scale=1` that costs very little. Measured against an exact enumerator over the same number of guesses, it reaches 99.83% of the probability mass and 99.994% of the cracks. Raising `scale` narrows the groups and recovers the rest, at the cost of memory and startup time.
 
-Do not raise it because approximate sounds bad. Raise it if you have measured that it helps you.
+Increase `scale` only when measurements show that the finer ordering improves the attack.
 
 ### 7.3. On a fast hash the device engine does the guessing
 
-`pcfg_cracker` generates candidates on the CPU and prints them. One core producing a few million
-guesses a second is fine for a slow hash and nowhere near enough for a fast one.
+`pcfg_cracker` generates candidates on the CPU and prints them. One core producing a few million guesses a second is fine for a slow hash and nowhere near enough for a fast one.
 
-So on a fast hash, hashcat sends the card a base word plus a small description of what to vary, and
-the card expands it. The `x5434` in the startup lines is the multiplier: one base word from the host
-became 5434 candidates on the device.
+For a fast hash, hashcat sends the device a base word and a compact description of its variable terminals, which the device expands. The `x5434` in the startup lines is the multiplier: one base word from the host became 5434 candidates on the device.
 
-**On a slow hash it does not.** The line hashcat draws between the two is its own: a mode whose attack
-kernel carries the whole hash runs the device engine, and a mode with a separate iteration kernel does not.
-`-m 0` is the first kind and `-m 3200` is the second. You can tell them apart from the startup lines,
-which say `pcfg: device engine il=...` on one and nothing about an device engine on the other.
+**A slow hash uses the host engine.** hashcat selects the engine according to the kernel structure: a mode whose attack kernel carries the whole hash runs the device engine, and a mode with a separate iteration kernel does not. Mode 0 is the first kind and mode 3200 is the second. The startup output distinguishes them: the first reports `pcfg: device engine il=...`, while the second omits the device-engine line.
 
-**And three fast hashes do not either.** The device engine needs a kernel of its own per hash mode,
-`OpenCL/mNNNNN_a4-pure.cl`, or `_a4-optimized.cl` for a mode whose only kernel is the optimized one,
-and 296 of the 299 fast modes have one. The three that do not are the ones whose rules kernel does
-something the shared engine cannot express. `-m 2000` is `STDOUT` and every entry point it has is
-empty. `-m 5100` compares three times per candidate, at three offsets into a half MD5, where the
-engine hands back one set of four words. `-m 20510` has `NOT AVAILABLE` where its multi hash entry
-point would be. Those run the host engine and say so, which is the same thing that happens on a slow
-hash, and nothing about the command line changes.
+**Three fast hash modes also use the host engine.** The device engine requires a mode-specific `OpenCL/mNNNNN_a4-pure.cl` kernel, or `_a4-optimized.cl` when the mode provides only an optimized kernel. All but three included fast modes have one. The exceptions are modes whose rules kernel does something the shared engine cannot express. Mode 2000 is `STDOUT`, and all of its entry points are empty. Mode 5100 compares three times per candidate at three offsets into a half MD5, while the engine returns one set of four words. Mode 20510 has `NOT AVAILABLE` where its multi-hash entry point would be. Those modes run the host engine and report that selection at startup, as slow hashes do. The command line remains unchanged.
 
-That is not a fallback. It is the better half of the attack, and section 7.4 is why. A slow hash wants
-a few hundred thousand candidates a second, one core gives tens of millions, and everything the
-device engine gave up to reach billions can be given back.
+The host engine is not merely an error fallback. It retains capabilities that the device engine omits, as section 7.4 explains. A slow hash wants a few hundred thousand candidates a second, one core gives tens of millions, and everything the device engine gave up to reach billions can be given back.
 
 Two things follow from it that are easy to trip over.
 
-**The two are different attacks against the same ruleset.** They enumerate different sets and report
-different keyspaces, so `--skip`, `--restore` and a distributed split are not interchangeable between
-them, and hashcat's brain is told they are different so it will not reuse one for the other.
+**The engines produce different attacks from the same ruleset.** They enumerate different candidate sets and report different keyspaces. Options `--skip`, `--restore` and distributed ranges are not interchangeable, and the brain keeps their coverage separate.
 
-**The host engine uses several cores.** `threads` says how many and it picks a sensible number on its
-own. That matters only for the quickest modes on the slow side of the line, `-m 12700` and `-m 10500`
-among them, which run at hundreds of millions of hashes a second: on those the candidates cannot be
-produced fast enough by one core, and no amount of them quite keeps up either. On anything genuinely
-slow it makes no difference, because a PCFG attack already feeds bcrypt as fast as a mask does.
+**The host engine uses several CPU cores.** Setting `threads` controls the count and chooses a measured default automatically. That matters only for the quickest modes on the slow side of the line, `-m 12700` and `-m 10500` among them, which run at hundreds of millions of hashes a second: on those the candidates cannot be produced fast enough by one core, and no amount of them quite keeps up either. On anything genuinely slow it makes no difference, because a PCFG attack already feeds bcrypt as fast as a mask does.
 
 This is also why `-O` is refused where the engine has no kernel to run under it:
 
@@ -614,47 +442,27 @@ This is also why `-O` is refused where the engine has no kernel to run under it:
 The device engine has no optimized kernel for this hash mode. Run this without -O.
 ```
 
-43 fast modes have an `_a4-optimized.cl` and take `-O`. The 253 whose only device kernel is the pure
-one do not, and a mode that has no optimized kernel for a straight attack either never reaches that
-message: hashcat drops the flag before the engine looks for a file, and says so.
+A mode with an `_a4-optimized.cl` device kernel can take `-O`. A mode whose only device kernel is `_a4-pure.cl` cannot. If the mode has no optimized straight kernel either, hashcat drops `-O` before the PCFG engine selects its file and reports that change.
 
-**`-r` and `-g` ask for the host engine.** The device engine cannot have rules: the inner loop that
-would apply them is the one walking the cell, and there is no second one. The host engine can, because
-it is attack mode 0 with a different reader in front of it and hashcat's own rules kernel applies them
-there exactly as it does to a word list. So a fast hash with `-r` runs the host engine and says so on
-the line it prints at startup, rather than ending the run. It is slower than the same attack without
-rules, and it is the attack you asked for.
+**Options `-r` and `-g` select the host engine.** The device engine cannot apply rules: the inner loop that would apply them is the one walking the cell, and there is no second one. The host engine can, because it is attack mode 0 with a different reader in front of it and hashcat's own rules kernel applies them there exactly as it does to a word list. A fast hash with `-r` therefore runs the host engine and reports that selection at startup, rather than ending the run. It is slower than the same attack without rules, and it is the attack you asked for.
 
-The two are different attacks and hashcat's brain is told so, the same way it is told for a slow hash,
-so a session with rules and a session without will not reuse each other's covered keyspace.
+The brain treats runs with and without rules as different attacks, so they do not reuse each other's covered keyspace.
 
-**Rules are a second amplifier rather than a consolation prize.** The device engine amplifies by
-expanding a cell inside the hash kernel. hashcat's rules kernel amplifies by applying every rule to
-every base word, also inside the hash kernel, and that is what `-a 8` has always done for any other
-feed. So a fast hash with rules still has an amplifier on the device: it is a different one, fed with
-base words the host engine produced, and it multiplies by the number of rules. Stacked rules stack
-here as they do everywhere, so `-r a -r b` gives you every rule of one applied over every rule of the
-other.
+**Rules provide a second form of device amplification.** The device engine expands a cell inside the hash kernel. The rules kernel instead applies every rule to every base word inside the hash kernel, as attack mode 8 does for other feeds. A fast hash with rules therefore retains device amplification, but uses host-generated base words multiplied by the rule count. Stacked rules retain their usual cross-product behavior, so `-r a -r b` applies every rule from one file over every rule from the other.
 
-Measured on an RX 9070 XT against `-m 0`, one grammar, one card, twenty five seconds each:
+Measured on an RX 9070 XT against `-m 0`, one grammar, one card, twenty-five seconds each:
 
-  what is in front of the card                      candidates a second
-  --------------------------------------------------------------------
-  device engine, no rules                                    21.0 GH/s
-  host engine, best66.rule, 90 rules                          3.4 GH/s
-  host engine, 1 rule                                        49.3 MH/s
+```text
+what is in front of the card                      candidates a second
+--------------------------------------------------------------------
+device engine, no rules                                    21.0 GH/s
+host engine, best66.rule, 90 rules                           3.4 GH/s
+host engine, 1 rule                                        49.3 MH/s
+```
 
-The middle row is the one to read. The host engine on its own hands the card about 49 million base
-words a second and that is the ceiling on everything it feeds, but 90 rules turn each of those into
-90 candidates on the device, which is 69 times more work out of the same base word rate. The device
-engine is still 6 times faster than that, because a cell expands into thousands rather than into 90,
-so rules do not replace it. They put a run that used to end with an error message back within a
-factor of a few of the fastest thing the mode has.
+The middle row illustrates the effect. The host engine supplies approximately 49 million base words per second, which limits an unamplified run. Applying 90 rules expands each base word on the device and performs 69 times more candidate work at the same base-word rate. The device engine is still 6 times faster than that, because a cell expands into thousands rather than into 90, so rules do not replace it. They put a run that used to end with an error message back within a factor of a few of the fastest thing the mode has.
 
-`Candidate.Engine` in the status line tells you which one you have: `Device Generator` when something
-is amplifying on the card, whether that is a cell or a rule set, and `Host Generator + PCIe` when the
-host is building whole candidates and paying for the copy. The bottom row above reports
-`Host Generator + PCIe`, because one rule amplifies by one and is not an amplifier.
+The `Candidate.Engine` status field identifies the active path: `Device Generator` when something is amplifying on the card, whether that is a cell or a rule set, and `Host Generator + PCIe` when the host is building whole candidates and paying for the copy. The bottom row above reports `Host Generator + PCIe`, because one rule amplifies by one and is not an amplifier.
 
 `--stdout` shows you the host engine, not the device engine:
 
@@ -662,88 +470,55 @@ host is building whole candidates and paying for the copy. The bottom row above 
 $ ./hashcat -a 4 --stdout --limit 5 /path/to/ruleset
 ```
 
-It prints what the host produced and never starts a kernel, so the device engine is off for it for the
-same reason it is off for a slow hash, and what comes out is what a slow hash would be given, escape
-included. There is no way to print what a fast hash would produce: those candidates are the card's
-output and never exist on the host at all.
+The command prints host-generated candidates without starting a kernel, so it uses the host engine like a slow hash and includes the OMEN escape. There is no way to print what a fast hash would produce: those candidates are the card's output and never exist on the host at all.
 
-`-S`/`--slow-candidates` takes the host engine too, and for the same reason again. It asks for every
-candidate to be built on the host, so the card runs the plain straight kernel and there is no inner
-loop to expand a cell in. `--brain-client` arrives here as well, because hashcat turns it into
-`--slow-candidates` on the way.
+Options `-S` and `--slow-candidates` also select the host engine for the same reason. It asks for every candidate to be built on the host, so the card runs the plain straight kernel and there is no inner loop to expand a cell in. `--brain-client` arrives here as well, because hashcat turns it into `--slow-candidates` on the way.
 
 ### 7.4. OMEN rides the host engine and not the device engine
 
-`pcfg_cracker` trains two models. The PCFG is one and a Markov model called OMEN is the other, and its
-guesser interleaves both. A trained grammar contains a structure called `M`, which means "anything the
-grammar did not cover" and is what OMEN fills in. On a ruleset trained at the default coverage that
-line carries about 40% of the probability mass.
+`pcfg_cracker` trains two models: the PCFG and a Markov model named OMEN. Its generator interleaves candidates from both. A trained grammar contains a structure called `M`, which means "anything the grammar did not cover" and is what OMEN fills in. On a ruleset trained at the default coverage that line carries about 40% of the probability mass.
 
-**On a slow hash hashcat carries it**, from the ruleset's own `Omen` directory, and says so:
+**On a slow hash, hashcat includes the OMEN escape** from the ruleset's `Omen` directory and reports it:
 
 ```
 pcfg: OMEN escape carried, 15 levels over 1 model, 40962142820 guesses, 18 MiB of tables
 ```
 
-The guesses are the same guesses. Every level was compared against `pcfg_cracker`'s own generator, on
-four rulesets including a Cyrillic one, and the sets are identical. The count is exact, not an
-estimate, so `--keyspace`, `--skip` and `--restore` mean on the OMEN half exactly what they mean on the
-rest of the run.
+The resulting candidate sets match the original generator. Every level was compared against `pcfg_cracker`'s own generator, on four rulesets including a Cyrillic one, and the sets are identical. The count is exact, not an estimate, so `--keyspace`, `--skip` and `--restore` mean on the OMEN half exactly what they mean on the rest of the run.
 
-The tables are the price. They are built at startup and they are not small: 18 MiB for a ruleset
-trained on a small corpus, 434 MiB for the largest one tried here. The line above tells you before you
-wait for it.
+The corresponding tables consume memory and are built at startup: 18 MiB for a ruleset trained on a small corpus, 434 MiB for the largest one tried here. The line above reports the requirement before the build starts.
 
-**On a fast hash hashcat drops it**, and says that instead, with what the escape was worth:
+**On a fast hash, hashcat drops the OMEN escape** and reports its probability mass:
 
 ```
 pcfg: OMEN escape dropped, the device engine cannot walk a trellis. 40% of the mass, set by coverage
 ```
 
-The percentage is read from the `M` line of the ruleset you gave, so it is that ruleset's figure and
-not a general one. A ruleset trained at `--coverage 1.0` has no `M` line and prints no such message.
+The percentage is read from the `M` line of the ruleset you gave, so it is that ruleset's figure and not a general one. A ruleset trained at `--coverage 1.0` has no `M` line and prints no such message.
 
-The reason is section 7.3. The card is handed a rectangle: a few independent lists, and a candidate is
-one entry from each. An OMEN guess is nothing like that. Each character it writes decides which
-characters may follow, so it does not factor into independent lists and there is no rectangle to send.
+The device engine described in section 7.3 receives a Cartesian product: a few independent lists, and a candidate is one entry from each. An OMEN guess has a different structure. Each character it writes decides which characters may follow, so it does not factor into independent lists and there is no rectangle to send.
 
-If you are having a ruleset trained for you and you mean to use it on a fast hash, ask for
-`--coverage 1.0`. That tells the trainer not to emit `M` at all, so the mass goes into the terminal
-lists rather than into a structure the fast path discards.
+When training a ruleset for fast hashes, use `--coverage 1.0`. This option instructs the trainer not to emit `M`, so the mass goes into the terminal lists rather than into a structure the fast path discards.
 
-`omen=0` turns the escape off on a slow hash as well. The reason to want that is to compare like with
-like: with it off the two engines enumerate the same set, which is what the device engine is checked
-against.
+Setting `omen=0` also disables the escape on a slow hash. The reason to want that is to compare like with like: with it off the two engines enumerate the same set, which is what the device engine is checked against.
 
 ### 7.5. Capitalization of non-ASCII rulesets is nearly identical, but not quite
 
-A capitalization mask holds one letter per **character**, and a character in UTF-8 can be one to four
-bytes. hashcat applies the mask per character, the same as `pcfg_cracker`, and uppercases the
-character rather than the byte. Russian, Greek, accented Latin and the rest all get their capitals.
+A capitalization mask holds one letter per **character**, and a character in UTF-8 can be one to four bytes. hashcat applies the mask per character, the same as `pcfg_cracker`, and uppercases the character rather than the byte. Russian, Greek, accented Latin and the rest all get their capitals.
 
-There is one exception, and it comes from a hard constraint. Every candidate a structure produces has
-to be the same length, because that is what the device engine's fixed candidate array, its padding and its
-cut all rest on. A handful of characters have an uppercase form that is a **different number of
-bytes** than the lowercase one, and those cannot be uppercased without changing the candidate's
-length. The commonest by far is the Turkish dotless `i` (`\u0131`), whose uppercase is the ASCII
-`I`. Those characters are left as they are, so a `U` on one of them does nothing.
+There is one exception, and it comes from a hard constraint. Every candidate a structure produces has to be the same length, because that is what the device engine's fixed candidate array, its padding and its cut all rest on. A handful of characters have an uppercase form that is a **different number of bytes** than the lowercase one, and those cannot be uppercased without changing the candidate's length. The commonest by far is the Turkish dotless `i` (`\u0131`), whose uppercase is the ASCII `I`. Those characters are left as they are, so `U` has no effect on those characters.
 
-On a large name ruleset that is about 0.66% of the characters. The other 99.34% either uppercase with
-the length preserved or have no uppercase form at all.
+On a large name ruleset that is about 0.66% of the characters. The other 99.34% either uppercase with the length preserved or have no uppercase form at all.
 
-Scripts with no case at all, such as Arabic and Hebrew, are unaffected: there is nothing to uppercase,
-and `pcfg_cracker` produces exactly the same single candidate per mask that hashcat does. If your
-ruleset is mostly such a script, note that its `Capitalization` lists are doing nothing useful and
-every mask beyond the all-lowercase one is a duplicate. That is a property of the trained ruleset
-rather than of hashcat.
+Scripts with no case at all, such as Arabic and Hebrew, are unaffected: there is no case conversion to apply, and `pcfg_cracker` produces exactly the same single candidate per mask that hashcat does. If your ruleset is mostly such a script, its `Capitalization` lists provide no useful transformations and every mask beyond the all-lowercase one is a duplicate. That is a property of the trained ruleset rather than of hashcat.
 
 ### 7.6. Several rulesets can be merged
 
-Covered in section 6, and section 6.1 says how the merge works. `pcfg_cracker` takes one ruleset.
+Section 6 covers multiple rulesets, and section 6.1 explains the merge. Tool `pcfg_cracker` takes one ruleset.
 
 ## 8. Seeing which terminals fired
 
-`--debug-mode` reports the rule that made a crack, and a grammar has no rules: it picks a terminal out of a list for each slot of a structure. In an attack that has a feed we fill that field from the feed instead, so every mode works here and needs no `-r`. Mode 6 is the shape below, the same three fields as mode 4:
+Option `--debug-mode` normally reports the rule responsible for a crack, but a grammar selects one terminal for each structure slot rather than applying rules. For a feed-based attack, hashcat fills that field with information from the feed, so every debug mode works without `-r`. Mode 6 uses the format below, with the same three fields as mode 4:
 
 ```
 $ hashcat -m 0 -a 4 hashes.txt --debug-mode 6 --debug-file fired.txt
@@ -752,37 +527,20 @@ password1:password/LLLLLLLL,1:password1
 a1234567:a/L,1234567:a1234567
 ```
 
-The base word, the terminals the card picked, and the candidate. A capitalisation mask writes over the token in front of it rather than adding one of its own, so it is joined to that token with a slash.
+The three fields are the base word, the terminals selected by the device and the resulting candidate. A capitalization mask writes over the token in front of it rather than adding one of its own, so it is joined to that token with a slash.
 
 Only the slots the card expanded are named. The ones in front of them are already assembled into the base word, which is printed beside them.
 
-## 9. Things that will confuse you once
+## 9. Common points of confusion
 
-* **`--stdout` shows you the host engine.** It never starts a kernel, so it gets the host generator,
-  escape and all. There is nothing it could show you of the fast path, whose candidates only ever
-  exist on the card.
-* **`-O` is refused rather than ignored** on a fast hash whose only device kernel is the pure one. The 43 modes that ship an optimized one take it.
-* **`-i`/`--increment` and the custom charsets `-1` to `-4` are refused.** Both belong to a mask, and
-  `-a 4` takes a ruleset rather than a mask. What decides the lengths here is the grammar and
-  `costmax`.
+* **Option `--stdout` shows the host engine.** It never starts a kernel, so it gets the host generator, escape and all. Fast-path candidates exist only on the device and are therefore unavailable to `--stdout`.
+* **`-O` is refused rather than ignored** on a fast hash whose only PCFG device kernel is the pure one. Modes that ship an `_a4-optimized.cl` kernel take it.
+* **Options `-i` and `--increment`, along with custom character sets `-1` through `-4`, are rejected.** Both belong to a mask, and `-a 4` takes a ruleset rather than a mask. What decides the lengths here is the grammar and `costmax`.
 
-* **`-S`/`--slow-candidates` and `--brain-client` move you to the host engine** as well, and the
-  startup line says so. Both ask for every candidate to be built on the host, which is the one thing
-  the device engine does not do.
-* **`-r` and `-g` move you to the host engine** rather than being refused. The run says which engine
-  it got on the line after the ruleset summary. You keep an amplifier on the card either way, because
-  the rules kernel is one; it multiplies by the rule count instead of by the size of a cell.
-* **The same ruleset against `-m 0` and against `-m 3200` is not the same attack.** Different
-  candidates, a different keyspace and a different number in `--keyspace`. Section 7.3 says why. Both
-  are correct; neither one's restore point or brain session carries over to the other, and hashcat
-  knows that and will not let them.
-* **The keyspace is not the grammar's keyspace.** It is however much of it `costmax` reaches. The real
-  keyspace of a trained grammar is astronomically larger and there is no point enumerating all of it.
-* **Progress is counted in candidates and the restore point in base words.** In the status output
-  above, `Progress` is 76 billion of 1.3 quadrillion candidates while `Restore.Point` is 14 million
-  base words. Both are correct and they are counting different things.
-* **Startup takes a few seconds** on a large ruleset, and longer when you merge several, because every
-  value file is read and indexed. It happens once.
-* **Changing `scale`, `costmax`, `weights` or the ruleset invalidates a restore point.** All of them
-  change which candidate sits at which position. hashcat can tell, so it will not silently resume into
-  the wrong place.
+* **Options `-S`, `--slow-candidates` and `--brain-client` select the host engine** as well, and the startup line reports the selected engine. Both ask for every candidate to be built on the host, which is the one thing the device engine does not do.
+* **Options `-r` and `-g` select the host engine** rather than being refused. The line after the ruleset summary reports the selected engine. You keep an amplifier on the card either way, because the rules kernel is one. It multiplies by the rule count instead of by the size of a cell.
+* **The same ruleset against `-m 0` and against `-m 3200` is not the same attack.** Different candidates, a different keyspace and a different number in `--keyspace`. Section 7.3 explains the difference. Both are correct. Neither one's restore point or brain session carries over to the other, and hashcat knows that and will not let them.
+* **The keyspace is not the grammar's keyspace.** It is however much of it `costmax` reaches. The real keyspace of a trained grammar is astronomically larger and there is no point enumerating all of it.
+* **Progress is counted in candidates and the restore point in base words.** In the status output above, `Progress` is 76 billion of 1.3 quadrillion candidates while `Restore.Point` is 14 million base words. Both are correct and they are counting different things.
+* **Startup takes a few seconds** on a large ruleset, and longer when you merge several, because every value file is read and indexed. It happens once.
+* **Changing `scale`, `costmax`, `weights` or the ruleset invalidates a restore point.** All of them change which candidate sits at which position. hashcat detects the change and will not silently resume into the wrong place.

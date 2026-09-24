@@ -1,14 +1,14 @@
 # Encrypted plains
 
-Normally hashcat writes a recovered password in the clear - to the outfile, to the potfile, and to your screen. That means whoever runs the job can read it. Usually that's fine, because you are cracking your own hashes.
+Normally, hashcat writes recovered passwords in clear text to the outfile, potfile and screen. Anyone operating the cracking job can therefore read them, which is usually acceptable when working with your own hashes.
 
-Sometimes it isn't. If a customer sends you a hash and you crack it on your hardware, the password is worth taking, and they have to trust you not to. The classic case is a lost wallet: the seed phrase takes days to crack, and it is money.
+That trust model may be unsuitable when cracking a hash for someone else. A lost cryptocurrency wallet is a typical example: recovering its seed phrase can take days, and the result directly controls the funds.
 
-`--encrypt-with-pubkey` fixes that. The customer creates a key pair and sends you only the public half. Hashcat encrypts every password it recovers with that public key before writing it anywhere. You can run the job, see that it finished, and send the result back - but you cannot read it. Only the customer can.
+Option `--encrypt-with-pubkey` protects the recovered password. The customer creates a key pair and sends only the public key to the operator. hashcat encrypts each recovered password before writing it anywhere. The operator can run and monitor the job, then return the result, but only the customer can decrypt it.
 
 ## Example: cracking a hash for someone else
 
-Let's walk through a complete job. There are two people here: the __customer__, who owns the hash and wants the password, and the __operator__, who owns the GPUs and does the cracking.
+A complete job has two roles: the __customer__, who owns the hash and needs the password, and the __operator__, who provides the cracking hardware.
 
 ### Step 1: The customer creates a key pair
 
@@ -20,9 +20,9 @@ $ openssl rsa -in private.pem -pubout -out public.pem
 writing RSA key
 ```
 
-The customer keeps `private.pem` and never sends it anywhere. They send you `public.pem` together with the hash. The public key is not a secret - it can only lock, not unlock.
+The customer keeps `private.pem` and never sends it anywhere. They send you `public.pem` together with the hash. The public key is not secret. It can encrypt a result but cannot decrypt one.
 
-Use 4096 bits. Hashcat rejects anything smaller, and the error message explains why.
+Use a 4096-bit key. hashcat needs at least 3344 bits for its largest possible payload and recommends the common 4096-bit size. The error message reports the required minimum if the key is too small.
 
 ### Step 2: The operator cracks the hash
 
@@ -48,11 +48,13 @@ Restore.Sub.#02..: [Protected]
 Candidates.#02...: [Protected]
 ```
 
-You can see it cracked. You cannot see what it cracked, or how far it got.
+The status confirms that the hash was cracked without revealing the password or the exact position reached.
 
-Candidates are hidden because as hashcat walks the keyspace the right candidate would appear in that display like any other. The position is hidden for a different reason: on a job that runs for days, the exact offset is a ready made starting point. Someone could restart without encryption and jump straight to the part of the keyspace that matters, instead of repeating the whole search. For the same reason a protected run writes __no restore file__.
+Candidate previews are hidden because the correct password would otherwise appear in the display as hashcat traverses the keyspace.
 
-Speed and estimated time are still shown. Whoever started the run knows how long it has been going, so they can already approximate the position from the speed - only the exact offset is worth withholding, and losing the ETA would make a multi-day job impossible to supervise.
+The position is hidden because the exact offset from a long-running job provides a useful restart point. An operator could rerun the attack without encryption and skip directly to the relevant part of the keyspace. For the same reason, a protected run writes __no restore file__.
+
+Speed and estimated time remain visible. The operator can already approximate progress from the elapsed time and speed, while the exact offset is more valuable to an unprotected restart. Retaining the ETA also makes a multi-day job practical to supervise.
 
 The outfile has the answer in it, but not in a form you can read:
 
@@ -65,7 +67,7 @@ Send that file back to the customer.
 
 ### Step 3: The customer decrypts the result
 
-Back on the customer's machine, with `private.pem`. First strip the marker and decode the base64:
+On the customer's machine, use `private.pem` to decrypt the result. First remove the marker and decode the Base64 data:
 
 ```
 $ cut -d: -f2 cracked.txt | sed 's/^\$HCENC\$1\$[0-9a-f]*\$//' | base64 -d > cracked.bin
@@ -84,7 +86,7 @@ v1
 13LEXON
 ```
 
-There's the password: `13LEXON`. Note that everything here is plain OpenSSL - the customer does not need hashcat, or any tool you gave them, to read their own result.
+The recovered password is `13LEXON`. The customer needs only OpenSSL to decrypt the result, not hashcat or any tool supplied by the operator.
 
 ## What those four lines mean
 
@@ -93,11 +95,11 @@ You get four lines back, not just the password:
 ```
 v1                    <- format version
 449f17fa8d64e8...     <- SHA-256 of the hash line this password belongs to
-1786365128            <- when the cracking run started (unix time)
+1786365128            <- when the cracking run started (Unix time)
 13LEXON               <- the password
 ```
 
-The password comes last and is copied byte for byte, so it can contain anything - spaces, newlines, whatever. Take everything from line 4 onward:
+The password begins on line 4 and is copied byte for byte, so it can contain spaces, newlines or any other value. Extract everything from line 4 onward:
 
 ```
 $ ... | tail -n +4
@@ -111,7 +113,7 @@ $ echo -n "e11c594e6a2f4eb499cceadfca988595" | sha256sum
 449f17fa8d64e83a2941b17376816f4fe9a2cd523e5420c19d678b96637c438c
 ```
 
-It matches, so this password really was recovered for this hash. If it doesn't match, throw the result away. Encryption hides the password, but it does not prove who made the ciphertext - the operator holds the public key, so they can encrypt anything to it. This line is what catches a result moved onto the wrong hash, or an old result sent again. Line 3 tells you whether it is fresh.
+A matching digest confirms that the password was recovered for this hash. Discard the result if the digest differs. Encryption hides the password but does not authenticate the ciphertext because the operator can encrypt arbitrary data with the public key. The digest detects a result associated with the wrong hash, while line 3 indicates whether the result is current.
 
 ## The output format
 
@@ -119,17 +121,19 @@ It matches, so this password really was recovered for this hash. If it doesn't m
 $HCENC$1$<keyid>$<base64 ciphertext>
 ```
 
-The `$HCENC$` marker means an encrypted entry can never be mistaken for a password. `keyid` is a short fingerprint of the public key, so one potfile can hold results for several different customers and each knows which lines are theirs.
+Marker `$HCENC$` prevents an encrypted entry from being mistaken for a password. Field `keyid` is a short fingerprint of the public key, so one potfile can hold results for several different customers and each knows which lines are theirs.
 
 Encryption is RSA with OAEP padding, using SHA-256 for both the OAEP and the MGF1 digest.
 
 ## Things to know
 
-__The potfile is encrypted too.__ That's the point - the potfile lives a long time and would otherwise be the one place the password survives in the clear. So `--show` and `--left` return encrypted entries. Two side effects: if you use the same potfile for normal and protected runs it will hold a mix of both (the `$HCENC$` marker tells them apart, and `--potfile-path` keeps them separate), and because encryption is randomised, cracking the same hash twice gives two different ciphertexts that the potfile cannot deduplicate.
+__The potfile is also encrypted.__ Potfiles persist and would otherwise retain the recovered password in clear text, so `--show` and `--left` return encrypted entries.
 
-__No restore file is written.__ The restore file exists to record how far the run got, which is exactly what a protected run must not leave behind. Setting `--encrypt-with-pubkey` turns it off the same way `--restore-disable` does, so you do not need to pass that yourself, and `--restore-file-path` will not bring it back. The trade is that a protected run cannot be resumed - if you stop it, it starts over.
+This has two consequences. A potfile shared by normal and protected runs contains both kinds of entry, which can be separated with `--potfile-path` and distinguished by the `$HCENC$` marker. In addition, randomized encryption produces a different ciphertext each time the same password is recovered, so the potfile cannot deduplicate those results.
 
-__The position is hidden in every status output.__ `--status-json` and `--machine-readable` report the same fields as zero, so a monitoring script cannot be used to read out what the screen refuses to show. The keyspace total is still reported - whoever runs the job supplied the wordlist, so it is not news to them.
+__No restore file is written.__ A restore file records the exact position that the protected run must conceal. Option `--encrypt-with-pubkey` disables restore automatically, and `--restore-file-path` cannot re-enable it. A stopped protected run must therefore restart from the beginning.
+
+__Every status format hides the position.__ Options `--status-json` and `--machine-readable` report the protected fields as zero, preventing a monitoring script from recovering information omitted from the screen. The keyspace total remains visible because the operator supplied the candidate source and already knows its size.
 
 __Some options are refused.__ These would write a password, its source word, or the position somewhere in the clear, so hashcat stops instead of half-protecting you:
 
@@ -138,10 +142,12 @@ __Some options are refused.__ These would write a password, its source word, or 
 | `--loopback` | The loopback file would get encrypted plains and feed them back as candidates |
 | `--debug-file` | Records the originating word in the clear |
 | `--debug-mode` | Records the originating word in the clear |
-| `--restore` | A protected run writes no restore file, so there is nothing to resume from |
+| `--restore` | A protected run writes no restore file, so no restore state is available |
 
-__The key must be RSA and at least 4096 bits.__ Elliptic curve and Ed25519 keys are rejected. The size is checked once at startup, before any cracking. A 2048-bit key can only hold 190 bytes, and a 24-word BIP39 seed phrase can reach 215 - a seed phrase cut short is worth nothing, so hashcat refuses the key rather than risk it. If encryption fails during a run for any reason, hashcat aborts instead of falling back to writing the password in the clear.
+__The key must be RSA and large enough for every payload.__ Elliptic-curve and Ed25519 keys are rejected. hashcat checks the key size at startup before beginning the attack. With the current 256-byte password limit and 96-byte binding header, RSA-OAEP with SHA-256 requires at least 3344 bits, and a 4096-bit key is recommended.
 
-__You need OpenSSL 3 at runtime.__ Hashcat loads it only when you use this option, and is not linked against it, so a machine without OpenSSL runs hashcat normally and only complains if you ask for encryption.
+A 2048-bit key can carry only 190 bytes after OAEP overhead. hashcat rejects it rather than risk reaching a password that cannot be encrypted. If encryption fails during a run, hashcat aborts instead of writing the password in clear text.
 
-__This is not magic.__ It stops the password from landing on disk or on screen. It does not stop an operator who controls the machine - they can simply run hashcat again without the option, or read the process memory. What it buys you is that the protected run produces nothing usable, so getting the password takes a deliberate second run. If that matters, pair it with something outside hashcat: being reachable to act on the result the moment it arrives, so a second run would come too late.
+__OpenSSL 3 is required at runtime.__ hashcat loads it only when this option is used and does not link against it. A machine without OpenSSL can therefore run hashcat normally and reports the missing library only when encryption is requested.
+
+__This option does not protect against a malicious operator.__ It prevents the protected run from writing or displaying the password, but an operator who controls the machine can rerun hashcat without the option or inspect process memory. Its benefit is that the protected run itself produces no usable password, so obtaining one requires a deliberate additional action. Where that distinction matters, combine it with an operational control such as responding to the result before a second run can finish.

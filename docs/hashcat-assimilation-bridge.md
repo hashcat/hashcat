@@ -1,84 +1,43 @@
-# Assimilation Bridge in Hashcat v7
+# Assimilation Bridge in hashcat v7
 
 ## Overview
 
-Hashcat has historically optimized password cracking GPU and CPU compute backends. However, other types of hardware compute systems or pure software solutions were not supported. The Assimilation Bridge is a feature introduced in Hashcat v7 that extends the compute pipeline beyond traditional backends. It enables the integration of additional compute resources and software solutions such as FPGAs, remote TPMs, CPU reference implementations, or embedded runtimes into new or existing hash mode plugins.
+hashcat normally runs hash kernels through its CUDA, HIP, OpenCL and Metal backends. An assimilation bridge lets a hash-mode module replace or supplement part of that pipeline with a shared-library plugin. The plugin can run reference CPU code, an embedded language runtime, remote hardware, or another compute system that does not fit the normal backend interface.
 
-All existing hash-mode plugins continue to function as before. Bridges are optional and only active when explicitly declared within a plugin's configuration. This ensures full backward compatibility with existing setups.
+Bridges are optional and selected by the hash-mode module. Modes that do not declare one continue to use the normal backend path.
 
-## Use Cases
+## Shipped examples
 
-### Embedded Language Runtimes
+### Embedded language runtimes
 
-Hashcat v7 introduces support for an embedded Python interpreter as its premier demonstration example:
+- Modes `72000` and `73000` run generic Python hash implementations. See `hashcat-python-plugin-quickstart.md` and `hashcat-python-plugin-requirements.md`.
+- Mode `74000` provides the same generic model through Rust.
 
-- Hash modes `-m 72000` and `-m 73000` use embedded Python; start with `-m 73000`.
-- These demonstrate a "generic hash" model, enabling full hash mode creation in Python.
-- Users don't need to recompile when making changes.
-- Python's crypto ecosystem helps developers or AI generate new hash mode code easily and efficiently.
-- Here's a sample how a user can add `yescrypt` (`$y$...`) support with just one line of code:
+These bridges execute Python or Rust code on the host. They do not translate it into GPU code.
 
-```python
-from pyescrypt import Yescrypt,Mode
+### CPU reference and hybrid modes
 
-def calc_hash(password: bytes, salt: dict) -> str:
-  return Yescrypt(n=4096, r=32, p=1, mode=Mode.MCF).digest(password=password, settings=hcshared.get_salt_buf(salt)).decode('utf8')
-```
+- Mode `70000` runs the reference Argon2id implementation through a C bridge.
+- Mode `70100` keeps PBKDF2 on the normal backend and runs the memory-intensive scrypt `smix()` stage through the scrypt-jane bridge.
+- Mode `70200` demonstrates yescrypt in scrypt-emulation mode through a CPU bridge.
 
-This is just a preview. See `docs/hashcat-python-plugin-quickstart.md` for details about hashing formats, self-test pairs, or when to use `-m 72000` vs. `-m 73000`.
+Mode 70100 shows the hybrid design: a normal backend and a bridge can own different stages of one hash computation. The same interface can support another accelerator or a remote service, but no FPGA bridge currently ships with hashcat.
 
-### Hybrid Architecture
+## Other possible uses
 
-Note that in the Python example, only CPU resources are used and Hashcat does not transform Python into GPU code. However, the Bridge supports hybrid setups, where part of the workload runs on a traditional backend and another part on the Bridge. This model allows performance-critical components to be handled by the most suitable type of compute unit.
-
-For example, in hash mode `-m 70100`, a demonstration of SCRYPT, the PBKDF2 stage runs on a GPU using OpenCL/CUDA/HIP/Metal, while the memory-intensive `smix()` runs on the CPU through a bridge using the scrypt-jane implementation. This could just as easily be offloaded to an FPGA instead, which would benefit from reduced code complexity and increased parallelization boosting performance significantly.
-
-A mix of traditional backend compute on GPU and embedded Python is also possible.
-
-### CPU-Based Reference Code
-
-Bridges can also be used to quickly integrate reference implementations of new algorithms. We will provide initial examples for Argon2 and SCRYPT. These can run entirely on CPU or form part of a hybrid setup.
-
-- Mode `-m 70000` uses the official Argon2 implementation from the Password Hashing Competition (PHC).
-- Mode `-m 70200` demonstrates Yescrypt in its scrypt-emulation mode and benefits from AVX512 acceleration on capable CPUs.
-
-### Secure Distributed Cracking
-
-In scenarios where raw password data must remain local, bridges can enable remote processing of depersonalized intermediate keys. This allows secure password cracking using external compute infrastructure without compromising sensitive input.
-
-A working proof-of-concept exists, but it's not yet confirmed for inclusion in the v7 release.
-
-## Other Ideas for Use Cases (Not Yet Implemented)
-
-### Remote Hardware
-
-A bridge could be built to interact with TPMs on mobile devices or laptops, accessed through networked agents. This enables secure challenge/response flows with hardware-backed key storage.
-
-### Project Interoperability
-
-Depending on interface compatibility, code from other password cracking tools (e.g., JtR) could be wrapped in bridges, allowing functionality reuse and deeper collaboration.
-
-## Limitations and Status
-
-- Bridges are optional and configured on a per-plugin basis.
-- Hashcat v7 includes working bridges for CPU and Python.
-- FPGA bridges for bcrypt (`-m 75000`) and scrypt (`-m 75010`) are shipping soon. An FPGA is not plug and play: a bitstream has to be programmed into the fabric before the device exists at all, and a PCIe card also needs a kernel driver built on your machine. `docs/hashcat-fpga-setup.md` covers the whole procedure, and is what the bridge points you at when it refuses to start.
-
-> **Call to FPGA Developers**: Contribute an open FPGA implementation and bitstream and the Hashcat Developer Team will support in integrating it into a bridge. Please contact us on Discord.
+A bridge can support hardware-backed operations such as TPM requests, delegate work to a remote service, or wrap a compatible implementation from another project. These are possible uses of the interface, not features included in the current package.
 
 ## Selecting units
 
-A bridge reports one or more *bridge units*, and each becomes one virtual backend device. So the device options work on units:
+A bridge reports one or more *bridge units*, and each becomes one virtual backend device. Device options therefore operate on units:
 
-- `-d` selects which units run. `-d 2` runs unit 2 alone, `-d 1,3` runs units 1 and 3.
-- `-R` selects the physical device that generates the candidates, which is a separate question.
+- Option `-d` selects which units run. For example, `-d 2` runs unit 2 alone, while `-d 1,3` runs units 1 and 3.
+- `-R` selects the physical backend device that generates candidates, which is a separate choice.
 
-`hashcat -I -m <hash mode>` lists the units that mode would use, and the `Assimilation Bridge` block printed at the start of a run lists them again. A bridge is selected by the hash mode, so `-I` on its own cannot list units and says so rather than leaving you to conclude your hardware was not found. The same numbering is used by `-d`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog, so a number means the same unit everywhere it appears.
+`hashcat -I -m <hash mode>` lists the units that mode would use, and the `Assimilation Bridge` block at startup lists them again. A bridge is selected by its hash mode, so `-I` without `-m` cannot enumerate bridge units. The same unit numbering is used by `-d`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog.
 
-Units of the same kind are given the same tuning, so a machine holding several identical cards does not show them running different batch sizes. Units that genuinely differ, a mix of two board types for instance, keep the tuning each one measured for itself.
+Units of the same class share tuning. Units that report different classes, such as two board models, keep independently measured launch sizes.
 
-## Conclusion
+## Development
 
-The Assimilation Bridge introduces a highly extensible mechanism to integrate custom compute resources and logic into Hashcat.
-
-For hands-on examples and developer guidance, refer to the accompanying documentation in `docs/hashcat-assimilation-bridge-development.md` (first draft).
+See `hashcat-assimilation-bridge-development.md` for the interface, lifecycle, virtual-device model and shipped bridge examples.

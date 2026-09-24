@@ -256,7 +256,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * due to the significant increase in bruteforce time with a high mem_fac the module is developed only for a mem_fac <= 10
    * If it's necessary to brute hash with mem_fac > 10 (not default option) then increase size for racf_kdfaes_tmp->out buffer
    */
-  racf_kdfaes->mem_fac = (2 << (mem_fac - 1)) / 32;
+  // mem_fac is four hex digits off the line, so it reaches 0xffff, and the shift below is then
+  // undefined rather than large. The buffer it sizes is racf_kdfaes_tmp->out, u32[256], which is
+  // what a mem_fac of 10 fills, and a mem_fac of 0 would shift by -1.
+
+  if ((mem_fac < 1) || (mem_fac > 10)) return (PARSER_SALT_VALUE);
+
+  racf_kdfaes->mem_fac = (2u << (mem_fac - 1)) / 32;
   /**
    * racf_kdfaes->rep_fac defines a number of iteration in PBKDF2-SHA256-HMAC
    */

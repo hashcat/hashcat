@@ -2418,17 +2418,17 @@ static bool table_take (const table_global_t *tg, table_thread_t *tt, const u8 *
 
   if (word_len > PW_MAX)
   {
-    tt->word_len   = 0;
-    tt->tok_cnt    = 0;
-    tt->var_cnt    = 0;
-    tt->sing_cnt   = 0;
-    tt->nfront     = 0;
-    tt->cell_rect  = 1;
+    tt->word_len    = 0;
+    tt->tok_cnt     = 0;
+    tt->var_cnt     = 0;
+    tt->sing_cnt    = 0;
+    tt->nfront      = 0;
+    tt->cell_rect   = 1;
     tt->front_units = 0;
-    tt->front_full = 0;
-    tt->wmax       = TABLE_WFULL;
-    tt->rect       = 0;
-    tt->at         = 0;
+    tt->front_full  = 0;
+    tt->wmax        = TABLE_WFULL;
+    tt->rect        = 0;
+    tt->at          = 0;
 
     return true;
   }
@@ -3128,7 +3128,7 @@ static bool table_cache_load (const generic_global_ctx_t *global_ctx, table_glob
   if (have.version    != want.version)    { hc_fclose (&fp); return false; }
   if (have.dev        != want.dev)        { hc_fclose (&fp); return false; }
   if (have.wl_ident   != want.wl_ident)   { hc_fclose (&fp); return false; }
-  if (have.lines      != want.lines)     { hc_fclose (&fp); return false; }
+  if (have.lines      != want.lines)      { hc_fclose (&fp); return false; }
   if (have.tb_ident   != want.tb_ident)   { hc_fclose (&fp); return false; }
   if (have.maxperm    != want.maxperm)    { hc_fclose (&fp); return false; }
   if (have.single     != want.single)     { hc_fclose (&fp); return false; }
@@ -3136,9 +3136,9 @@ static bool table_cache_load (const generic_global_ctx_t *global_ctx, table_glob
   if (have.pwmax      != want.pwmax)      { hc_fclose (&fp); return false; }
   if (have.wmax       != want.wmax)       { hc_fclose (&fp); return false; }
   if (have.slotcap    != want.slotcap)    { hc_fclose (&fp); return false; }
-  if (have.maxword    != want.maxword)   { hc_fclose (&fp); return false; }
-  if (have.ilcnt      != want.ilcnt)     { hc_fclose (&fp); return false; }
-  if (have.template   != want.template)  { hc_fclose (&fp); return false; }
+  if (have.maxword    != want.maxword)    { hc_fclose (&fp); return false; }
+  if (have.ilcnt      != want.ilcnt)      { hc_fclose (&fp); return false; }
+  if (have.template   != want.template)   { hc_fclose (&fp); return false; }
   if (have.index_step != want.index_step) { hc_fclose (&fp); return false; }
   if (have.index_max  != want.index_max)  { hc_fclose (&fp); return false; }
 

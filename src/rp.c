@@ -289,6 +289,11 @@ bool is_hex_notation (const char *rule_buf, u32 rule_len, u32 rule_pos)
 
 u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
 {
+  // the operand of the last command in the rule is one byte past its end, and there is no operand
+  // there to measure
+
+  if (rule_pos >= rule_len) return 1;
+
   const u8 c = (u8) rule_buf[rule_pos];
 
   u32 need = 0;

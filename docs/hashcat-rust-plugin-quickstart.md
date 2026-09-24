@@ -1,31 +1,22 @@
-# Hashcat Rust Plugin Quickstart
+# hashcat Rust Plugin Quickstart
 
 ## Introduction
 
-Hashcat v7.1.2 introduces a new assimilation bridge plugin, the Rust
-bridge, that allows you to write custom hash-matching algorithms in
-Rust. This plugin system fits into the regular cracking workflow,
-replacing or extending internal kernel routines.
+Mode 74000 uses the Rust assimilation bridge to run custom hash-matching algorithms written in Rust. The bridge fits into the regular cracking workflow by replacing or extending internal kernel routines.
 
-When enabled, Hashcat uses the plugin's `calc_hash()` function to
-compute hash candidates. This makes it easy to experiment with new or
-obscure algorithms without modifying core C code or writing
-OpenCL/CUDA kernels.
+hashcat calls the plugin's `calc_hash()` function to compute candidate hashes. This makes it possible to experiment with new or uncommon algorithms without modifying the core C code or writing OpenCL or CUDA kernels.
 
-This guide shows you how to quickly implement a custom algorithm in
-Rust. You simply:
+To implement a custom algorithm in Rust:
 
 1. Write your logic in `calc_hash()`.
 2. Build your plugin with `cargo build --release`.
-3. Load it into Hashcat and start cracking.
+3. Load it into hashcat and start cracking.
 
 You can use any Rust crates you like.
 
 ## Quick Start
 
-A benchmark is a simple way to verify that your setup works correctly.
-Hashcat mode `74000` is preconfigured to load a generic Rust plugin
-from a dynamic library:
+A benchmark is a simple way to verify the setup. Mode `74000` is configured to load the generic Rust plugin from a dynamic library:
 
     hashcat -m 74000 -b
 
@@ -42,10 +33,9 @@ Example output:
 
     $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0
 
-### Prepare the Hash Line for Hashcat
+### Prepare the hash line for hashcat
 
-Take the full hash and append a `*` followed by the salt (settings)
-portion to it. The appended settings must start and end with a `$`.
+Take the full hash and append a `*` followed by the salt (settings) portion to it. The appended settings must start and end with a `$`.
 
     $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0*$y$j9T$uxVFACnNnGBakt9MLrpFf0$
 
@@ -56,13 +46,11 @@ portion to it. The appended settings must start and end with a `$`.
 
 ### Plugin Code
 
-Install Rust. If you're on Windows, also ensure `rustup` is installed
-and the Windows target is added to the Rust toolchain:
+Install Rust. On Windows, also ensure that `rustup` is installed and add the Windows target to the Rust toolchain:
 
     rustup target add x86_64-pc-windows-gnu
 
-If you encounter issues with your Rust installation, see
-`hashcat-rust-plugin-requirements.md`.
+If you encounter issues with your Rust installation, see `hashcat-rust-plugin-requirements.md`.
 
 Next, add the required crate to the dependencies:
 
@@ -88,22 +76,20 @@ pub(crate) fn calc_hash(password: &[u8], salt: &[u8]) -> Vec<String> {
 }
 ```
 
-and build the plugin:
+Then build the plugin:
 
     cd Rust/bridges/generic_hash
     cargo build --release
 
-or, if you're on Windows:
+On Windows, build it for the Windows target:
 
     cd Rust/bridges/generic_hash
     cargo build --release --target x86_64-pc-windows-gnu
 
-That's it.
-
-### Benchmark
+### Mask Attack
 
     hashcat -m 74000 yescrypt.hash -a 3 ?b?b?b?b?b?b?b
 
-### Regular Cracking
+### Wordlist Attack
 
     hashcat -m 74000 yescrypt.hash wordlist.txt

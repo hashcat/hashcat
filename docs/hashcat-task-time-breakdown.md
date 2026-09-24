@@ -1,99 +1,65 @@
 # Task time breakdown
 
-`--task-time-breakdown` prints where a run's wall clock went, once the run is over. It is off by
-default and it changes nothing about the run itself.
+`--task-time-breakdown` prints where a run's wall clock went, once the run is over. It is off by default and does not alter the run itself.
 
-It exists to answer one question: a run took longer than expected, and the time did not go into
-cracking. Where did it go?
+It answers one question: when a run takes longer than expected and cracking is not responsible, where was the time spent?
 
 ```
 hashcat -m 0 -a 0 --task-time-breakdown hashes.txt wordlist.txt
 ```
 
-The report is suppressed by `--quiet`, `--machine-readable`, `--keyspace`, `--stdout`, `--show`,
-`--left`, `--identify`, `--help`, `--hash-info` and `--backend-info`, so no existing script output
-changes.
+The report is suppressed by `--quiet`, `--machine-readable`, `--keyspace`, `--stdout`, `--show`, `--left`, `--identify`, `--help`, `--hash-info` and `--backend-info`, so no existing script output changes.
 
 ## How to read it
 
-Lines are nested. An indented line is part of the line above it, and the percentages are all of the
-measured total, not of the parent. So an indented line can never be more than its parent.
+The report is hierarchical. An indented line belongs to the line above it, and every percentage is relative to the measured total rather than to the parent. An indented value therefore cannot exceed its parent.
 
-Every section ends with an `Other` line. That line is the part of the section its detail lines did
-not account for. It is printed even when it is zero, because unclassified time is the thing worth
-seeing. If a section is mostly `Other`, the report is telling you honestly that it does not know.
+Every section ends with an `Other` line for time not accounted for by its detailed entries. The line is printed even when it is zero because unclassified time is important. If `Other` dominates a section, the available instrumentation cannot identify where most of that time was spent.
 
-A line for a stage that never ran is not printed at all. A run with `-m` given prints no
-autodetection line, and a run with no rules prints no rule loading line.
+A line for a stage that never ran is not printed at all. A run with `-m` given prints no autodetection line, and a run with no rules prints no rule loading line.
 
 ## The three top-level sections
 
-`BEFORE ATTACK` is everything up to the first candidate being tried. On a short run this is usually
-most of the clock.
+Section `BEFORE ATTACK` covers everything up to the first candidate being tried. On a short run this is usually most of the clock.
 
-`ATTACK` is the cracking itself, from the first candidate to the last.
+Section `ATTACK` covers the cracking itself, from the first candidate to the last.
 
-`AFTER ATTACK` is shutting down: stopping the monitors, flushing output, releasing devices.
+Section `AFTER ATTACK` covers shutdown, including stopping monitors, flushing output and releasing devices.
 
 ## What the individual lines mean
 
-**Program and options setup.** Parsing the command line and finding the install and session folders.
-This is microseconds. If it is not, something is wrong with the filesystem underneath.
+**Program and options setup.** Parsing the command line and finding the install and session folders. This is microseconds. If it is not, something is wrong with the filesystem underneath.
 
-**Session initialization.** Loading the backend runtimes and enumerating devices. Its detail lines
-split that into bridges and plugins, the runtime libraries themselves, and per device setup. A slow
-runtime load usually means a driver installation problem. Slow device setup on a many GPU box is
-normal and is roughly linear in the device count.
+**Session initialization.** Loading the backend runtimes and enumerating devices. Its detail lines split that into bridges and plugins, the runtime libraries themselves, and per device setup. A slow runtime load usually means a driver installation problem. Slow device setup on a system with many GPUs is normal and scales roughly with the device count.
 
-**Attack preparation.** Everything between having devices and being able to try a candidate. This is
-where a slow startup almost always lives, and its detail lines are the useful part of the report.
+**Attack preparation.** Everything between having devices and being able to try a candidate. This is where a slow startup almost always lives, and its detail lines are the useful part of the report.
 
-**Read and parse hash input.** Reading the hash file and turning each line into a digest. Scales with
-the hash count. Its `Count hash input lines` child is a separate pass over the file to size the
-allocation, so on a very large hash list you will see the two costs separately.
+**Read and parse hash input.** Reading the hash file and turning each line into a digest. Scales with the hash count. Its `Count hash input lines` child is a separate pass used to size the allocation, so a very large hash list shows the two costs separately.
 
-**Sort hashes**, **Sort salts** and **Remove duplicate hashes.** Scale with the hash count. On tens of
-millions of hashes these become visible.
+**Sort hashes**, **Sort salts** and **Remove duplicate hashes.** Scale with the hash count. On tens of millions of hashes these become visible.
 
-**Check potfile.** Matching the potfile against the loaded hashes. Scales with both, and with an
-already large potfile it is worth knowing this is where the time went.
+**Check potfile.** Matches potfile entries against the loaded hashes and scales with both counts. This line identifies the cost of checking an already large potfile.
 
-**Prepare wordlists, masks and rules.** Setting up the candidate source. Its `Load and validate rules`
-child is the one to watch: a large rule file is compiled once here, and a few million rules is
-seconds.
+**Prepare wordlists, masks and rules.** Setting up the candidate source. Its `Load and validate rules` child is the one to watch: a large rule file is compiled once here, and a few million rules is seconds.
 
 **Build hash lookup bitmaps.** Sizing and filling the filter tables. Grows with the hash count.
 
-**Allocate attack and device session.** Getting the kernels onto the devices and allocating their
-buffers. On a cold start this is almost entirely kernel compilation, which is why it is broken out:
+**Allocate attack and device session.** Loads kernels onto the devices and allocates their buffers. On a cold start, kernel compilation accounts for almost all of this stage and is therefore shown separately:
 
-  - **Compile kernels, cached afterwards.** The kernels are compiled for your specific device and
-    options, then written to the `kernels` folder. This is the single largest startup cost on a first
-    run and it is usually seconds. It does not happen again. The second run with the same mode,
-    device and options loads the cached binary instead, this line disappears from the report, and the
-    parent line drops to milliseconds. Nothing needs fixing.
-    If you are seeing it on every run, either the cache folder is not surviving between runs,
-    or something in the cache key changed. The key is the hash mode, the attack mode, whether
-    `-O` is on, the device and its driver, and the build options the module itself asks for. The
-    general build options are not part of it, so changing `-w` or the loop and accel settings does
-    not force a rebuild. One mode never caches: `-m 1500` builds its kernel around the salt, so it
-    compiles on every run by design.
-  - **Other device session setup.** Buffer allocation and kernel argument setup. Grows with the hash
-    count and the device count rather than with time.
+  - **Compile kernels, cached afterwards.** Compiles kernels for the selected device and options, then writes them to the `kernels` folder. This is usually the largest startup cost of the first run and can take several seconds.
 
-**Kernel self-test** and **Kernel autotune.** Verifying the kernel produces a known answer, then
-measuring the best workload size. Both are small on fast hashes. On a very slow hash mode the
-autotune has to run real work to measure it, so seconds there are expected and `--force` or fixed
-`-n` and `-u` values are the way to skip it, at the cost of a worse choice.
+    A later run with the same mode, device and options loads the cached binary. This line then disappears and the parent stage usually falls to milliseconds. If compilation occurs on every run, either the cache folder does not persist or an input to the cache key has changed.
+
+    The cache key includes the hash mode, attack mode, `-O` setting, device, driver and module-specific build options. General workload settings such as `-w`, kernel loops and kernel acceleration do not force a rebuild. Mode 1500 is the exception: it builds a kernel around the salt and therefore compiles on every run.
+  - **Other device session setup.** Allocates buffers and prepares kernel arguments. Its cost grows with the hash and device counts.
+
+**Kernel self-test** and **Kernel autotune.** Verifying the kernel produces a known answer, then measuring the best workload size. Both are small on fast hashes. On a very slow hash mode the autotune has to run real work to measure it, so seconds there are expected. Option `--force` does not skip autotune. Fixing all three values with `-T`, `-n` and `-u` skips the search, but the warm-up launches still run unless the module disables them.
 
 ## What is not measured yet
 
-The outfile check runs in its own thread rather than as a startup step, so time spent reading
-`--outfile-check-dir` does not have its own line. It lands in `Other attack preparation`.
+The outfile check runs in its own thread rather than as a startup step, so time spent reading `--outfile-check-dir` does not have its own line. It lands in `Other attack preparation`.
 
-A run that fails during startup still prints a report, but the stage it failed in will show inflated
-time, because a stage that was never closed is closed at the end. Read a failed run's numbers with
-that in mind.
+A run that fails during startup still prints a report. The failed stage can show inflated time because hashcat closes any unfinished measurement at the end. Interpret the timing of a failed run accordingly.
 
 ## An example
 

@@ -1596,9 +1596,9 @@ static u64 pcfg_ident_tables (const pcfg_global_t *pg)
 
   paw64_init (&st, 0);
 
-  paw64_update (&st, &pg->costmax,    sizeof (pg->costmax));
-  paw64_update (&st, &pg->scale,      sizeof (pg->scale));
-  paw64_update (&st, &pg->lists_cnt,  sizeof (pg->lists_cnt));
+  paw64_update (&st, &pg->costmax,     sizeof (pg->costmax));
+  paw64_update (&st, &pg->scale,       sizeof (pg->scale));
+  paw64_update (&st, &pg->lists_cnt,   sizeof (pg->lists_cnt));
   paw64_update (&st, &pg->structs_cnt, sizeof (pg->structs_cnt));
 
   for (u32 i = 0; i < pg->lists_cnt; i++)
@@ -9569,24 +9569,24 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   const feed_param_t params[] =
   {
-    { "scale",   FEED_PARAM_TYPE_U64, &scale,   1, 64, "quantisation steps per bit" },
-    { "costmax", FEED_PARAM_TYPE_U64, &costmax, 1, 64, "highest cost level to enumerate" },
-    { "kbits",   FEED_PARAM_TYPE_U64, &kbits,   0, PCFG_DEV_KBITS_MAX, "bits of inner loop one cell may span, 0 to pick from the ruleset" },
-    { "threads", FEED_PARAM_TYPE_U64, &threads, 0, PCFG_PF_MAXW, "cores that generate base words, 0 to generate inline, unset to pick from the rectangle" },
-    { "walk",    FEED_PARAM_TYPE_U64, &walk,    0, 1, "step the last token instead of unranking it where the ordering allows" },
-    { "omen",    FEED_PARAM_TYPE_U64, &omen,    0, 1, "carry the OMEN escape where the attack allows, which is every hash the device engine is off for and every grammar it has no base word for" },
-    { "cache",   FEED_PARAM_TYPE_U64, &cache,   0, 1, "keep the unit tables under the cache directory, which trades disk for the longest step of the start" },
-    { "maxword", FEED_PARAM_TYPE_U64, &maxword, 0, PCFG_DEV_MAXWORD_HI, "words the kernel gives a candidate, 0 to pick from the ruleset" },
-    { "maxgain", FEED_PARAM_TYPE_DBL, &maxgain, 1.0, 64.0, "how much wider the rectangle must get before the larger array is taken" },
-    { "hintaccount", FEED_PARAM_TYPE_U64, &hintaccount, 0, PCFG_HINT_MAX, "words to take from each account name, for an attack that pairs one hash with one set of words" },
-    { "hintwords", FEED_PARAM_TYPE_STR, &hintwords, 0, 0, "the hint words themselves, comma separated, best first" },
-    { "hintfile",  FEED_PARAM_TYPE_STR, &hintfile,  0, 0, "a file of hint words, one per line, optionally followed by a tab and a probability" },
-    { "hintrank",  FEED_PARAM_TYPE_STR, &hintrank,  0, 0, "what a hint word with no probability of its own is worth: zipf, linear or flat" },
-    { "hintrepeat", FEED_PARAM_TYPE_U64, &hintrepeat, 0, 1, "let one candidate spell the same hint word more than once, which naming that word twice does for one word alone" },
-    { "weights", FEED_PARAM_TYPE_STR, &weights, 0, 0, "share of the grammar each ruleset carries, colon separated, one per ruleset" },
-    { "lookup",  FEED_PARAM_TYPE_STR, &lookup,  0, 0, "ask where this attack reaches a candidate instead of running it" },
-    { "pwmin",   FEED_PARAM_TYPE_U64, &pwmin,   0, PW_MAX, "shortest candidate to produce, 0 to take what the hash mode allows" },
-    { "pwmax",   FEED_PARAM_TYPE_U64, &pwmax,   0, PW_MAX, "longest candidate to produce, 0 to take what the hash mode allows. A run against a list of one known length spends nothing on the others" },
+    { "scale",       FEED_PARAM_TYPE_U64, &scale,       1,   64,                  "quantisation steps per bit"                                                                                                                },
+    { "costmax",     FEED_PARAM_TYPE_U64, &costmax,     1,   64,                  "highest cost level to enumerate"                                                                                                           },
+    { "kbits",       FEED_PARAM_TYPE_U64, &kbits,       0,   PCFG_DEV_KBITS_MAX,  "bits of inner loop one cell may span, 0 to pick from the ruleset"                                                                          },
+    { "threads",     FEED_PARAM_TYPE_U64, &threads,     0,   PCFG_PF_MAXW,        "cores that generate base words, 0 to generate inline, unset to pick from the rectangle"                                                    },
+    { "walk",        FEED_PARAM_TYPE_U64, &walk,        0,   1,                   "step the last token instead of unranking it where the ordering allows"                                                                     },
+    { "omen",        FEED_PARAM_TYPE_U64, &omen,        0,   1,                   "carry the OMEN escape where the attack allows, which is every hash the device engine is off for and every grammar it has no base word for" },
+    { "cache",       FEED_PARAM_TYPE_U64, &cache,       0,   1,                   "keep the unit tables under the cache directory, which trades disk for the longest step of the start"                                       },
+    { "maxword",     FEED_PARAM_TYPE_U64, &maxword,     0,   PCFG_DEV_MAXWORD_HI, "words the kernel gives a candidate, 0 to pick from the ruleset"                                                                            },
+    { "maxgain",     FEED_PARAM_TYPE_DBL, &maxgain,     1.0, 64.0,                "how much wider the rectangle must get before the larger array is taken"                                                                    },
+    { "hintaccount", FEED_PARAM_TYPE_U64, &hintaccount, 0,   PCFG_HINT_MAX,       "words to take from each account name, for an attack that pairs one hash with one set of words"                                             },
+    { "hintwords",   FEED_PARAM_TYPE_STR, &hintwords,   0,   0,                   "the hint words themselves, comma separated, best first"                                                                                    },
+    { "hintfile",    FEED_PARAM_TYPE_STR, &hintfile,    0,   0,                   "a file of hint words, one per line, optionally followed by a tab and a probability"                                                        },
+    { "hintrank",    FEED_PARAM_TYPE_STR, &hintrank,    0,   0,                   "what a hint word with no probability of its own is worth: zipf, linear or flat"                                                            },
+    { "hintrepeat",  FEED_PARAM_TYPE_U64, &hintrepeat,  0,   1,                   "let one candidate spell the same hint word more than once, which naming that word twice does for one word alone"                           },
+    { "weights",     FEED_PARAM_TYPE_STR, &weights,     0,   0,                   "share of the grammar each ruleset carries, colon separated, one per ruleset"                                                               },
+    { "lookup",      FEED_PARAM_TYPE_STR, &lookup,      0,   0,                   "ask where this attack reaches a candidate instead of running it"                                                                           },
+    { "pwmin",       FEED_PARAM_TYPE_U64, &pwmin,       0,   PW_MAX,              "shortest candidate to produce, 0 to take what the hash mode allows"                                                                        },
+    { "pwmax",       FEED_PARAM_TYPE_U64, &pwmax,       0,   PW_MAX,              "longest candidate to produce, 0 to take what the hash mode allows. A run against a list of one known length spends nothing on the others"  },
     { NULL, 0, NULL, 0, 0, NULL }
   };
 

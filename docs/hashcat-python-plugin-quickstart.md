@@ -1,22 +1,22 @@
-# Hashcat Python Plugin Quickstart
+# hashcat Python Plugin Quickstart
 
 ## Introduction
 
-Hashcat v7 introduces a `Python plugin bridge` that allows you to write and integrate custom hash-matching algorithms directly in Python. This plugin system fits into the regular cracking workflow by replacing or extending internal kernel routines.
+Modes 72000 and 73000 use the Python assimilation bridge to run custom hash-matching algorithms written in Python. The bridge fits into the regular cracking workflow by replacing or extending internal kernel routines.
 
-When enabled, Hashcat uses the plugin's `calc_hash()` function to compute hash candidates for verification, making it easy to experiment with new or obscure algorithms without modifying core C code or writing OpenCL/CUDA kernels.
+hashcat calls the plugin's `calc_hash()` function to compute candidate hashes for verification. This makes it possible to experiment with new or uncommon algorithms without modifying the core C code or writing OpenCL or CUDA kernels.
 
-This guide demonstrates how to quickly customize such an algorithm using pure Python. Whether you're prototyping a new hash mode, supporting a proprietary format, or simply prefer high-level development, Python plugins make the process fast and straightforward.
+This guide shows how to customize the generic plugin in pure Python for prototyping a hash mode, supporting a proprietary format or using an existing Python implementation.
 
-No C required. No recompilation. Just write your logic in Python using `calc_hash()`, and you're ready to crack.
+Implement the required logic in `calc_hash()`. No C code or hashcat rebuild is required.
 
-You can use any Python modules you like.
+You can use any importable Python module that is compatible with the selected Python runtime.
 
 ## Quick Start
 
 A benchmark is a good way to verify that your setup is working correctly.
 
-Hashcat mode `73000` is preconfigured to load a generic Python plugin from the source file `Python/generic_hash_mp.py`:
+Mode `73000` is configured to load the generic Python plugin from `Python/generic_hash_mp.py`:
 
 ```
 hashcat -m 73000 -b
@@ -40,7 +40,7 @@ Example output:
 $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0
 ```
 
-### Prepare the Hash Line for Hashcat
+### Prepare the hash line for hashcat
 
 ```
 $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0*$y$j9T$uxVFACnNnGBakt9MLrpFf0$
@@ -48,9 +48,9 @@ $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0*$y$j9T
 
 (Use the full hash before the `*` and the salt portion after the `*`.)
 
-Hashcat modes `73000` and `72000` are generic modes that do not parse the hash, which can lead to redundancy.
+Modes `72000` and `73000` do not parse the hash themselves, so the input line contains both the complete hash and the settings passed to the plugin.
 
-Refer to `hashcat-python-plugin-development-guide.md` to learn how to develop plugins for the generic hash mode.
+See `hashcat-python-plugin-development-guide.md` for details about developing a generic hash plugin.
 
 ### Plugin Code
 
@@ -62,7 +62,7 @@ pip install pyescrypt
 
 Then in your plugin (either `generic_hash_mp.py` for `-m 73000` or `generic_hash_sp.py` for `-m 72000`):
 
-**Note for Windows and MacOS users:** Mode `73000` automatically switches to `generic_hash_sp.py`, so be sure to edit that file.
+**Note for Windows and macOS users:** Mode `73000` automatically switches to `generic_hash_sp.py`, so be sure to edit that file.
 
 ```python
 from pyescrypt import Yescrypt, Mode
@@ -77,8 +77,6 @@ def calc_hash(password: bytes, salt: dict) -> str:
         settings=hcshared.get_salt_buf(salt)
     ).decode("utf-8")
 ```
-
-That's it.
 
 ### Run Regularly
 

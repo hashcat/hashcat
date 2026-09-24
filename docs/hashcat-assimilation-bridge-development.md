@@ -1,19 +1,17 @@
 # Assimilation Bridge Plugin Development
 
-## Developer Section
+## Updating existing plugins
 
-The following section is for plugin and bridge developers. It contains low-level implementation details.
+A module written before bridge support was added must initialize the two bridge fields. Use the defaults unless the module actually selects a bridge:
 
-## Update existing plugins
+```c
+module_ctx->module_bridge_name = MODULE_DEFAULT;
+module_ctx->module_bridge_type = MODULE_DEFAULT;
+```
 
-In case you have written a hashcat plugin, you need to update the init function and add the following two lines:
+Current in-tree modules already contain these assignments. External modules need the same update when rebuilt against the current `module_ctx_t`.
 
-+  module_ctx->module_bridge_name = MODULE_DEFAULT;
-+  module_ctx->module_bridge_type = MODULE_DEFAULT;
-
-Existing modules on hashcat repository will be automatically updated.
-
-## Plugin Integration and Bridge Registration
+## Plugin integration and bridge registration
 
 Plugins can opt in to bridge support by adding:
 
@@ -22,19 +20,19 @@ static const u64   BRIDGE_TYPE = BRIDGE_TYPE_LAUNCH_LOOP;
 static const char *BRIDGE_NAME = "scrypt_jane";
 ```
 
-* `BRIDGE_NAME` tells hashcat which bridge to load (e.g., `bridge_scrypt_jane.so`).
-* `BRIDGE_TYPE` indicates which backend kernel functions the bridge will override:
+* `BRIDGE_NAME` identifies the bridge to load, for example `bridge_scrypt_jane.so`.
+* `BRIDGE_TYPE` selects where the bridge runs:
 
-  * `BRIDGE_TYPE_LAUNCH_LOOP`:   Entry point for all bridges that register to run after `RUN_LOOP`
-  * `BRIDGE_TYPE_LAUNCH_LOOP2`:  Entry point for all bridges that register to run after `RUN_LOOP2`
-  * `BRIDGE_TYPE_REPLACE_LOOP`:  Same as BRIDGE_TYPE_LAUNCH_LOOP, but deactivates `RUN_LOOP`
-  * `BRIDGE_TYPE_REPLACE_LOOP2`: Same as BRIDGE_TYPE_LAUNCH_LOOP2, but deactivates `RUN_LOOP2`
+  * `BRIDGE_TYPE_LAUNCH_LOOP`: run the bridge after `RUN_LOOP`
+  * `BRIDGE_TYPE_LAUNCH_LOOP2`: run the bridge after `RUN_LOOP2`
+  * `BRIDGE_TYPE_REPLACE_LOOP`: replace `RUN_LOOP` with the bridge
+  * `BRIDGE_TYPE_REPLACE_LOOP2`: replace `RUN_LOOP2` with the bridge
 
 hashcat loads the bridge dynamically and uses it for any declared invocation.
 
-Note that bridges only load for outside kernel, aka "slow hash" kernels. In "fast hash" kernels, such as MD5, they are ignored. In case you want to implement a "fast hash" + bridge hybrid, you can move the "fast hash" code into a new "slow hash" kernel.
+Bridges are active only for `ATTACK_EXEC_OUTSIDE_KERNEL` modes. An inside-kernel, or "fast hash", mode ignores them. A hybrid therefore needs an outside-kernel implementation of the mode.
 
-Here's a high-level view on how hashcat executes several key points during a password batch:
+The following outline shows the main stages hashcat executes for a batch of candidates:
 
 ```
 ATTACK_EXEC_OUTSIDE_KERNEL:
@@ -70,92 +68,66 @@ ATTACK_EXEC_OUTSIDE_KERNEL:
   CLEAN_HOOK_DATA
 ```
 
-- RUN_* refers to compute kernel executions, such as "init" kernel, but also "amplifier" (typically base-word * modifier-word multiplication).
-- COPY_* refers to host-to-device or device-to-host copies and typically involve PCIe data transfer.
-- CALL_* are code functions executed on the host CPU. They are plugin-specific and defined in a module. They were the predecessor of bridges but are still usable.
-- SALT_* typically are optional steps which allow certain algorithms specific optimizations. For instance in Scrypt with P > 1, the V and XY buffer can be reused and allow temporary storage of result values into B. This saves memory requirement, improving parallelization
-- ITER_* is the main loop that chunks what typically is defined as "iterations" in a algorithm computation. For instance a PBKDF2 function is called with 10,000 iterations, which would take a while to compute. The time this takes could be longer than a GPU drivers watchdog allows (before it resets the compute engine.). hashcat will divide the 10,000 into chunks of let's say 1,000 and call the same kernel 10 times
-- BRIDGE_* existing bridge entry points. During the "lifetime" of a hash computation the tmps[] variable is used (algorithm specific, so defined in the specific plugin module and kernel). This variable is which we refer to as bridge material, but it's possible we add other types of variables to "material" in the future
-- ITER2/LOOP2: Optional entry points in case the algorithm consists of two types of long running (high iterated) sub-components. For instance one iteration of 10k loops sha256 followed by 100k loops of sha512, or bcrypt followed by scrypt
+- `RUN_*` denotes a compute-kernel launch, including initialization and candidate amplification.
+- `COPY_*` denotes a host-to-device or device-to-host transfer, normally over PCIe.
+- `CALL_*` denotes a module hook executed on the host CPU. Hooks remain supported alongside bridges.
+- `SALT_REPEATS` lets an algorithm reuse storage across salt-specific passes. Scrypt with `p > 1`, for example, can reuse its V and XY buffers while storing intermediate B values.
+- `ITER_REPEATS` divides a long iteration count into watchdog-safe kernel launches. A 10,000-round operation may run as ten launches of 1,000 rounds.
+- `BRIDGE_*` denotes a bridge callback. hashcat copies the module-defined `tmps[]` buffer, called bridge material, to the host before the callback and returns it to the device afterward.
+- `LOOP2` and `ITER2_REPEATS` support algorithms with a second long-running iterative component.
 
-  * `BRIDGE_TYPE_LAUNCH_INIT`
-  * `BRIDGE_TYPE_LAUNCH_COMP`
+The bridge developer is responsible for interpreting `tmps[]` exactly as the surrounding kernels do. hashcat performs the transfers, but it does not transform the data. If a bridge replaces scrypt's SMix loop, for example, it must accept the B state produced by the init kernel and return the form expected by the comp kernel. The structure, field representation and number of work items must all agree.
 
-hashcat devs will add support on request.
+Two additional flags affect that contract:
 
-As mentioned in the BRIDGE_* entry points, it's the developer's responsibility to ensure compatibility. That typically means the handling of the `tmps` variable relevant in the `kernel_loop` and how it changes over algorithm computations lifetime. hashcat will take care of copying the data from and to the compute backend buffers (bridge material).
+* `BRIDGE_TYPE_UPDATE_SELFTEST` lets the bridge replace the module's self-test hash and password. Generic language bridges use this when the loaded script supplies its own test.
+* `BRIDGE_TYPE_LOOP_CHUNKED` indicates that `launch_loop()` honours `kernel_param.loop_pos` and `loop_cnt`. Set it only when the bridge can preserve candidate state across chunks. Without it, hashcat hands the bridge the complete iteration range in one call.
 
-But the bridge developer must ensure data transformation compatibility. For instance, if we replace the loop section in SCRYPT (8900), the long running part is the smix() activity. But SCRYPT implements the PBKDF2 handling in both init and comp kernels, preparing the values in B[] after the init kernel, and expecting modified values in B[] before running comp kernel. If you want to replace the smix() section with let's say FPGA code, the bridge needs to understand the structure of the tmps[] variable. In this case tmps[] just reflect SCRYPT B[], making this simple, but other algorithms may require more than just one large buffer array. That means the structure itself (datatypes), but also the amount of workitems, because there's almost always more than one workitem (to reduce overhead times).
+Two sets of flags were removed without direct replacements: `BRIDGE_TYPE_MATCH_TUNINGS` and the nine flags from `BRIDGE_TYPE_FORCE_WORKITEMS_001` through `BRIDGE_TYPE_FORCE_WORKITEMS_256`. A bridge using the old symbols no longer compiles. Remove them from `BRIDGE_TYPE` and use the work-item callbacks described below.
 
-There's some more BRIDGE PARAMETERs that you should know:
+Tuning no longer requires an opt-in flag. For every bridge, hashcat sizes launches and device buffers from the value returned by `get_workitem_count()`. This value is an upper bound that hashcat never exceeds.
 
-+  BRIDGE_TYPE_UPDATE_SELFTEST     = updates the selftest configured in the module. Can be useful for generic hash modes such as the python plugin
-+  BRIDGE_TYPE_LOOP_CHUNKED        = launch_loop() honours kernel_param.loop_pos and .loop_cnt, so hashcat may split the salt's iteration space into chunks and call the bridge once per chunk. Without it the bridge is handed the whole range in a single call, which is what a one-shot implementation needs. Set this only if your compute can stop and resume mid-iteration, which means keeping any per candidate state alive between calls
+The reported count is not necessarily the launch size. Autotune searches from one work-item multiple up to that maximum and selects the fastest measured size, so the bridge does not need to predict an ideal value. Option `-n` sets the size directly and is clamped to the same range.
 
-Two sets of flags were removed with no substitute, so a bridge written against the older interface
-names a symbol that no longer exists and does not compile: `BRIDGE_TYPE_MATCH_TUNINGS`, and the nine
-`BRIDGE_TYPE_FORCE_WORKITEMS_001` through `BRIDGE_TYPE_FORCE_WORKITEMS_256`. Delete them from your
-`BRIDGE_TYPE`. What replaced them is described next.
+Mandatory callback `get_workitem_multiple()` reports the granularity at which a unit computes. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width when the unit processes candidates in parallel waves, as an accelerator with many cores behind one unit would.
 
-There is no flag to match tunings any more. hashcat derives the workitem count from what
-`get_workitem_count()` reports, for every bridge, and sizes the launch and the device buffers from
-that. The count is treated as a maximum the bridge will never be asked to exceed.
+hashcat rounds every launch size down to a whole multiple of this value. A unit with a wave width of W remains occupied for `ceil(N / W)` waves, so a partial wave consumes capacity without processing useful candidates. A larger but misaligned batch can therefore have worse throughput and latency than a smaller aligned batch.
 
-It is only the maximum, though, not the size hashcat will use. Autotune searches the range between one
-workitem multiple and that maximum, and picks the launch size that measures fastest, so a bridge no
-longer has to guess a good size and report it. `-n` sets the size directly and is clamped into the same
-range.
+The multiple describes the unit's computational width, not a convenient DMA or buffer size. Reporting a transfer granularity can produce valid launches while silently reducing throughput whenever it is not divisible by the actual width.
 
-That is what `get_workitem_multiple()` is for, and it is mandatory. It reports the granularity your unit
-computes in. Return `1` if a batch of N candidates simply costs N, which is the case when one unit is
-one thread working through its batch sequentially. Return the internal width if your unit processes
-candidates in parallel waves, as an accelerator holding many cores behind a single unit does. hashcat
-rounds every launch size down to a whole multiple of it, which matters more than it looks: a unit that
-computes in waves of W is occupied for `ceil(N / W)` waves whatever N is, so a batch that is not a whole
-number of waves pays for capacity it never used, and a larger batch can be strictly slower than a
-smaller one in both throughput and latency.
+## How bridges work
 
-Note the multiple describes your unit's internal width, not a DMA or buffer convenience. Reporting a
-transfer granularity instead will look like it works, because the launch sizes stay legal, and it will
-quietly cost throughput whenever the real width does not divide it.
+When hashcat starts a mode that declares a bridge, it loads the bridge and calls its platform initializer. The bridge then discovers its compute resources, called *bridge units*. A hardware bridge might load a vendor library and enumerate two accelerator cards. A software bridge might expose interpreters or worker pools instead. Each unit also provides a human-readable description.
 
-## How Bridges Work
+Every bridge unit maps to one virtual backend device. This gives each unit an independent worker and launch size even when several units share one physical backend device. See the virtual backend device section below.
 
-When hashcat starts with a plugin that specifies a bridge, it loads the bridge and invokes its initialization function. The bridge must then discover its internal compute units, called *bridge units*. Handling the units must be implemented by the bridge developer, and typically involves loading some library, init it, and retrieve some resources available, for instances loading XRT, asking how many FPGA are available. If there's two FPGA, then the bridge unit count would be two. You also need to provide some detailed information on the unit itself, for instance the name of the device, or version or your software solution if it's not a hardware.
+A bridge can accept four generic string parameters from the command line:
 
-Each of these bridge unit maps to one virtual backend device, which allows asynchronous and independent parallel execution, and this were virtual backend devices become relevant. Read section about virtual backend devices for a better understanding
-
-From the bridge_init() function you have access to the following generic parameters, set on the command line by the user:
-
-```c
-+  "     --bridge-parameter1        | Str  | Sets the generic parameter 1 for a Bridge          |",
-+  "     --bridge-parameter2        | Str  | Sets the generic parameter 2 for a Bridge          |",
-+  "     --bridge-parameter3        | Str  | Sets the generic parameter 3 for a Bridge          |",
-+  "     --bridge-parameter4        | Str  | Sets the generic parameter 4 for a Bridge          |",
+```
+--bridge-parameter1
+--bridge-parameter2
+--bridge-parameter3
+--bridge-parameter4
 ```
 
-## Virtual Backend Devices
+Callbacks read them from `hashcat_ctx->user_options->bridge_parameter1` through `bridge_parameter4`. An unset parameter is `NULL`.
 
-This feature is available also outside of bridges, eg in order to increase some workload on a compute device, but it was added in the first place to support bridges. The main problem is that it's possible that a bridge return 2 bridge units which may have different speeds (clocking), or an ideal batch size. The time it takes to compute a certain batch of passwords would be different, so there was a need for an asynchronous execution strategy. hashcat supports mixed speed device types, but that typically mean "backend" devices. To solve the issue, we partition (virtualize) one physical backend device into multiple virtual backend devices (done internally by hashcat), and "link" each of the virtual backend device to a bridge unit. Due to this binding we can support bridge units of different speed. There's two flags a user can control in regard to virtual device backend:
+## Virtual backend devices
+
+Virtual backend devices can also be used without a bridge, but they were introduced so bridge units with different speeds or ideal batch sizes can run asynchronously. hashcat partitions a physical backend device into virtual devices and links each one to a bridge unit. Two options control that mapping:
 
 * Use `-Y` to define how many virtual backend devices to create.
-* Use `-R` to bind these virtual devices to a physical backend host (new in v7).
+* Use `-R` to bind the virtual devices to a physical backend device.
 
-Note that if a bridge is used, the user's `-Y` parameter is overridden with the bridge unit count. If no bridge is used for a hash mode, then -Y can be manually specified. `-R` works in both cases. The default is device `1`, unless overridden.
+When a bridge is active, its unit count overrides the value supplied with `-Y`. Without a bridge, the user can set `-Y` directly. Option `-R` works in both cases and defaults to device `1`.
 
-Because each virtual backend device IS one bridge unit, **`-d` selects bridge units**. `-d 2` runs
-unit 2 and nothing else, `-d 1,3` runs units 1 and 3, and a number naming no unit is refused the same
-way an unknown compute device is. This is independent of `-R`, which still chooses the physical
-device that generates the candidates.
+Because each virtual backend device represents one bridge unit, **option `-d` selects bridge units**. Command `-d 2` runs only unit 2, while `-d 1,3` runs units 1 and 3. hashcat rejects an unknown unit number in the same way it rejects an unknown compute device. This selection is independent of `-R`, which chooses the physical device that generates candidates.
 
-The numbering is shared, so `-d N`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog's `bridge unit
-#N` all refer to the same unit. A unit keeps its own index whatever else is filtered out, so `-d 3`
-always drives unit 3 rather than whichever unit happened to survive the filter first. Bridge
-developers get this for free; there is nothing to implement for it.
+The numbering is shared, so `-d N`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog's `bridge unit #N` all refer to the same unit. A unit retains its index when other units are filtered out, so `-d 3` always selects unit 3 rather than the third surviving unit. This behavior requires no bridge-specific implementation.
 
-## Writing a Bridge
+## Writing a bridge
 
-### File Layout
+### File layout
 
 Bridges live in the `src/bridges/` directory and consist of a `.c` file and a `.mk` build rule:
 
@@ -164,9 +136,9 @@ src/bridges/bridge_scrypt_jane.c
 src/bridges/bridge_scrypt_jane.mk
 ```
 
-The target output should be named like this: `bridges/bridge_scrypt_jane.so` and `bridges/bridge_scrypt_jane.dll`. Use any of the existing `.mk` files as template.
+The output should be named `bridges/bridge_scrypt_jane.so` on Unix-like systems or `bridges/bridge_scrypt_jane.dll` on Windows. Use an existing `.mk` file as a template.
 
-When hashcat starts, it finds the plugin using this pathfinder:
+At startup, hashcat resolves the plugin path as follows:
 
 ```
   #if defined (_WIN) || defined (__CYGWIN__)
@@ -176,187 +148,184 @@ When hashcat starts, it finds the plugin using this pathfinder:
   #endif
 ```
 
-### Required Function Exports
+### Bridge initializer
+
+A bridge exports only `bridge_init()`. The initializer records the interface it was built against and fills the callback table. Assign `BRIDGE_DEFAULT` to callbacks the bridge does not implement. Do not leave the older required-defined fields as null pointers.
 
 ```c
-bridge_ctx->platform_init         = platform_init;
-bridge_ctx->platform_term         = platform_term;
-bridge_ctx->get_unit_count        = get_unit_count;
-bridge_ctx->get_unit_info         = get_unit_info;
-bridge_ctx->get_workitem_count    = get_workitem_count;
-bridge_ctx->get_workitem_multiple = get_workitem_multiple;
-bridge_ctx->get_unit_class        = BRIDGE_DEFAULT;
-bridge_ctx->thread_init           = BRIDGE_DEFAULT;
-bridge_ctx->thread_term           = BRIDGE_DEFAULT;
-bridge_ctx->salt_prepare          = salt_prepare;
-bridge_ctx->salt_destroy          = salt_destroy;
-bridge_ctx->launch_loop           = launch_loop;
-bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
-bridge_ctx->st_update_hash        = BRIDGE_DEFAULT;
-bridge_ctx->st_update_pass        = BRIDGE_DEFAULT;
+void bridge_init (bridge_ctx_t *bridge_ctx)
+{
+  bridge_ctx->bridge_context_size      = BRIDGE_CONTEXT_SIZE_CURRENT;
+  bridge_ctx->bridge_interface_version = BRIDGE_INTERFACE_VERSION_CURRENT;
+
+  bridge_ctx->platform_init         = platform_init;
+  bridge_ctx->platform_term         = platform_term;
+  bridge_ctx->get_unit_count        = get_unit_count;
+  bridge_ctx->get_unit_info         = get_unit_info;
+  bridge_ctx->get_workitem_count    = get_workitem_count;
+  bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->get_unit_class        = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_member_count = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_member_info  = BRIDGE_DEFAULT;
+
+  bridge_ctx->thread_init    = BRIDGE_DEFAULT;
+  bridge_ctx->thread_term    = BRIDGE_DEFAULT;
+  bridge_ctx->salt_prepare   = BRIDGE_DEFAULT;
+  bridge_ctx->salt_destroy   = BRIDGE_DEFAULT;
+  bridge_ctx->launch_loop    = launch_loop;
+  bridge_ctx->launch_loop2   = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_hash = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_pass = BRIDGE_DEFAULT;
+
+  bridge_ctx->get_unit_temperature           = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_str       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_abort     = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_unwatched = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed              = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization           = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed             = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed           = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes              = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes_str          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power                 = BRIDGE_DEFAULT;
+}
 ```
 
-They are defined like this:
+The principal callbacks are declared as follows:
 
 ```c
-  void     *(*platform_init)      (hashcat_ctx_t *);
-  void      (*platform_term)      (hashcat_ctx_t *, void *);
-  int       (*get_unit_count)        (hashcat_ctx_t *, void *);
-  char     *(*get_unit_info)         (hashcat_ctx_t *, void *, const int);
-  int       (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
-  int       (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
-  char     *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
-  bool      (*salt_prepare)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
-  void      (*salt_destroy)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
-  bool      (*thread_init)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
-  void      (*thread_term)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
-  bool      (*launch_loop)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
-  bool      (*launch_loop2)       (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
-  const char *(*st_update_pass)  (hashcat_ctx_t *, void *);
-  const char *(*st_update_hash)  (hashcat_ctx_t *, void *);
+  void       *(*platform_init)         (hashcat_ctx_t *);
+  void        (*platform_term)         (hashcat_ctx_t *, void *);
+  int         (*get_unit_count)        (hashcat_ctx_t *, void *);
+  char       *(*get_unit_info)         (hashcat_ctx_t *, void *, const int);
+  int         (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
+  int         (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
+  char       *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
+  int         (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
+  char       *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
+  bool        (*salt_prepare)          (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+  void        (*salt_destroy)          (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+  bool        (*thread_init)           (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  void        (*thread_term)           (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  bool        (*launch_loop)           (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  bool        (*launch_loop2)          (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  const char *(*st_update_pass)        (hashcat_ctx_t *, void *);
+  const char *(*st_update_hash)        (hashcat_ctx_t *, void *);
 ```
 
-**Note**: Use `BRIDGE_DEFAULT` when no function implementation is required.
+The complete structure, including sensor callbacks, is defined in `include/types.h`.
 
-### Every entry takes `hashcat_ctx_t *` first
+### Every callback receives `hashcat_ctx_t *` first
 
-Interface version 720 carries this change. A bridge written against an older interface has the wrong
-signature on every single entry, and `platform_init`'s parameters are gone entirely: `user_options_t`
-and `folder_config_t` are both reachable through the context now.
+Interface version 720 introduced this change. Every callback in an older bridge has an incompatible signature. The previous parameters of `platform_init` were also removed because both `user_options_t` and `folder_config_t` are now available through the context.
 
-The reason is logging. A bridge that has the context can call `event_log_info`, `event_log_warning`
-and `event_log_error` exactly as hashcat's own code does, so its messages go through hashcat's event
-system, honour `--quiet`, and appear in the right order with everything else. Writing to `stderr`
-from a bridge does none of that, and on Windows a DLL's `stderr` is not even the host's.
+The primary reason is logging. With access to the context, a bridge can use `event_log_info`, `event_log_warning` and `event_log_error` like hashcat's own code. Its messages then pass through the event system, honor `--quiet` and remain correctly ordered. Direct output to `stderr` provides none of these guarantees, and a Windows DLL may not share the host process's `stderr`.
 
 No wrapper or callback is needed. Every `event_log_*` symbol is already linked into every bridge.
 
 Two things to know before reaching through the context:
 
-- **`event_log_error` prints a BLANK LINE after its message.** It is a paragraph printer, not a line
-  printer, because hashcat's own errors are single sentences. Use ONE `event_log_error` for the
-  headline and `event_log_info` for each body line, and do not add your own blank line after the
-  headline. A headline must also fit on one line or the blank splits the sentence in half.
-- **Never read `hashcat_ctx->hashes`.** The self test hands `launch_loop` and friends a `hashes_t`
-  that is a LOCAL COPY, with the digest, salt, esalt and hook salt buffers swapped for the self
-  test's own. That is why these functions still take `hashconfig` and `hashes` explicitly even though
-  both are reachable from the context. Reading the context instead silently computes against the
-  user's real hashes during the self test.
+- **Function `event_log_error` prints a blank line after its message.** It prints a complete error paragraph rather than an individual line. Use one call for the headline and `event_log_info` for each body line. Do not add another blank line, and keep the headline on one line so the automatic spacing does not split a sentence.
+- **Never read `hashcat_ctx->hashes`.** The self-test passes `launch_loop` and related callbacks a local `hashes_t` copy whose digest, salt, esalt and hook-salt buffers contain the self-test data. These callbacks receive `hashconfig` and `hashes` explicitly for this reason, even though both are accessible through the context. Reading the context instead silently computes against the user's hashes during the self-test.
 
-### Mandatory Functions
+### Mandatory functions
 
-The following functions must be defined:
+The following six callbacks must have implementations:
 
 ```c
-CHECK_MANDATORY (bridge_ctx->platform_init);
-CHECK_MANDATORY (bridge_ctx->platform_term);
-CHECK_MANDATORY (bridge_ctx->get_unit_count);
-CHECK_MANDATORY (bridge_ctx->get_unit_info);
-CHECK_MANDATORY (bridge_ctx->get_workitem_count);
-CHECK_MANDATORY (bridge_ctx->get_workitem_multiple);
+platform_init
+platform_term
+get_unit_count
+get_unit_info
+get_workitem_count
+get_workitem_multiple
 ```
 
-`get_workitem_multiple` is new and mandatory, so a bridge written against an earlier version will not
-load until it is added. It is also a struct field, so an older bridge is refused by the
-`bridge_context_size` check before anything else is looked at, with "bridge context size is invalid.
-Old template?". Rebuild the bridge against the current headers.
+In addition, every loop named by the module's `BRIDGE_TYPE` must be implemented: `launch_loop` for a launch or replacement of `LOOP`, and `launch_loop2` for `LOOP2`. Other callbacks use `BRIDGE_DEFAULT` when they are not needed.
 
-### Function Roles
+Callback `get_workitem_multiple` is mandatory in the current interface. An older bridge is normally refused first by the `bridge_context_size` check with "bridge context size is invalid. Old template?". Rebuild it against the current headers and update the initializer.
 
-- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer. `hashcat_ctx->folder_config` gives access to hashcat's resolved paths (`cache_dir`, `profile_dir`, `shared_dir`, ...), which already account for whether hashcat is running installed or from an unpacked directory. Use these instead of building paths yourself, otherwise a portable install will write to the wrong place, and a file you ship beside the binary will not be found once the same build is installed.
-- platform_term: Final cleanup logic. Frees any context data allocated during initialization.
-- get_unit_count: Returns the number of available units. For example, return `2` if two FPGAs are detected.
-- get_unit_info: Returns a human-readable description of a unit, like "Python v3.13.3".
-- get_workitem_count: Returns the largest number of password candidates the unit can be handed in one invocation. This is an upper limit, not a request: autotune searches below it and picks the size that measures fastest.
-- get_workitem_multiple: Returns the granularity the unit computes in. Return `1` when a batch of N candidates costs N, which is the case for one thread working through its batch sequentially. Return the internal width when the unit processes candidates in parallel waves, so hashcat never hands it a partial wave.
-- get_unit_class: Optional. Returns a string naming what KIND of thing a unit is, so hashcat can tell which units are interchangeable. See the section below.
-- thread_init: Optional. Use for per-thread setup, such as creating a new Python interpreter.
-- thread_term: Optional. Use for per-thread cleanup.
-- salt_prepare: Called once per salt. Useful for preprocessing or storing large salt/esalt buffers.
-- salt_destroy: Optional cleanup routine for any salt-specific memory.
-- launch_loop: Main compute function. Replaces the traditional `_loop` kernel.
-- launch_loop2: Secondary compute function. Replaces `_loop2` if needed.
-- st_update_hash: Optionally override the module's default self-test hash.
-- st_update_pass: Optionally override the module's default self-test password.
+### Function roles
 
-### Unit class: which of your units are interchangeable
+- Callback `platform_init` runs at startup and returns a context pointer. It can load libraries, connect to remote endpoints or initialize hardware APIs. Structure member `hashcat_ctx->folder_config` gives access to hashcat's resolved paths (`cache_dir`, `profile_dir`, `shared_dir`, ...), which already account for whether hashcat is running installed or from an unpacked directory. Use these instead of building paths yourself, otherwise a portable install will write to the wrong place, and a file you ship beside the binary will not be found once the same build is installed.
+- Callback `platform_term` performs final cleanup and frees context data allocated during initialization.
+- Callback `get_unit_count` returns the number of available units. For example, return `2` when two FPGAs are detected.
+- Callback `get_unit_info` returns a human-readable unit description, such as `Python v3.13.3`.
+- Callback `get_workitem_count` returns the maximum number of candidates a unit can receive in one invocation. This is an upper bound, not a requested launch size. Autotune searches below it and selects the fastest measured value.
+- Callback `get_workitem_multiple` returns the computational granularity of the unit. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width for parallel waves so hashcat never supplies a partial wave.
+- Optional callback `get_unit_class` identifies the type of unit so hashcat can determine which units are interchangeable. See the section below.
+- Optional callbacks `get_unit_member_count` and `get_unit_member_info` describe the hardware members combined into one unit. Implement both or neither.
+- Optional callback `thread_init` performs per-thread setup, such as creating a Python interpreter.
+- Optional callback `thread_term` performs per-thread cleanup.
+- Callback `salt_prepare` runs once after the hashes are loaded and can preprocess salt or esalt data for the complete hash set.
+- Callback `salt_destroy` releases data allocated by `salt_prepare`.
+- Callback `launch_loop` is associated with `_loop`. Depending on `BRIDGE_TYPE`, it runs after the kernel or replaces it.
+- Callback `launch_loop2` provides the equivalent operation for `_loop2`.
+- Optional callback `st_update_hash` overrides the module's default self-test hash.
+- Optional callback `st_update_pass` overrides the module's default self-test password.
 
-`get_unit_class` is optional. It returns a string that is EQUAL for two units whenever the same
-tuning is right for both.
+### Unit classes and interchangeable units
 
-hashcat aligns `-n`, `-u` and `-T` across devices of the same type, so a machine full of identical
-cards does not show neighbouring devices running different batch sizes for no visible reason. That
-test asks the BACKEND what a device is, and for a bridge it cannot work: every unit is one virtual
-backend device cloned from the same physical one, so the answer is identical for all of them however
-different the units really are. It cannot tell two units apart, and it cannot tell two units together
-either. Only the bridge knows.
+Optional callback `get_unit_class` returns the same string for any two units that should share tuning values.
+
+hashcat aligns `-n`, `-u` and `-T` across devices of the same type so identical devices do not use visibly different batch sizes. For ordinary devices, the backend supplies that identity.
+
+A bridge cannot use the backend identity because every unit is represented by a virtual device cloned from the same physical device. The backend therefore reports the same identity even when the bridge units differ. Only the bridge can classify them correctly.
 
 ```c
 char *get_unit_class (hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx);
 ```
 
-Return the KIND, never the instance:
+Return the unit type, never the individual instance:
 
 ```
 "Acme A100 accelerator, 64 lanes @ 400 MHz"                 // good
 "Acme A100 accelerator, 64 lanes @ 400 MHz (/dev/acme2)"    // WRONG, no two units ever match
 ```
 
-**No device path, no serial number, no index.** That is the whole difference between this and
-`get_unit_info`, which names the individual device on purpose so a user can tell two cards apart.
+**Do not include a device path, serial number or index.** Unlike the class callback, `get_unit_info` deliberately identifies an individual device so users can distinguish otherwise identical units.
 
-Leave it as `BRIDGE_DEFAULT` and hashcat compares `get_unit_info` instead. That is correct when your
-units really are identical, which is the normal case for a bridge whose units are CPU threads and
-whose info strings are all the same string. You need `get_unit_class` only when your info string
-names the individual unit.
+When the callback is left as `BRIDGE_DEFAULT`, hashcat compares `get_unit_info` instead. That is correct when your units really are identical, which is the normal case for a bridge whose units are CPU threads and whose info strings are all the same string. You need `get_unit_class` only when your info string names the individual unit.
 
-Two units that cannot be described do not compare equal. A bridge that returns NULL gets no alignment
-rather than being assumed uniform, because copying one unit's tuning onto a unit nobody could
-identify is worse than leaving it alone.
+Units that cannot be described do not compare as equal. If a bridge returns `NULL`, hashcat leaves their tunings independent instead of assuming that unidentified units are interchangeable.
+
+### Units made of several members
+
+A bridge may combine several hardware components into one scheduling unit. Implement both `get_unit_member_count` and `get_unit_member_info` so the startup and `--backend-info` displays can show what that unit contains. A bridge whose units are individual devices leaves both callbacks at `BRIDGE_DEFAULT`.
+
+```c
+int   get_unit_member_count (hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx);
+char *get_unit_member_info  (hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx, const int member_idx);
+```
+
+Member indices start at zero and must match any numbering used elsewhere by the bridge. Return `NULL` from `get_unit_member_info` for an invalid index. These callbacks describe composition, not scheduling: `-d` still selects the containing bridge unit.
 
 ### Reporting sensors
 
-All optional. Implement the ones your hardware can answer and leave the rest as `BRIDGE_DEFAULT`.
+All sensor callbacks are optional. Implement those supported by the hardware and leave the rest as `BRIDGE_DEFAULT`.
 
 ```c
-  int  (*get_unit_temperature)       (hashcat_ctx_t *, void *, const int);
-  bool (*get_unit_temperature_str)   (hashcat_ctx_t *, void *, const int, char *, const size_t);
-  bool (*get_unit_buslanes_str)      (hashcat_ctx_t *, void *, const int, char *, const size_t);
-  u32  (*get_unit_temperature_abort) (hashcat_ctx_t *, void *, const int);
-  int  (*get_unit_fanspeed)          (hashcat_ctx_t *, void *, const int);
-  int  (*get_unit_utilization)       (hashcat_ctx_t *, void *, const int);
-  int  (*get_unit_corespeed)         (hashcat_ctx_t *, void *, const int);
-  int  (*get_unit_memoryspeed)       (hashcat_ctx_t *, void *, const int);
-  int  (*get_unit_buslanes)          (hashcat_ctx_t *, void *, const int);
-  u64  (*get_unit_power)             (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_temperature)           (hashcat_ctx_t *, void *, const int);
+  bool (*get_unit_temperature_str)       (hashcat_ctx_t *, void *, const int, char *, const size_t);
+  bool (*get_unit_buslanes_str)          (hashcat_ctx_t *, void *, const int, char *, const size_t);
+  u32  (*get_unit_temperature_abort)     (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_temperature_unwatched) (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_fanspeed)              (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_utilization)           (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_corespeed)             (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_memoryspeed)           (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_buslanes)              (hashcat_ctx_t *, void *, const int);
+  u64  (*get_unit_power)                 (hashcat_ctx_t *, void *, const int);
 ```
 
-Implementing ANY of these makes the bridge own the `Hardware.Mon` line for its units. That is
-deliberate: without it the line describes the backend device, which under a bridge is only the
-candidate feeder and is usually close to idle while the unit does the work, so its temperature and
-clocks describe the wrong piece of hardware.
+Implementing any primary sensor callback, or `get_unit_temperature_str`, makes the bridge own the `Hardware.Mon` line for its units. The bus description and unwatched-member count supplement that line but do not activate it by themselves. Without bridge-owned monitoring, the line describes the backend device, which under a bridge is only the candidate feeder and is usually close to idle while the unit does the work.
 
-- Return a negative value for "no reading". The status line then shows `Temp: N/A` rather than
-  dropping the field, because a line that silently omits what its neighbours show reads as breakage.
-- `get_unit_temperature_str` is for a unit that is one piece of hardware carrying SEVERAL sensors, a
-  board of four dies for instance. Write the whole field, `Temp: 34/36/34/37c`, so all of them appear
-  on one line. `get_unit_temperature` should still return the HOTTEST, because that is what the abort
-  watchdog must act on and an average would hide exactly the case that matters.
-- `get_unit_temperature_abort` is the limit the part survives, which for anything that is not a GPU
-  is rarely the 90 C default. hashcat applies the STRICTER of this and the user's
-  `--hwmon-temp-abort`, so a cautious user setting is honoured and a reckless one still cannot run a
-  part past what it survives. Zero means the unit has no opinion.
-- A unit that reports no temperature is NOT watched, and hashcat says so rather than printing a
-  threshold it can never enforce.
-- `get_unit_buslanes_str` is for a unit whose link cannot be described by a lane count. Lanes are a
-  PCIe idea, so a unit reached over USB has none and would otherwise leave the field empty, which
-  beside a unit that DOES show lanes reads as a unit attached to nothing. Write what the link really
-  is. Write the WHOLE field including its own label, `USB: 480Mb/s`, the same way a multi sensor
-  temperature does: the label is part of the answer, and a fixed `Bus:` in front of it would say bus
-  twice. Return false and hashcat falls back to `get_unit_buslanes`, then to `Bus: N/A`.
+- Return a negative value when no reading is available. The status line then shows `Temp: N/A` instead of omitting a field displayed for neighboring units.
+- Callback `get_unit_temperature_str` supports a single hardware unit with several sensors, such as a board containing four dies. Write the complete field, for example `Temp: 34/36/34/37c`, so all readings appear on one line. Callback `get_unit_temperature` should still return the highest temperature because the abort watchdog must act on the hottest component.
+- Callback `get_unit_temperature_abort` reports the safe limit for the component, which may differ from the 90 C GPU default. hashcat applies the lower of this value and the user's `--hwmon-temp-abort` setting. A value of zero means that the unit specifies no limit.
+- A unit that reports no temperature cannot be monitored by the watchdog. hashcat reports this condition instead of displaying an unenforceable threshold. For a grouped unit, `get_unit_temperature_unwatched` returns the number of members without a sensor. Return zero when every member is covered.
+- Callback `get_unit_buslanes_str` describes a connection that cannot be expressed as a PCIe lane count, such as USB. Write the complete field including its label, for example `USB: 480Mb/s`. Return false to fall back first to `get_unit_buslanes` and then to `Bus: N/A`.
 
-### The watchdog and status lines name units, not devices
+### Watchdog and status output identifies units
 
-Because one virtual backend device IS one bridge unit, `-d N`, `Speed.#NN`, `Hardware.Mon.#NN` and
-the watchdog line all mean the same N. The watchdog says `bridge unit #N` where a compute device
-would say `device #N`, so the two kinds cannot be confused on lines that sit next to each other.
+Because each virtual backend device represents one bridge unit, `-d N`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog all use the same unit number. The watchdog reports `bridge unit #N` rather than `device #N`, clearly distinguishing bridge units from compute devices in adjacent output.

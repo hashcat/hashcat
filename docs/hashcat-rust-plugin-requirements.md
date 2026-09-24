@@ -1,25 +1,18 @@
-# Hashcat Rust Plugin Requirements
+# hashcat Rust Plugin Requirements
 
-This document explains how to build and use the Hashcat Rust plugin on
-Linux, Windows, and macOS.
+This document explains how to build and use the hashcat Rust plugin on Linux, Windows and macOS.
 
 ## Linux
 
 1. **Install Rust**
 
-   Rust **1.85 or newer** is required. The crates are written in edition
-   2024, which cargo understands from 1.85, and 1.84 and below refuse to
-   parse `Cargo.toml` at all. The build checks this and says so.
+   Rust **1.85 or newer** is required. The crates use Rust edition 2024, which Cargo supports from version 1.85. Earlier versions cannot parse their `Cargo.toml` files. The build checks the installed version and reports when it is too old.
 
-   This is newer than some distributions carry. Ubuntu 24.04 ships 1.75,
-   for instance, so install Rust through `rustup` rather than the package
-   manager.
+   This version is newer than the packages in some distributions. Ubuntu 24.04 ships 1.75, for instance, so install Rust through `rustup` rather than the package manager.
 
 2. **Install libclang**
 
-   The `hashcat-sys` crate generates its bindings with `bindgen`, which loads
-   `libclang` at build time. Your distribution splits this out from the clang
-   compiler itself, so installing Rust alone is not enough.
+   The `hashcat-sys` crate generates its bindings with `bindgen`, which loads `libclang` at build time. Distributions commonly package this library separately from the Clang compiler, so installing Rust alone is not sufficient.
 
    ```
    sudo apt install libclang-dev        # Debian, Ubuntu
@@ -34,19 +27,17 @@ Linux, Windows, and macOS.
    ['libclang.so', 'libclang-*.so', 'libclang.so.*', 'libclang-*.so.*'] ..."
    ```
 
-   If the library is installed somewhere `bindgen` does not look, point at it
-   with `LIBCLANG_PATH`.
+   If the library is outside the paths searched by `bindgen`, specify its location with `LIBCLANG_PATH`.
 
-3. **Build Hashcat**
+3. **Build hashcat**
 
-   If you are building Hashcat from source, run:
+   To build hashcat from source, run:
 
    ```
    make linux
    ```
 
-   This should build the Rust bridge and the default plugin
-   automatically. To verify, run:
+   This builds the Rust bridge and default plugin automatically. To verify, run:
 
    ```
    ./hashcat.bin -m 74000 -b
@@ -54,8 +45,7 @@ Linux, Windows, and macOS.
 
 4. **Customize the plugin**
 
-   Edit `Rust/bridges/generic_hash/src/generic_hash.rs` to fit your needs.
-   Typically, you only need to adjust:
+   Edit `Rust/bridges/generic_hash/src/generic_hash.rs` to fit your needs. Typically, you only need to adjust:
 
    - `ST_HASH`
    - `ST_PASS`
@@ -72,7 +62,7 @@ Linux, Windows, and macOS.
 
    This produces `libgeneric_hash.so` in `Rust/bridges/generic_hash/target/release`.
 
-6. **Run Hashcat**
+6. **Run hashcat**
 
    ```
    hashcat -a 0 -m 74000 hashfile wordlist
@@ -90,16 +80,13 @@ Linux, Windows, and macOS.
 
 1. **Install Rust**
 
-   Ensure both `cargo` and `rustup` are installed. If Rust was
-   installed via `rustup`, you already have them. **Rust 1.85 or newer**
-   is required, for the reason given in the Linux section.
+   Ensure both `cargo` and `rustup` are installed. If Rust was installed via `rustup`, you already have them. **Rust 1.85 or newer** is required, for the reason given in the Linux section.
 
-   The Windows binaries are cross-compiled from WSL, so `libclang` has to be
-   installed on the WSL side too. See step 2 of the Linux section.
+   The Windows binaries are cross-compiled from WSL, so `libclang` has to be installed on the WSL side too. See step 2 of the Linux section.
 
-2. **Build Hashcat**
+2. **Build hashcat**
 
-   You only have to do this if you're building from sources.
+   This step is required only when building hashcat from source.
 
    From a WSL shell, run:
 
@@ -121,12 +108,11 @@ Linux, Windows, and macOS.
    - `ST_PASS`
    - The `calc_hash` function
 
-   Optionally, add unit tests and run then with `cargo test`.
+   Optionally, add unit tests and run them with `cargo test`.
 
 4. **Build the customized plugin**
 
-   Add a Windows target to the Rust toolchain (you only have to do
-   this once):
+   Add a Windows target to the Rust toolchain (you only have to do this once):
 
    ```
    rustup target add x86_64-pc-windows-gnu
@@ -139,10 +125,9 @@ Linux, Windows, and macOS.
    cargo build --release --target x86_64-pc-windows-gnu
    ```
 
-   This produces `generic_hash.dll` in
-   `Rust/bridges/generic_hash/target/x86_64-pc-windows-gnu/release`.
+   This produces `generic_hash.dll` in `Rust/bridges/generic_hash/target/x86_64-pc-windows-gnu/release`.
 
-5. **Run Hashcat**
+5. **Run hashcat**
 
    ```
    hashcat -a 0 -m 74000 hashfile wordlist
@@ -156,18 +141,16 @@ Linux, Windows, and macOS.
 
 ## macOS
 
-Hashcat does not ship prebuilt macOS binaries, so you must build both
-the bridge and the plugin yourself.
+hashcat does not provide prebuilt macOS binaries, so both the bridge and plugin must be built locally.
 
 1. Follow the same steps as in the **Linux** section.
-2. On macOS, Rust produces `.dylib` files. After building a customized
-   plugin with `cargo build --release`, either:
+2. On macOS, Rust produces `.dylib` files. After building a customized plugin with `cargo build --release`, either:
    - Rename:
      ```
      mv Rust/bridges/generic_hash/target/release/libgeneric_hash.dylib \
         Rust/bridges/generic_hash/target/release/libgeneric_hash.so
      ```
-   - Or run Hashcat with:
+   - Or run hashcat with:
      ```
      --bridge-parameter1 /path/to/libgeneric_hash.dylib
      ```

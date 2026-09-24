@@ -1,11 +1,10 @@
 Performance Notes:
 ==================
 
-- Always use the latest display driver
-- Cracking with a mask with a fixed prefix can be slow.
-  Instead, consider using a mode with salt as a prefix and set salt to that fixed prefix.
+- Always use the latest display driver.
+- A mask with a fixed prefix can be slow. When possible, use a hash mode with a prefixed salt and assign the fixed prefix to the salt instead.
 
-Also read this:
+For more information, see:
 
 https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed
 

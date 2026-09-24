@@ -21,8 +21,7 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PRIVATE_KEY;
 static const char *HASH_NAME      = "OpenSSH Private Keys (bcrypt-pbkdf)";
 static const u64   KERN_TYPE      = 36800;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_DYNAMIC_SHARED;
@@ -200,7 +199,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ciphertext offset within the blob
 
-  const u32 ct_offset = hc_strtoul ((const char *) token.buf[7], NULL, 10);
+  // The last token runs to the end of the line, and hc_strtoul () reads digits until it meets one
+  // that is not, so on this token it reads to whatever follows the line rather than stopping at a
+  // separator the way it does on every other numeric field. Convert a copy that ends where the
+  // token does.
+
+  char ct_offset_str[16];
+
+  const int ct_offset_len = MIN (token.len[7], (int) sizeof (ct_offset_str) - 1);
+
+  memcpy (ct_offset_str, token.buf[7], ct_offset_len);
+
+  ct_offset_str[ct_offset_len] = 0;
+
+  const u32 ct_offset = hc_strtoul (ct_offset_str, NULL, 10);
 
   // the blob, kept whole for the encoder
 
@@ -218,7 +230,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // the encrypted section has to leave one AES block to verify against
 
-  if ((ct_offset + 16) > (u32) data_len) return (PARSER_SALT_VALUE);
+  // ct_offset comes off the line as a decimal and is added to before it is compared, so a value
+  // near UINT32_MAX wrapped and passed a check it could not pass, and the read below then started
+  // that far into the blob. Subtract from data_len instead, which cannot wrap.
+
+  if (data_len < 16) return (PARSER_SALT_VALUE);
+
+  if (ct_offset > (u32) (data_len - 16)) return (PARSER_SALT_VALUE);
 
   sshng->ct_offset = ct_offset;
 

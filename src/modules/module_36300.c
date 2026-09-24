@@ -208,7 +208,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = salt_len;
 
-  salt->scrypt_N = 1 << N_log2;
+  salt->scrypt_N = 1u << N_log2;
   salt->scrypt_r = r;
   salt->scrypt_p = p;
 

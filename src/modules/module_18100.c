@@ -90,7 +90,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
         token.len_min[i + 1] *= 2;
         token.len_max[i + 1] *= 2;
         token.attr[i + 1]     = TOKEN_ATTR_VERIFY_LENGTH
-                              | TOKEN_ATTR_VERIFY_HEX;
+                              | TOKEN_ATTR_VERIFY_BASE16;
       }
     }
 
