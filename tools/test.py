@@ -624,11 +624,274 @@ def attack_9(r):
   whole_word(r, 9)
 
 
+def utf8_split_point(text, off):
+  # test.sh utf8_split_point (byte offsets, since test.sh runs under LC_ALL=C). Move the split
+  # back to a UTF-8 boundary so each half is valid on its own; if that lands on 0 for a real
+  # split, a character sits at the very start, so go forward to the next boundary instead. The
+  # .py oracle passwords are ASCII for most modes, where this returns off unchanged, but 20510
+  # uses multi byte passwords, so the boundary handling matters there.
+
+  n = len(text)
+  back = off
+
+  while back > 0 and back < n and 0x80 <= text[back] <= 0xbf:
+    back -= 1
+
+  if back == 0 and off > 0:
+    while off < n and 0x80 <= text[off] <= 0xbf:
+      off += 1
+
+    return off
+
+  return back
+
+
+def combinator_init_params(mode):
+  # init()'s per mode line skip and split offset for the single-build dicts (test.sh:721-742).
+  # init_min lines are left out of the dicts, min_offset shifts the split toward the tail.
+
+  init_min = 1
+  min_offset = 0
+
+  if mode == 2500:
+    min_offset = 7
+  elif mode == 14000:
+    init_min = 0
+    min_offset = 4
+  elif mode == 14100:
+    init_min = 0
+    min_offset = 3
+  elif mode == 14900:
+    init_min = 0
+    min_offset = 5
+  elif mode == 15400:
+    init_min = 0
+    min_offset = 3
+  elif mode == 16800:
+    min_offset = 7
+  elif mode == 22000:
+    min_offset = 7
+
+  return init_min, min_offset
+
+
+def split_for_combinator(pairs, mode):
+  # Reproduce init()'s dict1/dict2 build (test.sh:744-789) as two byte-string lists, one line per
+  # password whose 1-based index exceeds init_min. dict1[k] . dict2[k] is that kept password, so
+  # the combinator concatenates the halves back to the word. Kept in its own helper because -a 6
+  # and -a 7 reuse the same split.
+
+  init_min, min_offset = combinator_init_params(mode)
+
+  dict1 = []
+  dict2 = []
+  i = 0
+
+  for word, _ in pairs:
+    i += 1
+
+    if i <= init_min:
+      continue
+
+    p0 = i // 2
+    p1 = p0 + 1
+    pass_len = len(word)
+
+    if pass_len > 1:
+      p1 += min_offset
+      p0 += min_offset
+
+      if p1 > pass_len:
+        p1 = pass_len
+        p0 = p1 - 1
+
+      p0 = utf8_split_point(word, p0)
+
+      dict1.append(word[:p0])
+      dict2.append(word[p0:])
+    elif pass_len == 1:
+      dict1.append(word)
+      dict2.append(b"")
+    else:
+      dict1.append(b"")
+      dict2.append(b"")
+
+  return dict1, dict2
+
+
+def combinator_single_range(mode):
+  # attack_1 single processes hashes whose 1-based index is in (min, max] (test.sh:1388-1405).
+
+  smin, smax = 1, 8
+
+  if mode in (14000, 14100, 14900, 15400):
+    smin, smax = 0, 5
+  elif mode == 20510:
+    smin = 2
+
+  return smin, smax
+
+
+def combinator_multi_offset(mode):
+  # attack_1 multi takes the last offset hashes as one batch (test.sh:1576-1586).
+
+  if mode in (5800, 3000):
+    return 6
+
+  return 7
+
+
+def pkzip_masterkey_dicts(dict1, dict2, line_nr):
+  # test.sh:1439-1484, PKZIP master key. Rebuild the two dicts with line line_nr replaced by the
+  # split the mode needs: the first 6 bytes of dict1 are dropped, and when dict1 is shorter than
+  # 6 bytes the remainder is stolen from dict2. The search still uses the unmodified halves, so
+  # only the run dicts change here. head/echo/tail in test.sh drops the line just after line_nr;
+  # that quirk is kept so the combinator cross product is byte identical.
+
+  idx = line_nr - 1
+  d1 = dict1[idx]
+  d2 = dict2[idx]
+
+  if len(d1) >= 6:
+    new_d1 = d1[6:]
+    new_d2 = d2
+  else:
+    num_to_steal = 6 - len(d1)
+    num_steal_start = num_to_steal + 1
+
+    if len(d2) >= 6:
+      num_to_steal_new = (len(d2) - num_to_steal) // 2
+
+      if num_to_steal_new > num_to_steal:
+        num_to_steal = num_to_steal_new
+
+    new_d1 = d2[:num_to_steal][num_steal_start - 1:]
+    new_d2 = d2[num_to_steal:]
+
+  out1 = dict1[:idx] + [new_d1] + dict1[idx + 2:]
+  out2 = dict2[:idx] + [new_d2] + dict2[idx + 2:]
+
+  return out1, out2
+
+
+def write_dict(path, lines):
+  with open(path, "wb") as fh:
+    for line in lines:
+      fh.write(line + b"\n")
+
+
+def run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path):
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  smin, smax = combinator_single_range(r.mode)
+
+  temp_file = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
+  mod1_path = os.path.join(r.tmp, "m%05d_dict1_mod" % r.mode)
+  mod2_path = os.path.join(r.tmp, "m%05d_dict2_mod" % r.mode)
+
+  i = 0
+
+  for word, digest in r.pairs:
+    i += 1
+
+    if i > smin:
+      if r.file_only:
+        with open(temp_file, "wb") as fh:
+          fh.write(decode_hashfile(r.mode, digest))
+
+        target = temp_file
+      else:
+        target = digest
+
+      d1p, d2p = dict1_path, dict2_path
+
+      if r.mode == 20510:
+        # dict line for this hash: min 0 counts from 1, otherwise it trails the hash by one
+        # because init() left the length 1 line out (test.sh:1428-1434).
+        if smin == 0:
+          line_nr = i
+        elif i > 1:
+          line_nr = i - 1
+        else:
+          line_nr = 1
+
+        out1, out2 = pkzip_masterkey_dicts(dict1_lines, dict2_lines, line_nr)
+
+        write_dict(mod1_path, out1)
+        write_dict(mod2_path, out2)
+
+        d1p, d2p = mod1_path, mod2_path
+
+      rc, out = run_hashcat(r.opts, r.mode, target, b"", attack=1, extra=[d1p, d2p])
+
+      # dict1[k] . dict2[k] reconstructs the word, so the expected plain is the password itself,
+      # the same string -a 0 searches for (test.sh:1498-1505).
+
+      matched = match_search(digest, word, r.pass_only) in out
+
+      classify(rc, matched, c)
+
+    if i == smax:
+      break
+
+  report(r.args, r.mode, "single", r.width, c, attack=1)
+
+
+def run_combinator_multi(r, dict1_path, dict2_path):
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  offset = combinator_multi_offset(r.mode)
+  sel = r.pairs[-offset:]
+
+  hash_file = os.path.join(r.tmp, "m%05d_multihash_combi.bin" % r.mode)
+
+  if r.file_only:
+    # test.sh concatenates the decoded files with no separator (test.sh:1597-1605). Reached only
+    # if a non-slow binary hashfile mode ever gains a .py oracle; today none do.
+    with open(hash_file, "wb") as fh:
+      for _, digest in sel:
+        fh.write(decode_hashfile(r.mode, digest))
+  else:
+    with open(hash_file, "wb") as fh:
+      fh.write(b"\n".join(d.encode("ascii") for _, d in sel) + b"\n")
+
+  rc, out = run_hashcat(r.opts, r.mode, hash_file, b"", attack=1, extra=[dict1_path, dict2_path])
+
+  # One hashcat run scored as one test (test.sh:1619-1659): every selected pair has to be in the
+  # output, and each expected plain is the password because the halves rejoin to it.
+
+  matched = all(match_search(digest, word, r.pass_only) in out for word, digest in sel)
+
+  classify(rc, matched, c)
+
+  report(r.args, r.mode, "multi", r.width, c, attack=1)
+
+
+def attack_1(r):
+  # test.sh attack_1: the combinator. The word list is split into dict1 (left) and dict2 (right)
+  # so hashcat concatenates them back, single hash then multi hash.
+
+  dict1_lines, dict2_lines = split_for_combinator(r.pairs, r.mode)
+
+  dict1_path = os.path.join(r.tmp, "m%05d_dict1" % r.mode)
+  dict2_path = os.path.join(r.tmp, "m%05d_dict2" % r.mode)
+
+  write_dict(dict1_path, dict1_lines)
+  write_dict(dict2_path, dict2_lines)
+
+  if "single" in r.targets:
+    run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path)
+
+  if "multi" in r.targets and not has_multi_hash(r.mode):
+    run_combinator_multi(r, dict1_path, dict2_path)
+
+
 # One function per attack mode, each printing test.sh's summary lines for that attack. An attack
 # that is not here yet is reported once on stderr and left to test.sh.
 
 ATTACKS = {
   0: attack_0,
+  1: attack_1,
   4: attack_4,
   8: attack_8,
   9: attack_9,
