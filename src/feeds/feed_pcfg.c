@@ -9611,6 +9611,13 @@ typedef struct
   u32 cost;
   u64 pos;
 
+  // The structure's own answer, kept even where the escape reaches the candidate first. cost and pos
+  // above then describe the escape while si and idx still describe the structure, so without this the
+  // report cannot say that both of them reach this candidate.
+
+  bool s_ranked;
+  u32  s_cost;
+
   bool has_unit;
   u64  unit;
 
@@ -9704,11 +9711,13 @@ static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_
 
     if ((hit->ranked == false) || (pos < hit->pos))
     {
-      hit->ranked = true;
-      hit->omen   = false;
-      hit->si     = si[i];
-      hit->cost   = cost;
-      hit->pos    = pos;
+      hit->ranked   = true;
+      hit->omen     = false;
+      hit->si       = si[i];
+      hit->cost     = cost;
+      hit->pos      = pos;
+      hit->s_ranked = true;
+      hit->s_cost   = cost;
 
       memcpy (hit->idx, idx[i], sizeof (hit->idx));
     }
@@ -9985,12 +9994,26 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     event_log_info (pg->hcctx, "lookup: derived by structure %s, at cost %u of costmax %" PRIu64, name, hit.cost, pg->costmax);
     event_log_info (pg->hcctx, "lookup: %s", slots);
   }
-  else
+  else if (hit.s_ranked == false)
   {
     // Case 2. No structure spells it, the escape does, and this run carries the escape.
 
     event_log_info (pg->hcctx, "lookup: no structure derives it, the OMEN escape does, at level %u and cost %u of costmax %" PRIu64,
       pg->omen_lvl[hit.oi].lvl, hit.cost, pg->costmax);
+  }
+  else
+  {
+    // A structure spells it as well and the escape only gets there first. Saying no structure derives
+    // it would deny a derivation this grammar has, so both are named.
+
+    char name[PCFG_MAXTOK * 8];
+
+    lookup_struct_name (pg, hit.si, name, sizeof (name));
+
+    event_log_info (pg->hcctx, "lookup: the OMEN escape reaches it first, at level %u and cost %u of costmax %" PRIu64,
+      pg->omen_lvl[hit.oi].lvl, hit.cost, pg->costmax);
+
+    event_log_info (pg->hcctx, "lookup: structure %s derives it as well, at cost %u, which this run reaches later", name, hit.s_cost);
   }
 
   if (dev == true)
