@@ -324,9 +324,10 @@ sub module_generate_hash
   my $unpack_size = shift;
   my $data        = shift;
 
-  # convert to utf16le:
+    # The kernel decodes the UTF-8 password with hc_enc before widening it to UTF-16LE, so decode here
+  # too. Widening the raw bytes made a wrong key for any non ASCII password.
 
-  my $buf = encode ("UTF-16LE", $word);
+  my $buf = encode ("UTF-16LE", decode ("UTF-8", $word));
 
   # add the salt to the password buffer:
 
