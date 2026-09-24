@@ -238,6 +238,23 @@ typedef enum mem_source
 
 } mem_source_t;
 
+// Where the L2 figure a device is judged on came from.
+//
+// The runtimes do not agree on this one. CUDA and HIP answer it directly and correctly. OpenCL has
+// only CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, which on the runtimes tried answers something else entirely:
+// one gives the L1, another a small fraction of the true size, a third gives zero. So the OpenCL view
+// is never believed, and the figure is borrowed from the CUDA or HIP view of the same physical device
+// instead, the way device_available_mem already is. Where there is nothing to borrow from the answer
+// stays unknown, and no decision rests on it.
+
+typedef enum l2_source
+{
+  L2_SOURCE_UNKNOWN = 0,   // nothing usable; no decision may rest on it
+  L2_SOURCE_RUNTIME = 1,   // CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE / hipDeviceAttributeL2CacheSize
+  L2_SOURCE_ALIAS   = 2,   // copied from the CUDA or HIP view of the same device
+
+} l2_source_t;
+
 typedef enum st_status_rc
 {
   ST_STATUS_PASSED        = 0,
@@ -1730,6 +1747,10 @@ typedef struct hc_device_param
   u64     device_maxmem_alloc;
   u64     device_global_mem;
   u64     device_cache_size;                 // last level cache the device reports, 0 if it reports none
+  u64     device_l2_cache_size;              // the L2 a decision may rest on, 0 when none is known
+
+  l2_source_t device_l2_cache_source;        // and where that figure came from
+
   u64     device_available_mem;
   int     device_host_unified_memory;
   u32     device_maxclock_frequency;
@@ -1819,6 +1840,14 @@ typedef struct hc_device_param
 
   u64  size_pcfg_pool_part;
   u32  pcfg_pool_parts;
+
+  // What this device will hold of the pool and the largest piece it takes at a time, worked out once
+  // and kept. The feed is told the first before it packs and the backend checks against it when it
+  // allocates, and the two have to be the same number: device_available_mem is read from the driver
+  // and moves between those two moments by more than the margin they leave.
+
+  u64  size_pcfg_pool_budget;
+  u64  size_pcfg_pool_part_max;
 
   u64  size_rules;
   u64  size_rules_c;
@@ -3289,6 +3318,42 @@ typedef struct generic_global_ctx
 
   bool dev_enable;
 
+  // The feed settles in global_dev_init () whether the device engine's kernel needs the escape walked
+  // in it, and hashcat turns that into a build option.
+  //
+  // The walk is a good deal of code and it is compiled into every kernel that carries the device
+  // engine, whether or not the run has an escape to walk. On a mode whose own kernel is already large
+  // that was enough to push Metal's pipeline creation past its timeout, so a run without the escape
+  // now gets the kernel it had before there was one.
+
+  bool dev_omen;
+
+  // Whether the engine applies the rules itself. The feed reads it to size the candidate array, which
+  // has to hold what a rule can make of a candidate and not only what the grammar can.
+
+  bool dev_rules;
+
+  // What every active device will hold of the pool together, which is the smallest of what they each
+  // answer, because the pool has to fit on all of them. A feed sizes its pool against this. Without
+  // it a feed can only aim at the addressing limit, and a pool that is addressable is not necessarily
+  // one the card can hold.
+
+  u64 dev_pool_max;
+
+  // The largest single part every active device will take, again the smallest of what they each
+  // answer. Distinct from the budget above: that is what the parts come to together, and this is what
+  // one part may be. It decides whether the escape's small tables have to go at the front of the pool,
+  // because those are read out of the first part alone.
+
+  u64 dev_pool_one;
+
+  // How far into the pool the first part has to reach. Everything a walk reads per step other than a
+  // weight goes straight to the first part rather than through the search that finds a part, so a
+  // split that cut below this line would read the wrong words. The feed says where the line is and
+  // the backend takes fewer and larger parts to stay above it. Zero where nothing needs it.
+
+  u64 dev_pool_lo;
+
   // Whether this feed was asked to describe the attack rather than to run it, which it says by
   // setting this from global_init () or global_dev_init (). A feed's settings can carry a question,
   // such as where in the keyspace this attack reaches a given candidate, and an answer to that is
@@ -3419,6 +3484,7 @@ typedef struct generic_ctx
   bool autohex_enable;
   bool iconv_enable;
   bool rules_enable;
+  bool dev_rules_enable;
   bool dev_enable;
   bool explain_enable;
 

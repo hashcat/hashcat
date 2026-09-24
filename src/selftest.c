@@ -762,7 +762,11 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   }
   else
   {
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    // A device engine that applies the rules itself reads the same constant slice as the straight kernel,
+    // and the self test runs before any rule chunk has been staged into it. Zeroing it is what makes the
+    // test hash the test password itself: an all zero rule is a no-op, which is how -a 0 self tests.
+
+    if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true)))
     {
       if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_RULES_C], device_param->size_rules_c) == -1) return -1;
     }

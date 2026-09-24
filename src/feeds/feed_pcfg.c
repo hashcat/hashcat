@@ -29,7 +29,7 @@
 #include "timer.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
-const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE | GENERIC_PLUGIN_OPTIONS_EXPLAIN;
+const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE | GENERIC_PLUGIN_OPTIONS_DEVICE_RULES | GENERIC_PLUGIN_OPTIONS_EXPLAIN;
 
 // strtod () resolves to mingw's own implementation here, and that one does not scale across the
 // preload workers that parse the terminal lists. _strtod_l () reaches msvcrt's parser instead, which
@@ -90,6 +90,11 @@ typedef struct
 
 #define PCFG_STEP_UNITS     100000
 
+// An OMEN level may contribute at most this much to the order. Beyond it the running sum stops being
+// able to address what follows, and what follows is the whole grammar.
+
+#define PCFG_OMEN_LVL_MAX   ((u64) 1 << 45)
+
 #define PCFG_DEV_KBITS_DEF  0
 #define PCFG_DEV_KBITS_MIN  18
 
@@ -128,6 +133,23 @@ typedef struct
   u32  ln;
 
 } pcfg_tlist_t;
+
+// One list's widths and bucket counts as they stood before the device's cost cut, which shortens the
+// lists in place. Only what the cut writes over is kept: the entries themselves stay where they are,
+// and the last bucket it shortens is the only one whose count it can touch.
+
+typedef struct
+{
+  u32 cnt;
+  u32 nb;
+  u32 fixed_len;
+  u32 min_len;
+  u32 max_len;
+
+  u32 b_at;  // the bucket whose count was shortened, or 0xffffffff for none
+  u32 b_cnt;
+
+} pcfg_tsave_t;
 
 typedef enum
 {
@@ -185,10 +207,15 @@ typedef struct
 
 #define PCFG_PROBE_STRUCTS  250000
 
-#define PCFG_OMEN_MAXLVL   10
+// The three the kernel also reads are not written again here. The feed writes the tables the kernel
+// walks, so a level, a length in bytes and a count of transitions have to be one constant and not
+// two: they are in OpenCL/inc_types.h, which include/types.h already brings in.
+
 #define PCFG_OMEN_MAXNGRAM 8
-#define PCFG_OMEN_MAXK     56
-#define PCFG_OMEN_MAXBYTE  256
+
+// Widening a cell of the escape stops buying anything past this point, and measured flat beyond it.
+
+#define PCFG_OMEN_WIDE_MAX 32768
 
 typedef struct
 {
@@ -229,6 +256,12 @@ typedef struct
   u32  ln_drop;
 
   u64 *w;
+
+  // One bit per weight: whether anything finishes from there at all. The kernel reads it instead of
+  // the weight itself where all it has to know is live or dead, which is once per transition of every
+  // step.
+
+  u32 *wbit;
 
   u64 *ipsum;
 
@@ -275,6 +308,15 @@ typedef struct
   // The cost the ladder stopped at, and zero when it ran to the end.
 
   u32 lvl_stop;
+
+  // The budget ceiling the device tables were trimmed to, and zero where they were not trimmed.
+
+  u32 omen_dev_bmax;
+
+  // The cost ceiling the terminals were cut at, which is costmax until the pool does not fit and the
+  // search lowers it. Separate from costmax, which governs the structures and is the user's.
+
+  u64 term_costmax;
 
   // Structures the probe works on. Zero means all, which is what the final build uses. probing says
   // a round is the probe's rather than the build's, which probe_n cannot: a grammar small enough not
@@ -479,6 +521,40 @@ typedef struct
 
   u64  units;
 
+  // Where the escape's two regions sit in the pool, in words. The head holds everything read off the
+  // first part and is packed at the front. The tail holds the weights and the start sums and stays
+  // where the whole region used to be, past the terminals. Whether the escape goes to the device at
+  // all, which is what the pool has to have room for, and how many candidates one cell of it carries.
+
+  u32  omen_pool_base;
+  u32  omen_tail_base;
+
+  // The levels the escape had before it was taken out of the index for the device. The index is one
+  // ladder for both engines, so taking the escape out of it takes it off the host engine too, and a
+  // run that falls back after that would lose it. Zero where nothing was taken out.
+
+  u32  omen_lvl_kept;
+
+  // The ladder as it was before the device's ceiling was applied. The drop branch can put the
+  // levels back from the count alone, because it leaves the array whole, but the trim branch
+  // compacts it in place and the levels it passed over are overwritten. So it keeps a copy, and
+  // the fallback restores from that rather than from a count that would read what was written
+  // over. NULL where nothing was trimmed.
+
+  pcfg_omen_lvl_t *omen_lvl_save;
+
+  // The terminal lists as they were before the device's cost cut shortened them, one entry per list.
+  // The cut is in place and destructive: the entries above the ceiling are still in the buffers but
+  // nothing counts them any more, so a run that cuts for the device and then falls back to the host
+  // engine would enumerate a smaller grammar than costmax asked for, for a pool it no longer uses.
+  // NULL where nothing was cut.
+
+  pcfg_tsave_t *term_save;
+  u64  omen_head_words;
+  bool omen_head_front;
+  bool omen_dev;
+  u64  omen_width;
+
 } pcfg_global_t;
 
 typedef struct
@@ -489,6 +565,11 @@ typedef struct
   u32 k;
 
   u32 ipl;
+
+  // What was left of the rank at the head of the opening. The walk itself does not need it, the
+  // device does: it is where a lane resumes from instead of spending its own rank from the top.
+
+  u64 ipn;
 
   u32 ctx  [PCFG_OMEN_MAXK + 1];
   u32 ti   [PCFG_OMEN_MAXK];
@@ -584,6 +665,16 @@ typedef struct
   u32  urows_si;
   u32  urows_cap;
   u32  urows_capnb;
+
+  // What an escape cell hands the kernel: the base index inside its level, how many candidates the
+  // cell carries, which model and which of its levels the cell came from, and that level's OMEN cost,
+  // which is what the kernel unranks against.
+
+  u64  omen_n;
+  u64  omen_rect;
+  u32  omen_mi;
+  u32  omen_oi;
+  u32  omen_t;
 
 } pcfg_thread_t;
 
@@ -2401,6 +2492,41 @@ static void tlist_split_bylen (pcfg_tlist_t *t)
   hcfree (o_cnt);
 }
 
+// How many entries of this list survive a cost ceiling. The entries are ordered by cost and the
+// buckets carry it, so it is a binary search over the buckets rather than a walk over the entries.
+//
+// The first bucket is kept whatever the ceiling says. A list with nothing in it is a slot with
+// nothing to choose, which is a structure that cannot produce a candidate at all, and cutting a
+// grammar is meant to make it smaller and not to empty it.
+
+static u32 tlist_keep_at (const pcfg_tlist_t *t, const u64 ceiling)
+{
+  if (t->nb == 0) return t->cnt;
+
+  if (t->cost_asc == false) return t->cnt;
+
+  if (t->b_cost[t->nb - 1] <= ceiling) return t->cnt;
+
+  u32 lo = 0;
+  u32 hi = t->nb - 1;
+
+  while (lo < hi)
+  {
+    const u32 mid = (lo + hi) / 2;
+
+    if (t->b_cost[mid] > ceiling) hi = mid; else lo = mid + 1;
+  }
+
+  // lo is the first bucket over the ceiling. Keeping none of them is keeping the first bucket
+  // anyway, for the reason in the comment above.
+
+  const u32 keep = (lo == 0) ? t->b_cnt[0] : t->b_start[lo];
+
+  const u32 kept = (keep > t->cnt) ? t->cnt : keep;
+
+  return kept;
+}
+
 static int tlist_load (pcfg_tlist_t *t, const pcfg_root_t *roots, const u32 nroots, const char *rel, const u64 scale, const u64 costmax, const bool want_upper)
 {
   pcfg_merge_t m;
@@ -3437,6 +3563,146 @@ static u32 pcfg_workers (void)
   if (n > PCFG_BUILD_MAXW) n = PCFG_BUILD_MAXW;
 
   return n;
+}
+
+// One level of the OMEN weight table, over the workers every other parallel step here uses.
+//
+// Level m is read from level m - 1 and from nothing else, so the levels are a chain while everything
+// inside one level is independent: a context is written once, and what the pass reads is the level
+// below, which is already whole. The wave is the barrier, and a level needs no other.
+
+#define PCFG_OMEN_DP_CHUNK 2048
+
+typedef struct
+{
+  pcfg_omen_t *om;
+  const u64   *prv;
+  u64          plane;
+  u32          m;
+  u64          next;
+  u64          total;
+
+  hc_thread_mutex_t mux;
+
+} pcfg_omen_dp_t;
+
+typedef struct
+{
+  pcfg_omen_dp_t *dp;
+
+} pcfg_omen_dp_arg_t;
+
+#if defined (_WIN)
+static HC_API_CALL DWORD omen_dp_worker (void *arg)
+#else
+static HC_API_CALL void *omen_dp_worker (void *arg)
+#endif
+{
+  pcfg_omen_dp_arg_t *a = (pcfg_omen_dp_arg_t *) arg;
+
+  pcfg_omen_dp_t *dp = a->dp;
+
+  pcfg_omen_t *om = dp->om;
+
+  const u64 plane = dp->plane;
+
+  const u64 *prv = dp->prv;
+
+  while (true)
+  {
+    hc_thread_mutex_lock (dp->mux);
+
+    u64 from = dp->next;
+
+    dp->next = from + PCFG_OMEN_DP_CHUNK;
+
+    hc_thread_mutex_unlock (dp->mux);
+
+    if (from >= dp->total) break;
+
+    u64 upto = from + PCFG_OMEN_DP_CHUNK;
+
+    if (upto > dp->total) upto = dp->total;
+
+    // The claim is over budget and context together, with the budget the major index, so a chunk is a
+    // run of consecutive contexts inside one budget and the sweep reaches them in the order a single
+    // thread would. Claiming contexts instead and running the budgets inside would walk the planes of
+    // the weight table out of order, which costs more on one thread than the threads win back.
+
+    while (from < upto)
+    {
+      const u32 b  = (u32) (from / om->nctx);
+      const u32 c0 = (u32) (from % om->nctx);
+
+      const u64 base = (u64) b * om->nctx;
+
+      u32 c1 = om->nctx;
+
+      if (base + c1 > upto) c1 = (u32) (upto - base);
+
+      u64 *dst = om->w + ((size_t) (dp->m * (om->bmax + 1) + b)) * plane;
+
+      for (u32 c = c0; c < c1; c++)
+      {
+        const u32 e0 = om->ctx_off[c];
+        const u32 e1 = om->ctx_off[c + 1];
+
+        u64 acc = 0;
+
+        for (u32 e = e0; e < e1; e++)
+        {
+          const u32 l = om->tr[e].lvl;
+
+          if (l > b) break;
+
+          acc = sat_add (acc, prv[((size_t) (b - l) * plane) + om->tr[e].dst]);
+        }
+
+        dst[c] = acc;
+      }
+
+      from = base + c1;
+    }
+  }
+
+  return 0;
+}
+
+static void omen_dp_wave (pcfg_omen_t *om, const u64 plane, const u32 m)
+{
+  const u32 nworker = pcfg_workers ();
+
+  pcfg_omen_dp_t dp;
+
+  dp.om    = om;
+  dp.prv   = om->w + ((size_t) ((m - 1) * (om->bmax + 1))) * plane;
+  dp.plane = plane;
+  dp.m     = m;
+  dp.next  = 0;
+  dp.total = (u64) (om->bmax + 1) * om->nctx;
+
+  hc_thread_mutex_init (dp.mux);
+
+  hc_thread_t worker[PCFG_BUILD_MAXW];
+
+  pcfg_omen_dp_arg_t *args = (pcfg_omen_dp_arg_t *) hccalloc (nworker + 1, sizeof (pcfg_omen_dp_arg_t));
+
+  for (u32 i = 0; i <= nworker; i++) args[i].dp = &dp;
+
+  u32 live = 0;
+
+  for (u32 i = 0; i < nworker; i++)
+  {
+    if (hc_thread_create_ok (worker[live], omen_dp_worker, &args[i]) == true) live++;
+  }
+
+  omen_dp_worker (&args[nworker]);
+
+  for (u32 i = 0; i < live; i++) hc_thread_join (worker[i]);
+
+  hcfree (args);
+
+  hc_thread_mutex_delete (dp.mux);
 }
 
 static void structs_sweep (pcfg_global_t *pg, pcfg_struct_fn fn)
@@ -4783,32 +5049,25 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, const pcfg_global_t 
 
   for (u32 c = 0; c < om->nctx; c++) om->w[c] = 1;
 
-  for (u32 m = 1; m <= om->kmax; m++)
+  for (u32 m = 1; m <= om->kmax; m++) omen_dp_wave (om, plane, m);
+
+  // Stepping the walk only asks whether a weight is not zero, so one bit an entry answers it. Asking
+  // the count instead costs eight bytes a question over a table no cache holds, which is what the
+  // device engine was spending its time on: speed tracked the size of the tables rather than the
+  // work, by more than an order of magnitude. The count itself is wanted only where a rank is spent,
+  // which is once a cell.
+
   {
-    for (u32 b = 0; b <= om->bmax; b++)
+    const size_t bits  = nplan * plane;
+    const size_t words = (bits + 31) / 32;
+
+    om->wbit = (u32 *) hccalloc (words, sizeof (u32));
+
+    om->bytes += words * sizeof (u32);
+
+    for (size_t i = 0; i < bits; i++)
     {
-      u64 *dst = om->w + ((size_t) (m * (om->bmax + 1) + b)) * plane;
-
-      const u64 *prv = om->w + ((size_t) ((m - 1) * (om->bmax + 1))) * plane;
-
-      for (u32 c = 0; c < om->nctx; c++)
-      {
-        const u32 e0 = om->ctx_off[c];
-        const u32 e1 = om->ctx_off[c + 1];
-
-        u64 acc = 0;
-
-        for (u32 e = e0; e < e1; e++)
-        {
-          const u32 l = om->tr[e].lvl;
-
-          if (l > b) break;
-
-          acc = sat_add (acc, prv[((size_t) (b - l) * plane) + om->tr[e].dst]);
-        }
-
-        dst[c] = acc;
-      }
+      if (om->w[i] != 0) om->wbit[i / 32] |= 1u << (i % 32);
     }
   }
 
@@ -4881,6 +5140,7 @@ static void omen_free (pcfg_omen_t *om)
   hcfree (om->ln_lvl);
   hcfree (om->ln_k);
   hcfree (om->w);
+  hcfree (om->wbit);
   hcfree (om->ipsum);
   hcfree (om->tprob);
   hcfree (om->tcnt);
@@ -4943,20 +5203,6 @@ static double omen_mass_pct (const pcfg_root_t *roots, const u32 nroots)
 
 static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots)
 {
-  // The escape is dropped for the device engine because that engine cannot walk a trellis. A grammar
-  // with no structures gives it no base word either, so the run moves to the host engine and the
-  // escape is the only thing left to carry: dropping it here would leave that run nothing to do.
-
-  if ((global_ctx->dev_enable == true) && (pg->structs_cnt > 0))
-  {
-    if ((pg->m_lines > 0) && (global_ctx->quiet == false))
-    {
-      pmsg (pg, "pcfg: OMEN escape dropped, the device engine cannot walk a trellis. %.0f%% of the mass, set by coverage", omen_mass_pct (roots, nroots));
-    }
-
-    return true;
-  }
-
   if (pg->omen_want == false)
   {
     if ((pg->m_lines > 0) && (global_ctx->quiet == false))
@@ -5017,11 +5263,27 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
       pg->omen_lvl[pg->omen_lvl_cnt].mi   = pg->omen_cnt;
       pg->omen_lvl[pg->omen_lvl_cnt].lvl  = t;
       pg->omen_lvl[pg->omen_lvl_cnt].cost = cost;
-      pg->omen_lvl[pg->omen_lvl_cnt].cnt  = om->tcnt[t];
+
+      // What an OMEN level offers can exceed what any order can number: one model here reports more
+      // than 2^64 guesses at some levels. A running sum cannot address past such a level, so it would
+      // end the ladder at the low costs where the escape lives and the grammar's structures do not,
+      // leaving the front of the run with no structure at all.
+      //
+      // You can only enumerate what you can number, so a level is capped here and the ladder goes on.
+      // The cap is far beyond what a run exhausts, and the alternative is a model that cannot start.
+
+      const u64 lvl_cnt = (om->tcnt[t] > PCFG_OMEN_LVL_MAX) ? PCFG_OMEN_LVL_MAX : om->tcnt[t];
+
+      pg->omen_lvl[pg->omen_lvl_cnt].cnt  = lvl_cnt;
 
       pg->omen_lvl_cnt++;
 
-      pg->omen_keyspace = sat_add (pg->omen_keyspace, om->tcnt[t]);
+      // What the order holds rather than what the model offers, which are the same number until a
+      // level is capped. The figure this ends up in is reported, and --keyspace, --skip and --restore
+      // count against what is enumerated, so reporting the model's own count would name guesses no
+      // position reaches.
+
+      pg->omen_keyspace = sat_add (pg->omen_keyspace, lvl_cnt);
     }
 
     pg->omen_bytes += om->bytes;
@@ -5042,10 +5304,19 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
 
   if (pg->omen_lvl_cnt > 0)
   {
-    pmsg (pg, "pcfg: OMEN escape carried, %u level%s over %u model%s, %" PRIu64 " guesses, %" PRIu64 " MiB of tables",
+    // A saturated count is not a count. sat_add () stops at 2^64-2 and printing that reads as a
+    // figure somebody could act on, when what it means is that the escape offers more guesses than
+    // the order can number.
+
+    char gs[64];
+
+    if (pg->omen_keyspace >= (UINT64_MAX - 1)) snprintf (gs, sizeof (gs), "more guesses than 2^64 can number");
+    else                                       snprintf (gs, sizeof (gs), "%" PRIu64 " guesses", pg->omen_keyspace);
+
+    pmsg (pg, "pcfg: OMEN escape carried, %u level%s over %u model%s, %s, %" PRIu64 " MiB of tables",
       pg->omen_lvl_cnt, (pg->omen_lvl_cnt == 1) ? "" : "s",
       pg->omen_cnt,     (pg->omen_cnt == 1) ? "" : "s",
-      pg->omen_keyspace, pg->omen_bytes / (1024 * 1024));
+      gs, pg->omen_bytes / (1024 * 1024));
 
     return true;
   }
@@ -5107,14 +5378,28 @@ static void omen_take (const pcfg_omen_t *om, pcfg_omen_walk_t *ow, const u32 p,
   ow->boff[p + 1] = at + t->clen;
 }
 
-static void omen_fill (const pcfg_omen_t *om, pcfg_omen_walk_t *ow, const u32 p)
+static bool omen_fill (const pcfg_omen_t *om, pcfg_omen_walk_t *ow, const u32 p)
 {
-  for (u32 q = p; q < ow->k; q++) omen_take (om, ow, q, omen_live (om, ow, q, om->ctx_off[ow->ctx[q]]));
+  for (u32 q = p; q < ow->k; q++)
+  {
+    const u32 e = omen_live (om, ow, q, om->ctx_off[ow->ctx[q]]);
+
+    // omen_live () answers with e1 where nothing live is left, and e1 is one past the context's own
+    // range, which for the last context is one past om->tr itself. Taking it would read a transition
+    // that belongs to another context, or none at all. So the caller goes back a position and takes
+    // the next transition there, which is what the walk in inc_pcfg_omen.cl does at the same point.
+
+    if (e >= om->ctx_off[ow->ctx[q] + 1]) return false;
+
+    omen_take (om, ow, q, e);
+  }
 
   ow->len = ow->boff[ow->k];
+
+  return true;
 }
 
-static void omen_seed (const pcfg_omen_t *om, pcfg_omen_walk_t *ow, const u32 ipi, const u32 b, u64 n)
+static bool omen_seed (const pcfg_omen_t *om, pcfg_omen_walk_t *ow, const u32 ipi, const u32 b, u64 n)
 {
   ow->ipi = ipi;
 
@@ -5149,10 +5434,17 @@ static void omen_seed (const pcfg_omen_t *om, pcfg_omen_walk_t *ow, const u32 ip
       n -= w;
     }
 
+    // As in omen_fill (): e1 is one past this context's range, and one past om->tr for the last of
+    // them, so it is not a transition that can be taken.
+
+    if (e >= e1) return false;
+
     omen_take (om, ow, p, e);
   }
 
   ow->len = ow->boff[ow->k];
+
+  return true;
 }
 
 static bool omen_unrank (pcfg_global_t *pg, pcfg_thread_t *th, const u32 oi, u64 n)
@@ -5194,9 +5486,12 @@ static bool omen_unrank (pcfg_global_t *pg, pcfg_thread_t *th, const u32 oi, u64
         ow->ipl = l;
         ow->k   = k;
 
-        omen_seed (om, ow, i, b, n);
+        // What is left of the rank at the head of this opening. The walk does not need it, the device
+        // does: a lane of an escape cell resumes from here instead of scanning the openings again.
 
-        return true;
+        ow->ipn = n;
+
+        return omen_seed (om, ow, i, b, n);
       }
 
       return false;
@@ -5223,7 +5518,10 @@ static bool omen_next (const pcfg_global_t *pg, pcfg_thread_t *th)
 
     omen_take (om, ow, q, e);
 
-    omen_fill (om, ow, q + 1);
+    // A dead end behind this position is not the end of the walk: go back one and take the next
+    // transition there instead.
+
+    if (omen_fill (om, ow, q + 1) == false) continue;
 
     return true;
   }
@@ -5253,9 +5551,7 @@ static bool omen_next (const pcfg_global_t *pg, pcfg_thread_t *th)
           ow->ipl = l;
           ow->k   = k;
 
-          omen_seed (om, ow, i, b, 0);
-
-          return true;
+          if (omen_seed (om, ow, i, b, 0) == true) return true;
         }
 
         i++;
@@ -5490,6 +5786,31 @@ static void build_index (pcfg_global_t *pg)
 
 // The rows below row zero, rebuilt only when the caller moves to a different structure. Positions
 // within a structure are contiguous, so that is once per structure and not once per candidate.
+
+// The ladder, given back. It is built from what the lists hold, so cutting them means building it
+// again, and the second build has to start from nothing rather than on top of the first.
+
+static void index_free (pcfg_global_t *pg)
+{
+  for (u32 i = 0; i < pg->lvl_cnt; i++)
+  {
+    if (pg->ls_struct != NULL) hcfree (pg->ls_struct[i]);
+    if (pg->ls_pref   != NULL) hcfree (pg->ls_pref[i]);
+  }
+
+  hcfree (pg->lvl_cost);
+  hcfree (pg->lvl_pref);
+  hcfree (pg->ls_struct);
+  hcfree (pg->ls_pref);
+  hcfree (pg->ls_cnt);
+
+  pg->lvl_cost  = NULL;
+  pg->lvl_pref  = NULL;
+  pg->ls_struct = NULL;
+  pg->ls_pref   = NULL;
+  pg->ls_cnt    = NULL;
+  pg->lvl_cnt   = 0;
+}
 
 static const u64 *suf_rows (const pcfg_global_t *pg, u64 **scratch, u32 *scratch_cap, u32 *cached_si, const u32 si)
 {
@@ -6567,10 +6888,9 @@ static bool pcfg_omen_tail (const pcfg_omen_t *om, const u8 *pw, const u32 *off,
 // (its lvl and cost describe the hit), out_idx the index inside that level, out_pos the global
 // candidate position.
 //
-// Nothing here has a device engine counterpart on purpose. A grammar that engine can amplify has
-// structures, and omen_load () drops the escape for it, so omen_lvl_cnt is zero and the very first
-// test refuses. A grammar without structures keeps the escape, but it offers that engine no base
-// word either, so the run reaches this from the host engine after the core has turned it off.
+// The walk is the same on both engines, because a guess of the escape is the same guess whichever one
+// spells it. Only where the answer sits in the order differs, which pcfg_rank_unit_omen () answers for
+// the device engine.
 
 static bool pcfg_omen_lookup (const pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *out_oi, u64 *out_idx, u64 *out_pos)
 {
@@ -7193,7 +7513,7 @@ static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg
 
   if (unit == true)
   {
-    hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->maxword, pg->kbits, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
+    hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%" PRIu64 "-%u-%u-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->term_costmax, pg->maxword, pg->kbits, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
   }
   else
   {
@@ -7613,6 +7933,27 @@ typedef struct
 
 } pcfg_lvl_t;
 
+// How many candidates one cell of the escape carries, and how many cells a level comes to. The
+// width is settled once the inner loop is, and until then a cell is one inner loop wide.
+
+static u64 omen_batch (const pcfg_global_t *pg)
+{
+  if (pg->omen_width > 0) return pg->omen_width;
+
+  const u64 batch = (pg->il_cnt > 0) ? pg->il_cnt : 1;
+
+  return batch;
+}
+
+static u64 omen_units (const pcfg_global_t *pg, const u32 oi)
+{
+  const u64 batch = omen_batch (pg);
+
+  const u64 units = (pg->omen_lvl[oi].cnt + batch - 1) / batch;
+
+  return units;
+}
+
 static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
 {
   const u32 c = pg->lvl_cost[li];
@@ -7630,6 +7971,21 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
     if (s->usuf[c - s->cost] == 0)  continue;
 
     n++;
+  }
+
+  // The OMEN levels of this cost sit exactly where build_index () puts them for the host engine. The
+  // escape is ordered by probability alongside the grammar rather than appended to it, which is the
+  // whole point of it: the tail of a grammar is a place no real run reaches.
+
+  if (pg->omen_dev == true)
+  {
+    for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
+    {
+      if (pg->omen_lvl[i].cost != c) continue;
+      if (pg->omen_lvl[i].cnt == 0)  continue;
+
+      n++;
+    }
   }
 
   pg->uls_struct[li] = (u32 *) hcmalloc (n * sizeof (u32));
@@ -7657,6 +8013,25 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
     acc = sat_add (acc, w);
 
     k++;
+  }
+
+  if (pg->omen_dev == true)
+  {
+    for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
+    {
+      if (pg->omen_lvl[i].cost != c) continue;
+      if (pg->omen_lvl[i].cnt == 0)  continue;
+
+      pg->uls_struct[li][k] = pg->structs_cnt + i;
+      pg->uls_pref[li][k]   = acc;
+
+      // A cell of the escape holds a batch of guesses and the last one holds what is left over, so
+      // the level comes to its own count however the batches happen to divide it.
+
+      acc = sat_add (acc, omen_units (pg, i));
+
+      k++;
+    }
   }
 
   acc_out[0] = acc;
@@ -7745,6 +8120,36 @@ static void build_unit_index (pcfg_global_t *pg)
 
   pg->ulvl_pref[pg->ulvl_cnt]  = run;
   pg->units = run;
+}
+
+// The device index, given back.
+//
+// It is read together with the level index: level_of () answers over that one and the answer indexes
+// this one, which is allowed only because build_unit_index () copies the levels across one for one. A
+// run that has gone to the host engine has no units at all and rebuilds the level index under this,
+// so what it leaves behind would be an index that no longer lines up rather than no index.
+
+static void unit_index_free (pcfg_global_t *pg)
+{
+  for (u32 i = 0; i < pg->ulvl_cnt; i++)
+  {
+    hcfree (pg->uls_struct[i]);
+    hcfree (pg->uls_pref[i]);
+  }
+
+  hcfree (pg->uls_struct);
+  hcfree (pg->uls_pref);
+  hcfree (pg->uls_cnt);
+  hcfree (pg->ulvl_cost);
+  hcfree (pg->ulvl_pref);
+
+  pg->uls_struct = NULL;
+  pg->uls_pref   = NULL;
+  pg->uls_cnt    = NULL;
+  pg->ulvl_cost  = NULL;
+  pg->ulvl_pref  = NULL;
+  pg->ulvl_cnt   = 0;
+  pg->units      = 0;
 }
 
 #define PCFG_NOFCAP 0xffffffff
@@ -7927,6 +8332,8 @@ static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
 {
   if (n >= pg->units) return false;
 
+  th->omen = false;
+
   u32 lo = 0;
   u32 hi = pg->ulvl_cnt - 1;
 
@@ -7958,6 +8365,31 @@ static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
   const u32 si = ss[lo];
 
   n -= sp[lo];
+
+  // Past the structures the index holds the OMEN levels of this cost, and what is left of n is which
+  // cell of the level. unrank () reads the same sentinel for the host engine.
+
+  if (si >= pg->structs_cnt)
+  {
+    const u32 oi = si - pg->structs_cnt;
+
+    const u64 batch = omen_batch (pg);
+    const u64 cnt   = pg->omen_lvl[oi].cnt;
+    const u64 start = n * batch;
+
+    if (start >= cnt) return false;
+
+    th->omen      = true;
+    th->cost      = c;
+    th->omen_oi   = oi;
+    th->omen_t    = pg->omen_lvl[oi].lvl;
+    th->omen_mi   = pg->omen_lvl[oi].mi;
+    th->omen_n    = start;
+    th->omen_rect = ((start + batch) <= cnt) ? batch : (cnt - start);
+    th->valid     = true;
+
+    return true;
+  }
 
   pcfg_struct_t *s = &pg->structs[si];
 
@@ -8543,6 +8975,93 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
     if (unrank_unit (pg, th->pos, th) == false) return GENERIC_RC_ERROR;
   }
 
+  if (th->omen == true)
+  {
+    // On a cell of the escape the kernel unranks the candidates out of the tables in the pool, so the
+    // cell carries no slots: what it carries is which model, which level, and where in the level.
+
+    cell->slot_cnt = 0;
+    cell->rect     = (u32) th->omen_rect;
+    cell->blk      = 0;
+    cell->flags    = PCFG_CELL_OMEN;
+
+    cell->slots[0].pool_off = th->omen_t;
+    cell->slots[0].radix    = (u32) (th->omen_n & 0xffffffffULL);
+    cell->slots[0].digit    = (u32) ((th->omen_n >> 32) & 0xffffffffULL);
+    cell->slots[0].packed   = pg->omen_pool_base;
+
+    // slots[1] carries which model the cell came from, and slots[2] has no landing yet: it is filled
+    // in below.
+
+    cell->slots[1].pool_off = th->omen_mi;
+    cell->slots[2].digit    = 0;
+
+    // The base word is a candidate of this cell. The kernel never reads it, but hashcat judges it
+    // against the mode's length range before the cell reaches a device, and a cell whose base word is
+    // refused is dropped whole.
+    //
+    // A cell of the grammar can hand over its first candidate and be judged fairly, because its
+    // candidates share one length. A cell of the escape spans several, and its first is only the one
+    // the walk reaches first, so judging the cell on it would throw away the candidates that would
+    // have passed. Hence the search, and the first candidate where it finds none.
+
+    int len = 0;
+
+    if (omen_unrank (pg, th, th->omen_oi, th->omen_n) == true)
+    {
+      // The landing this walk just reached goes to the device with the cell. Every lane of it resumes
+      // from it rather than scanning the model's openings again to arrive at the same place, and the
+      // openings are the whole cost of the escape on a device. Taken here, before the search below
+      // for a length the mode accepts, because that search walks on and moves the landing.
+
+      cell->slots[1].radix    = th->om.lni;
+      cell->slots[1].digit    = th->om.ipl;
+      cell->slots[1].packed   = th->om.ipi;
+      cell->slots[2].pool_off = (u32) (th->om.ipn & 0xffffffffULL);
+      cell->slots[2].radix    = (u32) ((th->om.ipn >> 32) & 0xffffffffULL);
+      cell->slots[2].digit    = 1;
+
+      u8  first_buf[PCFG_OMEN_MAXBYTE];
+      const u32 first_len = th->om.len;
+
+      memcpy (first_buf, th->om.buf, (first_len < sizeof (first_buf)) ? first_len : sizeof (first_buf));
+
+      // pwmax of zero is a run that never said what it accepts, and then the first candidate stands
+      // and the cell is not walked at all.
+
+      if (pg->pwmax != 0)
+      {
+        for (u64 seen = 1; (th->om.len < pg->pwmin) || (th->om.len > pg->pwmax); seen++)
+        {
+          if (seen >= th->omen_rect)        break;
+          if (omen_next (pg, th) == false)  break;
+        }
+      }
+
+      const u8 *take_buf = th->om.buf;
+      u32       take_len = th->om.len;
+
+      if ((pg->pwmax != 0) && ((take_len < pg->pwmin) || (take_len > pg->pwmax)))
+      {
+        take_buf = first_buf;
+        take_len = first_len;
+      }
+
+      len = (int) take_len;
+
+      if (len > (int) pg->maxbyte) len = (int) pg->maxbyte;
+
+      const int room = (len < out_size) ? len : out_size;
+
+      memcpy (out_buf, take_buf, (size_t) room);
+    }
+
+    th->pos++;
+    th->valid = false;
+
+    return len;
+  }
+
   // Nothing is built for a base word that spells a hint word twice, and no cell is laid out for it
   // either. The position is spent the same way, so the walk steps over it and the run books it as
   // rejected.
@@ -9085,8 +9604,19 @@ typedef struct
 
   u32 oi;
 
+  // Which guess of that level, which is what says which of the level's cells holds it.
+
+  u64 oidx;
+
   u32 cost;
   u64 pos;
+
+  // The structure's own answer, kept even where the escape reaches the candidate first. cost and pos
+  // above then describe the escape while si and idx still describe the structure, so without this the
+  // report cannot say that both of them reach this candidate.
+
+  bool s_ranked;
+  u32  s_cost;
 
   bool has_unit;
   u64  unit;
@@ -9102,6 +9632,46 @@ typedef struct
 //
 // found without ranked is a real answer and not a failure: the grammar does spell it, and the cost
 // of spelling it lands past the last level build_index () laid down.
+
+// Where a cell of the escape sits in the unit order, which is the same question pcfg_rank_unit ()
+// answers for a structure. The level takes the seat the ladder gave it and the cell is which batch
+// of that level the guess falls in.
+
+static bool pcfg_rank_unit_omen (const pcfg_global_t *pg, const u32 oi, const u64 oidx, u64 *out_unit)
+{
+  if (pg->ulvl_cnt == 0)       return false;
+  if (oi >= pg->omen_lvl_cnt)  return false;
+
+  const int li = level_of (pg, pg->omen_lvl[oi].cost);
+
+  if (li == -1)             return false;
+  if (pg->uls_cnt[li] == 0) return false;
+
+  const u32 want = pg->structs_cnt + oi;
+
+  const u32 *ss = pg->uls_struct[li];
+
+  u32 lo = 0;
+  u32 hi = pg->uls_cnt[li] - 1;
+
+  while (lo < hi)
+  {
+    const u32 mid = (lo + hi + 1) / 2;
+
+    if (ss[mid] <= want) lo = mid; else hi = mid - 1;
+  }
+
+  // The level is missing from the unit index when the pool could not hold its tables, which is what
+  // omen_dev says. The host still ranks it, so the caller is told the position and not the cell.
+
+  if (ss[lo] != want) return false;
+
+  const u64 seat = sat_add (pg->ulvl_pref[li], pg->uls_pref[li][lo]);
+
+  out_unit[0] = sat_add (seat, oidx / omen_batch (pg));
+
+  return true;
+}
 
 static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_hit_t *hit)
 {
@@ -9141,11 +9711,13 @@ static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_
 
     if ((hit->ranked == false) || (pos < hit->pos))
     {
-      hit->ranked = true;
-      hit->omen   = false;
-      hit->si     = si[i];
-      hit->cost   = cost;
-      hit->pos    = pos;
+      hit->ranked   = true;
+      hit->omen     = false;
+      hit->si       = si[i];
+      hit->cost     = cost;
+      hit->pos      = pos;
+      hit->s_ranked = true;
+      hit->s_cost   = cost;
 
       memcpy (hit->idx, idx[i], sizeof (hit->idx));
     }
@@ -9166,17 +9738,26 @@ static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_
         hit->ranked = true;
         hit->omen   = true;
         hit->oi     = oi;
+        hit->oidx   = oidx;
         hit->cost   = pg->omen_lvl[oi].cost;
         hit->pos    = opos;
       }
     }
   }
 
-  if ((hit->ranked == true) && (hit->omen == false) && (pg->ulvl_cnt > 0))
+  if ((hit->ranked == true) && (pg->ulvl_cnt > 0))
   {
     u64 unit = 0;
 
-    if (pcfg_rank_unit (pg, hit->si, hit->idx, &unit) == true)
+    // Two ways in, because a guess from the escape goes through no structure at all: one walks the
+    // slots of a structure, the other finds the level's seat in the index and which of its cells the
+    // guess fell in.
+
+    const bool placed = (hit->omen == true)
+                      ? pcfg_rank_unit_omen (pg, hit->oi, hit->oidx, &unit)
+                      : pcfg_rank_unit (pg, hit->si, hit->idx, &unit);
+
+    if (placed == true)
     {
       hit->has_unit = true;
       hit->unit     = unit;
@@ -9337,13 +9918,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     {
       event_log_info (pg->hcctx, "lookup: no structure in this grammar derives it, so the OMEN escape is the only route to it");
 
-      if (dev == true)
-      {
-        event_log_info (pg->hcctx, "lookup: and this run drops the escape, because the device engine cannot walk a trellis");
-        event_log_info (pg->hcctx, "lookup: so this attack never tries this password. no -s reaches it and no runtime finds it");
-        event_log_info (pg->hcctx, "lookup: -S runs the same grammar on the host engine, which carries the escape. ask again with it for the offset");
-      }
-      else if (pg->omen_want == false)
+      if (pg->omen_want == false)
       {
         event_log_info (pg->hcctx, "lookup: and this run drops the escape, because omen=0 was given");
         event_log_info (pg->hcctx, "lookup: so this attack never tries this password. ask again without omen=0 for the offset");
@@ -9419,12 +9994,26 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     event_log_info (pg->hcctx, "lookup: derived by structure %s, at cost %u of costmax %" PRIu64, name, hit.cost, pg->costmax);
     event_log_info (pg->hcctx, "lookup: %s", slots);
   }
-  else
+  else if (hit.s_ranked == false)
   {
     // Case 2. No structure spells it, the escape does, and this run carries the escape.
 
     event_log_info (pg->hcctx, "lookup: no structure derives it, the OMEN escape does, at level %u and cost %u of costmax %" PRIu64,
       pg->omen_lvl[hit.oi].lvl, hit.cost, pg->costmax);
+  }
+  else
+  {
+    // A structure spells it as well and the escape only gets there first. Saying no structure derives
+    // it would deny a derivation this grammar has, so both are named.
+
+    char name[PCFG_MAXTOK * 8];
+
+    lookup_struct_name (pg, hit.si, name, sizeof (name));
+
+    event_log_info (pg->hcctx, "lookup: the OMEN escape reaches it first, at level %u and cost %u of costmax %" PRIu64,
+      pg->omen_lvl[hit.oi].lvl, hit.cost, pg->costmax);
+
+    event_log_info (pg->hcctx, "lookup: structure %s derives it as well, at cost %u, which this run reaches later", name, hit.s_cost);
   }
 
   if (dev == true)
@@ -9646,6 +10235,12 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   pg->scale   = scale;
   pg->costmax = costmax * scale;
+
+  // Where the terminals are cut, which opens at the ceiling the run was given and is only lowered in
+  // global_dev_init (), where what the pool has to hold is known.
+
+  pg->term_costmax = pg->costmax;
+
   pg->kbits   = (u32) kbits;
   pg->threads = (u32) threads;
   pg->maxword = (u32) maxword;
@@ -10072,10 +10667,14 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   if (global_ctx->dev_enable == false) pcfg_pick_workers (pg);
 
-  const char *half = "host";
+  // The escape is part of what the attack enumerates, so it belongs on the status line whichever
+  // engine walks it, and it is no longer the host's alone.
 
-  if (global_ctx->dev_enable  == true) half = "device";
-  else if (pg->omen_lvl_cnt   >  0)    half = "host, OMEN";
+  const bool omen_on = (pg->omen_lvl_cnt > 0);
+
+  const char *half = (global_ctx->dev_enable == true)
+                   ? ((omen_on == true) ? "device, OMEN" : "device")
+                   : ((omen_on == true) ? "host, OMEN"   : "host");
 
   roots_join (pg->named, sizeof (pg->named), roots, nroots);
 
@@ -10169,6 +10768,8 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   hcfree (pg->omen);
   hcfree (pg->omen_lvl);
+  hcfree (pg->omen_lvl_save);
+  hcfree (pg->term_save);
 
   slots_free (pg);
 
@@ -10277,6 +10878,284 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
   return full;
 }
 
+// What the escape's tables come to in the pool, in words, at a budget ceiling of bmax, or at the one
+// each model was trained with where bmax is zero. In three parts because the two regions are placed
+// separately: the head is everything a walk reads per step and goes to the front where it has to,
+// the tail is the weights and the start sums and is the great majority of the bytes.
+
+static u64 omen_head_words_at (const pcfg_global_t *pg, const u32 bmax)
+{
+  // Levels rather than models. omen_load () keeps a model it could read whether or not any level of
+  // it survived the hash mode's lengths and costmax, and an escape with no level emits no cell: the
+  // pool would carry its tables, the terminals would be cut to make room for them, a device could be
+  // refused over the room they take, and the walk would be compiled into every kernel, all for an
+  // order that never reaches it.
+
+  if ((pg->omen_want == false) || (pg->omen_lvl_cnt == 0)) return 0;
+
+  u64 words = pg->omen_cnt;                            // the directory, one word per model
+
+  for (u32 m = 0; m < pg->omen_cnt; m++)
+  {
+    const pcfg_omen_t *om = &pg->omen[m];
+
+    const u32 b = (bmax != 0) ? bmax : om->bmax;
+
+    const u64 weights = (u64) (om->kmax + 1) * (b + 1) * om->nctx;
+
+    words += PCFG_OMEN_HEADER_WORDS
+           + (om->nctx + 1)
+           + (om->tr_cnt * PCFG_OMEN_TRANS_WORDS)
+           + ((om->cbuf_len + 3) / 4)
+           + (om->nip * 3)
+           + (PCFG_OMEN_MAXLVL + 2)
+           + (om->ln_cnt * 2)
+           + ((weights + 31) / 32);                    // the liveness bits
+  }
+
+  return words;
+}
+
+static u64 omen_tail_words_at (const pcfg_global_t *pg, const u32 bmax)
+{
+  // Levels rather than models, for the reason in omen_head_words_at ().
+
+  if ((pg->omen_want == false) || (pg->omen_lvl_cnt == 0)) return 0;
+
+  u64 words = 0;
+
+  for (u32 m = 0; m < pg->omen_cnt; m++)
+  {
+    const pcfg_omen_t *om = &pg->omen[m];
+
+    const u32 b = (bmax != 0) ? bmax : om->bmax;
+
+    const u64 weights   = (u64) (om->kmax + 1) * (b + 1) * om->nctx;
+    const u64 startsums = (u64) (PCFG_OMEN_MAXLVL + 1) * (om->kmax + 1) * (b + 1);
+
+    words += (weights * 2) + (startsums * 2);          // both are u64, two words each
+  }
+
+  return words;
+}
+
+static u64 omen_words_at (const pcfg_global_t *pg, const u32 bmax)
+{
+  const u64 words = omen_head_words_at (pg, bmax) + omen_tail_words_at (pg, bmax);
+
+  return words;
+}
+
+// The longest candidate the escape can reach, in bytes: the widest opening a model has, plus the most
+// steps any of its lengths takes at the widest character it emits. A different question from the
+// three above, which answer what the tables come to rather than what a candidate does.
+
+static u32 omen_maxbytes (const pcfg_global_t *pg)
+{
+  u32 most = 0;
+
+  for (u32 m = 0; m < pg->omen_cnt; m++)
+  {
+    const pcfg_omen_t *om = &pg->omen[m];
+
+    u32 ipmax = 0;
+    u32 chmax = 0;
+    u32 kmax  = 0;
+
+    for (u32 i = 0; i < om->nip; i++)    if (om->ip_len[i]  > ipmax) ipmax = om->ip_len[i];
+    for (u32 e = 0; e < om->tr_cnt; e++) if (om->tr[e].clen > chmax) chmax = om->tr[e].clen;
+    for (u32 i = 0; i < om->ln_cnt; i++) if (om->ln_k[i]    > kmax)  kmax  = om->ln_k[i];
+
+    const u32 need = ipmax + (kmax * chmax);
+
+    if (need > most) most = need;
+  }
+
+  return most;
+}
+
+// What the terminals and the per entry tables would come to if the entries were cut at a cost
+// ceiling. Asked of the buckets rather than of a trial packing, so the search over ceilings costs a
+// binary search per list and not a layout each.
+
+static void pool_at (const pcfg_global_t *pg, const u64 ceiling, u64 *terms, u64 *tables)
+{
+  u64 tm = 4;
+  u64 tb = 0;
+
+  for (u32 i = 0; i < pg->lists_cnt; i++)
+  {
+    const pcfg_tlist_t *t = &pg->lists[i];
+
+    const u32 keep = tlist_keep_at (t, ceiling);
+
+    tm += t->off[keep];
+    tm  = (tm + 3) & ~((u64) 3);
+
+    if (t->ubuf != NULL)
+    {
+      tm += t->off[keep];
+      tm  = (tm + 3) & ~((u64) 3);
+    }
+
+    if (pg->varlen == true) tb += ((u64) keep + 1) * 4;
+  }
+
+  terms[0]  = tm;
+  tables[0] = tb;
+}
+
+// The pool's addresses, worked out without writing a byte. head_words is what is reserved ahead of
+// the terminals for the escape's head, and the answer is where the pool ends.
+
+static u64 pool_layout (pcfg_global_t *pg, const u64 head_words, u64 *ent_at_out)
+{
+  u64 need = 4 + (head_words * 4);
+
+  for (u32 i = 0; i < pg->lists_cnt; i++)
+  {
+    const pcfg_tlist_t *t = &pg->lists[i];
+
+    pg->pool_base[i] = (u32) need;
+
+    need += t->off[t->cnt];
+
+    need = (need + 3) & ~((u64) 3);
+
+    if (t->ubuf == NULL) continue;
+
+    pg->pool_ubase[i] = (u32) need;
+
+    need += t->off[t->cnt];
+
+    need = (need + 3) & ~((u64) 3);
+  }
+
+  u64 ent_at = 0;
+
+  if (pg->varlen == true)
+  {
+    ent_at = need;
+
+    for (u32 i = 0; i < pg->lists_cnt; i++)
+    {
+      pg->ent_base[i] = (u32) (need / 4);
+
+      need += ((u64) pg->lists[i].cnt + 1) * 4;
+    }
+  }
+
+  if (ent_at_out != NULL) *ent_at_out = ent_at;
+
+  return need;
+}
+
+// Hand the run to the host engine, which reads the terminal lists themselves and never touches the
+// pool, so it enumerates the whole grammar either way. The pool is handed over as it stands rather
+// than as nothing: pcfg_expand () reads the escape's tables out of it to report what cracked.
+//
+// Three answers further up were settled from dev_enable while it was still true: how many threads
+// build base words, the half the status line names, and lookup=. They are given again here.
+
+static bool dev_to_host (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *maxword, u32 *avg, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe)
+{
+  global_ctx->dev_enable = false;
+
+  // The device index goes with it. This engine reads no unit, and the level index below is rebuilt
+  // under it, which is what the two are not allowed to disagree about.
+
+  unit_index_free (pg);
+
+  // The terminals the device's cost cut shortened go back to their full length. The cut was made to
+  // fit a pool this engine does not read. The entries were never moved, so the widths and the bucket
+  // counts are all there is to put back, and then the suffix counts, the ladder and the keyspace are
+  // all taken again over the whole lists, exactly as the cut took them over the short ones.
+
+  const bool term_back = (pg->term_save != NULL);
+
+  if (term_back == true)
+  {
+    for (u32 i = 0; i < pg->lists_cnt; i++)
+    {
+      pcfg_tlist_t *t = &pg->lists[i];
+
+      const pcfg_tsave_t *sv = &pg->term_save[i];
+
+      if (sv->b_at != 0xffffffff) t->b_cnt[sv->b_at] = sv->b_cnt;
+
+      t->cnt       = sv->cnt;
+      t->nb        = sv->nb;
+      t->fixed_len = sv->fixed_len;
+      t->min_len   = sv->min_len;
+      t->max_len   = sv->max_len;
+    }
+
+    hcfree (pg->term_save);
+
+    pg->term_save = NULL;
+
+    pg->term_costmax = pg->costmax;
+
+    for (u32 i = 0; i < pg->structs_cnt; i++)
+    {
+      hcfree (pg->structs[i].suf);
+
+      pg->structs[i].suf = NULL;
+    }
+
+    structs_sweep (pg, build_suffix);
+  }
+
+  // Where the escape was taken out of the index because the pool could not hold its tables, it goes
+  // back in: the host engine reads the model itself and never touches the pool, so what stopped the
+  // device does not stop it. Without this a grammar whose mass sits on the escape would arrive here
+  // and enumerate the grammar alone.
+
+  if ((pg->omen_lvl_kept > 0) || (term_back == true))
+  {
+    index_free (pg);
+
+    // Where the ceiling was lowered rather than the escape dropped, the array was compacted and the
+    // count alone would read what the compaction wrote over.
+
+    if (pg->omen_lvl_save != NULL)
+    {
+      memcpy (pg->omen_lvl, pg->omen_lvl_save, pg->omen_lvl_kept * sizeof (pcfg_omen_lvl_t));
+
+      hcfree (pg->omen_lvl_save);
+
+      pg->omen_lvl_save = NULL;
+    }
+
+    if (pg->omen_lvl_kept > 0)
+    {
+      pg->omen_lvl_cnt  = pg->omen_lvl_kept;
+      pg->omen_lvl_kept = 0;
+    }
+
+    build_index (pg);
+  }
+
+  pcfg_pick_workers (pg);
+
+  pcfg_say_base (global_ctx, pg, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+
+  if (pg->lookup != NULL) lookup_report (global_ctx, pg);
+
+  pool[0]      = pg->pool;
+  pool_size[0] = pg->pool_size;
+  il_cnt[0]    = 0;
+  maxword[0]   = pg->maxword;
+  avg[0]       = 1;
+  front[0]     = 1;
+  step[0]      = 1;
+  varlen[0]    = (pg->varlen == true) ? 1 : 0;
+
+  memset (probe, 0, sizeof (pcfg_cell_t));
+
+  return true;
+}
+
 bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *avg, u32 *maxword, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe)
 {
   pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
@@ -10290,6 +11169,9 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   // -a 9 never arrives here, because the core clears the device engine for any attack mode that is not
   // -a 8. "-a 4 hashes.txt hints hintaccount=8" does, and ended the session on "thread_next_dev
   // returned -2" as soon as autotune finished.
+  //
+  // Answered here rather than through dev_to_host (), which the refusals below use: nothing is built
+  // yet at this point, so there is no pool to hand back and no index to rebuild.
 
   if (pg->acct_cnt > 0)
   {
@@ -10319,83 +11201,437 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   pg->il_cnt = (u32) 1 << pg->kbits;
 
+  // Two things bound the terminals and both are known here. Every offset into them is a u32 of bytes,
+  // so they have to end inside the first 4 GiB of the pool. And what they take is room the escape does
+  // not get, out of what the weakest device will hold. The entries are ordered by cost and the buckets
+  // carry it, so a ceiling that satisfies both is a binary search per list rather than the run being
+  // handed to the host engine or the escape thrown away whole.
+
+  {
+    u64 terms = 0;
+    u64 tabs  = 0;
+
+    // Where the escape's small tables go. They are read out of the first part alone, so at the tail
+    // that part has to reach past every terminal before them, which on a large grammar is more than a
+    // device hands out in one block, and that device steps aside rather than take the pool.
+    // At the front it has to reach only as far as the tables, at the price of terminals, so it is done
+    // only where the tail does not already fit.
+
+    // In bytes here, because it is weighed against a device's single part and against what a u32 of
+    // bytes reaches. Everywhere else in this function the head is counted in words, which is what
+    // omen_head_words_at () answers and what the layout takes.
+
+    const u64 head_bytes = omen_head_words_at (pg, 0) * 4;
+
+    const u64 one = global_ctx->dev_pool_one;
+
+    pool_at (pg, pg->costmax, &terms, &tabs);
+
+    pg->omen_head_front = (head_bytes != 0) && (one != 0) && ((4 + terms + tabs + head_bytes) > one);
+
+    const u64 hard = (pg->omen_head_front == true) ? (0xffffffffULL - head_bytes) : 0xffffffffULL;
+
+    const u64 room = global_ctx->dev_pool_max;
+
+    const u64 want_omen = omen_words_at (pg, 0) * 4;
+
+    const u64 was = terms + tabs;
+
+    if ((terms > hard) || ((room != 0) && ((terms + tabs + want_omen) > room)))
+    {
+      u64 pick  = 0;
+      bool with = false;
+      bool any  = false;
+
+      // The highest ceiling that leaves the escape the tables it was trained with, and failing that
+      // the highest that fits the pool at all, with the escape trimmed below as it already is.
+
+      for (u64 c = pg->costmax + 1; c-- > 0; )
+      {
+        pool_at (pg, c, &terms, &tabs);
+
+        if (terms > hard) continue;
+
+        if ((room == 0) || ((terms + tabs + want_omen) <= room)) { pick = c; with = true; any = true; break; }
+
+        if ((any == false) && ((room == 0) || ((terms + tabs) < room))) { pick = c; any = true; }
+      }
+
+      if (any == true)
+      {
+        u32 cut = 0;
+
+        // What the cut writes over, kept for a fallback: the host engine reads the lists themselves
+        // and never touches the pool, so a cut made to fit the pool must not follow the run there.
+
+        pg->term_save = (pcfg_tsave_t *) hcmalloc (pg->lists_cnt * sizeof (pcfg_tsave_t));
+
+        for (u32 i = 0; i < pg->lists_cnt; i++)
+        {
+          pcfg_tlist_t *t = &pg->lists[i];
+
+          pcfg_tsave_t *sv = &pg->term_save[i];
+
+          sv->cnt       = t->cnt;
+          sv->nb        = t->nb;
+          sv->fixed_len = t->fixed_len;
+          sv->min_len   = t->min_len;
+          sv->max_len   = t->max_len;
+          sv->b_at      = 0xffffffff;
+          sv->b_cnt     = 0;
+
+          const u32 keep = tlist_keep_at (t, pick);
+
+          if (keep >= t->cnt) continue;
+
+          t->cnt = keep;
+
+          u32 nb = 0;
+
+          while ((nb < t->nb) && (t->b_start[nb] < keep)) nb++;
+
+          t->nb = nb;
+
+          if (t->nb > 0)
+          {
+            const u32 last = t->nb - 1;
+
+            if ((t->b_start[last] + t->b_cnt[last]) > keep)
+            {
+              sv->b_at  = last;
+              sv->b_cnt = t->b_cnt[last];
+
+              t->b_cnt[last] = keep - t->b_start[last];
+            }
+          }
+
+          // The three widths the slot sizing reads. A cut keeps a prefix, so the two maxima can only
+          // shrink and the minimum can only grow, and all three are taken again over what is left.
+
+          t->fixed_len = (keep > 0) ? (t->off[1] - t->off[0]) : 0;
+          t->max_len   = 0;
+          t->min_len   = (keep > 0) ? (t->off[1] - t->off[0]) : 0;
+
+          for (u32 n = 0; n < keep; n++)
+          {
+            const u32 len = t->off[n + 1] - t->off[n];
+
+            if (len != t->fixed_len) t->fixed_len = 0;
+            if (len > t->max_len) t->max_len = len;
+            if (len < t->min_len) t->min_len = len;
+          }
+
+          cut++;
+        }
+
+        if (cut == 0)
+        {
+          hcfree (pg->term_save);
+
+          pg->term_save = NULL;
+        }
+
+        if (cut > 0)
+        {
+          pg->term_costmax = pick;
+
+          pool_at (pg, pick, &terms, &tabs);
+
+          if (global_ctx->quiet == false)
+          {
+            // Both costs are divided by scale, because costmax inside this feed is the setting times
+            // scale and the setting is what the reader can act on. The same division the refusals
+            // further up make.
+
+            pmsg (pg, "pcfg: terminals cut at cost %" PRIu64 " instead of %" PRIu64 ", %u list%s shorter, %" PRIu64 " MiB instead of %" PRIu64 " MiB%s",
+              pick / pg->scale, pg->costmax / pg->scale, cut, (cut == 1) ? "" : "s", (terms + tabs) / (1024 * 1024), was / (1024 * 1024),
+              (with == true) ? ", which leaves the escape its tables" : ", and the escape is trimmed below");
+          }
+
+          // The suffix counts were taken over the entries this has just removed, and the ladder and
+          // the keyspace are both built from them, so all three are built again. Rebuilding the
+          // ladder alone would leave it addressing candidates that are no longer there.
+          //
+          // Freed first, because build_suffix () takes a fresh allocation per structure and does not
+          // look at what is already there.
+
+          for (u32 i = 0; i < pg->structs_cnt; i++)
+          {
+            hcfree (pg->structs[i].suf);
+
+            pg->structs[i].suf = NULL;
+          }
+
+          structs_sweep (pg, build_suffix);
+
+          index_free (pg);
+
+          build_index (pg);
+        }
+      }
+    }
+  }
+
   pg->pool_base  = (u32 *) hcmalloc (pg->lists_cnt * sizeof (u32));
   pg->pool_ubase = (u32 *) hccalloc (pg->lists_cnt, sizeof (u32));
+  pg->ent_base   = (u32 *) hccalloc (pg->lists_cnt, sizeof (u32));
 
-  u64 need = 4;
-
-  for (u32 i = 0; i < pg->lists_cnt; i++)
-  {
-    const pcfg_tlist_t *t = &pg->lists[i];
-
-    pg->pool_base[i] = (u32) need;
-
-    need += t->off[t->cnt];
-
-    need = (need + 3) & ~((u64) 3);
-
-    if (t->ubuf == NULL) continue;
-
-    pg->pool_ubase[i] = (u32) need;
-
-    need += t->off[t->cnt];
-
-    need = (need + 3) & ~((u64) 3);
-  }
-
-  // Every offset into the terminals is a u32, in the cells the device reads and in the byte reads the
-  // kernel makes, while the pool is sized from a u64, so a grammar whose terminals sum past 4 GiB has
-  // the lists past that point packed on top of the ones at the start and read back from there, and
-  // the run then builds candidates out of the wrong bytes without saying anything. tlist_build ()
-  // guards the same quantity inside one list.
-  //
-  // Answered before the pool is packed, because none of that work can be used, and answered the way
-  // the empty index below answers it: the host engine reads the lists themselves and not the pool.
-
-  if (need > 0xffffffff)
-  {
-    if (global_ctx->quiet == false) pmsg (pg, "pcfg: the terminals reach %" PRIu64 " MiB and an offset into the pool stops at 4096 MiB, the host engine takes the run", need / (1024 * 1024));
-
-    global_ctx->dev_enable = false;
-
-    pcfg_pick_workers (pg);
-
-    pcfg_say_base (global_ctx, pg, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
-
-    if (pg->lookup != NULL) lookup_report (global_ctx, pg);
-
-    pool[0]      = NULL;
-    pool_size[0] = 0;
-    il_cnt[0]    = 0;
-    maxword[0]   = pg->maxword;
-    avg[0]       = 1;
-    front[0]     = 1;
-    step[0]      = 1;
-    varlen[0]    = (pg->varlen == true) ? 1 : 0;
-
-    memset (probe, 0, sizeof (pcfg_cell_t));
-
-    return true;
-  }
-
-  // No terminal entries at all means there is nothing for this engine to amplify, and that is the
-  // same grammar the empty index below describes: one whose mass sits on the escape. It is not
-  // refused here, because the index comes out empty and answers it the same way, so the host engine
-  // takes the run rather than the load failing.
-
-  pg->ent_base = (u32 *) hccalloc (pg->lists_cnt, sizeof (u32));
+  // First pass, with nothing reserved ahead of the terminals. What the escape's small tables want at
+  // the front is not known until the budget ceiling below is settled, and that needs this.
 
   u64 ent_at = 0;
 
+  u64 need = pool_layout (pg, 0, &ent_at);
+
+  // Every offset into the terminals is a u32 of bytes: pool_base and pool_ubase here, and the values
+  // the per entry tables below are filled with. So the terminals and their uppercase copies have to
+  // end inside the first 4 GiB of the pool however large the pool grows behind them. The cut above
+  // normally answers this; what is left here is the grammar whose first buckets alone pass 4 GiB, and
+  // those are kept whatever the ceiling says, because an empty list is a slot with nothing to choose.
+
+  if (need > 0xffffffffULL)
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: the terminals come to %" PRIu64 " MiB and an offset into the pool stops at 4096 MiB, the host engine takes the run. Lower costmax to keep fewer of them", need / (1024 * 1024));
+
+    return dev_to_host (global_ctx, pg, pool, pool_size, il_cnt, maxword, avg, front, step, varlen, probe);
+  }
+
+  // A ruleset can carry its whole mass on the escape, and then it has no terminals to pack: the
+  // device engine still has the OMEN tables to walk, so there is something to amplify after all.
+  // Whether those tables end up fitting the pool is settled further down, and a run that loses them
+  // there falls out on the empty index below rather than here.
+
   if (pg->varlen == true)
   {
-    ent_at = need;
+    // ent_base is a word index rather than a byte offset, so the tables reach four times as far as
+    // the terminals do. Far enough that only a ruleset with billions of entries gets here, and it
+    // wraps the same silent way if it does.
 
-    for (u32 i = 0; i < pg->lists_cnt; i++)
+    if ((need / 4) > 0xffffffffULL)
     {
-      pg->ent_base[i] = (u32) (need / 4);
+      if (global_ctx->quiet == false) pmsg (pg, "pcfg: the per entry tables end at %" PRIu64 " MiB and a table offset into the pool stops at 16384 MiB, the host engine takes the run", need / (1024 * 1024));
 
-      need += ((u64) pg->lists[i].cnt + 1) * 4;
+      return dev_to_host (global_ctx, pg, pool, pool_size, il_cnt, maxword, avg, front, step, varlen, probe);
+    }
+  }
+
+  // The weights and the start sums get room at the tail of the pool, in the layout inc_types.h
+  // names. Their small tables are already reserved at the front, above.
+
+  u64 omen_words = 0;
+
+  if ((pg->omen_want == true) && (pg->omen_lvl_cnt > 0))
+  {
+    omen_words = omen_tail_words_at (pg, 0);
+
+    need = (need + 3) & ~((u64) 3);
+
+    // A cell reaches the tables through slots[0].packed, one u32 of word offset, so their far end has
+    // to sit inside the first 2^32 words of the pool however large the pool may be. Widening the
+    // counters below would not move that, the cell is what cannot hold a larger number, so it is
+    // checked here and the escape stays on the host rather than being packed at an offset that wraps.
+
+    // Where the tables would start: after the need+8 pool header.
+
+    const u64 base = (need / 4) + 2;
+
+    // Two bounds apply and the smaller one wins: what a cell can address, and what the weakest
+    // device can actually map. Asking only the first let a pool through that was addressable and
+    // still larger than the card would hand out, which the run found out at clCreateBuffer ().
+
+    u64 room = (base < 0xffffffffULL) ? (0xffffffffULL - base) : 0;
+
+    if (global_ctx->dev_pool_max != 0)
+    {
+      // dev_pool_max is already what the parts come to on the weakest device, with the margin the
+      // core keeps for the kernels and their own buffers taken off and the rounding to a part
+      // applied, so it is used as it is rather than reduced a second time.
+
+      const u64 words = global_ctx->dev_pool_max / 4;
+
+      const u64 left = (words > (base + 8)) ? (words - base - 8) : 0;
+
+      if (left < room) room = left;
+    }
+
+    // Both regions have to be counted, in both layouts. base comes from a layout asked with nothing
+    // reserved ahead of the terminals, so the head is not inside need yet whichever layout wins: the
+    // one that reserves it is asked for further down, after this check. Counted at the untrained
+    // ceiling, which is the largest the head can be, because it shrinks as the ceiling comes down.
+
+    const u64 head_words = omen_head_words_at (pg, 0);
+
+    if ((omen_words + head_words) > room)
+    {
+      const u64 want_words = omen_words + head_words;
+
+      // The tables are (kmax+1) x (bmax+1) x nctx, so the budget ceiling is the one dimension that
+      // scales them and the one whose top holds the least probable guesses. Lowering it drops the
+      // dearest OMEN levels and keeps the rest, where dropping the escape threw away all of them,
+      // which is a large part of a trained ruleset's mass, lost because the tables were a few per
+      // cent too large.
+
+      u32 dev_bmax = 0;
+
+      if (pg->omen_cnt == 1)
+      {
+        const pcfg_omen_t *om = &pg->omen[0];
+
+        for (u32 b = om->bmax; b > 0; b--)
+        {
+          const u64 want = omen_tail_words_at (pg, b);
+
+          // The head shrinks with the ceiling too, through the liveness bitmap, so it is asked for
+          // this ceiling rather than for the untrimmed one.
+
+          const u64 with_head = (pg->omen_head_front == true) ? want : (want + omen_head_words_at (pg, b));
+
+          if (with_head <= room) { dev_bmax = b; omen_words = want; break; }
+        }
+      }
+
+      if (dev_bmax != 0)
+      {
+        // What the whole run holds, read before the ladder is rebuilt below: build_index () writes
+        // pg->keyspace from the ladder it is given, so after the rebuild it is the trimmed total and
+        // there is nothing left to compare it against.
+
+        const u64 all_run = pg->keyspace;
+
+        if (global_ctx->quiet == false) pmsg (pg, "pcfg: OMEN escape trimmed for the device, budget ceiling %u instead of %u so its tables fit the pool", dev_bmax, pg->omen[0].bmax);
+
+        pg->omen_dev_bmax = dev_bmax;
+
+        // The levels above the new ceiling are not enumerable any more, so they leave the ladder
+        // and the ladder is built again.
+
+        // Kept whole, because the loop below writes over the levels it passes. build_index () buckets
+        // the ladder by cost rather than reading it in order, so a copy restores it exactly.
+
+        pg->omen_lvl_save = (pcfg_omen_lvl_t *) hcmalloc (pg->omen_lvl_cnt * sizeof (pcfg_omen_lvl_t));
+
+        memcpy (pg->omen_lvl_save, pg->omen_lvl, pg->omen_lvl_cnt * sizeof (pcfg_omen_lvl_t));
+
+        pg->omen_lvl_kept = pg->omen_lvl_cnt;
+
+        u32 keep = 0;
+
+        for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
+        {
+          if (pg->omen_lvl[i].lvl > dev_bmax) continue;
+
+          pg->omen_lvl[keep++] = pg->omen_lvl[i];
+        }
+
+        pg->omen_lvl_cnt = keep;
+
+        index_free (pg);
+
+        build_index (pg);
+
+        // A ceiling the pool can hold is not the same as a ceiling worth running. Where the grammar
+        // carries the run it takes out the dearest levels and leaves nearly all of it, which is the
+        // case the trim was written for. Where the escape is the run it leaves a prefix of the model,
+        // and the host engine reads the model itself. The device engine measured 278 times the host's
+        // rate on such a ruleset, so below a hundredth of the run the host wins outright and takes it,
+        // with the whole ladder restored.
+
+        if (pg->keyspace < (all_run / 100))
+        {
+          if (global_ctx->quiet == false)
+          {
+            pmsg (pg, "pcfg: the ceiling the pool can hold leaves %" PRIu64 " candidates of %" PRIu64 ", the host engine takes the run", pg->keyspace, all_run);
+          }
+
+          return dev_to_host (global_ctx, pg, pool, pool_size, il_cnt, maxword, avg, front, step, varlen, probe);
+        }
+      }
+      else
+      {
+        if (global_ctx->quiet == false)
+        {
+          pmsg (pg, "pcfg: OMEN escape dropped on the device, its tables want %" PRIu64 " MiB and the pool has room for %" PRIu64 " MiB",
+            (want_words * 4) / (1024 * 1024), (room * 4) / (1024 * 1024));
+        }
+
+        omen_words = 0;
+
+        // The level index was built with the escape in it, and the escape is what stops that ladder: its
+        // keyspace saturates, so build_index () takes the first cost or two and cannot address anything
+        // past them. Dropping the escape here without rebuilding leaves those levels holding almost
+        // nothing, which is an empty device index and a run that will not start.
+        //
+        // So the escape goes out of the index too and the ladder is built again.
+
+        index_free (pg);
+
+        // Kept, because the ladder is one ladder for both engines: this takes the escape off the host
+        // engine as well, and where the run falls back to it below the escape goes back in.
+
+        pg->omen_lvl_kept = pg->omen_lvl_cnt;
+
+        pg->omen_lvl_cnt = 0;
+
+        build_index (pg);
+
+        // global_init () named the escape on the status line, because whether the pool can hold it is
+        // not known until here. This run does not enumerate it, so take it back off.
+
+        pcfg_say_base (global_ctx, pg, pg->scale, "device");
+      }
+    }
+
+    // Whether the two branches above kept everything, trimmed the ceiling or dropped the escape,
+    // this is where it takes its place in the pool.
+
+    if (omen_words != 0)
+    {
+      // Second pass. The ceiling is settled now, so the head is reserved at the size it will
+      // actually be packed at rather than at the largest it could have been. The two differ only by
+      // the liveness bitmap, which is the one part of the head that scales with the ceiling, but the
+      // terminals have to end inside the 4 GiB their offsets address and a reservation that turns
+      // out not to be needed is what pushes them past it.
+
+      const u64 head = omen_head_words_at (pg, pg->omen_dev_bmax);
+
+      need = pool_layout (pg, (pg->omen_head_front == true) ? head : 0, &ent_at);
+
+      if (need > 0xffffffffULL)
+      {
+        if (global_ctx->quiet == false) pmsg (pg, "pcfg: the terminals and the escape's tables come to %" PRIu64 " MiB and an offset into the pool stops at 4096 MiB, the host engine takes the run. Lower costmax to keep fewer of them", need / (1024 * 1024));
+
+        return dev_to_host (global_ctx, pg, pool, pool_size, il_cnt, maxword, avg, front, step, varlen, probe);
+      }
+
+      if ((pg->varlen == true) && ((need / 4) > 0xffffffffULL))
+      {
+        if (global_ctx->quiet == false) pmsg (pg, "pcfg: the per entry tables end at %" PRIu64 " MiB and a table offset into the pool stops at 16384 MiB, the host engine takes the run", need / (1024 * 1024));
+
+        return dev_to_host (global_ctx, pg, pool, pool_size, il_cnt, maxword, avg, front, step, varlen, probe);
+      }
+
+      // Both regions take their place here. At the front the small tables are already inside need and
+      // the weights follow the terminals. At the tail the two sit one after the other exactly as the
+      // whole region used to.
+
+      pg->omen_head_words = head;
+
+      if (pg->omen_head_front == true)
+      {
+        pg->omen_pool_base = 1;
+        pg->omen_tail_base = (u32) ((need / 4) + 2);
+      }
+      else
+      {
+        pg->omen_pool_base = (u32) ((need / 4) + 2);
+        pg->omen_tail_base = (u32) (pg->omen_pool_base + head);
+      }
+
+      pg->omen_dev = true;
+    }
+    else
+    {
+      pg->omen_pool_base = 0;
     }
   }
 
@@ -10406,7 +11642,11 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   // Page aligned and a whole number of pages long, which is what Metal and OpenCL ask before they
   // read these bytes instead of a copy. 64 KiB covers every page size hashcat runs on.
 
-  pg->pool_size = need + 8;
+  // omen_words is the weights and the start sums. The small tables are inside need where they sit at
+  // the front, and are not where they sit at the tail, so they are added here in that case only.
+
+  pg->pool_size = need + 8 + (omen_words * 4)
+                + (((pg->omen_dev == true) && (pg->omen_head_front == false)) ? (pg->omen_head_words * 4) : 0);
   pg->pool_size = (pg->pool_size + (PCFG_POOL_ALIGN - 1)) & ~((u64) (PCFG_POOL_ALIGN - 1));
 
   pg->pool = (u32 *) hc_alloc_aligned (PCFG_POOL_ALIGN, pg->pool_size);
@@ -10417,6 +11657,12 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     return false;
   }
+
+  // Zeroed, because the escape's tables are not written end to end: the liveness bitmap rounds to a
+  // word of bits and the weight planes are indexed rather than filled, so what is not written is read
+  // as a zero weight and has to be one.
+
+  memset (pg->pool, 0, pg->pool_size);
 
   u8 *bytes = (u8 *) pg->pool;
 
@@ -10445,9 +11691,13 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     if (global_ctx->quiet == false)
     {
       // From need and not from pool_size, which also carries the guard word and the page rounding.
+      // And the escape's head comes off the second figure where it sits at the front, because what is
+      // reserved ahead of the terminals is inside ent_at and is not terminal.
+
+      const u64 ahead = (pg->omen_head_front == true) ? (pg->omen_head_words * 4) : 0;
 
       pmsg (pg, "pcfg: per entry offsets, %" PRIu64 " KiB of table behind %" PRIu64 " KiB of terminals",
-        (need - ent_at) / 1024, ent_at / 1024);
+        (need - ent_at) / 1024, (ent_at - ahead) / 1024);
     }
   }
 
@@ -10457,6 +11707,11 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   const bool auto_maxword = (pg->maxword == 0);
   const bool auto_kbits   = (pg->kbits == 0);
+
+  // The longest candidate the escape can reach. The candidate array has to be able to hold it, so it
+  // decides the width chosen below, and whatever the array still cannot hold the device leaves out.
+
+  const u32 omen_wide = (pg->omen_want == true) ? omen_maxbytes (pg) : 0;
 
   // Each round of the probe rebuilds the unit tables, which on a large grammar is the most
   // expensive thing the start does, and it runs several times. grammar.txt is most probable first,
@@ -10479,6 +11734,11 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     pg->maxword = (gain >= pg->maxgain) ? PCFG_DEV_MAXWORD_HI : PCFG_DEV_MAXWORD_LO;
 
+    // The rectangle decides this for the grammar, whose candidates are simply cut where they do not
+    // fit. An OMEN candidate is not cut, so the bound has to hold the escape as well.
+
+    if (omen_wide > ((PCFG_DEV_MAXWORD_LO * 4) - 1)) pg->maxword = PCFG_DEV_MAXWORD_HI;
+
     if (global_ctx->quiet == false)
     {
       pmsg (pg, "pcfg: candidate bound %u bytes, %u word array (rectangle gain %.2fx at %u words, taken at %.2fx)",
@@ -10486,7 +11746,29 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     }
   }
 
+  // The rules are applied inside the kernel, and apply_rules () is written against a buffer that holds
+  // 256 bytes whatever the grammar would have chosen here. So with them the width is not the ruleset's
+  // to pick, nor the user's through maxword=, and it is taken after both rather than beside them.
+
+  if (global_ctx->dev_rules == true)
+  {
+    if ((global_ctx->quiet == false) && (pg->maxword != PCFG_DEV_MAXWORD_RULES))
+    {
+      pmsg (pg, "pcfg: candidate bound raised to %u bytes, the rules run on the device and a rule writes up to that", (PCFG_DEV_MAXWORD_RULES * 4) - 1);
+    }
+
+    pg->maxword = PCFG_DEV_MAXWORD_RULES;
+  }
+
   pg->maxbyte = (pg->maxword * 4) - 1;
+
+  // A bound asked for by hand, or a model past the widest array there is. The kernel drops what does
+  // not fit rather than writing past its array, so this costs coverage, and it says so.
+
+  if (omen_wide > pg->maxbyte)
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: OMEN candidates reach %u bytes and the candidate bound is %u, the longest are skipped on the device", omen_wide, pg->maxbyte);
+  }
 
   if (auto_kbits == true)
   {
@@ -10545,6 +11827,13 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   }
 
   pg->il_cnt = (u32) 1 << pg->kbits;
+
+  // global_init () keyed the run on the keyspace it knew then, and the cuts above move it: a device
+  // that trims the escape's ceiling or drops it enumerates a different set from one that keeps it, and
+  // two machines doing different things must not share an identity that --restore and the brain read
+  // as the same attack. So the keyspace is mixed in again, here, after every cut has been made.
+
+  global_ctx->source_ident = paw64 (&pg->keyspace, sizeof (pg->keyspace), global_ctx->source_ident);
 
   global_ctx->source_ident ^= (u64) pg->maxword * 0x9e3779b97f4a7c15ULL;
 
@@ -10632,6 +11921,52 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     fprintf (stderr, "cut stats: structs=%u amplified=%u none=%u (blen_refused=%u too_wide=%u)\n", pg->structs_cnt, some, none, blen, wide);
   }
 
+  // How many candidates one cell of the escape carries, which two things pull against. A cell pays one
+  // rank walk over the model's tables and then only steps, and the walk is the dear half: on a ruleset
+  // that is all escape, cells of 256 candidates measured 843 MH/s against 1990 at 32768. But a cell is
+  // also what a launch is made of, and the autotuner sizes a launch against a probe cell taken from
+  // the grammar, so a far wider cell makes a launch long enough for a display driver to give up on the
+  // GPU. So the escape's weight in a batch is held at about one grammar cell, and no wider than
+  // PCFG_OMEN_WIDE_MAX.
+
+  {
+    u64 wide = (pg->front_rect > 0) ? pg->front_rect : 1;
+
+    // The share has to be taken from what the order actually holds, which is the level index and its
+    // capped counts, and not from omen_keyspace: that one is the model's own guess count, on a large
+    // model it overruns u64, and once it saturates no total can be greater than it. Then the share
+    // reads as one, the cell stays as narrow as the grammar's, and the rank walk is paid once every
+    // couple of candidates instead of once a cell, which is the twenty times a candidate of the
+    // grammar the walk was written to avoid.
+
+    u64 omen_run = 0;
+
+    for (u32 i = 0; i < pg->omen_lvl_cnt; i++) omen_run = sat_add (omen_run, pg->omen_lvl[i].cnt);
+
+    if (omen_run > 0)
+    {
+      if (pg->keyspace > omen_run)
+      {
+        const double share = (double) omen_run / (double) pg->keyspace;
+
+        const double want = (double) wide / share;
+
+        if (want > (double) PCFG_OMEN_WIDE_MAX) wide = PCFG_OMEN_WIDE_MAX;
+        else if (want > (double) wide)          wide = (u64) want;
+      }
+      else
+      {
+        // The escape is the whole order, so there is nothing left to keep a cell narrow for.
+
+        wide = PCFG_OMEN_WIDE_MAX;
+      }
+    }
+
+    if (wide > pg->il_cnt) wide = pg->il_cnt;
+
+    pg->omen_width = (wide > 0) ? wide : 1;
+  }
+
   hc_timer_t t_ui;
 
   hc_timer_set (&t_ui);
@@ -10649,30 +11984,201 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   {
     if (global_ctx->quiet == false) pmsg (pg, "pcfg: no base words for the device engine, the host engine takes the run");
 
-    // Three answers further up were settled from dev_enable while it was still true: how many
-    // threads build base words, the half the status line names, and lookup=. The run is going to
-    // the host engine, so they are given again here, where that is known.
+    return dev_to_host (global_ctx, pg, pool, pool_size, il_cnt, maxword, avg, front, step, varlen, probe);
+  }
 
-    global_ctx->dev_enable = false;
+  // The OMEN tables go into the pool in the layout inc_types.h names, in two places: the small ones
+  // at the front, where the directory is, and the weights and start sums at the tail.
 
-    pcfg_pick_workers (pg);
+  if (pg->omen_dev == true)
+  {
+    u32 *dir = pg->pool + pg->omen_pool_base;
 
-    pcfg_say_base (global_ctx, pg, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+    // The first block sits just past the directory.
 
-    if (pg->lookup != NULL) lookup_report (global_ctx, pg);
+    u32 at_block = pg->omen_cnt;
 
-    pool[0]      = pg->pool;
-    pool_size[0] = pg->pool_size;
-    il_cnt[0]    = 0;
-    maxword[0]   = pg->maxword;
-    avg[0]       = 1;
-    front[0]     = 1;
-    step[0]      = 1;
-    varlen[0]    = (pg->varlen == true) ? 1 : 0;
+    // The tail is filled with its own cursor. Every offset in a model header stays what it has
+    // always been, words from the start of that model's block, so the kernel and pcfg_expand () read
+    // the weights exactly as before. The only difference is that for those two tables the number is
+    // large, because the block is at the front and they are not.
 
-    memset (probe, 0, sizeof (pcfg_cell_t));
+    u64 tail_at = 0;
 
-    return true;
+    u64 lo_words = 0;
+
+    for (u32 m = 0; m < pg->omen_cnt; m++)
+    {
+      const pcfg_omen_t *om = &pg->omen[m];
+
+      dir[PCFG_OMEN_DIR_AT (m)] = at_block;
+
+      u32 *model = dir + at_block;
+
+      u32 at = PCFG_OMEN_HEADER_WORDS;
+
+      model[PCFG_OMEN_CTX_CNT]    = om->nctx;
+      model[PCFG_OMEN_STEP_MAX]   = om->kmax;
+
+      // The ceiling the device was given, which is the one it must index with.
+
+      const u32 dbm = (pg->omen_dev_bmax != 0) ? pg->omen_dev_bmax : om->bmax;
+
+      model[PCFG_OMEN_BUDGET_MAX] = dbm;
+      model[PCFG_OMEN_LEN_CNT]    = om->ln_cnt;
+
+      model[PCFG_OMEN_CTX_AT] = at;
+
+      for (u32 i = 0; i <= om->nctx; i++) model[at++] = om->ctx_off[i];
+
+      model[PCFG_OMEN_TRANS_AT] = at;
+
+      for (u32 e = 0; e < om->tr_cnt; e++)
+      {
+        model[at + PCFG_OMEN_TRANS_DST]  = om->tr[e].dst;
+        model[at + PCFG_OMEN_TRANS_OFF]  = om->tr[e].coff;
+        model[at + PCFG_OMEN_TRANS_LEN]  = om->tr[e].clen;
+        model[at + PCFG_OMEN_TRANS_COST] = om->tr[e].lvl;
+
+        at += PCFG_OMEN_TRANS_WORDS;
+      }
+
+      // Bytes rather than words, so the cursor steps over as many whole words as they filled.
+
+      model[PCFG_OMEN_CHARS_AT] = at;
+
+      {
+        u8 *chars = (u8 *) (model + at);
+
+        for (u32 i = 0; i < om->cbuf_len; i++) chars[i] = om->cbuf[i];
+
+        at += (om->cbuf_len + 3) / 4;
+      }
+
+      model[PCFG_OMEN_START_CTX_AT] = at; for (u32 i = 0; i < om->nip; i++) model[at++] = om->ip_ctx[i];
+      model[PCFG_OMEN_START_OFF_AT] = at; for (u32 i = 0; i < om->nip; i++) model[at++] = om->ip_off[i];
+      model[PCFG_OMEN_START_LEN_AT] = at; for (u32 i = 0; i < om->nip; i++) model[at++] = om->ip_len[i];
+
+      model[PCFG_OMEN_START_LVL_AT] = at;
+
+      for (u32 i = 0; i < PCFG_OMEN_MAXLVL + 2; i++) model[at++] = om->ip_lvl_off[i];
+
+      model[PCFG_OMEN_LEN_COST_AT]  = at; for (u32 i = 0; i < om->ln_cnt; i++) model[at++] = om->ln_lvl[i];
+      model[PCFG_OMEN_LEN_STEPS_AT] = at; for (u32 i = 0; i < om->ln_cnt; i++) model[at++] = om->ln_k[i];
+
+      // The liveness bitmap is packed ahead of the weights on purpose. Everything a walk reads
+      // per step other than a weight has to land in the first buffer, because those reads go
+      // straight to it rather than through the search. The weight table is over nine tenths of
+      // the pool, so anything written after it would not. global_dev_init () checks the line.
+
+      model[PCFG_OMEN_WBIT_AT] = at;
+
+      {
+        // The liveness bits index the same entries, so a trimmed table needs its bitmap rebuilt
+        // over the entries that remain rather than copied.
+
+        const u64 words = ((((u64) (om->kmax + 1) * (dbm + 1) * om->nctx) + 31) / 32);
+
+        const u32 first = at;
+
+        for (u64 i = 0; i < words; i++) model[at++] = 0;
+
+        u64 o = 0;
+
+        for (u32 k = 0; k <= om->kmax; k++)
+        {
+          for (u32 b = 0; b <= dbm; b++)
+          {
+            const u64 src = ((size_t) (k * (om->bmax + 1) + b)) * om->nctx;
+
+            for (u32 c = 0; c < om->nctx; c++, o++)
+            {
+              const u64 i = src + c;
+
+              if ((om->wbit[i / 32] >> (i % 32)) & 1) model[first + (o / 32)] |= (1u << (o % 32));
+            }
+          }
+        }
+      }
+
+      // Both tables are u64 on the host and two words each here, low first, which is how the kernel
+      // reads them back.
+      //
+      // Everything written above is read off the first buffer, so this is how far that buffer has to
+      // reach. Models are packed one after another at the front, so the last one sets the line for
+      // all of them, and that line is now the size of the small tables rather than of everything the
+      // pool holds before them.
+
+      lo_words = (u64) pg->omen_pool_base + at_block + at;
+
+      {
+        // The offset a model header carries is words from the start of its own block. The block is
+        // at the front and these tables are at the tail, so the number is large, and that is all that
+        // changes for the reader.
+
+        u32 *tail = pg->pool + pg->omen_tail_base;
+
+        const u64 model_abs = (u64) pg->omen_pool_base + at_block;
+
+        model[PCFG_OMEN_WEIGHT_AT] = (u32) (((u64) pg->omen_tail_base + tail_at) - model_abs);
+
+        // Budgets above the ceiling are not written. They sit as a tail inside each length's block,
+        // so what goes out is a run per length rather than one run over the whole table.
+
+        for (u32 k = 0; k <= om->kmax; k++)
+        {
+          for (u32 b = 0; b <= dbm; b++)
+          {
+            const u64 *pl = om->w + ((size_t) (k * (om->bmax + 1) + b)) * om->nctx;
+
+            for (u32 c = 0; c < om->nctx; c++)
+            {
+              tail[tail_at++] = (u32)  pl[c];
+              tail[tail_at++] = (u32) (pl[c] >> 32);
+            }
+          }
+        }
+
+        model[PCFG_OMEN_STARTSUM_AT] = (u32) (((u64) pg->omen_tail_base + tail_at) - model_abs);
+
+        for (u32 l = 0; l <= PCFG_OMEN_MAXLVL; l++)
+        {
+          for (u32 k = 0; k <= om->kmax; k++)
+          {
+            const u64 *row = om->ipsum + ((size_t) (l * (om->kmax + 1) + k)) * (om->bmax + 1);
+
+            for (u32 b = 0; b <= dbm; b++)
+            {
+              tail[tail_at++] = (u32)  row[b];
+              tail[tail_at++] = (u32) (row[b] >> 32);
+            }
+          }
+        }
+      }
+
+      at_block += at;
+    }
+
+    // The count above and the packing here are two readings of the same tables, and the pool was
+    // allocated on the first. Nothing else compares them, so a change to one and not the other would
+    // write past the pool and be found later as something else. Both regions are checked: the head
+    // against what was reserved at the front, the tail against what was reserved past the terminals.
+
+    if ((u64) at_block > pg->omen_head_words)
+    {
+      gerr (global_ctx, "pcfg: the escape's small tables packed %u words into room for %" PRIu64 ", which is a bug in this feed", at_block, pg->omen_head_words);
+
+      return false;
+    }
+
+    if (tail_at > omen_words)
+    {
+      gerr (global_ctx, "pcfg: the escape's weights packed %" PRIu64 " words into room for %" PRIu64 ", which is a bug in this feed", tail_at, omen_words);
+
+      return false;
+    }
+
+    global_ctx->dev_pool_lo = lo_words * 4;
   }
 
   // The device engine's half of lookup=, answered here rather than beside the host engine's. A base
@@ -10829,6 +12335,11 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   probe->flags          = (pg->varlen == true) ? PCFG_CELL_VARLEN : 0;
 
   varlen[0] = (pg->varlen == true) ? 1 : 0;
+
+  // Whether the kernel has to carry the walk. It reaches the backend as a build option, so it has to
+  // be settled here, before anything is compiled.
+
+  global_ctx->dev_omen = pg->omen_dev;
 
   if (getenv ("PCFG_BUCKET_STATS") != NULL)
   {
