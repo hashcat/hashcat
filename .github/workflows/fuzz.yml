@@ -169,7 +169,7 @@ jobs:
           [ "$RULE_TOK" = "true" ] && targets="rule tokenizer"
 
           for bin in fuzz_out/fuzz_parse_*; do
-            case "$bin" in *.zip|*.options|*.dict) continue ;; esac
+            case "$bin" in *.dict) continue ;; esac
             [ -x "$bin" ] && targets="$targets ${bin#fuzz_out/fuzz_}"
           done
 

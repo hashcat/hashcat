@@ -2,10 +2,10 @@
 #
 # Build the fuzz targets in tools/fuzz.
 #
-# One script for a local build and for a build service. A service sets CC,
-# CFLAGS, LIB_FUZZING_ENGINE, OUT and WORK, and whatever it sets has to be used
-# verbatim, because that is how it selects the engine and the sanitizer. Where
-# they are unset this builds a local libFuzzer plus AddressSanitizer binary.
+# One script for a local build and for CI. CC, CFLAGS, LIB_FUZZING_ENGINE, OUT
+# and WORK are taken from the environment where they are set and used verbatim,
+# because that is how the engine and the sanitizer are chosen. Where they are
+# unset this builds a local libFuzzer plus AddressSanitizer binary.
 #
 # Usage:
 #   tools/fuzz/build.sh            # from the hashcat source root
@@ -110,8 +110,6 @@ done
 CORE="$present"
 
 objs=""
-targets=""
-
 for src in $CORE; do
   obj="${WORK}/$(basename "$src" .c).o"
 
@@ -131,12 +129,9 @@ for target in rule tokenizer; do
   # shellcheck disable=SC2086
   $CXX $CXXFLAGS "$obj" $objs $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_${target}"
 
-  cp "tools/fuzz/fuzz_${target}.dict"    "${OUT}/"
-  cp "tools/fuzz/fuzz_${target}.options" "${OUT}/"
+  cp "tools/fuzz/fuzz_${target}.dict" "${OUT}/"
 
   echo "built ${OUT}/fuzz_${target}"
-
-  targets="$targets ${target}"
 done
 
 # One parser target per mode, because every src/modules/module_XXXXX.c defines
@@ -187,24 +182,10 @@ for mode in $FUZZ_MODES; do
 
   cp "tools/fuzz/fuzz_parse.dict" "${OUT}/"
 
-  printf '[libfuzzer]\ndict = fuzz_parse.dict\nmax_len = 8192\n' > "${OUT}/fuzz_parse_${hash_mode}.options"
-
   echo "built ${OUT}/fuzz_parse_${hash_mode}"
-
-  targets="$targets parse_${hash_mode}"
 done
 
-# Seed corpora. A build service picks up <target>_seed_corpus.zip beside the
-# binary; a local run takes the directories the same script writes.
+# Seed corpora, one directory per target under ${WORK}/seeds. fuzz.yml and a
+# local run both hand that directory to the target as a second corpus.
 
 tools/fuzz/seeds.sh "${WORK}/seeds" $FUZZ_MODES
-
-if command -v zip >/dev/null 2>&1; then
-  for target in $targets; do
-    [ -d "${WORK}/seeds/${target}" ] || continue
-
-    (cd "${WORK}/seeds/${target}" && zip -q -r "${OUT}/fuzz_${target}_seed_corpus.zip" .)
-
-    echo "built ${OUT}/fuzz_${target}_seed_corpus.zip"
-  done
-fi
