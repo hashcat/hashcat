@@ -86,13 +86,19 @@ def main():
     title = f"fuzz_{target}: {kind}"
     text = f"{detail}{at}. Reproduce: {repro}".lstrip(". ")
 
-    loc = f"file={path},line={line}," if path else ""
-
-    # an annotation message ends at the first newline and loses '%', so both are escaped
+    # An annotation message ends at the first newline and loses '%', so both are escaped. A
+    # property value is also cut at ',' and at ':', which a sanitizer's own wording carries
+    # ("signed integer overflow: ..."), so title and file escape those two as well.
 
     esc = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
-    print(f"::error {loc}title={title}::{esc}")
+    def prop(value):
+        return str(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A") \
+                         .replace(":", "%3A").replace(",", "%2C")
+
+    loc = f"file={prop(path)},line={line}," if path else ""
+
+    print(f"::error {loc}title={prop(title)}::{esc}")
 
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
 
