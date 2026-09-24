@@ -22,6 +22,12 @@ from lib.test_helpers import random_number, random_bytes, pack_hex
 # the way mode 22001 does it, which is how hashcat reads it.
 
 
+def module_get_random_password(word):
+  # the candidate is the 32 byte PMK as 64 hex chars, derived from the seed so the run is
+  # reproducible and stays ASCII hex, which is what hashcat parses the candidate as.
+  return hashlib.sha256(word).hexdigest().encode("ascii")
+
+
 def module_constraints():
   return [[64, 64], [0, 32], [-1, -1], [-1, -1], [-1, -1]]
 

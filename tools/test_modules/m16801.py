@@ -18,6 +18,12 @@ from lib.test_helpers import random_bytes, pack_hex
 # hashcat may print a cracked PMKID with * rather than : between the fields, so verify takes either.
 
 
+def module_get_random_password(word):
+  # the candidate is the 32 byte PMK as 64 hex chars, derived from the seed so the run is
+  # reproducible and stays ASCII hex, which is what hashcat parses the candidate as.
+  return hashlib.sha256(word).hexdigest().encode("ascii")
+
+
 def module_constraints():
   return [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
 

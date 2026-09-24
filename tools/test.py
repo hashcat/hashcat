@@ -33,7 +33,7 @@ RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
 # 1062). For those, and for the two encoding exceptions, the recovered line does not carry the
 # hash we started from, so the match is on ":password" alone (test.sh PASS_ONLY, line 6876).
 
-NOCHECK_ENCODING = {16800, 22000}
+NOCHECK_ENCODING = {16800, 16801, 22000}
 
 # The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
 # leaves their -a 4 list alone (test.sh:487); 10300 takes its hash from another field and is excluded
@@ -2426,7 +2426,9 @@ def targets_for(spec):
 
 
 def base_opts(args):
-  opts = ["--quiet", "--potfile-disable", "--logfile-disable"]
+  # --deprecated-check-disable matches test.sh's global OPTS: 2501 and 16801 are deprecated plugins
+  # that hashcat refuses to run without it, and it is a no-op for every non-deprecated mode.
+  opts = ["--quiet", "--potfile-disable", "--logfile-disable", "--deprecated-check-disable"]
 
   if not args.pure:
     opts.append("-O")
@@ -2509,6 +2511,14 @@ def main():
 
         print("[ test.py ] [ Type %d ] > Skip : %s" % (mode, reason))
 
+        continue
+
+      # test.sh skips the deprecated hccapx passphrase modes (test.sh:7263): their oracle is
+      # exercised through the compare, not a crack here, and the skip prints no line. This sits
+      # after the no-kernel check above, because test.sh reaches its kernel skip (test.sh:7170)
+      # first, so 2500/16800 still print the "no Optimized kernel" Skip under -O. The PMK modes
+      # 2501 and 16801 take the 32 byte PMK as the candidate and are cracked normally.
+      if mode in (2500, 16800):
         continue
 
       file_only = is_file_only(mode)

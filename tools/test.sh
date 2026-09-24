@@ -7,6 +7,11 @@
 
 OPTS="--quiet --potfile-disable --logfile-disable"
 
+# 2500/2501/16800/16801 are deprecated plugins, and hashcat aborts on a deprecated mode unless
+# this is passed. 2500/16800 are skipped below, but the PMK modes 2501 and 16801 are cracked, so
+# the crack path needs the flag too. It is a no-op for every non-deprecated mode.
+OPTS="${OPTS} --deprecated-check-disable"
+
 # The generated passwords can carry multi byte UTF-8, and hashcat counts a password in bytes.
 # In the C locale so does bash: ${#pass} is a byte count, ${pass:n:1} is one byte and cut -c
 # is cut -b. Under a UTF-8 locale those would count characters instead and the lengths the
@@ -53,7 +58,7 @@ TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 29311 2931
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773 13781 13782 13783 29411 29412 29413 29421 29422 29423 29431 29432 29433 29441 29442 29443 29451 29452 29453 29461 29462 29463 29471 29472 29473 29481 29482 29483"
 
 # List of modes which return a different output hash format than the input hash format
-NOCHECK_ENCODING="16800 22000"
+NOCHECK_ENCODING="16800 16801 22000"
 
 
 # List of LUKS modes which have test containers
@@ -7253,8 +7258,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       fi
     fi
 
-    # skip deprecated hash-types
-    if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 2501 ] || [ "${hash_type}" -eq 16800 ] || [ "${hash_type}" -eq 16801 ] ; then
+    # skip the hccapx passphrase modes, whose oracle is exercised through the compare rather than a
+    # crack here. The PMK modes 2501 and 16801 take the 32 byte PMK as the candidate and are cracked
+    # normally, so they are not skipped.
+    if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 16800 ] ; then
       continue
     fi
 
