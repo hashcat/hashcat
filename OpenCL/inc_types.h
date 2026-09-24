@@ -2220,6 +2220,14 @@ typedef struct pw_idx
 #define PCFG_DEV_MAXWORD_LO 16
 #define PCFG_DEV_MAXWORD_HI 32
 
+// And the width the array takes when the rules are applied inside the engine. apply_rules () says it
+// itself, above its own loop: an input shorter than 256 bytes is the contract every mangle_ function
+// is written to, so the array that holds a rule's output is the one a pw_t holds, PW_MAX over four.
+// At this width pcfg_hash () also leaves its 16 word specialisation and takes the general path, which
+// is what lifts the 63 byte ceiling the specialisation carries.
+
+#define PCFG_DEV_MAXWORD_RULES 64
+
 // The array is a whole number of blocks, and the rule above is what says it has to be. Kept as its own
 // name so that changing PCFG_DEV_MAXWORD to something that is not cannot go unnoticed.
 
@@ -2300,6 +2308,14 @@ typedef struct pw_idx
 #define PCFG_DEV_VARLEN 0
 #endif
 
+// Whether the rules are applied inside the device engine's kernel. The default belongs here rather
+// than beside the kernel's own options, because inc_common.h reads it to decide which of the two
+// pointers takes the constant address space, and that is settled before inc_pcfg_kernel.cl is read.
+
+#ifndef PCFG_DEV_RULES
+#define PCFG_DEV_RULES 0
+#endif
+
 // A lane's odometer word.
 //
 // It holds the digit alone when entries are of one byte length. When they are not it also holds the
@@ -2308,7 +2324,8 @@ typedef struct pw_idx
 // own, because a second [PCFG_DEV_GROUP][PCFG_DEV_MAXSLOT + 1] row is 2304 bytes of shared memory per
 // work group and the kernel has about a hundred bytes of headroom before it crosses the step of the
 // driver's shared and L1 split, which costs both occupancy and L1 hit rate. An offset is at most
-// PCFG_DEV_MAXBYTE, which is 127, so a byte holds it with room over.
+// PCFG_DEV_MAXBYTE, which on the widest array there is comes to 255, and that is exactly what a byte
+// holds.
 //
 // What it costs is the top eight bits of the digit, so a bucket may hold 2^24 entries.
 // pcfg_bucket_cap () holds the loader to it.
@@ -2427,6 +2444,11 @@ typedef struct pcfg_cell
 
 #define PCFG_CELL_VARLEN 1
 
+// An OMEN cell carries its level in slots[0].pool_off and the base word it opens on across radix
+// and digit, low half first.
+
+#define PCFG_CELL_OMEN   2
+
 // How many buffers the pool may be handed over in. inc_pcfg_pool.h says how a read finds its part.
 
 #define PCFG_POOL_PARTS 4
@@ -2435,6 +2457,75 @@ typedef struct pcfg_cell
 // the feed's bytes instead of a copy. A multiple of every page size hashcat runs on.
 
 #define PCFG_POOL_ALIGN 65536
+
+// The highest OMEN cost level. The feed, pcfg_expand () and the kernel all count against it.
+
+#define PCFG_OMEN_MAXLVL 10
+
+// An OMEN candidate may be written this wide, which is what the walk's own buffer holds and what
+// pcfg_expand () has room for in the caller's plain buffer. The kernel has its own, narrower bound in
+// PCFG_DEV_MAXBYTE, because its array is sized by the hash block rather than by the model.
+
+#define PCFG_OMEN_MAXBYTE 256
+
+// One candidate can take this many transitions, which is the length the walk's own state is sized
+// for on both sides: the feed's pcfg_omen_walk_t and the kernel's.
+
+#define PCFG_OMEN_MAXK 56
+
+// Whether the walk keeps its deepest position in scalars instead of at the end of those arrays. Every
+// step tries that position first and the lanes of a wave are at positions that disagree, so the arrays
+// are read at scattered indices. backend.c settles it per device from the L2 the runtime reports, and
+// folds it into the kernel cache key like the others.
+
+#ifndef PCFG_OMEN_TOPREG
+#define PCFG_OMEN_TOPREG 0
+#endif
+
+// Three places have to agree on how an OMEN model is laid out inside the pool: the feed writes it in
+// global_dev_init (), the kernel reads it in pcfg_omen_model (), and the host reads it again in
+// pcfg_expand (). They agree by name rather than by remembering the same numbers.
+//
+// A directory comes first, then one block per model. Offsets inside a block are words from the start
+// of that block. A model is a Markov chain over n-gram contexts: the walk opens on a whole n-gram and
+// then takes one transition at a time, each adding a character and spending some of the budget.
+
+// DIR_AT says where model m's block begins, in words from the directory. The rest are offsets into
+// that block's header, and each names where one table begins. The names say which; what they do not
+// say is that CTX_AT holds ctx_cnt + 1 entries and START_LVL_AT holds MAXLVL + 2, that WEIGHT_AT and
+// STARTSUM_AT are two words to an entry because the host holds them as u64, and that WBIT_AT is one
+// bit an entry, whether that weight is not zero.
+
+#define PCFG_OMEN_DIR_AT(m)     (m)
+
+#define PCFG_OMEN_CTX_AT        0
+#define PCFG_OMEN_TRANS_AT      1
+#define PCFG_OMEN_CHARS_AT      2
+#define PCFG_OMEN_START_CTX_AT  3
+#define PCFG_OMEN_START_OFF_AT  4
+#define PCFG_OMEN_START_LEN_AT  5
+#define PCFG_OMEN_START_LVL_AT  6
+#define PCFG_OMEN_LEN_COST_AT   7
+#define PCFG_OMEN_LEN_STEPS_AT  8
+#define PCFG_OMEN_WEIGHT_AT     9
+#define PCFG_OMEN_STARTSUM_AT   10
+#define PCFG_OMEN_WBIT_AT       11
+
+#define PCFG_OMEN_CTX_CNT       12
+#define PCFG_OMEN_STEP_MAX      13
+#define PCFG_OMEN_BUDGET_MAX    14
+#define PCFG_OMEN_LEN_CNT       15
+
+#define PCFG_OMEN_HEADER_WORDS  16
+
+// A transition takes four words: the context it leaves the walk in, where its character begins, how
+// many bytes that character takes, and what it costs out of the budget.
+
+#define PCFG_OMEN_TRANS_WORDS   4
+#define PCFG_OMEN_TRANS_DST     0
+#define PCFG_OMEN_TRANS_OFF     1
+#define PCFG_OMEN_TRANS_LEN     2
+#define PCFG_OMEN_TRANS_COST    3
 
 typedef struct bf
 {

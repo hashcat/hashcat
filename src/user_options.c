@@ -3913,6 +3913,14 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
 
     if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg)
     {
+      // And where the engine applies the rules itself, a base word is worth its cell once per rule, so
+      // the two amplifiers multiply rather than one of them replacing the other.
+
+      if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true)
+      {
+        return (u64) hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg * (u64) straight_ctx->kernel_rules_cnt;
+      }
+
       return hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
     }
   }

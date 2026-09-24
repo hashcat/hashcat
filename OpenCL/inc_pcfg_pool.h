@@ -55,6 +55,18 @@
   MAYBE_UNUSED const u32 v##_at2 = PCFG_POOL_AT2;             \
   MAYBE_UNUSED const u32 v##_at3 = PCFG_POOL_AT3;
 
+// The same binding where the pool is held in one piece, as the host holds it: every part points at
+// it and the sentinels put every index in the first, so the search resolves to pool0.
+
+#define PCFG_POOL_ONE(v,p)                                    \
+  MAYBE_UNUSED GLOBAL_AS const u32 *v##0 = p;                 \
+  MAYBE_UNUSED GLOBAL_AS const u32 *v##1 = p;                 \
+  MAYBE_UNUSED GLOBAL_AS const u32 *v##2 = p;                 \
+  MAYBE_UNUSED GLOBAL_AS const u32 *v##3 = p;                 \
+  MAYBE_UNUSED const u32 v##_at1 = 0xffffffff;                \
+  MAYBE_UNUSED const u32 v##_at2 = 0xffffffff;                \
+  MAYBE_UNUSED const u32 v##_at3 = 0xffffffff;
+
 // The part a word falls in, with the word it starts at and the word the next part starts at. A caller
 // that reads a run of bytes asks once and then indexes the buffer itself, rather than asking again
 // for every byte.
@@ -63,7 +75,10 @@ DECLSPEC GLOBAL_AS const u32 *pcfg_pool_span (PCFG_POOL_ARGS, MAYBE_UNUSED const
 
 DECLSPEC void pcfg_pool_copy (PCFG_POOL_ARGS, PRIVATE_AS u32 *w, const u32 dst, const u32 src, const u32 len);
 
+DECLSPEC u32 pcfg_pool_lo   (PCFG_POOL_ARGS, const u32 at);
 DECLSPEC u32 pcfg_pool_u32  (PCFG_POOL_ARGS, const u32 at);
+DECLSPEC u64 pcfg_pool_u64  (PCFG_POOL_ARGS, const u32 at);
+DECLSPEC u32 pcfg_pool_byte_lo (PCFG_POOL_ARGS, const u32 off);
 DECLSPEC u32 pcfg_pool_byte (PCFG_POOL_ARGS, const u32 off);
 
 #endif // INC_PCFG_POOL_H

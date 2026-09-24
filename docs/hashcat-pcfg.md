@@ -291,7 +291,7 @@ This process converts 23,159 structures into 5,104 shapes. The highest-ranked sh
 
 The `hints` ruleset deliberately has no OMEN escape. In the trained grammar, structure `M` represents approximately 40 percent of the probability mass and generates complete passwords character by character from a Markov model. Those candidates contain none of the supplied hints, so retaining the escape would spend most of the run on a different problem.
 
-Structures without an alphabetic run are removed for the same reason and account for another approximately 10 percent. Their probability mass is renormalized over the remaining shapes, making the result conditional on the password containing a supplied word. A hint ruleset therefore has no `M` entry, like a ruleset trained with `--coverage 1.0`, and section 7.4 does not apply. Fast hashes already omit the escape for the reasons described there.
+Structures without an alphabetic run are removed for the same reason and account for another approximately 10 percent. Their probability mass is renormalized over the remaining shapes, making the result conditional on the password containing a supplied word. A hint ruleset therefore has no `M` entry, like a ruleset trained with `--coverage 1.0`, and section 7.4 does not apply.
 
 What it cannot do is guess a word you did not give it. Every candidate contains one of your words, so the attack is only as good as what you know.
 
@@ -321,7 +321,7 @@ The defaults are suitable for most attacks.
 | `maxword` | auto | How long a candidate the card will build, in 4 byte words. Must be a multiple of 16. |
 | `maxgain` | 1.5 | How much wider the expansion has to get before the bigger candidate buffer is worth taking. |
 | `walk` | 1 | Steps to the next base word where it can instead of working it out from its position. It produces exactly the same run either way, so this is only here to turn off. |
-| `omen` | 1 | Carries the OMEN escape on a slow hash. See section 7.4. A fast hash cannot carry it regardless of this setting. |
+| `omen` | 1 | Carries the OMEN escape. See section 7.4. |
 | `hintwords` | none | The words a hint ruleset is given, comma separated. See section 4. |
 | `hintfile` | none | The same words out of a file, one per line. |
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
@@ -428,7 +428,7 @@ For a fast hash, hashcat sends the device a base word and a compact description 
 
 **Three fast hash modes also use the host engine.** The device engine requires a mode-specific `OpenCL/mNNNNN_a4-pure.cl` kernel, or `_a4-optimized.cl` when the mode provides only an optimized kernel. All but three included fast modes have one. The exceptions are modes whose rules kernel does something the shared engine cannot express. Mode 2000 is `STDOUT`, and all of its entry points are empty. Mode 5100 compares three times per candidate at three offsets into a half MD5, while the engine returns one set of four words. Mode 20510 has `NOT AVAILABLE` where its multi-hash entry point would be. Those modes run the host engine and report that selection at startup, as slow hashes do. The command line remains unchanged.
 
-The host engine is not merely an error fallback. It retains capabilities that the device engine omits, as section 7.4 explains. A slow hash wants a few hundred thousand candidates a second, one core gives tens of millions, and everything the device engine gave up to reach billions can be given back.
+The host engine is not merely an error fallback. It enumerates the whole grammar, where the device engine may have had terminals cut and the escape's budget ceiling lowered to fit what a card can hold, and it takes `-j` and `-k`. A slow hash wants a few hundred thousand candidates a second, one core gives tens of millions, and everything the device engine gave up to reach billions can be given back.
 
 Two things follow from it that are easy to trip over.
 
@@ -444,25 +444,25 @@ The device engine has no optimized kernel for this hash mode. Run this without -
 
 A mode with an `_a4-optimized.cl` device kernel can take `-O`. A mode whose only device kernel is `_a4-pure.cl` cannot. If the mode has no optimized straight kernel either, hashcat drops `-O` before the PCFG engine selects its file and reports that change.
 
-**Options `-r` and `-g` select the host engine.** The device engine cannot apply rules: the inner loop that would apply them is the one walking the cell, and there is no second one. The host engine can, because it is attack mode 0 with a different reader in front of it and hashcat's own rules kernel applies them there exactly as it does to a word list. A fast hash with `-r` therefore runs the host engine and reports that selection at startup, rather than ending the run. It is slower than the same attack without rules, and it is the attack you asked for.
+**Options `-r` and `-g` keep the device engine.** The rules are applied inside the same kernel that walks the cell. `il_pos` names the rule, exactly as it does for a word list, and the step inside the cell travels in the spare word of the crack record, which is how a crack is reported as the candidate that produced it rather than as the base word. The candidate array is widened to hold what a rule can write, which costs registers, so the kernel carrying the rule engine is a separate build of the same file and a run without `-r` receives the one it always had.
 
 The brain treats runs with and without rules as different attacks, so they do not reuse each other's covered keyspace.
 
-**Rules provide a second form of device amplification.** The device engine expands a cell inside the hash kernel. The rules kernel instead applies every rule to every base word inside the hash kernel, as attack mode 8 does for other feeds. A fast hash with rules therefore retains device amplification, but uses host-generated base words multiplied by the rule count. Stacked rules retain their usual cross-product behavior, so `-r a -r b` applies every rule from one file over every rule from the other.
+**Rules provide a second form of device amplification.** The device engine expands a cell inside the hash kernel, and the rules multiply what that cell produced, so the two compound. A base word becomes its cell, and every candidate of that cell is tried once per rule. Stacked rules retain their usual cross-product behavior, so `-r a -r b` applies every rule from one file over every rule from the other.
 
-Measured on an RX 9070 XT against `-m 0`, one grammar, one card, twenty-five seconds each:
+Measured on an RTX 5080 against `-m 0`, the shipped ruleset, twenty seconds each, with autotune left free:
 
 ```text
 what is in front of the card                      candidates a second
 --------------------------------------------------------------------
-device engine, no rules                                    21.0 GH/s
-host engine, best66.rule, 90 rules                           3.4 GH/s
-host engine, 1 rule                                        49.3 MH/s
+the cell, escape disabled with omen=0                      24.9 GH/s
+the cell, escape carried                                   17.6 GH/s
+the cell, and best66.rule over it, 66 rules                 6.6 GH/s
 ```
 
-The middle row illustrates the effect. The host engine supplies approximately 49 million base words per second, which limits an unamplified run. Applying 90 rules expands each base word on the device and performs 69 times more candidate work at the same base-word rate. The device engine is still 6 times faster than that, because a cell expands into thousands rather than into 90, so rules do not replace it. They put a run that used to end with an error message back within a factor of a few of the fastest thing the mode has.
+The rate per candidate falls because the work per candidate rises, and what the run receives in exchange is 66 candidates where it had one. Rules used to move the run to the host engine, where the same ruleset on the same card ran at 2.3 GH/s.
 
-The `Candidate.Engine` status field identifies the active path: `Device Generator` when something is amplifying on the card, whether that is a cell or a rule set, and `Host Generator + PCIe` when the host is building whole candidates and paying for the copy. The bottom row above reports `Host Generator + PCIe`, because one rule amplifies by one and is not an amplifier.
+The `Candidate.Engine` status field identifies the active path: `Device Generator` when something is amplifying on the card, whether that is a cell, a rule set or both, and `Host Generator + PCIe` when the host is building whole candidates and paying for the copy.
 
 `--stdout` shows you the host engine, not the device engine:
 
@@ -474,11 +474,11 @@ The command prints host-generated candidates without starting a kernel, so it us
 
 Options `-S` and `--slow-candidates` also select the host engine for the same reason. It asks for every candidate to be built on the host, so the card runs the plain straight kernel and there is no inner loop to expand a cell in. `--brain-client` arrives here as well, because hashcat turns it into `--slow-candidates` on the way.
 
-### 7.4. OMEN rides the host engine and not the device engine
+### 7.4. OMEN rides both engines
 
 `pcfg_cracker` trains two models: the PCFG and a Markov model named OMEN. Its generator interleaves candidates from both. A trained grammar contains a structure called `M`, which means "anything the grammar did not cover" and is what OMEN fills in. On a ruleset trained at the default coverage that line carries about 40% of the probability mass.
 
-**On a slow hash, hashcat includes the OMEN escape** from the ruleset's `Omen` directory and reports it:
+**hashcat includes the OMEN escape on either engine**, from the ruleset's `Omen` directory, and reports it:
 
 ```
 pcfg: OMEN escape carried, 15 levels over 1 model, 40962142820 guesses, 18 MiB of tables
@@ -488,19 +488,23 @@ The resulting candidate sets match the original generator. Every level was compa
 
 The corresponding tables consume memory and are built at startup: 18 MiB for a ruleset trained on a small corpus, 434 MiB for the largest one tried here. The line above reports the requirement before the build starts.
 
-**On a fast hash, hashcat drops the OMEN escape** and reports its probability mass:
+The device engine described in section 7.3 receives a Cartesian product: a few independent lists, and a candidate is one entry from each. An OMEN guess has a different structure, because each character it writes decides which characters may follow, so it does not factor into independent lists. That is why the fast path went without it for as long as it did, and walking the trellis inside the kernel is what replaces that.
+
+**On a fast hash the card walks it.** The kernel walks the trellis itself, out of tables packed into the same pool it reads the terminals from, and the host walks that same order from the same source file, so a crack is reported as the guess that produced it rather than as the base word the card started from.
+
+**Room has to be made for those tables.** The pool already holds every terminal of the grammar. hashcat cuts the terminals at the highest cost whose pool the weakest card can hold, and where that is still not enough it lowers the escape's own budget ceiling one level at a time, which gives up the dearest OMEN levels rather than all of them. Each step is reported at startup, and all of them are reversed if the run ends up on the host engine anyway, because that engine reads the lists themselves and never touches the pool.
+
+Carrying the escape on the card costs rate. In the measurement in section 7.3 it came to 29 percent of the candidates a second, and what it buys is guesses the run did not make at all before. Setting `omen=0` disables it and returns that rate:
 
 ```
-pcfg: OMEN escape dropped, the device engine cannot walk a trellis. 40% of the mass, set by coverage
+pcfg: OMEN escape dropped, omen=0. 40% of the mass, set by coverage
 ```
 
 The percentage is read from the `M` line of the ruleset you gave, so it is that ruleset's figure and not a general one. A ruleset trained at `--coverage 1.0` has no `M` line and prints no such message.
 
-The device engine described in section 7.3 receives a Cartesian product: a few independent lists, and a candidate is one entry from each. An OMEN guess has a different structure. Each character it writes decides which characters may follow, so it does not factor into independent lists and there is no rectangle to send.
+Training a ruleset with `--coverage 1.0` instructs the trainer not to emit `M` at all. That used to be the advice for a ruleset meant for a fast hash, because the fast path discarded `M`. It no longer is.
 
-When training a ruleset for fast hashes, use `--coverage 1.0`. This option instructs the trainer not to emit `M`, so the mass goes into the terminal lists rather than into a structure the fast path discards.
-
-Setting `omen=0` also disables the escape on a slow hash. The reason to want that is to compare like with like: with it off the two engines enumerate the same set, which is what the device engine is checked against.
+The other reason to want `omen=0` is to compare like with like: with it off the two engines enumerate the same set, which is what the device engine is checked against.
 
 ### 7.5. Capitalization of non-ASCII rulesets is nearly identical, but not quite
 
@@ -518,7 +522,7 @@ Section 6 covers multiple rulesets, and section 6.1 explains the merge. Tool `pc
 
 ## 8. Seeing which terminals fired
 
-Option `--debug-mode` normally reports the rule responsible for a crack, but a grammar selects one terminal for each structure slot rather than applying rules. For a feed-based attack, hashcat fills that field with information from the feed, so every debug mode works without `-r`. Mode 6 uses the format below, with the same three fields as mode 4:
+Option `--debug-mode` normally reports the rule responsible for a crack, but a grammar selects one terminal for each structure slot rather than applying rules. For a feed-based attack, hashcat fills that field with information from the feed, so every debug mode works without `-r`. With `-r` there is a rule to report as well, and then modes 1, 3, 4 and 5 name the rule as they do for a word list while mode 6 names the terminals either way. Mode 6 uses the format below, with the same three fields as mode 4:
 
 ```
 $ hashcat -m 0 -a 4 hashes.txt --debug-mode 6 --debug-file fired.txt
@@ -538,7 +542,8 @@ Only the slots the card expanded are named. The ones in front of them are alread
 * **Options `-i` and `--increment`, along with custom character sets `-1` through `-4`, are rejected.** Both belong to a mask, and `-a 4` takes a ruleset rather than a mask. What decides the lengths here is the grammar and `costmax`.
 
 * **Options `-S`, `--slow-candidates` and `--brain-client` select the host engine** as well, and the startup line reports the selected engine. Both ask for every candidate to be built on the host, which is the one thing the device engine does not do.
-* **Options `-r` and `-g` select the host engine** rather than being refused. The line after the ruleset summary reports the selected engine. You keep an amplifier on the card either way, because the rules kernel is one. It multiplies by the rule count instead of by the size of a cell.
+* **Options `-r` and `-g` keep the device engine.** The rules run in the same kernel that walks the cell, so a base word is worth its cell once per rule. The line after the ruleset summary reports the selected engine.
+* **Options `-j` and `-k` are rejected** while the device engine builds the candidates. Each names a rule for one side of a candidate, and a candidate assembled from the grammar's terminals has no sides. Option `-r` is the one that reaches every candidate. Both still apply wherever the host engine builds the candidates, which is any slow hash, `--stdout` and `--slow-candidates`.
 * **The same ruleset against `-m 0` and against `-m 3200` is not the same attack.** Different candidates, a different keyspace and a different number in `--keyspace`. Section 7.3 explains the difference. Both are correct. Neither one's restore point or brain session carries over to the other, and hashcat knows that and will not let them.
 * **The keyspace is not the grammar's keyspace.** It is however much of it `costmax` reaches. The real keyspace of a trained grammar is astronomically larger and there is no point enumerating all of it.
 * **Progress is counted in candidates and the restore point in base words.** In the status output above, `Progress` is 76 billion of 1.3 quadrillion candidates while `Restore.Point` is 14 million base words. Both are correct and they are counting different things.

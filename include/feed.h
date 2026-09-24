@@ -76,6 +76,12 @@ typedef enum generic_plugin_options
 
   GENERIC_PLUGIN_OPTIONS_EXPLAIN      = 1 << 4,
 
+  // The feed's device engine applies the rules itself, inside its own kernel. Without this a run given
+  // -r loses the device engine and moves to the host, because no kernel both makes a candidate and
+  // applies a rule to it, and that is what every feed did before one of them could.
+
+  GENERIC_PLUGIN_OPTIONS_DEVICE_RULES = 1 << 5,
+
   GENERIC_PLUGIN_OPTIONS_UNDEFINED = 0,
 
 } generic_plugin_options_t;

@@ -332,6 +332,8 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   generic_ctx->dev_enable     = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE)     ? true : false;
   generic_ctx->explain_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_EXPLAIN)    ? true : false;
 
+  generic_ctx->dev_rules_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE_RULES) ? true : false;
+
   const bool dev_offered = generic_ctx->dev_enable;
 
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_init,     GENERIC_GLOBAL_INIT);
@@ -465,8 +467,15 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // It has to be cleared here and not where the other refusals live, because the feed counts a
   // different keyspace for each exit and global_init () is where it counts.
 
-  if (hashcat_ctx->user_options->rp_files_cnt > 0) generic_ctx->dev_enable = false;
-  if (hashcat_ctx->user_options->rp_gen > 0) generic_ctx->dev_enable = false;
+  // A feed whose engine applies the rules itself keeps it. The kernel it builds for that walks the cell
+  // and then runs each rule over what the cell made, so the inner loop that was missing is there, and
+  // the run stays on the device instead of giving the cell up to get the rule engine.
+
+  if (generic_ctx->dev_rules_enable == false)
+  {
+    if (hashcat_ctx->user_options->rp_files_cnt > 0) generic_ctx->dev_enable = false;
+    if (hashcat_ctx->user_options->rp_gen > 0) generic_ctx->dev_enable = false;
+  }
 
   // And a hash mode with no device engine kernel takes it away, for the sixth time the same reason.
   //
@@ -531,6 +540,12 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->global_ctx.dev_enable = generic_ctx->dev_enable;
 
+  // And whether that engine is going to apply the rules itself, which the feed needs before it sizes
+  // anything: the candidate array has to hold what a rule can make of a candidate, not only what the
+  // grammar can. It is false wherever the engine is, so a feed that never got one is told nothing new.
+
+  generic_ctx->global_ctx.dev_rules = (generic_ctx->dev_enable == true) && (generic_ctx->dev_rules_enable == true) && ((hashcat_ctx->user_options->rp_files_cnt > 0) || (hashcat_ctx->user_options->rp_gen > 0));
+
   // From here on the instance owns resources, so a failure below still has to be torn down
 
   generic_ctx->enabled = true;
@@ -584,6 +599,49 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   if (generic_ctx->dev_enable == true)
   {
     user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+    // What the weakest active device can map. A feed sizing a pool has no other way to know it, and
+    // the addressing limit alone is not enough: a pool can be addressable and still be larger than
+    // the card will hand out.
+
+    {
+      backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+      u64 lim = 0;
+      u64 cap = 0;
+
+      if ((backend_ctx != NULL) && (backend_ctx->enabled == true))
+      {
+        for (int i = 0; i < backend_ctx->backend_devices_cnt; i++)
+        {
+          hc_device_param_t *dp = &backend_ctx->devices_param[i];
+
+          if (dp->skipped == true) continue;
+          if (dp->skipped_warning == true) continue;
+
+          // What this device can hold, worked out by the same code the backend cuts the buffers with,
+          // so the feed is not told of room that does not survive the cut. Both numbers come from it:
+          // what the parts come to together, and what one part may be.
+          //
+          // A device with nothing free answers zero, and zero is also what these hand the feed to
+          // mean no limit at all. So it is skipped rather than taken as the smallest: a card that can
+          // hold nothing is refused where the buffers are cut, and must not lift the ceiling for the
+          // cards that can, nor switch off the escape's layout for them.
+
+          u64 part = 0;
+
+          const u64 one = backend_pcfg_pool_budget (hashcat_ctx, dp, &part);
+
+          if ((one == 0) || (part == 0)) continue;
+
+          if ((lim == 0) || (one  < lim)) lim = one;
+          if ((cap == 0) || (part < cap)) cap = part;
+        }
+      }
+
+      generic_ctx->global_ctx.dev_pool_max = lim;
+      generic_ctx->global_ctx.dev_pool_one = cap;
+    }
 
     if (generic_ctx->global_dev_init (&generic_ctx->global_ctx, &generic_ctx->dev_pool, &generic_ctx->dev_pool_size, &generic_ctx->dev_il_cnt, &generic_ctx->dev_avg, &generic_ctx->dev_maxword, &generic_ctx->dev_front, &generic_ctx->dev_step, &generic_ctx->dev_varlen, &generic_ctx->dev_probe) == false)
     {

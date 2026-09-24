@@ -978,8 +978,11 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // rejected cell is gone by the time the batch gets here. Everyone else multiplies by the one
     // amplifier the whole run shares.
 
+    // The two multiply where both are there: the engine books a rejected word as the cell it stood for,
+    // and with the rules inside the engine each of those candidates would have been tried once per rule.
+
     const u64 rejected = (batch->words_extra_amp > 0)
-                       ? batch->words_extra_amp
+                       ? (batch->words_extra_amp * ((reject_amplifier > 0) ? reject_amplifier : 1))
                        : ((reject_amplifier > 0) ? (batch->words_extra * reject_amplifier) : 0);
 
     if (rejected > 0)
@@ -1396,6 +1399,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (attack_kern == ATTACK_KERN_STRAIGHT) reject_amplifier = straight_ctx->kernel_rules_cnt;
       if (attack_kern == ATTACK_KERN_COMBI)    reject_amplifier = combinator_ctx->combs_cnt;
+
+      // The device engine's own rejects are already in candidates, one cell each, so what it needs here
+      // is only the rule count, and pipe_run () multiplies the two.
+
+      if ((attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true)) reject_amplifier = straight_ctx->kernel_rules_cnt;
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, false, reject_amplifier);
 
