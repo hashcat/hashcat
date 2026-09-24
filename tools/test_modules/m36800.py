@@ -1,33 +1,30 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 
 ##
 ## Author......: See docs/credits.txt
 ## License.....: MIT
 ##
 
-# OpenSSH private keys in the openssh-key-v1 container, keyed with bcrypt-pbkdf.
-#
-# There is no CPAN module for bcrypt_pbkdf, and it cannot be built out of
-# Crypt::Eksblowfish: eksblowfish runs ExpandKey(key) before ExpandKey(salt) in
-# its cost loop where bcrypt_pbkdf runs salt before key, and it fixes the salt
-# at 16 bytes where bcrypt_pbkdf feeds a 64 byte SHA-512. So Blowfish is
-# implemented here directly. The tables below are the standard ones, taken from
-# OpenCL/inc_cipher_blowfish.cl so the two cannot drift apart.
+# OpenSSH private keys in the openssh-key-v1 container, keyed with bcrypt-pbkdf. There is no PyPI
+# binding for bcrypt_pbkdf that is guaranteed present, and it cannot be built from the standard
+# bcrypt: eksblowfish runs ExpandKey(key) before ExpandKey(salt) where bcrypt_pbkdf runs salt
+# before key, and it fixes the salt at 16 bytes where bcrypt_pbkdf feeds a 64 byte SHA-512. So
+# Blowfish is implemented here directly. The init tables are the standard ones.
 
-use strict;
-use warnings;
+import hashlib
+import struct
 
-use Digest::SHA qw (sha512);
+from Crypto.Cipher import AES
 
-use Crypt::Rijndael;
+U32 = 0xffffffff
 
-my @PBOX_INIT = (
+PBOX_INIT = [
   0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344, 0xa4093822, 0x299f31d0,
   0x082efa98, 0xec4e6c89, 0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
   0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917, 0x9216d5d9, 0x8979fb1b
-);
+]
 
-my @SBOX0_INIT = (
+SBOX0_INIT = [
   0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7, 0xb8e1afed, 0x6a267e96,
   0xba7c9045, 0xf12c7f99, 0x24a19947, 0xb3916cf7, 0x0801f2e2, 0x858efc16,
   0x636920d8, 0x71574e69, 0xa458fea3, 0xf4933d7e, 0x0d95748f, 0x728eb658,
@@ -71,9 +68,9 @@ my @SBOX0_INIT = (
   0xd60f573f, 0xbc9bc6e4, 0x2b60a476, 0x81e67400, 0x08ba6fb5, 0x571be91f,
   0xf296ec6b, 0x2a0dd915, 0xb6636521, 0xe7b9f9b6, 0xff34052e, 0xc5855664,
   0x53b02d5d, 0xa99f8fa1, 0x08ba4799, 0x6e85076a
-);
+]
 
-my @SBOX1_INIT = (
+SBOX1_INIT = [
   0x4b7a70e9, 0xb5b32944, 0xdb75092e, 0xc4192623, 0xad6ea6b0, 0x49a7df7d,
   0x9cee60b8, 0x8fedb266, 0xecaa8c71, 0x699a17ff, 0x5664526c, 0xc2b19ee1,
   0x193602a5, 0x75094c29, 0xa0591340, 0xe4183a3e, 0x3f54989a, 0x5b429d65,
@@ -117,9 +114,9 @@ my @SBOX1_INIT = (
   0x9e447a2e, 0xc3453484, 0xfdd56705, 0x0e1e9ec9, 0xdb73dbd3, 0x105588cd,
   0x675fda79, 0xe3674340, 0xc5c43465, 0x713e38d8, 0x3d28f89e, 0xf16dff20,
   0x153e21e7, 0x8fb03d4a, 0xe6e39f2b, 0xdb83adf7
-);
+]
 
-my @SBOX2_INIT = (
+SBOX2_INIT = [
   0xe93d5a68, 0x948140f7, 0xf64c261c, 0x94692934, 0x411520f7, 0x7602d4f7,
   0xbcf46b2e, 0xd4a20068, 0xd4082471, 0x3320f46a, 0x43b7d4b7, 0x500061af,
   0x1e39f62e, 0x97244546, 0x14214f74, 0xbf8b8840, 0x4d95fc1d, 0x96b591af,
@@ -163,9 +160,9 @@ my @SBOX2_INIT = (
   0xed545578, 0x08fca5b5, 0xd83d7cd3, 0x4dad0fc4, 0x1e50ef5e, 0xb161e6f8,
   0xa28514d9, 0x6c51133c, 0x6fd5c7e7, 0x56e14ec4, 0x362abfce, 0xddc6c837,
   0xd79a3234, 0x92638212, 0x670efa8e, 0x406000e0
-);
+]
 
-my @SBOX3_INIT = (
+SBOX3_INIT = [
   0x3a39ce37, 0xd3faf5cf, 0xabc27737, 0x5ac52d1b, 0x5cb0679e, 0x4fa33742,
   0xd3822740, 0x99bc9bbe, 0xd5118e9d, 0xbf0f7315, 0xd62d1c7e, 0xc700c47b,
   0xb78c1b6b, 0x21a19045, 0xb26eb1be, 0x6a366eb4, 0x5748ab2f, 0xbc946e79,
@@ -209,476 +206,366 @@ my @SBOX3_INIT = (
   0x85cbfe4e, 0x8ae88dd8, 0x7aaaf9b0, 0x4cf9aa7e, 0x1948c25c, 0x02fb8a8c,
   0x01c36ae4, 0xd6ebe1f9, 0x90d4f869, 0xa65cdea0, 0x3f09252d, 0xc208e69f,
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
-);
+]
 
-use constant U32 => 0xffffffff;
+MAGIC = b"OxychromaticBlowfishSwatDynamite"
 
-# One Blowfish round pair, operating on the caller's P array and S boxes.
 
-sub blowfish_encipher
-{
-  my ($st, $xl, $xr) = @_;
+def blowfish_encipher(st, xl, xr):
+  p = st["p"]
+  s = st["s"]
 
-  my $P = $st->{p};
-  my $S = $st->{s};
+  for i in range(16):
+    xl = (xl ^ p[i]) & U32
 
-  for (my $i = 0; $i < 16; $i++)
-  {
-    $xl ^= $P->[$i];
-    $xl &= U32;
+    f = s[0][(xl >> 24) & 0xff]
+    f = (f + s[1][(xl >> 16) & 0xff]) & U32
+    f ^= s[2][(xl >> 8) & 0xff]
+    f = (f + s[3][xl & 0xff]) & U32
 
-    my $f = $S->[0][($xl >> 24) & 0xff];
-    $f   += $S->[1][($xl >> 16) & 0xff];
-    $f   &= U32;
-    $f   ^= $S->[2][($xl >>  8) & 0xff];
-    $f   += $S->[3][ $xl        & 0xff];
-    $f   &= U32;
+    xr ^= f
 
-    $xr ^= $f;
+    xl, xr = xr, xl
 
-    ($xl, $xr) = ($xr, $xl);
-  }
+  xl, xr = xr, xl
 
-  ($xl, $xr) = ($xr, $xl);
+  xr ^= p[16]
+  xl ^= p[17]
 
-  $xr ^= $P->[16];
-  $xl ^= $P->[17];
+  return xl & U32, xr & U32
 
-  return ($xl & U32, $xr & U32);
-}
 
-sub blowfish_initstate
-{
+def blowfish_initstate():
   return {
-    p => [@PBOX_INIT],
-    s => [[@SBOX0_INIT], [@SBOX1_INIT], [@SBOX2_INIT], [@SBOX3_INIT]],
-  };
-}
-
-# Blowfish_stream2word: consume 4 bytes big-endian, wrapping at the end of the
-# buffer. $pos is advanced in place.
-
-sub stream2word
-{
-  my ($data, $posref) = @_;
-
-  my $len = length ($data);
-  my $w   = 0;
-
-  for (my $i = 0; $i < 4; $i++)
-  {
-    $w = (($w << 8) | ord (substr ($data, $$posref, 1))) & U32;
-
-    $$posref = ($$posref + 1) % $len;
+    "p": list(PBOX_INIT),
+    "s": [list(SBOX0_INIT), list(SBOX1_INIT), list(SBOX2_INIT), list(SBOX3_INIT)],
   }
 
-  return $w;
-}
 
-sub blowfish_expandstate
-{
-  my ($st, $data, $key) = @_;
+def stream2word(data, pos):
+  # consume 4 bytes big-endian, wrapping at the end of the buffer
 
-  my $j = 0;
+  length = len(data)
+  w      = 0
 
-  for (my $i = 0; $i < 18; $i++)
-  {
-    $st->{p}[$i] ^= stream2word ($key, \$j);
-  }
+  for _ in range(4):
+    w = ((w << 8) | data[pos]) & U32
 
-  $j = 0;
+    pos = (pos + 1) % length
 
-  my ($dl, $dr) = (0, 0);
+  return w, pos
 
-  for (my $i = 0; $i < 18; $i += 2)
-  {
-    $dl ^= stream2word ($data, \$j);
-    $dr ^= stream2word ($data, \$j);
 
-    ($dl, $dr) = blowfish_encipher ($st, $dl, $dr);
+def blowfish_expandstate(st, data, key):
+  j = 0
 
-    $st->{p}[$i]     = $dl;
-    $st->{p}[$i + 1] = $dr;
-  }
+  for i in range(18):
+    w, j = stream2word(key, j)
 
-  for (my $b = 0; $b < 4; $b++)
-  {
-    for (my $k = 0; $k < 256; $k += 2)
-    {
-      $dl ^= stream2word ($data, \$j);
-      $dr ^= stream2word ($data, \$j);
+    st["p"][i] ^= w
 
-      ($dl, $dr) = blowfish_encipher ($st, $dl, $dr);
+  j = 0
 
-      $st->{s}[$b][$k]     = $dl;
-      $st->{s}[$b][$k + 1] = $dr;
-    }
-  }
-}
+  dl = dr = 0
 
-sub blowfish_expand0state
-{
-  my ($st, $key) = @_;
+  for i in range(0, 18, 2):
+    w, j = stream2word(data, j)
+    dl ^= w
+    w, j = stream2word(data, j)
+    dr ^= w
 
-  my $j = 0;
+    dl, dr = blowfish_encipher(st, dl, dr)
 
-  for (my $i = 0; $i < 18; $i++)
-  {
-    $st->{p}[$i] ^= stream2word ($key, \$j);
-  }
+    st["p"][i]     = dl
+    st["p"][i + 1] = dr
 
-  my ($dl, $dr) = (0, 0);
+  for b in range(4):
+    for k in range(0, 256, 2):
+      w, j = stream2word(data, j)
+      dl ^= w
+      w, j = stream2word(data, j)
+      dr ^= w
 
-  for (my $i = 0; $i < 18; $i += 2)
-  {
-    ($dl, $dr) = blowfish_encipher ($st, $dl, $dr);
+      dl, dr = blowfish_encipher(st, dl, dr)
 
-    $st->{p}[$i]     = $dl;
-    $st->{p}[$i + 1] = $dr;
-  }
+      st["s"][b][k]     = dl
+      st["s"][b][k + 1] = dr
 
-  for (my $b = 0; $b < 4; $b++)
-  {
-    for (my $k = 0; $k < 256; $k += 2)
-    {
-      ($dl, $dr) = blowfish_encipher ($st, $dl, $dr);
 
-      $st->{s}[$b][$k]     = $dl;
-      $st->{s}[$b][$k + 1] = $dr;
-    }
-  }
-}
+def blowfish_expand0state(st, key):
+  j = 0
 
-# bcrypt_hash (sha2pass, sha2salt) -> 32 bytes, little-endian per word.
+  for i in range(18):
+    w, j = stream2word(key, j)
 
-sub bcrypt_hash
-{
-  my ($sha2pass, $sha2salt) = @_;
+    st["p"][i] ^= w
 
-  my $st = blowfish_initstate ();
+  dl = dr = 0
 
-  blowfish_expandstate ($st, $sha2salt, $sha2pass);
+  for i in range(0, 18, 2):
+    dl, dr = blowfish_encipher(st, dl, dr)
 
-  for (my $i = 0; $i < 64; $i++)
-  {
-    blowfish_expand0state ($st, $sha2salt);
-    blowfish_expand0state ($st, $sha2pass);
-  }
+    st["p"][i]     = dl
+    st["p"][i + 1] = dr
 
-  my @cdata = unpack ("N8", "OxychromaticBlowfishSwatDynamite");
+  for b in range(4):
+    for k in range(0, 256, 2):
+      dl, dr = blowfish_encipher(st, dl, dr)
 
-  for (my $i = 0; $i < 64; $i++)
-  {
-    for (my $k = 0; $k < 8; $k += 2)
-    {
-      ($cdata[$k], $cdata[$k + 1]) = blowfish_encipher ($st, $cdata[$k], $cdata[$k + 1]);
-    }
-  }
+      st["s"][b][k]     = dl
+      st["s"][b][k + 1] = dr
 
-  return pack ("V8", @cdata);
-}
 
-sub bcrypt_pbkdf
-{
-  my ($pass, $salt, $rounds, $keylen) = @_;
+def bcrypt_hash(sha2pass, sha2salt):
+  st = blowfish_initstate()
 
-  my $sha2pass = sha512 ($pass);
+  blowfish_expandstate(st, sha2salt, sha2pass)
 
-  my $stride = int (($keylen + 31) / 32);
-  my $amt    = int (($keylen + $stride - 1) / $stride);
+  for _ in range(64):
+    blowfish_expand0state(st, sha2salt)
+    blowfish_expand0state(st, sha2pass)
 
-  my @key = (0) x $keylen;
+  cdata = list(struct.unpack(">8I", MAGIC))
 
-  my $left  = $keylen;
-  my $count = 1;
+  for _ in range(64):
+    for k in range(0, 8, 2):
+      cdata[k], cdata[k + 1] = blowfish_encipher(st, cdata[k], cdata[k + 1])
 
-  while ($left > 0)
-  {
-    my $sha2salt = sha512 ($salt . pack ("N", $count));
+  return struct.pack("<8I", *cdata)
 
-    my $tmpout = bcrypt_hash ($sha2pass, $sha2salt);
-    my $out    = $tmpout;
 
-    for (my $i = 1; $i < $rounds; $i++)
-    {
-      $sha2salt = sha512 ($tmpout);
+def bcrypt_pbkdf(password, salt, rounds, keylen):
+  sha2pass = hashlib.sha512(password).digest()
 
-      $tmpout = bcrypt_hash ($sha2pass, $sha2salt);
+  stride = (keylen + 31) // 32
+  amt    = (keylen + stride - 1) // stride
 
-      $out ^= $tmpout;
-    }
+  key = bytearray(keylen)
 
-    my $take = ($amt < $left) ? $amt : $left;
+  left  = keylen
+  count = 1
 
-    my $i = 0;
+  while left > 0:
+    sha2salt = hashlib.sha512(salt + struct.pack(">I", count)).digest()
 
-    for ($i = 0; $i < $take; $i++)
-    {
-      my $dest = $i * $stride + ($count - 1);
+    tmpout = bcrypt_hash(sha2pass, sha2salt)
+    out    = bytearray(tmpout)
 
-      last if ($dest >= $keylen);
+    for _ in range(1, rounds):
+      sha2salt = hashlib.sha512(tmpout).digest()
 
-      $key[$dest] = ord (substr ($out, $i, 1));
-    }
+      tmpout = bcrypt_hash(sha2pass, sha2salt)
 
-    $left -= $i;
+      out = bytearray(a ^ b for a, b in zip(out, tmpout))
 
-    $count++;
-  }
+    take = amt if amt < left else left
 
-  return pack ("C*", @key);
-}
+    i = 0
 
-# --- AES ---------------------------------------------------------------------
-#
-# Crypt::Rijndael is used in ECB mode and the chaining is done here, so CTR and
-# CBC share one code path shape and neither depends on a padding convention.
+    while i < take:
+      dest = i * stride + (count - 1)
 
-sub aes_ctr
-{
-  my ($key, $iv, $in) = @_;
+      if dest >= keylen:
+        break
 
-  my $c   = Crypt::Rijndael->new ($key, Crypt::Rijndael::MODE_ECB ());
-  my $ctr = $iv;
-  my $out = "";
+      key[dest] = out[i]
 
-  for (my $i = 0; $i < length ($in); $i += 16)
-  {
-    my $ks    = $c->encrypt ($ctr);
-    my $block = substr ($in, $i, 16);
+      i += 1
 
-    $out .= ($block ^ substr ($ks, 0, length ($block)));
+    left -= i
 
-    # 128 bit big-endian increment
+    count += 1
 
-    my @b = unpack ("C16", $ctr);
+  return bytes(key)
 
-    for (my $j = 15; $j >= 0; $j--)
-    {
-      $b[$j] = ($b[$j] + 1) & 0xff;
 
-      last if ($b[$j] != 0);
-    }
+# AES through ECB blocks, so CTR and CBC share one shape and neither depends on a padding convention.
 
-    $ctr = pack ("C16", @b);
-  }
+def aes_ctr(key, iv, data):
+  cipher = AES.new(key, AES.MODE_ECB)
+  ctr    = bytearray(iv)
+  out    = bytearray()
 
-  return $out;
-}
+  for i in range(0, len(data), 16):
+    ks    = cipher.encrypt(bytes(ctr))
+    block = data[i:i + 16]
 
-sub aes_cbc_encrypt
-{
-  my ($key, $iv, $in) = @_;
+    out += bytes(a ^ b for a, b in zip(block, ks[:len(block)]))
 
-  my $c    = Crypt::Rijndael->new ($key, Crypt::Rijndael::MODE_ECB ());
-  my $prev = $iv;
-  my $out  = "";
+    for j in range(15, -1, -1):
+      ctr[j] = (ctr[j] + 1) & 0xff
 
-  for (my $i = 0; $i < length ($in); $i += 16)
-  {
-    my $blk = $c->encrypt (substr ($in, $i, 16) ^ $prev);
+      if ctr[j] != 0:
+        break
 
-    $out .= $blk;
+  return bytes(out)
 
-    $prev = $blk;
-  }
 
-  return $out;
-}
+def aes_cbc_encrypt(key, iv, data):
+  cipher = AES.new(key, AES.MODE_ECB)
+  prev   = iv
+  out    = bytearray()
 
-sub aes_cbc_decrypt
-{
-  my ($key, $iv, $in) = @_;
+  for i in range(0, len(data), 16):
+    blk = cipher.encrypt(bytes(a ^ b for a, b in zip(data[i:i + 16], prev)))
 
-  my $c    = Crypt::Rijndael->new ($key, Crypt::Rijndael::MODE_ECB ());
-  my $prev = $iv;
-  my $out  = "";
+    out += blk
 
-  for (my $i = 0; $i < length ($in); $i += 16)
-  {
-    my $blk = substr ($in, $i, 16);
+    prev = blk
 
-    $out .= ($c->decrypt ($blk) ^ $prev);
+  return bytes(out)
 
-    $prev = $blk;
-  }
 
-  return $out;
-}
+def aes_cbc_decrypt(key, iv, data):
+  cipher = AES.new(key, AES.MODE_ECB)
+  prev   = iv
+  out    = bytearray()
 
-sub ssh_encrypt
-{
-  my ($cid, $key, $iv, $in) = @_;
+  for i in range(0, len(data), 16):
+    blk = data[i:i + 16]
 
-  return ($cid == 2) ? aes_cbc_encrypt ($key, $iv, $in) : aes_ctr ($key, $iv, $in);
-}
+    out += bytes(a ^ b for a, b in zip(cipher.decrypt(blk), prev))
 
-sub ssh_decrypt
-{
-  my ($cid, $key, $iv, $in) = @_;
+    prev = blk
 
-  return ($cid == 2) ? aes_cbc_decrypt ($key, $iv, $in) : aes_ctr ($key, $iv, $in);
-}
+  return bytes(out)
 
-# --- openssh-key-v1 container ------------------------------------------------
 
-sub sshstr
-{
-  my $s = shift;
+def ssh_encrypt(cid, key, iv, data):
+  return aes_cbc_encrypt(key, iv, data) if cid == 2 else aes_ctr(key, iv, data)
 
-  return pack ("N", length ($s)) . $s;
-}
 
-# The cleartext preamble, up to and including the length word of the encrypted
-# section. ct_offset is exactly its length.
+def ssh_decrypt(cid, key, iv, data):
+  return aes_cbc_decrypt(key, iv, data) if cid == 2 else aes_ctr(key, iv, data)
 
-sub build_header
-{
-  my ($salt_bin, $rounds, $cid, $enc_len) = @_;
 
-  my $ciphername = ($cid == 2) ? "aes256-cbc" : "aes256-ctr";
+def sshstr(s):
+  return struct.pack(">I", len(s)) + s
 
-  # Fixed filler: nothing in this mode inspects the public key, and a constant
-  # keeps the generated hash reproducible for a given word/salt.
 
-  my $pub = "\x01" x 32;
+def build_header(salt_bin, rounds, cid, enc_len):
+  ciphername = b"aes256-cbc" if cid == 2 else b"aes256-ctr"
 
-  my $header = "openssh-key-v1\x00"
-             . sshstr ($ciphername)
-             . sshstr ("bcrypt")
-             . sshstr (sshstr ($salt_bin) . pack ("N", $rounds))
-             . pack ("N", 1)
-             . sshstr (sshstr ("ssh-ed25519") . sshstr ($pub))
-             . pack ("N", $enc_len);
+  # nothing in this mode inspects the public key, so a constant keeps the hash reproducible
 
-  return $header;
-}
+  pub = b"\x01" * 32
 
-sub default_plain
-{
+  return (b"openssh-key-v1\x00"
+          + sshstr(ciphername)
+          + sshstr(b"bcrypt")
+          + sshstr(sshstr(salt_bin) + struct.pack(">I", rounds))
+          + struct.pack(">I", 1)
+          + sshstr(sshstr(b"ssh-ed25519") + sshstr(pub))
+          + struct.pack(">I", enc_len))
+
+
+def default_plain():
   # checkint1 == checkint2 is what marks a correct decryption
 
-  my $checkint = 0x01020304;
+  checkint = 0x01020304
 
-  my $pub = "\x01" x 32;
+  pub = b"\x01" * 32
 
-  my $plain = pack ("N", $checkint)
-            . pack ("N", $checkint)
-            . sshstr ("ssh-ed25519")
-            . sshstr ($pub)
-            . sshstr ($pub . $pub)
-            . sshstr ("hashcat");
+  plain = (struct.pack(">I", checkint)
+           + struct.pack(">I", checkint)
+           + sshstr(b"ssh-ed25519")
+           + sshstr(pub)
+           + sshstr(pub + pub)
+           + sshstr(b"hashcat"))
 
-  # OpenSSH pads to the cipher block size with 1, 2, 3, ...
+  padlen = (16 - (len(plain) % 16)) % 16
 
-  my $padlen = (16 - (length ($plain) % 16)) % 16;
+  plain += bytes(range(1, padlen + 1))
 
-  for (my $i = 1; $i <= $padlen; $i++)
-  {
-    $plain .= chr ($i);
-  }
+  return plain
 
-  return $plain;
-}
 
-sub module_constraints { [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
+def module_constraints():
+  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
 
-sub module_generate_hash
-{
-  my $word   = shift;
-  my $salt   = shift;
-  my $iter   = shift;
-  my $cid    = shift // 6;
-  my $blob   = shift;
-  my $ct_off = shift;
 
-  my $rounds = (defined ($iter) && length ($iter)) ? int ($iter) : 16;
+def module_generate_hash(word, salt, iterations=None, cid=6, blob=None, ct_off=None):
+  rounds = int(iterations) if (iterations is not None and str(iterations) != "") else 16
 
-  my $salt_bin = pack ("H*", $salt);
+  cid = int(cid)
 
-  my $dk = bcrypt_pbkdf ($word, $salt_bin, $rounds, 48);
+  salt_bin = bytes.fromhex(salt)
 
-  my $key = substr ($dk, 0, 32);
-  my $iv  = substr ($dk, 32, 16);
+  dk = bcrypt_pbkdf(word, salt_bin, rounds, 48)
 
-  my $plain;
+  key = dk[0:32]
+  iv  = dk[32:48]
 
-  if (defined ($blob))
-  {
-    # Verify path: recover the plaintext from the supplied blob. Reproducing the
-    # input line requires the original key material, so the decryption is only
-    # trusted when the two check integers agree -- otherwise fall through to the
-    # generated body, which yields a different line and so fails the comparison.
+  if blob is not None:
+    # Verify path: recover the plaintext from the supplied blob. The decryption is only trusted
+    # when the two check integers agree, otherwise fall through to the generated body, which yields
+    # a different line and so fails the comparison.
 
-    my $enc = substr ($blob, $ct_off);
+    enc = blob[ct_off:]
+    enc = enc[:len(enc) & ~15]
 
-    $enc = substr ($enc, 0, length ($enc) & ~15);
+    dec = ssh_decrypt(cid, key, iv, enc)
 
-    my $dec = ssh_decrypt ($cid, $key, $iv, $enc);
+    c1, c2 = struct.unpack(">II", dec[0:8])
 
-    my ($c1, $c2) = unpack ("NN", substr ($dec, 0, 8));
+    if c1 == c2:
+      header = blob[0:ct_off]
 
-    if ($c1 == $c2)
-    {
-      my $header = substr ($blob, 0, $ct_off);
+      out = header + ssh_encrypt(cid, key, iv, dec)
 
-      my $out = $header . ssh_encrypt ($cid, $key, $iv, $dec);
+      return "$sshng$%d$%d$%s$%d$%s$%d$%d" % (
+        cid, len(salt_bin), salt_bin.hex(), len(out), out.hex(), rounds, ct_off)
 
-      return sprintf ('$sshng$%d$%d$%s$%d$%s$%d$%d',
-        $cid, length ($salt_bin), unpack ("H*", $salt_bin),
-        length ($out), unpack ("H*", $out), $rounds, $ct_off);
-    }
-  }
+  plain = default_plain()
 
-  $plain = default_plain ();
+  enc    = ssh_encrypt(cid, key, iv, plain)
+  header = build_header(salt_bin, rounds, cid, len(enc))
+  out    = header + enc
 
-  my $enc    = ssh_encrypt ($cid, $key, $iv, $plain);
-  my $header = build_header ($salt_bin, $rounds, $cid, length ($enc));
-  my $out    = $header . $enc;
+  return "$sshng$%d$%d$%s$%d$%s$%d$%d" % (
+    cid, len(salt_bin), salt_bin.hex(), len(out), out.hex(), rounds, len(header))
 
-  return sprintf ('$sshng$%d$%d$%s$%d$%s$%d$%d',
-    $cid, length ($salt_bin), unpack ("H*", $salt_bin),
-    length ($out), unpack ("H*", $out), $rounds, length ($header));
-}
 
-sub module_verify_hash
-{
-  my $line = shift;
+def module_verify_hash(line):
+  idx = line.find(b":")
 
-  my $idx = index ($line, ':');
+  if idx < 0:
+    return None
 
-  return unless $idx >= 0;
+  hash_in = line[:idx].decode(errors="replace")
+  word    = line[idx + 1:]
 
-  my $hash = substr ($line, 0, $idx);
-  my $word = substr ($line, $idx + 1);
+  if hash_in[:7] != "$sshng$":
+    return None
 
-  return unless substr ($hash, 0, 7) eq '$sshng$';
+  parts = hash_in.split("$")
 
-  my (undef, $signature, $cid, $salt_len, $salt, $data_len, $data, $rounds, $ct_off) = split '\$', $hash;
+  if len(parts) < 9:
+    return None
 
-  return unless defined $signature;
-  return unless defined $cid;
-  return unless defined $salt;
-  return unless defined $data;
-  return unless defined $rounds;
-  return unless defined $ct_off;
+  _, signature, cid, salt_len, salt, data_len, data, rounds, ct_off = parts[:9]
 
-  return unless ($signature eq 'sshng');
+  if signature != "sshng":
+    return None
 
-  # eight tokens; the six token form is the legacy PEM layout of -m 22911..22951
+  try:
+    cid    = int(cid)
+    ct_off = int(ct_off)
+    blob   = bytes.fromhex(data)
+  except ValueError:
+    return None
 
-  return unless (($cid == 2) || ($cid == 6));
+  # the six token form is the legacy PEM layout of -m 22911..22951
 
-  my $blob = pack ("H*", $data);
+  if cid not in (2, 6):
+    return None
 
-  return unless (length ($blob) == $data_len);
-  return unless ($ct_off + 16 <= length ($blob));
+  if len(blob) != int(data_len):
+    return None
 
-  my $word_packed = pack_if_HEX_notation ($word);
+  if ct_off + 16 > len(blob):
+    return None
 
-  my $new_hash = module_generate_hash ($word_packed, $salt, $rounds, $cid, $blob, $ct_off);
+  new_hash = module_generate_hash(word, salt, rounds, cid, blob, ct_off)
 
-  return ($new_hash, $word);
-}
-
-1;
+  return (new_hash, word)
