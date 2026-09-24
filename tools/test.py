@@ -15,6 +15,7 @@ import base64
 import glob
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,18 @@ RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
 # hash we started from, so the match is on ":password" alone (test.sh PASS_ONLY, line 6876).
 
 NOCHECK_ENCODING = {16800, 22000}
+
+# The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
+# leaves their -a 4 list alone (test.sh:487); 10300 takes its hash from another field and is excluded
+# there too.
+
+LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
+              34100}
+
+# The modes test.sh's has_multi_hash reports true for: one hash each, so no multi-hash run at all
+# (test.sh:524).
+
+MULTI_ONE_HASH = {14000, 14100, 14600, 14900, 15400}
 
 # test.sh's attack order for -a all (test.sh:7362-7431). A slow mode only runs the attacks that
 # cost one candidate per word (the whole word attacks), so it gets 0, 4, 8 and 9 and nothing else,
@@ -53,6 +66,11 @@ FAKE_SLOW = {28501, 28502, 28503, 28504, 28505, 28506, 30901, 30902, 30903, 3090
 # quoted and holds no single quote of its own.
 
 LINE = re.compile(rb"^echo (.*) \| \./hashcat \$\{OPTS\} -a 0 -m \d+ '(.*)'$")
+
+# -a 4 asks the pcfg device engine for OpenCL/mNNNNN_a4-optimized.cl by the mode's kern_type, not by
+# the mode number, so the file test is on the kern_type read out of the module (test.sh:218).
+
+KERN_TYPE_RE = re.compile(rb"^static const u64\s+KERN_TYPE\s+=\s*([0-9]+)", re.M)
 
 DEVICE_LABEL = {"1": "Cpu", "2": "Gpu", "3": "Fpga"}
 
@@ -124,6 +142,89 @@ def is_slow(mode):
     return False
 
   return mode in FAKE_SLOW or b"ATTACK_EXEC_OUTSIDE_KERNEL" in module_source(mode)
+
+
+def host_engine(mode):
+  # test.sh HOST_ENGINE_ALGOS is the plain ATTACK_EXEC_OUTSIDE_KERNEL set (test.sh:225), taken before
+  # the fake-slow additions, so it is read straight off the module and does not carry FAKE_SLOW.
+
+  return b"ATTACK_EXEC_OUTSIDE_KERNEL" in module_source(mode)
+
+
+def is_timeout(mode):
+  # test.sh TIMEOUT_ALGOS is SLOW_ALGOS as written (test.sh:7183), which keeps 400 that is_slow drops
+  # for attack selection. It caps a single-hash whole-word run at 12 vectors instead of 32.
+
+  return mode in FAKE_SLOW or host_engine(mode)
+
+
+def a4_optimized(mode):
+  # Whether the mode ships an optimized pcfg kernel, named by its kern_type (test.sh:218).
+
+  m = KERN_TYPE_RE.search(module_source(mode))
+
+  if m is None:
+    return False
+
+  return os.path.isfile(os.path.join(ROOT, "OpenCL", "m%05d_a4-optimized.cl" % int(m.group(1))))
+
+
+def a4_optimized_skip(mode, optimized):
+  # test.sh:1011: an optimized -a 4 pass on a mode whose kernel runs inside the device and that ships
+  # no optimized pcfg kernel would be refused by hashcat, so the pass is skipped and, unlike a normal
+  # skip, prints no summary line. The pure pass covers the attack for such a mode.
+
+  return optimized and not host_engine(mode) and not a4_optimized(mode)
+
+
+def has_multi_hash(mode):
+  return mode in MULTI_ONE_HASH
+
+
+def oracle_spare(mode, optimized, length):
+  # test.sh whole_word_vectors:506: one vector of a fixed length from the same oracle, to stand in for
+  # a word -a 4 cannot express. Returns (word, digest) or None.
+
+  env = dict(os.environ)
+  env["IS_OPTIMIZED"] = "1" if optimized else "0"
+
+  proc = subprocess.run([sys.executable, RUNNER, "single", str(mode), str(length)],
+                        env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+  if proc.returncode != 0:
+    return None
+
+  for line in proc.stdout.splitlines():
+    m = LINE.match(line)
+
+    if m is not None:
+      return (m.group(1).rstrip(b" "), m.group(2).decode("ascii"))
+
+  return None
+
+
+def a4_vectors(mode, pairs, optimized):
+  # test.sh whole_word_vectors (test.sh:469): a grammar builds its candidate out of terminals of at
+  # least one character, so the zero length word the -a 0 vectors carry for a min-zero mode cannot be
+  # written into a ruleset. Where one is present it is swapped for a spare word of length 1 and the
+  # hash that goes with it. Returns the substituted pairs, or None to fall back to the -a 0 vectors,
+  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS or 10300 list, or no spare).
+
+  if not pairs:
+    return None
+
+  if mode in LUKS_MODES or mode == 10300:
+    return None
+
+  if not any(word == b"" for word, _ in pairs):
+    return None
+
+  spare = oracle_spare(mode, optimized, 1)
+
+  if spare is None or spare[0] == b"":
+    return None
+
+  return [spare if word == b"" else (word, digest) for word, digest in pairs]
 
 
 def attacks_for(spec, mode):
@@ -339,11 +440,191 @@ def attack_0(r):
       run_multi(r.opts, r.mode, r.pairs, r.args, r.width, r.pass_only, r.tmp)
 
 
+def build_ruleset(ruleset_dir, words):
+  # test.sh whole_word_ruleset (test.sh:444): the smallest pcfg that emits exactly this word list. X
+  # is the flat token, so X1 at probability 1 is one terminal per entry, each carrying its own length,
+  # all living in Context/1.txt. The run is then as long as the list and emits nothing else.
+
+  shutil.rmtree(ruleset_dir, ignore_errors=True)
+
+  os.makedirs(os.path.join(ruleset_dir, "Grammar"))
+  os.makedirs(os.path.join(ruleset_dir, "Context"))
+
+  with open(os.path.join(ruleset_dir, "Grammar", "grammar.txt"), "wb") as fh:
+    fh.write(b"X1\t1.0\n")
+
+  with open(os.path.join(ruleset_dir, "Context", "1.txt"), "wb") as fh:
+    for word in words:
+      fh.write(word + b"\t1.0\n")
+
+
+def whole_word_source(attack, words_file, ruleset_dir):
+  # test.sh whole_word_source (test.sh:426): the argv each whole-word attack takes after the hash. -a
+  # 8 names the wordlist feed and its file, -a 9 the file pairing word N with hash N, -a 4 the ruleset
+  # directory. -a 0 pipes its words in and is handled by attack_0.
+
+  if attack == 4:
+    return [ruleset_dir]
+
+  if attack == 8:
+    return ["wordlist", words_file]
+
+  if attack == 9:
+    return [words_file]
+
+  return []
+
+
+def whole_word_single(r, attack):
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  optimized = not r.args.pure
+
+  if attack == 4:
+    subst   = a4_vectors(r.mode, r.pairs, optimized)
+    vectors = subst if subst is not None else r.pairs
+  else:
+    vectors = r.pairs
+
+  # test.sh:1035: a single-hash run stops at 32 vectors, or 12 for a slow mode.
+
+  max_n = 12 if is_timeout(r.mode) else 32
+
+  temp_file   = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
+  words_file  = os.path.join(r.tmp, "m%05d_a%d_words" % (r.mode, attack))
+  ruleset_dir = os.path.join(r.tmp, "m%05d_a%d_ruleset" % (r.mode, attack))
+
+  for word, digest in vectors[:max_n]:
+    candidate = word
+
+    if r.mode == 20510:
+      # PKZIP master key: hashcat is fed the key without its 6 byte prefix, the recovered line still
+      # carries the whole password (test.sh:1078).
+      candidate = word[6:]
+
+    if attack == 4 and len(candidate) == 0:
+      # A ruleset cannot write an empty candidate, so it is skipped rather than run (test.sh:1085).
+      c["rs"]  += 1
+      c["cnt"] += 1
+
+      continue
+
+    if r.file_only:
+      with open(temp_file, "wb") as fh:
+        fh.write(decode_hashfile(r.mode, digest))
+
+      target = temp_file
+    else:
+      target = digest
+
+    with open(words_file, "wb") as fh:
+      fh.write(candidate + b"\n")
+
+    if attack == 4:
+      build_ruleset(ruleset_dir, [candidate])
+
+    extra = whole_word_source(attack, words_file, ruleset_dir)
+
+    rc, out = run_hashcat(r.opts, r.mode, target, None, attack=attack, extra=extra)
+
+    matched = match_search(digest, word, r.pass_only) in out
+
+    classify(rc, matched, c)
+
+  report(r.args, r.mode, "single", r.width, c, attack)
+
+
+def whole_word_multi(r, attack):
+  # test.sh:1196: the modes with one hash each have no multi-hash run, -a 9 gives one candidate per
+  # salt so its multi case is left to test_edge.sh, and a binary hashfile has no line to drop so -a 4
+  # keeps its single coverage only.
+
+  if has_multi_hash(r.mode):
+    return
+
+  if attack == 9:
+    return
+
+  if attack == 4 and r.file_only:
+    return
+
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+
+  optimized = not r.args.pure
+
+  if attack == 4:
+    # test.sh:1249: -a 4 runs on the substituted list, or on the -a 0 list with the empty word
+    # dropped where no spare could be drawn.
+    subst  = a4_vectors(r.mode, r.pairs, optimized)
+    mpairs = subst if subst is not None else [(w, d) for w, d in r.pairs if w != b""]
+  else:
+    mpairs = r.pairs
+
+  hash_file   = os.path.join(r.tmp, "m%05d_hashes.txt" % r.mode)
+  words_file  = os.path.join(r.tmp, "m%05d_a%d_multi_words" % (r.mode, attack))
+  ruleset_dir = os.path.join(r.tmp, "m%05d_a%d_multi_ruleset" % (r.mode, attack))
+
+  if r.file_only:
+    # test.sh:1225: every base64 hash decoded and concatenated into one file, the raw line kept for
+    # 22000/22001. decode_hashfile carries that split.
+    with open(hash_file, "wb") as fh:
+      for _, digest in mpairs:
+        fh.write(decode_hashfile(r.mode, digest))
+  else:
+    with open(hash_file, "wb") as fh:
+      fh.write(b"\n".join(d.encode("ascii") for _, d in mpairs) + b"\n")
+
+  with open(words_file, "wb") as fh:
+    fh.write(b"\n".join(w for w, _ in mpairs) + b"\n")
+
+  if attack == 4:
+    build_ruleset(ruleset_dir, [w for w, _ in mpairs])
+
+  extra = whole_word_source(attack, words_file, ruleset_dir)
+
+  rc, out = run_hashcat(r.opts, r.mode, hash_file, None, attack=attack, extra=extra)
+
+  # As with -a 0 multi, one hashcat run scored as one test: every pair must be in the output.
+
+  matched = all(match_search(digest, word, r.pass_only) in out for word, digest in mpairs)
+
+  classify(rc, matched, c)
+
+  report(r.args, r.mode, "multi", r.width, c, attack)
+
+
+def whole_word(r, attack):
+  if attack == 4 and a4_optimized_skip(r.mode, not r.args.pure):
+    # No summary line at all, the same as test.sh which logs the skip to logfull only (test.sh:1011).
+    return
+
+  if "single" in r.targets:
+    whole_word_single(r, attack)
+
+  if "multi" in r.targets:
+    whole_word_multi(r, attack)
+
+
+def attack_4(r):
+  whole_word(r, 4)
+
+
+def attack_8(r):
+  whole_word(r, 8)
+
+
+def attack_9(r):
+  whole_word(r, 9)
+
+
 # One function per attack mode, each printing test.sh's summary lines for that attack. An attack
 # that is not here yet is reported once on stderr and left to test.sh.
 
 ATTACKS = {
   0: attack_0,
+  4: attack_4,
+  8: attack_8,
+  9: attack_9,
 }
 
 
