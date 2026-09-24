@@ -7491,6 +7491,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
   print_skip_summary
 
+  if [ "${COMPUTE_SANITIZER_MODE}" -eq 1 ]; then
+    echo ""
+    echo "> Compute Sanitizer sweep complete. To review the findings run:"
+    echo ">   tools/compute_sanitizer/report.py --dir ${SANITIZER_SWEEP_DIR}"
+  fi
+
 else
 
   OUTD=${PACKAGE_FOLDER}

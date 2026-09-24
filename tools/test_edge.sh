@@ -1989,3 +1989,9 @@ echo "[ ${OUTD} ] > Errors detected: $errors"
 if [ $errors -gt 0 ]; then
   echo "[ ${OUTD} ] !> Details on ${OUTD}/test_edge.details.log"
 fi
+
+if [ "${COMPUTE_SANITIZER_MODE}" -eq 1 ]; then
+  echo ""
+  echo "> Compute Sanitizer sweep complete. To review the findings run:"
+  echo ">   tools/compute_sanitizer/report.py --dir ${SANITIZER_SWEEP_DIR}"
+fi
