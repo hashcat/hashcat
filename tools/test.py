@@ -11,6 +11,7 @@
 # grown one attack mode at a time; ATTACKS lists the ones it runs, and test.sh still owns the rest.
 
 import argparse
+import atexit
 import base64
 import glob
 import os
@@ -19,11 +20,36 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
 TDIR   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.dirname(TDIR)
 RUNNER = os.path.join(TDIR, "test_module_runner.py")
 BIN    = os.path.join(ROOT, "hashcat")
+
+# Per-process isolation of hashcat's mutable per-run state, so any number of test.py processes (and
+# -j workers) run without stepping on each other. Every hashcat call gets these:
+#   --cache-path <private dir>  a kernel cache of this process's own, which also isolates the
+#                               rebuildable dictstat cache; the cache is not shared, but because
+#                               each mode runs in one process its kernels are still built only once.
+#   --session <pid>            a unique session name so no <session> file collides.
+#   --restore-disable          no <session>.restore file at all; a test run never resumes.
+# Unlike test.sh/test_edge, test.py never runs "rm -rf cache/kernels", so nothing deletes a cache
+# another process is using. ISOLATION is filled once by setup_isolation() and appended to every opts.
+ISOLATION = []
+
+
+def setup_isolation():
+  global ISOLATION
+
+  if ISOLATION:
+    return
+
+  cache_dir = tempfile.mkdtemp(prefix="test_py_cache_")
+  atexit.register(shutil.rmtree, cache_dir, ignore_errors=True)
+
+  ISOLATION = ["--cache-path", cache_dir, "--session", "testpy_%d" % os.getpid(), "--restore-disable"]
+
 
 SINGLE_MAX = 32     # test.sh caps a single-target run at 32 hashes
 RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
@@ -2300,6 +2326,8 @@ def selftest_opts(args):
 
   opts = ["--quiet", "--potfile-disable", "--logfile-disable"]
 
+  opts += ISOLATION
+
   if not args.pure:
     opts.append("-O")
 
@@ -2430,6 +2458,8 @@ def base_opts(args):
   # plugins hashcat refuses to run without it, and it is a no-op for every non-deprecated mode.
   opts = ["--quiet", "--potfile-disable", "--logfile-disable", "--deprecated-check-disable"]
 
+  opts += ISOLATION
+
   if not args.pure:
     opts.append("-O")
 
@@ -2465,7 +2495,7 @@ def run_stdout_roundtrip(args, tmp):
   with open(wfile, "wb") as fh:
     fh.write(b"\n".join(words) + (b"\n" if words else b""))
 
-  cmd = [BIN, "--stdout", "-a", "0"]
+  cmd = [BIN, "--stdout", "-a", "0"] + ISOLATION
 
   if args.force:
     cmd.append("--force")
@@ -2480,6 +2510,41 @@ def run_stdout_roundtrip(args, tmp):
 
   print("[ test.py ] [ Type %d, STDOUT round-trip ] > %s : %d/%d not found, 0/%d not matched, "
         "0/%d timeout, 0/%d skipped" % (STDOUT_MODE, msg, nf, cnt, cnt, cnt, cnt))
+
+
+def run_parallel(args):
+  # Fan the selected modes across args.jobs workers. Each worker is a plain single-mode test.py run
+  # (no -j) in its own process, so setup_isolation() gives it a private hashcat cache/session and no
+  # two runs share mutable state. One mode per child means a kernel is still built only once. Output
+  # is gathered and printed in mode order, so a -j run reads the same as the serial run.
+  modes = select_modes(args.mode, discover_modes())
+
+  base = [sys.executable, os.path.abspath(__file__),
+          "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
+
+  if args.pure:
+    base.append("-P")
+
+  if args.force:
+    base.append("-f")
+
+  def run_one(mode):
+    proc = subprocess.run(base + ["-m", str(mode)],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return proc.returncode, proc.stdout
+
+  rc = 0
+
+  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    for prc, out in pool.map(run_one, modes):
+      sys.stdout.buffer.write(out)
+      sys.stdout.buffer.flush()
+
+      if prc != 0:
+        rc = 1
+
+  return rc
 
 
 def main():
@@ -2497,11 +2562,18 @@ def main():
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
+  ap.add_argument("-j", dest="jobs", type=int, default=1,
+                  help="run this many modes in parallel, each in its own hashcat cache/session")
 
   args = ap.parse_args()
 
+  setup_isolation()
+
   if not os.path.isfile(BIN):
     die("! no hashcat binary at %s, build it first" % BIN)
+
+  if args.jobs > 1 and not args.selftest_all:
+    sys.exit(run_parallel(args))
 
   # -S runs on its own: it walks every hash-mode hashcat reports rather than the .py oracle set, so
   # it reaches the modes that have no oracle, and it needs no oracle engine (test.sh).
