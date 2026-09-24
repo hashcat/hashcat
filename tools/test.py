@@ -2441,6 +2441,47 @@ def base_opts(args):
   return opts
 
 
+STDOUT_MODE = 2000
+
+
+def run_stdout_roundtrip(args, tmp):
+  # 2000 (STDOUT) has an empty kernel (OpenCL/m02000_mxx is a no-op) and never cracks, so there is
+  # no digest to test. The test is a round trip instead: every word fed to "hashcat --stdout -a 0"
+  # must come back byte for byte. The words come from the same seeded oracle both engines use, forced
+  # pure because --stdout has no kernel family, so test.sh and test.py check the identical set.
+  env = dict(os.environ, IS_OPTIMIZED="0")
+
+  proc = subprocess.run([sys.executable, RUNNER, "single", str(STDOUT_MODE)],
+                        env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+  if proc.returncode != 0:
+    die("! oracle failed for mode %d (rc=%d):\n%s"
+        % (STDOUT_MODE, proc.returncode, proc.stderr.decode("utf-8", "replace").rstrip()))
+
+  words = [m.group(1).rstrip(b" ") for m in (LINE.match(l) for l in proc.stdout.splitlines()) if m]
+
+  wfile = os.path.join(tmp, "m%05d_stdout_words" % STDOUT_MODE)
+
+  with open(wfile, "wb") as fh:
+    fh.write(b"\n".join(words) + (b"\n" if words else b""))
+
+  cmd = [BIN, "--stdout", "-a", "0"]
+
+  if args.force:
+    cmd.append("--force")
+
+  got = subprocess.run(cmd + [wfile], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+  got_lines = got.splitlines()
+
+  cnt = len(words)
+  nf  = sum(1 for i, w in enumerate(words) if i >= len(got_lines) or got_lines[i] != w)
+
+  msg = "OK" if (nf == 0 and cnt > 0) else "Error"
+
+  print("[ test.py ] [ Type %d, STDOUT round-trip ] > %s : %d/%d not found, 0/%d not matched, "
+        "0/%d timeout, 0/%d skipped" % (STDOUT_MODE, msg, nf, cnt, cnt, cnt, cnt))
+
+
 def main():
   ap = argparse.ArgumentParser(description="python manager for the hashcat -a 0 test path")
 
@@ -2492,6 +2533,12 @@ def main():
 
   with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
     for mode in selected:
+      # STDOUT (2000) is not a crack: its kernel is empty, so it is tested by a --stdout round trip
+      # (test.sh does the same). Handled before the kernel/oracle checks, which do not apply to it.
+      if mode == STDOUT_MODE:
+        run_stdout_roundtrip(args, tmp)
+        continue
+
       # A SELFTEST_MODES member with no .py oracle takes the self-test vector path. test.sh runs it
       # only for a slow mode, in the else branch of its per-width loop (test.sh:7341), so a mode
       # that is not slow prints no line, just as test.sh does. 23800 is the only member and is slow.

@@ -7157,6 +7157,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
+        # 2000 (STDOUT) has an empty kernel, so run_oracle would report it as having no kernel here.
+        # It is tested by stdout_roundtrip_test in the main loop instead, so skip the oracle pre-pass.
+        if [ "${TMP_HT}" -eq 2000 ]; then
+          continue
+        fi
+
         # only a mode with an oracle, a .pm or a .py, has anything to generate.
         # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
         # which are container-only. LUKS is the one family that has both, and it
@@ -7185,6 +7191,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
         # -g runs only the modes it can build, so only those need a hash line
         # generated for them here.
         if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && ! is_in_array "${TMP_HT}" ${GEN_MODES}; then
+          continue
+        fi
+
+        # 2000 (STDOUT) has an empty kernel, so run_oracle would report it as having no kernel here.
+        # It is tested by stdout_roundtrip_test in the main loop instead, so skip the oracle pre-pass.
+        if [ "${TMP_HT}" -eq 2000 ]; then
           continue
         fi
 
@@ -7225,6 +7237,42 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   # for these particular algos we need to save the output to a temporary file
   IFS=';' read -ra FILE_BASED_ALGOS <<< "${HASHFILE_ONLY}"
 
+  stdout_roundtrip_test()
+  {
+    # 2000 (STDOUT) has an empty kernel (OpenCL/m02000_mxx is a no-op) and never cracks, so there is
+    # no digest to test. The test is a round trip: every word fed to 'hashcat --stdout -a 0' must
+    # come back byte for byte. The words come from the same seeded oracle test.py uses, forced pure
+    # because --stdout has no kernel family, so the two engines check the identical set.
+    local wfile="${OUTD}/m02000_stdout_words"
+    local ofile="${OUTD}/m02000_stdout_out"
+
+    IS_OPTIMIZED=0 python3 "${TDIR}/test_module_runner.py" single 2000 2>/dev/null | python3 -c '
+import sys, re
+LINE = re.compile(rb"^echo (.*) \| \./hashcat \$\{OPTS\} -a 0 -m \d+ \x27(.*)\x27$")
+ws = [m.group(1).rstrip(b" ") for m in (LINE.match(l) for l in sys.stdin.buffer.read().splitlines()) if m]
+sys.stdout.buffer.write(b"\n".join(ws) + (b"\n" if ws else b""))
+' > "${wfile}"
+
+    local force=""
+    [ "${FORCE}" -eq 1 ] && force="--force"
+
+    ./${BIN} --stdout -a 0 ${force} "${wfile}" > "${ofile}" 2>/dev/null
+
+    local nf cnt
+    read -r nf cnt < <(python3 -c '
+import sys
+w = open(sys.argv[1], "rb").read().splitlines()
+o = open(sys.argv[2], "rb").read().splitlines()
+nf = sum(1 for i, x in enumerate(w) if i >= len(o) or o[i] != x)
+print(nf, len(w))
+' "${wfile}" "${ofile}")
+
+    local msg="OK"
+    if [ "${nf}" -ne 0 ] || [ "${cnt}" -eq 0 ]; then msg="Error"; fi
+
+    echo "[ ${OUTD} ] [ Type 2000, STDOUT round-trip ] > ${msg} : ${nf}/${cnt} not found, 0/${cnt} not matched, 0/${cnt} timeout, 0/${cnt} skipped"
+  }
+
   for hash_type in $HASH_TYPES; do
 
     if [ "${HT}" -ne 65535 ]; then
@@ -7262,6 +7310,13 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     # crack here. The PMK modes 2501 and 16801 take the 32 byte PMK as the candidate and are cracked
     # normally, so they are not skipped.
     if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 16800 ] ; then
+      continue
+    fi
+
+    # STDOUT (2000) is not a crack: its kernel is empty, so it is tested by a --stdout round trip
+    # rather than the attack loops below, which do not apply to it. test.py does the same.
+    if [ "${hash_type}" -eq 2000 ]; then
+      stdout_roundtrip_test
       continue
     fi
 
