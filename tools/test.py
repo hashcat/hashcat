@@ -84,6 +84,12 @@ SELFTEST_MODES = {23800}
 
 SELFTEST_RUNTIME = 60
 
+# Modes with no meaningful self-test crack: 2000 and 99999 are Plaintext passthrough modes (STDOUT),
+# and 14600 is LUKS, whose example hash is N/A and lives in external container files. The sweep still
+# runs them and prints their line, but does not count them as cracked or as a failure. test.sh keeps
+# the same set (selftest_vector_sweep), so the two stay comparable.
+NO_SELFTEST = {2000, 14600, 99999}
+
 # test.sh's attack order for -a all (test.sh). A slow mode only runs the attacks that
 # cost one candidate per word (the whole word attacks), so it gets 0, 4, 8 and 9 and nothing else,
 # even when another attack is asked for by number.
@@ -2408,6 +2414,7 @@ def selftest_vector_sweep(args):
   sweep_ok    = 0
   sweep_bad   = ""
   sweep_slow  = ""
+  sweep_na    = ""
 
   if not args.selftest_child:
     print("[ test.py ] > Cracking every hash-mode's own self-test vector")
@@ -2417,12 +2424,16 @@ def selftest_vector_sweep(args):
       if not all_modes and (sweep_mode < lo or sweep_mode > hi):
         continue
 
-      sweep_total += 1
-
       out_lines = selftest_vector_test(args, opts, sweep_mode, 0, "default", tmp)
 
       for line in out_lines:
         print(line)
+
+      if sweep_mode in NO_SELFTEST:
+        sweep_na += "%d " % sweep_mode
+        continue
+
+      sweep_total += 1
 
       text = "\n".join(out_lines)
 
@@ -2440,12 +2451,12 @@ def selftest_vector_sweep(args):
         sweep_bad += "%d " % sweep_mode
 
   if not args.selftest_child:
-    selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_bad)
+    selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad)
 
   return 1 if sweep_bad else 0
 
 
-def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_bad):
+def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad):
   print("")
   print("[ test.py ] > %d/%d hash-modes cracked their own self-test vector"
         % (sweep_ok, sweep_total))
@@ -2453,6 +2464,9 @@ def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_bad):
   if sweep_slow:
     print("[ test.py ] > hit --runtime %d, rerun those with -r: %s"
           % (SELFTEST_RUNTIME, sweep_slow))
+
+  if sweep_na:
+    print("[ test.py ] > no self-test vector, not checked: %s" % sweep_na)
 
   if sweep_bad:
     print("[ test.py ] > did not crack: %s" % sweep_bad)
@@ -2488,9 +2502,11 @@ def run_parallel_selftest(args):
 
     return proc.stdout
 
-  sweep_ok   = 0
-  sweep_slow = ""
-  sweep_bad  = ""
+  sweep_total = 0
+  sweep_ok    = 0
+  sweep_slow  = ""
+  sweep_na    = ""
+  sweep_bad   = ""
 
   print("[ test.py ] > Cracking every hash-mode's own self-test vector")
 
@@ -2498,6 +2514,12 @@ def run_parallel_selftest(args):
     for mode, out in zip(selected, pool.map(run_one, selected)):
       sys.stdout.buffer.write(out)
       sys.stdout.buffer.flush()
+
+      if mode in NO_SELFTEST:
+        sweep_na += "%d " % mode
+        continue
+
+      sweep_total += 1
 
       text = out.decode("utf-8", "replace")
 
@@ -2508,7 +2530,7 @@ def run_parallel_selftest(args):
       else:
         sweep_bad += "%d " % mode
 
-  selftest_print_summary(sweep_ok, len(selected), sweep_slow, sweep_bad)
+  selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad)
 
   return 1 if sweep_bad else 0
 

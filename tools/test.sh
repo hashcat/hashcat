@@ -6431,8 +6431,15 @@ function selftest_vector_sweep()
   local sweep_ok=0
   local sweep_bad=""
   local sweep_slow=""
+  local sweep_na=""
   local sweep_modes
   local sweep_mode
+
+  # Modes with no meaningful self-test crack: 2000 and 99999 are Plaintext passthrough
+  # modes (STDOUT), and 14600 is LUKS, whose example hash is N/A and lives in external
+  # container files. Run them and print their line, but do not count them as cracked or
+  # as a failure. test.py keeps the same set (NO_SELFTEST), so the two stay comparable.
+  local no_selftest=" 2000 14600 99999 "
 
   sweep_modes=$(./${BIN} --hash-info 2>/dev/null | sed -n 's/^Hash mode #\([0-9]*\)$/\1/p')
 
@@ -6451,14 +6458,21 @@ function selftest_vector_sweep()
       fi
     fi
 
-    sweep_total=$((sweep_total + 1))
-
     local before="${SKIPPED_LIST}"
     local out
 
     out=$(selftest_vector_test "${sweep_mode}" 0)
 
     echo "${out}"
+
+    case "${no_selftest}" in
+      *" ${sweep_mode} "*)
+        sweep_na="${sweep_na}${sweep_mode} "
+        continue
+        ;;
+    esac
+
+    sweep_total=$((sweep_total + 1))
 
     if echo "${out}" | grep -q '> OK :'; then
       sweep_ok=$((sweep_ok + 1))
@@ -6476,6 +6490,10 @@ function selftest_vector_sweep()
 
   if [ -n "${sweep_slow}" ]; then
     echo "[ ${OUTD} ] > hit --runtime ${RUNTIME}, rerun those with -r: ${sweep_slow}"
+  fi
+
+  if [ -n "${sweep_na}" ]; then
+    echo "[ ${OUTD} ] > no self-test vector, not checked: ${sweep_na}"
   fi
 
   if [ -n "${sweep_bad}" ]; then
