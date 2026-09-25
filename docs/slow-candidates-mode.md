@@ -2,7 +2,7 @@
 
 Option `-S`/`--slow-candidates` makes hashcat generate complete password candidates on the host before sending them to a compute device. It is available with attack modes 0, 1, 3, 4, 5, 6, 7, 8 and 12, and it forces the backend vector width to 1. It cannot be combined with `--stdout`, benchmark mode, or candidates read from stdin.
 
-For the PCFG attack (`-a 4`), the option also selects the host generator instead of the feed's device-side generator. See `hashcat-pcfg.md`. A brain client enables slow-candidates mode automatically and accepts the same attack modes: 0, 1, 3, 4, 5, 6, 7, 8 and 12.
+For the PCFG attack (`-a 4`), the option also selects the host generator instead of the feed's device-side generator. See `hashcat-pcfg.md`. A brain client accepts the same attack modes: 0, 1, 3, 4, 5, 6, 7, 8 and 12. It enables slow-candidates mode automatically when its candidate feature is on, which is the default; `--brain-client-features=2` asks for keyspace coordination alone, needs no candidate on the host, and therefore leaves candidate generation on the device. See `hashcat-brain.md`.
 
 Generating candidates on the host is useful for slow hashes, fast hashes with many salts, and attacks whose small base wordlist is expanded by a large ruleset. In those cases the device often needs fewer candidates per second than the host can prepare, while fully expanded candidates give hashcat enough independent work to keep every device busy.
 

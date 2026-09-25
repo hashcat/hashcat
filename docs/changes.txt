@@ -261,6 +261,16 @@ have to act on rather than one you will simply notice.
 - Existing brain databases are not converted. Their filenames no longer match the new session IDs,
   so they remain on disk without being loaded. An explicitly reused "--brain-session" starts with
   empty deduplication data
+- A brain client no longer activates "-S" when it asks for range reservation alone. Only candidate
+  deduplication needs a candidate on the host, so "--brain-client-features=2" keeps candidate
+  generation on the device and runs a fast hash at full speed. The default value still includes
+  candidate deduplication and still activates "-S". Whether "-S" is on is settled from the command
+  line, so the automatic downgrade for in-kernel modes cannot undo it; hashcat now reports that and
+  names the option to re-run with
+- Whether "-S" is in use is part of the attack identity. A position counts one candidate on the host
+  path and one base word on the device path, so the same range describes different keyspaces on the
+  two. Stored attack coverage from earlier releases no longer matches and is not loaded. Session
+  databases holding candidate identities are unaffected
 
 ## Builds and third-party plugins
 
