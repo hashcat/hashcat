@@ -2076,7 +2076,9 @@ def selftest_vector_read(mode):
   # human-readable Example.Hash line is truncated past 200 characters. Returns
   # (hash, pass, format, deprecated) as bytes/str/bool, or None when the mode has no usable vector.
 
-  proc = subprocess.run([BIN, "-m", str(mode), "--hash-info", "--machine-readable"],
+  # ISOLATION gives this read its own --session and cache, so -j workers reading vectors at the same
+  # time do not collide on the default session files in ROOT and read back an empty result.
+  proc = subprocess.run([BIN, "-m", str(mode), "--hash-info", "--machine-readable"] + ISOLATION,
                         cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
   info = proc.stdout
@@ -2364,27 +2366,41 @@ def sweep_range(spec):
   return (lo, hi, False)
 
 
-def selftest_vector_sweep(args):
-  # test.sh selftest_vector_sweep (test.sh): crack every hash-mode's own example hash, or the
-  # ones in the -m range, and print one line per mode that did not crack. Returns the exit code.
-
+def selftest_sweep_modes():
+  # The hash-modes hashcat itself reports, which is the sweep set: it reaches modes with no oracle.
   proc = subprocess.run([BIN, "--hash-info"], cwd=ROOT,
                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-  sweep_modes = []
+  modes = []
 
   for line in proc.stdout.split(b"\n"):
     m = re.fullmatch(rb"Hash mode #([0-9]+)", line)
 
     if m is not None:
-      sweep_modes.append(int(m.group(1)))
+      modes.append(int(m.group(1)))
 
-  if not sweep_modes:
-    print("! could not read the hash-mode list from %s --hash-info" % BIN)
+  return modes
 
-    return 1
+
+def selftest_vector_sweep(args):
+  # test.sh selftest_vector_sweep (test.sh): crack every hash-mode's own example hash, or the
+  # ones in the -m range, and print one line per mode that did not crack. Returns the exit code.
+  # A --selftest-child run (a -j worker) prints only its per-mode lines; run_parallel_selftest
+  # prints the header and the summary from the gathered verdicts.
 
   lo, hi, all_modes = sweep_range(args.mode)
+
+  if args.selftest_child:
+    # The parent already picked the real hash-info modes and hands each child a single one, so the
+    # child skips the --hash-info enumeration, which is redundant and races across many workers.
+    sweep_modes = list(range(lo, hi + 1))
+  else:
+    sweep_modes = selftest_sweep_modes()
+
+    if not sweep_modes:
+      print("! could not read the hash-mode list from %s --hash-info" % BIN)
+
+      return 1
 
   opts = selftest_opts(args)
 
@@ -2393,7 +2409,8 @@ def selftest_vector_sweep(args):
   sweep_bad   = ""
   sweep_slow  = ""
 
-  print("[ test.py ] > Cracking every hash-mode's own self-test vector")
+  if not args.selftest_child:
+    print("[ test.py ] > Cracking every hash-mode's own self-test vector")
 
   with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
     for sweep_mode in sweep_modes:
@@ -2422,6 +2439,13 @@ def selftest_vector_sweep(args):
       else:
         sweep_bad += "%d " % sweep_mode
 
+  if not args.selftest_child:
+    selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_bad)
+
+  return 1 if sweep_bad else 0
+
+
+def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_bad):
   print("")
   print("[ test.py ] > %d/%d hash-modes cracked their own self-test vector"
         % (sweep_ok, sweep_total))
@@ -2432,6 +2456,59 @@ def selftest_vector_sweep(args):
 
   if sweep_bad:
     print("[ test.py ] > did not crack: %s" % sweep_bad)
+
+
+def run_parallel_selftest(args):
+  # Fan the self-test sweep across args.jobs workers, one mode per child, the same shape as
+  # run_parallel. Each child is a single-mode -S run in its own process, so setup_isolation() gives
+  # it a private hashcat cache and session. The child prints only its per-mode line; the header and
+  # the summary are printed here from the gathered verdicts, so a -j run reads like the serial sweep.
+  sweep_modes = selftest_sweep_modes()
+
+  if not sweep_modes:
+    print("! could not read the hash-mode list from %s --hash-info" % BIN)
+
+    return 1
+
+  lo, hi, all_modes = sweep_range(args.mode)
+  selected = [m for m in sweep_modes if all_modes or (lo <= m <= hi)]
+
+  base = [sys.executable, os.path.abspath(__file__), "-S", "--selftest-child",
+          "-D", args.device]
+
+  if args.pure:
+    base.append("-P")
+
+  if args.force:
+    base.append("-f")
+
+  def run_one(mode):
+    proc = subprocess.run(base + ["-m", str(mode)],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return proc.stdout
+
+  sweep_ok   = 0
+  sweep_slow = ""
+  sweep_bad  = ""
+
+  print("[ test.py ] > Cracking every hash-mode's own self-test vector")
+
+  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    for mode, out in zip(selected, pool.map(run_one, selected)):
+      sys.stdout.buffer.write(out)
+      sys.stdout.buffer.flush()
+
+      text = out.decode("utf-8", "replace")
+
+      if "> OK :" in text:
+        sweep_ok += 1
+      elif "> Warning :" in text:
+        sweep_slow += "%d " % mode
+      else:
+        sweep_bad += "%d " % mode
+
+  selftest_print_summary(sweep_ok, len(selected), sweep_slow, sweep_bad)
 
   return 1 if sweep_bad else 0
 
@@ -3650,6 +3727,13 @@ def run_parallel(args):
 
 
 def main():
+  # Line-buffer stdout so the serial paths (-S, single mode) stream under CI, where stdout is a
+  # pipe Python would otherwise block-buffer. The -j paths already flush by hand.
+  try:
+    sys.stdout.reconfigure(line_buffering=True)
+  except (AttributeError, ValueError):
+    pass
+
   ap = argparse.ArgumentParser(description="python manager for the hashcat -a 0 test path")
 
   ap.add_argument("-m", dest="mode", default="all", help="N | all | min-max")
@@ -3666,7 +3750,7 @@ def main():
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
-                  help="run this many modes in parallel, each in its own hashcat cache/session (ignored with -S, which runs serial)")
+                  help="run this many modes in parallel, each in its own hashcat cache/session")
   ap.add_argument("--edge", dest="edge", action="store_true",
                   help="edge-case testing (the port of tools/test_edge.sh)")
   ap.add_argument("-K", dest="kernel", default="all", help="--edge: 0 pure | 1 optimized | all")
@@ -3677,6 +3761,8 @@ def main():
   ap.add_argument("--edge-all-scope", dest="edge_all_scope", action="store_true",
                   help=argparse.SUPPRESS)
   ap.add_argument("--edge-child", dest="edge_child", action="store_true",
+                  help=argparse.SUPPRESS)
+  ap.add_argument("--selftest-child", dest="selftest_child", action="store_true",
                   help=argparse.SUPPRESS)
 
   args = ap.parse_args()
@@ -3695,14 +3781,17 @@ def main():
   if args.edge:
     sys.exit(run_edge(args))
 
-  if args.jobs > 1 and not args.selftest_all:
-    sys.exit(run_parallel(args))
-
   # -S runs on its own: it walks every hash-mode hashcat reports rather than the .py oracle set, so
   # it reaches the modes that have no oracle, and it needs no oracle engine (test.sh).
 
   if args.selftest_all:
+    if args.jobs > 1 and not args.selftest_child:
+      sys.exit(run_parallel_selftest(args))
+
     sys.exit(selftest_vector_sweep(args))
+
+  if args.jobs > 1:
+    sys.exit(run_parallel(args))
 
   if args.attack != "all" and (not args.attack.isdigit() or int(args.attack) not in ATTACK_ORDER):
     die("! invalid attack mode: %s" % args.attack)
