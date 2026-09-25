@@ -125,14 +125,14 @@ jobs:
 
       - name: Restore the luks2 test containers
         id: luks2
-        if: matrix.modes == 'minimal' || contains(matrix.modes, '34100')
+        if: matrix.luks2 || contains(matrix.modes, '34100')
         uses: actions/cache/restore@v6
         with:
           path: tools/luks2_tests
           key: luks2-tests-v1
 
       - name: Fetch the luks2 test containers
-        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        if: (matrix.luks2 || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         run: |
           mkdir -p tools/luks2_tests
           cd tools/luks2_tests
@@ -141,7 +141,7 @@ jobs:
           rm -f luks2_tests.7z
 
       - name: Save the luks2 test containers
-        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        if: (matrix.luks2 || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: tools/luks2_tests
@@ -156,10 +156,13 @@ jobs:
           MODES: ${{ matrix.modes }}
           CAMPAIGN: ${{ inputs.campaign }}
         run: |
-          # A shared-code change with no mode of its own runs the self-test sweep
-          # over every mode: the Python suite's stand-in for test.sh -M.
-          if [ "$MODES" = "minimal" ]; then
-            python3 tools/test.py -S -D 1 -f
+          # A shared-code change with no mode of its own runs the self-test sweep,
+          # sharded by mode range and parallel within each shard: the Python suite's
+          # stand-in for test.sh -M. MODES is "minimal LO-HI" (or "minimal" for all).
+          if [ "${MODES%% *}" = "minimal" ]; then
+            range="${MODES#minimal}"
+            # shellcheck disable=SC2086
+            python3 tools/test.py -S -m ${range:-all} -j "$(nproc)" -D 1 -f
             exit $?
           fi
 
