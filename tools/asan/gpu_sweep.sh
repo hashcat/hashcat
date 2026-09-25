@@ -100,4 +100,8 @@ done
 
 echo "=== ASAN GPU SWEEP DONE ===" | tee -a "$LOG"
 grep -c ": clean"     "$LOG" | sed 's/^/clean modes:         /' | tee -a "$LOG"
-grep -c "ASAN ERRORS" "$LOG" | sed 's/^/modes with findings: /' | tee -a "$LOG"
+# Count finding lines by a substring they actually contain. Each reads
+# "m<mode>: *** N ASAN / M UBSAN ERRORS ***", so "UBSAN ERRORS" matches every
+# one (including pure-ASan lines, which still print "0 UBSAN ERRORS"), whereas
+# "ASAN ERRORS" is not a substring of that line and always counted 0.
+grep -c "UBSAN ERRORS" "$LOG" | sed 's/^/modes with findings: /' | tee -a "$LOG"
