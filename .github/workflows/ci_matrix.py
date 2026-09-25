@@ -33,6 +33,30 @@ SHARDS = {"test": 48, "fuzz": 16}
 
 PR_MODE_CAP = {"test": 30, "fuzz": 20}
 
+# A shared-code test change runs test.sh -M's 24 representative modes (test.py handles the container
+# families now, so they go through the normal per-mode path). Run in one job it is ~17 minutes, so
+# split it into shards balanced by a rough per-mode cost: the container and slow-KDF modes dominate,
+# 14600 most of all because it loops ~72 LUKS files. Anything unlisted costs 1.
+
+MINIMAL_MODES  = [0, 100, 110, 400, 500, 2600, 3000, 3200, 6211, 11600, 12500, 13711, 14200, 14511,
+                  14600, 14900, 15400, 15700, 20510, 22000, 29511, 33000, 33500, 34100]
+MINIMAL_WEIGHT = {14600: 12, 13711: 6, 3200: 4, 34100: 3, 29511: 3, 6211: 2, 14511: 2, 400: 2, 500: 2}
+MINIMAL_SHARDS = 6
+
+
+def minimal_shards(n):
+    """Longest-processing-time bin-packing of MINIMAL_MODES into n shards balanced by MINIMAL_WEIGHT,
+    so the one heavy mode (14600) lands alone rather than stretching a shard it shares."""
+    bins = [[] for _ in range(n)]
+    load = [0] * n
+
+    for mode in sorted(MINIMAL_MODES, key=lambda m: MINIMAL_WEIGHT.get(m, 1), reverse=True):
+        i = load.index(min(load))
+        bins[i].append(mode)
+        load[i] += MINIMAL_WEIGHT.get(mode, 1)
+
+    return [sorted(b) for b in bins if b]
+
 # A PR that touches shared code, but no mode of its own, still gets a run:
 # test.sh -M for the kernels, and the starting set of parser targets for fuzz.
 # That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
@@ -192,12 +216,15 @@ def main():
             matrix = entries(kind, impacted, False)
 
             if shared:
-                matrix.append({"name": "minimal", "shard": -1, "modes": "minimal"})
+                for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
+                    matrix.append({"name": f"minimal-{i}", "shard": -1,
+                                   "modes": " ".join(str(m) for m in shard)})
 
         note = f"{len(impacted)} impacted modes"
 
         if shared:
-            note += ", minimal full-test (test.sh -M)" if kind == "test" else ", shared code changed"
+            note += (f", minimal full-test (test.sh -M) in {MINIMAL_SHARDS} shards"
+                     if kind == "test" else ", shared code changed")
 
         notes.append(note)
 
