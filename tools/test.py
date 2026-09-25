@@ -142,7 +142,7 @@ def select_modes(spec, modes):
   # range that spans it, and "all" all accept it; the main loop then picks the self-test path for a
   # mode that has no .py.
 
-  modes = sorted(set(modes) | SELFTEST_MODES)
+  modes = sorted(set(modes) | SELFTEST_MODES | CONTAINER_MODES)
 
   if spec == "all":
     return modes
@@ -2207,6 +2207,11 @@ def build_container_extra(mode, attack, vpass, tmp):
 
 CONTAINER_PASSWORD = b"hashcat"
 
+# test.sh's fixed container masks (test.sh): TC and CL search the last letter, VeraCrypt the middle.
+# The LUKS families instead build their mask from the password with container_mask_from_password.
+CONTAINER_MASK     = "hashca?l"
+CONTAINER_MASK_MID = "hashc?lt"
+
 TC_TESTS_DIR    = os.path.join(TDIR, "tc_tests")
 VC_TESTS_DIR    = os.path.join(TDIR, "vc_tests")
 LUKS_TESTS_DIR  = os.path.join(TDIR, "luks_tests")
@@ -2248,18 +2253,20 @@ def container_report(args, mode, attack, width, label, e):
         % (ctx, selftest_verdict(e), e["nf"], e["nm"], e["to"], e["rs"]))
 
 
-def container_crack(args, opts, mode, attack, hash_file, width, label, tmp):
-  # One container crack: build the -a 0/1/3/6/7 tail from the password, run hashcat, print the line.
-  extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
-
+def container_crack(args, opts, mode, attack, hash_file, width, label, extra, crack_mode=None,
+                    report_attack=None):
+  # One container crack: run hashcat with the given trailing argv (a wordlist/mask), then print the
+  # test.sh-style line. Pass/fail is the exit code alone. crack_mode lets the CL family crack under
+  # the generic -m 14500 while the line still reports the mode selected; report_attack lets VeraCrypt
+  # print "Attack 0" while running -a 3, the cosmetic label test.sh happens to use (test.sh).
   if extra is None:
     return None
 
-  rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], mode, hash_file, None,
-                      attack=attack, extra=extra)
+  rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], crack_mode or mode, hash_file,
+                      None, attack=attack, extra=list(extra))
   e = selftest_status(rc)
 
-  container_report(args, mode, attack, width, label, e)
+  container_report(args, mode, attack if report_attack is None else report_attack, width, label, e)
 
   return e
 
@@ -2283,7 +2290,8 @@ def container_luks2(args, mode, attack, width, tmp):
       report_skip(args, mode, "single", width, "could not extract %s" % img, attack)
       continue
 
-    container_crack(args, opts, mode, attack, hash_file, width, "LUKS2-mode %s" % img[:-4], tmp)
+    extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
+    container_crack(args, opts, mode, attack, hash_file, width, "LUKS2-mode %s" % img[:-4], extra)
 
 
 # test.sh luks_test's per-mode hash+cipher (test.sh): 29511+ each map to one hash+cipher and vary
@@ -2330,7 +2338,8 @@ def container_luks1(args, mode, attack, width, tmp):
       report_skip(args, mode, "single", width, "could not extract %s" % name, attack)
       continue
 
-    container_crack(args, opts, mode, attack, hash_file, width, label, tmp)
+    extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
+    container_crack(args, opts, mode, attack, hash_file, width, label, extra)
 
 
 def container_luks_legacy(args, mode, attack, width, tmp):
@@ -2349,7 +2358,154 @@ def container_luks_legacy(args, mode, attack, width, tmp):
         if not os.path.isfile(container):
           continue
 
-        container_crack(args, opts, mode, attack, container, width, label, tmp)
+        extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
+        container_crack(args, opts, mode, attack, container, width, label, extra)
+
+
+# test.sh truecrypt_test's per-mode .tc files (test.sh). The full case table covers every 62xx and
+# 293xx mode; only the -M representative 6211 is ported so far (its three tcMode cipher variants).
+# The rest of the TrueCrypt family still needs porting and stays out of CONTAINER_MODES until then.
+TC_FILES = {
+  6211: ["hashcat_ripemd160_aes", "hashcat_ripemd160_serpent", "hashcat_ripemd160_twofish"],
+}
+
+
+def container_truecrypt(args, mode, width, tmp):
+  # test.sh truecrypt_test (test.sh): 62xx pass the .tc container directly, 293xx extract it first
+  # with truecrypt2hashcat.py; always -a 3 with CONTAINER_MASK. The line's field is "tcMode <n>".
+  opts = base_opts(args)
+
+  for tc_mode, name in enumerate(TC_FILES.get(mode, [])):
+    container = os.path.join(TC_TESTS_DIR, name + ".tc")
+
+    if not os.path.isfile(container):
+      continue
+
+    if mode < 29300:
+      hash_arg = container
+    else:
+      hash_arg = os.path.join(tmp, name + ".hash")
+
+      if not container_extract("truecrypt2hashcat.py", container, hash_arg):
+        report_skip(args, mode, "single", width, "could not extract %s" % name, 3)
+        continue
+
+    container_crack(args, opts, mode, 3, hash_arg, width, "tcMode %d" % tc_mode, [CONTAINER_MASK])
+
+
+# test.sh veracrypt_test (test.sh) derives the container name from the mode digits rather than a
+# case table, so the whole family ports as data. hash_digit = mode[3], cipher_digit = mode[4].
+VC_HASH_DIGIT  = {1: "ripemd160", 2: "sha512", 3: "whirlpool", 4: "ripemd160",
+                  5: "sha256", 6: "sha256", 7: "streebog", 8: "streebog"}
+VC_BOOT_DIGITS = {4, 6, 8}
+VC_CASCADES    = {
+  1: {0: "aes", 1: "serpent", 2: "twofish", 3: "camellia", 5: "kuznyechik"},
+  2: {0: "aes-twofish", 1: "serpent-aes", 2: "twofish-serpent", 3: "camellia-kuznyechik",
+      4: "camellia-serpent", 5: "kuznyechik-aes", 6: "kuznyechik-twofish"},
+  3: {0: "aes-twofish-serpent", 1: "serpent-twofish-aes", 5: "kuznyechik-serpent-camellia"},
+}
+
+VC_MODES = {13711, 13712, 13713, 13721, 13722, 13723, 13731, 13732, 13733, 13741, 13742, 13743,
+            13751, 13752, 13753, 13761, 13762, 13763, 13771, 13772, 13773, 13781, 13782, 13783,
+            29411, 29412, 29413, 29421, 29422, 29423, 29431, 29432, 29433, 29441, 29442, 29443,
+            29451, 29452, 29453, 29461, 29462, 29463, 29471, 29472, 29473, 29481, 29482, 29483}
+
+
+def container_veracrypt(args, mode, width, tmp):
+  # test.sh veracrypt_test (test.sh): 137xx pass the .vc directly, 294xx extract with
+  # veracrypt2hashcat.py; always -a 3 with CONTAINER_MASK_MID. A _pim<N> container adds the PIM
+  # options. Invalid hash+cipher pairs have no file and are skipped, as test.sh does.
+  opts = base_opts(args)
+
+  s = "%05d" % mode
+  hfun = VC_HASH_DIGIT.get(int(s[3]))
+
+  if hfun is None:
+    return
+
+  boot     = "_boot" if int(s[3]) in VC_BOOT_DIGITS else ""
+  cascades = VC_CASCADES.get(int(s[4]), {})
+
+  for variation in range(7):
+    cascade = cascades.get(variation)
+
+    if cascade is None:
+      continue
+
+    base     = "hashcat_%s_%s%s" % (hfun, cascade, boot)
+    filename = os.path.join(VC_TESTS_DIR, base + ".vc")
+    pim_opts = []
+
+    if not os.path.isfile(filename):
+      match = None
+
+      for cand in sorted(glob.glob(os.path.join(VC_TESTS_DIR, base + "_pim*.vc"))):
+        pim = cand[len(os.path.join(VC_TESTS_DIR, base)) + 4:-3]
+
+        if pim.isdigit():
+          match = (cand, pim)
+          break
+
+      if match is None:
+        continue
+
+      filename, pim = match
+      pim_opts = ["--veracrypt-pim-start", pim, "--veracrypt-pim-stop", pim]
+
+    if mode < 29400:
+      hash_arg = filename
+    else:
+      hash_arg = os.path.join(tmp, base + ".hash")
+
+      if not container_extract("veracrypt2hashcat.py", filename, hash_arg):
+        report_skip(args, mode, "single", width, "could not extract %s" % base, 3)
+        continue
+
+    container_crack(args, opts + pim_opts, mode, 3, hash_arg, width, "Cipher %s" % cascade,
+                    [CONTAINER_MASK_MID], report_attack=0)
+
+
+# test.sh cryptoloop_test (test.sh): 145HC, H the hash digit and C the cipher digit; every mode is
+# cracked under -m 14500 after extraction with cryptoloop2hashcat.py, over key sizes 128/192/256.
+CL_HASH_DIGIT   = {1: "sha1", 2: "sha256", 3: "sha512", 4: "ripemd160", 5: "whirlpool"}
+CL_CIPHER_DIGIT = {1: "aes", 2: "serpent", 3: "twofish"}
+
+CL_MODES = {14511, 14512, 14513, 14521, 14522, 14523, 14531, 14532, 14533,
+            14541, 14542, 14543, 14551, 14552, 14553}
+
+
+def container_cryptoloop(args, mode, width, tmp):
+  opts = base_opts(args)
+
+  s      = "%05d" % mode
+  hfun   = CL_HASH_DIGIT.get(int(s[3]))
+  cipher = CL_CIPHER_DIGIT.get(int(s[4]))
+
+  if hfun is None or cipher is None:
+    return
+
+  for ksize in ("128", "192", "256"):
+    img = os.path.join(CL_TESTS_DIR, "hashcat_%s_%s_%s.img" % (hfun, cipher, ksize))
+
+    if not os.path.isfile(img):
+      continue
+
+    hash_arg = os.path.join(tmp, "hashcat_%s_%s_%s.hash" % (hfun, cipher, ksize))
+
+    proc = subprocess.run([sys.executable, os.path.join(TDIR, "cryptoloop2hashcat.py"),
+                           "--source", img, "--hash", hfun, "--cipher", cipher, "--keysize", ksize],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+    if proc.returncode != 0 or not proc.stdout:
+      report_skip(args, mode, "single", width, "could not extract %s" % os.path.basename(img), 3)
+      continue
+
+    with open(hash_arg, "wb") as fh:
+      fh.write(proc.stdout)
+
+    # test.sh always cracks the CL family under the generic mode 14500, but reports the mode selected.
+    container_crack(args, opts, mode, 3, hash_arg, width, "Key-Size %s" % ksize, [CONTAINER_MASK],
+                    crack_mode=14500)
 
 
 def run_container_mode(args, mode, tmp):
@@ -2364,9 +2520,15 @@ def run_container_mode(args, mode, tmp):
       container_luks_legacy(args, mode, attack, width, tmp)
     elif mode in LUKS1_HASH_CIPHER:
       container_luks1(args, mode, attack, width, tmp)
+    elif mode in TC_FILES:
+      container_truecrypt(args, mode, width, tmp)
+    elif mode in VC_MODES:
+      container_veracrypt(args, mode, width, tmp)
+    elif mode in CL_MODES:
+      container_cryptoloop(args, mode, width, tmp)
 
 
-CONTAINER_MODES = {14600, 34100} | set(LUKS1_HASH_CIPHER)
+CONTAINER_MODES = ({14600, 34100} | set(LUKS1_HASH_CIPHER) | set(TC_FILES) | VC_MODES | CL_MODES)
 
 
 def selftest_status(rc):
