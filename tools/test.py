@@ -2530,6 +2530,12 @@ def run_container_mode(args, mode, tmp):
 
 CONTAINER_MODES = ({14600, 34100} | set(LUKS1_HASH_CIPHER) | set(TC_FILES) | VC_MODES | CL_MODES)
 
+# test.sh -M's 24 hash types, one representative per family, covering all distinct code paths
+# (test.sh). The container families contribute their first mode (6211, 13711, 14511, 29511, 34100)
+# plus LUKS1 legacy 14600, all now handled by the container full-test above.
+MINIMAL_MODES = [0, 100, 110, 400, 500, 2600, 3000, 3200, 6211, 11600, 12500, 13711, 14200, 14511,
+                 14600, 14900, 15400, 15700, 20510, 22000, 29511, 33000, 33500, 34100]
+
 
 def selftest_status(rc):
   # test.sh status() as container_run_and_report calls it (test.sh): bucket the raw hashcat
@@ -4051,7 +4057,7 @@ def run_parallel(args):
   # (no -j) in its own process, so setup_isolation() gives it a private hashcat cache/session and no
   # two runs share mutable state. One mode per child means a kernel is still built only once. Output
   # is gathered and printed in mode order, so a -j run reads the same as the serial run.
-  modes = select_modes(args.mode, discover_modes())
+  modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
 
   base = [sys.executable, os.path.abspath(__file__),
           "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
@@ -4104,6 +4110,8 @@ def main():
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
+  ap.add_argument("-M", dest="minimal", action="store_true",
+                  help="minimal mode: full-test the 24 hash types covering all distinct code paths")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
                   help="run this many modes in parallel, each in its own hashcat cache/session")
   ap.add_argument("--edge", dest="edge", action="store_true",
@@ -4163,7 +4171,7 @@ def main():
 
   modes    = discover_modes()
   py_modes = set(modes)
-  selected = select_modes(args.mode, modes)
+  selected = MINIMAL_MODES if args.minimal else select_modes(args.mode, modes)
   targets  = targets_for(args.target)
   widths   = widths_for(args.vector)
 
