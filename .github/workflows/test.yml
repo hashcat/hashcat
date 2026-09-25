@@ -1,0 +1,194 @@
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+## tools/test.py on the CPU, through PoCL, because a runner has no GPU. test.py
+## is the Python suite (issue #4917); its oracles are the Python modules under
+## tools/test_modules, so there is no perl stack to install here.
+##
+## When it runs, and what:
+##
+##   pull request   every mode the pull request changes, at most 30, with every
+##                  attack mode and a single hash. A change to code the modes
+##                  share runs the self-test sweep (test.py -S) over every mode
+##                  instead, the Python suite's stand-in for test.sh -M.
+##
+##   weekly         every mode, in shards, every attack mode, single and multi
+##                  hash, and only if master has had a commit in the last seven
+##                  days.
+##
+##   manual         the weekly run, or the modes given as input, and with
+##                  "campaign" set the pure kernels as well as the optimized
+##                  ones, for a larger run before a release.
+##
+## .github/workflows/ci_matrix.py decides which modes and which shard.
+##
+## test.py exits non-zero when a mode fails, so a job here reads its exit code:
+## the per-mode runs are OR'd into one status and a nonzero one fails the job.
+
+name: test
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      modes:
+        description: 'Modes to test, "all" or a space separated list'
+        default: 'all'
+      campaign:
+        description: 'Run the pure kernels too'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'OpenCL/**'
+      - 'src/**'
+      - 'include/**'
+      - 'deps/**'
+      - 'Makefile'
+      - 'tools/test.py'
+      - 'tools/test_module_runner.*'
+      - 'tools/test_modules/**'
+      - 'tools/requirements.txt'
+      - '.github/workflows/test.yml'
+      - '.github/workflows/ci_matrix.py'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          MODES: ${{ inputs.modes }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            python3 .github/workflows/ci_matrix.py test pr "$BASE" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
+            python3 .github/workflows/ci_matrix.py test list "$MODES" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ] &&
+               [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
+            echo "no commit on master in the last seven days, nothing new to test"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            python3 .github/workflows/ci_matrix.py test all | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 330 }}
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    name: test.py ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install PoCL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+               pocl-opencl-icd ocl-icd-libopencl1 clinfo build-essential
+          clinfo -l
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Python oracles
+        run: pip install -r tools/requirements.txt
+
+      # The luks2 containers for -m 34100 are a large download test.py would
+      # otherwise fetch in the middle of a run. Pull and cache them here, so only
+      # the first run downloads them, and only for jobs that test 34100.
+
+      - name: Restore the luks2 test containers
+        id: luks2
+        if: matrix.modes == 'minimal' || contains(matrix.modes, '34100')
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v1
+
+      - name: Fetch the luks2 test containers
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools/luks2_tests
+          cd tools/luks2_tests
+          wget -q https://hashcat.net/misc/example_hashes/luks2_tests.7z
+          7z x -y luks2_tests.7z >/dev/null
+          rm -f luks2_tests.7z
+
+      - name: Save the luks2 test containers
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v1
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: test.py
+        env:
+          EVENT: ${{ github.event_name }}
+          MODES: ${{ matrix.modes }}
+          CAMPAIGN: ${{ inputs.campaign }}
+        run: |
+          # A shared-code change with no mode of its own runs the self-test sweep
+          # over every mode: the Python suite's stand-in for test.sh -M.
+          if [ "$MODES" = "minimal" ]; then
+            python3 tools/test.py -S -D 1 -f
+            exit $?
+          fi
+
+          if [ "$EVENT" = "pull_request" ]; then
+            opts="-a all -t single"
+          elif [ "$CAMPAIGN" = "true" ]; then
+            opts="-a all -t all -P"
+          else
+            opts="-a all -t all"
+          fi
+
+          fail=0
+
+          for mode in $MODES; do
+            echo "::group::test.py -m ${mode} ${opts}"
+
+            # shellcheck disable=SC2086
+            python3 tools/test.py -m "${mode}" ${opts} -D 1 -f || fail=1
+
+            echo "::endgroup::"
+          done
+
+          exit $fail
+
+      - name: Upload the test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs-${{ matrix.name }}
+          path: |
+            test_*/
+          if-no-files-found: ignore
