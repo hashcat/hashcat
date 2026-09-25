@@ -423,7 +423,7 @@ def run_single(opts, mode, pairs, args, width, file_only, pass_only, tmp):
 
     rc, out = run_hashcat(opts, mode, target, word + b"\n")
 
-    matched = match_search(digest, word, pass_only) in out
+    matched = output_has_crack(mode, out, word, digest, pass_only, tmp)
 
     classify(rc, matched, c)
 
@@ -453,7 +453,7 @@ def run_multi(opts, mode, pairs, args, width, file_only, pass_only, tmp):
   # output, and status is called once (test.sh). So the count here is 1, not one per hash
   # the way single is, and classify does the "cracked but a pair is missing" rewrite.
 
-  matched = all(match_search(digest, word, pass_only) in out for word, digest in pairs)
+  matched = all(output_has_crack(mode, out, word, digest, pass_only, tmp) for word, digest in pairs)
 
   classify(rc, matched, c)
 
@@ -578,7 +578,7 @@ def whole_word_single(r, attack):
 
     rc, out = run_hashcat(r.opts, r.mode, target, None, attack=attack, extra=extra)
 
-    matched = match_search(digest, word, r.pass_only) in out
+    matched = output_has_crack(r.mode, out, word, digest, r.pass_only, r.tmp)
 
     classify(rc, matched, c)
 
@@ -637,7 +637,7 @@ def whole_word_multi(r, attack):
 
   # As with -a 0 multi, one hashcat run scored as one test: every pair must be in the output.
 
-  matched = all(match_search(digest, word, r.pass_only) in out for word, digest in mpairs)
+  matched = all(output_has_crack(r.mode, out, word, digest, r.pass_only, r.tmp) for word, digest in mpairs)
 
   classify(rc, matched, c)
 
@@ -871,7 +871,7 @@ def run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path):
       # dict1[k] . dict2[k] reconstructs the word, so the expected plain is the password itself,
       # the same string -a 0 searches for (test.sh).
 
-      matched = match_search(digest, word, r.pass_only) in out
+      matched = output_has_crack(r.mode, out, word, digest, r.pass_only, r.tmp)
 
       classify(rc, matched, c)
 
@@ -904,7 +904,7 @@ def run_combinator_multi(r, dict1_path, dict2_path):
   # One hashcat run scored as one test (test.sh): every selected pair has to be in the
   # output, and each expected plain is the password because the halves rejoin to it.
 
-  matched = all(match_search(digest, word, r.pass_only) in out for word, digest in sel)
+  matched = all(output_has_crack(r.mode, out, word, digest, r.pass_only, r.tmp) for word, digest in sel)
 
   classify(rc, matched, c)
 
@@ -3666,7 +3666,7 @@ def main():
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
-                  help="run this many modes in parallel, each in its own hashcat cache/session")
+                  help="run this many modes in parallel, each in its own hashcat cache/session (ignored with -S, which runs serial)")
   ap.add_argument("--edge", dest="edge", action="store_true",
                   help="edge-case testing (the port of tools/test_edge.sh)")
   ap.add_argument("-K", dest="kernel", default="all", help="--edge: 0 pure | 1 optimized | all")
