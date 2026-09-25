@@ -2198,6 +2198,177 @@ def build_container_extra(mode, attack, vpass, tmp):
   return None
 
 
+# The container full-test families (test.sh truecrypt_test/veracrypt_test/luks_test/
+# luks_legacy_test/luks2_test/cryptoloop_test). Their hash is a container file, not a generated
+# string, so they have no .py oracle: the file (or a .hash extracted from it) is handed to hashcat
+# as the hash, the password is CONTAINER_PASSWORD, and pass/fail is hashcat's exit code alone
+# (selftest_status), with no hash:plain comparison. test.sh keeps these off the oracle pre-pass and
+# branches on the family lists (test.sh); the same set is CONTAINER_MODES here.
+
+CONTAINER_PASSWORD = b"hashcat"
+
+TC_TESTS_DIR    = os.path.join(TDIR, "tc_tests")
+VC_TESTS_DIR    = os.path.join(TDIR, "vc_tests")
+LUKS_TESTS_DIR  = os.path.join(TDIR, "luks_tests")
+LUKS2_TESTS_DIR = os.path.join(TDIR, "luks2_tests")
+CL_TESTS_DIR    = os.path.join(TDIR, "cl_tests")
+
+
+def container_attack(args):
+  # test.sh runs the container families with ${ATTACK} (default 0); -a all becomes -a 3, since
+  # 0,1,3,6,7 over every container file would take far too long (test.sh luks2_test et al.).
+  if args.attack == "all":
+    return 3
+
+  return int(args.attack)
+
+
+def container_extract(tool, container, hash_file, extra_args=()):
+  # Run one of the tools/*2hashcat.py extractors and capture the hash it prints into hash_file, the
+  # way test.sh does with `eval "...2hashcat.py" "<container>" > <hashfile>`. Returns True on success.
+  proc = subprocess.run([sys.executable, os.path.join(TDIR, tool), container] + list(extra_args),
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+  if proc.returncode != 0 or not proc.stdout:
+    return False
+
+  with open(hash_file, "wb") as fh:
+    fh.write(proc.stdout)
+
+  return True
+
+
+def container_report(args, mode, attack, width, label, e):
+  # test.sh's per-mode container line, with the family's extra field spliced in before the closing
+  # bracket (e.g. ", LUKS2-mode <img>"). Pass/fail follows selftest_verdict, the exit-code buckets.
+  ctx = context(args, mode, "single", width, attack)
+  ctx = ctx[:-2] + ", %s ]" % label
+
+  print("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
+        % (ctx, selftest_verdict(e), e["nf"], e["nm"], e["to"], e["rs"]))
+
+
+def container_crack(args, opts, mode, attack, hash_file, width, label, tmp):
+  # One container crack: build the -a 0/1/3/6/7 tail from the password, run hashcat, print the line.
+  extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
+
+  if extra is None:
+    return None
+
+  rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], mode, hash_file, None,
+                      attack=attack, extra=extra)
+  e = selftest_status(rc)
+
+  container_report(args, mode, attack, width, label, e)
+
+  return e
+
+
+def container_luks2(args, mode, attack, width, tmp):
+  # test.sh luks2_test (test.sh): extract every *.img in luks2_tests with luks2hashcat.py and crack
+  # the resulting hash under -m 34100.
+  opts = base_opts(args)
+
+  imgs = sorted(f for f in os.listdir(LUKS2_TESTS_DIR)
+                if f.endswith(".img")) if os.path.isdir(LUKS2_TESTS_DIR) else []
+
+  if not imgs:
+    report_skip(args, mode, "single", width, "luks2 test files are missing", attack)
+    return
+
+  for img in imgs:
+    hash_file = os.path.join(tmp, img + ".hash")
+
+    if not container_extract("luks2hashcat.py", os.path.join(LUKS2_TESTS_DIR, img), hash_file):
+      report_skip(args, mode, "single", width, "could not extract %s" % img, attack)
+      continue
+
+    container_crack(args, opts, mode, attack, hash_file, width, "LUKS2-mode %s" % img[:-4], tmp)
+
+
+# test.sh luks_test's per-mode hash+cipher (test.sh): 29511+ each map to one hash+cipher and vary
+# only the cipher mode and key size.
+LUKS1_HASH_CIPHER = {
+  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"),
+  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"),
+  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"),
+  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"),
+}
+
+
+def luks_variants():
+  # test.sh's luksMode x luksKeySize double loop with the keysize->mode validity filter (test.sh):
+  # 128 is cbc only, 512 is xts only, 256 is any.
+  for lmode in ("cbc-essiv", "cbc-plain64", "xts-plain64"):
+    for ksize in ("128", "256", "512"):
+      if ksize == "128" and lmode == "xts-plain64":
+        continue
+
+      if ksize == "512" and lmode != "xts-plain64":
+        continue
+
+      yield lmode, ksize
+
+
+def container_luks1(args, mode, attack, width, tmp):
+  # test.sh luks_test (test.sh): for this mode's hash+cipher, extract each valid .luks with
+  # luks2hashcat.py and crack the hash under -m <mode>.
+  luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
+  opts = base_opts(args)
+
+  for lmode, ksize in luks_variants():
+    name      = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
+    container = os.path.join(LUKS_TESTS_DIR, name + ".luks")
+    label     = "Luks-Mode %s-%s-%s-%s" % (luks_hash, luks_cipher, lmode, ksize)
+
+    if not os.path.isfile(container):
+      continue
+
+    hash_file = os.path.join(tmp, name + ".hash")
+
+    if not container_extract("luks2hashcat.py", container, hash_file):
+      report_skip(args, mode, "single", width, "could not extract %s" % name, attack)
+      continue
+
+    container_crack(args, opts, mode, attack, hash_file, width, label, tmp)
+
+
+def container_luks_legacy(args, mode, attack, width, tmp):
+  # test.sh luks_legacy_test (test.sh): 14600 accepts every hash+cipher, and takes the .luks file
+  # directly, with no luks2hashcat.py extraction. That direct-file handling is the 14600-vs-29511+
+  # difference.
+  opts = base_opts(args)
+
+  for luks_hash in ("sha1", "sha256", "sha512", "ripemd160"):
+    for luks_cipher in ("aes", "serpent", "twofish"):
+      for lmode, ksize in luks_variants():
+        name      = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
+        container = os.path.join(LUKS_TESTS_DIR, name + ".luks")
+        label     = "luksMode %s-%s-%s-%s" % (luks_hash, luks_cipher, lmode, ksize)
+
+        if not os.path.isfile(container):
+          continue
+
+        container_crack(args, opts, mode, attack, container, width, label, tmp)
+
+
+def run_container_mode(args, mode, tmp):
+  # Dispatch a container mode to its family test, once per requested vector width (test.sh runs the
+  # container families inside its per-width loop).
+  attack = container_attack(args)
+
+  for width in widths_for(args.vector):
+    if mode == 34100:
+      container_luks2(args, mode, attack, width, tmp)
+    elif mode == 14600:
+      container_luks_legacy(args, mode, attack, width, tmp)
+    elif mode in LUKS1_HASH_CIPHER:
+      container_luks1(args, mode, attack, width, tmp)
+
+
+CONTAINER_MODES = {14600, 34100} | set(LUKS1_HASH_CIPHER)
+
+
 def selftest_status(rc):
   # test.sh status() as container_run_and_report calls it (test.sh): bucket the raw hashcat
   # exit code. Unlike the oracle attacks there is no cracked-but-not-matched rewrite, because the
@@ -3843,6 +4014,12 @@ def main():
       # (test.sh does the same). Handled before the kernel/oracle checks, which do not apply to it.
       if mode == STDOUT_MODE:
         run_stdout_roundtrip(args, tmp)
+        continue
+
+      # A container mode's hash is a file, not a generated string, so it has no usable oracle: it
+      # runs the container full-test (test.sh truecrypt_test/veracrypt_test/luks*_test) instead.
+      if mode in CONTAINER_MODES:
+        run_container_mode(args, mode, tmp)
         continue
 
       # A SELFTEST_MODES member with no .py oracle takes the self-test vector path. test.sh runs it
