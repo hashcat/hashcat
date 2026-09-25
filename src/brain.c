@@ -97,6 +97,21 @@ void brain_client_check_features (hashcat_ctx_t *hashcat_ctx)
   event_log_warning (hashcat_ctx, "The candidate feature was switched off. Keyspace coordination is still on, so several");
   event_log_warning (hashcat_ctx, "clients on this session still avoid each other's work.");
   event_log_warning (hashcat_ctx, NULL);
+
+  // Switching the feature off here cannot switch the slow candidate path off with it. That choice is
+  // made from the command line alone, before a hash list exists, because kernel selection and the
+  // base word source are settled during session init and both read it. So this run keeps generating
+  // every candidate on the host for a feature that no longer looks at one, and the only way out is
+  // to say so and let the user ask for the remaining feature by name.
+
+  if (user_options->slow_candidates == true)
+  {
+    event_log_warning (hashcat_ctx, "Candidates are still being generated on the host, which is what the candidate feature");
+    event_log_warning (hashcat_ctx, "needed and what this attack no longer has a use for. Re-run with");
+    event_log_warning (hashcat_ctx, "--brain-client-features=2 to keep keyspace coordination and let the device generate.");
+    event_log_warning (hashcat_ctx, NULL);
+  }
+
   event_log_warning (hashcat_ctx, "Use --brain-client-features to overrule this.");
   event_log_warning (hashcat_ctx, NULL);
 }
@@ -239,6 +254,20 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   paw64_update (&state, &skip,  sizeof (skip));
   paw64_update (&state, &limit, sizeof (limit));
+
+  // A range is a pair of positions, and what a position counts is not the same on both producers. The
+  // slow path walks candidates, so one position is one candidate. The device-side path walks base
+  // words and lets the kernel amplify each into a whole mask or ruleset, so one position is many. The
+  // two therefore describe different keyspaces with the same numbers, and a range reserved by one
+  // would be read by the other as covering a completely different part of the attack.
+  //
+  // This only became reachable once a client asking for keyspace coordination alone stopped being
+  // forced onto the slow path. Before that every brain client walked candidates and the unit was
+  // never in question.
+
+  const int slow_candidates = user_options->slow_candidates;
+
+  paw64_update (&state, &slow_candidates, sizeof (slow_candidates));
 
   const int hex_salt = user_options->hex_salt;
 

@@ -727,6 +727,11 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
+  // only read inside a WITH_BRAIN block, so a build without the brain has no use for them
+
+  MAYBE_UNUSED user_options_t *user_options = hashcat_ctx->user_options;
+  MAYBE_UNUSED hashes_t       *hashes       = hashcat_ctx->hashes;
+
   generic_fill_state_t *gf = (generic_fill_state_t *) state;
 
   hc_timer_t timer_feed;
@@ -739,13 +744,62 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
   while (words_extra)
   {
-    const u64 work_cnt = get_work (hashcat_ctx, device_param, words_extra);
+    u64 work_cnt = get_work (hashcat_ctx, device_param, words_extra);
 
     if (work_cnt == 0) break;
 
+    // cleared here rather than after the brain block, so a reserve that skips part of the range can
+    // set it and have this loop fetch that much again. Otherwise every skipped word is a word the
+    // batch never gets back and the device runs a short batch.
+
     words_extra = 0;
 
-    const u64 words_off = device_param->words_off;
+    u64 words_off = device_param->words_off;
+
+    #ifdef WITH_BRAIN
+    if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
+    {
+      u64 overlap = 0;
+
+      if (brain_client_reserve (device_param, status_ctx, words_off, work_cnt, &overlap) == false)
+      {
+        brain_client_disconnect (device_param);
+      }
+
+      // The overlap is always a leading prefix of what was asked for, so the chunk starts past it and
+      // the feed is seeked to the new position by the block below.
+
+      words_off += overlap;
+      work_cnt  -= overlap;
+
+      words_extra = overlap;
+
+      if (overlap > 0)
+      {
+        // Booked here rather than through batch->words_extra, because pipe_run () scales that by a
+        // reject_amplifier that is zero for the kernels which amplify on the device, and a skipped
+        // word would then be counted nowhere at all.
+
+        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        {
+          status_ctx->words_progress_rejected[salt_pos] += overlap * amplifier;
+        }
+
+        status_ctx->brain_rejects_attacks += overlap;
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
+      }
+
+      // Nothing of this chunk is left. The keyspace is not finished, so the loop goes back for more
+      // rather than falling through to a seek and a zero-length read.
+
+      if (work_cnt == 0) continue;
+    }
+    #endif
 
     // Where this batch starts, which is where the first candidate in it came from. A batch is usually
     // one chunk and the two agree, so setting this on every chunk was harmless until a feed began
@@ -1059,8 +1113,11 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         break;
       }
 
+      // Not gated on the producer any more. Keyspace reservation runs on the device-side feed path
+      // too, and a reservation that is never committed is released when this client disconnects.
+
       #ifdef WITH_BRAIN
-      if ((slow == true) && (user_options->brain_client == true))
+      if (user_options->brain_client == true)
       {
         if ((status_ctx->devices_status != STATUS_ABORTED)
          && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
@@ -1116,7 +1173,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -1126,57 +1182,72 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_kern = user_options_extra->attack_kern;
   const u32 base_source = user_options_extra->base_source;
 
-  if (user_options->slow_candidates == true)
+  // only read inside a WITH_BRAIN block, so a build without the brain has no use for it
+
+  MAYBE_UNUSED hashes_t *hashes = hashcat_ctx->hashes;
+
+  // The link belongs to the run rather than to one of the two producers. Only the candidate feature
+  // ever needed a host-side candidate, so a client asking for keyspace coordination alone reaches
+  // the device-side producers below and has to be connected by the time it does.
+
+  #ifdef WITH_BRAIN
+  const u32 brain_session = user_options->brain_session;
+  const u32 brain_attack  = user_options->brain_attack;
+
+  u64 highest = 0;
+
+  brain_client_disconnect (device_param);
+
+  if (user_options->brain_client == true)
   {
-    #ifdef WITH_BRAIN
-    const u32 brain_session = user_options->brain_session;
-    const u32 brain_attack  = user_options->brain_attack;
+    const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
 
-    u64 highest = 0;
+    // this is the first connect of the run. A brain that is not there now means the whole attack
+    // runs with no dedup at all, which is what the user asked for by passing -z, so it is an error
+    // rather than a degradation. A link that drops later is different: the work already deduped
+    // stays deduped, so that one only warns and keeps going.
 
-    brain_client_disconnect (device_param);
-
-    if (user_options->brain_client == true)
+    if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
     {
-      const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+      brain_client_disconnect (device_param);
 
-      // this is the first connect of the run. A brain that is not there now means the whole attack
-      // runs with no dedup at all, which is what the user asked for by passing -z, so it is an error
-      // rather than a degradation. A link that drops later is different: the work already deduped
-      // stays deduped, so that one only warns and keeps going.
+      return -1;
+    }
 
-      if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
+    if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+    {
+      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+      if (status_ctx->words_off == 0)
       {
-        brain_client_disconnect (device_param);
+        status_ctx->words_off = highest;
 
-        return -1;
-      }
+        // The brain counts base words and progress counts candidates, and on the device-side path one
+        // base word stands for a whole amplifier of them. Booking the prefix as words would leave the
+        // rejected total short by that factor and the run would never reach 100%. Under -S the
+        // amplifier is 1 and this is the plain word count it always was.
 
-      if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
-      {
-        hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
 
-        if (status_ctx->words_off == 0)
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
         {
-          status_ctx->words_off = highest;
-
-          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-          {
-            status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off;
-          }
-
-          // the brain reported a contiguous prefix of the keyspace as already done, so the run starts
-          // past it. Those words are rejected by the same mechanism as an overlap and belong in the
-          // same counter, or the attacks total is short by the whole prefix on any resumed session.
-
-          status_ctx->brain_rejects_attacks = status_ctx->words_off;
+          status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off * amplifier;
         }
 
-        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-      }
-    }
-    #endif
+        // the brain reported a contiguous prefix of the keyspace as already done, so the run starts
+        // past it. Those words are rejected by the same mechanism as an overlap and belong in the
+        // same counter, or the attacks total is short by the whole prefix on any resumed session.
 
+        status_ctx->brain_rejects_attacks = status_ctx->words_off;
+      }
+
+      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+    }
+  }
+  #endif
+
+  if (user_options->slow_candidates == true)
+  {
     // attack modes from here. -a 12 is asked about before the feed, because its base words come from
     // one and it would answer to that test as well.
 
@@ -1330,16 +1401,84 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (base_source == BASE_SOURCE_MASK)
     {
+      // How many candidates one base word stands for, which is what a skipped word has to be booked
+      // as. Only the brain block below reads it, so a build without the brain has no use for it.
+
+      MAYBE_UNUSED const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+
       while (status_ctx->run_thread_level1 == true)
       {
         const u64 work = get_work (hashcat_ctx, device_param, -1);
 
         if (work == 0) break;
 
-        const u64 words_off = device_param->words_off;
+        u64 words_off = device_param->words_off;
+
+        // Where this chunk ends, which is what the keyspace has been advanced past once the launch
+        // returns. It is the whole chunk rather than the part that survived the brain, because ground
+        // the brain already covered is still ground this run does not have to come back to.
+
         const u64 words_fin = words_off + work;
 
-        device_param->pws_cnt = work;
+        u64 work_cur = work;
+
+        #ifdef WITH_BRAIN
+        if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
+        {
+          u64 overlap = 0;
+
+          if (brain_client_reserve (device_param, status_ctx, words_off, work_cur, &overlap) == false)
+          {
+            brain_client_disconnect (device_param);
+          }
+
+          // The overlap the server answers with is always a leading prefix of what was asked for, and
+          // the remainder is what it reserved for this client, so the chunk moves forward by it.
+
+          words_off += overlap;
+          work_cur  -= overlap;
+
+          if (overlap > 0)
+          {
+            hc_thread_mutex_lock (status_ctx->mux_counter);
+
+            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += overlap * amplifier;
+            }
+
+            // The brain's own counter stays in base words, because that is the unit the server
+            // reserves in and the unit the prefix seeded at connect was counted in.
+
+            status_ctx->brain_rejects_attacks += overlap;
+
+            hc_thread_mutex_unlock (status_ctx->mux_counter);
+          }
+
+          // A chunk the brain has covered in full is not the end of the keyspace. Breaking out here
+          // would end the attack at the first such chunk, so the loop goes back for more work, after
+          // booking the progress this one stood for.
+
+          if (work_cur == 0)
+          {
+            if (status_ctx->run_thread_level2 == true)
+            {
+              device_param->words_done = MAX (device_param->words_done, words_fin);
+
+              status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+            }
+
+            continue;
+          }
+        }
+        #endif
+
+        // run_copy () hands this to the mask processor as the offset it generates from, so the field
+        // has to move with the chunk and not only the local.
+
+        device_param->words_off = words_off;
+
+        device_param->pws_cnt = work_cur;
 
         // The mask producer is not pipelined, so the two are the same batch here. It is still set
         // rather than left behind, because what reads it cannot tell the two paths apart.
@@ -1358,6 +1497,27 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         pipe_acc (device_param, PIPE_COPY, &timer_copy);
 
         if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) return -1;
+
+        // The range has been tested, so the reservation becomes permanent. An aborted run is the one
+        // case where it must not: the commit promotes this client's reservations for good, and a
+        // range that was still in flight would be remembered as covered without ever being tried.
+
+        #ifdef WITH_BRAIN
+        if (user_options->brain_client == true)
+        {
+          if ((status_ctx->devices_status != STATUS_ABORTED)
+           && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
+           && (status_ctx->devices_status != STATUS_QUIT)
+           && (status_ctx->devices_status != STATUS_BYPASS)
+           && (status_ctx->devices_status != STATUS_ERROR))
+          {
+            if (brain_client_commit (device_param, status_ctx) == false)
+            {
+              brain_client_disconnect (device_param);
+            }
+          }
+        }
+        #endif
 
         device_param->pws_cnt = 0;
 
@@ -1390,7 +1550,17 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       pw_pipe_t pipe;
 
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_generic, &gf, false);
+      // reserve () runs on the producer thread and commit () on the launch thread, both over the one
+      // socket this device holds, so the brain has to take the pipeline out of lock-step exactly as
+      // it does for the slow producers.
+
+      bool pipe_serial = false;
+
+      #ifdef WITH_BRAIN
+      pipe_serial = user_options->brain_client;
+      #endif
+
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_generic, &gf, pipe_serial);
 
       // One rejected base word stood for a whole amplifier's worth of candidates, and which amplifier
       // depends on the kernel exactly as it does for the wordlist reader.
@@ -1414,6 +1584,14 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       if (rc_final == -1) return -1;
     }
   }
+
+  // The link was opened for this run and every producer that used it has finished, so it closes
+  // here. Leaving it open would hold this client's uncommitted reservations on the server for as
+  // long as the process lives.
+
+  #ifdef WITH_BRAIN
+  brain_client_disconnect (device_param);
+  #endif
 
   device_param->kernel_accel_prev   = device_param->kernel_accel;
   device_param->kernel_loops_prev   = device_param->kernel_loops;

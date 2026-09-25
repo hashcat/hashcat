@@ -914,8 +914,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   else if (user_options->brain_client == true)
   {
+    // The same set the slow candidate branch above accepts. A brain client used to reach this test
+    // only when it had also been given -S by hand, so the three hybrid modes being absent went
+    // unnoticed; a client that keeps device-side generation reaches it every time, and both of its
+    // producers handle a hybrid mode already.
+
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
      && (user_options->attack_mode != ATTACK_MODE_COMBI)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID)
      && (user_options->attack_mode != ATTACK_MODE_BF)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
      && (user_options->attack_mode != ATTACK_MODE_TABLE)
@@ -2944,9 +2952,19 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   if (user_options->brain_client == true)
   {
-    user_options->slow_candidates = true;
+    // Only the candidate feature needs a plaintext on the host, and that is the only reason the
+    // brain ever wanted the slow candidate path. Keyspace reservation works from an offset and a
+    // length alone, so a client asking for that feature by itself keeps device-side generation and
+    // the mask stays on the GPU. This is decided here rather than once the salt count is known,
+    // because kernel selection, base_source and the vector width all read slow_candidates during
+    // session init, long before a hash list exists.
+
+    if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
+    {
+      user_options->slow_candidates = true;
+    }
   }
-    #endif
+  #endif
 
   if (user_options->hwmon == false)
   {
