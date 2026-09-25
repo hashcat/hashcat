@@ -143,11 +143,15 @@ typedef PRIVATE_AS void *const voidpc;
 
 #define MZ_MACRO_END while (0)
 
-#define tinfl_init(r)     \
-    do                    \
-    {                     \
-        (r)->m_state = 0; \
-    }                     \
+// hashcat-patched: there is no resume state to clear any more, only the terminal result a finished
+// decompressor answers with if it is called again.
+
+#define tinfl_init(r)            \
+    do                           \
+    {                            \
+        (r)->m_finished = 0;     \
+        (r)->m_final_status = 0; \
+    }                            \
     MZ_MACRO_END
 
 enum
@@ -155,7 +159,13 @@ enum
     TINFL_FLAG_PARSE_ZLIB_HEADER = 1,
     TINFL_FLAG_HAS_MORE_INPUT = 2,
     TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF = 4,
-    TINFL_FLAG_COMPUTE_ADLER32 = 8
+    TINFL_FLAG_COMPUTE_ADLER32 = 8,
+
+    // hashcat-patched: the caller's output buffer is two dictionaries wide and the decompressor may
+    // take the older one back itself when the buffer fills up. Only hc_inflate () owns a buffer of
+    // that shape.
+
+    TINFL_FLAG_FLUSH_WINDOW = 16
 };
 
 enum
@@ -216,11 +226,6 @@ DECLSPEC void zlib_memset (PRIVATE_AS u8 *s, const u8 c, int len)
 #define MAYBE_GLOBAL PRIVATE_AS
 #endif
 
-#define TINFL_CR_FINISH }
-#define TINFL_CR_BEGIN  \
-    switch (r->m_state) \
-    {                   \
-        case 0:
 
 enum
 {
@@ -236,33 +241,37 @@ enum
 //#define MZ_READ_LE32(p) *((const mz_uint32 *)(p))
 #define MZ_READ_LE32(p) *((mz_uint32 *)(p))
 
-#define TINFL_NEED_BITS(state_index, n)                \
+// hashcat-patched: these three, and the two huffman macros further down, each took the index of the
+// resume label to come back to when the input ran out. Nothing resumes any more, so the index is gone
+// from all of them.
+
+#define TINFL_NEED_BITS(n)                             \
     do                                                 \
     {                                                  \
         mz_uint c;                                     \
-        TINFL_GET_BYTE(state_index, c);                \
+        TINFL_GET_BYTE(c);                             \
         bit_buf |= (((tinfl_bit_buf_t)c) << num_bits); \
         num_bits += 8;                                 \
     } while (num_bits < (mz_uint)(n))
 
-#define TINFL_SKIP_BITS(state_index, n)      \
+#define TINFL_SKIP_BITS(n)                   \
     do                                       \
     {                                        \
         if (num_bits < (mz_uint)(n))         \
         {                                    \
-            TINFL_NEED_BITS(state_index, n); \
+            TINFL_NEED_BITS(n);              \
         }                                    \
         bit_buf >>= (n);                     \
         num_bits -= (n);                     \
     }                                        \
     MZ_MACRO_END
 
-#define TINFL_GET_BITS(state_index, b, n)    \
+#define TINFL_GET_BITS(b, n)                 \
     do                                       \
     {                                        \
         if (num_bits < (mz_uint)(n))         \
         {                                    \
-            TINFL_NEED_BITS(state_index, n); \
+            TINFL_NEED_BITS(n);              \
         }                                    \
         b = bit_buf & ((1 << (n)) - 1);      \
         bit_buf >>= (n);                     \
@@ -270,38 +279,80 @@ enum
     }                                        \
     MZ_MACRO_END
 
-#define TINFL_CR_RETURN(state_index, result) \
-    do                                       \
-    {                                        \
-        status = result;                     \
-        r->m_state = state_index;            \
-        goto common_exit;                    \
-        case state_index:;                   \
-    }                                        \
+// hashcat-patched: the jump this replaces went to the tail of tinfl_decompress (), which ends in a
+// return, so it is a call to that tail. Metal has no goto and takes the call.
+
+#define TINFL_EXIT                                                  \
+    tinfl_exit (r, status, pIn_buf_next, pIn_buf_cur, pIn_buf_size, \
+                pOut_buf_next, pOut_buf_cur, pOut_buf_size,         \
+                num_bits, decomp_flags)
+
+// hashcat-patched: every way out of the decompressor is final, and a caller that comes back is
+// answered with the result it already had, which is what resuming inside a for (;;) used to give it.
+
+#define TINFL_RETURN_FOREVER(result)        \
+    do                                      \
+    {                                       \
+        status = result;                    \
+        r->m_finished = 1;                  \
+        r->m_final_status = (int) (result); \
+        return TINFL_EXIT;                  \
+    }                                       \
     MZ_MACRO_END
 
-#define TINFL_CR_RETURN_FOREVER(state_index, result) \
-    do                                               \
-    {                                                \
-        for (;;)                                     \
-        {                                            \
-            TINFL_CR_RETURN(state_index, result);    \
-        }                                            \
-    }                                                \
+// hashcat-patched: the output window is full. A caller that owns a buffer two dictionaries wide has
+// the older half taken back here and the decoder carries on; any other caller is told there is more
+// output than it asked for, and for that caller the stream ends there.
+//
+// A whole window that came out of no input at all is not a stream, it is a decoder walking a huffman
+// table that decodes a symbol in zero bits, which a wrong password builds often enough. miniz has no
+// answer to it: what stopped it before was the caller, which handed over sixteen bytes at a time and
+// dropped the candidate as soon as a call gave back output without taking any input. The window is
+// where that same question gets asked now.
+
+#define TINFL_WINDOW_FULL                                                                                          \
+    do                                                                                                             \
+    {                                                                                                              \
+        if (pOut_buf_cur >= pOut_buf_end)                                                                          \
+        {                                                                                                          \
+            if ((decomp_flags & TINFL_FLAG_FLUSH_WINDOW) == 0)                                                     \
+            {                                                                                                      \
+                TINFL_RETURN_FOREVER(TINFL_STATUS_HAS_MORE_OUTPUT);                                                \
+            }                                                                                                      \
+            if (pIn_buf_cur == pIn_buf_mark)                                                                       \
+            {                                                                                                      \
+                TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);                                                         \
+            }                                                                                                      \
+                                                                                                                   \
+            pIn_buf_mark = pIn_buf_cur;                                                                            \
+                                                                                                                   \
+            tinfl_flush_window (pStream, pOut_buf_start, pOut_buf_next, pOut_buf_cur);                             \
+                                                                                                                   \
+            pOut_buf_cur  = pOut_buf_start + TINFL_LZ_DICT_SIZE;                                                   \
+            pOut_buf_next = pOut_buf_start + TINFL_LZ_DICT_SIZE;                                                   \
+                                                                                                                   \
+            dist_from_out_buf_start = TINFL_LZ_DICT_SIZE;                                                          \
+        }                                                                                                          \
+    }                                                                                                              \
     MZ_MACRO_END
 
-#define TINFL_GET_BYTE(state_index, c)                                                                                                                           \
-    do                                                                                                                                                           \
-    {                                                                                                                                                            \
-        while (pIn_buf_cur >= pIn_buf_end)                                                                                                                       \
-        {                                                                                                                                                        \
-            TINFL_CR_RETURN(state_index, (decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
-        }                                                                                                                                                        \
-        c = pIn_xor_byte (*pIn_buf_cur++, pStream);                                                                                                              \
-    }                                                                                                                                                            \
+// hashcat-patched: waiting for more input was the other suspension. The whole stream arrives in one
+// call now, so there is nothing to wait for and running out of input ends the stream.
+
+#define TINFL_GET_BYTE(c)                                                                                                                                \
+    do                                                                                                                                                   \
+    {                                                                                                                                                    \
+        if (pIn_buf_cur >= pIn_buf_end)                                                                                                                  \
+        {                                                                                                                                                \
+            TINFL_RETURN_FOREVER((decomp_flags & TINFL_FLAG_HAS_MORE_INPUT) ? TINFL_STATUS_NEEDS_MORE_INPUT : TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS); \
+        }                                                                                                                                                \
+        c = pIn_xor_byte (*pIn_buf_cur++, pStream);                                                                                                      \
+    }                                                                                                                                                    \
     MZ_MACRO_END
 
-#define TINFL_HUFF_DECODE(state_index, sym, pHuff)                                                                                  \
+// hashcat-patched: no resume index here either, see TINFL_NEED_BITS above.
+
+#define TINFL_HUFF_DECODE(sym, pHuff)                                                                                               \
     do                                                                                                                              \
     {                                                                                                                               \
         int temp;                                                                                                                   \
@@ -310,7 +361,7 @@ enum
         {                                                                                                                           \
             if ((pIn_buf_end - pIn_buf_cur) < 2)                                                                                    \
             {                                                                                                                       \
-                TINFL_HUFF_BITBUF_FILL(state_index, pHuff);                                                                         \
+                TINFL_HUFF_BITBUF_FILL(pHuff);                                                                                      \
             }                                                                                                                       \
             else                                                                                                                    \
             {                                                                                                                       \
@@ -335,7 +386,9 @@ enum
     }                                                                                                                               \
     MZ_MACRO_END
 
-#define TINFL_HUFF_BITBUF_FILL(state_index, pHuff)                             \
+// hashcat-patched: no resume index here either, see TINFL_NEED_BITS above.
+
+#define TINFL_HUFF_BITBUF_FILL(pHuff)                                          \
     do                                                                         \
     {                                                                          \
         temp = (pHuff)->m_look_up[bit_buf & (TINFL_FAST_LOOKUP_SIZE - 1)];     \
@@ -355,7 +408,7 @@ enum
             if (temp >= 0)                                                     \
                 break;                                                         \
         }                                                                      \
-        TINFL_GET_BYTE(state_index, c);                                        \
+        TINFL_GET_BYTE(c);                                                     \
         bit_buf |= (((tinfl_bit_buf_t)c) << num_bits);                         \
         num_bits += 8;                                                         \
     } while (num_bits < 15);
@@ -405,11 +458,21 @@ typedef enum {
 
 struct tinfl_decompressor_tag
 {
-    mz_uint32 m_state, m_num_bits, m_zhdr0, m_zhdr1, m_z_adler32, m_final, m_type, m_check_adler32, m_dist, m_counter, m_num_extra, m_table_sizes[TINFL_MAX_HUFF_TABLES];
-    tinfl_bit_buf_t m_bit_buf;
-    size_t m_dist_from_out_buf_start;
+    mz_uint32 m_zhdr0, m_zhdr1, m_z_adler32, m_final, m_type, m_check_adler32, m_table_sizes[TINFL_MAX_HUFF_TABLES];
     tinfl_huff_table m_tables[TINFL_MAX_HUFF_TABLES];
     mz_uint8 m_raw_header[4], m_len_codes[TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137];
+
+    // hashcat-patched: what a finished decompressor answers from here on. miniz kept a terminal result
+    // by resuming inside a for (;;) that returned it again on every call; the result is remembered
+    // here instead, and answered on entry, which is the same behaviour without the resume label.
+    //
+    // The bit buffer, the bit count, the match distance, the counter, the extra bit count and the
+    // offset into the output that used to sit above are gone with it: each one was saved on the way
+    // out only so a resume could read it back, and the decoder assigns all of them before it reads
+    // them.
+
+    mz_uint32 m_finished;
+    int       m_final_status;
 };
 typedef struct tinfl_decompressor_tag tinfl_decompressor;
 
@@ -486,11 +549,141 @@ DECLSPEC mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 }
 
 
+
+// hashcat-patched: helper function for shifted u32
+
+DECLSPEC u32 GETSHIFTEDINT (PRIVATE_AS u32 *a, const int n)
+{
+  const int d = n / 4;
+  const int m = n & 3;
+
+  u64 tmp = hl32_to_64_S (a[d + 1], a[d + 0]);
+
+  tmp >>= m * 8;
+
+  return l32_from_64_S (tmp);
+}
+
+// hashcat-patched: faster zlib_memcpy for our large (TINFL_LZ_DICT_SIZE) move of bytes from the old output to the window/lookup table
+
+DECLSPEC void hc_shift_inflate_dict (PRIVATE_AS u8 *buf, const u32 offset, const u32 len)
+{
+  PRIVATE_AS u32 *ptr = (PRIVATE_AS u32 *) buf;
+
+  // we need to use len - 4 here to avoid buffer overflows caused by the u64 type in GETSHIFTEDINT
+
+  u32 i, j;
+
+  for (i = 0, j = 0; i < len - 4; i += 4, j++)
+  {
+    ptr[j] = GETSHIFTEDINT (ptr, offset + i);
+  }
+
+  // final step (last 4 bytes are special):
+
+  ptr[j] = (buf[offset + i + 3] << 24) | (buf[offset + i + 2] << 16) | (buf[offset + i + 1] << 8) | buf[offset + i];
+}
+
+// hashcat-patched: the window the decoder writes into is one dictionary long and sits at the top of a
+// buffer two dictionaries wide. When it fills, the bytes below it are already final: they are
+// checksummed and counted here, the dictionary they still serve as history is moved down to the start
+// of the buffer, and the decoder carries on from the same place it would have resumed at.
+
+// It takes the two pointers by value and gives nothing back. An out of line function that is handed
+// the address of a local forces that local into memory for the whole function, and these two are the
+// hottest variables in the decoder: on CUDA that alone costs orders of magnitude. The caller puts them
+// back where this leaves them, which is the start of the buffer plus one dictionary.
+
+DECLSPEC HC_NOINLINE_ALWAYS void tinfl_flush_window (mz_streamp pStream, PRIVATE_AS mz_uint8 *pOut_buf_start,
+                                                     PRIVATE_AS const mz_uint8 *pOut_buf_next, PRIVATE_AS const mz_uint8 *pOut_buf_cur)
+{
+  const size_t produced = (size_t) (pOut_buf_cur - pOut_buf_next);
+
+  #ifdef CRC32_IN_INFLATE
+  for (size_t i = 0; i < produced; i++)
+  {
+    pStream->crc32 = CRC32 (pStream->crc32, pOut_buf_next[i], pStream->crc32tab);
+  }
+  #endif
+
+  pStream->total_out += produced;
+
+  const size_t shift = (size_t) (pOut_buf_cur - pOut_buf_start) - TINFL_LZ_DICT_SIZE;
+
+  hc_shift_inflate_dict (pOut_buf_start, (u32) shift, TINFL_LZ_DICT_SIZE);
+
+  pStream->window_out = TINFL_LZ_DICT_SIZE;
+  pStream->avail_out  = TINFL_LZ_DICT_SIZE;
+}
+
+// hashcat-patched: this is the tail the decompressor used to jump to. Metal has no goto, so the tail
+// is a function and every return inside tinfl_decompress () calls it.
+
+DECLSPEC tinfl_status tinfl_exit (PRIVATE_AS tinfl_decompressor *r, tinfl_status status,
+                                  MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, MAYBE_GLOBAL const mz_uint8 *pIn_buf_cur, PRIVATE_AS size_t *pIn_buf_size,
+                                  PRIVATE_AS mz_uint8 *pOut_buf_next, PRIVATE_AS mz_uint8 *pOut_buf_cur, PRIVATE_AS size_t *pOut_buf_size,
+                                  mz_uint32 num_bits, const mz_uint32 decomp_flags)
+{
+    /* As long as we aren't telling the caller that we NEED more input to make forward progress: */
+    /* Put back any bytes from the bitbuf in case we've looked ahead too far on gzip, or other Deflate streams followed by arbitrary data. */
+    /* We need to be very careful here to NOT push back any bytes we definitely know we need to make forward progress, though, or we'll lock the caller up into an inf loop. */
+    if ((status != TINFL_STATUS_NEEDS_MORE_INPUT) && (status != TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS))
+    {
+        while ((pIn_buf_cur > pIn_buf_next) && (num_bits >= 8))
+        {
+            --pIn_buf_cur;
+            num_bits -= 8;
+        }
+    }
+    *pIn_buf_size = pIn_buf_cur - pIn_buf_next;
+    *pOut_buf_size = pOut_buf_cur - pOut_buf_next;
+    if ((decomp_flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_COMPUTE_ADLER32)) && (status >= 0))
+    {
+        PRIVATE_AS const mz_uint8 *ptr = pOut_buf_next;
+        PRIVATE_AS size_t buf_len = *pOut_buf_size;
+        mz_uint32 i, s1 = r->m_check_adler32 & 0xffff, s2 = r->m_check_adler32 >> 16;
+        size_t block_len = buf_len % 5552;
+        while (buf_len)
+        {
+            for (i = 0; i + 7 < block_len; i += 8, ptr += 8)
+            {
+                s1 += ptr[0], s2 += s1;
+                s1 += ptr[1], s2 += s1;
+                s1 += ptr[2], s2 += s1;
+                s1 += ptr[3], s2 += s1;
+                s1 += ptr[4], s2 += s1;
+                s1 += ptr[5], s2 += s1;
+                s1 += ptr[6], s2 += s1;
+                s1 += ptr[7], s2 += s1;
+            }
+            for (; i < block_len; ++i)
+                s1 += *ptr++, s2 += s1;
+            s1 %= 65521U, s2 %= 65521U;
+            buf_len -= block_len;
+            block_len = 5552;
+        }
+        r->m_check_adler32 = (s2 << 16) + s1;
+        if ((status == TINFL_STATUS_DONE) && (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER) && (r->m_check_adler32 != r->m_z_adler32))
+            status = TINFL_STATUS_ADLER32_MISMATCH;
+    }
+    return status;
+}
+
 // tinfl_decompress() stays out of line, everywhere, on purpose.
 //
-// This is miniz's decompressor written as one coroutine: a single function that holds the whole
-// inflate state machine, a few hundred basic blocks of it. Inlining it saves one call and costs the
-// caller a copy of all of that, so there is no device on which it is a win.
+// This is miniz's decompressor: a single function that holds the whole inflate state machine, a few
+// hundred basic blocks of it. Inlining it saves one call and costs the caller a copy of all of that,
+// so there is no device on which it is a win.
+//
+// hashcat-patched: miniz wrote it as a coroutine. It returned to its caller whenever the input ran out
+// or the output window filled up, and resumed at a case label placed inside the loop it had stopped
+// in. Metal's compiler does not survive that shape: it fails in its own backend, with an internal
+// error and no diagnostic, and one such label is enough to trigger it. That is what kept every mode
+// that inflates off Metal, under a comment blaming the goto that the label needs.
+//
+// So it does not suspend any more. Both callers hand over the whole input in one call, which is all
+// the input side ever waited for, and the output side is handled by tinfl_flush_window () above.
+// Every way out of the function is now final.
 //
 // It is also what makes the three PKZIP modes that decompress fail to build at all on PoCL. Once
 // DECLSPEC gained its `static`, the helpers became internal and the runtime is free to inline them,
@@ -519,9 +712,10 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
     tinfl_bit_buf_t bit_buf;
     MAYBE_GLOBAL const mz_uint8 *pIn_buf_cur = pIn_buf_next;
     MAYBE_GLOBAL const mz_uint8 *pIn_buf_end = pIn_buf_next + *pIn_buf_size;
+    MAYBE_GLOBAL const mz_uint8 *pIn_buf_mark = pIn_buf_next;
     PRIVATE_AS mz_uint8       *pOut_buf_cur = pOut_buf_next;
     PRIVATE_AS mz_uint8 const *pOut_buf_end = pOut_buf_next + *pOut_buf_size;
-    size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start;
+    size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start = 0;
 
     /* Ensure the output buffer's size is a power of 2, unless the output buffer is large enough to hold the entire output file (in which case it doesn't matter). */
     if (((out_buf_size_mask + 1) & out_buf_size_mask) || (pOut_buf_next < pOut_buf_start))
@@ -530,46 +724,50 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
         return TINFL_STATUS_BAD_PARAM;
     }
 
-    num_bits = r->m_num_bits;
-    bit_buf = r->m_bit_buf;
-    dist = r->m_dist;
-    counter = r->m_counter;
-    num_extra = r->m_num_extra;
-    dist_from_out_buf_start = r->m_dist_from_out_buf_start;
-    TINFL_CR_BEGIN
+    // hashcat-patched: a decompressor that has finished answers with what it finished with, and does
+    // not run again. Nothing is read and nothing is written on the way out, so the tail below has no
+    // work to do here.
+
+    if (r->m_finished)
+    {
+        *pIn_buf_size  = 0;
+        *pOut_buf_size = 0;
+
+        return (tinfl_status) r->m_final_status;
+    }
 
     bit_buf = num_bits = dist = counter = num_extra = r->m_zhdr0 = r->m_zhdr1 = 0;
     r->m_z_adler32 = r->m_check_adler32 = 1;
     if (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER)
     {
-        TINFL_GET_BYTE(1, r->m_zhdr0);
-        TINFL_GET_BYTE(2, r->m_zhdr1);
+        TINFL_GET_BYTE(r->m_zhdr0);
+        TINFL_GET_BYTE(r->m_zhdr1);
         counter = (((r->m_zhdr0 * 256 + r->m_zhdr1) % 31 != 0) || (r->m_zhdr1 & 32) || ((r->m_zhdr0 & 15) != 8));
         if (!(decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF))
             counter |= (((1U << (8U + (r->m_zhdr0 >> 4))) > 32768U) || ((out_buf_size_mask + 1) < (size_t)(1U << (8U + (r->m_zhdr0 >> 4)))));
         if (counter)
         {
-            TINFL_CR_RETURN_FOREVER(36, TINFL_STATUS_FAILED);
+            TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
         }
     }
 
     do
     {
-        TINFL_GET_BITS(3, r->m_final, 3);
+        TINFL_GET_BITS(r->m_final, 3);
         r->m_type = r->m_final >> 1;
         if (r->m_type == 0)
         {
-            TINFL_SKIP_BITS(5, num_bits & 7);
+            TINFL_SKIP_BITS(num_bits & 7);
             for (counter = 0; counter < 4; ++counter)
             {
                 if (num_bits)
-                    TINFL_GET_BITS(6, r->m_raw_header[counter], 8);
+                    TINFL_GET_BITS(r->m_raw_header[counter], 8);
                 else
-                    TINFL_GET_BYTE(7, r->m_raw_header[counter]);
+                    TINFL_GET_BYTE(r->m_raw_header[counter]);
             }
             if ((counter = (r->m_raw_header[0] | (r->m_raw_header[1] << 8))) != (mz_uint)(0xFFFF ^ (r->m_raw_header[2] | (r->m_raw_header[3] << 8))))
             {
-                TINFL_CR_RETURN_FOREVER(39, TINFL_STATUS_FAILED);
+                TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
             }
             // hashcat-patched: miniz copies a stored block straight out of the input buffer in bulk,
             // and reads whatever the bit buffer already holds one byte at a time beside it. Here
@@ -584,12 +782,9 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
 
             while (counter)
             {
-                TINFL_GET_BITS(51, dist, 8);
+                TINFL_GET_BITS(dist, 8);
 
-                while (pOut_buf_cur >= pOut_buf_end)
-                {
-                    TINFL_CR_RETURN(52, TINFL_STATUS_HAS_MORE_OUTPUT);
-                }
+                TINFL_WINDOW_FULL;
 
                 *pOut_buf_cur++ = (mz_uint8)dist;
 
@@ -598,7 +793,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
         }
         else if (r->m_type == 3)
         {
-            TINFL_CR_RETURN_FOREVER(10, TINFL_STATUS_FAILED);
+            TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
         }
         else
         {
@@ -622,7 +817,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
             {
                 for (counter = 0; counter < 3; counter++)
                 {
-                    TINFL_GET_BITS(11, r->m_table_sizes[counter], "\05\05\04"[counter]);
+                    TINFL_GET_BITS(r->m_table_sizes[counter], "\05\05\04"[counter]);
                     r->m_table_sizes[counter] += s_min_table_sizes[counter];
                 }
                 zlib_memset(r->m_tables[2].m_code_size, 0, TINFL_MAX_HUFF_SYMBOLS_0);
@@ -630,7 +825,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                 for (counter = 0; counter < r->m_table_sizes[2]; counter++)
                 {
                     mz_uint s;
-                    TINFL_GET_BITS(14, s, 3);
+                    TINFL_GET_BITS(s, 3);
                     r->m_tables[2].m_code_size[s_length_dezigzag[counter]] = (mz_uint8)s;
                 }
                 r->m_table_sizes[2] = 19;
@@ -657,7 +852,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                 }
                 if ((65536 != total) && (used_syms > 1))
                 {
-                    TINFL_CR_RETURN_FOREVER(35, TINFL_STATUS_FAILED);
+                    TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
                 }
                 for (tree_next = -1, sym_index = 0; sym_index < r->m_table_sizes[r->m_type]; ++sym_index)
                 {
@@ -704,7 +899,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                     for (counter = 0; counter < (r->m_table_sizes[0] + r->m_table_sizes[1]);)
                     {
                         mz_uint s;
-                        TINFL_HUFF_DECODE(16, dist, &r->m_tables[2]);
+                        TINFL_HUFF_DECODE(dist, &r->m_tables[2]);
                         if (dist < 16)
                         {
                             r->m_len_codes[counter++] = (mz_uint8)dist;
@@ -712,10 +907,10 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                         }
                         if ((dist == 16) && (!counter))
                         {
-                            TINFL_CR_RETURN_FOREVER(17, TINFL_STATUS_FAILED);
+                            TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
                         }
                         num_extra = "\02\03\07"[dist - 16];
-                        TINFL_GET_BITS(18, s, num_extra);
+                        TINFL_GET_BITS(s, num_extra);
                         s += "\03\03\013"[dist - 16];
 
                         zlib_memset(r->m_len_codes + counter, (dist == 16) ? r->m_len_codes[counter - 1] : 0, s);
@@ -725,7 +920,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                     }
                     if ((r->m_table_sizes[0] + r->m_table_sizes[1]) != counter)
                     {
-                        TINFL_CR_RETURN_FOREVER(21, TINFL_STATUS_FAILED);
+                        TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
                     }
                     zlib_memcpy(r->m_tables[0].m_code_size, r->m_len_codes, r->m_table_sizes[0]);
                     zlib_memcpy(r->m_tables[1].m_code_size, r->m_len_codes + r->m_table_sizes[0], r->m_table_sizes[1]);
@@ -738,13 +933,10 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                 {
                     if (((pIn_buf_end - pIn_buf_cur) < 4) || ((pOut_buf_end - pOut_buf_cur) < 2))
                     {
-                        TINFL_HUFF_DECODE(23, counter, &r->m_tables[0]);
+                        TINFL_HUFF_DECODE(counter, &r->m_tables[0]);
                         if (counter >= 256)
                             break;
-                        while (pOut_buf_cur >= pOut_buf_end)
-                        {
-                            TINFL_CR_RETURN(24, TINFL_STATUS_HAS_MORE_OUTPUT);
-                        }
+                        TINFL_WINDOW_FULL;
                         *pOut_buf_cur++ = (mz_uint8)counter;
                     }
                     else
@@ -812,24 +1004,24 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                 if (num_extra)
                 {
                     mz_uint extra_bits;
-                    TINFL_GET_BITS(25, extra_bits, num_extra);
+                    TINFL_GET_BITS(extra_bits, num_extra);
                     counter += extra_bits;
                 }
 
-                TINFL_HUFF_DECODE(26, dist, &r->m_tables[1]);
+                TINFL_HUFF_DECODE(dist, &r->m_tables[1]);
                 num_extra = s_dist_extra[dist];
                 dist = s_dist_base[dist];
                 if (num_extra)
                 {
                     mz_uint extra_bits;
-                    TINFL_GET_BITS(27, extra_bits, num_extra);
+                    TINFL_GET_BITS(extra_bits, num_extra);
                     dist += extra_bits;
                 }
 
                 dist_from_out_buf_start = pOut_buf_cur - pOut_buf_start;
                 if ((dist > dist_from_out_buf_start) && (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF))
                 {
-                    TINFL_CR_RETURN_FOREVER(37, TINFL_STATUS_FAILED);
+                    TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
                 }
 
                 pSrc = pOut_buf_start + ((dist_from_out_buf_start - dist) & out_buf_size_mask);
@@ -838,10 +1030,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                 {
                     while (counter--)
                     {
-                        while (pOut_buf_cur >= pOut_buf_end)
-                        {
-                            TINFL_CR_RETURN(53, TINFL_STATUS_HAS_MORE_OUTPUT);
-                        }
+                        TINFL_WINDOW_FULL;
                         *pOut_buf_cur++ = pOut_buf_start[(dist_from_out_buf_start++ - dist) & out_buf_size_mask];
                     }
                     continue;
@@ -894,7 +1083,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
 
     /* Ensure byte alignment and put back any bytes from the bitbuf if we've looked ahead too far on gzip, or other Deflate streams followed by arbitrary data. */
     /* I'm being super conservative here. A number of simplifications can be made to the byte alignment part, and the Adler32 check shouldn't ever need to worry about reading from the bitbuf now. */
-    TINFL_SKIP_BITS(32, num_bits & 7);
+    TINFL_SKIP_BITS(num_bits & 7);
     while ((pIn_buf_cur > pIn_buf_next) && (num_bits >= 8))
     {
         --pIn_buf_cur;
@@ -909,66 +1098,15 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
         {
             mz_uint s;
             if (num_bits)
-                TINFL_GET_BITS(41, s, 8);
+                TINFL_GET_BITS(s, 8);
             else
-                TINFL_GET_BYTE(42, s);
+                TINFL_GET_BYTE(s);
             r->m_z_adler32 = (r->m_z_adler32 << 8) | s;
         }
     }
-    TINFL_CR_RETURN_FOREVER(34, TINFL_STATUS_DONE);
+    TINFL_RETURN_FOREVER(TINFL_STATUS_DONE);
 
-    TINFL_CR_FINISH
-
-common_exit:
-    /* As long as we aren't telling the caller that we NEED more input to make forward progress: */
-    /* Put back any bytes from the bitbuf in case we've looked ahead too far on gzip, or other Deflate streams followed by arbitrary data. */
-    /* We need to be very careful here to NOT push back any bytes we definitely know we need to make forward progress, though, or we'll lock the caller up into an inf loop. */
-    if ((status != TINFL_STATUS_NEEDS_MORE_INPUT) && (status != TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS))
-    {
-        while ((pIn_buf_cur > pIn_buf_next) && (num_bits >= 8))
-        {
-            --pIn_buf_cur;
-            num_bits -= 8;
-        }
-    }
-    r->m_num_bits = num_bits;
-    r->m_bit_buf = bit_buf & (tinfl_bit_buf_t)((((mz_uint64)1) << num_bits) - (mz_uint64)1);
-    r->m_dist = dist;
-    r->m_counter = counter;
-    r->m_num_extra = num_extra;
-    r->m_dist_from_out_buf_start = dist_from_out_buf_start;
-    *pIn_buf_size = pIn_buf_cur - pIn_buf_next;
-    *pOut_buf_size = pOut_buf_cur - pOut_buf_next;
-    if ((decomp_flags & (TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_COMPUTE_ADLER32)) && (status >= 0))
-    {
-        PRIVATE_AS const mz_uint8 *ptr = pOut_buf_next;
-        PRIVATE_AS size_t buf_len = *pOut_buf_size;
-        mz_uint32 i, s1 = r->m_check_adler32 & 0xffff, s2 = r->m_check_adler32 >> 16;
-        size_t block_len = buf_len % 5552;
-        while (buf_len)
-        {
-            for (i = 0; i + 7 < block_len; i += 8, ptr += 8)
-            {
-                s1 += ptr[0], s2 += s1;
-                s1 += ptr[1], s2 += s1;
-                s1 += ptr[2], s2 += s1;
-                s1 += ptr[3], s2 += s1;
-                s1 += ptr[4], s2 += s1;
-                s1 += ptr[5], s2 += s1;
-                s1 += ptr[6], s2 += s1;
-                s1 += ptr[7], s2 += s1;
-            }
-            for (; i < block_len; ++i)
-                s1 += *ptr++, s2 += s1;
-            s1 %= 65521U, s2 %= 65521U;
-            buf_len -= block_len;
-            block_len = 5552;
-        }
-        r->m_check_adler32 = (s2 << 16) + s1;
-        if ((status == TINFL_STATUS_DONE) && (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER) && (r->m_check_adler32 != r->m_z_adler32))
-            status = TINFL_STATUS_ADLER32_MISMATCH;
-    }
-    return status;
+    return TINFL_EXIT;
 }
 
 
@@ -1134,6 +1272,17 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
             else if (!pStream->avail_out)
                 return MZ_BUF_ERROR;
         }
+        else if ((in_bytes == 0) && (out_bytes == 0))
+        {
+            // hashcat-patched: this loop used to rely on the decompressor resuming. Nothing resumes any
+            // more, so a call that took nothing and produced nothing will answer the same way for ever,
+            // and the conditions below do not all cover that. Breaking out would return MZ_OK, which
+            // sends the caller round again for output that is not coming.
+
+            if (status == TINFL_STATUS_DONE) break;
+
+            return MZ_BUF_ERROR;
+        }
         else if ((status == TINFL_STATUS_DONE) || (!pStream->avail_in) || (!pStream->avail_out) || (pState->m_dict_avail))
             break;
     }
@@ -1141,54 +1290,19 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
     return ((status == TINFL_STATUS_DONE) && (!pState->m_dict_avail)) ? MZ_STREAM_END : MZ_OK;
 }
 
-// hashcat-patched: helper function for shifted u32
-
-DECLSPEC u32 GETSHIFTEDINT (PRIVATE_AS u32 *a, const int n)
-{
-  const int d = n / 4;
-  const int m = n & 3;
-
-  u64 tmp = hl32_to_64_S (a[d + 1], a[d + 0]);
-
-  tmp >>= m * 8;
-
-  return l32_from_64_S (tmp);
-}
-
-// hashcat-patched: faster zlib_memcpy for our large (TINFL_LZ_DICT_SIZE) move of bytes from the old output to the window/lookup table
-
-DECLSPEC void hc_shift_inflate_dict (PRIVATE_AS u8 *buf, const u32 offset, const u32 len)
-{
-  PRIVATE_AS u32 *ptr = (PRIVATE_AS u32 *) buf;
-
-  // we need to use len - 4 here to avoid buffer overflows caused by the u64 type in GETSHIFTEDINT
-
-  u32 i, j;
-
-  for (i = 0, j = 0; i < len - 4; i += 4, j++)
-  {
-    ptr[j] = GETSHIFTEDINT (ptr, offset + i);
-  }
-
-  // final step (last 4 bytes are special):
-
-  ptr[j] = (buf[offset + i + 3] << 24) | (buf[offset + i + 2] << 16) | (buf[offset + i + 1] << 8) | buf[offset + i];
-}
 
 // hashcat-patched: the mz_inflate () function from above doesn't work for us because we need to allow larger input/output and
 // we only need the crc32 checksum actually
 
 DECLSPEC int hc_inflate (mz_streamp pStream)
 {
-  // we can't use the full TINFL_LZ_DICT_SIZE buffer because even with only 16 input bytes
-  // we can get pretty close to our max available output buffer:
+  // hashcat-patched: the whole stream goes in at once. Handing it over sixteen bytes at a time was
+  // what kept the output window inside this function, and the decompressor takes the window back
+  // itself now.
 
-  // size_t in_bytes = MZ_MIN (TINFL_LZ_DICT_SIZE, pStream->avail_in);
-  size_t in_bytes = MZ_MIN (16, pStream->avail_in);
+  size_t in_bytes = pStream->avail_in;
 
-  mz_uint decomp_flags = ((pStream->avail_in - in_bytes) > 0) ? TINFL_FLAG_HAS_MORE_INPUT : 0;
-
-  decomp_flags |= TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+  mz_uint decomp_flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF | TINFL_FLAG_FLUSH_WINDOW;
 
   PRIVATE_AS inflate_state *pState = pStream->state;
 
@@ -1210,19 +1324,6 @@ DECLSPEC int hc_inflate (mz_streamp pStream)
   pStream->avail_out -= out_bytes;
   pStream->total_out += out_bytes;
   pStream->window_out += out_bytes;
-
-  if (pStream->avail_out < TINFL_LZ_DICT_SIZE)
-  {
-    // reset:
-
-    // move the last TINFL_LZ_DICT_SIZE bytes to the start of the output buffer
-
-    // zlib_memcpy (pStream->next_out, pStream->next_out + pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
-    hc_shift_inflate_dict (pStream->next_out, pStream->window_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
-
-    pStream->avail_out = TINFL_LZ_DICT_SIZE;
-    pStream->window_out = TINFL_LZ_DICT_SIZE;
-  }
 
   if (status < 0)
   {

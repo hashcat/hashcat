@@ -124,7 +124,8 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
   (k3) = ((temp * (temp ^ 1)) >> 8) & 0xff; \
 }
 
-#pragma pack(push,1)
+// Without the packed attribute the compiler lays data[] out at offset 40 of pkzip_t. Packed it
+// fell on 34, which is 2 mod 4, and every u32 read of the file data was misaligned.
 
 struct pkzip_hash
 {
@@ -141,7 +142,7 @@ struct pkzip_hash
   u16 checksum_from_timestamp;
   u32 data[MAX_DATA / 4];
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip_hash pkzip_hash_t;
 
@@ -153,11 +154,9 @@ struct pkzip
 
   pkzip_hash_t hash;
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip pkzip_t;
-
-#pragma pack(pop)
 
 #define CRC32_IN_INFLATE
 
@@ -257,17 +256,20 @@ CONSTANT_VK code distfix[32] = {
     {22,5,193},{64,5,0}
 };
 
-DECLSPEC int check_inflate_code2 (u8 *next)
+// hashcat-patched: Metal refuses a pointer that does not name its address space, and everything these
+// two walk lives in private memory.
+
+DECLSPEC int check_inflate_code2 (PRIVATE_AS u8 *next)
 {
   u32 bits, hold, thisget, have, i;
   int left;
   u32 ncode;
   u32 ncount[2];
-  u8 *count;
+  PRIVATE_AS u8 *count;
   hold = *next + (((u32) next[1]) << 8) + (((u32) next[2]) << 16) + (((u32) next[3]) << 24);
   next += 3;
   hold >>= 3;
-  count = (u8*)ncount;
+  count = (PRIVATE_AS u8 *) ncount;
 
   if (257 + (hold & 0x1F) > 286)
   {
@@ -339,7 +341,7 @@ DECLSPEC int check_inflate_code2 (u8 *next)
   return 1;
 }
 
-DECLSPEC int check_inflate_code1 (u8 *next, int left)
+DECLSPEC int check_inflate_code1 (PRIVATE_AS u8 *next, int left)
 {
   u32 whave = 0, op, bits, hold,len;
   code here1;
