@@ -199,6 +199,18 @@ def main():
         opencl_links = find_opencl(zfilled_key)
         test_link = find_test(zfilled_key)
 
+        # A mode whose test link points at test.sh is one of the container modes: it is exercised
+        # only against a crypto container, so note that its test needs the -g path or a shipped
+        # container, not a hash the oracle makes from a password.
+        if test_link == "[:white_check_mark:](/tools/test.sh)":
+            footnote_val = ("Tested only against a crypto container: a shipped test container or one "
+                            "built on the fly by tools/test.sh -g. It has no example-hash oracle that "
+                            "runs without a container.")
+            if footnote_val not in footnote_map:
+                footnote_map[footnote_val] = footnote_counter
+                footnote_counter += 1
+            footnote += f"[^{footnote_map[footnote_val]}]"
+
         # Make sure we refer to root for display
         opencl_links = opencl_links.replace('/../../', '/')
         test_link = test_link.replace('/../../', '/')

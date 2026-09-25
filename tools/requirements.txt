@@ -1,11 +1,26 @@
 # Python packages the test modules under tools/test_modules need.
 # tools/install_modules.sh installs from this file.
+#
+# Pinned, so that a release of one of these cannot change what the suite reports overnight. A new
+# version comes in by changing the line here, in a commit of its own, with the suite run on it.
 
-pycryptodome
-cryptography
-argon2-cffi
+pycryptodome==3.23.0
+cryptography==50.0.1
+argon2-cffi==25.1.0
 
 # gostcrypto's update () is only correct while what it has been fed is a whole number of 64
 # byte blocks, so a Streebog message goes into it in one call rather than in pieces.
 
-gostcrypto
+gostcrypto==1.2.5
+
+# pygost is not on PyPI, so pin it to the git mirror it is built from (this is
+# release 4.4). A plain "pygost==4.4" is unresolvable and only ever passed
+# because the package was already installed by hand.
+
+pygost @ git+https://github.com/matrix/pygost@f75fec8629ad708784df1f37d86d339691e5157f
+
+# The crypt module python 3.13 removed, lifted out of the standard library. The modes whose oracle
+# is libc's crypt (), DES crypt and the yescrypt family, need it, and it calls the same crypt_r ()
+# perl's crypt () does.
+
+crypt-r==3.13.1

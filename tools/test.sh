@@ -7,6 +7,11 @@
 
 OPTS="--quiet --potfile-disable --logfile-disable"
 
+# 2500/2501/16800/16801 are deprecated plugins, and hashcat aborts on a deprecated mode unless
+# this is passed. All four are cracked by the suite, so the crack path needs the flag. It is a
+# no-op for every non-deprecated mode.
+OPTS="${OPTS} --deprecated-check-disable"
+
 # The generated passwords can carry multi byte UTF-8, and hashcat counts a password in bytes.
 # In the C locale so does bash: ${#pass} is a byte count, ${pass:n:1} is one byte and cut -c
 # is cut -b. Under a UTF-8 locale those would count characters instead and the lengths the
@@ -53,7 +58,7 @@ TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 29311 2931
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773 13781 13782 13783 29411 29412 29413 29421 29422 29423 29431 29432 29433 29441 29442 29443 29451 29452 29453 29461 29462 29463 29471 29472 29473 29481 29482 29483"
 
 # List of modes which return a different output hash format than the input hash format
-NOCHECK_ENCODING="16800 22000"
+NOCHECK_ENCODING="16800 16801 22000"
 
 
 # List of LUKS modes which have test containers
@@ -389,6 +394,34 @@ function expected_plain()
   fi
 
   printf '%s' "${1}"
+}
+
+function output_has_crack()
+{
+  # Whether hashcat's output ($1) holds the crack of hash $3 that the line $2, hash:password, stands
+  # for. A mode whose algorithm drops bits of the password can print a different password that gives
+  # the same hash: DES keeps 7 bits of every byte, and module_01500.c prints the byte with the top
+  # bit cleared. So a line that is not there as generated is looked for by hash, and a password the
+  # oracle's verify turns back into that hash counts as the crack. A search without a hash, the
+  # password only modes, has nothing to verify against and is left to the plain comparison.
+
+  echo "${1}" | grep -F -- "${2}" &>/dev/null && return 0
+
+  [ "${2:0:1}" = ":" ] && return 1
+
+  local och_dir="${OUTD}/verify_${hash_type}"
+
+  mkdir -p "${och_dir}"
+
+  echo "${1}" | grep -F -- "${3}:" > "${och_dir}/cracks" || return 1
+
+  printf '%s\n' "${3}" > "${och_dir}/hashes"
+
+  : > "${och_dir}/out"
+
+  run_oracle verify "${hash_type}" "${och_dir}/hashes" "${och_dir}/cracks" "${och_dir}/out" &>/dev/null
+
+  [ -s "${och_dir}/out" ]
 }
 
 # What each of the whole word attacks is given after the hash. -a 0 takes its candidates on a pipe
@@ -1108,7 +1141,7 @@ function attack_whole_word()
             search="${hash}:$(expected_plain "${pass}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
           newRet=$?
         fi
 
@@ -1285,7 +1318,7 @@ function attack_whole_word()
             search="${hash}:$(expected_plain "${pass}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
         fi
@@ -1486,7 +1519,7 @@ function attack_1()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -1619,7 +1652,7 @@ function attack_1()
           search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
         fi
 
-        echo "${output}" | grep -F "${search}" &>/dev/null
+        output_has_crack "${output}" "${search}" "${hash}"
 
         newRet=$?
 
@@ -1794,7 +1827,7 @@ function attack_3()
           fi
         fi
 
-        echo "${output}" | grep -F "${search}" &>/dev/null
+        output_has_crack "${output}" "${search}" "${hash}"
 
         newRet=$?
 
@@ -2254,7 +2287,7 @@ function attack_3()
           search="${hash}:$(expected_plain "${pass}")"
         fi
 
-        echo "${output}" | grep -F "${search}" &>/dev/null
+        output_has_crack "${output}" "${search}" "${hash}"
 
         newRet=$?
 
@@ -2495,7 +2528,7 @@ function attack_6()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -2662,7 +2695,7 @@ function attack_6()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -2955,7 +2988,7 @@ function attack_7()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -3157,7 +3190,7 @@ function attack_7()
             search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
           fi
 
-          echo "${output}" | grep -F "${search}" &>/dev/null
+          output_has_crack "${output}" "${search}" "${hash}"
 
           newRet=$?
 
@@ -3385,7 +3418,7 @@ function attack_12()
               search="${hash}:$(expected_plain "${pass}")"
             fi
 
-            echo "${output}" | grep -F "${search}" &>/dev/null
+            output_has_crack "${output}" "${search}" "${hash}"
 
             newRet=$?
 
@@ -3574,7 +3607,7 @@ function attack_12()
               search="${hash}:$(expected_plain "${line_dict1}${line_dict2}")"
             fi
 
-            echo "${output}" | grep -F "${search}" &>/dev/null
+            output_has_crack "${output}" "${search}" "${hash}"
 
             newRet=$?
 
@@ -6398,8 +6431,15 @@ function selftest_vector_sweep()
   local sweep_ok=0
   local sweep_bad=""
   local sweep_slow=""
+  local sweep_na=""
   local sweep_modes
   local sweep_mode
+
+  # Modes with no meaningful self-test crack: 2000 and 99999 are Plaintext passthrough
+  # modes (STDOUT), and 14600 is LUKS, whose example hash is N/A and lives in external
+  # container files. Run them and print their line, but do not count them as cracked or
+  # as a failure. test.py keeps the same set (NO_SELFTEST), so the two stay comparable.
+  local no_selftest=" 2000 14600 99999 "
 
   sweep_modes=$(./${BIN} --hash-info 2>/dev/null | sed -n 's/^Hash mode #\([0-9]*\)$/\1/p')
 
@@ -6418,14 +6458,21 @@ function selftest_vector_sweep()
       fi
     fi
 
-    sweep_total=$((sweep_total + 1))
-
     local before="${SKIPPED_LIST}"
     local out
 
     out=$(selftest_vector_test "${sweep_mode}" 0)
 
     echo "${out}"
+
+    case "${no_selftest}" in
+      *" ${sweep_mode} "*)
+        sweep_na="${sweep_na}${sweep_mode} "
+        continue
+        ;;
+    esac
+
+    sweep_total=$((sweep_total + 1))
 
     if echo "${out}" | grep -q '> OK :'; then
       sweep_ok=$((sweep_ok + 1))
@@ -6443,6 +6490,10 @@ function selftest_vector_sweep()
 
   if [ -n "${sweep_slow}" ]; then
     echo "[ ${OUTD} ] > hit --runtime ${RUNTIME}, rerun those with -r: ${sweep_slow}"
+  fi
+
+  if [ -n "${sweep_na}" ]; then
+    echo "[ ${OUTD} ] > no self-test vector, not checked: ${sweep_na}"
   fi
 
   if [ -n "${sweep_bad}" ]; then
@@ -7124,6 +7175,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
+        # 2000 (STDOUT) has an empty kernel, so run_oracle would report it as having no kernel here.
+        # It is tested by stdout_roundtrip_test in the main loop instead, so skip the oracle pre-pass.
+        if [ "${TMP_HT}" -eq 2000 ]; then
+          continue
+        fi
+
         # only a mode with an oracle, a .pm or a .py, has anything to generate.
         # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
         # which are container-only. LUKS is the one family that has both, and it
@@ -7152,6 +7209,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
         # -g runs only the modes it can build, so only those need a hash line
         # generated for them here.
         if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && ! is_in_array "${TMP_HT}" ${GEN_MODES}; then
+          continue
+        fi
+
+        # 2000 (STDOUT) has an empty kernel, so run_oracle would report it as having no kernel here.
+        # It is tested by stdout_roundtrip_test in the main loop instead, so skip the oracle pre-pass.
+        if [ "${TMP_HT}" -eq 2000 ]; then
           continue
         fi
 
@@ -7192,6 +7255,42 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   # for these particular algos we need to save the output to a temporary file
   IFS=';' read -ra FILE_BASED_ALGOS <<< "${HASHFILE_ONLY}"
 
+  stdout_roundtrip_test()
+  {
+    # 2000 (STDOUT) has an empty kernel (OpenCL/m02000_mxx is a no-op) and never cracks, so there is
+    # no digest to test. The test is a round trip: every word fed to 'hashcat --stdout -a 0' must
+    # come back byte for byte. The words come from the same seeded oracle test.py uses, forced pure
+    # because --stdout has no kernel family, so the two engines check the identical set.
+    local wfile="${OUTD}/m02000_stdout_words"
+    local ofile="${OUTD}/m02000_stdout_out"
+
+    IS_OPTIMIZED=0 python3 "${TDIR}/test_module_runner.py" single 2000 2>/dev/null | python3 -c '
+import sys, re
+LINE = re.compile(rb"^echo (.*) \| \./hashcat \$\{OPTS\} -a 0 -m \d+ \x27(.*)\x27$")
+ws = [m.group(1).rstrip(b" ") for m in (LINE.match(l) for l in sys.stdin.buffer.read().splitlines()) if m]
+sys.stdout.buffer.write(b"\n".join(ws) + (b"\n" if ws else b""))
+' > "${wfile}"
+
+    local force=""
+    [ "${FORCE}" -eq 1 ] && force="--force"
+
+    ./${BIN} --stdout -a 0 ${force} "${wfile}" > "${ofile}" 2>/dev/null
+
+    local nf cnt
+    read -r nf cnt < <(python3 -c '
+import sys
+w = open(sys.argv[1], "rb").read().splitlines()
+o = open(sys.argv[2], "rb").read().splitlines()
+nf = sum(1 for i, x in enumerate(w) if i >= len(o) or o[i] != x)
+print(nf, len(w))
+' "${wfile}" "${ofile}")
+
+    local msg="OK"
+    if [ "${nf}" -ne 0 ] || [ "${cnt}" -eq 0 ]; then msg="Error"; fi
+
+    echo "[ ${OUTD} ] [ Type 2000, STDOUT round-trip ] > ${msg} : ${nf}/${cnt} not found, 0/${cnt} not matched, 0/${cnt} timeout, 0/${cnt} skipped"
+  }
+
   for hash_type in $HASH_TYPES; do
 
     if [ "${HT}" -ne 65535 ]; then
@@ -7225,8 +7324,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       fi
     fi
 
-    # skip deprecated hash-types
-    if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 2501 ] || [ "${hash_type}" -eq 16800 ] || [ "${hash_type}" -eq 16801 ] ; then
+    # STDOUT (2000) is not a crack: its kernel is empty, so it is tested by a --stdout round trip
+    # rather than the attack loops below, which do not apply to it. test.py does the same.
+    if [ "${hash_type}" -eq 2000 ]; then
+      stdout_roundtrip_test
       continue
     fi
 

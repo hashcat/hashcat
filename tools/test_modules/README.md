@@ -65,3 +65,28 @@ twice under the seed to find out which case it is in, and says which one it used
 `HCTEST_SEED` is worth knowing about on its own. Set it, and a run of either engine repeats: the
 same salts, the same passwords, the same lengths. Leave it unset and both draw at random, which is
 what the suites want, because a mode that only works for one salt is a mode that is broken.
+
+#### Running an oracle inside hashcat ####
+
+`tools/test_bridge.py` loads any oracle into hashcat's Python bridge, so hashcat cracks with the
+oracle's own `module_generate_hash`/`module_verify_hash` instead of a kernel. It is a way to exercise
+a mode's reference implementation through hashcat's real parser and candidate handling, or to step
+through it, with no kernel involved:
+
+    python3 tools/test_bridge.py vectors 1000 /tmp/b.hash /tmp/b.words
+    ./hashcat -m 73000 --bridge-parameter1 tools/test_bridge.py /tmp/b.hash /tmp/b.words
+
+The first command writes vectors for a mode (here 1000): `-P` picks the pure family, otherwise
+optimized. A bridge line is `sha256(H)*MODE:FAMILY:base64(H)`, where H is the oracle's own hash line.
+The bridge splits a line at its first `*` and many hash formats carry one, so H travels base64 encoded
+in the salt half and the hash half is a fixed length digest of it; for each candidate the bridge calls
+the oracle's `module_verify_hash` to regenerate H and digests the result, which equals the hash half
+only when the candidate is the password. A hash line longer than the bridge's 1024 byte salt does not
+fit and is skipped, which the `vectors` command reports.
+
+Both bridge modes run the same oracle. On Linux use `-m 73000` (multiprocessing): it spawns the
+system Python, so it covers every oracle including the ones that use pycryptodome. `-m 72000` is the
+free-threaded bridge; its embedded interpreter cannot load pycryptodome, so an oracle that imports
+`Crypto` (m01000, for MD4) runs under 73000 but not 72000, while a hashlib-only oracle runs under both.
+Building the 72000 plugin needs Python 3.13+ headers and a free-threaded runtime to load it; see
+[docs/hashcat-python-plugin-requirements.md](/docs/hashcat-python-plugin-requirements.md).
