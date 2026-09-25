@@ -2512,6 +2512,1108 @@ def run_stdout_roundtrip(args, tmp):
         "0/%d timeout, 0/%d skipped" % (STDOUT_MODE, msg, nf, cnt, cnt, cnt, cnt))
 
 
+# The edge-testing path (a port of tools/test_edge.sh). For each mode it drives the min and max
+# password and salt lengths the module declares, across every attack type, kernel type, vector
+# width and target type, and checks hashcat cracks them. It shares the oracle engine
+# (tools/test_module_runner.py, the "edge" subcommand), setup_isolation() and the -j fan-out with
+# the crack-verification path above. Only modes with a .py oracle are reachable here, so the .pm
+# only modes test_edge.sh covers through the perl engine are left to test_edge.sh.
+
+EDGE_ATTACKS    = [0, 1, 3, 4, 6, 7, 8, 9, 12]
+EDGE_WHOLE_WORD = (0, 4, 8, 9)
+EDGE_WIDTHS     = [1, 2, 4, 8, 16]
+EDGE_RUNTIME    = 270
+
+# 2000 (STDOUT) has an empty kernel and never cracks, so edge-cracking it only makes errors
+# (test_edge.sh SKIP_HASH_TYPES). The deprecated WPA modes are dropped by the -HH check instead.
+
+EDGE_SKIP_MODES = {2000}
+
+# 14000/14100/31500/31600 crack a plaintext other than the one the hash was made from, and
+# 22000/22001 write the handshake parts rather than hash and plaintext, so their outfile cannot be
+# compared to what the oracle generated (test_edge.sh SKIP_OUT_MATCH_HASH_TYPES).
+
+EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
+
+# The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
+# anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
+
+EDGE_SKIP_SAME_SALT = {6600, 7100, 7200, 8200, 13200, 13400, 15300, 15310, 15900, 15910, 16900,
+                       18300, 18900, 20200, 20300, 20400, 27000, 27100, 29700, 29930, 29940}
+
+EDGE_HH_CACHE = {}
+
+
+def _w(path, data):
+  with open(path, "wb") as fh:
+    fh.write(data)
+
+
+def edge_as_bytes(x):
+  if isinstance(x, bytes):
+    return x
+
+  return os.fsencode(x)
+
+
+def edge_run(opts, mode, target, stdin_bytes, attack, extra):
+  # Like run_hashcat, but every argument is bytes, because an edge hash, salt or mask can carry a
+  # byte that is not valid ASCII and subprocess will not mix str and bytes in one argv.
+
+  argv = [os.fsencode(BIN)]
+  argv += [edge_as_bytes(o) for o in opts]
+  argv += [b"-a", str(attack).encode("ascii"), b"-m", str(mode).encode("ascii")]
+  argv += [edge_as_bytes(target)]
+  argv += [edge_as_bytes(x) for x in extra]
+
+  proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+  return proc.returncode, proc.stdout + proc.stderr
+
+
+def edge_echo_norm(data):
+  # bash 'echo ${var}' with the value unquoted: word splitting collapses every run of whitespace to
+  # one space and trims the ends. test_edge.sh compares the md5 of two such strings, which is the
+  # same as comparing the strings, so the single-hash check compares these return values directly.
+
+  return b" ".join(data.split())
+
+
+def edge_sort_lines(data):
+  # 'sort -s' over a byte stream. A trailing newline is not an extra empty line, and under the C
+  # locale the order is a plain byte order, which sorted() gives.
+
+  lines = data.split(b"\n")
+
+  if lines and lines[-1] == b"":
+    lines.pop()
+
+  return sorted(lines)
+
+
+def edge_strip_userpw(data):
+  # test_edge.sh runs the outfile through sed 's/    (user password.*$//g' before comparing, so a
+  # mode that appends a note to the plaintext line still matches. Applied per line here.
+
+  return re.sub(rb"    \(user password[^\n]*", b"", data)
+
+
+def edge_noise_words(word, slow, suffix):
+  # test_edge.sh noise_words: the tail of the word replaced by every digit, with the word itself put
+  # back in the middle of them, so a word-list attack has to pick the right candidate out of noise
+  # rather than being handed it alone. 100 variants on a fast hash, 10 on a slow one.
+
+  cut_len = 1 if slow else 2
+
+  if len(word) < cut_len:
+    cut_len = len(word)
+
+  if cut_len == 0:
+    return [word + suffix]
+
+  if cut_len == 2:
+    tails = [("%d%d" % (a, b)).encode("ascii") for a in range(10) for b in range(10)]
+  else:
+    tails = [("%d" % a).encode("ascii") for a in range(10)]
+
+  stem = word[:len(word) - cut_len]
+
+  half = len(tails) // 2
+
+  out = []
+
+  for at, tail in enumerate(tails):
+    if at == half:
+      out.append(word + suffix)
+
+    out.append(stem + tail + suffix)
+
+  return out
+
+
+def edge_mask_for(tok, text):
+  # test_edge.sh mask_for: a mask of len(text) copies of tok. For '?d' the positions that are not
+  # ASCII digits are spelled as literals, because no '?d' produces a byte above 0x7f.
+
+  out = tok * len(text)
+
+  if tok == b"?d":
+    return mask_literalize(out, text)
+
+  return out
+
+
+def edge_build_ruleset(ruleset, context_lines):
+  # test_edge.sh: the smallest pcfg that emits exactly this list. X1 at probability 1 is one flat
+  # terminal per Context line, so the run is as long as the list and emits nothing else.
+
+  shutil.rmtree(ruleset, ignore_errors=True)
+
+  os.makedirs(os.path.join(ruleset, "Grammar"))
+  os.makedirs(os.path.join(ruleset, "Context"))
+
+  _w(os.path.join(ruleset, "Grammar", "grammar.txt"), b"X1\t1.0\n")
+  _w(os.path.join(ruleset, "Context", "1.txt"), b"".join(l + b"\n" for l in context_lines))
+
+
+def edge_oracle(mode, attack, optimized):
+  # The edge vectors for one mode, attack and kernel family, from the same engine test_edge.sh's
+  # run_oracle uses. Each line is mode,attack,optimized,word_len,salt_len,word_hex,salt_hex,hash_hex;
+  # the fields are hex so a comma or quote in the value never splits the line.
+
+  proc = subprocess.run([sys.executable, RUNNER, "edge", str(mode), str(attack),
+                         "1" if optimized else "0"],
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+  vectors = []
+
+  for line in proc.stdout.split(b"\n"):
+    if not line:
+      continue
+
+    fields = line.split(b",", 7)
+
+    if len(fields) < 8:
+      continue
+
+    try:
+      word_len = int(fields[3])
+      salt_len = int(fields[4])
+    except ValueError:
+      continue
+
+    # bytes.fromhex of an empty field is b"". The rstrip mirrors the way test_edge.sh reads each
+    # field through a command substitution, which strips a value's trailing newlines.
+
+    word = bytes.fromhex(fields[5].decode("ascii")).rstrip(b"\n") if fields[5] else b""
+    salt = bytes.fromhex(fields[6].decode("ascii")).rstrip(b"\n") if fields[6] else b""
+    dig  = bytes.fromhex(fields[7].decode("ascii")).rstrip(b"\n") if fields[7] else b""
+
+    vectors.append({"word_len": word_len, "salt_len": salt_len,
+                    "word": word, "salt": salt, "hash": dig})
+
+  return vectors, proc.returncode
+
+
+def edge_hh(mode):
+  # The one run of 'hashcat -m N -HH' test_edge.sh does many times over, parsed once here. Every
+  # field test_edge.sh reads off -HH is pulled out the same way its grep and awk do.
+
+  if mode in EDGE_HH_CACHE:
+    return EDGE_HH_CACHE[mode]
+
+  # -HH is run with ISOLATION, not just the crack itself: it initialises the backend to read
+  # Kernel.Type(s) and so touches the kernel cache, and two -j workers sharing the default cache
+  # race and one comes back without the kernel line, which reads as "no kernel type" and a false
+  # error. A private --cache-path per worker removes the shared state.
+
+  proc = subprocess.run([BIN, "-m", str(mode), "-HH"] + ISOLATION, cwd=ROOT,
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+  info = {"deprecated": False, "kernel_types": [], "slow": False, "salt_present": False,
+          "salt_virtual": False, "pw_type": "", "cnt_max": -1, "same_salt_not": False,
+          "keep_guessing": False}
+
+  for line in proc.stdout.decode("utf-8", "replace").split("\n"):
+    parts = line.split()
+
+    if "Deprecated.." in line:
+      info["deprecated"] = len(parts) > 1 and parts[1] == "Yes"
+    elif "Kernel.Type(s" in line:
+      info["kernel_types"] = line.split(":", 1)[1].replace(",", "").split()
+    elif "Slow.Hash" in line:
+      info["slow"] = len(parts) > 1 and parts[1] == "Yes"
+    elif "Salt.Type" in line:
+      info["salt_present"] = True
+      info["salt_virtual"] = len(parts) > 1 and parts[1] == "Virtual"
+    elif "Password.Type" in line:
+      info["pw_type"] = parts[1] if len(parts) > 1 else ""
+    elif "Hashes.Count.Max" in line:
+      if len(parts) > 1 and re.fullmatch(r"-?[0-9]+", parts[1]):
+        info["cnt_max"] = int(parts[1])
+    elif "Same.Salt" in line:
+      info["same_salt_not"] = len(parts) > 1 and parts[1] == "Not"
+    elif "Keep.Guessing" in line:
+      info["keep_guessing"] = len(parts) > 1 and parts[1] == "Yes"
+
+  EDGE_HH_CACHE[mode] = info
+
+  return info
+
+
+def edge_binary_hashfile(mode):
+  # A mode that takes the path of a container file (test_edge.sh BINARY_HASHFILE_TYPES). The
+  # OPTIONAL variant accepts the hash as text too, so it is left out.
+
+  src = module_source(mode)
+
+  return b"OPTS_TYPE_BINARY_HASHFILE" in src and b"OPTS_TYPE_BINARY_HASHFILE_OPTIONAL" not in src
+
+
+def edge_hexify_plain(mode):
+  # A mode whose plaintext hashcat writes as bare hex (test_edge.sh HEXIFY_PLAIN_TYPES). A mode that
+  # also reads its candidate as hex is left out.
+
+  src = module_source(mode)
+
+  return b"OPTS_TYPE_PT_ALWAYS_HEXIFY" in src and b"OPTS_TYPE_PT_HEX" not in src
+
+
+def edge_pyenv_free_threaded():
+  # test_edge.sh reads 'pyenv local' to decide 72000 and 73000. A missing pyenv leaves the flag off,
+  # so 72000 is skipped and 73000 runs, which is what a machine without pyenv does.
+
+  try:
+    proc = subprocess.run(["pyenv", "local"], cwd=ROOT,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  except OSError:
+    return False
+
+  if proc.returncode != 0:
+    return False
+
+  for line in proc.stdout.split(b"\n"):
+    if re.search(rb"t-dev", line) or re.search(rb"[0-9]t$", line):
+      return True
+
+  return False
+
+
+class EdgeCtx:
+  # The per-mode facts an attack cell needs, read once off -HH and the module source.
+
+  def __init__(self, mode, attack, ktype, optimized, hh, slow, binary,
+               pt_hex, pt_base58, hexify_plain, no_salt, keep_guessing):
+    self.mode         = mode
+    self.attack       = attack
+    self.ktype        = ktype
+    self.optimized    = optimized
+    self.hh           = hh
+    self.slow         = slow
+    self.binary       = binary
+    self.pt_hex       = pt_hex
+    self.pt_base58    = pt_base58
+    self.hexify_plain = hexify_plain
+    self.no_salt      = no_salt
+    self.keep_guessing = keep_guessing
+
+
+def edge_a3_split(ctx, word, word_len):
+  # test_edge.sh attack_type 3: the tail becomes a '?d' run rewritten to spell it, the head trails
+  # as literals, and the two are one argument so a split inside a character still reassembles.
+
+  if ctx.pt_hex:
+    return word[:-2], b"?b"
+
+  if ctx.pt_base58:
+    return word[:-2], b"?a?a"
+
+  if word_len == 2:
+    w1, mask = word[:-1], b"?d"
+  elif ctx.slow:
+    w1, mask = word[:-2], b"?d?d"
+  else:
+    w1, mask = word[:-3], b"?d?d?d"
+
+  return w1, mask_literalize(mask, word[len(w1):])
+
+
+def edge_a6_split(ctx, word, word_len):
+  # test_edge.sh attack_type 6: word on the left, mask on the right. The word ends on a character
+  # boundary and the mask spells whatever that leaves.
+
+  if ctx.pt_hex:
+    return word[:-2], b"?b"
+
+  if ctx.pt_base58:
+    return word[:-2], b"?a?a"
+
+  tail_len = 1 if (word_len == 2 or ctx.slow) else 2
+  split    = utf8_split_point(word, len(word) - tail_len)
+
+  return word[:split], edge_mask_for(b"?d", word[split:])
+
+
+def edge_a7_split(ctx, word, word_len):
+  # test_edge.sh attack_type 7: mask on the left, word on the right.
+
+  if ctx.pt_hex:
+    return word[2:], b"?b"
+
+  if ctx.pt_base58:
+    return word[2:], b"?a?a"
+
+  head_len = 1 if (word_len == 2 or ctx.slow) else 2
+  split    = utf8_split_point(word, head_len)
+
+  return word[split:], edge_mask_for(b"?d", word[:split])
+
+
+def edge_a12_split(ctx, word):
+  # test_edge.sh attack_type 12: a mask on both sides of the word, the shape 6 and 7 cannot reach,
+  # the two sides sharing the budget those spend on one. A word with nothing left once a mask
+  # character is taken off each end, and a slow hash, get the mask in front of the word instead.
+
+  mask_c   = b"?d"
+  cut_len  = 1
+  both     = True
+
+  if ctx.pt_hex:
+    mask_c, cut_len, both = b"?b", 2, False
+  elif ctx.pt_base58:
+    mask_c = b"?a"
+
+  if ctx.slow:
+    both = False
+
+  left  = cut_len
+  right = len(word) - cut_len
+
+  if mask_c == b"?d":
+    left  = utf8_split_point(word, left)
+    right = utf8_split_point(word, right)
+
+  mid_len = right - left
+
+  if both and mid_len >= 1:
+    w1 = word[left:right]
+
+    if mask_c == b"?d":
+      mask = edge_mask_for(b"?d", word[:left]) + b"?w" + edge_mask_for(b"?d", word[right:])
+    else:
+      mask = mask_c + b"?w" + mask_c
+  else:
+    w1 = word[left:]
+
+    if mask_c == b"?d":
+      mask = edge_mask_for(b"?d", word[:left]) + b"?w"
+    else:
+      mask = mask_c + b"?w"
+
+  return w1, mask
+
+
+def edge_single_cmd(ctx, word, word_len, i, tmp):
+  # The argv after the hash, and the stdin, for one single-hash edge vector. Mirrors the per-attack
+  # branches test_edge.sh builds in its single-hash loop.
+
+  attack = ctx.attack
+  pfx    = os.path.join(tmp, "edge_s_%d_%s_%d_%d" % (ctx.mode, ctx.ktype, attack, i))
+
+  if attack == 0:
+    return [], word + b"\n"
+
+  if attack == 1:
+    off = utf8_split_point(word, word_len // 2)
+    f1  = pfx + ".1.word"
+    f2  = pfx + ".2.word"
+
+    _w(f1, word[:off] + b"\n")
+    _w(f2, word[off:] + b"\n")
+
+    return [f1, f2], None
+
+  if attack == 3:
+    w1, mask = edge_a3_split(ctx, word, word_len)
+
+    return [w1 + mask], None
+
+  if attack == 6:
+    w1, mask = edge_a6_split(ctx, word, word_len)
+    f = pfx + "_1.word"
+
+    _w(f, w1)
+
+    return [f, mask], None
+
+  if attack == 7:
+    w1, mask = edge_a7_split(ctx, word, word_len)
+    f = pfx + "_2.word"
+
+    _w(f, w1)
+
+    return [mask, f], None
+
+  if attack == 12:
+    w1, mask = edge_a12_split(ctx, word)
+    f = pfx + "_12.word"
+
+    _w(f, w1)
+
+    return [mask, f], None
+
+  if attack == 4:
+    ruleset = pfx + ".ruleset"
+
+    edge_build_ruleset(ruleset, edge_noise_words(word, ctx.slow, b"\t1.0"))
+
+    return [ruleset], None
+
+  if attack == 8:
+    f = pfx + "_8.word"
+
+    _w(f, b"".join(l + b"\n" for l in edge_noise_words(word, ctx.slow, b"")))
+
+    return ["wordlist", f], None
+
+  if attack == 9:
+    f = pfx + "_9.word"
+
+    _w(f, word + b"\n")
+
+    return [f], None
+
+  return [], None
+
+
+def edge_single(ctx, width, opts, outfile, vectors, tmp):
+  errors = 0
+  cells  = 0
+
+  for i, v in enumerate(vectors, start=1):
+    word     = v["word"]
+    word_len = v["word_len"]
+    dig      = v["hash"]
+
+    word_compare = None
+
+    if ctx.mode == 20510:
+      # PKZIP master key reports a plaintext that is not the candidate; the candidate is the word
+      # without its first 6 bytes (test_edge.sh).
+      word_compare = word
+      word         = word[6:]
+
+    if ctx.hexify_plain:
+      word_compare = word.hex().encode("ascii")
+
+    if ctx.mode == 20510 and word_len <= 6 and len(word) == 0 and ctx.attack in (3, 6, 7, 12):
+      continue
+
+    # A -a 4 grammar cannot write an empty word or one holding a tab (test_edge.sh
+    # attack_rejects_word), so that vector is skipped rather than failed.
+
+    if ctx.attack == 4 and (len(word) == 0 or b"\t" in word):
+      continue
+
+    if ctx.binary:
+      # A container path hashcat prints back verbatim: an existing path is used as is (a LUKS image
+      # the module built), otherwise the base64 hash is decoded into a file (test_edge.sh).
+      if os.path.exists(dig):
+        target = dig
+      else:
+        target = os.fsencode(os.path.join(tmp, "edge_%d_%s_%d_%d.hashfile"
+                             % (ctx.mode, ctx.ktype, ctx.attack, i)))
+
+        _w(target, base64.b64decode(dig))
+
+      hash_out = target
+    else:
+      target   = dig
+      hash_out = dig
+
+    extra, stdin = edge_single_cmd(ctx, word, word_len, i, tmp)
+
+    try:
+      os.remove(outfile)
+    except OSError:
+      pass
+
+    rc, _ = edge_run(opts, ctx.mode, target, stdin, ctx.attack, extra)
+
+    cells += 1
+
+    if rc != 0:
+      if rc == 252:
+        break
+
+      errors += 1
+
+      print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
+            % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i))
+
+      if rc == 250:
+        break
+
+      continue
+
+    if ctx.mode in EDGE_SKIP_OUT_MATCH or ctx.keep_guessing:
+      continue
+
+    try:
+      with open(outfile, "rb") as fh:
+        raw = fh.read()
+    except OSError:
+      raw = b""
+
+    got  = edge_echo_norm(edge_strip_userpw(raw))
+    want = edge_echo_norm(hash_out + b":" + (word_compare if word_compare is not None else word))
+
+    if got != want:
+      errors += 1
+
+      print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
+            % (ctx.mode, ctx.attack, ctx.ktype, width, i))
+
+  return errors, cells
+
+
+def edge_multi_cmd(ctx, selected, width, tmp):
+  # The argv after the hash file, and the stdin, for the multi-hash run. Mirrors test_edge.sh's
+  # per-attack multi branches, which build one word or mask file across the selected vectors.
+
+  attack = ctx.attack
+  pfx    = os.path.join(tmp, "edge_m_%d_%s_%d_%d" % (ctx.mode, ctx.ktype, attack, width))
+
+  if attack == 0:
+    return [], b"".join(w + b"\n" for w, _, _, _ in selected)
+
+  if attack == 1:
+    f1 = pfx + ".1.words"
+    f2 = pfx + ".2.words"
+    heads = []
+    tails = []
+
+    for word, word_len, _, _ in selected:
+      off = utf8_split_point(word, word_len // 2)
+
+      heads.append(word[:off])
+      tails.append(word[off:])
+
+    _w(f1, b"".join(x + b"\n" for x in heads))
+    _w(f2, b"".join(x + b"\n" for x in tails))
+
+    return [f1, f2], None
+
+  if attack == 3:
+    masks = pfx + ".masks"
+    lines = []
+
+    for word, word_len, _, _ in selected:
+      w1, mask = edge_a3_split(ctx, word, word_len)
+
+      lines.append(w1 + mask)
+
+    _w(masks, b"".join(x + b"\n" for x in lines))
+
+    return [masks], None
+
+  if attack in (6, 7, 12):
+    wf = pfx + ".words"
+    mf = pfx + ".masks"
+    ws = []
+    ms = []
+
+    for word, word_len, _, _ in selected:
+      if attack == 6:
+        w1, mask = edge_a6_split(ctx, word, word_len)
+      elif attack == 7:
+        w1, mask = edge_a7_split(ctx, word, word_len)
+      else:
+        w1, mask = edge_a12_split(ctx, word)
+
+      ws.append(w1)
+      ms.append(mask)
+
+    _w(wf, b"".join(x + b"\n" for x in ws))
+    _w(mf, b"".join(x + b"\n" for x in ms))
+
+    if attack == 6:
+      return [wf, mf], None
+
+    return [mf, wf], None
+
+  if attack == 4:
+    # test_edge.sh's multi ruleset is one Context entry per hash's word, each carrying its own
+    # probability, so the words of the other hashes are the noise this attack tests against.
+    ruleset = pfx + ".ruleset"
+
+    edge_build_ruleset(ruleset, [w + b"\t1.0" for w, _, _, _ in selected])
+
+    return [ruleset], None
+
+  if attack == 8:
+    wf = pfx + ".words"
+
+    _w(wf, b"".join(w + b"\n" for w, _, _, _ in selected))
+
+    return ["wordlist", wf], None
+
+  if attack == 9:
+    wf = pfx + ".words"
+
+    _w(wf, b"".join(w + b"\n" for w, _, _, _ in selected))
+
+    return [wf], None
+
+  return [], None
+
+
+def edge_multi(ctx, width, opts, outfile, vectors, tmp):
+  mode   = ctx.mode
+  attack = ctx.attack
+  hh     = ctx.hh
+
+  cnt_max = hh["cnt_max"]
+
+  if mode == 20510 or ctx.binary:
+    cnt_max = 1
+
+  # A mode that loads at most one hash has no multi run; nor does -a 9 on a mode where every hash is
+  # on the one salt, since -a 9 takes one candidate per salt (test_edge.sh).
+
+  if cnt_max == 1:
+    return 0, 0, False
+
+  if attack == 9 and ctx.no_salt:
+    return 0, 0, False
+
+  same_salt = True
+
+  if mode not in EDGE_SKIP_SAME_SALT and hh["same_salt_not"]:
+    same_salt = False
+
+  if attack == 9:
+    same_salt = False
+
+  if not vectors:
+    return 0, 0, False
+
+  selected   = []
+  salts_seen = set()
+  hash_cnt   = 0
+
+  for v in vectors:
+    if cnt_max > 1 and hash_cnt > cnt_max:
+      continue
+
+    word     = v["word"]
+    word_len = v["word_len"]
+    salt     = v["salt"]
+    salt_len = v["salt_len"]
+    dig      = v["hash"]
+
+    word_compare = None
+
+    if mode == 20510:
+      word_compare = word
+      word         = word[6:]
+
+    if ctx.hexify_plain:
+      word_compare = word.hex().encode("ascii")
+
+    if not ctx.no_salt and not same_salt:
+      key = (salt_len, salt)
+
+      if key in salts_seen:
+        continue
+
+      salts_seen.add(key)
+
+    if attack == 4 and (len(word) == 0 or b"\t" in word):
+      continue
+
+    hash_cnt += 1
+
+    selected.append((word, word_len, word_compare, dig))
+
+  # test_edge.sh runs the multi case only with two or more hashes.
+
+  if hash_cnt <= 1:
+    return 0, 0, False
+
+  use_compare = ctx.hexify_plain or mode == 20510
+
+  hash_in = os.path.join(tmp, "edge_m_%d_%s_%d_%d.hashes" % (mode, ctx.ktype, attack, width))
+
+  hcout  = []
+  hlines = []
+
+  for word, word_len, word_compare, dig in selected:
+    hlines.append(dig)
+
+    wline = word_compare if (use_compare and word_compare is not None) else word
+
+    hcout.append(dig + b":" + wline)
+
+  _w(hash_in, b"".join(h + b"\n" for h in hlines))
+
+  extra, stdin = edge_multi_cmd(ctx, selected, width, tmp)
+
+  try:
+    os.remove(outfile)
+  except OSError:
+    pass
+
+  rc, out = edge_run(opts, mode, hash_in, stdin, attack, extra)
+
+  if rc != 0:
+    if rc == 252:
+      return 0, 1, True
+
+    # -a 9 wants one iteration count across the whole set; a mixed set is the attack saying what it
+    # takes, not a defect (test_edge.sh).
+
+    if attack == 9 and b"Mixed iteration counts are not supported" in out:
+      return 0, 1, False
+
+    print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi"
+          % (rc, mode, attack, ctx.ktype, width))
+
+    return 1, 1, rc == 250
+
+  if mode in EDGE_SKIP_OUT_MATCH or ctx.keep_guessing:
+    return 0, 1, False
+
+  try:
+    with open(outfile, "rb") as fh:
+      raw = fh.read()
+  except OSError:
+    raw = b""
+
+  got  = edge_sort_lines(edge_strip_userpw(raw).rstrip(b"\n") + b"\n")
+  want = edge_sort_lines(b"".join(l + b"\n" for l in hcout))
+
+  if got != want:
+    print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, multi"
+          % (mode, attack, ctx.ktype, width))
+
+    return 1, 1, False
+
+  return 0, 1, False
+
+
+def edge_process_mode(args, mode, cfg, tmp):
+  # One mode's whole edge run: the skip gates, then every attack, kernel, width and target the
+  # options ask for. Returns (errors, cells).
+
+  if mode in EDGE_SKIP_MODES:
+    print("[ test.py edge ] > Skip Type %d (common)" % mode)
+
+    return 0, 0
+
+  hh = edge_hh(mode)
+
+  if hh["deprecated"]:
+    print("[ test.py edge ] > Skip Type %d (is deprecated)" % mode)
+
+    return 0, 0
+
+  if mode == 72000 and not edge_pyenv_free_threaded():
+    print("[ test.py edge ] > Skip Type %d (missing python free-threaded support)" % mode)
+
+    return 0, 0
+
+  if mode == 73000 and edge_pyenv_free_threaded():
+    print("[ test.py edge ] > Skip Type %d (needs a python without free-threaded support)" % mode)
+
+    return 0, 0
+
+  slow         = hh["slow"]
+  binary       = edge_binary_hashfile(mode)
+  hexify_plain = edge_hexify_plain(mode)
+  no_salt      = (not hh["salt_present"]) or hh["salt_virtual"]
+  pt_hex       = hh["pw_type"] == "HEX"
+  pt_base58    = hh["pw_type"] == "BASE58" or mode in (31500, 31600)
+  keep_guess   = hh["keep_guessing"]
+
+  errors = 0
+  cells  = 0
+
+  for attack in cfg["attacks"]:
+    kernel_types = hh["kernel_types"]
+
+    # No kernel family means nothing to test; test_edge.sh counts that as an error rather than a
+    # green run that tested nothing.
+
+    if not kernel_types:
+      print("[ test.py edge ] !> error Type %d: -HH names no kernel type" % mode)
+
+      errors += 1
+
+      continue
+
+    for ktype in kernel_types:
+      optimized = ktype == "optimized"
+
+      if cfg["kernel_filter"] is not None and cfg["kernel_filter"] != (1 if optimized else 0):
+        continue
+
+      # -a 4 amplifies on the device for a mode whose kernel runs inside, and that engine has a pure
+      # kernel only unless the mode ships mNNNNN_a4-optimized.cl, so an optimized -a 4 pass on such a
+      # mode has nothing to run (test_edge.sh).
+
+      if attack == 4 and optimized and not slow and not a4_optimized(mode):
+        continue
+
+      if cfg["exec_filter"] is not None and (1 if slow else 0) not in cfg["exec_filter"]:
+        continue
+
+      # A slow mode runs only the whole-word attacks when the full suite is selected, since -a 0
+      # covers the same candidates and the mask attacks cost too much there (test_edge.sh). This only
+      # fires when the -m selection is all or a range, not a single mode, and never for 400.
+
+      if slow and (cfg["exec_filter"] is None or 1 in cfg["exec_filter"]):
+        if 0 in cfg["attacks_set"] and not cfg["all_attacks"]:
+          if attack not in EDGE_WHOLE_WORD and cfg["all_scope"] and mode != 400:
+            continue
+
+      vectors, _ = edge_oracle(mode, attack, optimized)
+
+      if not vectors or not vectors[0]["hash"]:
+        print("[ test.py edge ] !> error Type %d: empty test vectors" % mode)
+
+        errors += 1
+
+        break
+
+      ctx = EdgeCtx(mode, attack, ktype, optimized, hh, slow, binary,
+                    pt_hex, pt_base58, hexify_plain, no_salt, keep_guess)
+
+      for width in cfg["widths"]:
+        outfile = os.path.join(tmp, "edge_%d_%s_%d_%d.outfile" % (mode, ktype, attack, width))
+        opts    = edge_opts(args, optimized, width, pt_hex, outfile)
+
+        if 0 in cfg["targets"]:
+          e, c = edge_single(ctx, width, opts, outfile, vectors, tmp)
+
+          errors += e
+          cells  += c
+
+        if 1 in cfg["targets"]:
+          e, c, stop = edge_multi(ctx, width, opts, outfile, vectors, tmp)
+
+          errors += e
+          cells  += c
+
+          if stop:
+            break
+
+  return errors, cells
+
+
+def edge_opts(args, optimized, width, pt_hex, outfile):
+  # test_edge.sh's global OPTS plus the per-kernel and per-width flags, with test.py's ISOLATION
+  # appended so any number of runs share no mutable state.
+
+  opts = ["--quiet", "--potfile-disable", "--machine-readable", "--logfile-disable"]
+
+  opts += ISOLATION
+  opts += ["-D", args.device, "--runtime", str(EDGE_RUNTIME), "--self-test-disable"]
+
+  if args.force:
+    opts.append("--force")
+
+  if optimized:
+    opts.append("-O")
+
+  opts += ["--backend-vector-width", str(width)]
+
+  if pt_hex:
+    opts.append("--hex-charset")
+
+  opts += ["--outfile", outfile]
+
+  return opts
+
+
+def edge_select_modes(spec, modes):
+  # test_edge.sh's -m rules over the .py oracle set: a single value must be a member, a range must
+  # intersect it, "all" is every member.
+
+  if spec == "all":
+    return modes
+
+  if re.fullmatch(r"[0-9]+", spec):
+    ht = int(spec)
+
+    if ht not in modes:
+      die("! hash type %d has no tools/test_modules/m%05d.py, so test.py --edge cannot run it"
+          % (ht, ht))
+
+    return [ht]
+
+  m = re.fullmatch(r"([0-9]+)-([0-9]+)", spec)
+
+  if m is None:
+    die("! invalid hash type selected: %s" % spec)
+
+  lo, hi = int(m.group(1)), int(m.group(2))
+
+  if lo > hi:
+    die("! invalid hash type range: %d-%d" % (lo, hi))
+
+  hit = [ht for ht in modes if lo <= ht <= hi]
+
+  if not hit:
+    die("! no hash type between %d and %d has a python oracle" % (lo, hi))
+
+  return hit
+
+
+def edge_parse_attacks(spec):
+  if spec == "all":
+    return list(EDGE_ATTACKS)
+
+  out = []
+
+  for tok in spec.split(","):
+    if not re.fullmatch(r"0|1|3|4|6|7|8|9|12", tok):
+      die("! invalid attack type: %s" % tok)
+
+    out.append(int(tok))
+
+  return out
+
+
+def edge_parse_widths(spec):
+  # For --edge, an unset -V (test.py's "default") means every width, as test_edge.sh's default does.
+
+  if spec in ("all", "default"):
+    return list(EDGE_WIDTHS)
+
+  out = []
+
+  for tok in spec.split(","):
+    if not re.fullmatch(r"1|2|4|8|16", tok):
+      die("! invalid vector width: %s" % tok)
+
+    out.append(int(tok))
+
+  return out
+
+
+def edge_parse_kernel(spec):
+  if spec == "all":
+    return None
+
+  if spec in ("0", "1"):
+    return int(spec)
+
+  die("! invalid kernel type: %s (0 pure, 1 optimized, all)" % spec)
+
+
+def edge_parse_targets(spec):
+  if spec == "all":
+    return {0, 1}
+
+  if spec == "single":
+    return {0}
+
+  if spec == "multi":
+    return {1}
+
+  die("! invalid target type: %s" % spec)
+
+
+def edge_parse_exec(spec):
+  if spec == "all":
+    return None
+
+  out = set()
+
+  for tok in spec.split(","):
+    if tok not in ("0", "1"):
+      die("! invalid attack exec: %s (0 inside kernel, 1 outside kernel, all)" % tok)
+
+    out.add(int(tok))
+
+  return out
+
+
+def run_parallel_edge(args, modes, all_scope):
+  # Fan the edge run across args.jobs workers, one mode per child, the same shape as run_parallel.
+  # Each child is a plain single-mode --edge run, so setup_isolation() gives it a private cache and
+  # session. The child prints only its per-mode line; the total is summed and printed here.
+
+  base = [sys.executable, os.path.abspath(__file__), "--edge", "--edge-child",
+          "-a", args.attack, "-t", args.target, "-D", args.device,
+          "-V", args.vector, "-K", args.kernel, "-A", args.attack_exec]
+
+  if args.force:
+    base.append("-f")
+
+  if args.allow_all_attacks:
+    base.append("--allow-all-attacks")
+
+  if all_scope:
+    base.append("--edge-all-scope")
+
+  def run_one(mode):
+    proc = subprocess.run(base + ["-m", str(mode)],
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    return proc.stdout
+
+  total = 0
+
+  with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    for out in pool.map(run_one, modes):
+      sys.stdout.buffer.write(out)
+      sys.stdout.buffer.flush()
+
+      for m in re.finditer(rb"> (\d+) errors,", out):
+        total += int(m.group(1))
+
+  print("[ test.py edge ] > Errors detected: %d" % total)
+
+  return 1 if total else 0
+
+
+def run_edge(args):
+  modes    = discover_modes()
+  selected = edge_select_modes(args.mode, modes)
+
+  # test_edge.sh only narrows the slow-mode mask-attack skip to a single -m N; a range keeps its
+  # "all" scope. --edge-all-scope carries that decision into a -j child, which always sees one mode.
+
+  all_scope = args.edge_all_scope or not re.fullmatch(r"[0-9]+", args.mode)
+
+  attacks     = edge_parse_attacks(args.attack)
+  widths      = edge_parse_widths(args.vector)
+  kernel      = edge_parse_kernel(args.kernel)
+  targets     = edge_parse_targets(args.target)
+  exec_filter = edge_parse_exec(args.attack_exec)
+
+  # test_edge.sh refuses -a 4 -K 1 on a single mode whose kernel runs inside and that ships no
+  # optimized pcfg kernel, because every cell would be skipped.
+
+  if attacks == [4] and kernel == 1 and re.fullmatch(r"[0-9]+", args.mode):
+    m   = int(args.mode)
+    src = module_source(m)
+
+    if src and b"ATTACK_EXEC_OUTSIDE_KERNEL" not in src and not a4_optimized(m):
+      die("! attack type 4 has no optimized kernel for hash type %d, and -K 1 asks for the\n"
+          "! optimized one only. Ask for the pure kernel type instead: --edge -m %d -a 4 -K 0"
+          % (m, m))
+
+  if args.jobs > 1 and not args.edge_child:
+    return run_parallel_edge(args, selected, all_scope)
+
+  cfg = {"attacks": attacks, "attacks_set": set(attacks), "widths": widths,
+         "kernel_filter": kernel, "targets": targets, "exec_filter": exec_filter,
+         "all_attacks": args.allow_all_attacks, "all_scope": all_scope}
+
+  total_err  = 0
+  total_cell = 0
+
+  with tempfile.TemporaryDirectory(prefix="test_py_edge_") as tmp:
+    for mode in selected:
+      e, c = edge_process_mode(args, mode, cfg, tmp)
+
+      total_err  += e
+      total_cell += c
+
+      print("[ test.py edge ] [ Type %d ] > %d errors, %d cells" % (mode, e, c))
+
+  # A -j child prints only its per-mode lines; run_parallel_edge sums and prints the total.
+
+  if not args.edge_child:
+    print("[ test.py edge ] > Errors detected: %d" % total_err)
+
+  return 1 if total_err else 0
+
+
 def run_parallel(args):
   # Fan the selected modes across args.jobs workers. Each worker is a plain single-mode test.py run
   # (no -j) in its own process, so setup_isolation() gives it a private hashcat cache/session and no
@@ -2551,7 +3653,8 @@ def main():
   ap = argparse.ArgumentParser(description="python manager for the hashcat -a 0 test path")
 
   ap.add_argument("-m", dest="mode", default="all", help="N | all | min-max")
-  ap.add_argument("-a", dest="attack", default="0", help="0 | 1 | 3 | 4 | 6 | 7 | 8 | 9 | 12 | all")
+  ap.add_argument("-a", dest="attack", default=None,
+                  help="0 | 1 | 3 | 4 | 6 | 7 | 8 | 9 | 12 | all (--edge takes a comma list too)")
   ap.add_argument("-t", dest="target", default="all", choices=["single", "multi", "all"])
   ap.add_argument("-D", dest="device", default="2", help="OpenCL device type")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is
@@ -2564,13 +3667,33 @@ def main():
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
                   help="run this many modes in parallel, each in its own hashcat cache/session")
+  ap.add_argument("--edge", dest="edge", action="store_true",
+                  help="edge-case testing (the port of tools/test_edge.sh)")
+  ap.add_argument("-K", dest="kernel", default="all", help="--edge: 0 pure | 1 optimized | all")
+  ap.add_argument("-A", dest="attack_exec", default="all",
+                  help="--edge: 0 inside kernel | 1 outside kernel | all")
+  ap.add_argument("--allow-all-attacks", dest="allow_all_attacks", action="store_true",
+                  help="--edge: run mask attacks on ATTACK_EXEC_OUTSIDE_KERNEL modes too")
+  ap.add_argument("--edge-all-scope", dest="edge_all_scope", action="store_true",
+                  help=argparse.SUPPRESS)
+  ap.add_argument("--edge-child", dest="edge_child", action="store_true",
+                  help=argparse.SUPPRESS)
 
   args = ap.parse_args()
+
+  # -a is unset by default so the two paths can differ: the crack path runs -a 0, the edge path the
+  # whole attack set, as their test.sh and test_edge.sh counterparts do.
+
+  if args.attack is None:
+    args.attack = "all" if args.edge else "0"
 
   setup_isolation()
 
   if not os.path.isfile(BIN):
     die("! no hashcat binary at %s, build it first" % BIN)
+
+  if args.edge:
+    sys.exit(run_edge(args))
 
   if args.jobs > 1 and not args.selftest_all:
     sys.exit(run_parallel(args))
