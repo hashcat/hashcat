@@ -28,11 +28,6 @@ import zlib
 
 SHARDS = {"test": 48, "fuzz": 16}
 
-# The -S self-test sweep is light (one crack of each mode's own example hash) and each shard also
-# runs test.py -j, so it needs far fewer shards than the per-mode run to stay well under the limit.
-
-MINIMAL_SHARDS = 6
-
 # A pull request is bounded by this many modes. Past it the rest is left to the
 # weekly run, and the summary says which were left out.
 
@@ -136,28 +131,6 @@ def entries(kind, modes, rule_tok):
     return out
 
 
-def minimal_ranges(pool, n):
-    """Split the mode-number space into n contiguous ranges with a roughly equal mode count each, so
-    the -S self-test sweep runs as n shards. The ranges tile [0, 99999], so a hash-mode with no test
-    module on disk still lands in exactly one shard and is swept."""
-    modes = sorted(pool)
-
-    if not modes:
-        return [(0, 99999)]
-
-    n = min(n, len(modes))
-    ranges = []
-    lo = 0
-
-    for k in range(n):
-        chunk = modes[k * len(modes) // n:(k + 1) * len(modes) // n]
-        hi = 99999 if k == n - 1 else chunk[-1]
-        ranges.append((lo, hi))
-        lo = hi + 1
-
-    return ranges
-
-
 def main():
     if len(sys.argv) < 3 or sys.argv[1] not in ("test", "fuzz") or sys.argv[2] not in ("pr", "all", "list"):
         sys.exit(__doc__ or "usage: ci_matrix.py test|fuzz pr <base> | all | list \"<modes>\"")
@@ -219,16 +192,12 @@ def main():
             matrix = entries(kind, impacted, False)
 
             if shared:
-                for i, (lo, hi) in enumerate(minimal_ranges(pool, MINIMAL_SHARDS)):
-                    matrix.append({"name": f"minimal-{i}", "shard": -1,
-                                   "modes": f"minimal {lo}-{hi}",
-                                   "luks2": lo <= 34100 <= hi})
+                matrix.append({"name": "minimal", "shard": -1, "modes": "minimal"})
 
         note = f"{len(impacted)} impacted modes"
 
         if shared:
-            note += (f", self-test sweep in {min(MINIMAL_SHARDS, len(pool))} shards"
-                     if kind == "test" else ", shared code changed")
+            note += ", minimal full-test (test.sh -M)" if kind == "test" else ", shared code changed"
 
         notes.append(note)
 

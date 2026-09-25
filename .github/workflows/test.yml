@@ -119,20 +119,45 @@ jobs:
       - name: Python oracles
         run: pip install -r tools/requirements.txt
 
-      # The luks2 containers for -m 34100 are a large download test.py would
-      # otherwise fetch in the middle of a run. Pull and cache them here, so only
-      # the first run downloads them, and only for jobs that test 34100.
+      # The LUKS containers are a large download test.py would otherwise fetch in
+      # the middle of a run, so pull and cache them here. The luks1 set covers 14600
+      # and 29511+, the luks2 set covers 34100; the minimal (-M) job needs both. The
+      # tc/vc/cl container sets are checked into the tree, so they need no fetch.
+
+      - name: Restore the luks1 test containers
+        id: luks1
+        if: matrix.modes == 'minimal' || contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/luks_tests
+          key: luks1-tests-v1
+
+      - name: Fetch the luks1 test containers
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools/luks_tests
+          cd tools/luks_tests
+          wget -q https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z
+          7z x -y hashcat_luks_testfiles.7z >/dev/null
+          rm -f hashcat_luks_testfiles.7z
+
+      - name: Save the luks1 test containers
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: tools/luks_tests
+          key: luks1-tests-v1
 
       - name: Restore the luks2 test containers
         id: luks2
-        if: matrix.luks2 || contains(matrix.modes, '34100')
+        if: matrix.modes == 'minimal' || contains(matrix.modes, '34100')
         uses: actions/cache/restore@v6
         with:
           path: tools/luks2_tests
           key: luks2-tests-v1
 
       - name: Fetch the luks2 test containers
-        if: (matrix.luks2 || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         run: |
           mkdir -p tools/luks2_tests
           cd tools/luks2_tests
@@ -141,7 +166,7 @@ jobs:
           rm -f luks2_tests.7z
 
       - name: Save the luks2 test containers
-        if: (matrix.luks2 || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        if: (matrix.modes == 'minimal' || contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: tools/luks2_tests
@@ -156,13 +181,11 @@ jobs:
           MODES: ${{ matrix.modes }}
           CAMPAIGN: ${{ inputs.campaign }}
         run: |
-          # A shared-code change with no mode of its own runs the self-test sweep,
-          # sharded by mode range and parallel within each shard: the Python suite's
-          # stand-in for test.sh -M. MODES is "minimal LO-HI" (or "minimal" for all).
-          if [ "${MODES%% *}" = "minimal" ]; then
-            range="${MODES#minimal}"
-            # shellcheck disable=SC2086
-            python3 tools/test.py -S -m ${range:-all} -j "$(nproc)" -D 1 -f
+          # A shared-code change with no mode of its own runs the minimal full-test:
+          # test.py -M over the 24 hash types that cover all distinct code paths, the
+          # port of test.sh -M.
+          if [ "$MODES" = "minimal" ]; then
+            python3 tools/test.py -M -a all -t single -D 1 -f
             exit $?
           fi
 
