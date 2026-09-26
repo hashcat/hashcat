@@ -1597,6 +1597,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   device_param->kernel_loops_prev   = device_param->kernel_loops;
   device_param->kernel_threads_prev = device_param->kernel_threads;
 
+  // Saved with the answer, because what makes the answer reusable is that the next round asks the same
+  // question. backend_ctx_devices_kernel_loops () rewrites these per round.
+
+  device_param->kernel_loops_min_prev = device_param->kernel_loops_min;
+  device_param->kernel_loops_max_prev = device_param->kernel_loops_max;
+
   device_param->kernel_accel   = 0;
   device_param->kernel_loops   = 0;
   device_param->kernel_threads = 0;

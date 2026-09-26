@@ -11677,6 +11677,14 @@ bool backend_ctx_devices_tuning_restore (hashcat_ctx_t *hashcat_ctx)
     if (device_param->kernel_accel_prev   == 0) return false;
     if (device_param->kernel_loops_prev   == 0) return false;
     if (device_param->kernel_threads_prev == 0) return false;
+
+    // The previous answer was fitted inside the bounds of the round that measured it. A round whose
+    // own bounds differ is a different question, so it measures rather than inheriting an answer that
+    // may sit outside its own loop axis. A mask queue recomputes kernel_loops_max from the round's
+    // amplifier count, which is what moves when the mask length does.
+
+    if (device_param->kernel_loops_min_prev != device_param->kernel_loops_min) return false;
+    if (device_param->kernel_loops_max_prev != device_param->kernel_loops_max) return false;
   }
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -17281,6 +17289,25 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// How much of the markov table a mask can actually address. The table is allocated for the longest
+// mask hashcat accepts, one cs_t per (position, previous character), and generate_pw () in
+// OpenCL/markov_le.cl only ever indexes markov_css_buf[(j * CHARSIZ) + key] for j below the mask
+// length. Everything past that is for positions the mask does not have, so copying it is 64 MB of
+// bus time per round to no end: a four character mask reaches 1 MB of the 64.
+//
+// The row at css_cnt - 1 is included because the kernel does read it. It loads the charset for the
+// position after the one it just wrote, and on the last position that charset is never used.
+//
+// The allocation stays at its full size. Rows past the mask keep whatever an earlier round left in
+// them, which is safe precisely because no work item can address them.
+
+static u64 markov_css_copy_size (const hc_device_param_t *device_param, const u32 css_cnt)
+{
+  const u64 want = (u64) css_cnt * CHARSIZ * sizeof (cs_t);
+
+  return MIN (want, device_param->size_markov_css);
+}
+
 int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 {
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
@@ -17301,6 +17328,8 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
 
+    const u64 copy_markov_css = markov_css_copy_size (device_param, mask_ctx->css_cnt);
+
     // This runs on the main thread rather than on a device thread, and the main thread carries no
     // device of its own, so the device has to be made current for the copy.
 
@@ -17309,7 +17338,7 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) rc = -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
 
     if (rc == 0)
     {
@@ -17348,6 +17377,13 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     device_param->kernel_params_mp_r_buf64[3] = 0;
     device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
 
+    // mask_ctx->css_cnt rather than css_cnt_l + css_cnt_r. The two differ: the split is taken over the
+    // mask length from before mp_css_append_salt () extended it, so the sum can be short of the table
+    // the host actually built. Bounding by the larger of the two is what keeps this a transfer size
+    // change and nothing else.
+
+    const u64 copy_markov_css = markov_css_copy_size (device_param, mask_ctx->css_cnt);
+
     // This runs on the main thread rather than on a device thread, and the main thread carries no
     // device of its own, so the device has to be made current for the copy.
 
@@ -17356,7 +17392,7 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) rc = -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
 
     if (rc == 0)
     {
