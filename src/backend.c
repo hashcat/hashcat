@@ -3935,6 +3935,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
     */
 
+    if (kernel_threads == 0) kernel_threads = 1;
+
     if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0)
     {
       num_elements = round_up_multiple_64 (num_elements, kernel_threads);
