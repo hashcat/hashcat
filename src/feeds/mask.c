@@ -57,17 +57,6 @@ MAYBE_UNUSED static bool mask_feed_init (generic_global_ctx_t *global_ctx, mask_
     return false;
   }
 
-  // A mask reaches the mask processor from the attack mode on the command line, and only the modes
-  // that take a mask put one there. Named as a plugin on its own there is nothing to walk, and the
-  // keyspace is zero, which ends the run with no candidates, no message and a success status.
-
-  if (mask_is_feed (hashcat_ctx->user_options) == false)
-  {
-    error_set (global_ctx, "this feed is the mask processor that -a 3 and the hybrid modes run on when they are given rules, and it has no mask of its own. Use -a 3 with a mask instead");
-
-    return false;
-  }
-
   return true;
 }
 
@@ -220,4 +209,208 @@ MAYBE_UNUSED static bool mask_feed_seek (mask_feed_thread_t *mask_thread, const 
   mask_thread->pos = offset;
 
   return true;
+}
+
+// A MASK AS A FILTER RATHER THAN AS A SOURCE
+//
+// A feed can also be handed a mask to select by, which is the shape of what the user already knows
+// about one password. The mask processor still parses it, so the section above and this one differ
+// only in what the parsed mask is for: there it names every candidate in turn, here it says which
+// candidates a feed's own generator is allowed to keep.
+//
+// The charsets arrive as lists of characters, and a list is the wrong shape for a question asked once
+// per byte of every candidate: ?a is 95 entries to walk. So they are turned into one bit per byte per
+// position, and everything below is a bit test.
+
+#define MASK_CSS_MAXPOS 256
+
+// The case mapping a feed uses on its own terminals. A generator that stores a word in one case and a
+// capitalisation beside it decides per character which of the two the candidate carries, so the table
+// below has to be built with the same mapping that generator applies, and not with an assumption about
+// which bytes are letters. Passing it in is what keeps a single byte code page working: the feed knows
+// that 0xe4 has a capital and this file does not.
+
+typedef u8 (*mask_css_upper_t) (const u8 chr);
+
+typedef struct mask_css
+{
+  u32 cnt;
+
+  // The bytes the position admits. A candidate byte is tested against this one directly, and so is a
+  // stored byte that the capitalisation leaves alone.
+
+  u32 any[MASK_CSS_MAXPOS][8];
+
+  // The stored bytes whose capital the position admits, which is the preimage of any under the feed's
+  // own mapping. A capitalisation that puts a U at this character may only spell one of these.
+
+  u32 up[MASK_CSS_MAXPOS][8];
+
+  // Whether the position admits any stored byte at all, and any capitalised one, and whether the two
+  // sets differ. The last is what decides whether the case a capitalisation puts here changes which
+  // letters are left, which is the only thing a group of capitalisations has to agree on.
+
+  bool has_any[MASK_CSS_MAXPOS];
+  bool has_up[MASK_CSS_MAXPOS];
+  bool amb[MASK_CSS_MAXPOS];
+
+} mask_css_t;
+
+MAYBE_UNUSED static void mask_css_set (u32 *bits, const u8 chr)
+{
+  bits[chr / 32] |= 1u << (chr % 32);
+}
+
+MAYBE_UNUSED static bool mask_css_get (const u32 *bits, const u8 chr)
+{
+  const bool hit = ((bits[chr / 32] & (1u << (chr % 32))) != 0);
+
+  return hit;
+}
+
+// Every position of the mask, as two sets of bytes and three answers about them. Called once per run,
+// so it walks all 256 bytes rather than being clever about it.
+
+MAYBE_UNUSED static bool mask_css_build (mask_css_t *m, const cs_t *css_buf, const u32 css_cnt, const mask_css_upper_t upper, const bool pt_upper)
+{
+  // Shortening the mask here would leave the feed holding a length the user never wrote, and every
+  // candidate of the length they did write would then be refused.
+
+  if (css_cnt > MASK_CSS_MAXPOS) return false;
+
+  memset (m, 0, sizeof (mask_css_t));
+
+  m->cnt = css_cnt;
+
+  for (u32 pos = 0; pos < m->cnt; pos++)
+  {
+    // The charset as the mask processor handed it over, which is what the candidate is measured against.
+
+    u32 raw[8];
+
+    memset (raw, 0, sizeof (raw));
+
+    const cs_t *cs = &css_buf[pos];
+
+    for (u32 i = 0; i < cs->cs_len; i++)
+    {
+      mask_css_set (raw, (u8) (cs->cs_buf[i] & 0xff));
+    }
+
+    // A hash mode that takes uppercase plaintext only sees the candidate capitalised, and the mask
+    // processor has already capitalised the charset to match. So the byte a feed produces is admitted
+    // when its capital is in the charset, and every position of such a mask takes both cases of a
+    // letter. Without this a lowercase terminal is measured against an uppercase charset and the whole
+    // grammar is filtered away.
+
+    for (u32 b = 0; b < 256; b++)
+    {
+      const u8 chr = (u8) b;
+
+      if (mask_css_get (raw, (pt_upper == true) ? upper (chr) : chr) == true) mask_css_set (m->any[pos], chr);
+
+      if (mask_css_get (raw, upper (chr)) == true) mask_css_set (m->up[pos], chr);
+    }
+
+    for (u32 w = 0; w < 8; w++)
+    {
+      if (m->any[pos][w] != 0) m->has_any[pos] = true;
+      if (m->up[pos][w]  != 0) m->has_up[pos]  = true;
+
+      if (m->any[pos][w] != m->up[pos][w]) m->amb[pos] = true;
+    }
+  }
+
+  return true;
+}
+
+// Whether the mask says nothing at all about a stretch of positions, which is every byte admitted at every
+// one of them. A slot the mask does not constrain needs no filtering, so nothing about how its terminals
+// are encoded has to be worked out either.
+
+MAYBE_UNUSED static bool mask_css_open (const mask_css_t *m, const u32 off, const u32 len)
+{
+  if ((off + len) > m->cnt) return false;
+
+  for (u32 i = 0; i < len; i++)
+  {
+    for (u32 w = 0; w < 8; w++)
+    {
+      if (m->any[off + i][w] != 0xffffffff) return false;
+    }
+  }
+
+  return true;
+}
+
+// Whether the mask admits a byte no single byte character set has a letter at. A generator that stores a
+// character in more than one byte cannot be filtered per byte, and where the answer here is false it does
+// not have to be: such a character always carries a lead byte above 0x7e, which the mask never takes.
+
+MAYBE_UNUSED static bool mask_css_high (const mask_css_t *m)
+{
+  for (u32 pos = 0; pos < m->cnt; pos++)
+  {
+    for (u32 b = 0x80; b < 256; b++)
+    {
+      if (mask_css_get (m->any[pos], (u8) b) == true) return true;
+    }
+  }
+
+  return false;
+}
+
+MAYBE_UNUSED static bool mask_css_allows (const mask_css_t *m, const u32 pos, const u8 chr)
+{
+  if (pos >= m->cnt) return false;
+
+  const bool ok = mask_css_get (m->any[pos], chr);
+
+  return ok;
+}
+
+// Whether this position takes the stored byte as it stands, and whether it takes its capital. Both
+// false means the position admits no letter at all, which rules it out for a letter run before any
+// word is looked at.
+
+MAYBE_UNUSED static bool mask_css_takes_lower (const mask_css_t *m, const u32 pos, const u8 stored)
+{
+  if (pos >= m->cnt) return false;
+
+  const bool ok = mask_css_get (m->any[pos], stored);
+
+  return ok;
+}
+
+MAYBE_UNUSED static bool mask_css_takes_upper (const mask_css_t *m, const u32 pos, const u8 stored)
+{
+  if (pos >= m->cnt) return false;
+
+  const bool ok = mask_css_get (m->up[pos], stored);
+
+  return ok;
+}
+
+MAYBE_UNUSED static bool mask_css_any_lower (const mask_css_t *m, const u32 pos)
+{
+  if (pos >= m->cnt) return false;
+
+  return m->has_any[pos];
+}
+
+MAYBE_UNUSED static bool mask_css_any_upper (const mask_css_t *m, const u32 pos)
+{
+  if (pos >= m->cnt) return false;
+
+  return m->has_up[pos];
+}
+
+// Whether the case a capitalisation puts at this position changes which stored bytes are left. Where it
+// does not, a group of capitalisations does not have to agree about it.
+
+MAYBE_UNUSED static bool mask_css_ambiguous (const mask_css_t *m, const u32 pos)
+{
+  if (pos >= m->cnt) return false;
+
+  return m->amb[pos];
 }

@@ -334,6 +334,23 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->dev_rules_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE_RULES) ? true : false;
 
+  // A charset belongs to a mask, and only some feeds read one. Refused here rather than in
+  // user_options_sanity (), which runs before the feed is known and so cannot tell them apart.
+
+  if ((*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_MASK) == 0)
+  {
+    const user_options_t *user_options = hashcat_ctx->user_options;
+
+    const bool any = (user_options->custom_charset_1 != NULL) || (user_options->custom_charset_2 != NULL) || (user_options->custom_charset_3 != NULL) || (user_options->custom_charset_4 != NULL) || (user_options->custom_charset_5 != NULL) || (user_options->custom_charset_6 != NULL) || (user_options->custom_charset_7 != NULL) || (user_options->custom_charset_8 != NULL);
+
+    if (any == true)
+    {
+      event_log_error (hashcat_ctx, "%s: this feed reads no mask, so a custom charset has nothing to apply to.", generic_ctx->dynlib_filename);
+
+      return -1;
+    }
+  }
+
   const bool dev_offered = generic_ctx->dev_enable;
 
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_init,     GENERIC_GLOBAL_INIT);

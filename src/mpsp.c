@@ -857,6 +857,105 @@ static void mp_reset_usr (cs_t *mp_usr, const u32 userindex)
   memset (mp_usr[userindex].cs_buf, 0, sizeof (mp_usr[userindex].cs_buf));
 }
 
+// The characters a mask allows at each of its positions. A feed that filters what it produces by a
+// mask, or tests a candidate against one, wants the charsets rather than the candidate generator, and
+// this is the second and last part of the mask processor a plugin may reach.
+//
+// It is the same parser -a 3 uses, so ?a, a custom charset given with -1 through -8, a charset read
+// from a file and an uppercase only hash mode all mean here what they mean there. Writing a second
+// parser instead is how the two come to disagree about what a mask says.
+
+HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, const u32 css_max, u32 *css_cnt)
+{
+  if (hashcat_ctx == NULL) return -1;
+
+  // The parser clears and fills a fixed 256 entries whatever the mask holds, so a caller that sized its
+  // buffer for the mask it wrote rather than for the parser would be written past. Asked for rather than
+  // assumed, because this is an entry point a feed outside this tree also calls.
+
+  if (css_max < 256) return -1;
+
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  if (mask_ctx == NULL) return -1;
+
+  if (hashcat_ctx->hashconfig == NULL) return -1;
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // Charsets of this call's own, not the mask context's. An attack mode that walks no mask never
+  // allocates those, and one that does owns them for its own rounds.
+
+  cs_t *mp_sys = (cs_t *) hccalloc (8, sizeof (cs_t));
+  cs_t *mp_usr = (cs_t *) hccalloc (8, sizeof (cs_t));
+
+  if ((mp_sys == NULL) || (mp_usr == NULL))
+  {
+    hcfree (mp_sys);
+    hcfree (mp_usr);
+
+    return -1;
+  }
+
+  // mp_gen_css () records the markers it passes in the mask context, so what a round of a mask attack
+  // put there is put back before returning.
+
+  const bool was_w = mask_ctx->has_w;
+  const bool was_q = mask_ctx->has_q;
+
+  const u32 was_pre = mask_ctx->pre_len;
+  const u32 was_mid = mask_ctx->mid_len;
+
+  int rc = 0;
+
+  mp_setup_sys (mp_sys);
+
+  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_1, 0) == -1) rc = -1; }
+  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_2, 1) == -1) rc = -1; }
+  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_3, 2) == -1) rc = -1; }
+  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_4, 3) == -1) rc = -1; }
+  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_5, 4) == -1) rc = -1; }
+  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_6, 5) == -1) rc = -1; }
+  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_7, 6) == -1) rc = -1; }
+  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_8, 7) == -1) rc = -1; }
+
+  // A copy because mp_gen_css () takes it non const, which it does for its callers rather than because it
+  // writes to it.
+
+  char *tmp = (rc == 0) ? hcstrdup (mask) : NULL;
+
+  if (tmp != NULL)
+  {
+    rc = mp_gen_css (hashcat_ctx, tmp, strlen (tmp), mp_sys, mp_usr, css_buf, css_cnt);
+
+    hcfree (tmp);
+  }
+  else
+  {
+    rc = -1;
+  }
+
+  // A ?w or a ?q says where a word goes, which is a question a hybrid attack asks. Nothing is being
+  // placed here, so a marker would quietly stand for no position at all.
+
+  if ((rc == 0) && ((mask_ctx->has_w == true) || (mask_ctx->has_q == true)))
+  {
+    event_log_error (hashcat_ctx, "This mask cannot carry a ?w or a ?q, because it selects candidates rather than placing a word.");
+
+    rc = -1;
+  }
+
+  mask_ctx->has_w   = was_w;
+  mask_ctx->has_q   = was_q;
+  mask_ctx->pre_len = was_pre;
+  mask_ctx->mid_len = was_mid;
+
+  hcfree (mp_sys);
+  hcfree (mp_usr);
+
+  return rc;
+}
+
 static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;

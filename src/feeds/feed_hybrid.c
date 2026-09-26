@@ -42,7 +42,7 @@ const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 // finished candidate, where they belong to the words that went into it. RULES would have it apply
 // -j there too. All three are done below instead, to the halves.
 
-const int GENERIC_PLUGIN_OPTIONS = 0;
+const int GENERIC_PLUGIN_OPTIONS = 0 | GENERIC_PLUGIN_OPTIONS_MASK;
 
 typedef struct hybrid_global
 {

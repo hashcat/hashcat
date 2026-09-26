@@ -21,7 +21,7 @@ const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 // produces its own bytes. RULES would have the core apply -j on top of a finished candidate, which
 // is not what -j means.
 
-const int GENERIC_PLUGIN_OPTIONS = 0;
+const int GENERIC_PLUGIN_OPTIONS = 0 | GENERIC_PLUGIN_OPTIONS_MASK;
 
 bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
 {

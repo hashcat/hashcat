@@ -2220,19 +2220,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->attack_mode == ATTACK_MODE_PCFG)
-    {
-      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 4 (pcfg).");
-
-      return -1;
-    }
-
-    if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-    {
-      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 8 (generic).");
-
-      return -1;
-    }
+    // Modes 4 and 8 are not named here. A pcfg run takes a mask of its own, as the setting mask=, to
+    // say what is already known about the shape of the password, and the charsets belong to that mask
+    // exactly as they belong to the one -a 3 walks. A mode 8 feed that takes no mask leaves them
+    // unused, and the feed is what says so, because the feed is what knows.
 
     if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
@@ -2241,9 +2232,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    // Modes 4 and 8 take no positional mask. A pcfg run reads one from the setting mask=, and a feed that
+    // reads none at all is refused where the feed is known, so counting arguments here would answer with
+    // the wrong complaint.
+
+    const bool positional_mask = (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_GENERIC);
+
     // detect if mask was specified:
 
-    bool mask_is_missing = true;
+    bool mask_is_missing = positional_mask;
 
     if (user_options->keyspace == true || user_options->total_candidates == true || user_options->lookup != NULL) // special case if --keyspace was used: we need the mask but no hash file
     {
