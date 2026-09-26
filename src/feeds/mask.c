@@ -57,6 +57,17 @@ MAYBE_UNUSED static bool mask_feed_init (generic_global_ctx_t *global_ctx, mask_
     return false;
   }
 
+  // A mask reaches the mask processor from the attack mode on the command line, and only the modes
+  // that take a mask put one there. Named as a plugin on its own there is nothing to walk, and the
+  // keyspace is zero, which ends the run with no candidates, no message and a success status.
+
+  if (mask_is_feed (hashcat_ctx->user_options) == false)
+  {
+    error_set (global_ctx, "this feed is the mask processor that -a 3 and the hybrid modes run on when they are given rules, and it has no mask of its own. Use -a 3 with a mask instead");
+
+    return false;
+  }
+
   return true;
 }
 
