@@ -6554,6 +6554,10 @@ OPTIONS:
         hit it are reported separately from modes that failed.
 
   -M    Minimal mode: test only 24 hash types covering all distinct code paths
+  --compute-sanitizer[=<tool>]   Run hashcat's CUDA kernels under NVIDIA Compute Sanitizer
+                    (requires tools/compute_sanitizer/run.py build first; CUDA-only). <tool>
+                    is one of memcheck (default), racecheck, synccheck, initcheck.
+                    findings reported via tools/compute_sanitizer/report.py --dir <sweep-dir>
 
   -h    Show this help
 
@@ -6578,6 +6582,21 @@ SELFTEST_ALL=0
 RUNTIME_SET=0
 HT_SET=0
 MINIMAL=0
+COMPUTE_SANITIZER_MODE=0
+COMPUTE_SANITIZER_TOOL="memcheck"
+
+# getopts only understands single-char options, so --compute-sanitizer[=<tool>]
+# is stripped out here before it ever sees them (it would otherwise treat the
+# leading "-" of "--compute-sanitizer" as an invalid option and bail out via usage).
+_non_sanitizer_args=()
+for _arg in "$@"; do
+  case "${_arg}" in
+    --compute-sanitizer)      COMPUTE_SANITIZER_MODE=1 ;;
+    --compute-sanitizer=*)    COMPUTE_SANITIZER_MODE=1; COMPUTE_SANITIZER_TOOL="${_arg#--compute-sanitizer=}" ;;
+    *)                        _non_sanitizer_args+=("${_arg}") ;;
+  esac
+done
+set -- "${_non_sanitizer_args[@]}"
 
 while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSyM" opt; do
 
@@ -6814,6 +6833,30 @@ fi
 
 if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ "${HT_GIVEN}" -eq 0 ]; then
   HT=65535
+fi
+
+if [ "${COMPUTE_SANITIZER_MODE}" -eq 1 ]; then
+  case "${COMPUTE_SANITIZER_TOOL}" in
+    memcheck|racecheck|synccheck|initcheck) ;;
+    *)
+      echo "Error: --compute-sanitizer tool must be one of memcheck, racecheck, synccheck, initcheck"
+      usage
+      ;;
+  esac
+
+  if [ ! -x "${TDIR}/../hashcat-sanitizer" ]; then
+    echo "ERROR: --compute-sanitizer requires a DEBUG=1 build. Run: tools/compute_sanitizer/run.py build" >&2
+    exit 1
+  fi
+
+  SANITIZER_SWEEP_DIR="${TDIR}/../tools/compute_sanitizer/results/sweep-$(date +%s)"
+  mkdir -p "${SANITIZER_SWEEP_DIR}"
+  export SANITIZER_SWEEP_DIR
+  export SANITIZER_SWEEP_TOOL="${COMPUTE_SANITIZER_TOOL}"
+
+  BIN="tools/compute_sanitizer/sweep_shim.sh"
+
+  echo "> Compute Sanitizer sweep mode enabled (tool=${COMPUTE_SANITIZER_TOOL}). Results: ${SANITIZER_SWEEP_DIR}"
 fi
 
 # The containers this run builds get a password of their own. The ones shipped in the tree or
@@ -7447,6 +7490,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   done
 
   print_skip_summary
+
+  if [ "${COMPUTE_SANITIZER_MODE}" -eq 1 ]; then
+    echo ""
+    echo "> Compute Sanitizer sweep complete. To review the findings run:"
+    echo ">   tools/compute_sanitizer/report.py --dir ${SANITIZER_SWEEP_DIR}"
+  fi
 
 else
 

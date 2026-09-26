@@ -12146,7 +12146,18 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       nvrtcProgram nvrtc_program;
 
-      if (hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+      // DEBUG builds pass the real .cl source filename instead of the generic
+      // per-category literal ("main_kernel", "shared_kernel", ...) so tools
+      // like Compute Sanitizer that read NVRTC's embedded line info can
+      // report a real "m17010-pure.cl:527" instead of "main_kernel:527".
+
+      #if defined (DEBUG)
+      const char *nvrtc_program_name = filename_from_filepath (source_file);
+      #else
+      const char *nvrtc_program_name = kernel_name;
+      #endif
+
+      if (hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], nvrtc_program_name, 0, NULL, NULL) == -1) return false;
 
       char **nvrtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
@@ -12156,6 +12167,14 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       {
         nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--std=c++14");
       }
+
+      // Optimized-but-debuggable kernels for Compute Sanitizer's
+      // --show-backtrace device to resolve to source:line. Deliberately not
+      // -G (full device-debug), which disables optimizations entirely.
+
+      #if defined (DEBUG)
+      nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--generate-line-info");
+      #endif
 
       //nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--restrict");
       nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--gpu-architecture");
@@ -14864,7 +14883,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // name, so one key serves all three, and none of them is a per hash-mode kernel. The shared digest
     // therefore covers every source they are built from.
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
+    // The amplifier, markov and shared kernels are CUDA kernels too, so the
+    // same DEBUG marker keeps their cached binaries apart from a release build's.
+
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u"
+    #if defined (DEBUG)
+    "-debug"
+    #endif
+    ,
       backend_ctx->comptime,
       backend_ctx->kernel_shared_chksum,
       backend_ctx->cuda_driver_version,
@@ -15103,7 +15129,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
+      // A DEBUG build compiles CUDA kernels with NVRTC line info and a
+      // different NVRTC program name, so its cached binaries must never be
+      // reused by a release build or the other way round. The Makefile can pin
+      // comptime to SOURCE_DATE_EPOCH, so comptime alone does not tell the two
+      // apart. This marker is present in DEBUG builds only, so it separates the
+      // keys while leaving the release key unchanged.
+
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
+      #if defined (DEBUG)
+      "-debug"
+      #endif
+      ,
         backend_ctx->comptime,
         backend_ctx->kernel_shared_chksum,
         source_chksum,
