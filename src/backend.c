@@ -12109,6 +12109,74 @@ static void kernel_build_finish (hashcat_ctx_t *hashcat_ctx, const char *cached_
   hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
 }
 
+#if defined (_WIN)
+
+// nvrtc on Windows does not read the -I path as UTF-8, even though hashcat's manifest makes the process
+// code page UTF-8, so a non-ASCII install directory breaks every include (#4885). The inc_* files are
+// handed over in memory instead. A kernel includes them as M2S(INCLUDE_PATH/inc_x) and the headers
+// include each other as plain "inc_x", so each file is registered under both names, sharing one buffer
+// just as both spellings used to resolve to the same file on disk.
+
+static int nvrtc_load_headers (hashcat_ctx_t *hashcat_ctx, const char *kernel_dir, char ***out_headers, char ***out_names)
+{
+  char **files = scan_directory (kernel_dir);
+
+  if (files == NULL) return 0;
+
+  int num_files = 0;
+
+  for (int i = 0; files[i] != NULL; i++) num_files++;
+
+  char **headers = (char **) hccalloc (num_files * 2, sizeof (char *));
+  char **names   = (char **) hccalloc (num_files * 2, sizeof (char *));
+
+  int idx = 0;
+
+  for (int i = 0; files[i] != NULL; i++)
+  {
+    const char *name = filename_from_filepath (files[i]);
+
+    if (strncmp (name, "inc_", 4) != 0) continue;
+
+    size_t kernel_length = 0;
+    char  *kernel_source = NULL;
+
+    if (read_kernel_binary (hashcat_ctx, files[i], &kernel_length, &kernel_source) == false) continue;
+
+    headers[idx] = kernel_source;
+    hc_asprintf (&names[idx], "OpenCL/%s", name);
+    idx++;
+
+    headers[idx] = kernel_source;
+    names[idx]   = hcstrdup (name);
+    idx++;
+  }
+
+  for (int i = 0; files[i] != NULL; i++) hcfree (files[i]);
+
+  hcfree (files);
+
+  *out_headers = headers;
+  *out_names   = names;
+
+  return idx;
+}
+
+static void nvrtc_free_headers (char **headers, char **names, const int num_headers)
+{
+  for (int i = 0; i < num_headers; i++) hcfree (names[i]);
+
+  // the two names of a file share one buffer, so free the even index only
+
+  for (int i = 0; i < num_headers; i += 2) hcfree (headers[i]);
+
+  hcfree (headers);
+
+  hcfree (names);
+}
+
+#endif
+
 // Build one program, or load the build a previous run left in the cache. Which of the four runtimes
 // is compiling is the only thing that changes: the cache lookup, the source read and the binary
 // write are the same work whichever it is.
@@ -12146,7 +12214,28 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       nvrtcProgram nvrtc_program;
 
+      #if defined (_WIN)
+      // nvrtc copies the headers at create time, so they are freed right after (#4885)
+
+      char **nvrtc_headers      = NULL;
+      char **nvrtc_header_names = NULL;
+
+      char *nvrtc_kernel_dir = NULL;
+
+      hc_asprintf (&nvrtc_kernel_dir, "%s/OpenCL", folder_config->shared_dir);
+
+      const int nvrtc_num_headers = nvrtc_load_headers (hashcat_ctx, nvrtc_kernel_dir, &nvrtc_headers, &nvrtc_header_names);
+
+      hcfree (nvrtc_kernel_dir);
+
+      const int rc_nvrtcCreateProgram = hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], kernel_name, nvrtc_num_headers, (const char * const *) nvrtc_headers, (const char * const *) nvrtc_header_names);
+
+      nvrtc_free_headers (nvrtc_headers, nvrtc_header_names, nvrtc_num_headers);
+
+      if (rc_nvrtcCreateProgram == -1) return false;
+      #else
       if (hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+      #endif
 
       char **nvrtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
@@ -12178,9 +12267,8 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       // cpath_real on _WIN uses forward slashes, but UNC paths (\\server\share)
       // become //server/share after conversion. The leading // is interpreted as a
       // C++ line comment when embedded in a -D preprocessor value, leaving
-      // INCLUDE_PATH empty. Instead pass shared_dir as an explicit -I search path
-      // and keep INCLUDE_PATH as the relative subdirectory name.
-      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-I%s", folder_config->shared_dir);
+      // INCLUDE_PATH empty. The headers are handed over in memory instead (#4885),
+      // so INCLUDE_PATH stays the relative subdirectory name they are registered under.
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
       #elif defined (__CYGWIN__) || defined (__MSYS__)
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
