@@ -434,7 +434,7 @@ def build_exec_parser():
                          "land inside a neighboring allocation is still flagged instead of going silent "
                          "(default: 128; 0 disables it, matching compute-sanitizer's own default)")
     p.add_argument("--sweep", action="store_true",
-                    help="non-interactive mode for test.sh/test_edge.sh: hashcat's stdout/stderr/exit-code "
+                    help="non-interactive mode for test.py: hashcat's stdout/stderr/exit-code "
                          "pass through untouched; requires --results-dir")
     p.add_argument("--results-dir", default=None)
     return p

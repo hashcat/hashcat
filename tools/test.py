@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 TDIR   = os.path.dirname(os.path.abspath(__file__))
@@ -4188,6 +4189,10 @@ def main():
                   help="minimal mode: full-test the 24 hash types covering all distinct code paths")
   ap.add_argument("--test-coverage", dest="test_coverage", action="store_true",
                   help="report modes with no test and exit; reads the source tree, needs no hashcat")
+  ap.add_argument("--compute-sanitizer", dest="compute_sanitizer", nargs="?", const="memcheck",
+                  default=None, metavar="TOOL",
+                  help="run the CUDA kernels under NVIDIA Compute Sanitizer (memcheck|racecheck|"
+                       "synccheck|initcheck, default memcheck); CUDA-only, needs ./hashcat-sanitizer")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
                   help="run this many modes in parallel, each in its own hashcat cache/session")
   ap.add_argument("--edge", dest="edge", action="store_true",
@@ -4209,6 +4214,28 @@ def main():
   # --test-coverage reads the source tree only, so it runs before the isolation and binary checks.
   if args.test_coverage:
     sys.exit(run_test_coverage())
+
+  # --compute-sanitizer points hashcat at the sweep shim, which wraps every run in
+  # tools/compute_sanitizer/run.py under NVIDIA Compute Sanitizer and routes findings into a results
+  # directory. The same BIN indirection test.sh used, so the rest of the run is unchanged.
+  if args.compute_sanitizer is not None:
+    global BIN
+
+    sanitizer_bin = os.path.join(ROOT, "hashcat-sanitizer")
+
+    if not os.path.isfile(sanitizer_bin):
+      die("! no %s; build it first with tools/compute_sanitizer/run.py build" % sanitizer_bin)
+
+    sweep_dir = os.path.join(TDIR, "compute_sanitizer", "results", "sweep-%d" % int(time.time()))
+    os.makedirs(sweep_dir, exist_ok=True)
+
+    os.environ["SANITIZER_SWEEP_DIR"]  = sweep_dir
+    os.environ["SANITIZER_SWEEP_TOOL"] = args.compute_sanitizer
+
+    BIN = os.path.join(TDIR, "compute_sanitizer", "sweep_shim.sh")
+
+    print("[ test.py ] Compute Sanitizer sweep enabled (tool=%s). Results: %s" % (args.compute_sanitizer, sweep_dir))
+    print("[ test.py ] Report with: tools/compute_sanitizer/report.py --dir %s" % sweep_dir)
 
   # -a is unset by default so the two paths can differ: the crack path runs -a 0, the edge path the
   # whole attack set, as their test.sh and test_edge.sh counterparts do.
