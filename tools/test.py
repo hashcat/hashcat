@@ -2367,12 +2367,13 @@ def container_luks_legacy(args, mode, attack, width, tmp):
         container_crack(args, opts, mode, attack, container, width, label, extra)
 
 
-# test.sh truecrypt_test's per-mode .tc files (test.sh). The full case table covers every 62xx and
-# 293xx mode; only the -M representative 6211 is ported so far (its three tcMode cipher variants).
-# The rest of the TrueCrypt family still needs porting and stays out of CONTAINER_MODES until then.
-TC_FILES = {
-  6211: ["hashcat_ripemd160_aes", "hashcat_ripemd160_serpent", "hashcat_ripemd160_twofish"],
-}
+# TrueCrypt (62xx and 293xx). Like VeraCrypt below, the family ports as data rather than a case
+# table: the mode's tens digit is the hash and the ones digit is the XTS key size, which is the
+# number of cascaded ciphers (1, 2 or 3). Every tc_tests container that matches the hash, the cascade
+# depth and the boot flag is tested. hash digit 4 is RIPEMD160 in boot mode, as test.sh had it.
+TC_HASH_DIGIT  = {1: "ripemd160", 2: "sha512", 3: "whirlpool", 4: "ripemd160"}
+TC_BOOT_DIGITS = {4}
+TC_MODES = {base + h * 10 + k for base in (6200, 29300) for h in (1, 2, 3, 4) for k in (1, 2, 3)}
 
 
 def container_truecrypt(args, mode, width, tmp):
@@ -2380,22 +2381,45 @@ def container_truecrypt(args, mode, width, tmp):
   # with truecrypt2hashcat.py; always -a 3 with CONTAINER_MASK. The line's field is "tcMode <n>".
   opts = base_opts(args)
 
-  for tc_mode, name in enumerate(TC_FILES.get(mode, [])):
-    container = os.path.join(TC_TESTS_DIR, name + ".tc")
+  s    = "%05d" % mode
+  hfun = TC_HASH_DIGIT.get(int(s[-2]))
+  boot = int(s[-2]) in TC_BOOT_DIGITS
+  ncip = int(s[-1])
 
-    if not os.path.isfile(container):
+  if hfun is None or ncip not in (1, 2, 3):
+    return
+
+  prefix  = "hashcat_%s_" % hfun
+  tc_mode = 0
+
+  for fname in sorted(os.listdir(TC_TESTS_DIR)):
+    if not fname.startswith(prefix) or not fname.endswith(".tc"):
       continue
+
+    combo = fname[len(prefix):-len(".tc")]
+
+    if boot != combo.endswith("_boot"):
+      continue
+
+    if boot:
+      combo = combo[:-len("_boot")]
+
+    if combo.count("-") != ncip - 1:
+      continue
+
+    container = os.path.join(TC_TESTS_DIR, fname)
 
     if mode < 29300:
       hash_arg = container
     else:
-      hash_arg = os.path.join(tmp, name + ".hash")
+      hash_arg = os.path.join(tmp, fname + ".hash")
 
       if not container_extract("truecrypt2hashcat.py", container, hash_arg):
-        report_skip(args, mode, "single", width, "could not extract %s" % name, 3)
+        report_skip(args, mode, "single", width, "could not extract %s" % fname, 3)
         continue
 
     container_crack(args, opts, mode, 3, hash_arg, width, "tcMode %d" % tc_mode, [CONTAINER_MASK])
+    tc_mode += 1
 
 
 # test.sh veracrypt_test (test.sh) derives the container name from the mode digits rather than a
@@ -2525,7 +2549,7 @@ def run_container_mode(args, mode, tmp):
       container_luks_legacy(args, mode, attack, width, tmp)
     elif mode in LUKS1_HASH_CIPHER:
       container_luks1(args, mode, attack, width, tmp)
-    elif mode in TC_FILES:
+    elif mode in TC_MODES:
       container_truecrypt(args, mode, width, tmp)
     elif mode in VC_MODES:
       container_veracrypt(args, mode, width, tmp)
@@ -2533,7 +2557,7 @@ def run_container_mode(args, mode, tmp):
       container_cryptoloop(args, mode, width, tmp)
 
 
-CONTAINER_MODES = ({14600, 34100} | set(LUKS1_HASH_CIPHER) | set(TC_FILES) | VC_MODES | CL_MODES)
+CONTAINER_MODES = ({14600, 34100} | set(LUKS1_HASH_CIPHER) | TC_MODES | VC_MODES | CL_MODES)
 
 # Modes that ship a module but cannot have a crack test, with the reason. --test-coverage reports any
 # mode with neither an oracle nor container coverage nor a self-test that is not on this list, so it
@@ -2568,7 +2592,7 @@ def run_test_coverage():
 
   # CONTAINER_MODES carries the cryptoloop kernel numbers (14511..14553) as labels; every one runs
   # hashcat with -m 14500, the only module that exists, so collapse them to it for this check.
-  container = {14600, 34100} | set(LUKS1_HASH_CIPHER) | set(TC_FILES) | set(VC_MODES) | {14500}
+  container = {14600, 34100} | set(LUKS1_HASH_CIPHER) | TC_MODES | set(VC_MODES) | {14500}
   covered   = set(discover_modes()) | container | SELFTEST_MODES
 
   missing = sorted(m for m in all_modes if m not in covered and m not in COVERAGE_UNTESTABLE)
