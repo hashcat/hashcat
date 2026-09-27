@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-from pygost import gost341194
+from lib import gost341194
 
 from lib.test_helpers import split_hash_word
 
@@ -17,7 +17,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return gost341194.GOST341194(word, sbox="id-GostR3411-94-TestParamSet").hexdigest()
+  return gost341194.hexdigest(word)
 
 
 def module_verify_hash(line):
