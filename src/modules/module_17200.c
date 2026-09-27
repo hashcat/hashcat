@@ -175,6 +175,13 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  {
+    // Apple, OpenCL, AMD GPU: abort on the first kernel launch, signal 6, no output
+
+    return true;
+  }
+
   return false;
 }
 
