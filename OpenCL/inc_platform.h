@@ -110,4 +110,23 @@ DECLSPEC u64  rotr64_S (const u64  a, const int n);
 #define bitselect(a,b,c) ((a) ^ ((c) & ((b) ^ (a))))
 #endif // IS_METAL
 
+/**
+ * cross lane exchange
+ */
+
+// hc_shfl_u64 hands every thread the value src_lane holds in var. The workgroup has to be
+// one wave wide and every thread of it has to reach the call, which is what the callers
+// arrange through FIXED_LOCAL_SIZE. shfl_buf is only touched where there is no lane
+// crossbar to reach, and it needs room for one u64 per thread.
+
+#if defined IS_CUDA
+#define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) __shfl_sync (0xffffffff, (var), (src_lane))
+#elif defined IS_HIP
+// width is the wave, and the callers pin the workgroup to 32
+#define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) __shfl ((var), (src_lane), 32)
+#else
+#define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) hc_shfl_u64_impl ((shfl_buf), (var), (src_lane), (lid), (lsz))
+DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 var, const int src_lane, MAYBE_UNUSED const u32 lid, MAYBE_UNUSED const u32 lsz);
+#endif
+
 #endif // INC_PLATFORM_H

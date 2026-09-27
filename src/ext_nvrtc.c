@@ -45,44 +45,36 @@ int nvrtc_init (void *hashcat_ctx)
 
   if (nvrtc->lib == NULL)
   {
-    // super annoying: nvidia is using the CUDA version in nvrtc???.dll filename!
-    // however, the cuda version string comes from nvcuda.dll which is from nvidia driver, but
-    // the driver version and the installed CUDA toolkit version can be different, so it cannot be used as a reference.
-    // brute force to the rescue
+    // NVIDIA puts the CUDA version in the file name, nvrtc64_130_0.dll for 13.0, and the version is
+    // the toolkit's rather than the driver's, so nvcuda.dll cannot be asked what it is. The name used
+    // to be guessed from two nested ranges, a few hundred LoadLibrary calls to arrive at a name that
+    // was on disk all along. The toolkit directory is read instead, then whatever is on PATH.
 
-    char dllname[100];
+    char cuda_bin[MAX_PATH];
 
-    for (int major = 20; major >= 9; major--) // older than 3.x do not ship _v2 functions anyway
-                                              // older than 7.x does not support sm 5.x
-                                              // older than 8.x does not have documentation archive online, no way to check if nvrtc support whatever we need
-                                              // older than 9.x is just a theoretical limit since we define 9.0 as the minimum required version
+    const char *cuda_path = getenv ("CUDA_PATH");
+
+    const char *dirs[1] = { NULL };
+
+    if (cuda_path)
     {
-      for (int minor = 20; minor >= 0; minor--)
-      {
-        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d.dll", major, minor);
+      snprintf (cuda_bin, sizeof (cuda_bin), "%s\\bin", cuda_path);
 
-        nvrtc->lib = hc_dlopen (dllname);
-
-        if (nvrtc->lib) break;
-
-        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d_0.dll", major, minor);
-
-        nvrtc->lib = hc_dlopen (dllname);
-
-        if (nvrtc->lib) break;
-      }
-
-      if (nvrtc->lib) break;
+      dirs[0] = cuda_bin;
     }
+
+    nvrtc->lib = hc_dynlib_open_newest_dll ("nvrtc64_", dirs, 1, NULL, 0);
   }
   #elif defined (__APPLE__)
   nvrtc->lib = hc_dlopen ("nvrtc.dylib");
   #elif defined (__CYGWIN__)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
   #else
-  nvrtc->lib = hc_dlopen ("libnvrtc.so");
+  // libnvrtc.so is a link the development package ships and libnvrtc.so.1 has never existed, so a
+  // machine carrying the runtime alone had neither. The versioned names are read off the disk
+  // instead, and the newest CUDA present wins.
 
-  if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("libnvrtc.so.1");
+  nvrtc->lib = hc_dynlib_open_newest ("libnvrtc", NULL, 0);
   #endif
 
   if (nvrtc->lib == NULL) return -1;

@@ -77,7 +77,18 @@ KERNEL_FQ KERNEL_FA void m18700_m04 (KERN_ATTR_BASIC ())
   {
     u32 hash = 0;
 
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    if (COMBS_IS_MIDDLE)
+    {
+      // -a 12 is five pieces in a fixed order: mask, base word, mask, second word, mask. A rolling
+      // hash takes them in that order, and an empty piece changes nothing.
+
+      hash = hashCode_g (hash, COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len);
+      hash = hashCode_g (hash, pws[gid].i,            pws[gid].pw_len);
+      hash = hashCode_g (hash, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      hash = hashCode_g (hash, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      hash = hashCode_g (hash, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+    }
+    else if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
       hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
       hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
@@ -141,7 +152,18 @@ KERNEL_FQ KERNEL_FA void m18700_s04 (KERN_ATTR_BASIC ())
   {
     u32 hash = 0;
 
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    if (COMBS_IS_MIDDLE)
+    {
+      // -a 12 is five pieces in a fixed order: mask, base word, mask, second word, mask. A rolling
+      // hash takes them in that order, and an empty piece changes nothing.
+
+      hash = hashCode_g (hash, COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len);
+      hash = hashCode_g (hash, pws[gid].i,            pws[gid].pw_len);
+      hash = hashCode_g (hash, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      hash = hashCode_g (hash, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      hash = hashCode_g (hash, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+    }
+    else if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
       hash = hashCode_g (hash, pws[gid].i,          pws[gid].pw_len);
       hash = hashCode_g (hash, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);

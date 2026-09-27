@@ -9,6 +9,7 @@
 #include "event.h"
 #include "locking.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "logfile.h"
 
 void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx)
@@ -47,12 +48,12 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   if (hc_fopen (&fp, logfile_ctx->logfile, "ab") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, hc_fopen_strerror ());
 
     return;
   }
 
-  hc_lockfile (&fp);
+  hc_lockfile_warn (hashcat_ctx, &fp, logfile_ctx->logfile, &logfile_ctx->lock_warned);
 
   va_list ap;
 
@@ -66,7 +67,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   hc_fflush (&fp);
 
-  hc_unlockfile (&fp);
+  hc_unlockfile_warn (hashcat_ctx, &fp, logfile_ctx->logfile, &logfile_ctx->lock_warned);
 
   hc_fclose (&fp);
 }

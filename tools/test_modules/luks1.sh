@@ -20,10 +20,15 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
 
 size=20   # MiB
 
-OUTPUT_DIR="/tmp/out"
+# Where the containers, the mount points and the log go. tools/test.sh points these
+# at the directory of the run that asked for them, so nothing is left in /tmp when
+# the run is thrown away. Run by hand they keep the paths they always had.
+OUTPUT_DIR="${HCTEST_SCRATCH_DIR:-/tmp/out}"
 mkdir -p "$OUTPUT_DIR"
-MOUNT_DIR="/tmp/mnt"
+MOUNT_DIR="${HCTEST_MOUNT_DIR:-/tmp/mnt}"
 mkdir -p "$MOUNT_DIR"
+LOG_FILE="${OUTPUT_DIR}/luks1.log"
+CMD_LOG_FILE="${OUTPUT_DIR}/luks1.cmd.log"
 
 create_luks_container() {
   local PASSWORD="$1"
@@ -36,13 +41,13 @@ create_luks_container() {
   shift 7
   local extra_opts=("$@")
 
-  echo  "Creating $filename (size ${size_mb}MiB) with password length ${#PASSWORD}: $PASSWORD..." >> /tmp/luks1.sh
+  echo  "Creating $filename (size ${size_mb}MiB) with password length ${#PASSWORD}: $PASSWORD..." >> ${LOG_FILE}
   dd if=/dev/zero of="$filename" bs=1M count="$size_mb" status=none
 
-  echo "sudo losetup --show -f "$filename"" >  /tmp/luks1.sh.log
+  echo "sudo losetup --show -f "$filename"" >  ${CMD_LOG_FILE}
   loopdev=$(sudo losetup --show -f "$filename")
 
-cat >> /tmp/luks1.sh.log <<EOF
+cat >> ${CMD_LOG_FILE} <<EOF
 sudo cryptsetup luksFormat \
 --batch-mode \
 --type "$luks_type" \
@@ -62,9 +67,9 @@ EOF
       "${extra_opts[@]}" \
       "$loopdev" <<< "$PASSWORD"; then
       true
-      echo "Formatted: $filename" >> /tmp/luks1.sh
+      echo "Formatted: $filename" >> ${LOG_FILE}
   else
-    echo "X Failed to format: $filename" >> /tmp/luks1.sh
+    echo "X Failed to format: $filename" >> ${LOG_FILE}
     sudo losetup -d "$loopdev"
     rm -f "$filename"
     return
@@ -73,21 +78,21 @@ EOF
   name="luks$(basename "$filename" | sha1sum | cut -c1-8)"
 
   if [ -e "/dev/mapper/$name" ]; then
-    echo "! Device $name already exists. Closing it first." >> /tmp/luks1.sh
+    echo "! Device $name already exists. Closing it first." >> ${LOG_FILE}
     sudo cryptsetup close "$name" || true
   fi
 
   if sudo cryptsetup open "$loopdev" "$name" <<< "$PASSWORD"; then
     true
-    echo "Decrypted: $filename" >> /tmp/luks1.sh
+    echo "Decrypted: $filename" >> ${LOG_FILE}
   else
-    echo  "X Failed to decrypt: $filename" >> /tmp/luks1.sh
+    echo  "X Failed to decrypt: $filename" >> ${LOG_FILE}
     sudo losetup -d "$loopdev"
     rm -f "$filename"
     return
   fi
 
-  sudo mkfs.ext4 -q /dev/mapper/"$name" 2>> /tmp/luks1.sh
+  sudo mkfs.ext4 -q /dev/mapper/"$name" 2>> ${LOG_FILE}
 
   mount_point="$MOUNT_DIR/$name"
   mkdir -p "$mount_point"
@@ -100,7 +105,10 @@ EOF
   done
   sudo cryptsetup close "$name"
 
-  echo  "ext4: $filename" >> /tmp/luks1.sh
+  # the mount point is empty now, and one is created per container
+  rmdir "$mount_point" 2>/dev/null || true
+
+  echo  "ext4: $filename" >> ${LOG_FILE}
 
   sudo losetup -D
 }
@@ -264,8 +272,14 @@ create_luks_container "$password" "$file" "$luks_type" "$cipher_cipher_mode" "$h
 ${TDIR}/luks2hashcat.py $file | grep -vE '^[0-9]+$' > $file.hash
 
 if [[ ${hashcat_module} -eq "14600" ]]; then
+  # the legacy format reads the container itself, so it has to survive
   echo "$file"
 else
+  # every other mode is handed the extracted hash, and the container is 20 MiB of dead
+  # weight the moment it is out. Without this a suite run leaves one image per generated
+  # vector behind in OUTPUT_DIR, for good.
+  rm -f "$file"
+
   echo "$file.hash"
 fi
 # echo ""

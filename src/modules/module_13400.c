@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -364,7 +365,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     const u8 *contents_pos = token.buf[10];
     const int contents_len = token.len[10];
 
+    // the loop below reads 8 hex characters per word, and the two checks under it are made on the
+    // decoded length, where an odd encoded length is rounded away. An encoded length that is not a
+    // multiple of 32 therefore passes them and makes the last read run past the end of the token.
+
+    if ((contents_len % 32) != 0) return (PARSER_SALT_LENGTH);
+
     keepass->contents_len = contents_len / 2;
+
+    if (keepass->contents_len < 16)     return (PARSER_SALT_LENGTH);
+    if (keepass->contents_len % 16 != 0) return (PARSER_SALT_LENGTH);
 
     for (int i = 0, j = 0; j < contents_len; i += 1, j += 8)
     {
@@ -555,6 +565,16 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     u32  contents_len =         keepass->contents_len;
     const u32 *ptr_contents = (const u32 *) keepass->contents;
 
+    // ptr_data is not bounded by line_size after the first snprintf, and this branch is the one that
+    // can write more than the line carried: the field stating the length of the contents is not read
+    // by module_hash_decode, so a line may state a shorter one than it holds and the length printed
+    // here is the real one. The room left is checked once, and covers the contents hash, the length,
+    // the contents themselves and the keyfile block that can follow them.
+
+    const int room_needed = (int) (contents_hash_len * 8) + 3 + 10 + 1 + (int) (contents_len * 2) + 70 + 1;
+
+    if (((int) (ptr_data - line_buf) + room_needed) > line_size) return 0;
+
     for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents_hash[i]);
 
     *ptr_data = '*';
@@ -623,6 +643,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -639,7 +660,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -655,6 +675,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -697,5 +718,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

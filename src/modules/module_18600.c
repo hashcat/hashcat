@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -82,7 +83,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // this uses some nice feedback effect.
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
-  // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
+  // which is then is read from the opencl host in the device_preferred_wgs_multiple result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
@@ -113,11 +114,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
       if (use_dynamic == true)
       {
-        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET])
         {
           // otherwise out-of-bound reads
 
-          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
         }
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
@@ -138,11 +139,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     {
       if (use_dynamic == true)
       {
-        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // using kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] is a bit hackish.
         // we had to brute-force this value out of an already loaded CUDA function.
         // there's no official way to query for this value.
 
-        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
       }
@@ -310,6 +311,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = salt_len;
 
+  if (iterations < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iterations - 1;
 
   salt->salt_buf[0] = hex_to_u32 (&salt_buf[ 0]);
@@ -375,6 +378,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -391,7 +395,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -407,6 +410,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -449,5 +453,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

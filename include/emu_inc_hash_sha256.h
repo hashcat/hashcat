@@ -11,6 +11,6 @@
 #include "inc_vendor.h"
 #include "inc_hash_sha256.h"
 
-extern u32a k_sha256[64];
+HC_PLUGIN_API extern u32a k_sha256[64];
 
 #endif // HC_EMU_INC_HASH_SHA256_H

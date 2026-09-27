@@ -10,6 +10,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -72,13 +73,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     for (int i = 0; i < count; i += 2)
     {
-      token.sep[i + 0]     = hashconfig->separator;
+      token.sep[i + 0]     = ':';
       token.len[i + 0]     = 6;
       token.attr[i + 0]    = TOKEN_ATTR_FIXED_LENGTH
                            | TOKEN_ATTR_VERIFY_DIGIT;
 
       // 0 to 18446744073709551616
-      token.sep[i + 1]     = hashconfig->separator;
+      token.sep[i + 1]     = ':';
       token.len_min[i + 1] = 1;
       token.len_max[i + 1] = 20;
       token.attr[i + 1]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -89,7 +90,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
         token.len_min[i + 1] *= 2;
         token.len_max[i + 1] *= 2;
         token.attr[i + 1]     = TOKEN_ATTR_VERIFY_LENGTH
-                              | TOKEN_ATTR_VERIFY_HEX;
+                              | TOKEN_ATTR_VERIFY_BASE16;
       }
     }
 
@@ -163,7 +164,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   for (; i < count - 1; i += 1)
   {
     const u64 tmp_salt_buf = (((u64) (salt->salt_buf[4 * i + 2])) << 32) | ((u64) (salt->salt_buf[4 * i + 3]));
-    const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64 "%c", digest[i], hashconfig->separator, tmp_salt_buf, hashconfig->separator);
+    const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64 "%c", digest[i], ':', tmp_salt_buf, ':');
     line_len += ret;
 
     // error
@@ -175,7 +176,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // the last TOTP code
   const u64 tmp_salt_buf = (((u64) (salt->salt_buf[4 * i + 2])) << 32) | ((u64) (salt->salt_buf[4 * i + 3]));
-  const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64, digest[i], hashconfig->separator, tmp_salt_buf);
+  const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64, digest[i], ':', tmp_salt_buf);
   line_len += ret;
 
   // error
@@ -192,6 +193,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -208,7 +210,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -223,6 +224,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
@@ -266,5 +268,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

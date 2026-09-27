@@ -51,7 +51,7 @@ KERNEL_FQ KERNEL_FA void m00000_m04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
 
     const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
@@ -78,22 +78,74 @@ KERNEL_FQ KERNEL_FA void m00000_m04 (KERN_ATTR_BASIC ())
     u32x wordr2[4] = { 0 };
     u32x wordr3[4] = { 0 };
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
     {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0)
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+      }
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
     }
     else
+    #endif
     {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
     }
 
     u32x w0[4];
@@ -135,67 +187,67 @@ KERNEL_FQ KERNEL_FA void m00000_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_Fo, d, a, b, c, w1[1], MD5C05, MD5S01);
     MD5_STEP (MD5_Fo, c, d, a, b, w1[2], MD5C06, MD5S02);
     MD5_STEP (MD5_Fo, b, c, d, a, w1[3], MD5C07, MD5S03);
-    MD5_STEP (MD5_Fo, a, b, c, d, w2[0], MD5C08, MD5S00);
-    MD5_STEP (MD5_Fo, d, a, b, c, w2[1], MD5C09, MD5S01);
-    MD5_STEP (MD5_Fo, c, d, a, b, w2[2], MD5C0a, MD5S02);
-    MD5_STEP (MD5_Fo, b, c, d, a, w2[3], MD5C0b, MD5S03);
-    MD5_STEP (MD5_Fo, a, b, c, d, w3[0], MD5C0c, MD5S00);
-    MD5_STEP (MD5_Fo, d, a, b, c, w3[1], MD5C0d, MD5S01);
+    MD5_STEP0(MD5_Fo, a, b, c, d,        MD5C08, MD5S00);
+    MD5_STEP0(MD5_Fo, d, a, b, c,        MD5C09, MD5S01);
+    MD5_STEP0(MD5_Fo, c, d, a, b,        MD5C0a, MD5S02);
+    MD5_STEP0(MD5_Fo, b, c, d, a,        MD5C0b, MD5S03);
+    MD5_STEP0(MD5_Fo, a, b, c, d,        MD5C0c, MD5S00);
+    MD5_STEP0(MD5_Fo, d, a, b, c,        MD5C0d, MD5S01);
     MD5_STEP (MD5_Fo, c, d, a, b, w3[2], MD5C0e, MD5S02);
-    MD5_STEP (MD5_Fo, b, c, d, a, w3[3], MD5C0f, MD5S03);
+    MD5_STEP0(MD5_Fo, b, c, d, a,        MD5C0f, MD5S03);
 
     MD5_STEP (MD5_Go, a, b, c, d, w0[1], MD5C10, MD5S10);
     MD5_STEP (MD5_Go, d, a, b, c, w1[2], MD5C11, MD5S11);
-    MD5_STEP (MD5_Go, c, d, a, b, w2[3], MD5C12, MD5S12);
+    MD5_STEP0(MD5_Go, c, d, a, b,        MD5C12, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w0[0], MD5C13, MD5S13);
     MD5_STEP (MD5_Go, a, b, c, d, w1[1], MD5C14, MD5S10);
-    MD5_STEP (MD5_Go, d, a, b, c, w2[2], MD5C15, MD5S11);
-    MD5_STEP (MD5_Go, c, d, a, b, w3[3], MD5C16, MD5S12);
+    MD5_STEP0(MD5_Go, d, a, b, c,        MD5C15, MD5S11);
+    MD5_STEP0(MD5_Go, c, d, a, b,        MD5C16, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w1[0], MD5C17, MD5S13);
-    MD5_STEP (MD5_Go, a, b, c, d, w2[1], MD5C18, MD5S10);
+    MD5_STEP0(MD5_Go, a, b, c, d,        MD5C18, MD5S10);
     MD5_STEP (MD5_Go, d, a, b, c, w3[2], MD5C19, MD5S11);
     MD5_STEP (MD5_Go, c, d, a, b, w0[3], MD5C1a, MD5S12);
-    MD5_STEP (MD5_Go, b, c, d, a, w2[0], MD5C1b, MD5S13);
-    MD5_STEP (MD5_Go, a, b, c, d, w3[1], MD5C1c, MD5S10);
+    MD5_STEP0(MD5_Go, b, c, d, a,        MD5C1b, MD5S13);
+    MD5_STEP0(MD5_Go, a, b, c, d,        MD5C1c, MD5S10);
     MD5_STEP (MD5_Go, d, a, b, c, w0[2], MD5C1d, MD5S11);
     MD5_STEP (MD5_Go, c, d, a, b, w1[3], MD5C1e, MD5S12);
-    MD5_STEP (MD5_Go, b, c, d, a, w3[0], MD5C1f, MD5S13);
+    MD5_STEP0(MD5_Go, b, c, d, a,        MD5C1f, MD5S13);
 
     u32x t;
 
     MD5_STEP (MD5_H1, a, b, c, d, w1[1], MD5C20, MD5S20);
-    MD5_STEP (MD5_H2, d, a, b, c, w2[0], MD5C21, MD5S21);
-    MD5_STEP (MD5_H1, c, d, a, b, w2[3], MD5C22, MD5S22);
+    MD5_STEP0(MD5_H2, d, a, b, c,        MD5C21, MD5S21);
+    MD5_STEP0(MD5_H1, c, d, a, b,        MD5C22, MD5S22);
     MD5_STEP (MD5_H2, b, c, d, a, w3[2], MD5C23, MD5S23);
     MD5_STEP (MD5_H1, a, b, c, d, w0[1], MD5C24, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, w1[0], MD5C25, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, w1[3], MD5C26, MD5S22);
-    MD5_STEP (MD5_H2, b, c, d, a, w2[2], MD5C27, MD5S23);
-    MD5_STEP (MD5_H1, a, b, c, d, w3[1], MD5C28, MD5S20);
+    MD5_STEP0(MD5_H2, b, c, d, a,        MD5C27, MD5S23);
+    MD5_STEP0(MD5_H1, a, b, c, d,        MD5C28, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, w0[0], MD5C29, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, w0[3], MD5C2a, MD5S22);
     MD5_STEP (MD5_H2, b, c, d, a, w1[2], MD5C2b, MD5S23);
-    MD5_STEP (MD5_H1, a, b, c, d, w2[1], MD5C2c, MD5S20);
-    MD5_STEP (MD5_H2, d, a, b, c, w3[0], MD5C2d, MD5S21);
-    MD5_STEP (MD5_H1, c, d, a, b, w3[3], MD5C2e, MD5S22);
+    MD5_STEP0(MD5_H1, a, b, c, d,        MD5C2c, MD5S20);
+    MD5_STEP0(MD5_H2, d, a, b, c,        MD5C2d, MD5S21);
+    MD5_STEP0(MD5_H1, c, d, a, b,        MD5C2e, MD5S22);
     MD5_STEP (MD5_H2, b, c, d, a, w0[2], MD5C2f, MD5S23);
 
     MD5_STEP (MD5_I , a, b, c, d, w0[0], MD5C30, MD5S30);
     MD5_STEP (MD5_I , d, a, b, c, w1[3], MD5C31, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w3[2], MD5C32, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w1[1], MD5C33, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w3[0], MD5C34, MD5S30);
+    MD5_STEP0(MD5_I , a, b, c, d,        MD5C34, MD5S30);
     MD5_STEP (MD5_I , d, a, b, c, w0[3], MD5C35, MD5S31);
-    MD5_STEP (MD5_I , c, d, a, b, w2[2], MD5C36, MD5S32);
+    MD5_STEP0(MD5_I , c, d, a, b,        MD5C36, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w0[1], MD5C37, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w2[0], MD5C38, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w3[3], MD5C39, MD5S31);
+    MD5_STEP0(MD5_I , a, b, c, d,        MD5C38, MD5S30);
+    MD5_STEP0(MD5_I , d, a, b, c,        MD5C39, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w1[2], MD5C3a, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w3[1], MD5C3b, MD5S33);
+    MD5_STEP0(MD5_I , b, c, d, a,        MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w1[0], MD5C3c, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w2[3], MD5C3d, MD5S31);
+    MD5_STEP0(MD5_I , d, a, b, c,        MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
+    MD5_STEP0(MD5_I , b, c, d, a,        MD5C3f, MD5S33);
 
     COMPARE_M_SIMD (a, d, c, b);
   }
@@ -257,7 +309,7 @@ KERNEL_FQ KERNEL_FA void m00000_s04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
 
     const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
@@ -284,22 +336,74 @@ KERNEL_FQ KERNEL_FA void m00000_s04 (KERN_ATTR_BASIC ())
     u32x wordr2[4] = { 0 };
     u32x wordr3[4] = { 0 };
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
     {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0)
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+      }
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
     }
     else
+    #endif
     {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
     }
 
     u32x w0[4];
@@ -341,70 +445,70 @@ KERNEL_FQ KERNEL_FA void m00000_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_Fo, d, a, b, c, w1[1], MD5C05, MD5S01);
     MD5_STEP (MD5_Fo, c, d, a, b, w1[2], MD5C06, MD5S02);
     MD5_STEP (MD5_Fo, b, c, d, a, w1[3], MD5C07, MD5S03);
-    MD5_STEP (MD5_Fo, a, b, c, d, w2[0], MD5C08, MD5S00);
-    MD5_STEP (MD5_Fo, d, a, b, c, w2[1], MD5C09, MD5S01);
-    MD5_STEP (MD5_Fo, c, d, a, b, w2[2], MD5C0a, MD5S02);
-    MD5_STEP (MD5_Fo, b, c, d, a, w2[3], MD5C0b, MD5S03);
-    MD5_STEP (MD5_Fo, a, b, c, d, w3[0], MD5C0c, MD5S00);
-    MD5_STEP (MD5_Fo, d, a, b, c, w3[1], MD5C0d, MD5S01);
+    MD5_STEP0(MD5_Fo, a, b, c, d,        MD5C08, MD5S00);
+    MD5_STEP0(MD5_Fo, d, a, b, c,        MD5C09, MD5S01);
+    MD5_STEP0(MD5_Fo, c, d, a, b,        MD5C0a, MD5S02);
+    MD5_STEP0(MD5_Fo, b, c, d, a,        MD5C0b, MD5S03);
+    MD5_STEP0(MD5_Fo, a, b, c, d,        MD5C0c, MD5S00);
+    MD5_STEP0(MD5_Fo, d, a, b, c,        MD5C0d, MD5S01);
     MD5_STEP (MD5_Fo, c, d, a, b, w3[2], MD5C0e, MD5S02);
-    MD5_STEP (MD5_Fo, b, c, d, a, w3[3], MD5C0f, MD5S03);
+    MD5_STEP0(MD5_Fo, b, c, d, a,        MD5C0f, MD5S03);
 
     MD5_STEP (MD5_Go, a, b, c, d, w0[1], MD5C10, MD5S10);
     MD5_STEP (MD5_Go, d, a, b, c, w1[2], MD5C11, MD5S11);
-    MD5_STEP (MD5_Go, c, d, a, b, w2[3], MD5C12, MD5S12);
+    MD5_STEP0(MD5_Go, c, d, a, b,        MD5C12, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w0[0], MD5C13, MD5S13);
     MD5_STEP (MD5_Go, a, b, c, d, w1[1], MD5C14, MD5S10);
-    MD5_STEP (MD5_Go, d, a, b, c, w2[2], MD5C15, MD5S11);
-    MD5_STEP (MD5_Go, c, d, a, b, w3[3], MD5C16, MD5S12);
+    MD5_STEP0(MD5_Go, d, a, b, c,        MD5C15, MD5S11);
+    MD5_STEP0(MD5_Go, c, d, a, b,        MD5C16, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w1[0], MD5C17, MD5S13);
-    MD5_STEP (MD5_Go, a, b, c, d, w2[1], MD5C18, MD5S10);
+    MD5_STEP0(MD5_Go, a, b, c, d,        MD5C18, MD5S10);
     MD5_STEP (MD5_Go, d, a, b, c, w3[2], MD5C19, MD5S11);
     MD5_STEP (MD5_Go, c, d, a, b, w0[3], MD5C1a, MD5S12);
-    MD5_STEP (MD5_Go, b, c, d, a, w2[0], MD5C1b, MD5S13);
-    MD5_STEP (MD5_Go, a, b, c, d, w3[1], MD5C1c, MD5S10);
+    MD5_STEP0(MD5_Go, b, c, d, a,        MD5C1b, MD5S13);
+    MD5_STEP0(MD5_Go, a, b, c, d,        MD5C1c, MD5S10);
     MD5_STEP (MD5_Go, d, a, b, c, w0[2], MD5C1d, MD5S11);
     MD5_STEP (MD5_Go, c, d, a, b, w1[3], MD5C1e, MD5S12);
-    MD5_STEP (MD5_Go, b, c, d, a, w3[0], MD5C1f, MD5S13);
+    MD5_STEP0(MD5_Go, b, c, d, a,        MD5C1f, MD5S13);
 
     u32x t;
 
     MD5_STEP (MD5_H1, a, b, c, d, w1[1], MD5C20, MD5S20);
-    MD5_STEP (MD5_H2, d, a, b, c, w2[0], MD5C21, MD5S21);
-    MD5_STEP (MD5_H1, c, d, a, b, w2[3], MD5C22, MD5S22);
+    MD5_STEP0(MD5_H2, d, a, b, c,        MD5C21, MD5S21);
+    MD5_STEP0(MD5_H1, c, d, a, b,        MD5C22, MD5S22);
     MD5_STEP (MD5_H2, b, c, d, a, w3[2], MD5C23, MD5S23);
     MD5_STEP (MD5_H1, a, b, c, d, w0[1], MD5C24, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, w1[0], MD5C25, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, w1[3], MD5C26, MD5S22);
-    MD5_STEP (MD5_H2, b, c, d, a, w2[2], MD5C27, MD5S23);
-    MD5_STEP (MD5_H1, a, b, c, d, w3[1], MD5C28, MD5S20);
+    MD5_STEP0(MD5_H2, b, c, d, a,        MD5C27, MD5S23);
+    MD5_STEP0(MD5_H1, a, b, c, d,        MD5C28, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, w0[0], MD5C29, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, w0[3], MD5C2a, MD5S22);
     MD5_STEP (MD5_H2, b, c, d, a, w1[2], MD5C2b, MD5S23);
-    MD5_STEP (MD5_H1, a, b, c, d, w2[1], MD5C2c, MD5S20);
-    MD5_STEP (MD5_H2, d, a, b, c, w3[0], MD5C2d, MD5S21);
-    MD5_STEP (MD5_H1, c, d, a, b, w3[3], MD5C2e, MD5S22);
+    MD5_STEP0(MD5_H1, a, b, c, d,        MD5C2c, MD5S20);
+    MD5_STEP0(MD5_H2, d, a, b, c,        MD5C2d, MD5S21);
+    MD5_STEP0(MD5_H1, c, d, a, b,        MD5C2e, MD5S22);
     MD5_STEP (MD5_H2, b, c, d, a, w0[2], MD5C2f, MD5S23);
 
     MD5_STEP (MD5_I , a, b, c, d, w0[0], MD5C30, MD5S30);
     MD5_STEP (MD5_I , d, a, b, c, w1[3], MD5C31, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w3[2], MD5C32, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w1[1], MD5C33, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w3[0], MD5C34, MD5S30);
+    MD5_STEP0(MD5_I , a, b, c, d,        MD5C34, MD5S30);
     MD5_STEP (MD5_I , d, a, b, c, w0[3], MD5C35, MD5S31);
-    MD5_STEP (MD5_I , c, d, a, b, w2[2], MD5C36, MD5S32);
+    MD5_STEP0(MD5_I , c, d, a, b,        MD5C36, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w0[1], MD5C37, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w2[0], MD5C38, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w3[3], MD5C39, MD5S31);
+    MD5_STEP0(MD5_I , a, b, c, d,        MD5C38, MD5S30);
+    MD5_STEP0(MD5_I , d, a, b, c,        MD5C39, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w1[2], MD5C3a, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w3[1], MD5C3b, MD5S33);
+    MD5_STEP0(MD5_I , b, c, d, a,        MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w1[0], MD5C3c, MD5S30);
 
     if (MATCHES_NONE_VS (a, search[0])) continue;
 
-    MD5_STEP (MD5_I , d, a, b, c, w2[3], MD5C3d, MD5S31);
+    MD5_STEP0(MD5_I , d, a, b, c,        MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
+    MD5_STEP0(MD5_I , b, c, d, a,        MD5C3f, MD5S33);
 
     COMPARE_S_SIMD (a, d, c, b);
   }

@@ -151,7 +151,12 @@ static bool matches_separator (const u8 *buf, const size_t len, const char separ
 
 bool is_hexify (const u8 *buf, const size_t len)
 {
-  //  if (len < 6) return false; // $HEX[] = 6
+  // "$HEX[]" is 6 bytes, and everything below reads as if at least that many
+  // are present: the u32 compare covers buf[0..3], then buf[4], buf[len - 1]
+  // and buf + 5 with a length of len - 6. Anything shorter reads out of bounds
+  // and underflows that last length.
+
+  if (len < 6) return false; // $HEX[] = 6
 
   // length of the hex string must be a multiple of 2
   // and the length of "$HEX[]" is 6 (also an even length)
@@ -173,9 +178,20 @@ bool is_hexify (const u8 *buf, const size_t len)
 
 size_t exec_unhexify (const u8 *in_buf, const size_t in_len, u8 *out_buf, const size_t out_sz)
 {
+  // out_sz says how much room there is and was used only for the memset below. Two hex characters
+  // become one byte, so a $HEX[] run longer than twice the destination wrote past it, and the
+  // memset then took a negative remainder as an enormous length.
+
+  if (in_len < 6)
+  {
+    memset (out_buf, 0, out_sz);
+
+    return 0;
+  }
+
   size_t i, j;
 
-  for (i = 0, j = 5; j < in_len - 1; i += 1, j += 2)
+  for (i = 0, j = 5; (j < (in_len - 1)) && (i < out_sz); i += 1, j += 2)
   {
     const u8 c = hex_to_u8 (&in_buf[j]);
 
@@ -226,9 +242,12 @@ bool need_hexify (const u8 *buf, const size_t len, const char separator, bool al
   return false;
 }
 
-void exec_hexify (const u8 *buf, const size_t len, u8 *out)
+// The input is clamped to PW_MAX, so a caller that advances by len * 2 runs past what was produced
+// and reads whatever the destination held. Report what was written and let the caller advance by it.
+
+size_t exec_hexify (const u8 *buf, const size_t len, u8 *out)
 {
-  const size_t max_len = (len > PW_MAX) ? PW_MAX : len;
+  const size_t max_len = MIN (len, PW_MAX);
 
   for (int i = (int) max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
@@ -236,6 +255,10 @@ void exec_hexify (const u8 *buf, const size_t len, u8 *out)
   }
 
   out[max_len * 2] = 0;
+
+  const size_t out_len = max_len * 2;
+
+  return out_len;
 }
 
 bool is_valid_base64a_string (const u8 *s, const size_t len)
@@ -361,25 +384,38 @@ bool is_valid_bech32_char (const u8 c)
   return false;
 }
 
+static const u8 hex_nibble[256] =
+{
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+};
+
 bool is_valid_hex_string (const u8 *s, const size_t len)
 {
-  for (size_t i = 0; i < len; i++)
-  {
-    const u8 c = s[i];
+  u8 acc = 0;
 
-    if (is_valid_hex_char (c) == false) return false;
-  }
+  for (size_t i = 0; i < len; i++) acc |= hex_nibble[s[i]];
 
-  return true;
+  return ((acc & 0x80) == 0);
 }
 
 bool is_valid_hex_char (const u8 c)
 {
-  if ((c >= '0') && (c <= '9')) return true;
-  if ((c >= 'A') && (c <= 'F')) return true;
-  if ((c >= 'a') && (c <= 'f')) return true;
-
-  return false;
+  return (hex_nibble[c] != 0xff);
 }
 
 bool is_valid_float_string (const u8 *s, const size_t len)
@@ -422,17 +458,22 @@ bool is_valid_digit_char (const u8 c)
   return false;
 }
 
-u8 hex_convert (const u8 c)
+static u8 hex_conv (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
+}
+
+u8 hex_convert (const u8 c)
+{
+  return hex_conv (c);
 }
 
 u8 hex_to_u8 (const u8 hex[2])
 {
   u8 v = 0;
 
-  v |= (hex_convert (hex[1]) << 0);
-  v |= (hex_convert (hex[0]) << 4);
+  v |= (hex_conv (hex[1]) << 0);
+  v |= (hex_conv (hex[0]) << 4);
 
   return (v);
 }
@@ -441,14 +482,14 @@ u32 hex_to_u32 (const u8 hex[8])
 {
   u32 v = 0;
 
-  v |= ((u32) hex_convert (hex[1]) <<  0);
-  v |= ((u32) hex_convert (hex[0]) <<  4);
-  v |= ((u32) hex_convert (hex[3]) <<  8);
-  v |= ((u32) hex_convert (hex[2]) << 12);
-  v |= ((u32) hex_convert (hex[5]) << 16);
-  v |= ((u32) hex_convert (hex[4]) << 20);
-  v |= ((u32) hex_convert (hex[7]) << 24);
-  v |= ((u32) hex_convert (hex[6]) << 28);
+  v |= ((u32) hex_conv (hex[1]) <<  0);
+  v |= ((u32) hex_conv (hex[0]) <<  4);
+  v |= ((u32) hex_conv (hex[3]) <<  8);
+  v |= ((u32) hex_conv (hex[2]) << 12);
+  v |= ((u32) hex_conv (hex[5]) << 16);
+  v |= ((u32) hex_conv (hex[4]) << 20);
+  v |= ((u32) hex_conv (hex[7]) << 24);
+  v |= ((u32) hex_conv (hex[6]) << 28);
 
   return (v);
 }
@@ -457,22 +498,22 @@ u64 hex_to_u64 (const u8 hex[16])
 {
   u64 v = 0;
 
-  v |= ((u64) hex_convert (hex[ 1]) <<  0);
-  v |= ((u64) hex_convert (hex[ 0]) <<  4);
-  v |= ((u64) hex_convert (hex[ 3]) <<  8);
-  v |= ((u64) hex_convert (hex[ 2]) << 12);
-  v |= ((u64) hex_convert (hex[ 5]) << 16);
-  v |= ((u64) hex_convert (hex[ 4]) << 20);
-  v |= ((u64) hex_convert (hex[ 7]) << 24);
-  v |= ((u64) hex_convert (hex[ 6]) << 28);
-  v |= ((u64) hex_convert (hex[ 9]) << 32);
-  v |= ((u64) hex_convert (hex[ 8]) << 36);
-  v |= ((u64) hex_convert (hex[11]) << 40);
-  v |= ((u64) hex_convert (hex[10]) << 44);
-  v |= ((u64) hex_convert (hex[13]) << 48);
-  v |= ((u64) hex_convert (hex[12]) << 52);
-  v |= ((u64) hex_convert (hex[15]) << 56);
-  v |= ((u64) hex_convert (hex[14]) << 60);
+  v |= ((u64) hex_conv (hex[ 1]) <<  0);
+  v |= ((u64) hex_conv (hex[ 0]) <<  4);
+  v |= ((u64) hex_conv (hex[ 3]) <<  8);
+  v |= ((u64) hex_conv (hex[ 2]) << 12);
+  v |= ((u64) hex_conv (hex[ 5]) << 16);
+  v |= ((u64) hex_conv (hex[ 4]) << 20);
+  v |= ((u64) hex_conv (hex[ 7]) << 24);
+  v |= ((u64) hex_conv (hex[ 6]) << 28);
+  v |= ((u64) hex_conv (hex[ 9]) << 32);
+  v |= ((u64) hex_conv (hex[ 8]) << 36);
+  v |= ((u64) hex_conv (hex[11]) << 40);
+  v |= ((u64) hex_conv (hex[10]) << 44);
+  v |= ((u64) hex_conv (hex[13]) << 48);
+  v |= ((u64) hex_conv (hex[12]) << 52);
+  v |= ((u64) hex_conv (hex[15]) << 56);
+  v |= ((u64) hex_conv (hex[14]) << 60);
 
   return (v);
 }
@@ -1064,7 +1105,11 @@ u64 v64_from_v32ab (const u32 v32a, const u32 v32b)
 
 int hex_decode (const u8 *in_buf, const int in_len, u8 *out_buf)
 {
-  for (int i = 0, j = 0; i < in_len; i += 2, j += 1)
+  // i + 1, not i: hex_to_u8 () reads two characters, so an odd in_len read one past the input. The
+  // return value already counts whole pairs, so the trailing character was never part of the
+  // answer, only of the read.
+
+  for (int i = 0, j = 0; (i + 1) < in_len; i += 2, j += 1)
   {
     out_buf[j] = hex_to_u8 (&in_buf[i]);
   }

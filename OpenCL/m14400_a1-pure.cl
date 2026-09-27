@@ -140,9 +140,27 @@ KERNEL_FQ KERNEL_FA void m14400_mxx (KERN_ATTR_BASIC ())
 
     sha1_update_64 (&ctx1, d20, d21, d22, d23, 2);
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) sha1_update_global_swap (&ctx1, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) sha1_update_global_swap (&ctx1, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) sha1_update_global_swap (&ctx1, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    sha1_update_global_swap (&ctx1, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     d40[0] = 0x2d2d2d2d;
     d40[1] = 0;
@@ -230,9 +248,27 @@ KERNEL_FQ KERNEL_FA void m14400_mxx (KERN_ATTR_BASIC ())
 
       sha1_update_64 (&ctx, d20, d21, d22, d23, 2);
 
+      // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+      // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+      // middle are empty unless the mask carries a ?q.
+      //
+      // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+      // attack modes that do not take them pay nothing but the compare.
+
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_PRE (il_pos).pw_len > 0) sha1_update_global_swap (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+      }
+
       sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_MID  (il_pos).pw_len > 0) sha1_update_global_swap (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+        if (COMBS_WORD (il_pos).pw_len > 0) sha1_update_global_swap (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      }
+
+      sha1_update_global_swap (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
       d40[0] = 0x2d2d2d2d;
       d40[1] = 0;
@@ -397,9 +433,27 @@ KERNEL_FQ KERNEL_FA void m14400_sxx (KERN_ATTR_BASIC ())
 
     sha1_update_64 (&ctx1, d20, d21, d22, d23, 2);
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) sha1_update_global_swap (&ctx1, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) sha1_update_global_swap (&ctx1, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) sha1_update_global_swap (&ctx1, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    sha1_update_global_swap (&ctx1, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     d40[0] = 0x2d2d2d2d;
     d40[1] = 0;
@@ -487,9 +541,27 @@ KERNEL_FQ KERNEL_FA void m14400_sxx (KERN_ATTR_BASIC ())
 
       sha1_update_64 (&ctx, d20, d21, d22, d23, 2);
 
+      // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+      // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+      // middle are empty unless the mask carries a ?q.
+      //
+      // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+      // attack modes that do not take them pay nothing but the compare.
+
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_PRE (il_pos).pw_len > 0) sha1_update_global_swap (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+      }
+
       sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      if (COMBS_IS_MIDDLE)
+      {
+        if (COMBS_MID  (il_pos).pw_len > 0) sha1_update_global_swap (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+        if (COMBS_WORD (il_pos).pw_len > 0) sha1_update_global_swap (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      }
+
+      sha1_update_global_swap (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
       d40[0] = 0x2d2d2d2d;
       d40[1] = 0;

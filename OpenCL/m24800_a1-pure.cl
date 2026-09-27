@@ -44,27 +44,13 @@ KERNEL_FQ KERNEL_FA void m24800_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-
     u32 c[64];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = combs_buf[il_pos].i[idx];
-    }
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+    // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+    // does the plain two piece case the other attack modes need as well.
 
-    switch_buffer_by_offset_1x64_le_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    const u32 c_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
     u32 t[128] = { 0 };
 
@@ -72,7 +58,7 @@ KERNEL_FQ KERNEL_FA void m24800_mxx (KERN_ATTR_BASIC ())
 
     hc_enc_init (&hc_enc);
 
-    const int t_len = hc_enc_next (&hc_enc, c, pw_len + comb_len, 256, t, sizeof (t));
+    const int t_len = hc_enc_next (&hc_enc, c, c_len, 256, t, sizeof (t));
 
     if (t_len == -1) continue;
 
@@ -137,27 +123,13 @@ KERNEL_FQ KERNEL_FA void m24800_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-
     u32 c[64];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = combs_buf[il_pos].i[idx];
-    }
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+    // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+    // does the plain two piece case the other attack modes need as well.
 
-    switch_buffer_by_offset_1x64_le_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    const u32 c_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
     u32 t[128] = { 0 };
 
@@ -165,7 +137,7 @@ KERNEL_FQ KERNEL_FA void m24800_sxx (KERN_ATTR_BASIC ())
 
     hc_enc_init (&hc_enc);
 
-    const int t_len = hc_enc_next (&hc_enc, c, pw_len + comb_len, 256, t, sizeof (t));
+    const int t_len = hc_enc_next (&hc_enc, c, c_len, 256, t, sizeof (t));
 
     if (t_len == -1) continue;
 

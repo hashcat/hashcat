@@ -1,0 +1,11 @@
+# Python packages the test modules under tools/test_modules need.
+# tools/install_modules.sh installs from this file.
+
+pycryptodome
+cryptography
+argon2-cffi
+
+# gostcrypto's update () is only correct while what it has been fed is a whole number of 64
+# byte blocks, so a Streebog message goes into it in one call rather than in pieces.
+
+gostcrypto

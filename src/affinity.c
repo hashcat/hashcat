@@ -7,11 +7,12 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
-#if defined(__ANDROID__)
+#include "affinity.h"
+
+#ifdef __ANDROID__
 #include <sched.h>
 #include <unistd.h>
 #endif
-#include "affinity.h"
 
 #if defined (__APPLE__)
 static void CPU_ZERO (cpu_set_t *cs)
@@ -73,7 +74,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   DWORD_PTR aff_mask = 0;
   const int cpu_id_max = 8 * sizeof (aff_mask);
   #elif defined (__NetBSD__)
-  cpuset_t * cpuset;
+  cpuset_t *cpuset = NULL;
   const int cpu_id_max = 8 * cpuset_size (cpuset);
   cpuset = cpuset_create ();
   if (cpuset == NULL)
@@ -181,16 +182,23 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   #elif defined (__OpenBSD__)
   // no thread affinity support with pthread
+  #elif defined (__ANDROID__)
+
+  const int rc = sched_setaffinity (gettid (), sizeof (cpu_set_t), &cpuset);
+
+  if (rc != 0)
+  {
+    event_log_error (hashcat_ctx, "sched_setaffinity() failed with error: %d", rc);
+
+    return -1;
+  }
+
   #else
 
   pthread_t thread = pthread_self ();
 
-  #if defined(__ANDROID__)
-    const int rc = sched_setaffinity (gettid(), sizeof (cpu_set_t), &cpuset);
-  #else
-    const int rc = pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
-  #endif
-  
+  const int rc = pthread_setaffinity_np (thread, sizeof (cpu_set_t), &cpuset);
+
   if (rc != 0)
   {
     event_log_error (hashcat_ctx, "pthread_setaffinity_np() failed with error: %d", rc);

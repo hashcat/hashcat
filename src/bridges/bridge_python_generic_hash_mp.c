@@ -3,13 +3,32 @@
  * License.....: MIT
  */
 
+// Python.h first, before any project or system header.
+//
+// It defines _POSIX_C_SOURCE and _XOPEN_SOURCE itself, and CPython's own documentation says it has to
+// be included before any standard header for that reason. common.h reaches string.h and therefore
+// features.h, which had already fixed both macros to the platform's own values by the time Python.h
+// was reached, so glibc 2.41 and Python 3.14 disagreed and every build printed four redefinition
+// warnings.
+
+#define PY_SSIZE_T_CLEAN
+
+#undef _GNU_SOURCE
+#include <Python.h>
+
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
+#include "system.h"
+#include "path.h"
+#include "filehandling.h"
 #include "cpu_features.h"
 #include "dynloader.h"
+
+#include <limits.h>
 
 #if defined (_WIN)
 #include "processenv.h"
@@ -17,16 +36,12 @@
 
 // python interpreter
 
-#define PY_SSIZE_T_CLEAN
-
-#undef _GNU_SOURCE
-#include <Python.h>
-
 #define PYTHON_API_CALL
 
 typedef void                (PYTHON_API_CALL *PY_INITIALIZE)                    ();
 typedef void                (PYTHON_API_CALL *PY_FINALIZE)                      ();
 typedef void                (PYTHON_API_CALL *PY_DECREF)                        (PyObject *);
+typedef void                (PYTHON_API_CALL *PY_INCREF)                        (PyObject *);
 typedef PyObject           *(PYTHON_API_CALL *PYBOOL_FROMLONG)                  (long);
 typedef PyObject           *(PYTHON_API_CALL *PYBYTES_FROMSTRINGANDSIZE)        (const char *, Py_ssize_t);
 typedef int                 (PYTHON_API_CALL *PYDICT_DELITEMSTRING)             (PyObject *, const char *);
@@ -83,6 +98,7 @@ typedef struct hc_python_lib
   PY_INITIALIZE                     Py_Initialize;
   PY_FINALIZE                       Py_Finalize;
   PY_DECREF                         Py_DecRef;
+  PY_INCREF                         Py_IncRef;
   PYBOOL_FROMLONG                   PyBool_FromLong;
   PYBYTES_FROMSTRINGANDSIZE         PyBytes_FromStringAndSize;
   PYDICT_DELITEMSTRING              PyDict_DelItemString;
@@ -225,7 +241,14 @@ const char *extract_module_name (const char *path)
     module_name = filename;
   }
 
-  return module_name;
+  // the caller gets an allocation whose base is the pointer it was handed. Returning a pointer into
+  // filename left the strdup () above with no owner at all, once per call.
+
+  const char *module_name_buf = strdup (module_name);
+
+  free (filename);
+
+  return module_name_buf;
 }
 
 static char *expand_pyenv_libpath (const char *prefix, const int maj, const int min)
@@ -337,7 +360,7 @@ static int resolve_pyenv_libpath (char *out_buf, const size_t out_sz)
   return -1;
 }
 
-static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
+static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, user_options_t *user_options)
 {
   char pythondll_path[PATH_MAX];
 
@@ -521,7 +544,14 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
 
   if (python->lib == NULL)
   {
-    fprintf (stderr, "Awww, unable to find Python shared library.\n");
+    event_log_error (hashcat_ctx, "Unable to find suitable Python library for -m 73000.");
+    event_log_info (hashcat_ctx, "This mode wants an ordinary Python built as a shared library, not the free-threaded one.");
+    event_log_info (hashcat_ctx, "* On Windows, use the installer from https://www.python.org/downloads/windows/ and leave 'free-threaded' unchecked.");
+    event_log_info (hashcat_ctx, "* On Linux and MacOS, use `pyenv` and select a version with no `t` on the end (for instance `3.14.7`).");
+    event_log_info (hashcat_ctx, "  `pyenv versions` lists what is installed. A version selected but never installed looks exactly like this.");
+    event_log_info (hashcat_ctx, "  For -m 72000 instead, the version needs the `t`, and the two are separate installs.");
+    event_log_info (hashcat_ctx, NULL);
+    event_log_info (hashcat_ctx, NULL);
 
     return false;
   }
@@ -542,11 +572,11 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
       if ((noerr) != -1) { \
         if (!(ptr)->name) { \
           if ((noerr) == 1) { \
-            fprintf (stderr, "%s is missing from %s shared library.", #name, #libname); \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
             return false; \
           } \
           if ((noerr) != 1) { \
-            fprintf (stderr, "%s is missing from %s shared library.", #name, #libname); \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
             return true; \
           } \
         } \
@@ -562,14 +592,14 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
 
   if (sscanf (version_str, "%d.%d", &major, &minor) != 2)
   {
-    fprintf (stderr, "Python version string is not valid: %s\n", version_str);
+    event_log_error (hashcat_ctx, "Python version string is not valid: %s", version_str);
 
     return false;
   }
 
   if ((major < 3) || (major == 3 && minor < 10))
   {
-    fprintf (stderr, "Python version mismatch: Need at least v3.10\n");
+    event_log_error (hashcat_ctx, "Python version mismatch: Need at least v3.10");
 
     return false;
   }
@@ -577,6 +607,7 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
   HC_LOAD_FUNC_PYTHON (python, Py_Initialize,                     Py_Initialize,                      PY_INITIALIZE,                    PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_Finalize,                       Py_Finalize,                        PY_FINALIZE,                      PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_DecRef,                         Py_DecRef,                          PY_DECREF,                        PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, Py_IncRef,                         Py_IncRef,                          PY_INCREF,                        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBool_FromLong,                   PyBool_FromLong,                    PYBOOL_FROMLONG,                  PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBytes_FromStringAndSize,         PyBytes_FromStringAndSize,          PYBYTES_FROMSTRINGANDSIZE,        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyDict_DelItemString,              PyDict_DelItemString,               PYDICT_DELITEMSTRING,             PYTHON, 1);
@@ -687,8 +718,23 @@ static void units_term (python_interpreter_t *python_interpreter)
   }
 }
 
-void *platform_init (user_options_t *user_options)
+// Everything platform_init () has brought up by the point one of its returns is taken. The context
+// comes from hcmalloc (), which zeroes, so a field a return has not reached yet is NULL and the free
+// of it is a no-op.
+
+static void platform_init_fail (python_interpreter_t *python_interpreter)
 {
+  hcfree (python_interpreter->units_buf);
+
+  hcfree (python_interpreter->python);
+
+  hcfree (python_interpreter);
+}
+
+void *platform_init (hashcat_ctx_t *hashcat_ctx)
+{
+  MAYBE_UNUSED user_options_t  *user_options  = hashcat_ctx->user_options;
+
   // Verify CPU features
 
   if (cpu_chipset_test () == -1) return NULL;
@@ -701,7 +747,12 @@ void *platform_init (user_options_t *user_options)
 
   python_interpreter->python = python;
 
-  if (init_python (python, user_options) == false) return NULL;
+  if (init_python (hashcat_ctx, python, user_options) == false)
+  {
+    platform_init_fail (python_interpreter);
+
+    return NULL;
+  }
 
   python->Py_Initialize ();
 
@@ -713,7 +764,7 @@ void *platform_init (user_options_t *user_options)
 
   if (units_init (python_interpreter) == false)
   {
-    hcfree (python_interpreter);
+    platform_init_fail (python_interpreter);
 
     return NULL;
   }
@@ -725,9 +776,10 @@ void *platform_init (user_options_t *user_options)
   {
     if (user_options->machine_readable == false)
     {
-      fprintf (stderr, "Attention!!! Falling back to single-threaded mode.\n");
-      fprintf (stderr, " Windows and MacOS ds not support multiprocessing module cleanly!\n");
-      fprintf (stderr, " For multithreading on Windows and MacOS, please use -m 72000 instead.\n\n");
+      event_log_error (hashcat_ctx, "Attention!!! Falling back to single-threaded mode.");
+      event_log_info (hashcat_ctx, " Windows and MacOS do not support the multiprocessing module cleanly!");
+      event_log_info (hashcat_ctx, " For multithreading on Windows and MacOS, please use -m 72000 instead.");
+      event_log_info (hashcat_ctx, NULL);
     }
   }
   #endif
@@ -738,7 +790,9 @@ void *platform_init (user_options_t *user_options)
 
   if (source == NULL)
   {
-    fprintf (stderr, "ERROR: %s: %s\n\n", python_interpreter->source_filename, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", python_interpreter->source_filename, strerror (errno));
+
+    platform_init_fail (python_interpreter);
 
     return NULL;
   }
@@ -751,7 +805,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   unit_buf->pGlobals = python->PyDict_New ();
@@ -764,7 +820,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   python->Py_DecRef (result);
@@ -775,7 +833,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   unit_buf->pFunc_Term = python->PyDict_GetItemString (unit_buf->pGlobals, "term");
@@ -784,7 +844,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   unit_buf->pFunc_kernel_loop = python->PyDict_GetItemString (unit_buf->pGlobals, "kernel_loop");
@@ -793,7 +855,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   // Initialize Context (which also means copy salts because they are part of the context)
@@ -804,7 +868,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   // for later calls
@@ -815,7 +881,9 @@ void *platform_init (user_options_t *user_options)
   {
     python->PyErr_Print ();
 
-    return false;
+    platform_init_fail (python_interpreter);
+
+    return NULL;
   }
 
   python->PyTuple_SetItem (unit_buf->pArgs, 0, unit_buf->pContext);
@@ -827,7 +895,7 @@ void *platform_init (user_options_t *user_options)
   return python_interpreter;
 }
 
-void platform_term (void *platform_context)
+void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -837,11 +905,13 @@ void platform_term (void *platform_context)
 
   unit_buf->gstate = python->PyGILState_Ensure ();
 
+  // Only the two objects this file created are ours to release. pContext belongs to pArgs, because
+  // PyTuple_SetItem () steals the reference it is given, so dropping the tuple drops the dict with it.
+  // pFunc_Init, pFunc_Term and pFunc_kernel_loop are borrowed from pGlobals by PyDict_GetItemString ()
+  // and were never owned here. Releasing all four took their counts below what they really were, and
+  // the interpreter then freed live objects during its last collection.
+
   python->Py_DecRef (unit_buf->pArgs);
-  python->Py_DecRef (unit_buf->pContext);
-  python->Py_DecRef (unit_buf->pFunc_kernel_loop);
-  python->Py_DecRef (unit_buf->pFunc_Term);
-  python->Py_DecRef (unit_buf->pFunc_Init);
   python->Py_DecRef (unit_buf->pGlobals);
 
   //python->PyEval_RestoreThread (python_interpreter->tstate);
@@ -851,9 +921,13 @@ void platform_term (void *platform_context)
   units_term (python_interpreter);
 
   hcfree (python_interpreter);
+
+  // platform_init () allocated this one beside the interpreter, and only the interpreter was given back.
+
+  hcfree (python);
 }
 
-bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -870,7 +944,11 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   const char *module_name = extract_module_name (python_interpreter->source_filename);
 
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "module_name",    python->PyUnicode_FromString ((const char *) module_name));
+
+  free ((void *) module_name);
+
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "parallelism",    python->PyLong_FromLong (unit_buf->parallelism));
+  rc |= python->PyDict_SetItemString (unit_buf->pContext, "salt_per_pw",    python->PyBool_FromLong (hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_cnt",      python->PyLong_FromLong (hashes->salts_cnt));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_size",     python->PyLong_FromLong (sizeof (salt_t)));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_buf",      python->PyBytes_FromStringAndSize ((const char *) hashes->salts_buf, sizeof (salt_t) * hashes->salts_cnt));
@@ -900,6 +978,12 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
     return false;
   }
 
+  // PyTuple_SetItem () steals the reference it is handed, and pContext is already owned by
+  // unit_buf->pArgs. Handing that one reference to a second tuple gives two owners one count, so this
+  // tuple takes a reference of its own and gives it back when it goes.
+
+  python->Py_IncRef (unit_buf->pContext);
+
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   PyObject *pReturn = python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
@@ -908,17 +992,21 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   {
     python->PyErr_Print ();
 
+    python->Py_DecRef (pArgs);
+
     return false;
   }
 
   python->Py_DecRef (pReturn);
+
+  python->Py_DecRef (pArgs);
 
   python->PyGILState_Release (unit_buf->gstate);
 
   return true;
 }
 
-void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -939,9 +1027,15 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
     return;
   }
 
+  // As in units_init (): a reference of this tuple's own, given back below.
+
+  python->Py_IncRef (unit_buf->pContext);
+
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   python->PyObject_CallObject (unit_buf->pFunc_Term, pArgs);
+
+  python->Py_DecRef (pArgs);
 
   python->PyDict_DelItemString (unit_buf->pContext, "salts_cnt");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_size");
@@ -959,7 +1053,7 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   python->PyGILState_Release (unit_buf->gstate);
 }
 
-int get_unit_count (void *platform_context)
+int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -968,7 +1062,7 @@ int get_unit_count (void *platform_context)
 
 // we support units of mixed speed, that's why the workitem count is unit specific
 
-int get_workitem_count (void *platform_context, const int unit_idx)
+int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -977,7 +1071,18 @@ int get_workitem_count (void *platform_context, const int unit_idx)
   return unit_buf->workitem_count;
 }
 
-char *get_unit_info (void *platform_context, const int unit_idx)
+// The multiple this bridge computes in.
+//
+// One unit here is one CPU thread working through its batch sequentially, so there is no width to fill
+// and no partial wave to waste: a batch of N costs N hashes whatever N is. Parallelism is expressed as
+// UNITS, not as width inside a unit, which is the structural difference from an accelerator that holds
+// many cores behind a single unit.
+int get_workitem_multiple (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
+{
+  return 1;
+}
+
+char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -986,7 +1091,7 @@ char *get_unit_info (void *platform_context, const int unit_idx)
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1021,7 +1126,10 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   }
 
   python->PyTuple_SetItem (unit_buf->pArgs, 1, pws);
-  python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (salt_pos));
+  // The plugin is handed the salt the batch starts at and adds the position of the candidate itself,
+  // so the position passed here is zero. salt_per_pw in the context above is what tells it to add.
+
+  python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, 0)));
 
   if (hashes->salts_buf == hashes->st_salts_buf)
   {
@@ -1096,7 +1204,7 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   return true;
 }
 
-const char *st_update_hash (MAYBE_UNUSED void *platform_context)
+const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1117,14 +1225,15 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
-  python->Py_DecRef (constant);
+  // constant is borrowed from pGlobals by PyDict_GetItemString (), so it is not ours to release,
+  // and s points into that object's own buffer: releasing it here frees what we are about to return.
 
   python->PyGILState_Release (unit_buf->gstate);
 
   return s;
 }
 
-const char *st_update_pass (MAYBE_UNUSED void *platform_context)
+const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1145,7 +1254,8 @@ const char *st_update_pass (MAYBE_UNUSED void *platform_context)
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
-  python->Py_DecRef (constant);
+  // constant is borrowed from pGlobals by PyDict_GetItemString (), so it is not ours to release,
+  // and s points into that object's own buffer: releasing it here frees what we are about to return.
 
   python->PyGILState_Release (unit_buf->gstate);
 
@@ -1157,17 +1267,28 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->bridge_context_size       = BRIDGE_CONTEXT_SIZE_CURRENT;
   bridge_ctx->bridge_interface_version  = BRIDGE_INTERFACE_VERSION_CURRENT;
 
-  bridge_ctx->platform_init       = platform_init;
-  bridge_ctx->platform_term       = platform_term;
-  bridge_ctx->get_unit_count      = get_unit_count;
-  bridge_ctx->get_unit_info       = get_unit_info;
-  bridge_ctx->get_workitem_count  = get_workitem_count;
-  bridge_ctx->thread_init         = thread_init;
-  bridge_ctx->thread_term         = thread_term;
-  bridge_ctx->salt_prepare        = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy        = BRIDGE_DEFAULT;
-  bridge_ctx->launch_loop         = launch_loop;
-  bridge_ctx->launch_loop2        = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash      = st_update_hash;
-  bridge_ctx->st_update_pass      = st_update_pass;
+  bridge_ctx->platform_init         = platform_init;
+  bridge_ctx->platform_term         = platform_term;
+  bridge_ctx->get_unit_count        = get_unit_count;
+  bridge_ctx->get_unit_info         = get_unit_info;
+  bridge_ctx->get_workitem_count    = get_workitem_count;
+  bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->thread_init           = thread_init;
+  bridge_ctx->thread_term           = thread_term;
+  bridge_ctx->salt_prepare          = BRIDGE_DEFAULT;
+  bridge_ctx->salt_destroy          = BRIDGE_DEFAULT;
+  bridge_ctx->launch_loop           = launch_loop;
+  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_hash        = st_update_hash;
+  bridge_ctx->st_update_pass        = st_update_pass;
+
+  bridge_ctx->get_unit_temperature       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_str   = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_abort = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed         = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power             = BRIDGE_DEFAULT;
 }

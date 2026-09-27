@@ -2,6 +2,13 @@
 #
 # Script to extract the "hash" from a password protected key3.db or key4.db file.
 #
+# The hash mode is detected automatically and reported on stderr:
+#   key3.db / 3DES                     -> m26000 (Mozilla key3.db)
+#   key4.db / AES, 20-byte global salt -> m26100 (Mozilla key4.db)
+#   key4.db / AES, 48-byte global salt -> m26150 (Mozilla key4.db SHA384)
+# Firefox 146 (NSS SHA384 change) produces the 48-byte-salt variant; the salt
+# length is what separates m26100 from m26150.
+#
 # This code is based on the tool "firepwd" (https://github.com/lclevy/firepwd (GPL-license)
 # Although the code has been changed a bit, all credit goes to @lclevy for his initial work.
 #
@@ -29,7 +36,8 @@ from pyasn1.codec.der import decoder
 
 
 class MasterPasswordInfos:
-    def __init__(self, mode, global_salt, entry_salt, cipher_text, no_master_password, iteration=None, iv=None):
+    def __init__(self, mode, global_salt, entry_salt, cipher_text, no_master_password, iteration=None, iv=None,
+                 hashcat_mode=None):
         if mode not in ['aes', '3des']:
             raise ValueError('Bad mode')
 
@@ -40,6 +48,7 @@ class MasterPasswordInfos:
         self.no_master_password = no_master_password
         self.iteration = iteration
         self.iv = iv
+        self.hashcat_mode = hashcat_mode
 
 
 def read_bsd_db(db_filepath: str) -> {}:
@@ -130,11 +139,12 @@ def is_decrypting_mozilla_3des_without_master_password(global_salt, entry_salt, 
     return DES3.new(key, DES3.MODE_CBC, iv).decrypt(cipher_text) == b'password-check\x02\x02'
 
 
-def is_decrypting_pbe_aes_without_password(global_salt, entry_salt, iteration, iv, cipher_text):
+def is_decrypting_pbe_aes_without_password(prf, global_salt, entry_salt, iteration, iv, cipher_text):
     """
     Indicate if the cipher_text can be decrypted to password-check\x02\x02' without a master password
     in the the AES mode.
 
+    :param prf: the hash used for the KDF prelude, 'sha1' (m26100) or 'sha384' (m26150)
     :param global_salt: the global salt
     :param entry_salt: the entry salt
     :param iteration: the number of iteration
@@ -142,7 +152,7 @@ def is_decrypting_pbe_aes_without_password(global_salt, entry_salt, iteration, i
     :param cipher_text: the encrypted text
     :return: the decrypted text
     """
-    k = hashlib.sha1(global_salt).digest()
+    k = hashlib.new(prf, global_salt).digest()
     key = hashlib.pbkdf2_hmac('sha256', k, entry_salt, iteration, dklen=32)
 
     return AES.new(key, AES.MODE_CBC, iv).decrypt(cipher_text) == b'password-check\x02\x02'
@@ -173,7 +183,8 @@ def extract_master_password_infos(db_filepath: str, db_version: int) -> MasterPa
 
         no_master_password = is_decrypting_mozilla_3des_without_master_password(global_salt, entry_salt, cipher_text)
 
-        return MasterPasswordInfos('3des', global_salt, entry_salt, cipher_text, no_master_password)
+        return MasterPasswordInfos('3des', global_salt, entry_salt, cipher_text, no_master_password,
+                                   hashcat_mode=26000)
     else:
         db = sqlite3.connect(db_filepath)
         c = db.cursor()
@@ -188,7 +199,8 @@ def extract_master_password_infos(db_filepath: str, db_version: int) -> MasterPa
 
             no_master_password = is_decrypting_mozilla_3des_without_master_password(global_salt, entry_salt,
                                                                                     cipher_text)
-            return MasterPasswordInfos('3des', global_salt, entry_salt, cipher_text, no_master_password)
+            return MasterPasswordInfos('3des', global_salt, entry_salt, cipher_text, no_master_password,
+                                       hashcat_mode=26000)
         elif pbe_algo == '1.2.840.113549.1.5.13':  # pkcs5 pbes2
             assert str(decoded_item2[0][0][1][0][0]) == '1.2.840.113549.1.5.12'
             assert str(decoded_item2[0][0][1][0][1][3][0]) == '1.2.840.113549.2.9'
@@ -200,9 +212,25 @@ def extract_master_password_infos(db_filepath: str, db_version: int) -> MasterPa
             iv = b'\x04\x0e' + decoded_item2[0][0][1][1][1].asOctets()
             cipher_text = decoded_item2[0][1].asOctets()
 
-            no_master_password = is_decrypting_pbe_aes_without_password(global_salt, entry_salt, iteration, iv,
+            # Firefox 146 (NSS SHA384 change) keeps the same PBES2/PBKDF2-HMAC-SHA256
+            # structure but grows the global salt from 20 to 48 bytes and derives the
+            # PBKDF2 password with SHA384 instead of SHA1. The salt length is what
+            # separates the two hash modes:
+            #   20 bytes -> SHA1   -> m26100 (Mozilla key4.db)
+            #   48 bytes -> SHA384 -> m26150 (Mozilla key4.db SHA384, Firefox 146+)
+            gs_len = len(global_salt)
+            if gs_len == 20:
+                prf, hashcat_mode = 'sha1', 26100
+            elif gs_len == 48:
+                prf, hashcat_mode = 'sha384', 26150
+            else:
+                raise ValueError(f'unexpected global_salt length {gs_len}; '
+                                 'expected 20 (SHA1/m26100) or 48 (SHA384/m26150)')
+
+            no_master_password = is_decrypting_pbe_aes_without_password(prf, global_salt, entry_salt, iteration, iv,
                                                                           cipher_text)
-            return MasterPasswordInfos('aes', global_salt, entry_salt, cipher_text, no_master_password, iteration, iv)
+            return MasterPasswordInfos('aes', global_salt, entry_salt, cipher_text, no_master_password, iteration, iv,
+                                       hashcat_mode=hashcat_mode)
 
 def hex(b) -> str:
     """
@@ -272,3 +300,6 @@ if __name__ == '__main__':
 
     infos = extract_master_password_infos(db_filepath, db_type)
     print(get_hashcat_string(infos))
+
+    if infos.hashcat_mode is not None and not infos.no_master_password:
+        sys.stderr.write(f'Detected hash-mode {infos.hashcat_mode}; crack with: hashcat -m {infos.hashcat_mode}\n')

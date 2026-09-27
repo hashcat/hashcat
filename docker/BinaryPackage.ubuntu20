@@ -6,14 +6,22 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "dash dash/sh boolean false" | debconf-set-selections && dpkg-reconfigure dash
 
+# libclang-dev is here for its libclang, which bindgen loads at build time to generate the
+# hashcat-sys bindings. Without it the Rust bridges fail with "Unable to find libclang".
+# lld is here because the Windows Rust plugin is linked with -fuse-ld=lld, and without
+# it the cross build stops at "collect2: fatal error: cannot find 'ld'"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
     git \
+    libclang-dev \
+    lld \
+    m4 \
     wget \
     pkg-config \
     make \
+    xz-utils \
     gcc-mingw-w64-x86-64 \
     g++-mingw-w64-x86-64 \
     dos2unix \
@@ -35,36 +43,39 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-## Ubuntu 20.04 cmake version is incompatible to recent win-iconv so we use our own
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.25.3/cmake-3.25.3-linux-x86_64.sh && \
-    chmod +x cmake-3.25.3-linux-x86_64.sh && \
-    ./cmake-3.25.3-linux-x86_64.sh --skip-license --prefix=/usr/local
-
-## Also 7z on ubuntu 20.04 is very outdated
+## 7z on ubuntu 20.04 is very outdated
 WORKDIR /root
 RUN git clone --branch 24.09 https://github.com/ip7z/7zip.git
 WORKDIR /root/7zip/CPP/7zip/Bundles/Alone2
 RUN make -f makefile.gcc -j
 RUN cp /root/7zip/CPP/7zip/Bundles/Alone2/_o/7zz /usr/local/bin/7z
 
-## Iconv for windows
-WORKDIR /root
-RUN git clone --branch v0.0.10 https://github.com/win-iconv/win-iconv.git
+## This image does not build the Windows compressors that the release image builds, so the package
+## it writes carries a hashcat.exe with no liblzma.dll beside it. That package feeds the Linux
+## runtime images in RUNTIME_Docker.md, where the compressors come from the distribution instead.
+## Use docker/hashcat_binaries.ubuntu for a Windows package meant to be handed to anyone.
 
-WORKDIR /root/win-iconv
-RUN cmake \
-    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
-    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
-    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
-    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
-    . && \
-    make install
+## GMP for Linux and for Windows
+
+WORKDIR /root
+
+ENV GMP_VERSION=6.3.0
+
+RUN wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
+    tar -xf gmp-${GMP_VERSION}.tar.xz && cp -a gmp-${GMP_VERSION} gmp-win && \
+    cd /root/gmp-${GMP_VERSION} && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static --with-pic --enable-fat CC="gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root/gmp-win && \
+    ./configure --host=x86_64-w64-mingw32 --prefix=/opt/win-gmp-64 --disable-shared --enable-static --enable-fat CC="x86_64-w64-mingw32-gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
 
 ## Ubuntu 20.04: Python version 3.10 is too old, it lacks support for non-GIL mode
 
 WORKDIR /root
 
-ENV PYTHON_VERSION=3.13.3
+ENV PYTHON_VERSION=3.14.6
 
 RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar xzf Python-${PYTHON_VERSION}.tgz
@@ -90,9 +101,9 @@ WORKDIR /root
 
 RUN mkdir /opt/win-python
 WORKDIR /opt/win-python
-RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-RUN unzstd mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-RUN tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst
+RUN unzstd mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst
+RUN tar -xf mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar
 
 ## Custom patches
 
@@ -100,14 +111,34 @@ WORKDIR /root
 
 COPY docker/patches/ubuntu20/ /root/patches/
 
-RUN git clone https://github.com/hashcat/hashcat.git
+# the tree the package is built from. A clone of master names no particular commit, so what a past
+# release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
+# is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
+# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
+ARG HASHCAT_REF=v7.1.2
+
+RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 WORKDIR /root/hashcat
 
-RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
+# || exit 1 because a for loop returns the status of its last command, so without it a patch that
+# fails is reported as a success whenever another one follows it. A patch that touches binary files
+# has to be made with "git diff --binary"; a plain "git diff" writes only "Binary files a/x and b/x
+# differ", which carries no content, and git apply refuses it rather than applying half the patch.
+
+RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do echo "applying $p"; git apply "$p" || exit 1; done'
 
 RUN make -s binaries
 
 RUN tools/package_bin.sh
+
+# What the runtime images copy out. It is the package rather than this build tree, so what they run
+# is the layout that ships: the frontend beside the core, every plugin one directory below it, and
+# none of the sources or the git checkout. package_bin.sh names its output after the version and
+# leaves the .7z beside it, and a COPY --from cannot tell the directory from the archive with a
+# glob, so the package is given a fixed name here where a shell can.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
 
 RUN ["/bin/bash"]

@@ -8,7 +8,7 @@ def handle_queue(ctx: dict, passwords: list, salt_id: int, is_selftest: bool) ->
     salts = ctx["salts"]
     st_salts = ctx["st_salts"]
 
-    return hcshared._worker_batch(passwords, salt_id, is_selftest, calc_hash, salts, st_salts)
+    return hcshared._worker_batch(passwords, salt_id, is_selftest, calc_hash, salts, st_salts, ctx.get("salt_per_pw", False))
 
 def init(ctx: dict, extract_esalts):
     # Extract and merge salts and esalts

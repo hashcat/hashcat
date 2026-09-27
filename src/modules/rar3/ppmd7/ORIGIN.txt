@@ -1,0 +1,44 @@
+Where this code came from
+=========================
+
+This directory holds the PPMd var.H codec that -m 23800 uses for the PPM coding path of a RAR3 stream.
+None of it was written for hashcat. Every file is copied unchanged from a public domain distribution,
+and this file records which one so the claim can be checked with a diff.
+
+
+The files
+
+  Ppmd.h, Ppmd7.h, Ppmd7.c    the model, the allocator and the update rules
+  Ppmd7aDec.c                 the decoder driven by Subbotin's carryless range coder
+  Precomp.h, Compiler.h       compiler shims those include
+  CpuArch.h, 7zTypes.h, 7zWindows.h
+
+Each states its own authorship and licence in its first three lines, untouched. All 3 authors placed
+their work in the public domain, and docs/license_libs/PPMD_LICENSE.txt is the record of that.
+
+All 9 come from the 7-Zip source distribution, directory C/, and every one is byte identical to its
+counterpart there. The LZMA SDK publishes the same codec but not Ppmd7aDec.c, which is why the 7-Zip
+distribution is used.
+
+UPSTREAM beside this file names the release, its URL and its checksum, and holds the sha256 of every
+file as published. Those are in the format sha256sum reads, so one command run from this directory
+says whether anything has drifted:
+
+  grep -E '^[0-9a-f]{64}  ' UPSTREAM | sha256sum -c -
+
+Updating is: copy the files from a newer release over these, update UPSTREAM, and run that again.
+Nothing here carries a local change, so there is no fork to re-apply. Of the 7-Zip CVEs published to
+date, exactly one names this codec: CVE-2023-31102, fixed in 23.00, which every version here is after.
+
+
+Why this variant
+
+Ppmd7 comes in two flavours that share one model. Ppmd7z_* pairs it with the range coder 7-Zip uses in
+its own container. Ppmd7a_* pairs it with Subbotin's carryless range coder, which is what Shkarin's
+var.H uses and what a RAR3 PPM stream is coded with, so only Ppmd7a_* is used here. It was checked
+byte exact against Shkarin's own program at model orders 2 to 16 and 1 to 16 MiB of model memory.
+
+  https://compression.ru/ds/ppmdh.rar
+  sha256 c07b244f3a5d59f45417b4684f2877678ebd8c66376e24e41444e813d865d174
+
+This is the codec, not RAR3. The escape protocol RAR3 wraps it in is hashcat's own, in rar3_decode.c.
