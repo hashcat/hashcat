@@ -395,6 +395,12 @@ typedef struct
 
   mask_css_t *mcss;
 
+  // Whether that mask admits any byte above 0x7e, asked once. A character stored in more than one byte
+  // always carries a lead byte there, so where this is false no such character can stand anywhere in the
+  // mask and the per character treatment of a run holding one buys nothing.
+
+  bool mcss_high;
+
   // The hint list, which is what a hint ruleset puts where a trained ruleset has its letters.
   //
   // hint_cnt is how wide that list is: the number of words a named set holds, counting every case form
@@ -4356,7 +4362,8 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 
   const u32 li = s->list[j];
 
-  const pcfg_tlist_t *t = &pg->lists[li];
+  // pg->lists grows by hcrealloc inside view_get (), which frees the array this would point into, and
+  // the recursion below reaches that call too. So the slot is indexed where it is read rather than held.
 
   const bool paired = ((j + 1) < s->nslot) && (s->kind[j + 1] == PCFG_SLOT_MASK);
 
@@ -4366,7 +4373,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
     // character and the filter answers per byte. Terminals of any other byte length hold a character
     // that is more than one byte, and view_keep () leaves those out rather than the grammar with them.
 
-    const u32 n = t->ln;
+    const u32 n = pg->lists[li].ln;
 
     // A letter run the mask says nothing about needs no filtering, and then its terminals may take as many
     // bytes per character as they like: whatever the capitalisation writes there is admitted. That is what
@@ -4375,7 +4382,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 
     u32 lens[PCFG_MASK_LENWORDS];
 
-    if (slot_lengths (pg, t, lens) == false) return true;
+    if (slot_lengths (pg, &pg->lists[li], lens) == false) return true;
 
     for (u32 len = 1; len <= PW_MAX; len++)
     {
@@ -4399,11 +4406,13 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
     // run is judged against one capitalisation at a time instead. That costs a list per capitalisation the
     // mask leaves standing, and it is the only way a mask reaches a ruleset trained outside ASCII.
 
-    if (t->fixed_len != t->ln)
+    // Only a mask that admits a byte above 0x7e needs this. Where it does not, every character of more
+    // than one byte is refused on its lead byte alone, so the grouped path below reaches the same answer
+    // and costs one list per group instead of one per capitalisation per length.
+
+    if ((pg->lists[li].fixed_len != pg->lists[li].ln) && (pg->mcss_high == true))
     {
       const u32 ci = s->list[j + 1];
-
-      const pcfg_tlist_t *c = &pg->lists[ci];
 
       for (u32 len = 1; len <= PW_MAX; len++)
       {
@@ -4413,7 +4422,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 
         if (mask_css_open (pg->mcss, off, len) == true) continue;
 
-        for (u32 e = 0; e < c->cnt; e++)
+        for (u32 e = 0; e < pg->lists[ci].cnt; e++)
         {
           pcfg_vreq_t rw;
 
@@ -4434,7 +4443,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
           rc.kind     = PCFG_VIEW_ONE;
           rc.parent   = ci;
           rc.off      = off;
-          rc.want_len = c->fixed_len;
+          rc.want_len = pg->lists[ci].fixed_len;
           rc.key      = e;
           rc.amb      = 0;
           rc.aux      = 0;
@@ -4469,7 +4478,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
       return true;
     }
 
-    const pcfg_tlist_t *c = &pg->lists[s->list[j + 1]];
+    const u32 cj = s->list[j + 1];
 
     const u64 amb = mask_amb (pg->mcss, off, n);
 
@@ -4477,16 +4486,16 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 
     u32 nkey = 0;
 
-    for (u32 i = 0; i < c->cnt; i++)
+    for (u32 i = 0; i < pg->lists[cj].cnt; i++)
     {
-      const u32 at   = c->off[i];
-      const u32 clen = c->off[i + 1] - at;
+      const u32 at   = pg->lists[cj].off[i];
+      const u32 clen = pg->lists[cj].off[i + 1] - at;
 
       if (clen != n) continue;
 
       u64 k = 0;
 
-      if (case_key (pg->mcss, off, c->buf + at, n, amb, &k) == false) continue;
+      if (case_key (pg->mcss, off, pg->lists[cj].buf + at, n, amb, &k) == false) continue;
 
       bool seen = false;
 
@@ -4579,7 +4588,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 
   u32 lens[PCFG_MASK_LENWORDS];
 
-  if (slot_lengths (pg, t, lens) == false) return true;
+  if (slot_lengths (pg, &pg->lists[li], lens) == false) return true;
 
   for (u32 len = 1; len <= PW_MAX; len++)
   {
@@ -4595,7 +4604,7 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
     // hint list's buckets carry none, so the pin would say nothing and the slots behind it would sit at
     // an offset the walk only assumed.
 
-    if ((mask_css_open (pg->mcss, off, len) == true) && (t->ty != 'H'))
+    if ((mask_css_open (pg->mcss, off, len) == true) && (pg->lists[li].ty != 'H'))
     {
       cur->list[j] = (u16) li;
       cur->pin[j]  = (u16) len;
@@ -5109,7 +5118,6 @@ static bool mask_filter (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
         hcfree (pg->lists[i].b_cnt);
         hcfree (pg->lists[i].b_len);
         hcfree (pg->lists[i].src);
-    hcfree (pg->lists[i].src);
 
         continue;
       }
@@ -11770,6 +11778,8 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
       return false;
     }
+
+    pg->mcss_high = mask_css_high (pg->mcss);
 
     pg->mask = mask;
 

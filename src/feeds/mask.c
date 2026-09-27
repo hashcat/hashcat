@@ -57,6 +57,21 @@ MAYBE_UNUSED static bool mask_feed_init (generic_global_ctx_t *global_ctx, mask_
     return false;
   }
 
+  // Only the attack modes that take a mask hand the mask processor one, so a feed that reads its mask
+  // from there has nothing to walk when it is named as a plugin instead. The keyspace is then zero,
+  // which is not an error anywhere, and the run ends with no candidates and nothing said.
+  //
+  // This is not the mask a feed selects by. A feed given a mask through a setting of its own reads it
+  // with mask_css_parse () and the filter below, and does not come through here, so this refusal
+  // cannot reach one.
+
+  if (mask_is_feed (hashcat_ctx->user_options) == false)
+  {
+    error_set (global_ctx, "this feed takes its mask from the attack mode and not from a setting, and -a 8 gives it none. It is what -a 3 and the hybrid modes run on when they are given rules, so name one of those instead");
+
+    return false;
+  }
+
   return true;
 }
 
