@@ -43,6 +43,7 @@ static int status_sample_devices (const hashcat_status_t *hashcat_status, int *s
 
     if (device_info->skipped_dev == true) continue;
     if (device_info->skipped_warning_dev == true) continue;
+    if (device_info->idle_dev            == true) continue;
 
     if (device_info->guess_candidates_dev == NULL) continue;
 

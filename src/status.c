@@ -289,6 +289,38 @@ bool status_get_skipped_warning_dev (const hashcat_ctx_t *hashcat_ctx, const int
   return device_param->skipped_warning;
 }
 
+// A device is idle once its calc () has returned for the round, as long as another device is still
+// working. A device that never received any work is idle for the whole round, including the status
+// printed after the others finished. One whose first batch is still running on a slow hash has not
+// returned from calc () yet and so is not idle, although it has no kernel run recorded either.
+
+bool status_get_idle_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  if (device_param->skipped         == true)  return false;
+  if (device_param->skipped_warning == true)  return false;
+  if (device_param->calc_done       == false) return false;
+
+  const bool never_ran = (device_param->speed_pos == 0) && (device_param->speed_cnt[0] == 0);
+
+  if (never_ran == true) return true;
+
+  for (int i = 0; i < backend_ctx->backend_devices_cnt; i++)
+  {
+    const hc_device_param_t *other = &backend_ctx->devices_param[i];
+
+    if (other->skipped         == true) continue;
+    if (other->skipped_warning == true) continue;
+
+    if (other->calc_done == false) return true;
+  }
+
+  return false;
+}
+
 char *status_get_session (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1057,6 +1089,13 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   if ((device_param->skipped == true) || (device_param->skipped_warning == true))
   {
     snprintf (display, HCBUFSIZ_TINY, "[Skipped]");
+
+    return display;
+  }
+
+  if (status_get_idle_dev (hashcat_ctx, backend_devices_idx) == true)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "[Idle]");
 
     return display;
   }
@@ -1885,6 +1924,10 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   double speed_msec = 0;
 
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  // An idle device's last speed would otherwise count towards Speed.#* and Time.Estimated.
+
+  if (status_get_idle_dev (hashcat_ctx, backend_devices_idx) == true) return 0;
 
   if ((device_param->skipped == false) && (device_param->skipped_warning == false))
   {

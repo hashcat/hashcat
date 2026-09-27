@@ -1950,7 +1950,10 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   // debug
 
-  u8  debug_rule_buf[RP_PASSWORD_SIZE] = { 0 };
+  // A rebuilt rule writes an escaped operand as 4 bytes, so its 31 commands can reach 310 bytes
+  // where the rule text they came from was held to 256.
+
+  u8  debug_rule_buf[RP_PASSWORD_SIZE * 2] = { 0 };
   int debug_rule_len  = 0; // -1 error
 
   u8  debug_plain_ptr[RP_PASSWORD_SIZE + 1] = { 0 };

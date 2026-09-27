@@ -613,6 +613,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       thread_param->hashcat_ctx = hashcat_ctx;
       thread_param->tid         = backend_devices_idx;
 
+      // Cleared here rather than by the thread, so a status taken before the thread gets going does
+      // not read the previous round's answer.
+
+      backend_ctx->devices_param[backend_devices_idx].calc_done = false;
+
       // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
       // handles that started packed at the front so the wait has no unset handle to join, and tell
       // the user, because a device that never starts means keyspace this run does not cover.
@@ -3014,6 +3019,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
     device_info->skipped_dev                    = status_get_skipped_dev                    (hashcat_ctx, device_id);
     device_info->skipped_warning_dev            = status_get_skipped_warning_dev            (hashcat_ctx, device_id);
+    device_info->idle_dev                       = status_get_idle_dev                       (hashcat_ctx, device_id);
     device_info->group_id_dev                   = status_get_group_id_dev                   (hashcat_ctx, device_id);
     device_info->group_size_dev                 = status_get_group_size_dev                 (hashcat_ctx, device_id);
     device_info->hashes_msec_dev                = status_get_hashes_msec_dev                (hashcat_ctx, device_id);
@@ -3049,6 +3055,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->brain_link_recv_bytes_sec_dev  = status_get_brain_link_recv_bytes_sec_dev  (hashcat_ctx, device_id);
     device_info->brain_link_send_bytes_sec_dev  = status_get_brain_link_send_bytes_sec_dev  (hashcat_ctx, device_id);
     #endif
+
+    // Only for the display. The monitor reads the same exec time to judge performance, and an idle
+    // device reporting none there would drag its average down.
+
+    if (device_info->idle_dev == true) device_info->exec_msec_dev = 0;
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

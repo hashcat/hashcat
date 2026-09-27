@@ -61,6 +61,16 @@ file of words it draws from, a hint ruleset names "H1", a slot filled at run tim
 operator supplied. The included ruleset is not trained separately: "tools/pcfg_hints.py" derives it
 from "default-passwords", and the same script turns any ruleset you trained yourself into one.
 
+A PCFG attack can also be limited to a known password shape. The setting "mask" takes a mask in
+attack-mode 3 syntax, for example "mask=?u?l?l?l?l?l?d?d" for an uppercase letter, 5 lowercase
+letters and 2 digits. Hashcat rewrites the grammar so each slot retains only the terminals allowed
+by the mask at that position. It does not build candidates and then test them against the mask, so
+no part of the keyspace is spent on excluded shapes. The keyspace stays exact, so "--skip",
+"--restore" and the brain keep their meaning. Every remaining candidate retains its cost from the
+unmasked grammar. Custom charsets "-1" to "-8" work as in attack-mode 3. A mask also combines with
+the hint words of a targeted attack. The OMEN escape has no terminals to restrict, so a masked run
+leaves it out.
+
 Attack-mode 9 reuses the "hints" ruleset for a different workflow. It obtains a separate set of
 hints from each account name, hash line or module, then pairs those candidates with individually
 salted hashes. It is intended to process many accounts at once rather than concentrate the attack
@@ -249,6 +259,17 @@ have to act on rather than one you will simply notice.
 - The second ".hctune" column now identifies attack kernel 0, 1, 3 or 4 instead of attack mode. One
   row covers attack-modes 1, 6, 7 and 12. Custom mode 9 rows must use kernel 0, because value 9 is
   rejected. Included files label the column "Kern"
+- Options "-j" and "-k" are refused when the PCFG device engine builds candidates. Previously,
+  they were accepted but applied only to the part of each candidate derived from the base word.
+  They still apply when the host engine builds candidates, including for slow hashes, "--stdout"
+  and "--slow-candidates"
+
+## Hash mode output formats
+
+- Modes 22000 and 22001 repeat the loaded hash line in the outfile and in "--show", in place of the
+  shorter "pmkid:mac:mac:essid" form, which no parser accepted. An outfile line is a valid input
+  line now, so "--outfile-check-dir" recognises PMKID and EAPOL hashes alike. Loading a hash list
+  for these modes is single-threaded again
 
 ## Brain protocol and stored sessions
 
@@ -328,6 +349,7 @@ have to act on rather than one you will simply notice.
 - Added mode 35700: phpass(md5($pass))
 - Added mode 35800: Symfony Legacy SHA256
 - Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
+- Added mode 37700: Cardano Eternl Wallet (PBKDF2-HMAC-SHA512 + ChaCha20-Poly1305)
 
 ##
 ## New Features and Options
@@ -375,6 +397,11 @@ have to act on rather than one you will simply notice.
 - Added rule operations "h" and "H" for lowercase and uppercase hexadecimal conversion, "vNX" to
   insert "X" after every N characters, "S" to shift character case, and "BNX" to add byte X at
   position N
+- The PCFG device engine now includes the OMEN escape, which it previously dropped for fast hashes
+  along with its share of the probability mass. Setting "omen=0" leaves it out and restores the
+  former rate
+- Options "-r" and "-g" keep the PCFG device engine instead of moving the run to the host engine.
+  The engine also accepts "-u" with either option
 
 ## Runtime control and reporting
 
@@ -783,6 +810,17 @@ Measurements depend on the device, runtime and workload.
 - Fixed reads beyond buffer bounds in secp256k1 "point_mul_xy()" when the scalar is zero
 - Fixed TrueCrypt and VeraCrypt modes leaking their container header on both error returns from
   "module_hash_binary_parse()", losing 512 bytes per rejected container across 36 modes
+- Fixed mode 29100 writing the salt terminator at a byte index into "salt_buf", a 64-element u32
+  array, so a salt longer than 63 bytes landed in the fields after it
+- Fixed mode 14200 accepting an unbounded memory factor from the hash line, although the field holds
+  4 hex digits and the module supports values up to 10. The shift used to derive its size was
+  undefined outside that range, and a larger factor gave a size past the 256-word buffer it fills
+- Fixed acceptance of odd-length hex tokens, which cannot decode to bytes. The check now sits in
+  "input_tokenizer()" rather than in each module, so a mode that had no such check, such as 16100,
+  is covered as well
+- Fixed a crash in modes 34000, 34100 and 34300 when loading a hash whose argon2 memory cost is
+  below the built-in self-test vector's. The extra buffer reserved space for one self-test hash, but
+  the backend split it 4 ways, so the self-test wrote past its share
 
 ## Memory safety: candidates, rules and masks
 
@@ -897,6 +935,17 @@ Measurements depend on the device, runtime and workload.
 - Fixed a module file that exists but cannot be loaded crashing autodetection, "--identify",
   "--help" and "--hash-info", and memory leaks in "module_load()" when the file cannot be opened or
   carries no "module_init()"
+- Fixed a shift into the sign bit in the kernel helper reached by every hash function through
+  "append_0x80_*", and the same pattern in 8 parsers
+- Fixed modes 9710 and 25400 failing to crack under PoCL, where the RC4 S box in local memory read
+  back as zeros inside a helper the runtime kept as a separate call. The S box entry points are
+  folded into those kernels on PoCL builds, and every other runtime builds them as before
+- Fixed mode 12150 missing candidates at vector widths above 1, the default on the CPU backend.
+  The mode declared a vectorised loop kernel it does not have, so only the first candidate of each
+  vector group ran its rounds and the others reached the comparison unfinished
+- Fixed modes 20011, 20012, 20013, 31200 and 33700 deriving the wrong HMAC key from a password that
+  needs UTF-8 decoding and whose UTF-16 form is longer than the hash block, because the decoded key
+  was widened a second time
 
 ## Backends: OpenCL, tuning and memory
 
@@ -939,6 +988,13 @@ Measurements depend on the device, runtime and workload.
 - Fixed the "Vector_Width" column of a tuning row a module generates being ignored, because only the
   "kernel_accel" lookup searched the name those rows are registered under and the "vector_width" one
   did not
+- Fixed builds of PoCL without LLVM, such as those serving a remote device, being rejected as
+  outdated because they report no LLVM version
+- Fixed kernels failing to build on NVIDIA GPUs older than compute capability 3.2, which were
+  given a funnel shift instruction available only from that version onward
+- Fixed a run with a hash list too large for one OpenCL allocation failing with
+  "CL_INVALID_BUFFER_SIZE". The device is now skipped with the buffer size it needs and the limit it
+  exceeds
 
 ## Backends: Metal and resource lifecycle
 
@@ -997,11 +1053,16 @@ Measurements depend on the device, runtime and workload.
 - Fixed a modified kernel not being recompiled, because the cache key omitted the kernel source
 - Fixed Apple IOKit initialization running twice and leaking an SMC connection and an IOReport
   subscription on every run
+- Fixed repeated bare "First_file_in_directory() failed" errors for an AMD GPU whose sysfs path
+  contains no hwmon directory. Hashcat now names the device once and disables its hardware
+  monitoring
 
 ## Attack modes and candidates
 
 - Fixed "--stdout" writing a candidate that contains a line ending as two lines. Candidates now use
   the same "$HEX[...]" form as the outfile, so one candidate is always one line
+- Fixed 27 lines of "rules/InsidePro-HashManager.rule" that hashcat either skipped as invalid or
+  interpreted as different rules. They were written for InsidePro's rule engine
 - Fixed "--generate-rules-seed" having no effect outside Windows, where the seed went to "srand()"
   while "-g" drew from "random()", so every run produced the same rules
 - Fixed 3 attack-mode 9 paths launching more work items than salts, which could read beyond the salt
@@ -1076,6 +1137,8 @@ Measurements depend on the device, runtime and workload.
 ## Interface and status
 
 - Fixed "--bitmap-max" accepting unusable values above 28 instead of rejecting them
+- Fixed the bitmap overflow warning suggesting a higher "--bitmap-max" when a higher value would
+  not select a larger table
 - Fixed the startup "Bitmaps" row reporting a rotation count for shifts removed from the kernel
   parameters
 - Fixed "--runtime" having no effect with "--stdout", because the monitor thread that enforces it
@@ -1103,6 +1166,9 @@ Measurements depend on the device, runtime and workload.
   "rules/best66.rule", so a copied command failed
 - Fixed "--hash-info" naming no kernel type for the 5 hash modes that pick their kernel from the
   hash, m14500, m14600, m16500, m16501 and m24600
+- Fixed the status using a device's last speed in "Speed.#*" and "Time.Estimated" after it ran out
+  of work, and showing its last candidates. It now reports 0 H/s and "[Idle]", and so
+  does a device that never received any work
 - Fixed the status line and the hash list loading progress rounding a percentage up to 100.00%
   before it was complete and down to 0.00% before it was empty, so a run one digest short of the
   whole list reported full recovery
@@ -1133,6 +1199,9 @@ Measurements depend on the device, runtime and workload.
   be the working directory on CUDA, whose runtime compiler cannot open such an include path
 - Fixed a UNC install path leaving the kernel include path empty, where the leading "//" of
   "//server/share" inside a "-D" value was read as the start of a C comment
+- Fixed every CUDA kernel build failing when hashcat is installed under a directory whose name has
+  a non-ASCII character. The nvrtc compiler does not read its include search path as UTF-8, so
+  it could not open the "OpenCL/inc_*" headers, which are now handed to it in memory instead
 
 ## Build and packaging
 
@@ -1155,6 +1224,9 @@ Measurements depend on the device, runtime and workload.
   overridden recipe on every build without the Python headers
 - Fixed 4 redefinition warnings in the Python bridges, where "Python.h" was included after the
   headers whose feature macros it sets itself
+- Fixed "make install" installing a binary that looked for files under the build's prefix when the
+  install "PREFIX" differed from the build's. Changing the install folders now rebuilds what uses
+  them
 
 ## Tools and tests
 

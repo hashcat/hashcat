@@ -33,7 +33,7 @@ SHARDS = {"test": 48, "fuzz": 16}
 
 PR_MODE_CAP = {"test": 30, "fuzz": 20}
 
-# A shared-code test change runs test.sh -M's 24 representative modes (test.py handles the container
+# A shared-code test change runs the -M set, 24 representative modes (test.py handles the container
 # families now, so they go through the normal per-mode path). Run in one job it is ~17 minutes, so
 # split it into shards balanced by a rough per-mode cost: the container and slow-KDF modes dominate,
 # 14600 most of all because it loops ~72 LUKS files. Anything unlisted costs 1.
@@ -72,6 +72,7 @@ def fuzz_default_modes():
     return [int(x) for x in m.group(1).split()]
 
 
+FUZZ_DEFAULT_MODES = fuzz_default_modes()
 
 # The host files the fuzz targets link, which is the CORE list in
 # tools/fuzz/build.sh, plus what builds and drives them.
@@ -209,7 +210,7 @@ def main():
 
         if kind == "fuzz":
             if shared:
-                impacted |= set(fuzz_default_modes()) & pool
+                impacted |= set(FUZZ_DEFAULT_MODES) & pool
 
             matrix = entries(kind, impacted, shared)
         else:
@@ -223,7 +224,7 @@ def main():
         note = f"{len(impacted)} impacted modes"
 
         if shared:
-            note += (f", minimal full-test (test.sh -M) in {MINIMAL_SHARDS} shards"
+            note += (f", minimal full-test (test.py -M) in {MINIMAL_SHARDS} shards"
                      if kind == "test" else ", shared code changed")
 
         notes.append(note)

@@ -40,6 +40,10 @@
 
 #define BITMAP_MEMORY_SHARE   0.25
 
+// the highest --bitmap-max that user_options_sanity () accepts
+
+#define BITMAP_BITS_LIMIT     28
+
 static double bitmap_exp_neg (const double x)
 {
   double t = x;
@@ -268,6 +272,19 @@ static u32 bitmap_bits_auto (const u64 digests_cnt, const u64 cache_size, const 
 
       *overflow = false;
     }
+  }
+
+  // The overflow warning recommends raising --bitmap-max. That only helps when a higher limit
+  // picks a larger table, which it does not where device memory already caps the size, or where the
+  // cost model prefers the smaller table anyway.
+
+  if (*overflow == true)
+  {
+    bool overflow_next = false;
+
+    const u32 bitmap_next = (bitmap_max < BITMAP_BITS_LIMIT) ? bitmap_bits_auto (digests_cnt, cache_size, local_mem, available_mem, bitmap_min, bitmap_max + 1, &overflow_next) : bitmap_bits;
+
+    if (bitmap_next == bitmap_bits) *overflow = false;
   }
 
   return bitmap_bits;

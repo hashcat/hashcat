@@ -60,6 +60,33 @@ static void debugfile_format_field (hashcat_ctx_t *hashcat_ctx, const u8 *field_
   }
 }
 
+// A rule rebuilt from its compiled form already writes every operand that cannot stand for itself
+// as \xHH. Anything else here is what a feed reports, and for the association attack that is a line
+// of its rule file, already in rule syntax. Both are written as they are, which keeps them loadable
+// as rules. Only a line ending is escaped here, so a record stays on one line whatever a feed
+// reports.
+
+static void debugfile_format_rule (hashcat_ctx_t *hashcat_ctx, const u8 *rule_ptr, const u32 rule_len)
+{
+  debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
+
+  if (debugfile_ctx->enabled == false) return;
+
+  for (u32 i = 0; i < rule_len; i++)
+  {
+    const u8 c = rule_ptr[i];
+
+    if ((c == '\n') || (c == '\r'))
+    {
+      hc_fprintf (&debugfile_ctx->fp, "\\x%02x", c);
+
+      continue;
+    }
+
+    hc_fputc (c, &debugfile_ctx->fp);
+  }
+}
+
 void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, const u32 rule_len, const u8 *mod_plain_ptr, const u32 mod_plain_len, const u8 *orig_plain_ptr, const u32 orig_plain_len, const u64 word_pos)
 {
   debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
@@ -78,12 +105,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
   hc_lockfile_warn (hashcat_ctx, &debugfile_ctx->fp, debugfile_ctx->filename, &debugfile_ctx->lock_warned);
 
-  // The rule is rebuilt from the compiled form, so an operand that was written as an escape in the
-  // rule file arrives here as the byte it stands for. Written straight out, a rule such as "^\x0a"
-  // puts a line ending in the middle of the line and splits one entry across two. The same test the
-  // two plain fields get keeps it on one line.
-
-  debugfile_format_field (hashcat_ctx, rule_buf, rule_len);
+  debugfile_format_rule (hashcat_ctx, rule_buf, rule_len);
 
   if ((debug_mode == 4) || (debug_mode == 5) || (debug_mode == DEBUG_MODE_FEED))
   {

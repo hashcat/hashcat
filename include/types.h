@@ -2206,6 +2206,12 @@ typedef struct hc_device_param
   char              opencl_chksum[24];
   char              opencl_chksum_amp_mp[24];
 
+  // Set by the main thread before it starts this device's thread for a round, and by that thread
+  // once calc () has returned, which it does when dispatch has no work left for this device in the
+  // round.
+
+  bool              calc_done;
+
 } hc_device_param_t;
 
 // One entry per kernel binary a run has to produce. Devices that would build the same file are the
@@ -3599,6 +3605,8 @@ typedef struct device_info
   double  brain_link_time_recv_dev;
   double  brain_link_time_send_dev;
   #endif
+
+  bool    idle_dev;
 
 } device_info_t;
 
