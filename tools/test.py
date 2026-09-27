@@ -324,6 +324,10 @@ def oracle_vectors(mode, optimized):
     # The word carries the "%-31s" padding, stripped here. A password that itself ends in a space
     # cannot survive this format and is out of scope, the same limitation test.sh has; the modes
     # with a .py today use numeric passwords.
+    #
+    # A hash is assumed to be 7 bit ASCII across the suite, so it is decoded as ASCII here and
+    # encoded back as ASCII wherever it is written or compared. A mode whose hash is its own
+    # plaintext (the passthrough mode 99999) keeps its generated password ASCII so this holds.
 
     pairs.append((m.group(1).rstrip(b" "), m.group(2).decode("ascii")))
 
