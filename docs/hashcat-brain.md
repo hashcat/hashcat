@@ -8,6 +8,8 @@ The brain persistently remembers low-level work previously performed against a p
 
 hashcat checks each candidate against the brain to determine whether it was already tried, regardless of which supported attack produced it. Brain clients accept attack modes 0, 1, 3, 4, 5, 6, 7, 8 and 12. Association mode 9 is not supported.
 
+Candidate-level checking is one of two features and is the one that requires candidates on the host. The other reserves whole keyspace ranges and costs a fast attack nothing; see [The brain and the bottlenecks](#the-brain-and-the-bottlenecks).
+
 The brain computes a fast paw64 hash of every candidate and first stores it in short-term memory. hashcat processes accepted candidates normally. When that batch finishes successfully, the client sends a commit and the server moves its candidates into long-term memory.
 
 The hashcat brain uses a client/server architecture. If a build must contain no brain networking code, build it with `ENABLE_BRAIN=0`.
@@ -262,7 +264,7 @@ Option `--brain-client-features` selects two independent features:
 * The **hashes** feature deduplicates individual candidates across different attacks.
 * The **attacks** feature reserves and deduplicates keyspace ranges before candidates are generated.
 
-The default, `--brain-client-features 3`, enables both features. Candidate-level deduplication is therefore active unless hashcat determines that the hashes feature is unsuitable for the workload.
+The default, `--brain-client-features 3`, enables both features. Candidate-level deduplication is therefore active unless hashcat determines that the hashes feature is unsuitable for the workload. The hashes feature activates `-S`; the attacks feature on its own does not, which is what makes it usable on a fast hash. See [`--brain-client-features 2` keeps candidate generation on the device](#--brain-client-features-2-keeps-candidate-generation-on-the-device).
 
 The hashes feature has a cost determined by candidate rate rather than by how slow an algorithm sounds. Salt count divides that rate. Bcrypt over 6,000 salts may offer the brain eight candidates per second, while raw MD5 over one salt may offer 60 million. Remembering the first workload is worthwhile. For the second, the server retains eight bytes per candidate for the life of the session and can spend more time on a lookup than the client spends testing the candidate.
 
@@ -289,7 +291,23 @@ The brain also recognizes partial overlaps. It rejects only the covered part of 
 
 The brain attack feature is also useful on its own. Option `--brain-client-features 2` enables only range coordination. This removes the per-candidate transfer and lookup costs, although reserving ranges still uses the network. The drawback is that candidates shared by different attacks are no longer deduplicated.
 
-The attacks feature is not a complete multi-system distribution solution. A brain client requires `-S`, so it is intended for slow hashes or fast hashes with many salts. For attack mode 4, `-S` selects the PCFG host engine. The brain never sees the device engine and cannot transfer covered keyspace between the two engines.
+### `--brain-client-features 2` keeps candidate generation on the device
+
+Only the hashes feature needs a candidate as text on the host, and that is the only reason the brain ever required `-S`. The attacks feature reserves a range from an offset and a length, and never looks at a candidate, so a client that asks for it alone keeps the device-side generators: a mask stays in the mask processor on the GPU and a wordlist stays zero-copy.
+
+This matters because `-S` is expensive in exactly the case the automatic downgrade leaves you in. Generating every candidate on the host caps a fast hash at a few million candidates per second, against thousands of millions when the device generates them. On one measured run, `-m 0 -a 3` over a six-character mask ran at 9.5 MH/s under `-z` with the default features and 6,100 MH/s under `-z --brain-client-features=2`, against 6,000 MH/s with no brain at all.
+
+So for a fast hash, ask for the attacks feature by name:
+
+```
+$ hashcat -z --brain-client-features=2 --brain-password=... -m 0 -a 3 hash.txt ?a?a?a?a?a?a
+```
+
+hashcat cannot make this choice for you. Whether `-S` is on has to be settled from the command line alone, because kernel selection and the base word source are decided during startup, long before the hash list has been read and the salt count is known. The automatic downgrade described above runs after that point: it can switch the hashes feature off, but it cannot switch `-S` off with it. When that happens hashcat says so and names the option to re-run with.
+
+Because a range means different things on the two paths, `-S` is part of the attack identity. A position counts one candidate on the host path and one base word, which the kernel amplifies into a whole mask or ruleset, on the device path. Runs that differ only in `-S` are therefore separate attacks and neither inherits the other's coverage.
+
+The attacks feature is not a complete multi-system distribution solution. For attack mode 4, `-S` selects the PCFG host engine. The brain never sees the device engine and cannot transfer covered keyspace between the two engines.
 
 The brain also provides no wordlist distribution and does not distribute cracked hashes among clients. The attacks feature coordinates overlapping work and reduces brain bottlenecks, while a full orchestration system remains responsible for distributing inputs and results.
 

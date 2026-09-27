@@ -557,10 +557,6 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   const hashes_t     *hashes     = hashcat_ctx->hashes;
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  // The one attack whose launch does not divide. See the tie below.
-
-  const bool engine_rules = (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true);
-
   const bool verbose = (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL);
 
   *out_accel = accel_min;
@@ -877,24 +873,14 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     // saves is paid outside the kernel try_run times, so where the probe sees no difference there is
     // still one.
 
-    // The device engine applying the rules itself is the one attack where that is not the whole story,
-    // because a launch there walks each base word's cell from its first candidate. A chunk of the
-    // ruleset half as long repeats the walk rather than halving the launch, so the loop count buys
-    // something the accel cannot. It is taken first, and the tie above then decides only between
-    // candidates carrying the same number of loops, which is where the band still belongs.
+    // The device engine applying the rules itself used to take the loop count ahead of the rate here,
+    // on the grounds that a launch walks each base word's cell from its first candidate and a shorter
+    // chunk of the ruleset repeats that walk rather than halving the launch. The loop count is not a
+    // free axis though: it is chosen above to fill the launch budget, so it is largest at the smallest
+    // accel. Preferring it is therefore a choice of accel 1, which is the case this band exists to
+    // avoid.
 
-    bool take;
-
-    if (engine_rules == true)
-    {
-      if      (loops > best_loops) take = true;
-      else if (loops < best_loops) take = false;
-      else                         take = (rate > (best_rate * 0.98));
-    }
-    else
-    {
-      take = (rate > (best_rate * 0.98));
-    }
+    const bool take = (rate > (best_rate * 0.98));
 
     // Outside the test, so that a tie is measured against the best rate the walk has seen rather than
     // against the last one it took. It changes nothing for the band above, where a rate that raises the

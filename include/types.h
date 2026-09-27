@@ -1806,6 +1806,14 @@ typedef struct hc_device_param
   u32     kernel_loops_max;
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
+
+  // The bounds that were in force when kernel_loops_prev was measured. A queue round may only reuse
+  // the previous round's tuning when its own bounds are the same ones, because the answer was fitted
+  // inside them: a mask queue recomputes kernel_loops_max from the round's amplifier count, so a
+  // shorter mask lowers it and last round's answer no longer belongs to this round's axis.
+
+  u32     kernel_loops_min_prev;
+  u32     kernel_loops_max_prev;
   u32     kernel_threads;
   u32     kernel_threads_prev;
   u32     kernel_threads_min;
