@@ -2534,6 +2534,76 @@ def run_container_mode(args, mode, tmp):
 
 CONTAINER_MODES = ({14600, 34100} | set(LUKS1_HASH_CIPHER) | set(TC_FILES) | VC_MODES | CL_MODES)
 
+# Modes that ship a module but cannot have a crack test, with the reason. --test-coverage reports any
+# mode with neither an oracle nor container coverage nor a self-test that is not on this list, so it
+# fails when a new mode arrives without one.
+
+COVERAGE_UNTESTABLE = {
+  2000:  "STDOUT candidate generator (OPTS_TYPE_SELF_TEST_DISABLE), nothing to crack",
+  2501:  "WPA-EAPOL-PMK, deprecated, superseded by 22001",
+  16801: "WPA-PMKID-PMK, deprecated, superseded by 22001",
+  9710:  "MS Office <= 2003 MD5 + RC4 collider #1, not a wordlist or mask crack",
+  9720:  "MS Office <= 2003 MD5 + RC4 collider #2, not a wordlist or mask crack",
+  9810:  "MS Office <= 2003 SHA1 + RC4 collider #1, not a wordlist or mask crack",
+  9820:  "MS Office <= 2003 SHA1 + RC4 collider #2, not a wordlist or mask crack",
+  10410: "PDF 1.1 - 1.3 collider #1, not a wordlist or mask crack",
+  10420: "PDF 1.1 - 1.3 collider #2, not a wordlist or mask crack",
+}
+
+
+def module_hash_name(mode):
+  m = re.search(rb'HASH_NAME\s*=\s*"([^"]*)"', module_source(mode))
+
+  return m.group(1).decode("utf-8", "replace") if m else ""
+
+
+def run_test_coverage():
+  # Which modes test.py can test, and which ship a module without a way to. Reads the source tree
+  # only, so it needs no built hashcat and no backend device. Was tools/test_coverage.sh.
+
+  all_modes = sorted(int(re.search(r"module_0*([0-9]+)\.c$", p).group(1))
+                     for p in glob.glob(os.path.join(ROOT, "src", "modules",
+                                                     "module_[0-9][0-9][0-9][0-9][0-9].c")))
+
+  # CONTAINER_MODES carries the cryptoloop kernel numbers (14511..14553) as labels; every one runs
+  # hashcat with -m 14500, the only module that exists, so collapse them to it for this check.
+  container = {14600, 34100} | set(LUKS1_HASH_CIPHER) | set(TC_FILES) | set(VC_MODES) | {14500}
+  covered   = set(discover_modes()) | container | SELFTEST_MODES
+
+  missing = sorted(m for m in all_modes if m not in covered and m not in COVERAGE_UNTESTABLE)
+  orphans = sorted(container - set(all_modes))
+
+  n_uncovered = sum(1 for m in all_modes if m not in covered)
+
+  print("modules      : %d" % len(all_modes))
+  print("with a test  : %d" % (len(all_modes) - n_uncovered))
+  print("excluded     : %d" % len(COVERAGE_UNTESTABLE))
+  print("")
+
+  if orphans:
+    print("Listed as a container mode but no such module exists:")
+
+    for m in orphans:
+      print("  %d" % m)
+
+    print("")
+
+  if not missing:
+    print("Every mode has a test or a documented reason not to.")
+
+    return 1 if orphans else 0
+
+  print("No test and no documented reason:")
+
+  for m in missing:
+    print("  %-6d %s" % (m, module_hash_name(m)))
+
+  print("")
+  print("Add tools/test_modules/m<mode>.py, or add the mode to COVERAGE_UNTESTABLE in test.py")
+  print("with the reason it cannot have one.")
+
+  return 1
+
 # test.sh -M's 24 hash types, one representative per family, covering all distinct code paths
 # (test.sh). The container families contribute their first mode (6211, 13711, 14511, 29511, 34100)
 # plus LUKS1 legacy 14600, all now handled by the container full-test above.
@@ -4116,6 +4186,8 @@ def main():
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
   ap.add_argument("-M", dest="minimal", action="store_true",
                   help="minimal mode: full-test the 24 hash types covering all distinct code paths")
+  ap.add_argument("--test-coverage", dest="test_coverage", action="store_true",
+                  help="report modes with no test and exit; reads the source tree, needs no hashcat")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
                   help="run this many modes in parallel, each in its own hashcat cache/session")
   ap.add_argument("--edge", dest="edge", action="store_true",
@@ -4133,6 +4205,10 @@ def main():
                   help=argparse.SUPPRESS)
 
   args = ap.parse_args()
+
+  # --test-coverage reads the source tree only, so it runs before the isolation and binary checks.
+  if args.test_coverage:
+    sys.exit(run_test_coverage())
 
   # -a is unset by default so the two paths can differ: the crack path runs -a 0, the edge path the
   # whole attack set, as their test.sh and test_edge.sh counterparts do.
