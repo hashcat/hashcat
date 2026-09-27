@@ -858,15 +858,3 @@ There is one more configuration item which I want to describe:
 
 * TOKEN_ATTR_FIXED_LENGTH: This is for columns of which you know the exact length -and- which are not followed by a separator character. In this case you do not need to set the parameters "len_min" and "len_max", but you need to set the parameter "len" instead. This is a typical pitfall if you copy/paste configuration settings from other modules and switch from a dynamic length to a fixed length. Do not forget to also change the parameter name ("len_min"/"len_max" instead of just "len") and the indices.
 
-## Porting a plugin from 7.1.2 ##
-
-The following source changes are relevant when porting a working plugin from hashcat 7.1.2 to a later upstream revision.
-
-Remove the `module_dictstat_disable` registration from `module_init()`. Three optional hooks were added: `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, while `module_hash_hints` exposes account-name context used by attack mode 9. Assigning all three to `MODULE_DEFAULT` preserves the previous behavior.
-
-Callbacks `module_hook_extra_param_init()` and `module_hook_extra_param_term()` take `hashcat_ctx_t *` as their first parameter on later revisions. Add it to either implemented callback so its definition matches the interface type. Most plugins do not implement these hooks.
-
-Header `shared.h` was split on later revisions, so a module built against one of those trees includes the header that owns each helper instead of `shared.h` alone. Parser functions such as `input_tokenizer`, `hc_strchr_next`, `hc_strchr_last`, `generic_salt_decode`, `generic_salt_encode`, and `strparser` live in `parser.h`. Path helpers live in `path.h`, system queries in `system.h`, and `file_to_buffer` plus `hc_same_files` in `filehandling.h`. This repository still targets 7.1.2, where `shared.h` remains the single include used throughout `src/modules/`, so keep including it as the existing modules do rather than the split headers.
-
-The test suite on later revisions replaced the Perl `tools/test.pl` driver and `tools/test_modules/m[hash_mode].pm` stubs with a Python `tools/test_module_runner.py` driver and `tools/test_modules/m[hash_mode].py` stubs. This repository still uses the Perl driver, so new modules should keep adding a `.pm` stub unless `tools/test_module_runner.py` has also been ported into this tree.
-
