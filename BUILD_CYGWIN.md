@@ -9,7 +9,6 @@ Go to https://www.cygwin.com , get the setup-x86_64 file and follow the instruct
 Make sure to install additional dependencies necessary for hashcat compilation by selecting the following packages during cygwin installation
 
 ```
-libiconv-devel
 gcc-core
 gcc-g++
 make
@@ -46,4 +45,4 @@ $ ./hashcat.exe
 
 ### Notes ###
 
-While hashcat will run fine from cygwin bash, running it from a windows shell will require cygwin1.dll and cygiconv-2.dll to be in the same folder with hashcat.exe (the files can be found in cygwin\bin folder).
+While hashcat will run fine from cygwin bash, running it from a windows shell will require cygwin1.dll to be in the same folder with hashcat.exe (the file can be found in cygwin\bin folder). cygiconv-2.dll from the same folder is needed as well when --encoding-from or --encoding-to asks for a conversion, because hashcat opens iconv at runtime rather than linking it.

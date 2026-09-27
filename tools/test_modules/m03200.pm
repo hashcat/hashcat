@@ -19,14 +19,16 @@ sub module_generate_hash
   my $salt = shift;
   my $iter = shift;
 
-  my $cost = "05";
+  my $cost = 5;
 
   if (length ($iter))
   {
     $cost = $iter;
   }
 
-  my $hash = bcrypt ($word, sprintf ('$2a$%s$%s$', $cost, en_base64 ($salt)));
+  # the cost field is two digits, so a bare 4 has to become 04 or bcrypt rejects the whole setting
+
+  my $hash = bcrypt ($word, sprintf ('$2a$%02d$%s$', $cost, en_base64 ($salt)));
 
   return $hash;
 }

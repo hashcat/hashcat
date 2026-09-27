@@ -48,6 +48,11 @@ KERNEL_FQ KERNEL_FA void m23003_m04 (KERN_ATTR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -61,6 +66,11 @@ KERNEL_FQ KERNEL_FA void m23003_m04 (KERN_ATTR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -78,6 +88,11 @@ KERNEL_FQ KERNEL_FA void m23003_m04 (KERN_ATTR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -103,7 +118,7 @@ KERNEL_FQ KERNEL_FA void m23003_m04 (KERN_ATTR_ESALT (securezip_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
 
     const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
@@ -130,22 +145,74 @@ KERNEL_FQ KERNEL_FA void m23003_m04 (KERN_ATTR_ESALT (securezip_t))
     u32x wordr2[4] = { 0 };
     u32x wordr3[4] = { 0 };
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
     {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0)
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+      }
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
     }
     else
+    #endif
     {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
     }
 
     u32x w0[4];
@@ -439,7 +506,7 @@ KERNEL_FQ KERNEL_FA void m23003_m04 (KERN_ATTR_ESALT (securezip_t))
 
     u32 ks[KEYLEN];
 
-    AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES256_set_decrypt_key_inv (ks, key, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
     u32 out[4];
 
@@ -495,6 +562,11 @@ KERNEL_FQ KERNEL_FA void m23003_s04 (KERN_ATTR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -508,6 +580,11 @@ KERNEL_FQ KERNEL_FA void m23003_s04 (KERN_ATTR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -525,6 +602,11 @@ KERNEL_FQ KERNEL_FA void m23003_s04 (KERN_ATTR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -550,7 +632,7 @@ KERNEL_FQ KERNEL_FA void m23003_s04 (KERN_ATTR_ESALT (securezip_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
 
     const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
@@ -577,22 +659,74 @@ KERNEL_FQ KERNEL_FA void m23003_s04 (KERN_ATTR_ESALT (securezip_t))
     u32x wordr2[4] = { 0 };
     u32x wordr3[4] = { 0 };
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
     {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0)
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+      }
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
     }
     else
+    #endif
     {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
     }
 
     u32x w0[4];
@@ -886,7 +1020,7 @@ KERNEL_FQ KERNEL_FA void m23003_s04 (KERN_ATTR_ESALT (securezip_t))
 
     u32 ks[KEYLEN];
 
-    AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES256_set_decrypt_key_inv (ks, key, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
     u32 out[4];
 

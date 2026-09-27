@@ -10,10 +10,6 @@
 
 int get_runtime_left (const hashcat_ctx_t *hashcat_ctx);
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_monitor (void *p);
-#else
-HC_API_CALL void *thread_monitor (void *p);
-#endif
+HC_THREAD_FUNC thread_monitor (void *p);
 
 #endif // HC_MONITOR_H

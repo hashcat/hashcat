@@ -1,6 +1,8 @@
 # Compiling hashcat for Windows with macOS.
 
-Tested on macOS 12.6.6 M1.
+This is about cross compiling a Windows binary on a Mac, so it says nothing about what a machine
+running hashcat needs. For that see docs/hashcat-requirements.md, which asks for macOS 13.0 to use
+Metal or Apple's OpenCL.
 
 Make sure to have the HomeBrew upgraded.
 
@@ -9,11 +11,6 @@ Make sure to have the HomeBrew upgraded.
 ```
 brew install mingw-w64
 git clone https://github.com/hashcat/hashcat
-git clone https://github.com/win-iconv/win-iconv
-cd win-iconv/
-cmake -D WIN_ICONV_BUILD_EXECUTABLE=OFF -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) -D CMAKE_SYSTEM_NAME=Windows
-sudo make install
-cd ../
 wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
 sudo mkdir /opt/win-python
 sudo tar --zstd -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst -C /opt/win-python

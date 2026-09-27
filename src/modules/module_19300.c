@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -72,17 +73,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 3;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len[0]     = 40;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = SALT_MIN;
   token.len_max[1] = SALT_MAX;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
@@ -178,13 +179,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[4], out_buf + out_len); out_len += 8;
 
-  out_buf[out_len] = hashconfig->separator;
+  out_buf[out_len] = ':';
 
   out_len += 1;
 
   out_len += generic_salt_encode (hashconfig, (const u8 *) sha1_double_salt->salt1_buf, sha1_double_salt->salt1_len, out_buf + out_len);
 
-  out_buf[out_len] = hashconfig->separator;
+  out_buf[out_len] = ':';
 
   out_len += 1;
 
@@ -198,6 +199,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -214,7 +216,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -230,6 +231,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -272,5 +274,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

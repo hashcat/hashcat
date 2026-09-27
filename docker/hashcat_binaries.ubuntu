@@ -5,7 +5,7 @@ FROM gm4tr1x/hashcat-toolchain:${HOST_ARCH}-${UBUNTU_VERSION} AS builder-toolcha
 
 LABEL org.opencontainers.image.authors="Gabriele 'matrix' Gristina <matrix@hashcat.net>" \
       org.opencontainers.image.title="Hashcat cross-build using hashcat-toolchain" \
-      org.opencontainers.image.version="2.0" \
+      org.opencontainers.image.version="2.1" \
       org.opencontainers.image.description="Docker image based on Ubuntu for cross-compiling Hashcat (Windows and Linux) and optionally scanning for potential vulnerabilities using clang-tidy and scan-build." \
       org.opencontainers.image.source="https://github.com/hashcat/hashcat/blob/master/docker/hashcat_binaries.ubuntu" \
       org.opencontainers.image.licenses="MIT"
@@ -36,11 +36,18 @@ COPY --from=builder-toolchain /opt /opt
 COPY --from=builder-toolchain /root/toolchain-info.log /root/toolchain-info.log
 
 RUN apt-get update && apt-get -y --no-install-recommends install apt-utils && apt-get -y --no-install-recommends install \
+    autoconf \
+    automake \
+    autopoint \
     build-essential \
     ca-certificates curl \
     dos2unix \
+    gettext \
     git \
     libc6-dev \
+    libomp-dev \
+    libtool \
+    m4 \
     make \
     time \
     wget \
@@ -69,32 +76,125 @@ RUN echo "$WD/native/lib" > /etc/ld.so.conf.d/toolchain.conf && \
 
 # 7zip
 
-ARG SEVEN_ZIP_VERSION=25.01
+ARG SEVEN_ZIP_VERSION=26.02
 ENV SEVEN_ZIP_VERSION=${SEVEN_ZIP_VERSION}
 
+# CFLAGS_WARN_WALL drops the -Werror that 7zip sets for itself. GCC 16 reports the COM reference
+# counting in ProgressUtils.h and RarHandler.cpp as -Warray-bounds, and the build stops there. It is
+# a false positive on 7zip's own code, and 7zip 26.02 reports it in the same two places, so waiting
+# for a newer release does not help. This binary is only the archiver that packs the release, so
+# nothing hashcat ships is built with these flags.
+
 RUN cd $WD/src && git clone --depth 1 --branch ${SEVEN_ZIP_VERSION} https://github.com/ip7z/7zip.git && \
-    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
+    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc CFLAGS_WARN_WALL="-Wall -Wextra" -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
 
-# win-iconv
+# The compressors the Windows package ships.
+#
+# hashcat loads these at runtime rather than linking them, and a Linux or macOS box gets them from
+# the system. Windows has no system that provides them, so without these the package cannot read its
+# own hashcat.hcstat2 and every mask attack fails. They are built here from pinned upstream tags
+# rather than committed as binaries, so nothing binary lives in the repository, the version that went
+# into a package is recorded in this file, and refreshing one for a security fix is a version bump
+# and a rebuild.
+#
+# iconv is deliberately absent. hashcat converts encodings with the Windows API itself, so the
+# win-iconv build that used to be here had no consumer: it was built into /opt and never packaged.
 
-ARG WIN_ICONV_VERSION=0.0.10
-ENV WIN_ICONV_VERSION=${WIN_ICONV_VERSION}
+ARG XZ_VERSION=5.8.3
+ARG ZLIB_VERSION=1.3.2
+ARG ZSTD_VERSION=1.5.7
 
-RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://github.com/win-iconv/win-iconv.git && cd win-iconv && \
-    cmake \
-    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
-    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
-    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
-    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
-    -D CMAKE_SYSTEM_NAME=Windows \
-    -D CMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-    -D CMAKE_C_STANDARD_LIBRARIES="-static-libgcc" \
-    -D CMAKE_CXX_STANDARD_LIBRARIES="-static-libgcc -static-libstdc++" \
-    . && make install && cd $WD/src && rm -rf win-iconv
+ENV XZ_VERSION=${XZ_VERSION} \
+    ZLIB_VERSION=${ZLIB_VERSION} \
+    ZSTD_VERSION=${ZSTD_VERSION}
+
+ENV WIN_DLL_DIR=/opt/win-dll-64
+
+RUN mkdir -p ${WIN_DLL_DIR}
+
+# liblzma, for hashcat.hcstat2. Public domain, and the one the package cannot do without.
+#
+# The source is taken from the git tag rather than from a release tarball. The 5.6.0 and 5.6.1
+# backdoor was present only in the tarballs, so the tag is the artifact worth building from, at the
+# price of running autogen.sh here. autogen.sh calls aclocal, autoconf, autoheader, automake,
+# autopoint and libtoolize, none of which come with build-essential, which is what autoconf,
+# automake, autopoint, gettext and libtool are installed for above. autopoint is named separately
+# because Debian and Ubuntu ship it as its own package that gettext only suggests, so an install
+# passing --no-install-recommends never pulls it in.
+#
+# -static-libgcc is carried in CC rather than in LDFLAGS. libtool 2.4.6, which is what the default
+# base release has, passes neither -static-libgcc nor anything else matching -static-* through to
+# the line that links the DLL, so in LDFLAGS the flag reaches the compile and is dropped from the
+# link. This mingw GCC keeps libgcc_s off the default link path, so the link then fails outright on
+# a missing -lgcc_s rather than quietly producing a DLL that needs libgcc_s_seh-1.dll beside it.
+
+RUN cd $WD/src && git clone --depth 1 --branch v${XZ_VERSION} https://github.com/tukaani-project/xz.git && cd xz && \
+    ./autogen.sh --no-po4a && \
+    ./configure --host=x86_64-w64-mingw32 --enable-shared --disable-static --disable-xz --disable-xzdec \
+                --disable-lzmadec --disable-lzmainfo --disable-scripts --disable-doc --disable-nls \
+                CC="x86_64-w64-mingw32-gcc -static-libgcc" && \
+    make -j && cp src/liblzma/.libs/liblzma-5.dll ${WIN_DLL_DIR}/liblzma.dll && \
+    cd $WD/src && rm -rf xz
+
+# zlib, for .gz wordlists.
+#
+# The zlib1.dll target is named rather than letting the default target run, which also builds 4 test
+# programs the package has no use for.
+
+RUN cd $WD/src && git clone --depth 1 --branch v${ZLIB_VERSION} https://github.com/madler/zlib.git && cd zlib && \
+    make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- LDFLAGS="-static-libgcc" -j zlib1.dll && \
+    cp zlib1.dll ${WIN_DLL_DIR}/ && \
+    cd $WD/src && rm -rf zlib
+
+# libzstd, for .zst wordlists.
+#
+# TARGET_SYSTEM is what selects the Windows build, and it defaults to $(OS), which is empty on Linux.
+# Without it the makefile builds a Linux .so and the DLL target does not exist at all. The target is
+# libzstd, which resolves to dll/libzstd.dll on Windows; there is no libzstd.dll target.
+
+RUN cd $WD/src && git clone --depth 1 --branch v${ZSTD_VERSION} https://github.com/facebook/zstd.git && cd zstd/lib && \
+    make -j CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar \
+         TARGET_SYSTEM=Windows LDFLAGS="-static-libgcc" libzstd && \
+    cp dll/libzstd.dll ${WIN_DLL_DIR}/ && \
+    cd $WD/src && rm -rf zstd
+
+# What the package will actually ship has to load on a machine that has only Windows on it, so the
+# three are checked here rather than after somebody reports that a mask attack fails. A DLL that
+# imports a mingw runtime library would need that library beside hashcat.exe as well, and the
+# package does not carry one.
+
+RUN for dll in liblzma.dll zlib1.dll libzstd.dll; do \
+      if [ -f ${WIN_DLL_DIR}/$dll ]; then \
+        echo "== $dll" >> /root/win_dll_imports.log; \
+      else \
+        echo "! $dll was not built"; exit 1; \
+      fi; \
+      x86_64-w64-mingw32-objdump -f ${WIN_DLL_DIR}/$dll | grep -q 'pei-x86-64' || { echo "! $dll is not a 64 bit Windows DLL"; exit 1; }; \
+      x86_64-w64-mingw32-objdump -p ${WIN_DLL_DIR}/$dll | grep 'DLL Name' >> /root/win_dll_imports.log; \
+    done && \
+    cat /root/win_dll_imports.log && \
+    if grep -iE 'DLL Name: *(libgcc|libwinpthread|libstdc\+\+|libssp|cyg)' /root/win_dll_imports.log; then \
+      echo "! a shipped DLL imports a mingw runtime library that the package does not carry"; exit 1; \
+    fi
+
+# GMP
+
+ARG GMP_VERSION=6.3.0
+ENV GMP_VERSION=${GMP_VERSION}
+
+RUN cd $WD/src && wget --no-verbose -t 3 -c --https-only https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
+    tar -xf gmp-${GMP_VERSION}.tar.xz && cp -a gmp-${GMP_VERSION} gmp-win && \
+    cd $WD/src/gmp-${GMP_VERSION} && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static --with-pic --enable-fat CC="gcc -std=gnu17" && \
+    make -j ${MAX_CORE} && make install && \
+    cd $WD/src/gmp-win && \
+    ./configure --host=x86_64-w64-mingw32 --prefix=/opt/win-gmp-64 --disable-shared --enable-static --enable-fat CC="x86_64-w64-mingw32-gcc -std=gnu17" && \
+    make -j ${MAX_CORE} && make install && \
+    cd $WD/src && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
 
 # Python (windows)
 
-ARG WIN_PYTHON_VERSION=3.12.12-1
+ARG WIN_PYTHON_VERSION=3.14.6-2
 ENV WIN_PYTHON_VERSION=${WIN_PYTHON_VERSION}
 
 RUN cd /opt/win-python && \
@@ -104,7 +204,7 @@ RUN cd /opt/win-python && \
 
 # rust
 
-ARG RUST_VERSION=1.90.0
+ARG RUST_VERSION=1.97.1
 ENV RUST_VERSION=${RUST_VERSION}
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}; /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
@@ -113,35 +213,73 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # hashcat
 
+# ENABLE_LTO is off by default in src/Makefile, because a plain distro cross toolchain cannot
+# always link the result. It is turned back on here, on the make command line, so the released
+# binaries get it. A command line assignment beats the ?= in the Makefile, so this stays
+# correct whatever the default becomes
+
+# HASHCAT_REF is the tree the package is built from, and it is named rather than left to whatever
+# master happens to be, so that a release can be rebuilt later from the same source. Another one is
+# asked for with --build-arg HASHCAT_REF=<ref>, and it is bumped with the version in
+# tools/package_bin.sh, which is edited for the same release anyway.
+#
+# It cannot be bumped to just anything. This file passes CC_WIN=clang, and a Makefile from before the
+# core library has no way to tell clang which target a Windows artifact is for, so clang builds it for
+# the host, picks the host linker and stops on the first link flag that only means something to PE.
+# The default is master until the first release that contains the core library exists to name, and the
+# check below refuses an older tree in one line rather than letting it fail at the link.
+
 ARG CACHE_BUST=1 \
+    HASHCAT_REF=master \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
-    USE_MOLD=1 \
     USE_CLANG=1 \
     USE_GCC=0
 
 ENV CACHE_BUST=${CACHE_BUST} \
+    HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \
-    USE_MOLD=${USE_MOLD} \
     USE_CLANG=${USE_CLANG} \
     USE_GCC=${USE_GCC}
 
-RUN cd /root && git clone https://github.com/hashcat/hashcat.git
+RUN cd /root && git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
+
+RUN test -f /root/hashcat/include/export.h || { echo "HASHCAT_REF=${HASHCAT_REF} predates the shared core, which this file cannot build"; exit 1; }
 
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
-RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do patch -p1 < "$p"; done'
+# git apply rather than patch, because a patch is a git diff and patch(1) only understands part of one.
+# Given a diff carrying binary content, "git diff --binary", patch stops at "File x: git binary diffs
+# are not supported". Given one that only names the binary file without carrying it, which is what a
+# plain "git diff" writes, patch is worse than that: it prints "patching file x", exits 0, and applies
+# nothing, so the build succeeds and ships a package the patch never reached. git apply handles the
+# first and refuses the second by name.
+#
+# || exit 1 because a for loop returns the status of its last command. Without it a patch that fails
+# is reported as a success whenever another one follows it, which is the same trap the pipefail note
+# below describes. A patch that cannot be applied has to stop the build.
+#
+# A patch that touches binary files has to be made with "git diff --binary". Plain "git diff" writes
+# only "Binary files a/x and b/x differ", which carries no content and which nothing can apply.
+
+RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do echo "applying $p"; git apply "$p" || exit 1; done'
+
+# pipefail for the two build steps below, because each pipes make into tee and the exit status of a
+# pipeline is the LAST command's. Without it tee always succeeds, a failed make is reported as a
+# success, and package_bin.sh runs on a half built tree. That produces an archive that looks ordinary
+# and is missing however many binaries make had not reached, which is the worst way for this to fail.
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN if [ "${USE_CLANG}" = "1" ]; then \
       cp -af /root/hashcat /root/hashcat-clang && cd /root/hashcat-clang && \
-      make USE_MOLD=${USE_MOLD} \
-           ENABLE_LTO=${ENABLE_LTO} \
+      make ENABLE_LTO=${ENABLE_LTO} \
            MAINTAINER_MODE=${MAINTAINER_MODE} \
            AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar \
            CC=clang CC_LINUX=clang CC_WIN=clang \
            CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ \
-           binaries -s -j 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
+           binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
       tools/package_bin.sh && \
       cd /root/xy && \
       if [ "${USE_GCC}" = "1" ]; then \
@@ -157,10 +295,9 @@ RUN if [ "${USE_CLANG}" = "1" ]; then \
 
 RUN if [ "${USE_GCC}" = "1" ]; then \
       cp -af /root/hashcat /root/hashcat-gcc && cd /root/hashcat-gcc && \
-      make USE_MOLD=${USE_MOLD} \
-           ENABLE_LTO=${ENABLE_LTO} \
+      make ENABLE_LTO=${ENABLE_LTO} \
            MAINTAINER_MODE=${MAINTAINER_MODE} \
-           binaries -s -j 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
+           binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
       tools/package_bin.sh && \
       cd /root/xy && \
       if [ "${USE_CLANG}" = "1" ]; then \
@@ -174,18 +311,25 @@ RUN if [ "${USE_GCC}" = "1" ]; then \
       fi; \
     fi
 
+# Back to the default. The steps below pipe greps whose finding nothing is not a failure.
+
+SHELL ["/bin/sh", "-c"]
+
 RUN if [ "${USE_CLANG}" = "1" ] && [ "${USE_GCC}" = "1" ]; then mv /root/out/* /root/xy/; fi; cd /root && rm -rf /root/out /root/hashcat-* $WD/src /tmp/* /var/tmp/*
 
 ARG WITH_CODE_ANALYSIS=0
 ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
 
-RUN echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
-    echo "WIN_ICONV_VERSION: ${WIN_ICONV_VERSION}" >> /root/toolchain-info.log && \
+RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
+    echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
+    echo "XZ_VERSION: ${XZ_VERSION}" >> /root/toolchain-info.log && \
+    echo "ZLIB_VERSION: ${ZLIB_VERSION}" >> /root/toolchain-info.log && \
+    echo "ZSTD_VERSION: ${ZSTD_VERSION}" >> /root/toolchain-info.log && \
+    echo "GMP_VERSION: ${GMP_VERSION}" >> /root/toolchain-info.log && \
     echo "SEVEN_ZIP_VERSION: ${SEVEN_ZIP_VERSION}" >> /root/toolchain-info.log && \
     echo "RUST_VERSION: ${RUST_VERSION}" >> /root/toolchain-info.log && \
     echo "ENABLE_LTO: ${ENABLE_LTO}" >> /root/toolchain-info.log && \
     echo "MAINTAINER_MODE: ${MAINTAINER_MODE}" >> /root/toolchain-info.log && \
-    echo "USE_MOLD: ${USE_MOLD}" >> /root/toolchain-info.log && \
     echo "USE_CLANG: ${USE_CLANG}" >> /root/toolchain-info.log && \
     echo "USE_GCC: ${USE_GCC}" >> /root/toolchain-info.log && \
     echo "WITH_CODE_ANALYSIS: ${WITH_CODE_ANALYSIS}" >> /root/toolchain-info.log && \
@@ -202,9 +346,9 @@ RUN if [ "$WITH_CODE_ANALYSIS" -eq "1" ]; then \
       echo "Checks: 'clang-analyzer-*,cppcoreguidelines-*,-cppcoreguidelines-avoid-magic-numbers,modernize-*,performance-*,-modernize-use-trailing-return-type,-clang-diagnostic-unused-command-line-argument'" > /root/hashcat/.clang-tidy && \
       echo "HeaderFilterRegex: 'src/.*'" >> /root/hashcat/.clang-tidy && \
       cd /root/hashcat && make clean -s && \
-      intercept-build make USE_MOLD=${USE_MOLD} ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j && \
+      intercept-build make ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j && \
       run-clang-tidy -p=. -export-fixes=/root/code-analysis/clang-tidy/fixes.yaml -quiet > /root/code-analysis/clang-tidy/output.log 2>&1 && make clean -s && \
-      scan-build -o /root/code-analysis/scan-build make USE_MOLD=${USE_MOLD} ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j > /root/code-analysis/scan-build/output.log 2>&1 && make clean -s; \
+      scan-build -o /root/code-analysis/scan-build make ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j > /root/code-analysis/scan-build/output.log 2>&1 && make clean -s; \
     fi
 
 CMD ["/bin/bash"]

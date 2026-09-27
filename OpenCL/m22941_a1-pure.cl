@@ -48,6 +48,11 @@ KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_ESALT (pem_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -61,6 +66,11 @@ KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_ESALT (pem_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -78,6 +88,11 @@ KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_ESALT (pem_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -143,9 +158,27 @@ KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_ESALT (pem_t))
 
     md5_init (&ctx);
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     u32 t[16];
 
@@ -186,9 +219,27 @@ KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_ESALT (pem_t))
 
     ctx.len = 16;
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_update (&ctx, t, 8);
 
@@ -208,7 +259,7 @@ KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_ESALT (pem_t))
 
     u32 ks[52];
 
-    AES192_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES192_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
     u32 dec[4];
 
@@ -277,6 +328,11 @@ KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_ESALT (pem_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -290,6 +346,11 @@ KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_ESALT (pem_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -307,6 +368,11 @@ KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_ESALT (pem_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -372,9 +438,27 @@ KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_ESALT (pem_t))
 
     md5_init (&ctx);
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     u32 t[16];
 
@@ -415,9 +499,27 @@ KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_ESALT (pem_t))
 
     ctx.len = 16;
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_update (&ctx, t, 8);
 
@@ -437,7 +539,7 @@ KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_ESALT (pem_t))
 
     u32 ks[52];
 
-    AES192_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES192_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
     u32 dec[4];
 

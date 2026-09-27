@@ -103,7 +103,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "PKZIP (Mixed Multi-File)";
 static const u64   KERN_TYPE      = 17225;
 static const u32   OPTI_TYPE      = 0;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                 | OPTS_TYPE_NATIVE_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$";
@@ -212,6 +213,11 @@ void hex_to_binary (const char *source, int len, char* out)
   }
 }
 
+// Every error path below has to release the copy of the line that the parser walks with
+// strtok_r (), and there are two dozen of them. This says so once.
+
+#define PKZIP_PARSER_ERROR(rc) do { hcfree (input); return (rc); } while (0)
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   pkzip_t *pkzip = (pkzip_t *) esalt_buf;
@@ -227,8 +233,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char *saveptr = NULL;
 
   char *p = strtok_r (input, "*", &saveptr);
-  if (p == NULL) return PARSER_HASH_LENGTH;
-  if (strncmp (p, SIGNATURE_PKZIP_V1, 7) != 0 && strncmp (p, SIGNATURE_PKZIP_V2, 8) != 0) return PARSER_SIGNATURE_UNMATCHED;
+  if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
+  if (strncmp (p, SIGNATURE_PKZIP_V1, 7) != 0 && strncmp (p, SIGNATURE_PKZIP_V2, 8) != 0) PKZIP_PARSER_ERROR (PARSER_SIGNATURE_UNMATCHED);
 
   pkzip->version = 1;
 
@@ -240,64 +246,66 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   pkzip->hash_count = atoi (sub);
 
   // check here that the hash_count is valid for the attack type
-  if (pkzip->hash_count > 8) return PARSER_HASH_VALUE;
+  if (pkzip->hash_count > 8) PKZIP_PARSER_ERROR (PARSER_HASH_VALUE);
 
   p = strtok_r (NULL, "*", &saveptr);
-  if (p == NULL) return PARSER_HASH_LENGTH;
+  if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
   pkzip->checksum_size = atoi (p);
-  if (pkzip->checksum_size != 1 && pkzip->checksum_size != 2) return PARSER_HASH_LENGTH;
+  if (pkzip->checksum_size != 1 && pkzip->checksum_size != 2) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
 
   for (int i = 0; i < pkzip->hash_count; i++)
   {
     p = strtok_r (NULL, "*", &saveptr);
-    if (p == NULL) return PARSER_HASH_LENGTH;
+    if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
     pkzip->hashes[i].data_type_enum = atoi (p);
-    if (pkzip->hashes[i].data_type_enum > 3) return PARSER_HASH_LENGTH;
+    if (pkzip->hashes[i].data_type_enum > 3) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
 
     p = strtok_r (NULL, "*", &saveptr);
-    if (p == NULL) return PARSER_HASH_LENGTH;
+    if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
     pkzip->hashes[i].magic_type_enum = atoi (p);
 
     if (pkzip->hashes[i].data_type_enum > 1)
     {
       p = strtok_r (NULL, "*", &saveptr);
-      if (p == NULL) return PARSER_HASH_LENGTH;
+      if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
       pkzip->hashes[i].compressed_length = strtoul (p, NULL, 16);
 
       p = strtok_r (NULL, "*", &saveptr);
-      if (p == NULL) return PARSER_HASH_LENGTH;
+      if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
       pkzip->hashes[i].uncompressed_length = strtoul (p, NULL, 16);
       if (pkzip->hashes[i].compressed_length > MAX_DATA)
       {
-        return PARSER_TOKEN_LENGTH;
+        PKZIP_PARSER_ERROR (PARSER_TOKEN_LENGTH);
       }
 
       p = strtok_r (NULL, "*", &saveptr);
-      if (p == NULL) return PARSER_HASH_LENGTH;
+      if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
       u32 crc32 = 0;
       sscanf (p, "%x", &crc32);
       pkzip->hashes[i].crc32 = crc32;
 
       p = strtok_r (NULL, "*", &saveptr);
-      if (p == NULL) return PARSER_HASH_LENGTH;
+      if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
       pkzip->hashes[i].offset = strtoul (p, NULL, 16);
 
       p = strtok_r (NULL, "*", &saveptr);
-      if (p == NULL) return PARSER_HASH_LENGTH;
+      if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
       pkzip->hashes[i].additional_offset = strtoul (p, NULL, 16);
     }
 
     p = strtok_r (NULL, "*", &saveptr);
-    if (p == NULL) return PARSER_HASH_LENGTH;
+    if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
     pkzip->hashes[i].compression_type = atoi (p);
-    if (pkzip->hashes[i].compression_type != 8 && pkzip->hashes[i].compression_type != 0) return PARSER_HASH_VALUE;
+    if (pkzip->hashes[i].compression_type != 8 && pkzip->hashes[i].compression_type != 0) PKZIP_PARSER_ERROR (PARSER_HASH_VALUE);
 
     p = strtok_r (NULL, "*", &saveptr);
-    if (p == NULL) return PARSER_HASH_LENGTH;
+    if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
     pkzip->hashes[i].data_length = strtoul (p, NULL, 16);
 
+    if (pkzip->hashes[i].data_length > MAX_DATA) PKZIP_PARSER_ERROR (PARSER_TOKEN_LENGTH);
+
     p = strtok_r (NULL, "*", &saveptr);
-    if (p == NULL) return PARSER_HASH_LENGTH;
+    if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
     u16 checksum_from_crc = 0;
     sscanf (p, "%hx", &checksum_from_crc);
     pkzip->hashes[i].checksum_from_crc = checksum_from_crc;
@@ -305,7 +313,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     if (pkzip->version == 2)
     {
       p = strtok_r (NULL, "*", &saveptr);
-      if (p == NULL) return PARSER_HASH_LENGTH;
+      if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
       u16 checksum_from_timestamp = 0;
       sscanf (p, "%hx", &checksum_from_timestamp);
       pkzip->hashes[i].checksum_from_timestamp = checksum_from_timestamp;
@@ -316,9 +324,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     }
 
     p = strtok_r (NULL, "*", &saveptr);
-    if (p == NULL) return PARSER_HASH_LENGTH;
+    if (p == NULL) PKZIP_PARSER_ERROR (PARSER_HASH_LENGTH);
 
-    hex_to_binary (p, strlen (p), (char *) &(pkzip->hashes[i].data));
+    const size_t data_hex_len = strlen (p);
+
+    if (data_hex_len > MAX_DATA * 2) PKZIP_PARSER_ERROR (PARSER_TOKEN_LENGTH);
+    if (data_hex_len % 2)            PKZIP_PARSER_ERROR (PARSER_TOKEN_LENGTH);
+
+    hex_to_binary (p, data_hex_len, (char *) &(pkzip->hashes[i].data));
 
     // fake salt
     salt->salt_buf[i] = pkzip->hashes[i].data[0];
@@ -399,6 +412,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -415,7 +429,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -431,6 +444,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -473,5 +487,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -37,6 +37,8 @@ KERNEL_FQ KERNEL_FA void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
    * sDES_BOX_S
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -62,6 +64,13 @@ KERNEL_FQ KERNEL_FA void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans_opti;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -171,6 +180,8 @@ KERNEL_FQ KERNEL_FA void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
    * sDES_BOX_S
    */
 
+  #ifdef REAL_SHM
+
   LOCAL_VK u32 s_SPtrans[8][64];
   LOCAL_VK u32 s_skb[8][64];
 
@@ -196,6 +207,13 @@ KERNEL_FQ KERNEL_FA void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
   }
 
   SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_SPtrans)[64] = c_SPtrans_opti;
+  CONSTANT_AS u32a (*s_skb)[64]     = c_skb;
+
+  #endif
 
   if (gid >= GID_CNT) return;
 

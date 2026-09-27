@@ -6,6 +6,11 @@
 #ifndef HC_CPU_OPENCL_EMU_H
 #define HC_CPU_OPENCL_EMU_H
 
+// This guard is what inc_vendor.h reads to decide that it is compiling for the host, so this is the
+// header that has to have the export macros in hand before it.
+
+#include "export.h"
+
 #define DEVICE_TYPE    -1
 #define VENDOR_ID      -1
 #define LOCAL_MEM_TYPE 2
@@ -23,8 +28,8 @@ typedef struct digest
 } digest_t;
 #endif
 
-size_t get_global_id  (u32 dimindx __attribute__((unused)));
-size_t get_local_id   (u32 dimindx __attribute__((unused)));
-size_t get_local_size (u32 dimindx __attribute__((unused)));
+HC_PLUGIN_API size_t get_global_id  (u32 dimindx __attribute__((unused)));
+HC_PLUGIN_API size_t get_local_id   (u32 dimindx __attribute__((unused)));
+HC_PLUGIN_API size_t get_local_size (u32 dimindx __attribute__((unused)));
 
 #endif // HC_CPU_OPENCL_EMU_H

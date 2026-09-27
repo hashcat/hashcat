@@ -10,19 +10,20 @@ use warnings;
 
 use Bitcoin::Crypto         qw (btc_prv btc_extprv);
 use Bitcoin::Crypto::Base58 qw (decode_base58check);
+use Bitcoin::Crypto::Bech32 qw (encode_segwit);
 
 sub module_constraints { [[51, 51], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 # Note:
 # We expect valid WIF format which for BTC private address is 51/52 base58 characters long.
 # For uncompressed P2PKH the length of the WIF is always 51.
-# Standard test.pl is generating random passwords consisting only from digits.
+# Standard test_module_runner.pl is generating random passwords consisting only from digits.
 # That does not work for this mode.
 # So we have introduced new function: module_get_random_password ()
 # that will help to generate random valid password for the module from a given seed.
 #
-# It will be called from test.pl if it exists in the module, otherwise everything
-# will work as in legacy code. Search test.pl for module_get_random_password ()
+# It will be called from test_module_runner.pl if it exists in the module, otherwise everything
+# will work as in legacy code. Search test_module_runner.pl for module_get_random_password ()
 
 sub module_generate_hash
 {
@@ -48,8 +49,14 @@ sub module_generate_hash
 
   return if ($priv->compressed != 0);
 
-  my $pub  = $priv->get_public_key    ();
-  my $hash = $pub->get_segwit_address ();
+  my $pub = $priv->get_public_key ();
+
+  # get_segwit_address () refuses an uncompressed key, because a P2WPKH output that commits to an
+  # uncompressed public key cannot be spent and the library will not help anyone make one. This mode
+  # is for finding the key behind such an address, which is exactly the case where somebody already
+  # made one, so the address is built the way that method builds it rather than through it.
+
+  my $hash = encode_segwit ($pub->network->segwit_hrp, $pub->witness_program->run->stack_serialized);
 
   return $hash;
 }
@@ -93,7 +100,7 @@ sub module_get_random_password
 
   my $seed = shift;
 
-  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test.pl
+  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test_module_runner.pl
   my $derived_key = $master_key->derive_key ("m/0'");
 
   my $priv = $derived_key->get_basic_key ();

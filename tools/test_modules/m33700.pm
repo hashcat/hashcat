@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::PBKDF2;
 use Crypt::CBC;
-use Encode qw(encode);
+use Encode qw(decode encode);
 
 sub module_constraints { [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -36,7 +36,11 @@ sub module_generate_hash
     salt_len   => 0
   );
 
-  my $word_utf16le = encode ("UTF-16LE", $word);
+  # The kernel decodes the UTF-8 instead of widening the bytes, and the mode has no
+  # optimized kernel, so there is no second behaviour to follow and no IS_OPTIMIZED
+  # switch either.
+
+  my $word_utf16le = encode ("UTF-16LE", decode ("UTF-8", $word));
 
   my $key = $kdf->PBKDF2 ('', $word_utf16le);
 

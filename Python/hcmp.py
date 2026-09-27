@@ -2,10 +2,10 @@ import importlib
 import multiprocessing
 import hcshared
 
-def _worker_batch(chunk, salt_id, is_selftest, module_name, salts, st_salts):
+def _worker_batch(chunk, salt_id, is_selftest, module_name, salts, st_salts, salt_per_pw=False):
     user_module = importlib.import_module(module_name)
     calc_hash = getattr(user_module, "calc_hash")
-    return hcshared._worker_batch(chunk, salt_id, is_selftest, calc_hash, salts, st_salts)
+    return hcshared._worker_batch(chunk, salt_id, is_selftest, calc_hash, salts, st_salts, salt_per_pw)
 
 def init(ctx: dict, extract_esalts):
     # Extract and merge salts and esalts
@@ -34,15 +34,21 @@ def handle_queue(ctx: dict, passwords: list, salt_id: int, is_selftest: bool) ->
     module_name = ctx["module_name"]
     parallelism = ctx["parallelism"]
 
+    salt_per_pw = ctx.get("salt_per_pw", False)
+
     chunk_size = (len(passwords) + parallelism - 1) // parallelism
     chunks = [passwords[i:i + chunk_size] for i in range(0, len(passwords), chunk_size)]
 
+    # A worker takes a slice of the batch, so it gets the batch's start plus that slice's offset.
+
     jobs = []
-    for chunk in chunks:
+    for chunk_idx, chunk in enumerate(chunks):
         if chunk:
+            chunk_salt_id = salt_id + (chunk_idx * chunk_size if salt_per_pw and not is_selftest else 0)
+
             jobs.append(pool.apply_async(
                 _worker_batch,
-                args=(chunk, salt_id, is_selftest, module_name, salts, st_salts)
+                args=(chunk, chunk_salt_id, is_selftest, module_name, salts, st_salts, salt_per_pw)
             ))
 
     hashes = []

@@ -1,0 +1,45 @@
+# US keyboard to Danish, the other direction. For a Latin wordlist whose password was typed with
+# the Danish layout active.
+#
+#   hashcat -m 0 -a 8 hashes.txt table words.txt tables/layouts/da-reverse.table identity=0
+#
+# identity=0 is what makes it a conversion. Leaving a token as it was is one of its choices
+# by default, so without it a word of n covered characters is worth 2^n candidates, every
+# mixture of converted and not, rather than the one conversion.
+#
+# One rule to a line: the source token, a tab, then what to put in its place. Blank lines and lines
+# beginning with # are skipped, and a token that would otherwise be read as a comment is written as
+# $HEX[..].
+#
+# Keys that produce the same character in both layouts are left out. They are what the mapping does
+# not change, and listing them says nothing.
+
+`	½
+-	+
+=	´
+[	å
+]	¨
+;	æ
+'	ø
+\	'
+\	<
+/	-
+~	§
+@	"
+$	¤
+^	&
+&	/
+*	(
+(	)
+)	=
+_	?
++	`
+{	Å
+}	^
+:	Æ
+"	Ø
+|	*
+|	>
+<	;
+>	:
+?	_

@@ -9,7 +9,9 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "memory.h"
+#include "limits.h"
 
 #define DGST_ELEM 4
 
@@ -249,6 +251,11 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // here we have in line_hash_buf: PMK*essid:password
   // but we don't care about the password
 
+  // The 8 reads below take a fixed 64 characters out of the line, and the check that the separator
+  // sits at offset 64 comes after them. A shorter potfile line is read past its end.
+
+  if (line_len < 64) return (PARSER_HASH_LENGTH);
+
   // PMK
 
   wpa_pbkdf2_tmp->out[0] = hex_to_u32 ((const u8 *) line_buf +  0);
@@ -262,13 +269,13 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // essid
 
-  char *sep_pos = strrchr (line_buf, '*');
+  const char *sep_pos = strrchr (line_buf, '*');
 
   if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   if ((line_buf + 64) != sep_pos) return (PARSER_HASH_LENGTH);
 
-  char *essid_pos = sep_pos + 1;
+  const char *essid_pos = sep_pos + 1;
 
   const int essid_len = strlen (essid_pos);
 
@@ -466,11 +473,35 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 {
-  struct stat st;
+  // stat () measures the file on disk, and hc_fopen () transparently decompresses gzip, xz and zstd.
+  // A compressed hash file therefore holds far more records than its size on disk suggests, and the
+  // count decides how many hash entries are allocated for module_hash_binary_parse () to fill.
+  // Counting the records the same way the parse reads them keeps the two in step.
 
-  if (stat (hashes->hashfile, &st) == -1) return (PARSER_HAVE_ERRNO);
+  HCFILE fp;
 
-  return st.st_size / sizeof (hccapx_t);
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
+
+  char *in = (char *) hcmalloc (sizeof (hccapx_t));
+
+  u64 count = 0;
+
+  while (hc_feof (&fp) == false)
+  {
+    const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp);
+
+    if (nread == 0) break;
+
+    count++;
+
+    if (count == INT_MAX) break;
+  }
+
+  hcfree (in);
+
+  hc_fclose (&fp);
+
+  return (int) count;
 }
 
 u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
@@ -547,8 +578,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param_t kernel_param;
 
   kernel_param.bitmap_mask         = 0;
-  kernel_param.bitmap_shift1       = 0;
-  kernel_param.bitmap_shift2       = 0;
   kernel_param.salt_pos_host       = 0;
   kernel_param.loop_pos            = 0;
   kernel_param.loop_cnt            = 0;
@@ -601,6 +630,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) esalt_buf;
 
   // the *wpa was partially initialized beforehand, we can not simply memset it to zero
+
+  // module_hash_binary_parse is the only caller today and it always hands over a full record, but
+  // the copy takes a fixed size out of the line either way, so the length is checked here rather
+  // than assumed
+
+  if (line_len < (int) sizeof (hccapx_t)) return (PARSER_HASH_LENGTH);
 
   hccapx_t in;
 
@@ -850,9 +885,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp_buf[tmp_len++] = 'X';
     tmp_buf[tmp_len++] = '[';
 
-    exec_hexify (wpa_eapol->essid, wpa_eapol->essid_len, (u8 *) tmp_buf + tmp_len);
+    const size_t hex_len = exec_hexify (wpa_eapol->essid, wpa_eapol->essid_len, (u8 *) tmp_buf + tmp_len);
 
-    tmp_len += wpa_eapol->essid_len * 2;
+    tmp_len += (int) hex_len;
 
     tmp_buf[tmp_len++] = ']';
 
@@ -906,6 +941,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -922,7 +958,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -938,6 +973,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = module_hash_encode_status;
   module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -980,5 +1016,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

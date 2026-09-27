@@ -14,7 +14,7 @@ use Bitcoin::Crypto::Base58 qw (decode_base58check);
 
 use Bitcoin::Crypto::Key::Private;
 
-sub module_constraints { [[51, 51], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 # Note:
 # We have introduced the function: module_get_random_password ()
@@ -70,7 +70,7 @@ sub module_get_random_password
 {
   my $seed = shift;
 
-  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test.pl
+  my $master_key  = btc_extprv->from_seed ($seed); # expecting random seed from test_module_runner.pl
   my $derived_key = $master_key->derive_key ("m/0'");
 
   my $priv = $derived_key->get_basic_key ();
