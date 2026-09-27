@@ -1,6 +1,13 @@
 * changes v7.1.2 -> v7.1.x
 
 ##
+## New Algorithms
+##
+
+- Added hash-mode: PBKDF2-HMAC-SHA512(utf16le($pass))
+- Added hash-mode: MSSQL (2025)
+
+##
 ## Improvements
 ##
 

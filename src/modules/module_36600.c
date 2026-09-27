@@ -16,19 +16,19 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_8_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_DATABASE_SERVER;
-static const char *HASH_NAME      = "MSSQL (2025)";
-static const u64   KERN_TYPE      = 1732;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
+static const char *HASH_NAME      = "PBKDF2-HMAC-SHA512(utf16le($pass))";
+static const u64   KERN_TYPE      = 36600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_ST_BASE64
                                   | OPTS_TYPE_HASH_COPY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "0x03004DB403DDD3A508F81058E6AD92A6A20E5C72A06AD0B00C0A733EAD6582BE2443AFA70C9516C2DFDC60EA927B40BD732D7763477484FC014435AAC4D57EA88237B39806C1";
+static const char *ST_HASH        = "sha512utf16le:1000:NzY2:fFLtxyYSGqaQoUV6LPbVhRBLxzTJSLtHZgUD6Aj7R75dCfAI9OlV5Uqekezy1KW6TEipM7oLIPhjQVbPMsj0RQ==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -61,13 +61,8 @@ typedef struct pbkdf2_sha512_tmp
 
 } pbkdf2_sha512_tmp_t;
 
-static const char *SIGNATURE_MSSQL2025 = "0x0300";
-
-/*
- * PBKDF2-HMAC-SHA512 iteration count used by SQL Server 2025.
- * This value is fixed and not stored in the hash itself.
- */
-static const u32 MSSQL2025_ITER = 100000;
+// this primitive is fixed to a single PBKDF2 block, so the derived key is always 64 bytes
+static const char *SIGNATURE_PBKDF2_SHA512_UTF16LE = "sha512utf16le";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -93,78 +88,82 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  /*
-   * Hash format: 0x0300 <4-byte hex salt> <64-byte hex derived key>
-   *   token[0] = "0x0300" (6 chars, version signature)
-   *   token[1] = salt     (8 hex chars = 4 bytes)
-   *   token[2] = hash     (128 hex chars = 64 bytes)
-   */
-
-  token.token_cnt  = 3;
+  token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_MSSQL2025;
+  token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA512_UTF16LE;
 
-  token.len[0]     = 6;
+  token.sep[0]     = ':';
+  token.len[0]     = 13;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len[1]     = 8;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.sep[1]     = ':';
+  token.len_min[1] = 1;
+  token.len_max[1] = 8;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len[2]     = 128;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.sep[2]     = ':';
+  token.len_min[2] = ((SALT_MIN * 8) / 6) + 0;
+  token.len_max[2] = ((SALT_MAX * 8) / 6) + 3;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
+
+  token.sep[3]     = ':';
+  token.len_min[3] = 88;
+  token.len_max[3] = 88;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  /*
-   * Iteration count is fixed at 100,000 for SQL Server 2025.
-   * salt_iter is stored as (iterations - 1) per hashcat convention.
-   */
+  u8  tmp_buf[512];
+  int tmp_len;
 
-  salt->salt_iter = MSSQL2025_ITER - 1;
+  // iter
 
-  /*
-   * Decode the 4-byte hex salt
-   */
+  const u8 *iter_pos = token.buf[1];
 
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
+  const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
 
-  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+  salt->salt_iter = iter - 1;
 
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
+  // salt
 
-  memcpy (pbkdf2_sha512->salt_buf, salt->salt_buf, salt->salt_len);
+  const u8 *salt_pos = token.buf[2];
+  const int salt_len = token.len[2];
 
-  /*
-   * Include the iteration count in the salt uniqueness key so that
-   * two hashes differing only in iter are treated as distinct salts.
-   */
+  memset (tmp_buf, 0, sizeof (tmp_buf));
 
+  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
+
+  if (tmp_len > SALT_MAX) return (PARSER_SALT_LENGTH);
+
+  memcpy (pbkdf2_sha512->salt_buf, tmp_buf, tmp_len);
+
+  salt->salt_len = tmp_len;
+
+  salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
+  salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
+  salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
+  salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
   salt->salt_buf[4] = salt->salt_iter;
 
-  /*
-   * Decode the 64-byte (128 hex char) derived key.
-   * hex_to_u64 stores bytes in little-endian order (first hex pair → LSB),
-   * so byte_swap_64 is required to convert each word to the big-endian
-   * representation that the PBKDF2 kernel comparison expects.
-   */
+  // hash
 
-  const u8 *hash_pos = token.buf[2];
+  const u8 *hash_pos = token.buf[3];
+  const int hash_len = token.len[3];
 
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
+
+  if (tmp_len != 64) return (PARSER_HASH_LENGTH);
+
+  memcpy (digest, tmp_buf, 64);
 
   digest[0] = byte_swap_64 (digest[0]);
   digest[1] = byte_swap_64 (digest[1]);
@@ -180,11 +179,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  /*
-   * OPTS_TYPE_HASH_COPY preserves the original hash string verbatim,
-   * so we can simply return it here without re-encoding.
-   */
-
   return snprintf (line_buf, line_size, "%s", hash_info->orighash);
 }
 

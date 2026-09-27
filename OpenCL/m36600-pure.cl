@@ -91,7 +91,7 @@ DECLSPEC void hmac_sha512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ KERNEL_FA void m01732_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ KERNEL_FA void m36600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
 {
   /**
    * base
@@ -203,7 +203,7 @@ KERNEL_FQ KERNEL_FA void m01732_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   }
 }
 
-KERNEL_FQ KERNEL_FA void m01732_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ KERNEL_FA void m36600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -329,7 +329,7 @@ KERNEL_FQ KERNEL_FA void m01732_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t,
   }
 }
 
-KERNEL_FQ KERNEL_FA void m01732_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
+KERNEL_FQ KERNEL_FA void m36600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sha512_t))
 {
   /**
    * base
