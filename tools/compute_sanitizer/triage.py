@@ -247,12 +247,22 @@ def first_source_frame(finding):
     return None
 
 
-def classify_relevance(findings):
+def classify_relevance(findings, total_reported=None):
     """Marks each finding's "relevance". A real memory/race/sync fault is
     "primary". A CudaAPIError block is "secondary" (a consequence of an
     earlier real fault poisoning the CUDA context) unless it is the only
     finding in the run, in which case it's promoted to "primary" (pure CUDA
-    API misuse with no preceding memory fault is still worth surfacing)."""
+    API misuse with no preceding memory fault is still worth surfacing).
+
+    When the sanitizer's own "ERROR SUMMARY: 0 errors" says there were none,
+    nothing here is a finding: a killed or timed-out run still prints a
+    CudaAPIError from its poisoned context, and that is a wrapper/process
+    failure, tracked by the hashcat exit code, not a sanitizer finding."""
+
+    if total_reported == 0:
+        for finding in findings:
+            finding["relevance"] = "secondary"
+        return
 
     saw_primary = False
     for finding in findings:
@@ -305,7 +315,7 @@ def analyze(log_path, repo_root, tool, test_name="", timestamp="", command=None,
         parse_ok = False
         parse_error = str(e)
 
-    classify_relevance(findings)
+    classify_relevance(findings, total_reported)
 
     for finding in findings:
         frame = first_source_frame(finding)
