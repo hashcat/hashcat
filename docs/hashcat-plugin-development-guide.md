@@ -918,10 +918,164 @@ token.len_max[1] = 32;
 token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 ```
 
-In the above example you can see that we have hard-coded the separator character to ':'. In addition, this type of configuration the tokenizer will refuse the hash line if the separator was not found. You can also use the hashconfig->separator character if you want to use the separator character the hashcat user set using the -p command line option (default being ':').
+This example fixes the separator to `:` and rejects a line that omits it. Use `hashconfig->separator` instead when the format should honor the separator selected with option `-p`, which defaults to `:`.
 
-There is one more configuration item which I want to describe:
+* `TOKEN_ATTR_FIXED_LENGTH`: Use this for a field with a known exact length that is not followed by a separator. Set `token.len` rather than `token.len_min` and `token.len_max`. When adapting another module, update both the field names and their indices.
 
-* TOKEN_ATTR_FIXED_LENGTH: This is for columns of which you know the exact length -and- which are not followed by a separator character. In this case you do not need to set the parameters "len_min" and "len_max", but you need to set the parameter "len" instead. This is a typical pitfall if you copy/paste configuration settings from other modules and switch from a dynamic length to a fixed length. Do not forget to also change the parameter name ("len_min"/"len_max" instead of just "len") and the indices.
+## The core library ##
+
+This section describes how plugins are built and loaded. It is most relevant when distributing a compiled plugin or updating one for a new hashcat release.
+
+A module does not carry its own copy of the hashcat core. The core is built once as a library, and the frontend, modules, bridges, and feeds link against it. This substantially reduces plugin and package size without changing module source or the normal `make` workflow.
+
+The library is `libhashcat.so.7` on Linux, `libhashcat.7.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
+
+The library does not export everything it defines. Most names are internal machinery that plugins must not call. An exported name is part of an interface a plugin can bind to, so its visibility is declared explicitly rather than inferred from whether a current module happens to use it.
+
+File `include/export.h` defines two visibility macros. A function without either macro is private:
+
+* `HC_API` marks the session interface used by programs that embed hashcat, including `hashcat_init()`, `hashcat_session_execute()`, and `status_display()`. Its compatibility follows the major version encoded in the library name.
+* `HC_PLUGIN_API` marks the functions available to modules, bridges, and feeds, including parser, conversion, memory, file, hash, and cipher helpers. Its compatibility follows `MODULE_INTERFACE_VERSION`, which the module reports through `module_interface_version`. Existing prototypes, behavior, and the shape of `module_ctx_t` remain stable while that version remains unchanged, although new names may be added.
+
+Host-side hash and cipher entry points are declared through `DECLSPEC` in the kernel headers. On a device, this macro selects the calling convention. On the host, it makes the function part of the export contract, including functions not currently used by an in-tree module.
+
+The core is compiled with hidden visibility, so these declarations are enforced by the linker. Calling a core function marked by neither macro produces an undefined-symbol error:
+
+```
+/usr/bin/ld: /tmp/ccIMTvGO.o: in function `module_hash_decode':
+module_12345.c:(.text+0x184): undefined reference to `hashes_init_stage1'
+```
+
+This link-time failure prevents an undefined symbol from surfacing only when `dlopen()` loads the plugin during a run. If plugins should be allowed to call the function, explain that need in the pull request and add the appropriate macro to its declaration.
+
+A module exports `module_init`, a bridge exports `bridge_init`, and a feed exports two constants plus its required and advertised callbacks. Plugins also use hidden visibility, so their other definitions remain private. Module callbacks are reached through `module_ctx_t`, not by exported name.
+
+The development installation includes the public headers, their dependencies, and the vendored headers they require. Installation of a declaration does not make its function public. The visibility macro on that declaration remains authoritative, so a plugin can compile against a private declaration but will fail to link.
+
+An external plugin can use the following compile command. The interface version has no default, so omitting it is a compile-time error:
+
+```
+gcc -O2 -fPIC -shared -fvisibility=hidden \
+    -DHC_PLUGIN_ABI_VERSION=720 -DMODULE_INTERFACE_VERSION_CURRENT=720 \
+    -I/usr/local/include/hashcat -I/usr/local/share/hashcat/OpenCL \
+    module_80000.c -o module_80000.so \
+    -L/usr/local/lib -lhashcat -Wl,-rpath,'$ORIGIN/..' -Wl,-z,defs
+```
+
+Keep `-Wl,-z,defs` so the link fails when the core does not export a referenced name, rather than deferring the error until `dlopen()`.
+
+A source-distributed plugin is compiled against the user's installed core and needs no separate compatibility build. A binary-distributed plugin must be rebuilt for each plugin interface version. hashcat rejects an incompatible binary before running any plugin code.
+
+Compatibility is enforced through a versioned exported symbol such as `HASHCAT_PLUGIN_720`. Every C plugin holds a pointer to that symbol through `include/export.h`, although the function is never called. Raising `MODULE_INTERFACE_VERSION` changes the symbol name, so an older plugin cannot resolve it. This check works before `module_init()` on Linux, macOS, and Windows.
+
+Compile-time definition `HC_PLUGIN_ABI_VERSION` supplies the version number. Headers `include/modules.h`, `include/bridges.h`, and `include/feed.h` require it so that no C plugin can be built without the compatibility reference.
+
+The Rust feed is the one plugin here that is not built this way. It calls no core functions, cargo never sees a link line, and it declares its interface version in `GENERIC_PLUGIN_VERSION` instead, which the core reads after loading it.
+
+An incompatible plugin produces the same diagnostic on every platform:
+
+```
+Module modules/module_12345.so was built for plugin interface 719, this hashcat provides 720
+```
+
+hashcat then stops. Native loader errors differ by platform, so hashcat reads the version from the plugin and reports a consistent message. Rebuild the named plugin against the current hashcat version.
+
+Building a plugin against a core whose number has already moved does not get that far on Windows. The link fails there, because an import has to resolve at link time, and it names the same symbol. On Linux and macOS the link succeeds and the refusal happens at load.
+
+A module can also report the current interface version while retaining an outdated `module_ctx_t` initializer. hashcat checks its shape immediately after `module_init()`:
+
+```
+Module context size in 'module_init()' for hash-mode '12345' is invalid. Is this module based on an old template?
+Interface version in module context in 'module_init()' for hash-mode '12345' is outdated. Please recompile.
+Module context missing field 'module_hash_decode' in 'module_init()' for hash-mode '12345'. Is this module based on an old template?
+```
+
+The first two messages require a rebuild. The last means that `module_init()` omits a field. Assign every field either a callback or `MODULE_DEFAULT`.
+
+Command `make SHARED=0` restores the static arrangement in which every plugin contains its own core copy. This can be useful on platforms where shared loading is unsuitable. Do not combine static plugins with a shared frontend because that loads two core copies with independent global state. Switching through `make` is safe because the build relinks the affected targets. Copying individual binaries between differently configured trees is not.
+
+The loader cannot detect this mixture because a static plugin is self-contained. Run `tools/test_package.sh` before shipping a package so every included plugin is checked for the expected core-library dependency. `SHARED` defaults to 0 outside Linux and macOS, including MSYS2, while official Windows releases use shared plugins. Pass `SHARED=1` when building a native Windows plugin for a downloaded release.
+
+## Feed settings ##
+
+This section describes how `-a 8` feed plugins accept settings from the user.
+
+A feed receives its arguments as unparsed strings. hashcat processes its own options before it knows which feed will be loaded, so feed-specific options cannot participate in the main `getopt` pass. Every argument after the plugin name belongs to the feed and arrives in `global_ctx->workv`, with `workv[0]` containing the name used to select the feed.
+
+Write feed settings as `key=value` arguments among the sources:
+
+```
+hashcat -a 8 -m 0 hashes.txt myfeed model.dat mode=2 pwlen=6:16
+```
+
+Do not use a hashcat-style option such as `--myfeed-mode 2`. Work arguments are required for two functional reasons.
+
+First, work arguments are part of the attack identity. The brain includes every argument in the attack ID used to track covered keyspace, so runs with `mode=2` and `mode=4` remain distinct. Restore files also record these arguments so a resumed session keeps its original settings.
+
+Second, hashcat stops parsing its own options at the plugin name. The `mode=2` argument therefore reaches the feed unchanged and cannot conflict with a current or future hashcat option.
+
+You do not have to write the parser. Declare what your feed takes and let `feed_param_parse()` read it:
+
+```c
+static const char *model   = NULL;
+static u64         mode    = 0;
+static u64         burst   = 50000;
+static bool        shuffle = false;
+
+static const feed_param_t PARAMS[] =
+{
+  { "model",   FEED_PARAM_TYPE_STR,  &model,   0, 0,       "path to the trained model" },
+  { "mode",    FEED_PARAM_TYPE_U64,  &mode,    0, 7,       "generator to use, 0-7" },
+  { "burst",   FEED_PARAM_TYPE_U64,  &burst,   1, 1000000, "candidates per burst" },
+  { "shuffle", FEED_PARAM_TYPE_BOOL, &shuffle, 0, 0,       "reorder tokens within a structure" },
+  { NULL, 0, NULL, 0, 0, NULL }
+};
+
+bool global_init (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
+{
+  if (feed_param_parse (global_ctx->workc, global_ctx->workv, PARAMS, global_ctx->error_msg, sizeof (global_ctx->error_msg)) == false)
+  {
+    global_ctx->error = true;
+
+    return false;
+  }
+
+  ...
+}
+```
+
+The initial value of each variable is its default because an omitted setting leaves the variable unchanged. Fields `min` and `max` constrain `FEED_PARAM_TYPE_U64` values and are ignored for other types. Two zero bounds mean that no range is enforced.
+
+An unknown or repeated key is an error. Feed settings do not appear in hashcat's `--help` output or tab completion, so strict validation is the only reliable way to catch a misspelling. Rejecting `mode=2 mode=4` also prevents an accidental duplicate from silently becoming a last-value-wins override.
+
+Three additional helpers cover cases outside the declaration table:
+
+* Function `feed_param_is_setting()` identifies setting arguments so a feed can skip them while collecting source paths.
+* Function `feed_param_lookup()` returns one setting value as a string without requiring a declaration.
+* Function `feed_param_usage()` formats the declaration table as one setting per line for an error or usage message.
+
+An argument is a setting when it has the form `key=value`, where the key starts with a letter, continues with letters, digits, dashes, or underscores, and has no directory separator before `=`. Other arguments are sources. Prefix a filename that resembles a setting with a path, such as `./mode=2`, to classify it as a source.
+
+## Porting a plugin from 7.1.2 ##
+
+The following source changes are relevant when porting a working plugin from hashcat 7.1.2.
+
+A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only feeds need no other change because their contract is unchanged. The internal functions used by hashcat to drive feeds moved to `feed_ctx.h`, which plugins cannot include. A feed that called those functions was accessing internal bookkeeping and must remove that dependency.
+
+`feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
+
+Remove the `module_dictstat_disable` registration from `module_init()`. Three optional hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, while `module_hash_hints` exposes account context used by attack mode 9. Assigning all three to `MODULE_DEFAULT` preserves the previous behavior.
+
+The following command applies all four changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+
+```
+sed -i -e '/module_ctx->module_dictstat_disable/d' \
+       -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
+       src/modules/module_*.c
+```
+
+Callbacks `module_hook_extra_param_init()` and `module_hook_extra_param_term()` now take `hashcat_ctx_t *` as their first parameter. Add it to either implemented callback so its definition matches the interface type. Most plugins do not implement these hooks. The new context also gives them access to `event_log_warning()` and the other logging functions described above.
 
 Header `shared.h` was split, so include the header that now owns each helper. Parser functions such as `input_tokenizer`, `hc_strchr_next`, `hc_strchr_last`, `generic_salt_decode`, `generic_salt_encode`, and `strparser` are in `parser.h`. Path helpers are in `path.h`, system queries are in `system.h`, and `file_to_buffer` plus `hc_same_files` are in `filehandling.h`. No new header is included implicitly. Leaving only `shared.h` can produce implicit declarations and, for pointer-returning functions, truncated values at runtime.

@@ -113,6 +113,7 @@ Costin Enache <costin@detack.de>
 
 Vlad Drumea (vlad.drumea@vladdba.com)
 * MSSQL (2025) module
+
 Shooter3k
 * Multibyte characters written directly in rule operands, and UTF-8 console output on Windows
 * Narrowing the potfile search and batching the cracked result writes
