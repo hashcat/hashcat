@@ -217,6 +217,21 @@ DECLSPEC void zlib_memset (PRIVATE_AS u8 *s, const u8 c, int len)
 #define MZ_DEFAULT_WINDOW_BITS 15
 #define TINFL_LZ_DICT_SIZE 32768
 
+// hashcat-patched: how much fresh output the decoder is handed above the dictionary. A caller that
+// lets the decoder take the window back owns a buffer one dictionary plus this wide, all of it in the
+// kernel's stack frame, and a PCFG kernel carries its own frame on top of that. Apple's shader
+// compiler refuses the pipeline for a compute function whose frame passes what the GPU allows, 64 KB
+// on an M1, which two dictionaries do not fit under; nothing reports that budget, and both Apple
+// backends build through the same compiler, so both take the narrower window. It flushes more often,
+// and stays well above the most output a stream can reach without reading input, which is what
+// TINFL_WINDOW_FULL reads as a decoder going nowhere.
+
+#ifdef IS_APPLE
+#define TINFL_WINDOW_SIZE 8192
+#else
+#define TINFL_WINDOW_SIZE TINFL_LZ_DICT_SIZE
+#endif
+
 // hashcat-patched/hashcat-specific:
 #ifdef CRC32_IN_INFLATE
 #define M_DICT_SIZE 1
@@ -613,7 +628,7 @@ DECLSPEC HC_NOINLINE_ALWAYS void tinfl_flush_window (mz_streamp pStream, PRIVATE
   hc_shift_inflate_dict (pOut_buf_start, (u32) shift, TINFL_LZ_DICT_SIZE);
 
   pStream->window_out = TINFL_LZ_DICT_SIZE;
-  pStream->avail_out  = TINFL_LZ_DICT_SIZE;
+  pStream->avail_out  = TINFL_WINDOW_SIZE;
 }
 
 // hashcat-patched: this is the tail the decompressor used to jump to. Metal has no goto, so the tail

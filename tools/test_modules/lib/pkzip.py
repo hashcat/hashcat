@@ -26,6 +26,25 @@ from .test_helpers import random_bytes, random_number
 CONTENT_MIN = 80
 CONTENT_MAX = 320
 
+# The first deflated file of a hash is drawn much larger than that, because what the kernel has to
+# walk is the output window it owns: filling it, flushing it, shifting the dictionary down and
+# matching back into what it shifted. Three flushes need at least 128 KB coming out, and a stored
+# file cannot be given that, as it goes into the hash as it stands.
+#
+# The content is a pool of chunks repeated at random, so it deflates to long back references and the
+# block in the hash stays a fraction of what comes out of it.
+#
+# Only the first, so that one hash walks both the path that flushes and the path that answers in a
+# single call, and so that a hash of eight files still fits in one argument: tools/test_edge.sh hands
+# the hash to hashcat on the command line, and Linux refuses an argument of 131072 bytes or more.
+
+WINDOW_MIN = 128 * 1024
+WINDOW_MAX = 192 * 1024
+
+CHUNK_POOL = 256
+CHUNK_MIN = 16
+CHUNK_MAX = 96
+
 HEADER_LEN = 12
 
 LINE = re.compile(r"\$pkzip2\$(.*)\*\$/pkzip2\$")
@@ -116,8 +135,22 @@ def _inflate(data):
     return None
 
 
-def _block(word, ctype):
-  content = random_bytes(random_number(CONTENT_MIN, CONTENT_MAX))
+def _window_content(size):
+  pool = [random_bytes(random_number(CHUNK_MIN, CHUNK_MAX)) for _ in range(CHUNK_POOL)]
+
+  out = bytearray()
+
+  while len(out) < size:
+    out += pool[random_number(0, CHUNK_POOL - 1)]
+
+  return bytes(out[:size])
+
+
+def _block(word, ctype, windowed):
+  if windowed:
+    content = _window_content(random_number(WINDOW_MIN, WINDOW_MAX))
+  else:
+    content = random_bytes(random_number(CONTENT_MIN, CONTENT_MAX))
 
   crc = zlib.crc32(content)
 
@@ -153,7 +186,18 @@ def mixed(minimum, maximum):
 
 
 def generate_hash(types, word):
-  return "$pkzip2$%d*1*%s*$/pkzip2$" % (len(types), "*".join(_block(word, t) for t in types))
+  blocks = []
+
+  windowed = False
+
+  for t in types:
+    big = (t == 8) and (windowed is False)
+
+    windowed = windowed or big
+
+    blocks.append(_block(word, t, big))
+
+  return "$pkzip2$%d*1*%s*$/pkzip2$" % (len(types), "*".join(blocks))
 
 
 def _accepts(word, line):

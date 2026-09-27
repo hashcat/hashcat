@@ -440,7 +440,7 @@ MINIMAL=0
 OPTS="--quiet --potfile-disable --machine-readable --logfile-disable"
 
 SKIP_HASH_TYPES="" #2000 2500 2501 16800 16801 99999 32000"
-SKIP_HASH_TYPES_METAL="21800"
+SKIP_HASH_TYPES_METAL=""
 
 METAL_FORCE_KEEPFREE="8900 22700 27700 28200 29800"
 
@@ -1243,11 +1243,22 @@ for hash_type in $(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TD
                 hash="${hash_file}"
               fi
 
-              # Every attack below assembles its command line as a string that eval then runs, so
-              # the hash is quoted once here rather than at each of them. A hash is whatever the
-              # module makes of it and can carry a shell metacharacter, an apostrophe for one.
+              # Every attack below assembles its command line as a string that eval then runs, so the
+              # hash is named once here rather than at each of them, and what is named is a file.
+              # A hash is whatever the module makes of it, and it can be longer than the 131072 bytes
+              # Linux allows in one argument: a PKZIP hash of several files passes that, and the shell
+              # then refuses to run hashcat at all. The modes above already hold a container's path in
+              # ${hash}, and that path is what they have to be given.
 
-              hash_arg=$(printf '%q' "${hash}")
+              if [ ${binary_hashfile} -eq 1 ]; then
+                hash_arg=$(printf '%q' "${hash}")
+              else
+                single_hash="${OUTD}/single_${hash_type}_${kernel_type}_${attack_type}_${i}.hash"
+
+                printf '%s\n' "${hash}" > "${single_hash}"
+
+                hash_arg=$(printf '%q' "${single_hash}")
+              fi
 
               CMD=""
 

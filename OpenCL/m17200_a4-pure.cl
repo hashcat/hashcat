@@ -102,7 +102,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #endif
 
 #define MAX_LOCAL 512
-#define TMPSIZ    (2 * TINFL_LZ_DICT_SIZE)
+#define TMPSIZ    (TINFL_LZ_DICT_SIZE + TINFL_WINDOW_SIZE)
 
 #define CRC32(x,c,t) (((x) >> 8) ^ (t)[((x) ^ (c)) & 0xff])
 #define MSB(x)       ((x) >> 24)
