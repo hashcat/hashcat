@@ -83,8 +83,8 @@ FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|t
 
 # Everything test.sh builds on or runs through that does not belong to one mode.
 
-TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.(sh|py)"
-                         r"|tools/test_module_runner\.(pl|py)|tools/test_modules/lib/.*"
+TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.py"
+                         r"|tools/test_module_runner\.py|tools/test_modules/lib/.*"
                          r"|tools/install_modules\.sh|tools/requirements\.txt"
                          r"|\.github/workflows/(test\.yml|ci_matrix\.py))$")
 
