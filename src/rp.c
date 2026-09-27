@@ -257,8 +257,8 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
 #define SET_P0(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= (hex_convert (rule_buf[rule_pos + 3] & 0xff) <<  8) | (hex_convert (rule_buf[rule_pos + 2] & 0xff) << 12); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  8; } } while(0)
 #define SET_P1(rule,val)   do { INCR_POS; if (is_hex_notation (rule_buf, rule_len, rule_pos) == true) { (rule)->cmds[rule_cnt] |= (hex_convert (rule_buf[rule_pos + 3] & 0xff) << 16) | (hex_convert (rule_buf[rule_pos + 2] & 0xff) << 20); rule_pos += 3; } else { (rule)->cmds[rule_cnt] |= ((val) & 0xff) <<  16; } } while(0)
 #define GET_NAME(rule)     rule_cmd = (((rule)->cmds[rule_cnt] >>  0) & 0xff)
-#define GET_P0(rule)       INCR_POS; rule_buf[rule_pos] = (((rule)->cmds[rule_cnt] >>  8) & 0xff)
-#define GET_P1(rule)       INCR_POS; rule_buf[rule_pos] = (((rule)->cmds[rule_cnt] >> 16) & 0xff)
+#define GET_P0(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >>  8) & 0xff)
+#define GET_P1(rule)       INCR_POS; rule_pos = rule_operand_put (rule_buf, rule_pos, ((rule)->cmds[rule_cnt] >> 16) & 0xff)
 
 #define SET_P0_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) <<  8
 #define SET_P1_CONV(rule,val)  INCR_POS; (rule)->cmds[rule_cnt] |= ((conv_ctoi (val)) & 0xff) << 16
@@ -759,6 +759,37 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
   if (rule_pos < rule_len) return -1;
 
   return 0;
+}
+
+// An operand written as an escape in the rule file arrives here as the byte it represents. A byte
+// that cannot stand for itself in a line of rule text goes back out in the same \xHH form, so the
+// rule loads again as the same rule. A control byte could end the line, a byte outside ASCII is one
+// piece of a character the compiled rule holds a byte at a time, and a backslash would read as the
+// start of an escape. Returns the position of the last byte written.
+
+static u32 rule_operand_put (char *rule_buf, const u32 rule_pos, const u8 c)
+{
+  bool escape = false;
+
+  if (c >= 0x7f) escape = true;
+  if (c <  0x20) escape = true;
+  if (c == '\\') escape = true;
+
+  if (escape == false)
+  {
+    rule_buf[rule_pos] = (char) c;
+
+    return rule_pos;
+  }
+
+  rule_buf[rule_pos + 0] = '\\';
+  rule_buf[rule_pos + 1] = 'x';
+
+  u8_to_hex (c, (u8 *) &rule_buf[rule_pos + 2]);
+
+  const u32 rule_last = rule_pos + 3;
+
+  return rule_last;
 }
 
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)

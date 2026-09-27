@@ -1394,12 +1394,17 @@ obj/api.c: $(API_HEADER_ROOTS)
 ## old number for, which is the refusal a stale plugin is supposed to meet not happening. None of
 ## them says a word.
 ##
+## The folders belong to it as well. The frontend is compiled with them and the frontend and plugins
+## carry LIBRARY_FOLDER in their rpath, so a make install with another PREFIX than the build used
+## installed a frontend that looks for its files where the build meant to put them.
+##
 ## So the answer is written down. The file is rewritten only when the answer actually differs, so its
 ## timestamp is the moment the arrangement last changed, and naming it as a prerequisite is what
 ## makes a switch rebuild what the switch decides, objects included.
 ##
 
 ARRANGEMENT             := SHARED=$(SHARED) PLUGIN_ABI=$(MODULE_INTERFACE_VERSION) PLUGINS=$(PLUGIN_PLATFORM_so)
+ARRANGEMENT             += INSTALL_FOLDER=$(INSTALL_FOLDER) SHARED_FOLDER=$(SHARED_FOLDER) DOCUMENT_FOLDER=$(DOCUMENT_FOLDER) LIBRARY_FOLDER=$(LIBRARY_FOLDER)
 
 .PHONY: FORCE
 FORCE:
@@ -1871,7 +1876,7 @@ install_library: $(HASHCAT_LIBRARY)
 	$(INSTALL) -m 755 $(HASHCAT_LIBRARY)                                    $(DESTDIR)$(LIBRARY_FOLDER)/
 
 .PHONY: install_library_dev
-install_library_dev: install_make_library_dev_root obj/api.c
+install_library_dev: install_library install_make_library_dev_root obj/api.c
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(if $(HASHCAT_LIBRARY_DEV_$(FORMAT_NATIVE)),ln -sf $(HASHCAT_LIBRARY_NATIVE) $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY_DEV_$(FORMAT_NATIVE)))
 	$(INSTALL) -m 644 $(API_HEADERS)                                        $(DESTDIR)$(LIBRARY_DEV_FOLDER)/

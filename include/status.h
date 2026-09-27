@@ -24,6 +24,7 @@ int         status_get_group_id_dev                   (const hashcat_ctx_t *hash
 int         status_get_group_size_dev                 (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 bool        status_get_skipped_dev                    (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 bool        status_get_skipped_warning_dev            (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+bool        status_get_idle_dev                       (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 char       *status_get_session                        (const hashcat_ctx_t *hashcat_ctx);
 const char *status_get_status_string                  (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_status_number                  (const hashcat_ctx_t *hashcat_ctx);

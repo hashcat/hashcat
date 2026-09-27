@@ -7619,7 +7619,7 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       device_param->has_lop3  = (sm >= 50) ? true : false;
       device_param->has_mov64 = (sm >= 10) ? true : false;
       device_param->has_prmt  = (sm >= 20) ? true : false;
-      device_param->has_shfw  = (sm >= 70) ? true : true; // still faster
+      device_param->has_shfw  = (sm >= 32) ? true : false;
 
       // A device that has already been ruled out gets no context. Creating one costs as much as
       // creating one for a device that will be used, and it reserves memory on a card this run is
@@ -9512,7 +9512,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           char *pocl_version_ptr = strstr (opencl_platform_version, "PoCL ");
           char *llvm_version_ptr = strstr (opencl_platform_version, "LLVM ");
 
-          if ((pocl_version_ptr != NULL) && (llvm_version_ptr != NULL))
+          if (pocl_version_ptr != NULL)
           {
             int pocl_maj = 0;
             int pocl_min = 0;
@@ -9528,7 +9528,18 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
                 pocl_skip = true;
               }
             }
+          }
+          else
+          {
+            pocl_skip = true;
+          }
 
+          // A PoCL built without LLVM only forwards to a remote or proxied device, whose own driver
+          // compiles the kernels, so there is no LLVM version to report and none that can be too
+          // old.
+
+          if (llvm_version_ptr != NULL)
+          {
             int llvm_maj = 0;
             int llvm_min = 0;
 
@@ -9543,10 +9554,6 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
                 pocl_skip = true;
               }
             }
-          }
-          else
-          {
-            pocl_skip = true;
           }
 
           if (pocl_skip == true)
@@ -10030,7 +10037,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           device_param->has_lop3  = (sm >= 50) ? true : false;
           device_param->has_mov64 = (sm >= 10) ? true : false;
           device_param->has_prmt  = (sm >= 20) ? true : false;
-          device_param->has_shfw  = (sm >= 70) ? true : true; // still faster
+          device_param->has_shfw  = (sm >= 32) ? true : false;
         }
 
         // common driver check
@@ -15413,6 +15420,34 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (size_total_fixed > device_param->device_available_mem)
     {
       event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this hashlist/ruleset.", device_id + 1);
+
+      backend_memory_hit_warnings++;
+
+      device_param->skipped_warning = true;
+      continue;
+    }
+
+    // The buffers sized by the hashlist must each fit in one allocation as well. OpenCL caps that
+    // far below the device memory, and past it the runtime only reports CL_INVALID_BUFFER_SIZE.
+    // OpenCL and Metal halve device_maxmem_alloc on a device that shares its memory with the host,
+    // which budgets that memory but is not what the runtime enforces on one allocation.
+
+    u64 size_hashlist_max = size_digests;
+
+    size_hashlist_max = MAX (size_hashlist_max, size_plains);
+    size_hashlist_max = MAX (size_hashlist_max, size_esalts);
+    size_hashlist_max = MAX (size_hashlist_max, size_shown);
+    size_hashlist_max = MAX (size_hashlist_max, size_salts);
+
+    const bool maxmem_alloc_halved = ((device_param->is_opencl == true) || (device_param->is_metal == true)) && (device_param->device_host_unified_memory == 1);
+
+    const u64 size_alloc_max = (maxmem_alloc_halved == true) ? (device_param->device_maxmem_alloc * 2) : device_param->device_maxmem_alloc;
+
+    if (size_hashlist_max > size_alloc_max)
+    {
+      const u64 MiB = 1024 * 1024;
+
+      event_log_error (hashcat_ctx, "* Device #%u: This hashlist needs a %" PRIu64 " MB buffer, but the device allows at most %" PRIu64 " MB in one allocation.", device_id + 1, (size_hashlist_max + MiB - 1) / MiB, size_alloc_max / MiB);
 
       backend_memory_hit_warnings++;
 

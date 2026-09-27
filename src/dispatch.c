@@ -1631,18 +1631,33 @@ HC_THREAD_FUNC thread_calc (void *p)
   {
     if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
     {
-      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
+      {
+        device_param->calc_done = true;
+
+        return 0;
+      }
     }
   }
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return 0;
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1)
+    {
+      device_param->calc_done = true;
+
+      return 0;
+    }
   }
 
   if (device_param->is_hip == true)
   {
-    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1) return 0;
+    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1)
+    {
+      device_param->calc_done = true;
+
+      return 0;
+    }
   }
 
   if (calc (hashcat_ctx, device_param) == -1)
@@ -1651,6 +1666,11 @@ HC_THREAD_FUNC thread_calc (void *p)
 
     status_ctx->devices_status = STATUS_ERROR;
   }
+
+  // Out of work for this round. The status display reads this to distinguish an idle device from a
+  // busy one.
+
+  device_param->calc_done = true;
 
   if (device_param->is_cuda == true)
   {
