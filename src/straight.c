@@ -460,6 +460,12 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
     {
       amplifier = generic_ctx->dev_avg;
+
+      // And with the rules applied inside the engine a base word is worth its cell once per rule, so the
+      // two amplifiers multiply. Without this the total is short by the whole ruleset and the progress
+      // runs past it.
+
+      if (generic_ctx->global_ctx.dev_rules == true) amplifier *= straight_ctx->kernel_rules_cnt;
     }
 
     // A feed that reads a mask cannot say its keyspace when it is asked, because a mask is sized once
@@ -495,7 +501,20 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (generic_ctx->global_ctx.dev_total > 0)
     {
-      status_ctx->words_cnt = generic_ctx->global_ctx.dev_total;
+      // The rules are the one amplifier this exact count does not already hold: every candidate the
+      // engine makes is tried once per rule. The mean cell is not involved, which is why this
+      // multiplies by the ruleset alone rather than by the amplifier above.
+
+      const u64 dev_total = generic_ctx->global_ctx.dev_total;
+
+      if (generic_ctx->global_ctx.dev_rules == true)
+      {
+        status_ctx->words_cnt = (overflow_check_u64_mul (dev_total, straight_ctx->kernel_rules_cnt) == true) ? UINT64_MAX : (dev_total * straight_ctx->kernel_rules_cnt);
+      }
+      else
+      {
+        status_ctx->words_cnt = dev_total;
+      }
     }
     else
     {

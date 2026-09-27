@@ -129,6 +129,12 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
+  // The device engine names its candidate with two numbers once the rules run inside it: il_pos is the
+  // rule, as it is for the straight kernel, and the step inside the cell rides in the spare word of the
+  // crack record. Without them the cell is all there is and il_pos is still the step.
+
+  const u32 cell_pos = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) ? plain->extra1 : il_pos;
+
   int plain_len = 0;
 
   u8 *plain_ptr = (u8 *) plain_buf;
@@ -179,9 +185,32 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
           // entries of more than one byte length. Reporting the base word's names a password that does
           // not hash to the digest that was cracked, exactly as reporting the base word itself would.
 
-          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, il_pos, plain_buf, (int) pw.pw_len);
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, cell_pos, plain_buf, (int) pw.pw_len);
 
           if (amp_len >= 0) plain_len = amp_len;
+
+          // And then the rule that made it, because on the device the cell is only half of the candidate.
+          //
+          // apply_rules () and not the optimized form, on this side as on the other: the device engine has
+          // one kernel for both, inc_pcfg_kernel.cl, and that kernel calls apply_rules (). The optimized
+          // form works on two halves of four words and would read a candidate pcfg_expand () wrote as one.
+
+          if (generic_ctx->global_ctx.dev_rules == true)
+          {
+            // Zeroed above the candidate first, because apply_rules () appends with an OR:
+            // append_block () reads the destination word and writes it back with the source ORed into
+            // it, so a rule that duplicates or reflects needs the bytes it lands on to be zero. The
+            // kernel hands it an array that is, and this buffer still holds the base word that
+            // pcfg_expand () wrote over the front of. Without this the potfile takes a password that
+            // does not produce the digest that was cracked: "abcd" under d came out "abcdgoot".
+
+            if (plain_len < RP_PASSWORD_SIZE)
+            {
+              memset ((u8 *) plain_buf + plain_len, 0, (size_t) (RP_PASSWORD_SIZE - plain_len));
+            }
+
+            plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, plain_len);
+          }
         }
         else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
         {
@@ -223,9 +252,24 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
           // entries of more than one byte length. Reporting the base word's names a password that does
           // not hash to the digest that was cracked, exactly as reporting the base word itself would.
 
-          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, il_pos, plain_buf, (int) pw.pw_len);
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, cell_pos, plain_buf, (int) pw.pw_len);
 
           if (amp_len >= 0) plain_len = amp_len;
+
+          // And then the rule that made it, because on the device the cell is only half of the candidate.
+
+          if (generic_ctx->global_ctx.dev_rules == true)
+          {
+            // Zeroed above the candidate for the reason given at the optimized branch above: a rule
+            // appends with an OR and needs the bytes it lands on to be zero.
+
+            if (plain_len < RP_PASSWORD_SIZE)
+            {
+              memset ((u8 *) plain_buf + plain_len, 0, (size_t) (RP_PASSWORD_SIZE - plain_len));
+            }
+
+            plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, plain_len);
+          }
         }
         else
         {
@@ -476,6 +520,11 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
+  // Same two numbers as build_plain (): with the rules inside the engine il_pos is the rule and the step
+  // inside the cell is the spare word, and the feed's own explanation is about the step.
+
+  const u32 cell_pos = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) ? plain->extra1 : il_pos;
+
   // The straight kernel is the one that applies a rule, so it is the one that has a rule to report.
   // That is attack mode 0, 8 and 9 as it always was, and now also the mask attacks, which reach it
   // through a feed once they are given rules.
@@ -524,7 +573,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (debug_mode == DEBUG_MODE_FEED)
     {
-      *debug_rule_len = debug_rule_from_feed (hashcat_ctx, device_param, gidvid, il_pos, (const u8 *) pw.i, plain_len, debug_rule_buf);
+      *debug_rule_len = debug_rule_from_feed (hashcat_ctx, device_param, gidvid, cell_pos, (const u8 *) pw.i, plain_len, debug_rule_buf);
 
       memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
 
@@ -543,7 +592,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
       {
-        *debug_rule_len = debug_rule_from_feed (hashcat_ctx, device_param, gidvid, il_pos, (const u8 *) pw.i, plain_len, debug_rule_buf);
+        *debug_rule_len = debug_rule_from_feed (hashcat_ctx, device_param, gidvid, cell_pos, (const u8 *) pw.i, plain_len, debug_rule_buf);
       }
       else
       {
@@ -558,7 +607,34 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // save plain
     if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
-      memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
+      // What the rule was applied to, which for every other attack is the base word and inside the
+      // device engine is the candidate the cell made out of it. The rule consumed the entry the cell
+      // stepped to, not the word the feed handed over, and naming the second one leaves a debug line
+      // that does not reconstruct: "srbie6:d:vbnmqwvbnmqw", where the plain is the password that was
+      // cracked and the word beside it is a different entry of the same cell. It shows only where the
+      // two differ, so a base word the grammar emits whole reads correctly and hides it.
+
+      const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+      if ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (generic_ctx->global_ctx.dev_rules == true))
+      {
+        u32 cand_buf[64] = { 0 };
+
+        for (int i = 0; i < 64; i++)
+        {
+          cand_buf[i] = pw.i[i];
+        }
+
+        const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, cell_pos, cand_buf, (int) pw.pw_len);
+
+        if (amp_len >= 0) plain_len = amp_len;
+
+        memcpy (debug_plain_ptr, (char *) cand_buf, (size_t) plain_len);
+      }
+      else
+      {
+        memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
+      }
 
       debug_plain_ptr[plain_len] = 0;
 

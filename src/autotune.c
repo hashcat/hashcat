@@ -723,6 +723,20 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    innerloop_cnt = hashcat_ctx->combinator_ctx->combs_cnt;
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       innerloop_cnt = hashcat_ctx->mask_ctx->bfs_cnt;
 
+    // The device engine has no amplifier of its own to chunk: a base word becomes its whole cell in
+    // one launch whatever the loop count, which is why the loop count is pinned for it. Applying the
+    // rules inside the engine gives it the straight attack's amplifier, and then the ruleset is what
+    // the launch is a chunk of, exactly as it is for -a 0.
+    //
+    // Left at 1 the model reads every loop count as one launch, so raising it cannot pay for itself
+    // in the launch count and the fit buys accel with the budget instead, which leaves the loop axis
+    // running past the last rule and the launch far below the one the same ruleset gets in -a 0.
+
+    else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+    {
+      if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) innerloop_cnt = hashcat_ctx->straight_ctx->kernel_rules_cnt;
+    }
+
     if (innerloop_cnt > 0) work = (double) innerloop_cnt;
   }
 
@@ -859,10 +873,23 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     // saves is paid outside the kernel try_run times, so where the probe sees no difference there is
     // still one.
 
-    if (rate > (best_rate * 0.98))
-    {
-      if (rate > best_rate) best_rate = rate;
+    // The device engine applying the rules itself used to take the loop count ahead of the rate here,
+    // on the grounds that a launch walks each base word's cell from its first candidate and a shorter
+    // chunk of the ruleset repeats that walk rather than halving the launch. The loop count is not a
+    // free axis though: it is chosen above to fill the launch budget, so it is largest at the smallest
+    // accel. Preferring it is therefore a choice of accel 1, which is the case this band exists to
+    // avoid.
 
+    const bool take = (rate > (best_rate * 0.98));
+
+    // Outside the test, so that a tie is measured against the best rate the walk has seen rather than
+    // against the last one it took. It changes nothing for the band above, where a rate that raises the
+    // best is always inside it.
+
+    if (rate > best_rate) best_rate = rate;
+
+    if (take == true)
+    {
       best_accel = accel;
       best_loops = loops;
     }

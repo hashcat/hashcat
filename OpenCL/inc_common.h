@@ -90,6 +90,21 @@
  * do not use rules or tmps, etc.
  */
 
+// The device engine's kernel has exactly one constant argument, and which one it is depends on whether
+// the rules are applied inside it. Without them the rules buffer is never read, so the constant goes to
+// bfs_buf as it does for every other kernel of this shape. With them apply_rules () takes a CONSTANT_AS
+// pointer and the constant has to be the rules, so the two swap. This kernel reads bfs_buf in neither
+// case, which is what makes the swap free. On CUDA and HIP both qualifiers are empty and the pair below
+// is not used at all, which is why only the other branch spells it.
+
+#if PCFG_DEV_RULES
+#define PCFG_RULES_AS CONSTANT_AS
+#define PCFG_BFS_AS   GLOBAL_AS
+#else
+#define PCFG_RULES_AS GLOBAL_AS
+#define PCFG_BFS_AS   CONSTANT_AS
+#endif
+
 #if defined IS_CUDA || defined IS_HIP
 #define _KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define _KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
@@ -122,14 +137,14 @@
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
-#define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void),  \
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (PCFG_RULES_AS, PCFG_BFS_AS const bf_t    *bfs_buf,       void, void, void),  \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
-#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e),     \
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (PCFG_RULES_AS, PCFG_BFS_AS const bf_t    *bfs_buf,       void, void, e),     \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \

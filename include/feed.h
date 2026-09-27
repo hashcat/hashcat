@@ -76,6 +76,18 @@ typedef enum generic_plugin_options
 
   GENERIC_PLUGIN_OPTIONS_EXPLAIN      = 1 << 4,
 
+  // The feed's device engine applies the rules itself, inside its own kernel. Without this a run given
+  // -r loses the device engine and moves to the host, because no kernel both makes a candidate and
+  // applies a rule to it, and that is what every feed did before one of them could.
+
+  GENERIC_PLUGIN_OPTIONS_DEVICE_RULES = 1 << 5,
+
+  // The feed reads a mask, so the custom charsets -1 through -8 mean something to it. A feed without this
+  // is handed a run that names one and cannot use it, which the loader refuses rather than letting the
+  // charset be quietly ignored.
+
+  GENERIC_PLUGIN_OPTIONS_MASK         = 1 << 6,
+
   GENERIC_PLUGIN_OPTIONS_UNDEFINED = 0,
 
 } generic_plugin_options_t;

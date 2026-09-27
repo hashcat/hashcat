@@ -503,22 +503,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create autotune threads
    */
 
-  // The rounds of -a 9 splitting its own hash file are one attack, not a queue of different ones. A
-  // round is "try the Nth word of every account name", so every round launches the same kernel over
-  // the same digests with the same keyspace, and measuring each of them separately arrives at the same
-  // answer as many times as there are rounds. On a slow hash that is seconds of real launches per
-  // round, spent to learn nothing.
+  // A round of a queue usually asks the same question as the round before it: the same kernel over the
+  // same digests, with the same loop bounds. Measuring each one separately arrives at the same answer
+  // as many times as there are rounds, and every probe is a real launch. A maskfile of 50 identical
+  // masks spent 0.86 s a round learning what it already knew, which was 43 s of a 51 s run.
+  //
+  // This was once limited to -a 9 splitting its own hash file, where a round is "try the Nth word of
+  // every account name" and the rounds are self-evidently one attack. A dictionary queue, a maskfile
+  // and an --increment range are the same situation whenever their bounds agree, which is what
+  // backend_ctx_devices_tuning_restore () checks: it refuses a round whose loop bounds are not the
+  // ones the saved answer was fitted inside, so a queue whose rounds genuinely differ still measures.
+  // A mask queue that changes the amplifier count from one round to the next is that case.
   //
   // The one thing a round boundary destroys is the tuning itself, because run_cracker zeroes it on its
   // way out. So the previous round's answer is taken back from where run_cracker saved it, and a round
   // that has no previous answer to take falls through and measures as usual.
 
-  bool tuning_reused = false;
-
-  if (user_options_extra->association_autosplit == true)
-  {
-    tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
-  }
+  bool tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
 
   if (tuning_reused == false)
   {
@@ -1382,11 +1383,37 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   // value set there would travel to the status display and to no launch at all, so --force does not
   // open this one either.
 
-  if ((user_options->kernel_loops_chgd == true) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
+  // Unless the rules are applied inside the engine. Then the inner loop is the rule chunk, exactly as
+  // it is for the straight kernel, and kernel_loops is what sizes it, so -u reaches a launch again.
+
+  if ((user_options->kernel_loops_chgd == true) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == false))
   {
     event_log_error (hashcat_ctx, "The -u option (or --kernel-loops) does not apply to this attack.");
 
     event_log_warning (hashcat_ctx, "The device engine turns a base word into its whole cell of candidates in one launch, so there is no loop count to set.");
+    event_log_warning (hashcat_ctx, NULL);
+
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
+  // -j and -k are refused on the device engine for the same reason, and whether it runs is settled in
+  // the same place: generic_ctx_init () above, so this asks the feed rather than the attack mode.
+  //
+  // Both name a rule for one side of a candidate, and the device engine's candidate has no sides: a
+  // base word becomes a cell of candidates whose bytes come from the grammar's terminals, and only the
+  // runs a structure copies out of the base word ever read what the host handed over. So -j reaches
+  // some candidates and not others, and -k reaches none at all, because a feed's cell is not an
+  // amplifier the host fills and no producer reads rule_buf_amp on this path.
+
+  if (((user_options->rule_buf_l_chgd == true) || (user_options->rule_buf_r_chgd == true)) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_enable == true))
+  {
+    event_log_error (hashcat_ctx, "The -j and -k options (or --rule-left/--rule-right) do not apply while the device engine makes the candidates.");
+
+    event_log_warning (hashcat_ctx, "The engine builds a candidate out of the grammar rather than out of the base word, so a rule on the base word reaches only part of what it generates.");
+    event_log_warning (hashcat_ctx, "Use -r instead, which the engine applies to every candidate it makes.");
+    event_log_warning (hashcat_ctx, "The same attack keeps -j and -k wherever the host makes the candidates, which is any slow hash, --stdout and --slow-candidates.");
     event_log_warning (hashcat_ctx, NULL);
 
     outer_loop_destroy (hashcat_ctx);

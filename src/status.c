@@ -1734,7 +1734,25 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
       // exactly needs the feed to say how many candidates lie before a given base word, which the
       // level index could answer and does not expose.
 
-      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)     progress_end  *= hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        // And once the rules are applied inside the engine, every candidate the cell makes is tried once
+        // per rule, so what a base word comes to is the mean cell times the ruleset. The mean and the
+        // ruleset are both u32 and their product cannot leave a u64, so the check belongs on the total
+        // below, where --limit takes whatever the user gives it and a wrapped figure would read as a
+        // percentage rather than as the overflow it is.
+
+        u64 amplifier = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+        if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true)
+        {
+          const u32 rules_cnt = hashcat_ctx->straight_ctx->kernel_rules_cnt;
+
+          amplifier = amplifier * rules_cnt;
+        }
+
+        progress_end = (overflow_check_u64_mul (progress_end, amplifier) == true) ? UINT64_MAX : (progress_end * amplifier);
+      }
     }
   }
 
@@ -2766,9 +2784,16 @@ int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int bac
 
   if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
   {
-    const u32 dev_avg = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+    // Unless the rules are applied inside it. Then kernel_loops is read again, and it sizes the chunk of
+    // the ruleset the launch was given, which is what this field says for a straight attack with rules:
+    // -a 0 over 66 rules shows 66. So that run falls through to the general answer below.
 
-    if (dev_avg > 0) return (int) dev_avg;
+    if (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == false)
+    {
+      const u32 dev_avg = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+
+      if (dev_avg > 0) return (int) dev_avg;
+    }
   }
 
   if (device_param->kernel_loops_prev) return device_param->kernel_loops_prev;

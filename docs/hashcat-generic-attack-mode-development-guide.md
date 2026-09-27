@@ -428,6 +428,7 @@ Variable `GENERIC_PLUGIN_OPTIONS` declares the optional processing and interface
 - `GENERIC_PLUGIN_OPTIONS_RULES`: Allow hashcat's rule engine, including `-r`, `-j` and generated rules.
 - `GENERIC_PLUGIN_OPTIONS_DEVICE`: Export `global_dev_init()` and `thread_next_dev()` to amplify candidates in a device kernel.
 - `GENERIC_PLUGIN_OPTIONS_EXPLAIN`: Export `global_explain()` so `--debug-mode` can describe how a candidate was made.
+- `GENERIC_PLUGIN_OPTIONS_DEVICE_RULES`: Apply hashcat's rules inside the device kernel, so `-r` keeps the device engine rather than moving the run to the host.
 
 Set the value to `0` when no options apply, or combine only the flags implemented by the feed. Advertising `DEVICE` or `EXPLAIN` makes the corresponding extra exports mandatory.
 

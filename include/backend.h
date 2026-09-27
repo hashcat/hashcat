@@ -42,6 +42,12 @@ int  backend_ctx_device_group_size          (const hashcat_ctx_t *hashcat_ctx, c
 void backend_ctx_devices_update_power       (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 
+// What one device will hold of the pcfg pool, and in part_max the largest piece it takes at a time.
+// The feed is told this before it packs, the backend checks against it when it allocates, and both
+// get the answer the first call worked out.
+
+u64  backend_pcfg_pool_budget               (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 *part_max);
+
 void backend_session_context_reset          (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_begin                  (hashcat_ctx_t *hashcat_ctx);
 void backend_session_pin_cells              (hashcat_ctx_t *hashcat_ctx);

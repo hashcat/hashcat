@@ -1695,6 +1695,19 @@ static u32 pcfg_pt_case (const hashconfig_t *hashconfig)
   return 0;
 }
 
+// Whether the rule engine goes inside the device engine's kernel. Rules used to hand the run to the
+// host engine, which gives up the cell along with it, so they are applied where the candidate is
+// made instead. The kernel that does it is a different kernel built from the same file,
+// which is why this reaches the build options and the cache key both.
+
+static u32 pcfg_dev_rules (const user_options_t *user_options)
+{
+  if (user_options->rp_files_cnt > 0) return 1;
+  if (user_options->rp_gen > 0) return 1;
+
+  return 0;
+}
+
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
 {
   if (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
@@ -5070,9 +5083,14 @@ static u64 progress_step (const hashcat_ctx_t *hashcat_ctx, const hc_device_para
   // counted is what was hashed. A cell hashcat has not filled in is one candidate, which is what the
   // kernel does with it.
 
+  // And with the rules applied inside the engine, every one of those candidates is tried once per rule
+  // of the chunk this launch was given, the same way the straight kernel's base words are.
+
+  const u64 amp = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) ? innerloop_left : 1;
+
   const pcfg_cell_t *cells = device_param->pcfg_cells_buf;
 
-  if (cells == NULL) return pws_cnt * hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+  if (cells == NULL) return pws_cnt * hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg * amp;
 
   u64 sum = 0;
 
@@ -5083,7 +5101,9 @@ static u64 progress_step (const hashcat_ctx_t *hashcat_ctx, const hc_device_para
     sum += (rect > 0) ? rect : 1;
   }
 
-  return sum;
+  const u64 total = sum * amp;
+
+  return total;
 }
 
 static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_left, const pw_transform_t *transform, u64 *filled, u64 *rejects)
@@ -5489,7 +5509,11 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   }
   else
   {
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    // The device engine reads its rules out of the same constant slice, so it is staged for it too. It
+    // is the one thing the two engines share: the cell belongs to the engine and the word list to the
+    // straight kernel, but a rule chunk is a rule chunk.
+
+    if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_dev_rules (user_options) == 1)))
     {
       if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_RULES_C], 0, device_param->d_buf[HC_DEV_BUF_RULES], innerloop_pos * sizeof (kernel_rule_t), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
     }
@@ -5688,14 +5712,22 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
       // The device engine's inner loop is a width the feed chose, and every base word carries its own
       // cell, so there is no chunking to do: one pass covers it and innerloop_step is irrelevant.
 
-      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)      innerloop_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_il_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        // With the rules applied inside the engine's kernel the inner loop is the rules, exactly as it is
+        // for the straight kernel, and the cell is walked whole inside each of its launches. Without them
+        // the inner loop is the cell itself, at a width the feed chose.
+
+        if (pcfg_dev_rules (user_options) == 1) innerloop_cnt = straight_ctx->kernel_rules_cnt;
+        else                                    innerloop_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_il_cnt;
+      }
 
       // A rule chunk can be split because rules_buf is re-staged per chunk and il_pos indexes the
       // chunk. A cell cannot: its digits say where the work item starts and the kernel counts up from
       // zero, so a second chunk would re-emit the first chunk's candidates. The whole inner loop runs
       // in one launch.
 
-      if (user_options_extra->attack_kern == ATTACK_KERN_PCFG) innerloop_step = innerloop_cnt;
+      if ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_dev_rules (user_options) == 0)) innerloop_step = innerloop_cnt;
     }
 
     // innerloops
@@ -7309,6 +7341,15 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       device_param->device_cache_size = (u64) device_cache_size;
 
+      // The same number again, kept apart because this one carries where it came from and is the
+      // only one a build decision is allowed to rest on. CUDA answers the real L2 here.
+
+      if (device_cache_size > 0)
+      {
+        device_param->device_l2_cache_size   = (u64) device_cache_size;
+        device_param->device_l2_cache_source = L2_SOURCE_RUNTIME;
+      }
+
       // device_global_mem, device_maxmem_alloc, device_available_mem
 
       size_t bytes = 0;
@@ -7814,6 +7855,14 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_cache_size, hipDeviceAttributeL2CacheSize, hip_device) == -1) device_cache_size = 0;
 
       device_param->device_cache_size = (u64) device_cache_size;
+
+      // As on the CUDA path: the figure a build decision may rest on, with its provenance.
+
+      if (device_cache_size > 0)
+      {
+        device_param->device_l2_cache_size   = (u64) device_cache_size;
+        device_param->device_l2_cache_source = L2_SOURCE_RUNTIME;
+      }
 
       // We have 32 threads now
       //if ((device_param->device_processors == 1) && (device_param->device_host_unified_memory == 1))
@@ -10944,6 +10993,61 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         */
       }
 
+      // The L2 a build decision may rest on.
+      //
+      // OpenCL cannot answer this one. CL_DEVICE_GLOBAL_MEM_CACHE_SIZE is something else on every
+      // runtime tried: one gives the L1, another a small fraction of the true size, a third gives
+      // zero. Believing it would be worse than not asking, because a small answer and no answer look
+      // alike. So it is borrowed from the CUDA or HIP view of the same physical device, exactly as
+      // device_available_mem is just below, and left unknown when there is nothing to borrow from.
+
+      if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+      {
+        if (device_param->opencl_platform_vendor_id == VENDOR_ID_NV)
+        {
+          for (int cuda_devices_idx = 0; cuda_devices_idx < backend_ctx->cuda_devices_cnt; cuda_devices_idx++)
+          {
+            const int tmp_backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
+
+            hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
+
+            // Unlike the free memory below, which is measured and only on devices that stay in the
+            // run, this attribute is read while enumerating, before anything is skipped. A device
+            // left out by -d has still read it and can still lend it, and one that failed before
+            // reaching the query has its source left unknown, which is the check that matters.
+
+            if (tmp_device_param->device_l2_cache_source == L2_SOURCE_UNKNOWN) continue;
+
+            if (is_same_device (device_param, tmp_device_param))
+            {
+              device_param->device_l2_cache_size   = tmp_device_param->device_l2_cache_size;
+              device_param->device_l2_cache_source = L2_SOURCE_ALIAS;
+
+              break;
+            }
+          }
+        }
+        else if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD)
+        {
+          for (int hip_devices_idx = 0; hip_devices_idx < backend_ctx->hip_devices_cnt; hip_devices_idx++)
+          {
+            const int tmp_backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
+
+            hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
+
+            if (tmp_device_param->device_l2_cache_source == L2_SOURCE_UNKNOWN) continue;
+
+            if (is_same_device (device_param, tmp_device_param))
+            {
+              device_param->device_l2_cache_size   = tmp_device_param->device_l2_cache_size;
+              device_param->device_l2_cache_source = L2_SOURCE_ALIAS;
+
+              break;
+            }
+          }
+        }
+      }
+
       // available device memory
       // first trying to check if we can get device_available_mem from cuda/hip alias device
 
@@ -11573,6 +11677,14 @@ bool backend_ctx_devices_tuning_restore (hashcat_ctx_t *hashcat_ctx)
     if (device_param->kernel_accel_prev   == 0) return false;
     if (device_param->kernel_loops_prev   == 0) return false;
     if (device_param->kernel_threads_prev == 0) return false;
+
+    // The previous answer was fitted inside the bounds of the round that measured it. A round whose
+    // own bounds differ is a different question, so it measures rather than inheriting an answer that
+    // may sit outside its own loop axis. A mask queue recomputes kernel_loops_max from the round's
+    // amplifier count, which is what moves when the mask length does.
+
+    if (device_param->kernel_loops_min_prev != device_param->kernel_loops_min) return false;
+    if (device_param->kernel_loops_max_prev != device_param->kernel_loops_max) return false;
   }
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -11684,6 +11796,13 @@ void backend_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
           if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = MIN (KERNEL_RULES, straight_ctx->kernel_rules_cnt);
           else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = MIN (KERNEL_COMBS, combinator_ctx->combs_cnt);
           else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = MIN (KERNEL_BFS,   mask_ctx->bfs_cnt);
+
+          // The device engine applying the rules itself has the same inner loop as a straight attack and
+          // takes the same answer. Leaving it out left the ceiling at KERNEL_RULES whatever the ruleset
+          // held, so autotune fitted a loop axis that runs past the last rule and spent the rest of the
+          // budget on an accel far below the one the same ruleset gets in -a 0.
+
+          else if ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_dev_rules (user_options) == 1)) innerloop_cnt = MIN (KERNEL_RULES, straight_ctx->kernel_rules_cnt);
         }
       }
       else
@@ -11998,6 +12117,74 @@ static void kernel_build_finish (hashcat_ctx_t *hashcat_ctx, const char *cached_
   hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
 }
 
+#if defined (_WIN)
+
+// nvrtc on Windows does not read the -I path as UTF-8, even though hashcat's manifest makes the process
+// code page UTF-8, so a non-ASCII install directory breaks every include (#4885). The inc_* files are
+// handed over in memory instead. A kernel includes them as M2S(INCLUDE_PATH/inc_x) and the headers
+// include each other as plain "inc_x", so each file is registered under both names, sharing one buffer
+// just as both spellings used to resolve to the same file on disk.
+
+static int nvrtc_load_headers (hashcat_ctx_t *hashcat_ctx, const char *kernel_dir, char ***out_headers, char ***out_names)
+{
+  char **files = scan_directory (kernel_dir);
+
+  if (files == NULL) return 0;
+
+  int num_files = 0;
+
+  for (int i = 0; files[i] != NULL; i++) num_files++;
+
+  char **headers = (char **) hccalloc (num_files * 2, sizeof (char *));
+  char **names   = (char **) hccalloc (num_files * 2, sizeof (char *));
+
+  int idx = 0;
+
+  for (int i = 0; files[i] != NULL; i++)
+  {
+    const char *name = filename_from_filepath (files[i]);
+
+    if (strncmp (name, "inc_", 4) != 0) continue;
+
+    size_t kernel_length = 0;
+    char  *kernel_source = NULL;
+
+    if (read_kernel_binary (hashcat_ctx, files[i], &kernel_length, &kernel_source) == false) continue;
+
+    headers[idx] = kernel_source;
+    hc_asprintf (&names[idx], "OpenCL/%s", name);
+    idx++;
+
+    headers[idx] = kernel_source;
+    names[idx]   = hcstrdup (name);
+    idx++;
+  }
+
+  for (int i = 0; files[i] != NULL; i++) hcfree (files[i]);
+
+  hcfree (files);
+
+  *out_headers = headers;
+  *out_names   = names;
+
+  return idx;
+}
+
+static void nvrtc_free_headers (char **headers, char **names, const int num_headers)
+{
+  for (int i = 0; i < num_headers; i++) hcfree (names[i]);
+
+  // the two names of a file share one buffer, so free the even index only
+
+  for (int i = 0; i < num_headers; i += 2) hcfree (headers[i]);
+
+  hcfree (headers);
+
+  hcfree (names);
+}
+
+#endif
+
 // Build one program, or load the build a previous run left in the cache. Which of the four runtimes
 // is compiling is the only thing that changes: the cache lookup, the source read and the binary
 // write are the same work whichever it is.
@@ -12035,7 +12222,28 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       nvrtcProgram nvrtc_program;
 
+      #if defined (_WIN)
+      // nvrtc copies the headers at create time, so they are freed right after (#4885)
+
+      char **nvrtc_headers      = NULL;
+      char **nvrtc_header_names = NULL;
+
+      char *nvrtc_kernel_dir = NULL;
+
+      hc_asprintf (&nvrtc_kernel_dir, "%s/OpenCL", folder_config->shared_dir);
+
+      const int nvrtc_num_headers = nvrtc_load_headers (hashcat_ctx, nvrtc_kernel_dir, &nvrtc_headers, &nvrtc_header_names);
+
+      hcfree (nvrtc_kernel_dir);
+
+      const int rc_nvrtcCreateProgram = hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], kernel_name, nvrtc_num_headers, (const char * const *) nvrtc_headers, (const char * const *) nvrtc_header_names);
+
+      nvrtc_free_headers (nvrtc_headers, nvrtc_header_names, nvrtc_num_headers);
+
+      if (rc_nvrtcCreateProgram == -1) return false;
+      #else
       if (hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+      #endif
 
       char **nvrtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
@@ -12067,9 +12275,8 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       // cpath_real on _WIN uses forward slashes, but UNC paths (\\server\share)
       // become //server/share after conversion. The leading // is interpreted as a
       // C++ line comment when embedded in a -D preprocessor value, leaving
-      // INCLUDE_PATH empty. Instead pass shared_dir as an explicit -I search path
-      // and keep INCLUDE_PATH as the relative subdirectory name.
-      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-I%s", folder_config->shared_dir);
+      // INCLUDE_PATH empty. The headers are handed over in memory instead (#4885),
+      // so INCLUDE_PATH stays the relative subdirectory name they are registered under.
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
       #elif defined (__CYGWIN__) || defined (__MSYS__)
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
@@ -13352,9 +13559,21 @@ static bool pcfg_pool_shared (const hc_device_param_t *device_param)
 // settled on. Leaving only the floor starts a run that crawls. Free memory is divided the way the
 // memory check further down divides it, because every device on one physical device allocates its own
 // copy of the pool.
+//
+// Worked out once and kept: the feed is told this before it packs the pool and the split below checks
+// against it, and reading device_available_mem again in between moved the answer by more than the
+// margin the two leave. Kept for the process rather than the session, so a later session reuses the
+// low answer rather than the one it would get with the first pool given back.
 
-static u64 pcfg_pool_budget (const hc_device_param_t *device_param, const u32 sharers, u64 *part_max)
+static u64 pcfg_pool_budget (hc_device_param_t *device_param, const u32 sharers, u64 *part_max)
 {
+  if (device_param->size_pcfg_pool_budget != 0)
+  {
+    *part_max = device_param->size_pcfg_pool_part_max;
+
+    return device_param->size_pcfg_pool_budget;
+  }
+
   u64 total = device_param->device_maxmem_alloc * PCFG_POOL_PARTS;
 
   // The feed keeps its pool for the whole run, so a device that is not offered those bytes holds a
@@ -13403,7 +13622,20 @@ static u64 pcfg_pool_budget (const hc_device_param_t *device_param, const u32 sh
 
   if (budget > fits) budget = fits;
 
+  device_param->size_pcfg_pool_budget   = budget;
+  device_param->size_pcfg_pool_part_max = *part_max;
+
   return budget;
+}
+
+// The same answer for a caller outside this file. generic.c asks it of every device that will run,
+// before the feed packs anything, because the smallest of them is what the pool has to fit in.
+
+u64 backend_pcfg_pool_budget (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 *part_max)
+{
+  const u32 sharers = backend_device_sharers (hashcat_ctx->backend_ctx, device_param);
+
+  return pcfg_pool_budget (device_param, sharers, part_max);
 }
 
 // Where a part's bytes already are, for a device that can read them there. Nothing for a device that
@@ -13461,6 +13693,25 @@ static u64 pcfg_pool_part_size (const hc_device_param_t *device_param, const u64
   return size;
 }
 
+// Whether this device keeps the deepest position of an OMEN walk in scalars. The walk holds its state
+// in arrays indexed by the step and the lanes of a wave sit at steps that disagree, so those reads
+// scatter; holding the deepest one in scalars puts the access every step makes first at one offset for
+// the whole wave, which pays only where the last level cache cannot hold what the lanes have in
+// flight. L2 divided by compute units rather than L2 alone, so it does not simply track device size.
+
+#define PCFG_OMEN_TOPREG_L2_PER_UNIT (256 * 1024)
+
+static u32 pcfg_omen_topreg (const hc_device_param_t *device_param)
+{
+  if (device_param->device_l2_cache_source == L2_SOURCE_UNKNOWN) return 0;
+  if (device_param->device_l2_cache_size == 0) return 0;
+  if (device_param->device_processors == 0) return 0;
+
+  const u64 per_unit = device_param->device_l2_cache_size / device_param->device_processors;
+
+  return (per_unit < PCFG_OMEN_TOPREG_L2_PER_UNIT) ? 1 : 0;
+}
+
 // How many buffers this device takes the pool in, and how large each is. Returns -1 where it cannot
 // take it at all, which the caller reads as one device out of the run rather than the end of it.
 
@@ -13490,6 +13741,30 @@ static int pcfg_pool_split (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
     const u64 n = (size_pcfg_pool + part_max - 1) / part_max;
 
     part = (((size_pcfg_pool + n - 1) / n) + (PCFG_POOL_ALIGN - 1)) & ~((u64) (PCFG_POOL_ALIGN - 1));
+  }
+
+  // Everything a walk reads per step other than a weight goes straight to the first part rather than
+  // through the search that finds a part, so the first part has to reach at least as far as the feed
+  // says. Where equal parts would cut below that line, take fewer and larger ones instead. A device
+  // whose ceiling on one part is under the line cannot hold the escape and steps aside, the same way
+  // it does when the pool will not fit at all.
+
+  const u64 lo = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_pool_lo;
+
+  if ((lo != 0) && (part < lo))
+  {
+    u64 want = (lo + (PCFG_POOL_ALIGN - 1)) & ~((u64) (PCFG_POOL_ALIGN - 1));
+
+    if ((part_max != 0) && (want > part_max)) want = part_max;
+
+    if (want < lo)
+    {
+      event_log_warning (hashcat_ctx, "* Device #%u: the escape's tables want %" PRIu64 " MiB in one buffer and this device allows %" PRIu64 " MiB.", device_param->device_id + 1, (lo + (1024 * 1024) - 1) / (1024 * 1024), part_max / (1024 * 1024));
+
+      return -1;
+    }
+
+    part = want;
   }
 
   device_param->size_pcfg_pool_part = part;
@@ -14085,7 +14360,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
-        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+        // The device engine takes the same ceiling once it applies the rules itself: its inner loop is the
+        // rule chunk then, and the chunk is staged into the same constant slice, which holds KERNEL_RULES
+        // of them and not one more.
+
+        if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_dev_rules (user_options) == 1)))
         {
           device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, KERNEL_RULES);
           device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, KERNEL_RULES);
@@ -14549,6 +14828,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_POOL_SPLIT=%u ",  (device_param->pcfg_pool_parts > 1) ? 1 : 0);
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_DEV_OMEN=%u ",    hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_omen ? 1 : 0);
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_DEV_RULES=%u ",   pcfg_dev_rules (hashcat_ctx->user_options));
 
       // A mode that wants its candidate upper or lower cased has that done on the host for every other
       // attack, on the word a producer hands over. Here that word is only the base word and the rest is
@@ -14557,9 +14838,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_PT_CASE=%u ", pcfg_pt_case (hashconfig));
 
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_OMEN_TOPREG=%u ", pcfg_omen_topreg (device_param));
+
       if (getenv ("PCFG_BUILD_TRACE") != NULL)
       {
-        fprintf (stderr, "pcfg build: maxword=%u varlen=%u\n", hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_maxword, hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_varlen);
+        const char *l2_source_name[] = { "unknown", "runtime", "alias" };
+
+        fprintf (stderr, "pcfg build: maxword=%u varlen=%u topreg=%u l2=%" PRIu64 " KiB source=%s units=%u\n",
+          hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_maxword,
+          hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_varlen,
+          pcfg_omen_topreg (device_param),
+          device_param->device_l2_cache_size / 1024,
+          l2_source_name[device_param->device_l2_cache_source],
+          device_param->device_processors);
       }
     }
 
@@ -14884,6 +15175,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         extra_value += pcfg_pt_case (hashconfig)                       << 17;
         extra_value += ((device_param->pcfg_pool_parts > 1) ? 1u : 0u) << 19;
+        extra_value += (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_omen ? 1u : 0u) << 20;
+        extra_value += pcfg_omen_topreg (device_param)                                             << 21;
+        extra_value += pcfg_dev_rules (hashcat_ctx->user_options)                                  << 22;
       }
 
       /**
@@ -15172,7 +15466,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      // The device engine takes the same two buffers when it applies the rules itself: the whole ruleset
+      // on the device, and the constant slice the kernel reads one chunk at a time. Without them the
+      // staging copy has nothing to read from, which on Metal is "metal src buffer is invalid" at the
+      // first launch.
+
+      if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_dev_rules (user_options) == 1)))
       {
         if (hc_dev_mem_alloc (hashcat_ctx, device_param, &device_param->d_buf[HC_DEV_BUF_RULES], HC_DEV_BUF_RULES, size_rules, NULL) == -1) return -1;
 
@@ -15468,7 +15767,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_dev_rules (user_options) == 1)))
       {
         if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_RULES_C], size_rules_c) == -1) return -1;
       }
@@ -16282,6 +16581,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    pws_pre            %" PRIu64 " MiB", size_pws_pre / MiB);
         event_log_info (hashcat_ctx, "    pws_sort           %" PRIu64 " MiB", (size_pws_sort_idx + size_pws_sort_map) / MiB);
         event_log_info (hashcat_ctx, "    pws_base x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_base * PW_PIPE_SLOTS) / MiB);
+
+        // The two the pcfg feed adds. They are charged in size_total_host above and were the only
+        // staging buffers this breakdown did not name, which left the larger half of a pcfg run's host
+        // memory with no line of its own to point at.
+
+        if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+        {
+          event_log_info (hashcat_ctx, "    pcfg_cells x%d      %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pcfg_cells * PW_PIPE_SLOTS) / MiB);
+          event_log_info (hashcat_ctx, "    pcfg_wmap  x%d      %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pcfg_wmap  * PW_PIPE_SLOTS) / MiB);
+        }
+
         event_log_info (hashcat_ctx, "    host_extra         %" PRIu64 " MiB (reserve, not allocated)", size_host_extra / MiB);
         event_log_info (hashcat_ctx, NULL);
       }
@@ -17067,6 +17377,25 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// How much of the markov table a mask can actually address. The table is allocated for the longest
+// mask hashcat accepts, one cs_t per (position, previous character), and generate_pw () in
+// OpenCL/markov_le.cl only ever indexes markov_css_buf[(j * CHARSIZ) + key] for j below the mask
+// length. Everything past that is for positions the mask does not have, so copying it is 64 MB of
+// bus time per round to no end: a four character mask reaches 1 MB of the 64.
+//
+// The row at css_cnt - 1 is included because the kernel does read it. It loads the charset for the
+// position after the one it just wrote, and on the last position that charset is never used.
+//
+// The allocation stays at its full size. Rows past the mask keep whatever an earlier round left in
+// them, which is safe precisely because no work item can address them.
+
+static u64 markov_css_copy_size (const hc_device_param_t *device_param, const u32 css_cnt)
+{
+  const u64 want = (u64) css_cnt * CHARSIZ * sizeof (cs_t);
+
+  return MIN (want, device_param->size_markov_css);
+}
+
 int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 {
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
@@ -17087,6 +17416,8 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
 
+    const u64 copy_markov_css = markov_css_copy_size (device_param, mask_ctx->css_cnt);
+
     // This runs on the main thread rather than on a device thread, and the main thread carries no
     // device of its own, so the device has to be made current for the copy.
 
@@ -17095,7 +17426,7 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) rc = -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
 
     if (rc == 0)
     {
@@ -17134,6 +17465,13 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     device_param->kernel_params_mp_r_buf64[3] = 0;
     device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
 
+    // mask_ctx->css_cnt rather than css_cnt_l + css_cnt_r. The two differ: the split is taken over the
+    // mask length from before mp_css_append_salt () extended it, so the sum can be short of the table
+    // the host actually built. Bounding by the larger of the two is what keeps this a transfer size
+    // change and nothing else.
+
+    const u64 copy_markov_css = markov_css_copy_size (device_param, mask_ctx->css_cnt);
+
     // This runs on the main thread rather than on a device thread, and the main thread carries no
     // device of its own, so the device has to be made current for the copy.
 
@@ -17142,7 +17480,7 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) rc = -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
 
     if (rc == 0)
     {

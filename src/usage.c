@@ -160,7 +160,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   #ifdef WITH_BRAIN
   "     --brain-server             |      | Enable brain server                                  |",
   "     --brain-server-timer       | Num  | Update the brain server dump each X seconds (min:60) | --brain-server-timer=300",
-  " -z, --brain-client             |      | Enable brain client, activates -S                    |",
+  " -z, --brain-client             |      | Enable brain client, activates -S unless features=2  |",
   "     --brain-feed               |      | Hash stdin into a running brain, needs --brain-session|",
   "     --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3",
   "     --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1",
@@ -205,6 +205,10 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  1 | Send hashed passwords",
   "  2 | Send attack positions",
   "  3 | Send hashed passwords and attack positions",
+  "",
+  "Feature 1 needs every candidate on the host and therefore activates -S. Feature 2 works from",
+  "keyspace positions alone, so --brain-client-features=2 leaves candidate generation on the",
+  "device. That is the one to use for a fast hash.",
   "",
   #endif
   "- [ Outfile Formats ] -",

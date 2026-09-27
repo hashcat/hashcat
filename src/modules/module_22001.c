@@ -42,6 +42,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
+                                  | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_POTFILE_NOPASS
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
@@ -1235,86 +1236,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const wpa_t *wpa = (const wpa_t *) esalt_buf;
-
-  int line_len = 0;
-
-  const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
-  const u8 *mac_sta = (const u8 *) wpa->mac_sta;
-
-  if (wpa->type == 1)
-  {
-    u32_to_hex (wpa->pmkid[0], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->pmkid[1], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->pmkid[2], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->pmkid[3], (u8 *) line_buf + line_len); line_len += 8;
-  }
-  else if (wpa->type == 2)
-  {
-    u32_to_hex (byte_swap_32 (wpa->keymic[0]), (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (byte_swap_32 (wpa->keymic[1]), (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (byte_swap_32 (wpa->keymic[2]), (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (byte_swap_32 (wpa->keymic[3]), (u8 *) line_buf + line_len); line_len += 8;
-  }
-
-  line_buf[line_len] = ':';
-
-  line_len++;
-
-  if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, ':', 0) == true)
-  {
-    char tmp_buf[128];
-
-    int tmp_len = 0;
-
-    tmp_buf[tmp_len++] = '$';
-    tmp_buf[tmp_len++] = 'H';
-    tmp_buf[tmp_len++] = 'E';
-    tmp_buf[tmp_len++] = 'X';
-    tmp_buf[tmp_len++] = '[';
-
-    const size_t hex_len = exec_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, (u8 *) tmp_buf + tmp_len);
-
-    tmp_len += (int) hex_len;
-
-    tmp_buf[tmp_len++] = ']';
-
-    tmp_buf[tmp_len++] = 0;
-
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      mac_ap[0],
-      mac_ap[1],
-      mac_ap[2],
-      mac_ap[3],
-      mac_ap[4],
-      mac_ap[5],
-      mac_sta[0],
-      mac_sta[1],
-      mac_sta[2],
-      mac_sta[3],
-      mac_sta[4],
-      mac_sta[5],
-      tmp_buf);
-  }
-  else
-  {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      mac_ap[0],
-      mac_ap[1],
-      mac_ap[2],
-      mac_ap[3],
-      mac_ap[4],
-      mac_ap[5],
-      mac_sta[0],
-      mac_sta[1],
-      mac_sta[2],
-      mac_sta[3],
-      mac_sta[4],
-      mac_sta[5],
-      (const char *) wpa->essid_buf);
-  }
-
-  return line_len;
+  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
 }
 
 int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
