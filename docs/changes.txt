@@ -423,6 +423,17 @@ Measurements depend on the device, runtime and workload.
   every attack
 - Candidate staging now clears only the first unwritten index rather than whole buffers, avoiding
   hundreds of megabytes of redundant memory clearing in large batches
+- Autotune reuse now covers dictionary queues, maskfiles and "--increment" rather than association
+  rounds alone. A round inherits the previous round's launch size when its loop bounds are the same
+  ones that answer was fitted inside, and measures as usual when they are not. Because the loop
+  bound saturates at KERNEL_BFS, ordinary masks of seven characters or more agree on it whatever
+  their charsets, so a maskfile of 30 different eight character masks goes from 71 to 6 seconds and
+  one of 200 identical masks from 243 to 4. Every autotune probe is a real launch
+- Each round of a mask attack cleared and uploaded the markov table for the longest mask hashcat
+  accepts rather than for its own mask, which is a 64 MB memset, a 16.7 million iteration loop and a
+  64 MB transfer per device whatever the mask length. All three are now bounded by the mask length.
+  The host half is visible as "--keyspace" over 200 masks going from 9 to 1 second. The transfer is
+  below measurement noise on a single device and scales with the device count
 - An unused event backlog was removed, saving 160 MiB of resident memory per attack
 - The "--show" and "--left" options with "-o" no longer build, sort and copy per-hash records that
   their output handlers discard

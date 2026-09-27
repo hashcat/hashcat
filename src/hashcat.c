@@ -503,22 +503,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create autotune threads
    */
 
-  // The rounds of -a 9 splitting its own hash file are one attack, not a queue of different ones. A
-  // round is "try the Nth word of every account name", so every round launches the same kernel over
-  // the same digests with the same keyspace, and measuring each of them separately arrives at the same
-  // answer as many times as there are rounds. On a slow hash that is seconds of real launches per
-  // round, spent to learn nothing.
+  // A round of a queue usually asks the same question as the round before it: the same kernel over the
+  // same digests, with the same loop bounds. Measuring each one separately arrives at the same answer
+  // as many times as there are rounds, and every probe is a real launch. A maskfile of 50 identical
+  // masks spent 0.86 s a round learning what it already knew, which was 43 s of a 51 s run.
+  //
+  // This was once limited to -a 9 splitting its own hash file, where a round is "try the Nth word of
+  // every account name" and the rounds are self-evidently one attack. A dictionary queue, a maskfile
+  // and an --increment range are the same situation whenever their bounds agree, which is what
+  // backend_ctx_devices_tuning_restore () checks: it refuses a round whose loop bounds are not the
+  // ones the saved answer was fitted inside, so a queue whose rounds genuinely differ still measures.
+  // A mask queue that changes the amplifier count from one round to the next is that case.
   //
   // The one thing a round boundary destroys is the tuning itself, because run_cracker zeroes it on its
   // way out. So the previous round's answer is taken back from where run_cracker saved it, and a round
   // that has no previous answer to take falls through and measures as usual.
 
-  bool tuning_reused = false;
-
-  if (user_options_extra->association_autosplit == true)
-  {
-    tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
-  }
+  bool tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
 
   if (tuning_reused == false)
   {

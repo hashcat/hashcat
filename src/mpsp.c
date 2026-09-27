@@ -1328,10 +1328,27 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
   return 0;
 }
 
-static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls)
+// css_cnt bounds the markov half of the work. The table has one cs_t per (position, previous
+// character) for the longest mask hashcat accepts, and a round only ever reads the rows belonging to
+// its own positions: sp_exec () and generate_pw () index markov_css_buf[(i * CHARSIZ) + k] for i
+// below css_cnt. Clearing and filling all 256 positions for a four character mask is 64 MB of memset
+// and 16.7 million loop iterations to produce rows nothing can address.
+//
+// Rows past css_cnt keep whatever an earlier round left in them. That is safe for the same reason,
+// and it is why the bound has to be the mask length after mp_css_utf16le_expand () and
+// mp_css_append_salt () have had their say rather than before.
+//
+// The root half stays whole. It is 256 entries against 65536, so there is nothing to win and one
+// less thing to reason about.
+
+static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt)
 {
-  memset (root_css_buf,   0, SP_PW_MAX *           sizeof (cs_t));
-  memset (markov_css_buf, 0, SP_PW_MAX * CHARSIZ * sizeof (cs_t));
+  const u32 markov_pos_cnt = MIN (css_cnt, SP_PW_MAX);
+
+  const u32 markov_cnt = markov_pos_cnt * CHARSIZ * CHARSIZ;
+
+  memset (root_css_buf,   0, SP_PW_MAX      *           sizeof (cs_t));
+  memset (markov_css_buf, 0, markov_pos_cnt * CHARSIZ * sizeof (cs_t));
 
   /**
    * Convert tables to css
@@ -1358,7 +1375,7 @@ static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *marko
    * Convert table to css
    */
 
-  for (u32 i = 0; i < SP_MARKOV_CNT; i++)
+  for (u32 i = 0; i < markov_cnt; i++)
   {
     u32 c = i / CHARSIZ;
 
@@ -2196,7 +2213,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2262,7 +2279,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2299,7 +2316,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2328,7 +2345,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2528,7 +2545,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
