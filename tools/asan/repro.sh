@@ -75,7 +75,7 @@ $CC -std=gnu99 -DDEBUG -DSTATIC_MODULE -g -O1 \
     -Ideps/OpenCL-Headers -Ideps/xxHash -Ideps/unrar \
     -DWITH_BRAIN -DWITH_HWMON \
     -DHC_PLUGIN_ABI_VERSION="$ABI" -DMODULE_INTERFACE_VERSION_CURRENT="$ABI" \
-    tools/asan/parse_harness.c "src/modules/${MOD}.c" $EXTRA \
+    tools/asan/parse_harness.c tools/asan/hashconfig.c "src/modules/${MOD}.c" $EXTRA \
     "$CORE" -ldl -o "$OUT/repro_${TOOL}_m${MODE}" -Wl,-rpath,"$CORE_DIR"
 
 # Pin the loader to the core we just linked against. libhashcat.so.7 can

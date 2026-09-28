@@ -286,7 +286,7 @@ def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
     # Never --error-exitcode: hashcat's own exit code must stay authoritative,
     # tracked completely separately from the sanitizer verdict (see README).
     cs_cmd += sanitizer_passthrough
-    cs_cmd += ["--"] + hc_cmd
+    cs_cmd += hc_cmd
 
     try:
         proc = subprocess.run(cs_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -341,7 +341,7 @@ def _run_selftest_case(name, binary_path, cs_bin, tool, results_dir):
         cs_bin, "--tool", tool, "--check-exit-code", "no", "--leak-check", "no",
         "--padding", "128",
         "--show-backtrace", "device", "--print-limit", "20", f"--log-file={log_path}",
-        "--", str(binary_path),
+        str(binary_path),
     ]
 
     try:

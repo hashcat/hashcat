@@ -41,7 +41,7 @@ DECLSPEC void generate_pw (PRIVATE_AS u32 *pw_buf, GLOBAL_AS const cs_t *root_cs
   const u32 jd4 = j / 4;
   const u32 jm4 = j % 4;
 
-  pw_buf[jd4] |= (0xff << ((3 - jm4) * 8)) & mask80;
+  pw_buf[jd4] |= (0xffu << ((3 - jm4) * 8)) & mask80;
 
   if (bits14) pw_buf[14] = (pw_l_len + pw_r_len) * 8;
   if (bits15) pw_buf[15] = (pw_l_len + pw_r_len) * 8;

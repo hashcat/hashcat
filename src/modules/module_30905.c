@@ -70,7 +70,16 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 16;
+  u32 kernel_loops_max = 16;
+
+  // Every candidate costs a full point multiplication, which keeps the loop short. The -a 3 kernel
+  // instead moves the public key from one candidate to the next with a point addition, so a longer
+  // loop is what pays for the one multiplication each work item starts with.
+
+  if (user_options->slow_candidates == false)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_BF) kernel_loops_max = 1024;
+  }
 
   return kernel_loops_max;
 }
