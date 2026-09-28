@@ -10,6 +10,8 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.h)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif
@@ -231,7 +233,7 @@ DECLSPEC void unpack_be32 (const u32 w, PRIVATE_AS u8 *out)
   out[3] = (u8) (w      );
 }
 
-KERNEL_FQ KERNEL_FA void m63000_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m36900_mxx (KERN_ATTR_RULES ())
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -286,7 +288,7 @@ KERNEL_FQ KERNEL_FA void m63000_mxx (KERN_ATTR_BASIC ())
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len;
 
   const u32 csn0_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
   const u32 csn1_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
@@ -311,51 +313,12 @@ KERNEL_FQ KERNEL_FA void m63000_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    u32 w0[4] = { 0 };
+    u32 w1[4] = { 0 };
+    u32 w2[4] = { 0 };
+    u32 w3[4] = { 0 };
 
-    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
-
-    u32 wordl0[4] = { 0 };
-    u32 wordl1[4] = { 0 };
-    u32 wordl2[4] = { 0 };
-    u32 wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf0[0];
-    wordl0[1] = pw_buf0[1];
-    wordl0[2] = pw_buf0[2];
-    wordl0[3] = pw_buf0[3];
-    wordl1[0] = pw_buf1[0];
-    wordl1[1] = pw_buf1[1];
-    wordl1[2] = pw_buf1[2];
-    wordl1[3] = pw_buf1[3];
-
-    u32 wordr0[4] = { 0 };
-    u32 wordr1[4] = { 0 };
-    u32 wordr2[4] = { 0 };
-    u32 wordr3[4] = { 0 };
-
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
-    {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-    }
-    else
-    {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-    }
-
-    u32 w0[2];
-
-    w0[0] = wordl0[0] | wordr0[0];
-    w0[1] = wordl0[1] | wordr0[1];
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32 Kc[16];
     u32 Kd[16];
@@ -395,7 +358,7 @@ KERNEL_FQ KERNEL_FA void m63000_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ KERNEL_FA void m63000_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m36900_sxx (KERN_ATTR_RULES ())
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -450,7 +413,7 @@ KERNEL_FQ KERNEL_FA void m63000_sxx (KERN_ATTR_BASIC ())
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len;
 
   const u32 csn0_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
   const u32 csn1_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
@@ -477,51 +440,12 @@ KERNEL_FQ KERNEL_FA void m63000_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    u32 w0[4] = { 0 };
+    u32 w1[4] = { 0 };
+    u32 w2[4] = { 0 };
+    u32 w3[4] = { 0 };
 
-    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
-
-    u32 wordl0[4] = { 0 };
-    u32 wordl1[4] = { 0 };
-    u32 wordl2[4] = { 0 };
-    u32 wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf0[0];
-    wordl0[1] = pw_buf0[1];
-    wordl0[2] = pw_buf0[2];
-    wordl0[3] = pw_buf0[3];
-    wordl1[0] = pw_buf1[0];
-    wordl1[1] = pw_buf1[1];
-    wordl1[2] = pw_buf1[2];
-    wordl1[3] = pw_buf1[3];
-
-    u32 wordr0[4] = { 0 };
-    u32 wordr1[4] = { 0 };
-    u32 wordr2[4] = { 0 };
-    u32 wordr3[4] = { 0 };
-
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
-    {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-    }
-    else
-    {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-    }
-
-    u32 w0[2];
-
-    w0[0] = wordl0[0] | wordr0[0];
-    w0[1] = wordl0[1] | wordr0[1];
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32 Kc[16];
     u32 Kd[16];

@@ -3,14 +3,14 @@
  * License.....: MIT
  */
 
-//#define NEW_SIMD_CODE
+#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_scalar.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
@@ -39,7 +39,7 @@ typedef struct digest_md5
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ KERNEL_FA void m61000_mxx (KERN_ATTR_ESALT (digest_md5_t))
+KERNEL_FQ KERNEL_FA void m37600_mxx (KERN_ATTR_VECTOR_ESALT (digest_md5_t))
 {
   /**
    * modifier
@@ -72,34 +72,69 @@ KERNEL_FQ KERNEL_FA void m61000_mxx (KERN_ATTR_ESALT (digest_md5_t))
    * base
    */
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
+  const u32 a1_len = esalt_bufs[DIGESTS_OFFSET_HOST].a1_len;
+
+  u32x a1_buf[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < a1_len; i += 4, idx += 1)
+  {
+    a1_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].a1_buf[idx];
+  }
+
+  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len;
+
+  u32x esalt_buf[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
+  {
+    esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf[idx];
+  }
+
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
 
   md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
-
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    md5_ctx_t ctx1 = ctx0;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    const u32x w0 = w0l | w0r;
 
-    md5_final (&ctx1);
+    w[0] = w0;
 
-    const u32 a = ctx1.h[0];
-    const u32 b = ctx1.h[1];
-    const u32 c = ctx1.h[2];
-    const u32 d = ctx1.h[3];
+    md5_ctx_vector_t ctx1;
 
-    md5_ctx_t ctx2;
+    md5_init_vector_from_scalar (&ctx1, &ctx0);
 
-    md5_init (&ctx2);
+    md5_update_vector (&ctx1, w, pw_len);
+
+    md5_final_vector (&ctx1);
+
+    const u32x a = ctx1.h[0];
+    const u32x b = ctx1.h[1];
+    const u32x c = ctx1.h[2];
+    const u32x d = ctx1.h[3];
+
+    md5_ctx_vector_t ctx2;
+
+    md5_init_vector (&ctx2);
 
     ctx2.w0[0] = a;
     ctx2.w0[1] = b;
@@ -107,18 +142,18 @@ KERNEL_FQ KERNEL_FA void m61000_mxx (KERN_ATTR_ESALT (digest_md5_t))
     ctx2.w0[3] = d;
     ctx2.len   = 16;
 
-    md5_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].a1_buf, esalt_bufs[DIGESTS_OFFSET_HOST].a1_len);
+    md5_update_vector (&ctx2, a1_buf, a1_len);
 
-    md5_final (&ctx2);
+    md5_final_vector (&ctx2);
 
-    const u32 e = ctx2.h[0];
-    const u32 f = ctx2.h[1];
-    const u32 g = ctx2.h[2];
-    const u32 h = ctx2.h[3];
+    const u32x e = ctx2.h[0];
+    const u32x f = ctx2.h[1];
+    const u32x g = ctx2.h[2];
+    const u32x h = ctx2.h[3];
 
-    md5_ctx_t ctx;
+    md5_ctx_vector_t ctx;
 
-    md5_init (&ctx);
+    md5_init_vector (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8 ((e >>  0) & 255) <<  0
               | uint_to_hex_lower8 ((e >>  8) & 255) << 16;
@@ -139,20 +174,20 @@ KERNEL_FQ KERNEL_FA void m61000_mxx (KERN_ATTR_ESALT (digest_md5_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
+    md5_update_vector (&ctx, esalt_buf, esalt_len);
 
-    md5_final (&ctx);
+    md5_final_vector (&ctx);
 
-    const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1];
-    const u32 r2 = ctx.h[DGST_R2];
-    const u32 r3 = ctx.h[DGST_R3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_M_SCALAR (r0, r1, r2, r3);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ KERNEL_FA void m61000_sxx (KERN_ATTR_ESALT (digest_md5_t))
+KERNEL_FQ KERNEL_FA void m37600_sxx (KERN_ATTR_VECTOR_ESALT (digest_md5_t))
 {
   /**
    * modifier
@@ -197,34 +232,69 @@ KERNEL_FQ KERNEL_FA void m61000_sxx (KERN_ATTR_ESALT (digest_md5_t))
    * base
    */
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
+  const u32 a1_len = esalt_bufs[DIGESTS_OFFSET_HOST].a1_len;
+
+  u32x a1_buf[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < a1_len; i += 4, idx += 1)
+  {
+    a1_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].a1_buf[idx];
+  }
+
+  const u32 esalt_len = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len;
+
+  u32x esalt_buf[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
+  {
+    esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf[idx];
+  }
+
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
 
   md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
-
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    md5_ctx_t ctx1 = ctx0;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    const u32x w0 = w0l | w0r;
 
-    md5_final (&ctx1);
+    w[0] = w0;
 
-    const u32 a = ctx1.h[0];
-    const u32 b = ctx1.h[1];
-    const u32 c = ctx1.h[2];
-    const u32 d = ctx1.h[3];
+    md5_ctx_vector_t ctx1;
 
-    md5_ctx_t ctx2;
+    md5_init_vector_from_scalar (&ctx1, &ctx0);
 
-    md5_init (&ctx2);
+    md5_update_vector (&ctx1, w, pw_len);
+
+    md5_final_vector (&ctx1);
+
+    const u32x a = ctx1.h[0];
+    const u32x b = ctx1.h[1];
+    const u32x c = ctx1.h[2];
+    const u32x d = ctx1.h[3];
+
+    md5_ctx_vector_t ctx2;
+
+    md5_init_vector (&ctx2);
 
     ctx2.w0[0] = a;
     ctx2.w0[1] = b;
@@ -232,18 +302,18 @@ KERNEL_FQ KERNEL_FA void m61000_sxx (KERN_ATTR_ESALT (digest_md5_t))
     ctx2.w0[3] = d;
     ctx2.len   = 16;
 
-    md5_update_global (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].a1_buf, esalt_bufs[DIGESTS_OFFSET_HOST].a1_len);
+    md5_update_vector (&ctx2, a1_buf, a1_len);
 
-    md5_final (&ctx2);
+    md5_final_vector (&ctx2);
 
-    const u32 e = ctx2.h[0];
-    const u32 f = ctx2.h[1];
-    const u32 g = ctx2.h[2];
-    const u32 h = ctx2.h[3];
+    const u32x e = ctx2.h[0];
+    const u32x f = ctx2.h[1];
+    const u32x g = ctx2.h[2];
+    const u32x h = ctx2.h[3];
 
-    md5_ctx_t ctx;
+    md5_ctx_vector_t ctx;
 
-    md5_init (&ctx);
+    md5_init_vector (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8 ((e >>  0) & 255) <<  0
               | uint_to_hex_lower8 ((e >>  8) & 255) << 16;
@@ -264,15 +334,15 @@ KERNEL_FQ KERNEL_FA void m61000_sxx (KERN_ATTR_ESALT (digest_md5_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
+    md5_update_vector (&ctx, esalt_buf, esalt_len);
 
-    md5_final (&ctx);
+    md5_final_vector (&ctx);
 
-    const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1];
-    const u32 r2 = ctx.h[DGST_R2];
-    const u32 r3 = ctx.h[DGST_R3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_S_SCALAR (r0, r1, r2, r3);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }

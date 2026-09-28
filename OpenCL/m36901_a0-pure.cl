@@ -111,7 +111,7 @@ DECLSPEC void unpack_be32 (const u32 w, PRIVATE_AS u8 *out)
   out[3] = (u8) (w      );
 }
 
-KERNEL_FQ KERNEL_FA void m64000_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m36901_mxx (KERN_ATTR_RULES ())
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -192,7 +192,7 @@ KERNEL_FQ KERNEL_FA void m64000_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ KERNEL_FA void m64000_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m36901_sxx (KERN_ATTR_RULES ())
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

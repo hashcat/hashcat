@@ -467,7 +467,7 @@ Keep repeated transformations such as byte swaps out of performance-critical ker
 
 ### module_hash_decode_postprocess() ###
 
-Callback `module_hash_decode_postprocess()` applies option-dependent changes after decoding. For example, option `--hccapx-message-pair` adds filters that can exclude selected hashes from the input list.
+Callback `module_hash_decode_postprocess()` applies option-dependent changes after decoding. For example, option `--eapol-message-pair` adds filters that can exclude selected hashes from the input list.
 
 ### module_hash_hints() ###
 

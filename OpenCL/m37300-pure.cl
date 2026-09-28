@@ -20,7 +20,7 @@ typedef struct saph_sha256_tmp
 
 } saph_sha256_tmp_t;
 
-KERNEL_FQ KERNEL_FA void m63100_init (KERN_ATTR_TMPS (saph_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m37300_init (KERN_ATTR_TMPS (saph_sha256_tmp_t))
 {
   /**
    * base
@@ -50,7 +50,7 @@ KERNEL_FQ KERNEL_FA void m63100_init (KERN_ATTR_TMPS (saph_sha256_tmp_t))
   tmps[gid].digest_buf[7] = ctx.h[7];
 }
 
-KERNEL_FQ KERNEL_FA void m63100_loop (KERN_ATTR_TMPS (saph_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m37300_loop (KERN_ATTR_TMPS (saph_sha256_tmp_t))
 {
   /**
    * base
@@ -139,7 +139,7 @@ KERNEL_FQ KERNEL_FA void m63100_loop (KERN_ATTR_TMPS (saph_sha256_tmp_t))
   tmps[gid].digest_buf[7] = digest[7];
 }
 
-KERNEL_FQ KERNEL_FA void m63100_comp (KERN_ATTR_TMPS (saph_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m37300_comp (KERN_ATTR_TMPS (saph_sha256_tmp_t))
 {
   /**
    * modifier

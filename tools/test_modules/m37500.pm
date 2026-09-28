@@ -63,7 +63,7 @@ sub module_generate_hash
   my $rounds  = 50;
   my $random_salt;
 
-  if (! defined $salt)
+  if (($salt // "") eq "")
   {
     $random_salt = pack ("H*", "00112233445566778899AABBCCDDEEFF");
     $salt = "HASHCAT";

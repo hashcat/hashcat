@@ -20,7 +20,7 @@ typedef struct saph_sha384_tmp
 
 } saph_sha384_tmp_t;
 
-KERNEL_FQ KERNEL_FA void m63200_init (KERN_ATTR_TMPS (saph_sha384_tmp_t))
+KERNEL_FQ KERNEL_FA void m37301_init (KERN_ATTR_TMPS (saph_sha384_tmp_t))
 {
   /**
    * base
@@ -50,7 +50,7 @@ KERNEL_FQ KERNEL_FA void m63200_init (KERN_ATTR_TMPS (saph_sha384_tmp_t))
   tmps[gid].digest_buf[7] = 0;
 }
 
-KERNEL_FQ KERNEL_FA void m63200_loop (KERN_ATTR_TMPS (saph_sha384_tmp_t))
+KERNEL_FQ KERNEL_FA void m37301_loop (KERN_ATTR_TMPS (saph_sha384_tmp_t))
 {
   /**
    * base
@@ -153,7 +153,7 @@ KERNEL_FQ KERNEL_FA void m63200_loop (KERN_ATTR_TMPS (saph_sha384_tmp_t))
   tmps[gid].digest_buf[5] = digest[5];
 }
 
-KERNEL_FQ KERNEL_FA void m63200_comp (KERN_ATTR_TMPS (saph_sha384_tmp_t))
+KERNEL_FQ KERNEL_FA void m37301_comp (KERN_ATTR_TMPS (saph_sha384_tmp_t))
 {
   /**
    * modifier

@@ -52,7 +52,7 @@ DECLSPEC u32 ascii_to_ebcdic_u32 (const u32 w, CONSTANT_AS u32a *table)
        | (table[(w >> 24) & 0xff] << 24);
 }
 
-KERNEL_FQ KERNEL_FA void m63300_mxx (KERN_ATTR_RULES_ESALT (racf_ph_t))
+KERNEL_FQ KERNEL_FA void m37400_mxx (KERN_ATTR_RULES_ESALT (racf_ph_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -228,7 +228,7 @@ KERNEL_FQ KERNEL_FA void m63300_mxx (KERN_ATTR_RULES_ESALT (racf_ph_t))
   }
 }
 
-KERNEL_FQ KERNEL_FA void m63300_sxx (KERN_ATTR_RULES_ESALT (racf_ph_t))
+KERNEL_FQ KERNEL_FA void m37400_sxx (KERN_ATTR_RULES_ESALT (racf_ph_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

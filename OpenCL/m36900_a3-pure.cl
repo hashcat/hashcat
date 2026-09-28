@@ -1,19 +1,47 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- * NOTE........: sboxes for maxwell were taken from DeepLearningJohnDoe, license below
- *             : sboxes for others were takes fron JtR, license below
  */
+
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif
 
-#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single_bs.cl)
-#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi_bs.cl)
+#define PERM_OP_S(a,b,n,m) \
+{                          \
+  u32 t;                   \
+  t = a >> n;              \
+  t = t ^ b;               \
+  t = t & m;               \
+  b = b ^ t;               \
+  t = t << n;              \
+  a = a ^ t;               \
+}
+
+#define DES_IP_S(l,r)                \
+{                                    \
+  PERM_OP_S (r, l,  4, 0x0f0f0f0f);  \
+  PERM_OP_S (l, r, 16, 0x0000ffff);  \
+  PERM_OP_S (r, l,  2, 0x33333333);  \
+  PERM_OP_S (l, r,  8, 0x00ff00ff);  \
+  PERM_OP_S (r, l,  1, 0x55555555);  \
+}
+
+#define DES_FP_S(l,r)                \
+{                                    \
+  PERM_OP_S (l, r,  1, 0x55555555);  \
+  PERM_OP_S (r, l,  8, 0x00ff00ff);  \
+  PERM_OP_S (l, r,  2, 0x33333333);  \
+  PERM_OP_S (r, l, 16, 0x0000ffff);  \
+  PERM_OP_S (l, r,  4, 0x0f0f0f0f);  \
+}
 
 #ifdef IS_NV
 #define KXX_DECL
@@ -1635,1043 +1663,928 @@ DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, c
   }
 }
 
-DECLSPEC void transpose32c (PRIVATE_AS u32 *data)
+
+
+DECLSPEC void hash0 (const u32 des_out0, const u32 des_out1, PRIVATE_AS u8 *div_key)
 {
-  #define swap(x,y,j,m)               \
-     t  = ((x) ^ ((y) >> (j))) & (m); \
-    (x) = (x) ^ t;                    \
-    (y) = (y) ^ (t << (j));
+  const u8 x = (u8) (des_out0 >> 24);
+  const u8 y = (u8) (des_out0 >> 16);
 
-  u32 t;
+  const u32 hi = des_out0 & 0xFFFF;
+  const u32 lo = des_out1;
 
-  swap (data[ 0], data[16], 16, 0x0000ffff);
-  swap (data[ 1], data[17], 16, 0x0000ffff);
-  swap (data[ 2], data[18], 16, 0x0000ffff);
-  swap (data[ 3], data[19], 16, 0x0000ffff);
-  swap (data[ 4], data[20], 16, 0x0000ffff);
-  swap (data[ 5], data[21], 16, 0x0000ffff);
-  swap (data[ 6], data[22], 16, 0x0000ffff);
-  swap (data[ 7], data[23], 16, 0x0000ffff);
-  swap (data[ 8], data[24], 16, 0x0000ffff);
-  swap (data[ 9], data[25], 16, 0x0000ffff);
-  swap (data[10], data[26], 16, 0x0000ffff);
-  swap (data[11], data[27], 16, 0x0000ffff);
-  swap (data[12], data[28], 16, 0x0000ffff);
-  swap (data[13], data[29], 16, 0x0000ffff);
-  swap (data[14], data[30], 16, 0x0000ffff);
-  swap (data[15], data[31], 16, 0x0000ffff);
-  swap (data[ 0], data[ 8],  8, 0x00ff00ff);
-  swap (data[ 1], data[ 9],  8, 0x00ff00ff);
-  swap (data[ 2], data[10],  8, 0x00ff00ff);
-  swap (data[ 3], data[11],  8, 0x00ff00ff);
-  swap (data[ 4], data[12],  8, 0x00ff00ff);
-  swap (data[ 5], data[13],  8, 0x00ff00ff);
-  swap (data[ 6], data[14],  8, 0x00ff00ff);
-  swap (data[ 7], data[15],  8, 0x00ff00ff);
-  swap (data[ 0], data[ 4],  4, 0x0f0f0f0f);
-  swap (data[ 1], data[ 5],  4, 0x0f0f0f0f);
-  swap (data[ 2], data[ 6],  4, 0x0f0f0f0f);
-  swap (data[ 3], data[ 7],  4, 0x0f0f0f0f);
-  swap (data[ 0], data[ 2],  2, 0x33333333);
-  swap (data[ 1], data[ 3],  2, 0x33333333);
-  swap (data[ 0], data[ 1],  1, 0x55555555);
-  swap (data[ 2], data[ 3],  1, 0x55555555);
-  swap (data[ 4], data[ 6],  2, 0x33333333);
-  swap (data[ 5], data[ 7],  2, 0x33333333);
-  swap (data[ 4], data[ 5],  1, 0x55555555);
-  swap (data[ 6], data[ 7],  1, 0x55555555);
-  swap (data[ 8], data[12],  4, 0x0f0f0f0f);
-  swap (data[ 9], data[13],  4, 0x0f0f0f0f);
-  swap (data[10], data[14],  4, 0x0f0f0f0f);
-  swap (data[11], data[15],  4, 0x0f0f0f0f);
-  swap (data[ 8], data[10],  2, 0x33333333);
-  swap (data[ 9], data[11],  2, 0x33333333);
-  swap (data[ 8], data[ 9],  1, 0x55555555);
-  swap (data[10], data[11],  1, 0x55555555);
-  swap (data[12], data[14],  2, 0x33333333);
-  swap (data[13], data[15],  2, 0x33333333);
-  swap (data[12], data[13],  1, 0x55555555);
-  swap (data[14], data[15],  1, 0x55555555);
-  swap (data[16], data[24],  8, 0x00ff00ff);
-  swap (data[17], data[25],  8, 0x00ff00ff);
-  swap (data[18], data[26],  8, 0x00ff00ff);
-  swap (data[19], data[27],  8, 0x00ff00ff);
-  swap (data[20], data[28],  8, 0x00ff00ff);
-  swap (data[21], data[29],  8, 0x00ff00ff);
-  swap (data[22], data[30],  8, 0x00ff00ff);
-  swap (data[23], data[31],  8, 0x00ff00ff);
-  swap (data[16], data[20],  4, 0x0f0f0f0f);
-  swap (data[17], data[21],  4, 0x0f0f0f0f);
-  swap (data[18], data[22],  4, 0x0f0f0f0f);
-  swap (data[19], data[23],  4, 0x0f0f0f0f);
-  swap (data[16], data[18],  2, 0x33333333);
-  swap (data[17], data[19],  2, 0x33333333);
-  swap (data[16], data[17],  1, 0x55555555);
-  swap (data[18], data[19],  1, 0x55555555);
-  swap (data[20], data[22],  2, 0x33333333);
-  swap (data[21], data[23],  2, 0x33333333);
-  swap (data[20], data[21],  1, 0x55555555);
-  swap (data[22], data[23],  1, 0x55555555);
-  swap (data[24], data[28],  4, 0x0f0f0f0f);
-  swap (data[25], data[29],  4, 0x0f0f0f0f);
-  swap (data[26], data[30],  4, 0x0f0f0f0f);
-  swap (data[27], data[31],  4, 0x0f0f0f0f);
-  swap (data[24], data[26],  2, 0x33333333);
-  swap (data[25], data[27],  2, 0x33333333);
-  swap (data[24], data[25],  1, 0x55555555);
-  swap (data[26], data[27],  1, 0x55555555);
-  swap (data[28], data[30],  2, 0x33333333);
-  swap (data[29], data[31],  2, 0x33333333);
-  swap (data[28], data[29],  1, 0x55555555);
-  swap (data[30], data[31],  1, 0x55555555);
-}
+  u8 zs[8];
 
-//
-// transpose bitslice mod : attention race conditions, need different buffers for *in and *out
-//
+  zs[0] = (u8) ( lo        & 0x3F);
+  zs[1] = (u8) ((lo >>  6) & 0x3F);
+  zs[2] = (u8) ((lo >> 12) & 0x3F);
+  zs[3] = (u8) ((lo >> 18) & 0x3F);
+  zs[4] = (u8) ((lo >> 24) & 0x3F);
+  zs[5] = (u8) (((hi & 0x0F) << 2) | (lo >> 30));
+  zs[6] = (u8) ((hi >>  4) & 0x3F);
+  zs[7] = (u8) ((hi >> 10) & 0x3F);
 
-KERNEL_FQ KERNEL_FA void m82000_tm (KERN_ATTR_TM)
-{
-  const u64 gid = get_global_id (0);
+  u8 zP[8];
 
-  // if (gid >= GID_CNT) return;
+  zP[0] = (u8) ((zs[0] % 63) + 0);
+  zP[1] = (u8) ((zs[1] % 62) + 1);
+  zP[2] = (u8) ((zs[2] % 61) + 2);
+  zP[3] = (u8) ((zs[3] % 60) + 3);
+  zP[4] = (u8) ((zs[4] % 64) + 0);
+  zP[5] = (u8) ((zs[5] % 63) + 1);
+  zP[6] = (u8) ((zs[6] % 62) + 2);
+  zP[7] = (u8) ((zs[7] % 61) + 3);
 
-  const u32 block = gid / 32;
-  const u32 slice = gid % 32;
-
-  const u32 w0 = mod[gid];
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0, j = 0; i < 32; i += 8, j += 7)
+  for (int i = 3; i >= 1; i--)
   {
-    hc_atomic_or (&words_buf_b[block].b[j + 0], (((w0 >> (i + 7)) & 1) << slice));
-    hc_atomic_or (&words_buf_b[block].b[j + 1], (((w0 >> (i + 6)) & 1) << slice));
-    hc_atomic_or (&words_buf_b[block].b[j + 2], (((w0 >> (i + 5)) & 1) << slice));
-    hc_atomic_or (&words_buf_b[block].b[j + 3], (((w0 >> (i + 4)) & 1) << slice));
-    hc_atomic_or (&words_buf_b[block].b[j + 4], (((w0 >> (i + 3)) & 1) << slice));
-    hc_atomic_or (&words_buf_b[block].b[j + 5], (((w0 >> (i + 2)) & 1) << slice));
-    hc_atomic_or (&words_buf_b[block].b[j + 6], (((w0 >> (i + 1)) & 1) << slice));
+    for (int j = i - 1; j >= 0; j--)
+    {
+      if (zP[i] == zP[j])
+      {
+        zP[i] = (u8) j;
+      }
+    }
   }
-}
 
-#define SWAP_LOCAL(a, b) { u32 tmp=a; a=b; b=tmp; }
-
-#define DATASWAP_LOCAL   \
-  SWAP_LOCAL (D00, D32); \
-  SWAP_LOCAL (D01, D33); \
-  SWAP_LOCAL (D02, D34); \
-  SWAP_LOCAL (D03, D35); \
-  SWAP_LOCAL (D04, D36); \
-  SWAP_LOCAL (D05, D37); \
-  SWAP_LOCAL (D06, D38); \
-  SWAP_LOCAL (D07, D39); \
-  SWAP_LOCAL (D08, D40); \
-  SWAP_LOCAL (D09, D41); \
-  SWAP_LOCAL (D10, D42); \
-  SWAP_LOCAL (D11, D43); \
-  SWAP_LOCAL (D12, D44); \
-  SWAP_LOCAL (D13, D45); \
-  SWAP_LOCAL (D14, D46); \
-  SWAP_LOCAL (D15, D47); \
-  SWAP_LOCAL (D16, D48); \
-  SWAP_LOCAL (D17, D49); \
-  SWAP_LOCAL (D18, D50); \
-  SWAP_LOCAL (D19, D51); \
-  SWAP_LOCAL (D20, D52); \
-  SWAP_LOCAL (D21, D53); \
-  SWAP_LOCAL (D22, D54); \
-  SWAP_LOCAL (D23, D55); \
-  SWAP_LOCAL (D24, D56); \
-  SWAP_LOCAL (D25, D57); \
-  SWAP_LOCAL (D26, D58); \
-  SWAP_LOCAL (D27, D59); \
-  SWAP_LOCAL (D28, D60); \
-  SWAP_LOCAL (D29, D61); \
-  SWAP_LOCAL (D30, D62); \
-  SWAP_LOCAL (D31, D63);
-
-DECLSPEC void DES_decrypt (const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, PRIVATE_AS u32 *D00, PRIVATE_AS u32 *D01, PRIVATE_AS u32 *D02, PRIVATE_AS u32 *D03, PRIVATE_AS u32 *D04, PRIVATE_AS u32 *D05, PRIVATE_AS u32 *D06, PRIVATE_AS u32 *D07, PRIVATE_AS u32 *D08, PRIVATE_AS u32 *D09, PRIVATE_AS u32 *D10, PRIVATE_AS u32 *D11, PRIVATE_AS u32 *D12, PRIVATE_AS u32 *D13, PRIVATE_AS u32 *D14, PRIVATE_AS u32 *D15, PRIVATE_AS u32 *D16, PRIVATE_AS u32 *D17, PRIVATE_AS u32 *D18, PRIVATE_AS u32 *D19, PRIVATE_AS u32 *D20, PRIVATE_AS u32 *D21, PRIVATE_AS u32 *D22, PRIVATE_AS u32 *D23, PRIVATE_AS u32 *D24, PRIVATE_AS u32 *D25, PRIVATE_AS u32 *D26, PRIVATE_AS u32 *D27, PRIVATE_AS u32 *D28, PRIVATE_AS u32 *D29, PRIVATE_AS u32 *D30, PRIVATE_AS u32 *D31, PRIVATE_AS u32 *D32, PRIVATE_AS u32 *D33, PRIVATE_AS u32 *D34, PRIVATE_AS u32 *D35, PRIVATE_AS u32 *D36, PRIVATE_AS u32 *D37, PRIVATE_AS u32 *D38, PRIVATE_AS u32 *D39, PRIVATE_AS u32 *D40, PRIVATE_AS u32 *D41, PRIVATE_AS u32 *D42, PRIVATE_AS u32 *D43, PRIVATE_AS u32 *D44, PRIVATE_AS u32 *D45, PRIVATE_AS u32 *D46, PRIVATE_AS u32 *D47, PRIVATE_AS u32 *D48, PRIVATE_AS u32 *D49, PRIVATE_AS u32 *D50, PRIVATE_AS u32 *D51, PRIVATE_AS u32 *D52, PRIVATE_AS u32 *D53, PRIVATE_AS u32 *D54, PRIVATE_AS u32 *D55, PRIVATE_AS u32 *D56, PRIVATE_AS u32 *D57, PRIVATE_AS u32 *D58, PRIVATE_AS u32 *D59, PRIVATE_AS u32 *D60, PRIVATE_AS u32 *D61, PRIVATE_AS u32 *D62, PRIVATE_AS u32 *D63)
-{
-  KXX_DECL u32 k00, k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11;
-  KXX_DECL u32 k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23;
-  KXX_DECL u32 k24, k25, k26, k27, k28, k29, k30, k31, k32, k33, k34, k35;
-  KXX_DECL u32 k36, k37, k38, k39, k40, k41, k42, k43, k44, k45, k46, k47;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < 2; i++)
+  for (int i = 7; i >= 5; i--)
   {
-    if (i) KEYSET07 else KEYSET17
+    for (int j = i - 1; j >= 4; j--)
+    {
+      if (zP[i] == zP[j])
+      {
+        zP[i] = (u8) (j - 4);
+      }
+    }
+  }
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+  const u8 pi[35] =
+  {
+    0x0F, 0x17, 0x1B, 0x1D, 0x1E, 0x27, 0x2B, 0x2D,
+    0x2E, 0x33, 0x35, 0x39, 0x36, 0x3A, 0x3C, 0x47,
+    0x4B, 0x4D, 0x4E, 0x53, 0x55, 0x56, 0x59, 0x5A,
+    0x5C, 0x63, 0x65, 0x66, 0x69, 0x6A, 0x6C, 0x71,
+    0x72, 0x74, 0x78
+  };
 
-    if (i) KEYSET06 else KEYSET16
+  u8 p = pi[x % 35];
 
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+  if (x & 1)
+  {
+    p = (u8) (~p);
+  }
 
-    if (i) KEYSET05 else KEYSET15
+  int li = 0, ri = 4;
+  u8 zt[8];
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+  for (int bit = 0; bit <= 7; bit++)
+  {
+    if ((p >> bit) & 1)
+    {
+      zt[bit] = zP[li] + 1;
+      li++;
+    }
+    else
+    {
+      zt[bit] = zP[ri];
+      ri++;
+    }
+  }
 
-    if (i) KEYSET04 else KEYSET14
+  for (int i = 0; i < 8; i++)
+  {
+    u8 y_bit = (u8) ((y >> i) & 1);
+    u8 zt_i  = (u8) ((zt[i] << 1) & 0xFE);
+    u8 p_i   = (u8) ((p >> i) & 1);
 
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+    u8 ki = (u8) (y_bit << 7);
 
-    if (i) KEYSET03 else KEYSET13
+    if (ki)
+    {
+      ki |= (~zt_i) & 0x7E;
+      ki |= p_i & 1;
+      ki += 1;
+    }
+    else
+    {
+      ki |= zt_i & 0x7E;
+      ki |= (~p_i) & 1;
+    }
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
-
-    if (i) KEYSET02 else KEYSET12
-
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
-
-    if (i) KEYSET01 else KEYSET11
-
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
-
-    if (i) KEYSET00 else KEYSET10
-
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+    div_key[i] = ki;
   }
 }
 
-#define PERM_OP_FP(a,b,n,m) { u32 t; t=a>>n; t=t^b; t=t&m; b=b^t; t=t<<n; a=a^t; }
-
-#define DES_FP_SCALAR(l,r) \
-{                                    \
-  PERM_OP_FP (l, r,  1, 0x55555555); \
-  PERM_OP_FP (r, l,  8, 0x00ff00ff); \
-  PERM_OP_FP (l, r,  2, 0x33333333); \
-  PERM_OP_FP (r, l, 16, 0x0000ffff); \
-  PERM_OP_FP (l, r,  4, 0x0f0f0f0f); \
-}
-
-DECLSPEC bool valid_lfsr_ulcg (const u32 hi, const u32 lo)
+typedef struct iclass_state
 {
-  u32 x16 = (hi >> 16) & 0xFFFF;
+  u16 t;
+  u8  l;
+  u8  r;
+  u8  b;
+} iclass_state_t;
 
-  x16 = (x16 << 15) | (((x16 >> 1) ^ ((x16 >> 3) ^ (x16 >> 4) ^ (x16 >> 6)) & 1));
-  x16 &= 0xFFFF;
-  if (x16 != (hi & 0xFFFF)) return false;
-
-  x16 = (x16 << 15) | (((x16 >> 1) ^ ((x16 >> 3) ^ (x16 >> 4) ^ (x16 >> 6)) & 1));
-  x16 &= 0xFFFF;
-  if (x16 != ((lo >> 16) & 0xFFFF)) return false;
-
-  x16 = (x16 << 15) | (((x16 >> 1) ^ ((x16 >> 3) ^ (x16 >> 4) ^ (x16 >> 6)) & 1));
-  x16 &= 0xFFFF;
-  if (x16 != (lo & 0xFFFF)) return false;
-
-  return true;
-}
-
-DECLSPEC bool valid_lfsr_mfc (const u32 hi, const u32 lo)
+DECLSPEC iclass_state_t iclass_successor (PRIVATE_AS const u8 *k, const iclass_state_t s, const u8 y)
 {
-  u32 x16 = lo & 0xFFFF;
+  const u8 r0 = (s.r >> 7) & 1;
+  const u8 r4 = (s.r >> 3) & 1;
+  const u8 r7 =  s.r        & 1;
 
-  for (int j = 0; j < 16; j++)
-    x16 = (x16 >> 1) | (((x16 ^ (x16 >> 2) ^ (x16 >> 3) ^ (x16 >> 5)) & 1) << 15);
-  x16 &= 0xFFFF;
-  if (x16 != ((lo >> 16) & 0xFFFF)) return false;
+  const u8 Tt = (u8) (((s.t >> 15) & 1) ^ ((s.t >> 14) & 1)
+             ^ ((s.t >> 10) & 1) ^ ((s.t >>  8) & 1)
+             ^ ((s.t >>  5) & 1) ^ ((s.t >>  4) & 1)
+             ^ ((s.t >>  1) & 1) ^ ( s.t        & 1));
 
-  for (int j = 0; j < 16; j++)
-    x16 = (x16 >> 1) | (((x16 ^ (x16 >> 2) ^ (x16 >> 3) ^ (x16 >> 5)) & 1) << 15);
-  x16 &= 0xFFFF;
-  if (x16 != (hi & 0xFFFF)) return false;
+  const u8 Bt = (u8) (((s.b >> 6) & 1) ^ ((s.b >> 5) & 1)
+             ^ ((s.b >> 4) & 1) ^ ( s.b        & 1));
 
-  for (int j = 0; j < 16; j++)
-    x16 = (x16 >> 1) | (((x16 ^ (x16 >> 2) ^ (x16 >> 3) ^ (x16 >> 5)) & 1) << 15);
-  x16 &= 0xFFFF;
-  if (x16 != ((hi >> 16) & 0xFFFF)) return false;
+  iclass_state_t ns;
 
-  return true;
+  ns.t = (u16) ((s.t >> 1) | ((u16) ((Tt ^ r0 ^ r4) & 1) << 15));
+  ns.b = (u8)  ((s.b >> 1) | ((u8)  ((Bt ^ r7)      & 1) << 7));
+
+  const u8 r1 = (s.r >> 6) & 1;
+  const u8 r2 = (s.r >> 5) & 1;
+  const u8 r3 = (s.r >> 4) & 1;
+  const u8 r5 = (s.r >> 2) & 1;
+  const u8 r6 = (s.r >> 1) & 1;
+
+  const u8 z0 = (u8) ((r0 & r2) ^ (r1 & (r3 ^ 1)) ^ (r2 | r4));
+  const u8 z1 = (u8) ((r0 | r2) ^ (r5 | r7) ^ r1 ^ r6 ^ Tt ^ y);
+  const u8 z2 = (u8) ((r3 & (r5 ^ 1)) ^ (r4 & r6) ^ r7 ^ Tt);
+
+  const u8 sel = ((z0 & 1) << 2) | ((z1 & 1) << 1) | (z2 & 1);
+  const u8 val = (u8) (k[sel] ^ ns.b);
+
+  ns.l = (u8) ((val + s.l + s.r) & 0xFF);
+  ns.r = (u8) ((val + s.l)       & 0xFF);
+
+  return ns;
 }
 
-#define KEYBITS_FROM_LE(pfx, w0v, w1v)                          \
-  const u32 pfx##00 = (((w0v >> ( 0 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##01 = (((w0v >> ( 0 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##02 = (((w0v >> ( 0 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##03 = (((w0v >> ( 0 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##04 = (((w0v >> ( 0 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##05 = (((w0v >> ( 0 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##06 = (((w0v >> ( 0 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##07 = (((w0v >> ( 8 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##08 = (((w0v >> ( 8 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##09 = (((w0v >> ( 8 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##10 = (((w0v >> ( 8 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##11 = (((w0v >> ( 8 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##12 = (((w0v >> ( 8 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##13 = (((w0v >> ( 8 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##14 = (((w0v >> (16 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##15 = (((w0v >> (16 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##16 = (((w0v >> (16 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##17 = (((w0v >> (16 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##18 = (((w0v >> (16 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##19 = (((w0v >> (16 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##20 = (((w0v >> (16 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##21 = (((w0v >> (24 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##22 = (((w0v >> (24 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##23 = (((w0v >> (24 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##24 = (((w0v >> (24 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##25 = (((w0v >> (24 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##26 = (((w0v >> (24 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##27 = (((w0v >> (24 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##28 = (((w1v >> ( 0 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##29 = (((w1v >> ( 0 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##30 = (((w1v >> ( 0 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##31 = (((w1v >> ( 0 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##32 = (((w1v >> ( 0 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##33 = (((w1v >> ( 0 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##34 = (((w1v >> ( 0 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##35 = (((w1v >> ( 8 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##36 = (((w1v >> ( 8 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##37 = (((w1v >> ( 8 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##38 = (((w1v >> ( 8 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##39 = (((w1v >> ( 8 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##40 = (((w1v >> ( 8 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##41 = (((w1v >> ( 8 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##42 = (((w1v >> (16 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##43 = (((w1v >> (16 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##44 = (((w1v >> (16 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##45 = (((w1v >> (16 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##46 = (((w1v >> (16 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##47 = (((w1v >> (16 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##48 = (((w1v >> (16 + 1)) & 1) ? -1 : 0);    \
-  const u32 pfx##49 = (((w1v >> (24 + 7)) & 1) ? -1 : 0);    \
-  const u32 pfx##50 = (((w1v >> (24 + 6)) & 1) ? -1 : 0);    \
-  const u32 pfx##51 = (((w1v >> (24 + 5)) & 1) ? -1 : 0);    \
-  const u32 pfx##52 = (((w1v >> (24 + 4)) & 1) ? -1 : 0);    \
-  const u32 pfx##53 = (((w1v >> (24 + 3)) & 1) ? -1 : 0);    \
-  const u32 pfx##54 = (((w1v >> (24 + 2)) & 1) ? -1 : 0);    \
-  const u32 pfx##55 = (((w1v >> (24 + 1)) & 1) ? -1 : 0);
+DECLSPEC u8 reflect8 (u8 b)
+{
+  b = (u8) (((b & 0xF0) >> 4) | ((b & 0x0F) << 4));
+  b = (u8) (((b & 0xCC) >> 2) | ((b & 0x33) << 2));
+  b = (u8) (((b & 0xAA) >> 1) | ((b & 0x55) << 1));
+  return b;
+}
 
-#define LOAD_DATA_BS(lo, hi)                        \
-  u32 D00 = (((lo >>  0) & 1) ? -1 : 0);            \
-  u32 D01 = (((lo >>  1) & 1) ? -1 : 0);            \
-  u32 D02 = (((lo >>  2) & 1) ? -1 : 0);            \
-  u32 D03 = (((lo >>  3) & 1) ? -1 : 0);            \
-  u32 D04 = (((lo >>  4) & 1) ? -1 : 0);            \
-  u32 D05 = (((lo >>  5) & 1) ? -1 : 0);            \
-  u32 D06 = (((lo >>  6) & 1) ? -1 : 0);            \
-  u32 D07 = (((lo >>  7) & 1) ? -1 : 0);            \
-  u32 D08 = (((lo >>  8) & 1) ? -1 : 0);            \
-  u32 D09 = (((lo >>  9) & 1) ? -1 : 0);            \
-  u32 D10 = (((lo >> 10) & 1) ? -1 : 0);            \
-  u32 D11 = (((lo >> 11) & 1) ? -1 : 0);            \
-  u32 D12 = (((lo >> 12) & 1) ? -1 : 0);            \
-  u32 D13 = (((lo >> 13) & 1) ? -1 : 0);            \
-  u32 D14 = (((lo >> 14) & 1) ? -1 : 0);            \
-  u32 D15 = (((lo >> 15) & 1) ? -1 : 0);            \
-  u32 D16 = (((lo >> 16) & 1) ? -1 : 0);            \
-  u32 D17 = (((lo >> 17) & 1) ? -1 : 0);            \
-  u32 D18 = (((lo >> 18) & 1) ? -1 : 0);            \
-  u32 D19 = (((lo >> 19) & 1) ? -1 : 0);            \
-  u32 D20 = (((lo >> 20) & 1) ? -1 : 0);            \
-  u32 D21 = (((lo >> 21) & 1) ? -1 : 0);            \
-  u32 D22 = (((lo >> 22) & 1) ? -1 : 0);            \
-  u32 D23 = (((lo >> 23) & 1) ? -1 : 0);            \
-  u32 D24 = (((lo >> 24) & 1) ? -1 : 0);            \
-  u32 D25 = (((lo >> 25) & 1) ? -1 : 0);            \
-  u32 D26 = (((lo >> 26) & 1) ? -1 : 0);            \
-  u32 D27 = (((lo >> 27) & 1) ? -1 : 0);            \
-  u32 D28 = (((lo >> 28) & 1) ? -1 : 0);            \
-  u32 D29 = (((lo >> 29) & 1) ? -1 : 0);            \
-  u32 D30 = (((lo >> 30) & 1) ? -1 : 0);            \
-  u32 D31 = (((lo >> 31) & 1) ? -1 : 0);            \
-  u32 D32 = (((hi >>  0) & 1) ? -1 : 0);            \
-  u32 D33 = (((hi >>  1) & 1) ? -1 : 0);            \
-  u32 D34 = (((hi >>  2) & 1) ? -1 : 0);            \
-  u32 D35 = (((hi >>  3) & 1) ? -1 : 0);            \
-  u32 D36 = (((hi >>  4) & 1) ? -1 : 0);            \
-  u32 D37 = (((hi >>  5) & 1) ? -1 : 0);            \
-  u32 D38 = (((hi >>  6) & 1) ? -1 : 0);            \
-  u32 D39 = (((hi >>  7) & 1) ? -1 : 0);            \
-  u32 D40 = (((hi >>  8) & 1) ? -1 : 0);            \
-  u32 D41 = (((hi >>  9) & 1) ? -1 : 0);            \
-  u32 D42 = (((hi >> 10) & 1) ? -1 : 0);            \
-  u32 D43 = (((hi >> 11) & 1) ? -1 : 0);            \
-  u32 D44 = (((hi >> 12) & 1) ? -1 : 0);            \
-  u32 D45 = (((hi >> 13) & 1) ? -1 : 0);            \
-  u32 D46 = (((hi >> 14) & 1) ? -1 : 0);            \
-  u32 D47 = (((hi >> 15) & 1) ? -1 : 0);            \
-  u32 D48 = (((hi >> 16) & 1) ? -1 : 0);            \
-  u32 D49 = (((hi >> 17) & 1) ? -1 : 0);            \
-  u32 D50 = (((hi >> 18) & 1) ? -1 : 0);            \
-  u32 D51 = (((hi >> 19) & 1) ? -1 : 0);            \
-  u32 D52 = (((hi >> 20) & 1) ? -1 : 0);            \
-  u32 D53 = (((hi >> 21) & 1) ? -1 : 0);            \
-  u32 D54 = (((hi >> 22) & 1) ? -1 : 0);            \
-  u32 D55 = (((hi >> 23) & 1) ? -1 : 0);            \
-  u32 D56 = (((hi >> 24) & 1) ? -1 : 0);            \
-  u32 D57 = (((hi >> 25) & 1) ? -1 : 0);            \
-  u32 D58 = (((hi >> 26) & 1) ? -1 : 0);            \
-  u32 D59 = (((hi >> 27) & 1) ? -1 : 0);            \
-  u32 D60 = (((hi >> 28) & 1) ? -1 : 0);            \
-  u32 D61 = (((hi >> 29) & 1) ? -1 : 0);            \
-  u32 D62 = (((hi >> 30) & 1) ? -1 : 0);            \
-  u32 D63 = (((hi >> 31) & 1) ? -1 : 0);
+DECLSPEC u32 iclass_mac (PRIVATE_AS const u8 *rev_ccnr, PRIVATE_AS const u8 *div_key)
+{
+  iclass_state_t state;
+  state.l = (u8) (((div_key[0] ^ 0x4C) + 0xEC) & 0xFF);
+  state.r = (u8) (((div_key[0] ^ 0x4C) + 0x21) & 0xFF);
+  state.b = 0x4C;
+  state.t = 0xE012;
 
-#define DES_CALL(fn, pfx)                                                            \
-  fn (pfx##00, pfx##01, pfx##02, pfx##03, pfx##04, pfx##05, pfx##06,                 \
-      pfx##07, pfx##08, pfx##09, pfx##10, pfx##11, pfx##12, pfx##13,                 \
-      pfx##14, pfx##15, pfx##16, pfx##17, pfx##18, pfx##19, pfx##20,                 \
-      pfx##21, pfx##22, pfx##23, pfx##24, pfx##25, pfx##26, pfx##27,                 \
-      pfx##28, pfx##29, pfx##30, pfx##31, pfx##32, pfx##33, pfx##34,                 \
-      pfx##35, pfx##36, pfx##37, pfx##38, pfx##39, pfx##40, pfx##41,                 \
-      pfx##42, pfx##43, pfx##44, pfx##45, pfx##46, pfx##47, pfx##48,                 \
-      pfx##49, pfx##50, pfx##51, pfx##52, pfx##53, pfx##54, pfx##55,                 \
-      &D00, &D01, &D02, &D03, &D04, &D05, &D06, &D07,                               \
-      &D08, &D09, &D10, &D11, &D12, &D13, &D14, &D15,                               \
-      &D16, &D17, &D18, &D19, &D20, &D21, &D22, &D23,                               \
-      &D24, &D25, &D26, &D27, &D28, &D29, &D30, &D31,                               \
-      &D32, &D33, &D34, &D35, &D36, &D37, &D38, &D39,                               \
-      &D40, &D41, &D42, &D43, &D44, &D45, &D46, &D47,                               \
-      &D48, &D49, &D50, &D51, &D52, &D53, &D54, &D55,                               \
-      &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63)
-
-#define UNBITSLICE(out0, out1)                                                      \
-  {                                                                                  \
-    u32 _tmp[64];                                                                    \
-    _tmp[ 0] = D00; _tmp[ 1] = D01; _tmp[ 2] = D02; _tmp[ 3] = D03;                \
-    _tmp[ 4] = D04; _tmp[ 5] = D05; _tmp[ 6] = D06; _tmp[ 7] = D07;                \
-    _tmp[ 8] = D08; _tmp[ 9] = D09; _tmp[10] = D10; _tmp[11] = D11;                \
-    _tmp[12] = D12; _tmp[13] = D13; _tmp[14] = D14; _tmp[15] = D15;                \
-    _tmp[16] = D16; _tmp[17] = D17; _tmp[18] = D18; _tmp[19] = D19;                \
-    _tmp[20] = D20; _tmp[21] = D21; _tmp[22] = D22; _tmp[23] = D23;                \
-    _tmp[24] = D24; _tmp[25] = D25; _tmp[26] = D26; _tmp[27] = D27;                \
-    _tmp[28] = D28; _tmp[29] = D29; _tmp[30] = D30; _tmp[31] = D31;                \
-    _tmp[32] = D32; _tmp[33] = D33; _tmp[34] = D34; _tmp[35] = D35;                \
-    _tmp[36] = D36; _tmp[37] = D37; _tmp[38] = D38; _tmp[39] = D39;                \
-    _tmp[40] = D40; _tmp[41] = D41; _tmp[42] = D42; _tmp[43] = D43;                \
-    _tmp[44] = D44; _tmp[45] = D45; _tmp[46] = D46; _tmp[47] = D47;                \
-    _tmp[48] = D48; _tmp[49] = D49; _tmp[50] = D50; _tmp[51] = D51;                \
-    _tmp[52] = D52; _tmp[53] = D53; _tmp[54] = D54; _tmp[55] = D55;                \
-    _tmp[56] = D56; _tmp[57] = D57; _tmp[58] = D58; _tmp[59] = D59;                \
-    _tmp[60] = D60; _tmp[61] = D61; _tmp[62] = D62; _tmp[63] = D63;                \
-    for (int _i = 0; _i < 32; _i++)                                                 \
-    {                                                                                \
-      (out0)[_i] = _tmp[ 0 + 31 - _i];                                              \
-      (out1)[_i] = _tmp[32 + 31 - _i];                                              \
-    }                                                                                \
-    transpose32c (out0);                                                             \
-    transpose32c (out1);                                                             \
+  for (int i = 0; i < 12; i++)
+  {
+    const u8 rb = rev_ccnr[i];
+    for (int bit = 7; bit >= 0; bit--)
+    {
+      state = iclass_successor (div_key, state, (rb >> bit) & 1);
+    }
   }
 
-KERNEL_FQ KERNEL_FA void m82000_sxx (KERN_ATTR_BITSLICE ())
-{
-  /**
-   * base
-   */
+  u8 mac[4] = { 0, 0, 0, 0 };
 
-  const u64 gid = get_global_id (0);
+  for (int i = 0; i < 4; i++)
+  {
+    for (int bit = 7; bit >= 0; bit--)
+    {
+      mac[i] |= (u8) (((state.r >> 2) & 1) << bit);
+      state = iclass_successor (div_key, state, 0);
+    }
+  }
+
+  return ((u32) reflect8 (mac[0]) << 24)
+       | ((u32) reflect8 (mac[1]) << 16)
+       | ((u32) reflect8 (mac[2]) <<  8)
+       | ((u32) reflect8 (mac[3])      );
+}
+
+DECLSPEC void unpack_be32 (const u32 w, PRIVATE_AS u8 *out)
+{
+  out[0] = (u8) (w >> 24);
+  out[1] = (u8) (w >> 16);
+  out[2] = (u8) (w >>  8);
+  out[3] = (u8) (w      );
+}
+
+DECLSPEC u32 bs_mux8 (const u32 z0, const u32 z1, const u32 z2,
+                      const u32 nz0, const u32 nz1, const u32 nz2,
+                      const u32 v0, const u32 v1, const u32 v2, const u32 v3,
+                      const u32 v4, const u32 v5, const u32 v6, const u32 v7)
+{
+  const u32 a0 = (z2 & v1) | (nz2 & v0);
+  const u32 a1 = (z2 & v3) | (nz2 & v2);
+  const u32 a2 = (z2 & v5) | (nz2 & v4);
+  const u32 a3 = (z2 & v7) | (nz2 & v6);
+  const u32 b0 = (z1 & a1) | (nz1 & a0);
+  const u32 b1 = (z1 & a3) | (nz1 & a2);
+  return (z0 & b1) | (nz0 & b0);
+}
+
+DECLSPEC void bs_add8 (PRIVATE_AS const u32 *a, PRIVATE_AS const u32 *b, PRIVATE_AS u32 *out)
+{
+  u32 carry = 0;
+  for (int i = 0; i < 8; i++)
+  {
+    const u32 x = a[i] ^ b[i];
+    out[i] = x ^ carry;
+    carry = (a[i] & b[i]) | (carry & x);
+  }
+}
+
+DECLSPEC void bs_iclass_tick (PRIVATE_AS u32 *t, PRIVATE_AS u32 *b,
+                              PRIVATE_AS u32 *l, PRIVATE_AS u32 *r,
+                              PRIVATE_AS const u32 *kb, const u32 y_bs)
+{
+  const u32 Tt = t[15] ^ t[14] ^ t[10] ^ t[8] ^ t[5] ^ t[4] ^ t[1] ^ t[0];
+  const u32 Bt = b[6] ^ b[5] ^ b[4] ^ b[0];
+
+  const u32 cr0 = r[7], cr1 = r[6], cr2 = r[5], cr3 = r[4];
+  const u32 cr4 = r[3], cr5 = r[2], cr6 = r[1], cr7 = r[0];
+
+  const u32 new_t = Tt ^ cr0 ^ cr4;
+  const u32 new_b = Bt ^ cr7;
+
+  t[ 0] = t[ 1]; t[ 1] = t[ 2]; t[ 2] = t[ 3]; t[ 3] = t[ 4];
+  t[ 4] = t[ 5]; t[ 5] = t[ 6]; t[ 6] = t[ 7]; t[ 7] = t[ 8];
+  t[ 8] = t[ 9]; t[ 9] = t[10]; t[10] = t[11]; t[11] = t[12];
+  t[12] = t[13]; t[13] = t[14]; t[14] = t[15]; t[15] = new_t;
+
+  b[0] = b[1]; b[1] = b[2]; b[2] = b[3]; b[3] = b[4];
+  b[4] = b[5]; b[5] = b[6]; b[6] = b[7]; b[7] = new_b;
+
+  const u32 ncr3 = ~cr3;
+  const u32 ncr5 = ~cr5;
+
+  const u32 sz0 = (cr0 & cr2) ^ (cr1 & ncr3) ^ (cr2 | cr4);
+  const u32 sz1 = (cr0 | cr2) ^ (cr5 | cr7) ^ cr1 ^ cr6 ^ Tt ^ y_bs;
+  const u32 sz2 = (cr3 & ncr5) ^ (cr4 & cr6) ^ cr7 ^ Tt;
+
+  const u32 nz0 = ~sz0, nz1 = ~sz1, nz2 = ~sz2;
+
+  u32 val[8];
+
+  for (int bit = 0; bit < 8; bit++)
+  {
+    val[bit] = bs_mux8 (sz0, sz1, sz2, nz0, nz1, nz2,
+                        kb[0 * 8 + bit], kb[1 * 8 + bit],
+                        kb[2 * 8 + bit], kb[3 * 8 + bit],
+                        kb[4 * 8 + bit], kb[5 * 8 + bit],
+                        kb[6 * 8 + bit], kb[7 * 8 + bit]);
+  }
+
+  val[0] ^= b[0]; val[1] ^= b[1]; val[2] ^= b[2]; val[3] ^= b[3];
+  val[4] ^= b[4]; val[5] ^= b[5]; val[6] ^= b[6]; val[7] ^= b[7];
+
+  u32 old_r[8];
+  for (int bit = 0; bit < 8; bit++) old_r[bit] = r[bit];
+
+  bs_add8 (val, l, r);
+  bs_add8 (r, old_r, l);
+}
+
+KERNEL_FQ KERNEL_FA void m36900_mxx (KERN_ATTR_BASIC ())
+{
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
 
-  /**
-   * salt
-   */
+  const u32 csn0_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
+  const u32 csn1_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
 
-  const u32 ct0       = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
-  const u32 ct1       = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
-  const u32 er0       = salt_bufs[SALT_POS_HOST].salt_buf_pc[2];
-  const u32 er1       = salt_bufs[SALT_POS_HOST].salt_buf_pc[3];
-  const u32 iv0       = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
-  const u32 iv1       = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
-  const u32 fk1w0     = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
-  const u32 fk1w1     = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];
-  const u32 fk2w0     = salt_bufs[SALT_POS_HOST].salt_buf_pc[8];
-  const u32 fk2w1     = salt_bufs[SALT_POS_HOST].salt_buf_pc[9];
-  const u32 mode      = salt_bufs[SALT_POS_HOST].salt_buf_pc[10];
-  const u32 segment   = salt_bufs[SALT_POS_HOST].salt_buf_pc[11];
-  const u32 lfsr_type = salt_bufs[SALT_POS_HOST].salt_buf_pc[12];
 
-  KEYBITS_FROM_LE (FK1_, fk1w0, fk1w1)
-  KEYBITS_FROM_LE (FK2_, fk2w0, fk2w1)
+  u8 ccnr2_bytes[12];
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[5], ccnr2_bytes + 0);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[6], ccnr2_bytes + 4);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[7], ccnr2_bytes + 8);
 
-  const u32 pw0 = pws[gid].i[0];
+  const u32 mac2_target = salt_bufs[SALT_POS_HOST].salt_buf[8];
 
-  /**
-   * inner loop
-   */
+  u8 rev_ccnr2[12];
+  for (int i = 0; i < 12; i++) rev_ccnr2[i] = reflect8 (ccnr2_bytes[i]);
+
+  u8 ccnr1_bytes[12];
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[2], ccnr1_bytes + 0);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[3], ccnr1_bytes + 4);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[4], ccnr1_bytes + 8);
+
+  u32 y_ccnr[96];
+  for (int i = 0; i < 12; i++)
+  {
+    u8 rb = reflect8 (ccnr1_bytes[i]);
+    for (int bit = 7; bit >= 0; bit--)
+      y_ccnr[i * 8 + (7 - bit)] = ((rb >> bit) & 1) ? 0xFFFFFFFF : 0;
+  }
+
+  const u32 w0l = pws[gid].i[0];
+  const u32 w1  = pws[gid].i[1];
+
+  const u32 FK28 = (((w1 >> ( 0 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK29 = (((w1 >> ( 0 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK30 = (((w1 >> ( 0 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK31 = (((w1 >> ( 0 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK32 = (((w1 >> ( 0 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK33 = (((w1 >> ( 0 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK34 = (((w1 >> ( 0 + 1)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK35 = (((w1 >> ( 8 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK36 = (((w1 >> ( 8 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK37 = (((w1 >> ( 8 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK38 = (((w1 >> ( 8 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK39 = (((w1 >> ( 8 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK40 = (((w1 >> ( 8 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK41 = (((w1 >> ( 8 + 1)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK42 = (((w1 >> (16 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK43 = (((w1 >> (16 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK44 = (((w1 >> (16 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK45 = (((w1 >> (16 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK46 = (((w1 >> (16 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK47 = (((w1 >> (16 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK48 = (((w1 >> (16 + 1)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK49 = (((w1 >> (24 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK50 = (((w1 >> (24 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK51 = (((w1 >> (24 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK52 = (((w1 >> (24 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK53 = (((w1 >> (24 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK54 = (((w1 >> (24 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK55 = (((w1 >> (24 + 1)) & 1) ? 0xFFFFFFFF : 0);
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
   {
-    const u32 pc_pos = il_pos / 32;
+    const u32 batch_cnt = ((il_pos + 32) <= IL_CNT) ? 32 : (IL_CNT - il_pos);
 
-    u32 ck00 = (((pw0 >> ( 0 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 0];
-    u32 ck01 = (((pw0 >> ( 0 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 1];
-    u32 ck02 = (((pw0 >> ( 0 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 2];
-    u32 ck03 = (((pw0 >> ( 0 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 3];
-    u32 ck04 = (((pw0 >> ( 0 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 4];
-    u32 ck05 = (((pw0 >> ( 0 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 5];
-    u32 ck06 = (((pw0 >> ( 0 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 6];
-    u32 ck07 = (((pw0 >> ( 8 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 7];
-    u32 ck08 = (((pw0 >> ( 8 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 8];
-    u32 ck09 = (((pw0 >> ( 8 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 9];
-    u32 ck10 = (((pw0 >> ( 8 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[10];
-    u32 ck11 = (((pw0 >> ( 8 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[11];
-    u32 ck12 = (((pw0 >> ( 8 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[12];
-    u32 ck13 = (((pw0 >> ( 8 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[13];
-    u32 ck14 = (((pw0 >> (16 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[14];
-    u32 ck15 = (((pw0 >> (16 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[15];
-    u32 ck16 = (((pw0 >> (16 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[16];
-    u32 ck17 = (((pw0 >> (16 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[17];
-    u32 ck18 = (((pw0 >> (16 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[18];
-    u32 ck19 = (((pw0 >> (16 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[19];
-    u32 ck20 = (((pw0 >> (16 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[20];
-    u32 ck21 = (((pw0 >> (24 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[21];
-    u32 ck22 = (((pw0 >> (24 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[22];
-    u32 ck23 = (((pw0 >> (24 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[23];
-    u32 ck24 = (((pw0 >> (24 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[24];
-    u32 ck25 = (((pw0 >> (24 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[25];
-    u32 ck26 = (((pw0 >> (24 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[26];
-    u32 ck27 = (((pw0 >> (24 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[27];
+    u32 K00=0,K01=0,K02=0,K03=0,K04=0,K05=0,K06=0;
+    u32 K07=0,K08=0,K09=0,K10=0,K11=0,K12=0,K13=0;
+    u32 K14=0,K15=0,K16=0,K17=0,K18=0,K19=0,K20=0;
+    u32 K21=0,K22=0,K23=0,K24=0,K25=0,K26=0,K27=0;
 
-    #define CK(n) ck##n
-    #define FK1(n) FK1_##n
-    #define FK2(n) FK2_##n
-
-    const u32 K1_00 = (segment == 0) ? CK(00) : FK1(00);
-    const u32 K1_01 = (segment == 0) ? CK(01) : FK1(01);
-    const u32 K1_02 = (segment == 0) ? CK(02) : FK1(02);
-    const u32 K1_03 = (segment == 0) ? CK(03) : FK1(03);
-    const u32 K1_04 = (segment == 0) ? CK(04) : FK1(04);
-    const u32 K1_05 = (segment == 0) ? CK(05) : FK1(05);
-    const u32 K1_06 = (segment == 0) ? CK(06) : FK1(06);
-    const u32 K1_07 = (segment == 0) ? CK(07) : FK1(07);
-    const u32 K1_08 = (segment == 0) ? CK(08) : FK1(08);
-    const u32 K1_09 = (segment == 0) ? CK(09) : FK1(09);
-    const u32 K1_10 = (segment == 0) ? CK(10) : FK1(10);
-    const u32 K1_11 = (segment == 0) ? CK(11) : FK1(11);
-    const u32 K1_12 = (segment == 0) ? CK(12) : FK1(12);
-    const u32 K1_13 = (segment == 0) ? CK(13) : FK1(13);
-    const u32 K1_14 = (segment == 0) ? CK(14) : FK1(14);
-    const u32 K1_15 = (segment == 0) ? CK(15) : FK1(15);
-    const u32 K1_16 = (segment == 0) ? CK(16) : FK1(16);
-    const u32 K1_17 = (segment == 0) ? CK(17) : FK1(17);
-    const u32 K1_18 = (segment == 0) ? CK(18) : FK1(18);
-    const u32 K1_19 = (segment == 0) ? CK(19) : FK1(19);
-    const u32 K1_20 = (segment == 0) ? CK(20) : FK1(20);
-    const u32 K1_21 = (segment == 0) ? CK(21) : FK1(21);
-    const u32 K1_22 = (segment == 0) ? CK(22) : FK1(22);
-    const u32 K1_23 = (segment == 0) ? CK(23) : FK1(23);
-    const u32 K1_24 = (segment == 0) ? CK(24) : FK1(24);
-    const u32 K1_25 = (segment == 0) ? CK(25) : FK1(25);
-    const u32 K1_26 = (segment == 0) ? CK(26) : FK1(26);
-    const u32 K1_27 = (segment == 0) ? CK(27) : FK1(27);
-    const u32 K1_28 = (segment == 1) ? CK(00) : FK1(28);
-    const u32 K1_29 = (segment == 1) ? CK(01) : FK1(29);
-    const u32 K1_30 = (segment == 1) ? CK(02) : FK1(30);
-    const u32 K1_31 = (segment == 1) ? CK(03) : FK1(31);
-    const u32 K1_32 = (segment == 1) ? CK(04) : FK1(32);
-    const u32 K1_33 = (segment == 1) ? CK(05) : FK1(33);
-    const u32 K1_34 = (segment == 1) ? CK(06) : FK1(34);
-    const u32 K1_35 = (segment == 1) ? CK(07) : FK1(35);
-    const u32 K1_36 = (segment == 1) ? CK(08) : FK1(36);
-    const u32 K1_37 = (segment == 1) ? CK(09) : FK1(37);
-    const u32 K1_38 = (segment == 1) ? CK(10) : FK1(38);
-    const u32 K1_39 = (segment == 1) ? CK(11) : FK1(39);
-    const u32 K1_40 = (segment == 1) ? CK(12) : FK1(40);
-    const u32 K1_41 = (segment == 1) ? CK(13) : FK1(41);
-    const u32 K1_42 = (segment == 1) ? CK(14) : FK1(42);
-    const u32 K1_43 = (segment == 1) ? CK(15) : FK1(43);
-    const u32 K1_44 = (segment == 1) ? CK(16) : FK1(44);
-    const u32 K1_45 = (segment == 1) ? CK(17) : FK1(45);
-    const u32 K1_46 = (segment == 1) ? CK(18) : FK1(46);
-    const u32 K1_47 = (segment == 1) ? CK(19) : FK1(47);
-    const u32 K1_48 = (segment == 1) ? CK(20) : FK1(48);
-    const u32 K1_49 = (segment == 1) ? CK(21) : FK1(49);
-    const u32 K1_50 = (segment == 1) ? CK(22) : FK1(50);
-    const u32 K1_51 = (segment == 1) ? CK(23) : FK1(51);
-    const u32 K1_52 = (segment == 1) ? CK(24) : FK1(52);
-    const u32 K1_53 = (segment == 1) ? CK(25) : FK1(53);
-    const u32 K1_54 = (segment == 1) ? CK(26) : FK1(54);
-    const u32 K1_55 = (segment == 1) ? CK(27) : FK1(55);
-
-    const u32 K2_00 = (segment == 2) ? CK(00) : FK2(00);
-    const u32 K2_01 = (segment == 2) ? CK(01) : FK2(01);
-    const u32 K2_02 = (segment == 2) ? CK(02) : FK2(02);
-    const u32 K2_03 = (segment == 2) ? CK(03) : FK2(03);
-    const u32 K2_04 = (segment == 2) ? CK(04) : FK2(04);
-    const u32 K2_05 = (segment == 2) ? CK(05) : FK2(05);
-    const u32 K2_06 = (segment == 2) ? CK(06) : FK2(06);
-    const u32 K2_07 = (segment == 2) ? CK(07) : FK2(07);
-    const u32 K2_08 = (segment == 2) ? CK(08) : FK2(08);
-    const u32 K2_09 = (segment == 2) ? CK(09) : FK2(09);
-    const u32 K2_10 = (segment == 2) ? CK(10) : FK2(10);
-    const u32 K2_11 = (segment == 2) ? CK(11) : FK2(11);
-    const u32 K2_12 = (segment == 2) ? CK(12) : FK2(12);
-    const u32 K2_13 = (segment == 2) ? CK(13) : FK2(13);
-    const u32 K2_14 = (segment == 2) ? CK(14) : FK2(14);
-    const u32 K2_15 = (segment == 2) ? CK(15) : FK2(15);
-    const u32 K2_16 = (segment == 2) ? CK(16) : FK2(16);
-    const u32 K2_17 = (segment == 2) ? CK(17) : FK2(17);
-    const u32 K2_18 = (segment == 2) ? CK(18) : FK2(18);
-    const u32 K2_19 = (segment == 2) ? CK(19) : FK2(19);
-    const u32 K2_20 = (segment == 2) ? CK(20) : FK2(20);
-    const u32 K2_21 = (segment == 2) ? CK(21) : FK2(21);
-    const u32 K2_22 = (segment == 2) ? CK(22) : FK2(22);
-    const u32 K2_23 = (segment == 2) ? CK(23) : FK2(23);
-    const u32 K2_24 = (segment == 2) ? CK(24) : FK2(24);
-    const u32 K2_25 = (segment == 2) ? CK(25) : FK2(25);
-    const u32 K2_26 = (segment == 2) ? CK(26) : FK2(26);
-    const u32 K2_27 = (segment == 2) ? CK(27) : FK2(27);
-    const u32 K2_28 = (segment == 3) ? CK(00) : FK2(28);
-    const u32 K2_29 = (segment == 3) ? CK(01) : FK2(29);
-    const u32 K2_30 = (segment == 3) ? CK(02) : FK2(30);
-    const u32 K2_31 = (segment == 3) ? CK(03) : FK2(31);
-    const u32 K2_32 = (segment == 3) ? CK(04) : FK2(32);
-    const u32 K2_33 = (segment == 3) ? CK(05) : FK2(33);
-    const u32 K2_34 = (segment == 3) ? CK(06) : FK2(34);
-    const u32 K2_35 = (segment == 3) ? CK(07) : FK2(35);
-    const u32 K2_36 = (segment == 3) ? CK(08) : FK2(36);
-    const u32 K2_37 = (segment == 3) ? CK(09) : FK2(37);
-    const u32 K2_38 = (segment == 3) ? CK(10) : FK2(38);
-    const u32 K2_39 = (segment == 3) ? CK(11) : FK2(39);
-    const u32 K2_40 = (segment == 3) ? CK(12) : FK2(40);
-    const u32 K2_41 = (segment == 3) ? CK(13) : FK2(41);
-    const u32 K2_42 = (segment == 3) ? CK(14) : FK2(42);
-    const u32 K2_43 = (segment == 3) ? CK(15) : FK2(43);
-    const u32 K2_44 = (segment == 3) ? CK(16) : FK2(44);
-    const u32 K2_45 = (segment == 3) ? CK(17) : FK2(45);
-    const u32 K2_46 = (segment == 3) ? CK(18) : FK2(46);
-    const u32 K2_47 = (segment == 3) ? CK(19) : FK2(47);
-    const u32 K2_48 = (segment == 3) ? CK(20) : FK2(48);
-    const u32 K2_49 = (segment == 3) ? CK(21) : FK2(49);
-    const u32 K2_50 = (segment == 3) ? CK(22) : FK2(50);
-    const u32 K2_51 = (segment == 3) ? CK(23) : FK2(51);
-    const u32 K2_52 = (segment == 3) ? CK(24) : FK2(52);
-    const u32 K2_53 = (segment == 3) ? CK(25) : FK2(53);
-    const u32 K2_54 = (segment == 3) ? CK(26) : FK2(54);
-    const u32 K2_55 = (segment == 3) ? CK(27) : FK2(55);
-
-    #undef CK
-    #undef FK1
-    #undef FK2
-
+    for (u32 i = 0; i < batch_cnt; i++)
     {
-      LOAD_DATA_BS (ct1, ct0)
+      const u32 w0 = w0l | bfs_buf[il_pos + i].i;
+      const u32 m = 1u << i;
+      if (w0 & (1u<< 7)) K00|=m; if (w0 & (1u<< 6)) K01|=m;
+      if (w0 & (1u<< 5)) K02|=m; if (w0 & (1u<< 4)) K03|=m;
+      if (w0 & (1u<< 3)) K04|=m; if (w0 & (1u<< 2)) K05|=m;
+      if (w0 & (1u<< 1)) K06|=m; if (w0 & (1u<<15)) K07|=m;
+      if (w0 & (1u<<14)) K08|=m; if (w0 & (1u<<13)) K09|=m;
+      if (w0 & (1u<<12)) K10|=m; if (w0 & (1u<<11)) K11|=m;
+      if (w0 & (1u<<10)) K12|=m; if (w0 & (1u<< 9)) K13|=m;
+      if (w0 & (1u<<23)) K14|=m; if (w0 & (1u<<22)) K15|=m;
+      if (w0 & (1u<<21)) K16|=m; if (w0 & (1u<<20)) K17|=m;
+      if (w0 & (1u<<19)) K18|=m; if (w0 & (1u<<18)) K19|=m;
+      if (w0 & (1u<<17)) K20|=m; if (w0 & (1u<<31)) K21|=m;
+      if (w0 & (1u<<30)) K22|=m; if (w0 & (1u<<29)) K23|=m;
+      if (w0 & (1u<<28)) K24|=m; if (w0 & (1u<<27)) K25|=m;
+      if (w0 & (1u<<26)) K26|=m; if (w0 & (1u<<25)) K27|=m;
+    }
 
-      DES_CALL (DES_decrypt, K1_);
-      DATASWAP_LOCAL;
-      DES_CALL (DES, K2_);
-      DATASWAP_LOCAL;
-      DES_CALL (DES_decrypt, K1_);
-      DATASWAP_LOCAL;
+    u32 csn_ip0 = csn0_le;
+    u32 csn_ip1 = csn1_le;
+    DES_IP_S (csn_ip0, csn_ip1);
 
-      u32 out0[32], out1[32];
-      UNBITSLICE (out0, out1)
+    u32 D00 = (((csn_ip1 >>  0) & 1) ? 0xFFFFFFFF : 0);
+    u32 D01 = (((csn_ip1 >>  1) & 1) ? 0xFFFFFFFF : 0);
+    u32 D02 = (((csn_ip1 >>  2) & 1) ? 0xFFFFFFFF : 0);
+    u32 D03 = (((csn_ip1 >>  3) & 1) ? 0xFFFFFFFF : 0);
+    u32 D04 = (((csn_ip1 >>  4) & 1) ? 0xFFFFFFFF : 0);
+    u32 D05 = (((csn_ip1 >>  5) & 1) ? 0xFFFFFFFF : 0);
+    u32 D06 = (((csn_ip1 >>  6) & 1) ? 0xFFFFFFFF : 0);
+    u32 D07 = (((csn_ip1 >>  7) & 1) ? 0xFFFFFFFF : 0);
+    u32 D08 = (((csn_ip1 >>  8) & 1) ? 0xFFFFFFFF : 0);
+    u32 D09 = (((csn_ip1 >>  9) & 1) ? 0xFFFFFFFF : 0);
+    u32 D10 = (((csn_ip1 >> 10) & 1) ? 0xFFFFFFFF : 0);
+    u32 D11 = (((csn_ip1 >> 11) & 1) ? 0xFFFFFFFF : 0);
+    u32 D12 = (((csn_ip1 >> 12) & 1) ? 0xFFFFFFFF : 0);
+    u32 D13 = (((csn_ip1 >> 13) & 1) ? 0xFFFFFFFF : 0);
+    u32 D14 = (((csn_ip1 >> 14) & 1) ? 0xFFFFFFFF : 0);
+    u32 D15 = (((csn_ip1 >> 15) & 1) ? 0xFFFFFFFF : 0);
+    u32 D16 = (((csn_ip1 >> 16) & 1) ? 0xFFFFFFFF : 0);
+    u32 D17 = (((csn_ip1 >> 17) & 1) ? 0xFFFFFFFF : 0);
+    u32 D18 = (((csn_ip1 >> 18) & 1) ? 0xFFFFFFFF : 0);
+    u32 D19 = (((csn_ip1 >> 19) & 1) ? 0xFFFFFFFF : 0);
+    u32 D20 = (((csn_ip1 >> 20) & 1) ? 0xFFFFFFFF : 0);
+    u32 D21 = (((csn_ip1 >> 21) & 1) ? 0xFFFFFFFF : 0);
+    u32 D22 = (((csn_ip1 >> 22) & 1) ? 0xFFFFFFFF : 0);
+    u32 D23 = (((csn_ip1 >> 23) & 1) ? 0xFFFFFFFF : 0);
+    u32 D24 = (((csn_ip1 >> 24) & 1) ? 0xFFFFFFFF : 0);
+    u32 D25 = (((csn_ip1 >> 25) & 1) ? 0xFFFFFFFF : 0);
+    u32 D26 = (((csn_ip1 >> 26) & 1) ? 0xFFFFFFFF : 0);
+    u32 D27 = (((csn_ip1 >> 27) & 1) ? 0xFFFFFFFF : 0);
+    u32 D28 = (((csn_ip1 >> 28) & 1) ? 0xFFFFFFFF : 0);
+    u32 D29 = (((csn_ip1 >> 29) & 1) ? 0xFFFFFFFF : 0);
+    u32 D30 = (((csn_ip1 >> 30) & 1) ? 0xFFFFFFFF : 0);
+    u32 D31 = (((csn_ip1 >> 31) & 1) ? 0xFFFFFFFF : 0);
+    u32 D32 = (((csn_ip0 >>  0) & 1) ? 0xFFFFFFFF : 0);
+    u32 D33 = (((csn_ip0 >>  1) & 1) ? 0xFFFFFFFF : 0);
+    u32 D34 = (((csn_ip0 >>  2) & 1) ? 0xFFFFFFFF : 0);
+    u32 D35 = (((csn_ip0 >>  3) & 1) ? 0xFFFFFFFF : 0);
+    u32 D36 = (((csn_ip0 >>  4) & 1) ? 0xFFFFFFFF : 0);
+    u32 D37 = (((csn_ip0 >>  5) & 1) ? 0xFFFFFFFF : 0);
+    u32 D38 = (((csn_ip0 >>  6) & 1) ? 0xFFFFFFFF : 0);
+    u32 D39 = (((csn_ip0 >>  7) & 1) ? 0xFFFFFFFF : 0);
+    u32 D40 = (((csn_ip0 >>  8) & 1) ? 0xFFFFFFFF : 0);
+    u32 D41 = (((csn_ip0 >>  9) & 1) ? 0xFFFFFFFF : 0);
+    u32 D42 = (((csn_ip0 >> 10) & 1) ? 0xFFFFFFFF : 0);
+    u32 D43 = (((csn_ip0 >> 11) & 1) ? 0xFFFFFFFF : 0);
+    u32 D44 = (((csn_ip0 >> 12) & 1) ? 0xFFFFFFFF : 0);
+    u32 D45 = (((csn_ip0 >> 13) & 1) ? 0xFFFFFFFF : 0);
+    u32 D46 = (((csn_ip0 >> 14) & 1) ? 0xFFFFFFFF : 0);
+    u32 D47 = (((csn_ip0 >> 15) & 1) ? 0xFFFFFFFF : 0);
+    u32 D48 = (((csn_ip0 >> 16) & 1) ? 0xFFFFFFFF : 0);
+    u32 D49 = (((csn_ip0 >> 17) & 1) ? 0xFFFFFFFF : 0);
+    u32 D50 = (((csn_ip0 >> 18) & 1) ? 0xFFFFFFFF : 0);
+    u32 D51 = (((csn_ip0 >> 19) & 1) ? 0xFFFFFFFF : 0);
+    u32 D52 = (((csn_ip0 >> 20) & 1) ? 0xFFFFFFFF : 0);
+    u32 D53 = (((csn_ip0 >> 21) & 1) ? 0xFFFFFFFF : 0);
+    u32 D54 = (((csn_ip0 >> 22) & 1) ? 0xFFFFFFFF : 0);
+    u32 D55 = (((csn_ip0 >> 23) & 1) ? 0xFFFFFFFF : 0);
+    u32 D56 = (((csn_ip0 >> 24) & 1) ? 0xFFFFFFFF : 0);
+    u32 D57 = (((csn_ip0 >> 25) & 1) ? 0xFFFFFFFF : 0);
+    u32 D58 = (((csn_ip0 >> 26) & 1) ? 0xFFFFFFFF : 0);
+    u32 D59 = (((csn_ip0 >> 27) & 1) ? 0xFFFFFFFF : 0);
+    u32 D60 = (((csn_ip0 >> 28) & 1) ? 0xFFFFFFFF : 0);
+    u32 D61 = (((csn_ip0 >> 29) & 1) ? 0xFFFFFFFF : 0);
+    u32 D62 = (((csn_ip0 >> 30) & 1) ? 0xFFFFFFFF : 0);
+    u32 D63 = (((csn_ip0 >> 31) & 1) ? 0xFFFFFFFF : 0);
 
-      if (mode == 1)
+    DES (K00,K01,K02,K03,K04,K05,K06,K07,K08,K09,K10,K11,K12,K13,
+         K14,K15,K16,K17,K18,K19,K20,K21,K22,K23,K24,K25,K26,K27,
+         FK28,FK29,FK30,FK31,FK32,FK33,FK34,FK35,FK36,FK37,FK38,FK39,
+         FK40,FK41,FK42,FK43,FK44,FK45,FK46,FK47,FK48,FK49,FK50,FK51,
+         FK52,FK53,FK54,FK55,
+         &D00,&D01,&D02,&D03,&D04,&D05,&D06,&D07,
+         &D08,&D09,&D10,&D11,&D12,&D13,&D14,&D15,
+         &D16,&D17,&D18,&D19,&D20,&D21,&D22,&D23,
+         &D24,&D25,&D26,&D27,&D28,&D29,&D30,&D31,
+         &D32,&D33,&D34,&D35,&D36,&D37,&D38,&D39,
+         &D40,&D41,&D42,&D43,&D44,&D45,&D46,&D47,
+         &D48,&D49,&D50,&D51,&D52,&D53,&D54,&D55,
+         &D56,&D57,&D58,&D59,&D60,&D61,&D62,&D63);
+
+    u32 kb[64] = { 0 };
+    u8 div_keys[32][8];
+
+    for (u32 i = 0; i < batch_cnt; i++)
+    {
+      u32 ct0 = ((D63 >> i) & 1)
+              | (((D31 >> i) & 1) <<  1)
+              | (((D55 >> i) & 1) <<  2)
+              | (((D23 >> i) & 1) <<  3)
+              | (((D47 >> i) & 1) <<  4)
+              | (((D15 >> i) & 1) <<  5)
+              | (((D39 >> i) & 1) <<  6)
+              | (((D07 >> i) & 1) <<  7)
+              | (((D62 >> i) & 1) <<  8)
+              | (((D30 >> i) & 1) <<  9)
+              | (((D54 >> i) & 1) << 10)
+              | (((D22 >> i) & 1) << 11)
+              | (((D46 >> i) & 1) << 12)
+              | (((D14 >> i) & 1) << 13)
+              | (((D38 >> i) & 1) << 14)
+              | (((D06 >> i) & 1) << 15)
+              | (((D61 >> i) & 1) << 16)
+              | (((D29 >> i) & 1) << 17)
+              | (((D53 >> i) & 1) << 18)
+              | (((D21 >> i) & 1) << 19)
+              | (((D45 >> i) & 1) << 20)
+              | (((D13 >> i) & 1) << 21)
+              | (((D37 >> i) & 1) << 22)
+              | (((D05 >> i) & 1) << 23)
+              | (((D60 >> i) & 1) << 24)
+              | (((D28 >> i) & 1) << 25)
+              | (((D52 >> i) & 1) << 26)
+              | (((D20 >> i) & 1) << 27)
+              | (((D44 >> i) & 1) << 28)
+              | (((D12 >> i) & 1) << 29)
+              | (((D36 >> i) & 1) << 30)
+              | (((D04 >> i) & 1) << 31);
+
+      u32 ct1 = ((D59 >> i) & 1)
+              | (((D27 >> i) & 1) <<  1)
+              | (((D51 >> i) & 1) <<  2)
+              | (((D19 >> i) & 1) <<  3)
+              | (((D43 >> i) & 1) <<  4)
+              | (((D11 >> i) & 1) <<  5)
+              | (((D35 >> i) & 1) <<  6)
+              | (((D03 >> i) & 1) <<  7)
+              | (((D58 >> i) & 1) <<  8)
+              | (((D26 >> i) & 1) <<  9)
+              | (((D50 >> i) & 1) << 10)
+              | (((D18 >> i) & 1) << 11)
+              | (((D42 >> i) & 1) << 12)
+              | (((D10 >> i) & 1) << 13)
+              | (((D34 >> i) & 1) << 14)
+              | (((D02 >> i) & 1) << 15)
+              | (((D57 >> i) & 1) << 16)
+              | (((D25 >> i) & 1) << 17)
+              | (((D49 >> i) & 1) << 18)
+              | (((D17 >> i) & 1) << 19)
+              | (((D41 >> i) & 1) << 20)
+              | (((D09 >> i) & 1) << 21)
+              | (((D33 >> i) & 1) << 22)
+              | (((D01 >> i) & 1) << 23)
+              | (((D56 >> i) & 1) << 24)
+              | (((D24 >> i) & 1) << 25)
+              | (((D48 >> i) & 1) << 26)
+              | (((D16 >> i) & 1) << 27)
+              | (((D40 >> i) & 1) << 28)
+              | (((D08 >> i) & 1) << 29)
+              | (((D32 >> i) & 1) << 30)
+              | (((D00 >> i) & 1) << 31);
+
+      u8 dk[8];
+      hash0 (hc_swap32_S (ct0), hc_swap32_S (ct1), dk);
+
+      for (int j = 0; j < 8; j++)
       {
-        LOAD_DATA_BS (er1, er0)
-        DES_CALL (DES_decrypt, K1_);
-        DATASWAP_LOCAL;
-        DES_CALL (DES, K2_);
-        DATASWAP_LOCAL;
-        DES_CALL (DES_decrypt, K1_);
-        DATASWAP_LOCAL;
-
-        u32 rout0[32], rout1[32];
-        UNBITSLICE (rout0, rout1)
-
-        for (int slice = 0; slice < 32; slice++)
-        {
-          if ((il_pos + slice) >= IL_CNT) break;
-
-          u32 pt0 = out0[31 - slice];
-          u32 pt1 = out1[31 - slice];
-
-          DES_FP_SCALAR (pt0, pt1);
-
-          pt1 ^= iv0;
-          pt0 ^= iv1;
-
-          u32 rb0 = rout0[31 - slice];
-          u32 rb1 = rout1[31 - slice];
-
-          DES_FP_SCALAR (rb0, rb1);
-
-          u32 rb_be0 = hc_swap32_S (rb1);
-          u32 rb_be1 = hc_swap32_S (rb0);
-          u32 rot0_le = hc_swap32_S ((rb_be0 << 8) | (rb_be1 >> 24));
-          u32 rot1_le = hc_swap32_S ((rb_be1 << 8) | (rb_be0 >> 24));
-
-          if (pt1 == rot0_le && pt0 == rot1_le)
-          {
-            const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;
-            if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
-            {
-              mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + slice, 0, 0);
-            }
-          }
-        }
+        div_keys[i][j] = dk[j];
+        for (int bit = 0; bit < 8; bit++)
+          kb[j * 8 + bit] |= (u32)(((dk[j] >> bit) & 1)) << i;
       }
-      else
+    }
+
+    u32 k0xor[8];
+    k0xor[0]=kb[0]; k0xor[1]=kb[1];
+    k0xor[2]=kb[2]^0xFFFFFFFF; k0xor[3]=kb[3]^0xFFFFFFFF;
+    k0xor[4]=kb[4]; k0xor[5]=kb[5];
+    k0xor[6]=kb[6]^0xFFFFFFFF; k0xor[7]=kb[7];
+
+    u32 ec[8]={0,0,0xFFFFFFFF,0xFFFFFFFF,0,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF};
+    u32 x21[8]={0xFFFFFFFF,0,0,0,0,0xFFFFFFFF,0,0};
+
+    u32 l[8], r[8];
+    bs_add8(k0xor, ec, l);
+    bs_add8(k0xor, x21, r);
+
+    u32 t[16]={0,0xFFFFFFFF,0,0,0xFFFFFFFF,0,0,0,0,0,0,0,0,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF};
+    u32 bs_b[8]={0,0,0xFFFFFFFF,0xFFFFFFFF,0,0,0xFFFFFFFF,0};
+
+    for (int tick = 0; tick < 96; tick++)
+      bs_iclass_tick(t, bs_b, l, r, kb, y_ccnr[tick]);
+
+    u32 mac_bp[32];
+    for (int tick = 0; tick < 32; tick++)
+    {
+      mac_bp[tick] = r[2];
+      if (tick < 31) bs_iclass_tick(t, bs_b, l, r, kb, 0);
+    }
+
+    for (u32 i = 0; i < batch_cnt; i++)
+    {
+      u32 computed1 = 0;
+      for (int tick = 0; tick < 32; tick++)
       {
-        for (int slice = 0; slice < 32; slice++)
+        const u32 bit_val = (mac_bp[tick] >> i) & 1;
+        computed1 |= bit_val << ((tick % 8) + (3 - tick / 8) * 8);
+      }
+
+      for (u32 d = 0; d < DIGESTS_CNT; d++)
+      {
+        const u32 final_hash_pos = DIGESTS_OFFSET_HOST + d;
+        if (computed1 != digests_buf[final_hash_pos].digest_buf[DGST_R0]) continue;
+
+        const u32 computed2 = iclass_mac(rev_ccnr2, div_keys[i]);
+        if (computed2 != mac2_target) continue;
+
+        if (hc_atomic_inc(&hashes_shown[final_hash_pos]) == 0)
         {
-          if ((il_pos + slice) >= IL_CNT) break;
-
-          u32 pt0 = out0[31 - slice];
-          u32 pt1 = out1[31 - slice];
-          DES_FP_SCALAR (pt0, pt1);
-
-          u32 be0 = hc_swap32_S (pt1);
-          u32 be1 = hc_swap32_S (pt0);
-
-          bool match = false;
-          if (lfsr_type == 1)      match = valid_lfsr_ulcg (be0, be1);
-          else if (lfsr_type == 2) match = valid_lfsr_mfc (be0, be1);
-
-          if (match)
-          {
-            const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;
-            if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
-            {
-              mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + slice, 0, 0);
-            }
-          }
+          mark_hash(plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, d, final_hash_pos, gid, il_pos + i, 0, 0);
         }
       }
     }
   }
 }
 
-KERNEL_FQ KERNEL_FA void m82000_mxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ KERNEL_FA void m36900_sxx (KERN_ATTR_BASIC ())
 {
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
 
-  const u32 ct0    = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
-  const u32 ct1    = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
-  const u32 er0    = salt_bufs[SALT_POS_HOST].salt_buf_pc[2];
-  const u32 er1    = salt_bufs[SALT_POS_HOST].salt_buf_pc[3];
-  const u32 iv0    = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
-  const u32 iv1    = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
-  const u32 fk1w0  = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
-  const u32 fk1w1  = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];
-  const u32 fk2w0  = salt_bufs[SALT_POS_HOST].salt_buf_pc[8];
-  const u32 fk2w1  = salt_bufs[SALT_POS_HOST].salt_buf_pc[9];
-  const u32 mode   = salt_bufs[SALT_POS_HOST].salt_buf_pc[10];
-  const u32 segment= salt_bufs[SALT_POS_HOST].salt_buf_pc[11];
-  const u32 lfsr_type = salt_bufs[SALT_POS_HOST].salt_buf_pc[12];
+  const u32 csn0_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
+  const u32 csn1_le = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
 
-  KEYBITS_FROM_LE (FK1_, fk1w0, fk1w1)
-  KEYBITS_FROM_LE (FK2_, fk2w0, fk2w1)
 
-  const u32 pw0 = pws[gid].i[0];
+  u8 ccnr2_bytes[12];
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[5], ccnr2_bytes + 0);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[6], ccnr2_bytes + 4);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[7], ccnr2_bytes + 8);
+
+  const u32 mac2_target = salt_bufs[SALT_POS_HOST].salt_buf[8];
+
+  u8 rev_ccnr2[12];
+  for (int i = 0; i < 12; i++) rev_ccnr2[i] = reflect8 (ccnr2_bytes[i]);
+
+  u8 ccnr1_bytes[12];
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[2], ccnr1_bytes + 0);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[3], ccnr1_bytes + 4);
+  unpack_be32 (salt_bufs[SALT_POS_HOST].salt_buf[4], ccnr1_bytes + 8);
+
+  u32 y_ccnr[96];
+  for (int i = 0; i < 12; i++)
+  {
+    u8 rb = reflect8 (ccnr1_bytes[i]);
+    for (int bit = 7; bit >= 0; bit--)
+      y_ccnr[i * 8 + (7 - bit)] = ((rb >> bit) & 1) ? 0xFFFFFFFF : 0;
+  }
+
+  const u32 w0l = pws[gid].i[0];
+  const u32 w1  = pws[gid].i[1];
+
+  const u32 FK28 = (((w1 >> ( 0 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK29 = (((w1 >> ( 0 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK30 = (((w1 >> ( 0 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK31 = (((w1 >> ( 0 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK32 = (((w1 >> ( 0 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK33 = (((w1 >> ( 0 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK34 = (((w1 >> ( 0 + 1)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK35 = (((w1 >> ( 8 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK36 = (((w1 >> ( 8 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK37 = (((w1 >> ( 8 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK38 = (((w1 >> ( 8 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK39 = (((w1 >> ( 8 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK40 = (((w1 >> ( 8 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK41 = (((w1 >> ( 8 + 1)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK42 = (((w1 >> (16 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK43 = (((w1 >> (16 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK44 = (((w1 >> (16 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK45 = (((w1 >> (16 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK46 = (((w1 >> (16 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK47 = (((w1 >> (16 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK48 = (((w1 >> (16 + 1)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK49 = (((w1 >> (24 + 7)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK50 = (((w1 >> (24 + 6)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK51 = (((w1 >> (24 + 5)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK52 = (((w1 >> (24 + 4)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK53 = (((w1 >> (24 + 3)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK54 = (((w1 >> (24 + 2)) & 1) ? 0xFFFFFFFF : 0);
+  const u32 FK55 = (((w1 >> (24 + 1)) & 1) ? 0xFFFFFFFF : 0);
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
   {
-    const u32 pc_pos = il_pos / 32;
+    const u32 batch_cnt = ((il_pos + 32) <= IL_CNT) ? 32 : (IL_CNT - il_pos);
 
-    u32 ck00 = (((pw0 >> ( 0 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 0];
-    u32 ck01 = (((pw0 >> ( 0 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 1];
-    u32 ck02 = (((pw0 >> ( 0 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 2];
-    u32 ck03 = (((pw0 >> ( 0 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 3];
-    u32 ck04 = (((pw0 >> ( 0 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 4];
-    u32 ck05 = (((pw0 >> ( 0 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 5];
-    u32 ck06 = (((pw0 >> ( 0 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 6];
-    u32 ck07 = (((pw0 >> ( 8 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 7];
-    u32 ck08 = (((pw0 >> ( 8 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 8];
-    u32 ck09 = (((pw0 >> ( 8 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[ 9];
-    u32 ck10 = (((pw0 >> ( 8 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[10];
-    u32 ck11 = (((pw0 >> ( 8 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[11];
-    u32 ck12 = (((pw0 >> ( 8 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[12];
-    u32 ck13 = (((pw0 >> ( 8 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[13];
-    u32 ck14 = (((pw0 >> (16 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[14];
-    u32 ck15 = (((pw0 >> (16 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[15];
-    u32 ck16 = (((pw0 >> (16 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[16];
-    u32 ck17 = (((pw0 >> (16 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[17];
-    u32 ck18 = (((pw0 >> (16 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[18];
-    u32 ck19 = (((pw0 >> (16 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[19];
-    u32 ck20 = (((pw0 >> (16 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[20];
-    u32 ck21 = (((pw0 >> (24 + 7)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[21];
-    u32 ck22 = (((pw0 >> (24 + 6)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[22];
-    u32 ck23 = (((pw0 >> (24 + 5)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[23];
-    u32 ck24 = (((pw0 >> (24 + 4)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[24];
-    u32 ck25 = (((pw0 >> (24 + 3)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[25];
-    u32 ck26 = (((pw0 >> (24 + 2)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[26];
-    u32 ck27 = (((pw0 >> (24 + 1)) & 1) ? -1 : 0) | words_buf_s[pc_pos].b[27];
+    u32 K00=0,K01=0,K02=0,K03=0,K04=0,K05=0,K06=0;
+    u32 K07=0,K08=0,K09=0,K10=0,K11=0,K12=0,K13=0;
+    u32 K14=0,K15=0,K16=0,K17=0,K18=0,K19=0,K20=0;
+    u32 K21=0,K22=0,K23=0,K24=0,K25=0,K26=0,K27=0;
 
-    #define CK(n) ck##n
-    #define FK1(n) FK1_##n
-    #define FK2(n) FK2_##n
-
-    const u32 K1_00 = (segment == 0) ? CK(00) : FK1(00);
-    const u32 K1_01 = (segment == 0) ? CK(01) : FK1(01);
-    const u32 K1_02 = (segment == 0) ? CK(02) : FK1(02);
-    const u32 K1_03 = (segment == 0) ? CK(03) : FK1(03);
-    const u32 K1_04 = (segment == 0) ? CK(04) : FK1(04);
-    const u32 K1_05 = (segment == 0) ? CK(05) : FK1(05);
-    const u32 K1_06 = (segment == 0) ? CK(06) : FK1(06);
-    const u32 K1_07 = (segment == 0) ? CK(07) : FK1(07);
-    const u32 K1_08 = (segment == 0) ? CK(08) : FK1(08);
-    const u32 K1_09 = (segment == 0) ? CK(09) : FK1(09);
-    const u32 K1_10 = (segment == 0) ? CK(10) : FK1(10);
-    const u32 K1_11 = (segment == 0) ? CK(11) : FK1(11);
-    const u32 K1_12 = (segment == 0) ? CK(12) : FK1(12);
-    const u32 K1_13 = (segment == 0) ? CK(13) : FK1(13);
-    const u32 K1_14 = (segment == 0) ? CK(14) : FK1(14);
-    const u32 K1_15 = (segment == 0) ? CK(15) : FK1(15);
-    const u32 K1_16 = (segment == 0) ? CK(16) : FK1(16);
-    const u32 K1_17 = (segment == 0) ? CK(17) : FK1(17);
-    const u32 K1_18 = (segment == 0) ? CK(18) : FK1(18);
-    const u32 K1_19 = (segment == 0) ? CK(19) : FK1(19);
-    const u32 K1_20 = (segment == 0) ? CK(20) : FK1(20);
-    const u32 K1_21 = (segment == 0) ? CK(21) : FK1(21);
-    const u32 K1_22 = (segment == 0) ? CK(22) : FK1(22);
-    const u32 K1_23 = (segment == 0) ? CK(23) : FK1(23);
-    const u32 K1_24 = (segment == 0) ? CK(24) : FK1(24);
-    const u32 K1_25 = (segment == 0) ? CK(25) : FK1(25);
-    const u32 K1_26 = (segment == 0) ? CK(26) : FK1(26);
-    const u32 K1_27 = (segment == 0) ? CK(27) : FK1(27);
-    const u32 K1_28 = (segment == 1) ? CK(00) : FK1(28);
-    const u32 K1_29 = (segment == 1) ? CK(01) : FK1(29);
-    const u32 K1_30 = (segment == 1) ? CK(02) : FK1(30);
-    const u32 K1_31 = (segment == 1) ? CK(03) : FK1(31);
-    const u32 K1_32 = (segment == 1) ? CK(04) : FK1(32);
-    const u32 K1_33 = (segment == 1) ? CK(05) : FK1(33);
-    const u32 K1_34 = (segment == 1) ? CK(06) : FK1(34);
-    const u32 K1_35 = (segment == 1) ? CK(07) : FK1(35);
-    const u32 K1_36 = (segment == 1) ? CK(08) : FK1(36);
-    const u32 K1_37 = (segment == 1) ? CK(09) : FK1(37);
-    const u32 K1_38 = (segment == 1) ? CK(10) : FK1(38);
-    const u32 K1_39 = (segment == 1) ? CK(11) : FK1(39);
-    const u32 K1_40 = (segment == 1) ? CK(12) : FK1(40);
-    const u32 K1_41 = (segment == 1) ? CK(13) : FK1(41);
-    const u32 K1_42 = (segment == 1) ? CK(14) : FK1(42);
-    const u32 K1_43 = (segment == 1) ? CK(15) : FK1(43);
-    const u32 K1_44 = (segment == 1) ? CK(16) : FK1(44);
-    const u32 K1_45 = (segment == 1) ? CK(17) : FK1(45);
-    const u32 K1_46 = (segment == 1) ? CK(18) : FK1(46);
-    const u32 K1_47 = (segment == 1) ? CK(19) : FK1(47);
-    const u32 K1_48 = (segment == 1) ? CK(20) : FK1(48);
-    const u32 K1_49 = (segment == 1) ? CK(21) : FK1(49);
-    const u32 K1_50 = (segment == 1) ? CK(22) : FK1(50);
-    const u32 K1_51 = (segment == 1) ? CK(23) : FK1(51);
-    const u32 K1_52 = (segment == 1) ? CK(24) : FK1(52);
-    const u32 K1_53 = (segment == 1) ? CK(25) : FK1(53);
-    const u32 K1_54 = (segment == 1) ? CK(26) : FK1(54);
-    const u32 K1_55 = (segment == 1) ? CK(27) : FK1(55);
-
-    const u32 K2_00 = (segment == 2) ? CK(00) : FK2(00);
-    const u32 K2_01 = (segment == 2) ? CK(01) : FK2(01);
-    const u32 K2_02 = (segment == 2) ? CK(02) : FK2(02);
-    const u32 K2_03 = (segment == 2) ? CK(03) : FK2(03);
-    const u32 K2_04 = (segment == 2) ? CK(04) : FK2(04);
-    const u32 K2_05 = (segment == 2) ? CK(05) : FK2(05);
-    const u32 K2_06 = (segment == 2) ? CK(06) : FK2(06);
-    const u32 K2_07 = (segment == 2) ? CK(07) : FK2(07);
-    const u32 K2_08 = (segment == 2) ? CK(08) : FK2(08);
-    const u32 K2_09 = (segment == 2) ? CK(09) : FK2(09);
-    const u32 K2_10 = (segment == 2) ? CK(10) : FK2(10);
-    const u32 K2_11 = (segment == 2) ? CK(11) : FK2(11);
-    const u32 K2_12 = (segment == 2) ? CK(12) : FK2(12);
-    const u32 K2_13 = (segment == 2) ? CK(13) : FK2(13);
-    const u32 K2_14 = (segment == 2) ? CK(14) : FK2(14);
-    const u32 K2_15 = (segment == 2) ? CK(15) : FK2(15);
-    const u32 K2_16 = (segment == 2) ? CK(16) : FK2(16);
-    const u32 K2_17 = (segment == 2) ? CK(17) : FK2(17);
-    const u32 K2_18 = (segment == 2) ? CK(18) : FK2(18);
-    const u32 K2_19 = (segment == 2) ? CK(19) : FK2(19);
-    const u32 K2_20 = (segment == 2) ? CK(20) : FK2(20);
-    const u32 K2_21 = (segment == 2) ? CK(21) : FK2(21);
-    const u32 K2_22 = (segment == 2) ? CK(22) : FK2(22);
-    const u32 K2_23 = (segment == 2) ? CK(23) : FK2(23);
-    const u32 K2_24 = (segment == 2) ? CK(24) : FK2(24);
-    const u32 K2_25 = (segment == 2) ? CK(25) : FK2(25);
-    const u32 K2_26 = (segment == 2) ? CK(26) : FK2(26);
-    const u32 K2_27 = (segment == 2) ? CK(27) : FK2(27);
-    const u32 K2_28 = (segment == 3) ? CK(00) : FK2(28);
-    const u32 K2_29 = (segment == 3) ? CK(01) : FK2(29);
-    const u32 K2_30 = (segment == 3) ? CK(02) : FK2(30);
-    const u32 K2_31 = (segment == 3) ? CK(03) : FK2(31);
-    const u32 K2_32 = (segment == 3) ? CK(04) : FK2(32);
-    const u32 K2_33 = (segment == 3) ? CK(05) : FK2(33);
-    const u32 K2_34 = (segment == 3) ? CK(06) : FK2(34);
-    const u32 K2_35 = (segment == 3) ? CK(07) : FK2(35);
-    const u32 K2_36 = (segment == 3) ? CK(08) : FK2(36);
-    const u32 K2_37 = (segment == 3) ? CK(09) : FK2(37);
-    const u32 K2_38 = (segment == 3) ? CK(10) : FK2(38);
-    const u32 K2_39 = (segment == 3) ? CK(11) : FK2(39);
-    const u32 K2_40 = (segment == 3) ? CK(12) : FK2(40);
-    const u32 K2_41 = (segment == 3) ? CK(13) : FK2(41);
-    const u32 K2_42 = (segment == 3) ? CK(14) : FK2(42);
-    const u32 K2_43 = (segment == 3) ? CK(15) : FK2(43);
-    const u32 K2_44 = (segment == 3) ? CK(16) : FK2(44);
-    const u32 K2_45 = (segment == 3) ? CK(17) : FK2(45);
-    const u32 K2_46 = (segment == 3) ? CK(18) : FK2(46);
-    const u32 K2_47 = (segment == 3) ? CK(19) : FK2(47);
-    const u32 K2_48 = (segment == 3) ? CK(20) : FK2(48);
-    const u32 K2_49 = (segment == 3) ? CK(21) : FK2(49);
-    const u32 K2_50 = (segment == 3) ? CK(22) : FK2(50);
-    const u32 K2_51 = (segment == 3) ? CK(23) : FK2(51);
-    const u32 K2_52 = (segment == 3) ? CK(24) : FK2(52);
-    const u32 K2_53 = (segment == 3) ? CK(25) : FK2(53);
-    const u32 K2_54 = (segment == 3) ? CK(26) : FK2(54);
-    const u32 K2_55 = (segment == 3) ? CK(27) : FK2(55);
-
-    #undef CK
-    #undef FK1
-    #undef FK2
-
+    for (u32 i = 0; i < batch_cnt; i++)
     {
-      LOAD_DATA_BS (ct1, ct0)
+      const u32 w0 = w0l | bfs_buf[il_pos + i].i;
+      const u32 m = 1u << i;
+      if (w0 & (1u<< 7)) K00|=m; if (w0 & (1u<< 6)) K01|=m;
+      if (w0 & (1u<< 5)) K02|=m; if (w0 & (1u<< 4)) K03|=m;
+      if (w0 & (1u<< 3)) K04|=m; if (w0 & (1u<< 2)) K05|=m;
+      if (w0 & (1u<< 1)) K06|=m; if (w0 & (1u<<15)) K07|=m;
+      if (w0 & (1u<<14)) K08|=m; if (w0 & (1u<<13)) K09|=m;
+      if (w0 & (1u<<12)) K10|=m; if (w0 & (1u<<11)) K11|=m;
+      if (w0 & (1u<<10)) K12|=m; if (w0 & (1u<< 9)) K13|=m;
+      if (w0 & (1u<<23)) K14|=m; if (w0 & (1u<<22)) K15|=m;
+      if (w0 & (1u<<21)) K16|=m; if (w0 & (1u<<20)) K17|=m;
+      if (w0 & (1u<<19)) K18|=m; if (w0 & (1u<<18)) K19|=m;
+      if (w0 & (1u<<17)) K20|=m; if (w0 & (1u<<31)) K21|=m;
+      if (w0 & (1u<<30)) K22|=m; if (w0 & (1u<<29)) K23|=m;
+      if (w0 & (1u<<28)) K24|=m; if (w0 & (1u<<27)) K25|=m;
+      if (w0 & (1u<<26)) K26|=m; if (w0 & (1u<<25)) K27|=m;
+    }
 
-      DES_CALL (DES_decrypt, K1_);
-      DATASWAP_LOCAL;
-      DES_CALL (DES, K2_);
-      DATASWAP_LOCAL;
-      DES_CALL (DES_decrypt, K1_);
-      DATASWAP_LOCAL;
+    u32 csn_ip0 = csn0_le;
+    u32 csn_ip1 = csn1_le;
+    DES_IP_S (csn_ip0, csn_ip1);
 
-      u32 out0[32], out1[32];
-      UNBITSLICE (out0, out1)
+    u32 D00 = (((csn_ip1 >>  0) & 1) ? 0xFFFFFFFF : 0);
+    u32 D01 = (((csn_ip1 >>  1) & 1) ? 0xFFFFFFFF : 0);
+    u32 D02 = (((csn_ip1 >>  2) & 1) ? 0xFFFFFFFF : 0);
+    u32 D03 = (((csn_ip1 >>  3) & 1) ? 0xFFFFFFFF : 0);
+    u32 D04 = (((csn_ip1 >>  4) & 1) ? 0xFFFFFFFF : 0);
+    u32 D05 = (((csn_ip1 >>  5) & 1) ? 0xFFFFFFFF : 0);
+    u32 D06 = (((csn_ip1 >>  6) & 1) ? 0xFFFFFFFF : 0);
+    u32 D07 = (((csn_ip1 >>  7) & 1) ? 0xFFFFFFFF : 0);
+    u32 D08 = (((csn_ip1 >>  8) & 1) ? 0xFFFFFFFF : 0);
+    u32 D09 = (((csn_ip1 >>  9) & 1) ? 0xFFFFFFFF : 0);
+    u32 D10 = (((csn_ip1 >> 10) & 1) ? 0xFFFFFFFF : 0);
+    u32 D11 = (((csn_ip1 >> 11) & 1) ? 0xFFFFFFFF : 0);
+    u32 D12 = (((csn_ip1 >> 12) & 1) ? 0xFFFFFFFF : 0);
+    u32 D13 = (((csn_ip1 >> 13) & 1) ? 0xFFFFFFFF : 0);
+    u32 D14 = (((csn_ip1 >> 14) & 1) ? 0xFFFFFFFF : 0);
+    u32 D15 = (((csn_ip1 >> 15) & 1) ? 0xFFFFFFFF : 0);
+    u32 D16 = (((csn_ip1 >> 16) & 1) ? 0xFFFFFFFF : 0);
+    u32 D17 = (((csn_ip1 >> 17) & 1) ? 0xFFFFFFFF : 0);
+    u32 D18 = (((csn_ip1 >> 18) & 1) ? 0xFFFFFFFF : 0);
+    u32 D19 = (((csn_ip1 >> 19) & 1) ? 0xFFFFFFFF : 0);
+    u32 D20 = (((csn_ip1 >> 20) & 1) ? 0xFFFFFFFF : 0);
+    u32 D21 = (((csn_ip1 >> 21) & 1) ? 0xFFFFFFFF : 0);
+    u32 D22 = (((csn_ip1 >> 22) & 1) ? 0xFFFFFFFF : 0);
+    u32 D23 = (((csn_ip1 >> 23) & 1) ? 0xFFFFFFFF : 0);
+    u32 D24 = (((csn_ip1 >> 24) & 1) ? 0xFFFFFFFF : 0);
+    u32 D25 = (((csn_ip1 >> 25) & 1) ? 0xFFFFFFFF : 0);
+    u32 D26 = (((csn_ip1 >> 26) & 1) ? 0xFFFFFFFF : 0);
+    u32 D27 = (((csn_ip1 >> 27) & 1) ? 0xFFFFFFFF : 0);
+    u32 D28 = (((csn_ip1 >> 28) & 1) ? 0xFFFFFFFF : 0);
+    u32 D29 = (((csn_ip1 >> 29) & 1) ? 0xFFFFFFFF : 0);
+    u32 D30 = (((csn_ip1 >> 30) & 1) ? 0xFFFFFFFF : 0);
+    u32 D31 = (((csn_ip1 >> 31) & 1) ? 0xFFFFFFFF : 0);
+    u32 D32 = (((csn_ip0 >>  0) & 1) ? 0xFFFFFFFF : 0);
+    u32 D33 = (((csn_ip0 >>  1) & 1) ? 0xFFFFFFFF : 0);
+    u32 D34 = (((csn_ip0 >>  2) & 1) ? 0xFFFFFFFF : 0);
+    u32 D35 = (((csn_ip0 >>  3) & 1) ? 0xFFFFFFFF : 0);
+    u32 D36 = (((csn_ip0 >>  4) & 1) ? 0xFFFFFFFF : 0);
+    u32 D37 = (((csn_ip0 >>  5) & 1) ? 0xFFFFFFFF : 0);
+    u32 D38 = (((csn_ip0 >>  6) & 1) ? 0xFFFFFFFF : 0);
+    u32 D39 = (((csn_ip0 >>  7) & 1) ? 0xFFFFFFFF : 0);
+    u32 D40 = (((csn_ip0 >>  8) & 1) ? 0xFFFFFFFF : 0);
+    u32 D41 = (((csn_ip0 >>  9) & 1) ? 0xFFFFFFFF : 0);
+    u32 D42 = (((csn_ip0 >> 10) & 1) ? 0xFFFFFFFF : 0);
+    u32 D43 = (((csn_ip0 >> 11) & 1) ? 0xFFFFFFFF : 0);
+    u32 D44 = (((csn_ip0 >> 12) & 1) ? 0xFFFFFFFF : 0);
+    u32 D45 = (((csn_ip0 >> 13) & 1) ? 0xFFFFFFFF : 0);
+    u32 D46 = (((csn_ip0 >> 14) & 1) ? 0xFFFFFFFF : 0);
+    u32 D47 = (((csn_ip0 >> 15) & 1) ? 0xFFFFFFFF : 0);
+    u32 D48 = (((csn_ip0 >> 16) & 1) ? 0xFFFFFFFF : 0);
+    u32 D49 = (((csn_ip0 >> 17) & 1) ? 0xFFFFFFFF : 0);
+    u32 D50 = (((csn_ip0 >> 18) & 1) ? 0xFFFFFFFF : 0);
+    u32 D51 = (((csn_ip0 >> 19) & 1) ? 0xFFFFFFFF : 0);
+    u32 D52 = (((csn_ip0 >> 20) & 1) ? 0xFFFFFFFF : 0);
+    u32 D53 = (((csn_ip0 >> 21) & 1) ? 0xFFFFFFFF : 0);
+    u32 D54 = (((csn_ip0 >> 22) & 1) ? 0xFFFFFFFF : 0);
+    u32 D55 = (((csn_ip0 >> 23) & 1) ? 0xFFFFFFFF : 0);
+    u32 D56 = (((csn_ip0 >> 24) & 1) ? 0xFFFFFFFF : 0);
+    u32 D57 = (((csn_ip0 >> 25) & 1) ? 0xFFFFFFFF : 0);
+    u32 D58 = (((csn_ip0 >> 26) & 1) ? 0xFFFFFFFF : 0);
+    u32 D59 = (((csn_ip0 >> 27) & 1) ? 0xFFFFFFFF : 0);
+    u32 D60 = (((csn_ip0 >> 28) & 1) ? 0xFFFFFFFF : 0);
+    u32 D61 = (((csn_ip0 >> 29) & 1) ? 0xFFFFFFFF : 0);
+    u32 D62 = (((csn_ip0 >> 30) & 1) ? 0xFFFFFFFF : 0);
+    u32 D63 = (((csn_ip0 >> 31) & 1) ? 0xFFFFFFFF : 0);
 
-      if (mode == 1)
+    DES (K00,K01,K02,K03,K04,K05,K06,K07,K08,K09,K10,K11,K12,K13,
+         K14,K15,K16,K17,K18,K19,K20,K21,K22,K23,K24,K25,K26,K27,
+         FK28,FK29,FK30,FK31,FK32,FK33,FK34,FK35,FK36,FK37,FK38,FK39,
+         FK40,FK41,FK42,FK43,FK44,FK45,FK46,FK47,FK48,FK49,FK50,FK51,
+         FK52,FK53,FK54,FK55,
+         &D00,&D01,&D02,&D03,&D04,&D05,&D06,&D07,
+         &D08,&D09,&D10,&D11,&D12,&D13,&D14,&D15,
+         &D16,&D17,&D18,&D19,&D20,&D21,&D22,&D23,
+         &D24,&D25,&D26,&D27,&D28,&D29,&D30,&D31,
+         &D32,&D33,&D34,&D35,&D36,&D37,&D38,&D39,
+         &D40,&D41,&D42,&D43,&D44,&D45,&D46,&D47,
+         &D48,&D49,&D50,&D51,&D52,&D53,&D54,&D55,
+         &D56,&D57,&D58,&D59,&D60,&D61,&D62,&D63);
+
+    u32 kb[64] = { 0 };
+    u8 div_keys[32][8];
+
+    for (u32 i = 0; i < batch_cnt; i++)
+    {
+      u32 ct0 = ((D63 >> i) & 1)
+              | (((D31 >> i) & 1) <<  1)
+              | (((D55 >> i) & 1) <<  2)
+              | (((D23 >> i) & 1) <<  3)
+              | (((D47 >> i) & 1) <<  4)
+              | (((D15 >> i) & 1) <<  5)
+              | (((D39 >> i) & 1) <<  6)
+              | (((D07 >> i) & 1) <<  7)
+              | (((D62 >> i) & 1) <<  8)
+              | (((D30 >> i) & 1) <<  9)
+              | (((D54 >> i) & 1) << 10)
+              | (((D22 >> i) & 1) << 11)
+              | (((D46 >> i) & 1) << 12)
+              | (((D14 >> i) & 1) << 13)
+              | (((D38 >> i) & 1) << 14)
+              | (((D06 >> i) & 1) << 15)
+              | (((D61 >> i) & 1) << 16)
+              | (((D29 >> i) & 1) << 17)
+              | (((D53 >> i) & 1) << 18)
+              | (((D21 >> i) & 1) << 19)
+              | (((D45 >> i) & 1) << 20)
+              | (((D13 >> i) & 1) << 21)
+              | (((D37 >> i) & 1) << 22)
+              | (((D05 >> i) & 1) << 23)
+              | (((D60 >> i) & 1) << 24)
+              | (((D28 >> i) & 1) << 25)
+              | (((D52 >> i) & 1) << 26)
+              | (((D20 >> i) & 1) << 27)
+              | (((D44 >> i) & 1) << 28)
+              | (((D12 >> i) & 1) << 29)
+              | (((D36 >> i) & 1) << 30)
+              | (((D04 >> i) & 1) << 31);
+
+      u32 ct1 = ((D59 >> i) & 1)
+              | (((D27 >> i) & 1) <<  1)
+              | (((D51 >> i) & 1) <<  2)
+              | (((D19 >> i) & 1) <<  3)
+              | (((D43 >> i) & 1) <<  4)
+              | (((D11 >> i) & 1) <<  5)
+              | (((D35 >> i) & 1) <<  6)
+              | (((D03 >> i) & 1) <<  7)
+              | (((D58 >> i) & 1) <<  8)
+              | (((D26 >> i) & 1) <<  9)
+              | (((D50 >> i) & 1) << 10)
+              | (((D18 >> i) & 1) << 11)
+              | (((D42 >> i) & 1) << 12)
+              | (((D10 >> i) & 1) << 13)
+              | (((D34 >> i) & 1) << 14)
+              | (((D02 >> i) & 1) << 15)
+              | (((D57 >> i) & 1) << 16)
+              | (((D25 >> i) & 1) << 17)
+              | (((D49 >> i) & 1) << 18)
+              | (((D17 >> i) & 1) << 19)
+              | (((D41 >> i) & 1) << 20)
+              | (((D09 >> i) & 1) << 21)
+              | (((D33 >> i) & 1) << 22)
+              | (((D01 >> i) & 1) << 23)
+              | (((D56 >> i) & 1) << 24)
+              | (((D24 >> i) & 1) << 25)
+              | (((D48 >> i) & 1) << 26)
+              | (((D16 >> i) & 1) << 27)
+              | (((D40 >> i) & 1) << 28)
+              | (((D08 >> i) & 1) << 29)
+              | (((D32 >> i) & 1) << 30)
+              | (((D00 >> i) & 1) << 31);
+
+      u8 dk[8];
+      hash0 (hc_swap32_S (ct0), hc_swap32_S (ct1), dk);
+
+      for (int j = 0; j < 8; j++)
       {
-        LOAD_DATA_BS (er1, er0)
-        DES_CALL (DES_decrypt, K1_);
-        DATASWAP_LOCAL;
-        DES_CALL (DES, K2_);
-        DATASWAP_LOCAL;
-        DES_CALL (DES_decrypt, K1_);
-        DATASWAP_LOCAL;
-
-        u32 rout0[32], rout1[32];
-        UNBITSLICE (rout0, rout1)
-
-        for (int slice = 0; slice < 32; slice++)
-        {
-          if ((il_pos + slice) >= IL_CNT) break;
-
-          u32 pt0 = out0[31 - slice];
-          u32 pt1 = out1[31 - slice];
-          DES_FP_SCALAR (pt0, pt1);
-
-          pt1 ^= iv0;
-          pt0 ^= iv1;
-
-          u32 rb0 = rout0[31 - slice];
-          u32 rb1 = rout1[31 - slice];
-          DES_FP_SCALAR (rb0, rb1);
-
-          u32 rb_be0 = hc_swap32_S (rb1);
-          u32 rb_be1 = hc_swap32_S (rb0);
-          u32 rot0_le = hc_swap32_S ((rb_be0 << 8) | (rb_be1 >> 24));
-          u32 rot1_le = hc_swap32_S ((rb_be1 << 8) | (rb_be0 >> 24));
-
-          if (pt1 == rot0_le && pt0 == rot1_le)
-          {
-            for (u32 d = 0; d < DIGESTS_CNT; d++)
-            {
-              const u32 final_hash_pos = DIGESTS_OFFSET_HOST + d;
-              if (hashes_shown[final_hash_pos]) continue;
-
-              if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
-              {
-                mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, d, final_hash_pos, gid, il_pos + slice, 0, 0);
-              }
-            }
-          }
-        }
+        div_keys[i][j] = dk[j];
+        for (int bit = 0; bit < 8; bit++)
+          kb[j * 8 + bit] |= (u32)(((dk[j] >> bit) & 1)) << i;
       }
-      else
+    }
+
+    u32 k0xor[8];
+    k0xor[0]=kb[0]; k0xor[1]=kb[1];
+    k0xor[2]=kb[2]^0xFFFFFFFF; k0xor[3]=kb[3]^0xFFFFFFFF;
+    k0xor[4]=kb[4]; k0xor[5]=kb[5];
+    k0xor[6]=kb[6]^0xFFFFFFFF; k0xor[7]=kb[7];
+
+    u32 ec[8]={0,0,0xFFFFFFFF,0xFFFFFFFF,0,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF};
+    u32 x21[8]={0xFFFFFFFF,0,0,0,0,0xFFFFFFFF,0,0};
+
+    u32 l[8], r[8];
+    bs_add8(k0xor, ec, l);
+    bs_add8(k0xor, x21, r);
+
+    u32 t[16]={0,0xFFFFFFFF,0,0,0xFFFFFFFF,0,0,0,0,0,0,0,0,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF};
+    u32 bs_b[8]={0,0,0xFFFFFFFF,0xFFFFFFFF,0,0,0xFFFFFFFF,0};
+
+    for (int tick = 0; tick < 96; tick++)
+      bs_iclass_tick(t, bs_b, l, r, kb, y_ccnr[tick]);
+    const u32 mac1_target = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0];
+
+    u32 mac1_bs[32];
+
+    for (int i = 0; i < 4; i++)
+    {
+      const u8 target_byte = (u8) (mac1_target >> (24 - i * 8));
+
+      for (int bit = 0; bit < 8; bit++)
       {
-        for (int slice = 0; slice < 32; slice++)
-        {
-          if ((il_pos + slice) >= IL_CNT) break;
+        mac1_bs[i * 8 + bit] = ((target_byte >> bit) & 1) ? 0xFFFFFFFF : 0;
+      }
+    }
 
-          u32 pt0 = out0[31 - slice];
-          u32 pt1 = out1[31 - slice];
-          DES_FP_SCALAR (pt0, pt1);
+    u32 mac_match = 0xFFFFFFFF;
 
-          u32 be0 = hc_swap32_S (pt1);
-          u32 be1 = hc_swap32_S (pt0);
+    if (batch_cnt < 32)
+    {
+      mac_match &= (1u << batch_cnt) - 1;
+    }
 
-          bool match = false;
-          if (lfsr_type == 1)      match = valid_lfsr_ulcg (be0, be1);
-          else if (lfsr_type == 2) match = valid_lfsr_mfc (be0, be1);
+    for (int tick = 0; tick < 32; tick++)
+    {
+      const u32 target = mac1_bs[(tick / 8) * 8 + (tick % 8)];
 
-          if (match)
-          {
-            for (u32 d = 0; d < DIGESTS_CNT; d++)
-            {
-              const u32 final_hash_pos = DIGESTS_OFFSET_HOST + d;
-              if (hashes_shown[final_hash_pos]) continue;
+      mac_match &= ~(r[2] ^ target);
 
-              if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
-              {
-                mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, d, final_hash_pos, gid, il_pos + slice, 0, 0);
-              }
-            }
-          }
-        }
+      if (tick == 7 && mac_match == 0) break;
+      if (tick == 15 && mac_match == 0) break;
+
+      bs_iclass_tick(t, bs_b, l, r, kb, 0);
+    }
+
+    if (mac_match == 0) continue;
+
+    for (u32 i = 0; i < batch_cnt; i++)
+    {
+      if (((mac_match >> i) & 1) == 0) continue;
+
+      const u32 computed2 = iclass_mac(rev_ccnr2, div_keys[i]);
+      if (computed2 != mac2_target) continue;
+
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;
+
+      if (hc_atomic_inc(&hashes_shown[final_hash_pos]) == 0)
+      {
+        mark_hash(plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + i, 0, 0);
       }
     }
   }
 }
+

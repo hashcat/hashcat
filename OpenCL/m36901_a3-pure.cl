@@ -200,7 +200,7 @@ DECLSPEC void bs_iclass_tick (PRIVATE_AS u32 *t, PRIVATE_AS u32 *b,
   bs_add8 (r, old_r, l);
 }
 
-KERNEL_FQ KERNEL_FA void m64000_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m36901_mxx (KERN_ATTR_BASIC ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
@@ -378,7 +378,7 @@ KERNEL_FQ KERNEL_FA void m64000_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ KERNEL_FA void m64000_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m36901_sxx (KERN_ATTR_BASIC ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);

@@ -8,7 +8,7 @@
 use strict;
 use warnings;
 
-sub module_constraints { [[5, 5], [8, 8], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[5, 5], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub reflect8
 {
@@ -129,7 +129,7 @@ sub module_generate_hash
 
   my ($pk_hex, $ccnr1_hex, $ccnr2_hex);
 
-  if (defined $salt)
+  if ((defined $salt) && ($salt ne ""))
   {
     my @parts = split (/\$/, $salt);
 

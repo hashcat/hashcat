@@ -83,7 +83,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x",
   "     --cache-path               | Dir  | Specify the directory hashcat caches everything in   | --cache-path=/mnt/hccache",
   "     --logfile-disable          |      | Disable the logfile                                  |",
-  "     --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2",
+  "     --eapol-message-pair       | Num  | Load only EAPOL message pairs matching X             | --eapol-message-pair=2",
   "     --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16",
   "     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table",
   "     --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png",

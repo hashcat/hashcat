@@ -352,6 +352,16 @@ have to act on rather than one you will simply notice.
 - Added mode 37700: Cardano Eternl Wallet (PBKDF2-HMAC-SHA512 + ChaCha20-Poly1305)
 - Added mode 36600: PBKDF2-HMAC-SHA512(utf16le($pass))
 - Added mode 36601: MSSQL (2025)
+- Added mode 3300: MD5(Sun), SunMD5
+- Added mode 36900: iClass Standard (DES + hash0 + iClass Cipher, dual-MAC)
+- Added mode 36901: iClass Legacy Brute-Force (partial div_key + iClass Cipher, dual-MAC)
+- Added mode 37000: MIFARE Ultralight C 3DES Key Recovery
+- Added mode 37300: SAP CODVN H (PWDSALTEDHASH) iSSHA-256
+- Added mode 37301: SAP CODVN H (PWDSALTEDHASH) iSSHA-384
+- Added mode 37400: RACF DES Passphrase
+- Added mode 37500: RACF KDFAES Passphrase
+- Added mode 37600: SASL DIGEST-MD5
+- Added mode 37601: POP3 APOP
 
 ##
 ## New Features and Options
@@ -620,6 +630,8 @@ Measurements depend on the device, runtime and workload.
 - The "--show" and "--left" options support "--username" together with "--dynamic-x"
 - A hash list read as anything other than the default hashcat format now names the format it was
   read as, because that choice reinterprets every line in the file
+- The "--hccapx-message-pair" option is now "--eapol-message-pair", because it also filters the
+  message pairs of mode 22000 and 22001 hash lines. The old name remains accepted
 
 ## Extraction tools
 
@@ -649,6 +661,8 @@ Measurements depend on the device, runtime and workload.
 - Pause loops poll more frequently, so quit and resume commands respond promptly
 - Tab completion covers attack-modes 4, 5, 8 and 12, "--lookup", "--cache-path" and paths beginning
   with "$HOME"
+- Tab completion covers custom charsets 5 to 8, every debug mode, "-D" and "--rules-concat", and no
+  longer offers the removed device-type 3
 - Status output now identifies wordlists as feeds, shows their position within a unified queue, and
   reports "Host Generator + PCIe" whenever candidates are not amplified on the device
 - The "Restore.Sub" status field combines amplifier and iteration positions for 3 devices per
