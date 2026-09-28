@@ -460,8 +460,8 @@ Measurements depend on the device, runtime and workload.
   tables for the longest mask hashcat accepts rather than for the masks in hand, which is 256 MB
   resident and half a second however short the mask is. All of it is now bounded by the queue's
   longest mask, and skipped outright when no mask reaches a character position, which is what
-  attack-mode 1 is. A "--keyspace" probe goes from 487 to 72 ms and 406 to 44 MB for a four character
-  mask, and from 576 to 8 ms and 406 to 20 MB for attack-mode 1. Option "--markov-classic" sums every
+  attack-mode 1 is. A "--keyspace" probe goes from 543 to 22 ms and 405 to 26 MB for a four character
+  mask, and from 537 to 6 ms and 405 to 19 MB for attack-mode 1. Option "--markov-classic" sums every
   position into the first one, so it still needs the whole table and is unchanged
 - Each round of a mask attack cleared and uploaded the markov table for the longest mask hashcat
   accepts rather than for its own mask, which is a 64 MB memset, a 16.7 million iteration loop and a

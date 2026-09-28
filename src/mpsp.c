@@ -3538,30 +3538,28 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     const char *mask = mask_ctx->masks[mask_pos];
 
-    const u32 mask_chars = (u32) strlen (mask);
+    u32 mask_len = mp_get_length (mask, hashconfig->opts_type);
 
-    u32 mask_len = mask_chars;
+    // mp_get_length () counts the positions a mask spells, so it already reads ?l and ?1 as one and an
+    // escaped ?? as one rather than as a marker, and it counts a hex mask at its own rate. What it does
+    // not do is drop the markers, because a ?w or a ?q spells nothing. The two helpers find a marker at
+    // either end, which is where the three attack modes rewritten into this one put theirs.
+    //
+    // A marker in the middle, which only -a 12 can write, is seen by neither helper and leaves the
+    // count one high per marker. That is the safe direction.
 
-    // A ?w or a ?q spends two characters and produces no position at all, so subtracting them keeps
-    // this an upper bound and makes it an exact zero for the one mask that is nothing else. That mask
-    // is what -a 1 arrives here as, and zero is what lets the tables be skipped outright.
-
-    for (u32 i = 0; (i + 1) < mask_chars; i++)
-    {
-      if (mask[i] != '?') continue;
-
-      if ((mask[i + 1] == 'w') || (mask[i + 1] == 'q'))
-      {
-        mask_len -= 2;
-
-        i++;
-      }
-    }
+    if ((mask_starts_with_marker (mask, 'w') == true) && (mask_len > 0)) mask_len--;
+    if ((mask_ends_with_marker   (mask, 'w') == true) && (mask_len > 0)) mask_len--;
+    if ((mask_starts_with_marker (mask, 'q') == true) && (mask_len > 0)) mask_len--;
+    if ((mask_ends_with_marker   (mask, 'q') == true) && (mask_len > 0)) mask_len--;
 
     if (mask_len > want) want = mask_len;
   }
 
-  want *= 2;
+  // Only a mode that hashes the candidate as utf16 doubles css_cnt, and only mp_css_utf16le_expand ()
+  // and its big endian twin do the doubling, so this is the one place it belongs.
+
+  if (hashconfig->opts_type & (OPTS_TYPE_PT_UTF16LE | OPTS_TYPE_PT_UTF16BE)) want *= 2;
 
   if ((hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) && (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT))
   {
