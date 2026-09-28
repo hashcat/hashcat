@@ -11,8 +11,8 @@
 ##
 ##   pull request   every mode the pull request changes, at most 30, with every
 ##                  attack mode and a single hash. A change to code the modes
-##                  share runs the self-test sweep (test.py -S) over every mode
-##                  instead, the Python suite's stand-in for test.sh -M.
+##                  share runs the minimal representative set instead, the 24
+##                  modes test.py -M covers, each on the normal per-mode path.
 ##
 ##   weekly         every mode, in shards, every attack mode, single and multi
 ##                  hash, and only if master has had a commit in the last seven
@@ -181,7 +181,7 @@ jobs:
           MODES: ${{ matrix.modes }}
           CAMPAIGN: ${{ inputs.campaign }}
         run: |
-          # A shared-code change with no mode of its own runs test.sh -M's 24
+          # A shared-code change with no mode of its own runs test.py -M's 24
           # representative modes, sharded by ci_matrix.py into per-mode lists that
           # take the normal path below (test.py now handles the container families).
 

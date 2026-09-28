@@ -12,9 +12,9 @@ from Crypto.Hash import MD4
 # The optimized kernels widen each byte instead of decoding the UTF-8, and
 # module_01000.c:58 documents that as deliberate rather than as a bug, so the two
 # kernel families really do disagree on a multi byte password. The oracle follows
-# whichever one test.sh is about to run: decoding as latin1 reproduces the
+# whichever one test.py is about to run: decoding as latin1 reproduces the
 # widening byte for byte, decoding as utf-8 is the conversion the pure kernels do.
-# test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O.
+# test.py exports IS_OPTIMIZED from the same value it uses to decide on -O.
 
 PW_CHARSET = "latin1"
 

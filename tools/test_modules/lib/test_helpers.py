@@ -12,9 +12,9 @@
 # line, so no module carries that call.
 #
 # Every helper here draws through _rand (), which is either python's own generator or, when
-# HCTEST_SEED is set, the same arithmetic tools/test_module_runner.pl uses under that variable.
-# Seeded, the two engines draw the same characters in the same order, which is what lets
-# tools/test_engine_compare.py hand a mode to both and compare what comes back.
+# HCTEST_SEED is set, the same arithmetic the perl engine used under that variable. Seeded, a run
+# repeats: the same seed draws the same characters in the same order, so a mode's vectors can be
+# reproduced.
 
 import os
 import random

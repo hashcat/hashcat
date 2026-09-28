@@ -23,7 +23,7 @@ import subprocess
 import sys
 import zlib
 
-# test.sh takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
+# test.py takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
 # runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
 
 SHARDS = {"test": 48, "fuzz": 16}
@@ -58,7 +58,7 @@ def minimal_shards(n):
     return [sorted(b) for b in bins if b]
 
 # A PR that touches shared code, but no mode of its own, still gets a run:
-# test.sh -M for the kernels, and the starting set of parser targets for fuzz.
+# test.py -M for the kernels, and the starting set of parser targets for fuzz.
 # That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
 # each mode is written down, and it is read from there so the two cannot drift.
 
@@ -82,7 +82,7 @@ FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|t
                          r"|include/.*|tools/fuzz/.*|tools/asan/hashconfig\.[ch]"
                          r"|\.github/workflows/(fuzz\.yml|fuzz_report\.py|ci_matrix\.py))$")
 
-# Everything test.sh builds on or runs through that does not belong to one mode.
+# Everything test.py builds on or runs through that does not belong to one mode.
 
 TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.py"
                          r"|tools/test_module_runner\.py|tools/test_modules/lib/.*"
