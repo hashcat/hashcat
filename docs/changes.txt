@@ -350,6 +350,8 @@ have to act on rather than one you will simply notice.
 - Added mode 35800: Symfony Legacy SHA256
 - Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
 - Added mode 37700: Cardano Eternl Wallet (PBKDF2-HMAC-SHA512 + ChaCha20-Poly1305)
+- Added mode 36600: PBKDF2-HMAC-SHA512(utf16le($pass))
+- Added mode 36601: MSSQL (2025)
 
 ##
 ## New Features and Options
