@@ -461,6 +461,13 @@ Measurements depend on the device, runtime and workload.
   bound saturates at KERNEL_BFS, ordinary masks of seven characters or more agree on it whatever
   their charsets, so a maskfile of 30 different eight character masks goes from 71 to 6 seconds and
   one of 200 identical masks from 243 to 4. Every autotune probe is a real launch
+- Building the markov statistics at startup sized, decompressed, byte swapped, filled and sorted the
+  tables for the longest mask hashcat accepts rather than for the masks in hand, which is 256 MB
+  resident and half a second however short the mask is. All of it is now bounded by the queue's
+  longest mask, and skipped outright when no mask reaches a character position, which is what
+  attack-mode 1 is. A "--keyspace" probe goes from 543 to 22 ms and 405 to 26 MB for a four character
+  mask, and from 537 to 6 ms and 405 to 19 MB for attack-mode 1. Option "--markov-classic" sums every
+  position into the first one, so it still needs the whole table and is unchanged
 - Each round of a mask attack cleared and uploaded the markov table for the longest mask hashcat
   accepts rather than for its own mask, which is a 64 MB memset, a 16.7 million iteration loop and a
   64 MB transfer per device whatever the mask length. All three are now bounded by the mask length.
