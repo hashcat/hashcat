@@ -4122,7 +4122,7 @@ DECLSPEC void truncate_block_16x4_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 DECLSPEC void set_mark_1x4_S (PRIVATE_AS u32 *v, const u32 offset)
 {
   const u32 c = (offset & 15) / 4;
-  const u32 r = 0xff << ((offset & 3) * 8);
+  const u32 r = 0xffu << ((offset & 3) * 8);
 
   v[0] = (c == 0) ? r : 0;
   v[1] = (c == 1) ? r : 0;

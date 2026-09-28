@@ -1761,13 +1761,14 @@ endif
 ## Targets: Linux install
 ##
 
-# allow (whitelist) "make install" only on unix-based systems (also disallow cygwin/msys)
+# allow (whitelist) "make install" only on unix-based systems (also disallow cygwin/msys). Android
+# means Termux, which exports PREFIX, so the install lands in its own usr tree.
 
 ifneq ($(findstring install,$(MAKECMDGOALS)),)
-  ifeq (,$(filter $(UNAME),Linux FreeBSD OpenBSD NetBSD DragonFly Darwin))
+  ifeq (,$(filter $(UNAME),Linux FreeBSD OpenBSD NetBSD DragonFly Darwin Android))
     define ERROR_INSTALL_DISALLOWED
 ! The 'install' target is not allowed on this operating system ($(UNAME)). \
-Only Linux, FreeBSD, OpenBSD, NetBSD, DragonFly and Darwin can use the 'install' target
+Only Linux, FreeBSD, OpenBSD, NetBSD, DragonFly, Darwin and Android can use the 'install' target
     endef
 
     $(error $(ERROR_INSTALL_DISALLOWED))

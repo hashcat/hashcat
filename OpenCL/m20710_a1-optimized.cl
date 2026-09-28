@@ -500,7 +500,7 @@ KERNEL_FQ KERNEL_FA void m20710_m04 (KERN_ATTR_BASIC ())
 
     const u32 c0 = (off & 15) / 4;
 
-    const u32 r0 = 0xff << ((off & 3) * 8);
+    const u32 r0 = 0xffu << ((off & 3) * 8);
 
     const u32 m0[4] = { ((c0 == 0) ? r0 : 0), ((c0 == 1) ? r0 : 0), ((c0 == 2) ? r0 : 0), ((c0 == 3) ? r0 : 0) };
 
@@ -1208,7 +1208,7 @@ KERNEL_FQ KERNEL_FA void m20710_s04 (KERN_ATTR_BASIC ())
 
     const u32 c0 = (off & 15) / 4;
 
-    const u32 r0 = 0xff << ((off & 3) * 8);
+    const u32 r0 = 0xffu << ((off & 3) * 8);
 
     const u32 m0[4] = { ((c0 == 0) ? r0 : 0), ((c0 == 1) ? r0 : 0), ((c0 == 2) ? r0 : 0), ((c0 == 3) ? r0 : 0) };
 
