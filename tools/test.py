@@ -5,10 +5,10 @@
 ## License.....: MIT
 ##
 
-# A python manager, the counterpart to tools/test.sh for the modes that have a python oracle. It
-# asks tools/test_module_runner.py for test vectors, runs ./hashcat on them and reports the same
-# OK/Error/Skip summary line test.sh prints, so the two can be compared line for line. It is being
-# grown one attack mode at a time; ATTACKS lists the ones it runs, and test.sh still owns the rest.
+# A python manager for the modes that have a python oracle. It asks tools/test_module_runner.py for
+# test vectors, runs ./hashcat on them and reports the OK/Error/Skip summary line the old
+# tools/test.sh printed, so a run reads line for line the way that suite's did. ATTACKS lists the
+# attack modes it runs, and it runs every one the old suite did.
 
 import argparse
 import atexit
@@ -2040,8 +2040,8 @@ def attack_12(r):
     attack_12_multi(r)
 
 
-# One function per attack mode, each printing test.sh's summary lines for that attack. An attack
-# that is not here yet is reported once on stderr and left to test.sh.
+# One function per attack mode, each printing test.sh's summary lines for that attack. Every attack
+# mode the old suite ran has an entry; a value outside this table is reported once on stderr.
 
 ATTACKS = {
   0: attack_0,
@@ -2555,6 +2555,953 @@ def run_container_mode(args, mode, tmp):
       container_veracrypt(args, mode, width, tmp)
     elif mode in CL_MODES:
       container_cryptoloop(args, mode, width, tmp)
+
+
+# -g (--generate): the real-container generation path, the port of test.sh's -g. Instead of reading
+# the containers shipped in the tree or fetched from hashcat.net, -g builds a fresh one with the tool
+# that owns each format and cracks that, so the whole path is tested end to end against a real
+# artifact. It is an addition to the oracle for the archive families, and it replaces the shipped read
+# for the container families (their dirs are repointed at a directory this run fills). CryptoLoop and
+# 14600 have no generator, so they are not in GEN_MODES: -g does not cover them.
+
+GPG_GEN_MODES      = {17010, 17020, 17030, 17040, 17050}
+PKZIP_GEN_MODES    = {17200, 17210, 17220, 17225, 17230}
+RAR_GEN_MODES      = {12500, 13000, 23700, 23800}
+SEVENZIP_GEN_MODES = {11600, 13600}
+PDF_GEN_MODES      = {10400, 10500, 10700}
+SSH_GEN_MODES      = {22931}
+
+ARCHIVE_GEN_MODES = (GPG_GEN_MODES | PKZIP_GEN_MODES | RAR_GEN_MODES | SEVENZIP_GEN_MODES
+                     | PDF_GEN_MODES | SSH_GEN_MODES)
+
+# The container families -g can build. 14600 (legacy LUKS) and the CryptoLoop modes have no generator.
+CONTAINER_GEN_MODES = ({34100} | set(LUKS1_HASH_CIPHER) | TC_MODES | VC_MODES)
+
+GEN_MODES = ARCHIVE_GEN_MODES | CONTAINER_GEN_MODES
+
+# Of those, the families whose generator needs root: the LUKS payload has to be a real filesystem,
+# which is device-mapper, and tcplay insists on a block device. Everything else builds as the user.
+GEN_SUDO_MODES = ({34100} | set(LUKS1_HASH_CIPHER) | TC_MODES)
+
+# A generated container is built with a password from the same generator the oracles use (test.sh
+# container_password), so it carries whatever bytes that draws rather than a baked-in 'hashcat' that a
+# test could pass on by accident. An optimized run builds ASCII, because the optimized kernels cannot
+# match a multi byte password against a real artifact. These globals are the shipped-container
+# defaults; main() reassigns them under -g.
+GEN_LOCALE = os.environ.get("UTF8_LOCALE", "C.UTF-8")
+
+# Runs that did not run in full: a missing tool, a combination the tool refuses, or an extractor that
+# produced nothing. test.sh keeps these in one list and prints them at the end (record_skip/note/
+# error, print_skip_summary), because a container test that silently did not run reads like a pass.
+GEN_SKIPS = []
+
+
+def gen_record(mode, kind, reason):
+  GEN_SKIPS.append((mode, kind, reason))
+  print("[ test.py ] [ Type %d ] > %s : %s" % (mode, kind, reason))
+
+
+def gen_skip(mode, reason):
+  gen_record(mode, "Skip", reason)
+
+
+def gen_note(mode, reason):
+  gen_record(mode, "Note", reason)
+
+
+def gen_error(mode, reason):
+  gen_record(mode, "Error", reason)
+
+
+def print_gen_summary():
+  if not GEN_SKIPS:
+    return
+
+  seen   = set()
+  unique = []
+
+  for item in GEN_SKIPS:
+    if item not in seen:
+      seen.add(item)
+      unique.append(item)
+
+  print()
+  print("[ test.py ] > %d test(s) did not run in full:" % len(unique))
+
+  for mode, kind, reason in unique:
+    print("[ test.py ] [ Type %d ] > %s : %s" % (mode, kind, reason))
+
+  print()
+
+
+def gen_env():
+  # test.sh runs every generator under a UTF-8 locale so a multi byte password reaches the tool as the
+  # characters it is rather than as mojibake.
+  e = dict(os.environ)
+  e["LC_ALL"] = GEN_LOCALE
+  e["LANG"]   = GEN_LOCALE
+
+  return e
+
+
+def gen_run(cmd, stdin=None, sudo=False):
+  # Run one generation tool quietly. sudo prepends "sudo -n": main() authenticates and keeps the
+  # ticket warm up front, so a generator never stops for a password partway through a long run.
+  if sudo:
+    cmd = ["sudo", "-n"] + cmd
+
+  proc = subprocess.run(cmd, input=stdin, env=gen_env(),
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+  return proc.returncode, proc.stdout
+
+
+def gen_password_string():
+  # The password the containers are built with (test.sh container_password): 12 bytes from
+  # test_module_runner.py for mode 0, ASCII under an optimized run. Returned as text for a tool's argv.
+  env = dict(os.environ)
+
+  if not GEN_PURE:
+    env["NO_NON_ASCII"] = "1"
+
+  proc = subprocess.run([sys.executable, RUNNER, "password", "0", "12"],
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+
+  return proc.stdout.rstrip(b"\n")
+
+
+# GEN_PURE mirrors "is this a pure-kernel run": it decides whether generated passwords may carry
+# non-ASCII. Set in main() from args.pure before gen_password_string() runs.
+GEN_PURE = False
+
+
+def _tool(env_name, name):
+  # A generator tool: the env override, else PATH, else John's default run directory, else the bare
+  # name so command lookup fails with a message that includes it.
+  override = os.environ.get(env_name)
+
+  if override:
+    return override
+
+  found = shutil.which(name)
+
+  if found:
+    return found
+
+  cand = os.path.join(os.path.expanduser("~"), "john", "run", name)
+
+  return cand if os.path.exists(cand) else name
+
+
+def _have(path):
+  return shutil.which(path) is not None or os.path.exists(path)
+
+
+def _john_extract(raw, token_re):
+  # test.sh's `<tool> ... | sed 's/^[^:]*://' | grep -oE '<token>' | head -1`: the first token that
+  # matches, from a John extractor's output. The tools prepend "name:", and every hash token here uses
+  # '*' or '$' rather than ':' internally, so searching each whole line for the token is equivalent.
+  for line in raw.decode("utf-8", "replace").splitlines():
+    m = re.search(token_re, line)
+
+    if m:
+      return m.group(0)
+
+  return None
+
+
+def write_hash(hash_file, token):
+  with open(hash_file, "w") as fh:
+    fh.write(token + "\n")
+
+
+def archive_attacks(args, fast):
+  # test.sh runs a fast archive mode (PKZIP) over 0/1/3 to cover its per-attack kernels when -a is
+  # "all", and a slow one over a0 only. A named -a runs just that one, if it is one -g can build.
+  if args.attack == "all":
+    return [0, 1, 3] if fast else [0]
+
+  a = int(args.attack)
+
+  return [a] if a in (0, 1, 3, 6, 7) else []
+
+
+def archive_crack(args, mode, hash_file, label, tmp, fast):
+  # Crack a generated archive/key over the requested attacks and vector widths, the test.sh-style line
+  # per run (build_container_cmd + container_run_and_report). The password is the one it was built
+  # with, in CONTAINER_PASSWORD.
+  opts = base_opts(args)
+
+  for attack in archive_attacks(args, fast):
+    extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
+
+    if extra is None:
+      continue
+
+    for width in widths_for(args.vector):
+      container_crack(args, opts, mode, attack, hash_file, width, label, extra)
+
+
+# ---- container generators (test.sh veracrypt_generate/truecrypt_generate/luks*_generate) ----
+
+def vc_encryption_name(cascade):
+  # test.sh spells a cascade "aes-twofish-serpent"; veracrypt wants "AES(Twofish(Serpent))".
+  names = {"aes": "AES", "serpent": "Serpent", "twofish": "Twofish",
+           "camellia": "Camellia", "kuznyechik": "Kuznyechik"}
+
+  out   = ""
+  close = ""
+
+  for part in cascade.split("-"):
+    if part not in names:
+      return None
+
+    if not out:
+      out = names[part]
+    else:
+      out   = "%s(%s" % (out, names[part])
+      close += ")"
+
+  return out + close
+
+
+def veracrypt_generate(mode, vc_hash, cascade, out_file):
+  # test.sh veracrypt_generate: build the volume with the veracrypt console binary, as the user. 1.26
+  # dropped RIPEMD-160 for new volumes, so those need VERACRYPT_BIN pointed at a 1.25.9 or older build.
+  vbin = os.environ.get("VERACRYPT_BIN", "veracrypt")
+
+  if not _have(vbin):
+    gen_skip(mode, "veracrypt not found, so no VeraCrypt volume can be generated (set VERACRYPT_BIN=/path/to/veracrypt)")
+    return False
+
+  encryption = vc_encryption_name(cascade)
+
+  if encryption is None:
+    gen_skip(mode, "no veracrypt name for cipher cascade %s" % cascade)
+    return False
+
+  if os.path.exists(out_file):
+    os.remove(out_file)
+
+  # 1 MiB is over VeraCrypt's minimum and keeps generation to a moment; hashcat only reads the header.
+  gen_run([vbin, "--text", "--create", out_file, "--size=1M",
+           "--password=%s" % CONTAINER_PASSWORD.decode("utf-8"), "--volume-type=normal",
+           "--encryption=%s" % encryption, "--hash=%s" % vc_hash, "--filesystem=none",
+           "--pim=0", "--keyfiles=", "--random-source=/dev/urandom", "--non-interactive"])
+
+  if not os.path.exists(out_file) or os.path.getsize(out_file) == 0:
+    if os.path.exists(out_file):
+      os.remove(out_file)
+
+    if vc_hash == "ripemd160":
+      gen_skip(mode, "%s will not create RIPEMD-160 volumes; 1.26 dropped them, so point VERACRYPT_BIN "
+                     "at a 1.25.9 or older build to cover these" % vbin)
+    else:
+      gen_skip(mode, "veracrypt refused %s + %s, which is not a combination it supports" % (vc_hash, encryption))
+
+    return False
+
+  return True
+
+
+TC_PRF_NAME    = {"ripemd160": "RIPEMD160", "sha512": "SHA512", "whirlpool": "whirlpool"}
+TC_CIPHER_SPEC = {
+  "aes": "AES-256-XTS", "serpent": "SERPENT-256-XTS", "twofish": "TWOFISH-256-XTS",
+  "aes-twofish": "TWOFISH-256-XTS,AES-256-XTS", "serpent-aes": "AES-256-XTS,SERPENT-256-XTS",
+  "twofish-serpent": "SERPENT-256-XTS,TWOFISH-256-XTS",
+  "aes-twofish-serpent": "SERPENT-256-XTS,TWOFISH-256-XTS,AES-256-XTS",
+  "serpent-twofish-aes": "AES-256-XTS,TWOFISH-256-XTS,SERPENT-256-XTS",
+}
+
+# test.sh truecrypt_container_name (test.sh): the cascade for a given cipher count and tcMode.
+TC_CASCADE_BY_COUNT = {
+  1: {0: "aes", 1: "serpent", 2: "twofish"},
+  2: {0: "aes-twofish", 1: "serpent-aes", 2: "twofish-serpent"},
+  3: {0: "aes-twofish-serpent", 1: "serpent-twofish-aes"},
+}
+
+
+def truecrypt_generate(mode, prf, cascade, out_file, tmp):
+  # test.sh truecrypt_generate: tcplay is the only creator left for the format, and it needs a block
+  # device, so a loop device and sudo, and it reads its passphrase from a terminal, so expect.
+  tcplay = _tool("TCPLAY_BIN", "tcplay")
+
+  if not _have(tcplay):
+    gen_skip(mode, "tcplay not found, so no TrueCrypt volume can be generated (apt install tcplay, or set TCPLAY_BIN=...)")
+    return False
+
+  if not shutil.which("expect"):
+    gen_skip(mode, "expect not found, and tcplay reads its passphrase from a terminal (apt install expect)")
+    return False
+
+  prf_name = TC_PRF_NAME.get(prf)
+  cipher   = TC_CIPHER_SPEC.get(cascade)
+
+  if prf_name is None or cipher is None:
+    gen_skip(mode, "tcplay has no PBKDF PRF/cipher chain for %s + %s" % (prf, cascade))
+    return False
+
+  exp = os.path.join(tmp, "tcplay_create.exp")
+
+  with open(exp, "w") as fh:
+    fh.write("set timeout 600\n"
+             "set dev  [lindex $argv 0]\n"
+             "set pass [lindex $argv 1]\n"
+             "set prf  [lindex $argv 2]\n"
+             "set ciph [lindex $argv 3]\n"
+             "set bin  [lindex $argv 4]\n"
+             "spawn $bin --create --device=$dev --cipher=$ciph --pbkdf-prf=$prf --insecure-erase --weak-keys\n"
+             'expect "Passphrase:"        { send "$pass\\r" }\n'
+             'expect "Repeat passphrase:" { send "$pass\\r" }\n'
+             'expect "(y/n)"              { send "y\\r" }\n'
+             "expect eof\n"
+             "catch wait result\n"
+             "exit [lindex $result 3]\n")
+
+  if os.path.exists(out_file):
+    os.remove(out_file)
+
+  # tcplay writes only the header, which is all hashcat reads, but it insists on a block device.
+  with open(out_file, "wb") as fh:
+    fh.truncate(2 * 1024 * 1024)
+
+  rc, out = gen_run(["losetup", "--show", "-f", out_file], sudo=True)
+  loop    = out.decode("utf-8", "replace").strip()
+
+  if rc != 0 or not loop:
+    os.remove(out_file)
+    gen_skip(mode, "could not attach a loop device, which tcplay needs (sudo losetup)")
+    return False
+
+  rc, _ = gen_run(["expect", exp, loop, CONTAINER_PASSWORD.decode("utf-8"), prf_name, cipher, tcplay], sudo=True)
+
+  gen_run(["losetup", "-d", loop], sudo=True)
+
+  if rc != 0 or os.path.getsize(out_file) == 0:
+    os.remove(out_file)
+    gen_skip(mode, "tcplay could not create a %s + %s volume" % (prf, cascade))
+    return False
+
+  return True
+
+
+def _luks_chain(lmode):
+  # cbc-essiv is written cbc-essiv:sha256 in a cryptsetup cipher spec.
+  return "cbc-essiv:sha256" if lmode == "cbc-essiv" else lmode
+
+
+def luks1_generate(mode, luks_hash, luks_cipher, lmode, ksize, out_file):
+  # test.sh luks1_generate: cryptsetup writes the header as the user, but hashcat verifies a LUKS
+  # candidate by decrypting the payload and recognizing a filesystem, so the volume has to be opened
+  # and formatted, and that is device-mapper, which needs root.
+  cryptsetup = _tool("CRYPTSETUP_BIN", "cryptsetup")
+
+  if not _have(cryptsetup):
+    gen_skip(mode, "cryptsetup not found, so no LUKS1 container can be generated")
+    return False
+
+  chain = _luks_chain(lmode)
+  name  = "luksgen%d_%s" % (os.getpid(), ksize)
+
+  if os.path.exists(out_file):
+    os.remove(out_file)
+
+  with open(out_file, "wb") as fh:
+    fh.truncate(20 * 1024 * 1024)
+
+  # 1000 is cryptsetup's floor: the point is to test the format, not to wait for a realistic KDF.
+  rc, _ = gen_run([cryptsetup, "luksFormat", "--batch-mode", "--type", "luks1",
+                   "--cipher", "%s-%s" % (luks_cipher, chain), "--key-size", ksize,
+                   "--hash", luks_hash, "--pbkdf-force-iterations", "1000", out_file],
+                  stdin=CONTAINER_PASSWORD + b"\n", sudo=True)
+
+  if rc != 0:
+    os.remove(out_file)
+    gen_skip(mode, "cryptsetup refused %s + %s-%s at %s bits" % (luks_hash, luks_cipher, chain, ksize))
+    return False
+
+  rc, _ = gen_run([cryptsetup, "open", out_file, name], stdin=CONTAINER_PASSWORD + b"\n", sudo=True)
+
+  if rc != 0:
+    os.remove(out_file)
+    gen_skip(mode, "could not open the generated %s + %s-%s container (device-mapper needs sudo)"
+             % (luks_hash, luks_cipher, chain))
+    return False
+
+  gen_run(["mkfs.ext4", "-q", "/dev/mapper/%s" % name], sudo=True)
+  gen_run([cryptsetup, "close", name], sudo=True)
+
+  if os.path.getsize(out_file) == 0:
+    gen_skip(mode, "the generated %s + %s-%s container came out empty" % (luks_hash, luks_cipher, chain))
+    return False
+
+  return True
+
+
+def luks2_generate(mode, lmode, ksize, out_file):
+  # test.sh luks2_generate: the smallest argon2id 34100 is still itself at (t=4, m=16 MiB, p=1), the
+  # shape of the container hashcat.net ships. Opening and formatting the payload needs root, as LUKS1.
+  cryptsetup = _tool("CRYPTSETUP_BIN", "cryptsetup")
+
+  if not _have(cryptsetup):
+    gen_skip(mode, "cryptsetup not found, so no LUKS2 container can be generated")
+    return False
+
+  chain = _luks_chain(lmode)
+  name  = "luks2gen%d_%s" % (os.getpid(), ksize)
+
+  if os.path.exists(out_file):
+    os.remove(out_file)
+
+  # LUKS2 keeps a 16 MiB metadata area, so the file has to be larger than a LUKS1 one for a filesystem.
+  with open(out_file, "wb") as fh:
+    fh.truncate(48 * 1024 * 1024)
+
+  rc, _ = gen_run([cryptsetup, "luksFormat", "--batch-mode", "--type", "luks2",
+                   "--cipher", "aes-%s" % chain, "--key-size", ksize, "--hash", "sha256",
+                   "--pbkdf", "argon2id", "--pbkdf-force-iterations", "4",
+                   "--pbkdf-memory", "16384", "--pbkdf-parallel", "1", out_file],
+                  stdin=CONTAINER_PASSWORD + b"\n", sudo=True)
+
+  if rc != 0:
+    os.remove(out_file)
+    gen_skip(mode, "cryptsetup refused aes-%s at %s bits for LUKS2" % (chain, ksize))
+    return False
+
+  rc, _ = gen_run([cryptsetup, "open", out_file, name], stdin=CONTAINER_PASSWORD + b"\n", sudo=True)
+
+  if rc != 0:
+    os.remove(out_file)
+    gen_skip(mode, "could not open the generated aes-%s LUKS2 container (device-mapper needs sudo)" % chain)
+    return False
+
+  gen_run(["mkfs.ext4", "-q", "/dev/mapper/%s" % name], sudo=True)
+  gen_run([cryptsetup, "close", name], sudo=True)
+
+  if os.path.getsize(out_file) == 0:
+    gen_skip(mode, "the generated aes-%s LUKS2 container came out empty" % chain)
+    return False
+
+  return True
+
+
+def generate_containers(args, mode, tmp):
+  # Fill this mode's family with fresh containers, into the *_TESTS_DIR the container read path then
+  # walks (main() has repointed those at a per-run directory). test.sh's -g branches inside each
+  # *_test function; the same generation, one step ahead of the same read.
+  if mode == 34100:
+    os.makedirs(LUKS2_TESTS_DIR, exist_ok=True)
+
+    for lmode, ksize in luks_variants():
+      out = os.path.join(LUKS2_TESTS_DIR, "luks2-aes-argon2id-t4-m16-p1-%s-%s.img" % (lmode, ksize))
+
+      if not os.path.exists(out):
+        luks2_generate(mode, lmode, ksize, out)
+
+    return
+
+  if mode in LUKS1_HASH_CIPHER:
+    os.makedirs(LUKS_TESTS_DIR, exist_ok=True)
+    luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
+
+    for lmode, ksize in luks_variants():
+      name = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
+      out  = os.path.join(LUKS_TESTS_DIR, name + ".luks")
+
+      if not os.path.exists(out):
+        luks1_generate(mode, luks_hash, luks_cipher, lmode, ksize, out)
+
+    return
+
+  if mode in TC_MODES:
+    os.makedirs(TC_TESTS_DIR, exist_ok=True)
+
+    s    = "%05d" % mode
+    hfun = TC_HASH_DIGIT.get(int(s[-2]))
+    boot = int(s[-2]) in TC_BOOT_DIGITS
+    ncip = int(s[-1])
+
+    if hfun is None or ncip not in (1, 2, 3):
+      return
+
+    if boot:
+      gen_skip(mode, "tcplay cannot create system-encryption (boot) volumes, so -m %d is not generated" % mode)
+      return
+
+    for tc_mode in range(3):
+      cascade = TC_CASCADE_BY_COUNT.get(ncip, {}).get(tc_mode)
+
+      if cascade is None:
+        continue
+
+      out = os.path.join(TC_TESTS_DIR, "hashcat_%s_%s.tc" % (hfun, cascade))
+
+      if not os.path.exists(out):
+        truecrypt_generate(mode, hfun, cascade, out, tmp)
+
+    return
+
+  if mode in VC_MODES:
+    os.makedirs(VC_TESTS_DIR, exist_ok=True)
+
+    s    = "%05d" % mode
+    hfun = VC_HASH_DIGIT.get(int(s[3]))
+
+    if hfun is None:
+      return
+
+    if int(s[3]) in VC_BOOT_DIGITS:
+      gen_skip(mode, "veracrypt --create only writes normal volumes, so the boot mode -m %d is not generated" % mode)
+      return
+
+    for cascade in VC_CASCADES.get(int(s[4]), {}).values():
+      out = os.path.join(VC_TESTS_DIR, "hashcat_%s_%s.vc" % (hfun, cascade))
+
+      if not os.path.exists(out):
+        veracrypt_generate(mode, hfun, cascade, out)
+
+    return
+
+
+# ---- archive generators (test.sh pkzip_test/gpg_test/rar_test/sevenzip_test/pdf_gen_test/ssh_test) ----
+
+def gen_pkzip(args, mode, tmp):
+  # Real ZipCrypto archives built with InfoZip 'zip', hash read back with John's zip2john.
+  zip_bin  = _tool("ZIP_BIN", "zip")
+  zip2john = _tool("ZIP2JOHN", "zip2john")
+
+  if not shutil.which(zip_bin):
+    gen_skip(mode, "'zip' not found (install InfoZip zip)")
+    return
+
+  if not _have(zip2john):
+    gen_skip(mode, "zip2john not found (set ZIP2JOHN=/path/to/zip2john)")
+    return
+
+  pw   = CONTAINER_PASSWORD.decode("utf-8")
+  zdir = os.path.join(tmp, "pkzip_%d" % mode)
+  sdir = os.path.join(zdir, "src")
+  os.makedirs(sdir, exist_ok=True)
+
+  for i in (1, 2, 3, 4):
+    with open(os.path.join(sdir, "t%d.txt" % i), "wb") as fh:
+      fh.write(("pattern %d the quick brown fox " % i).encode() * 300)
+
+  with open(os.path.join(sdir, "rand.bin"), "wb") as fh:
+    fh.write(os.urandom(64))
+
+  zf = os.path.join(zdir, "%d.zip" % mode)
+  t  = lambda n: os.path.join(sdir, n)
+
+  builds = {
+    17200: ([zip_bin, "-9", "-e", "-P", pw, zf, t("t1.txt")], False),
+    17210: ([zip_bin, "-0", "-e", "-P", pw, zf, t("t1.txt")], False),
+    17220: ([zip_bin, "-9", "-e", "-P", pw, zf, t("t1.txt"), t("t2.txt"), t("t3.txt")], False),
+    17225: ([zip_bin, "-e", "-P", pw, zf, t("t1.txt"), t("rand.bin"), t("t2.txt")], False),
+    17230: ([zip_bin, "-9", "-e", "-P", pw, zf, t("t1.txt"), t("t2.txt"), t("t3.txt"), t("t4.txt")], True),
+  }
+
+  if mode not in builds:
+    gen_skip(mode, "unsupported PKZIP mode for -g")
+    return
+
+  cmd, checksum = builds[mode]
+  gen_run(cmd)
+
+  hash_file = os.path.join(zdir, "%d.hash" % mode)
+  extra     = ["-c"] if checksum else []
+  rc, out   = gen_run([zip2john] + extra + [zf])
+  token     = _john_extract(out, r"\$pkzip2?\$[^:]+")
+
+  if token is None:
+    gen_error(mode, "zip2john produced no hash for %s" % zf)
+    return
+
+  write_hash(hash_file, token)
+  archive_crack(args, mode, hash_file, "PKZIP-container", tmp, fast=True)
+
+
+def gen_gpg(args, mode, tmp):
+  # Real GPG secret keys. gpg1 (GnuPG 1.4) does the classic CFB S2K variants directly; gpg (2.x) does
+  # the default key and, for 17050, the on-disk OCB layout, read with tools/gpg-ocb-aes2hashcat.py.
+  gpg1    = os.environ.get("GPG1_BIN", "gpg1")
+  gpg2    = os.environ.get("GPG2_BIN", "gpg")
+  gpg2john = _tool("GPG2JOHN", "gpg2john")
+  ocb     = os.environ.get("GPG_OCB_EXTRACT", os.path.join(TDIR, "gpg-ocb-aes2hashcat.py"))
+
+  if not _have(gpg2john):
+    gen_skip(mode, "gpg2john not found (set GPG2JOHN=/path/to/gpg2john)")
+    return
+
+  have_gpg1 = shutil.which(gpg1) is not None
+
+  if not have_gpg1:
+    gen_note(mode, "%s (GnuPG 1.x) not found, so the classic S2K variants and the AES-128 (aux1) path "
+                   "are skipped; set GPG1_BIN=... if installed elsewhere" % gpg1)
+
+  pw   = CONTAINER_PASSWORD.decode("utf-8")
+  gdir = os.path.join(tmp, "gpg_%d" % mode)
+  os.makedirs(gdir, exist_ok=True)
+
+  producers = []
+
+  def gpg1_key(digest, cipher, label):
+    if not have_gpg1:
+      return
+
+    home  = tempfile.mkdtemp()
+    batch = ("Key-Type: RSA\nKey-Length: 1024\nKey-Usage: sign\nName-Real: %s\n"
+             "Name-Email: %s@hashcat.test\nPassphrase: %s\nExpire-Date: 0\n%%commit\n"
+             % (label, label, pw))
+    gen_run([gpg1, "--homedir", home, "--batch", "--no-tty", "--s2k-digest-algo", digest,
+             "--s2k-cipher-algo", cipher, "--s2k-mode", "3", "--s2k-count", "65536", "--gen-key"],
+            stdin=batch.encode("utf-8"))
+
+    rc, out = gen_run([gpg2john, os.path.join(home, "secring.gpg")])
+    token   = _john_extract(out, r"\$gpg\$[^:]*")
+    shutil.rmtree(home, ignore_errors=True)
+
+    if token:
+      producers.append((label, token))
+
+  def gpg2_key(label, extra_args):
+    home = tempfile.mkdtemp()
+    gen_run([gpg2, "--homedir", home, "--batch", "--pinentry-mode", "loopback", "--passphrase", pw]
+            + extra_args + ["--quick-generate-key", "%s <%s@hashcat.test>" % (label, label),
+                            "rsa1024", "sign", "0"])
+    rc, sk = gen_run([gpg2, "--homedir", home, "--batch", "--pinentry-mode", "loopback",
+                      "--passphrase", pw, "--export-secret-keys"])
+    sk_file = os.path.join(gdir, "%d_%s.sk.gpg" % (mode, label))
+
+    with open(sk_file, "wb") as fh:
+      fh.write(sk)
+
+    rc, out = gen_run([gpg2john, sk_file])
+    token   = _john_extract(out, r"\$gpg\$[^:]*")
+    shutil.rmtree(home, ignore_errors=True)
+
+    if token:
+      producers.append((label, token))
+
+  def gpg2_ocb_key(label, keytype):
+    if not os.path.isfile(ocb):
+      gen_skip(mode, "%s not found" % ocb)
+      return
+
+    home = tempfile.mkdtemp()
+    gen_run([gpg2, "--homedir", home, "--batch", "--pinentry-mode", "loopback", "--passphrase", pw,
+             "--quick-generate-key", "%s <%s@hashcat.test>" % (label, label), keytype, "sign", "0"])
+
+    token = None
+    keys  = glob.glob(os.path.join(home, "private-keys-v1.d", "*.key"))
+
+    if keys:
+      with open(keys[0], "rb") as fh:
+        blob = fh.read()
+
+      if b"openpgp-s2k3-ocb-aes" in blob:
+        rc, out = gen_run([sys.executable, ocb, keys[0]])
+        token   = _john_extract(out, r"\$gpg\$[^:]*")
+
+    shutil.rmtree(home, ignore_errors=True)
+
+    if token:
+      producers.append((label, token))
+
+  if mode == 17010:
+    gpg1_key("SHA1", "AES", "gpg1-sha1-aes128")
+    gpg1_key("SHA1", "AES256", "gpg1-sha1-aes256")
+    gpg2_key("gpg2-default", [])
+  elif mode == 17020:
+    gpg1_key("SHA512", "AES", "gpg1-sha512-aes128")
+    gpg1_key("SHA512", "AES256", "gpg1-sha512-aes256")
+  elif mode == 17030:
+    gpg1_key("SHA256", "AES", "gpg1-sha256-aes128")
+    gpg1_key("SHA256", "AES256", "gpg1-sha256-aes256")
+  elif mode == 17040:
+    gpg1_key("SHA1", "CAST5", "gpg1-sha1-cast5")
+  elif mode == 17050:
+    gpg2_ocb_key("gpg2-ed25519-ocb", "ed25519")
+    gpg2_ocb_key("gpg2-rsa2048-ocb", "rsa2048")
+  else:
+    gen_skip(mode, "unsupported GPG mode for -g")
+    return
+
+  if not producers:
+    gen_skip(mode, "could not generate a matching GPG container (gpg1/gpg2 unavailable or mode unsupported by local tools)")
+    return
+
+  for label, token in producers:
+    hash_file = os.path.join(gdir, "%d_%s.hash" % (mode, label))
+    write_hash(hash_file, token)
+    archive_crack(args, mode, hash_file, "GPG-container %s" % label, tmp, fast=False)
+
+
+def gen_rar(args, mode, tmp):
+  # Real RAR archives. RAR3 (-ma4) needs a RARLAB rar 6.x or older; rar 7.x is RAR5 only. Hash read
+  # back with John's rar2john.
+  rar_bin = os.environ.get("RAR_BIN")
+
+  if not rar_bin:
+    old = os.path.join(os.path.expanduser("~"), "rar-old", "rar")
+    rar_bin = old if os.path.exists(old) else "rar"
+
+  rar2john = _tool("RAR2JOHN", "rar2john")
+
+  if not _have(rar_bin):
+    gen_skip(mode, "rar not found. Fetch rarlinux-x64-612.tar.gz from rarlab.com (NOT 'apt install rar', "
+                   "that is rar 7.x = RAR5 only), or set RAR_BIN=/path/to/rar")
+    return
+
+  if not _have(rar2john):
+    gen_skip(mode, "rar2john not found (set RAR2JOHN=/path/to/rar2john)")
+    return
+
+  pw   = CONTAINER_PASSWORD.decode("utf-8")
+  rdir = os.path.join(tmp, "rar_%d" % mode)
+  sdir = os.path.join(rdir, "src")
+  os.makedirs(sdir, exist_ok=True)
+
+  payload = os.path.join(sdir, "payload.txt")
+
+  with open(payload, "wb") as fh:
+    fh.write(b"pattern the quick brown fox jumps over the lazy dog " * 160)
+
+  # Does this rar accept -ma4 (RAR3)?
+  probe_dir = tempfile.mkdtemp()
+  probe_txt = os.path.join(probe_dir, "p.txt")
+
+  with open(probe_txt, "wb") as fh:
+    fh.write(b"probe\n")
+
+  probe_rar = os.path.join(probe_dir, "a.rar")
+  gen_run([rar_bin, "a", "-ma4", "-p_", "-inul", probe_rar, probe_txt])
+  has_ma4 = os.path.exists(probe_rar) and os.path.getsize(probe_rar) > 0
+  shutil.rmtree(probe_dir, ignore_errors=True)
+
+  if mode in (12500, 23700, 23800) and not has_ma4:
+    gen_skip(mode, "%s cannot create RAR3 (-ma4), it is likely rar 7.x; fetch rarlinux-x64-612.tar.gz "
+                   "from rarlab.com or set RAR_BIN=/path/to/rar<=6.x" % rar_bin)
+    return
+
+  arc   = os.path.join(rdir, "%d.rar" % mode)
+  token_re = r"\$RAR3\$[^:]+"
+
+  builds = {
+    12500: ([rar_bin, "a", "-ma4", "-m3", "-hp" + pw, "-inul", arc, payload], "rar3-hp"),
+    23700: ([rar_bin, "a", "-ma4", "-m0", "-p" + pw, "-inul", arc, payload], "rar3-p-store"),
+    23800: ([rar_bin, "a", "-ma4", "-m3", "-p" + pw, "-inul", arc, payload], "rar3-p-compressed"),
+    13000: ([rar_bin, "a", "-p" + pw, "-inul", arc, payload], "rar5"),
+  }
+
+  if mode not in builds:
+    gen_skip(mode, "unsupported RAR mode for -g")
+    return
+
+  cmd, label = builds[mode]
+
+  if mode == 13000:
+    token_re = r"\$rar5\$[^:]+"
+
+  gen_run(cmd)
+
+  if not os.path.exists(arc) or os.path.getsize(arc) == 0:
+    gen_error(mode, "rar failed to create %s" % arc)
+    return
+
+  hash_file = os.path.join(rdir, "%d.hash" % mode)
+  rc, out   = gen_run([rar2john, arc])
+  token     = _john_extract(out, token_re)
+
+  if token is None:
+    gen_error(mode, "rar2john produced no hash for %s" % arc)
+    return
+
+  write_hash(hash_file, token)
+  archive_crack(args, mode, hash_file, "RAR-container %s" % label, tmp, fast=False)
+
+
+def gen_sevenzip(args, mode, tmp):
+  # 11600 from a 7-Zip archive (7z2john.pl), 13600 WinZip AES from a zip (zip2john). 11600 is built
+  # four ways because the mode decrypts and decompresses a block and checks a CRC, so the codec is
+  # part of what is under test.
+  sevenzip = _tool("SEVENZIP_BIN", "7z")
+  sz2john  = _tool("SEVENZIP2JOHN", "7z2john.pl")
+  zip2john = _tool("ZIP2JOHN", "zip2john")
+
+  if not shutil.which(sevenzip):
+    gen_skip(mode, "7z not found (apt install p7zip-full, or set SEVENZIP_BIN=/path/to/7z)")
+    return
+
+  pw   = CONTAINER_PASSWORD.decode("utf-8")
+  sdir = os.path.join(tmp, "7z_%d" % mode)
+  os.makedirs(sdir, exist_ok=True)
+
+  payload = os.path.join(sdir, "payload.txt")
+
+  with open(payload, "wb") as fh:
+    fh.write(b"pattern the quick brown fox jumps over the lazy dog " * 160)
+
+  if mode == 11600:
+    if not _have(sz2john):
+      gen_skip(mode, "7z2john.pl not found (set SEVENZIP2JOHN=/path/to/7z2john.pl)")
+      return
+
+    if subprocess.run(["perl", "-MCompress::Raw::Lzma", "-e", "1"],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+      gen_skip(mode, "7z2john.pl needs Compress::Raw::Lzma (apt install libcompress-raw-lzma-perl)")
+      return
+
+    variants = [("lzma2-header-encrypted", ["-mhe=on"]), ("lzma2-header-plain", ["-mhe=off"]),
+                ("stored", ["-mhe=on", "-m0=Copy"]), ("bzip2", ["-mhe=on", "-m0=BZip2"])]
+  elif mode == 13600:
+    if not _have(zip2john):
+      gen_skip(mode, "zip2john not found (set ZIP2JOHN=/path/to/zip2john)")
+      return
+
+    variants = [("aes128", ["-mem=AES128"]), ("aes256", ["-mem=AES256"])]
+  else:
+    gen_skip(mode, "unsupported 7z mode for -g")
+    return
+
+  for label, opts in variants:
+    if mode == 13600:
+      archive   = os.path.join(sdir, "%d_%s.zip" % (mode, label))
+      gen_run([sevenzip, "a", "-tzip"] + opts + ["-p" + pw, archive, payload])
+      rc, out   = gen_run([zip2john, archive])
+      token     = _john_extract(out, r"\$zip2\$[^:]*")
+    else:
+      archive   = os.path.join(sdir, "%d_%s.7z" % (mode, label))
+      gen_run([sevenzip, "a"] + opts + ["-p" + pw, archive, payload])
+      rc, out   = gen_run(["perl", sz2john, archive])
+      token     = _john_extract(out, r"\$7z\$[^:]*")
+
+    if token is None:
+      gen_error(mode, "could not read a hash out of the generated %s archive" % label)
+      continue
+
+    hash_file = os.path.join(sdir, "%d_%s.hash" % (mode, label))
+    write_hash(hash_file, token)
+    archive_crack(args, mode, hash_file, "7z-container %s" % label, tmp, fast=False)
+
+
+def gen_pdf(args, mode, tmp):
+  # Encrypted PDFs built with qpdf (gs writes the plain document it encrypts), hash read with
+  # pdf2john.pl. qpdf 11 refuses RC4 without --allow-weak-crypto.
+  qpdf     = _tool("QPDF_BIN", "qpdf")
+  pdf2john = _tool("PDF2JOHN", "pdf2john.pl")
+
+  if not shutil.which(qpdf):
+    gen_skip(mode, "qpdf not found (apt install qpdf, or set QPDF_BIN=/path/to/qpdf)")
+    return
+
+  if not _have(pdf2john):
+    gen_skip(mode, "pdf2john.pl not found (set PDF2JOHN=/path/to/pdf2john.pl); the .py needs pyhanko and is not used here")
+    return
+
+  pw   = CONTAINER_PASSWORD.decode("utf-8")
+  pdir = os.path.join(tmp, "pdf_%d" % mode)
+  os.makedirs(pdir, exist_ok=True)
+
+  plain = os.path.join(pdir, "plain.pdf")
+
+  if shutil.which("gs"):
+    gen_run(["gs", "-q", "-o", plain, "-sDEVICE=pdfwrite", "-c", "showpage"])
+
+  if not os.path.exists(plain) or os.path.getsize(plain) == 0:
+    gen_skip(mode, "no gs to write a plain PDF for qpdf to encrypt (apt install ghostscript)")
+    return
+
+  # opts as they follow qpdf, PW standing in for the password, "--" ending the encrypt options.
+  variants = {
+    10400: [("rc4-40", ["--allow-weak-crypto", "--encrypt", pw, pw, "40", "--"])],
+    10500: [("rc4-128", ["--allow-weak-crypto", "--encrypt", pw, pw, "128", "--"]),
+            ("aes-128", ["--encrypt", pw, pw, "128", "--use-aes=y", "--"])],
+    10700: [("aes-256", ["--encrypt", pw, pw, "256", "--"])],
+  }
+
+  if mode not in variants:
+    gen_skip(mode, "unsupported PDF mode for -g")
+    return
+
+  for label, opts in variants[mode]:
+    doc = os.path.join(pdir, "%d_%s.pdf" % (mode, label))
+    gen_run([qpdf] + opts + [plain, doc])
+
+    if not os.path.exists(doc) or os.path.getsize(doc) == 0:
+      gen_skip(mode, "qpdf could not write a %s document" % label)
+      continue
+
+    rc, out = gen_run(["perl", pdf2john, doc])
+    token   = _john_extract(out, r"\$pdf\$[^:]*")
+
+    if token is None:
+      gen_error(mode, "pdf2john produced no hash for the %s document" % label)
+      continue
+
+    hash_file = os.path.join(pdir, "%d_%s.hash" % (mode, label))
+    write_hash(hash_file, token)
+    archive_crack(args, mode, hash_file, "PDF-container %s" % label, tmp, fast=False)
+
+
+def gen_ssh(args, mode, tmp):
+  # A real OpenSSH private key. -m PEM writes the classic DEK-Info form the 229xx modes parse; the
+  # default openssh-key-v1 layout is bcrypt-pbkdf, which no released mode reads. Read with ssh2john.py.
+  keygen  = _tool("SSHKEYGEN_BIN", "ssh-keygen")
+  ssh2john = _tool("SSH2JOHN", "ssh2john.py")
+
+  if not shutil.which(keygen):
+    gen_skip(mode, "ssh-keygen not found (set SSHKEYGEN_BIN=/path/to/ssh-keygen)")
+    return
+
+  if not _have(ssh2john):
+    gen_skip(mode, "ssh2john.py not found (set SSH2JOHN=/path/to/ssh2john.py)")
+    return
+
+  pw   = CONTAINER_PASSWORD.decode("utf-8")
+  kdir = os.path.join(tmp, "ssh_%d" % mode)
+  os.makedirs(kdir, exist_ok=True)
+
+  for keytype in ("rsa", "dsa"):
+    key = os.path.join(kdir, "%d_%s" % (mode, keytype))
+
+    for stale in (key, key + ".pub"):
+      if os.path.exists(stale):
+        os.remove(stale)
+
+    gen_run([keygen, "-q", "-m", "PEM", "-t", keytype, "-N", pw, "-C", "hashcat", "-f", key])
+
+    if not os.path.exists(key) or os.path.getsize(key) == 0:
+      gen_skip(mode, "ssh-keygen would not write a PEM %s key" % keytype)
+      continue
+
+    rc, out = gen_run([sys.executable, ssh2john, key])
+    token   = _john_extract(out, r"\$sshng\$[^:]*")
+
+    if token is None:
+      gen_error(mode, "ssh2john produced no hash for the %s key" % keytype)
+      continue
+
+    hash_file = os.path.join(kdir, "%d_%s.hash" % (mode, keytype))
+    write_hash(hash_file, token)
+    archive_crack(args, mode, hash_file, "SSH-key %s" % keytype, tmp, fast=False)
+
+
+ARCHIVE_GENERATORS = [
+  (PKZIP_GEN_MODES,    gen_pkzip),
+  (GPG_GEN_MODES,      gen_gpg),
+  (RAR_GEN_MODES,      gen_rar),
+  (SEVENZIP_GEN_MODES, gen_sevenzip),
+  (PDF_GEN_MODES,      gen_pdf),
+  (SSH_GEN_MODES,      gen_ssh),
+]
+
+
+def run_generate_archive(args, mode, tmp):
+  # -g adds a real-artifact test for the archive families, on top of the mode's .py oracle.
+  for modes, fn in ARCHIVE_GENERATORS:
+    if mode in modes:
+      fn(args, mode, tmp)
 
 
 CONTAINER_MODES = ({14600, 34100} | set(LUKS1_HASH_CIPHER) | TC_MODES | VC_MODES | CL_MODES)
@@ -4211,6 +5158,10 @@ def main():
                   help="crack every mode's own self-test vector (the -m range, or all modes)")
   ap.add_argument("-M", dest="minimal", action="store_true",
                   help="minimal mode: full-test the 24 hash types covering all distinct code paths")
+  ap.add_argument("-g", dest="generate", action="store_true",
+                  help="build a real container/archive and crack that, in addition to (archives) or "
+                       "in place of (LUKS/TrueCrypt/VeraCrypt) the shipped one; LUKS and TrueCrypt "
+                       "need sudo. On its own runs every mode -g can build.")
   ap.add_argument("--test-coverage", dest="test_coverage", action="store_true",
                   help="report modes with no test and exit; reads the source tree, needs no hashcat")
   ap.add_argument("--compute-sanitizer", dest="compute_sanitizer", nargs="?", const="memcheck",
@@ -4291,7 +5242,7 @@ def main():
     die("! invalid attack mode: %s" % args.attack)
 
   if args.attack != "all" and int(args.attack) not in ATTACKS:
-    die("! -a %s is not implemented in test.py yet, tools/test.sh still covers it" % args.attack)
+    die("! -a %s is not implemented in test.py" % args.attack)
 
   # Confirm the oracle engine is here before the run: a missing script would exit 2, which is the
   # code the engine uses for "no kernel for this family", so without this a missing engine would
@@ -4306,10 +5257,56 @@ def main():
   targets  = targets_for(args.target)
   widths   = widths_for(args.vector)
 
+  # -g builds a real container/archive and cracks that. On its own it runs every mode it can build;
+  # with -m it keeps only the selected ones it can. Selecting none it can build is worth stopping for:
+  # the run would otherwise finish clean having generated nothing, which reads like a pass (test.sh).
+  if args.generate:
+    global GEN_PURE, CONTAINER_PASSWORD, CONTAINER_MASK, CONTAINER_MASK_MID
+    global TC_TESTS_DIR, VC_TESTS_DIR, LUKS_TESTS_DIR, LUKS2_TESTS_DIR
+
+    GEN_PURE = args.pure
+    selected = [m for m in selected if m in GEN_MODES]
+
+    if not selected:
+      die("! -g has no generator for -m %s\n! -g can build: %s"
+          % (args.mode, " ".join(str(m) for m in sorted(GEN_MODES))))
+
+    # The generated containers get a password of their own, so a pass cannot come from 'hashcat' being
+    # baked into both the volume and the mask (test.sh). The masks follow from it.
+    CONTAINER_PASSWORD = gen_password_string()
+    CONTAINER_MASK     = container_mask_from_password(CONTAINER_PASSWORD, "last")
+    CONTAINER_MASK_MID = container_mask_from_password(CONTAINER_PASSWORD, "first")
+
+    # Ask for root up front, once, if any selected mode needs it, rather than stopping for a prompt an
+    # hour into a long run. Refresh the ticket in the background so it does not expire partway through.
+    if any(m in GEN_SUDO_MODES for m in selected):
+      if subprocess.run(["sudo", "-n", "true"], stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL).returncode != 0:
+        print("> Some selected modes build their container as root, so this run needs sudo. Asking now.")
+
+        if subprocess.run(["sudo", "-v"]).returncode != 0:
+          die("! No root, so those modes cannot be generated. Deselect them, or run without -g.")
+
+      import threading
+
+      def _sudo_keepalive():
+        while True:
+          subprocess.run(["sudo", "-n", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+          time.sleep(60)
+
+      threading.Thread(target=_sudo_keepalive, daemon=True).start()
+
   skips   = []
   missing = set()
 
   with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
+    # With -g the container families read the volumes this run builds, not the ones in the tree or
+    # fetched from hashcat.net, so point their directories at a per-run location (test.sh).
+    if args.generate:
+      TC_TESTS_DIR    = os.path.join(tmp, "tc_tests_gen")
+      VC_TESTS_DIR    = os.path.join(tmp, "vc_tests_gen")
+      LUKS_TESTS_DIR  = os.path.join(tmp, "luks_tests_gen")
+      LUKS2_TESTS_DIR = os.path.join(tmp, "luks2_tests_gen")
     for mode in selected:
       # STDOUT (2000) is not a crack: its kernel is empty, so it is tested by a --stdout round trip
       # (test.sh does the same). Handled before the kernel/oracle checks, which do not apply to it.
@@ -4318,10 +5315,19 @@ def main():
         continue
 
       # A container mode's hash is a file, not a generated string, so it has no usable oracle: it
-      # runs the container full-test (test.sh truecrypt_test/veracrypt_test/luks*_test) instead.
+      # runs the container full-test (test.sh truecrypt_test/veracrypt_test/luks*_test) instead. Under
+      # -g the volumes are built fresh into the repointed dir first, then that same read path runs.
       if mode in CONTAINER_MODES:
+        if args.generate:
+          generate_containers(args, mode, tmp)
+
         run_container_mode(args, mode, tmp)
         continue
+
+      # -g adds a real-archive test (GPG/PKZIP/RAR/7-Zip/PDF/OpenSSH) on top of the mode's oracle,
+      # which still runs below (test.sh: -g is in addition to the oracle, not in place of it).
+      if args.generate and mode in ARCHIVE_GEN_MODES:
+        run_generate_archive(args, mode, tmp)
 
       # A SELFTEST_MODES member with no .py oracle takes the self-test vector path. test.sh runs it
       # only for a slow mode, in the else branch of its per-width loop (test.sh), so a mode
@@ -4372,7 +5378,7 @@ def main():
           ATTACKS[attack](r)
 
   if missing:
-    sys.stderr.write("! not implemented in test.py yet, tools/test.sh still covers: -a %s\n"
+    sys.stderr.write("! not implemented in test.py: -a %s\n"
                      % ", ".join(str(a) for a in sorted(missing)))
 
   if skips:
@@ -4381,6 +5387,9 @@ def main():
 
     for mode, reason in skips:
       print("[ test.py ] [ Type %d ] > Skip : %s" % (mode, reason))
+
+  if args.generate:
+    print_gen_summary()
 
 
 main()
