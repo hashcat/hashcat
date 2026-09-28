@@ -23,17 +23,27 @@ def load_runs(base):
     if not base.exists():
         return runs
 
-    for entry in sorted(base.iterdir()):
-        if not entry.is_dir():
-            continue
+    def add(entry):
+        # A run directory has a summary.json. Returns True when this was a run
+        # (well formed or not), False when it holds none and may nest runs below.
         summary_path = entry / "summary.json"
         if not summary_path.exists():
-            runs.append({"dir": entry, "malformed": True})
-            continue
+            return False
         try:
             data = json.loads(summary_path.read_text())
             runs.append({"dir": entry, "malformed": False, "data": data})
         except Exception:
+            runs.append({"dir": entry, "malformed": True})
+        return True
+
+    for entry in sorted(base.iterdir()):
+        if not entry.is_dir():
+            continue
+        if add(entry):
+            continue
+        # run.py selftest nests one level deeper: results/selftest/<ts>-<name>/.
+        nested = [add(sub) for sub in sorted(entry.iterdir()) if sub.is_dir()]
+        if not any(nested):
             runs.append({"dir": entry, "malformed": True})
 
     return runs

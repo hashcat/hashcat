@@ -73,7 +73,7 @@ for mode in $modes; do
     printf '%s\n' "$out" > "$OUT/findings/m${mode}/msan.out"
   elif [ "$rc" = "124" ]; then
     echo "m${mode}: TIMEOUT" | tee -a "$LOG"
-  elif echo "$out" | grep -qE "error:|No such file"; then
+  elif echo "$out" | grep -qE "error:|undefined reference|No such file"; then
     echo "m${mode}: BUILD-FAIL" >> "$LOG"
   else
     echo "m${mode}: clean" >> "$LOG"
@@ -89,3 +89,10 @@ grep -cE "^m[0-9]+: \*\*\* .*MSAN" "$LOG" | sed 's/^/modes with MSan:  /' | tee 
 grep -cE "^m[0-9]+: TIMEOUT"     "$LOG" | sed 's/^/timeouts:         /' | tee -a "$LOG"
 grep -cE "^m[0-9]+: BUILD-FAIL"  "$LOG" | sed 's/^/build failures:   /' | tee -a "$LOG"
 echo "NOTE: these are STAGE-1 CANDIDATES, not confirmed bugs. See header." | tee -a "$LOG"
+
+# A sweep that built nothing must not read as success: a build failure means those
+# modules were never tested, which used to hide behind an exit 0.
+if grep -qE "^m[0-9]+: BUILD-FAIL" "$LOG"; then
+  echo "ERROR: some modules failed to build (see BUILD-FAIL above); they were not tested" | tee -a "$LOG"
+  exit 1
+fi
