@@ -13,6 +13,7 @@
 import argparse
 import atexit
 import base64
+import fcntl
 import glob
 import os
 import re
@@ -58,16 +59,13 @@ def setup_isolation():
 # process running its modes in sequence, so the last run is the one classify() is scoring.
 LAST_CMD = None
 
-# A persistent output folder, the way test.sh kept test_<ts>/. OUTDIR is its path or None; LOGFULL is
-# the open logfull.txt handle or None; LOGBUF holds the reason lines in memory as well, so a serial
-# run with no folder yet can still dump them if Ctrl-C creates one. PROGRESS is the running tally the
-# interrupt handler prints.
-OUTDIR    = None
-OWN_OUTDIR = False    # True only in the process that created the folder, so a -j child does not
-LOGFULL   = None      # overwrite the parent's aggregate summary.txt with its own single-mode tally
-REPORTFH  = None      # test_report.log: every result line, mirrored off stdout as it is printed
-LOGBUF    = []
-PROGRESS  = {}
+# test.sh kept a test_<ts>/ folder per run. OUTDIR is its path or None, LOGFULL the open logfull.txt
+# handle. OWN_OUTDIR is True only in the process that made the folder, so a -j child does not
+# regenerate the parent's derived files. PROGRESS is the running tally the interrupt handler prints.
+OUTDIR     = None
+OWN_OUTDIR = False
+LOGFULL    = None
+PROGRESS   = {}
 
 AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
 
@@ -101,18 +99,47 @@ def reason_for(ret):
   return "hashcat error (return code %d)" % ret
 
 
+def _cmdline(cmd):
+  return " ".join(shlex.quote(str(a)) for a in cmd)
+
+
+def logfull_append(text):
+  # test.sh's logfull.txt was one serial stream. A -j run has several workers writing the one shared
+  # file, so each block is appended under an exclusive lock and stays whole. Blocks land in completion
+  # order under -j, in run order for a serial run.
+  if LOGFULL is None:
+    return
+
+  if not text.endswith("\n"):
+    text += "\n"
+
+  try:
+    fcntl.flock(LOGFULL, fcntl.LOCK_EX)
+    LOGFULL.write(text)
+    LOGFULL.flush()
+  except Exception:
+    pass
+  finally:
+    try:
+      fcntl.flock(LOGFULL, fcntl.LOCK_UN)
+    except Exception:
+      pass
+
+
+def log_output(cmd, output):
+  # test.sh wrote every run's whole hashcat output to logfull.txt under a header naming the run, so the
+  # folder held the entire transcript. Match it: the cmdline as the header, then the output.
+  text = output.decode("utf-8", "replace") if isinstance(output, bytes) else output
+  logfull_append("> cmdline : %s\n%s" % (_cmdline(cmd), text.rstrip("\n")))
+
+
 def log_result(ret):
-  # Append the reason and the full cmdline for a non-OK result to logfull, both to the in-memory buffer
-  # and, once a folder exists, to the file. A clean crack (ret 0) leaves nothing.
+  # test.sh's status() added a one-line reason after the output for a non-OK result. Keep it, so the
+  # failures can be grepped out of logfull.txt into summary.txt.
   if ret == 0 or LAST_CMD is None:
     return
 
-  line = "%s, cmdline : %s\n" % (reason_for(ret), " ".join(shlex.quote(str(a)) for a in LAST_CMD))
-  LOGBUF.append(line)
-
-  if LOGFULL is not None:
-    LOGFULL.write(line)
-    LOGFULL.flush()
+  logfull_append("%s, cmdline : %s" % (reason_for(ret), _cmdline(LAST_CMD)))
 
 
 def record(v):
@@ -122,59 +149,6 @@ def record(v):
 def print_total():
   parts = ", ".join("%s=%d" % (k, PROGRESS[k]) for k in sorted(PROGRESS) if PROGRESS[k])
   print("[ test.py ] > totals so far: %s" % (parts or "nothing run yet"))
-
-
-class _TeeBuffer:
-  # The binary half of the stdout tee. The -j paths write their gathered child output as bytes through
-  # sys.stdout.buffer, so those have to be mirrored too, not just the text-mode print() lines.
-  def __init__(self, buf, fh):
-    self._buf = buf
-    self._fh  = fh
-
-  def write(self, b):
-    n = self._buf.write(b)
-
-    try:
-      self._fh.write(b)
-      self._fh.flush()
-    except Exception:
-      pass
-
-    return n
-
-  def flush(self):
-    self._buf.flush()
-
-  def __getattr__(self, name):
-    return getattr(self._buf, name)
-
-
-class _Tee:
-  # Mirror everything printed to stdout into test_report.log as well, so the folder holds the whole
-  # result stream and a Ctrl-C leaves it complete on disk. Text write() (the serial paths) and the
-  # binary .buffer (the -j paths) are both teed; the two are used in different phases, never mixed, so
-  # nothing interleaves.
-  def __init__(self, stream, fh):
-    self._stream = stream
-    self._fh     = fh
-    self.buffer  = _TeeBuffer(getattr(stream, "buffer", stream), fh)
-
-  def write(self, s):
-    n = self._stream.write(s)
-
-    try:
-      self._fh.write(s.encode("utf-8", "replace"))
-      self._fh.flush()
-    except Exception:
-      pass
-
-    return n
-
-  def flush(self):
-    self._stream.flush()
-
-  def __getattr__(self, name):
-    return getattr(self._stream, name)
 
 
 def host_avail_mib():
@@ -227,13 +201,13 @@ def setup_outdir(args):
   # the same by default: the folder is made on every run, test.py choosing the name, unless --logdir
   # names one. A -j child inherits the parent's folder through the environment rather than making its
   # own, so one -j run has one folder, not one per worker.
-  global OUTDIR, LOGFULL, OWN_OUTDIR, REPORTFH
+  global OUTDIR, LOGFULL, OWN_OUTDIR
 
   inherited = os.environ.get("TESTPY_OUTDIR")
 
   if inherited and os.path.isdir(inherited):
-    # A -j child logs its reasons into the shared folder but does not mirror stdout: the parent
-    # gathers the child's output and writes test_report.log once, in mode order.
+    # A -j child appends its own runs to the shared logfull.txt; the parent, which owns the folder,
+    # writes the derived test_report.log and summary.txt once the run ends.
     OUTDIR  = inherited
     LOGFULL = open(os.path.join(inherited, "logfull.txt"), "a")
     return
@@ -247,54 +221,68 @@ def setup_outdir(args):
   OUTDIR     = path
   OWN_OUTDIR = True
   LOGFULL    = open(os.path.join(path, "logfull.txt"), "a")
-  REPORTFH   = open(os.path.join(path, "test_report.log"), "ab")
-  sys.stdout = _Tee(sys.stdout, REPORTFH)
   os.environ["TESTPY_OUTDIR"] = os.path.abspath(path)
 
   # Say where only when the user named the folder. The default is silent, as test.sh was, so a run's
-  # result lines are the same bytes with or without the folder.
+  # console output is the same bytes with or without the folder.
   if args.logdir:
-    print("[ test.py ] > logging skips and errors to %s/logfull.txt" % path)
+    print("[ test.py ] > logging to %s/ (logfull.txt, test_report.log, summary.txt)" % path)
 
 
-def write_summary(note):
-  if OUTDIR is None or not OWN_OUTDIR:
+def finalize_outputs(note):
+  # test.sh left three files in the folder: logfull.txt (the whole transcript, written as the run
+  # goes), test_report.log (that transcript with hashcat's carriage-return progress redraws
+  # collapsed), and, added here, summary.txt (the failures plus the run tally). The folder owner
+  # writes the two derived files once, at exit or on Ctrl-C, from the logfull.txt every process
+  # appended to.
+  if not OWN_OUTDIR or OUTDIR is None:
     return
 
   try:
-    with open(os.path.join(OUTDIR, "summary.txt"), "w") as fh:
-      fh.write("%s\n" % note)
+    if LOGFULL is not None:
+      LOGFULL.flush()
+  except Exception:
+    pass
+
+  try:
+    with open(os.path.join(OUTDIR, "logfull.txt"), "r", errors="replace") as src:
+      lines = src.readlines()
+  except Exception:
+    lines = []
+
+  # test_report.log: keep only the segment after the last carriage return on each line, the final
+  # state hashcat's in-place progress line would have shown.
+  try:
+    with open(os.path.join(OUTDIR, "test_report.log"), "w") as rep:
+      for line in lines:
+        rep.write(line.rsplit("\r", 1)[-1])
+  except Exception:
+    pass
+
+  # summary.txt: every non-OK run logs a reason line ending ", cmdline : ...", so those are the
+  # errors and skips; then the tally. Nothing else.
+  try:
+    issues = [l for l in lines if ", cmdline : " in l]
+
+    with open(os.path.join(OUTDIR, "summary.txt"), "w") as smy:
+      smy.write("%s\n\nerrors and skips (%d):\n" % (note, len(issues)))
+
+      for l in issues:
+        smy.write(l if l.endswith("\n") else l + "\n")
+
+      smy.write("\nresults:\n")
 
       for k in sorted(PROGRESS):
-        fh.write("%s = %d\n" % (k, PROGRESS[k]))
+        smy.write("  %s = %d\n" % (k, PROGRESS[k]))
   except Exception:
     pass
 
 
 def on_sigint(signum, frame):
-  # Ctrl-C: persist whatever has been gathered and print the running total, rather than dropping it.
-  # A serial run with no folder yet gets one now so its logfull is not lost.
-  global OUTDIR, OWN_OUTDIR
-
+  # Ctrl-C: write the derived files from what has been logged so far and print the running total,
+  # rather than dropping the run.
   sys.stdout.flush()
-
-  if OUTDIR is None:
-    try:
-      OUTDIR = "test_%d" % int(time.time())
-      os.makedirs(OUTDIR, exist_ok=True)
-      OWN_OUTDIR = True
-
-      with open(os.path.join(OUTDIR, "logfull.txt"), "w") as fh:
-        fh.writelines(LOGBUF)
-    except Exception:
-      OUTDIR = None
-  elif LOGFULL is not None:
-    try:
-      LOGFULL.flush()
-    except Exception:
-      pass
-
-  write_summary("interrupted")
+  finalize_outputs("interrupted")
 
   print("\n[ test.py ] > interrupted")
 
@@ -663,7 +651,10 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
   proc = subprocess.run(cmd, input=stdin_bytes, cwd=ROOT,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-  return proc.returncode, proc.stdout + proc.stderr
+  out = proc.stdout + proc.stderr
+  log_output(cmd, out)
+
+  return proc.returncode, out
 
 
 def context(args, mode, target_name, width, attack=0):
@@ -5566,7 +5557,7 @@ def main():
   signal.signal(signal.SIGINT, on_sigint)
   export_worker_mem_shares(args)
   setup_outdir(args)
-  atexit.register(write_summary, "completed")
+  atexit.register(finalize_outputs, "completed")
 
   if args.edge:
     sys.exit(run_edge(args))
