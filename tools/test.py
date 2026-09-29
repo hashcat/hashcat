@@ -67,6 +67,12 @@ OWN_OUTDIR = False
 LOGFULL    = None
 PROGRESS   = {}
 
+# A -j worker that skips on 252 (memory hit limit) only because its share of the card was too small
+# exits with MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage
+# survives. A 252 with no cap in the environment is a genuine skip and does not set this.
+CAPPED_MEM_SKIP = False
+MEMSKIP_RC = 90
+
 AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
 
 # test.sh's status() reason strings, keyed by hashcat's exit code. The 246,248-253 and 30 codes are
@@ -164,16 +170,33 @@ def host_avail_mib():
 
 
 def min_device_free_mib(device):
-  # The smallest free-memory reading across the active devices, from hashcat's own -I. One
-  # HASHCAT_DEVICE_MEM_LIMIT applies to every device, so the smallest card sets the safe per-process
-  # share. Returns None when no device reports, so the caller leaves the cap unset.
+  # The smallest free-memory reading among the devices this run will use, from hashcat's own -I. -I
+  # lists every backend device regardless of -D (jsteube, #4917), so a CPU device's reading must not
+  # set a GPU run's share: keep only devices whose Type matches -D. One HASHCAT_DEVICE_MEM_LIMIT
+  # serves every device, so the smallest matching one is the safe share. Returns None when nothing
+  # matches, so the caller leaves the cap unset.
   try:
-    proc = subprocess.run([BIN, "-I", "-D", device] + ISOLATION, cwd=ROOT,
+    proc = subprocess.run([BIN, "-I"] + ISOLATION, cwd=ROOT,
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
   except Exception:
     return None
 
-  frees = [int(x) for x in re.findall(rb"Memory\.Free\.*:\s*(\d+)\s*MB", proc.stdout)]
+  # -D is a device-type list: 1 CPU, 2 GPU, 3 FPGA. Map it to the Type strings -I prints.
+  type_of = {"1": "CPU", "2": "GPU", "3": "FPGA"}
+  want    = {type_of[d] for d in re.split(r"[ ,]+", device.strip()) if d in type_of}
+
+  cur   = None
+  frees = []
+
+  for line in proc.stdout.decode("utf-8", "replace").splitlines():
+    m = re.search(r"Type\.+:\s*(\w+)", line)
+    if m:
+      cur = m.group(1).upper()
+      continue
+
+    m = re.search(r"Memory\.Free\.+:\s*(\d+)\s*MB", line)
+    if m and (not want or cur in want):
+      frees.append(int(m.group(1)))
 
   return min(frees) if frees else None
 
@@ -617,6 +640,12 @@ def classify(rc, matched, c):
     c["nm"] += 1
   elif ret == 30 or ret in (246, 248, 249, 250, 251, 252, 253):
     c["rs"] += 1
+
+    if ret == 252 and os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
+      # A memory skip while a per-worker cap is in force is a property of the -j run, not the mode, so
+      # flag it for run_parallel to retry without the cap (jsteube, #4917).
+      global CAPPED_MEM_SKIP
+      CAPPED_MEM_SKIP = True
   else:
     c["err"] += 1
 
@@ -5441,9 +5470,16 @@ def run_parallel(args):
     return proc.returncode, proc.stdout
 
   rc = 0
+  retry = []
 
   with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for prc, out in pool.map(run_one, modes):
+    for mode, (prc, out) in zip(modes, pool.map(run_one, modes)):
+      if prc == MEMSKIP_RC:
+        # Skipped only because -j gave this worker a fraction of the card. Defer it and re-run on the
+        # whole card below, so its memory-skip output here is left out.
+        retry.append(mode)
+        continue
+
       sys.stdout.buffer.write(out)
       sys.stdout.buffer.flush()
 
@@ -5453,6 +5489,30 @@ def run_parallel(args):
       record("OK" if prc == 0 else "not-OK")
 
       if prc != 0:
+        rc = 1
+
+  if retry:
+    # Re-run the memory-capped skips one at a time with the two caps removed, so the memory-heavy modes
+    # are still covered (jsteube, #4917). A mode that needs more than the whole card skips again, now a
+    # genuine skip with no cap set.
+    nocap = {k: v for k, v in os.environ.items()
+             if k not in ("HASHCAT_DEVICE_MEM_LIMIT", "HASHCAT_HOST_MEM_LIMIT")}
+
+    print("[ test.py ] > re-running %d memory-capped skip(s) without the cap: %s"
+          % (len(retry), " ".join(str(m) for m in retry)))
+    sys.stdout.flush()
+
+    for mode in retry:
+      proc = subprocess.run(base + ["-m", str(mode)], env=nocap,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+      sys.stdout.buffer.write(proc.stdout)
+      sys.stdout.buffer.flush()
+
+      record("modes")
+      record("OK" if proc.returncode == 0 else "not-OK")
+
+      if proc.returncode != 0:
         rc = 1
 
   return rc
@@ -5726,6 +5786,11 @@ def main():
 
   if args.generate:
     print_gen_summary()
+
+  if CAPPED_MEM_SKIP:
+    # A -j child: tell the parent this mode skipped only because its memory share was too small, so it
+    # can be re-run without the cap.
+    sys.exit(MEMSKIP_RC)
 
 
 main()
