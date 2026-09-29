@@ -65,6 +65,7 @@ LAST_CMD = None
 OUTDIR    = None
 OWN_OUTDIR = False    # True only in the process that created the folder, so a -j child does not
 LOGFULL   = None      # overwrite the parent's aggregate summary.txt with its own single-mode tally
+REPORTFH  = None      # test_report.log: every result line, mirrored off stdout as it is printed
 LOGBUF    = []
 PROGRESS  = {}
 
@@ -123,6 +124,59 @@ def print_total():
   print("[ test.py ] > totals so far: %s" % (parts or "nothing run yet"))
 
 
+class _TeeBuffer:
+  # The binary half of the stdout tee. The -j paths write their gathered child output as bytes through
+  # sys.stdout.buffer, so those have to be mirrored too, not just the text-mode print() lines.
+  def __init__(self, buf, fh):
+    self._buf = buf
+    self._fh  = fh
+
+  def write(self, b):
+    n = self._buf.write(b)
+
+    try:
+      self._fh.write(b)
+      self._fh.flush()
+    except Exception:
+      pass
+
+    return n
+
+  def flush(self):
+    self._buf.flush()
+
+  def __getattr__(self, name):
+    return getattr(self._buf, name)
+
+
+class _Tee:
+  # Mirror everything printed to stdout into test_report.log as well, so the folder holds the whole
+  # result stream and a Ctrl-C leaves it complete on disk. Text write() (the serial paths) and the
+  # binary .buffer (the -j paths) are both teed; the two are used in different phases, never mixed, so
+  # nothing interleaves.
+  def __init__(self, stream, fh):
+    self._stream = stream
+    self._fh     = fh
+    self.buffer  = _TeeBuffer(getattr(stream, "buffer", stream), fh)
+
+  def write(self, s):
+    n = self._stream.write(s)
+
+    try:
+      self._fh.write(s.encode("utf-8", "replace"))
+      self._fh.flush()
+    except Exception:
+      pass
+
+    return n
+
+  def flush(self):
+    self._stream.flush()
+
+  def __getattr__(self, name):
+    return getattr(self._stream, name)
+
+
 def host_avail_mib():
   try:
     with open("/proc/meminfo") as fh:
@@ -173,11 +227,13 @@ def setup_outdir(args):
   # the same by default: the folder is made on every run, test.py choosing the name, unless --logdir
   # names one. A -j child inherits the parent's folder through the environment rather than making its
   # own, so one -j run has one folder, not one per worker.
-  global OUTDIR, LOGFULL, OWN_OUTDIR
+  global OUTDIR, LOGFULL, OWN_OUTDIR, REPORTFH
 
   inherited = os.environ.get("TESTPY_OUTDIR")
 
   if inherited and os.path.isdir(inherited):
+    # A -j child logs its reasons into the shared folder but does not mirror stdout: the parent
+    # gathers the child's output and writes test_report.log once, in mode order.
     OUTDIR  = inherited
     LOGFULL = open(os.path.join(inherited, "logfull.txt"), "a")
     return
@@ -191,6 +247,8 @@ def setup_outdir(args):
   OUTDIR     = path
   OWN_OUTDIR = True
   LOGFULL    = open(os.path.join(path, "logfull.txt"), "a")
+  REPORTFH   = open(os.path.join(path, "test_report.log"), "ab")
+  sys.stdout = _Tee(sys.stdout, REPORTFH)
   os.environ["TESTPY_OUTDIR"] = os.path.abspath(path)
 
   # Say where only when the user named the folder. The default is silent, as test.sh was, so a run's
