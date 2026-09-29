@@ -62,6 +62,17 @@ RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
 
 NOCHECK_ENCODING = {16800, 16801, 22000}
 
+# Modes whose only kernel is the mask attack (mfulc 37000 ships m37000_a3-pure.cl and nothing else),
+# so every other attack has no kernel to run and is left out rather than failing on a missing file.
+
+MASK_ONLY_MODES = {37000}
+
+# MIFARE Ultralight C 3DES key recovery: hashcat prints the cracked hash with its 32-bit words byte
+# swapped and may recover a different valid 4 byte segment than the oracle used, so its crack is
+# scored by that re-encoded hash appearing in the output. See mfulc_output_digest.
+
+MFULC_MODES = {37000}
+
 # The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
 # leaves their -a 4 list alone (test.sh); 10300 takes its hash from another field and is excluded
 # there too.
@@ -70,9 +81,10 @@ LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 295
               34100}
 
 # The modes test.sh's has_multi_hash reports true for: one hash each, so no multi-hash run at all
-# (test.sh).
+# (test.sh). 37500 joins them because its oracle builds every hash on one fixed salt, and a slow mode
+# with an esalt and no OPTS_TYPE_MULTIHASH_DESPITE_ESALT refuses more than one hash per salt.
 
-MULTI_ONE_HASH = {14000, 14100, 14600, 14900, 15400}
+MULTI_ONE_HASH = {14000, 14100, 14600, 14900, 15400, 37500}
 
 # The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
 # no .pm and no .py oracle, so the ground truth is the module's own example hash read from
@@ -280,6 +292,9 @@ def a4_vectors(mode, pairs, optimized):
 
 def attacks_for(spec, mode):
   wanted = ATTACK_ORDER if spec == "all" else [int(spec)]
+
+  if mode in MASK_ONLY_MODES:
+    return [a for a in wanted if a == 3]
 
   if is_slow(mode):
     wanted = [a for a in wanted if a in WHOLE_WORD]
@@ -1014,6 +1029,26 @@ def run_verify(mode, digest, crack_lines, tmp):
   return os.path.getsize(out_file) > 0
 
 
+def mfulc_output_digest(digest):
+  # 37000 re-encodes its hash with each 32-bit word byte-swapped when it prints a crack, and the key
+  # recovery is not unique, so hashcat may recover a different 4 byte segment than the oracle used.
+  # The success criterion is that hashcat cracked this hash, which the re-encoded form in the output
+  # shows, whatever segment it printed.
+  parts = digest.split("$")
+
+  if len(parts) != 9:
+    return None
+
+  def swap(hexs):
+    b = bytes.fromhex(hexs)
+    return b"".join(b[i:i + 4][::-1] for i in range(0, len(b), 4)).hex()
+
+  for i in (5, 6, 7, 8):
+    parts[i] = swap(parts[i])
+
+  return "$".join(parts)
+
+
 def output_has_crack(mode, out, word, digest, pass_only, tmp):
   # test.sh output_has_crack (test.sh). The recovered line hash:password is looked for as it was
   # generated first. A mode that drops bits of the password can print a different password with the
@@ -1024,7 +1059,18 @@ def output_has_crack(mode, out, word, digest, pass_only, tmp):
   if match_search(digest, word, pass_only) in out:
     return True
 
+  if mode in MFULC_MODES:
+    swapped = mfulc_output_digest(digest)
+
+    if swapped is not None and swapped.encode("ascii") + b":" in out:
+      return True
+
   if pass_only:
+    # hashcat prints a password it considers unprintable as $HEX[...], so a pass-only match, which
+    # has no hash to fall back on, accepts that form of the same bytes too.
+    if b":$HEX[" + word.hex().encode("ascii") + b"]" in out:
+      return True
+
     return False
 
   prefix = digest.encode("ascii") + b":"

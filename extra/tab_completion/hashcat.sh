@@ -461,19 +461,19 @@ _hashcat ()
   local VERSION=7.1.2
 
   local ATTACK_MODES="0 1 3 4 5 6 7 8 9 12"
-  local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
+  local EAPOL_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6"
-  local OPENCL_DEVICE_TYPES="1 2 3"
+  local OPENCL_DEVICE_TYPES="1 2"
   local BACKEND_VECTOR_WIDTH="1 2 4 8 16"
-  local DEBUG_MODE="1 2 3 4"
+  local DEBUG_MODE="1 2 3 4 5 6"
   local BRAIN_CLIENT_FEATURES="1 2 3"
   local HIDDEN_FILES="exe|bin|potfile|hcstat2|dictstat2|sh|cmd|bat|restore"
   local HIDDEN_FILES_AGGRESSIVE="${HIDDEN_FILES}|hcmask|hcchr"
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
   local SHORT_OPTS="-m -a -V -h -H -b -B -t -T -o -p -d -D -n -u -j -k -r -g -1 -2 -3 -4 -5 -6 -7 -8 -i -I -s -l -O -S -z -M -Y -R -v"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --benchmark-pure --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --pipeline-stats --task-time-breakdown --stdin-timeout-abort --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-inverse --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --restore-position --outfile --outfile-format --outfile-autohex-disable --outfile-json --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --deprecated-check-disable --left --username --dynamic-x --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --cache-path --bitmap-min --bitmap-max --cpu-affinity --example-hashes --hash-info --backend-ignore-cuda --backend-ignore-opencl --backend-ignore-hip --backend-ignore-metal --backend-info --backend-devices --backend-devices-virtmulti --backend-devices-virthost --opencl-device-types --backend-vector-width --kernel-accel --kernel-loops --kernel-threads --length-sort-disable --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment --increment-min --increment-max --increment-inverse --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --multiply-accel-disable --self-test-disable --slow-candidates --brain-server --brain-server-timer --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password --identify --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --advice-disable --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --total-candidates --lookup --color-cracked --hash-copy --brain-feed --encrypt-with-pubkey"
-  local OPTIONS="-m -a -t -o -p -d -D -n -u -j -k -r -g -T -Y -R -1 -2 -3 -4 -5 -6 -7 -8 -s -l --hash-type --attack-mode --status-timer --stdin-timeout-abort --lookup --markov-hcstat2 --markov-threshold --runtime --session --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --cache-path --bitmap-min --bitmap-max --cpu-affinity --backend-devices --backend-devices-virtmulti --backend-devices-virthost --opencl-device-types --backend-vector-width --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-server-timer --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-session-whitelist --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --encrypt-with-pubkey"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --benchmark-pure --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --pipeline-stats --task-time-breakdown --stdin-timeout-abort --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-inverse --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --restore-position --outfile --outfile-format --outfile-autohex-disable --outfile-json --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --deprecated-check-disable --left --username --dynamic-x --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --cache-path --bitmap-min --bitmap-max --cpu-affinity --example-hashes --hash-info --backend-ignore-cuda --backend-ignore-opencl --backend-ignore-hip --backend-ignore-metal --backend-info --backend-devices --backend-devices-virtmulti --backend-devices-virthost --opencl-device-types --backend-vector-width --kernel-accel --kernel-loops --kernel-threads --length-sort-disable --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --rules-concat --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment --increment-min --increment-max --increment-inverse --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --eapol-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --multiply-accel-disable --self-test-disable --slow-candidates --brain-server --brain-server-timer --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password --identify --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --advice-disable --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --total-candidates --lookup --color-cracked --hash-copy --brain-feed --encrypt-with-pubkey"
+  local OPTIONS="-m -a -t -o -p -d -D -n -u -j -k -r -g -T -Y -R -1 -2 -3 -4 -5 -6 -7 -8 -s -l --hash-type --attack-mode --status-timer --stdin-timeout-abort --lookup --markov-hcstat2 --markov-threshold --runtime --session --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --cache-path --bitmap-min --bitmap-max --cpu-affinity --backend-devices --backend-devices-virtmulti --backend-devices-virthost --opencl-device-types --backend-vector-width --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --eapol-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-server-timer --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-session-whitelist --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --encrypt-with-pubkey"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -514,8 +514,8 @@ _hashcat ()
       return 0
       ;;
 
-    --hccapx-message-pair)
-      COMPREPLY=($(compgen -W "${HCCAPX_MESSAGE_PAIRS}" -- ${cur}))
+    --eapol-message-pair|--hccapx-message-pair)
+      COMPREPLY=($(compgen -W "${EAPOL_MESSAGE_PAIRS}" -- ${cur}))
       return 0
       ;;
 
@@ -575,7 +575,7 @@ _hashcat ()
       return 0
       ;;
 
-    --opencl-device-types)
+    -D|--opencl-device-types)
       COMPREPLY=($(compgen -W "${OPENCL_DEVICE_TYPES}" -- ${cur}))
       return 0
       ;;
@@ -598,7 +598,7 @@ _hashcat ()
       return 0
       ;;
 
-    -1|-2|-3|-4|--custom-charset1|--custom-charset2|--custom-charset3|--custom-charset4)
+    -1|-2|-3|-4|-5|-6|-7|-8|--custom-charset1|--custom-charset2|--custom-charset3|--custom-charset4|--custom-charset5|--custom-charset6|--custom-charset7|--custom-charset8)
       local mask=${BUILD_IN_CHARSETS}
 
       if [ -e "${cur}" ]; then # should be hcchr file (but not enforced)

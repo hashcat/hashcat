@@ -972,6 +972,15 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   hcstat_table_t *root_table_buf   = mask_ctx->root_table_buf;
   hcstat_table_t *markov_table_buf = mask_ctx->markov_table_buf;
 
+  // Every pass below is bounded by this rather than by SP_PW_MAX. The markov index is
+  // pw_pos * CHARSIZ * CHARSIZ + prev * CHARSIZ + cur, so the position is the outermost dimension and
+  // the slices a run can reach are a prefix. That is what lets the decompression stop early as well as
+  // the loops: a prefix of the stream is a shorter read, not a strided one.
+
+  const u32 markov_pos_cnt = mask_ctx->sp_pw_max_used;
+
+  const u64 markov_cnt = (u64) markov_pos_cnt * CHARSIZ * CHARSIZ;
+
   /**
    * Initialize hcstats
    */
@@ -989,13 +998,13 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     root_stats_ptr += CHARSIZ;
   }
 
-  u64 *markov_stats_buf = (u64 *) hccalloc (SP_MARKOV_CNT, sizeof (u64));
+  u64 *markov_stats_buf = (u64 *) hccalloc (markov_cnt, sizeof (u64));
 
   u64 *markov_stats_ptr = markov_stats_buf;
 
-  u64 *(*markov_stats_buf_by_key)[CHARSIZ] = (u64 *(*)[CHARSIZ]) hcmalloc (SP_PW_MAX * sizeof (*markov_stats_buf_by_key));
+  u64 *(*markov_stats_buf_by_key)[CHARSIZ] = (u64 *(*)[CHARSIZ]) hcmalloc (markov_pos_cnt * sizeof (*markov_stats_buf_by_key));
 
-  for (int i = 0; i < SP_PW_MAX; i++)
+  for (u32 i = 0; i < markov_pos_cnt; i++)
   {
     for (int j = 0; j < CHARSIZ; j++)
     {
@@ -1065,9 +1074,15 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   hc_fclose (&fp);
 
-  u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
+  // Header, the whole root table, then only the markov slices this run can address. hc_lzma2_decompress
+  // fills the buffer it is given and reports what it wrote, and it is asked whether it filled it, so a
+  // short buffer is a request for a prefix rather than a failure.
 
-  size_t outlen = SP_FILESZ;
+  const size_t want_len = (sizeof (u64) * 2) + (sizeof (u64) * SP_ROOT_CNT) + (sizeof (u64) * markov_cnt);
+
+  u8 *outbuf = (u8 *) hcmalloc (want_len);
+
+  size_t outlen = want_len;
 
   const char props = 0x1c; // lzma properties constant, retrieved with 7z2hashcat
 
@@ -1111,7 +1126,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (outlen != SP_FILESZ)
+  if (outlen != want_len)
   {
     event_log_error (hashcat_ctx, "%s: Could not uncompress data.", hcstat);
 
@@ -1131,7 +1146,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   u64 z = *ptr++;
 
   memcpy (root_stats_buf,   ptr, sizeof (u64) * SP_ROOT_CNT);   ptr += SP_ROOT_CNT;
-  memcpy (markov_stats_buf, ptr, sizeof (u64) * SP_MARKOV_CNT); // ptr += SP_MARKOV_CNT;
+  memcpy (markov_stats_buf, ptr, sizeof (u64) * markov_cnt); // ptr += markov_cnt;
 
   hcfree (inbuf);
   hcfree (outbuf);
@@ -1144,7 +1159,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   z = byte_swap_64 (z);
 
   for (int i = 0; i < SP_ROOT_CNT; i++)   root_stats_buf[i]   = byte_swap_64 (root_stats_buf[i]);
-  for (int i = 0; i < SP_MARKOV_CNT; i++) markov_stats_buf[i] = byte_swap_64 (markov_stats_buf[i]);
+  for (u64 i = 0; i < markov_cnt; i++)    markov_stats_buf[i] = byte_swap_64 (markov_stats_buf[i]);
 
   /**
    * markov inverse: https://github.com/hashcat/hashcat/issues/1058
@@ -1153,7 +1168,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   if (inverse == true)
   {
     for (int i = 0; i < SP_ROOT_CNT; i++)   root_stats_buf[i]   = 0 - (1 + root_stats_buf[i]);
-    for (int i = 0; i < SP_MARKOV_CNT; i++) markov_stats_buf[i] = 0 - (1 + markov_stats_buf[i]);
+    for (u64 i = 0; i < markov_cnt; i++)    markov_stats_buf[i] = 0 - (1 + markov_stats_buf[i]);
   }
 
   /**
@@ -1189,7 +1204,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   if (markov == false)
   {
     memset (root_stats_buf,   0, SP_ROOT_CNT   * sizeof (u64));
-    memset (markov_stats_buf, 0, SP_MARKOV_CNT * sizeof (u64));
+    memset (markov_stats_buf, 0, markov_cnt * sizeof (u64));
   }
 
   if (classic)
@@ -1207,7 +1222,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    for (int i = 1; i < SP_PW_MAX; i++)
+    for (u32 i = 1; i < markov_pos_cnt; i++)
     {
       u64 *out = markov_stats_buf_by_key[0][0];
       u64 *in  = markov_stats_buf_by_key[i][0];
@@ -1228,7 +1243,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
       memcpy (root_stats_buf_by_pos[i], root_stats_buf_by_pos[0], CHARSIZ * sizeof (u64));
     }
 
-    for (int i = 1; i < SP_PW_MAX; i++)
+    for (u32 i = 1; i < markov_pos_cnt; i++)
     {
       memcpy (markov_stats_buf_by_key[i][0], markov_stats_buf_by_key[0][0], CHARSIZ * CHARSIZ * sizeof (u64));
     }
@@ -1251,9 +1266,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   hcstat_table_t *markov_table_ptr = markov_table_buf;
 
-  hcstat_table_t *(*markov_table_buf_by_key)[CHARSIZ] = (hcstat_table_t *(*)[CHARSIZ]) hcmalloc (SP_PW_MAX * sizeof (*markov_table_buf_by_key));
+  hcstat_table_t *(*markov_table_buf_by_key)[CHARSIZ] = (hcstat_table_t *(*)[CHARSIZ]) hcmalloc (markov_pos_cnt * sizeof (*markov_table_buf_by_key));
 
-  for (int i = 0; i < SP_PW_MAX; i++)
+  for (u32 i = 0; i < markov_pos_cnt; i++)
   {
     for (int j = 0; j < CHARSIZ; j++)
     {
@@ -1275,7 +1290,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     root_table_buf[i].val = root_stats_buf[i];
   }
 
-  for (int i = 0; i < SP_MARKOV_CNT; i++)
+  for (u64 i = 0; i < markov_cnt; i++)
   {
     u32 key = i % CHARSIZ;
 
@@ -1297,7 +1312,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     qsort (root_table_buf_by_pos[i], CHARSIZ, sizeof (hcstat_table_t), sp_comp_val);
   }
 
-  for (int i = 0; i < SP_PW_MAX; i++)
+  for (u32 i = 0; i < markov_pos_cnt; i++)
   {
     for (int j = 0; j < CHARSIZ; j++)
     {
@@ -1341,9 +1356,13 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
 // The root half stays whole. It is 256 entries against 65536, so there is nothing to win and one
 // less thing to reason about.
 
-static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt)
+static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt, const u32 markov_max)
 {
-  const u32 markov_pos_cnt = MIN (css_cnt, SP_PW_MAX);
+  // Also bounded by what sp_setup_tbl () actually built. The init time bound is the maximum over the
+  // whole queue so no round can exceed it, and this is here so that a future caller cannot turn that
+  // into a read of a slice that was never filled.
+
+  const u32 markov_pos_cnt = MIN (css_cnt, markov_max);
 
   const u32 markov_cnt = markov_pos_cnt * CHARSIZ * CHARSIZ;
 
@@ -2213,7 +2232,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
+    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2279,7 +2298,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
+    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2316,7 +2335,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2345,7 +2364,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -2545,7 +2564,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt);
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
@@ -3192,6 +3211,7 @@ void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   mask_ctx_t                 *mask_ctx           = hashcat_ctx->mask_ctx;
@@ -3223,9 +3243,10 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->css_cnt = 0;
 
   mask_ctx->root_table_buf   = (hcstat_table_t *) hccalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
-  mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
-  if (sp_setup_tbl (hashcat_ctx) == -1) return -1;
+  // markov_table_buf and sp_setup_tbl () are at the end of this function rather than here, because how
+  // much of them a run needs is a property of the mask queue and the queue does not exist yet. Nothing
+  // between here and there reads either one: sp_tbl_to_css () is the only reader and it runs per round.
 
   mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX,           sizeof (cs_t));
   mask_ctx->markov_css_buf = (cs_t *) hccalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
@@ -3500,6 +3521,69 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  // How far into the markov statistics this queue can reach, and therefore how much of them is worth
+  // building. A mask string is never shorter than the number of positions it produces, so the longest
+  // string in the queue bounds the longest css_cnt without parsing a single mask: ?l and ?1 spend two
+  // characters on one position, ?w and ?q spend two on none, and a maskfile line's charset prefix
+  // spends characters on none. What comes after mp_gen_css () can still grow css_cnt, so both of those
+  // are allowed for: the utf16 expansion at most doubles it, and an appended salt adds its own length.
+  //
+  // Erring high is free and erring low is not, which is why this is a strlen bound and not a parse.
+
+  u32 want = 0;
+
+  for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+  {
+    const char *mask = mask_ctx->masks[mask_pos];
+
+    u32 mask_len = mp_get_length (mask, hashconfig->opts_type);
+
+    // mp_get_length () counts the positions a mask spells, so it already reads ?l and ?1 as one and an
+    // escaped ?? as one rather than as a marker, and it counts a hex mask at its own rate. What it does
+    // not do is drop the markers, because a ?w or a ?q spells nothing. The two helpers find a marker at
+    // either end, which is where the three attack modes rewritten into this one put theirs.
+    //
+    // A marker in the middle, which only -a 12 can write, is seen by neither helper and leaves the
+    // count one high per marker. That is the safe direction.
+
+    if ((mask_starts_with_marker (mask, 'w') == true) && (mask_len > 0)) mask_len--;
+    if ((mask_ends_with_marker   (mask, 'w') == true) && (mask_len > 0)) mask_len--;
+    if ((mask_starts_with_marker (mask, 'q') == true) && (mask_len > 0)) mask_len--;
+    if ((mask_ends_with_marker   (mask, 'q') == true) && (mask_len > 0)) mask_len--;
+
+    if (mask_len > want) want = mask_len;
+  }
+
+  // Only a mode that hashes the candidate as utf16 doubles css_cnt, and only mp_css_utf16le_expand ()
+  // and its big endian twin do the doubling, so this is the one place it belongs.
+
+  if (hashconfig->opts_type & (OPTS_TYPE_PT_UTF16LE | OPTS_TYPE_PT_UTF16BE)) want *= 2;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) && (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT))
+  {
+    want += hashes->salts_buf[0].salt_len;
+  }
+
+  // --markov-classic sums every position into the first one and then copies the first back over all of
+  // them, so its answer for any position depends on all 256. It is the one option that genuinely needs
+  // the whole table, and it keeps it.
+
+  if (user_options->markov_classic == true) want = SP_PW_MAX;
+
+  mask_ctx->sp_pw_max_used = MIN (want, SP_PW_MAX);
+
+  // A queue whose masks are all markers reaches no position at all, which is what -a 1 is: it arrives
+  // here as the mask ?w?q. mp_css_to_uniq_tbl () then marks nothing, so both loops in sp_tbl_to_css ()
+  // add nothing and the tables are never read. Building them would be 128 MB of decompression for a
+  // table with no usable slice in it.
+
+  if (mask_ctx->sp_pw_max_used > 0)
+  {
+    mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc ((size_t) mask_ctx->sp_pw_max_used * CHARSIZ * CHARSIZ, sizeof (hcstat_table_t));
+
+    if (sp_setup_tbl (hashcat_ctx) == -1) return -1;
   }
 
   return 0;

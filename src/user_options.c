@@ -78,6 +78,7 @@ static const struct option long_options[] =
   {"debug-mode",                required_argument, NULL, IDX_DEBUG_MODE},
   {"deprecated-check-disable",  no_argument,       NULL, IDX_DEPRECATED_CHECK_DISABLE},
   {"dynamic-x",                 no_argument,       NULL, IDX_DYNAMIC_X},
+  {"eapol-message-pair",        required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR},
   {"encoding-from",             required_argument, NULL, IDX_ENCODING_FROM},
   {"encoding-to",               required_argument, NULL, IDX_ENCODING_TO},
   {"example-hashes",            no_argument,       NULL, IDX_HASH_INFO}, // alias of hash-info
@@ -92,7 +93,7 @@ static const struct option long_options[] =
   {"hash-copy",                 no_argument,       NULL, IDX_HASH_COPY},
   {"hash-info",                 no_argument,       NULL, IDX_HASH_INFO},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
-  {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR},
+  {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR}, // alias of eapol-message-pair
   {"help",                      no_argument,       NULL, IDX_HELP},
   {"hex-charset",               no_argument,       NULL, IDX_HEX_CHARSET},
   {"hex-salt",                  no_argument,       NULL, IDX_HEX_SALT},
@@ -959,14 +960,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->remove == true)
     {
-      event_log_error (hashcat_ctx, "Combining --remove with --hccapx-message-pair is not allowed.");
+      event_log_error (hashcat_ctx, "Combining --remove with --eapol-message-pair is not allowed.");
 
       return -1;
     }
 
     if (user_options->hccapx_message_pair >= 6)
     {
-      event_log_error (hashcat_ctx, "Invalid --hccapx-message-pair value specified.");
+      event_log_error (hashcat_ctx, "Invalid --eapol-message-pair value specified.");
 
       return -1;
     }

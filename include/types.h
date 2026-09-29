@@ -3226,6 +3226,19 @@ typedef struct mask_ctx
   hcstat_table_t *root_table_buf;
   hcstat_table_t *markov_table_buf;
 
+  // How many character positions of the markov statistics this run can reach. The tables hold one
+  // slice per position of the longest mask hashcat accepts, and the index puts the position outermost,
+  // so a run only ever reads the first sp_pw_max_used slices: an eight character mask reaches eight of
+  // 256. Everything sp_setup_tbl () does is bounded by this, which is what keeps a four character mask
+  // from decompressing, byte swapping, filling and sorting 256 MB it cannot address.
+  //
+  // It is an upper bound taken over the whole mask queue rather than any one round's css_cnt, and it is
+  // deliberately loose: a mask string is at least as long as the number of positions it produces, so
+  // strlen bounds it without parsing the mask. Too large only wastes work, while too small would
+  // silently change which candidate a position maps to.
+
+  u32    sp_pw_max_used;
+
   cs_t  *root_css_buf;
   cs_t  *markov_css_buf;
 
