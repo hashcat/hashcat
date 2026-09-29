@@ -588,6 +588,9 @@ Measurements depend on the device, runtime and workload.
 - Hardware and tuning diagnostics were expanded: NVIDIA throttling uses documented NVML reasons
   instead of NVAPI, out-of-range "-u" values name the accepted range, "HASHCAT_MEMORY" explains
   every device memory budget, and "-I" reports device cache size and bridge units
+- Several hashcat processes sharing one machine can now each be told what to assume is free. The
+  settings "HASHCAT_DEVICE_MEM_LIMIT" and "HASHCAT_HOST_MEM_LIMIT", both in MiB, cap the device and
+  host figures one process budgets against, so a launcher can keep their sum inside the machine
 - Hashcat no longer sets "AMD_DIRECT_DISPATCH=0" for HIP, previously used to reduce host CPU load.
   On ROCm 7 it affects neither waiting thread CPU usage nor cracking speed, measured across several
   hash modes on a Radeon RX 7900 XTX
