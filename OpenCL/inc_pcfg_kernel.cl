@@ -219,6 +219,14 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
 
   #endif
 
+  #if PCFG_DEV_OMEN || PCFG_DEV_VARLEN || PCFG_DEV_RULES
+
+  // The range this run is held to, as global_dev_init () packed it, and zero where nothing binds.
+
+  const u32 pcfg_pw = pcfg_pool_u32 (PCFG_POOL_REF (pcfg_pool_v), 0);
+
+  #endif
+
   #if PCFG_DEV_VARLEN
 
   u32 cur_len = pw_len;
@@ -295,6 +303,19 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
 
       if (len < 0) continue;
 
+      // The first place a candidate of the escape has a byte length: the host could only hold it to the
+      // range a level at a time, and a level counts characters. Not where the rules are applied below,
+      // because there the length that counts is the one the rule leaves.
+
+      #if PCFG_DEV_RULES == 0
+
+      if (pcfg_pw != 0)
+      {
+        if (((u32) len < (pcfg_pw & 0xffff)) || ((u32) len > (pcfg_pw >> 16))) continue;
+      }
+
+      #endif
+
       clen = (u32) len;
 
       // The escape is not one length, so this is the one path that sets the hash up per candidate.
@@ -331,6 +352,21 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
       cur_len = nxt;
 
       clen = cur_len;
+
+      // A bucket of this regime mixes lengths, so the cell has none of its own and the host could not
+      // hold it to the range by its base word. Here the candidate has one.
+      //
+      // The zeroed cell of the self test has no rectangle, and its password answers to no range the run
+      // was given. The slot count would not tell the two apart: an escape cell carries none either.
+
+      #if PCFG_DEV_RULES == 0
+
+      if ((pcfg_pw != 0) && (wide > 0))
+      {
+        if ((clen < (pcfg_pw & 0xffff)) || (clen > (pcfg_pw >> 16))) continue;
+      }
+
+      #endif
 
       #else
 
@@ -369,6 +405,17 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
       // PW_MAX wide here, and at that width the hash is the streaming one, which needs no room inside it.
 
       if (rlen < 1) continue;
+
+      // The rule settles the length, so this is where the range is about the candidate that will be
+      // hashed, and the two tests above are on what the rule was given rather than what it produced.
+      //
+      // The zeroed cell of the self test has no rectangle, and its password answers to no range the run
+      // was given. The slot count would not tell the two apart: an escape cell carries none either.
+
+      if ((pcfg_pw != 0) && (wide > 0))
+      {
+        if (((u32) rlen < (pcfg_pw & 0xffff)) || ((u32) rlen > (pcfg_pw >> 16))) continue;
+      }
 
       // Bytes past the new length have to be zero, and a rule that shortened the candidate left the old
       // ones behind. Past the old length the array was zero already, so the stretch between the two is
@@ -561,6 +608,14 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
 
   #endif
 
+  #if PCFG_DEV_OMEN || PCFG_DEV_VARLEN || PCFG_DEV_RULES
+
+  // The range this run is held to, as global_dev_init () packed it, and zero where nothing binds.
+
+  const u32 pcfg_pw = pcfg_pool_u32 (PCFG_POOL_REF (pcfg_pool_v), 0);
+
+  #endif
+
   #if PCFG_DEV_VARLEN
 
   u32 cur_len = pw_len;
@@ -637,6 +692,19 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
 
       if (len < 0) continue;
 
+      // The first place a candidate of the escape has a byte length: the host could only hold it to the
+      // range a level at a time, and a level counts characters. Not where the rules are applied below,
+      // because there the length that counts is the one the rule leaves.
+
+      #if PCFG_DEV_RULES == 0
+
+      if (pcfg_pw != 0)
+      {
+        if (((u32) len < (pcfg_pw & 0xffff)) || ((u32) len > (pcfg_pw >> 16))) continue;
+      }
+
+      #endif
+
       clen = (u32) len;
 
       // The escape is not one length, so this is the one path that sets the hash up per candidate.
@@ -674,6 +742,21 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
 
       clen = cur_len;
 
+      // A bucket of this regime mixes lengths, so the cell has none of its own and the host could not
+      // hold it to the range by its base word. Here the candidate has one.
+      //
+      // The zeroed cell of the self test has no rectangle, and its password answers to no range the run
+      // was given. The slot count would not tell the two apart: an escape cell carries none either.
+
+      #if PCFG_DEV_RULES == 0
+
+      if ((pcfg_pw != 0) && (wide > 0))
+      {
+        if ((clen < (pcfg_pw & 0xffff)) || (clen > (pcfg_pw >> 16))) continue;
+      }
+
+      #endif
+
       #else
 
       clen = pw_len;
@@ -705,6 +788,17 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
       // PW_MAX wide here, and at that width the hash is the streaming one, which needs no room inside it.
 
       if (rlen < 1) continue;
+
+      // The rule settles the length, so this is where the range is about the candidate that will be
+      // hashed, and the two tests above are on what the rule was given rather than what it produced.
+      //
+      // The zeroed cell of the self test has no rectangle, and its password answers to no range the run
+      // was given. The slot count would not tell the two apart: an escape cell carries none either.
+
+      if ((pcfg_pw != 0) && (wide > 0))
+      {
+        if (((u32) rlen < (pcfg_pw & 0xffff)) || ((u32) rlen > (pcfg_pw >> 16))) continue;
+      }
 
       // Bytes past the new length have to be zero, and a rule that shortened the candidate left the old
       // ones behind. Past the old length the array was zero already, so the stretch between the two is

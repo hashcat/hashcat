@@ -137,6 +137,7 @@ but this is needed for VS compiler which doesn't have inline keyword but has __i
 #define PW_MIN              0
 #define PW_MAX              256
 #define PW_MAX_OLD          55
+#define PW_DICTMAX          31
 
 #define SALT_MIN            0
 #define SALT_MAX            256

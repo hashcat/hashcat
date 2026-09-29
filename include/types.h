@@ -380,12 +380,18 @@ typedef enum base_scope
 // not been added yet, so a short one is not too short. -a 9 applies neither, and that is not a relaxation
 // but a requirement. Word N belongs to salt N, so dropping one moves every later word onto the wrong
 // hash.
+//
+// A ruleset moves the candidate after this test, so each direction it can move takes the test on that
+// side away: see user_options_extra_base_length (). Giving up the upper bound gives it up as far as
+// PW_MAX, which is more than the optimized rule engine can hold, so where that engine is the one
+// applying the rules the upper bound becomes its own cap instead of the hash mode's.
 
 typedef enum base_length
 {
-  BASE_LENGTH_BOTH = 0,
-  BASE_LENGTH_MAX  = 1,
-  BASE_LENGTH_NONE = 2,
+  BASE_LENGTH_BOTH    = 0,
+  BASE_LENGTH_MAX     = 1,
+  BASE_LENGTH_NONE    = 2,
+  BASE_LENGTH_DICTMAX = 3,
 
 } base_length_t;
 
@@ -3050,12 +3056,25 @@ typedef struct outcheck_ctx
 
 } outcheck_ctx_t;
 
+// Which way a ruleset can move the length of a candidate. One bit for each direction, and a rule that
+// could move it either way sets both, so the answer for a whole ruleset is the union over its rules. A
+// feed reads this as well as hashcat's own code, which is why it lives here rather than in rp.h.
+
+#define RULE_LENGTH_KEEP     0
+#define RULE_LENGTH_LONGER   1
+#define RULE_LENGTH_SHORTER  2
+
 typedef struct straight_ctx
 {
   bool enabled;
 
   u32             kernel_rules_cnt;
   kernel_rule_t  *kernel_rules_buf;
+
+  // Which way the rules in hand can move a length, as RULE_LENGTH_LONGER and RULE_LENGTH_SHORTER. What
+  // is done with it is in user_options_extra_base_length ().
+
+  u32 rules_length_effect;
 
   char **dicts;
   u32    dicts_pos;

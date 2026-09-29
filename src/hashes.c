@@ -2107,6 +2107,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   u32 num_cracked = 0;
@@ -2223,11 +2224,46 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   outfile_batch_begin (hashcat_ctx);
   potfile_batch_begin (hashcat_ctx);
 
+  // Whether the candidate that cracked a digest is shorter than the run accepts. Which bound is given up
+  // and why is in user_options_extra_base_length (), and for the straight kernels the rules then run
+  // inside the hash kernel, which has no length of the run to compare against, so it is measured here.
+  //
+  // The floor only. A candidate a rule took past the ceiling matches the digest of its own front where
+  // the hash mode reads no further, and build_plain () reports it at the ceiling, so refusing that record
+  // would lose the digest outright: inc_scalar.cl marks one candidate per digest and offers no other.
+
+  const bool check_plain_len = (straight_ctx->rules_length_effect != RULE_LENGTH_KEEP)
+                            && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
+                            && (user_options->slow_candidates == false);
+
   for (u32 i = 0; i < num_cracked; i++)
   {
     const u32 hash_pos = cracked[i].hash_pos;
 
     if (hashes->digests_shown[hash_pos] == 1) continue;
+
+    // Before the digest is marked, so that the hash stays in play for a candidate of a length the run
+    // does accept.
+
+    bool plain_rejected = false;
+
+    if (check_plain_len == true)
+    {
+      u8 plain_buf[HCBUFSIZ_TINY] = { 0 };
+
+      int plain_len = 0;
+
+      if (build_plain (hashcat_ctx, device_param, &cracked[i], (u32 *) plain_buf, &plain_len) == 0)
+      {
+        plain_rejected = (plain_len < (int) hashconfig->pw_min);
+      }
+    }
+
+    // A NEVERCRACK run is the one case that cannot leave from here. It never marks the digest, so what
+    // stops the device handing the same candidate back on every launch is the reset at the end of this
+    // body, and a refused record still has to reach it.
+
+    if ((plain_rejected == true) && ((hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK) == 0)) continue;
 
     const u32 salt_pos = cracked[i].salt_pos;
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
@@ -2254,11 +2290,14 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
 
-    rc = check_hash (hashcat_ctx, device_param, &cracked[i]);
-
-    if (rc == -1)
+    if (plain_rejected == false)
     {
-      break;
+      rc = check_hash (hashcat_ctx, device_param, &cracked[i]);
+
+      if (rc == -1)
+      {
+        break;
+      }
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_NEVERCRACK)
