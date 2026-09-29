@@ -171,7 +171,7 @@ def host_avail_mib():
 
 def min_device_free_mib(device):
   # The smallest free-memory reading among the devices this run will use, from hashcat's own -I. -I
-  # lists every backend device regardless of -D (jsteube, #4917), so a CPU device's reading must not
+  # lists every backend device regardless of -D, so a CPU device's reading must not
   # set a GPU run's share: keep only devices whose Type matches -D. One HASHCAT_DEVICE_MEM_LIMIT
   # serves every device, so the smallest matching one is the safe share. Returns None when nothing
   # matches, so the caller leaves the cap unset.
@@ -202,7 +202,7 @@ def min_device_free_mib(device):
 
 
 def export_worker_mem_shares(args):
-  # jsteube, #4917: under -j each worker reads the whole card and host as free and sizes itself to it,
+  # Under -j each worker reads the whole card and host as free and sizes itself to it,
   # so N of them together ask for N times what exists and the later ones die on out of memory. Hand
   # each worker its own share through HASHCAT_DEVICE_MEM_LIMIT and HASHCAT_HOST_MEM_LIMIT, in MiB; the
   # child inherits the two from this process. A hashcat that predates them ignores the env, so on an
@@ -617,7 +617,7 @@ def oracle_vectors(mode, optimized):
 def classify(rc, matched, c):
   # A hashcat run that exits 0 but whose output does not carry the pair is rewritten to code 10, then
   # the code is bucketed as test.sh's status() did: 1 exhausted, 4 --runtime, 10 not matched, the
-  # runtime-skip codes to skipped. The one deviation is jsteube's, #4917: test.sh sent every other
+  # runtime-skip codes to skipped. The one deviation: test.sh sent every other
   # code, 255 (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that
   # never got its memory read the same as one that ran and missed the password. Those go to err
   # instead, a hard error kept apart from a failed crack. The skip set is spelled out, not a range,
@@ -643,7 +643,7 @@ def classify(rc, matched, c):
 
     if ret == 252 and os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
       # A memory skip while a per-worker cap is in force is a property of the -j run, not the mode, so
-      # flag it for run_parallel to retry without the cap (jsteube, #4917).
+      # flag it for run_parallel to retry without the cap.
       global CAPPED_MEM_SKIP
       CAPPED_MEM_SKIP = True
   else:
@@ -651,7 +651,7 @@ def classify(rc, matched, c):
 
 
 def verdict(c):
-  # A hard error (jsteube, #4917) outranks the rest: it is the one result that is not about whether
+  # A hard error outranks the rest: it is the one result that is not about whether
   # the mode cracked. The order below it is test.sh's.
   if c.get("err"):
     return "Fault"
@@ -5493,7 +5493,7 @@ def run_parallel(args):
 
   if retry:
     # Re-run the memory-capped skips one at a time with the two caps removed, so the memory-heavy modes
-    # are still covered (jsteube, #4917). A mode that needs more than the whole card skips again, now a
+    # are still covered. A mode that needs more than the whole card skips again, now a
     # genuine skip with no cap set.
     nocap = {k: v for k, v in os.environ.items()
              if k not in ("HASHCAT_DEVICE_MEM_LIMIT", "HASHCAT_HOST_MEM_LIMIT")}
