@@ -515,6 +515,34 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
   }
 
+  // In hash-info mode there is no attack to run, so what a reader is asking is which kernel types the
+  // mode has at all rather than which it has for the attack-mode that happens to be the default. The
+  // probe above uses the selected attack_kern, so a mode whose only kernel serves one attack-mode
+  // reports no kernel type, and tools/test_edge.sh reads that line and concludes there is nothing to
+  // test. -m 37000 is the first mode of that shape, a 4 byte key recovery that only brute-force drives.
+  //
+  // This sits after opti_type and opts_type have had their say above, so it changes what is reported
+  // and nothing else. ATTACK_KERN_PCFG is left out on purpose: the device engine has only the pure
+  // kernel and generate_source_kernel_filename () names a file for it that is not meant to exist.
+
+  if (user_options->hash_info > 0)
+  {
+    const u32 attack_kerns[]  = { ATTACK_KERN_STRAIGHT, ATTACK_KERN_COMBI, ATTACK_KERN_BF };
+
+    const u32 attack_kerns_cnt = sizeof (attack_kerns) / sizeof (attack_kerns[0]);
+
+    for (u32 i = 0; i < attack_kerns_cnt; i++)
+    {
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == true) hashconfig->has_pure_kernel = true;
+
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == true) hashconfig->has_optimized_kernel = true;
+    }
+  }
+
   const bool is_salted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
                        |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
                        |  (hashconfig->salt_type == SALT_TYPE_VIRTUAL));
