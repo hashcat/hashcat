@@ -724,6 +724,32 @@ bool hc_env_flag (const char *name, int *cache)
   return result;
 }
 
+// The byte value of an environment switch written in MiB, looked up once.
+//
+// A launcher that starts several hashcat processes against one machine has to tell each of them how
+// much of that machine to assume, because a process cannot see what the others are about to take.
+// MiB is the unit every memory figure hashcat prints already uses. An unset variable gives 0, and
+// the value is held well inside the range where the conversion to bytes stays exact. Pass a static
+// i64 initialised to -1.
+
+u64 hc_env_mib (const char *name, i64 *cache)
+{
+  if (*cache == -1)
+  {
+    const char *value = getenv (name);
+
+    const u64 mib = (value == NULL) ? 0 : hc_strtoull (value, NULL, 10);
+
+    const i64 mib_max = 0x7fffffff;
+
+    *cache = (mib > (u64) mib_max) ? mib_max : (i64) mib;
+  }
+
+  const u64 result = (u64) *cache * 1024 * 1024;
+
+  return result;
+}
+
 // Bounded appenders for a fixed size output buffer.
 //
 // A cracked hash is written out by src/outfile.c and by src/potfile.c, and both build the line in one

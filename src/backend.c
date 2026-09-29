@@ -13493,6 +13493,19 @@ static bool memory_debug_enabled (void)
   return hc_env_flag ("HASHCAT_MEMORY", &cache);
 }
 
+// A hashcat process cannot see a second one running against this same device, nor what that one is
+// about to take, so both size themselves to the whole card and the sum is what the card cannot
+// serve. Set HASHCAT_DEVICE_MEM_LIMIT, in MiB, to hand one process its own share of the card.
+
+static u64 device_mem_limit (void)
+{
+  static i64 cache = -1;
+
+  const u64 result = hc_env_mib ("HASHCAT_DEVICE_MEM_LIMIT", &cache);
+
+  return result;
+}
+
 // Set HASHCAT_FORCE_NO_INLINE to build the kernels with -D FORCE_NO_INLINE, which forces the
 // DECLSPEC helpers out-of-line (see OpenCL/inc_vendor.h). It exists for runtimes that need minutes
 // to compile a kernel whose helpers all get inlined into one huge function. It costs runtime
@@ -14086,6 +14099,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       qsort (tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
       qsort (tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
     }
+
+    // The share is taken once the readings and the estimate above are settled, so a figure the
+    // launcher states outright is not cut a second time by the desktop estimate. The clone budget
+    // further down divides whatever is left here, so a run that also splits the device virtually
+    // keeps both divisions.
+
+    const u64 mem_limit = device_mem_limit ();
+
+    if (mem_limit != 0) device_param->device_available_mem = MIN (device_param->device_available_mem, mem_limit);
 
     // vector_width
 
