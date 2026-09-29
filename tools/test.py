@@ -16,7 +16,9 @@ import base64
 import glob
 import os
 import re
+import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -50,6 +52,199 @@ def setup_isolation():
   atexit.register(shutil.rmtree, cache_dir, ignore_errors=True)
 
   ISOLATION = ["--cache-path", cache_dir, "--session", "testpy_%d" % os.getpid(), "--restore-disable"]
+
+
+# The most recent hashcat argv, set by run_hashcat and read by the logfull writer. A worker is one
+# process running its modes in sequence, so the last run is the one classify() is scoring.
+LAST_CMD = None
+
+# A persistent output folder, the way test.sh kept test_<ts>/. OUTDIR is its path or None; LOGFULL is
+# the open logfull.txt handle or None; LOGBUF holds the reason lines in memory as well, so a serial
+# run with no folder yet can still dump them if Ctrl-C creates one. PROGRESS is the running tally the
+# interrupt handler prints.
+OUTDIR    = None
+OWN_OUTDIR = False    # True only in the process that created the folder, so a -j child does not
+LOGFULL   = None      # overwrite the parent's aggregate summary.txt with its own single-mode tally
+LOGBUF    = []
+PROGRESS  = {}
+
+AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
+
+# test.sh's status() reason strings, keyed by hashcat's exit code. The 246,248-253 and 30 codes are
+# runtime skips; 1 is a clean exhaust, 4 a timeout, 10 a crack whose plains were not in the output.
+REASON = {
+  246: "autotune failure",
+  248: "skipped by runtime (mixed backend errors detected)",
+  249: "skipped by runtime (Invalid module_extra_buffer_size)",
+  250: "skipped by runtime (Too many compute units to keep minimum kernel accel limit)",
+  251: "skipped by runtime (main kernel build error)",
+  252: "skipped by runtime (memory hit limit)",
+  253: "skipped by runtime (module_unstable_warning)",
+  30:  "luks test files are missing",
+  1:   "password not found",
+  4:   "timeout reached",
+  10:  "hash:plains not matched in output",
+}
+
+
+def reason_for(ret):
+  # The English reason for a non-zero hashcat result, for logfull.txt. A code outside the known set is
+  # an error rather than a result: a negative return is a process killed by a signal (subprocess
+  # reports -signum), and hashcat's own error codes wrap to 255 (255 is -1) and above.
+  if ret in REASON:
+    return REASON[ret]
+
+  if ret < 0:
+    return "hashcat crashed, killed by signal %d" % (-ret)
+
+  return "hashcat error (return code %d)" % ret
+
+
+def log_result(ret):
+  # Append the reason and the full cmdline for a non-OK result to logfull, both to the in-memory buffer
+  # and, once a folder exists, to the file. A clean crack (ret 0) leaves nothing.
+  if ret == 0 or LAST_CMD is None:
+    return
+
+  line = "%s, cmdline : %s\n" % (reason_for(ret), " ".join(shlex.quote(str(a)) for a in LAST_CMD))
+  LOGBUF.append(line)
+
+  if LOGFULL is not None:
+    LOGFULL.write(line)
+    LOGFULL.flush()
+
+
+def record(v):
+  PROGRESS[v] = PROGRESS.get(v, 0) + 1
+
+
+def print_total():
+  parts = ", ".join("%s=%d" % (k, PROGRESS[k]) for k in sorted(PROGRESS) if PROGRESS[k])
+  print("[ test.py ] > totals so far: %s" % (parts or "nothing run yet"))
+
+
+def host_avail_mib():
+  try:
+    with open("/proc/meminfo") as fh:
+      for line in fh:
+        if line.startswith("MemAvailable:"):
+          return int(line.split()[1]) // 1024
+  except Exception:
+    pass
+
+  return None
+
+
+def min_device_free_mib(device):
+  # The smallest free-memory reading across the active devices, from hashcat's own -I. One
+  # HASHCAT_DEVICE_MEM_LIMIT applies to every device, so the smallest card sets the safe per-process
+  # share. Returns None when no device reports, so the caller leaves the cap unset.
+  try:
+    proc = subprocess.run([BIN, "-I", "-D", device] + ISOLATION, cwd=ROOT,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  except Exception:
+    return None
+
+  frees = [int(x) for x in re.findall(rb"Memory\.Free\.*:\s*(\d+)\s*MB", proc.stdout)]
+
+  return min(frees) if frees else None
+
+
+def export_worker_mem_shares(args):
+  # jsteube, #4917: under -j each worker reads the whole card and host as free and sizes itself to it,
+  # so N of them together ask for N times what exists and the later ones die on out of memory. Hand
+  # each worker its own share through HASHCAT_DEVICE_MEM_LIMIT and HASHCAT_HOST_MEM_LIMIT, in MiB; the
+  # child inherits the two from this process. A hashcat that predates them ignores the env, so on an
+  # older build this is a no-op rather than a break.
+  if args.jobs <= 1:
+    return
+
+  dev = min_device_free_mib(args.device)
+  if dev:
+    os.environ["HASHCAT_DEVICE_MEM_LIMIT"] = str(max(1, dev // args.jobs))
+
+  host = host_avail_mib()
+  if host:
+    os.environ["HASHCAT_HOST_MEM_LIMIT"] = str(max(1, host // args.jobs))
+
+
+def setup_outdir(args):
+  # test.sh named every run's output folder test_<ts>/ and kept its logfull.txt there. test.py does
+  # the same by default: the folder is made on every run, test.py choosing the name, unless --logdir
+  # names one. A -j child inherits the parent's folder through the environment rather than making its
+  # own, so one -j run has one folder, not one per worker.
+  global OUTDIR, LOGFULL, OWN_OUTDIR
+
+  inherited = os.environ.get("TESTPY_OUTDIR")
+
+  if inherited and os.path.isdir(inherited):
+    OUTDIR  = inherited
+    LOGFULL = open(os.path.join(inherited, "logfull.txt"), "a")
+    return
+
+  if args.logdir and args.logdir != AUTO_LOGDIR:
+    path = args.logdir
+  else:
+    path = "test_%d" % int(time.time())
+
+  os.makedirs(path, exist_ok=True)
+  OUTDIR     = path
+  OWN_OUTDIR = True
+  LOGFULL    = open(os.path.join(path, "logfull.txt"), "a")
+  os.environ["TESTPY_OUTDIR"] = os.path.abspath(path)
+
+  # Say where only when the user named the folder. The default is silent, as test.sh was, so a run's
+  # result lines are the same bytes with or without the folder.
+  if args.logdir:
+    print("[ test.py ] > logging skips and errors to %s/logfull.txt" % path)
+
+
+def write_summary(note):
+  if OUTDIR is None or not OWN_OUTDIR:
+    return
+
+  try:
+    with open(os.path.join(OUTDIR, "summary.txt"), "w") as fh:
+      fh.write("%s\n" % note)
+
+      for k in sorted(PROGRESS):
+        fh.write("%s = %d\n" % (k, PROGRESS[k]))
+  except Exception:
+    pass
+
+
+def on_sigint(signum, frame):
+  # Ctrl-C: persist whatever has been gathered and print the running total, rather than dropping it.
+  # A serial run with no folder yet gets one now so its logfull is not lost.
+  global OUTDIR, OWN_OUTDIR
+
+  sys.stdout.flush()
+
+  if OUTDIR is None:
+    try:
+      OUTDIR = "test_%d" % int(time.time())
+      os.makedirs(OUTDIR, exist_ok=True)
+      OWN_OUTDIR = True
+
+      with open(os.path.join(OUTDIR, "logfull.txt"), "w") as fh:
+        fh.writelines(LOGBUF)
+    except Exception:
+      OUTDIR = None
+  elif LOGFULL is not None:
+    try:
+      LOGFULL.flush()
+    except Exception:
+      pass
+
+  write_summary("interrupted")
+
+  print("\n[ test.py ] > interrupted")
+
+  if OUTDIR:
+    print("[ test.py ] > latest results written to %s/" % OUTDIR)
+
+  print_total()
+  os._exit(130)
 
 
 SINGLE_MAX = 32     # test.sh caps a single-target run at 32 hashes
@@ -351,15 +546,19 @@ def oracle_vectors(mode, optimized):
 
 
 def classify(rc, matched, c):
-  # Mirror test.sh exactly. A hashcat run that exits 0 but whose output does not carry the pair is
-  # rewritten to code 10 (test.sh), then status() buckets by the code (test.sh):
-  # 1 exhausted, 4 --runtime, 10 not matched, the specific runtime-skip codes to skipped, and any
-  # other code, 247 included, to not found through the default case. The set is spelled out rather
-  # than as a range because test.sh omits 247.
+  # A hashcat run that exits 0 but whose output does not carry the pair is rewritten to code 10, then
+  # the code is bucketed as test.sh's status() did: 1 exhausted, 4 --runtime, 10 not matched, the
+  # runtime-skip codes to skipped. The one deviation is jsteube's, #4917: test.sh sent every other
+  # code, 255 (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that
+  # never got its memory read the same as one that ran and missed the password. Those go to err
+  # instead, a hard error kept apart from a failed crack. The skip set is spelled out, not a range,
+  # because 247 is not a skip; it lands in err with the rest.
 
   c["cnt"] += 1
 
   ret = (0 if matched else 10) if rc == 0 else rc
+
+  log_result(ret)
 
   if ret == 0:
     return
@@ -373,10 +572,15 @@ def classify(rc, matched, c):
   elif ret == 30 or ret in (246, 248, 249, 250, 251, 252, 253):
     c["rs"] += 1
   else:
-    c["nf"] += 1
+    c["err"] += 1
 
 
 def verdict(c):
+  # A hard error (jsteube, #4917) outranks the rest: it is the one result that is not about whether
+  # the mode cracked. The order below it is test.sh's.
+  if c.get("err"):
+    return "Fault"
+
   if c["rs"]:
     return "Skip"
 
@@ -390,7 +594,10 @@ def verdict(c):
 
 
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
+  global LAST_CMD
+
   cmd = [BIN] + opts + ["-a", str(attack), "-m", str(mode), target] + list(extra)
+  LAST_CMD = cmd
 
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
   # there rather than in whatever directory the manager was invoked from.
@@ -414,9 +621,19 @@ def context(args, mode, target_name, width, attack=0):
 
 
 def report(args, mode, target_name, width, c, attack=0):
-  print("%s > %s : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped"
-        % (context(args, mode, target_name, width, attack), verdict(c),
-           c["nf"], c["cnt"], c["nm"], c["cnt"], c["to"], c["cnt"], c["rs"], c["cnt"]))
+  v = verdict(c)
+
+  line = ("%s > %s : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped"
+          % (context(args, mode, target_name, width, attack), v,
+             c["nf"], c["cnt"], c["nm"], c["cnt"], c["to"], c["cnt"], c["rs"], c["cnt"]))
+
+  # An errors field is added only when there is one, so a run without a hard error prints the exact
+  # test.sh line and the four-way equivalence still holds byte for byte.
+  if c.get("err"):
+    line += ", %d/%d errors" % (c["err"], c["cnt"])
+
+  print(line)
+  record(v)
 
 
 def report_skip(args, mode, target_name, width, reason, attack=0):
@@ -434,7 +651,7 @@ def match_search(digest, word, pass_only):
 
 
 def run_single(opts, mode, pairs, args, width, file_only, pass_only, tmp):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   temp_file = os.path.join(tmp, "m%05d_filebased.bin" % mode)
 
@@ -457,7 +674,7 @@ def run_single(opts, mode, pairs, args, width, file_only, pass_only, tmp):
 
 
 def run_multi(opts, mode, pairs, args, width, file_only, pass_only, tmp):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   hash_file = os.path.join(tmp, "m%05d_hashes.txt" % mode)
 
@@ -553,7 +770,7 @@ def whole_word_source(attack, words_file, ruleset_dir):
 
 
 def whole_word_single(r, attack):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   optimized = not r.args.pure
 
@@ -625,7 +842,7 @@ def whole_word_multi(r, attack):
   if attack == 4 and r.file_only:
     return
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   optimized = not r.args.pure
 
@@ -851,7 +1068,7 @@ def write_dict(path, lines):
 
 
 def run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   smin, smax = combinator_single_range(r.mode)
 
@@ -908,7 +1125,7 @@ def run_combinator_single(r, dict1_lines, dict2_lines, dict1_path, dict2_path):
 
 
 def run_combinator_multi(r, dict1_path, dict2_path):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   offset = combinator_multi_offset(r.mode)
   sel = r.pairs[-offset:]
@@ -1114,7 +1331,7 @@ def a3_single_mask(mode, word, i):
 
 
 def attack_3_single(r):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   max_i     = a3_single_max(r.mode)
   temp_file = os.path.join(r.tmp, "m%05d_filebased.bin" % r.mode)
@@ -1297,7 +1514,7 @@ def attack_3_multi(r):
   # test.sh: one hashcat run scored as one test; every selected pair must be in the output,
   # matched by hash where the printed password differs from the generated one.
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   if rc == 0:
     matched = all(output_has_crack(r.mode, out, words[idx + cracks_offset], digests[k],
@@ -1475,7 +1692,7 @@ def a6_single_params(mode):
 
 
 def attack_6_single(r):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   min_i, max_i = a6_single_params(r.mode)
 
@@ -1583,7 +1800,7 @@ def attack_6_multi(r):
   if has_multi_hash(r.mode):
     return
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   min_i, max_i = a6_multi_params(r.mode)
   optimized    = not r.args.pure
@@ -1669,7 +1886,7 @@ def a7_single_params(mode):
 
 
 def attack_7_single(r):
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   min_i, max_i, mask_offset = a7_single_params(r.mode)
   optimized = not r.args.pure
@@ -1799,7 +2016,7 @@ def attack_7_multi(r):
   if has_multi_hash(r.mode):
     return
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   max_i     = a7_multi_max(r.mode)
   optimized = not r.args.pure
@@ -1895,7 +2112,7 @@ def report_skip_counts(r, target_name):
   # counts line, not the reason form report_skip uses (test.sh). The loop breaks
   # before any candidate runs, so every count is zero.
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   print("%s > Skip : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped"
         % (context(r.args, r.mode, target_name, r.width, 12),
@@ -1908,7 +2125,7 @@ def attack_12_single(r):
 
     return
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   max_i = a12_single_max(r.mode)
 
@@ -2014,7 +2231,7 @@ def attack_12_multi(r):
 
     return
 
-  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0}
+  c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
   # test.sh's -a 12 multi window matches attack_6's exactly (test.sh vs 2587-2615).
 
@@ -3951,15 +4168,19 @@ def run_parallel_selftest(args):
         continue
 
       sweep_total += 1
+      record("modes")
 
       text = out.decode("utf-8", "replace")
 
       if "> OK :" in text:
         sweep_ok += 1
+        record("OK")
       elif "> Warning :" in text:
         sweep_slow += "%d " % mode
+        record("Warning")
       else:
         sweep_bad += "%d " % mode
+        record("not-OK")
 
   selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad)
 
@@ -5082,8 +5303,12 @@ def run_parallel_edge(args, modes, all_scope):
       sys.stdout.buffer.write(out)
       sys.stdout.buffer.flush()
 
+      record("modes")
+
       for m in re.finditer(rb"> (\d+) errors,", out):
         total += int(m.group(1))
+
+      PROGRESS["errors"] = total
 
   print("[ test.py edge ] > Errors detected: %d" % total)
 
@@ -5173,6 +5398,11 @@ def run_parallel(args):
       sys.stdout.buffer.write(out)
       sys.stdout.buffer.flush()
 
+      # The parent prints the children's lines but keeps its own tally by mode, so a Ctrl-C total is
+      # meaningful here too. A child buckets by attack line; the parent by whole mode.
+      record("modes")
+      record("OK" if prc == 0 else "not-OK")
+
       if prc != 0:
         rc = 1
 
@@ -5216,6 +5446,9 @@ def main():
                        "synccheck|initcheck, default memcheck); CUDA-only, needs ./hashcat-sanitizer")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
                   help="run this many modes in parallel, each in its own hashcat cache/session")
+  ap.add_argument("--logdir", dest="logdir", nargs="?", const=AUTO_LOGDIR, default=None,
+                  help="name the output folder (default test_<ts>/, as test.sh); it holds logfull.txt, "
+                       "the reason and the cmdline for every skip and error")
   ap.add_argument("--edge", dest="edge", action="store_true",
                   help="edge-case testing (the port of tools/test_edge.sh)")
   ap.add_argument("-K", dest="kernel", default="all", help="--edge: 0 pure | 1 optimized | all")
@@ -5268,6 +5501,14 @@ def main():
 
   if not os.path.isfile(BIN):
     die("! no hashcat binary at %s, build it first" % BIN)
+
+  # Ctrl-C persists what has been gathered and prints the total; a -j run hands each worker its share
+  # of memory; the reason log opens before any hashcat runs, and its path is exported so -j children
+  # write into the one folder. All harmless on a plain serial run, where no folder is made.
+  signal.signal(signal.SIGINT, on_sigint)
+  export_worker_mem_shares(args)
+  setup_outdir(args)
+  atexit.register(write_summary, "completed")
 
   if args.edge:
     sys.exit(run_edge(args))
