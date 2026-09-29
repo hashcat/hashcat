@@ -19,9 +19,12 @@
  * Buffers are sized from the module's own dgst_size, esalt_size and
  * hook_salt_size, so an overflow here is an overflow of what hashcat would
  * allocate. The hashconfig itself comes from tools/asan/hashconfig.c, which
- * the harness in tools/asan/ uses for the same reason. The line is copied into an allocation of exactly its length: see
- * the note in tools/fuzz/fuzz_rule.c about what that means for a read one byte
- * past the end, and about -DFUZZ_NUL_TERMINATE.
+ * the harness in tools/asan/ uses for the same reason. The line is copied into an allocation of its
+ * length plus a NUL, because hashcat's own caller NUL terminates it (src/hashes.c writes
+ * line_buf[line_len] = 0 before module_hash_decode), and a parser that reads a final field with
+ * strtoul stops on that terminator rather than running off the end. Build with -DFUZZ_EXACT_LEN to
+ * drop the terminator and report a read that reaches it, which is a read past a non NUL caller's
+ * buffer, not past hashcat's own.
  *
  * See tools/fuzz/README.md for how to build and run it.
  */
@@ -95,12 +98,12 @@ int LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 
   hashinfo_t *hash_info = (hashinfo_t *) calloc (1, sizeof (hashinfo_t));
 
-  #ifdef FUZZ_NUL_TERMINATE
+  #ifdef FUZZ_EXACT_LEN
+  char *line_buf = (char *) malloc (size);
+  #else
   char *line_buf = (char *) malloc (size + 1);
 
   line_buf[size] = 0;
-  #else
-  char *line_buf = (char *) malloc (size);
   #endif
 
   memcpy (line_buf, data, size);

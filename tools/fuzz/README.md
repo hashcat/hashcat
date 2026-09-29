@@ -42,16 +42,21 @@ Reproducing one input is the same binary with the input as an argument:
 
 #### What a finding means ####
 
-Both targets hand the function an allocation of exactly the length they pass with it, so a read
-past that length is a read past the allocation and the sanitizer reports it. hashcat's own callers
-pass a NUL terminated line buffer, so the same read lands on the terminator there rather than off
-the end.
+The tokenizer and rule targets hand the function an allocation of exactly the length they pass with
+it, so a read past that length is a read past the allocation and the sanitizer reports it. Those
+functions are told how long their input is and must not read past it, so the finding stands even
+though hashcat's own NUL terminated buffer would let the same read land on the terminator: the next
+caller to pass a slice of a larger buffer gets the over read for real. These are correctness
+findings rather than crashes and still have to be fixed. Build with `-DFUZZ_NUL_TERMINATE` to
+reproduce the caller's buffer and report only reads past the terminator.
 
-That makes these findings correctness findings rather than crashes, and they still have to be
-fixed: the byte read is not part of the rule or the line, the function was told how long its input
-is, and the next caller to pass a slice of a larger buffer gets the over read for real. Build with
-`-DFUZZ_NUL_TERMINATE` to reproduce the caller's buffer and report only reads past the terminator,
-which is the conservative view of the same run.
+The parse target reproduces hashcat's own caller instead: it NUL terminates the line, because
+src/hashes.c writes `line_buf[line_len] = 0` before `module_hash_decode`, and many parsers read a
+final numeric field with `strtoul`, which stops on that terminator rather than counting the field's
+length. A read that reaches the terminator is what hashcat does every time, so reporting it would be
+a false positive, and the weekly run hit exactly that at random when the bytes past a short line
+happened to be digits. The parse target therefore reports only a read past the terminator; build
+with `-DFUZZ_EXACT_LEN` for the strict view that drops it.
 
 #### Seeds and dictionaries ####
 
