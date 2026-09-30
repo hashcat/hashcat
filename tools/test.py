@@ -74,6 +74,10 @@ PROGRESS   = {}
 ERRORS        = 0
 FAIL_VERDICTS = ("Fault", "Error", "Compare Error")
 
+# The CPU's backend device number, cached: -1 before it is looked up, then the number or None. It
+# pins the virtual host for a bridged mode (see bridge_opts).
+CPU_BACKEND_ID = -1
+
 # A -j worker that skips on 252 (memory hit limit) only because its share of the card was too small
 # exits with MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage
 # survives. A 252 with no cap in the environment is a genuine skip and does not set this.
@@ -479,6 +483,73 @@ def is_file_only(mode):
   return b"OPTS_TYPE_BINARY_HASHFILE" in module_source(mode)
 
 
+def is_bridged(mode):
+  # A bridged mode does its hashing on an assimilation bridge (a Python interpreter for 72000/73000),
+  # named by BRIDGE_NAME in the module. The bridge hardware is chosen by the hash-mode, never by -D.
+  return b"BRIDGE_NAME" in module_source(mode)
+
+
+def cpu_backend_id():
+  # The backend device number (as hashcat -I prints it) of the first CPU device, or None. Looked up
+  # once and cached, since it shells out to -I.
+  global CPU_BACKEND_ID
+
+  if CPU_BACKEND_ID != -1:
+    return CPU_BACKEND_ID
+
+  CPU_BACKEND_ID = None
+
+  try:
+    proc = subprocess.run([BIN, "-I"] + ISOLATION, cwd=ROOT,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  except Exception:
+    return None
+
+  cur_id = None
+
+  for line in proc.stdout.decode("utf-8", "replace").splitlines():
+    m = re.search(r"Backend Device ID #(\d+)", line)
+    if m:
+      cur_id = int(m.group(1))
+      continue
+
+    m = re.search(r"Type\.+:\s*(\w+)", line)
+    if m and m.group(1).upper() == "CPU" and cur_id is not None:
+      CPU_BACKEND_ID = cur_id
+      break
+
+  return CPU_BACKEND_ID
+
+
+def bridge_opts(mode):
+  # For a bridged mode the bridge does the hashing, but hashcat still needs a real device to generate
+  # candidates and host the bridge's virtual instances. That device has to survive -D first: the
+  # default -D 2 keeps only GPUs and drops the CPU the host role falls to, so the run has no device
+  # left and every case errors (this is what a headless box hits). --backend-devices-virthost only
+  # picks among the devices -D kept, it cannot bring a dropped one back, so -D itself is set to the
+  # CPU here and virthost is pinned to the CPU's own number, which stays correct when the CPU is not
+  # backend device #1. These override the run's -D, appended last so they win; -D never selects the
+  # bridge's own hardware anyway. A box with no CPU backend has nothing to host it, and hashcat
+  # reports that.
+  if not is_bridged(mode):
+    return []
+
+  out = ["-D", "1"]
+
+  cid = cpu_backend_id()
+
+  if cid is not None:
+    out += ["--backend-devices-virthost", str(cid)]
+
+  return out
+
+
+def device_for(args, mode):
+  # The device type a mode actually runs on: the CPU for a bridged mode (see bridge_opts), the run's
+  # -D otherwise. Used for the reported Device-Type so the line matches what ran.
+  return "1" if is_bridged(mode) else args.device
+
+
 def is_slow(mode):
   if mode == 400:
     return False
@@ -686,7 +757,7 @@ def verdict(c):
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
   global LAST_CMD
 
-  cmd = [BIN] + opts + ["-a", str(attack), "-m", str(mode), target] + list(extra)
+  cmd = [BIN] + opts + bridge_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
 
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
@@ -708,8 +779,10 @@ def context(args, mode, target_name, width, attack=0):
 
   mode_field = "single, " if target_name == "single" else "multi,  "
 
+  dev = device_for(args, mode)
+
   return ("[ test.py ] [ Type %d, Attack %d, Mode %sDevice-Type %s, Kernel-Type %s, Vector-Width %d ]"
-          % (mode, attack, mode_field, DEVICE_LABEL.get(args.device, args.device),
+          % (mode, attack, mode_field, DEVICE_LABEL.get(dev, dev),
              "Pure" if args.pure else "Optimized", width))
 
 
@@ -3994,9 +4067,11 @@ def selftest_context(args, mode, attack, width_label):
   # the sweep can pass "default", and ends with the ", self-test vector" tag container_run_and_report
   # adds (test.sh).
 
+  dev = device_for(args, mode)
+
   return ("[ test.py ] [ Type %d, Attack %d, Mode single, Device-Type %s, Kernel-Type %s, "
           "Vector-Width %s, self-test vector ]"
-          % (mode, attack, DEVICE_LABEL.get(args.device, args.device),
+          % (mode, attack, DEVICE_LABEL.get(dev, dev),
              "Pure" if args.pure else "Optimized", width_label))
 
 
@@ -4415,6 +4490,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
 
   argv = [os.fsencode(BIN)]
   argv += [edge_as_bytes(o) for o in opts]
+  argv += [edge_as_bytes(o) for o in bridge_opts(mode)]
   argv += [b"-a", str(attack).encode("ascii"), b"-m", str(mode).encode("ascii")]
   argv += [edge_as_bytes(target)]
   argv += [edge_as_bytes(x) for x in extra]
