@@ -166,20 +166,35 @@ int hm_SYSFS_INTELGPU_get_temperature_current (void *hashcat_ctx, const int back
 
   char *path;
 
-  hc_asprintf (&path, "%s/temp1_input", syspath);
-
-  hcfree (syspath);
-
+  // Older i915 driver exposes temp1_input for device temperature readings.
+  // The new xe driver splits the temperature readings like this:
+  //   temp2_input : Package temperature (the main GPU die/package reading)
+  //   temp3_input : VRAM temperature
+  //   temp4_input : Memory controller temperature
+  //   temp5_input : GPU PCIe temperature
+  // For our case, first try to open the xe package temperature;
+  // if it fails, fallback to i915
   HCFILE fp;
+
+  hc_asprintf (&path, "%s/temp2_input", syspath);
 
   if (hc_fopen_raw (&fp, path, "r") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
-    hcfree (path);
+    hc_asprintf (&path, "%s/temp1_input", syspath);
 
-    return -1;
+    if (hc_fopen_raw (&fp, path, "r") == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+      hcfree (syspath);
+      hcfree (path);
+
+      return -1;
+    }
   }
+
+  hcfree (syspath);
 
   int temperature = 0;
 
