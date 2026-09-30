@@ -179,3 +179,5 @@ but this is needed for VS compiler which doesn't have inline keyword but has __i
 #define USAGE_NOTICE_LUKS "You can use https://github.com/hashcat/hashcat/blob/master/tools/luks2hashcat.py to extract the hashes"
 #define USAGE_NOTICE_TRUECRYPT "You can use https://github.com/hashcat/hashcat/blob/master/tools/truecrypt2hashcat.py to extract the hashes"
 #define USAGE_NOTICE_VERACRYPT "You can use https://github.com/hashcat/hashcat/blob/master/tools/veracrypt2hashcat.py to extract the hashes"
+#define USAGE_NOTICE_OFFICE "You can use https://github.com/hashstation/office2hashcat to extract the hashes"
+#define USAGE_NOTICE_PDF "You can use https://github.com/sighook/pdf2hashcat to extract the hashes"
