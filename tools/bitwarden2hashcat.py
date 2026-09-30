@@ -92,22 +92,63 @@ def process_leveldb(path):
 
 def process_json(data):
     data = json.loads(data)
-
+    out = []
+    
+    # new version: userId from global_account_activeAccountId
     try:
-        out = []
+        user_id = data.get("global_account_activeAccountId", None)
+        if user_id:
+            out.append(extract_json_profile_new(user_id, data))
+            if out:
+                return out
+    except (KeyError, TypeError):
+        pass
+    
+    # old: several accounts (leveldb-style)
+    try:
         accIds = data["authenticatedAccounts"]
         for id in accIds:
             authAccData = data[id.strip('"')]
             out.append(extract_json_profile(authAccData))
-
         return out
-    except(KeyError):
-        print("Failed to extract data, trying old format.", file=sys.stderr)
+    except KeyError:
+        pass
+    
+    # old fallback: single old account
+    try:
         email = data["rememberedEmail"]
         hash = data["keyHash"]
         iterations = data["kdfIterations"]
+        out.append((email, hash, iterations))
+        return out
+    except KeyError:
+        pass
+    
+    print("Missing values, user is probably logged out.", file=sys.stderr)
+    return []
 
-    return [(email, hash, iterations)]
+
+def extract_json_profile_new(user_id, root_data):
+    # get masterKeyHash and iteration keys
+    master_hash_key = f"user_{user_id}_masterPassword_masterKeyHash"
+    kdf_config_key = f"user_{user_id}_kdfConfig_kdfConfig"
+    
+    hash = root_data.get(master_hash_key, None)
+    kdf_config = root_data.get(kdf_config_key, {})
+    iterations = kdf_config.get("iterations", None) if isinstance(kdf_config, dict) else None
+    
+    # get email - first from global_account_accounts (newest version)
+    accounts = root_data.get("global_account_accounts", {})
+    account_info = accounts.get(user_id, {})
+    email = account_info.get("email", None)
+    
+    # if not found, then get email from profile (older version)
+    if not email:
+        account_data = root_data.get(user_id, {})
+        profile = account_data.get("profile", {})
+        email = profile.get("email", "No email found")
+    
+    return email, hash, iterations
 
 
 def extract_json_profile(data):
