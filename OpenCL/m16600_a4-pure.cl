@@ -200,18 +200,18 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   u32 ukey[8];
 
-  ukey[0] = hc_swap32_S (a);
-  ukey[1] = hc_swap32_S (b);
-  ukey[2] = hc_swap32_S (c);
-  ukey[3] = hc_swap32_S (d);
-  ukey[4] = hc_swap32_S (e);
-  ukey[5] = hc_swap32_S (f);
-  ukey[6] = hc_swap32_S (g);
-  ukey[7] = hc_swap32_S (h);
+  ukey[0] = a;
+  ukey[1] = b;
+  ukey[2] = c;
+  ukey[3] = d;
+  ukey[4] = e;
+  ukey[5] = f;
+  ukey[6] = g;
+  ukey[7] = h;
 
   u32 ks[60];
 
-  aes256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
+  AES256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
   u32 out[4];
 

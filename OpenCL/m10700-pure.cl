@@ -63,27 +63,17 @@ DECLSPEC void aes128_encrypt_cbc (PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *
 {
   u32 data[4];
 
-  data[0] = hc_swap32_S (in[0]);
-  data[1] = hc_swap32_S (in[1]);
-  data[2] = hc_swap32_S (in[2]);
-  data[3] = hc_swap32_S (in[3]);
+  data[0] = in[0] ^ aes_iv[0];
+  data[1] = in[1] ^ aes_iv[1];
+  data[2] = in[2] ^ aes_iv[2];
+  data[3] = in[3] ^ aes_iv[3];
 
-  data[0] ^= aes_iv[0];
-  data[1] ^= aes_iv[1];
-  data[2] ^= aes_iv[2];
-  data[3] ^= aes_iv[3];
-
-  aes128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   aes_iv[0] = out[0];
   aes_iv[1] = out[1];
   aes_iv[2] = out[2];
   aes_iv[3] = out[3];
-
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
 }
 
 DECLSPEC u32 sha256_update_aes_64 (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
@@ -859,11 +849,6 @@ DECLSPEC int find_sum (PRIVATE_AS const u32 *w, const u32 pw_len, PRIVATE_AS u32
     PUTCHAR_BE (data, i, GETCHAR_BE (bb, j));
   }
 
-  data[0] = hc_swap32_S (data[0]);
-  data[1] = hc_swap32_S (data[1]);
-  data[2] = hc_swap32_S (data[2]);
-  data[3] = hc_swap32_S (data[3]);
-
   data[0] ^= aes_iv[0];
   data[1] ^= aes_iv[1];
   data[2] ^= aes_iv[2];
@@ -871,7 +856,7 @@ DECLSPEC int find_sum (PRIVATE_AS const u32 *w, const u32 pw_len, PRIVATE_AS u32
 
   u32 out[4];
 
-  aes128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   u32 sum = 0;
 
@@ -932,25 +917,18 @@ DECLSPEC u32 do_round (PRIVATE_AS const u32 *w, const u32 pw_len, PRIVATE_AS pdf
   w7[2] = 0;
   w7[3] = 0;
 
-  // cipher setup
-
-  u32 aes_key[4];
-
-  aes_key[0] = hc_swap32_S (w0[0]);
-  aes_key[1] = hc_swap32_S (w0[1]);
-  aes_key[2] = hc_swap32_S (w0[2]);
-  aes_key[3] = hc_swap32_S (w0[3]);
+  // cipher setup, the key, the iv and the data all stay in the byte order of the hash state
 
   u32 aes_ks[44];
 
-  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
+  AES128_set_encrypt_key (aes_ks, w0, s_te0, s_te1, s_te2, s_te3);
 
   u32 aes_iv[4];
 
-  aes_iv[0] = hc_swap32_S (w1[0]);
-  aes_iv[1] = hc_swap32_S (w1[1]);
-  aes_iv[2] = hc_swap32_S (w1[2]);
-  aes_iv[3] = hc_swap32_S (w1[3]);
+  aes_iv[0] = w1[0];
+  aes_iv[1] = w1[1];
+  aes_iv[2] = w1[2];
+  aes_iv[3] = w1[3];
 
   // find hash to use
 
