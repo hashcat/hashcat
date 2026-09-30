@@ -6,7 +6,7 @@ Usage:
   report.py --test NAME        # filter by test name
   report.py --failed           # only runs with primary findings or a wrapper failure
   report.py --latest N         # last N, after other filters
-  report.py --dir <sweep-dir>  # a test.sh/test_edge.sh sweep's own results directory
+  report.py --dir <sweep-dir>  # a test.py sweep's own results directory
 """
 
 import argparse

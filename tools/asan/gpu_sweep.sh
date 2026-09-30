@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Run tools/test.sh against an ASan-instrumented hashcat, one hash type at a
+# Run tools/test.py against an ASan-instrumented hashcat, one hash type at a
 # time. Unlike tools/compute_sanitizer/, which checks the CUDA kernels, this
 # checks hashcat's own host C under a real end-to-end workload: allocation
 # handling, the parsers, backend bookkeeping.
@@ -33,10 +33,8 @@ if [ ! -x ./hashcat ]; then
 fi
 
 if [ -z "$MODES" ]; then
-  # Some modes have a test module only as .py (e.g. 1000, 5200, 8800, 9000,
-  # 14500, 17010-17050), so listing only .pm would silently skip them.
-  MODES=$(ls tools/test_modules/*.pm tools/test_modules/*.py 2>/dev/null \
-          | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' \
+  MODES=$(ls tools/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null \
+          | sed -E 's/.*m0*([0-9]+)\.py/\1/' \
           | sort -n -u | awk -v f="$FROM" '$1>=f')
 fi
 
@@ -62,9 +60,9 @@ for mode in $MODES; do
   [ -z "$mode" ] && continue
 
   start=$(date +%s)
-  # < /dev/null matters: test.sh reads stdin, and without this it swallows the
-  # rest of the mode list and the sweep silently ends after one iteration.
-  timeout 1800 ./tools/test.sh -m "$mode" -a all -V 1 -t single -f \
+  # < /dev/null is belt and suspenders: test.py feeds hashcat over a pipe and does
+  # not read the sweep's stdin, but keeping it costs nothing and matches the loop.
+  timeout 1800 python3 ./tools/test.py -m "$mode" -a all -V 1 -t single -f \
     > "$OUT/m${mode}.out" 2>&1 < /dev/null
   rc=$?
   dur=$(( $(date +%s) - start ))

@@ -141,7 +141,7 @@ install_pyenv ()
 # names it and carries on, for that format only.
 
 # John the Ripper jumbo, for zip2john, gpg2john, rar2john, 7z2john.pl, pdf2john.pl and
-# ssh2john.py. Note that apt install john is core John, which ships none of them. test.sh looks on PATH and then at ${HOME}/john/run.
+# ssh2john.py. Note that apt install john is core John, which ships none of them. test.py looks on PATH and then at ${HOME}/john/run.
 
 install_john ()
 {
@@ -174,7 +174,7 @@ install_john ()
 }
 
 # rar 6.12, for the RAR3 modes. apt install rar is 7.x, which can only write RAR5, so the -ma4
-# switch the RAR3 modes need is gone. This is a static binary and needs no root, and test.sh looks
+# switch the RAR3 modes need is gone. This is a static binary and needs no root, and test.py looks
 # at ${HOME}/rar-old by default.
 
 install_rar ()
@@ -245,7 +245,7 @@ install_veracrypt ()
 
   rm -f "${deb}"
 
-  # test.sh looks for veracrypt on PATH, so it has to be told where this one is.
+  # test.py looks for veracrypt on PATH, so it has to be told where this one is.
 
   if ! grep -q 'VERACRYPT_BIN' "${HOME}/.bashrc" 2> /dev/null; then
     echo 'export VERACRYPT_BIN="$HOME/veracrypt-1.25.9/usr/bin/veracrypt"' >> "${HOME}/.bashrc"

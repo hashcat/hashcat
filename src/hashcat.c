@@ -2821,7 +2821,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   }
   else if (rc_final == -1)
   {
-    // set up the new negative status code, useful in test.sh
+    // set up the new negative status code, useful in test.py
     // -2 is marked as used in status_codes.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;

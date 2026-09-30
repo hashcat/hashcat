@@ -43,7 +43,7 @@ No GPU, no backend, no CUDA driver involved.
 
 ### 2. End-to-end sweep (real GPU)
 
-Runs `tools/test.sh` against an ASan-instrumented hashcat, one hash type at a
+Runs `tools/test.py` against an ASan-instrumented hashcat, one hash type at a
 time. The real kernels execute on the GPU, unchecked; hashcat's host C is
 checked around them.
 

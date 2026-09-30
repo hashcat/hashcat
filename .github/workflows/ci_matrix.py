@@ -23,7 +23,7 @@ import subprocess
 import sys
 import zlib
 
-# test.sh takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
+# test.py takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
 # runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
 
 SHARDS = {"test": 48, "fuzz": 16}
@@ -33,8 +33,32 @@ SHARDS = {"test": 48, "fuzz": 16}
 
 PR_MODE_CAP = {"test": 30, "fuzz": 20}
 
+# A shared-code test change runs the -M set, 24 representative modes (test.py handles the container
+# families now, so they go through the normal per-mode path). Run in one job it is ~17 minutes, so
+# split it into shards balanced by a rough per-mode cost: the container and slow-KDF modes dominate,
+# 14600 most of all because it loops ~72 LUKS files. Anything unlisted costs 1.
+
+MINIMAL_MODES  = [0, 100, 110, 400, 500, 2600, 3000, 3200, 6211, 11600, 12500, 13711, 14200, 14511,
+                  14600, 14900, 15400, 15700, 20510, 22000, 29511, 33000, 33500, 34100]
+MINIMAL_WEIGHT = {14600: 12, 13711: 6, 3200: 4, 34100: 3, 29511: 3, 6211: 2, 14511: 2, 400: 2, 500: 2}
+MINIMAL_SHARDS = 6
+
+
+def minimal_shards(n):
+    """Longest-processing-time bin-packing of MINIMAL_MODES into n shards balanced by MINIMAL_WEIGHT,
+    so the one heavy mode (14600) lands alone rather than stretching a shard it shares."""
+    bins = [[] for _ in range(n)]
+    load = [0] * n
+
+    for mode in sorted(MINIMAL_MODES, key=lambda m: MINIMAL_WEIGHT.get(m, 1), reverse=True):
+        i = load.index(min(load))
+        bins[i].append(mode)
+        load[i] += MINIMAL_WEIGHT.get(mode, 1)
+
+    return [sorted(b) for b in bins if b]
+
 # A PR that touches shared code, but no mode of its own, still gets a run:
-# test.sh -M for the kernels, and the starting set of parser targets for fuzz.
+# test.py -M for the kernels, and the starting set of parser targets for fuzz.
 # That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
 # each mode is written down, and it is read from there so the two cannot drift.
 
@@ -58,10 +82,10 @@ FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|t
                          r"|include/.*|tools/fuzz/.*|tools/asan/hashconfig\.[ch]"
                          r"|\.github/workflows/(fuzz\.yml|fuzz_report\.py|ci_matrix\.py))$")
 
-# Everything test.sh builds on or runs through that does not belong to one mode.
+# Everything test.py builds on or runs through that does not belong to one mode.
 
-TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.sh"
-                         r"|tools/test_module_runner\.(pl|py)|tools/test_modules/lib/.*"
+TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.py"
+                         r"|tools/test_module_runner\.py|tools/test_modules/lib/.*"
                          r"|tools/install_modules\.sh|tools/requirements\.txt"
                          r"|\.github/workflows/(test\.yml|ci_matrix\.py))$")
 
@@ -193,9 +217,17 @@ def main():
             matrix = entries(kind, impacted, False)
 
             if shared:
-                matrix.append({"name": "minimal", "shard": -1, "modes": "minimal"})
+                for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
+                    matrix.append({"name": f"minimal-{i}", "shard": -1,
+                                   "modes": " ".join(str(m) for m in shard)})
 
-        notes.append(f"{len(impacted)} impacted modes" + (", shared code changed" if shared else ""))
+        note = f"{len(impacted)} impacted modes"
+
+        if shared:
+            note += (f", minimal full-test (test.py -M) in {MINIMAL_SHARDS} shards"
+                     if kind == "test" else ", shared code changed")
+
+        notes.append(note)
 
     print(f"run={'true' if matrix else 'false'}")
     print("matrix=" + json.dumps({"include": matrix}, separators=(",", ":")))

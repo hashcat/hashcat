@@ -20,9 +20,9 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
 
 size=20   # MiB
 
-# Where the containers, the mount points and the log go. tools/test.sh points these
-# at the directory of the run that asked for them, so nothing is left in /tmp when
-# the run is thrown away. Run by hand they keep the paths they always had.
+# Where the containers, the mount points and the log go. A caller that sets HCTEST_SCRATCH_DIR
+# and HCTEST_MOUNT_DIR points these at a directory of its own, so nothing is left in /tmp when
+# that directory is thrown away. Run by hand they keep the /tmp paths they always had.
 OUTPUT_DIR="${HCTEST_SCRATCH_DIR:-/tmp/out}"
 mkdir -p "$OUTPUT_DIR"
 MOUNT_DIR="${HCTEST_MOUNT_DIR:-/tmp/mnt}"

@@ -154,19 +154,19 @@ tools/compute_sanitizer/report.py                    # all runs in tools/compute
 tools/compute_sanitizer/report.py --test <name>       # filter by test name
 tools/compute_sanitizer/report.py --failed             # only runs with primary findings or a wrapper failure
 tools/compute_sanitizer/report.py --latest 5             # last 5, after other filters
-tools/compute_sanitizer/report.py --dir <sweep-dir>        # a test.sh/test_edge.sh sweep's own results directory
+tools/compute_sanitizer/report.py --dir <sweep-dir>        # a test.py sweep's own results directory
 ```
 
 Prints a `RUN / HC_RC / SANITIZER / PRIMARY_ERR / FIRST LOCATION` table. A
 missing or malformed `summary.json` shows up as a flagged row (`?` /
 `<malformed>`) rather than crashing the whole listing.
 
-## Running from `tools/test.sh` / `tools/test_edge.sh`
+## Running from `tools/test.py`
 
 ```
-tools/test_edge.sh -m 17010 -a 3 -V 1 --compute-sanitizer
-tools/test_edge.sh -m 17010 --compute-sanitizer=initcheck
-tools/test.sh --compute-sanitizer
+tools/test.py --edge -m 17010 -a 3 -V 1 --compute-sanitizer
+tools/test.py --edge -m 17010 --compute-sanitizer=initcheck
+tools/test.py --compute-sanitizer
 ```
 
 Requires `tools/compute_sanitizer/run.py build` to have been run first (both
@@ -197,7 +197,7 @@ tools/compute_sanitizer/
     run.py           # CLI: build / check / exec / selftest
     triage.py        # compute-sanitizer log parsing, classification, JSON schema
     report.py        # aggregates past runs into a table
-    sweep_shim.sh    # BIN indirection target for test.sh/test_edge.sh --compute-sanitizer
+    sweep_shim.sh    # BIN indirection target for test.py --compute-sanitizer
     modules/         # ground-truth self-test fixtures (see `run.py selftest` above)
     results/         # gitignored; one directory per run, never overwritten
 ```
