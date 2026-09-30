@@ -16,6 +16,7 @@ import base64
 import fcntl
 import glob
 import os
+import queue
 import re
 import shlex
 import shutil
@@ -188,36 +189,66 @@ def host_avail_mib():
   return None
 
 
-def min_device_free_mib(device):
-  # The smallest free-memory reading among the devices this run will use, from hashcat's own -I. -I
-  # lists every backend device regardless of -D, so a CPU device's reading must not
-  # set a GPU run's share: keep only devices whose Type matches -D. One HASHCAT_DEVICE_MEM_LIMIT
-  # serves every device, so the smallest matching one is the safe share. Returns None when nothing
-  # matches, so the caller leaves the cap unset.
+def backend_devices():
+  # Parse hashcat -I once into a list of {id, type, free} per backend device: id and type as -I
+  # prints them (type upper-cased), free in MiB or None. -I lists every device regardless of -D, so
+  # callers filter by type themselves. Returns [] when -I cannot be read.
   try:
     proc = subprocess.run([BIN, "-I"] + ISOLATION, cwd=ROOT,
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
   except Exception:
-    return None
+    return []
 
-  # -D is a device-type list: 1 CPU, 2 GPU, 3 FPGA. Map it to the Type strings -I prints.
-  type_of = {"1": "CPU", "2": "GPU", "3": "FPGA"}
-  want    = {type_of[d] for d in re.split(r"[ ,]+", device.strip()) if d in type_of}
-
-  cur   = None
-  frees = []
+  out = []
+  cur = None
 
   for line in proc.stdout.decode("utf-8", "replace").splitlines():
+    m = re.search(r"Backend Device ID #(\d+)", line)
+    if m:
+      cur = {"id": int(m.group(1)), "type": None, "free": None}
+      out.append(cur)
+      continue
+
+    if cur is None:
+      continue
+
     m = re.search(r"Type\.+:\s*(\w+)", line)
     if m:
-      cur = m.group(1).upper()
+      cur["type"] = m.group(1).upper()
       continue
 
     m = re.search(r"Memory\.Free\.+:\s*(\d+)\s*MB", line)
-    if m and (not want or cur in want):
-      frees.append(int(m.group(1)))
+    if m:
+      cur["free"] = int(m.group(1))
+
+  return out
+
+
+def wanted_types(device):
+  # The -I Type strings a -D device list selects. -D is a device-type list: 1 CPU, 2 GPU, 3 FPGA. An
+  # empty set means no recognizable type, which the callers read as "match every device".
+  type_of = {"1": "CPU", "2": "GPU", "3": "FPGA"}
+
+  return {type_of[d] for d in re.split(r"[ ,]+", device.strip()) if d in type_of}
+
+
+def min_device_free_mib(device):
+  # The smallest free-memory reading among the devices this run will use. A CPU device's reading must
+  # not set a GPU run's share, so keep only devices whose Type matches -D. One HASHCAT_DEVICE_MEM_LIMIT
+  # serves every device, so the smallest matching one is the safe share. Returns None when nothing
+  # matches, so the caller leaves the cap unset.
+  want  = wanted_types(device)
+  frees = [d["free"] for d in backend_devices()
+           if d["free"] is not None and (not want or d["type"] in want)]
 
   return min(frees) if frees else None
+
+
+def backend_ids_for(device):
+  # The backend device numbers whose Type matches the -D type list, for the depth -j split.
+  want = wanted_types(device)
+
+  return [d["id"] for d in backend_devices() if not want or d["type"] in want]
 
 
 def export_worker_mem_shares(args):
@@ -490,33 +521,14 @@ def is_bridged(mode):
 
 
 def cpu_backend_id():
-  # The backend device number (as hashcat -I prints it) of the first CPU device, or None. Looked up
-  # once and cached, since it shells out to -I.
+  # The backend device number of the first CPU device, or None. Looked up once and cached, since it
+  # shells out to -I.
   global CPU_BACKEND_ID
 
   if CPU_BACKEND_ID != -1:
     return CPU_BACKEND_ID
 
-  CPU_BACKEND_ID = None
-
-  try:
-    proc = subprocess.run([BIN, "-I"] + ISOLATION, cwd=ROOT,
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-  except Exception:
-    return None
-
-  cur_id = None
-
-  for line in proc.stdout.decode("utf-8", "replace").splitlines():
-    m = re.search(r"Backend Device ID #(\d+)", line)
-    if m:
-      cur_id = int(m.group(1))
-      continue
-
-    m = re.search(r"Type\.+:\s*(\w+)", line)
-    if m and m.group(1).upper() == "CPU" and cur_id is not None:
-      CPU_BACKEND_ID = cur_id
-      break
+  CPU_BACKEND_ID = next((d["id"] for d in backend_devices() if d["type"] == "CPU"), None)
 
   return CPU_BACKEND_ID
 
@@ -4391,6 +4403,11 @@ def base_opts(args):
 
   opts += ["--runtime", str(RUNTIME), "-D", args.device]
 
+  # The depth -j split pins each worker to one backend device with -d, so its instances do not share a
+  # card. -D stays as the type, which the pinned device already is.
+  if args.backend_devices:
+    opts += ["--backend-devices", args.backend_devices]
+
   if args.force:
     opts.append("--force")
 
@@ -5548,10 +5565,13 @@ def run_edge(args):
 
 
 def run_parallel(args):
-  # Fan the selected modes across args.jobs workers. Each worker is a plain single-mode test.py run
-  # (no -j) in its own process, so setup_isolation() gives it a private hashcat cache/session and no
-  # two runs share mutable state. One mode per child means a kernel is still built only once. Output
-  # is gathered and printed in mode order, so a -j run reads the same as the serial run.
+  # The breadth -j split: fan the selected modes across args.jobs workers, so as many modes as
+  # possible are in flight and the whole run finishes in the least time. More workers than devices is
+  # normal, so the workers share each card and export_worker_mem_shares has capped each to its slice of
+  # the memory. Each worker is a plain single-mode test.py run (no -j) in its own process, so
+  # setup_isolation() gives it a private hashcat cache/session and no two runs share mutable state.
+  # One mode per child means a kernel is still built only once. Output is gathered and printed in mode
+  # order, so a -j run reads the same as the serial run.
   modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
 
   base = [sys.executable, os.path.abspath(__file__),
@@ -5618,6 +5638,63 @@ def run_parallel(args):
   return rc
 
 
+def run_parallel_depth(args):
+  # The depth -j split: one mode at a time per device, each pinned to a single card at its whole
+  # memory, rather than many modes sharing every card on a fraction of it (run_parallel). The point is
+  # to give each mode a full device, so concurrency is the number of devices of the -D type, not the
+  # -j number, and no memory cap is set (main() skips export_worker_mem_shares for this split). A
+  # device pulls the next mode when it finishes its last, and output is printed in mode order, as the
+  # breadth split and the serial run do.
+  modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
+
+  ids   = backend_ids_for(args.device)
+  slots = ids if ids else [None]     # no id resolved: one unpinned worker, still full share
+
+  base = [sys.executable, os.path.abspath(__file__),
+          "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
+
+  if args.pure:
+    base.append("-P")
+
+  if args.force:
+    base.append("-f")
+
+  free = queue.Queue()
+
+  for dev in slots:
+    free.put(dev)
+
+  def run_one(mode):
+    dev = free.get()
+
+    try:
+      # A bridged mode picks its own host device (bridge_opts forces the CPU), so it is not pinned to
+      # this slot's card, but it still holds the slot so only len(slots) run at once.
+      pin = [] if (dev is None or is_bridged(mode)) else ["-d", str(dev)]
+
+      proc = subprocess.run(base + pin + ["-m", str(mode)],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+      return proc.returncode, proc.stdout
+    finally:
+      free.put(dev)
+
+  rc = 0
+
+  with ThreadPoolExecutor(max_workers=len(slots)) as pool:
+    for mode, (prc, out) in zip(modes, pool.map(run_one, modes)):
+      sys.stdout.buffer.write(out)
+      sys.stdout.buffer.flush()
+
+      record("modes")
+      record("OK" if prc == 0 else "not-OK")
+
+      if prc != 0:
+        rc = 1
+
+  return rc
+
+
 def main():
   # Line-buffer stdout so the serial paths (-S, single mode) stream under CI, where stdout is a
   # pipe Python would otherwise block-buffer. The -j paths already flush by hand.
@@ -5633,6 +5710,7 @@ def main():
                   help="0 | 1 | 3 | 4 | 6 | 7 | 8 | 9 | 12 | all (--edge takes a comma list too)")
   ap.add_argument("-t", dest="target", default="all", choices=["single", "multi", "all"])
   ap.add_argument("-D", dest="device", default="2", help="OpenCL device type")
+  ap.add_argument("-d", dest="backend_devices", default=None, help=argparse.SUPPRESS)
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is
   # what switches to the pure kernel, and if both are given -P wins.
   ap.add_argument("-O", dest="optimized", action="store_true", help="optimized kernels (default)")
@@ -5654,7 +5732,11 @@ def main():
                   help="run the CUDA kernels under NVIDIA Compute Sanitizer (memcheck|racecheck|"
                        "synccheck|initcheck, default memcheck); CUDA-only, needs ./hashcat-sanitizer")
   ap.add_argument("-j", dest="jobs", type=int, default=1,
-                  help="run this many modes in parallel, each in its own hashcat cache/session")
+                  help="run modes in parallel, each in its own hashcat cache/session; see --split")
+  ap.add_argument("--split", dest="split", choices=["breadth", "depth"], default="breadth",
+                  help="-j strategy: breadth runs this many modes at once, each a slice of a shared "
+                       "card (most modes in the least time); depth runs one mode per device at that "
+                       "device's full memory, so -j opts in but the device count sets the concurrency")
   ap.add_argument("--logdir", dest="logdir", nargs="?", const=AUTO_LOGDIR, default=None,
                   help="name the output folder (default test_<ts>/, as test.sh); it holds logfull.txt, "
                        "the reason and the cmdline for every skip and error")
@@ -5715,7 +5797,14 @@ def main():
   # of memory; the reason log opens before any hashcat runs, and its path is exported so -j children
   # write into the one folder. All harmless on a plain serial run, where no folder is made.
   signal.signal(signal.SIGINT, on_sigint)
-  export_worker_mem_shares(args)
+
+  # The breadth split shares each card between workers, so each needs its capped slice of the memory;
+  # the depth split gives each mode a whole device, so it runs uncapped. Edge and -S use breadth.
+  depth = args.jobs > 1 and args.split == "depth" and not args.edge and not args.selftest_all
+
+  if not depth:
+    export_worker_mem_shares(args)
+
   setup_outdir(args)
   atexit.register(finalize_outputs, "completed")
 
@@ -5732,7 +5821,7 @@ def main():
     sys.exit(selftest_vector_sweep(args))
 
   if args.jobs > 1:
-    sys.exit(run_parallel(args))
+    sys.exit(run_parallel_depth(args) if depth else run_parallel(args))
 
   if args.attack != "all" and (not args.attack.isdigit() or int(args.attack) not in ATTACK_ORDER):
     die("! invalid attack mode: %s" % args.attack)
