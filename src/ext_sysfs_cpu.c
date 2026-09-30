@@ -29,7 +29,13 @@ bool sysfs_cpu_init (void *hashcat_ctx)
 
   hcfree (path);
 
-  return r;
+  if (r == false) return false;
+
+  sysfs_cpu->syspath = hm_SYSFS_CPU_get_syspath_hwmon ();
+
+  if (sysfs_cpu->syspath == NULL) return false;
+
+  return true;
 }
 
 void sysfs_cpu_close (void *hashcat_ctx)
@@ -40,6 +46,7 @@ void sysfs_cpu_close (void *hashcat_ctx)
 
   if (sysfs_cpu)
   {
+    hcfree (sysfs_cpu->syspath);
     hcfree (sysfs_cpu);
   }
 }
@@ -101,23 +108,23 @@ char *hm_SYSFS_CPU_get_syspath_hwmon (void)
 
 int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val)
 {
-  char *syspath = hm_SYSFS_CPU_get_syspath_hwmon ();
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
 
-  if (syspath == NULL) return -1;
+  SYSFS_CPU_PTR *sysfs_cpu = (SYSFS_CPU_PTR *) hwmon_ctx->hm_sysfs_cpu;
 
-  char *path = NULL;
+  if (sysfs_cpu->syspath == NULL) return -1;
 
-  hc_asprintf (&path, "%s/temp1_input", syspath);
+  char path[PATH_MAX + 1];
 
-  hcfree (syspath);
+  const int path_len = snprintf (path, sizeof (path), "%s/temp1_input", sysfs_cpu->syspath);
+
+  if ((path_len < 0) || ((size_t) path_len >= sizeof (path))) return -1;
 
   HCFILE fp;
 
   if (hc_fopen_raw (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
-
-    hcfree (path);
 
     return -1;
   }
@@ -130,16 +137,12 @@ int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val)
 
     event_log_error (hashcat_ctx, "%s: unexpected data.", path);
 
-    hcfree (path);
-
     return -1;
   }
 
   hc_fclose (&fp);
 
   *val = temperature / 1000;
-
-  hcfree (path);
 
   return 0;
 }
