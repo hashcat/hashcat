@@ -41,9 +41,16 @@ def load_runs(base):
             continue
         if add(entry):
             continue
-        # run.py selftest nests one level deeper: results/selftest/<ts>-<name>/.
-        nested = [add(sub) for sub in sorted(entry.iterdir()) if sub.is_dir()]
-        if not any(nested):
+        # A directory with no summary.json nests runs or is malformed. selftest nests one level
+        # deeper (results/selftest/<ts>-<name>/), so descend into it and list its cases. A sweep
+        # (results/sweep-<ts>/<ts>-<name>/) has the same shape but is read with --dir, so leave it
+        # out here: descending would spill every run of the sweep into the plain listing, one row
+        # per hashcat invocation. Anything else without a run below it is malformed.
+        if entry.name == "selftest":
+            nested = [add(sub) for sub in sorted(entry.iterdir()) if sub.is_dir()]
+            if not any(nested):
+                runs.append({"dir": entry, "malformed": True})
+        elif not entry.name.startswith("sweep-"):
             runs.append({"dir": entry, "malformed": True})
 
     return runs
