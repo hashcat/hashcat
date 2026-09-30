@@ -67,6 +67,13 @@ OWN_OUTDIR = False
 LOGFULL    = None
 PROGRESS   = {}
 
+# The count of results in the serial run that mean a test which should have cracked did not, or hit a
+# hard error. The -j and edge paths compute their own return code; the plain path had none and fell
+# off the end of main() as 0 even when every case faulted, so it is tracked here and main() exits on
+# it. A Warning (a --runtime timeout) and a Skip are not failures, so they are left out.
+ERRORS        = 0
+FAIL_VERDICTS = ("Fault", "Error", "Compare Error")
+
 # A -j worker that skips on 252 (memory hit limit) only because its share of the card was too small
 # exits with MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage
 # survives. A 252 with no cap in the environment is a genuine skip and does not set this.
@@ -150,6 +157,14 @@ def log_result(ret):
 
 def record(v):
   PROGRESS[v] = PROGRESS.get(v, 0) + 1
+
+
+def note_verdict(v):
+  # Called wherever a result verdict is decided, so the serial path can exit non-zero on a real
+  # failure the way run_parallel and run_edge already return 1.
+  if v in FAIL_VERDICTS:
+    global ERRORS
+    ERRORS += 1
 
 
 def print_total():
@@ -712,6 +727,7 @@ def report(args, mode, target_name, width, c, attack=0):
 
   print(line)
   record(v)
+  note_verdict(v)
 
 
 def report_skip(args, mode, target_name, width, reason, attack=0):
@@ -2595,8 +2611,12 @@ def container_report(args, mode, attack, width, label, e):
   ctx = context(args, mode, "single", width, attack)
   ctx = ctx[:-2] + ", %s ]" % label
 
+  v = selftest_verdict(e)
+
   print("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
-        % (ctx, selftest_verdict(e), e["nf"], e["nm"], e["to"], e["rs"]))
+        % (ctx, v, e["nf"], e["nm"], e["to"], e["rs"]))
+
+  note_verdict(v)
 
 
 def container_crack(args, opts, mode, attack, hash_file, width, label, extra, crack_mode=None,
@@ -4012,6 +4032,7 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
   if not os.path.isfile(hash_file) or os.path.getsize(hash_file) == 0:
     lines.append("[ test.py ] [ Type %d ] > Error : could not write the self-test vector to %s"
                  % (mode, hash_file))
+    note_verdict("Error")
 
     return lines
 
@@ -4037,6 +4058,7 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
   lines.append("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
                % (selftest_context(args, mode, attack, width_label),
                   msg, e["nf"], e["nm"], e["to"], e["rs"]))
+  note_verdict(msg)
 
   return lines
 
@@ -4339,6 +4361,8 @@ def run_stdout_roundtrip(args, tmp):
 
   print("[ test.py ] [ Type %d, STDOUT round-trip ] > %s : %d/%d not found, 0/%d not matched, "
         "0/%d timeout, 0/%d skipped" % (STDOUT_MODE, msg, nf, cnt, cnt, cnt, cnt))
+
+  note_verdict(msg)
 
 
 # The edge-testing path (a port of tools/test_edge.sh). For each mode it drives the min and max
@@ -5789,8 +5813,12 @@ def main():
 
   if CAPPED_MEM_SKIP:
     # A -j child: tell the parent this mode skipped only because its memory share was too small, so it
-    # can be re-run without the cap.
+    # can be re-run without the cap. This outranks ERRORS so the parent re-runs on the whole card and
+    # the retry's own exit code, not this capped run's, decides pass or fail.
     sys.exit(MEMSKIP_RC)
+
+  if ERRORS:
+    sys.exit(1)
 
 
 main()
