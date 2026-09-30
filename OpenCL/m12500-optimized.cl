@@ -140,8 +140,10 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
     if (prefix_pos == p3) prefix_pos = 0;
   }
 
-  // p3 is in [11, 51].  Using 16 - p3 for the short-record case is
-  // equivalent to 16 % p3 and keeps j16 canonical with one subtraction.
+  // POST_AMP_UTF16LE widens the password before the kernel sees it, so pw_len
+  // is even and p3 is an odd value in [11, 51].  Using 16 - p3 for the
+  // short-record case is equivalent to 16 % p3 and keeps j16 canonical with
+  // one subtraction.
 
   const u32 j_step = (p3 <= 16) ? 16 - p3 : 16;
 
@@ -156,71 +158,6 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
   dgst[4] = tmps[gid].dgst[init_pos][4];
 
   u32 iter = LOOP_POS;
-
-  if (p3 == 16)
-  {
-    #if !defined IS_NV
-    u32 iter_s;
-    #endif
-
-    for (u32 block = 0; block < 4096; block++)
-    {
-      const u32 iter0 = LOOP_POS + (block * 4);
-
-      u32 w[16];
-
-      w[ 0] = largeblock[ 0];
-      w[ 1] = largeblock[ 1];
-      w[ 2] = largeblock[ 2];
-      w[ 3] = largeblock[ 3];
-      w[ 4] = largeblock[ 4];
-      w[ 5] = largeblock[ 5];
-      w[ 6] = largeblock[ 6];
-      w[ 7] = largeblock[ 7];
-      w[ 8] = largeblock[ 8];
-      w[ 9] = largeblock[ 9];
-      w[10] = largeblock[10];
-      w[11] = largeblock[11];
-      w[12] = largeblock[12];
-      w[13] = largeblock[13];
-      w[14] = largeblock[14];
-      w[15] = largeblock[15];
-
-      #if !defined IS_NV
-      iter_s = hc_swap32_S (iter0 + 0);
-      #endif
-
-      w[ 3] = RAR3_COUNTER_1 (iter0 + 0, w[ 3]);
-
-      #if !defined IS_NV
-      iter_s = hc_swap32_S (iter0 + 1);
-      #endif
-
-      w[ 7] = RAR3_COUNTER_1 (iter0 + 1, w[ 7]);
-
-      #if !defined IS_NV
-      iter_s = hc_swap32_S (iter0 + 2);
-      #endif
-
-      w[11] = RAR3_COUNTER_1 (iter0 + 2, w[11]);
-
-      #if !defined IS_NV
-      iter_s = hc_swap32_S (iter0 + 3);
-      #endif
-
-      w[15] = RAR3_COUNTER_1 (iter0 + 3, w[15]);
-
-      sha1_transform (w + 0, w + 4, w + 8, w + 12, dgst);
-    }
-
-    tmps[gid].dgst[init_pos + 1][0] = dgst[0];
-    tmps[gid].dgst[init_pos + 1][1] = dgst[1];
-    tmps[gid].dgst[init_pos + 1][2] = dgst[2];
-    tmps[gid].dgst[init_pos + 1][3] = dgst[3];
-    tmps[gid].dgst[init_pos + 1][4] = dgst[4];
-
-    return;
-  }
 
   for (u32 i = 0; i < 256; i++)
   {

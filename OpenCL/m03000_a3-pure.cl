@@ -1626,7 +1626,9 @@ DECLSPEC u32 DES (const u32 target, const u32 early_reject, const u32 K00, const
   KXX_DECL u32 k36, k37, k38, k39, k40, k41;
   KXX_DECL u32 k42, k43, k44, k45, k46, k47;
 
+  #ifdef _unroll
   #pragma unroll
+  #endif
   for (u32 i = 0; i < 2; i++)
   {
     if (i) KEYSET10 else KEYSET00

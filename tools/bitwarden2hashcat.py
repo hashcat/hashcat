@@ -98,8 +98,15 @@ def process_json(data):
     try:
         user_id = data.get("global_account_activeAccountId", None)
         if user_id:
-            out.append(extract_json_profile_new(user_id, data))
-            if out:
+            email, hash, iterations = extract_json_profile_new(user_id, data)
+
+            # Both can come back as None when the vault carries the key but not the value, and the
+            # iteration count reaches a "%d" further down. Fall through to the older readers instead
+            # of returning a row that cannot be formatted.
+
+            if hash and iterations:
+                out.append((email, hash, iterations))
+
                 return out
     except (KeyError, TypeError):
         pass
