@@ -15,6 +15,7 @@ import atexit
 import base64
 import fcntl
 import glob
+import json
 import os
 import queue
 import re
@@ -190,36 +191,74 @@ def host_avail_mib():
 
 
 def backend_devices():
-  # Parse hashcat -I once into a list of {id, type, free} per backend device: id and type as -I
-  # prints them (type upper-cased), free in MiB or None. -I lists every device regardless of -D, so
-  # callers filter by type themselves. Returns [] when -I cannot be read.
+  # Run "hashcat -I --machine-readable" and hand its JSON to parse_backend_devices. Returns [] when -I
+  # cannot be read; parse failures are handled by the parser.
   try:
-    proc = subprocess.run([BIN, "-I"] + ISOLATION, cwd=ROOT,
+    proc = subprocess.run([BIN, "-I", "--machine-readable"] + ISOLATION, cwd=ROOT,
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
   except Exception:
     return []
 
-  out = []
-  cur = None
+  return parse_backend_devices(proc.stdout.decode("utf-8", "replace"))
 
-  for line in proc.stdout.decode("utf-8", "replace").splitlines():
-    m = re.search(r"Backend Device ID #(\d+)", line)
-    if m:
-      cur = {"id": int(m.group(1)), "type": None, "free": None}
-      out.append(cur)
+
+def parse_backend_devices(text):
+  # Parse "hashcat -I --machine-readable" output into a list of {id, type, free, backend, alias} per
+  # backend device. The JSON hands back DeviceID, MemoryFree and, for a same-card pair, Alias as real
+  # fields, so there is nothing to scrape. Only the Metal and OpenCL device objects carry a Type; the
+  # CUDA and HIP objects omit it. CUDA, HIP and Metal only ever enumerate GPUs, so a device under one of
+  # those sections is taken as a GPU, which is also the only way to type a native CUDA or HIP device,
+  # since hashcat gives it no Type at all. -I lists every device regardless of -D, so callers filter by
+  # type themselves. Returns [] when the JSON cannot be parsed. Split from backend_devices so it can be
+  # unit tested on fixed -I fixtures without a GPU.
+  try:
+    info = json.loads(text)
+  except Exception:
+    return []
+
+  gpu_only = {"CUDA", "HIP", "METAL"}
+  out      = []
+
+  def add(backend, dev):
+    # DeviceID and Alias print zero-padded ("01"); MemoryFree is "<n> MB". Skip a device whose id does
+    # not parse rather than let one bad object drop the whole list.
+    try:
+      did = int(dev["DeviceID"])
+    except (KeyError, TypeError, ValueError):
+      return
+
+    typ = dev.get("Type")
+    typ = typ.upper() if typ else ("GPU" if backend in gpu_only else None)
+
+    free = None
+    mem = dev.get("MemoryFree")
+    if mem:
+      head = str(mem).split()[0]
+      if head.isdigit():
+        free = int(head)
+
+    alias = dev.get("Alias")
+    try:
+      alias = int(alias) if alias is not None else None
+    except (TypeError, ValueError):
+      alias = None
+
+    out.append({"id": did, "type": typ, "free": free, "backend": backend, "alias": alias})
+
+  # CUDA, HIP and Metal list their devices directly under the section; OpenCL groups them by platform.
+  for section, body in info.items():
+    if not isinstance(body, dict):
       continue
 
-    if cur is None:
-      continue
+    backend = section[:-4].upper() if section.endswith("Info") else section.upper()
 
-    m = re.search(r"Type\.+:\s*(\w+)", line)
-    if m:
-      cur["type"] = m.group(1).upper()
-      continue
+    for dev in body.get("BackendDevices", []):
+      add(backend, dev)
 
-    m = re.search(r"Memory\.Free\.+:\s*(\d+)\s*MB", line)
-    if m:
-      cur["free"] = int(m.group(1))
+    for plat in body.get("Platforms", []):
+      if isinstance(plat, dict):
+        for dev in plat.get("BackendDevices", []):
+          add(backend, dev)
 
   return out
 
@@ -232,23 +271,46 @@ def wanted_types(device):
   return {type_of[d] for d in re.split(r"[ ,]+", device.strip()) if d in type_of}
 
 
-def min_device_free_mib(device):
+def min_device_free_mib(device, devices=None):
   # The smallest free-memory reading among the devices this run will use. A CPU device's reading must
   # not set a GPU run's share, so keep only devices whose Type matches -D. One HASHCAT_DEVICE_MEM_LIMIT
   # serves every device, so the smallest matching one is the safe share. Returns None when nothing
-  # matches, so the caller leaves the cap unset.
+  # matches, so the caller leaves the cap unset. devices lets a test pass a parsed list in place of the
+  # live -I query.
   want  = wanted_types(device)
-  frees = [d["free"] for d in backend_devices()
+  devs  = backend_devices() if devices is None else devices
+  frees = [d["free"] for d in devs
            if d["free"] is not None and (not want or d["type"] in want)]
 
   return min(frees) if frees else None
 
 
-def backend_ids_for(device):
-  # The backend device numbers whose Type matches the -D type list, for the depth -j split.
-  want = wanted_types(device)
+def dedup_alias_devices(devices):
+  # hashcat lists a card once per backend that sees it: a CUDA or HIP card also shows up as an OpenCL
+  # device whose Alias field back-references its native twin, and hashcat itself skips the OpenCL twin
+  # and runs the native one. Mirror that so the depth split pins to the device hashcat actually uses and
+  # opens one slot per physical card, not one per backend view of it. Keep the native (CUDA, HIP or
+  # Metal) side of an alias pair, drop the OpenCL alias, and keep every unaliased device.
+  by_id = {d["id"]: d for d in devices}
+  skip  = set()
 
-  return [d["id"] for d in backend_devices() if not want or d["type"] in want]
+  for d in devices:
+    other = by_id.get(d["alias"])
+    if other is not None and d["backend"] == "OPENCL" and other["backend"] != "OPENCL":
+      skip.add(d["id"])
+
+  return [d for d in devices if d["id"] not in skip]
+
+
+def backend_ids_for(device, devices=None):
+  # The backend device numbers whose Type matches the -D type list, one id per physical card (alias
+  # twins removed, see dedup_alias_devices), for the depth -j split. devices lets a test pass a parsed
+  # list in place of the live -I query.
+  want = wanted_types(device)
+  devs = backend_devices() if devices is None else devices
+
+  return [d["id"] for d in dedup_alias_devices(devs)
+          if not want or d["type"] in want]
 
 
 def export_worker_mem_shares(args):
@@ -5647,8 +5709,20 @@ def run_parallel_depth(args):
   # breadth split and the serial run do.
   modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
 
-  ids   = backend_ids_for(args.device)
-  slots = ids if ids else [None]     # no id resolved: one unpinned worker, still full share
+  ids = backend_ids_for(args.device)
+
+  if ids:
+    slots = ids
+    # Announce the resolved slots so a live run shows which physical cards the split pinned to, one per
+    # device of the -D type after the alias twins are removed.
+    print("[ test.py ] > depth split: %d device slot(s), backend ids %s" % (len(ids), ids))
+  else:
+    # -I named no backend device of the -D type (an older hashcat, a parse miss, or a filtered box).
+    # Run one unpinned worker rather than none, but say so: the depth split exists to give each mode a
+    # whole device, and here it has fallen back to a single worker instead of one per card.
+    slots = [None]
+    print("[ test.py ] > warning: depth split found no backend device of type -D %s in hashcat -I; "
+          "running one unpinned worker" % args.device)
 
   base = [sys.executable, os.path.abspath(__file__),
           "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
@@ -5986,4 +6060,5 @@ def main():
     sys.exit(1)
 
 
-main()
+if __name__ == "__main__":
+  main()
