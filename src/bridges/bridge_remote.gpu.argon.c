@@ -13,14 +13,7 @@
 #include "bitops.h"
 #include "memory.h"
 #include "shared.h"
-
-#include <openssl/opensslv.h>
-
-#if OPENSSL_VERSION_MAJOR == 3
-    #include <openssl/evp.h>
-#else
-    #include <openssl/md5.h>
-#endif
+#include "emu_inc_hash_md5.h"
 
 #ifdef WIN32
 #include <ws2tcpip.h>
@@ -35,60 +28,8 @@
 #include <string.h>
 #include <unistd.h>
 
-
-#if OPENSSL_VERSION_MAJOR == 3
-#define md5_ctx_t EVP_MD_CTX
-#else
-#define md5_ctx_t MD5_CTX
-#endif
-
 #define HASH_MODE 75000
 #define MAX_BLOCK_SIZE 2048
-
-static md5_ctx_t *md5_new ()
-{
-#if OPENSSL_VERSION_MAJOR == 3
-  return EVP_MD_CTX_new ();
-#else
-  return calloc (1, sizeof (md5_ctx_t));
-#endif
-}
-
-static void md5_init (md5_ctx_t *ctx)
-{
-#if OPENSSL_VERSION_MAJOR == 3
-  EVP_DigestInit_ex2 (ctx, EVP_md5 (), NULL);
-#else
-  MD5_Init (ctx);
-#endif
-}
-
-static void md5_update (md5_ctx_t *ctx, const void *d, size_t cnt)
-{
-#if OPENSSL_VERSION_MAJOR == 3
-  EVP_DigestUpdate (ctx, d, cnt);
-#else
-  MD5_Update (ctx, d, cnt);
-#endif
-}
-
-static void md5_final (md5_ctx_t *ctx, uint8_t *md)
-{
-#if OPENSSL_VERSION_MAJOR == 3
-  EVP_DigestFinal_ex (ctx, md, NULL);
-#else
-  MD5_Final (md, ctx);
-#endif
-}
-
-static void md5_free (md5_ctx_t *ctx)
-{
-#if OPENSSL_VERSION_MAJOR == 3
-  EVP_MD_CTX_free (ctx);
-#else
-  free (ctx);
-#endif
-}
 
 typedef struct unit
 {
@@ -352,11 +293,8 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   const int pws_cnt_no = htonl (pws_cnt);
   send (unit->client_fd, (const char *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
 
-  uint8_t actual_md5[16];
-  uint8_t expected_md5[16];
-
-  md5_ctx_t *ctx = md5_new ();
-  md5_init (ctx);
+  md5_ctx_t md5_ctx;
+  md5_init (&md5_ctx);
 
   for (u32 p = 0; p < pws_cnt; p++)
   {
@@ -367,17 +305,16 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
       send (unit->client_fd, (const char *) tmp->first_block[lane], sizeof (tmp->first_block[lane]), 0);
       send (unit->client_fd, (const char *) tmp->second_block[lane], sizeof (tmp->second_block[lane]), 0);
 
-      md5_update (ctx, tmp->first_block[lane], sizeof (tmp->first_block[lane]));
-      md5_update (ctx, tmp->second_block[lane], sizeof (tmp->second_block[lane]));
+      md5_update (&md5_ctx, tmp->first_block[lane], sizeof (tmp->first_block[lane]));
+      md5_update (&md5_ctx, tmp->second_block[lane], sizeof (tmp->second_block[lane]));
     }
   }
 
-  md5_final (ctx, actual_md5);
+  md5_final (&md5_ctx);
 
-  send (unit->client_fd, (const char *) actual_md5, sizeof (actual_md5), 0);
+  send (unit->client_fd, (const char *) md5_ctx.h, sizeof (md5_ctx.h), 0);
 
-
-  md5_init (ctx);
+  md5_init (&md5_ctx);
 
   for (u32 p = 0; p < pws_cnt; p++)
   {
@@ -385,16 +322,15 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
     recv (unit->client_fd, (char *) tmp->final_block, sizeof (tmp->final_block), MSG_WAITALL);
 
-    md5_update (ctx, tmp->final_block, sizeof (tmp->final_block));
+    md5_update (&md5_ctx, tmp->final_block, sizeof (tmp->final_block));
   }
 
-  md5_final (ctx, actual_md5);
+  md5_final (&md5_ctx);
 
-  recv (unit->client_fd, (char *) expected_md5, 16, MSG_WAITALL);
+  uint8_t expected_md5[16];
+  recv (unit->client_fd, (const char *) expected_md5, 16, MSG_WAITALL);
 
-  md5_free (ctx);
-
-  if (memcmp (expected_md5, actual_md5, sizeof (expected_md5)) != 0)
+  if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
   {
     printf ("[client]: MD5 is NOT correct!\n");
     return false;
