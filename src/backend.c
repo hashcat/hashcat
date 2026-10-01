@@ -493,6 +493,11 @@ static void hc_dev_mem_free (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
 int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const void *src, const u64 size)
 {
+  // PoCL, the OpenCL runtime of AMD and Metal refuse a transfer of zero bytes, where CUDA, HIP and
+  // the other OpenCL runtimes accept it, so a size that came out zero returns before the transfer.
+
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyHtoD (hashcat_ctx, mem.cuda + offset, src, size) == -1) return -1;
@@ -522,6 +527,8 @@ int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
 int hc_dev_memcpy_d2h (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, void *dst, hc_dev_mem_t mem, const u64 offset, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyDtoH (hashcat_ctx, dst, mem.cuda + offset, size) == -1) return -1;
@@ -551,6 +558,8 @@ int hc_dev_memcpy_d2h (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
 int hc_dev_memcpy_d2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t dst, const u64 dst_offset, hc_dev_mem_t src, const u64 src_offset, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyDtoD (hashcat_ctx, dst.cuda + dst_offset, src.cuda + src_offset, size) == -1) return -1;
@@ -3349,6 +3358,8 @@ int run_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
 int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda   == true) return run_cuda_kernel_bzero   (hashcat_ctx, device_param, mem.cuda, size);
   if (device_param->is_hip    == true) return run_hip_kernel_bzero    (hashcat_ctx, device_param, mem.hip,  size);
   #if defined (__APPLE__)
@@ -3361,6 +3372,8 @@ int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
 int run_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const u32 value, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda   == true) return run_cuda_kernel_memset32   (hashcat_ctx, device_param, mem.cuda, offset, value, size);
   if (device_param->is_hip    == true) return run_hip_kernel_memset32    (hashcat_ctx, device_param, mem.hip,  offset, value, size);
   #if defined (__APPLE__)
