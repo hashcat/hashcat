@@ -127,6 +127,13 @@ def balance_shards(modes, n):
 
     return [sorted(b) for b in bins if b]
 
+
+def test_matrix(groups):
+    # One matrix entry per shard of modes. The test job reads name and modes; its shard number is
+    # only a label here (unlike fuzz, which keys its corpus off it).
+    return [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
+            for i, group in enumerate(groups)]
+
 # A PR that touches shared code, but no mode of its own, still gets a run:
 # test.py -M for the kernels, and the starting set of parser targets for fuzz.
 # That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
@@ -239,8 +246,7 @@ def main():
 
     if scope == "all":
         if kind == "test":
-            matrix = [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
-                      for i, group in enumerate(balance_shards(pool, SHARDS["test"]))]
+            matrix = test_matrix(balance_shards(pool, SHARDS["test"]))
         else:
             matrix = entries(kind, pool, True)
 
@@ -252,7 +258,11 @@ def main():
         if asked - pool:
             notes.append("not testable here, skipped: " + " ".join(str(m) for m in sorted(asked - pool)))
 
-        matrix = entries(kind, asked & pool, kind == "fuzz")
+        if kind == "test":
+            matrix = test_matrix(balance_shards(asked & pool, SHARDS["test"]))
+        else:
+            matrix = entries(kind, asked & pool, kind == "fuzz")
+
         notes.append(f"{len(asked & pool)} modes named")
 
     else:
@@ -289,8 +299,7 @@ def main():
 
             matrix = entries(kind, impacted, shared)
         else:
-            matrix = [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
-                      for i, group in enumerate(pr_test_shards(impacted))]
+            matrix = test_matrix(pr_test_shards(impacted))
 
             if shared:
                 for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
