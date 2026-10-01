@@ -13,6 +13,8 @@
 #include "folder.h"
 #include "ext_sysfs_cpu.h"
 
+#include <limits.h>
+
 bool sysfs_cpu_init (void *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;

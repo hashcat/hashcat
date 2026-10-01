@@ -26,10 +26,10 @@ def parse_pkcs12(filename):
 
     mac_algo = mac_data['mac']['digest_algorithm']['algorithm'].native
 
+    # hashcat has a mode for the SHA-1 and SHA-256 MACs only
     mac_algo_numeric = {
         'sha1': 1,
         'sha256': 256,
-        'sha512': 512,
     }.get(mac_algo)
 
     if mac_algo_numeric is None:

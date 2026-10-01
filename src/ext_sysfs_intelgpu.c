@@ -180,12 +180,13 @@ int hm_SYSFS_INTELGPU_get_temperature_current (void *hashcat_ctx, const int back
 
   if (hc_fopen_raw (&fp, path, "r") == false)
   {
+    hcfree (path);
 
     hc_asprintf (&path, "%s/temp1_input", syspath);
 
     if (hc_fopen_raw (&fp, path, "r") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: no temp2_input or temp1_input: %s", syspath, strerror (errno));
 
       hcfree (syspath);
       hcfree (path);

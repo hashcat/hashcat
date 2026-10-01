@@ -20,14 +20,6 @@
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
 
-// The common Base58/checksum path is latency-bound at 210 registers/thread.
-// Three 256-thread blocks trade four resident warps for a looser register cap
-// while testing an eight-warp block shape.
-#if defined IS_CUDA || defined IS_HIP
-#undef  KERNEL_FA
-#define KERNEL_FA __launch_bounds__ (256, 3)
-#endif
-
 // Split a 52-digit Base58 value after its four candidate-dependent digits:
 //
 //   value = prefix * 58^48 + tail

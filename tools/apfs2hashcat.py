@@ -149,7 +149,7 @@ def parse_container_keybag_entries(key_entries, nkeys):
 
     keydata_entries_dict = get_keydata_entries_dict(key_entries, nkeys)
     for ke_uuid in keydata_entries_dict:
-        # only tag 3 is needed for constructing the hash
+        # only tag 3 is needed for constructing the hash
         volume_unlock_record = keydata_entries_dict[ke_uuid].get(KB_TAG_VOLUME_UNLOCK_RECORDS)
         if volume_unlock_record:
             # add to dict - should be up to only one entry per uuid
@@ -187,7 +187,7 @@ def parse_wrapped_kek_packed_object(wrapped_kek, kek_uuid, volume_uuid):
         starting_pos = starting_pos + 2 + length
         if TAG_DICT[t].get('tag') != tag:
             return None
-        expected_len = TAG_DICT[t].get('expected_len') # use .get() since not all tags have an expected len
+        expected_len = TAG_DICT[t].get('expected_len') # use .get() since not all tags have an expected len
         if expected_len:
             if length != expected_len:
                 return None
@@ -465,7 +465,16 @@ def main():
             csb = fp.read(0x568)
 
             # read the first csb for initial info - then use this to iterate through all csbs and find the most recent one
-            block_size, uuid, keylocker_paddr, omap_oid, fs_oids, xp_desc_base, xp_desc_blocks = parse_csb(csb)
+            first_csb = parse_csb(csb)
+
+            # parse_csb() prints its own message and returns None on a bad NXSB header, so without
+            # this the unpack below raises a TypeError immediately after that message. The re-read
+            # further down already guards the same way.
+
+            if first_csb is None:
+                continue
+
+            block_size, uuid, keylocker_paddr, omap_oid, fs_oids, xp_desc_base, xp_desc_blocks = first_csb
 
             valid_csb_paddr = find_valid_csb(fp, block_size, xp_desc_base, xp_desc_blocks, apfs_struct_start)
 
@@ -494,6 +503,15 @@ def main():
             volumes_dict = get_volumes(fp, block_size, apfs_struct_start, tree, fs_oids)
 
             volume_unlock_record_dict = parse_keybag_entry(starting_pt, None)
+
+            # parse_keybag_entry() returns None when what decrypted is neither a container nor a
+            # volume keybag, which is what an unencrypted container gives, and the walk below would
+            # call .get () on it.
+
+            if volume_unlock_record_dict is None:
+                print(f"[!] No container keybag at {hex(apfs_struct_start)}, skipping to next container")
+                continue
+
             for volume_uuid in volumes_dict:
 
                 # find entry in container's keybag matching volume UUID and has KB_TAG_VOLUME_UNLOCK_RECORDS = 3. Its keydata is location of volume keybag.

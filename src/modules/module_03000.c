@@ -102,6 +102,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
+  // NVIDIA GPU
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
   return jit_build_options;
 }
 

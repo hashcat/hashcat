@@ -9,23 +9,53 @@
 #include "inc_common.h"
 #include "inc_hash_sm3.h"
 
-// PRMT-offload permutation functions (vector path):
-// P0/P1 each need two rotates of the same value. The second rotate is derived from the
-// first by an extra 8-bit rotate, which we emit as a byte permute (prmt.b32) instead of a
-// second funnel shift (shf). rotl(x,17)=rotl(rotl(x,9),8), rotl(x,23)=rotl(rotl(x,15),8).
-// Byte rotate is bit-exact, so results are identical; the intent is to move one rotate off
-// the saturated SHF pipe onto the PRMT unit. Selector 0x2103 = rotate-left-by-8 (cf. the
-// byteswap selector 0x0123). Temp binds the funnel shift so it is emitted exactly once.
+// P0 and P1 each rotate the same value twice, and the second rotate is the first one turned a
+// further 8 bits: rotl(x,17) = rotl(rotl(x,9),8) and rotl(x,23) = rotl(rotl(x,15),8). On NVIDIA
+// that byte rotate is cheaper as a permute than as a second funnel shift, because it runs on the
+// PRMT pipe rather than the saturated SHF one, and 0x2103 is the nibble selector for it.
+//
+// NVIDIA only, for two separate reasons. hc_byte_perm has no definition on a generic backend, so
+// naming it unconditionally fails the kernel link on Apple, Intel, pocl and Mesa. It does exist on
+// AMD, but takes a byte selector there against NVIDIA's nibble selector, so one constant cannot
+// mean the same rotate on both. blake2s_rot08_S in "inc_hash_blake2s.cl" spells that same 8 bit
+// rotate 0x0321 for NVIDIA and 0x00030201 for AMD, and falls back to a plain rotate elsewhere,
+// which is what the #else below does.
 DECLSPEC u32x sm3_p0_prmt (const u32x x)
 {
-  const u32x r = hc_rotl32 (x, 9);                   // rotl(x, 9)  via shf
-  return x ^ r ^ hc_byte_perm (r, r, 0x2103);        // rotl(x,17) = rotl(r,8) via prmt
+  #ifdef IS_NV
+
+  const u32x r = hc_rotl32 (x, 9);
+
+  const u32x p = x ^ r ^ hc_byte_perm (r, r, 0x2103);
+
+  return p;
+
+  #else
+
+  const u32x p = x ^ hc_rotl32 (x, 9) ^ hc_rotl32 (x, 17);
+
+  return p;
+
+  #endif
 }
 
 DECLSPEC u32x sm3_p1_prmt (const u32x x)
 {
-  const u32x r = hc_rotl32 (x, 15);                  // rotl(x,15) via shf
-  return x ^ r ^ hc_byte_perm (r, r, 0x2103);        // rotl(x,23) = rotl(r,8) via prmt
+  #ifdef IS_NV
+
+  const u32x r = hc_rotl32 (x, 15);
+
+  const u32x p = x ^ r ^ hc_byte_perm (r, r, 0x2103);
+
+  return p;
+
+  #else
+
+  const u32x p = x ^ hc_rotl32 (x, 15) ^ hc_rotl32 (x, 23);
+
+  return p;
+
+  #endif
 }
 
 // important notes on this:
