@@ -145,12 +145,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends clang lld llvm
 
-      - name: Setup Python 3.14 (Linux-ARM64-RPi4 only)
-        if: matrix.os_name_lowercase == 'linux-arm64-rpi4'
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.14'
-
       - name: Setup Rustup (Windows only)
         if: matrix.os_name_lowercase == 'windows'
         shell: msys2 {0}
@@ -166,7 +160,6 @@ jobs:
         env:
           SHARED: ${{ matrix.shared }}
           PATH: /mingw64/bin:$PATH
-          WIN_PYTHON: ""
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
           bash tools/test_package.sh . --no-device
@@ -268,12 +261,6 @@ jobs:
                wget ca-certificates zstd tar git make pkg-config llvm cmake g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 libc++-dev libc++abi-dev lld pkg-config python3
 
           mkdir ~/src && cd ~/src
-          mkdir /opt/win-python && cd /opt/win-python
-          wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.7-1-any.pkg.tar.zst
-          unzstd mingw-w64-x86_64-python-3.14.7-1-any.pkg.tar.zst
-          tar -xf mingw-w64-x86_64-python-3.14.7-1-any.pkg.tar
-
-          cd ~/src
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
           export PATH="$HOME/.cargo/bin:${PATH}"
           rustup target add x86_64-pc-windows-gnu

@@ -493,6 +493,24 @@ int _wopen (const char *path, int oflag, ...)
 }
 #endif
 
+// Every descriptor hashcat opens is closed in any process it starts.
+//
+// hashcat starts child processes: the Python bridge runs one interpreter per CPU thread. Without this
+// each of those inherited every file hashcat had open at the time, which on a 28 unit run meant 29
+// holders of the wordlist and of the hash file, and on a brain client run handed every worker the brain
+// socket. A child has no business with any of them.
+//
+// Win32 spells the same thing _O_NOINHERIT, and its open () is the CRT's _open (), which marks the
+// underlying handle non-inheritable. Cygwin has the POSIX name and is caught by the first arm.
+
+#if defined (O_CLOEXEC)
+#define HC_O_NOINHERIT O_CLOEXEC
+#elif defined (_O_NOINHERIT)
+#define HC_O_NOINHERIT _O_NOINHERIT
+#else
+#define HC_O_NOINHERIT 0
+#endif
+
 // Set when an open failed for a reason errno has no number for. Thread local, because two devices
 // can be opening their own files at the same time and each has to read back its own reason.
 
@@ -546,7 +564,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   if (strncmp (mode, "a", 1) == 0)
   {
-    oflag = O_WRONLY | O_CREAT | O_APPEND;
+    oflag = O_WRONLY | O_CREAT | O_APPEND | HC_O_NOINHERIT;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
     if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
@@ -554,7 +572,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   }
   else if (strncmp (mode, "r", 1) == 0)
   {
-    oflag = O_RDONLY;
+    oflag = O_RDONLY | HC_O_NOINHERIT;
     fmode = -1;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
@@ -563,7 +581,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   }
   else if (strncmp (mode, "w", 1) == 0)
   {
-    oflag = O_WRONLY | O_CREAT | O_TRUNC;
+    oflag = O_WRONLY | O_CREAT | O_TRUNC | HC_O_NOINHERIT;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
     if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
@@ -584,7 +602,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   if (is_fifo == false)
   {
-    int fd_tmp = open (path, O_RDONLY);
+    int fd_tmp = open (path, O_RDONLY | HC_O_NOINHERIT);
 
     if (fd_tmp != -1)
     {
@@ -885,7 +903,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
   if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
   {
-    oflag = O_WRONLY | O_CREAT | O_APPEND;
+    oflag = O_WRONLY | O_CREAT | O_APPEND | HC_O_NOINHERIT;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
     if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
@@ -893,7 +911,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
   }
   else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
   {
-    oflag = O_RDONLY;
+    oflag = O_RDONLY | HC_O_NOINHERIT;
     fmode = -1;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
@@ -902,7 +920,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
   }
   else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
   {
-    oflag = O_WRONLY | O_CREAT | O_TRUNC;
+    oflag = O_WRONLY | O_CREAT | O_TRUNC | HC_O_NOINHERIT;
 
     #if defined (MSDOS) || defined (OS2) || defined (WIN32) || defined (_WIN32) || defined (__CYGWIN__)
     if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
@@ -1978,7 +1996,7 @@ bool hc_path_is_compressed (const char *path)
 {
   u8 check[8] = { 0 };
 
-  const int fd = open (path, O_RDONLY);
+  const int fd = open (path, O_RDONLY | HC_O_NOINHERIT);
 
   if (fd == -1) return false;
 

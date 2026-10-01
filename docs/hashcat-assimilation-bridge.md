@@ -10,7 +10,7 @@ Bridges are optional and selected by the hash-mode module. Modes that do not dec
 
 ### Embedded language runtimes
 
-- Modes `72000` and `73000` run generic Python hash implementations. See `hashcat-python-plugin-quickstart.md` and `hashcat-python-plugin-requirements.md`.
+- Mode `73000` runs a generic Python hash implementation. It starts one interpreter process per CPU thread, so hashcat links no Python library of its own. See `hashcat-python-plugin-quickstart.md` and `hashcat-python-plugin-requirements.md`.
 - Mode `74000` provides the same generic model through Rust.
 
 These bridges execute Python or Rust code on the host. They do not translate it into GPU code.

@@ -17,13 +17,21 @@
 #include "processenv.h"
 #endif
 
-// good: we can use this multiplier do reduce copy overhead to increase the guessing speed,
-// bad: but we also increase the password candidate batch size.
-// slow hashes which make use of this bridge probably are used with smaller wordlists,
-// and therefore it's easier for hashcat to parallelize if this multiplier is low.
-// in the end, it's a trade-off.
+// The largest batch one unit can be handed. backend_session_begin () derives kernel_accel_max from it
+// and lowers that again where the candidate buffers would not fit the device, and autotune then settles
+// at about seven tenths of it.
+//
+// Autotune does NOT measure the crate to get there. It times whichever kernel the mode runs, and a
+// BRIDGE_TYPE_LAUNCH_LOOP mode's loop kernel is empty, so the figure it settles on depends on this
+// constant and on nothing else. Declaring BRIDGE_TYPE_REPLACE_LOOP instead would put the bridge itself
+// under the timer.
+//
+// So this number is the batch size in practice. On 28 units of an i7-14700K with the shipped crate it
+// is worth 74 kH/s here against 16 kH/s under the ceiling of 8 this used to be, and against a fixed
+// launch size the curve is flat from 512 on. The cost is memory: the buffers are sizeof
+// (generic_io_tmp_t) per candidate per unit, about 8.4 KB, so 1024 is 8.6 MB a unit.
 
-#define N_ACCEL 8
+#define WORKITEM_COUNT_MAX 1024
 
 typedef struct
 {
@@ -183,7 +191,7 @@ static bool units_init (bridge_context_t *bridge_context)
     unit_buf->unit_info_len = bridge_context->get_info (unit_buf->unit_info_buf, sizeof (unit_buf->unit_info_buf) - 1);
     unit_buf->unit_info_buf[unit_buf->unit_info_len] = 0;
 
-    unit_buf->workitem_count = N_ACCEL;
+    unit_buf->workitem_count = WORKITEM_COUNT_MAX;
 
     units_cnt++;
   }

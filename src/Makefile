@@ -256,9 +256,6 @@ WINDRES_WIN             := x86_64-w64-mingw32-windres
 CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-# See BUILD_WSL.md to make this
-WIN_PYTHON              := /opt/win-python
-
 endif
 
 CC_NATIVE_CLANG         := 0
@@ -1777,9 +1774,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
 else
-install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -1872,6 +1869,14 @@ install_modules: install_shared modules
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/modules
 	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+
+## The Python bridge starts Python/hcworker.py from the shared folder, and Python/generic_hash.py is the
+## plugin it loads when --bridge-parameter1 names none.
+
+.PHONY: install_python
+install_python: install_shared
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/Python
+	$(FIND) Python/   -mindepth 1 -type f -name '*.py' -execdir $(INSTALL) -m 644 {} $(DESTDIR)$(SHARED_FOLDER)/Python/{} \;
 
 .PHONY: install_bridges
 install_bridges: install_shared bridges

@@ -2128,7 +2128,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * To help users a bit
    */
 
-  setup_environment_variables (hashcat_ctx->folder_config, hashcat_ctx->user_options);
+  setup_environment_variables (hashcat_ctx->folder_config);
 
   setup_umask ();
 
