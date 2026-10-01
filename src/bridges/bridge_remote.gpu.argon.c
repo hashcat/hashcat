@@ -17,9 +17,13 @@
 
 #ifdef WIN32
 #include <ws2tcpip.h>
+#define SOCK_RECV(s,b,l,f) recv (s, (char *) (b), l, f)
+#define SOCK_SEND(s,b,l,f) send (s, (const char *) (b), l, f)
 #else
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#define SOCK_RECV(s,b,l,f) recv (s, (b), l, f)
+#define SOCK_SEND(s,b,l,f) send (s, (b), l, f)
 #endif
 
 #include <stdio.h>
@@ -30,6 +34,8 @@
 
 #define HASH_MODE 75000
 #define MAX_BLOCK_SIZE 2048
+
+
 
 typedef struct unit
 {
@@ -164,7 +170,7 @@ static void units_term (remote_t *remote)
     {
       unit_t *unit = &remote->units[i];
       int pws_cnt_no = 0;
-      send (unit->client_fd, (const char *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
+      SOCK_SEND (unit->client_fd, &pws_cnt_no, sizeof (pws_cnt_no), 0);
       close (unit->client_fd);
     }
 
@@ -259,13 +265,13 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   {
     unit_t *unit = &remote->units[unit_idx];
 
-    send (unit->client_fd, (const char *) &hash_mode, sizeof (hash_mode), 0);
-    send (unit->client_fd, (const char *) &iterations_no, sizeof (iterations_no), 0);
-    send (unit->client_fd, (const char *) &parallelism_no, sizeof (parallelism_no), 0);
-    send (unit->client_fd, (const char *) &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0);
+    SOCK_SEND (unit->client_fd, &hash_mode, sizeof (hash_mode), 0);
+    SOCK_SEND (unit->client_fd, &iterations_no, sizeof (iterations_no), 0);
+    SOCK_SEND (unit->client_fd, &parallelism_no, sizeof (parallelism_no), 0);
+    SOCK_SEND (unit->client_fd, &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0);
 
     int chunk_size_no = 0; 
-    recv (unit->client_fd, (char *) &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL);
+    SOCK_RECV (unit->client_fd, &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL);
 
     int chunk_size = ntohl(chunk_size_no);
     printf("[bridge-client]: Chunk size for unit %d will be %d\n", unit_idx, chunk_size);
@@ -276,7 +282,7 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   return true;
 }
 
-bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   remote_t *remote = platform_context;
 
@@ -291,7 +297,7 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   argon2id_hybrid_tmp_t *argon2id_hybrid_tmp = (argon2id_hybrid_tmp_t *) device_param->h_tmps;
 
   const int pws_cnt_no = htonl (pws_cnt);
-  send (unit->client_fd, (const char *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
+  SOCK_SEND (unit->client_fd, &pws_cnt_no, sizeof (pws_cnt_no), 0);
 
   md5_ctx_t md5_ctx;
   md5_init (&md5_ctx);
@@ -302,8 +308,8 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
     for (u32 lane = 0; lane < argon2id_hybrid->parallelism; lane++)
     {
-      send (unit->client_fd, (const char *) tmp->first_block[lane], sizeof (tmp->first_block[lane]), 0);
-      send (unit->client_fd, (const char *) tmp->second_block[lane], sizeof (tmp->second_block[lane]), 0);
+      SOCK_SEND (unit->client_fd, tmp->first_block[lane], sizeof (tmp->first_block[lane]), 0);
+      SOCK_SEND (unit->client_fd, tmp->second_block[lane], sizeof (tmp->second_block[lane]), 0);
 
       md5_update (&md5_ctx, tmp->first_block[lane], sizeof (tmp->first_block[lane]));
       md5_update (&md5_ctx, tmp->second_block[lane], sizeof (tmp->second_block[lane]));
@@ -312,7 +318,7 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   md5_final (&md5_ctx);
 
-  send (unit->client_fd, (const char *) md5_ctx.h, sizeof (md5_ctx.h), 0);
+  SOCK_SEND (unit->client_fd, md5_ctx.h, sizeof (md5_ctx.h), 0);
 
   md5_init (&md5_ctx);
 
@@ -320,7 +326,7 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   {
     argon2id_hybrid_tmp_t *tmp = &argon2id_hybrid_tmp[p];
 
-    recv (unit->client_fd, (char *) tmp->final_block, sizeof (tmp->final_block), MSG_WAITALL);
+    SOCK_RECV (unit->client_fd, tmp->final_block, sizeof (tmp->final_block), MSG_WAITALL);
 
     md5_update (&md5_ctx, tmp->final_block, sizeof (tmp->final_block));
   }
@@ -328,7 +334,7 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
   md5_final (&md5_ctx);
 
   uint8_t expected_md5[16];
-  recv (unit->client_fd, (const char *) expected_md5, 16, MSG_WAITALL);
+  SOCK_RECV (unit->client_fd, expected_md5, 16, MSG_WAITALL);
 
   if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
   {
