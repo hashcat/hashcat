@@ -133,8 +133,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   // target hash
-  token.len_min[6] = ((SALT_MIN * 8) / 6) + 0;
-  token.len_max[6] = ((SALT_MAX * 8) / 6) + 3;
+  token.len_min[6] = ((  1 * 8) / 6) + 0;
+  token.len_max[6] = ((128 * 8) / 6) + 3;
   token.sep[6]     = '$';
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
@@ -169,21 +169,36 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (argon2id->parallelism > 16 ) return (PARSER_HASH_VALUE);
 
   // salt
-
   const int salt_len = token.len[5];
   const u8 *salt_pos = token.buf[5];
 
-  salt->salt_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, (u8 *) salt->salt_buf);
+// Single (dummy) loop for this implementation!
+  salt->salt_iter = 1; 
+  salt->salt_dimy = argon2_options->parallelism;
 
-  // Single (dummy) loop for this implementation!
-  salt->salt_iter = 1;
-  
+  u8 tmp_buf[512] = { 0 };
+
+  int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+
+  if (tmp_len > (int) sizeof (salt->salt_buf)) return (PARSER_SALT_LENGTH);
+
+  memcpy (salt->salt_buf, tmp_buf, tmp_len);
+
+  salt->salt_len = tmp_len;
+
   // digest/ target hash
-
   const int digest_len = token.len[6];
   const u8 *digest_pos = token.buf[6];
 
-  argon2id->digest_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, (u8 *) digest);
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  tmp_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, tmp_buf);
+
+  if (tmp_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
+
+  memcpy (digest, tmp_buf, tmp_len);
+
+  argon2id->digest_len = tmp_len;
 
   return (PARSER_OK);
 }
@@ -194,13 +209,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   argon2id_t *argon2id = (argon2id_t *) esalt_buf;
 
+  // salt
   char base64_salt[512] = { 0 };
+  int len1 = base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
 
-  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
+  for (int i = len1 - 1; i >=0; i--) if (base64_salt[i] == '=') base64_salt[i] = 0;
 
+  // digest
   char base64_digest[512] = { 0 };
+  int len2 = base64_encode (int_to_base64, (const u8 *) digest, argon2id->digest_len, (u8 *) base64_digest);
 
-  base64_encode (int_to_base64, (const u8 *) digest, argon2id->digest_len, (u8 *) base64_digest);
+  for (int i = len2 - 1; i >=0; i--) if (base64_digest[i] == '=') base64_digest[i] = 0;
 
   const int out_len = snprintf (line_buf, line_size, "%sv=19$m=%d,t=%d,p=%d$%s$%s",
     SIGNATURE_ARGON2ID,

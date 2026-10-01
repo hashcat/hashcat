@@ -22,6 +22,7 @@
 #else
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #define SOCK_RECV(s,b,l,f) recv (s, (b), l, f)
 #define SOCK_SEND(s,b,l,f) send (s, (b), l, f)
 #endif
