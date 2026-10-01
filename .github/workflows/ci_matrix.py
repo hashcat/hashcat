@@ -57,6 +57,51 @@ def minimal_shards(n):
 
     return [sorted(b) for b in bins if b]
 
+
+# How a PR spreads its impacted test modes across shards. A host-engine mode hashes on the CPU
+# (ATTACK_EXEC_OUTSIDE_KERNEL: the container, wallet and document families), which dominates the time
+# on a GPU-less runner, and the heavier MINIMAL_WEIGHT kernels (bcrypt, scrypt, LUKS, argon) cost
+# almost as much. Two of those landing in one shard is what overran the 90 minute PR timeout, so each
+# heavy mode gets a shard to itself while the light ones bundle, this many at a time, to still share a
+# build. The shard a mode lands in is not stable here, unlike the crc32 placement entries () uses, but
+# a test shard carries no per-shard state that needs to be, so balancing wins.
+PR_LIGHT_PER_SHARD = 8
+
+_HOST_ENGINE = {}
+
+
+def host_engine(mode):
+    # True when the module hashes on the host rather than in the kernel, read off the module source the
+    # way tools/test.py does. Cached, since a PR asks about several.
+    if mode not in _HOST_ENGINE:
+        try:
+            with open("src/modules/module_%05d.c" % mode, "rb") as fh:
+                _HOST_ENGINE[mode] = b"ATTACK_EXEC_OUTSIDE_KERNEL" in fh.read()
+        except OSError:
+            _HOST_ENGINE[mode] = False
+
+    return _HOST_ENGINE[mode]
+
+
+def is_heavy(mode):
+    # Slow for shard balancing: a host-engine mode, or one of the known slow kernels the minimal set
+    # already weights at three or more.
+    return MINIMAL_WEIGHT.get(mode, 1) >= 3 or host_engine(mode)
+
+
+def pr_test_shards(modes):
+    """Spread a PR's impacted test modes so no shard runs two heavy modes. Each heavy mode gets a shard
+    of its own; the light ones are chunked, so the fast modes still amortize one build across a shard."""
+    heavy = sorted(m for m in modes if is_heavy(m))
+    light = sorted(m for m in modes if not is_heavy(m))
+
+    shards = [[m] for m in heavy]
+
+    for i in range(0, len(light), PR_LIGHT_PER_SHARD):
+        shards.append(light[i:i + PR_LIGHT_PER_SHARD])
+
+    return shards
+
 # A PR that touches shared code, but no mode of its own, still gets a run:
 # test.py -M for the kernels, and the starting set of parser targets for fuzz.
 # That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
@@ -222,7 +267,8 @@ def main():
 
             matrix = entries(kind, impacted, shared)
         else:
-            matrix = entries(kind, impacted, False)
+            matrix = [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
+                      for i, group in enumerate(pr_test_shards(impacted))]
 
             if shared:
                 for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
