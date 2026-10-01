@@ -324,7 +324,7 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
     send (unit->client_fd, (const char *) &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0);
 
     int chunk_size_no = 0; 
-    recv (unit->client_fd, &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL);
+    recv (unit->client_fd, (char *) &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL);
 
     int chunk_size = ntohl(chunk_size_no);
     printf("[bridge-client]: Chunk size for unit %d will be %d\n", unit_idx, chunk_size);
@@ -374,7 +374,8 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   md5_final (ctx, actual_md5);
 
-  send (unit->client_fd, actual_md5, sizeof (actual_md5), 0);
+  send (unit->client_fd, (const char *) actual_md5, sizeof (actual_md5), 0);
+
 
   md5_init (ctx);
 
@@ -389,7 +390,7 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   md5_final (ctx, actual_md5);
 
-  recv (unit->client_fd, expected_md5, 16, MSG_WAITALL);
+  recv (unit->client_fd, (char *) expected_md5, 16, MSG_WAITALL);
 
   md5_free (ctx);
 
