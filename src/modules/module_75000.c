@@ -174,7 +174,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 // Single (dummy) loop for this implementation!
   salt->salt_iter = 1; 
-  salt->salt_dimy = argon2_options->parallelism;
 
   u8 tmp_buf[512] = { 0 };
 
