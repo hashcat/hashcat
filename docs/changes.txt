@@ -342,6 +342,7 @@ have to act on rather than one you will simply notice.
 - Added mode 35300: Kerberos 5, etype 23, TGS-REP (NT)
 - Added mode 35400: Kerberos 5, etype 23, AS-REP (NT)
 - Added mode 36800: OpenSSH Private Keys (bcrypt-pbkdf)
+- Added mode 36000: BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)
 - Added mode 36400: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
 - Added mode 36410: KDE KWallet < 4.13 (SHA-1, Blowfish)
 - Added mode 36500: NTLM(NTLM_bin($pass))
