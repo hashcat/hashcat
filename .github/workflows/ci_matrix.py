@@ -83,10 +83,19 @@ def host_engine(mode):
     return _HOST_ENGINE[mode]
 
 
+def mode_weight(mode):
+    # Cost estimate for balancing shards. A host-engine mode runs its KDF on the CPU and dominates on a
+    # GPU-less runner; the MINIMAL_WEIGHT entries carry the known slow kernels (bcrypt, scrypt, LUKS,
+    # argon) at their measured weight. Everything else is light.
+    if mode in MINIMAL_WEIGHT:
+        return MINIMAL_WEIGHT[mode]
+
+    return 6 if host_engine(mode) else 1
+
+
 def is_heavy(mode):
-    # Slow for shard balancing: a host-engine mode, or one of the known slow kernels the minimal set
-    # already weights at three or more.
-    return MINIMAL_WEIGHT.get(mode, 1) >= 3 or host_engine(mode)
+    # Slow enough that two of them in one PR shard risk the 90 minute timeout.
+    return mode_weight(mode) >= 3
 
 
 def pr_test_shards(modes):
@@ -101,6 +110,22 @@ def pr_test_shards(modes):
         shards.append(light[i:i + PR_LIGHT_PER_SHARD])
 
     return shards
+
+
+def balance_shards(modes, n):
+    """Longest-processing-time bin-packing of modes into n shards by mode_weight, so the heavy modes
+    spread across the shards instead of piling into whichever one crc32 happened to draw them to. For
+    the weekly all-mode test run, which must bundle (far more modes than shards) and keeps no per-shard
+    state that a stable hash placement would protect."""
+    bins = [[] for _ in range(n)]
+    load = [0] * n
+
+    for mode in sorted(modes, key=lambda m: (mode_weight(m), m), reverse=True):
+        i = load.index(min(load))
+        bins[i].append(mode)
+        load[i] += mode_weight(mode)
+
+    return [sorted(b) for b in bins if b]
 
 # A PR that touches shared code, but no mode of its own, still gets a run:
 # test.py -M for the kernels, and the starting set of parser targets for fuzz.
@@ -213,7 +238,12 @@ def main():
     notes = []
 
     if scope == "all":
-        matrix = entries(kind, pool, True)
+        if kind == "test":
+            matrix = [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
+                      for i, group in enumerate(balance_shards(pool, SHARDS["test"]))]
+        else:
+            matrix = entries(kind, pool, True)
+
         notes.append(f"all {len(pool)} modes in {len(matrix)} shards")
 
     elif scope == "list":
