@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 #include "emu_inc_hash_base58.h"
 #include "emu_inc_hash_md5.h"
@@ -1092,11 +1093,7 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
 
   if (device_param->is_cuda)
   {
-    device_param->kernel_threads_max = MAX (device_param->kernel_threads_max, 1024);
-    device_param->kernel_accel_max = MAX (device_param->kernel_accel_max, 1024);
-
-    offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u N A A\n", sanitized, hash_mode);
-    snprintf (lines_buf + offset, buf_sz - offset, "CUDA * %u N A A\n", hash_mode);
+    snprintf (lines_buf + offset, buf_sz - offset, "%s * %u N A A\n", sanitized, hash_mode);
   }
   else if ((device_param->is_opencl) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
   {
@@ -1104,16 +1101,9 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
   }
   else if ((device_param->is_opencl) && ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET)))
   {
-    // Intel HD 630 driver testing required conservative geometry.
-    device_param->kernel_threads_min = MAX (device_param->kernel_threads_min, 32);
-    device_param->kernel_threads_max = 32;
-    device_param->kernel_accel_min = MAX (device_param->kernel_accel_min, 2);
-    device_param->kernel_accel_max = 2;
-    device_param->kernel_loops_min = MAX (device_param->kernel_loops_min, 4);
-    device_param->kernel_loops_max = 4;
-
-    offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 32 2 4\n", sanitized, hash_mode);
-    snprintf (lines_buf + offset, buf_sz - offset, "Intel * %u 32 2 4\n", hash_mode);
+    // the Intel HD 630 driver wanted a conservative geometry. A tuningdb line carries vector
+    // width, accel and loops but no thread count, so the 32 below is the vector width column
+    snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 1 2 4\n", sanitized, hash_mode);
   }
   else
   {
@@ -1145,6 +1135,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice = MODULE_DEFAULT;
   module_ctx->module_attack_exec = module_attack_exec;
   module_ctx->module_benchmark_esalt = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt = MODULE_DEFAULT;
@@ -1161,7 +1152,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2 = module_dgst_pos2;
   module_ctx->module_dgst_pos3 = module_dgst_pos3;
   module_ctx->module_dgst_size = module_dgst_size;
-  module_ctx->module_dictstat_disable = MODULE_DEFAULT;
   module_ctx->module_esalt_size = module_esalt_size;
   module_ctx->module_extra_buffer_size = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size = MODULE_DEFAULT;
@@ -1177,6 +1167,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status = module_hash_encode_status;
   module_ctx->module_hash_encode_potfile = MODULE_DEFAULT;
   module_ctx->module_hash_encode = module_hash_encode;
+  module_ctx->module_hash_hints = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest = MODULE_DEFAULT;
   module_ctx->module_hash_mode = MODULE_DEFAULT;
   module_ctx->module_hash_category = module_hash_category;
@@ -1209,6 +1200,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_disable = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
   module_ctx->module_pwdump_column = MODULE_DEFAULT;
+  module_ctx->module_pw_max = module_pw_max;
   module_ctx->module_pw_min = MODULE_DEFAULT;
   module_ctx->module_salt_max = MODULE_DEFAULT;
   module_ctx->module_salt_min = MODULE_DEFAULT;
@@ -1218,6 +1210,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass = module_st_pass;
   module_ctx->module_tmp_size = module_tmp_size;
   module_ctx->module_unstable_warning = MODULE_DEFAULT;
+  module_ctx->module_usage_notice = MODULE_DEFAULT;
   module_ctx->module_warmup_disable = MODULE_DEFAULT;
-  module_ctx->module_pw_max = module_pw_max;
 }

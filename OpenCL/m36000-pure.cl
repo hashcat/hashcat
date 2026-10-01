@@ -2575,9 +2575,7 @@ KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
              bitmaps_buf_s2_b,                                                                                \
              bitmaps_buf_s2_c,                                                                                \
              bitmaps_buf_s2_d,                                                                                \
-             BITMAP_MASK,                                                                                     \
-             BITMAP_SHIFT1,                                                                                   \
-             BITMAP_SHIFT2))                                                                                  \
+             BITMAP_MASK))  \
   {                                                                                                           \
     int digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                  \
                                                                                                               \

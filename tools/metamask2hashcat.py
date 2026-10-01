@@ -26,15 +26,26 @@ def metamask_parser(file, shortdata):
     wallet_data = open(file, "rb").read().decode("utf-8","ignore").replace("\\","")
     walletStartText = '"vault"'
     wallet_data_start = wallet_data.lower().find(walletStartText)
-    
-    if not wallet_data_start:
+
+    # find () answers -1 when the text is absent, and 0 when the vault opens the file, so the
+    # test has to name -1 rather than ask whether the offset is falsy
+    if wallet_data_start == -1:
       print("! Invalid vault format ...")
       parser.print_help()
       exit(1)
     else:
-      
+
       wallet_data_vault_start = wallet_data.lower().find('{', wallet_data_start)
-      
+
+      if wallet_data_vault_start == -1:
+        print("! Invalid vault format ...")
+        parser.print_help()
+        exit(1)
+
+      # j is left None when the braces never balance, which the ValueError below reports rather
+      # than raising UnboundLocalError on the first use of j
+      j = None
+
       bracket_count = 0
       for i in range(wallet_data_vault_start, len(wallet_data)):
         if wallet_data[i] == '{':
@@ -44,13 +55,13 @@ def metamask_parser(file, shortdata):
           if bracket_count == 0:
             j = json.loads(wallet_data[wallet_data_vault_start:i+1])
             break
-            
-      if 'lib' in j and 'original' in j['lib']:
-        isMobile = True
-      else:
-        print("! Invalid vault format ...")
-        parser.print_help()
-        exit(1)
+
+      if j is None:
+        raise ValueError("vault braces never balance, so no object could be read")
+
+      # a mobile vault carries lib.original. A desktop vault has neither key and is handled by
+      # the branch below, which is the $metamask$ and $metamask-short$ output
+      isMobile = 'lib' in j and 'original' in j['lib']
 
 
     if isMobile is False:
@@ -78,7 +89,7 @@ def metamask_parser(file, shortdata):
           print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
 
     else:
-      
+
       try:
         iter_count = j['keyMetadata']['params']['iterations']
       except KeyError:
@@ -87,7 +98,7 @@ def metamask_parser(file, shortdata):
       # extract first 32 bytes of ciphertext for enhanced resistance to false-positives
       cipher_bin = base64.b64decode(j['cipher'])
       j['cipher'] = base64.b64encode(cipher_bin[:32]).decode("ascii")
-      
+
       if iter_count != 5000:
         print('$metamaskMobile$rounds=' + str(iter_count) + '$' + j['salt'] + '$' + j['iv'] + '$' + j['cipher'])
       else:

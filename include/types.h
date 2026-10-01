@@ -904,6 +904,7 @@ typedef enum parser_rc
   PARSER_PT_OFFSET            = -45,
   PARSER_CRYPTOAPI_KERNELTYPE = -46,
   PARSER_CRYPTOAPI_KEYSIZE    = -47,
+  PARSER_ZSTD_UNAVAILABLE     = -48,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 

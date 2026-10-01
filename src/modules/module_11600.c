@@ -583,7 +583,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if ((data_type == 8) && (hc_zstd_available () == false))
   {
-    return (PARSER_HASH_VALUE);
+    return (PARSER_ZSTD_UNAVAILABLE);
   }
 
   if (salt_len != 0) return (PARSER_SALT_VALUE);
