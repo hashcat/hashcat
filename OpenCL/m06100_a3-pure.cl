@@ -101,7 +101,23 @@ KERNEL_FQ KERNEL_FA void m06100_mxx (KERN_ATTR_VECTOR ())
 
     whirlpool_update_vector (&ctx, w, pw_len);
 
-    whirlpool_final_vector (&ctx);
+    if (pw_len <= 31)
+    {
+      // whole message fits in one 512-bit block, chaining value is still the
+      // zero IV, so use the specialized key-schedule-free transform
+      const int fpos = ctx.len & 63;
+
+      append_0x80_4x4 (ctx.w0, ctx.w1, ctx.w2, ctx.w3, fpos ^ 3);
+
+      ctx.w3[2] = 0;
+      ctx.w3[3] = ctx.len * 8;
+
+      whirlpool_transform_zerokey_vector (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.h, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+    }
+    else
+    {
+      whirlpool_final_vector (&ctx);
+    }
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
@@ -211,7 +227,23 @@ KERNEL_FQ KERNEL_FA void m06100_sxx (KERN_ATTR_VECTOR ())
 
     whirlpool_update_vector (&ctx, w, pw_len);
 
-    whirlpool_final_vector (&ctx);
+    if (pw_len <= 31)
+    {
+      // whole message fits in one 512-bit block, chaining value is still the
+      // zero IV, so use the specialized key-schedule-free transform
+      const int fpos = ctx.len & 63;
+
+      append_0x80_4x4 (ctx.w0, ctx.w1, ctx.w2, ctx.w3, fpos ^ 3);
+
+      ctx.w3[2] = 0;
+      ctx.w3[3] = ctx.len * 8;
+
+      whirlpool_transform_zerokey_vector (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.h, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+    }
+    else
+    {
+      whirlpool_final_vector (&ctx);
+    }
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
