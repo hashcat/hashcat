@@ -695,6 +695,9 @@ Measurements depend on the device, runtime and workload.
 
 - The "HASHCAT_FORCE_NO_INLINE" environment variable builds kernels with "FORCE_NO_INLINE" for
   runtimes that compile inlined helpers slowly
+- Fast kernels now declare only the constant memory the attack actually reads. One 32k slice was
+  declared for every attack, where the mask attack reads 4k of it and the combinator attack reads
+  none, so those kernels return 28k and 32k of the 64k constant budget to their own tables
 
 ## Attack modes and candidate input
 

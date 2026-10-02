@@ -92,9 +92,20 @@ DECLSPEC u32 hc_funnelshift_r (const u32 lo, const u32 hi, const int shift)
 
 #if ATTACK_EXEC == 11
 
-CONSTANT_VK u32 generic_constant[8192]; // 32k
+// Only the straight and mask attacks read this slice, and they need very different amounts of it.
+// A rule chunk is KERNEL_RULES kernel_rule_t, which is 32k exactly, while all three of the mask
+// attack's views of the slice come to 4k: bf_t[KERNEL_BFS], bs_word_t indexed by il_pos / 32, and
+// u32x indexed by il_pos / VECT_SIZE, with il_pos bounded by KERNEL_BFS. Declaring one 32k buffer
+// for every attack spent 28k of a 64k constant budget that the kernel's own tables could use.
+//
+// The combinator attack reads its buffers from global memory and never touches the slice, so it
+// declares nothing, which is what every backend other than CUDA and HIP already does for all of
+// them. PCFG also reads from global, but the host borrows this symbol by name when the device
+// engine applies the rules itself, and that lookup is a hard failure if the symbol is absent, so
+// PCFG keeps the full declaration.
 
 #if   ATTACK_KERN == 0
+CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   ((const kernel_rule_t *) generic_constant)
 #define words_buf_s g_words_buf_s
@@ -105,11 +116,13 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 4
+CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
+CONSTANT_VK u32 generic_constant[1024]; // 4k
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)
@@ -325,9 +338,20 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
 #if ATTACK_EXEC == 11
 
-CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
+// Only the straight and mask attacks read this slice, and they need very different amounts of it.
+// A rule chunk is KERNEL_RULES kernel_rule_t, which is 32k exactly, while all three of the mask
+// attack's views of the slice come to 4k: bf_t[KERNEL_BFS], bs_word_t indexed by il_pos / 32, and
+// u32x indexed by il_pos / VECT_SIZE, with il_pos bounded by KERNEL_BFS. Declaring one 32k buffer
+// for every attack spent 28k of a 64k constant budget that the kernel's own tables could use.
+//
+// The combinator attack reads its buffers from global memory and never touches the slice, so it
+// declares nothing, which is what every backend other than CUDA and HIP already does for all of
+// them. PCFG also reads from global, but the host borrows this symbol by name when the device
+// engine applies the rules itself, and that lookup is a hard failure if the symbol is absent, so
+// PCFG keeps the full declaration.
 
 #if   ATTACK_KERN == 0
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   ((const kernel_rule_t *) generic_constant)
 #define words_buf_s g_words_buf_s
@@ -338,11 +362,13 @@ CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 4
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
+CONSTANT_VK u32 generic_constant[1024] __attribute__((used)); // 4k
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)

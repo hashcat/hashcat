@@ -77,9 +77,6 @@ int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_devi
 
 u64 gidvid_to_feed_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
 
-int copy_pws_idx                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest);
-int copy_pws_comp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest);
-
 bool is_opti_kernel_no_pcfg                 (const hashcat_ctx_t *hashcat_ctx);
 
 int choose_kernel                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune);

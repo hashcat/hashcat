@@ -322,41 +322,24 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     while (gidvid_blk < pws_cnt)
     {
-      // copy the pw indexes from device for this block
-
       u64 remain  = pws_cnt - gidvid_blk;
       u64 blk_cnt = MIN (remain, blk_cnt_max);
 
-      // Under --stdout no hash kernel runs, so nothing on the device has touched d_pws_idx or
-      // d_pws_comp since run_copy () uploaded them from these very host buffers. pws_idx_blk and
-      // pws_comp_blk are those host buffers, so reading the device back writes the same bytes where
-      // they already are. Only the first block can skip it: a later one would have to be moved to
-      // the front of the buffer, which is what the copy is for.
-
-      const bool pws_already_on_host = (gidvid_blk == 0);
-
-      if (pws_already_on_host == false)
-      {
-        rc = copy_pws_idx (hashcat_ctx, device_param, gidvid_blk, blk_cnt, pws_idx_blk);
-
-        if (rc == -1) break;
-      }
+      // The first block is always the whole launch, so there is never a second one. blk_cnt_max is
+      // size_pws_idx divided by one entry, and size_pws_idx holds kernel_power_max + 1 of them
+      // because run_copy () reads a sentinel entry one past the last word. pws_cnt is at most
+      // kernel_power_max, so remain is always below blk_cnt_max.
+      //
+      // That is also why nothing is read back from the device here. Under --stdout no hash kernel
+      // runs, and run_copy () uploaded the index and the words from pws_idx_blk and pws_comp_blk,
+      // which are the host buffers read below, so they already hold what this needs. A second block
+      // would have had to be moved to the front of those buffers, and that is what the two reads
+      // this used to make were for.
 
       const u32 off_blk = (blk_cnt > 0) ? pws_idx_blk[0].off : 0;
 
       const pw_idx_t *pw_idx      = device_param->pws_idx;
       const pw_idx_t *pw_idx_last = pw_idx + (blk_cnt - 1);
-
-      // copy the pw buffer data from device for this block
-
-      u32 copy_cnt = (pw_idx_last->off + pw_idx_last->cnt) - pws_idx_blk->off;
-
-      if (pws_already_on_host == false)
-      {
-        rc = copy_pws_comp (hashcat_ctx, device_param, off_blk, copy_cnt, pws_comp_blk);
-
-        if (rc == -1) break;
-      }
 
       if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
       {
