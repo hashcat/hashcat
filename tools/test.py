@@ -577,7 +577,7 @@ def is_file_only(mode):
 
 
 def is_bridged(mode):
-  # A bridged mode does its hashing on an assimilation bridge (a Python interpreter for 72000/73000),
+  # A bridged mode does its hashing on an assimilation bridge (a Python interpreter for 73000),
   # named by BRIDGE_NAME in the module. The bridge hardware is chosen by the hash-mode, never by -D.
   return b"BRIDGE_NAME" in module_source(mode)
 
