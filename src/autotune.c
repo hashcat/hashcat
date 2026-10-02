@@ -489,7 +489,7 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  if ((hashconfig->opts_type & OPTS_TYPE_INIT2) == 0) return;
+  if ((hashconfig->kern_bits & KERN_BIT_INIT2) == 0) return;
 
   const u32 threads_sav = device_param->kernel_threads;
 
@@ -501,7 +501,7 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 0, kernel_power, false, 0, true);
 
-  if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+  if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
   {
     run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, 0, kernel_power, false, 0, true);
   }
@@ -750,7 +750,7 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   double per_loop2  = 0;
   double base_msec2 = 0;
 
-  if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+  if (hashconfig->kern_bits & KERN_BIT_LOOP2)
   {
     if (hashes->salts_buf != NULL) work2 = (double) hashes->salts_buf[0].salt_iter2;
 
@@ -1113,7 +1113,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0, true);
 
-      if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+      if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
       {
         device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_2P], kernel_threads_max);
 

@@ -179,6 +179,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = yescrypt_module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = yescrypt_module_kernel_threads_max;
   module_ctx->module_kernel_threads_min       = yescrypt_module_kernel_threads_min;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

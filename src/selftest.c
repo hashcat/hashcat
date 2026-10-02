@@ -160,7 +160,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
       {
         device_param->kernel_param.il_cnt = 1;
 
-        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+        if (hashconfig->kern_bits & KERN_BIT_TM)
         {
           memset (&pw, 0, sizeof (pw));
 
@@ -377,12 +377,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       if (run_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 1) == -1) return -1;
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_INIT)
+    if (hashconfig->kern_bits & KERN_BIT_INIT)
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, 1, false, 0, false) == -1) return -1;
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+    if (hashconfig->kern_bits & KERN_BIT_HOOK12)
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, 0, 1, false, 0, false) == -1) return -1;
 
@@ -430,7 +430,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
     {
       device_param->kernel_param.salt_repeat = salt_repeat;
 
-      if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+      if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, 1, false, 0, false) == -1) return -1;
       }
@@ -446,12 +446,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
         device_param->kernel_param.loop_pos = loop_pos;
         device_param->kernel_param.loop_cnt = loop_left;
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, 1, false, 0, false) == -1) return -1;
         }
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP_EXTENDED)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, 0, 1, false, 0, false) == -1) return -1;
         }
@@ -533,7 +533,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
         }
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+      if (hashconfig->kern_bits & KERN_BIT_HOOK23)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, 0, 1, false, 0, false) == -1) return -1;
 
@@ -570,7 +570,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       }
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+    if (hashconfig->kern_bits & KERN_BIT_INIT2)
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 0, 1, false, 0, false) == -1) return -1;
     }
@@ -579,12 +579,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
     {
       device_param->kernel_param.salt_repeat = salt_repeat;
 
-      if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+      if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, 0, 1, false, 0, false) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+      if (hashconfig->kern_bits & KERN_BIT_LOOP2)
       {
         const u32 iter2 = salt_buf->salt_iter2;
 
@@ -658,33 +658,33 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       device_param->kernel_param.loop_pos = 0;
       device_param->kernel_param.loop_cnt = 1;
 
-      if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+      if (hashconfig->kern_bits & KERN_BIT_AUX1)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 0, 1, false, 0, false) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+      if (hashconfig->kern_bits & KERN_BIT_AUX2)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 0, 1, false, 0, false) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+      if (hashconfig->kern_bits & KERN_BIT_AUX3)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 0, 1, false, 0, false) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+      if (hashconfig->kern_bits & KERN_BIT_AUX4)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 0, 1, false, 0, false) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_AUX5)
+      if (hashconfig->kern_bits & KERN_BIT_AUX5)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, 0, 1, false, 0, false) == -1) return -1;
       }
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_COMP)
+    if (hashconfig->kern_bits & KERN_BIT_COMP)
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0, false) == -1) return -1;
     }

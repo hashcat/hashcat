@@ -393,8 +393,12 @@ have to act on rather than one you will simply notice.
   removed matching and forced-work-item flags have no replacement
 - Bridges must use "bridge_salt_pos()" and "salt_per_pw" to select the per-candidate salt in
   association attacks
-- Modules may declare a fifth auxiliary kernel with "OPTS_TYPE_AUX5". It reuses the bit formerly
-  assigned to the removed "OPTS_TYPE_PT_ADD02" flag
+- The kernels a session runs are a bit mask over "hc_dev_kern_t" now, in "hashconfig_t.kern_bits". A
+  module names the optional ones it provides in a new "module_kern_bits()" hook, built from
+  "KERN_BIT_*" constants, and the 16 "OPTS_TYPE" flags that used to say this are removed: INIT, LOOP, COMP,
+  LOOP_PREPARE, LOOP_EXTENDED, HOOK12, HOOK23, INIT2, LOOP2_PREPARE, LOOP2, TM_KERNEL and AUX1 to
+  AUX5. hashcat decides the rest from the attack mode and the hash mode in
+  "hashconfig_kern_bits_init()", so the backend only asks whether a bit is set
 - Native builds now target the build processor. Set "MAINTAINER_MODE=1" for distributable builds or
   "MCPU=<core>" to choose one explicitly. Raspberry Pi targets may be read from "/proc/cpuinfo",
   and mixed native and cross-compilation targets are rejected

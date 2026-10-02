@@ -493,6 +493,41 @@ typedef enum hc_dev_kern
 
 } hc_dev_kern_t;
 
+// The kernels a session can choose to run, as one bit each for hashconfig_t.kern_bits: hashcat turns
+// on the ones it decides from the attack mode and the hash mode, a module adds the ones it provides
+// in module_kern_bits (), and a bridge that replaces a kernel turns its bit back off. Each bit is
+// its own hc_dev_kern_t index, so the two cannot fall out of step, and the utility kernels get none
+// because a session never chooses them.
+//
+// The first three slots carry two different sets of kernels, so they have a name for each. A mode
+// with its own KDF hashes in _init, _loop and _comp. A mode that hashes inside the cracking kernel
+// has no use for those and holds its length bounded kernels there instead, with the fourth slot for
+// the one kernel that takes any length. Nothing uses both sets, so the name at a use site says
+// which kind of mode it is reading about.
+
+#define KERN_BIT_INIT           (1ULL << HC_DEV_KERN_1)
+#define KERN_BIT_LOOP           (1ULL << HC_DEV_KERN_2)
+#define KERN_BIT_COMP           (1ULL << HC_DEV_KERN_3)
+
+#define KERN_BIT_04             (1ULL << HC_DEV_KERN_1)
+#define KERN_BIT_08             (1ULL << HC_DEV_KERN_2)
+#define KERN_BIT_16             (1ULL << HC_DEV_KERN_3)
+#define KERN_BIT_XX             (1ULL << HC_DEV_KERN_4)
+
+#define KERN_BIT_LOOP_PREPARE   (1ULL << HC_DEV_KERN_2P)
+#define KERN_BIT_LOOP_EXTENDED  (1ULL << HC_DEV_KERN_2E)
+#define KERN_BIT_HOOK12         (1ULL << HC_DEV_KERN_12)
+#define KERN_BIT_HOOK23         (1ULL << HC_DEV_KERN_23)
+#define KERN_BIT_INIT2          (1ULL << HC_DEV_KERN_INIT2)
+#define KERN_BIT_LOOP2_PREPARE  (1ULL << HC_DEV_KERN_LOOP2P)
+#define KERN_BIT_LOOP2          (1ULL << HC_DEV_KERN_LOOP2)
+#define KERN_BIT_TM             (1ULL << HC_DEV_KERN_TM)
+#define KERN_BIT_AUX1           (1ULL << HC_DEV_KERN_AUX1)
+#define KERN_BIT_AUX2           (1ULL << HC_DEV_KERN_AUX2)
+#define KERN_BIT_AUX3           (1ULL << HC_DEV_KERN_AUX3)
+#define KERN_BIT_AUX4           (1ULL << HC_DEV_KERN_AUX4)
+#define KERN_BIT_AUX5           (1ULL << HC_DEV_KERN_AUX5)
+
 // The programs a device builds. The hashing kernels come out of the main one, the utility kernels
 // out of the shared one, and the mask processor and the amplifier each have their own. A program is
 // a CUmodule, a hipModule_t, a mtl_library or a cl_program depending on the backend, and all four
@@ -694,8 +729,8 @@ typedef enum opts_type
   OPTS_TYPE_PT_UPPER                 = (1ULL <<  2),
   OPTS_TYPE_PT_LOWER                 = (1ULL <<  3),
   OPTS_TYPE_PT_ADD01                 = (1ULL <<  4),
-  // Bit 5 held OPTS_TYPE_PT_ADD02, which no module ever set and nothing ever read. It is
-  // OPTS_TYPE_AUX5 below, kept with the rest of its family rather than in numeric order.
+  // Bit 5 held OPTS_TYPE_PT_ADD02, which no module ever set and nothing ever read, and then
+  // OPTS_TYPE_AUX5. Both are gone and the bit is free.
   OPTS_TYPE_PT_ADD80                 = (1ULL <<  6),
   OPTS_TYPE_PT_ADDBITS14             = (1ULL <<  7),
   OPTS_TYPE_PT_ADDBITS15             = (1ULL <<  8),
@@ -721,30 +756,20 @@ typedef enum opts_type
   OPTS_TYPE_MT_HEX                   = (1ULL << 28), // mask is always in hex
   OPTS_TYPE_HASH_COPY                = (1ULL << 29),
   OPTS_TYPE_HASH_SPLIT               = (1ULL << 30),
-  OPTS_TYPE_INIT                     = (1ULL << 31), // Added v7, since bridge can fully replace these, but are set by default automatically
-  OPTS_TYPE_LOOP                     = (1ULL << 32), // Added v7, since bridge can fully replace these, but are set by default automatically
-  OPTS_TYPE_COMP                     = (1ULL << 33), // Added v7, since bridge can fully replace these, but are set by default automatically
-  OPTS_TYPE_LOOP_PREPARE             = (1ULL << 34), // a kernel which is called each time before _loop kernel started.
                                                      // like a hook12 kernel but without extra buffers.
-  OPTS_TYPE_LOOP_EXTENDED            = (1ULL << 35), // a kernel which is called each time normal _loop kernel finished.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
-  OPTS_TYPE_HOOK12                   = (1ULL << 36),
-  OPTS_TYPE_HOOK23                   = (1ULL << 37),
-  OPTS_TYPE_INIT2                    = (1ULL << 38),
-  OPTS_TYPE_LOOP2_PREPARE            = (1ULL << 39), // same as OPTS_TYPE_LOOP_PREPARE but for loop2 kernel
-  OPTS_TYPE_LOOP2                    = (1ULL << 40),
-  OPTS_TYPE_AUX1                     = (1ULL << 41),
-  OPTS_TYPE_AUX2                     = (1ULL << 42),
-  OPTS_TYPE_AUX3                     = (1ULL << 43),
-  OPTS_TYPE_AUX4                     = (1ULL << 44),
-  OPTS_TYPE_AUX5                     = (1ULL <<  5), // the bit freed above, out of order because no high bit is left
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
   OPTS_TYPE_BINARY_HASHFILE_OPTIONAL = (1ULL << 46), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06                 = (1ULL << 47),
   OPTS_TYPE_KEYBOARD_MAPPING         = (1ULL << 48),
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
-  OPTS_TYPE_TM_KERNEL                = (1ULL << 50),
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
+
+  // Bits 31 to 44 and bit 50 are free. They held the 16 flags that said which kernels a session
+  // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
+  // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
+  // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.
+
   OPTS_TYPE_COPY_TMPS                = (1ULL << 52), // if we want to use data from tmps buffer (for example get the PMK in WPA)
   OPTS_TYPE_POTFILE_NOPASS           = (1ULL << 53), // sometimes the password should not be printed to potfile
   OPTS_TYPE_DYNAMIC_SHARED           = (1ULL << 54), // use dynamic shared memory (note: needs special kernel changes)
@@ -757,7 +782,7 @@ typedef enum opts_type
   OPTS_TYPE_AUTODETECT_DISABLE       = (1ULL << 61), // skip autodetect engine
   OPTS_TYPE_STOCK_MODULE             = (1ULL << 62), // module included with hashcat default distribution
   OPTS_TYPE_MULTIHASH_DESPITE_ESALT  = (1ULL << 63)  // overrule multihash cracking check same salt but not same esalt
-//OPTS_TYPE_MAXIMUM_ACCEL            = (1ULL << 64)  // try to maximize kernel-accel during autotune
+//OPTS_TYPE_MAXIMUM_ACCEL            = (1ULL << 31)  // try to maximize kernel-accel during autotune
 
 } opts_type_t;
 
@@ -1416,6 +1441,7 @@ typedef struct hashconfig
   int   hash_mode;
   u32   salt_type;
   u32   attack_exec;
+  u64   kern_bits;
   u32   kern_type;
   u32   dgst_size;
   u32   opti_type;
@@ -4124,6 +4150,7 @@ typedef struct module_ctx
   u32         (*module_kernel_loops_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_kernel_threads_min)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_kernel_threads_max)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_kern_bits)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_length_sort)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

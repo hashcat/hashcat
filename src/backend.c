@@ -2236,23 +2236,17 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   {
     if (user_options->attack_mode == ATTACK_MODE_BF)
     {
-      if (user_options->slow_candidates == true)
+      if (hashconfig->kern_bits & KERN_BIT_TM)
       {
-      }
-      else
-      {
-        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
-        {
-          const u32 size_tm = device_param->size_tm;
+        const u32 size_tm = device_param->size_tm;
 
-          if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TM_C], size_tm) == -1) return -1;
+        if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TM_C], size_tm) == -1) return -1;
 
-          if (run_kernel_tm (hashcat_ctx, device_param) == -1) return -1;
+        if (run_kernel_tm (hashcat_ctx, device_param) == -1) return -1;
 
-          if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_BFS_C], 0, device_param->d_buf[HC_DEV_BUF_TM_C], 0, size_tm) == -1) return -1;
+        if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_BFS_C], 0, device_param->d_buf[HC_DEV_BUF_TM_C], 0, size_tm) == -1) return -1;
 
-          if (hc_dev_queue_flush (hashcat_ctx, device_param) == -1) return -1;
-        }
+        if (hc_dev_queue_flush (hashcat_ctx, device_param) == -1) return -1;
       }
     }
 
@@ -2366,12 +2360,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (run_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], pws_cnt) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_INIT)
+      if (hashconfig->kern_bits & KERN_BIT_INIT)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+      if (hashconfig->kern_bits & KERN_BIT_HOOK12)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2441,7 +2435,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         device_param->kernel_param.salt_repeat = salt_repeat;
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
         }
@@ -2470,12 +2464,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             device_param->kernel_param.loop_pos = loop_pos;
             device_param->kernel_param.loop_cnt = loop_left;
 
-            if (hashconfig->opts_type & OPTS_TYPE_LOOP)
+            if (hashconfig->kern_bits & KERN_BIT_LOOP)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+            if (hashconfig->kern_bits & KERN_BIT_LOOP_EXTENDED)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
             }
@@ -2537,7 +2531,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             }
           }
 
-          if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+          if (hashconfig->kern_bits & KERN_BIT_HOOK23)
           {
             if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2602,7 +2596,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     // note: they also do not influence the performance screen
     // in case you want to use this, this cane make sense only if your input data comes out of tmps[]
 
-    if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+    if (hashconfig->kern_bits & KERN_BIT_INIT2)
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
     }
@@ -2615,12 +2609,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         device_param->kernel_param.salt_repeat = salt_repeat;
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
         }
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP2)
         {
           u32 iter = hashes->salts_buf[salt_pos].salt_iter2;
 
@@ -2697,7 +2691,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             int aux_cnt = 0;
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+            if (hashconfig->kern_bits & KERN_BIT_AUX1)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2706,7 +2700,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               aux_cnt++;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+            if (hashconfig->kern_bits & KERN_BIT_AUX2)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2715,7 +2709,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               aux_cnt++;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+            if (hashconfig->kern_bits & KERN_BIT_AUX3)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2724,7 +2718,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               aux_cnt++;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+            if (hashconfig->kern_bits & KERN_BIT_AUX4)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2733,7 +2727,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               aux_cnt++;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX5)
+            if (hashconfig->kern_bits & KERN_BIT_AUX5)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2744,7 +2738,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             if (aux_cnt == 0)
             {
-              if (hashconfig->opts_type & OPTS_TYPE_COMP)
+              if (hashconfig->kern_bits & KERN_BIT_COMP)
               {
                 if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
               }
@@ -2772,7 +2766,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
       else
       {
-        if (hashconfig->opts_type & OPTS_TYPE_COMP)
+        if (hashconfig->kern_bits & KERN_BIT_COMP)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
         }
@@ -2803,7 +2797,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     }
     */
 
-    if ((hashconfig->opts_type & OPTS_TYPE_HOOK12) || (hashconfig->opts_type & OPTS_TYPE_HOOK23))
+    if ((hashconfig->kern_bits & KERN_BIT_HOOK12) || (hashconfig->kern_bits & KERN_BIT_HOOK23))
     {
       if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_HOOKS], pws_cnt * hashconfig->hook_size) == -1) return -1;
     }
@@ -13131,79 +13125,45 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+    // A single-hash build compares against the one digest inside the kernel, which is a different
+    // kernel from the one that walks a list, so the two families are named apart. Which of them a
+    // session builds is hashconfig_kern_bits_init ()'s decision, read here as bits.
+
+    const char sm = (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) ? 's' : 'm';
+
+    if (hashconfig->kern_bits & KERN_BIT_04)
     {
-      if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
-      {
-        // kernel1
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%c%02d", kern_type, sm, 4);
 
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 4);
-
-        SETUP_KERNEL (HC_DEV_KERN_1, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel2
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 8);
-
-        SETUP_KERNEL (HC_DEV_KERN_2, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel3
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 16);
-
-        SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
-      else
-      {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_sxx", kern_type);
-
-        SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
-    }
-    else
-    {
-      if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
-      {
-        // kernel1
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 4);
-
-        SETUP_KERNEL (HC_DEV_KERN_1, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel2
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 8);
-
-        SETUP_KERNEL (HC_DEV_KERN_2, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel3
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 16);
-
-        SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
-      else
-      {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_mxx", kern_type);
-
-        SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
+      SETUP_KERNEL (HC_DEV_KERN_1, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
-    if (user_options->slow_candidates == true)
+    if (hashconfig->kern_bits & KERN_BIT_08)
     {
-    }
-    else
-    {
-      if (user_options->attack_mode == ATTACK_MODE_BF)
-      {
-        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
-        {
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%c%02d", kern_type, sm, 8);
 
-          SETUP_KERNEL (HC_DEV_KERN_TM, HC_DEV_PROGRAM_MAIN, kernel_name);
-        }
-      }
+      SETUP_KERNEL (HC_DEV_KERN_2, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_16)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%c%02d", kern_type, sm, 16);
+
+      SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_XX)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%cxx", kern_type, sm);
+
+      SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_TM)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_TM, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
   }
   else
@@ -13226,7 +13186,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
     {
       // kernel2p
 
@@ -13235,7 +13195,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       SETUP_KERNEL (HC_DEV_KERN_2P, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP_EXTENDED)
     {
       // kernel2e
 
@@ -13246,7 +13206,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // kernel12
 
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+    if (hashconfig->kern_bits & KERN_BIT_HOOK12)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook12", kern_type);
 
@@ -13255,7 +13215,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // kernel23
 
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+    if (hashconfig->kern_bits & KERN_BIT_HOOK23)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook23", kern_type);
 
@@ -13264,7 +13224,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // init2
 
-    if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+    if (hashconfig->kern_bits & KERN_BIT_INIT2)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_init2", kern_type);
 
@@ -13273,7 +13233,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // loop2 prepare
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2_prepare", kern_type);
 
@@ -13282,7 +13242,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // loop2
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP2)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
 
@@ -13291,7 +13251,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // aux1
 
-    if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+    if (hashconfig->kern_bits & KERN_BIT_AUX1)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", kern_type);
 
@@ -13300,7 +13260,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // aux2
 
-    if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+    if (hashconfig->kern_bits & KERN_BIT_AUX2)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", kern_type);
 
@@ -13309,7 +13269,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // aux3
 
-    if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+    if (hashconfig->kern_bits & KERN_BIT_AUX3)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", kern_type);
 
@@ -13318,7 +13278,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // aux4
 
-    if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+    if (hashconfig->kern_bits & KERN_BIT_AUX4)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
 
@@ -13327,7 +13287,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // aux5
 
-    if (hashconfig->opts_type & OPTS_TYPE_AUX5)
+    if (hashconfig->kern_bits & KERN_BIT_AUX5)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux5", kern_type);
 
@@ -13352,7 +13312,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
       SETUP_KERNEL (HC_DEV_KERN_MP_R, HC_DEV_PROGRAM_MP, "r_markov");
 
-      if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+      if (hashconfig->kern_bits & KERN_BIT_TM)
       {
         if (device_param->is_opencl == true)
         {

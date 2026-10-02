@@ -512,24 +512,12 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_MT_HEX`: Interprets the mask as hexadecimal data.
 * `OPTS_TYPE_HASH_COPY`: Preserves the original input line in `hash_info->orighash` for formats that contain unused data not stored in `salt_t` or the esalt. Use it only when reconstruction is impractical. Reconstructing a line normally verifies that the decoder retained every required field, while copying every original line consumes additional host memory.
 * `OPTS_TYPE_HASH_SPLIT`: Marks a line that contains multiple independent hashes, such as an LM value stored as one 128-bit string but composed of two 64-bit hashes.
-* `OPTS_TYPE_LOOP_PREPARE`: Adds an `_loop_prepare` kernel. hashcat runs it once before the `_loop` sequence for each salt repeat, making it useful for state that must be reset before the iteration chunks begin.
-* `OPTS_TYPE_LOOP_EXTENDED`: Runs a `_loop_extended` kernel after every `_loop` invocation, before the final value is ready. This exposes intermediate values between bounded iteration chunks for algorithms that can use them.
-* `OPTS_TYPE_HOOK12`: Runs a device hook kernel and a host callback between `_init` and `_loop`. The device kernel copies selected intermediate data into a transfer buffer, hashcat moves it to the host, and worker threads run the module callback before copying the updated data back. Use this for required processing that has no device implementation. Nonconstant buffers are thread-safe.
-* `OPTS_TYPE_HOOK23`: Provides the same device-to-host hook between `_loop` and `_comp`, after the final loop values are available. Most hook-based modes use this position.
-* `OPTS_TYPE_INIT2`: Adds a second initialization and loop sequence for formats with two expensive derivation stages. iTunes 10+, for example, feeds the output of the older 10,000-round SHA256 KDF into a new 10,000,000-round KDF. `OPTS_TYPE_INIT2` and `OPTS_TYPE_LOOP2` let both stages run in bounded chunks that preserve responsiveness and avoid driver watchdog timeouts.
-* `OPTS_TYPE_LOOP2_PREPARE`: Adds an `_loop2_prepare` kernel with the same role before the secondary `_loop2` sequence.
-* `OPTS_TYPE_LOOP2`: Adds the secondary loop sequence described under `OPTS_TYPE_INIT2`.
-* `OPTS_TYPE_AUX1`: Adds an auxiliary verification kernel for formats that share a KDF but use its result differently by version. Separating these branches can reduce instruction-cache pressure, improve JIT output, and avoid combining incompatible shared-memory requirements. The regular `_comp` kernel still runs but should remain empty.
-* `OPTS_TYPE_AUX2`: See OPTS_TYPE_AUX1, but for a different branch.
-* `OPTS_TYPE_AUX3`: See OPTS_TYPE_AUX1, but for a different branch.
-* `OPTS_TYPE_AUX4`: See OPTS_TYPE_AUX1, but for a different branch.
-* `OPTS_TYPE_AUX5`: See OPTS_TYPE_AUX1, but for a different branch. This one sits on bit 5, which OPTS_TYPE_PT_ADD02 used to hold. That flag was removed because no module set it and no code read it, while every high bit was already occupied. A plugin outside the tree that still sets OPTS_TYPE_PT_ADD02 will not fail to compile if it defines the name itself, it will quietly ask for an AUX5 kernel that does not exist, so remove the flag rather than carrying it forward.
+* `module_kern_bits()`: Not an `OPTS_TYPE` flag. Returns the `KERN_BIT_*` constants, ored together, naming the optional kernels this mode provides, and a mode with none leaves the hook alone. Each one replaces the `OPTS_TYPE` flag of the same name: `KERN_BIT_LOOP_PREPARE` a `_loop_prepare` kernel run before each `_loop`, `KERN_BIT_LOOP_EXTENDED` a `_loop_extended` run after each one, `KERN_BIT_HOOK12` and `KERN_BIT_HOOK23` the `_hook12` and `_hook23` device hooks, `KERN_BIT_INIT2`, `KERN_BIT_LOOP2_PREPARE` and `KERN_BIT_LOOP2` a second derivation stage, `KERN_BIT_TM` the mask table kernel, and `KERN_BIT_AUX1` to `KERN_BIT_AUX5` auxiliary verification kernels for formats that share a KDF but use its result differently by version. hashcat decides the rest itself, so a module never names `KERN_BIT_INIT`, `KERN_BIT_LOOP` or `KERN_BIT_COMP`, nor the `KERN_BIT_04`, `KERN_BIT_08`, `KERN_BIT_16` and `KERN_BIT_XX` cracking kernels that share those first three bits. A plugin outside the tree that still sets one of the 16 removed flags will no longer compile.
 * `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_05200.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
 * `OPTS_TYPE_BINARY_HASHFILE_OPTIONAL`: Allows a mode with `OPTS_TYPE_BINARY_HASHFILE` to accept either binary files or text hashes, including hashes on the command line. The binary path converts its records into the form consumed by the text decoder. Mode 22000 is an example.
 * `OPTS_TYPE_PT_ADD06`: Same as OPTS_TYPE_PT_ADD01 but use 0x06 byte instead, which is the SHA-3 domain separation byte. See `src/modules/module_17300.c` for an example.
 * `OPTS_TYPE_KEYBOARD_MAPPING`: Enables kernel-side character remapping from a table loaded by the host. See `docs/keyboard-layout-mapping.md`.
 * `OPTS_TYPE_DEEP_COMP_KERNEL`: Makes hashcat iterate through the esalts associated with each `salt_t` during `_comp`. See "Choosing between salt_t and an esalt" and `src/modules/module_22000.c`.
-* `OPTS_TYPE_TM_KERNEL`: Runs a preprocessing kernel before each fast-hash kernel invocation. Bitsliced implementations commonly use it to transpose modifier data, such as a 32-by-32 matrix. Set identical values through `module_kernel_loops_min()` and `module_kernel_loops_max()` when the transformation requires fixed-size blocks.
 * `OPTS_TYPE_SUGGEST_KG`: Warns that the mode can produce collisions or false positives and suggests option `--keep-guessing`. It does not enable that option because no inverse option exists.
 * `OPTS_TYPE_COPY_TMPS`: Copies `tmps` from the device after a crack so `module_build_plain_postprocess()` can reconstruct additional password data. PKZIP mode `src/modules/module_20510.c` uses leaked password bytes, while VeraCrypt uses the value to report the cracked PIM with the password.
 * `OPTS_TYPE_POTFILE_NOPASS`: Omits the password when recording a cracked hash in the potfile. Use it when overlapping formats make password parsing ambiguous or when the recovered value is not directly usable, as with a WPA PMK.
@@ -1058,17 +1046,53 @@ A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only 
 
 `feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
-Remove the `module_dictstat_disable` registration from `module_init()`. Three optional hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, while `module_hash_hints` exposes account context used by attack mode 9. Assigning all three to `MODULE_DEFAULT` preserves the previous behavior.
+Remove the `module_dictstat_disable` registration from `module_init()`. Four hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, and `module_kern_bits` names the optional kernels the mode provides. Assigning all four to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
 
-The following command applies all four changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+The following command applies all five changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
 
 ```
 sed -i -e '/module_ctx->module_dictstat_disable/d' \
        -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_kern_type /i\  module_ctx->module_kern_bits                = MODULE_DEFAULT;' \
        -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
        src/modules/module_*.c
 ```
+
+The 16 `OPTS_TYPE` flags that said which kernels a mode runs are removed, so a plugin that set one of them no longer compiles: `OPTS_TYPE_INIT`, `OPTS_TYPE_LOOP`, `OPTS_TYPE_COMP`, `OPTS_TYPE_LOOP_PREPARE`, `OPTS_TYPE_LOOP_EXTENDED`, `OPTS_TYPE_HOOK12`, `OPTS_TYPE_HOOK23`, `OPTS_TYPE_INIT2`, `OPTS_TYPE_LOOP2_PREPARE`, `OPTS_TYPE_LOOP2`, `OPTS_TYPE_TM_KERNEL` and `OPTS_TYPE_AUX1` to `OPTS_TYPE_AUX5`. The sed above only registers the hook, so a mode that set any of the optional ones has to name them: drop the flags from its `OPTS_TYPE`, add a `KERN_BITS` constant oring the `KERN_BIT_*` of the same name, and return it from a `module_kern_bits()` callback in place of the `MODULE_DEFAULT` the sed wrote. `KERN_BIT_INIT`, `KERN_BIT_LOOP` and `KERN_BIT_COMP` are not among them, because hashcat turns those on itself for a mode that hashes outside the cracking kernel.
+
+Mode 11600 is the smallest worked example. It used one kernel flag, and porting it is four edits:
+drop the flag, add the constant, add the callback, and point the registration at it instead of
+`MODULE_DEFAULT`.
+
+```
+-static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+-                                  | OPTS_TYPE_PT_GENERATE_LE
+-                                  | OPTS_TYPE_SUGGEST_KG
+-                                  | OPTS_TYPE_HOOK23;
++static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
++                                  | OPTS_TYPE_PT_GENERATE_LE
++                                  | OPTS_TYPE_SUGGEST_KG;
++static const u64   KERN_BITS      = KERN_BIT_HOOK23;
+
++u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
+
+-  module_ctx->module_kern_bits                = MODULE_DEFAULT;
++  module_ctx->module_kern_bits                = module_kern_bits;
+```
+
+A mode naming more than one ors them, in the order the kernels run, as mode 17010 does with a
+`_loop_prepare` kernel and two auxiliary kernels:
+
+```
+static const u64   KERN_BITS      = KERN_BIT_LOOP_PREPARE
+                                  | KERN_BIT_AUX1
+                                  | KERN_BIT_AUX2;
+```
+
+The kernel sources need no change. A `_hook23` kernel is still named `m11600_hook23`, and the hook
+callbacks, the `_aux1` kernels and everything else keep their names and signatures. Only the way the
+module declares that it has them has moved.
 
 Callbacks `module_hook_extra_param_init()` and `module_hook_extra_param_term()` now take `hashcat_ctx_t *` as their first parameter. Add it to either implemented callback so its definition matches the interface type. Most plugins do not implement these hooks. The new context also gives them access to `event_log_warning()` and the other logging functions described above.
 

@@ -26,6 +26,7 @@ bool module_load     (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, cons
 void module_unload   (module_ctx_t *module_ctx);
 
 int         hashconfig_init                 (hashcat_ctx_t *hashcat_ctx);
+void        hashconfig_kern_bits_init       (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy              (hashcat_ctx_t *hashcat_ctx);
 
 const char *default_benchmark_mask          (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);

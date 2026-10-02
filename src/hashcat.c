@@ -1010,6 +1010,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   user_options_extra_init_late (hashcat_ctx);
 
+  hashconfig_kern_bits_init (hashcat_ctx);
+
   EVENT (EVENT_HASHCONFIG_POST);
 
   /**
