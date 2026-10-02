@@ -75,6 +75,10 @@ HC_API double hc_percent_display (const double percent);
 // On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
 bool hc_env_flag (const char *name, int *cache);
 
+// Byte value of an environment switch written in MiB, looked up once. 0 when the variable is unset,
+// which every caller reads as no limit. Pass a static i64 initialised to -1 as the cache.
+u64 hc_env_mib (const char *name, i64 *cache);
+
 // Bounded appenders for a fixed size output buffer, used by outfile.c and potfile.c to build one
 // cracked line. buf_sz is the whole buffer, and 1 byte is always kept back for the caller's trailing
 // null. A field that does not fit is truncated. Each returns the new length.

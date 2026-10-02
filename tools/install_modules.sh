@@ -24,163 +24,11 @@ fi
 # Sum of all exit codes
 ERRORS=0
 
-# Perl prints a warning block to stderr whenever LC_* names a locale the system does not have.
-# Several module test suites capture the output of a subprocess and compare it, so that injected
-# text makes them fail. The module is fine, the environment is not. Pin a locale that always exists.
-
-export LC_ALL=C.UTF-8
-
-# gcc 14 made an implicit function declaration an error rather than a warning. Some old XS modules
-# still rely on one and no longer compile, Crypt::DES among them, which alone takes Crypt::DES_EDE3
-# and every Authen::Passphrase variant down with it. ExtUtils::MakeMaker ignores CFLAGS, so the flag
-# has to travel in PERL_MM_OPT. Anything local::lib already put there has to be kept.
-#
-# It goes in OPTIMIZE and not in CCFLAGS. MakeMaker compiles with both, "$(CCFLAGS) $(OPTIMIZE)",
-# and either one given here replaces what the build worked out for itself. CCFLAGS is the one that
-# matters: replacing it drops the flags perl was built with, and it also drops any a module set for
-# itself. Both have bitten:
-#
-#   Digest::MurmurHash3 appends -x c++ to CCFLAGS so that its XS is compiled as C++ to match
-#   src/MurmurHash3.cpp. Lose that and the two halves link as different languages, so the module
-#   builds, installs, and then cannot be loaded at all:
-#     undefined symbol: MurmurHash3_x64_128
-#
-#   Perl's own ccflags carry -D_GNU_SOURCE, which is what makes glibc declare off64_t. Lose that
-#   and on glibc 2.43 perl.h itself stops compiling:
-#     perl.h:3358: error: unknown type name 'off64_t'
-#   which takes Variable::Magic with it, and under it B::Hooks::EndOfScope, namespace::clean,
-#   namespace::autoclean, Crypt::PBKDF2, Crypt::CBC, Mooish::Base and Bitcoin::Crypto.
-#
-# OPTIMIZE carries no such per module meaning, so appending to $Config{optimize} adds the flag and
-# changes nothing else. The quotes matter: PERL_MM_OPT is split into KEY=VALUE words, so an unquoted
-# multi word value delivers only its first flag.
-
-OPTIMIZE_COMPAT="$(perl -MConfig -e 'print $Config{optimize}') -Wno-implicit-function-declaration"
-
-if [ -n "${PERL_MM_OPT:-}" ]; then
-  export PERL_MM_OPT="${PERL_MM_OPT} OPTIMIZE='${OPTIMIZE_COMPAT}'"
-else
-  export PERL_MM_OPT="OPTIMIZE='${OPTIMIZE_COMPAT}'"
-fi
-
-# Digest::MurmurHash3 is the only C++ module in the lists below, so it is the only one that needs
-# g++ rather than gcc. On a machine with a C compiler but no C++ one it is also the only one that
-# fails, with "cannot execute cc1plus", which does not obviously mean "install g++".
-
-if ! command -v g++ > /dev/null 2>&1; then
-  echo "! g++ not found. Digest::MurmurHash3 is C++ and will be the one module that fails."
-  echo "  Run ./install_dependencies.sh first."
-  echo
-fi
-
 TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Names of everything that did not install, so the summary can say which rather than how many.
 
 FAILED_MODULES=""
-
-install_module ()
-{
-  local module="$1"
-
-  if cpanm "${module}" > /dev/null 2>&1; then
-    echo "  ok      ${module}"
-    return 0
-  fi
-
-  echo "  FAILED  ${module}"
-
-  FAILED_MODULES="${FAILED_MODULES} ${module}"
-
-  return 1
-}
-
-echo "> Installing perl deps ..."
-
-if [ ${IS_APPLE} -eq 1 ]; then
-  # workaround for test failed with Net::SSLeay on Apple
-  cpanm --notest Net::SSLeay
-else
-  cpanm Net::SSLeay
-fi
-
-ERRORS=$((ERRORS+$?))
-
-PERL_MODULES="
-Authen::Passphrase::LANManager
-Authen::Passphrase::MySQL323
-Authen::Passphrase::NTHash
-Authen::Passphrase::PHPass
-Bitcoin::Crypto
-Bitcoin::Crypto::Base58
-Compress::Zlib
-Convert::EBCDIC
-Crypt::Argon2
-Crypt::AuthEnc::GCM
-Crypt::Blowfish
-Crypt::Camellia
-Crypt::CBC
-Crypt::Cipher::Serpent
-Crypt::DES
-Crypt::DES_EDE3
-Crypt::Digest::BLAKE2s_256
-Crypt::Digest::RIPEMD160
-Crypt::Digest::RIPEMD320
-Crypt::Digest::Whirlpool
-Crypt::ECB
-Crypt::Eksblowfish::Bcrypt
-Crypt::Mode::CBC
-Crypt::Mode::CFB
-Crypt::Mode::ECB
-Crypt::MySQL
-Crypt::OpenSSH::ChachaPoly
-Crypt::OpenSSL::Bignum::CTX
-Crypt::Passwd::XS
-Crypt::PBKDF2
-Crypt::RC4
-Crypt::Rijndael
-Crypt::ScryptKDF
-Crypt::Skip32
-Crypt::Twofish
-Crypt::UnixCrypt_XS
-CryptX
-Data::Types
-Digest::CMAC
-Digest::CRC
-Digest::HMAC
-Digest::HMAC_MD5
-Digest::Keccak
-Digest::MD4
-Digest::MD5
-Digest::MurmurHash3
-Digest::Perl::MD5
-Digest::SHA
-Digest::SHA1
-Digest::SHA3
-Digest::SipHash
-Encode
-JSON
-LWP::Simple
-Math::BigInt
-MIME::Base64
-Module::Build
-Module::Build::Pluggable::XSUtil
-Net::DNS::RR::NSEC3
-Net::DNS::SEC
-POSIX
-"
-
-for perl_module in ${PERL_MODULES}; do
-  install_module "${perl_module}"
-done
-
-install_module "https://github.com/matrix/p5-Digest-BLAKE2.git"
-
-install_module "https://github.com/matrix/digest-gost.git"
-
-install_module "https://github.com/matrix/perl-Crypt-OpenSSL-EC.git"
-
-install_module "https://github.com/matrix/Digest--MD6.git"
 
 # checks for pyenv
 
@@ -196,8 +44,12 @@ if [ $? -eq 0 ]; then
 
   else
 
-    # enum last version available
-    latest=$(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]$" | tail -n 1)
+    # The newest final 3.x release pyenv offers. The patch number needs more than one digit: with a
+    # single [0-9] the pattern skips 3.14.10 and settles on 3.14.7, quietly installing an older python
+    # than the one asked for. The suffixed builds, 3.13.3t and the release candidates, stay out because
+    # they carry something after the patch number.
+
+    latest=$(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]+$" | tail -n 1)
 
     if [ $IS_APPLE -eq 1 ]; then
       if [ $IS_APPLE_SILICON -eq 0 ]; then
@@ -213,7 +65,7 @@ if [ $? -eq 0 ]; then
 
     # Enable it where the suite actually runs, which is the repository root, not wherever this
     # script was started from. pyenv local writes .python-version into the current directory and
-    # applies to that directory and below, so a pin written in tools/ leaves test.sh, which runs
+    # applies to that directory and below, so a pin written in tools/ leaves test.py, which runs
     # from the root, on the system python. The oracles then shell out to a bare python3 and get
     # one without pycryptodome:
     #
@@ -229,39 +81,47 @@ if [ $? -eq 0 ]; then
   fi
 fi
 
+# Without pyenv there is no interpreter this script is allowed to install into, so there is nothing
+# left for it to do. It used to carry on to the check at the end, which runs under whatever python3 is
+# on PATH. That check passes wherever the system python happens to carry pycryptodome already, so the
+# script could report the suite as usable and exit 0 having installed none of the pinned packages.
+
 if [ ${pyenv_enabled} -eq 0 ]; then
 
-  echo "! something is wrong with pyenv. Please setup latest version manually and re-run this script."
-  (( ERRORS++ ))
+  echo "! pyenv is not usable, so there is nothing to install into. Nothing was installed."
+  echo
+  echo "  tools/install_dependencies.sh installs pyenv. Run it, then open a new shell so the lines it"
+  echo "  appends to .bashrc take effect. Sourcing .bashrc from a script will not do, because the stock"
+  echo "  one returns before those lines when the shell is not interactive."
 
-else
-
-  echo "> Installing python3 deps ..."
-
-  # One file lists what the test modules import, so a contributor writing a module has one place
-  # to read and one place to add to.
-
-  pip3 install -r "${TOOLS_DIR}/requirements.txt"
-  ERRORS=$((ERRORS+$?))
-
-  # A python import that fails inside a test module is invisible from here. The module shells out
-  # to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
-  # error. Import each one now, while the cause is still in front of you.
-
-  PYTHON_MODULES="Crypto cryptography argon2 gostcrypto"
-
-  for python_module in ${PYTHON_MODULES}; do
-
-    if python3 -c "import ${python_module}" > /dev/null 2>&1; then
-      echo "  ok      ${python_module}"
-    else
-      echo "  FAILED  ${python_module}"
-      FAILED_MODULES="${FAILED_MODULES} ${python_module}"
-    fi
-
-  done
+  exit 1
 
 fi
+
+echo "> Installing python3 deps ..."
+
+# One file lists what the test modules import, so a contributor writing a module has one place
+# to read and one place to add to.
+
+pip3 install -r "${TOOLS_DIR}/requirements.txt"
+ERRORS=$((ERRORS+$?))
+
+# A python import that fails inside a test module is invisible from here. The module shells out
+# to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
+# error. Import each one now, while the cause is still in front of you.
+
+PYTHON_MODULES="Crypto cryptography argon2 gostcrypto crypt_r"
+
+for python_module in ${PYTHON_MODULES}; do
+
+  if python3 -c "import ${python_module}" > /dev/null 2>&1; then
+    echo "  ok      ${python_module}"
+  else
+    echo "  FAILED  ${python_module}"
+    FAILED_MODULES="${FAILED_MODULES} ${python_module}"
+  fi
+
+done
 
 echo
 
@@ -269,31 +129,35 @@ if [ -n "${FAILED_MODULES}" ]; then
 
   echo "> These did not install:"
 
-  for perl_module in ${FAILED_MODULES}; do
-    echo "    ${perl_module}"
+  for python_module in ${FAILED_MODULES}; do
+    echo "    ${python_module}"
   done
 
   echo
 
 fi
 
-# The check that actually matters. tools/test_module_runner.pl loads only the module for the mode it is asked
-# for, so a missing dependency costs the modes that need it and nothing else. What this catches is
-# the case where the perl environment itself is unusable, which makes the suite report
-# "Error : 0/0 not found" on every mode and reads as hashcat failing rather than as a setup
-# problem.
+# The check that actually matters. tools/test_module_runner.py loads only the module for the mode it
+# is asked for, so a missing dependency costs the modes that need it and nothing else. What this
+# catches is the case where the python environment itself is unusable, which makes the suite report
+# "Error : 0/0 not found" on every mode and reads as hashcat failing rather than as a setup problem.
 
-if ! python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | grep -q hashcat; then
+if python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | grep -q hashcat; then
 
-  echo "[ WARN ] tools/test_module_runner.py cannot generate hashes. Only the modes with a .py"
-  echo "         oracle are affected; test.sh runs each of those through it by default."
-  echo
+  # pip failing is a setup failure even when mode 1000 still works, because the suite would then run
+  # against whatever versions are already installed rather than against the pinned ones.
 
-fi
+  if [ ${ERRORS} -ne 0 ]; then
 
-if perl "${TOOLS_DIR}/test_module_runner.pl" single 0 2> /dev/null | grep -q hashcat; then
+    echo "[ FAIL ] tools/test_module_runner.py can generate hashes, but pip did not install the pinned set"
+    echo "         in tools/requirements.txt. The suite would run against whatever versions are already"
+    echo "         there. Read the pip output above and run this script again."
 
-  echo "[  OK  ] tools/test_module_runner.pl can generate hashes, the suite is usable"
+    exit 1
+
+  fi
+
+  echo "[  OK  ] tools/test_module_runner.py can generate hashes, the suite is usable"
 
   if [ -n "${FAILED_MODULES}" ]; then
     echo "         The modules above only affect the hash modes that need them."
@@ -303,8 +167,14 @@ if perl "${TOOLS_DIR}/test_module_runner.pl" single 0 2> /dev/null | grep -q has
 
 fi
 
-echo "[ FAIL ] tools/test_module_runner.pl cannot generate hashes. The suite would report 'Error : 0/0' on"
-echo "         every mode, which is a setup failure and not a hashcat one. Fix the modules above"
-echo "         and run this script again."
+echo "[ FAIL ] tools/test_module_runner.py cannot generate hashes. The suite would report 'Error : 0/0' on"
+echo "         every mode, which is a setup failure and not a hashcat one."
+
+if [ -n "${FAILED_MODULES}" ]; then
+  echo "         Fix the modules above and run this script again."
+else
+  echo "         Every package imported, so run the check by hand to see what it says:"
+  echo "         python3 tools/test_module_runner.py single 1000"
+fi
 
 exit 1

@@ -153,6 +153,7 @@ dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
 dos2unix $OUT/docs/*
 dos2unix $OUT/docs/license_libs/*
+dos2unix $OUT/docs/plugin-development-workshop/*
 dos2unix $OUT/example*
 dos2unix $OUT/tools/*
 dos2unix $OUT/tunings/*
@@ -164,6 +165,7 @@ unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
 unix2dos $OUT/docs/*
 unix2dos $OUT/docs/license_libs/*
+unix2dos $OUT/docs/plugin-development-workshop/*
 unix2dos $OUT/example*.cmd
 unix2dos $OUT/Python/*
 unix2dos $OUT/OpenCL/*
@@ -179,6 +181,8 @@ chmod 755 $OUT/docs
 chmod 644 $OUT/docs/*
 chmod 755 $OUT/docs/license_libs
 chmod 644 $OUT/docs/license_libs/*
+chmod 755 $OUT/docs/plugin-development-workshop
+chmod 644 $OUT/docs/plugin-development-workshop/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
 chmod 755 $OUT/tables

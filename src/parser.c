@@ -50,7 +50,7 @@ static const char *const PA_029 = "Invalid LUKS key AF stripes count";
 static const char *const PA_030 = "Invalid combination of LUKS hash type and cipher type";
 static const char *const PA_031 = "Invalid hccapx signature";
 static const char *const PA_032 = "Invalid hccapx version";
-static const char *const PA_033 = "Invalid hccapx message pair";
+static const char *const PA_033 = "Invalid EAPOL message pair";
 static const char *const PA_034 = "Token encoding exception";
 static const char *const PA_035 = "Token length exception";
 static const char *const PA_036 = "Insufficient entropy exception";
@@ -65,6 +65,7 @@ static const char *const PA_044 = "PT length exception";
 static const char *const PA_045 = "PT offset exception";
 static const char *const PA_046 = "Invalid or unsupported CryptoAPI hash type";
 static const char *const PA_047 = "Invalid CryptoAPI key size";
+static const char *const PA_048 = "Required compression library libzstd was not found";
 static const char *const PA_255 = "Unknown error";
 
 // input_tokenizer() records the offending part of the input line in here when it rejects that line.
@@ -270,6 +271,7 @@ const char *strparser (const u32 parser_status)
     case PARSER_PT_OFFSET:            return PA_045;
     case PARSER_CRYPTOAPI_KERNELTYPE: return PA_046;
     case PARSER_CRYPTOAPI_KEYSIZE:    return PA_047;
+    case PARSER_ZSTD_UNAVAILABLE:     return PA_048;
   }
 
   return PA_255;

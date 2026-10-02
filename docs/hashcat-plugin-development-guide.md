@@ -79,16 +79,14 @@ A proof of concept that exposes intermediate values is essential for low-level d
 
 The main program, `tools/test_module_runner.py`, loads the mode-specific Python code at runtime through a standard interface. Existing test modules are useful references. In many cases you can copy a test module for a similar format, change its algorithm and parsing, and use it both as the proof of concept and as the permanent test.
 
-The test suite itself consists of four files:
+The test suite itself is two files:
 
 * `tools/test_module_runner.py` generates random passwords and salts, then loads the Python test module.
-* `tools/test_module_runner.pl` provides the same interface for older modes whose test module remains `m[hash_mode].pm`. The shell scripts below select the available implementation automatically.
-* `tools/test.sh` compares reference hashes with hashcat output across several option combinations.
-* `tools/test_edge.sh` exercises password and salt length boundaries. It reads `module_constraints()`, generates the claimed minimum and maximum values, then tests every supported attack and kernel type.
+* `tools/test.py` drives hashcat against the runner's output. On its own it compares reference hashes with hashcat output across several option combinations. `--edge` exercises password and salt length boundaries: it reads `module_constraints()`, generates the claimed minimum and maximum values, then tests every supported attack and kernel type. `--test-coverage` checks that every mode has a runnable oracle. `-g` builds a real container or archive and cracks that.
 
 Name the test module `tools/test_modules/m[hash_mode].py`. It defines `module_constraints()`, `module_generate_hash()` and `module_verify_hash()`. Passwords use `bytes`, while hashes and salts use `str`, because `$HEX[...]` can decode to password bytes that are not text.
 
-The suite still supports Perl modules named `m[hash_mode].pm` for older modes, but new test modules use Python. Shared helpers live in the `tools/test_modules/lib` package and can be imported with statements such as `from lib.test_helpers import random_bytes` or `from lib import gpg`.
+Test modules are Python. Shared helpers live in the `tools/test_modules/lib` package and can be imported with statements such as `from lib.test_helpers import random_bytes` or `from lib import gpg`.
 
 ### test_module_runner.py ###
 
@@ -103,7 +101,7 @@ Script `tools/test_module_runner.py` supports six modes:
 
 The first command-line argument selects `edge`, `single`, `password`, `passthrough`, `potthrough` or `verify`.
 
-The three described below are the ones you will use while writing a module. Of the others, "edge" writes one comma separated record per length edge case, which tools/test_edge.sh consumes, "password" prints one random password for the mode, which tools/test.sh uses to build its containers, and "potthrough" is passthrough with the output written as hash:plain, the shape a potfile takes.
+The three described below are the ones you will use while writing a module. Of the others, "edge" writes one comma separated record per length edge case, which `tools/test.py --edge` consumes, "password" prints one random password for the mode, which `tools/test.py -g` uses to build its containers, and "potthrough" is passthrough with the output written as hash:plain, the shape a potfile takes.
 
 Every Python test module implements three functions used by all runner modes:
 
@@ -209,9 +207,9 @@ Check that `test_module_runner.py` exits with status 0. A failure may leave an o
 
 Verify mode can serve as the proof of concept when no separate reference implementation exists.
 
-### test.sh ###
+### test.py ###
 
-Script `test.sh` uses single-mode output from `test_module_runner.py` to run the hashcat binary and compare its results with the reference values. It checks that all hashes crack with their corresponding passwords and that hash output retains the expected format.
+Script `test.py` uses single-mode output from `test_module_runner.py` to run the hashcat binary and compare its results with the reference values. It checks that all hashes crack with their corresponding passwords and that hash output retains the expected format.
 
 Command-line options can restrict the test scope. Use them during development because a complete run across all hash modes can take several days.
 
@@ -222,15 +220,11 @@ The main options:
 * Select attack mode (`-a`): test one attack mode. A slow hash automatically uses a straight attack because it has no attack-specific kernels.
 * Minimal mode (`-M`): test 24 representative hash types covering the distinct code paths and logic branches.
 
-Without these options, the script runs attack mode 0 for hash mode 0. Run `tools/test.sh --help` for the complete interface.
+Without these options, the script runs attack mode 0 for hash mode 0. Run `tools/test.py --help` for the complete interface.
 
-### test_edge.sh ###
+`--edge` complements the randomized tests by generating boundary cases from each test module's constraints. It covers minimum and maximum password and salt lengths along with other declared limits, running every kernel type a mode supplies and every attack supported by that kernel. `-M` and `--minimal` restrict the run to the same 24 representative modes.
 
-Script `test_edge.sh` complements the randomized tests by generating boundary cases from each test module's constraints. It covers minimum and maximum password and salt lengths along with other declared limits.
-
-It runs every kernel type supplied by a mode and every attack supported by that kernel. Options `-M` and `--minimal` restrict the run to the same 24 representative modes used by `test.sh -M`.
-
-Run `tools/test_edge.sh --help` to list all options.
+`--test-coverage` checks that every mode has a runnable oracle without cracking anything. `-g` builds a real encrypted container (LUKS, TrueCrypt, VeraCrypt) or archive (GPG, PKZIP, RAR, 7-Zip, WinZip AES, PDF, OpenSSH key) with the format's own tool and cracks that; LUKS and TrueCrypt need `sudo`, the rest build as you.
 
 ## Module ##
 
@@ -467,7 +461,7 @@ Keep repeated transformations such as byte swaps out of performance-critical ker
 
 ### module_hash_decode_postprocess() ###
 
-Callback `module_hash_decode_postprocess()` applies option-dependent changes after decoding. For example, option `--hccapx-message-pair` adds filters that can exclude selected hashes from the input list.
+Callback `module_hash_decode_postprocess()` applies option-dependent changes after decoding. For example, option `--eapol-message-pair` adds filters that can exclude selected hashes from the input list.
 
 ### module_hash_hints() ###
 

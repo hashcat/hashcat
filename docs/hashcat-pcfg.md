@@ -301,6 +301,36 @@ A hint attack also generates candidates more slowly than an ordinary ruleset, fo
 
 The status display reports a large `Rejected` value for this ruleset because the no-repeat rule discards many positions. A position whose words repeat is walked and stepped over rather than left out of the count, so it shows up there exactly as an over-length word from a wordlist does. The six words above reject about half the positions at the front of the run and about four in five a billion candidates in, and what the card is given is the rest. A shape requiring more words than were supplied produces no candidates. hashcat drops those shapes while loading the grammar and reports their count in the following line. That is most of the grammar for a run naming one word: every shape with two word slots.
 
+### 4.1. What you know about the shape
+
+The hints above are words. Sometimes what you have is not a word but a shape: the password is eight characters, it starts with a capital, it ends in two digits. Setting `mask` takes that as a mask, in the same syntax `-a 3` uses, and holds the grammar to the candidates it admits:
+
+```
+./hashcat -m 0 -a 4 example0.hash /path/to/ruleset mask=?u?l?l?l?l?d?d?d
+```
+
+Everything a mask means in `-a 3` it means here, because the same parser reads it. `?a` and the rest of the built in charsets work, `-1` through `-8` define your own, and a literal character in the mask is a character you are sure of. What the mask does not do is generate anything: it selects from what the grammar spells, so the run is still a PCFG attack in cost order.
+
+The saving is large, because a mask rules out most of the grammar before the run starts rather than after each candidate. In the bundled ruleset the mask above leaves 13 of the 23,159 shapes and 296,958,668 candidates, against 11,881,376,000 for the same mask under `-a 3`. So it is 40 times smaller than brute forcing what you know, and best first inside it. A looser mask saves more: `?u?l?l?l?l?l?l?d?d?d?d?s` leaves 62,006,418,684 candidates against 2,650,497,358,080,000 for the brute force.
+
+A mask fixes the length, so `pwmin` and `pwmax` are set from it and naming a length the mask contradicts is refused. The keyspace stays exact, `-s`, `--restore` and the brain all work as they always did, and `lookup=` answers for the masked run.
+
+Positions within one cost level can come out in a different order than the same run without a mask, and only in one case: a charset that names letters of both cases, such as `-1 aB`, splits a shape into one shape per capitalisation group, and the groups are then walked one after another. The candidates are the same ones at the same costs, so nothing is lost or repeated, and the order across cost levels is unchanged. Every built in charset and every literal leaves the order alone.
+
+A mask counts bytes, so on a ruleset trained outside ASCII you are naming byte positions rather than characters. That works: a letter run is filtered per byte and capitalised per character, and the two are walked together, so a terminal holding a character of more than one byte is judged on the bytes that character actually writes. `mask=?u?b?b?b?d` keeps `A` followed by a two byte letter and drops the word whose own first letter is two bytes, because that one's capital is not a `?u`.
+
+A letter run the mask says nothing about, every position of it `?b`, is passed through untouched, which is what lets a mask pin the parts you know and leave a word alone entirely.
+
+A mask goes together with the hint words above, which is the case this attack is aimed at: you know a word and you know a shape. The words the run names are read by the filter like any other terminal, so a slot keeps only the ones the mask admits where that slot sits, and the case forms are picked per slot:
+
+```
+./hashcat -m 0 -a 4 example0.hash hints hintwords=tom,ben mask=?u?l?l?l?l?l
+Bentom
+Tomben
+```
+
+What it cannot go with is `hintaccount`, where the words come from the hashes. Those are a different set for every hash and the filter is built once, so there is nothing one filtering could hold for all of them. The one other thing a mask does not do is hold the OMEN escape, so a masked run has no escape at all: see section 7.4.
+
 ## 5. Settings
 
 Settings are `key=value` arguments after the ruleset path, the same convention every attack-mode 8 feed uses:
@@ -321,12 +351,13 @@ The defaults are suitable for most attacks.
 | `maxword` | auto | How long a candidate the card will build, in 4 byte words. Must be a multiple of 16. |
 | `maxgain` | 1.5 | How much wider the expansion has to get before the bigger candidate buffer is worth taking. |
 | `walk` | 1 | Steps to the next base word where it can instead of working it out from its position. It produces exactly the same run either way, so this is only here to turn off. |
-| `omen` | 1 | Carries the OMEN escape. See section 7.4. |
+| `omen` | 1 | Carries the OMEN escape. See section 7.4. Refused alongside `mask`. |
 | `hintwords` | none | The words a hint ruleset is given, comma separated. See section 4. |
 | `hintfile` | none | The same words out of a file, one per line. |
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
 | `hintrepeat` | 0 | Let one candidate spell the same hint word twice. See section 4. |
 | `hintaccount` | 0 | Words to take from each hash instead, which is what `-a 9` uses. See `hashcat-association.md`. |
+| `mask` | none | The shape a candidate must have, in mask syntax. See section 4.1. |
 | `pwmin` | from the hash-mode | Shortest candidate to produce. |
 | `pwmax` | from the hash-mode | Longest candidate to produce. |
 
@@ -334,11 +365,13 @@ Settings `pwmin` and `pwmax` are useful when the password length is known, such 
 
 In the bundled ruleset, 1,370 of 23,159 shapes can produce 12-character passwords and together carry 1.4 percent of the probability mass. Setting `pwmin=12 pwmax=12` for a list of 12-character passwords therefore eliminates almost all unrelated work.
 
+A run that names a length also changes what the OMEN escape carries. The escape counts by level rather than by length, and a level holds one length only where every opening is the same width and every step writes one byte. So where a length is named and the model is not that shape, the wider openings and steps are left out of it and the run says how many, which is what lets the keyspace count exactly the guesses the bound admits. A run that names no length keeps the whole model.
+
 Both settings can only narrow the range allowed by the hash mode. They cannot request a length unsupported by the kernel. A value of `0` leaves the corresponding hash-mode limit unchanged, while a value that would widen the range is reported and ignored.
 
 Setting `scale` belongs to hashcat and is not read from the ruleset. The status display therefore shows `scale 1` unless another value is requested. It is unrelated to `--coverage` in the trainer, which is set when the ruleset is built and cannot be changed afterwards. If a ruleset was trained at a coverage below 1.0 and you are cracking a fast hash, section 7.4 is the part that matters.
 
-Settings `scale`, `costmax` and `omen` change the candidate at each position and are therefore part of the attack identity. Change one and a restore point from before is no longer valid. They travel as arguments, which is what the brain hashes and what the restore file records, so hashcat notices.
+Settings `scale`, `costmax`, `omen` and `mask` change the candidate at each position and are therefore part of the attack identity. A custom charset the mask refers to is not an argument of the feed, so what carries it is the filtered grammar itself: two masks differing only in `-1` leave different terminals, and the brain therefore sees two different sources. Change one and a restore point from before is no longer valid. They travel as arguments, which is what the brain hashes and what the restore file records, so hashcat notices.
 
 ## 6. Using more than one ruleset
 
@@ -502,6 +535,14 @@ pcfg: OMEN escape dropped, omen=0. 40% of the mass, set by coverage
 
 The percentage is read from the `M` line of the ruleset you gave, so it is that ruleset's figure and not a general one. A ruleset trained at `--coverage 1.0` has no `M` line and prints no such message.
 
+**A mask holds the grammar and not the escape.** Section 4.1 filters the terminals of each structure, and an OMEN guess has no terminals: it is written a character at a time out of the Markov model, so the mask has nothing there to filter. A masked run therefore has no escape, and says so at startup:
+
+```
+pcfg: OMEN escape dropped, because mask ?l?l?l?l?l?l?d?d holds the grammar and the escape has no terminals for it to hold. 40% of the mass, set by coverage
+```
+
+Writing `omen=1` alongside a mask is refused rather than obeyed. An unfiltered escape spends most of a masked run outside the mask and cracks hashes the mask says are not the target, which is a run that does not do what its command line says. Run without `mask=` if you want the escape, or run the mask and the escape as two attacks.
+
 Training a ruleset with `--coverage 1.0` instructs the trainer not to emit `M` at all. That used to be the advice for a ruleset meant for a fast hash, because the fast path discarded `M`. It no longer is.
 
 The other reason to want `omen=0` is to compare like with like: with it off the two engines enumerate the same set, which is what the device engine is checked against.
@@ -539,7 +580,7 @@ Only the slots the card expanded are named. The ones in front of them are alread
 
 * **Option `--stdout` shows the host engine.** It never starts a kernel, so it gets the host generator, escape and all. Fast-path candidates exist only on the device and are therefore unavailable to `--stdout`.
 * **`-O` is refused rather than ignored** on a fast hash whose only PCFG device kernel is the pure one. Modes that ship an `_a4-optimized.cl` kernel take it.
-* **Options `-i` and `--increment`, along with custom character sets `-1` through `-4`, are rejected.** Both belong to a mask, and `-a 4` takes a ruleset rather than a mask. What decides the lengths here is the grammar and `costmax`.
+* **Options `-i` and `--increment` are rejected.** They belong to a mask, and `-a 4` takes a ruleset. What decides the lengths here is the grammar, `costmax`, and `pwmin` and `pwmax` where a run names them. Custom character sets `-1` through `-8` are accepted, because the `mask` setting of section 4.1 is a mask for them to sit in. Naming one without `mask=` is refused rather than ignored.
 
 * **Options `-S`, `--slow-candidates` and `--brain-client` select the host engine** as well, and the startup line reports the selected engine. Both ask for every candidate to be built on the host, which is the one thing the device engine does not do.
 * **Options `-r` and `-g` keep the device engine.** The rules run in the same kernel that walks the cell, so a base word is worth its cell once per rule. The line after the ruleset summary reports the selected engine.

@@ -904,6 +904,7 @@ typedef enum parser_rc
   PARSER_PT_OFFSET            = -45,
   PARSER_CRYPTOAPI_KERNELTYPE = -46,
   PARSER_CRYPTOAPI_KEYSIZE    = -47,
+  PARSER_ZSTD_UNAVAILABLE     = -48,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
@@ -1806,6 +1807,14 @@ typedef struct hc_device_param
   u32     kernel_loops_max;
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
+
+  // The bounds that were in force when kernel_loops_prev was measured. A queue round may only reuse
+  // the previous round's tuning when its own bounds are the same ones, because the answer was fitted
+  // inside them: a mask queue recomputes kernel_loops_max from the round's amplifier count, so a
+  // shorter mask lowers it and last round's answer no longer belongs to this round's axis.
+
+  u32     kernel_loops_min_prev;
+  u32     kernel_loops_max_prev;
   u32     kernel_threads;
   u32     kernel_threads_prev;
   u32     kernel_threads_min;
@@ -2197,6 +2206,12 @@ typedef struct hc_device_param
 
   char              opencl_chksum[24];
   char              opencl_chksum_amp_mp[24];
+
+  // Set by the main thread before it starts this device's thread for a round, and by that thread
+  // once calc () has returned, which it does when dispatch has no work left for this device in the
+  // round.
+
+  bool              calc_done;
 
 } hc_device_param_t;
 
@@ -3212,6 +3227,19 @@ typedef struct mask_ctx
   hcstat_table_t *root_table_buf;
   hcstat_table_t *markov_table_buf;
 
+  // How many character positions of the markov statistics this run can reach. The tables hold one
+  // slice per position of the longest mask hashcat accepts, and the index puts the position outermost,
+  // so a run only ever reads the first sp_pw_max_used slices: an eight character mask reaches eight of
+  // 256. Everything sp_setup_tbl () does is bounded by this, which is what keeps a four character mask
+  // from decompressing, byte swapping, filling and sorting 256 MB it cannot address.
+  //
+  // It is an upper bound taken over the whole mask queue rather than any one round's css_cnt, and it is
+  // deliberately loose: a mask string is at least as long as the number of positions it produces, so
+  // strlen bounds it without parsing the mask. Too large only wastes work, while too small would
+  // silently change which candidate a position maps to.
+
+  u32    sp_pw_max_used;
+
   cs_t  *root_css_buf;
   cs_t  *markov_css_buf;
 
@@ -3591,6 +3619,8 @@ typedef struct device_info
   double  brain_link_time_recv_dev;
   double  brain_link_time_send_dev;
   #endif
+
+  bool    idle_dev;
 
 } device_info_t;
 

@@ -9,8 +9,10 @@
 #define SM3_P0_S(x)       ((x) ^ hc_rotl32_S((x),  9) ^ hc_rotl32_S((x), 17))
 #define SM3_P1_S(x)       ((x) ^ hc_rotl32_S((x), 15) ^ hc_rotl32_S((x), 23))
 
-#define SM3_P0(x)         ((x) ^ hc_rotl32((x),  9) ^ hc_rotl32((x), 17))
-#define SM3_P1(x)         ((x) ^ hc_rotl32((x), 15) ^ hc_rotl32((x), 23))
+// vector P0/P1 offload the second rotate to the PRMT pipe (see sm3_p0_prmt/sm3_p1_prmt
+// in inc_hash_sm3.cl); value-identical to (x)^rotl(x,9)^rotl(x,17) / (x)^rotl(x,15)^rotl(x,23)
+#define SM3_P0(x)         (sm3_p0_prmt (x))
+#define SM3_P1(x)         (sm3_p1_prmt (x))
 
 #define SM3_FF0(x, y, z)  ((x) ^ (y) ^ (z))
 #define SM3_GG0(x, y, z)  ((x) ^ (y) ^ (z))

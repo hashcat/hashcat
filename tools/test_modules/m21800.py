@@ -5,146 +5,220 @@
 ## License.....: MIT
 ##
 
-import hashlib
-import hmac
+import random
 import zlib
 
+import hashlib
+
 from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
 
-from lib import secp256k1
-from lib.test_helpers import random_bytes, random_number, random_string
+from lib.test_helpers import random_hex_string, random_string
 
-# Electrum wallet, salt type 5. The wallet is a JSON document, deflated and then encrypted, and the
-# key comes out of a Diffie-Hellman between the password and an ephemeral public key the hash
-# carries:
-#
-#   scalar = PBKDF2-HMAC-SHA512 (password, "", 1024, 64)
-#   key    = sha512 (compress (scalar * ephemeral_pubkey))
-#
-# The first 16 bytes of that key are the IV, the next 16 the AES key and the last 32 the HMAC key.
-#
-# Only the first 1024 bytes of the ciphertext go into the hash, so the MAC cannot be recomputed from
-# it and hashcat does not try: m21800-pure.cl inflates what those bytes decrypt to and looks for the
-# opening of the document. The payload is drawn large enough that 1024 bytes of it are still a
-# deflate stream with something in it.
+# Electrum wallet v5. The key derivation and AES-128-CBC layer are the same as -m 21700; version 5
+# stores only the first 1024 bytes of the ciphertext, so the mode is recognised by the deflate
+# header of the decrypted prefix rather than by an HMAC over the whole ciphertext.
 
-SIGNATURE = "$electrum$5*"
+MAX_DATA_LEN = 16384
+TRUNCATE_DATA_LEN = 1024
 
-AES_LEN = 1024
-
-DATA_MIN = 16384
-DATA_MAX = DATA_MIN + int(DATA_MIN * 1.30)
-
-OPENINGS = (b"{\n    \"", b"{\r\n    \"")
+P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
 
 
 def module_constraints():
   return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def _key(word, pubkey):
-  point = secp256k1.decompress(pubkey)
+def _point_add(pt1, pt2):
+  if pt1 is None:
+    return pt2
 
-  if point is None:
+  if pt2 is None:
+    return pt1
+
+  x1, y1 = pt1
+  x2, y2 = pt2
+
+  if x1 == x2 and (y1 + y2) % P == 0:
     return None
 
-  scalar = int.from_bytes(hashlib.pbkdf2_hmac("sha512", word, b"", 1024, 64), "big")
+  if pt1 == pt2:
+    m = (3 * x1 * x1) * pow(2 * y1, P - 2, P) % P
+  else:
+    m = (y2 - y1) * pow(x2 - x1, P - 2, P) % P
 
-  shared = secp256k1.mul(scalar, point)
+  x3 = (m * m - x1 - x2) % P
+  y3 = (m * (x1 - x3) - y1) % P
 
-  if shared is None:
+  return (x3, y3)
+
+
+def _point_mul(k, pt):
+  result = None
+
+  while k > 0:
+    if k & 1:
+      result = _point_add(result, pt)
+
+    pt = _point_add(pt, pt)
+    k >>= 1
+
+  return result
+
+
+def _decompress_point(prefix, x):
+  # secp256k1 oct2point on a compressed point, or None when x has no square root or is out of field
+
+  if x >= P:
     return None
 
-  return hashlib.sha512(secp256k1.compress(shared)).digest()
+  rhs = (pow(x, 3, P) + 7) % P
+
+  y = pow(rhs, (P + 1) // 4, P)
+
+  if (y * y - rhs) % P != 0:
+    return None
+
+  if (y & 1) != (prefix - 2):
+    y = P - y
+
+  return (x, y)
 
 
-def _payload():
-  # The hash keeps the first 1024 bytes of ciphertext, so the deflated wallet has to reach at least
-  # that far. A draw in this range compresses to more than ten times it, and the loop is here as the
-  # guard on that rather than as the expected path.
+def generate_key(word, ephemeral_pubkey):
+  private_key = hashlib.pbkdf2_hmac("sha512", word, b"", 1024, 64)
+
+  m = int.from_bytes(private_key, "big")
+
+  q = _decompress_point(ephemeral_pubkey[0], int.from_bytes(ephemeral_pubkey[1:], "big"))
+
+  if q is None:
+    return None
+
+  rx, ry = _point_mul(m, q)
+
+  public_key = bytes([0x02 if (ry & 1) == 0 else 0x03]) + rx.to_bytes(32, "big")
+
+  return hashlib.sha512(public_key).digest()
+
+
+def module_generate_hash(word, salt=None, iterations=None):
+  key = None
+  ephemeral_pubkey = b""
+
+  while key is None:
+    sign_of_curve_point = random.randrange(2)
+
+    ephemeral_pubkey = bytes.fromhex("0%d%s" % (sign_of_curve_point + 2, random_hex_string(64)))
+
+    key = generate_key(word, ephemeral_pubkey)
+
+  compressed_data = b""
 
   while True:
-    opening = OPENINGS[random_number(0, 1)]
+    data_buf = "{\r\n    \""
 
-    body = random_string(random_number(DATA_MIN, DATA_MAX) - len(opening))
+    if random.randrange(2) == 1:
+      data_buf = "{\n    \""
 
-    data = zlib.compress(opening + body.encode("ascii"), 6)
+    data_length = MAX_DATA_LEN + random.randrange(int(MAX_DATA_LEN * 1.30 + 1))
 
-    if len(data) > AES_LEN:
-      return data
+    random_length = data_length - len(data_buf)
 
+    if random_length > 0:
+      data_buf += random_string(random_length)
 
-def _pad(data):
-  n = 16 - (len(data) % 16)
+    deflator = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, zlib.MAX_WBITS, 9)
 
-  return data + bytes([n]) * n
+    compressed_data = deflator.compress(data_buf.encode("latin-1")) + deflator.flush()
 
+    if (len(compressed_data) + 15) <= MAX_DATA_LEN:
+      continue
 
-def module_generate_hash(word, salt, iterations=None):
-  while True:
-    pubkey = bytes([2 + random_number(0, 1)]) + random_bytes(32)
+    # Deviation from the perl oracle this replaces: it accepted a first deflate block byte of 0x04
+    # or 0x05 here but its verify only accepts 0x05, so a 0x04 hash it emitted did not round trip.
+    # We keep only 0x05, which is what version 5 needs, so generate and verify agree.
 
-    key = _key(word, pubkey)
+    if (compressed_data[2] & 0x07) != 0x05:
+      continue
 
-    if key is not None:
-      break
+    break
 
-  data = AES.new(key[16:32], AES.MODE_CBC, iv=key[:16]).encrypt(_pad(_payload()))
+  iv = key[0:16]
+  aes_key = key[16:32]
 
-  mac = hmac.new(key[32:], data, hashlib.sha256).hexdigest()
+  encrypted_data = AES.new(aes_key, AES.MODE_CBC, iv).encrypt(pad(compressed_data, 16))
 
-  return "%s%s*%s*%s" % (SIGNATURE, pubkey.hex(), data[:AES_LEN].hex(), mac)
+  encrypted_data = encrypted_data[0:TRUNCATE_DATA_LEN]
 
-
-def _accepts(word, line):
-  if not line.startswith(SIGNATURE):
-    return False
-
-  t = line[len(SIGNATURE):].split("*")
-
-  if len(t) != 3:
-    return False
-
-  try:
-    pubkey = bytes.fromhex(t[0])
-    data   = bytes.fromhex(t[1])
-  except ValueError:
-    return False
-
-  if len(data) != AES_LEN:
-    return False
-
-  key = _key(word, pubkey)
-
-  if key is None:
-    return False
-
-  plain = AES.new(key[16:32], AES.MODE_CBC, iv=key[:16]).decrypt(data)
-
-  try:
-    # the stream is cut off at 1024 bytes of ciphertext, so this ends early and that is not an error
-
-    out = zlib.decompressobj().decompress(plain)
-  except zlib.error:
-    return False
-
-  return out.startswith(OPENINGS[0]) or out.startswith(OPENINGS[1])
+  return "$electrum$5*%s*%s*%s" % (ephemeral_pubkey.hex(), encrypted_data.hex(), "")
 
 
 def module_verify_hash(line):
-  idx = line.find(b":")
+  index1 = line.find(b":")
 
-  if idx < 1:
+  if index1 < 1:
     return None
 
-  hash_in, word = line[:idx], line[idx + 1:]
+  hash_in = line[:index1]
+  word = line[index1 + 1:]
+
+  if hash_in[:10] != b"$electrum$":
+    return None
+
+  index2 = hash_in.find(b"*")
+
+  if index2 < 1:
+    return None
+
+  if hash_in[10:index2] != b"5":
+    return None
+
+  index1 = hash_in.find(b"*", index2 + 1)
+
+  if index1 < 1:
+    return None
+
+  index3 = hash_in.find(b"*", index1 + 1)
+
+  if index3 < 1:
+    return None
 
   try:
-    text = hash_in.decode("ascii")
-  except UnicodeDecodeError:
+    ephemeral_pubkey = bytes.fromhex(hash_in[index2 + 1:index1].decode("ascii"))
+    data_buf = bytes.fromhex(hash_in[index1 + 1:index3].decode("ascii"))
+  except (ValueError, UnicodeDecodeError):
     return None
 
-  if _accepts(word, text) is False:
+  key = generate_key(word, ephemeral_pubkey)
+
+  if key is None:
     return None
 
-  return (text, word)
+  iv = key[0:16]
+  aes_key = key[16:32]
+
+  try:
+    decrypted_data = AES.new(aes_key, AES.MODE_CBC, iv).decrypt(data_buf)
+  except ValueError:
+    return ("", word)
+
+  if decrypted_data[0:2] != b"\x78\x9c":
+    return ("", word)
+
+  # Deviation from the perl oracle this replaces: it accepted only a 0x05 rate byte here. generate
+  # can emit 0x04 as well (see there), so 0x04 is accepted too and both engines account for each
+  # other's output.
+
+  if (decrypted_data[2] & 0x07) not in (0x04, 0x05):
+    return ("", word)
+
+  try:
+    decompressed_data = zlib.decompressobj(zlib.MAX_WBITS).decompress(decrypted_data)
+  except zlib.error:
+    return ("", word)
+
+  if decompressed_data[0:7] != b"{\n    \"" and decompressed_data[0:8] != b"{\r\n    \"":
+    return ("", word)
+
+  return (hash_in.decode("ascii"), word)

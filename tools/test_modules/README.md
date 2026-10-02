@@ -45,23 +45,31 @@ it as `from lib import gpg`.
 * For a mode that drives its own cipher chaining, see [m20011.py](m20011.py) and
 [lib/diskcryptor.py](lib/diskcryptor.py)
 
-#### Comparing the two engines ####
+#### Reproducible runs ####
 
-A conversion replaces `mXXXXX.pm` with `mXXXXX.py` in one commit, and the suite passing afterwards
-only says the mode still cracks. `tools/test_engine_compare.py` says whether the two oracles behave
-the same:
+`HCTEST_SEED` is worth knowing about. Set it, and a run repeats: the same salts, the same passwords,
+the same lengths. Leave it unset and the oracle draws at random, which is what the suite wants,
+because a mode that only works for one salt is a mode that is broken.
 
-    tools/test_engine_compare.py 17010
-    tools/test_engine_compare.py --all
+#### Running an oracle inside hashcat ####
 
-It takes the `.pm` out of git where the conversion already removed it, `--ref` naming where to look,
-and runs both engines over the entry points the suites drive. Two comparisons, because one of them
-is not always possible. Cross verification always: each engine verifies what the other generated,
-which needs no seed and is what a mode whose `.pm` shells out to python3 can be held to. Byte
-comparison where both engines are seedable: `HCTEST_SEED` puts both on one generator, so the same
-salts and words come out and the output can be compared line for line. The tool runs each engine
-twice under the seed to find out which case it is in, and says which one it used.
+`tools/test_bridge.py` loads any oracle into hashcat's Python bridge, so hashcat cracks with the
+oracle's own `module_generate_hash`/`module_verify_hash` instead of a kernel. It is a way to exercise
+a mode's reference implementation through hashcat's real parser and candidate handling, or to step
+through it, with no kernel involved:
 
-`HCTEST_SEED` is worth knowing about on its own. Set it, and a run of either engine repeats: the
-same salts, the same passwords, the same lengths. Leave it unset and both draw at random, which is
-what the suites want, because a mode that only works for one salt is a mode that is broken.
+    python3 tools/test_bridge.py vectors 1000 /tmp/b.hash /tmp/b.words
+    ./hashcat -m 73000 --bridge-parameter1 tools/test_bridge.py /tmp/b.hash /tmp/b.words
+
+The first command writes vectors for a mode (here 1000): `-P` picks the pure family, otherwise
+optimized. A bridge line is `sha256(H)*MODE:FAMILY:base64(H)`, where H is the oracle's own hash line.
+The bridge splits a line at its first `*` and many hash formats carry one, so H travels base64 encoded
+in the salt half and the hash half is a fixed length digest of it; for each candidate the bridge calls
+the oracle's `module_verify_hash` to regenerate H and digests the result, which equals the hash half
+only when the candidate is the password. A hash line longer than the bridge's 1024 byte salt does not
+fit and is skipped, which the `vectors` command reports.
+
+The bridge runs each oracle in an ordinary Python process, so an oracle that imports pycryptodome
+works the same as a hashlib-only one, on Linux, macOS and Windows alike. It needs a `python3` on PATH
+and nothing else. See
+[docs/hashcat-python-plugin-requirements.md](/docs/hashcat-python-plugin-requirements.md).

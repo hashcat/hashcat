@@ -8,71 +8,22 @@
 
 ## Requirements
 
-- **Python 3.13** or higher
+A C compiler and `make`. That is everything for the program and for every plugin but one.
 
-Check your Python version:
+One optional hash mode needs a language toolchain, and a build without it skips that mode, says why,
+and produces everything else:
 
-```bash
-$ python3 --version
-# Expected output: Python 3.14.7
-```
-
-If you can't install Python >= 3.13 globally, you can use **pyenv**.
-
-> If you're using `pyenv`, follow **all steps** below. Otherwise, follow only **steps 3 and 5**.
+- Mode `74000` needs Rust 1.85 or newer, which `rustup` provides. See
+  `docs/hashcat-rust-plugin-requirements.md`.
+- Mode `73000` needs no toolchain at all. It starts `python3` as a separate program at run time, so a
+  Python 3 on `PATH` is all it asks for, and only when you use it. See
+  `docs/hashcat-python-plugin-requirements.md`.
 
 ---
 
 ## Building Hashcat, step by step
 
-### Step 1: Install dependencies and pyenv
-
-#### On Linux
-
-Install required libraries to build Python:
-
-```bash
-$ sudo apt install libbz2-dev libssl-dev libncurses5-dev libffi-dev libreadline-dev libsqlite3-dev liblzma-dev
-```
-
-Install `pyenv`:
-
-```bash
-$ curl https://pyenv.run | bash
-```
-
-> Follow the instructions shown after installation to set up your shell correctly.
-
-#### On macOS
-
-Install `pyenv` via Homebrew:
-
-```bash
-$ brew install pyenv
-```
-
----
-
-### Step 2: Install Python using pyenv
-
-Install Python 3.13 (or newer):
-
-```bash
-$ pyenv install 3.14.7
-```
-
-Check installed versions:
-
-```bash
-$ pyenv versions
-# Example:
-# * system
-#   3.14.7
-```
-
----
-
-### Step 3: Clone the Hashcat repository
+### Step 1: Clone the Hashcat repository
 
 ```bash
 $ git clone https://github.com/hashcat/hashcat.git
@@ -81,15 +32,7 @@ $ cd hashcat
 
 ---
 
-### Step 4: Set the local Python version
-
-```bash
-$ pyenv local 3.14.7
-```
-
----
-
-### Step 5: Build Hashcat
+### Step 2: Build Hashcat
 
 ```bash
 $ make clean && make
@@ -103,7 +46,7 @@ core.
 
 ---
 
-### Step 6 (Optional): Check the build
+### Step 3 (Optional): Check the build
 
 ```bash
 $ tools/test_package.sh
@@ -117,7 +60,7 @@ out.
 
 ---
 
-### Step 7 (Optional): Install Hashcat (Linux only)
+### Step 4 (Optional): Install Hashcat (Linux only)
 
 ```bash
 $ make install

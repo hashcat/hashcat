@@ -16,6 +16,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_base58.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
+#include M2S(INCLUDE_PATH/inc_bitcoin_address.cl)
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
 
@@ -75,65 +76,18 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   point_mul_xy (x, y, prv_key, &hc->preG);
 
-  u32 pub_key[32] = { 0 };
+  // to the address hash, by way of the P2SH redeem script wrapping the P2WPKH
 
-  pub_key[16] =               (y[0] << 24);
-  pub_key[15] = (y[0] >> 8) | (y[1] << 24);
-  pub_key[14] = (y[1] >> 8) | (y[2] << 24);
-  pub_key[13] = (y[2] >> 8) | (y[3] << 24);
-  pub_key[12] = (y[3] >> 8) | (y[4] << 24);
-  pub_key[11] = (y[4] >> 8) | (y[5] << 24);
-  pub_key[10] = (y[5] >> 8) | (y[6] << 24);
-  pub_key[ 9] = (y[6] >> 8) | (y[7] << 24);
-  pub_key[ 8] = (y[7] >> 8) | (x[0] << 24);
-  pub_key[ 7] = (x[0] >> 8) | (x[1] << 24);
-  pub_key[ 6] = (x[1] >> 8) | (x[2] << 24);
-  pub_key[ 5] = (x[2] >> 8) | (x[3] << 24);
-  pub_key[ 4] = (x[3] >> 8) | (x[4] << 24);
-  pub_key[ 3] = (x[4] >> 8) | (x[5] << 24);
-  pub_key[ 2] = (x[5] >> 8) | (x[6] << 24);
-  pub_key[ 1] = (x[6] >> 8) | (x[7] << 24);
-  pub_key[ 0] = (x[7] >> 8) | (0x04000000);
+  u32 h160[5];
+  u32 script_h160[5];
 
-  sha256_ctx_t ctx;
+  hash160_pubkey_uncompressed (h160, x, y);
+  hash160_p2sh_p2wpkh (script_h160, h160);
 
-  sha256_init   (&ctx);
-  sha256_update (&ctx, pub_key, 65);
-  sha256_final  (&ctx);
-
-  for (u32 i = 0; i < 8; i++) tmp[i] = ctx.h[i];
-
-  for (u32 i = 8; i < 16; i++) tmp[i] = 0;
-
-  ripemd160_ctx_t rctx;
-
-  ripemd160_init        (&rctx);
-  ripemd160_update_swap (&rctx, tmp, 32);
-  ripemd160_final       (&rctx);
-
-  tmp[0] = (rctx.h[0] << 16) | (         0x1400);
-  tmp[1] = (rctx.h[1] << 16) | (rctx.h[0] >> 16);
-  tmp[2] = (rctx.h[2] << 16) | (rctx.h[1] >> 16);
-  tmp[3] = (rctx.h[3] << 16) | (rctx.h[2] >> 16);
-  tmp[4] = (rctx.h[4] << 16) | (rctx.h[3] >> 16);
-  tmp[5] =                     (rctx.h[4] >> 16);
-
-  for (u32 i = 6; i < 16; i++) tmp[i] = 0;
-
-  sha256_init        (&ctx);
-  sha256_update_swap (&ctx, tmp, 22);
-  sha256_final       (&ctx);
-
-  for (u32 i = 0; i <  8; i++) tmp[i] = ctx.h[i];
-
-  ripemd160_init        (&rctx);
-  ripemd160_update_swap (&rctx, tmp, 32);
-  ripemd160_final       (&rctx);
-
-  dgst[0] = rctx.h[0];
-  dgst[1] = rctx.h[1];
-  dgst[2] = rctx.h[2];
-  dgst[3] = rctx.h[3];
+  dgst[0] = script_h160[0];
+  dgst[1] = script_h160[1];
+  dgst[2] = script_h160[2];
+  dgst[3] = script_h160[3];
 
   return true;
 }

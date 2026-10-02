@@ -43,6 +43,7 @@ static int status_sample_devices (const hashcat_status_t *hashcat_status, int *s
 
     if (device_info->skipped_dev == true) continue;
     if (device_info->skipped_warning_dev == true) continue;
+    if (device_info->idle_dev            == true) continue;
 
     if (device_info->guess_candidates_dev == NULL) continue;
 
@@ -1177,11 +1178,18 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       {
         bool multi_hash_same_salt = true;
 
+        // the loader accepts either flag for several hashes under one salt, so both have to be
+        // tested here or a mode that carries only the second one is reported as refusing what it
+        // in fact allows. See the issue 3641 guard in hashes.c.
+
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
-          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          if ((hashconfig->opts_type & OPTS_TYPE_MULTIHASH_DESPITE_ESALT) == 0)
           {
-            multi_hash_same_salt = false;
+            if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+            {
+              multi_hash_same_salt = false;
+            }
           }
         }
 
@@ -1434,11 +1442,18 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
       {
         bool multi_hash_same_salt = true;
 
+        // the loader accepts either flag for several hashes under one salt, so both have to be
+        // tested here or a mode that carries only the second one is reported as refusing what it
+        // in fact allows. See the issue 3641 guard in hashes.c.
+
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
-          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          if ((hashconfig->opts_type & OPTS_TYPE_MULTIHASH_DESPITE_ESALT) == 0)
           {
-            multi_hash_same_salt = false;
+            if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+            {
+              multi_hash_same_salt = false;
+            }
           }
         }
 

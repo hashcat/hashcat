@@ -61,6 +61,16 @@ file of words it draws from, a hint ruleset names "H1", a slot filled at run tim
 operator supplied. The included ruleset is not trained separately: "tools/pcfg_hints.py" derives it
 from "default-passwords", and the same script turns any ruleset you trained yourself into one.
 
+A PCFG attack can also be limited to a known password shape. The setting "mask" takes a mask in
+attack-mode 3 syntax, for example "mask=?u?l?l?l?l?l?d?d" for an uppercase letter, 5 lowercase
+letters and 2 digits. Hashcat rewrites the grammar so each slot retains only the terminals allowed
+by the mask at that position. It does not build candidates and then test them against the mask, so
+no part of the keyspace is spent on excluded shapes. The keyspace stays exact, so "--skip",
+"--restore" and the brain keep their meaning. Every remaining candidate retains its cost from the
+unmasked grammar. Custom charsets "-1" to "-8" work as in attack-mode 3. A mask also combines with
+the hint words of a targeted attack. The OMEN escape has no terminals to restrict, so a masked run
+leaves it out.
+
 Attack-mode 9 reuses the "hints" ruleset for a different workflow. It obtains a separate set of
 hints from each account name, hash line or module, then pairs those candidates with individually
 salted hashes. It is intended to process many accounts at once rather than concentrate the attack
@@ -173,6 +183,36 @@ effect on slow modes, so hashcat reports the switch at startup. Larger rulesets 
 by doing more work per base candidate. Attacks without rules are unchanged and still generate
 candidates on the device.
 
+9. One Python bridge that uses every CPU thread
+
+The two Python modes are now one. Mode 73000 starts an ordinary Python interpreter as a separate
+process, one per CPU thread, and sends it candidates over a pipe. Hashcat no longer loads a Python
+library into itself, so there is nothing to match against the headers it was built with and no Python
+needed to build it at all.
+
+A plugin is a plain module now. It defines calc_hash() and the self-test pair, and nothing else is
+required: kernel_loop() is gone, init() and term() are optional, and the hcsp and hcmp helper modules
+are removed. An exception from calc_hash() stops the run and reports the traceback, where it used to
+record the candidate as invalid-password and carry on at full speed.
+
+Because a worker is an ordinary process, the interpreter comes from PATH. An activated virtual
+environment, a pyenv selection and a conda environment all apply with nothing set, and an extension
+module needs no free-threaded support. Mode 72000 is removed, because there is no longer a second
+design for it to select.
+
+The platform-specific advice goes with it. Mode 73000 could not use its multiprocessing pool on
+Windows or macOS and reported "falling back to single-threaded mode" there, which is where the largest
+gain is: on 32 threads of a Windows box the shipped plugin runs at 4285 to 4390 H/s against 270 to 279
+H/s before, and on 16 threads of a Mac at 1015 to 1021 against 284 to 294. With only the system Python
+installed a Mac had no figure at all before, because the build skipped both Python bridges for want of
+Python headers, and it runs the mode now.
+
+The batch a unit may be handed also goes from 8 candidates to 1024, and one launch is one round trip. A
+plugin computing a single sha256 runs at 611 kH/s on 28 threads where it reached 16 kH/s before, and the
+Rust bridge of mode 74000 gains the same way.
+
+See "docs/hashcat-python-plugin-development-guide.md", which has the upgrade list.
+
 ##
 ## Migration and Compatibility
 ##
@@ -249,6 +289,17 @@ have to act on rather than one you will simply notice.
 - The second ".hctune" column now identifies attack kernel 0, 1, 3 or 4 instead of attack mode. One
   row covers attack-modes 1, 6, 7 and 12. Custom mode 9 rows must use kernel 0, because value 9 is
   rejected. Included files label the column "Kern"
+- Options "-j" and "-k" are refused when the PCFG device engine builds candidates. Previously,
+  they were accepted but applied only to the part of each candidate derived from the base word.
+  They still apply when the host engine builds candidates, including for slow hashes, "--stdout"
+  and "--slow-candidates"
+
+## Hash mode output formats
+
+- Modes 22000 and 22001 repeat the loaded hash line in the outfile and in "--show", in place of the
+  shorter "pmkid:mac:mac:essid" form, which no parser accepted. An outfile line is a valid input
+  line now, so "--outfile-check-dir" recognises PMKID and EAPOL hashes alike. Loading a hash list
+  for these modes is single-threaded again
 
 ## Brain protocol and stored sessions
 
@@ -261,9 +312,68 @@ have to act on rather than one you will simply notice.
 - Existing brain databases are not converted. Their filenames no longer match the new session IDs,
   so they remain on disk without being loaded. An explicitly reused "--brain-session" starts with
   empty deduplication data
+- A brain client no longer activates "-S" when it asks for range reservation alone. Only candidate
+  deduplication needs a candidate on the host, so "--brain-client-features=2" keeps candidate
+  generation on the device and runs a fast hash at full speed. The default value still includes
+  candidate deduplication and still activates "-S". Whether "-S" is on is settled from the command
+  line, so the automatic downgrade for in-kernel modes cannot undo it; hashcat now reports that and
+  names the option to re-run with
+- Whether "-S" is in use is part of the attack identity. A position counts one candidate on the host
+  path and one base word on the device path, so the same range describes different keyspaces on the
+  two. Stored attack coverage from earlier releases no longer matches and is not loaded. Session
+  databases holding candidate identities are unaffected
+
+## Python bridge and plugins
+
+- Fixed modes 72000 and 73000 losing most of a hash list that holds more than one hash per salt. The
+  esalt table has one entry per hash and the salt table one per salt, and the two were paired by
+  position, so every salt after the first that held several hashes was given another salt's esalt. A
+  list of 10 hashes over 5 salts, 2 hashes each, cracked 2 of the 10 and reported nothing wrong. The
+  worker now indexes an esalt by its salt's own digests_offset
+- Mode 72000 is removed. It existed to run the Python plugin on a free-threaded interpreter, and mode
+  73000 now uses every CPU thread on every platform whatever Python it is given, so there was nothing
+  left for a second mode to select. A free-threaded build is in fact the slower of the two now. Use
+  "-m 73000", whose hash line format and plugin interface are the same
+- A Python plugin no longer defines "kernel_loop()", and "init()" and "term()" are optional. The
+  "hcsp" and "hcmp" helper modules are removed, so a plugin that imports either must drop the import
+  and the three functions that used it. "calc_hash()" and "extract_esalts()" are unchanged
+- "ST_HASH" and "ST_PASS" are now required in a plugin. A plugin without them is refused at startup
+  instead of running with an empty self-test hash
+- An exception from "calc_hash()" now stops the run and reports the traceback. It previously recorded
+  the candidate as "invalid-password" and continued, which was indistinguishable from a wordlist that
+  did not hold the password. A plugin with candidates it cannot hash must catch that itself
+- "hcshared.dump_hashcat_ctx()", "hcshared.load_ctx()" and "Python/example.ctx" are removed, along
+  with the standalone debugging flow built on them. A plugin is an importable module whose only
+  hashcat import is "hcshared", so it can be called from a script of your own. The development guide
+  has the six lines
+- "hcshared.get_salt_buf_pc()", "get_salt_iter()", "get_salt_iter2()", "get_salt_sign()",
+  "get_salt_repeats()", "get_orig_pos()", "get_digests_cnt()", "get_digests_done()",
+  "get_digests_offset()", "get_scrypt_N()" and "get_scrypt_r()" now read the fixed "salt_t" fields
+  they name. They previously looked for those names inside the esalt, where no shipped mode puts them,
+  and raised "KeyError". "get_salt_buf()" is unchanged and still reads the esalt, which is where the
+  generic modes keep the real salt
+- The interpreter is whatever "python3" resolves to, or "python" on Windows, so "PYTHONPATH",
+  "DYLD_LIBRARY_PATH" and "PYENV_VERSION" no longer have to be set by hand for a virtual environment
+  or a pyenv version. "--bridge-parameter2" names an interpreter that is not on PATH
+- Every file hashcat opens, and a brain client's socket, are closed in any process hashcat starts. This
+  matters because mode 73000 now starts one interpreter per CPU thread: all 28 workers of a 28 thread run
+  would otherwise hold hashcat's potfile, and a brain client would hand each of them its link to the
+  server. Nothing in hashcat relied on a child inheriting a descriptor
+- A Python worker holds its own copy of the salts, so a large hash list costs that per unit: 28 units
+  with the shipped plugin are 19 MB a worker at 100 salts and 167 MB at 20000, about 4.7 GB in all. The
+  same list is read in 95 seconds against 598 before, so the memory buys speed, and "-d" runs fewer
+  units where that trade is the wrong way round
+- The default plugin and the bridge's worker are read from hashcat's shared folder rather than from
+  the working directory, and "make install" installs the "Python" folder, which it did not before. An
+  installed hashcat can now run mode 73000 from any directory. It previously had to be started from one
+  holding a "Python" folder of its own
+- An extension module a plugin imports no longer needs free-threaded support, because a worker is an
+  ordinary process rather than a free-threaded interpreter inside hashcat
 
 ## Builds and third-party plugins
 
+- "make" no longer looks for Python. The "WIN_PYTHON" variable is removed, the MSYS2 Python package is
+  no longer needed to cross compile for Windows, and no Python headers are needed on any platform
 - The "SHARED=1" build setting is now the default on Linux and macOS. Android, the BSDs, CYGWIN and
   MSYS2 retain "SHARED=0". The Windows release is shared, but a native Windows build must request
   "SHARED=1" explicitly. The "SHARED=0" setting restores self-contained plugins
@@ -288,8 +398,7 @@ have to act on rather than one you will simply notice.
 - Native builds now target the build processor. Set "MAINTAINER_MODE=1" for distributable builds or
   "MCPU=<core>" to choose one explicitly. Raspberry Pi targets may be read from "/proc/cpuinfo",
   and mixed native and cross-compilation targets are rejected
-- Rust plugins now require Cargo 1.85. Plugin 72000 requires Python 3.13 headers, and the bundled
-  Python runtime was updated to 3.14.6
+- Rust plugins now require Cargo 1.85
 - Source builds now default to "PRODUCTION=0". Release packaging must set "PRODUCTION=1" to pin the
   release version; "SOURCE_DATE_EPOCH" makes repeated builds of that commit reproducible
 - Build scripts must drop "USE_SYSTEM_ZLIB", "USE_SYSTEM_LZMA", "ENABLE_UNRAR",
@@ -311,6 +420,7 @@ have to act on rather than one you will simply notice.
 - Added mode 35300: Kerberos 5, etype 23, TGS-REP (NT)
 - Added mode 35400: Kerberos 5, etype 23, AS-REP (NT)
 - Added mode 36800: OpenSSH Private Keys (bcrypt-pbkdf)
+- Added mode 36000: BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)
 - Added mode 36400: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
 - Added mode 36410: KDE KWallet < 4.13 (SHA-1, Blowfish)
 - Added mode 36500: NTLM(NTLM_bin($pass))
@@ -318,6 +428,19 @@ have to act on rather than one you will simply notice.
 - Added mode 35700: phpass(md5($pass))
 - Added mode 35800: Symfony Legacy SHA256
 - Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
+- Added mode 37700: Cardano Eternl Wallet (PBKDF2-HMAC-SHA512 + ChaCha20-Poly1305)
+- Added mode 36600: PBKDF2-HMAC-SHA512(utf16le($pass))
+- Added mode 36601: MSSQL (2025)
+- Added mode 3300: MD5(Sun), SunMD5
+- Added mode 36900: iClass Standard (DES + hash0 + iClass Cipher, dual-MAC)
+- Added mode 36901: iClass Legacy Brute-Force (partial div_key + iClass Cipher, dual-MAC)
+- Added mode 37000: MIFARE Ultralight C 3DES Key Recovery
+- Added mode 37300: SAP CODVN H (PWDSALTEDHASH) iSSHA-256
+- Added mode 37301: SAP CODVN H (PWDSALTEDHASH) iSSHA-384
+- Added mode 37400: RACF DES Passphrase
+- Added mode 37500: RACF KDFAES Passphrase
+- Added mode 37600: SASL DIGEST-MD5
+- Added mode 37601: POP3 APOP
 
 ##
 ## New Features and Options
@@ -365,6 +488,11 @@ have to act on rather than one you will simply notice.
 - Added rule operations "h" and "H" for lowercase and uppercase hexadecimal conversion, "vNX" to
   insert "X" after every N characters, "S" to shift character case, and "BNX" to add byte X at
   position N
+- The PCFG device engine now includes the OMEN escape, which it previously dropped for fast hashes
+  along with its share of the probability mass. Setting "omen=0" leaves it out and restores the
+  former rate
+- Options "-r" and "-g" keep the PCFG device engine instead of moving the run to the host engine.
+  The engine also accepts "-u" with either option
 
 ## Runtime control and reporting
 
@@ -398,9 +526,16 @@ Measurements depend on the device, runtime and workload.
 
 - Brain sharding cuts commit, lookup and insertion time by 92 to 99 percent and resident-memory
   overhead by 95 percent
+- Modes 73000 and 74000 raise the batch a bridge unit may be handed from 8 candidates to 1024, one
+  launch being one round trip. On 28 threads of an i7-14700K a Python plugin computing one sha256 runs
+  at 611 kH/s against 16 kH/s, the Rust crate of mode 74000 at 74 kH/s against 16 kH/s, and the shipped
+  Python plugin gains 10 percent
 - PKZIP mode 17200 delivers 12.8 times the throughput on an RTX 4090 and gains 87 percent on an
   RX 7900 XTX
 - DPAPI mode 15910 gains 19 percent on NVIDIA and 97 percent on AMD
+- Raw private key modes 30901, 30902, 30905 and 30906 run 35 to 45 times faster under "-a 3" on an
+  RTX 4090 when the leading hex digits of the key are unknown, moving from one public key to the
+  next by point addition rather than a full multiplication
 - Kernels using at least 8192 bytes of private memory per item now run one warp or wavefront, making
   PKZIP 2.5 times faster on an RTX 4090 and 3.2 times on an RX 7900 XTX
 - Fitting launch size from a few measurements, and reusing the lead device's result across
@@ -413,6 +548,24 @@ Measurements depend on the device, runtime and workload.
   every attack
 - Candidate staging now clears only the first unwritten index rather than whole buffers, avoiding
   hundreds of megabytes of redundant memory clearing in large batches
+- Autotune reuse now covers dictionary queues, maskfiles and "--increment" rather than association
+  rounds alone. A round inherits the previous round's launch size when its loop bounds are the same
+  ones that answer was fitted inside, and measures as usual when they are not. Because the loop
+  bound saturates at KERNEL_BFS, ordinary masks of seven characters or more agree on it whatever
+  their charsets, so a maskfile of 30 different eight character masks goes from 71 to 6 seconds and
+  one of 200 identical masks from 243 to 4. Every autotune probe is a real launch
+- Building the markov statistics at startup sized, decompressed, byte swapped, filled and sorted the
+  tables for the longest mask hashcat accepts rather than for the masks in hand, which is 256 MB
+  resident and half a second however short the mask is. All of it is now bounded by the queue's
+  longest mask, and skipped outright when no mask reaches a character position, which is what
+  attack-mode 1 is. A "--keyspace" probe goes from 543 to 22 ms and 405 to 26 MB for a four character
+  mask, and from 537 to 6 ms and 405 to 19 MB for attack-mode 1. Option "--markov-classic" sums every
+  position into the first one, so it still needs the whole table and is unchanged
+- Each round of a mask attack cleared and uploaded the markov table for the longest mask hashcat
+  accepts rather than for its own mask, which is a 64 MB memset, a 16.7 million iteration loop and a
+  64 MB transfer per device whatever the mask length. All three are now bounded by the mask length.
+  The host half is visible as "--keyspace" over 200 masks going from 9 to 1 second. The transfer is
+  below measurement noise on a single device and scales with the device count
 - An unused event backlog was removed, saving 160 MiB of resident memory per attack
 - The "--show" and "--left" options with "-o" no longer build, sort and copy per-hash records that
   their output handlers discard
@@ -475,6 +628,8 @@ Measurements depend on the device, runtime and workload.
   9070 XT with Mesa rusticl
 - Compiler-generated byte-swap and bit-field code, in place of handwritten assembly, improves HIP
   modes 0, 1700 and 10800 by 0.4 to 0.7 percent
+- Rule "Z" with a count of 3 or more runs about 40 percent faster in optimized kernels, and rule "z"
+  with a count of 2 or more up to 2.3 times faster in pure kernels, on an RTX 4090
 - A SHA-1-order shared hex table improves mode 18500 by 0.7 percent on an RX 7900 XTX
 - Width conversion without the union type punning that Mesa rusticl lowered to scratch memory
   improves mode 6100
@@ -516,6 +671,9 @@ Measurements depend on the device, runtime and workload.
 - Hardware and tuning diagnostics were expanded: NVIDIA throttling uses documented NVML reasons
   instead of NVAPI, out-of-range "-u" values name the accepted range, "HASHCAT_MEMORY" explains
   every device memory budget, and "-I" reports device cache size and bridge units
+- Several hashcat processes sharing one machine can now each be told what to assume is free. The
+  settings "HASHCAT_DEVICE_MEM_LIMIT" and "HASHCAT_HOST_MEM_LIMIT", both in MiB, cap the device and
+  host figures one process budgets against, so a launcher can keep their sum inside the machine
 - Hashcat no longer sets "AMD_DIRECT_DISPATCH=0" for HIP, previously used to reduce host CPU load.
   On ROCm 7 it affects neither waiting thread CPU usage nor cracking speed, measured across several
   hash modes on a Radeon RX 7900 XTX
@@ -537,6 +695,9 @@ Measurements depend on the device, runtime and workload.
 
 - The "HASHCAT_FORCE_NO_INLINE" environment variable builds kernels with "FORCE_NO_INLINE" for
   runtimes that compile inlined helpers slowly
+- Fast kernels now declare only the constant memory the attack actually reads. One 32k slice was
+  declared for every attack, where the mask attack reads 4k of it and the combinator attack reads
+  none, so those kernels return 28k and 32k of the 64k constant budget to their own tables
 
 ## Attack modes and candidate input
 
@@ -558,6 +719,8 @@ Measurements depend on the device, runtime and workload.
 - The "--show" and "--left" options support "--username" together with "--dynamic-x"
 - A hash list read as anything other than the default hashcat format now names the format it was
   read as, because that choice reinterprets every line in the file
+- The "--hccapx-message-pair" option is now "--eapol-message-pair", because it also filters the
+  message pairs of mode 22000 and 22001 hash lines. The old name remains accepted
 
 ## Extraction tools
 
@@ -587,6 +750,8 @@ Measurements depend on the device, runtime and workload.
 - Pause loops poll more frequently, so quit and resume commands respond promptly
 - Tab completion covers attack-modes 4, 5, 8 and 12, "--lookup", "--cache-path" and paths beginning
   with "$HOME"
+- Tab completion covers custom charsets 5 to 8, every debug mode, "-D" and "--rules-concat", and no
+  longer offers the removed device-type 3
 - Status output now identifies wordlists as feeds, shows their position within a unified queue, and
   reports "Host Generator + PCIe" whenever candidates are not amplified on the device
 - The "Restore.Sub" status field combines amplifier and iteration positions for 3 devices per
@@ -609,8 +774,8 @@ Measurements depend on the device, runtime and workload.
 - Mode 70100 allocates one "128 * r * N" scratch area per candidate, sizes batches from free host
   memory, reports "2 * N * p" iterations, and launches scrypt-jane in "-u" chunks so large N values
   show progress
-- Mode 73000 names the required Python build and installation method. Python bridges use hashcat's
-  log, and Rust unit information names the loaded plugin, for example "Rust [dynamic_hash.so]"
+- The Python bridge names the interpreter it started, for example "Python 3.14.7 worker", and Rust
+  unit information names the loaded plugin, for example "Rust [dynamic_hash.so]"
 - Plugins can now receive bridge parameters, describe units made of several components, and call the
   core's device allocation, compilation and launch functions
 - OpenCL hash and HMAC helpers read only the words covered by their input length, so plugins no
@@ -618,8 +783,7 @@ Measurements depend on the device, runtime and workload.
 - The file layer adds "hc_fopen_mem()" for code that needs to read an existing memory buffer through
   the normal file interface
 - Rust bridges share "hashcat-sys" and build every crate under "Rust/bridges" into "bridges/subs".
-  Python bridge examples can save and reload the hashcat context for standalone debugging. CI now
-  checks and tests both plugin families
+  CI now checks and tests both plugin families
 
 ## Modules
 
@@ -762,6 +926,17 @@ Measurements depend on the device, runtime and workload.
 - Fixed reads beyond buffer bounds in secp256k1 "point_mul_xy()" when the scalar is zero
 - Fixed TrueCrypt and VeraCrypt modes leaking their container header on both error returns from
   "module_hash_binary_parse()", losing 512 bytes per rejected container across 36 modes
+- Fixed mode 29100 writing the salt terminator at a byte index into "salt_buf", a 64-element u32
+  array, so a salt longer than 63 bytes landed in the fields after it
+- Fixed mode 14200 accepting an unbounded memory factor from the hash line, although the field holds
+  4 hex digits and the module supports values up to 10. The shift used to derive its size was
+  undefined outside that range, and a larger factor gave a size past the 256-word buffer it fills
+- Fixed acceptance of odd-length hex tokens, which cannot decode to bytes. The check now sits in
+  "input_tokenizer()" rather than in each module, so a mode that had no such check, such as 16100,
+  is covered as well
+- Fixed a crash in modes 34000, 34100 and 34300 when loading a hash whose argon2 memory cost is
+  below the built-in self-test vector's. The extra buffer reserved space for one self-test hash, but
+  the backend split it 4 ways, so the self-test wrote past its share
 
 ## Memory safety: candidates, rules and masks
 
@@ -867,8 +1042,6 @@ Measurements depend on the device, runtime and workload.
   memory as global memory
 - Fixed "-m 17220 -a 3" build failures from including "inc_checksum_crc32.cl", renamed during CRC
   restructuring
-- Fixed "-m 73000" crashing after a run under Python 3.14, where its bridge released 4 Python
-  references it did not own and leaked 2 tuples
 - Fixed 11 hash modes writing "--separator" between internal hash fields, which hid where the
   plaintext starts when an outfile line is split on that character, and module 30700 writing fields
   with "--separator" when its parser expects a colon
@@ -876,6 +1049,17 @@ Measurements depend on the device, runtime and workload.
 - Fixed a module file that exists but cannot be loaded crashing autodetection, "--identify",
   "--help" and "--hash-info", and memory leaks in "module_load()" when the file cannot be opened or
   carries no "module_init()"
+- Fixed a shift into the sign bit in the kernel helper reached by every hash function through
+  "append_0x80_*", and the same pattern in 8 parsers
+- Fixed modes 9710 and 25400 failing to crack under PoCL, where the RC4 S box in local memory read
+  back as zeros inside a helper the runtime kept as a separate call. The S box entry points are
+  folded into those kernels on PoCL builds, and every other runtime builds them as before
+- Fixed mode 12150 missing candidates at vector widths above 1, the default on the CPU backend.
+  The mode declared a vectorised loop kernel it does not have, so only the first candidate of each
+  vector group ran its rounds and the others reached the comparison unfinished
+- Fixed modes 20011, 20012, 20013, 31200 and 33700 deriving the wrong HMAC key from a password that
+  needs UTF-8 decoding and whose UTF-16 form is longer than the hash block, because the decoded key
+  was widened a second time
 
 ## Backends: OpenCL, tuning and memory
 
@@ -918,6 +1102,13 @@ Measurements depend on the device, runtime and workload.
 - Fixed the "Vector_Width" column of a tuning row a module generates being ignored, because only the
   "kernel_accel" lookup searched the name those rows are registered under and the "vector_width" one
   did not
+- Fixed builds of PoCL without LLVM, such as those serving a remote device, being rejected as
+  outdated because they report no LLVM version
+- Fixed kernels failing to build on NVIDIA GPUs older than compute capability 3.2, which were
+  given a funnel shift instruction available only from that version onward
+- Fixed a run with a hash list too large for one OpenCL allocation failing with
+  "CL_INVALID_BUFFER_SIZE". The device is now skipped with the buffer size it needs and the limit it
+  exceeds
 
 ## Backends: Metal and resource lifecycle
 
@@ -944,14 +1135,15 @@ Measurements depend on the device, runtime and workload.
 
 ## Backends: bridges and hardware monitoring
 
+- Fixed mode 74000 only starting from hashcat's own directory, where the Rust library path was
+  resolved against the working directory rather than against hashcat's shared folder. The mode now
+  runs from any directory and from an installed build
 - Fixed bridged modes autotuning an empty loop placeholder instead of measuring bridge work
 - Fixed the first bridge unit's tuning result overwriting every other unit even when their widths
   and performance differed
 - Fixed wide bridge units sizing launch buffers as though "kernel_accel" counted candidates instead
   of waves, which could underallocate them and cause an illegal memory access. The "-n" option now
   counts waves, and bridge speed lines report "Accel" instead of "Batch"
-- Fixed the Python bridges dropping a borrowed reference and then returning a pointer into it, and
-  early returns leaving the thread state attached, which ended the process on the next attach
 - Fixed a bridged hash mode ignoring "-d" and running every bridge unit, and accepting a device
   number that does not exist without saying so
 - Fixed a Metal device being disabled when "-d" also picked an OpenCL device, with no message
@@ -976,11 +1168,16 @@ Measurements depend on the device, runtime and workload.
 - Fixed a modified kernel not being recompiled, because the cache key omitted the kernel source
 - Fixed Apple IOKit initialization running twice and leaking an SMC connection and an IOReport
   subscription on every run
+- Fixed repeated bare "First_file_in_directory() failed" errors for an AMD GPU whose sysfs path
+  contains no hwmon directory. Hashcat now names the device once and disables its hardware
+  monitoring
 
 ## Attack modes and candidates
 
 - Fixed "--stdout" writing a candidate that contains a line ending as two lines. Candidates now use
   the same "$HEX[...]" form as the outfile, so one candidate is always one line
+- Fixed 27 lines of "rules/InsidePro-HashManager.rule" that hashcat either skipped as invalid or
+  interpreted as different rules. They were written for InsidePro's rule engine
 - Fixed "--generate-rules-seed" having no effect outside Windows, where the seed went to "srand()"
   while "-g" drew from "random()", so every run produced the same rules
 - Fixed 3 attack-mode 9 paths launching more work items than salts, which could read beyond the salt
@@ -1055,6 +1252,8 @@ Measurements depend on the device, runtime and workload.
 ## Interface and status
 
 - Fixed "--bitmap-max" accepting unusable values above 28 instead of rejecting them
+- Fixed the bitmap overflow warning suggesting a higher "--bitmap-max" when a higher value would
+  not select a larger table
 - Fixed the startup "Bitmaps" row reporting a rotation count for shifts removed from the kernel
   parameters
 - Fixed "--runtime" having no effect with "--stdout", because the monitor thread that enforces it
@@ -1082,6 +1281,9 @@ Measurements depend on the device, runtime and workload.
   "rules/best66.rule", so a copied command failed
 - Fixed "--hash-info" naming no kernel type for the 5 hash modes that pick their kernel from the
   hash, m14500, m14600, m16500, m16501 and m24600
+- Fixed the status using a device's last speed in "Speed.#*" and "Time.Estimated" after it ran out
+  of work, and showing its last candidates. It now reports 0 H/s and "[Idle]", and so
+  does a device that never received any work
 - Fixed the status line and the hash list loading progress rounding a percentage up to 100.00%
   before it was complete and down to 0.00% before it was empty, so a run one digest short of the
   whole list reported full recovery
@@ -1112,6 +1314,9 @@ Measurements depend on the device, runtime and workload.
   be the working directory on CUDA, whose runtime compiler cannot open such an include path
 - Fixed a UNC install path leaving the kernel include path empty, where the leading "//" of
   "//server/share" inside a "-D" value was read as the start of a C comment
+- Fixed every CUDA kernel build failing when hashcat is installed under a directory whose name has
+  a non-ASCII character. The nvrtc compiler does not read its include search path as UTF-8, so
+  it could not open the "OpenCL/inc_*" headers, which are now handed to it in memory instead
 
 ## Build and packaging
 
@@ -1130,10 +1335,9 @@ Measurements depend on the device, runtime and workload.
   completion to root's ".bashrc" rather than yours
 - Fixed the NetBSD build conflict between its "qsort_r()" declaration and "sort_r.h", and a "cpuset"
   warning there
-- Fixed both Python bridge makefiles defining 2 recipes for one target, so "make" reported an
-  overridden recipe on every build without the Python headers
-- Fixed 4 redefinition warnings in the Python bridges, where "Python.h" was included after the
-  headers whose feature macros it sets itself
+- Fixed "make install" installing a binary that looked for files under the build's prefix when the
+  install "PREFIX" differed from the build's. Changing the install folders now rebuilds what uses
+  them
 
 ## Tools and tests
 
@@ -1156,6 +1360,9 @@ Measurements depend on the device, runtime and workload.
   30906 declaring a password limit below its own vectors
 - Fixed the test dependency installer using a PyPI "pycryptoplus" package incompatible with current
   setuptools. It now verifies every Python dependency after installation
+- Fixed the test dependency installer picking an older Python than the newest pyenv offers, where
+  its version pattern allowed only one digit for the patch number and so preferred 3.14.7 over
+  3.14.10
 - Fixed test modules 14400 and 15000 deriving password lengths from the wrong budget, and the mode
   25700 oracle treating non-ASCII candidate bytes as signed values
 - Fixed "tools/test.sh" running no test at all for the 18 VeraCrypt boot-mode hash types, and added

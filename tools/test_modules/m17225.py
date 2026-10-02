@@ -7,7 +7,7 @@
 
 from lib import pkzip
 
-# PKZIP with several files, stored and deflated, both kinds present.
+# PKZIP ZipCrypto, the container shape for mode 17225, see lib/pkzip.py.
 
 
 def module_constraints():
@@ -15,7 +15,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return pkzip.generate_hash(pkzip.mixed(3, 8), word)
+  return pkzip.generate_hash(17225, word)
 
 
 def module_verify_hash(line):

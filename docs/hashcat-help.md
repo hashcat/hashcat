@@ -65,7 +65,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
      --cache-path               | Dir  | Specify the directory hashcat caches everything in   | --cache-path=/mnt/hccache
      --logfile-disable          |      | Disable the logfile                                  |
-     --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2
+     --eapol-message-pair       | Num  | Load only EAPOL message pairs matching X             | --eapol-message-pair=2
      --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
      --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table
      --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png
@@ -141,7 +141,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --bypass-threshold         | Num  | Minimum amount of founds to avoid being bypassed     | --bypass-threshold=5
      --brain-server             |      | Enable brain server                                  |
      --brain-server-timer       | Num  | Update the brain server dump each X seconds (min:60) | --brain-server-timer=300
- -z, --brain-client             |      | Enable brain client, activates -S                    |
+ -z, --brain-client             |      | Enable brain client, activates -S unless features=2  |
      --brain-feed               |      | Hash stdin into a running brain, needs --brain-session|
      --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3
      --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1
@@ -164,6 +164,10 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   1 | Send hashed passwords
   2 | Send attack positions
   3 | Send hashed passwords and attack positions
+
+Feature 1 needs every candidate on the host and therefore activates -S. Feature 2 works from
+keyspace positions alone, so --brain-client-features=2 leaves candidate generation on the
+device. That is the one to use for a fast hash.
 
 - [ Outfile Formats ] -
 

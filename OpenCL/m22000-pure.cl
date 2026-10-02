@@ -982,16 +982,11 @@ KERNEL_FQ KERNEL_FA void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
 
       sha256_hmac_final (&ctx1);
 
-      ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
-      ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
-      ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
-      ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
-
       // AES CMAC
 
       u32 ks[44];
 
-      aes128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
+      AES128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
 
       u32 m[4];
 
@@ -1051,23 +1046,18 @@ KERNEL_FQ KERNEL_FA void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
       m[2] ^= iv[2];
       m[3] ^= iv[3];
 
+      m[0] = hc_swap32_S (m[0]);
+      m[1] = hc_swap32_S (m[1]);
+      m[2] = hc_swap32_S (m[2]);
+      m[3] = hc_swap32_S (m[3]);
+
       u32 keymic[4];
 
-      keymic[0] = 0;
-      keymic[1] = 0;
-      keymic[2] = 0;
-      keymic[3] = 0;
-
-      aes128_encrypt (ks, m, keymic, s_te0, s_te1, s_te2, s_te3, s_te4);
+      AES128_encrypt (ks, m, keymic, s_te0, s_te1, s_te2, s_te3, s_te4);
 
       /**
        * final compare
        */
-
-      keymic[0] = hc_swap32_S (keymic[0]);
-      keymic[1] = hc_swap32_S (keymic[1]);
-      keymic[2] = hc_swap32_S (keymic[2]);
-      keymic[3] = hc_swap32_S (keymic[3]);
 
       if ((keymic[0] == wpa->keymic[0])
        && (keymic[1] == wpa->keymic[1])

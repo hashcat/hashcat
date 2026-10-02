@@ -48,7 +48,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "The file https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z actually contains several examples of the different hash+cipher combinations. The password is stored in the pw file. That file is automatically used by tools/test.sh";
+  return "The file https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z actually contains several examples of the different hash+cipher combinations. The password is stored in the pw file. That file is automatically used by tools/test.py";
 }
 
 // original headers from luks.h

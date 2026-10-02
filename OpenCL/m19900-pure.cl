@@ -43,27 +43,17 @@ DECLSPEC void aes256_encrypt_cbc (PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *
 {
   u32 data[4];
 
-  data[0] = hc_swap32_S (in[0]);
-  data[1] = hc_swap32_S (in[1]);
-  data[2] = hc_swap32_S (in[2]);
-  data[3] = hc_swap32_S (in[3]);
+  data[0] = in[0] ^ aes_iv[0];
+  data[1] = in[1] ^ aes_iv[1];
+  data[2] = in[2] ^ aes_iv[2];
+  data[3] = in[3] ^ aes_iv[3];
 
-  data[0] ^= aes_iv[0];
-  data[1] ^= aes_iv[1];
-  data[2] ^= aes_iv[2];
-  data[3] ^= aes_iv[3];
-
-  aes256_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES256_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   aes_iv[0] = out[0];
   aes_iv[1] = out[1];
   aes_iv[2] = out[2];
   aes_iv[3] = out[3];
-
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
 }
 
 DECLSPEC void aes256_decrypt_cbc (PRIVATE_AS const u32 *ks1, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
@@ -368,14 +358,14 @@ KERNEL_FQ KERNEL_FA void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb
   // then aes_cbc encrypt this nfolded value with 'seed' as key along with a null IV
   u32 aes_key[8];
 
-  aes_key[0] = hc_swap32_S (tmps[gid].out[0]);
-  aes_key[1] = hc_swap32_S (tmps[gid].out[1]);
-  aes_key[2] = hc_swap32_S (tmps[gid].out[2]);
-  aes_key[3] = hc_swap32_S (tmps[gid].out[3]);
-  aes_key[4] = hc_swap32_S (tmps[gid].out[4]);
-  aes_key[5] = hc_swap32_S (tmps[gid].out[5]);
-  aes_key[6] = hc_swap32_S (tmps[gid].out[6]);
-  aes_key[7] = hc_swap32_S (tmps[gid].out[7]);
+  aes_key[0] = tmps[gid].out[0];
+  aes_key[1] = tmps[gid].out[1];
+  aes_key[2] = tmps[gid].out[2];
+  aes_key[3] = tmps[gid].out[3];
+  aes_key[4] = tmps[gid].out[4];
+  aes_key[5] = tmps[gid].out[5];
+  aes_key[6] = tmps[gid].out[6];
+  aes_key[7] = tmps[gid].out[7];
 
   u32 aes_iv[4];
 
@@ -386,7 +376,7 @@ KERNEL_FQ KERNEL_FA void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb
 
   u32 aes_ks[60];
 
-  aes256_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
+  AES256_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
 
   u32 out[4];
 
@@ -394,10 +384,10 @@ KERNEL_FQ KERNEL_FA void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb
 
   u32 key_bytes[8];
 
-  key_bytes[0] = hc_swap32_S (out[0]);
-  key_bytes[1] = hc_swap32_S (out[1]);
-  key_bytes[2] = hc_swap32_S (out[2]);
-  key_bytes[3] = hc_swap32_S (out[3]);
+  key_bytes[0] = out[0];
+  key_bytes[1] = out[1];
+  key_bytes[2] = out[2];
+  key_bytes[3] = out[3];
 
   aes_iv[0] = 0;
   aes_iv[1] = 0;
@@ -406,13 +396,13 @@ KERNEL_FQ KERNEL_FA void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb
 
   aes256_encrypt_cbc (aes_ks, aes_iv, out, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  key_bytes[4] = hc_swap32_S (out[0]);
-  key_bytes[5] = hc_swap32_S (out[1]);
-  key_bytes[6] = hc_swap32_S (out[2]);
-  key_bytes[7] = hc_swap32_S (out[3]);
+  key_bytes[4] = out[0];
+  key_bytes[5] = out[1];
+  key_bytes[6] = out[2];
+  key_bytes[7] = out[3];
 
   // then aes_cbc encrypt this nfolded value with 'key_bytes' as key along with a null IV
-  aes256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
+  AES256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
 
   /* we will now compute 'ke' */
 
@@ -589,7 +579,7 @@ KERNEL_FQ KERNEL_FA void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb
     aes_iv[3] = 0;
 
     // then aes_cbc encrypt this nfolded value with 'key_bytes' as key along with a null IV
-    aes256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
+    AES256_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
 
     aes256_encrypt_cbc (aes_ks, aes_iv, nfolded, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 

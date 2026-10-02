@@ -493,6 +493,15 @@ static void hc_dev_mem_free (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
 int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const void *src, const u64 size)
 {
+  // Nothing to copy. cuMemcpyHtoD and hipMemcpyHtoD accept a zero length transfer and do nothing
+  // with it, while Metal refuses one and so does AMD's OpenCL, which answers CL_INVALID_VALUE.
+  // Several of the sizes handed to this function are counts the host worked out and can legitimately
+  // come out zero: a mask of markers only has no character positions, and an amplifier chunk whose
+  // every word was rejected holds no items. Answering those here keeps a run from ending on one
+  // backend where another completes it.
+
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyHtoD (hashcat_ctx, mem.cuda + offset, src, size) == -1) return -1;
@@ -1963,42 +1972,6 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
     }
 
     pw->pw_len = len;
-  }
-
-  if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
-
-  return rc;
-}
-
-int copy_pws_idx (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest)
-{
-  if (hc_dev_bind (hashcat_ctx, device_param) == -1) return -1;
-
-  int rc = 0;
-
-  if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, dest, device_param->d_buf[HC_DEV_BUF_PWS_IDX], gidd * sizeof (pw_idx_t), cnt * sizeof (pw_idx_t)) == -1) rc = -1;
-
-  if (rc == 0)
-  {
-    if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) rc = -1;
-  }
-
-  if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
-
-  return rc;
-}
-
-int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest)
-{
-  if (hc_dev_bind (hashcat_ctx, device_param) == -1) return -1;
-
-  int rc = 0;
-
-  if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, dest, device_param->d_buf[HC_DEV_BUF_PWS_COMP_BUF], off * sizeof (u32), cnt * sizeof (u32)) == -1) rc = -1;
-
-  if (rc == 0)
-  {
-    if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) rc = -1;
   }
 
   if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
@@ -7619,7 +7592,7 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       device_param->has_lop3  = (sm >= 50) ? true : false;
       device_param->has_mov64 = (sm >= 10) ? true : false;
       device_param->has_prmt  = (sm >= 20) ? true : false;
-      device_param->has_shfw  = (sm >= 70) ? true : true; // still faster
+      device_param->has_shfw  = (sm >= 32) ? true : false;
 
       // A device that has already been ruled out gets no context. Creating one costs as much as
       // creating one for a device that will be used, and it reserves memory on a card this run is
@@ -9512,7 +9485,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           char *pocl_version_ptr = strstr (opencl_platform_version, "PoCL ");
           char *llvm_version_ptr = strstr (opencl_platform_version, "LLVM ");
 
-          if ((pocl_version_ptr != NULL) && (llvm_version_ptr != NULL))
+          if (pocl_version_ptr != NULL)
           {
             int pocl_maj = 0;
             int pocl_min = 0;
@@ -9528,7 +9501,18 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
                 pocl_skip = true;
               }
             }
+          }
+          else
+          {
+            pocl_skip = true;
+          }
 
+          // A PoCL built without LLVM only forwards to a remote or proxied device, whose own driver
+          // compiles the kernels, so there is no LLVM version to report and none that can be too
+          // old.
+
+          if (llvm_version_ptr != NULL)
+          {
             int llvm_maj = 0;
             int llvm_min = 0;
 
@@ -9543,10 +9527,6 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
                 pocl_skip = true;
               }
             }
-          }
-          else
-          {
-            pocl_skip = true;
           }
 
           if (pocl_skip == true)
@@ -10030,7 +10010,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           device_param->has_lop3  = (sm >= 50) ? true : false;
           device_param->has_mov64 = (sm >= 10) ? true : false;
           device_param->has_prmt  = (sm >= 20) ? true : false;
-          device_param->has_shfw  = (sm >= 70) ? true : true; // still faster
+          device_param->has_shfw  = (sm >= 32) ? true : false;
         }
 
         // common driver check
@@ -11677,6 +11657,14 @@ bool backend_ctx_devices_tuning_restore (hashcat_ctx_t *hashcat_ctx)
     if (device_param->kernel_accel_prev   == 0) return false;
     if (device_param->kernel_loops_prev   == 0) return false;
     if (device_param->kernel_threads_prev == 0) return false;
+
+    // The previous answer was fitted inside the bounds of the round that measured it. A round whose
+    // own bounds differ is a different question, so it measures rather than inheriting an answer that
+    // may sit outside its own loop axis. A mask queue recomputes kernel_loops_max from the round's
+    // amplifier count, which is what moves when the mask length does.
+
+    if (device_param->kernel_loops_min_prev != device_param->kernel_loops_min) return false;
+    if (device_param->kernel_loops_max_prev != device_param->kernel_loops_max) return false;
   }
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -12109,6 +12097,74 @@ static void kernel_build_finish (hashcat_ctx_t *hashcat_ctx, const char *cached_
   hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
 }
 
+#if defined (_WIN)
+
+// nvrtc on Windows does not read the -I path as UTF-8, even though hashcat's manifest makes the process
+// code page UTF-8, so a non-ASCII install directory breaks every include (#4885). The inc_* files are
+// handed over in memory instead. A kernel includes them as M2S(INCLUDE_PATH/inc_x) and the headers
+// include each other as plain "inc_x", so each file is registered under both names, sharing one buffer
+// just as both spellings used to resolve to the same file on disk.
+
+static int nvrtc_load_headers (hashcat_ctx_t *hashcat_ctx, const char *kernel_dir, char ***out_headers, char ***out_names)
+{
+  char **files = scan_directory (kernel_dir);
+
+  if (files == NULL) return 0;
+
+  int num_files = 0;
+
+  for (int i = 0; files[i] != NULL; i++) num_files++;
+
+  char **headers = (char **) hccalloc (num_files * 2, sizeof (char *));
+  char **names   = (char **) hccalloc (num_files * 2, sizeof (char *));
+
+  int idx = 0;
+
+  for (int i = 0; files[i] != NULL; i++)
+  {
+    const char *name = filename_from_filepath (files[i]);
+
+    if (strncmp (name, "inc_", 4) != 0) continue;
+
+    size_t kernel_length = 0;
+    char  *kernel_source = NULL;
+
+    if (read_kernel_binary (hashcat_ctx, files[i], &kernel_length, &kernel_source) == false) continue;
+
+    headers[idx] = kernel_source;
+    hc_asprintf (&names[idx], "OpenCL/%s", name);
+    idx++;
+
+    headers[idx] = kernel_source;
+    names[idx]   = hcstrdup (name);
+    idx++;
+  }
+
+  for (int i = 0; files[i] != NULL; i++) hcfree (files[i]);
+
+  hcfree (files);
+
+  *out_headers = headers;
+  *out_names   = names;
+
+  return idx;
+}
+
+static void nvrtc_free_headers (char **headers, char **names, const int num_headers)
+{
+  for (int i = 0; i < num_headers; i++) hcfree (names[i]);
+
+  // the two names of a file share one buffer, so free the even index only
+
+  for (int i = 0; i < num_headers; i += 2) hcfree (headers[i]);
+
+  hcfree (headers);
+
+  hcfree (names);
+}
+
+#endif
+
 // Build one program, or load the build a previous run left in the cache. Which of the four runtimes
 // is compiling is the only thing that changes: the cache lookup, the source read and the binary
 // write are the same work whichever it is.
@@ -12146,7 +12202,40 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       nvrtcProgram nvrtc_program;
 
-      if (hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+      // DEBUG builds hand nvrtc the real .cl source filename instead of the generic per-category
+      // literal ("main_kernel", "shared_kernel", ...), so a tool that reads nvrtc's embedded line
+      // info (NVIDIA Compute Sanitizer) resolves a finding to "m17010-pure.cl:527" rather than
+      // "main_kernel:527". #4920 gave this function two nvrtcCreateProgram call sites, so the name is
+      // chosen once here and used by both.
+
+      #if defined (DEBUG)
+      const char *nvrtc_program_name = filename_from_filepath (source_file);
+      #else
+      const char *nvrtc_program_name = kernel_name;
+      #endif
+
+      #if defined (_WIN)
+      // nvrtc copies the headers at create time, so they are freed right after (#4885)
+
+      char **nvrtc_headers      = NULL;
+      char **nvrtc_header_names = NULL;
+
+      char *nvrtc_kernel_dir = NULL;
+
+      hc_asprintf (&nvrtc_kernel_dir, "%s/OpenCL", folder_config->shared_dir);
+
+      const int nvrtc_num_headers = nvrtc_load_headers (hashcat_ctx, nvrtc_kernel_dir, &nvrtc_headers, &nvrtc_header_names);
+
+      hcfree (nvrtc_kernel_dir);
+
+      const int rc_nvrtcCreateProgram = hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], nvrtc_program_name, nvrtc_num_headers, (const char * const *) nvrtc_headers, (const char * const *) nvrtc_header_names);
+
+      nvrtc_free_headers (nvrtc_headers, nvrtc_header_names, nvrtc_num_headers);
+
+      if (rc_nvrtcCreateProgram == -1) return false;
+      #else
+      if (hc_nvrtcCreateProgram (hashcat_ctx, &nvrtc_program, kernel_sources[0], nvrtc_program_name, 0, NULL, NULL) == -1) return false;
+      #endif
 
       char **nvrtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
@@ -12156,6 +12245,14 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       {
         nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--std=c++14");
       }
+
+      // DEBUG builds keep optimized kernels but add line info, so a tool like Compute Sanitizer can
+      // resolve its backtrace to source:line. Deliberately not -G (full device debug), which turns
+      // kernel optimization off entirely.
+
+      #if defined (DEBUG)
+      nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--generate-line-info");
+      #endif
 
       //nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--restrict");
       nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--gpu-architecture");
@@ -12178,9 +12275,8 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       // cpath_real on _WIN uses forward slashes, but UNC paths (\\server\share)
       // become //server/share after conversion. The leading // is interpreted as a
       // C++ line comment when embedded in a -D preprocessor value, leaving
-      // INCLUDE_PATH empty. Instead pass shared_dir as an explicit -I search path
-      // and keep INCLUDE_PATH as the relative subdirectory name.
-      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-I%s", folder_config->shared_dir);
+      // INCLUDE_PATH empty. The headers are handed over in memory instead (#4885),
+      // so INCLUDE_PATH stays the relative subdirectory name they are registered under.
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
       #elif defined (__CYGWIN__) || defined (__MSYS__)
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
@@ -13370,6 +13466,19 @@ static bool memory_debug_enabled (void)
   return hc_env_flag ("HASHCAT_MEMORY", &cache);
 }
 
+// A hashcat process cannot see a second one running against this same device, nor what that one is
+// about to take, so both size themselves to the whole card and the sum is what the card cannot
+// serve. Set HASHCAT_DEVICE_MEM_LIMIT, in MiB, to hand one process its own share of the card.
+
+static u64 device_mem_limit (void)
+{
+  static i64 cache = -1;
+
+  const u64 result = hc_env_mib ("HASHCAT_DEVICE_MEM_LIMIT", &cache);
+
+  return result;
+}
+
 // Set HASHCAT_FORCE_NO_INLINE to build the kernels with -D FORCE_NO_INLINE, which forces the
 // DECLSPEC helpers out-of-line (see OpenCL/inc_vendor.h). It exists for runtimes that need minutes
 // to compile a kernel whose helpers all get inlined into one huge function. It costs runtime
@@ -13963,6 +14072,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       qsort (tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
       qsort (tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
     }
+
+    // The share is taken once the readings and the estimate above are settled, so a figure the
+    // launcher states outright is not cut a second time by the desktop estimate. The clone budget
+    // further down divides whatever is left here, so a run that also splits the device virtually
+    // keeps both divisions.
+
+    const u64 mem_limit = device_mem_limit ();
+
+    if (mem_limit != 0) device_param->device_available_mem = MIN (device_param->device_available_mem, mem_limit);
 
     // vector_width
 
@@ -14863,8 +14981,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // The amplifier, the markov and the shared kernel are all named after themselves in the cache file
     // name, so one key serves all three, and none of them is a per hash-mode kernel. The shared digest
     // therefore covers every source they are built from.
+    //
+    // A DEBUG build compiles these CUDA kernels with nvrtc line info and a different program name, so
+    // its cache entries must not collide with a release build's when SOURCE_DATE_EPOCH pins COMPTIME
+    // and the source digests match. The "-debug" marker keeps the two apart; the release key, without
+    // it, is unchanged.
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u"
+      #if defined (DEBUG)
+      "-debug"
+      #endif
+      ,
       backend_ctx->comptime,
       backend_ctx->kernel_shared_chksum,
       backend_ctx->cuda_driver_version,
@@ -15103,7 +15230,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
+        // the same DEBUG marker as the shared key above, so a DEBUG main kernel never loads a release one
+        #if defined (DEBUG)
+        "-debug"
+        #endif
+        ,
         backend_ctx->comptime,
         backend_ctx->kernel_shared_chksum,
         source_chksum,
@@ -15317,6 +15449,34 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (size_total_fixed > device_param->device_available_mem)
     {
       event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this hashlist/ruleset.", device_id + 1);
+
+      backend_memory_hit_warnings++;
+
+      device_param->skipped_warning = true;
+      continue;
+    }
+
+    // The buffers sized by the hashlist must each fit in one allocation as well. OpenCL caps that
+    // far below the device memory, and past it the runtime only reports CL_INVALID_BUFFER_SIZE.
+    // OpenCL and Metal halve device_maxmem_alloc on a device that shares its memory with the host,
+    // which budgets that memory but is not what the runtime enforces on one allocation.
+
+    u64 size_hashlist_max = size_digests;
+
+    size_hashlist_max = MAX (size_hashlist_max, size_plains);
+    size_hashlist_max = MAX (size_hashlist_max, size_esalts);
+    size_hashlist_max = MAX (size_hashlist_max, size_shown);
+    size_hashlist_max = MAX (size_hashlist_max, size_salts);
+
+    const bool maxmem_alloc_halved = ((device_param->is_opencl == true) || (device_param->is_metal == true)) && (device_param->device_host_unified_memory == 1);
+
+    const u64 size_alloc_max = (maxmem_alloc_halved == true) ? (device_param->device_maxmem_alloc * 2) : device_param->device_maxmem_alloc;
+
+    if (size_hashlist_max > size_alloc_max)
+    {
+      const u64 MiB = 1024 * 1024;
+
+      event_log_error (hashcat_ctx, "* Device #%u: This hashlist needs a %" PRIu64 " MB buffer, but the device allows at most %" PRIu64 " MB in one allocation.", device_id + 1, (size_hashlist_max + MiB - 1) / MiB, size_alloc_max / MiB);
 
       backend_memory_hit_warnings++;
 
@@ -17281,6 +17441,25 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// How much of the markov table a mask can actually address. The table is allocated for the longest
+// mask hashcat accepts, one cs_t per (position, previous character), and generate_pw () in
+// OpenCL/markov_le.cl only ever indexes markov_css_buf[(j * CHARSIZ) + key] for j below the mask
+// length. Everything past that is for positions the mask does not have, so copying it is 64 MB of
+// bus time per round to no end: a four character mask reaches 1 MB of the 64.
+//
+// The row at css_cnt - 1 is included because the kernel does read it. It loads the charset for the
+// position after the one it just wrote, and on the last position that charset is never used.
+//
+// The allocation stays at its full size. Rows past the mask keep whatever an earlier round left in
+// them, which is safe precisely because no work item can address them.
+
+static u64 markov_css_copy_size (const hc_device_param_t *device_param, const u32 css_cnt)
+{
+  const u64 want = (u64) css_cnt * CHARSIZ * sizeof (cs_t);
+
+  return MIN (want, device_param->size_markov_css);
+}
+
 int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 {
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
@@ -17301,6 +17480,8 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
 
+    const u64 copy_markov_css = markov_css_copy_size (device_param, mask_ctx->css_cnt);
+
     // This runs on the main thread rather than on a device thread, and the main thread carries no
     // device of its own, so the device has to be made current for the copy.
 
@@ -17309,7 +17490,7 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) rc = -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
 
     if (rc == 0)
     {
@@ -17348,6 +17529,13 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     device_param->kernel_params_mp_r_buf64[3] = 0;
     device_param->kernel_params_mp_r_buf32[4] = css_cnt_r;
 
+    // mask_ctx->css_cnt rather than css_cnt_l + css_cnt_r. The two differ: the split is taken over the
+    // mask length from before mp_css_append_salt () extended it, so the sum can be short of the table
+    // the host actually built. Bounding by the larger of the two is what keeps this a transfer size
+    // change and nothing else.
+
+    const u64 copy_markov_css = markov_css_copy_size (device_param, mask_ctx->css_cnt);
+
     // This runs on the main thread rather than on a device thread, and the main thread carries no
     // device of its own, so the device has to be made current for the copy.
 
@@ -17356,7 +17544,7 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) rc = -1;
+    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
 
     if (rc == 0)
     {

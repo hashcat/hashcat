@@ -736,16 +736,11 @@ KERNEL_FQ KERNEL_FA void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_e
 
       sha256_hmac_final (&ctx1);
 
-      ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
-      ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
-      ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
-      ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
-
       // AES CMAC
 
       u32 ks[44];
 
-      aes128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
+      AES128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
 
       u32 m[4];
 

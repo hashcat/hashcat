@@ -5,49 +5,19 @@
 ## License.....: MIT
 ##
 
-# PKZIP traditional PKWARE / ZipCrypto. The key schedule is a byte exact port of the kernel
-# macros in OpenCL/m172*-pure.cl: the three keys start at 0x12345678, 0x23456789 and
-# 0x34567890, and the byte the plaintext is xored with comes out of key 2.
+# PKZIP traditional PKWARE encryption (ZipCrypto) for the 172xx test modules.
 #
-# Each file is emitted as a "full data" (data_type_enum 2) block: a 12 byte encryption header
-# whose last byte is the top byte of the crc, which is the value hashcat checks, followed by
-# the file itself, stored for compression type 0 and raw DEFLATE for 8, the whole thing under
-# ZipCrypto. Generating by encrypting the way hashcat decrypts means a correct password
-# reproduces every header check and every crc by construction.
+# The key schedule is a byte exact port of the kernel macros in OpenCL/m172*-pure.cl: keys start at
+# 0x12345678, 0x23456789 and 0x34567890, and a byte decrypts with ((key2 & 0xffff) | 3).
 #
-# What separates the five modes is only the shape of the container, so that is what each of
-# them passes in.
+# Each file is written as a data_type_enum 2 block, full data: a 12 byte encryption header whose
+# last byte is (crc >> 24) & 0xff, the value hashcat checks, then the encrypted file, stored for
+# compression type 0 and raw deflate for type 8. Generating by encrypting the way hashcat decrypts
+# means the right password passes every header check and CRC32 by construction.
 
-import re
 import zlib
 
-from .test_helpers import random_bytes, random_number
-
-CONTENT_MIN = 80
-CONTENT_MAX = 320
-
-# The first deflated file of a hash is drawn much larger than that, because what the kernel has to
-# walk is the output window it owns: filling it, flushing it, shifting the dictionary down and
-# matching back into what it shifted. Three flushes need at least 128 KB coming out, and a stored
-# file cannot be given that, as it goes into the hash as it stands.
-#
-# The content is a pool of chunks repeated at random, so it deflates to long back references and the
-# block in the hash stays a fraction of what comes out of it.
-#
-# Only the first, so that one hash walks both the path that flushes and the path that answers in a
-# single call, and so that a hash of eight files still fits in one argument: tools/test_edge.sh hands
-# the hash to hashcat on the command line, and Linux refuses an argument of 131072 bytes or more.
-
-WINDOW_MIN = 128 * 1024
-WINDOW_MAX = 192 * 1024
-
-CHUNK_POOL = 256
-CHUNK_MIN = 16
-CHUNK_MAX = 96
-
-HEADER_LEN = 12
-
-LINE = re.compile(r"\$pkzip2\$(.*)\*\$/pkzip2\$")
+from lib.test_helpers import random_bytes, random_number
 
 
 def _table():
@@ -57,218 +27,179 @@ def _table():
     c = i
 
     for _ in range(8):
-      c = (c >> 1) ^ 0xedb88320 if c & 1 else c >> 1
+      c = (c >> 1) ^ (0xedb88320 if (c & 1) else 0)
 
     table.append(c)
 
   return table
 
 
-CRCTAB = _table()
+TABLE = _table()
 
 
-def _c32(x, c):
-  return (x >> 8) ^ CRCTAB[(x ^ c) & 0xff]
+def _crc32(x, c):
+  return ((x >> 8) ^ TABLE[(x ^ c) & 0xff]) & 0xffffffff
 
 
-def _update(keys, c):
-  keys[0] = _c32(keys[0], c)
-  keys[1] = ((keys[1] + (keys[0] & 0xff)) * 0x08088405 + 1) & 0xffffffff
-  keys[2] = _c32(keys[2], (keys[1] >> 24) & 0xff)
+class ZipCrypto:
+  def __init__(self, password):
+    self.k = [0x12345678, 0x23456789, 0x34567890]
+
+    for b in password:
+      self.update(b)
+
+  def update(self, c):
+    self.k[0] = _crc32(self.k[0], c)
+    self.k[1] = ((self.k[1] + (self.k[0] & 0xff)) * 0x08088405 + 1) & 0xffffffff
+    self.k[2] = _crc32(self.k[2], (self.k[1] >> 24) & 0xff)
+
+  def stream_byte(self):
+    t = (self.k[2] & 0xffff) | 3
+
+    return ((t * (t ^ 1)) >> 8) & 0xff
+
+  def encrypt(self, data):
+    out = bytearray()
+
+    for p in data:
+      out.append(p ^ self.stream_byte())
+      self.update(p)
+
+    return bytes(out)
+
+  def decrypt(self, data):
+    out = bytearray()
+
+    for c in data:
+      p = c ^ self.stream_byte()
+      self.update(p)
+      out.append(p)
+
+    return bytes(out)
 
 
-def _init(word):
-  keys = [0x12345678, 0x23456789, 0x34567890]
-
-  for c in word:
-    _update(keys, c)
-
-  return keys
-
-
-def _stream_byte(keys):
-  t = (keys[2] & 0xffff) | 3
-
-  return ((t * (t ^ 1)) >> 8) & 0xff
-
-
-def _encrypt(word, data):
-  keys = _init(word)
-
-  out = bytearray()
-
-  for p in data:
-    out.append(p ^ _stream_byte(keys))
-
-    _update(keys, p)
-
-  return bytes(out)
-
-
-def _decrypt(word, data):
-  keys = _init(word)
-
-  out = bytearray()
-
-  for c in data:
-    p = c ^ _stream_byte(keys)
-
-    _update(keys, p)
-
-    out.append(p)
-
-  return bytes(out)
-
-
-def _deflate(data):
-  # raw deflate, no zlib header, level 6 and memory level 8, which is what a zip writes
-
-  z = zlib.compressobj(6, zlib.DEFLATED, -15, 8)
-
-  return z.compress(data) + z.flush()
-
-
-def _inflate(data):
-  try:
-    return zlib.decompressobj(-15).decompress(data)
-  except zlib.error:
-    return None
-
-
-def _window_content(size):
-  pool = [random_bytes(random_number(CHUNK_MIN, CHUNK_MAX)) for _ in range(CHUNK_POOL)]
-
-  out = bytearray()
-
-  while len(out) < size:
-    out += pool[random_number(0, CHUNK_POOL - 1)]
-
-  return bytes(out[:size])
-
-
-def _block(word, ctype, windowed):
-  if windowed:
-    content = _window_content(random_number(WINDOW_MIN, WINDOW_MAX))
-  else:
-    content = random_bytes(random_number(CONTENT_MIN, CONTENT_MAX))
+def _block(password, ctype):
+  content = random_bytes(random_number(80, 320))
 
   crc = zlib.crc32(content)
 
-  stream = _deflate(content) if ctype == 8 else content
+  if ctype == 8:
+    co = zlib.compressobj(6, zlib.DEFLATED, -15)
+    stream = co.compress(content) + co.flush()
+  else:
+    stream = content
 
-  header = bytearray(random_bytes(HEADER_LEN))
+  header = bytearray(random_bytes(12))
 
   header[10] = (crc >> 16) & 0xff
   header[11] = (crc >> 24) & 0xff
 
-  enc = _encrypt(word, bytes(header) + stream)
+  enc = ZipCrypto(password).encrypt(bytes(header) + stream)
 
-  dlen = len(enc)
   csum = (crc >> 16) & 0xffff
 
-  return "2*0*%x*%x*%x*0*%x*%d*%x*%04x*%04x*%s" % (dlen, len(content), crc, dlen, ctype, dlen,
-                                                   csum, csum, enc.hex())
+  # hashcat's encoder prints the lengths, the crc and the offsets with %x and no padding, so the
+  # line has to match that or the recovered hash does not round trip
+
+  return "2*0*%x*%x*%x*0*%x*%d*%x*%04x*%04x*%s" % (
+    len(enc), len(content), crc, len(enc), ctype, len(enc), csum, csum, enc.hex())
 
 
-def deflate_many(minimum, maximum):
-  return [8] * random_number(minimum, maximum)
+def _container(mode):
+  if mode == 17210:
+    return [0]
+
+  if mode == 17220:
+    return [8] * random_number(2, 8)
+
+  if mode == 17225:
+    types = [8 if random_number(0, 1) else 0 for _ in range(random_number(3, 8))]
+
+    # a genuine mix, whatever was drawn
+
+    types[0] = 0
+    types[1] = 8
+
+    return types
+
+  if mode == 17230:
+    return [8] * random_number(3, 8)
+
+  return [8]
 
 
-def mixed(minimum, maximum):
-  # both kinds have to be there, so the first two are pinned and the rest are drawn
+def generate_hash(mode, password):
+  types = _container(mode)
 
-  types = [(0, 8)[random_number(0, 1)] for _ in range(random_number(minimum, maximum))]
-
-  types[0] = 0
-  types[1] = 8
-
-  return types
+  return "$pkzip2$%d*1*%s*$/pkzip2$" % (len(types), "*".join(_block(password, t) for t in types))
 
 
-def generate_hash(types, word):
-  blocks = []
+def _parse(line):
+  if not line.startswith("$pkzip2$"):
+    raise ValueError("signature")
 
-  windowed = False
+  core = line[len("$pkzip2$"):]
 
-  for t in types:
-    big = (t == 8) and (windowed is False)
+  if core.endswith("*$/pkzip2$"):
+    core = core[:-len("*$/pkzip2$")]
 
-    windowed = windowed or big
+  t = core.split("*")
 
-    blocks.append(_block(word, t, big))
-
-  return "$pkzip2$%d*1*%s*$/pkzip2$" % (len(types), "*".join(blocks))
-
-
-def _accepts(word, line):
-  # The line is checked by decrypting it rather than by generating it again, because every
-  # block carries random content. A password is right when the last byte of the header is the
-  # top byte of the crc and the file itself hashes to that crc.
-
-  match = LINE.fullmatch(line)
-
-  if match is None:
-    return False
-
-  t = match.group(1).split("*")
+  count = int(t[0])
 
   i = 2
 
-  try:
-    for _ in range(int(t[0])):
-      dtype = int(t[i])
-      i += 2
+  files = []
 
-      crc = 0
+  for _ in range(count):
+    dtype = int(t[i])
+    i += 2
 
-      if dtype > 1:
-        crc = int(t[i + 2], 16)
-        i += 5
+    crc = 0
 
-      ctype = int(t[i])
-      i += 4
+    if dtype > 1:
+      crc = int(t[i + 2], 16)
+      i += 5
 
-      data = bytes.fromhex(t[i])
-      i += 1
+    ctype = int(t[i])
+    i += 4
 
-      dec = _decrypt(word, data)
+    data = bytes.fromhex(t[i])
+    i += 1
 
-      if len(dec) <= HEADER_LEN:
-        return False
+    files.append((ctype, crc, data))
 
-      if dec[11] != ((crc >> 24) & 0xff):
-        return False
-
-      body = dec[HEADER_LEN:]
-
-      if ctype == 8:
-        body = _inflate(body)
-
-        if body is None:
-          return False
-
-      if zlib.crc32(body) != crc:
-        return False
-  except (IndexError, ValueError):
-    return False
-
-  return True
+  return files
 
 
 def verify_hash(line):
-  idx = line.find(b":")
+  idx = line.rfind(b":")
 
-  if idx < 1:
+  if idx < 0:
     return None
 
-  hash_in, word = line[:idx], line[idx + 1:]
+  hash_in, word = line[:idx].decode(errors="replace"), line[idx + 1:]
 
   try:
-    text = hash_in.decode("ascii")
-  except UnicodeDecodeError:
+    files = _parse(hash_in)
+  except (ValueError, IndexError):
     return None
 
-  if _accepts(word, text) is False:
-    return None
+  for ctype, crc, enc in files:
+    dec = ZipCrypto(word).decrypt(enc)
 
-  return (text, word)
+    if dec[11] != ((crc >> 24) & 0xff):
+      return None
+
+    body = dec[12:]
+
+    if ctype == 8:
+      try:
+        body = zlib.decompressobj(-15).decompress(body)
+      except zlib.error:
+        return None
+
+    if zlib.crc32(body) != crc:
+      return None
+
+  return (hash_in, word)

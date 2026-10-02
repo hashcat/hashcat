@@ -68,6 +68,15 @@ test_edge*
 comgr-*/
 *.hipi
 
+# tools/compute_sanitizer: the DEBUG=1 sibling binary, per-run results
+# (never overwritten, so never something to commit), and the compiled
+# ground-truth .cu fixtures (source is tracked, the nvcc-built binaries are not).
+/hashcat-sanitizer
+/tools/compute_sanitizer/results/
+/tools/compute_sanitizer/modules/oob_write
+/tools/compute_sanitizer/modules/oob_read
+/tools/compute_sanitizer/modules/uninit_global
+
 Rust/feeds/*/target
 Rust/bridges/*/target
 
@@ -83,3 +92,13 @@ __pycache__/
 /docs/hashcat-example_hashes.md
 /docs/hashcat-help.md
 
+# ASan tooling output (tools/asan/)
+/asan_harness
+/asan-sweep/
+/asan-gpu-sweep/
+/asan-repro/
+
+# fuzzing output (tools/fuzz/)
+/fuzz_out/
+/corpus/
+/crashes/

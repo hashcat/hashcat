@@ -43,6 +43,13 @@ u32   mp_get_length (const char *mask, const u32 opts_type);
 
 HC_PLUGIN_API void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
 
+// The charsets a mask allows, one entry per position, for a feed that selects candidates by a mask
+// rather than producing them from one. css_buf has to hold 256 entries, which is the longest mask the
+// processor takes, and css_max says so. See the comment on the definition for why a feed asks rather
+// than parses.
+
+HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, const u32 css_max, u32 *css_cnt);
+
 // Whether the mask is a feed's source rather than the device's own generator. That is -a 3 given
 // rules, which user_options_alias_attack_mode () rewrites to -a 8 with the mask feed. The mask
 // processor still does all of its work in that case, and the only thing it must not do is split the

@@ -503,22 +503,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create autotune threads
    */
 
-  // The rounds of -a 9 splitting its own hash file are one attack, not a queue of different ones. A
-  // round is "try the Nth word of every account name", so every round launches the same kernel over
-  // the same digests with the same keyspace, and measuring each of them separately arrives at the same
-  // answer as many times as there are rounds. On a slow hash that is seconds of real launches per
-  // round, spent to learn nothing.
+  // A round of a queue usually asks the same question as the round before it: the same kernel over the
+  // same digests, with the same loop bounds. Measuring each one separately arrives at the same answer
+  // as many times as there are rounds, and every probe is a real launch. A maskfile of 50 identical
+  // masks spent 0.86 s a round learning what it already knew, which was 43 s of a 51 s run.
+  //
+  // This was once limited to -a 9 splitting its own hash file, where a round is "try the Nth word of
+  // every account name" and the rounds are self-evidently one attack. A dictionary queue, a maskfile
+  // and an --increment range are the same situation whenever their bounds agree, which is what
+  // backend_ctx_devices_tuning_restore () checks: it refuses a round whose loop bounds are not the
+  // ones the saved answer was fitted inside, so a queue whose rounds genuinely differ still measures.
+  // A mask queue that changes the amplifier count from one round to the next is that case.
   //
   // The one thing a round boundary destroys is the tuning itself, because run_cracker zeroes it on its
   // way out. So the previous round's answer is taken back from where run_cracker saved it, and a round
   // that has no previous answer to take falls through and measures as usual.
 
-  bool tuning_reused = false;
-
-  if (user_options_extra->association_autosplit == true)
-  {
-    tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
-  }
+  bool tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
 
   if (tuning_reused == false)
   {
@@ -611,6 +612,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
       thread_param->hashcat_ctx = hashcat_ctx;
       thread_param->tid         = backend_devices_idx;
+
+      // Cleared here rather than by the thread, so a status taken before the thread gets going does
+      // not read the previous round's answer.
+
+      backend_ctx->devices_param[backend_devices_idx].calc_done = false;
 
       // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
       // handles that started packed at the front so the wait has no unset handle to join, and tell
@@ -1581,9 +1587,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (bridges_init_late (hashcat_ctx) == false)
   {
     // A sweep over every hash mode reaches modes whose bridge cannot come up on this machine, a
-    // python bridge without the free threaded library behind it for one. That is the same kind of
-    // answer as a kernel that will not build, so it skips the mode and carries on. A named mode is
-    // the user asking for that one, and there the failure is the answer.
+    // python bridge with no python3 on PATH for one. That is the same kind of answer as a kernel
+    // that will not build, so it skips the mode and carries on. A named mode is the user asking for
+    // that one, and there the failure is the answer.
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
@@ -2122,7 +2128,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * To help users a bit
    */
 
-  setup_environment_variables (hashcat_ctx->folder_config, hashcat_ctx->user_options);
+  setup_environment_variables (hashcat_ctx->folder_config);
 
   setup_umask ();
 
@@ -2815,7 +2821,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   }
   else if (rc_final == -1)
   {
-    // set up the new negative status code, useful in test.sh
+    // set up the new negative status code, useful in test.py
     // -2 is marked as used in status_codes.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
@@ -3013,6 +3019,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
     device_info->skipped_dev                    = status_get_skipped_dev                    (hashcat_ctx, device_id);
     device_info->skipped_warning_dev            = status_get_skipped_warning_dev            (hashcat_ctx, device_id);
+    device_info->idle_dev                       = status_get_idle_dev                       (hashcat_ctx, device_id);
     device_info->group_id_dev                   = status_get_group_id_dev                   (hashcat_ctx, device_id);
     device_info->group_size_dev                 = status_get_group_size_dev                 (hashcat_ctx, device_id);
     device_info->hashes_msec_dev                = status_get_hashes_msec_dev                (hashcat_ctx, device_id);
@@ -3048,6 +3055,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->brain_link_recv_bytes_sec_dev  = status_get_brain_link_recv_bytes_sec_dev  (hashcat_ctx, device_id);
     device_info->brain_link_send_bytes_sec_dev  = status_get_brain_link_send_bytes_sec_dev  (hashcat_ctx, device_id);
     #endif
+
+    // Only for the display. The monitor reads the same exec time to judge performance, and an idle
+    // device reporting none there would drag its average down.
+
+    if (device_info->idle_dev == true) device_info->exec_msec_dev = 0;
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

@@ -42,27 +42,17 @@ DECLSPEC void aes128_encrypt_cbc (PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *
 {
   u32 data[4];
 
-  data[0] = hc_swap32_S (in[0]);
-  data[1] = hc_swap32_S (in[1]);
-  data[2] = hc_swap32_S (in[2]);
-  data[3] = hc_swap32_S (in[3]);
+  data[0] = in[0] ^ aes_iv[0];
+  data[1] = in[1] ^ aes_iv[1];
+  data[2] = in[2] ^ aes_iv[2];
+  data[3] = in[3] ^ aes_iv[3];
 
-  data[0] ^= aes_iv[0];
-  data[1] ^= aes_iv[1];
-  data[2] ^= aes_iv[2];
-  data[3] ^= aes_iv[3];
-
-  aes128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   aes_iv[0] = out[0];
   aes_iv[1] = out[1];
   aes_iv[2] = out[2];
   aes_iv[3] = out[3];
-
-  out[0] = hc_swap32_S (out[0]);
-  out[1] = hc_swap32_S (out[1]);
-  out[2] = hc_swap32_S (out[2]);
-  out[3] = hc_swap32_S (out[3]);
 }
 
 DECLSPEC void aes128_decrypt_cbc (PRIVATE_AS const u32 *ks1, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
@@ -366,10 +356,10 @@ KERNEL_FQ KERNEL_FA void m32100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, 
   // then aes_cbc encrypt this nfolded value with 'seed' as key along with a null IV
   u32 aes_key[4];
 
-  aes_key[0] = hc_swap32_S (tmps[gid].out[0]);
-  aes_key[1] = hc_swap32_S (tmps[gid].out[1]);
-  aes_key[2] = hc_swap32_S (tmps[gid].out[2]);
-  aes_key[3] = hc_swap32_S (tmps[gid].out[3]);
+  aes_key[0] = tmps[gid].out[0];
+  aes_key[1] = tmps[gid].out[1];
+  aes_key[2] = tmps[gid].out[2];
+  aes_key[3] = tmps[gid].out[3];
 
   u32 aes_iv[4];
 
@@ -380,7 +370,7 @@ KERNEL_FQ KERNEL_FA void m32100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, 
 
   u32 aes_ks[44];
 
-  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
+  AES128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3);
 
   u32 key_bytes[4];
 
@@ -404,11 +394,6 @@ KERNEL_FQ KERNEL_FA void m32100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, 
 
   u32 ki[4];
 
-  key_bytes[0] = hc_swap32_S (key_bytes[0]);
-  key_bytes[1] = hc_swap32_S (key_bytes[1]);
-  key_bytes[2] = hc_swap32_S (key_bytes[2]);
-  key_bytes[3] = hc_swap32_S (key_bytes[3]);
-
   // we can precompute _nfold(pack('>IB', 3, 0x55), 16)
   nfolded[0] = 0x6b60b058;
   nfolded[1] = 0x2a6ba80d;
@@ -421,7 +406,7 @@ KERNEL_FQ KERNEL_FA void m32100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, 
   aes_iv[3] = 0;
 
   // then aes_cbc encrypt this nfolded value with 'key_bytes' as key along with a null IV
-  aes128_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
+  AES128_set_encrypt_key (aes_ks, key_bytes, s_te0, s_te1, s_te2, s_te3);
 
   aes128_encrypt_cbc (aes_ks, aes_iv, nfolded, ki, s_te0, s_te1, s_te2, s_te3, s_te4);
 
