@@ -91,9 +91,11 @@ KERNEL_FQ KERNEL_FA void m25700_m04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
+    const u32 pw_r_len = COMBS_PW_R_LEN (il_pos);
 
-    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
+    const u32 pw_len = pw_l_len + pw_r_len;
+
+    if (pw_len > 63) continue; // otherwise w[blocks] reads past w[16]
 
     /**
      * concat password candidate
@@ -276,9 +278,11 @@ KERNEL_FQ KERNEL_FA void m25700_s04 (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
+    const u32 pw_r_len = COMBS_PW_R_LEN (il_pos);
 
-    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
+    const u32 pw_len = pw_l_len + pw_r_len;
+
+    if (pw_len > 63) continue; // otherwise w[blocks] reads past w[16]
 
     /**
      * concat password candidate
