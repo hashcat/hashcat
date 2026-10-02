@@ -346,7 +346,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "You can use https://gist.github.com/nueh/8252572 (plist2hashcat.py) to extract the hashes";
+  return "You can use https://github.com/openwall/john/blob/bleeding-jumbo/run/mac2john.py | cut -d: -f2 | sed 's/$/:::/' to extract the hash. Original structure is <user>:$pbkdf2-hmac-sha512$<iterations>.<salt>.<entropy>:<uid>:<gid>:..., but we need $pbkdf2-hmac-sha512$<iterations>.<salt>.<entropy>:::";
 }
 
 void module_init (module_ctx_t *module_ctx)
