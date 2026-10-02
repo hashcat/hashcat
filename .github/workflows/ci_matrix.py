@@ -193,8 +193,16 @@ def main():
                 m = rx.match(path)
 
                 if m:
-                    impacted.add(int(m.group(1)))
-                    hit = True
+                    mode = int(m.group(1))
+
+                    impacted.add(mode)
+
+                    # Only a mode the suite can still run counts as covering this file. OpenCL/m72000-pure.cl
+                    # names a mode that no longer exists, and mode 74000 is what loads that kernel now, so
+                    # attributing the file to 72000 and letting the pool drop it again would test nothing.
+
+                    if mode in pool:
+                        hit = True
 
             if not hit and (FUZZ_SHARED if kind == "fuzz" else TEST_SHARED).match(path):
                 shared = True

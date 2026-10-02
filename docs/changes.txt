@@ -206,6 +206,7 @@ gain is: on 32 threads of a Windows box the shipped plugin runs at 4285 to 4390 
 H/s before, and on 16 threads of a Mac at 1015 to 1021 against 284 to 294. With only the system Python
 installed a Mac had no figure at all before, because the build skipped both Python bridges for want of
 Python headers, and it runs the mode now.
+
 The batch a unit may be handed also goes from 8 candidates to 1024, and one launch is one round trip. A
 plugin computing a single sha256 runs at 611 kH/s on 28 threads where it reached 16 kH/s before, and the
 Rust bridge of mode 74000 gains the same way.
@@ -1131,6 +1132,9 @@ Measurements depend on the device, runtime and workload.
 
 ## Backends: bridges and hardware monitoring
 
+- Fixed mode 74000 only starting from hashcat's own directory, where the Rust library path was
+  resolved against the working directory rather than against hashcat's shared folder. The mode now
+  runs from any directory and from an installed build
 - Fixed bridged modes autotuning an empty loop placeholder instead of measuring bridge work
 - Fixed the first bridge unit's tuning result overwriting every other unit even when their widths
   and performance differed
@@ -1353,6 +1357,9 @@ Measurements depend on the device, runtime and workload.
   30906 declaring a password limit below its own vectors
 - Fixed the test dependency installer using a PyPI "pycryptoplus" package incompatible with current
   setuptools. It now verifies every Python dependency after installation
+- Fixed the test dependency installer picking an older Python than the newest pyenv offers, where
+  its version pattern allowed only one digit for the patch number and so preferred 3.14.7 over
+  3.14.10
 - Fixed test modules 14400 and 15000 deriving password lengths from the wrong budget, and the mode
   25700 oracle treating non-ASCII candidate bytes as signed values
 - Fixed "tools/test.sh" running no test at all for the 18 VeraCrypt boot-mode hash types, and added
