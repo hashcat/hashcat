@@ -1,4 +1,4 @@
-# Cisco "Convoluted Type 9" ($14$) hash mode — design
+# Cisco "Convoluted Type 9" ($14$) hash mode - design
 
 ## Background
 
@@ -6,7 +6,7 @@ Cisco IOS XE Gibraltar 16.12.x (and later) auto-converts legacy Type 5
 (MD5-crypt) `enable secret` / user `secret` values to Type 9 (scrypt) the
 first time the config is rewritten after an upgrade from 16.9.x/16.10.x/
 16.11.x. Because the plaintext is gone (only the Type 5 hash ever existed),
-the conversion can't re-derive scrypt from the original password — instead
+the conversion can't re-derive scrypt from the original password - instead
 it runs scrypt over the *existing Type 5 hash string*. Cisco calls the
 result a "convoluted Type 9 secret"; on the wire it's distinguished from a
 freshly-set Type 9 secret by a `$14$` prefix instead of `$9$`.
@@ -42,8 +42,8 @@ $14$<type5_salt:4>$<type9_salt:14>$<digest:43, Cisco base64>
   (`./0-9A-Za-z`), always 4 characters (matches hashcat's existing mode 500
   salt length).
 - `type9_salt`: a freshly generated scrypt salt, same alphabet, 14
-  characters — identical in length and alphabet to mode 9300's salt field.
-- `digest`: 43-character Cisco-base64 encoding of a 32-byte scrypt output —
+  characters - identical in length and alphabet to mode 9300's salt field.
+- `digest`: 43-character Cisco-base64 encoding of a 32-byte scrypt output -
   byte-for-byte the same encoding mode 9300 already produces.
 
 ## Algorithm
@@ -62,9 +62,9 @@ candidate itself.
 ## Approach
 
 Reuse hashcat's existing two-stage chained-kernel plumbing (`_init`/`_loop`
-→ `_init2`/`_loop2_prepare`/`_loop2` → `_comp`), the same pattern mode
-14800 (iTunes backup ≥ 10.0) already uses to chain PBKDF2-SHA1 into
-PBKDF2-SHA256. No new primitive code is needed — stage 1 reuses mode 500's
+-> `_init2`/`_loop2_prepare`/`_loop2` -> `_comp`), the same pattern mode
+14800 (iTunes backup >= 10.0) already uses to chain PBKDF2-SHA1 into
+PBKDF2-SHA256. No new primitive code is needed - stage 1 reuses mode 500's
 MD5-crypt kernel logic, stage 2 reuses mode 9300's scrypt kernel logic
 (`inc_hash_scrypt.cl`); the only new code is the glue that serializes stage
 1's digest into the 30-byte ASCII string stage 2 consumes as its password.
@@ -77,12 +77,12 @@ defeat the purpose of a GPU-accelerated mode. Not pursued.
 
 ## Mode number
 
-**9301** — free, and reads naturally as a Type 9 variant alongside the
+**9301** - free, and reads naturally as a Type 9 variant alongside the
 existing Cisco cluster (9200 = Type 8 PBKDF2-SHA256, 9300 = Type 9 scrypt).
 
 ## Components
 
-- `src/modules/module_09301.c` — new module. Parser clones 9300's 3-token
+- `src/modules/module_09301.c` - new module. Parser clones 9300's 3-token
   structure with an extra leading salt field; decodes `type5_salt` into
   `salt->salt_buf_pc`/`salt_len_pc` (the second salt slot `salt_t` already
   provides) and `type9_salt`/digest exactly as 9300 does into
@@ -90,7 +90,7 @@ existing Cisco cluster (9200 = Type 8 PBKDF2-SHA256, 9300 = Type 9 scrypt).
   (N=16384, r=1, p=1) same as 9300. `OPTS_TYPE_INIT2 | OPTS_TYPE_LOOP2_PREPARE
   | OPTS_TYPE_LOOP2` added on top of 9300's `OPTS_TYPE`. Reuses
   `scrypt_common.c` for the tuning-db/buffer-sizing helpers.
-- `OpenCL/m09301-pure.cl` — new kernel.
+- `OpenCL/m09301-pure.cl` - new kernel.
   - `m09301_init`/`m09301_loop`: mode 500's MD5-crypt logic verbatim,
     salted from `salt_bufs[SALT_POS_HOST].salt_buf_pc` instead of
     `salt_buf`, written into a combined tmp struct.
@@ -108,7 +108,7 @@ existing Cisco cluster (9200 = Type 8 PBKDF2-SHA256, 9300 = Type 9 scrypt).
   - Combined tmp struct holds mode 500's `digest_buf[4]` plus mode 9300's
     `scrypt_tmp_t` fields (`in`/`out`), sized via `module_tmp_size`/
     `module_extra_tmp_size` the way 9300 already computes them.
-- `tools/test_modules/m09301.pm` — Perl test module (per AGENTS.md),
+- `tools/test_modules/m09301.pm` - Perl test module (per AGENTS.md),
   written and run against a self-generated vector.
 
 ## Self-test vector
@@ -130,6 +130,6 @@ ST_HASH = "$14$ZeF0$Yh3cTZvrtSWBcT$6ImC5D6iNVvt4fwM14oDbj.Vd5KWkpl8WjUffnRdH5E"
   attack-type/vector-width coverage on the CPU backend (per AGENTS.md; no
   GPU available in this environment).
 - The real `$14$` sample from the field can't be cracked as part of
-  verification — its plaintext is unknown — so it's not part of the
+  verification - its plaintext is unknown - so it's not part of the
   automated test; it only shaped the parser's field-length assumptions.
 - ASCII-only check on the diff before sending a PR (per AGENTS.md).

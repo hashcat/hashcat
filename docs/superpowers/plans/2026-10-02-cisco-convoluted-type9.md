@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add hashcat mode 9301, cracking Cisco IOS XE "convoluted Type 9" secrets (`$14$<type5_salt>$<type9_salt>$<digest>`) — `scrypt(md5_crypt(password, type5_salt), type9_salt, N=16384, r=1, p=1)`.
+**Goal:** Add hashcat mode 9301, cracking Cisco IOS XE "convoluted Type 9" secrets (`$14$<type5_salt>$<type9_salt>$<digest>`) - `scrypt(md5_crypt(password, type5_salt), type9_salt, N=16384, r=1, p=1)`.
 
-**Architecture:** New module `src/modules/module_09301.c` parses the 3-field format into `salt->salt_buf_pc` (type5 salt) and `salt->salt_buf` (type9 salt). New kernel `OpenCL/m09301-pure.cl` chains two existing, already-proven kernel stages via hashcat's `_init`/`_loop` → `_init2`/`_loop2_prepare`/`_loop2` → `_comp` plumbing (the same pattern mode 14800 already uses to chain two different KDFs): stage 1 is mode 500's MD5-crypt logic verbatim (against `salt_buf_pc`); stage 2 is mode 9300's scrypt logic verbatim (`inc_hash_scrypt.cl`), fed the stage-1 output string instead of the raw candidate.
+**Architecture:** New module `src/modules/module_09301.c` parses the 3-field format into `salt->salt_buf_pc` (type5 salt) and `salt->salt_buf` (type9 salt). New kernel `OpenCL/m09301-pure.cl` chains two existing, already-proven kernel stages via hashcat's `_init`/`_loop` -> `_init2`/`_loop2_prepare`/`_loop2` -> `_comp` plumbing (the same pattern mode 14800 already uses to chain two different KDFs): stage 1 is mode 500's MD5-crypt logic verbatim (against `salt_buf_pc`); stage 2 is mode 9300's scrypt logic verbatim (`inc_hash_scrypt.cl`), fed the stage-1 output string instead of the raw candidate.
 
 **Tech Stack:** C (host module), OpenCL C (kernel, JIT-compiled for OpenCL/CUDA/HIP/Metal from the same source), Python (reference implementation + fuzz-test module).
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Wire format: `$14$<type5_salt>$<type9_salt:14>$<digest:43>`, all fields in the crypt(3)/Cisco itoa64 alphabet (`./0-9A-Za-z`).
-- Algorithm: `h = md5_crypt(password, type5_salt)` (full `"$1$<salt>$<22-char-hash>"` string, 1000 rounds) → `digest = scrypt(password=h, salt=type9_salt, N=16384, r=1, p=1, dklen=32)`.
+- Algorithm: `h = md5_crypt(password, type5_salt)` (full `"$1$<salt>$<22-char-hash>"` string, 1000 rounds) -> `digest = scrypt(password=h, salt=type9_salt, N=16384, r=1, p=1, dklen=32)`.
 - Mode number: **9301**. `KERN_TYPE` is also 9301 (not shared with any other mode, so the kernel filename is `m09301-pure.cl`).
 - Self-test vector (verified independently against both `passlib`+PyPI `scrypt` and hashcat's own `tools/test_modules/lib/md5crypt.py`+`hashlib.scrypt`):
   `ST_PASS = "hashcat"`, `ST_HASH = "$14$ZeF0$Yh3cTZvrtSWBcT$6ImC5D6iNVvt4fwM14oDbj.Vd5KWkpl8WjUffnRdH5E"`.
@@ -21,10 +21,10 @@
 
 ## Review Focus
 
-- A line whose type5-salt or type9-salt field is the wrong length (truncated, or padded with extra bytes before the next `$`) must be rejected by the tokenizer (`PARSER_SEPARATOR_UNMATCHED`/`PARSER_SALT_LENGTH`), not silently misparsed into the next field — neither salt field is alphabet-checked (mode 9300, which this mirrors, doesn't alphabet-check its salt either; only the digest field's base64 alphabet is enforced), so length is the actual invariant worth pinning.
-- The empty-password candidate (`pw_len == 0`) must not crash the MD5-crypt stage — mode 500's own loop structure already handles this (the "weird" bit-test loop at the end of `_init` simply never executes), so the test exists to confirm the combined kernel preserves that, not to fix new logic.
-- A candidate password at or near the kernel's maximum length must not overflow the 64-word `w[]` buffer or the fixed-size assembled password buffer in `_init2` — the assembled buffer's size depends only on the salt, not the candidate, so this specifically checks the MD5-crypt stage's own bounds.
-- Two hashes in the same job with different `type5_salt` values (but the same or different `type9_salt`) must each use their own `salt_buf_pc` — not cross-contaminate — since `salt_buf_pc` lives in the per-salt `salt_t`, not a global.
+- A line whose type5-salt or type9-salt field is the wrong length (truncated, or padded with extra bytes before the next `$`) must be rejected by the tokenizer (`PARSER_SEPARATOR_UNMATCHED`/`PARSER_SALT_LENGTH`), not silently misparsed into the next field - neither salt field is alphabet-checked (mode 9300, which this mirrors, doesn't alphabet-check its salt either; only the digest field's base64 alphabet is enforced), so length is the actual invariant worth pinning.
+- The empty-password candidate (`pw_len == 0`) must not crash the MD5-crypt stage - mode 500's own loop structure already handles this (the "weird" bit-test loop at the end of `_init` simply never executes), so the test exists to confirm the combined kernel preserves that, not to fix new logic.
+- A candidate password at or near the kernel's maximum length must not overflow the 64-word `w[]` buffer or the fixed-size assembled password buffer in `_init2` - the assembled buffer's size depends only on the salt, not the candidate, so this specifically checks the MD5-crypt stage's own bounds.
+- Two hashes in the same job with different `type5_salt` values (but the same or different `type9_salt`) must each use their own `salt_buf_pc` - not cross-contaminate - since `salt_buf_pc` lives in the per-salt `salt_t`, not a global.
 - `module_hash_encode` must round-trip a decoded `$14$` line byte-for-byte (including the original `type5_salt`), since potfile show/left in `test_edge.sh` depends on it.
 
 ---
@@ -36,7 +36,7 @@
 - Test: run the module directly via `python3`
 
 **Interfaces:**
-- Produces: `module_constraints()`, `module_generate_hash(word, salt, iterations=None)`, `module_verify_hash(line)` — the three functions `test_edge.sh`'s fuzzer calls on every custom mode, matching the shape of `tools/test_modules/m09300.py` and `tools/test_modules/m00500.py`.
+- Produces: `module_constraints()`, `module_generate_hash(word, salt, iterations=None)`, `module_verify_hash(line)` - the three functions `test_edge.sh`'s fuzzer calls on every custom mode, matching the shape of `tools/test_modules/m09300.py` and `tools/test_modules/m00500.py`.
 
 - [ ] **Step 1: Write the test module**
 
@@ -144,7 +144,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `scrypt_module_extra_buffer_size`, `scrypt_module_extra_tuningdb_block`, `scrypt_module_jit_build_options`, `scrypt_module_kernel_loops_min`, `scrypt_module_kernel_loops_max` from `src/modules/scrypt_common.c` (included verbatim, same as `module_09300.c` does).
-- Produces: `salt->salt_buf_pc`/`salt_len_pc` holding the type5 salt, `salt->salt_buf`/`salt_len` holding the type9 salt, `digest_buf` holding the 32-byte scrypt digest — the exact layout Task 3's kernel reads.
+- Produces: `salt->salt_buf_pc`/`salt_len_pc` holding the type5 salt, `salt->salt_buf`/`salt_len` holding the type9 salt, `digest_buf` holding the 32-byte scrypt digest - the exact layout Task 3's kernel reads.
 
 - [ ] **Step 1: Write the module**
 
@@ -403,12 +403,12 @@ void module_init (module_ctx_t *module_ctx)
 - [ ] **Step 2: Build**
 
 Run: `cd /Users/spoonman/Downloads/Pentest/Passwords/hashcat && make -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"`
-Expected: builds cleanly (the new `.c` file is picked up by the Makefile's existing `src/modules/*.c` glob — no Makefile edit needed, same as every other module).
+Expected: builds cleanly (the new `.c` file is picked up by the Makefile's existing `src/modules/*.c` glob - no Makefile edit needed, same as every other module).
 
 - [ ] **Step 3: Confirm the module registers and reaches the kernel-load stage**
 
 Run: `rm -rf cache/kernels/ && ./hashcat -m 9301 --example-hashes`
-Expected: hashcat prints mode 9301's name (`Cisco-IOS $14$ (MD5 (Type 5) + scrypt, Convoluted)`) and the `ST_HASH` value — this confirms the parser/registration is correct. It will then fail with a "file not found" / kernel compile error for `OpenCL/m09301-pure.cl`, which does not exist yet — that failure is expected at this point and is resolved by Task 3, not this task.
+Expected: hashcat prints mode 9301's name (`Cisco-IOS $14$ (MD5 (Type 5) + scrypt, Convoluted)`) and the `ST_HASH` value - this confirms the parser/registration is correct. It will then fail with a "file not found" / kernel compile error for `OpenCL/m09301-pure.cl`, which does not exist yet - that failure is expected at this point and is resolved by Task 3, not this task.
 
 - [ ] **Step 4: Commit**
 
@@ -422,7 +422,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 ---
 
-## Task 3: OpenCL kernel (MD5-crypt → scrypt chain)
+## Task 3: OpenCL kernel (MD5-crypt -> scrypt chain)
 
 **Files:**
 - Create: `OpenCL/m09301-pure.cl`
@@ -815,7 +815,7 @@ KERNEL_FQ KERNEL_FA void m09301_comp (KERN_ATTR_TMPS (cisco9301_tmp_t))
 - [ ] **Step 2: Clear the kernel cache and run the self-test**
 
 Run: `cd /Users/spoonman/Downloads/Pentest/Passwords/hashcat && rm -rf cache/kernels/ && ./hashcat -m 9301 --example-hashes -D 1 --force`
-Expected: the kernel JIT-compiles without error, and the self-test line for mode 9301 reports `OK` (hashcat runs its self-test — comparing the compiled kernel's output for `ST_PASS`/`ST_HASH` — automatically before anything else; `-D 1 --force` selects the CPU backend, since AGENTS.md notes this environment has no GPU). If the self-test reports a mismatch, do not edit the self-test vector to make it pass — the vector was independently verified twice in the design doc; a mismatch here means a bug in the kernel code above, most likely in the byte-order/regrouping of the `enc[]` assembly or the `PUTCHAR_LE` packing. Use `systematic-debugging` to isolate which stage is wrong (e.g. temporarily write `tmps[gid].digest_buf` or the assembled `pw_buf` to the comparison digest to inspect intermediate values).
+Expected: the kernel JIT-compiles without error, and the self-test line for mode 9301 reports `OK` (hashcat runs its self-test - comparing the compiled kernel's output for `ST_PASS`/`ST_HASH` - automatically before anything else; `-D 1 --force` selects the CPU backend, since AGENTS.md notes this environment has no GPU). If the self-test reports a mismatch, do not edit the self-test vector to make it pass - the vector was independently verified twice in the design doc; a mismatch here means a bug in the kernel code above, most likely in the byte-order/regrouping of the `enc[]` assembly or the `PUTCHAR_LE` packing. Use `systematic-debugging` to isolate which stage is wrong (e.g. temporarily write `tmps[gid].digest_buf` or the assembled `pw_buf` to the comparison digest to inspect intermediate values).
 
 - [ ] **Step 3: Crack a hash generated by Task 1's reference implementation, to confirm agreement independent of the self-test vector**
 
@@ -834,7 +834,7 @@ rm -rf cache/kernels/
 ./hashcat -m 9301 -a 0 -D 1 --force /tmp/cisco9301_hash.txt /tmp/cisco9301_wordlist.txt --potfile-disable -o /tmp/cisco9301_cracked.txt
 cat /tmp/cisco9301_cracked.txt
 ```
-Expected: the final `cat` prints the hash from `/tmp/cisco9301_hash.txt` followed by `:Testing123!` — a successful crack, confirming the kernel and the independent Python reference agree on a hash the self-test vector never exercised (different salts, different password).
+Expected: the final `cat` prints the hash from `/tmp/cisco9301_hash.txt` followed by `:Testing123!` - a successful crack, confirming the kernel and the independent Python reference agree on a hash the self-test vector never exercised (different salts, different password).
 
 - [ ] **Step 4: Commit**
 
@@ -860,7 +860,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - [ ] **Step 1: Run the full edge-case suite for mode 9301 on the CPU backend**
 
 Run: `cd /Users/spoonman/Downloads/Pentest/Passwords/hashcat && rm -rf cache/kernels/ && ./tools/test_edge.sh -m 9301 -D 1 -f`
-Expected: every attack type/vector-width combination `test_edge.sh` exercises for mode 9301 reports success. This is also what exercises the Review Focus items (malformed salt-field lengths, empty password, long password, multi-salt jobs, potfile round-trip) — `test_edge.sh`'s fuzzer draws these cases using `module_constraints()`/`module_generate_hash()`/`module_verify_hash()` from Task 1. If any case fails, fix the module or kernel (not the test module) and re-run this exact command before moving on — do not weaken a Review Focus case to make it pass.
+Expected: every attack type/vector-width combination `test_edge.sh` exercises for mode 9301 reports success. This is also what exercises the Review Focus items (malformed salt-field lengths, empty password, long password, multi-salt jobs, potfile round-trip) - `test_edge.sh`'s fuzzer draws these cases using `module_constraints()`/`module_generate_hash()`/`module_verify_hash()` from Task 1. If any case fails, fix the module or kernel (not the test module) and re-run this exact command before moving on - do not weaken a Review Focus case to make it pass.
 
 - [ ] **Step 2: Specifically confirm the potfile round-trip preserves the type5 salt**
 
@@ -886,4 +886,4 @@ Run the project's code review (per CONTRIBUTING.md and this session's own standa
 
 Run: `rm -f /tmp/cisco9301_hash.txt /tmp/cisco9301_wordlist.txt /tmp/cisco9301_cracked.txt`
 
-(No commit for this task — it's verification-only. If Step 1 or 2 required fixes, those fixes were already committed as part of whichever Task 2/3 step they belong to; amend those commits rather than adding a separate "fix review findings" commit, per AGENTS.md's "write less" / no process-narration guidance.)
+(No commit for this task - it's verification-only. If Step 1 or 2 required fixes, those fixes were already committed as part of whichever Task 2/3 step they belong to; amend those commits rather than adding a separate "fix review findings" commit, per AGENTS.md's "write less" / no process-narration guidance.)
