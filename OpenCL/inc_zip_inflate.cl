@@ -161,8 +161,8 @@ enum
     TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF = 4,
     TINFL_FLAG_COMPUTE_ADLER32 = 8,
 
-    // hashcat-patched: the caller's output buffer is two dictionaries wide and the decompressor may
-    // take the older one back itself when the buffer fills up. Only hc_inflate () owns a buffer of
+    // hashcat-patched: the caller's output buffer is one dictionary wide and the decompressor wraps
+    // back to the start of it itself when the buffer fills up. Only hc_inflate () owns a buffer of
     // that shape.
 
     TINFL_FLAG_FLUSH_WINDOW = 16
@@ -216,21 +216,6 @@ DECLSPEC void zlib_memset (PRIVATE_AS u8 *s, const u8 c, int len)
 #define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MZ_DEFAULT_WINDOW_BITS 15
 #define TINFL_LZ_DICT_SIZE 32768
-
-// hashcat-patched: how much fresh output the decoder is handed above the dictionary. A caller that
-// lets the decoder take the window back owns a buffer one dictionary plus this wide, all of it in the
-// kernel's stack frame, and a PCFG kernel carries its own frame on top of that. Apple's shader
-// compiler refuses the pipeline for a compute function whose frame passes what the GPU allows, 64 KB
-// on an M1, which two dictionaries do not fit under; nothing reports that budget, and both Apple
-// backends build through the same compiler, so both take the narrower window. It flushes more often,
-// and stays well above the most output a stream can reach without reading input, which is what
-// TINFL_WINDOW_FULL reads as a decoder going nowhere.
-
-#ifdef IS_APPLE
-#define TINFL_WINDOW_SIZE 8192
-#else
-#define TINFL_WINDOW_SIZE TINFL_LZ_DICT_SIZE
-#endif
 
 // hashcat-patched/hashcat-specific:
 #ifdef CRC32_IN_INFLATE
@@ -315,9 +300,9 @@ enum
     }                                       \
     MZ_MACRO_END
 
-// hashcat-patched: the output window is full. A caller that owns a buffer two dictionaries wide has
-// the older half taken back here and the decoder carries on; any other caller is told there is more
-// output than it asked for, and for that caller the stream ends there.
+// hashcat-patched: the output window is full. A caller that lets the decoder wrap has the bytes it
+// is about to write over checksummed here and carries on from the start of the buffer. Any other
+// caller is told there is more output than it asked for, and for that caller the stream ends there.
 //
 // A whole window that came out of no input at all is not a stream, it is a decoder walking a huffman
 // table that decodes a symbol in zero bits, which a wrong password builds often enough. miniz has no
@@ -341,12 +326,13 @@ enum
                                                                                                                    \
             pIn_buf_mark = pIn_buf_cur;                                                                            \
                                                                                                                    \
-            tinfl_flush_window (pStream, pOut_buf_start, pOut_buf_next, pOut_buf_cur);                             \
+            tinfl_flush_window (pStream, pOut_buf_next, pOut_buf_cur);                                             \
                                                                                                                    \
-            pOut_buf_cur  = pOut_buf_start + TINFL_LZ_DICT_SIZE;                                                   \
-            pOut_buf_next = pOut_buf_start + TINFL_LZ_DICT_SIZE;                                                   \
+            pOut_buf_cur  = pOut_buf_start;                                                                        \
+            pOut_buf_next = pOut_buf_start;                                                                        \
                                                                                                                    \
-            dist_from_out_buf_start = TINFL_LZ_DICT_SIZE;                                                          \
+            dist_from_out_buf_start = 0;                                                                           \
+            wrapped = 1;                                                                                           \
         }                                                                                                          \
     }                                                                                                              \
     MZ_MACRO_END
@@ -565,52 +551,17 @@ DECLSPEC mz_uint8 pIn_xor_byte (const mz_uint8 c, mz_streamp pStream)
 
 
 
-// hashcat-patched: helper function for shifted u32
-
-DECLSPEC u32 GETSHIFTEDINT (PRIVATE_AS u32 *a, const int n)
-{
-  const int d = n / 4;
-  const int m = n & 3;
-
-  u64 tmp = hl32_to_64_S (a[d + 1], a[d + 0]);
-
-  tmp >>= m * 8;
-
-  return l32_from_64_S (tmp);
-}
-
-// hashcat-patched: faster zlib_memcpy for our large (TINFL_LZ_DICT_SIZE) move of bytes from the old output to the window/lookup table
-
-DECLSPEC void hc_shift_inflate_dict (PRIVATE_AS u8 *buf, const u32 offset, const u32 len)
-{
-  PRIVATE_AS u32 *ptr = (PRIVATE_AS u32 *) buf;
-
-  // we need to use len - 4 here to avoid buffer overflows caused by the u64 type in GETSHIFTEDINT
-
-  u32 i, j;
-
-  for (i = 0, j = 0; i < len - 4; i += 4, j++)
-  {
-    ptr[j] = GETSHIFTEDINT (ptr, offset + i);
-  }
-
-  // final step (last 4 bytes are special):
-
-  ptr[j] = (buf[offset + i + 3] << 24) | (buf[offset + i + 2] << 16) | (buf[offset + i + 1] << 8) | buf[offset + i];
-}
-
-// hashcat-patched: the window the decoder writes into is one dictionary long and sits at the top of a
-// buffer two dictionaries wide. When it fills, the bytes below it are already final: they are
-// checksummed and counted here, the dictionary they still serve as history is moved down to the start
-// of the buffer, and the decoder carries on from the same place it would have resumed at.
+// hashcat-patched: the window the decoder writes into is one dictionary wide and it wraps back to the
+// start of it when it fills. The bytes it is about to write over are already final: they are
+// checksummed and counted here, and what stays behind is the dictionary a back reference reads
+// through out_buf_size_mask, which is why nothing has to be moved.
 
 // It takes the two pointers by value and gives nothing back. An out of line function that is handed
 // the address of a local forces that local into memory for the whole function, and these two are the
 // hottest variables in the decoder: on CUDA that alone costs orders of magnitude. The caller puts them
-// back where this leaves them, which is the start of the buffer plus one dictionary.
+// back where this leaves them, which is the start of the buffer.
 
-DECLSPEC HC_NOINLINE_ALWAYS void tinfl_flush_window (mz_streamp pStream, PRIVATE_AS mz_uint8 *pOut_buf_start,
-                                                     PRIVATE_AS const mz_uint8 *pOut_buf_next, PRIVATE_AS const mz_uint8 *pOut_buf_cur)
+DECLSPEC HC_NOINLINE_ALWAYS void tinfl_flush_window (mz_streamp pStream, PRIVATE_AS const mz_uint8 *pOut_buf_next, PRIVATE_AS const mz_uint8 *pOut_buf_cur)
 {
   const size_t produced = (size_t) (pOut_buf_cur - pOut_buf_next);
 
@@ -623,12 +574,8 @@ DECLSPEC HC_NOINLINE_ALWAYS void tinfl_flush_window (mz_streamp pStream, PRIVATE
 
   pStream->total_out += produced;
 
-  const size_t shift = (size_t) (pOut_buf_cur - pOut_buf_start) - TINFL_LZ_DICT_SIZE;
-
-  hc_shift_inflate_dict (pOut_buf_start, (u32) shift, TINFL_LZ_DICT_SIZE);
-
-  pStream->window_out = TINFL_LZ_DICT_SIZE;
-  pStream->avail_out  = TINFL_WINDOW_SIZE;
+  pStream->window_out = 0;
+  pStream->avail_out  = TINFL_LZ_DICT_SIZE;
 }
 
 // hashcat-patched: this is the tail the decompressor used to jump to. Metal has no goto, so the tail
@@ -731,6 +678,14 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
     PRIVATE_AS mz_uint8       *pOut_buf_cur = pOut_buf_next;
     PRIVATE_AS mz_uint8 const *pOut_buf_end = pOut_buf_next + *pOut_buf_size;
     size_t out_buf_size_mask = (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) ? (size_t)-1 : ((pOut_buf_next - pOut_buf_start) + *pOut_buf_size) - 1, dist_from_out_buf_start = 0;
+
+    // hashcat-patched: dist_from_out_buf_start is also the whole output so far until the buffer wraps
+    // once, and that is what tells a back reference reaching behind the start of the stream from a
+    // legitimate one. A wrong password builds the first kind, and not dropping the candidate on it
+    // costs 17.7 percent of 17200. It starts set for a caller that neither wraps nor owns the whole
+    // output, because for that one the offset was never the total and the test below never applied.
+
+    mz_uint wrapped = (decomp_flags & (TINFL_FLAG_FLUSH_WINDOW | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)) ? 0 : 1;
 
     /* Ensure the output buffer's size is a power of 2, unless the output buffer is large enough to hold the entire output file (in which case it doesn't matter). */
     if (((out_buf_size_mask + 1) & out_buf_size_mask) || (pOut_buf_next < pOut_buf_start))
@@ -1034,7 +989,7 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
                 }
 
                 dist_from_out_buf_start = pOut_buf_cur - pOut_buf_start;
-                if ((dist > dist_from_out_buf_start) && (decomp_flags & TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF))
+                if ((dist > dist_from_out_buf_start) && (wrapped == 0))
                 {
                     TINFL_RETURN_FOREVER(TINFL_STATUS_FAILED);
                 }
@@ -1312,12 +1267,11 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
 DECLSPEC int hc_inflate (mz_streamp pStream)
 {
   // hashcat-patched: the whole stream goes in at once. Handing it over sixteen bytes at a time was
-  // what kept the output window inside this function, and the decompressor takes the window back
-  // itself now.
+  // what kept the output buffer inside this function, and the decompressor wraps it itself now.
 
   size_t in_bytes = pStream->avail_in;
 
-  mz_uint decomp_flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF | TINFL_FLAG_FLUSH_WINDOW;
+  mz_uint decomp_flags = TINFL_FLAG_FLUSH_WINDOW;
 
   PRIVATE_AS inflate_state *pState = pStream->state;
 

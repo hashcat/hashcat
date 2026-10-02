@@ -170,6 +170,13 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // it leads to CL_KERNEL_WORK_GROUP_SIZE to return 0 and later we will divide with 0
   // workaround would be to rewrite kernel to use global memory
 
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
+  {
+    // Apple, OpenCL, AMD GPU: abort on the first kernel launch, signal 6, no output
+
+    return true;
+  }
+
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
     return true;
