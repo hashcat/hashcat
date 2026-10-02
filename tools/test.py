@@ -3118,6 +3118,11 @@ def gen_note(mode, reason):
 
 
 def gen_error(mode, reason):
+  # An Error is a real failure, not a tool that is merely absent: an extractor that produced no hash
+  # for a container it was handed, say. Count it as a failing verdict here, not in gen_record, so a
+  # -g run that generated nothing exits non-zero while gen_skip and gen_note (a missing tool, a note)
+  # stay out of the tally.
+  note_verdict("Error")
   gen_record(mode, "Error", reason)
 
 
