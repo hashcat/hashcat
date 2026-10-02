@@ -256,9 +256,6 @@ WINDRES_WIN             := x86_64-w64-mingw32-windres
 CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-# See BUILD_WSL.md to make this
-WIN_PYTHON              := /opt/win-python
-
 endif
 
 CC_NATIVE_CLANG         := 0
@@ -1777,9 +1774,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
 else
-install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -1858,8 +1855,8 @@ install_pcfg: install_shared
 .PHONY: install_rules
 install_rules: install_shared
 	$(INSTALL) -m 755 -d                                                 $(DESTDIR)$(SHARED_FOLDER)/rules
-	$(FIND) rules/    -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d  $(DESTDIR)$(SHARED_FOLDER)/rules/{} \;
-	$(FIND) rules/    -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/rules/{} \;
+	$(FIND) rules/    -mindepth 1 -type d -exec $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/{} \;
+	$(FIND) rules/    -mindepth 1 -type f -exec $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/{} \;
 
 .PHONY: install_kernels
 install_kernels: install_shared
@@ -1873,11 +1870,23 @@ install_modules: install_shared modules
 	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 
+## The Python bridge starts Python/hcworker.py from the shared folder, and Python/generic_hash.py is the
+## plugin it loads when --bridge-parameter1 names none.
+
+.PHONY: install_python
+install_python: install_shared
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/Python
+	$(FIND) Python/   -mindepth 1 -type f -name '*.py' -execdir $(INSTALL) -m 644 {} $(DESTDIR)$(SHARED_FOLDER)/Python/{} \;
+
+## bridges/subs holds the Rust crates the generic_hash bridge loads, and rules/ holds hybrid/, so both
+## walk with -exec rather than -execdir. -execdir passes the recipe ./basename, which installs a file
+## from a subdirectory into the parent and leaves the subdirectory empty.
+
 .PHONY: install_bridges
 install_bridges: install_shared bridges
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/bridges
-	$(FIND) bridges/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/bridges/{} \;
-	$(FIND) bridges/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/bridges/{} \;
+	$(FIND) bridges/  -mindepth 1 -type d -exec $(INSTALL) -m 755 -d        $(DESTDIR)$(SHARED_FOLDER)/{} \;
+	$(FIND) bridges/  -mindepth 1 -type f -exec $(INSTALL) -m 644 {}        $(DESTDIR)$(SHARED_FOLDER)/{} \;
 
 .PHONY: install_feeds
 install_feeds: install_shared feeds

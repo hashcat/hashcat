@@ -1587,9 +1587,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (bridges_init_late (hashcat_ctx) == false)
   {
     // A sweep over every hash mode reaches modes whose bridge cannot come up on this machine, a
-    // python bridge without the free threaded library behind it for one. That is the same kind of
-    // answer as a kernel that will not build, so it skips the mode and carries on. A named mode is
-    // the user asking for that one, and there the failure is the answer.
+    // python bridge with no python3 on PATH for one. That is the same kind of answer as a kernel
+    // that will not build, so it skips the mode and carries on. A named mode is the user asking for
+    // that one, and there the failure is the answer.
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
@@ -2128,7 +2128,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * To help users a bit
    */
 
-  setup_environment_variables (hashcat_ctx->folder_config, hashcat_ctx->user_options);
+  setup_environment_variables (hashcat_ctx->folder_config);
 
   setup_umask ();
 

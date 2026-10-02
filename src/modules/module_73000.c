@@ -21,7 +21,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_UNDEFINED;
-static const char *HASH_NAME      = "Generic Hash [Bridged: Python Interpreter with GIL]";
+static const char *HASH_NAME      = "Generic Hash [Bridged: Python]";
 static const u64   KERN_TYPE      = 73000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
@@ -33,7 +33,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_LAUNCH_LOOP
                                   | BRIDGE_TYPE_UPDATE_SELFTEST;
-static const char *BRIDGE_NAME    = "python_generic_hash_mp";
+static const char *BRIDGE_NAME    = "python_generic_hash";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "33522b0fd9812aa68586f66dba7c17a8ce64344137f9c7d8b11f32a6921c22de*9348746780603343";
 

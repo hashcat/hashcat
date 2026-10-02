@@ -4768,26 +4768,6 @@ def edge_hexify_plain(mode):
   return b"OPTS_TYPE_PT_ALWAYS_HEXIFY" in src and b"OPTS_TYPE_PT_HEX" not in src
 
 
-def edge_pyenv_free_threaded():
-  # test_edge.sh reads 'pyenv local' to decide 72000 and 73000. A missing pyenv leaves the flag off,
-  # so 72000 is skipped and 73000 runs, which is what a machine without pyenv does.
-
-  try:
-    proc = subprocess.run(["pyenv", "local"], cwd=ROOT,
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-  except OSError:
-    return False
-
-  if proc.returncode != 0:
-    return False
-
-  for line in proc.stdout.split(b"\n"):
-    if re.search(rb"t-dev", line) or re.search(rb"[0-9]t$", line):
-      return True
-
-  return False
-
-
 class EdgeCtx:
   # The per-mode facts an attack cell needs, read once off -HH and the module source.
 
@@ -5304,16 +5284,6 @@ def edge_process_mode(args, mode, cfg, tmp):
 
   if hh["deprecated"]:
     print("[ test.py edge ] > Skip Type %d (is deprecated)" % mode)
-
-    return 0, 0
-
-  if mode == 72000 and not edge_pyenv_free_threaded():
-    print("[ test.py edge ] > Skip Type %d (missing python free-threaded support)" % mode)
-
-    return 0, 0
-
-  if mode == 73000 and edge_pyenv_free_threaded():
-    print("[ test.py edge ] > Skip Type %d (needs a python without free-threaded support)" % mode)
 
     return 0, 0
 

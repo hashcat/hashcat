@@ -6,7 +6,7 @@
 #ifndef HC_SYSTEM_H
 #define HC_SYSTEM_H
 
-void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options);
+void setup_environment_variables (const folder_config_t *folder_config);
 void setup_umask (void);
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 

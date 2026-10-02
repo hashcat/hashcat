@@ -8,58 +8,161 @@
 import hashlib
 import hmac
 
-# BIP39 Passphrase Recovery: the passphrase is the only unknown, with the mnemonic and derivation
-# path fixed. The target is the first 16 bytes (IL) of the BIP32 master key, as hex: the master key
-# is HMAC-SHA512 keyed with "Bitcoin seed" over the BIP39 seed, and that seed is PBKDF2-HMAC-SHA512
-# of the mnemonic salted with "mnemonic" plus the passphrase, 2048 rounds. hashcat accepts this
-# 32-hex target form alongside the real P2SH/P2PKH/P2WPKH addresses, so the oracle can verify a crack
-# without deriving an address. A port of tools/test_modules/m36000.pm.
+# BIP39 passphrase recovery. The mnemonic and one of its addresses are given, and the candidate is
+# the passphrase that salts the seed. The derivation path carries a brace range, so one candidate
+# produces an address at every index in it and the hash matches at one of them. The address here is
+# P2SH-P2WPKH, which hashes the witness script rather than the public key.
+
+P  = 2**256 - 2**32 - 977
+N  = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+GX = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+GY = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
 
 MNEMONIC = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-PATH     = "m/49'/0'/0'/0/0"
+PATH     = "m/49'/0'/0'/0/{0-7}"
+INDICES  = range(0, 8)
+HIT      = 3
 
-HEX_CHARS = set("0123456789abcdefABCDEF")
+B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def point_add(p1, p2):
+  if p1 is None:
+    return p2
+
+  if p2 is None:
+    return p1
+
+  x1, y1 = p1
+  x2, y2 = p2
+
+  if x1 == x2 and (y1 + y2) % P == 0:
+    return None
+
+  if x1 == x2 and y1 == y2:
+    lam = (3 * x1 * x1) * pow(2 * y1, -1, P) % P
+  else:
+    lam = (y2 - y1) * pow(x2 - x1, -1, P) % P
+
+  x3 = (lam * lam - x1 - x2) % P
+  y3 = (lam * (x1 - x3) - y1) % P
+
+  return (x3, y3)
+
+
+def scalar_mult(k):
+  result = None
+
+  addend = (GX, GY)
+
+  while k:
+    if k & 1:
+      result = point_add(result, addend)
+
+    addend = point_add(addend, addend)
+
+    k >>= 1
+
+  return result
+
+
+def serialize_point(point):
+  prefix = b"\x03" if (point[1] & 1) else b"\x02"
+
+  return prefix + point[0].to_bytes(32, "big")
+
+
+def hash160(data):
+  ripemd = hashlib.new("ripemd160")
+  ripemd.update(hashlib.sha256(data).digest())
+
+  return ripemd.digest()
+
+
+def base58check(payload):
+  raw = payload + hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
+
+  value = int.from_bytes(raw, "big")
+  out   = ""
+
+  while value:
+    value, rest = divmod(value, 58)
+    out = B58[rest] + out
+
+  for byte in raw:
+    if byte != 0:
+      break
+
+    out = "1" + out
+
+  return out
+
+
+def child_key(key, chain, index):
+  if index >= 0x80000000:
+    data = b"\x00" + key.to_bytes(32, "big")
+  else:
+    data = serialize_point(scalar_mult(key))
+
+  digest = hmac.new(chain, data + index.to_bytes(4, "big"), hashlib.sha512).digest()
+
+  return ((int.from_bytes(digest[:32], "big") + key) % N, digest[32:])
+
+
+def p2sh_address(passphrase, index):
+  seed = hashlib.pbkdf2_hmac("sha512", MNEMONIC.encode(), b"mnemonic" + passphrase, 2048, 64)
+
+  master = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
+
+  key   = int.from_bytes(master[:32], "big")
+  chain = master[32:]
+
+  for element in (0x80000000 + 49, 0x80000000, 0x80000000, 0, index):
+    key, chain = child_key(key, chain, element)
+
+  witness = b"\x00\x14" + hash160(serialize_point(scalar_mult(key)))
+
+  return base58check(b"\x05" + hash160(witness))
 
 
 def module_constraints():
   return [[0, 256], [-1, -1], [0, 256], [-1, -1], [-1, -1]]
 
 
-def il_prefix_hex(mnemonic, passphrase):
-  seed   = hashlib.pbkdf2_hmac("sha512", mnemonic, b"mnemonic" + passphrase, 2048, 64)
-  master = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
+def module_generate_hash(word, salt=None, iterations=None):
+  if isinstance(word, str):
+    word = word.encode()
 
-  return master[:16].hex()
-
-
-def module_generate_hash(word, salt, iterations=None):
-  return "%s:%s:%s" % (MNEMONIC, il_prefix_hex(MNEMONIC.encode("ascii"), word), PATH)
+  return "%s:%s:%s" % (MNEMONIC, p2sh_address(word, HIT), PATH)
 
 
 def module_verify_hash(line):
-  # The password is everything after the last colon, as in m36000.pm: the hash itself is
-  # mnemonic:target:path, none of which carry a colon.
   idx = line.rfind(b":")
 
-  if idx < 0:
+  if idx < 1:
     return None
 
-  hash_in = line[:idx].decode("utf-8", "replace")
+  hash_in = line[:idx].decode(errors="replace")
   word    = line[idx + 1:]
 
-  fields = hash_in.split(":", 2)
+  parts = hash_in.split(":")
 
-  if len(fields) != 3:
+  if len(parts) != 3:
     return None
 
-  mnemonic, target_hex, path = fields
+  mnemonic, address, path = parts
 
-  if len(target_hex) != 32 or any(c not in HEX_CHARS for c in target_hex):
+  if mnemonic != MNEMONIC:
     return None
 
-  new_hash = "%s:%s:%s" % (mnemonic, il_prefix_hex(mnemonic.encode("ascii"), word), path)
-
-  if new_hash.lower() != hash_in.lower():
+  if path != PATH:
     return None
 
-  return (new_hash, word)
+  # The hash names one address and the path names a range, so the candidate is right when any index
+  # in the range reproduces it.
+
+  for index in INDICES:
+    if p2sh_address(word, index) == address:
+      return ("%s:%s:%s" % (mnemonic, address, path), word)
+
+  return None

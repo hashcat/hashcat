@@ -17,20 +17,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const u32 ATTACK_EXEC = ATTACK_EXEC_OUTSIDE_KERNEL;
-static const u32 DGST_POS0 = 0;
-static const u32 DGST_POS1 = 1;
-static const u32 DGST_POS2 = 2;
-static const u32 DGST_POS3 = 3;
-static const u32 DGST_SIZE = DGST_SIZE_4_5;
-static const u32 HASH_CATEGORY = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
-static const char *HASH_NAME = "BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)";
-static const u64 KERN_TYPE = 36000;
-static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP | OPTS_TYPE_DEEP_COMP_KERNEL;
-static const u32 SALT_TYPE = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS = "testpass";
-static const char *ST_HASH = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about:33747aCmUp8PkWmWWY8epR1Cph8Tf9Aozt:m/49'/0'/0'/0/0";
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_5;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
+static const char *HASH_NAME      = "BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)";
+static const u64   KERN_TYPE      = 36000;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_LOOP
+                                  | OPTS_TYPE_MULTIHASH_DESPITE_ESALT;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *ST_PASS        = "testpass";
+static const char *ST_HASH        = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about:33747aCmUp8PkWmWWY8epR1Cph8Tf9Aozt:m/49'/0'/0'/0/0";
 
 #define BIP39_MAX_PATH_DEPTH 16u
 #define BIP39_TARGET_IL_HEX   0u
@@ -43,6 +45,7 @@ static const char *ST_HASH = "abandon abandon abandon abandon abandon abandon ab
 #define BIP39_DYNAMIC_KIND_LIST  1u
 #define BIP39_MAX_DYNAMIC_SEGMENTS      4u
 #define BIP39_MAX_DYNAMIC_VALUES        256u
+#define BIP39_MAX_HITS                  16u
 #define BIP39_MAX_DYNAMIC_RANGE_SPAN  4096u
 #define BIP39_MAX_PASSPHRASE_LEN      256u
 
@@ -57,75 +60,20 @@ typedef struct bip39_dynamic_segment
   u32 values_offset;
 } bip39_dynamic_segment_t;
 
-u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return ATTACK_EXEC;
-}
-
-u32 module_dgst_pos0 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return DGST_POS0;
-}
-
-u32 module_dgst_pos1 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return DGST_POS1;
-}
-
-u32 module_dgst_pos2 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return DGST_POS2;
-}
-
-u32 module_dgst_pos3 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return DGST_POS3;
-}
-
-u32 module_dgst_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return DGST_SIZE;
-}
-
-u32 module_hash_category (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return HASH_CATEGORY;
-}
-
-const char *module_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return HASH_NAME;
-}
-
-u64 module_kern_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return KERN_TYPE;
-}
-
-u32 module_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return OPTI_TYPE;
-}
-
-u64 module_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return OPTS_TYPE;
-}
-
-u32 module_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return SALT_TYPE;
-}
-
-const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return ST_HASH;
-}
-
-const char *module_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return ST_PASS;
-}
+u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
+u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
+u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
+u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
+u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
+u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
+u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
+const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
+u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
+u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
+u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
+const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
+const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
 typedef struct bip39_skeleton
 {
@@ -160,11 +108,15 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 typedef struct bip39_tmp
 {
-  u64 seed[8];
   u64 master[8];
-  u32 script_hash[5];
-  u32 derived_ready;
-  u32 master_ready;
+
+  u32 prefix_key[8];
+  u32 prefix_chain[8];
+
+  u32 hit[BIP39_MAX_HITS];
+  u32 hit_cnt;
+
+  u32 valid;
 
 } bip39_tmp_t;
 
@@ -173,10 +125,10 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return (u64) sizeof (bip39_tmp_t);
 }
 
-u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
-{
-  return KERN_RUN_3;
-}
+// Hashes that share a mnemonic, a target type and a derivation path share a salt, and the address
+// is deliberately left out so one run covers several addresses of the same wallet. Those three are
+// also the only esalt fields the kernels read, which is what makes OPTS_TYPE_MULTIHASH_DESPITE_ESALT
+// safe here. The per-address target lives in the digest, not the esalt.
 
 static void bip39_set_salt_key (const bip39_skeleton_t *bip39, salt_t *salt)
 {
@@ -197,20 +149,12 @@ static void bip39_set_salt_key (const bip39_skeleton_t *bip39, salt_t *salt)
   salt->salt_len = 16;
 }
 
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  return NULL;
-}
-
 static bool parse_uint_substring (const char *start, const char *end, u32 *value)
 {
-  while ((start < end) && isspace ((unsigned char) *start))
-    start++;
-  while ((end > start) && isspace ((unsigned char) end[-1]))
-    end--;
+  while ((start < end) && isspace ((unsigned char) *start)) start++;
+  while ((end > start) && isspace ((unsigned char) end[-1])) end--;
 
-  if (start >= end)
-    return false;
+  if (start >= end) return false;
 
   u64 acc = 0;
 
@@ -218,13 +162,11 @@ static bool parse_uint_substring (const char *start, const char *end, u32 *value
   {
     const unsigned char ch = (unsigned char) *p;
 
-    if ((ch < '0') || (ch > '9'))
-      return false;
+    if ((ch < '0') || (ch > '9')) return false;
 
     acc = (acc * 10u) + (u64) (ch - '0');
 
-    if (acc > 0x7fffffffULL)
-      return false;
+    if (acc > 0x7fffffffULL) return false;
   }
 
   *value = (u32) acc;
@@ -328,8 +270,7 @@ static u32 bech32_polymod (const u8 *values, const u32 len)
 
     for (u32 j = 0; j < 5; j++)
     {
-      if ((top >> j) & 1u)
-        chk ^= bech32_generator[j];
+      if ((top >> j) & 1u) chk ^= bech32_generator[j];
     }
   }
 
@@ -338,13 +279,11 @@ static u32 bech32_polymod (const u8 *values, const u32 len)
 
 static u32 bech32_hrp_expand (const u8 *hrp, const u32 hrp_len, u8 *out)
 {
-  for (u32 i = 0; i < hrp_len; i++)
-    out[i] = (u8) (hrp[i] >> 5);
+  for (u32 i = 0; i < hrp_len; i++) out[i] = (u8) (hrp[i] >> 5);
 
   out[hrp_len] = 0;
 
-  for (u32 i = 0; i < hrp_len; i++)
-    out[hrp_len + 1 + i] = (u8) (hrp[i] & 31u);
+  for (u32 i = 0; i < hrp_len; i++) out[hrp_len + 1 + i] = (u8) (hrp[i] & 31u);
 
   return (hrp_len * 2u) + 1u;
 }
@@ -360,8 +299,7 @@ static bool bech32_convert_bits (u8 *out, u32 *out_len, const u8 *in, const u32 
   {
     const u32 value = in[i];
 
-    if (value >= (1u << from_bits))
-      return false;
+    if (value >= (1u << from_bits)) return false;
 
     acc = (acc << from_bits) | value;
     bits += from_bits;
@@ -373,10 +311,8 @@ static bool bech32_convert_bits (u8 *out, u32 *out_len, const u8 *in, const u32 
     }
   }
 
-  if (bits >= from_bits)
-    return false;
-  if (bits > 0)
-    return false;
+  if (bits >= from_bits) return false;
+  if (bits > 0) return false;
 
   *out_len = pos;
 
@@ -385,8 +321,7 @@ static bool bech32_convert_bits (u8 *out, u32 *out_len, const u8 *in, const u32 
 
 static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39)
 {
-  if (path_str[0] != 'm')
-    return false;
+  if (path_str[0] != 'm') return false;
 
   u32 depth = 0;
   u32 dynamic_count = 0;
@@ -401,28 +336,24 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
     return true;
   }
 
-  if (path_str[1] != '/')
-    return false;
+  if (path_str[1] != '/') return false;
 
   const char *cursor = path_str + 2;
 
   while (*cursor)
   {
-    if (depth >= BIP39_MAX_PATH_DEPTH)
-      return false;
+    if (depth >= BIP39_MAX_PATH_DEPTH) return false;
 
     if (*cursor == '{')
     {
       const char *closing = strchr (cursor, '}');
 
-      if (closing == 0)
-        return false;
+      if (closing == 0) return false;
 
       const char *body_start = cursor + 1;
       const char *body_end = closing;
 
-      if (body_start == body_end)
-        return false;
+      if (body_start == body_end) return false;
 
       const char *post = closing + 1;
       bool hardened = false;
@@ -433,8 +364,7 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
         post++;
       }
 
-      if (dynamic_count >= BIP39_MAX_DYNAMIC_SEGMENTS)
-        return false;
+      if (dynamic_count >= BIP39_MAX_DYNAMIC_SEGMENTS) return false;
 
       bip39_dynamic_segment_t *seg = &bip39->dynamic_segments[dynamic_count];
 
@@ -457,31 +387,25 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
           has_dash = true;
       }
 
-      if (has_comma && has_dash)
-        return false;
+      if (has_comma && has_dash) return false;
 
       if (has_dash && (has_comma == false))
       {
         const char *dash = strchr (body_start, '-');
 
-        if ((dash == 0) || (dash >= body_end))
-          return false;
+        if ((dash == 0) || (dash >= body_end)) return false;
 
         u32 start_value = 0;
         u32 end_value = 0;
 
-        if (parse_uint_substring (body_start, dash, &start_value) == false)
-          return false;
-        if (parse_uint_substring (dash + 1, body_end, &end_value) == false)
-          return false;
+        if (parse_uint_substring (body_start, dash, &start_value) == false) return false;
+        if (parse_uint_substring (dash + 1, body_end, &end_value) == false) return false;
 
-        if (start_value > end_value)
-          return false;
+        if (start_value > end_value) return false;
 
         const u32 span = (end_value - start_value) + 1u;
 
-        if (span > BIP39_MAX_DYNAMIC_RANGE_SPAN)
-          return false;
+        if (span > BIP39_MAX_DYNAMIC_RANGE_SPAN) return false;
 
         if (hardened)
         {
@@ -510,16 +434,13 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
         {
           const char *item_end = item_start;
 
-          while ((item_end < body_end) && (*item_end != ','))
-            item_end++;
+          while ((item_end < body_end) && (*item_end != ',')) item_end++;
 
           u32 value = 0;
 
-          if (parse_uint_substring (item_start, item_end, &value) == false)
-            return false;
+          if (parse_uint_substring (item_start, item_end, &value) == false) return false;
 
-          if ((values_offset + local_count) >= BIP39_MAX_DYNAMIC_VALUES)
-            return false;
+          if ((values_offset + local_count) >= BIP39_MAX_DYNAMIC_VALUES) return false;
 
           if (hardened)
           {
@@ -530,14 +451,12 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
 
           local_count++;
 
-          if (item_end == body_end)
-            break;
+          if (item_end == body_end) break;
 
           item_start = item_end + 1;
         }
 
-        if (local_count == 0)
-          return false;
+        if (local_count == 0) return false;
 
         seg->count = local_count;
 
@@ -557,16 +476,13 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
     {
       const char *start = cursor;
 
-      while ((*cursor >= '0') && (*cursor <= '9'))
-        cursor++;
+      while ((*cursor >= '0') && (*cursor <= '9')) cursor++;
 
-      if (start == cursor)
-        return false;
+      if (start == cursor) return false;
 
       u32 value = 0;
 
-      if (parse_uint_substring (start, cursor, &value) == false)
-        return false;
+      if (parse_uint_substring (start, cursor, &value) == false) return false;
 
       if ((*cursor == '\'') || (*cursor == 'h') || (*cursor == 'H'))
       {
@@ -585,12 +501,10 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
       break;
     }
 
-    if (*cursor != '/')
-      return false;
+    if (*cursor != '/') return false;
 
     cursor++;
-    if (*cursor == 0)
-      return false;
+    if (*cursor == 0) return false;
   }
 
   bip39->path_depth = depth;
@@ -610,11 +524,9 @@ static int decode_address_script_hash (const u8 *address, const u32 address_len,
 
   const bool ok = b58dec (decoded, &decoded_len, address, address_len);
 
-  if (ok == false)
-    return PARSER_HASH_LENGTH;
+  if (ok == false) return PARSER_HASH_LENGTH;
 
-  if (decoded_len != 25)
-    return PARSER_HASH_LENGTH;
+  if (decoded_len != 25) return PARSER_HASH_LENGTH;
 
   const u32 offset = (u32) sizeof (decoded) - decoded_len;
 
@@ -629,16 +541,14 @@ static int decode_address_script_hash (const u8 *address, const u32 address_len,
     decoded_bytes[i] = decoded[offset + i];
   }
 
-  if (b58check_25 (decoded_words) == false)
-    return PARSER_HASH_ENCODING;
+  if (b58check_25 (decoded_words) == false) return PARSER_HASH_ENCODING;
 
   const u8 version = decoded_bytes[0];
 
   const bool is_p2sh = (version == 0x05) || (version == 0xC4);
   const bool is_p2pkh = (version == 0x00) || (version == 0x6F);
 
-  if ((is_p2sh == false) && (is_p2pkh == false))
-    return PARSER_HASH_VALUE;
+  if ((is_p2sh == false) && (is_p2pkh == false)) return PARSER_HASH_VALUE;
 
   const u8 *hash_bytes = decoded_bytes + 1;
 
@@ -667,8 +577,7 @@ static int decode_address_script_hash (const u8 *address, const u32 address_len,
 
 static int decode_address_bech32 (const u8 *address, const u32 address_len, bip39_skeleton_t *bip39, u32 *digest)
 {
-  if (address_len < 8)
-    return PARSER_HASH_LENGTH;
+  if (address_len < 8) return PARSER_HASH_LENGTH;
 
   bool has_lower = false;
   bool has_upper = false;
@@ -677,16 +586,14 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
   {
     const unsigned char ch = address[i];
 
-    if ((ch < 33) || (ch > 126))
-      return PARSER_HASH_ENCODING;
+    if ((ch < 33) || (ch > 126)) return PARSER_HASH_ENCODING;
     if ((ch >= 'a') && (ch <= 'z'))
       has_lower = true;
     else if ((ch >= 'A') && (ch <= 'Z'))
       has_upper = true;
   }
 
-  if (has_lower && has_upper)
-    return PARSER_HASH_ENCODING;
+  if (has_lower && has_upper) return PARSER_HASH_ENCODING;
 
   u8 lower_addr[96];
 
@@ -708,14 +615,12 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
     }
   }
 
-  if ((separator_index == 0xffffffffu) || (separator_index == 0))
-    return PARSER_HASH_VALUE;
+  if ((separator_index == 0xffffffffu) || (separator_index == 0)) return PARSER_HASH_VALUE;
 
   const u32 hrp_len = separator_index;
   const u32 data_len = address_len - separator_index - 1u;
 
-  if (data_len < 6u)
-    return PARSER_HASH_LENGTH;
+  if (data_len < 6u) return PARSER_HASH_LENGTH;
 
   const u8 *hrp = lower_addr;
   const u8 *data = lower_addr + separator_index + 1u;
@@ -726,8 +631,7 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
   {
     const int value = bech32_char_to_value (data[i]);
 
-    if (value < 0)
-      return PARSER_HASH_VALUE;
+    if (value < 0) return PARSER_HASH_VALUE;
     data_values[i] = (u8) value;
   }
 
@@ -736,10 +640,8 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
 
   u8 polymod_input[260];
 
-  for (u32 i = 0; i < hrp_expand_len; i++)
-    polymod_input[i] = hrp_expand[i];
-  for (u32 i = 0; i < data_len; i++)
-    polymod_input[hrp_expand_len + i] = data_values[i];
+  for (u32 i = 0; i < hrp_expand_len; i++) polymod_input[i] = hrp_expand[i];
+  for (u32 i = 0; i < data_len; i++) polymod_input[hrp_expand_len + i] = data_values[i];
 
   const u32 polymod = bech32_polymod (polymod_input, hrp_expand_len + data_len);
 
@@ -752,18 +654,15 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
   else
     return PARSER_HASH_VALUE;
 
-  if (data_len < 7u)
-    return PARSER_HASH_LENGTH;
+  if (data_len < 7u) return PARSER_HASH_LENGTH;
 
   const u32 payload_len = data_len - 6u;
 
-  if (payload_len < 1u)
-    return PARSER_HASH_VALUE;
+  if (payload_len < 1u) return PARSER_HASH_VALUE;
 
   const u8 witness_version = data_values[0];
 
-  if (witness_version > 16u)
-    return PARSER_HASH_VALUE;
+  if (witness_version > 16u) return PARSER_HASH_VALUE;
 
   const u8 *prog5 = data_values + 1u;
   const u32 prog5_len = payload_len - 1u;
@@ -771,19 +670,14 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
   u8 program[40];
   u32 program_len = 0;
 
-  if (bech32_convert_bits (program, &program_len, prog5, prog5_len, 5u, 8u) == false)
-    return PARSER_HASH_VALUE;
+  if (bech32_convert_bits (program, &program_len, prog5, prog5_len, 5u, 8u) == false) return PARSER_HASH_VALUE;
 
-  if ((program_len < 2u) || (program_len > 40u))
-    return PARSER_HASH_VALUE;
+  if ((program_len < 2u) || (program_len > 40u)) return PARSER_HASH_VALUE;
 
-  if ((witness_version == 0u) && (encoding != 0u))
-    return PARSER_HASH_VALUE;
-  if ((witness_version > 0u) && (encoding != 1u))
-    return PARSER_HASH_VALUE;
+  if ((witness_version == 0u) && (encoding != 0u)) return PARSER_HASH_VALUE;
+  if ((witness_version > 0u) && (encoding != 1u)) return PARSER_HASH_VALUE;
 
-  if ((witness_version != 0u) || (program_len != 20u))
-    return PARSER_HASH_VALUE;
+  if ((witness_version != 0u) || (program_len != 20u)) return PARSER_HASH_VALUE;
 
   bip39->target_type = BIP39_TARGET_P2WPKH;
 
@@ -847,8 +741,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  if (rc_tokenizer != PARSER_OK)
-    return rc_tokenizer;
+  if (rc_tokenizer != PARSER_OK) return rc_tokenizer;
 
   const u8 *mnemonic_pos = token.buf[0];
   const u8 *address_pos = token.buf[1];
@@ -898,7 +791,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
     return PARSER_HASH_VALUE;
   }
 
-
   u64 combo_total = 1;
 
   if (bip39->path_dynamic_count > 0)
@@ -923,19 +815,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
     }
   }
 
-  if (combo_total == 0)
-  {
-    combo_total = 1;
-  }
+  if (combo_total == 0) return (PARSER_HASH_VALUE);
 
   bip39->path_combo_total = combo_total;
 
-  if (bip39->path_combo_total == 0)
+  // The path combinations are the inner keyspace of a candidate, which is what salt_iter means to
+  // the backend. It launches the loop kernel over windows of this count, so autotune sees the real
+  // work and can pick a loop count for it.
+
+  if (combo_total > 0xffffffffULL)
   {
-    bip39->path_combo_total = 1;
+    return (PARSER_SALT_ITERATION);
   }
 
-  salt->salt_iter = 1;
+  salt->salt_iter = (u32) combo_total;
   salt->salt_iter2 = 0;
 
   digest[0] = 0;
@@ -946,8 +839,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
   if (token.len[1] == 32)
   {
-    if (is_valid_hex_string (address_pos, token.len[1]) == false)
-      return PARSER_HASH_VALUE;
+    if (is_valid_hex_string (address_pos, token.len[1]) == false) return PARSER_HASH_VALUE;
 
     digest[0] = byte_swap_32 (hex_to_u32 (address_pos + 0));
     digest[1] = byte_swap_32 (hex_to_u32 (address_pos + 8));
@@ -995,20 +887,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
     {
       const int rc = decode_address_bech32 (address_pos, token.len[1], bip39, digest);
 
-      if (rc != PARSER_OK)
-        return rc;
+      if (rc != PARSER_OK) return rc;
     }
     else
     {
       const int rc = decode_address_script_hash (address_pos, token.len[1], bip39, digest);
 
-      if (rc != PARSER_OK)
-        return rc;
+      if (rc != PARSER_OK) return rc;
     }
   }
 
   bip39_set_salt_key (bip39, salt);
-
 
   return PARSER_OK;
 }
@@ -1061,10 +950,7 @@ int module_hash_encode_status (const hashconfig_t *hashconfig, const void *diges
   return line_len + extra;
 }
 
-u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return BIP39_MAX_PASSPHRASE_LEN;
-}
+u32         module_pw_max         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BIP39_MAX_PASSPHRASE_LEN;}
 
 const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, MAYBE_UNUSED const u32 kernel_accel_user)
 {
@@ -1072,14 +958,13 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
 
   char *sanitized = hcstrdup (device_param->device_name ? device_param->device_name : "DEVICE");
 
+  // tuning_db_search_real () turns spaces into underscores and leaves every other character
+  // alone, so a row keyed on anything more than that can never be found. Replacing only spaces
+  // is what scrypt_common.c, argon2_common.c and yescrypt_common.c all do.
+
   for (size_t i = 0; sanitized[i] != '\0'; i++)
   {
-    const unsigned char c = (const unsigned char) sanitized[i];
-
-    if (isalnum (c) == 0)
-    {
-      sanitized[i] = '_';
-    }
+    if (sanitized[i] == ' ') sanitized[i] = '_';
   }
 
   const size_t buf_sz = 512;
@@ -1101,8 +986,9 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
   }
   else if ((device_param->is_opencl) && ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET)))
   {
-    // the Intel HD 630 driver wanted a conservative geometry. A tuningdb line carries vector
-    // width, accel and loops but no thread count, so the 32 below is the vector width column
+    // A conservative geometry on Intel, whose driver is slow to compile this kernel. The columns
+    // are vector width 1, kernel accel 2 and kernel loops 4. A tuningdb line has no thread count
+    // column at all, so a thread count cannot be expressed here.
     snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 1 2 4\n", sanitized, hash_mode);
   }
   else
@@ -1115,101 +1001,99 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
   return lines_buf;
 }
 
-u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return KERNEL_THREADS_MAX;
-}
+// Autotune walks kernel_accel up towards this bound, and a trial launch of this kernel is
+// expensive, so an unbounded walk spends longer choosing a geometry than the geometry saves.
+// Measured on a Radeon Pro W7800: the default bound of 1024 costs 103 seconds of autotune to
+// arrive at Accel:2, and 64 reaches the same answer in 27. A tighter bound than this starts to
+// move autotune's thread choice down from 1024, which costs throughput, so 64 is the floor.
 
 u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return KERNEL_ACCEL_MAX;
-}
+  const u32 kernel_accel_max = 64;
 
-u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return 1;
+  return kernel_accel_max;
 }
 
 void module_init (module_ctx_t *module_ctx)
 {
-  module_ctx->module_context_size = MODULE_CONTEXT_SIZE_CURRENT;
-  module_ctx->module_interface_version = MODULE_INTERFACE_VERSION_CURRENT;
+  module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
+  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
-  module_ctx->module_advice_notice = MODULE_DEFAULT;
-  module_ctx->module_attack_exec = module_attack_exec;
-  module_ctx->module_benchmark_esalt = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hook_salt = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask = MODULE_DEFAULT;
-  module_ctx->module_benchmark_charset = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt = MODULE_DEFAULT;
-  module_ctx->module_bridge_name = MODULE_DEFAULT;
-  module_ctx->module_bridge_type = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel = module_deep_comp_kernel;
-  module_ctx->module_deprecated_notice = MODULE_DEFAULT;
-  module_ctx->module_dgst_pos0 = module_dgst_pos0;
-  module_ctx->module_dgst_pos1 = module_dgst_pos1;
-  module_ctx->module_dgst_pos2 = module_dgst_pos2;
-  module_ctx->module_dgst_pos3 = module_dgst_pos3;
-  module_ctx->module_dgst_size = module_dgst_size;
-  module_ctx->module_esalt_size = module_esalt_size;
-  module_ctx->module_extra_buffer_size = MODULE_DEFAULT;
-  module_ctx->module_extra_tmp_size = MODULE_DEFAULT;
-  module_ctx->module_extra_tuningdb_block = module_extra_tuningdb_block;
-  module_ctx->module_forced_outfile_format = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_save = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_postprocess = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_potfile = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_zero_hash = MODULE_DEFAULT;
-  module_ctx->module_hash_decode = module_hash_decode;
-  module_ctx->module_hash_encode_status = module_hash_encode_status;
-  module_ctx->module_hash_encode_potfile = MODULE_DEFAULT;
-  module_ctx->module_hash_encode = module_hash_encode;
-  module_ctx->module_hash_hints = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest = MODULE_DEFAULT;
-  module_ctx->module_hash_mode = MODULE_DEFAULT;
-  module_ctx->module_hash_category = module_hash_category;
-  module_ctx->module_hash_name = module_hash_name;
-  module_ctx->module_hashes_count_min = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_max = MODULE_DEFAULT;
-  module_ctx->module_hlfmt_disable = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_size = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_init = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_term = MODULE_DEFAULT;
-  module_ctx->module_hook12 = MODULE_DEFAULT;
-  module_ctx->module_hook23 = MODULE_DEFAULT;
-  module_ctx->module_hook_salt_size = MODULE_DEFAULT;
-  module_ctx->module_hook_size = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options = module_jit_build_options;
-  module_ctx->module_jit_cache_disable = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max = module_kernel_accel_max;  // Returns KERNEL_ACCEL_MAX - no caps
-  module_ctx->module_kernel_accel_min = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max = module_kernel_threads_max;  // Returns KERNEL_THREADS_MAX - no caps
-  module_ctx->module_kernel_threads_min = MODULE_DEFAULT;
-  module_ctx->module_kern_type = module_kern_type;
-  module_ctx->module_kern_type_dynamic = MODULE_DEFAULT;
-  module_ctx->module_opti_type = module_opti_type;
-  module_ctx->module_opts_type = module_opts_type;
-  module_ctx->module_outfile_check_disable = MODULE_DEFAULT;
-  module_ctx->module_outfile_check_nocomp = MODULE_DEFAULT;
-  module_ctx->module_potfile_custom_check = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable = MODULE_DEFAULT;
-  module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
-  module_ctx->module_pwdump_column = MODULE_DEFAULT;
-  module_ctx->module_pw_max = module_pw_max;
-  module_ctx->module_pw_min = MODULE_DEFAULT;
-  module_ctx->module_salt_max = MODULE_DEFAULT;
-  module_ctx->module_salt_min = MODULE_DEFAULT;
-  module_ctx->module_salt_type = module_salt_type;
-  module_ctx->module_separator = MODULE_DEFAULT;
-  module_ctx->module_st_hash = module_st_hash;
-  module_ctx->module_st_pass = module_st_pass;
-  module_ctx->module_tmp_size = module_tmp_size;
-  module_ctx->module_unstable_warning = MODULE_DEFAULT;
-  module_ctx->module_usage_notice = MODULE_DEFAULT;
-  module_ctx->module_warmup_disable = MODULE_DEFAULT;
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
+  module_ctx->module_attack_exec              = module_attack_exec;
+  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
+  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
+  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
+  module_ctx->module_dgst_pos0                = module_dgst_pos0;
+  module_ctx->module_dgst_pos1                = module_dgst_pos1;
+  module_ctx->module_dgst_pos2                = module_dgst_pos2;
+  module_ctx->module_dgst_pos3                = module_dgst_pos3;
+  module_ctx->module_dgst_size                = module_dgst_size;
+  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
+  module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = module_extra_tuningdb_block;
+  module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_encode_status       = module_hash_encode_status;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
+  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+  module_ctx->module_hash_mode                = MODULE_DEFAULT;
+  module_ctx->module_hash_category            = module_hash_category;
+  module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
+  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
+  module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
+  module_ctx->module_hook12                   = MODULE_DEFAULT;
+  module_ctx->module_hook23                   = MODULE_DEFAULT;
+  module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
+  module_ctx->module_hook_size                = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
+  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_type                = module_kern_type;
+  module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_opti_type                = module_opti_type;
+  module_ctx->module_opts_type                = module_opts_type;
+  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
+  module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
+  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
+  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
+  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
+  module_ctx->module_pw_max                   = module_pw_max;
+  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_salt_max                 = MODULE_DEFAULT;
+  module_ctx->module_salt_min                 = MODULE_DEFAULT;
+  module_ctx->module_salt_type                = module_salt_type;
+  module_ctx->module_separator                = MODULE_DEFAULT;
+  module_ctx->module_st_hash                  = module_st_hash;
+  module_ctx->module_st_pass                  = module_st_pass;
+  module_ctx->module_tmp_size                 = module_tmp_size;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
+  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

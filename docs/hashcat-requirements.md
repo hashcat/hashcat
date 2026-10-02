@@ -81,19 +81,21 @@ Option `--backend-info` is diagnostic. It suppresses some per-device driver and 
 
 ## The Python and Rust plugins
 
-Three optional hash modes use a language runtime. hashcat runs without them, and their toolchains are not required to build or run the rest of the program.
+Two optional hash modes use a language runtime. hashcat runs without them, and their toolchains are not required to build or run the rest of the program.
 
 ```
 mode     needs                          minimum   why that number
 ------------------------------------------------------------------------------------------------
-72000    Python, free-threaded          3.13      free-threaded builds start there
-73000    Python, multiprocessing        3.10      the oldest carrying every symbol it loads
+73000    Python, as a separate process  3.9       the oldest the bridge has been run on
 74000    Rust                           1.85      the crates are edition 2024
 ```
 
+Mode 73000 needs its interpreter only at run time, and only on PATH: it starts `python3` as a separate
+program rather than loading a library, so there is nothing to install to build it.
+
 The normal PCFG (`-a 4`) and table (`-a 5`) feeds are written in C and need no language runtime. The optional `rust_random` sample feed used through `-a 8` needs the same Rust toolchain as mode 74000. Mode 70000 is also a C assimilation bridge and adds no separate runtime requirement.
 
-The Python 3.13 and Rust 1.85 minimums are above what Ubuntu 24.04 delivers, so use pyenv and rustup when building those plugins. A build without either toolchain still succeeds: it skips the affected plugin, reports why, and produces everything else.
+The Rust 1.85 minimum is above what Ubuntu 24.04 delivers, so use rustup when building that plugin. A build without the Rust toolchain still succeeds: it skips the affected plugin, reports why, and produces everything else.
 
 `docs/hashcat-python-plugin-requirements.md` and `docs/hashcat-rust-plugin-requirements.md` cover each runtime in full.
 
