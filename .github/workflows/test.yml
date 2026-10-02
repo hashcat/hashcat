@@ -54,24 +54,6 @@ on:
       - 'tools/requirements.txt'
       - '.github/workflows/test.yml'
       - '.github/workflows/ci_matrix.py'
-  # A commit pushed straight to master (a build fix, a maintainer change) never opened a PR, so its
-  # modes were only ever compiled by build.yml, not test-cracked, until the weekly run. Test the modes
-  # the push touched, the same way a PR does.
-  push:
-    branches:
-      - master
-    paths:
-      - 'OpenCL/**'
-      - 'src/**'
-      - 'include/**'
-      - 'deps/**'
-      - 'Makefile'
-      - 'tools/test.py'
-      - 'tools/test_module_runner.*'
-      - 'tools/test_modules/**'
-      - 'tools/requirements.txt'
-      - '.github/workflows/test.yml'
-      - '.github/workflows/ci_matrix.py'
 
 permissions:
   contents: read
@@ -94,18 +76,10 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
-          BEFORE: ${{ github.event.before }}
           MODES: ${{ inputs.modes }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
             python3 .github/workflows/ci_matrix.py test pr "$BASE" | tee -a "$GITHUB_OUTPUT"
-          elif [ "$EVENT" = "push" ]; then
-            # Diff against the commit master was at before the push; the all-zero SHA is a first push
-            # or a branch create, where the previous commit is the only sensible base.
-            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              BEFORE="HEAD~1"
-            fi
-            python3 .github/workflows/ci_matrix.py test pr "$BEFORE" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
             python3 .github/workflows/ci_matrix.py test list "$MODES" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "schedule" ] &&

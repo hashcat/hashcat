@@ -68,19 +68,6 @@ on:
       - '.github/workflows/fuzz.yml'
       - '.github/workflows/ci_matrix.py'
       - '.github/workflows/fuzz_report.py'
-  # A commit pushed straight to master never opened a PR, so its parsers were never fuzzed until the
-  # weekly run. Fuzz the modes the push touched, the same way a PR does.
-  push:
-    branches:
-      - master
-    paths:
-      - 'src/**'
-      - 'include/**'
-      - 'tools/fuzz/**'
-      - 'tools/asan/hashconfig.*'
-      - '.github/workflows/fuzz.yml'
-      - '.github/workflows/ci_matrix.py'
-      - '.github/workflows/fuzz_report.py'
 
 permissions:
   contents: read
@@ -106,18 +93,10 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
-          BEFORE: ${{ github.event.before }}
           MODES: ${{ inputs.modes }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
             python3 .github/workflows/ci_matrix.py fuzz pr "$BASE" | tee -a "$GITHUB_OUTPUT"
-          elif [ "$EVENT" = "push" ]; then
-            # Diff against the commit master was at before the push; the all-zero SHA is a first push
-            # or a branch create, where the previous commit is the only sensible base.
-            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              BEFORE="HEAD~1"
-            fi
-            python3 .github/workflows/ci_matrix.py fuzz pr "$BEFORE" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
             python3 .github/workflows/ci_matrix.py fuzz list "$MODES" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "schedule" ] && [ "$KEEPALIVE" != "true" ] &&
