@@ -87,6 +87,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[1]     = '$';
   token.len_min[1] = 1;
+
+  // bounded by m09301-pure.cl's pw_buf[8] (32 bytes): assembled "$1$<salt>$<hash>" is 3 + salt_len + 1 + 22 bytes
+
   token.len_max[1] = 6;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
