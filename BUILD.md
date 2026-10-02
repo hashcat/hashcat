@@ -8,10 +8,9 @@
 
 ## Requirements
 
-A C compiler and `make`. Nothing else has to be installed to build the program and every plugin it
-ships.
+A C compiler and `make`. That is everything for the program and for every plugin but one.
 
-Two optional hash modes need a language toolchain, and a build without one skips that mode, says why,
+One optional hash mode needs a language toolchain, and a build without it skips that mode, says why,
 and produces everything else:
 
 - Mode `74000` needs Rust 1.85 or newer, which `rustup` provides. See

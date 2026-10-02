@@ -1855,8 +1855,8 @@ install_pcfg: install_shared
 .PHONY: install_rules
 install_rules: install_shared
 	$(INSTALL) -m 755 -d                                                 $(DESTDIR)$(SHARED_FOLDER)/rules
-	$(FIND) rules/    -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d  $(DESTDIR)$(SHARED_FOLDER)/rules/{} \;
-	$(FIND) rules/    -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/rules/{} \;
+	$(FIND) rules/    -mindepth 1 -type d -exec $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/{} \;
+	$(FIND) rules/    -mindepth 1 -type f -exec $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/{} \;
 
 .PHONY: install_kernels
 install_kernels: install_shared
@@ -1878,11 +1878,15 @@ install_python: install_shared
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/Python
 	$(FIND) Python/   -mindepth 1 -type f -name '*.py' -execdir $(INSTALL) -m 644 {} $(DESTDIR)$(SHARED_FOLDER)/Python/{} \;
 
+## bridges/subs holds the Rust crates the generic_hash bridge loads, and rules/ holds hybrid/, so both
+## walk with -exec rather than -execdir. -execdir passes the recipe ./basename, which installs a file
+## from a subdirectory into the parent and leaves the subdirectory empty.
+
 .PHONY: install_bridges
 install_bridges: install_shared bridges
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/bridges
-	$(FIND) bridges/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/bridges/{} \;
-	$(FIND) bridges/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/bridges/{} \;
+	$(FIND) bridges/  -mindepth 1 -type d -exec $(INSTALL) -m 755 -d        $(DESTDIR)$(SHARED_FOLDER)/{} \;
+	$(FIND) bridges/  -mindepth 1 -type f -exec $(INSTALL) -m 644 {}        $(DESTDIR)$(SHARED_FOLDER)/{} \;
 
 .PHONY: install_feeds
 install_feeds: install_shared feeds

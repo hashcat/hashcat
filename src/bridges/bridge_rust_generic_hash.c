@@ -213,12 +213,19 @@ static void units_term (bridge_context_t *bridge_context)
   }
 }
 
+// Both names are resolved against hashcat's shared folder, which is the hashcat directory for a source
+// build and $PREFIX/share/hashcat for an installed one. The crate is built into
+// Rust/bridges/generic_hash/target and the build then copies it into bridges/subs, which is what make
+// install ships, so a source tree finds the cargo output and an installed build finds the copy. These
+// were relative to the current working directory before, so an installed build could not load the
+// library at all and a source build could only do it from the hashcat directory.
+
 #if defined (_WIN)
-static char *DEFAULT_DYNLIB_FILENAME = "./Rust/bridges/generic_hash/target/x86_64-pc-windows-gnu/release/generic_hash.dll";
-static char *DEFAULT_DYNLIB_FILENAME_FALLBACK = "./bridges/subs/generic_hash.dll";
+#define DEFAULT_DYNLIB_FILENAME          "Rust/bridges/generic_hash/target/x86_64-pc-windows-gnu/release/generic_hash.dll"
+#define DEFAULT_DYNLIB_FILENAME_FALLBACK "bridges/subs/generic_hash.dll"
 #else
-static char *DEFAULT_DYNLIB_FILENAME = "./Rust/bridges/generic_hash/target/release/libgeneric_hash.so";
-static char *DEFAULT_DYNLIB_FILENAME_FALLBACK = "./bridges/subs/generic_hash.so";
+#define DEFAULT_DYNLIB_FILENAME          "Rust/bridges/generic_hash/target/release/libgeneric_hash.so"
+#define DEFAULT_DYNLIB_FILENAME_FALLBACK "bridges/subs/generic_hash.so"
 #endif
 
 void *platform_init (hashcat_ctx_t *hashcat_ctx)
@@ -233,21 +240,23 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   bridge_context_t *bridge_context = hcmalloc(sizeof(bridge_context_t));
 
-  char *filename = DEFAULT_DYNLIB_FILENAME;
-
   if (user_options->bridge_parameter1 != NULL)
   {
-    filename = user_options->bridge_parameter1;
+    bridge_context->dynlib_filename = hcstrdup (user_options->bridge_parameter1);
   }
   else
   {
-    if (!hc_path_exist (filename))
+    const folder_config_t *folder_config = hashcat_ctx->folder_config;
+
+    hc_asprintf (&bridge_context->dynlib_filename, "%s/%s", folder_config->shared_dir, DEFAULT_DYNLIB_FILENAME);
+
+    if (hc_path_exist (bridge_context->dynlib_filename) == false)
     {
-      filename = DEFAULT_DYNLIB_FILENAME_FALLBACK;
+      hcfree (bridge_context->dynlib_filename);
+
+      hc_asprintf (&bridge_context->dynlib_filename, "%s/%s", folder_config->shared_dir, DEFAULT_DYNLIB_FILENAME_FALLBACK);
     }
   }
-
-  bridge_context->dynlib_filename = filename;
 
   bridge_context->lib = hc_dlopen (bridge_context->dynlib_filename);
 
@@ -255,6 +264,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "ERROR: %s: %s", bridge_context->dynlib_filename, strerror (errno));
 
+    hcfree (bridge_context->dynlib_filename);
     hcfree (bridge_context);
 
     return NULL;
@@ -267,6 +277,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     if (!(ptr)->name)                                                                           \
     {                                                                                           \
       event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, (ptr)->dynlib_filename); \
+      hcfree (bridge_context->dynlib_filename);                                                 \
       hcfree (bridge_context);                                                                  \
       return NULL;                                                                              \
     }                                                                                           \
@@ -288,6 +299,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   if (!bridge_context->global_init (bridge_context))
   {
+    hcfree (bridge_context->dynlib_filename);
     hcfree (bridge_context);
 
     return NULL;
@@ -296,6 +308,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   if (!units_init (bridge_context))
   {
+    hcfree (bridge_context->dynlib_filename);
     hcfree (bridge_context);
 
     return NULL;
@@ -312,6 +325,7 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
 
   units_term (bridge_context);
 
+  hcfree (bridge_context->dynlib_filename);
   hcfree (bridge_context);
 }
 

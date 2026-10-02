@@ -27,7 +27,8 @@ with nothing set for hashcat:
 - An activated virtual environment, because `activate` puts its `bin` or `Scripts` directory first on
   `PATH`.
 - A pyenv version, whether it came from `pyenv local`, `pyenv global`, `pyenv shell` or an exported
-  `PYENV_VERSION`.
+  `PYENV_VERSION`. See https://github.com/pyenv/pyenv for pyenv itself, which is one way to get a
+  newer interpreter than the distribution ships without replacing the system one.
 - A conda environment, for the same reason as a virtual environment.
 
 To use an interpreter that is not on `PATH`, name it with `--bridge-parameter2`:
@@ -86,9 +87,10 @@ The `python3` that comes with the Command Line Tools is enough. Nothing has to b
 
 ### Windows
 
-Install Python from https://www.python.org/downloads/windows/ and leave "Add python.exe to PATH"
-ticked, which is the default. The free-threaded option that mode 72000 used to need is no longer
-relevant, so leave it alone.
+Install Python from https://www.python.org/downloads/windows/ and tick "Add python.exe to PATH" on
+the installer's first page. The installer leaves that box clear, and hashcat resolves the interpreter
+through `PATH`, so an installation made without it is reached with `--bridge-parameter2` instead. The
+free-threaded option that mode 72000 used to need is no longer relevant, so leave it alone.
 
 A Windows installation that is not on `PATH` is reached with `--bridge-parameter2`, for example an
 MSYS2 one at `C:\msys64\mingw64\bin\python.exe`.

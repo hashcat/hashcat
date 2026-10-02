@@ -493,8 +493,12 @@ static void hc_dev_mem_free (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
 int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const void *src, const u64 size)
 {
-  // PoCL, the OpenCL runtime of AMD and Metal refuse a transfer of zero bytes, where CUDA, HIP and
-  // the other OpenCL runtimes accept it, so a size that came out zero returns before the transfer.
+  // Nothing to copy. cuMemcpyHtoD and hipMemcpyHtoD accept a zero length transfer and do nothing
+  // with it, while Metal refuses one and so does AMD's OpenCL and PoCL, which answers CL_INVALID_VALUE.
+  // Several of the sizes handed to this function are counts the host worked out and can legitimately
+  // come out zero: a mask of markers only has no character positions, and an amplifier chunk whose
+  // every word was rejected holds no items. Answering those here keeps a run from ending on one
+  // backend where another completes it.
 
   if (size == 0) return 0;
 
@@ -1972,42 +1976,6 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
     }
 
     pw->pw_len = len;
-  }
-
-  if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
-
-  return rc;
-}
-
-int copy_pws_idx (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest)
-{
-  if (hc_dev_bind (hashcat_ctx, device_param) == -1) return -1;
-
-  int rc = 0;
-
-  if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, dest, device_param->d_buf[HC_DEV_BUF_PWS_IDX], gidd * sizeof (pw_idx_t), cnt * sizeof (pw_idx_t)) == -1) rc = -1;
-
-  if (rc == 0)
-  {
-    if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) rc = -1;
-  }
-
-  if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
-
-  return rc;
-}
-
-int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest)
-{
-  if (hc_dev_bind (hashcat_ctx, device_param) == -1) return -1;
-
-  int rc = 0;
-
-  if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, dest, device_param->d_buf[HC_DEV_BUF_PWS_COMP_BUF], off * sizeof (u32), cnt * sizeof (u32)) == -1) rc = -1;
-
-  if (rc == 0)
-  {
-    if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) rc = -1;
   }
 
   if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;

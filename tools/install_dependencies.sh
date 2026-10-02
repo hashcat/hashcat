@@ -274,5 +274,7 @@ if [ -n "${FAILED}" ]; then
   echo
 fi
 
-echo "> Now run ${TDIR}/install_modules.sh for the perl and python modules."
-echo "  Open a new shell first, or source ${HOME}/.bashrc, so cpanm and pyenv are on PATH."
+echo "> Now run ${TDIR}/install_modules.sh for the python modules the test suite needs."
+echo "  Open a new shell first, so that pyenv is on PATH. Sourcing ${HOME}/.bashrc instead will not do:"
+echo "  the stock one returns before the pyenv lines when the shell is not interactive, and"
+echo "  install_modules.sh then has no interpreter to install into."
