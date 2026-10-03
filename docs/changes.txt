@@ -528,6 +528,9 @@ Results depend on the device, runtime and workload.
   budgets through "HASHCAT_MEMORY", and cache sizes and bridge units through "-I"
 - Set per-process memory budgets with "HASHCAT_DEVICE_MEM_LIMIT" and "HASHCAT_HOST_MEM_LIMIT" (MiB)
   when sharing a machine
+- The compressed candidate buffer is sized by the mode's maximum password length instead of PW_MAX,
+  a packed arena where charging 256 bytes per work item made it as large as the buffer it feeds. On
+  "-m 0 -a 0 -O" the host allocation falls from 2583 to 1305 MB and kernel_accel from 141 to 316
 - HIP no longer sets "AMD_DIRECT_DISPATCH=0". Tests on ROCm 7 and an RX 7900 XTX found
   no benefit for host CPU use or cracking speed
 - Removed obsolete "OCL_CODE_CACHE_ENABLE" and "CL_CONFIG_USE_VECTORIZER" settings.

@@ -33,6 +33,7 @@
 #include "terminal.h"
 #include "hwmon.h"
 #include "autotune.h"
+#include "user_options.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -16211,6 +16212,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const char *memory_limit_reason = "none";
 
+    // What one candidate costs in the compressed arena. pws_comp is packed, not an array of fixed
+    // slots: pw_add () advances the index by the candidate's length rounded up to a multiple of 4, so
+    // charging PW_MAX for every work item made the compressed buffer as large as the uncompressed
+    // pw_t buffer it feeds, and the compression bought bus time and no memory at all.
+    //
+    // A candidate above hashconfig->pw_max is rejected before it reaches pw_add (), except under -a 9,
+    // where the length policy is BASE_LENGTH_NONE and nothing bounds a base word below PW_MAX. The
+    // + 1 is the byte rebuild_pws_compressed_append () adds to each candidate. It is free unless
+    // pw_max is itself a multiple of 4, where it costs one word per work item. The MIN leaves a mode
+    // that already allows PW_MAX at the stride it had.
+
+    const u32 pw_comp_bound = (user_options_extra_base_length (hashcat_ctx) == BASE_LENGTH_NONE) ? PW_MAX : hashconfig->pw_max;
+
+    const u64 pw_comp_stride = (u64) CEILDIV (MIN (pw_comp_bound + 1, PW_MAX), 4) * 4;
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -16315,8 +16331,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       // size_pws_comp
+      //
+      // The tail is one whole PW_MAX, because fill_generic () has the feed write into the arena at the
+      // current offset before the length is known and pw_transform_apply () may still grow what it
+      // finds there. Both write at the offset one past the last accepted candidate, which is the same
+      // reason size_pws_idx below holds kernel_power_max + 1 entries.
 
-      size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
+      size_pws_comp = (kernel_power_max * pw_comp_stride) + PW_MAX;
 
       // size_pws_idx
 
