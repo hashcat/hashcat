@@ -49,7 +49,21 @@ KERNEL_FQ KERNEL_FA void m27900_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    u32x a = crc32c_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. The state precomputed outside this loop ends
+    // with the base word and is only reusable while the base word still starts the candidate.
+
+    u32x a_pre = a_ref;
+
+    if (COMBS_IS_MIDDLE)
+    {
+      a_pre = crc32c_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv);
+      a_pre = crc32c_global (pws[gid].i,            pws[gid].pw_len,            a_pre);
+      a_pre = crc32c_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre);
+      a_pre = crc32c_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre);
+    }
+
+    u32x a = crc32c_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre);
 
     u32x z = 0;
 
@@ -103,7 +117,21 @@ KERNEL_FQ KERNEL_FA void m27900_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    u32x a = crc32c_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. The state precomputed outside this loop ends
+    // with the base word and is only reusable while the base word still starts the candidate.
+
+    u32x a_pre = a_ref;
+
+    if (COMBS_IS_MIDDLE)
+    {
+      a_pre = crc32c_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv);
+      a_pre = crc32c_global (pws[gid].i,            pws[gid].pw_len,            a_pre);
+      a_pre = crc32c_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre);
+      a_pre = crc32c_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre);
+    }
+
+    u32x a = crc32c_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre);
 
     u32x z = 0;
 

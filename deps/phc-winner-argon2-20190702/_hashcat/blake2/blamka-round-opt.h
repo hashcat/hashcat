@@ -37,6 +37,14 @@
 #if !defined(__AVX512F__)
 #if !defined(__AVX2__)
 #if !defined(__XOP__)
+
+// Clang declares every intrinsic whatever the target flags say, so xopintrin.h defines
+// _mm_roti_epi64 even without __XOP__ and the guard above no longer keeps it out. What follows is
+// the SSE2 or SSSE3 emulation this build wants, so the XOP definition goes first rather than being
+// redefined over it.
+
+#undef _mm_roti_epi64
+
 #if defined(__SSSE3__)
 #define r16                                                                    \
     (_mm_setr_epi8(2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9))

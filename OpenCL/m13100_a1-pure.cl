@@ -13,7 +13,13 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_USE_BITWISE_ADDRESSING
+#define RC4_INIT_128_PREFETCH
+#define RC4_ENABLE_KRB5_HELPERS
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_ENABLE_KRB5_HELPERS
+#undef RC4_INIT_128_PREFETCH
+#undef RC4_USE_BITWISE_ADDRESSING
 #endif
 
 typedef struct krb5tgs
@@ -26,7 +32,7 @@ typedef struct krb5tgs
 
 } krb5tgs_t;
 
-DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u32 lid)
 {
   rc4_init_128 (S, data, lid);
 
@@ -270,7 +276,7 @@ KERNEL_FQ KERNEL_FA void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
@@ -292,6 +298,12 @@ KERNEL_FQ KERNEL_FA void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
 
   md4_init (&ctx0);
 
+  // -a 12 may put a piece of mask in front of the base word, and the context below can then not
+  // be reused. This is the same context one update earlier, so whatever went in before the base
+  // word still goes in only once.
+
+  md4_ctx_t ctx0_pre = ctx0;
+
   md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
@@ -302,7 +314,28 @@ KERNEL_FQ KERNEL_FA void m13100_mxx (KERN_ATTR_ESALT (krb5tgs_t))
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx = ctx0_pre;
+
+        md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md4_final (&ctx);
 
@@ -328,7 +361,7 @@ KERNEL_FQ KERNEL_FA void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
@@ -350,6 +383,12 @@ KERNEL_FQ KERNEL_FA void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
 
   md4_init (&ctx0);
 
+  // -a 12 may put a piece of mask in front of the base word, and the context below can then not
+  // be reused. This is the same context one update earlier, so whatever went in before the base
+  // word still goes in only once.
+
+  md4_ctx_t ctx0_pre = ctx0;
+
   md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
@@ -360,7 +399,28 @@ KERNEL_FQ KERNEL_FA void m13100_sxx (KERN_ATTR_ESALT (krb5tgs_t))
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx = ctx0_pre;
+
+        md4_update_global_utf16le (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        md4_update_global_utf16le (&ctx, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md4_update_global_utf16le (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md4_update_global_utf16le (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md4_final (&ctx);
 

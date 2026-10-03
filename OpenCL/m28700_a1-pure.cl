@@ -103,27 +103,20 @@ KERNEL_FQ KERNEL_FA void m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-
     u32 c[64];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-    }
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+    // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+    // does the plain two piece case the other attack modes need as well.
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
+    const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but w_t
+    // holds 256 bytes and carries a 4 byte prefix. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if ((c_len + 4) > 256) continue;
 
     u32 w_t[64];
 
@@ -138,7 +131,7 @@ KERNEL_FQ KERNEL_FA void m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 
     sha256_hmac_ctx_t ctx_kdate;
 
-    sha256_hmac_init (&ctx_kdate, w_t, pw_len + comb_len + 4);
+    sha256_hmac_init (&ctx_kdate, w_t, c_len + 4);
 
     sha256_hmac_update (&ctx_kdate, date_buf, date_len);
 
@@ -364,27 +357,20 @@ KERNEL_FQ KERNEL_FA void m28700_sxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-
     u32 c[64];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-    }
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+    // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+    // does the plain two piece case the other attack modes need as well.
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
+    const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but w_t
+    // holds 256 bytes and carries a 4 byte prefix. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if ((c_len + 4) > 256) continue;
 
     u32 w_t[64];
 
@@ -399,7 +385,7 @@ KERNEL_FQ KERNEL_FA void m28700_sxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 
     sha256_hmac_ctx_t ctx_kdate;
 
-    sha256_hmac_init (&ctx_kdate, w_t, pw_len + comb_len + 4);
+    sha256_hmac_init (&ctx_kdate, w_t, c_len + 4);
 
     sha256_hmac_update (&ctx_kdate, date_buf, date_len);
 

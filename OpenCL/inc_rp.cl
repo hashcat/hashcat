@@ -841,9 +841,20 @@ DECLSPEC int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const
 
   const u8 c = buf[0];
 
+  // a single copy is a plain prepend, whose shift by a constant 1 is the faster loop
+
+  if (p0 == 1) return mangle_prepend (c, 0, buf, len);
+
+  // one pass that moves every byte p0 places, where a prepend per copy moved the whole word p0 times
+
+  for (int pos = len - 1; pos >= 0; pos--)
+  {
+    buf[pos + p0] = buf[pos];
+  }
+
   for (int i = 0; i < p0; i++)
   {
-    mangle_prepend (c, 0, buf, len + i);
+    buf[i] = c;
   }
 
   return out_len;

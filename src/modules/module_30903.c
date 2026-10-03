@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 
 static const u32   ATTACK_EXEC       = ATTACK_EXEC_INSIDE_KERNEL;
@@ -204,20 +205,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
    // note: t[0] needs to be skipped (version info)
 
-  digest[0] = (t[ 1] << 27) | (t[ 2] << 22) | (t[ 3] << 17) | (t[ 4] << 12)
-            | (t[ 5] <<  7) | (t[ 6] <<  2) | (t[ 7] >>  3);
+  digest[0] = ((u32) t[ 1] << 27) | ((u32) t[ 2] << 22) | ((u32) t[ 3] << 17) | ((u32) t[ 4] << 12)
+            | ((u32) t[ 5] <<  7) | ((u32) t[ 6] <<  2) | (t[ 7] >>  3);
 
-  digest[1] = (t[ 7] << 29) | (t[ 8] << 24) | (t[ 9] << 19) | (t[10] << 14)
-            | (t[11] <<  9) | (t[12] <<  4) | (t[13] >>  1);
+  digest[1] = ((u32) t[ 7] << 29) | ((u32) t[ 8] << 24) | ((u32) t[ 9] << 19) | ((u32) t[10] << 14)
+            | ((u32) t[11] <<  9) | ((u32) t[12] <<  4) | (t[13] >>  1);
 
-  digest[2] = (t[13] << 31) | (t[14] << 26) | (t[15] << 21) | (t[16] << 16)
-            | (t[17] << 11) | (t[18] <<  6) | (t[19] <<  1) | (t[20] >>  4);
+  digest[2] = ((u32) t[13] << 31) | ((u32) t[14] << 26) | ((u32) t[15] << 21) | ((u32) t[16] << 16)
+            | ((u32) t[17] << 11) | ((u32) t[18] <<  6) | ((u32) t[19] <<  1) | (t[20] >>  4);
 
-  digest[3] = (t[20] << 28) | (t[21] << 23) | (t[22] << 18) | (t[23] << 13)
-            | (t[24] <<  8) | (t[25] <<  3) | (t[26] >>  2);
+  digest[3] = ((u32) t[20] << 28) | ((u32) t[21] << 23) | ((u32) t[22] << 18) | ((u32) t[23] << 13)
+            | ((u32) t[24] <<  8) | ((u32) t[25] <<  3) | (t[26] >>  2);
 
-  digest[4] = (t[26] << 30) | (t[27] << 25) | (t[28] << 20) | (t[29] << 15)
-            | (t[30] << 10) | (t[31] <<  5) | (t[32] <<  0);
+  digest[4] = ((u32) t[26] << 30) | ((u32) t[27] << 25) | ((u32) t[28] << 20) | ((u32) t[29] << 15)
+            | ((u32) t[30] << 10) | ((u32) t[31] <<  5) | ((u32) t[32] <<  0);
 
   // a final byte swap is needed for the kernel code:
 
@@ -340,6 +341,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -356,7 +358,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -372,6 +373,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -394,6 +396,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
@@ -414,5 +417,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

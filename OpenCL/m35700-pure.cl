@@ -46,7 +46,7 @@ KERNEL_FQ void m35700_init (KERN_ATTR_TMPS (phpass_tmp_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
-  
+
   /**
    * bin2asc table
    */
@@ -69,9 +69,9 @@ KERNEL_FQ void m35700_init (KERN_ATTR_TMPS (phpass_tmp_t))
   md5_ctx_t pw_ctx;
 
   md5_init (&pw_ctx);
-  
+
   md5_update_global (&pw_ctx, pws[gid].i, pws[gid].pw_len);
-  
+
   md5_final (&pw_ctx);
 
   u32 a = pw_ctx.h[0];
@@ -218,7 +218,7 @@ KERNEL_FQ void m35700_loop (KERN_ATTR_TMPS (phpass_tmp_t))
       md5_ctx.w2[1] = w[5];
       md5_ctx.w2[2] = w[6];
       md5_ctx.w2[3] = w[7];
-      
+
       md5_ctx.len = 48;
 
       md5_final (&md5_ctx);

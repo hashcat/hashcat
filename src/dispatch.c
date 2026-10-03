@@ -11,17 +11,107 @@
 #include "wordlist.h"
 #include "shared.h"
 #include "thread.h"
+#include "timer.h"
+#include "pwpipe.h"
 #include "filehandling.h"
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
 #include "dispatch.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "convert.h"
+#include "user_options.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
 #endif
+
+
+// Widest cell first inside a batch, which is a scheduling order and not an enumeration order.
+//
+// A launch cannot finish before its longest work item does, and the work items of one launch differ by
+// whatever the rectangles do: a mean of a few thousand candidates against a widest cell of a few
+// million is ordinary.
+//
+// Starting the long ones first is the oldest fix for that, and it does not work here: throughput falls
+// and so does utilisation. A scheduling problem would show utilisation rise and throughput fall. Both
+// falling means the host got slower, and the host is the scarce thing. Sorting a batch and then moving
+// a hundred and forty byte cell for each of hundreds of thousands of base words costs more than the
+// tail it saves.
+//
+// It stays behind PCFG_LPT because the sort is on the consumer's critical path and need not be. A
+// version that ordered the batch on the producer thread, where the feed already runs for free, would
+// be measuring the idea rather than the memcpy. Nothing here is that version.
+//
+// **This reorders nothing the feed enumerated.** The batch covers exactly the units it covered before,
+// the cell for a base word travels beside it at the same index, and the position the run reports is a
+// count of base words rather than a place in this array.
+
+static int pcfg_cmp_rect (const void *p1, const void *p2, void *arg)
+{
+  const pcfg_cell_t *cells = (const pcfg_cell_t *) arg;
+
+  const u32 a = ((const u32 *) p1)[0];
+  const u32 b = ((const u32 *) p2)[0];
+
+  if (cells[a].rect < cells[b].rect) return  1;
+  if (cells[a].rect > cells[b].rect) return -1;
+
+  if (a > b) return  1;
+  if (a < b) return -1;
+
+  return 0;
+}
+
+static void pcfg_order_batch (pw_idx_t *pws_idx, pcfg_cell_t *cells, const u64 cnt)
+{
+  if (cnt < 2) return;
+
+  static int cache = -1;
+
+  if (hc_env_flag ("PCFG_LPT", &cache) == false) return;
+
+  u32 *ord = (u32 *) hcmalloc (cnt * sizeof (u32));
+
+  for (u64 i = 0; i < cnt; i++) ord[i] = (u32) i;
+
+  hc_qsort_r (ord, cnt, sizeof (u32), pcfg_cmp_rect, cells);
+
+  // Apply the permutation by following its cycles, so the cells are moved rather than copied: a batch
+  // is hundreds of thousands of them and a cell is a hundred and forty bytes.
+
+  u8 *seen = (u8 *) hccalloc (cnt, sizeof (u8));
+
+  for (u64 i = 0; i < cnt; i++)
+  {
+    if (seen[i]) continue;
+
+    u64 at = i;
+
+    pw_idx_t    hold_idx  = pws_idx[i];
+    pcfg_cell_t hold_cell = cells[i];
+
+    for (;;)
+    {
+      seen[at] = 1;
+
+      const u64 from = ord[at];
+
+      if (from == i) break;
+
+      pws_idx[at] = pws_idx[from];
+      cells[at]   = cells[from];
+
+      at = from;
+    }
+
+    pws_idx[at] = hold_idx;
+    cells[at]   = hold_cell;
+  }
+
+  hcfree (seen);
+  hcfree (ord);
+}
 
 static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -111,18 +201,26 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 {
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  user_options_t *user_options = hashcat_ctx->user_options;
 
   hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
+  // words_limit is this round's share of --limit and not --limit itself. --increment and a mask file
+  // are a queue of rounds and the queue is one keyspace, so a round that starts part way into the
+  // window stops part way into it as well.
+
   const u64 words_off  = status_ctx->words_off;
-  const u64 words_base = (user_options->limit == 0) ? status_ctx->words_base : MIN (user_options->limit, status_ctx->words_base);
+  const u64 words_base = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
 
   device_param->words_off = words_off;
 
   const u64 kernel_power_all = backend_ctx->kernel_power_all;
 
-  const u64 words_left = words_base - words_off;
+  // words_off can start beyond the keyspace. The brain sets it to the highest position the session
+  // has already reached, and a later run of the same attack can have a smaller keyspace: fewer rules,
+  // a tighter --limit, a wordlist that shrank. Unsigned subtraction then wraps to about 1.8e19, work
+  // never runs out and the attack never finishes.
+
+  const u64 words_left = (words_off < words_base) ? words_base - words_off : 0;
 
   if (words_left < kernel_power_all)
   {
@@ -138,6 +236,32 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   work = MIN (work, max);
 
+  // -a 9 pairs word N with salt N, and a feed that covers several rounds writes them round major, so
+  // the pairing is word N with salt N modulo the salt count. What the kernel is told is the batch's
+  // own offset, one number for the whole batch, so a batch that ran past the end of a round would
+  // carry on into the next one against salts counted from where the batch began. Every word after the
+  // boundary would then be hashed against the wrong account, and nothing anywhere would say so: the
+  // run would simply crack less.
+  //
+  // Cutting the batch at the boundary is what keeps one offset true for all of it. With more accounts
+  // than a launch holds it costs one short batch per round, which is nothing. With fewer, every launch
+  // carries exactly the salt count, which is the ceiling this attack has always had: the kernel reads
+  // the salt index off the work item id, so a launch cannot cover more accounts than there are.
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    const u32 salts_cnt = hashcat_ctx->hashes->salts_cnt;
+
+    if (salts_cnt > 0)
+    {
+      const u64 round_left = salts_cnt - (words_off % salts_cnt);
+
+      work = MIN (work, round_left);
+    }
+  }
+
   status_ctx->words_off += work;
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
@@ -145,152 +269,255 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return work;
 }
 
-static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+// Everything the slow-candidate producer carries between batches. The three slow-candidate modes
+// build their candidates from different sources but drive them through the same loop, so they share
+// one producer and hand it pointers into whichever extra_info struct they own.
+
+typedef struct slow_fill_state
 {
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  void *extra_info;
 
-  const u32 attack_mode = user_options->attack_mode;
-  const u32 attack_kern = user_options_extra->attack_kern;
+  u64       *pos;
+  const u8  *out_buf;
+  const u32 *out_len;
 
-  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+  const u8  *base_buf;         // NULL when the mode has no base word
+  const u32 *base_len;
+  const u64 *rule_pos;         // NULL when the mode applies no rule
 
-  bool iconv_enabled = false;
+  bool seek;                   // a generated candidate is addressed by index and needs no seek
+  bool reject_len;             // a mask produces one fixed length, checked once by the caller
+  bool keep_base;              // only the modes --debug-mode can report have to keep the base word
 
-  iconv_t iconv_ctx = NULL;
+  const bool *reject;          // NULL when the mode can never refuse a candidate it was asked for
 
-  char *iconv_tmp = NULL;
+  u64 words_cur;
 
-  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
+  #ifdef WITH_BRAIN
+  u64 brain_highest;
+  #endif
+
+} slow_fill_state_t;
+
+static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *batch, void *state)
+{
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+
+  // every use of this is inside a WITH_BRAIN block, so a build without the brain has none
+
+  MAYBE_UNUSED user_options_t *user_options = hashcat_ctx->user_options;
+
+  slow_fill_state_t *sc = (slow_fill_state_t *) state;
+
+  hc_timer_t timer_feed;
+
+  pipe_mark (&timer_feed);
+
+  u64 pre_rejects = -1;
+
+  // this greatly reduces spam on hashcat console
+
+  const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
+
+  while (pre_rejects > pre_rejects_ignore)
   {
-    iconv_enabled = true;
-
-    iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
-
-    if (iconv_ctx == (iconv_t) -1)
-    {
-      hcfree (buf);
-
-      return -1;
-    }
-
-    iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
-  }
-
-  while (status_ctx->run_thread_level1 == true)
-  {
-    hc_thread_mutex_lock (status_ctx->mux_dispatcher);
-
-    if (feof (stdin) != 0)
-    {
-      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-      break;
-    }
-
     u64 words_extra_total = 0;
 
-    memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-    memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+    u64 words_extra = pre_rejects;
 
-    #define DISABLE_READ_TIMEOUT_AFTER 1000
+    pre_rejects = 0;
 
-    int selects_returned = 0;
+    #ifdef WITH_BRAIN
+    u64 brain_rejects_attacks = 0;
+    u64 brain_rejects_hashes  = 0;
+    #endif
 
-    while (device_param->pws_cnt < device_param->kernel_power)
+    memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+
+    device_param->pws_pre_cnt = 0;
+
+    while (words_extra)
     {
-      if (selects_returned < DISABLE_READ_TIMEOUT_AFTER)
+      u64 work = get_work (hashcat_ctx, device_param, words_extra);
+
+      if (work == 0) break;
+
+      // cleared here rather than after the brain block, so a reserve that skips part of the range can
+      // set it and have this loop fetch that much again. Otherwise every skipped word is a word the
+      // batch never gets back and the device runs a short batch.
+
+      words_extra = 0;
+
+      u64 words_off = device_param->words_off;
+
+      #ifdef WITH_BRAIN
+      if (user_options->brain_client == true)
       {
-        const int rc_select = select_read_timeout_console (1);
-
-        if (rc_select == -1) break;
-
-        if (rc_select == 0)
+        if (device_param->brain_link_client_fd == -1)
         {
-          if (status_ctx->run_thread_level1 == false) break;
+          const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
 
-          status_ctx->stdin_read_timeout_cnt++;
+          if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &sc->brain_highest) == false)
+          {
+            brain_client_disconnect (device_param);
+          }
+        }
+
+        if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+        {
+          u64 overlap = 0;
+
+          if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
+          {
+            brain_client_disconnect (device_param);
+          }
+
+          words_extra        = overlap;
+          words_extra_total += overlap;
+          words_off         += overlap;
+          work              -= overlap;
+
+          brain_rejects_attacks += overlap;
+        }
+      }
+      #endif
+
+      const u64 words_fin = words_off + work;
+
+      // Where this batch starts in the keyspace. fill_generic () sets the same field and this did not,
+      // so under --slow-candidates words_off_launch stayed 0 for every launch and everything that
+      // turns a work item back into a position had only the index inside the launch. The chunk that
+      // contributes the first candidate sets it, because a batch built from several chunks still
+      // begins where its first candidate did.
+
+      if (batch->pws_cnt == 0) batch->words_off = words_off;
+
+      batch->words_fin = words_fin;
+
+      if (sc->seek == true) slow_candidates_seek (hashcat_ctx, sc->extra_info, sc->words_cur, words_off);
+
+      sc->words_cur = words_off;
+
+      for (u64 i = sc->words_cur; i < words_fin; i++)
+      {
+        sc->pos[0] = i;
+
+        slow_candidates_next (hashcat_ctx, sc->extra_info);
+
+        // The source refused this one. It still occupies its offset, so the loop moves on rather
+        // than fetching a replacement, and the caller counts it the way it counts a length reject.
+
+        if ((sc->reject != NULL) && (*sc->reject == true))
+        {
+          pre_rejects++;
 
           continue;
         }
 
-        status_ctx->stdin_read_timeout_cnt = 0;
-
-        selects_returned++;
-      }
-
-      char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
-
-      if (line_buf == NULL) break;
-
-      size_t line_len = in_superchop (line_buf);
-
-      line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
-
-      // do the on-the-fly encoding
-
-      if (iconv_enabled == true)
-      {
-        char  *iconv_ptr = iconv_tmp;
-        size_t iconv_sz  = HCBUFSIZ_TINY;
-
-        if (iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
-
-        line_buf = iconv_tmp;
-        line_len = HCBUFSIZ_TINY - iconv_sz;
-      }
-
-      // post-process rule engine
-
-      char rule_buf_out[RP_PASSWORD_SIZE];
-
-      int   rule_jk_len = (int)    user_options_extra->rule_len_l;
-      const char *rule_jk_buf = user_options->rule_buf_l;
-
-      if (attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        rule_jk_len = (int)    user_options_extra->rule_len_r;
-        rule_jk_buf = user_options->rule_buf_r;
-      }
-
-      if (run_rule_engine (rule_jk_len, rule_jk_buf))
-      {
-        if (line_len >= RP_PASSWORD_SIZE) continue;
-
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-        const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
-
-        if (rule_len_out < 0) continue;
-
-        line_buf = rule_buf_out;
-        line_len = (size_t) rule_len_out;
-      }
-
-      if (line_len > PW_MAX) continue;
-
-      // hmm that's always the case, or?
-
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+        if (sc->reject_len == true)
         {
-          words_extra_total++;
+          if ((sc->out_len[0] < hashconfig->pw_min) || (sc->out_len[0] > hashconfig->pw_max))
+          {
+            pre_rejects++;
 
-          continue;
+            continue;
+          }
         }
+
+        #ifdef WITH_BRAIN
+        if (user_options->brain_client == true)
+        {
+          u32 hash[2];
+
+          brain_client_generate_hash ((u64 *) hash, (const char *) sc->out_buf, sc->out_len[0]);
+
+          u32 *ptr = device_param->brain_link_out_buf;
+
+          ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
+          ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
+        }
+        #endif
+
+        if (sc->base_buf)
+        {
+          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], sc->base_buf, sc->base_len[0], (sc->rule_pos) ? (int) sc->rule_pos[0] : 0);
+        }
+        else
+        {
+          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], NULL, 0, 0);
+        }
+
+        if (status_ctx->run_thread_level1 == false) break;
       }
 
-      pw_add (device_param, (const u8 *) line_buf, (const int) line_len);
+      sc->words_cur = words_fin;
 
       if (status_ctx->run_thread_level1 == false) break;
     }
 
-    hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+    #ifdef WITH_BRAIN
+    if (user_options->brain_client == true)
+    {
+      if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
+      {
+        if (brain_client_lookup (device_param, status_ctx) == false)
+        {
+          brain_client_disconnect (device_param);
+        }
+      }
+
+      const u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+      for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+      {
+        if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
+        {
+          pre_rejects++;
+
+          brain_rejects_hashes++;
+        }
+        else
+        {
+          pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+          if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
+
+          pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+        }
+      }
+    }
+    else
+    {
+      const u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+      for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+      {
+        pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+        if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
+
+        pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+      }
+    }
+    #else
+    const u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+    for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+    {
+      pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+      if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
+
+      pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+    }
+    #endif
+
+    words_extra_total += pre_rejects;
+
+    if (status_ctx->run_thread_level1 == false) break;
 
     if (words_extra_total > 0)
     {
@@ -298,778 +525,825 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+        status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
+      }
+
+      #ifdef WITH_BRAIN
+      status_ctx->brain_rejects_attacks += brain_rejects_attacks;
+      status_ctx->brain_rejects_hashes  += brain_rejects_hashes;
+      #endif
+
+      hc_thread_mutex_unlock (status_ctx->mux_counter);
+    }
+  }
+
+  pipe_acc (device_param, PIPE_FEED, &timer_feed);
+
+  return 0;
+}
+
+
+// Book one base word that produced no candidate. It stays booked against its own offset rather than
+// being replaced, so --skip, --restore and the brain all keep counting the same positions. Both
+// producers share this, because both count their base words the same way: a source holds as many base
+// words as it holds lines, and one that cannot be turned into a candidate is a rejected word rather
+// than a word that was never there.
+//
+// -a 9 cannot do even that. Word N is the guess for salt N, so a missing candidate would move every
+// later word onto the previous hash, and there is nothing to put in its place. The run stops instead
+// and says which word it was.
+
+static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos, const u32 rect)
+{
+  if (reject_fatal == true)
+  {
+    event_log_error (hashcat_ctx, "Word %" PRIu64 " of the wordlist cannot be used as a candidate", word_pos + 1);
+    event_log_error (hashcat_ctx, "Attack mode 9 pairs word N with salt N, so it has nothing to put in its place");
+
+    return -1;
+  }
+
+  batch->words_extra++;
+
+  // A refused word of a feed that amplifies stood for a whole cell rather than one candidate.
+  // reject_amplifier is set for ATTACK_KERN_STRAIGHT and ATTACK_KERN_COMBI only, so for the device
+  // engine it stays zero and the cell was booked nowhere: neither hashed nor rejected, it went
+  // missing out of both counters at once. The rectangle is passed in because the caller has it while
+  // the cell is still this word's.
+
+  if (batch->pcfg_cells != NULL) batch->words_extra_amp += (rect > 0) ? rect : 1;
+
+  words_extra[0]++;
+
+  return 0;
+}
+
+// Lay one cell's share of the launch out, as the cell is added.
+//
+// A cell takes as many waves as its rectangle needs at PCFG_DEV_BLOCK candidates to a work item, not a
+// fixed number, so where a cell's work items start is a prefix sum over the batch and a work item
+// finds its cell through the wave map rather than by dividing its own id.
+//
+// Both are built here rather than at launch time, because this runs on the producer thread and the
+// cell was written a moment ago. Built on the launch thread instead, over a batch of a million cells
+// that are 144 bytes apart, it cost 411 ms of every launch on an RTX 4090 against 26 ms for the copy
+// it sat in.
+
+// PCFG_BLOCK=0 asks for the layout this replaced, where every cell got PCFG_DEV_LANES work items and
+// a work item's run was the rectangle divided by that. It is kept because which of the two wins is a
+// property of the grammar rather than of the code.
+
+static u32 pcfg_block (void)
+{
+  static int block = -1;
+
+  if (block < 0)
+  {
+    const char *env = getenv ("PCFG_BLOCK");
+
+    block = (env != NULL) ? atoi (env) : PCFG_DEV_BLOCK;
+
+    if (block < 0) block = PCFG_DEV_BLOCK;
+  }
+
+  return (u32) block;
+}
+
+static void pcfg_plan_cell (pw_batch_t *batch, const u64 pws_max)
+{
+  const u64 i = batch->pws_cnt - 1;
+
+  pcfg_cell_t *cell = &batch->pcfg_cells[i];
+
+  const u64 rect = (cell->rect > 0) ? cell->rect : 1;
+
+  const u32 block = pcfg_block ();
+
+  // the old layout, which the launch reaches by leaving the batch with no wave count at all
+
+  if (block == 0)
+  {
+    cell->wave_base = 0;
+    cell->blk       = (u32) ((rect + PCFG_DEV_LANES - 1) / PCFG_DEV_LANES);
+
+    if (cell->blk == 0) cell->blk = 1;
+
+    return;
+  }
+
+  const u64 span = (u64) block * PCFG_DEV_WARP;
+
+  u64 nwave = (rect + span - 1) / span;
+
+  // never fewer than PCFG_DEV_FLOOR waves, whatever the rectangle
+
+  static int floor_waves = -1;
+
+  if (floor_waves < 0)
+  {
+    const char *env = getenv ("PCFG_FLOOR");
+
+    floor_waves = (env != NULL) ? atoi (env) : PCFG_DEV_FLOOR;
+
+    if (floor_waves < 1) floor_waves = 1;
+  }
+
+  if (nwave < (u64) floor_waves) nwave = (u64) floor_waves;
+
+  // The wave map holds PCFG_DEV_WMAP waves for every base word the batch can hold. A cell wide enough
+  // to want more than is left takes what is left and its work items run longer, which is where the
+  // whole thing started; one wave is held back for every cell still to come so that everyone gets one.
+
+  const u64 cap  = pws_max * PCFG_DEV_WMAP;
+  const u64 keep = pws_max - batch->pws_cnt;
+  const u64 room = (cap > (batch->pcfg_waves + keep)) ? (cap - batch->pcfg_waves - keep) : 1;
+
+  if (nwave > room) nwave = room;
+
+  const u64 nlane = nwave * PCFG_DEV_WARP;
+
+  cell->wave_base = (u32) batch->pcfg_waves;
+  cell->blk       = (u32) ((rect + nlane - 1) / nlane);
+
+  if (cell->blk == 0) cell->blk = 1;
+
+  for (u64 w = 0; w < nwave; w++) batch->pcfg_wmap[batch->pcfg_waves + w] = (u32) i;
+
+  batch->pcfg_waves += nwave;
+}
+
+// Everything the generic-feed producer carries between batches. The feed plugin keeps its own
+// per-device cursor, so only one thread may drive it.
+
+typedef struct generic_fill_state
+{
+  // Everything that happens to a base word between the feed handing it over and the device receiving
+  // it, in the order every other producer uses it in. See pw_transform_t.
+
+  pw_transform_t transform;
+
+  // Which of the hash mode's length bounds apply to a base word, which is the one thing the attack
+  // modes genuinely disagree about here.
+
+  u32 length_policy;
+
+  // Whether a base word that cannot be turned into a candidate ends the run. -a 9 is the mode that
+  // cannot absorb one: word N belongs to salt N, so dropping one moves every later word onto the
+  // previous hash.
+
+  bool reject_fatal;
+
+  // Whether the feed runs on the device on the device. It then answers with a base word and a cell instead of
+  // one finished candidate, and each answer stands for the whole inner loop.
+
+  bool amp;
+
+  // The feed writes the candidate straight into the buffer that gets uploaded, which holds exactly
+  // PW_MAX per candidate. That is what makes the feed zero copy and it is the whole reader advantage
+  // over -a 0, so it has to stay the normal path.
+  //
+  // A hex wordlist, a $HEX[] wrapper and an encoding change all shorten a candidate, so one can
+  // arrive too long for that buffer and still finish inside it: a 256 byte password written as hex
+  // is a 512 byte line. When that happens the word is read a second time into scratch, which is
+  // large enough, and only the finished candidate is copied over. It costs a seek and a re-read, and
+  // it only happens for a candidate that would otherwise have been thrown away.
+
+  bool  can_shrink;
+  int   scratch_size;
+  u8   *scratch;
+
+  // Where the feed's own cursor is, so that a seek that would not move it can be skipped. A feed
+  // that cannot seek has to implement seek by generating from the start again, which is the shape a
+  // probabilistic generator has, and seeking it once per batch to the place it already sits turns a
+  // linear attack into a quadratic one.
+
+  bool seek_known;
+  u64  seek_pos;
+
+} generic_fill_state_t;
+
+static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *batch, void *state)
+{
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  // only read inside a WITH_BRAIN block, so a build without the brain has no use for them
+
+  MAYBE_UNUSED user_options_t *user_options = hashcat_ctx->user_options;
+  MAYBE_UNUSED hashes_t       *hashes       = hashcat_ctx->hashes;
+
+  generic_fill_state_t *gf = (generic_fill_state_t *) state;
+
+  hc_timer_t timer_feed;
+
+  pipe_mark (&timer_feed);
+
+  u64 words_extra = -1U;
+
+  bool feed_dry = false;
+
+  while (words_extra)
+  {
+    u64 work_cnt = get_work (hashcat_ctx, device_param, words_extra);
+
+    if (work_cnt == 0) break;
+
+    // cleared here rather than after the brain block, so a reserve that skips part of the range can
+    // set it and have this loop fetch that much again. Otherwise every skipped word is a word the
+    // batch never gets back and the device runs a short batch.
+
+    words_extra = 0;
+
+    u64 words_off = device_param->words_off;
+
+    #ifdef WITH_BRAIN
+    if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
+    {
+      u64 overlap = 0;
+
+      if (brain_client_reserve (device_param, status_ctx, words_off, work_cnt, &overlap) == false)
+      {
+        brain_client_disconnect (device_param);
+      }
+
+      // The overlap is always a leading prefix of what was asked for, so the chunk starts past it and
+      // the feed is seeked to the new position by the block below.
+
+      words_off += overlap;
+      work_cnt  -= overlap;
+
+      words_extra = overlap;
+
+      if (overlap > 0)
+      {
+        // Booked here rather than through batch->words_extra, because pipe_run () scales that by a
+        // reject_amplifier that is zero for the kernels which amplify on the device, and a skipped
+        // word would then be counted nowhere at all.
+
+        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        {
+          status_ctx->words_progress_rejected[salt_pos] += overlap * amplifier;
+        }
+
+        status_ctx->brain_rejects_attacks += overlap;
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
+      }
+
+      // Nothing of this chunk is left. The keyspace is not finished, so the loop goes back for more
+      // rather than falling through to a seek and a zero-length read.
+
+      if (work_cnt == 0) continue;
+    }
+    #endif
+
+    // Where this batch starts, which is where the first candidate in it came from. A batch is usually
+    // one chunk and the two agree, so setting this on every chunk was harmless until a feed began
+    // refusing positions: several chunks are then needed to fill one batch, and the launch was left
+    // reporting the last of them. A crack was named at a position millions of words past the candidate
+    // that produced it. fill_slow () answers the same question the same way.
+
+    if (batch->pws_cnt == 0) batch->words_off = words_off;
+
+    if ((gf->seek_known == false) || (gf->seek_pos != words_off))
+    {
+      if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, words_off) != 0) return -1;
+
+      gf->seek_known = true;
+      gf->seek_pos   = words_off;
+    }
+
+    u64 work_cur = 0;
+
+    for (work_cur = 0; work_cur < work_cnt; work_cur++)
+    {
+      pw_idx_t *pw_idx = batch->pws_idx + batch->pws_cnt;
+
+      u8 *pw_buf = (u8 *) (batch->pws_comp + pw_idx->off);
+
+      // the candidate lands in the upload buffer directly, which is what makes the feed zero copy
+
+      u8 *work_buf = pw_buf;
+
+      // An amplifying feed answers with a base word and the cell that extends it, and one answer
+      // stands for il_cnt candidates rather than one. The cell lands beside the candidate, at the
+      // same index, so a rejected candidate takes neither slot.
+
+      int pw_len;
+
+      // The cell is read straight after the feed writes it, because a rejected word does not advance
+      // pws_cnt and the next word then overwrites it at the same index.
+
+      u32 cell_rect = 0;
+
+      if (gf->amp == true)
+      {
+        batch->pcfg_cells[batch->pws_cnt].rect = 0;
+
+        pw_len = generic_thread_next_dev (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX, &batch->pcfg_cells[batch->pws_cnt]);
+
+        cell_rect = batch->pcfg_cells[batch->pws_cnt].rect;
+      }
+      else
+      {
+        pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX);
+      }
+
+      // the feed is dry. Whatever it produced before this call still has to be launched, so the
+      // batch is finished rather than thrown away, and the pipeline is told on the next one
+
+      if (pw_len == GENERIC_RC_EOF)
+      {
+        feed_dry = true;
+
+        break;
+      }
+
+      // the feed failed. That is not the end of the attack, it is the end of the session, and it has
+      // to reach the caller as an error or the run reports Exhausted and an exit status that says
+      // everything went fine
+
+      if (pw_len == GENERIC_RC_ERROR) return -1;
+
+      gf->seek_pos++;
+
+      // The feed held this position but had no candidate for it. It is booked the same way a word
+      // rejected on its length is, so the position still counts towards the keyspace and the status
+      // screen reports it under Rejected.
+
+      if (pw_len == GENERIC_RC_SKIP)
+      {
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+        continue;
+      }
+
+      // A feed reports the true length even when the candidate did not fit and it only wrote the
+      // first PW_MAX bytes. If nothing in this run can shorten it then it is simply too long, and
+      // -a 0 would have dropped it too.
+
+      if (pw_len > PW_MAX)
+      {
+        if (gf->can_shrink == false)
+        {
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+          continue;
+        }
+
+        // It might still finish short enough, so read it again somewhere it fits. The feed is one
+        // candidate past it now, so it has to be sent back.
+
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, words_off + work_cur) != 0) return -1;
+
+        pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, gf->scratch, gf->scratch_size);
+
+        if (pw_len == GENERIC_RC_EOF)
+        {
+          feed_dry = true;
+
+          break;
+        }
+
+        if (pw_len == GENERIC_RC_ERROR) return -1;
+
+        if (pw_len > gf->scratch_size)
+        {
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+          continue;
+        }
+
+        work_buf = gf->scratch;
+      }
+
+      // Everything that happens to a base word, in the one order every producer uses.
+
+      pw_len = pw_transform_apply (&gf->transform, work_buf, pw_len, (work_buf == pw_buf) ? PW_MAX : gf->scratch_size);
+
+      if (pw_len < 0)
+      {
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+        continue;
+      }
+
+      // Only now is the length final, so only now can it be judged. Rejecting before the transforms
+      // would throw away a hex line that decodes to a candidate of a perfectly legal length: a 256
+      // byte password written as hex arrives as 512 bytes.
+
+      if (pw_len > PW_MAX)
+      {
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+        continue;
+      }
+
+      if (work_buf != pw_buf) memcpy (pw_buf, work_buf, pw_len);
+
+      if (gf->length_policy != BASE_LENGTH_NONE)
+      {
+        const bool too_short = (gf->length_policy == BASE_LENGTH_BOTH) && (pw_len < (int) hashconfig->pw_min);
+        const bool too_long  = (pw_len > (int) hashconfig->pw_max);
+
+        if ((too_short == true) || (too_long == true))
+        {
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
+
+          continue;
+        }
+      }
+
+      const u64 pws_was = batch->pws_cnt;
+
+      pw_add_zerocopy (batch, device_param->kernel_power, pw_buf, pw_len);
+
+      // and lay out the cell that came with it, while it is still in cache. A full batch does not take
+      // the candidate, so there is nothing to lay out either.
+
+      if ((gf->amp == true) && (batch->pws_cnt > pws_was)) pcfg_plan_cell (batch, device_param->kernel_power);
+    }
+
+    // How far into the keyspace this batch reached. It is the restore point, so it has to be a
+    // position and not a count of the words this one device happened to see.
+    //
+    // It is also what tells the pipeline whether the source is finished: a batch with no candidates
+    // and no words_fin is the end. Leaving it at zero whenever nothing was accepted made a batch in
+    // which every candidate was rejected on length look like the end of the feed, which ended the
+    // attack and lost the rejects with it. Only a batch the feed refused to fill at all is the end.
+
+    if (work_cur > 0) batch->words_fin = words_off + work_cur;
+
+    if (feed_dry == true) break;
+
+    if (status_ctx->run_thread_level1 == false) break;
+  }
+
+  pipe_acc (device_param, PIPE_FEED, &timer_feed);
+
+  return 0;
+}
+
+// Take batches off the pipeline and launch them until the producer runs dry. Every attack mode does
+// this the same way, which is what pwpipe.h means by the producer being a callback: the mode chooses
+// what fills a batch, not what happens to it afterwards.
+//
+// Two things genuinely differ, and both are constant for a whole attack rather than per batch.
+//
+// slow_candidates rejects candidates the host has already built, so a device's words_done is not a
+// prefix of the keyspace and the restore point has to come from the device that got furthest. It also
+// passes no position to run_cracker, because the candidate was built on the host and the kernel is
+// not deriving it from an offset. The fast path is the other way round on both counts.
+//
+// reject_amplifier is how many candidates one rejected base word stood for, so the rejects can be
+// booked against the salts. A producer that books its own passes 0: fill_slow does, because only it
+// knows how many words it had to skip to fill the batch.
+
+static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_pipe_t *pipe, const bool slow, const u64 reject_amplifier)
+{
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  // only read inside a WITH_BRAIN block, so a build without the brain has no use for it
+
+  MAYBE_UNUSED user_options_t *user_options = hashcat_ctx->user_options;
+
+  int rc_final = 0;
+
+  while (status_ctx->run_thread_level1 == true)
+  {
+    // In the total, because a launch thread with no batch to launch is not launching. See pipe_slot_t.
+
+    hc_timer_t timer_take;
+
+    pipe_mark (&timer_take);
+
+    pw_batch_t *batch = pw_pipe_take (pipe);
+
+    pipe_acc (device_param, PIPE_TAKE, &timer_take);
+
+    if (batch == NULL) break;
+
+    // A feed that amplifies counted its own rejects as they happened, cell by cell, because a
+    // rejected cell is gone by the time the batch gets here. Everyone else multiplies by the one
+    // amplifier the whole run shares.
+
+    // The two multiply where both are there: the engine books a rejected word as the cell it stood for,
+    // and with the rules inside the engine each of those candidates would have been tried once per rule.
+
+    const u64 rejected = (batch->words_extra_amp > 0)
+                       ? (batch->words_extra_amp * ((reject_amplifier > 0) ? reject_amplifier : 1))
+                       : ((reject_amplifier > 0) ? (batch->words_extra * reject_amplifier) : 0);
+
+    if (rejected > 0)
+    {
+      hc_thread_mutex_lock (status_ctx->mux_counter);
+
+      for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+      {
+        status_ctx->words_progress_rejected[salt_pos] += rejected;
       }
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
     }
 
-    if (status_ctx->run_thread_level1 == false) break;
+    // widest cell first, so the launch does not end waiting on one wave
 
-    if (device_param->pws_cnt == 0) break;
+    if (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+    {
+      pcfg_order_batch (batch->pws_idx, batch->pcfg_cells, batch->pws_cnt);
+    }
 
+    //
     // flush
+    //
 
-    if (run_copy (hashcat_ctx, device_param, device_param->pws_cnt) == -1)
+    const u64 pws_cnt   = batch->pws_cnt;
+    const u64 words_off = batch->words_off;
+    const u64 words_fin = batch->words_fin;
+
+    device_param->pws_idx  = batch->pws_idx;
+    device_param->pws_comp = batch->pws_comp;
+    device_param->pws_cnt  = pws_cnt;
+
+    device_param->pcfg_cells_buf  = batch->pcfg_cells;
+    device_param->pcfg_wmap_buf   = batch->pcfg_wmap;
+    // A batch with no waves was laid out the old way, and pcfg_launch_stride () reads a cell count of
+    // zero as exactly that.
+
+    device_param->pcfg_lane_cnt   = (batch->pcfg_waves > 0) ? batch->pws_cnt : 0;
+    device_param->pcfg_lane_total = batch->pcfg_waves;
+
+    // Where this batch starts, for whatever the launch reports about it. The producer has already
+    // moved device_param->words_off on to the batch it is filling next, so that field cannot answer
+    // for the one being launched here.
+
+    device_param->words_off_launch = words_off;
+
+    if (slow == true) device_param->pws_base_buf = batch->pws_base;
+
+    if (pws_cnt)
     {
-      hcfree (buf);
+      // Measured on the slow candidate path as well, because the stages inside run_copy () are measured
+      // on both and a share of a stage that no one timed is not a share.
 
-      return -1;
+      hc_timer_t timer_copy;
+
+      pipe_mark (&timer_copy);
+
+      if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
+      {
+        rc_final = -1;
+
+        break;
+      }
+
+      pipe_acc (device_param, PIPE_COPY, &timer_copy);
+
+      const u64 pws_pos = (slow == true) ? (u64) -1 : words_off;
+
+      if (run_cracker (hashcat_ctx, device_param, pws_pos, pws_cnt) == -1)
+      {
+        rc_final = -1;
+
+        break;
+      }
+
+      // Not gated on the producer any more. Keyspace reservation runs on the device-side feed path
+      // too, and a reservation that is never committed is released when this client disconnects.
+
+      #ifdef WITH_BRAIN
+      if (user_options->brain_client == true)
+      {
+        if ((status_ctx->devices_status != STATUS_ABORTED)
+         && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
+         && (status_ctx->devices_status != STATUS_QUIT)
+         && (status_ctx->devices_status != STATUS_BYPASS)
+         && (status_ctx->devices_status != STATUS_ERROR))
+        {
+          if (brain_client_commit (device_param, status_ctx) == false)
+          {
+            brain_client_disconnect (device_param);
+          }
+        }
+      }
+      #endif
+
+      device_param->pws_cnt      = 0;
+      device_param->pws_sort_cnt = 0;
     }
 
-    if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) // no pws_pos?
-    {
-      hcfree (buf);
+    // the launch is complete, so the slot may go back to the producer
 
-      return -1;
-    }
-
-    device_param->pws_cnt = 0;
-
-    if (status_ctx->run_thread_level1 == false) break;
+    pw_pipe_release (pipe, batch);
 
     if (device_param->speed_only_finish == true) break;
-  }
 
-  device_param->kernel_accel_prev   = device_param->kernel_accel;
-  device_param->kernel_loops_prev   = device_param->kernel_loops;
-  device_param->kernel_threads_prev = device_param->kernel_threads;
-
-  device_param->kernel_accel   = 0;
-  device_param->kernel_loops   = 0;
-  device_param->kernel_threads = 0;
-
-  if (iconv_enabled == true)
-  {
-    iconv_close (iconv_ctx);
-
-    hcfree (iconv_tmp);
-  }
-
-  hcfree (buf);
-
-  return 0;
-}
-
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_calc_stdin (void *p)
-#else
-HC_API_CALL void *thread_calc_stdin (void *p)
-#endif
-{
-  thread_param_t *thread_param = (thread_param_t *) p;
-
-  hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-  bridge_ctx_t  *bridge_ctx  = hashcat_ctx->bridge_ctx;
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  hashes_t      *hashes      = hashcat_ctx->hashes;
-
-  if (backend_ctx->enabled == false) return 0;
-
-  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
-
-  if (device_param->skipped) return 0;
-  if (device_param->skipped_warning == true) return 0;
-
-  if (bridge_ctx->enabled == true)
-  {
-    if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
+    if (status_ctx->run_thread_level2 == true)
     {
-      if (bridge_ctx->thread_init (bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      device_param->words_done = MAX (device_param->words_done, words_fin);
+
+      status_ctx->words_cur = (slow == true) ? get_highest_words_done (hashcat_ctx) : get_lowest_words_done (hashcat_ctx);
     }
+
+    if (status_ctx->run_thread_level1 == false) break;
   }
 
-  if (device_param->is_cuda == true)
+  // Every way out of the loop above lands here. Leaving it while a checkpoint is being taken is the
+  // point of no return for this device: a later cancel can set the flags back but cannot restart a
+  // thread that has already gone.
+
+  if ((status_ctx->run_thread_level1 == false) && (status_ctx->checkpoint_shutdown == true))
   {
-    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return 0;
+    status_ctx->checkpoint_taken = true;
   }
 
-  if (device_param->is_hip == true)
-  {
-    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1) return 0;
-  }
+  pw_pipe_stop (pipe);
 
-  if (calc_stdin (hashcat_ctx, device_param) == -1)
-  {
-    status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  if (pw_pipe_failed (pipe) == true) rc_final = -1;
 
-    status_ctx->devices_status = STATUS_ERROR;
-  }
-
-  if (device_param->is_cuda == true)
-  {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
-  }
-
-  if (bridge_ctx->enabled == true)
-  {
-    if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
-    {
-      bridge_ctx->thread_term (bridge_ctx->platform_context, device_param, hashconfig, hashes);
-    }
-  }
-
-  return 0;
+  return rc_final;
 }
 
 static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  generic_ctx_t        *generic_ctx        = hashcat_ctx->generic_ctx;
 
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
+  const u32 base_source = user_options_extra->base_source;
+
+  // only read inside a WITH_BRAIN block, so a build without the brain has no use for it
+
+  MAYBE_UNUSED hashes_t *hashes = hashcat_ctx->hashes;
+
+  // The link belongs to the run rather than to one of the two producers. Only the candidate feature
+  // ever needed a host-side candidate, so a client asking for keyspace coordination alone reaches
+  // the device-side producers below and has to be connected by the time it does.
+
+  #ifdef WITH_BRAIN
+  const u32 brain_session = user_options->brain_session;
+  const u32 brain_attack  = user_options->brain_attack;
+
+  u64 highest = 0;
+
+  brain_client_disconnect (device_param);
+
+  if (user_options->brain_client == true)
+  {
+    const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+
+    // this is the first connect of the run. A brain that is not there now means the whole attack
+    // runs with no dedup at all, which is what the user asked for by passing -z, so it is an error
+    // rather than a degradation. A link that drops later is different: the work already deduped
+    // stays deduped, so that one only warns and keeps going.
+
+    if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
+    {
+      brain_client_disconnect (device_param);
+
+      return -1;
+    }
+
+    if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
+    {
+      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+      if (status_ctx->words_off == 0)
+      {
+        status_ctx->words_off = highest;
+
+        // The brain counts base words and progress counts candidates, and on the device-side path one
+        // base word stands for a whole amplifier of them. Booking the prefix as words would leave the
+        // rejected total short by that factor and the run would never reach 100%. Under -S the
+        // amplifier is 1 and this is the plain word count it always was.
+
+        const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        {
+          status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off * amplifier;
+        }
+
+        // the brain reported a contiguous prefix of the keyspace as already done, so the run starts
+        // past it. Those words are rejected by the same mechanism as an overlap and belong in the
+        // same counter, or the attacks total is short by the whole prefix on any resumed session.
+
+        status_ctx->brain_rejects_attacks = status_ctx->words_off;
+      }
+
+      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+    }
+  }
+  #endif
 
   if (user_options->slow_candidates == true)
   {
-    #ifdef WITH_BRAIN
-    const u32 brain_session = user_options->brain_session;
-    const u32 brain_attack  = user_options->brain_attack;
+    // attack modes from here. -a 12 is asked about before the feed, because its base words come from
+    // one and it would answer to that test as well.
 
-    u64 highest = 0;
-
-    brain_client_disconnect (device_param);
-
-    if (user_options->brain_client == true)
+    if (attack_mode == ATTACK_MODE_HYBRID)
     {
-      const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
-
-      if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
-      {
-        brain_client_disconnect (device_param);
-      }
-
-      if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
-      {
-        hc_thread_mutex_lock (status_ctx->mux_dispatcher);
-
-        if (status_ctx->words_off == 0)
-        {
-          status_ctx->words_off = highest;
-
-          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-          {
-            status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off;
-          }
-        }
-
-        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-      }
-    }
-    #endif
-
-    // attack modes from here
-
-    if (attack_mode == ATTACK_MODE_STRAIGHT)
-    {
-      char *dictfile = straight_ctx->dict;
-
-      extra_info_straight_t extra_info_straight;
-
-      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
-
-      if (hc_fopen (&extra_info_straight.fp, dictfile, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-        return -1;
-      }
-
-      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
-
-      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
-
-      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
-
-      if (wl_data_init (hashcat_ctx_tmp) == -1)
-      {
-        hc_fclose (&extra_info_straight.fp);
-
-        hcfree (hashcat_ctx_tmp->wl_data);
-
-        hcfree (hashcat_ctx_tmp);
-
-        return -1;
-      }
-
-      u64 words_cur = 0;
-
-      while (status_ctx->run_thread_level1 == true)
-      {
-        u64 words_fin = 0;
-
-        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
-        memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
-
-        u64 pre_rejects = -1;
-
-        // this greatly reduces spam on hashcat console
-
-        const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
-
-        while (pre_rejects > pre_rejects_ignore)
-        {
-          u64 words_extra_total = 0;
-
-          u64 words_extra = pre_rejects;
-
-          pre_rejects = 0;
-
-          memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
-
-          device_param->pws_pre_cnt = 0;
-
-          while (words_extra)
-          {
-            u64 work = get_work (hashcat_ctx, device_param, words_extra);
-
-            if (work == 0) break;
-
-            u64 words_off = device_param->words_off;
-
-            #ifdef WITH_BRAIN
-            if (user_options->brain_client == true)
-            {
-              if (device_param->brain_link_client_fd == -1)
-              {
-                const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
-
-                if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
-                {
-                  brain_client_disconnect (device_param);
-                }
-              }
-
-              if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
-              {
-                u64 overlap = 0;
-
-                if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
-                {
-                  brain_client_disconnect (device_param);
-                }
-
-                words_extra        = overlap;
-                words_extra_total += overlap;
-                words_off         += overlap;
-                work              -= overlap;
-              }
-            }
-            #endif
-
-            words_fin = words_off + work;
-
-            words_extra = 0;
-
-            slow_candidates_seek (hashcat_ctx_tmp, &extra_info_straight, words_cur, words_off);
-
-            words_cur = words_off;
-
-            for (u64 i = words_cur; i < words_fin; i++)
-            {
-              extra_info_straight.pos = i;
-
-              slow_candidates_next (hashcat_ctx_tmp, &extra_info_straight);
-
-              if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
-              {
-                pre_rejects++;
-
-                continue;
-              }
-
-              #ifdef WITH_BRAIN
-              if (user_options->brain_client == true)
-              {
-                u32 hash[2];
-
-                brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_straight.out_buf, extra_info_straight.out_len);
-
-                u32 *ptr = device_param->brain_link_out_buf;
-
-                ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
-                ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
-              }
-              #endif
-
-              pw_pre_add (device_param, extra_info_straight.out_buf, extra_info_straight.out_len, extra_info_straight.base_buf, extra_info_straight.base_len, extra_info_straight.rule_pos_prev);
-
-              if (status_ctx->run_thread_level1 == false) break;
-            }
-
-            words_cur = words_fin;
-
-            words_extra_total += words_extra;
-
-            if (status_ctx->run_thread_level1 == false) break;
-          }
-
-          #ifdef WITH_BRAIN
-          if (user_options->brain_client == true)
-          {
-            if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
-            {
-              if (brain_client_lookup (device_param, status_ctx) == false)
-              {
-                brain_client_disconnect (device_param);
-              }
-            }
-
-            u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-            {
-              if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
-              {
-                pre_rejects++;
-              }
-              else
-              {
-                pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-                pw_base_add (device_param, pw_pre);
-
-                pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-              }
-            }
-          }
-          else
-          {
-            u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-            {
-              pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-              pw_base_add (device_param, pw_pre);
-
-              pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-            }
-          }
-          #else
-          u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-          for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-          {
-            pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-            pw_base_add (device_param, pw_pre);
-
-            pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-          }
-          #endif
-
-          words_extra_total += pre_rejects;
-
-          if (status_ctx->run_thread_level1 == false) break;
-
-          if (words_extra_total > 0)
-          {
-            hc_thread_mutex_lock (status_ctx->mux_counter);
-
-            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-            {
-              status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
-            }
-
-            hc_thread_mutex_unlock (status_ctx->mux_counter);
-          }
-        }
-
-        //
-        // flush
-        //
-
-        const u64 pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
-          {
-            hc_fclose (&extra_info_straight.fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-
-          if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1)
-          {
-            hc_fclose (&extra_info_straight.fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-
-          #ifdef WITH_BRAIN
-          if (user_options->brain_client == true)
-          {
-            if ((status_ctx->devices_status != STATUS_ABORTED)
-             && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
-             && (status_ctx->devices_status != STATUS_QUIT)
-             && (status_ctx->devices_status != STATUS_BYPASS)
-             && (status_ctx->devices_status != STATUS_ERROR))
-            {
-              if (brain_client_commit (device_param, status_ctx) == false)
-              {
-                brain_client_disconnect (device_param);
-              }
-            }
-          }
-          #endif
-
-          device_param->pws_cnt      = 0;
-          device_param->pws_base_cnt = 0;
-        }
-
-        if (device_param->speed_only_finish == true) break;
-
-        if (status_ctx->run_thread_level2 == true)
-        {
-          device_param->words_done = MAX (device_param->words_done, words_fin);
-
-          status_ctx->words_cur = get_highest_words_done (hashcat_ctx);
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (words_fin == 0) break;
-      }
-
-      hc_fclose (&extra_info_straight.fp);
-
-      wl_data_destroy (hashcat_ctx_tmp);
-
-      hcfree (hashcat_ctx_tmp->wl_data);
-      hcfree (hashcat_ctx_tmp);
-    }
-    else if (attack_mode == ATTACK_MODE_COMBI)
-    {
-      const u32 combs_mode = combinator_ctx->combs_mode;
-
-      char *base_file;
-      char *combs_file;
-
-      if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-      {
-        base_file  = combinator_ctx->dict1;
-        combs_file = combinator_ctx->dict2;
-      }
-      else
-      {
-        base_file  = combinator_ctx->dict2;
-        combs_file = combinator_ctx->dict1;
-      }
-
       extra_info_combi_t extra_info_combi;
 
       memset (&extra_info_combi, 0, sizeof (extra_info_combi));
 
-      if (hc_fopen (&extra_info_combi.base_fp, base_file, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", base_file, strerror (errno));
-
-        return -1;
-      }
-
-      if (hc_fopen (&extra_info_combi.combs_fp, combs_file, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", combs_file, strerror (errno));
-
-        hc_fclose (&extra_info_combi.base_fp);
-
-        return -1;
-      }
-
       extra_info_combi.scratch_buf = device_param->scratch_buf;
 
-      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+      extra_info_combi.device_id = device_param->device_id;
 
-      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
+      if (pw_transform_init (&extra_info_combi.transform_base, hashcat_ctx, GENERIC_ROLE_BASE, (int) user_options_extra->rule_len_base, user_options_extra->rule_buf_base) == -1) return -1;
 
-      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
+      if (pw_transform_init (&extra_info_combi.transform_amp, hashcat_ctx, GENERIC_ROLE_AMP, (int) user_options_extra->rule_len_amp, user_options_extra->rule_buf_amp) == -1) return -1;
 
-      if (wl_data_init (hashcat_ctx_tmp) == -1)
-      {
-        hc_fclose (&extra_info_combi.base_fp);
-        hc_fclose (&extra_info_combi.combs_fp);
+      slow_fill_state_t sc;
 
-        hcfree (hashcat_ctx_tmp->wl_data);
-        hcfree (hashcat_ctx_tmp);
+      sc.extra_info = &extra_info_combi;
+      sc.pos        = &extra_info_combi.pos;
+      sc.out_buf    = extra_info_combi.out_buf;
+      sc.out_len    = &extra_info_combi.out_len;
+      sc.base_buf   = NULL;
+      sc.base_len   = NULL;
+      sc.rule_pos   = NULL;
+      sc.reject     = &extra_info_combi.reject;
+      sc.seek       = true;
+      sc.reject_len = true;
+      sc.keep_base  = true;
+      sc.words_cur  = 0;
 
-        return -1;
-      }
+      bool pipe_serial = false;
 
-      u64 words_cur = 0;
+      #ifdef WITH_BRAIN
+      sc.brain_highest = highest;
 
-      while (status_ctx->run_thread_level1 == true)
-      {
-        u64 words_fin = 0;
+      pipe_serial = user_options->brain_client;
+      #endif
 
-        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
-        memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
+      pw_pipe_t pipe;
 
-        u64 pre_rejects = -1;
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
 
-        // this greatly reduces spam on hashcat console
+      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
-        const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
+      pw_transform_term (&extra_info_combi.transform_base);
+      pw_transform_term (&extra_info_combi.transform_amp);
 
-        while (pre_rejects > pre_rejects_ignore)
-        {
-          u64 words_extra_total = 0;
+      if (rc_final == -1) return -1;
+    }
+    else if (base_source == BASE_SOURCE_FEED)
+    {
+      extra_info_generic_t extra_info_generic;
 
-          u64 words_extra = pre_rejects;
+      memset (&extra_info_generic, 0, sizeof (extra_info_generic));
 
-          pre_rejects = 0;
+      // The feed keeps one generator per device and hashcat addresses it by device id, so unlike the
+      // wordlist reader there is no private copy of hashcat_ctx to make here.
 
-          memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+      extra_info_generic.device_id = device_param->device_id;
 
-          device_param->pws_pre_cnt = 0;
+      if (pw_transform_init (&extra_info_generic.transform, hashcat_ctx, GENERIC_ROLE_BASE, (int) user_options_extra->rule_len_base, user_options_extra->rule_buf_base) == -1) return -1;
 
-          while (words_extra)
-          {
-            u64 work = get_work (hashcat_ctx, device_param, words_extra);
+      slow_fill_state_t sc;
 
-            if (work == 0) break;
+      sc.extra_info = &extra_info_generic;
+      sc.pos        = &extra_info_generic.pos;
+      sc.out_buf    = extra_info_generic.out_buf;
+      sc.out_len    = &extra_info_generic.out_len;
+      sc.base_buf   = extra_info_generic.base_buf;
+      sc.base_len   = &extra_info_generic.base_len;
+      sc.rule_pos   = &extra_info_generic.rule_pos_prev;
+      sc.reject     = &extra_info_generic.reject;
+      sc.seek       = true;
+      sc.reject_len = true;
+      sc.keep_base  = true;
+      sc.words_cur  = 0;
 
-            words_extra = 0;
+      bool pipe_serial = false;
 
-            u64 words_off = device_param->words_off;
+      #ifdef WITH_BRAIN
+      sc.brain_highest = highest;
 
-            #ifdef WITH_BRAIN
-            if (user_options->brain_client == true)
-            {
-              if (device_param->brain_link_client_fd == -1)
-              {
-                const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
+      pipe_serial = user_options->brain_client;
+      #endif
 
-                if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
-                {
-                  brain_client_disconnect (device_param);
-                }
-              }
+      pw_pipe_t pipe;
 
-              if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
-              {
-                u64 overlap = 0;
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
 
-                if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
-                {
-                  brain_client_disconnect (device_param);
-                }
+      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
-                words_extra        = overlap;
-                words_extra_total += overlap;
-                words_off         += overlap;
-                work              -= overlap;
-              }
-            }
-            #endif
+      pw_transform_term (&extra_info_generic.transform);
 
-            words_fin = words_off + work;
-
-            slow_candidates_seek (hashcat_ctx_tmp, &extra_info_combi, words_cur, words_off);
-
-            words_cur = words_off;
-
-            for (u64 i = words_cur; i < words_fin; i++)
-            {
-              extra_info_combi.pos = i;
-
-              slow_candidates_next (hashcat_ctx_tmp, &extra_info_combi);
-
-              if ((extra_info_combi.out_len < hashconfig->pw_min) || (extra_info_combi.out_len > hashconfig->pw_max))
-              {
-                pre_rejects++;
-
-                continue;
-              }
-
-              #ifdef WITH_BRAIN
-              if (user_options->brain_client == true)
-              {
-                u32 hash[2];
-
-                brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_combi.out_buf, extra_info_combi.out_len);
-
-                u32 *ptr = device_param->brain_link_out_buf;
-
-                ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
-                ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
-              }
-              #endif
-
-              pw_pre_add (device_param, extra_info_combi.out_buf, extra_info_combi.out_len, NULL, 0, 0);
-
-              if (status_ctx->run_thread_level1 == false) break;
-            }
-
-            words_cur = words_fin;
-
-            words_extra_total += words_extra;
-
-            if (status_ctx->run_thread_level1 == false) break;
-          }
-
-          #ifdef WITH_BRAIN
-          if (user_options->brain_client == true)
-          {
-            if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
-            {
-              if (brain_client_lookup (device_param, status_ctx) == false)
-              {
-                brain_client_disconnect (device_param);
-              }
-            }
-
-            u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-            {
-              if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
-              {
-                pre_rejects++;
-              }
-              else
-              {
-                pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-                pw_base_add (device_param, pw_pre);
-
-                pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-              }
-            }
-          }
-          else
-          {
-            u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-            {
-              pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-              pw_base_add (device_param, pw_pre);
-
-              pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-            }
-          }
-          #else
-          u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-          for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-          {
-            pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-            pw_base_add (device_param, pw_pre);
-
-            pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-          }
-          #endif
-
-          words_extra_total += pre_rejects;
-
-          if (status_ctx->run_thread_level1 == false) break;
-
-          if (words_extra_total > 0)
-          {
-            hc_thread_mutex_lock (status_ctx->mux_counter);
-
-            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-            {
-              status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
-            }
-
-            hc_thread_mutex_unlock (status_ctx->mux_counter);
-          }
-        }
-
-        //
-        // flush
-        //
-
-        const u64 pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
-          {
-            hc_fclose (&extra_info_combi.base_fp);
-            hc_fclose (&extra_info_combi.combs_fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-
-          if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1)
-          {
-            hc_fclose (&extra_info_combi.base_fp);
-            hc_fclose (&extra_info_combi.combs_fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-
-          #ifdef WITH_BRAIN
-          if (user_options->brain_client == true)
-          {
-            if ((status_ctx->devices_status != STATUS_ABORTED)
-             && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
-             && (status_ctx->devices_status != STATUS_QUIT)
-             && (status_ctx->devices_status != STATUS_BYPASS)
-             && (status_ctx->devices_status != STATUS_ERROR))
-            {
-              if (brain_client_commit (device_param, status_ctx) == false)
-              {
-                brain_client_disconnect (device_param);
-              }
-            }
-          }
-          #endif
-
-          device_param->pws_cnt      = 0;
-          device_param->pws_base_cnt = 0;
-        }
-
-        if (device_param->speed_only_finish == true) break;
-
-        if (status_ctx->run_thread_level2 == true)
-        {
-          device_param->words_done = MAX (device_param->words_done, words_fin);
-
-          status_ctx->words_cur = get_highest_words_done (hashcat_ctx);
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (words_fin == 0) break;
-      }
-
-      hc_fclose (&extra_info_combi.base_fp);
-      hc_fclose (&extra_info_combi.combs_fp);
-
-      wl_data_destroy (hashcat_ctx_tmp);
-
-      hcfree (hashcat_ctx_tmp->wl_data);
-      hcfree (hashcat_ctx_tmp);
+      if (rc_final == -1) return -1;
     }
     else if (attack_mode == ATTACK_MODE_BF)
     {
@@ -1079,222 +1353,36 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       extra_info_mask.out_len = mask_ctx->css_cnt;
 
-      u64 words_cur = 0;
+      slow_fill_state_t sc;
 
-      while (status_ctx->run_thread_level1 == true)
-      {
-        u64 words_fin = 0;
+      sc.extra_info = &extra_info_mask;
+      sc.pos        = &extra_info_mask.pos;
+      sc.out_buf    = extra_info_mask.out_buf;
+      sc.out_len    = &extra_info_mask.out_len;
+      sc.base_buf   = NULL;
+      sc.base_len   = NULL;
+      sc.rule_pos   = NULL;
+      sc.reject     = NULL;
+      sc.seek       = false;
+      sc.reject_len = false;
+      sc.keep_base  = false;
+      sc.words_cur  = 0;
 
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+      bool pipe_serial = false;
 
-        u64 pre_rejects = -1;
+      #ifdef WITH_BRAIN
+      sc.brain_highest = highest;
 
-        // this greatly reduces spam on hashcat console
+      pipe_serial = user_options->brain_client;
+      #endif
 
-        const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
+      pw_pipe_t pipe;
 
-        while (pre_rejects > pre_rejects_ignore)
-        {
-          u64 words_extra_total = 0;
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
 
-          u64 words_extra = pre_rejects;
+      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
-          pre_rejects = 0;
-
-          memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
-
-          device_param->pws_pre_cnt = 0;
-
-          while (words_extra)
-          {
-            u64 work = get_work (hashcat_ctx, device_param, words_extra);
-
-            if (work == 0) break;
-
-            words_extra = 0;
-
-            u64 words_off = device_param->words_off;
-
-            #ifdef WITH_BRAIN
-            if (user_options->brain_client == true)
-            {
-              if (device_param->brain_link_client_fd == -1)
-              {
-                const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
-
-                if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &highest) == false)
-                {
-                  brain_client_disconnect (device_param);
-                }
-              }
-
-              if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
-              {
-                u64 overlap = 0;
-
-                if (brain_client_reserve (device_param, status_ctx, words_off, work, &overlap) == false)
-                {
-                  brain_client_disconnect (device_param);
-                }
-
-                words_extra        = overlap;
-                words_extra_total += overlap;
-                words_off         += overlap;
-                work              -= overlap;
-              }
-            }
-            #endif
-
-            words_fin = words_off + work;
-            words_cur = words_off;
-
-            for (u64 i = words_cur; i < words_fin; i++)
-            {
-              extra_info_mask.pos = i;
-
-              slow_candidates_next (hashcat_ctx, &extra_info_mask);
-
-              #ifdef WITH_BRAIN
-              if (user_options->brain_client == true)
-              {
-                u32 hash[2];
-
-                brain_client_generate_hash ((u64 *) hash, (const char *) extra_info_mask.out_buf, extra_info_mask.out_len);
-
-                u32 *ptr = device_param->brain_link_out_buf;
-
-                ptr[(device_param->pws_pre_cnt * 2) + 0] = hash[0];
-                ptr[(device_param->pws_pre_cnt * 2) + 1] = hash[1];
-              }
-              #endif
-
-              pw_pre_add (device_param, extra_info_mask.out_buf, extra_info_mask.out_len, NULL, 0, 0);
-
-              if (status_ctx->run_thread_level1 == false) break;
-            }
-
-            words_cur = words_fin;
-
-            words_extra_total += words_extra;
-
-            if (status_ctx->run_thread_level1 == false) break;
-          }
-
-          #ifdef WITH_BRAIN
-          if (user_options->brain_client == true)
-          {
-            if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
-            {
-              if (brain_client_lookup (device_param, status_ctx) == false)
-              {
-                brain_client_disconnect (device_param);
-              }
-            }
-
-            u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-            {
-              if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
-              {
-                pre_rejects++;
-              }
-              else
-              {
-                pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-                pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-              }
-            }
-          }
-          else
-          {
-            u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-            {
-              pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-              pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-            }
-          }
-          #else
-          u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-          for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-          {
-            pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-            pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-          }
-          #endif
-
-          words_extra_total += pre_rejects;
-
-          if (status_ctx->run_thread_level1 == false) break;
-
-          if (words_extra_total > 0)
-          {
-            hc_thread_mutex_lock (status_ctx->mux_counter);
-
-            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-            {
-              status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
-            }
-
-            hc_thread_mutex_unlock (status_ctx->mux_counter);
-          }
-        }
-
-        //
-        // flush
-        //
-
-        const u64 pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          if (run_copy    (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
-          if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1) return -1;
-
-          #ifdef WITH_BRAIN
-          if (user_options->brain_client == true)
-          {
-            if ((status_ctx->devices_status != STATUS_ABORTED)
-             && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
-             && (status_ctx->devices_status != STATUS_QUIT)
-             && (status_ctx->devices_status != STATUS_BYPASS)
-             && (status_ctx->devices_status != STATUS_ERROR))
-            {
-              if (brain_client_commit (device_param, status_ctx) == false)
-              {
-                brain_client_disconnect (device_param);
-              }
-            }
-          }
-          #endif
-
-          device_param->pws_cnt = 0;
-        }
-
-        if (device_param->speed_only_finish == true) break;
-
-        if (status_ctx->run_thread_level2 == true)
-        {
-          device_param->words_done = MAX (device_param->words_done, words_fin);
-
-          status_ctx->words_cur = get_highest_words_done (hashcat_ctx);
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (words_fin == 0) break;
-      }
-    }
-    else if (attack_mode == ATTACK_MODE_GENERIC)
-    {
-      // todo: probably not supported, is a slow-candidate mode only
+      if (rc_final == -1) return -1;
     }
 
     #ifdef WITH_BRAIN
@@ -1306,19 +1394,17 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   }
   else
   {
-    if ((attack_mode == ATTACK_MODE_BF) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2)))
+    // The two producers left. A base word is either generated from a mask, which the device does for
+    // itself, or read from a feed. -a 3, -a 7 under the pure kernel, and -a 12 under the pure kernel
+    // when its mask ends in ?w are the mask, and they are the whole of what BASE_SOURCE_MASK means, so
+    // one test on the source replaces spelling that out by attack mode and kernel type.
+
+    if (base_source == BASE_SOURCE_MASK)
     {
-      if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2))
-      {
-        char *dictfile = straight_ctx->dict;
+      // How many candidates one base word stands for, which is what a skipped word has to be booked
+      // as. Only the brain block below reads it, so a build without the brain has no use for it.
 
-        if (hc_fopen (&device_param->combs_fp, dictfile, "rb") == false)
-        {
-          event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-          return -1;
-        }
-      }
+      MAYBE_UNUSED const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
 
       while (status_ctx->run_thread_level1 == true)
       {
@@ -1326,13 +1412,112 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (work == 0) break;
 
-        const u64 words_off = device_param->words_off;
+        u64 words_off = device_param->words_off;
+
+        // Where this chunk ends, which is what the keyspace has been advanced past once the launch
+        // returns. It is the whole chunk rather than the part that survived the brain, because ground
+        // the brain already covered is still ground this run does not have to come back to.
+
         const u64 words_fin = words_off + work;
 
-        device_param->pws_cnt = work;
+        u64 work_cur = work;
 
-        if (run_copy    (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
+        #ifdef WITH_BRAIN
+        if ((user_options->brain_client == true) && (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS))
+        {
+          u64 overlap = 0;
+
+          if (brain_client_reserve (device_param, status_ctx, words_off, work_cur, &overlap) == false)
+          {
+            brain_client_disconnect (device_param);
+          }
+
+          // The overlap the server answers with is always a leading prefix of what was asked for, and
+          // the remainder is what it reserved for this client, so the chunk moves forward by it.
+
+          words_off += overlap;
+          work_cur  -= overlap;
+
+          if (overlap > 0)
+          {
+            hc_thread_mutex_lock (status_ctx->mux_counter);
+
+            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += overlap * amplifier;
+            }
+
+            // The brain's own counter stays in base words, because that is the unit the server
+            // reserves in and the unit the prefix seeded at connect was counted in.
+
+            status_ctx->brain_rejects_attacks += overlap;
+
+            hc_thread_mutex_unlock (status_ctx->mux_counter);
+          }
+
+          // A chunk the brain has covered in full is not the end of the keyspace. Breaking out here
+          // would end the attack at the first such chunk, so the loop goes back for more work, after
+          // booking the progress this one stood for.
+
+          if (work_cur == 0)
+          {
+            if (status_ctx->run_thread_level2 == true)
+            {
+              device_param->words_done = MAX (device_param->words_done, words_fin);
+
+              status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+            }
+
+            continue;
+          }
+        }
+        #endif
+
+        // run_copy () hands this to the mask processor as the offset it generates from, so the field
+        // has to move with the chunk and not only the local.
+
+        device_param->words_off = words_off;
+
+        device_param->pws_cnt = work_cur;
+
+        // The mask producer is not pipelined, so the two are the same batch here. It is still set
+        // rather than left behind, because what reads it cannot tell the two paths apart.
+
+        device_param->words_off_launch = words_off;
+
+        // The mask producer has a loop of its own, and the copy is timed in it for the same reason as
+        // in pipe_run ().
+
+        hc_timer_t timer_copy;
+
+        pipe_mark (&timer_copy);
+
+        if (run_copy (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
+
+        pipe_acc (device_param, PIPE_COPY, &timer_copy);
+
         if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) return -1;
+
+        // The range has been tested, so the reservation becomes permanent. An aborted run is the one
+        // case where it must not: the commit promotes this client's reservations for good, and a
+        // range that was still in flight would be remembered as covered without ever being tried.
+
+        #ifdef WITH_BRAIN
+        if (user_options->brain_client == true)
+        {
+          if ((status_ctx->devices_status != STATUS_ABORTED)
+           && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
+           && (status_ctx->devices_status != STATUS_QUIT)
+           && (status_ctx->devices_status != STATUS_BYPASS)
+           && (status_ctx->devices_status != STATUS_ERROR))
+          {
+            if (brain_client_commit (device_param, status_ctx) == false)
+            {
+              brain_client_disconnect (device_param);
+            }
+          }
+        }
+        #endif
 
         device_param->pws_cnt = 0;
 
@@ -1346,521 +1531,77 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         }
       }
     }
-    else if (attack_mode == ATTACK_MODE_GENERIC)
+    else if (base_source == BASE_SOURCE_FEED)
     {
-      bool iconv_enabled = false;
+      generic_fill_state_t gf;
 
-      iconv_t iconv_ctx = NULL;
+      if (pw_transform_init (&gf.transform, hashcat_ctx, GENERIC_ROLE_BASE, (int) user_options_extra->rule_len_base, user_options_extra->rule_buf_base) == -1) return -1;
 
-      char *iconv_tmp = NULL;
+      gf.length_policy = user_options_extra_base_length (hashcat_ctx);
+      gf.reject_fatal  = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+      gf.amp           = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_enable;
 
-      if (generic_ctx->iconv_enable == true)
-      {
-        if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
-        {
-          iconv_enabled = true;
+      gf.can_shrink   = pw_transform_shrinks (&gf.transform);
+      gf.scratch_size = HCBUFSIZ_TINY;
+      gf.scratch      = (gf.can_shrink == true) ? (u8 *) hcmalloc (gf.scratch_size) : NULL;
 
-          iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+      gf.seek_known = false;
+      gf.seek_pos   = 0;
 
-          if (iconv_ctx == (iconv_t) -1)
-          {
-            event_log_error (hashcat_ctx, "iconv_open: %s", strerror (errno));
+      pw_pipe_t pipe;
 
-            return -1;
-          }
+      // reserve () runs on the producer thread and commit () on the launch thread, both over the one
+      // socket this device holds, so the brain has to take the pipeline out of lock-step exactly as
+      // it does for the slow producers.
 
-          iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
-        }
-      }
+      bool pipe_serial = false;
 
-      int         rule_jk_len = (int) user_options_extra->rule_len_l;
-      const char *rule_jk_buf =       user_options->rule_buf_l;
+      #ifdef WITH_BRAIN
+      pipe_serial = user_options->brain_client;
+      #endif
 
-      const bool rule_engine = generic_ctx->rules_enable && run_rule_engine (rule_jk_len, rule_jk_buf);
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_generic, &gf, pipe_serial);
 
-      const bool wordlist_autohex = generic_ctx->autohex_enable && user_options->wordlist_autohex;
+      // One rejected base word stood for a whole amplifier's worth of candidates, and which amplifier
+      // depends on the kernel exactly as it does for the wordlist reader.
 
-      const bool mods = iconv_enabled | rule_engine | wordlist_autohex;
+      u64 reject_amplifier = 0;
 
-      while (status_ctx->run_thread_level1 == true)
-      {
-        u64 words_extra = -1U;      // rejects per loop
-        u64 words_extra_total = 0;  // rejects at the point of execution
+      if (attack_kern == ATTACK_KERN_STRAIGHT) reject_amplifier = straight_ctx->kernel_rules_cnt;
+      if (attack_kern == ATTACK_KERN_COMBI)    reject_amplifier = combinator_ctx->combs_cnt;
 
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+      // The device engine's own rejects are already in candidates, one cell each, so what it needs here
+      // is only the rule count, and pipe_run () multiplies the two.
 
-        while (words_extra)
-        {
-          const u64 work_cnt = get_work (hashcat_ctx, device_param, words_extra);
+      if ((attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true)) reject_amplifier = straight_ctx->kernel_rules_cnt;
 
-          if (work_cnt == 0) break;
+      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, false, reject_amplifier);
 
-          words_extra = 0;
+      hcfree (gf.scratch);
 
-          if (generic_thread_seek (hashcat_ctx, device_param->device_id, device_param->words_off) == false) break;
+      pw_transform_term (&gf.transform);
 
-          for (u64 work_cur = 0; work_cur < work_cnt; work_cur++)
-          {
-            pw_idx_t *pw_idx = device_param->pws_idx + device_param->pws_cnt;
-
-            u8 *pw_buf = (u8 *) (device_param->pws_comp + pw_idx->off);
-
-            int pw_len = generic_thread_next (hashcat_ctx, device_param->device_id, pw_buf);
-
-            if (pw_len == -1)
-            {
-              words_extra = 0; // no more data available
-
-              break;
-            }
-
-            pw_len = MIN (pw_len, PW_MAX);  // truncate if > 256  -- note: not rejected!
-
-            if (mods == true)
-            {
-              if (wordlist_autohex == true)
-              {
-                if (is_hexify ((const u8 *) pw_buf, pw_len) == true)
-                {
-                  pw_len = (int) exec_unhexify ((const u8 *) pw_buf, (u32) pw_len, (u8 *) pw_buf, (u32) pw_len);
-                }
-              }
-
-              if (iconv_enabled == true)
-              {
-                char  *iconv_ptr = iconv_tmp;
-                size_t iconv_sz  = HCBUFSIZ_TINY;
-
-                char  *in_pw_buf = (char *) pw_buf;
-                size_t in_pw_len = pw_len;
-
-                if (iconv (iconv_ctx, &in_pw_buf, &in_pw_len, &iconv_ptr, &iconv_sz) == (size_t) -1)
-                {
-                  words_extra_total++;
-
-                  words_extra++;
-
-                  continue;
-                }
-                else
-                {
-                  const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
-
-                  if (iconv_left <= PW_MAX)
-                  {
-                    memcpy (pw_buf, iconv_tmp, iconv_left);
-
-                    pw_len = iconv_left;
-                  }
-                  else
-                  {
-                    words_extra_total++;
-
-                    words_extra++;
-
-                    continue;
-                  }
-                }
-              }
-
-              if (rule_engine == true)
-              {
-                char rule_buf_out[RP_PASSWORD_SIZE] = { 0 };
-
-                const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, (char *) pw_buf, (int) pw_len, rule_buf_out);
-
-                if (rule_len_out < 0)
-                {
-                  words_extra_total++;
-
-                  words_extra++;
-
-                  continue;
-                }
-
-                memcpy (pw_buf, rule_buf_out, rule_len_out);
-
-                pw_len = rule_len_out;
-              }
-            }
-
-            if ((pw_len < (int) hashconfig->pw_min) || (pw_len > (int) hashconfig->pw_max))
-            {
-              words_extra_total++;
-
-              words_extra++;
-
-              continue;
-            }
-
-            pw_add_zerocopy (device_param, pw_buf, pw_len);
-          }
-
-          if (status_ctx->run_thread_level1 == false) break;
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (words_extra_total > 0)
-        {
-          hc_thread_mutex_lock (status_ctx->mux_counter);
-
-          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-          {
-            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
-          }
-
-          hc_thread_mutex_unlock (status_ctx->mux_counter);
-        }
-
-        //
-        // flush
-        //
-
-        const u64 pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
-          {
-            return -1;
-          }
-
-          if (run_cracker (hashcat_ctx, device_param, device_param->words_off, pws_cnt) == -1)
-          {
-            return -1;
-          }
-
-          device_param->pws_cnt = 0;
-        }
-
-        if (device_param->speed_only_finish == true) break;
-
-        if (status_ctx->run_thread_level2 == true)
-        {
-          device_param->words_done += pws_cnt + words_extra_total;
-
-          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (pws_cnt == 0) break;
-      }
-
-      if (iconv_enabled == true)
-      {
-        iconv_close (iconv_ctx);
-
-        hcfree (iconv_tmp);
-      }
-    }
-    else
-    {
-      char *dictfile = straight_ctx->dict;
-
-      if (attack_mode == ATTACK_MODE_COMBI)
-      {
-        if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-        {
-          dictfile = combinator_ctx->dict1;
-        }
-        else
-        {
-          dictfile = combinator_ctx->dict2;
-        }
-
-        const u32 combs_mode = combinator_ctx->combs_mode;
-
-        if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-        {
-          const char *dictfilec = combinator_ctx->dict2;
-
-          if (hc_fopen (&device_param->combs_fp, dictfilec, "rb") == false)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
-
-            return -1;
-          }
-        }
-        else if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-        {
-          const char *dictfilec = combinator_ctx->dict1;
-
-          if (hc_fopen (&device_param->combs_fp, dictfilec, "rb") == false)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
-
-            return -1;
-          }
-        }
-      }
-
-      HCFILE fp;
-
-      if (hc_fopen (&fp, dictfile, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-        return -1;
-      }
-
-      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
-
-      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
-
-      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
-
-      if (wl_data_init (hashcat_ctx_tmp) == -1)
-      {
-        if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
-
-        hc_fclose (&fp);
-
-        hcfree (hashcat_ctx_tmp->wl_data);
-        hcfree (hashcat_ctx_tmp);
-
-        return -1;
-      }
-
-      u64 words_cur = 0;
-
-      while (status_ctx->run_thread_level1 == true)
-      {
-        u64 words_off = 0;
-        u64 words_fin = 0;
-        u64 words_extra = -1U;
-        u64 words_extra_total = 0;
-
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-
-        while (words_extra)
-        {
-          const u64 work = get_work (hashcat_ctx, device_param, words_extra);
-
-          if (work == 0) break;
-
-          words_extra = 0;
-
-          words_off = device_param->words_off;
-          words_fin = words_off + work;
-
-          char *line_buf;
-          u32   line_len;
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
-
-          for ( ; words_cur < words_off; words_cur++) get_next_word (hashcat_ctx_tmp, &fp, &line_buf, &line_len);
-
-          for ( ; words_cur < words_fin; words_cur++)
-          {
-            get_next_word (hashcat_ctx_tmp, &fp, &line_buf, &line_len);
-
-            // post-process rule engine
-
-            int   rule_jk_len = (int)    user_options_extra->rule_len_l;
-            const char *rule_jk_buf = user_options->rule_buf_l;
-
-            if (attack_mode == ATTACK_MODE_HYBRID2)
-            {
-              rule_jk_len = (int)    user_options_extra->rule_len_r;
-              rule_jk_buf = user_options->rule_buf_r;
-            }
-
-            if (run_rule_engine (rule_jk_len, rule_jk_buf))
-            {
-              if (line_len >= RP_PASSWORD_SIZE) continue;
-
-              memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-              const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
-
-              if (rule_len_out < 0) continue;
-
-              line_buf = rule_buf_out;
-              line_len = (u32) rule_len_out;
-            }
-
-            /*
-
-            if (attack_mode == ATTACK_MODE_ASSOCIATION)
-            {
-              // we can't reject password base on length in -a 9 because it will bring the schedule out of sync
-              // therefore we render it defective so the other candidates survive
-
-              line_len = MAX (line_len, hashconfig->pw_min);
-              line_len = MIN (line_len, hashconfig->pw_max);
-            }
-
-            This strategy turns out not to work very well. If there's a candidate shorter than pw_min, this leads to situation the \n is copied, too.
-
-            To reproduce:
-
-            $ cat hash
-            WPA*01*4d4fe7aac3a2cecab195321ceb99a7d0*fc690c158264*f4747f87f9f4*686173686361742d6573736964***
-            $ cat word
-            hashcat
-            $ ./hashcat -m 22000 -a 9 hash word
-            ...
-            Candidates.#1....: $HEX[686173686361740a21] -> $HEX[686173686361740a21]
-            ...
-            */
-
-            // This is a test fix for the above situation
-
-            if (attack_kern == ATTACK_KERN_STRAIGHT)
-            {
-              if (attack_mode == ATTACK_MODE_ASSOCIATION)
-              {
-                // do nothing, test fix for above scenario
-              }
-              else
-              {
-                if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
-                {
-                  words_extra++;
-
-                  continue;
-                }
-              }
-            }
-            else if (attack_kern == ATTACK_KERN_COMBI)
-            {
-              // do not check if minimum restriction is satisfied (line_len >= hashconfig->pw_min) here
-              // since we still need to combine the plains
-
-              if (line_len > hashconfig->pw_max)
-              {
-                words_extra++;
-
-                continue;
-              }
-            }
-
-            pw_add (device_param, (const u8 *) line_buf, (const int) line_len);
-
-            if (status_ctx->run_thread_level1 == false) break;
-          }
-
-          words_extra_total += words_extra;
-
-          if (status_ctx->run_thread_level1 == false) break;
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (words_extra_total > 0)
-        {
-          hc_thread_mutex_lock (status_ctx->mux_counter);
-
-          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-          {
-            if (attack_kern == ATTACK_KERN_STRAIGHT)
-            {
-              status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
-            }
-            else if (attack_kern == ATTACK_KERN_COMBI)
-            {
-              status_ctx->words_progress_rejected[salt_pos] += words_extra_total * combinator_ctx->combs_cnt;
-            }
-          }
-
-          hc_thread_mutex_unlock (status_ctx->mux_counter);
-        }
-
-        //
-        // flush
-        //
-
-        const u64 pws_cnt = device_param->pws_cnt;
-
-        if (pws_cnt)
-        {
-          if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
-          {
-            if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
-
-            hc_fclose (&fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-
-          if (run_cracker (hashcat_ctx, device_param, device_param->words_off, pws_cnt) == -1)
-          {
-            if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
-
-            hc_fclose (&fp);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-
-          device_param->pws_cnt = 0;
-
-          /*
-          still required?
-          if (attack_kern == ATTACK_KERN_STRAIGHT)
-          {
-            CL_rc = run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
-            if (CL_rc == -1)
-            {
-              if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-              fclose (fd);
-              hcfree (hashcat_ctx_tmp->wl_data);
-              hcfree (hashcat_ctx_tmp);
-              return -1;
-            }
-          }
-          else if (attack_kern == ATTACK_KERN_COMBI)
-          {
-            CL_rc = run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
-            if (CL_rc == -1)
-            {
-              if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-              fclose (fd);
-              hcfree (hashcat_ctx_tmp->wl_data);
-              hcfree (hashcat_ctx_tmp);
-              return -1;
-            }
-          }
-          */
-        }
-
-        if (device_param->speed_only_finish == true) break;
-
-        if (status_ctx->run_thread_level2 == true)
-        {
-          device_param->words_done = MAX (device_param->words_done, words_fin);
-
-          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
-        }
-
-        if (status_ctx->run_thread_level1 == false) break;
-
-        if (words_fin == 0) break;
-      }
-
-      if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
-
-      hc_fclose (&fp);
-
-      wl_data_destroy (hashcat_ctx_tmp);
-
-      hcfree (hashcat_ctx_tmp->wl_data);
-      hcfree (hashcat_ctx_tmp);
+      if (rc_final == -1) return -1;
     }
   }
+
+  // The link was opened for this run and every producer that used it has finished, so it closes
+  // here. Leaving it open would hold this client's uncommitted reservations on the server for as
+  // long as the process lives.
+
+  #ifdef WITH_BRAIN
+  brain_client_disconnect (device_param);
+  #endif
 
   device_param->kernel_accel_prev   = device_param->kernel_accel;
   device_param->kernel_loops_prev   = device_param->kernel_loops;
   device_param->kernel_threads_prev = device_param->kernel_threads;
+
+  // Saved with the answer, because what makes the answer reusable is that the next round asks the same
+  // question. backend_ctx_devices_kernel_loops () rewrites these per round.
+
+  device_param->kernel_loops_min_prev = device_param->kernel_loops_min;
+  device_param->kernel_loops_max_prev = device_param->kernel_loops_max;
 
   device_param->kernel_accel   = 0;
   device_param->kernel_loops   = 0;
@@ -1869,11 +1610,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_calc (void *p)
-#else
-HC_API_CALL void *thread_calc (void *p)
-#endif
+HC_THREAD_FUNC thread_calc (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
@@ -1894,18 +1631,33 @@ HC_API_CALL void *thread_calc (void *p)
   {
     if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
     {
-      if (bridge_ctx->thread_init (bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
+      {
+        device_param->calc_done = true;
+
+        return 0;
+      }
     }
   }
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return 0;
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1)
+    {
+      device_param->calc_done = true;
+
+      return 0;
+    }
   }
 
   if (device_param->is_hip == true)
   {
-    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1) return 0;
+    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1)
+    {
+      device_param->calc_done = true;
+
+      return 0;
+    }
   }
 
   if (calc (hashcat_ctx, device_param) == -1)
@@ -1915,16 +1667,23 @@ HC_API_CALL void *thread_calc (void *p)
     status_ctx->devices_status = STATUS_ERROR;
   }
 
+  // Out of work for this round. The status display reads this to distinguish an idle device from a
+  // busy one.
+
+  device_param->calc_done = true;
+
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
   }
 
   if (bridge_ctx->enabled == true)
   {
     if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
     {
-      bridge_ctx->thread_term (bridge_ctx->platform_context, device_param, hashconfig, hashes);
+      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
     }
   }
 

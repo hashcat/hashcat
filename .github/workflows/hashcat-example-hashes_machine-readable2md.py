@@ -10,7 +10,7 @@ import json
 import os
 import re
 
-# Replace LUKS v1 hashes, they're too big: Github no longer shows the .md "(Sorry about that, but we can’t show files that are this big right now.)"
+# Replace LUKS v1 and v2 hashes, they're too big: Github no longer shows the .md "(Sorry about that, but we can’t show files that are this big right now.)"
 EXAMPLE_HASH_REPLACEMENTS = {
     "14600": "https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z",
     "29511": "https://hashcat.net/misc/example_hashes/hashcat_luks_sha1_aes_cbc-essiv_128.txt",
@@ -25,6 +25,7 @@ EXAMPLE_HASH_REPLACEMENTS = {
     "29541": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_aes_cbc-essiv_256.txt",
     "29542": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_serpent_xts-plain64_256.txt",
     "29543": "https://hashcat.net/misc/example_hashes/hashcat_luks_ripemd160_twofish_cbc-plain64_128.txt",
+    "34100": "https://hashcat.net/misc/example_hashes/hashcat_luks2_argon2id_sha256_aes_xts-plain64_512.txt",
 }
 
 OPENCL_DIR = "../../OpenCL"
@@ -61,7 +62,7 @@ def find_opencl(zfilled_key, visited=None):
 
     kernels = []
     if os.path.isdir(OPENCL_DIR):
-        for filename in os.listdir(OPENCL_DIR):
+        for filename in sorted(os.listdir(OPENCL_DIR)):
             if zfilled_key in filename:
                 for key, abbr in OPENCL_ABBREV.items():
                     if key in filename:
@@ -137,10 +138,10 @@ def find_test(zfilled_key):
     ALL_MODES = TC_MODES + VC_MODES + LUKS_MODES + CL_MODES
 
     if zfilled_key in [m.zfill(5) for m in ALL_MODES]:
-        return f"[:white_check_mark:](/tools/test.sh)"
+        return f"[:white_check_mark:](/tools/test.py)"
 
     if os.path.isdir(TESTS_DIR):
-        for filename in os.listdir(TESTS_DIR):
+        for filename in sorted(os.listdir(TESTS_DIR)):
             if zfilled_key in filename:
                 return f"[:white_check_mark:](/{TESTS_DIR}/{filename})"
 
@@ -197,6 +198,18 @@ def main():
         zfilled_key = key.zfill(5)
         opencl_links = find_opencl(zfilled_key)
         test_link = find_test(zfilled_key)
+
+        # A mode whose test link points at test.py is one of the container modes: it is exercised
+        # only against a crypto container, so note that its test needs a shipped or freshly built
+        # container, not a hash the oracle makes from a password.
+        if test_link == "[:white_check_mark:](/tools/test.py)":
+            footnote_val = ("Tested only against a crypto container: a shipped test container or one "
+                            "built on the fly by tools/test.py. It has no example-hash oracle that "
+                            "runs without a container.")
+            if footnote_val not in footnote_map:
+                footnote_map[footnote_val] = footnote_counter
+                footnote_counter += 1
+            footnote += f"[^{footnote_map[footnote_val]}]"
 
         # Make sure we refer to root for display
         opencl_links = opencl_links.replace('/../../', '/')

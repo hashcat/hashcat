@@ -1,51 +1,126 @@
-# Hashcat Python Plugin Requirements
+# hashcat Python Plugin Requirements
 
-## Windows/macOS and Linux
+## What you need
 
-There are significant differences between Windows/macOS and Linux when embedding Python as done here.
+A Python 3 interpreter that the operating system can find. That is the whole requirement.
 
-### On Windows/macOS
+hashcat does not load Python into its own process. It starts the interpreter as a separate program,
+one process per CPU thread, and talks to each one over a pipe. Nothing about the build depends on
+Python: there are no headers to install and no runtime library to match against them.
 
-The `multiprocessing` module is not fully supported in this embedded environment, so only a single process can run effectively. In contrast, even though `threading` module does work correctly on Windows/macOS for starting threads and enabling parallelism, most cryptographic functions like `sha256()` block the Global Interpreter Lock (GIL). Since we often run CPU-intensive algorithms (e.g., 10,000 iterations of `sha256()`), this monopolizes the GIL, making the program effectively single-threaded. To achieve true multithreading on Windows/macOS, we need to move to a free-threaded Python runtime.
-
-**On Windows**: Use the official installer from https://www.python.org/downloads/windows/ and ensure you check the "Install free-threaded" option - it's disabled by default. Do not use python from Microsoft Store it's too old.
-
-**On macOS**: Use `pyenv`. It's the easiest way to install and manage Python versions, see below section
-
-### On Linux
-
-The `multiprocessing` module functions correctly, allowing full CPU utilization through parallel worker processes. However, since threading is managed by Python, it relies on `fork()` and inter-process communication (IPC). This adds complexity and code bloat to Hashcat, effectively duplicating modules and bridge plugins, making the codebase harder to understand for those exploring how it all works. We could switch to a free-threaded Python runtime, but it's still unstable at the time of writing even on Linux (see the `cffi` problem below). For now, we’ve chosen to use the `multiprocessing` module as a more practical solution.
-
-**On Linux**: Use `pyenv`. It's the easiest way to install and manage Python versions, see below section
-
-### Free-threaded Python (3.13+)
-
-In order to have multithreading on Windows/macOS, we were looking into Python 3.13 which introduces optional GIL-free support. This allows multithreading to work even in embedded Python. However, it has a major downside. Most relevant modules such as `cffi` still lacks support for running with the Python free-threaded ABI. But if your hash-mode does not rely on modules with `cffi` you should be fine using `-m 72000` no matter the OS.
-
-At the time of writing, several Linux distributions, including Ubuntu 24.04, do not ship with Python 3.13 because it was released after the distro’s feature freeze. You will likely need to install it manually, which is one of the reason we are refering to use `pyenv`.
-
-### Real-world best practice
-
-For now, multiprocessing (-m 73000) supports most modules and is generally better for real-world workloads, but it works only on Linux. Developers on Windows/macOS may use `-m 72000` for development, except if `cffi` modules are requested and in this case switch back to `-m 73000`. Then use Linux (or WSL2 on Windows) for long running tasks.
-
-### Pyenv
-
-Pyenv is great for managing local python versions, and also frees us from using virtual environments while at the same time to not break global system installs when using `pip` to install new modules.
-
-Check out https://github.com/pyenv/pyenv in order how to install `pyenv`.
-
-After install, if you are fine with `-m 73000`
+Mode `73000` is the one Python mode. Mode `72000` is gone.
 
 ```
-pyenv install 3.13
-pyenv local 3.13
+-m 73000   a python3 on PATH, nothing at build time
 ```
 
-In order to use `-m 72000`
+Python 3.9 is the oldest build the bridge has been run on. The worker it runs uses only the standard
+library, so an interpreter old enough to be in use at all is old enough for it. Your own plugin's
+requirements are a separate matter and are whatever its imports ask for.
+
+## Which interpreter hashcat starts
+
+The name it looks for is `python3` on Linux and macOS, and `python` on Windows, resolved through
+`PATH` the same way a shell resolves it. An environment you have already activated therefore applies
+with nothing set for hashcat:
+
+- An activated virtual environment, because `activate` puts its `bin` or `Scripts` directory first on
+  `PATH`.
+- A pyenv version, whether it came from `pyenv local`, `pyenv global`, `pyenv shell` or an exported
+  `PYENV_VERSION`. See https://github.com/pyenv/pyenv for pyenv itself, which is one way to get a
+  newer interpreter than the distribution ships without replacing the system one.
+- A conda environment, for the same reason as a virtual environment.
+
+To use an interpreter that is not on `PATH`, name it with `--bridge-parameter2`:
 
 ```
-pyenv install 3.13t
-pyenv local 3.13t
+hashcat -m 73000 --bridge-parameter2 /opt/python3.14/bin/python3 hash.txt wordlist.txt
 ```
 
-Note that unlike on Windows, there is no combined Python 3.13 + 3.13t version. This can be a bit confusing. If you plan to use `-m 72000`, you must switch your pyenv to Python `3.13t` beforehand. Similarly, you need to switch back to Python `3.13` before using `-m 73000`.
+The startup banner names what it found, so there is no guessing:
+
+```
+* Unit #01 -> #28: Python 3.14.7 worker
+```
+
+## Extension modules
+
+Anything that works in an ordinary Python process works here, because that is what a worker is. A
+wheel from PyPI needs no special build and no special ABI.
+
+This is a change from hashcat 7, where mode 72000 ran the plugin inside hashcat's own process on a
+free-threaded interpreter. An extension module had to support the free-threaded ABI to load there at
+all, and one that did load often serialized the threads it was supposed to run in parallel. Neither
+applies any more. See the upgrade section of
+`hashcat-python-plugin-development-guide.md`.
+
+## Virtual environments
+
+Activate it and run hashcat:
+
+```
+python3 -m venv ~/venv
+. ~/venv/bin/activate
+pip install pyescrypt
+hashcat -m 73000 --bridge-parameter1 ./myplugin.py hash.txt wordlist.txt
+```
+
+The workers inherit the activated environment, so a module installed only in the venv imports.
+
+If you would rather not activate it, name its interpreter instead. That is equivalent:
+
+```
+hashcat -m 73000 --bridge-parameter2 ~/venv/bin/python3 --bridge-parameter1 ./myplugin.py hash.txt wordlist.txt
+```
+
+## Per operating system
+
+### Linux
+
+The distribution's `python3` package is enough. Ubuntu, Debian, Fedora and Arch all ship one new
+enough.
+
+### macOS
+
+The `python3` that comes with the Command Line Tools is enough. Nothing has to be installed, and no
+`DYLD_LIBRARY_PATH` or `PYTHONPATH` has to be set.
+
+### Windows
+
+Install Python from https://www.python.org/downloads/windows/ and tick "Add python.exe to PATH" on
+the installer's first page. The installer leaves that box clear, and hashcat resolves the interpreter
+through `PATH`, so an installation made without it is reached with `--bridge-parameter2` instead. The
+free-threaded option that mode 72000 used to need is no longer relevant, so leave it alone.
+
+A Windows installation that is not on `PATH` is reached with `--bridge-parameter2`, for example an
+MSYS2 one at `C:\msys64\mingw64\bin\python.exe`.
+
+Beware the Microsoft Store stub. On a Windows that has never had Python installed, typing `python`
+opens the Store instead of running an interpreter. If hashcat reports that it cannot start `python`,
+check that `python --version` prints a version in the same shell.
+
+## Standard or free-threaded
+
+Either. A worker is a plain process, so the interpreter's threading model does not reach hashcat.
+
+A standard build is the faster of the two. Measured on 28 units of an i7-14700K with the shipped
+plugin, a standard 3.14.7 reaches 6210 to 6390 H/s and a free-threaded 3.14.7t reaches 6060 to 6070
+H/s, because the free-threaded build is slower at running one thread and the bridge never asks it for
+more than one.
+
+## Where the files live
+
+`Python/hcworker.py` and `Python/generic_hash.py` are read from hashcat's shared folder, which is the
+hashcat directory for a source build and `$PREFIX/share/hashcat` for an installed one. hashcat can
+therefore be started from any directory. A plugin named with `--bridge-parameter1` is read from
+wherever you point it.
+
+## How many processes
+
+One per CPU thread, which the startup banner reports as the unit count. Each is a unit in the sense
+of `docs/hashcat-assimilation-bridge.md`, so `-d` selects among them.
+
+Each worker holds its own copy of the salts as Python objects, so a large hash list costs that much
+memory per unit. Measured on 28 units with the shipped plugin, a worker is 19 MB at 100 salts, 28 MB at
+2000 and 167 MB at 20000, so 20000 salts over 28 units comes to about 4.7 GB. A few thousand salts is
+nothing. Tens of thousands is worth checking your memory for, and `-d` runs fewer units.

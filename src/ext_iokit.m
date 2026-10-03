@@ -581,6 +581,11 @@ bool iokit_close (void *hashcat_ctx)
 
   iokit->sub = NULL;
 
+  // iokit_init () gives this pointer back on each of its four failure paths, and this is the same
+  // hand on the success path, where every other hm_ close frees the struct it was given.
+
+  hcfree (iokit);
+
   return true;
 }
 

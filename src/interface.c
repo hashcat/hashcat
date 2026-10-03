@@ -8,10 +8,17 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "path.h"
 #include "backend.h"
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"
+#include "hlfmt.h"
+#include "keyboard_layout.h"
+
+// The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
+// is the first thing a plugin has to get past, and the checks below are what catch a plugin that
+// got past it.
 
 /**
  * parsing
@@ -53,11 +60,27 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
 
   if (module_ctx->module_handle == NULL)
   {
-    #if defined (_WIN)
-    event_log_error (hashcat_ctx, "Cannot load module %s", module_file); // todo: maybe there's a dlerror () equivalent
-    #else
-    event_log_error (hashcat_ctx, "%s", dlerror ());
-    #endif
+    // a plugin built against an interface this core no longer carries is the usual reason, and the
+    // file says which one it was built against, so that is reported rather than the loader's own
+    // words. The Unix loader names the symbol it could not resolve. The Windows loader says only
+    // that a procedure was not found, which reads as a broken install.
+
+    const int plugin_abi = hc_dlplugin_abi (module_file);
+
+    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    {
+      event_log_error (hashcat_ctx, "Module %s was built for plugin interface %d, this hashcat provides %d", module_file, plugin_abi, HC_PLUGIN_ABI_VERSION);
+    }
+    else
+    {
+      #if defined (_WIN)
+      event_log_error (hashcat_ctx, "Cannot load module %s: %s", module_file, hc_dlerror ());
+      #else
+      event_log_error (hashcat_ctx, "%s", hc_dlerror ());
+      #endif
+    }
+
+    hcfree (module_file);
 
     return false;
   }
@@ -67,6 +90,8 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
   if (module_ctx->module_init == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot load symbol 'module_init' in module %s", module_file);
+
+    hcfree (module_file);
 
     return false;
   }
@@ -98,7 +123,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig->benchmark_mask          = default_benchmark_mask          (hashconfig, user_options, user_options_extra);
   hashconfig->benchmark_charset       = default_benchmark_charset       (hashconfig, user_options, user_options_extra);
-  hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
@@ -124,7 +148,27 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   module_ctx->module_usage_notice = MODULE_DEFAULT; // set all module to have usage_notice by empty default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
   module_ctx->module_advice_notice = MODULE_DEFAULT; // set all module to have advice_notice empty by default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
+  module_ctx->module_length_sort = MODULE_DEFAULT; // same for length_sort, so a mode that does not want the length sort does not have to say so
   module_ctx->module_init (module_ctx);
+
+  // The three optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
+  // assigns NULL to one of them instead of leaving it alone gets past every guard: the readers test
+  // against MODULE_DEFAULT, not against NULL, and then call it. Seeding them before module_init ()
+  // only covers the module that says nothing. This covers the one that says NULL.
+
+  if (module_ctx->module_usage_notice  == NULL) module_ctx->module_usage_notice  = MODULE_DEFAULT;
+  if (module_ctx->module_advice_notice == NULL) module_ctx->module_advice_notice = MODULE_DEFAULT;
+  if (module_ctx->module_length_sort   == NULL) module_ctx->module_length_sort   = MODULE_DEFAULT;
+
+  // What a hash tells us about whoever chose the password. A module that says nothing gets the answer
+  // that works for every mode, which is the account name in front of the hash cut into words, and a
+  // module that knows better says so and is not overwritten. -m 22000 is the example: its salt is the
+  // network name and its esalt holds two MAC addresses, and no general rule could find those.
+  //
+  // Installed here rather than tested for at every call site, so that a reader has a pointer to call
+  // either way and the question "did this module define one" is asked once.
+
+  if (module_ctx->module_hash_hints == MODULE_DEFAULT) module_ctx->module_hash_hints = default_hash_hints;
 
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
@@ -163,12 +207,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_deprecated_notice);
   // CHECK_DEFINED (module_ctx, module_usage_notice); // we don't check this here as it's an optional field
   // CHECK_DEFINED (module_ctx, module_advice_notice); // we don't check this here as it's an optional field
+  // CHECK_DEFINED (module_ctx, module_length_sort); // we don't check this here as it's an optional field
   CHECK_DEFINED (module_ctx, module_dgst_pos0);
   CHECK_DEFINED (module_ctx, module_dgst_pos1);
   CHECK_DEFINED (module_ctx, module_dgst_pos2);
   CHECK_DEFINED (module_ctx, module_dgst_pos3);
   CHECK_DEFINED (module_ctx, module_dgst_size);
-  CHECK_DEFINED (module_ctx, module_dictstat_disable);
   CHECK_DEFINED (module_ctx, module_esalt_size);
   CHECK_DEFINED (module_ctx, module_extra_buffer_size);
   CHECK_DEFINED (module_ctx, module_extra_tmp_size);
@@ -185,6 +229,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_hash_encode);
   CHECK_DEFINED (module_ctx, module_hash_encode_potfile);
   CHECK_DEFINED (module_ctx, module_hash_encode_status);
+  CHECK_DEFINED (module_ctx, module_hash_hints);
   CHECK_DEFINED (module_ctx, module_hash_init_selftest);
   CHECK_DEFINED (module_ctx, module_hash_mode);
   CHECK_DEFINED (module_ctx, module_hash_name);
@@ -200,6 +245,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_hook_size);
   CHECK_DEFINED (module_ctx, module_jit_build_options);
   CHECK_DEFINED (module_ctx, module_jit_cache_disable);
+  CHECK_DEFINED (module_ctx, module_kern_bits);
   CHECK_DEFINED (module_ctx, module_kern_type);
   CHECK_DEFINED (module_ctx, module_kern_type_dynamic);
   CHECK_DEFINED (module_ctx, module_kernel_accel_max);
@@ -268,6 +314,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->kern_type     = module_ctx->module_kern_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opti_type     = module_ctx->module_opti_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type     = module_ctx->module_opts_type      (hashconfig, user_options, user_options_extra);
+
+  // The optional kernels a mode provides. hashcat adds the ones every slow hash needs further down.
+
+  if (module_ctx->module_kern_bits != MODULE_DEFAULT)
+  {
+    hashconfig->kern_bits = module_ctx->module_kern_bits (hashconfig, user_options, user_options_extra);
+  }
   hashconfig->salt_type     = module_ctx->module_salt_type      (hashconfig, user_options, user_options_extra);
   hashconfig->st_hash       = module_ctx->module_st_hash        (hashconfig, user_options, user_options_extra);
   hashconfig->st_pass       = module_ctx->module_st_pass        (hashconfig, user_options, user_options_extra);
@@ -292,6 +345,48 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
+    }
+
+    // The file is read here as well as in the module that uses it, because this is the only place
+    // with somewhere to report it. A module loads the mapping into its own esalt from a hook whose
+    // result nothing looks at, so a file it could not use converted nothing and said nothing, which
+    // is the failure this check exists to prevent. Reading it twice costs one pass over a file of at
+    // most 256 lines, once per run.
+
+    keyboard_layout_mapping_t probe[256];
+
+    int probe_cnt = 0;
+
+    if (hc_path_read (user_options->keyboard_layout_mapping) == false)
+    {
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: %s", user_options->keyboard_layout_mapping, strerror (errno));
+
+      return -1;
+    }
+
+    if (initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, probe, &probe_cnt) == false)
+    {
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: no keyboard mappings in this file. A mapping is one source and one replacement separated by a single tab.", user_options->keyboard_layout_mapping);
+
+      return -1;
+    }
+
+    // A mapping converts each token to one other token, so a file that gives a token two replacements
+    // is not one. The table attack takes such a file and offers both, and the reverse layout tables
+    // are exactly that where two keys of one layout produce the same character on the other. Here the
+    // lookup would find whichever came first and convert the other away silently.
+
+    for (int i = 0; i < probe_cnt; i++)
+    {
+      for (int j = i + 1; j < probe_cnt; j++)
+      {
+        if (probe[i].src_len != probe[j].src_len) continue;
+        if (probe[i].src_char != probe[j].src_char) continue;
+
+        if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: one source is given two replacements, so this is a table rather than a keyboard mapping. A mapping converts each token to exactly one other token.", user_options->keyboard_layout_mapping);
+
+        return -1;
+      }
     }
   }
 
@@ -348,62 +443,59 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
   {
-    hashconfig->opts_type |= OPTS_TYPE_INIT |  OPTS_TYPE_LOOP | OPTS_TYPE_COMP;
+    hashconfig->kern_bits |= KERN_BIT_INIT | KERN_BIT_LOOP | KERN_BIT_COMP;
   }
 
   hashconfig->has_optimized_kernel  = false;
   hashconfig->has_pure_kernel       = false;
 
-  if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
+  // some kernels do not have an optimized kernel, simply because they do not need them
+  // or because they are not yet converted, for them we should switch off optimized mode
+  //
+  // a mode that tells hashcat its exact hash-mode inside the parser (eg. luks and jwt) is answered
+  // from the kern_type it declares, because backend.c only asks it for the real one once a hash has
+  // been read, and hashconfig_init () runs before that
+
+  char source_file[256] = { 0 };
+
+  generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+  hashconfig->has_pure_kernel = hc_path_read (source_file);
+
+  generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+
+  hashconfig->has_optimized_kernel = hc_path_read (source_file);
+
+  if (user_options->hash_info == 0 || user_options->hash_info > 1)
   {
-    // some hash modes tell hashcat about their exact hash-mode inside the parser (eg. luks and jwt)
-  }
-  else
-  {
-    // some kernels do not have an optimized kernel, simply because they do not need them
-    // or because they are not yet converted, for them we should switch off optimized mode
-
-    char source_file[256] = { 0 };
-
-    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
-
-    hashconfig->has_pure_kernel = hc_path_read (source_file);
-
-    generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
-
-    hashconfig->has_optimized_kernel = hc_path_read (source_file);
-
-    if (user_options->hash_info == 0 || user_options->hash_info > 1)
+    if (user_options->optimized_kernel == true)
     {
-      if (user_options->optimized_kernel == true)
+      if (hashconfig->has_optimized_kernel == false)
       {
-        if (hashconfig->has_optimized_kernel == false)
+        if (user_options->quiet == false)
         {
-          if (user_options->quiet == false)
-          {
-            event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
-            event_log_warning (hashcat_ctx, "Optimized kernel requested, but not available or not required");
-            event_log_warning (hashcat_ctx, "Falling back to pure kernel");
-            event_log_warning (hashcat_ctx, NULL);
-          }
-        }
-        else
-        {
-          hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+          event_log_warning (hashcat_ctx, "Kernel %s:", source_file);
+          event_log_warning (hashcat_ctx, "Optimized kernel requested, but not available or not required");
+          event_log_warning (hashcat_ctx, "Falling back to pure kernel");
+          event_log_warning (hashcat_ctx, NULL);
         }
       }
       else
       {
-        if (hashconfig->has_pure_kernel == false)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
+        hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+      }
+    }
+    else
+    {
+      if (hashconfig->has_pure_kernel == false)
+      {
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
 
-          hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
-        }
-        else
-        {
-          // nothing to do
-        }
+        hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+      }
+      else
+      {
+        // nothing to do
       }
     }
   }
@@ -413,7 +505,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16LE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD01;
-    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD02;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD06;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD80;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS14;
@@ -432,6 +523,34 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
   }
 
+  // In hash-info mode there is no attack to run, so what a reader is asking is which kernel types the
+  // mode has at all rather than which it has for the attack-mode that happens to be the default. The
+  // probe above uses the selected attack_kern, so a mode whose only kernel serves one attack-mode
+  // reports no kernel type, and tools/test_edge.sh reads that line and concludes there is nothing to
+  // test. -m 37000 is the first mode of that shape, a 4 byte key recovery that only brute-force drives.
+  //
+  // This sits after opti_type and opts_type have had their say above, so it changes what is reported
+  // and nothing else. ATTACK_KERN_PCFG is left out on purpose: the device engine has only the pure
+  // kernel and generate_source_kernel_filename () names a file for it that is not meant to exist.
+
+  if (user_options->hash_info > 0)
+  {
+    const u32 attack_kerns[]  = { ATTACK_KERN_STRAIGHT, ATTACK_KERN_COMBI, ATTACK_KERN_BF };
+
+    const u32 attack_kerns_cnt = sizeof (attack_kerns) / sizeof (attack_kerns[0]);
+
+    for (u32 i = 0; i < attack_kerns_cnt; i++)
+    {
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == true) hashconfig->has_pure_kernel = true;
+
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == true) hashconfig->has_optimized_kernel = true;
+    }
+  }
+
   const bool is_salted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
                        |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
                        |  (hashconfig->salt_type == SALT_TYPE_VIRTUAL));
@@ -440,7 +559,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_benchmark_charset        != MODULE_DEFAULT) hashconfig->benchmark_charset       = module_ctx->module_benchmark_charset        (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode                != MODULE_DEFAULT) hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
@@ -450,6 +568,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hook_extra_param_size    != MODULE_DEFAULT) hashconfig->hook_extra_param_size   = module_ctx->module_hook_extra_param_size    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_length_sort              != MODULE_DEFAULT) hashconfig->length_sort             = module_ctx->module_length_sort              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_disable    != MODULE_DEFAULT) hashconfig->outfile_check_disable   = module_ctx->module_outfile_check_disable    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_nocomp     != MODULE_DEFAULT) hashconfig->outfile_check_nocomp    = module_ctx->module_outfile_check_nocomp     (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_potfile_disable          != MODULE_DEFAULT) hashconfig->potfile_disable         = module_ctx->module_potfile_disable          (hashconfig, user_options, user_options_extra);
@@ -509,7 +628,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0; i < hook_threads; i++)
     {
-      const bool rc_hook_extra_param_init = module_ctx->module_hook_extra_param_init (hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
+      const bool rc_hook_extra_param_init = module_ctx->module_hook_extra_param_init (hashcat_ctx, hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
 
       if (rc_hook_extra_param_init == false) return -1;
     }
@@ -518,14 +637,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // bridges have some serious impact on hashconfig
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
   {
-    hashconfig->opts_type &= ~OPTS_TYPE_LOOP;
+    hashconfig->kern_bits &= ~KERN_BIT_LOOP;
 
     hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP;
   }
 
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2)
   {
-    hashconfig->opts_type &= ~OPTS_TYPE_LOOP2;
+    hashconfig->kern_bits &= ~KERN_BIT_LOOP2;
 
     hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP2;
   }
@@ -533,11 +652,49 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // selftest bridge update
   if (hashconfig->bridge_type & BRIDGE_TYPE_UPDATE_SELFTEST)
   {
-    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (bridge_ctx->platform_context);
-    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (hashcat_ctx, bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (hashcat_ctx, bridge_ctx->platform_context);
   }
 
   return 0;
+}
+
+// Which kernels the session runs, for the decisions that are not settled when hashconfig_init ()
+// runs. attack_kern is one of them: user_options_extra_init_late () is what turns -a 4, -a 7 and
+// -a 9 into ATTACK_KERN_PCFG, and is_opti_kernel_no_pcfg () answers wrongly before that. So this is
+// called after it, and from here on the backend only asks whether a bit is set.
+
+void hashconfig_kern_bits_init (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t       *hashconfig       = hashcat_ctx->hashconfig;
+  const user_options_t *user_options   = hashcat_ctx->user_options;
+
+  // A fast hash hashes in the cracking kernel itself. An optimized build splits that over the three
+  // length-bounded kernels and a pure build does it all in one.
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
+    {
+      hashconfig->kern_bits |= KERN_BIT_04 | KERN_BIT_08 | KERN_BIT_16;
+    }
+    else
+    {
+      hashconfig->kern_bits |= KERN_BIT_XX;
+    }
+  }
+
+  // The mask kernel only has a table to build when hashcat expands the mask itself.
+
+  if (user_options->slow_candidates == true)
+  {
+    hashconfig->kern_bits &= ~KERN_BIT_TM;
+  }
+
+  if (user_options->attack_mode != ATTACK_MODE_BF)
+  {
+    hashconfig->kern_bits &= ~KERN_BIT_TM;
+  }
 }
 
 void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
@@ -550,13 +707,32 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
+  // A module that never got as far as module_init () has every function pointer still at NULL, because
+  // module_load () memsets the context and then returns early when the file cannot be opened or has no
+  // module_init symbol. MODULE_DEFAULT is (void *) -1 rather than NULL, so each "was this one set" test
+  // below is true for a module that was never loaded, and the first of them calls through a null
+  // pointer.
+  //
+  // Autodetect is where this bites. It walks every hash-mode in turn and destroys the context after
+  // each one whether the load succeeded or not, so a single plugin that will not load takes the whole
+  // sweep down with it rather than being skipped.
+
+  if (module_ctx->module_init == NULL)
+  {
+    module_unload (module_ctx);
+
+    memset (hashconfig, 0, sizeof (hashconfig_t));
+
+    return;
+  }
+
   if (module_ctx->module_hook_extra_param_term != MODULE_DEFAULT)
   {
     const int hook_threads = (int) user_options->hook_threads;
 
     for (int i = 0; i < hook_threads; i++)
     {
-      module_ctx->module_hook_extra_param_term (hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
+      module_ctx->module_hook_extra_param_term (hashcat_ctx, hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
     }
   }
 
@@ -689,13 +865,6 @@ char default_separator (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return user_options_extra->separator;
 }
 
-bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool dictstat_disable = false;
-
-  return dictstat_disable;
-}
-
 bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const bool warmup_disable = false;
@@ -717,6 +886,27 @@ bool default_outfile_check_nocomp (MAYBE_UNUSED const hashconfig_t *hashconfig, 
   return outfile_check_nocomp;
 }
 
+// What a hash carries about whoever chose the password, when the module has nothing of its own.
+//
+// The one thing true of every hash mode is that a hash file may carry the account name in front of the
+// hash, so that is what this answers with. A passwd file carries two more fields that describe the
+// person rather than the account, the real name out of the gecos field and the home directory, and both
+// are taken as well. A module whose salt or esalt holds something better, a network name or a principal
+// or a MAC address, defines its own and is not overwritten.
+
+u32 default_hash_hints (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  if (hash_info == NULL) return 0;
+
+  const user_t *user = hash_info->user;
+
+  if (user == NULL) return 0;
+
+  const u32 cnt = hlfmt_account_hints (user->user_name, user->user_len, user->user_gecos, user->user_gecos_len, user->user_home, user->user_home_len, out_words, out_max, scratch, scratch_size);
+
+  return cnt;
+}
+
 bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const bool hlfmt_disable = false;
@@ -729,6 +919,11 @@ bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfi
   bool potfile_keep_all_hashes = false;
 
   // keep all hashes if --username was combined with --left or --show
+  //
+  // -a 9 is not here, although it splits its hash file the same way. The potfile is turned off for the
+  // whole attack mode in user_options_preprocess (), so nothing reads one, and every answer this steers
+  // is inside potfile handling that never runs. A term for it would read as though --show worked there,
+  // and --show for -a 9 prints nothing at all.
 
   if ((user_options->username == true) || (user_options->dynamic_x == true))
   {

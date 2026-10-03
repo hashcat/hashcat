@@ -1,0 +1,302 @@
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+## Coverage guided fuzzing of the host side parsers.
+##
+## When it runs, and for how long:
+##
+##   pull request   replays the saved corpus and the seeds, once each, for the
+##                  parser of every mode the pull request changes, and for the
+##                  rule and tokenizer targets plus a starting set of four
+##                  parsers when it changes host code they link, at most 20
+##                  modes. It generates no new inputs, so a rerun gives the same
+##                  answer. Exploring is left to the weekly and manual runs.
+##
+##   weekly         every mode, in 16 shards, 60 seconds a target, and only if
+##                  master has had a commit in the last seven days.
+##
+##   manual         the same shards, with the modes and the seconds a target
+##                  given as inputs, for a longer campaign before a release.
+##                  The seconds a target are cut down when a shard would not
+##                  fit the job, so its corpus is still saved.
+##
+## .github/workflows/ci_matrix.py decides which modes and which shard.
+##
+## The corpus is what makes this worth running. A campaign that starts from the
+## seed corpus every time relearns the same paths and never reaches past them,
+## so each shard keeps its corpus in the actions cache and takes it up again
+## the next week. Three things about that cache decide whether it works:
+##
+##   a cache entry cannot be written twice under the same key, so the key
+##   carries the run id and the restore falls back to the newest entry with the
+##   same prefix,
+##
+##   an entry is evicted after seven days without a read, one day longer than
+##   a weekly run needs, and gone after a week with no commits, so a second
+##   schedule reads every shard's corpus on Thursday and does nothing else,
+##
+##   and the repository holds 10 GB of cache in total and evicts the least
+##   recently used entry when it is full, which is why every run merges the
+##   corpus down to what still reaches new code before it saves it.
+##
+## Only a weekly or manual run on master saves. A pull request reads the corpus
+## of the shards its modes are in, because a cache written by a pull request
+## lives in that pull request's scope and is deleted with it.
+
+name: fuzz
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+    - cron: '0 3 * * 4'
+  workflow_dispatch:
+    inputs:
+      modes:
+        description: 'Modes to fuzz, "all" or a space separated list'
+        default: 'all'
+      seconds:
+        description: 'Seconds a target'
+        default: '900'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'tools/fuzz/**'
+      - 'tools/asan/hashconfig.*'
+      - '.github/workflows/fuzz.yml'
+      - '.github/workflows/ci_matrix.py'
+      - '.github/workflows/fuzz_report.py'
+
+permissions:
+  contents: read
+
+env:
+  KEEPALIVE: ${{ github.event.schedule == '0 3 * * 4' }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          MODES: ${{ inputs.modes }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            python3 .github/workflows/ci_matrix.py fuzz pr "$BASE" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
+            python3 .github/workflows/ci_matrix.py fuzz list "$MODES" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ] && [ "$KEEPALIVE" != "true" ] &&
+               [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
+            echo "no commit on master in the last seven days, nothing new to fuzz"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            python3 .github/workflows/ci_matrix.py fuzz all | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  fuzz:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    name: fuzz ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v7
+        if: env.KEEPALIVE != 'true'
+
+      - name: Build the fuzz targets
+        if: env.KEEPALIVE != 'true'
+        env:
+          FUZZ_MODES: ${{ matrix.modes }}
+          FUZZ_KEEP_GOING: 1
+        run: |
+          clang --version
+          tools/fuzz/build.sh
+
+      - name: Restore the corpus
+        uses: actions/cache/restore@v6
+        with:
+          path: corpus
+          key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.name }}-
+
+      - name: Fuzz
+        if: env.KEEPALIVE != 'true'
+        # A step that runs out of time fails where a job that does is cancelled, and only the
+        # first still lets the corpus be saved. The fuzzing below is sized to end well before this.
+        timeout-minutes: 270
+        env:
+          EVENT: ${{ github.event_name }}
+          SECONDS_INPUT: ${{ inputs.seconds }}
+          RULE_TOK: ${{ matrix.rule_tok }}
+        run: |
+          mkdir -p corpus crashes
+
+          # A pull request replays what is there and does not explore: a gate
+          # that generates inputs can answer differently on a rerun.
+
+          replay=false
+
+          case "$EVENT" in
+            pull_request)      replay=true; duration=0 ;;
+            workflow_dispatch)
+              case "$SECONDS_INPUT" in
+                ''|*[!0-9]*) echo "::error::seconds must be a whole number, got '${SECONDS_INPUT}'"; exit 1 ;;
+              esac
+              duration=${SECONDS_INPUT} ;;
+            *)                 duration=60 ;;
+          esac
+
+          targets=""
+
+          [ "$RULE_TOK" = "true" ] && targets="rule tokenizer"
+
+          for bin in fuzz_out/fuzz_parse_*; do
+            case "$bin" in *.dict) continue ;; esac
+            [ -x "$bin" ] && targets="$targets ${bin#fuzz_out/fuzz_}"
+          done
+
+          # The largest shard holds about 50 targets. Fuzzing gets 240 of the job's 300 minutes, the
+          # rest goes to the build, the merges and the save, so the seconds a target are cut down to
+          # fit rather than let the job be cancelled with its corpus unsaved.
+
+          count=$(echo $targets | wc -w)
+          budget=$((240 * 60))
+
+          if [ "$replay" != "true" ] && [ "$count" -gt 0 ] && [ $((duration * count)) -gt "$budget" ]; then
+            echo "::notice::${duration}s a target for ${count} targets does not fit the job, using $((budget / count))s"
+
+            duration=$((budget / count))
+          fi
+
+          set -o pipefail
+
+          failed=""
+          reports=""
+
+          for target in $targets; do
+            mkdir -p "corpus/${target}" "crashes/${target}"
+
+            # libFuzzer exits on a corpus directory that does not exist, so a target without seeds
+            # is given none rather than a missing path.
+
+            seeds=()
+
+            [ -d "fuzz_out/work/seeds/${target}" ] && seeds=("fuzz_out/work/seeds/${target}")
+
+            if [ "$replay" = "true" ]; then
+              echo "::group::${target}, replay, corpus holds $(find "corpus/${target}" -type f | wc -l) inputs"
+            else
+              echo "::group::${target}, ${duration}s, corpus holds $(find "corpus/${target}" -type f | wc -l) inputs"
+            fi
+
+            # every parser target shares one dictionary, so the name is cut at
+            # the first underscore: parse_17225 reads fuzz_parse.dict
+            #
+            # -fork puts every core of the runner on this one target rather
+            # than leaving the rest idle, and a finding still stops the target
+            # and still lands in crashes/, because -ignore_crashes stays off.
+            # One target that finds something does not stop the next one.
+
+            if [ "$replay" = "true" ]; then
+              # -runs=0 executes every input of the corpus and the seeds once
+              # and mutates none, so the answer is the same on every rerun.
+
+              if ! ./fuzz_out/fuzz_${target} \
+                     "corpus/${target}" \
+                     "${seeds[@]}" \
+                     -artifact_prefix="crashes/${target}/" \
+                     -runs=0 \
+                     -timeout=25 \
+                     -print_final_stats=1 2>&1 | tee "fuzz_${target}.log"; then
+                failed="$failed ${target}"
+                reports="${reports}$(python3 .github/workflows/fuzz_report.py "${target}" "fuzz_${target}.log" "crashes/${target}")"$'\n'
+              fi
+
+              echo "::endgroup::"
+
+              continue
+            fi
+
+            if ! ./fuzz_out/fuzz_${target} \
+                   "corpus/${target}" \
+                   "${seeds[@]}" \
+                   -dict=tools/fuzz/fuzz_${target%%_*}.dict \
+                   -artifact_prefix="crashes/${target}/" \
+                   -fork=$(nproc) \
+                   -ignore_crashes=0 \
+                   -max_total_time=${duration} \
+                   -timeout=25 \
+                   -print_final_stats=1 2>&1 | tee "fuzz_${target}.log"; then
+              failed="$failed ${target}"
+              reports="${reports}$(python3 .github/workflows/fuzz_report.py "${target}" "fuzz_${target}.log" "crashes/${target}")"$'\n'
+            fi
+
+            # merge down to what still reaches new code before the cache sees it
+
+            mkdir -p "corpus_merged/${target}"
+
+            # A merge that fails leaves an empty or partial directory. The corpus is only replaced
+            # when the merge succeeded, so a failure costs one week's growth and not the whole corpus.
+
+            if ./fuzz_out/fuzz_${target} -merge=1 "corpus_merged/${target}" "corpus/${target}" \
+                 "${seeds[@]}" > /dev/null 2>&1; then
+              rm -rf "corpus/${target}" && mv "corpus_merged/${target}" "corpus/${target}"
+            else
+              echo "::warning::fuzz_${target}: the corpus merge failed, the unmerged corpus is kept"
+              rm -rf "corpus_merged/${target}"
+            fi
+
+            echo "corpus holds $(find "corpus/${target}" -type f | wc -l) inputs after merging"
+            echo "::endgroup::"
+          done
+
+          # the annotations go out after the groups are closed, so they are not folded away in one
+
+          printf '%s' "$reports"
+
+          if [ -s fuzz_out/build_failures.txt ]; then
+            echo "::error title=did not build::parser targets that did not build: $(tr '\n' ' ' < fuzz_out/build_failures.txt)"
+            failed="$failed build"
+          fi
+
+          if [ -n "$failed" ]; then
+            echo "found something in:${failed}. The job summary has the input and a command for each."
+            exit 1
+          fi
+
+      - name: Save the corpus
+        if: >-
+          !cancelled() && env.KEEPALIVE != 'true' && github.event_name != 'pull_request' &&
+          github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/cache/save@v6
+        with:
+          path: corpus
+          key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}
+
+      - name: Upload the crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashes-${{ matrix.name }}
+          path: crashes/
+          if-no-files-found: ignore

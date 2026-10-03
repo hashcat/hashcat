@@ -27,6 +27,18 @@
 #include "inc_cipher_aes.h"
 #endif
 
+// The host compiles this file into the module that wants its helpers. There DECLSPEC says the
+// function is part of what the core offers a plugin, and these are not: they are the module's own
+// copy of a kernel and they stay inside it. inc_rp_common.cl says the same thing the same way.
+//
+// A module takes the helpers it wants and leaves the rest, so the ones it left have to be allowed to
+// go unused.
+
+#ifdef IS_NATIVE
+#undef DECLSPEC
+#define DECLSPEC static MAYBE_UNUSED
+#endif
+
 typedef struct wpa_pmk_tmp
 {
   u32 out[8];
@@ -724,16 +736,11 @@ KERNEL_FQ KERNEL_FA void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_e
 
       sha256_hmac_final (&ctx1);
 
-      ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
-      ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
-      ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
-      ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
-
       // AES CMAC
 
       u32 ks[44];
 
-      aes128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
+      AES128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
 
       u32 m[4];
 

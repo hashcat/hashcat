@@ -1,0 +1,15 @@
+scrypt-jane
+===========
+
+hashcat compiles in scrypt-jane for the scrypt based hash modes. The source is in
+deps/scrypt-jane-master and states its terms in the first lines of scrypt-jane.c:
+
+  /*
+      scrypt-jane by Andrew M, https://github.com/floodyberry/scrypt-jane
+
+      Public Domain or MIT License, whichever is easier
+  */
+
+Its README repeats the same statement under the heading License.
+
+Where the MIT half is taken, its text is the one in docs/license.txt.

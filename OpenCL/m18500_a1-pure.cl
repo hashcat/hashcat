@@ -19,14 +19,19 @@
 
 #if   VECT_SIZE == 1
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i)])
+#define uint_to_hex_lower8_be(i) make_u32x (l_bin2asc_be[(i)])
 #elif VECT_SIZE == 2
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#define uint_to_hex_lower8_be(i) make_u32x (l_bin2asc_be[(i).s0], l_bin2asc_be[(i).s1])
 #elif VECT_SIZE == 4
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#define uint_to_hex_lower8_be(i) make_u32x (l_bin2asc_be[(i).s0], l_bin2asc_be[(i).s1], l_bin2asc_be[(i).s2], l_bin2asc_be[(i).s3])
 #elif VECT_SIZE == 8
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#define uint_to_hex_lower8_be(i) make_u32x (l_bin2asc_be[(i).s0], l_bin2asc_be[(i).s1], l_bin2asc_be[(i).s2], l_bin2asc_be[(i).s3], l_bin2asc_be[(i).s4], l_bin2asc_be[(i).s5], l_bin2asc_be[(i).s6], l_bin2asc_be[(i).s7])
 #elif VECT_SIZE == 16
 #define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#define uint_to_hex_lower8_be(i) make_u32x (l_bin2asc_be[(i).s0], l_bin2asc_be[(i).s1], l_bin2asc_be[(i).s2], l_bin2asc_be[(i).s3], l_bin2asc_be[(i).s4], l_bin2asc_be[(i).s5], l_bin2asc_be[(i).s6], l_bin2asc_be[(i).s7], l_bin2asc_be[(i).s8], l_bin2asc_be[(i).s9], l_bin2asc_be[(i).sa], l_bin2asc_be[(i).sb], l_bin2asc_be[(i).sc], l_bin2asc_be[(i).sd], l_bin2asc_be[(i).se], l_bin2asc_be[(i).sf])
 #endif
 
 KERNEL_FQ KERNEL_FA void m18500_mxx (KERN_ATTR_BASIC ())
@@ -40,6 +45,7 @@ KERNEL_FQ KERNEL_FA void m18500_mxx (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   LOCAL_VK u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc_be[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -48,6 +54,8 @@ KERNEL_FQ KERNEL_FA void m18500_mxx (KERN_ATTR_BASIC ())
 
     l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
+    l_bin2asc_be[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                    | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
   SYNC_THREADS ();
@@ -62,6 +70,12 @@ KERNEL_FQ KERNEL_FA void m18500_mxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx);
 
+  // -a 12 may put a piece of mask in front of the base word, and the context below can then not
+  // be reused. This is the same context one update earlier, so whatever went in before the base
+  // word still goes in only once.
+
+  md5_ctx_t ctx_pre = ctx;
+
   md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
   /**
@@ -73,7 +87,28 @@ KERNEL_FQ KERNEL_FA void m18500_mxx (KERN_ATTR_BASIC ())
 
     md5_ctx_t ctx0 = ctx;
 
-    md5_update_global (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx0 = ctx_pre;
+
+        md5_update_global (&ctx0, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx0, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx0, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx0, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_final (&ctx0);
 
@@ -115,22 +150,22 @@ KERNEL_FQ KERNEL_FA void m18500_mxx (KERN_ATTR_BASIC ())
 
     sha1_init (&ctx2);
 
-    ctx2.w0[0] = hc_swap32 (uint_to_hex_lower8 ((e >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((e >>  8) & 255) << 16);
-    ctx2.w0[1] = hc_swap32 (uint_to_hex_lower8 ((e >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((e >> 24) & 255) << 16);
-    ctx2.w0[2] = hc_swap32 (uint_to_hex_lower8 ((f >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((f >>  8) & 255) << 16);
-    ctx2.w0[3] = hc_swap32 (uint_to_hex_lower8 ((f >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((f >> 24) & 255) << 16);
-    ctx2.w1[0] = hc_swap32 (uint_to_hex_lower8 ((g >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((g >>  8) & 255) << 16);
-    ctx2.w1[1] = hc_swap32 (uint_to_hex_lower8 ((g >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((g >> 24) & 255) << 16);
-    ctx2.w1[2] = hc_swap32 (uint_to_hex_lower8 ((h >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((h >>  8) & 255) << 16);
-    ctx2.w1[3] = hc_swap32 (uint_to_hex_lower8 ((h >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((h >> 24) & 255) << 16);
+    ctx2.w0[0] = uint_to_hex_lower8_be ((e >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((e >>  8) & 255) <<  0;
+    ctx2.w0[1] = uint_to_hex_lower8_be ((e >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((e >> 24) & 255) <<  0;
+    ctx2.w0[2] = uint_to_hex_lower8_be ((f >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((f >>  8) & 255) <<  0;
+    ctx2.w0[3] = uint_to_hex_lower8_be ((f >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((f >> 24) & 255) <<  0;
+    ctx2.w1[0] = uint_to_hex_lower8_be ((g >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((g >>  8) & 255) <<  0;
+    ctx2.w1[1] = uint_to_hex_lower8_be ((g >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((g >> 24) & 255) <<  0;
+    ctx2.w1[2] = uint_to_hex_lower8_be ((h >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((h >>  8) & 255) <<  0;
+    ctx2.w1[3] = uint_to_hex_lower8_be ((h >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((h >> 24) & 255) <<  0;
     ctx2.len = 32;
 
     sha1_final (&ctx2);
@@ -155,6 +190,7 @@ KERNEL_FQ KERNEL_FA void m18500_sxx (KERN_ATTR_BASIC ())
   const u64 lsz = get_local_size (0);
 
   LOCAL_VK u32 l_bin2asc[256];
+  LOCAL_VK u32 l_bin2asc_be[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -163,6 +199,8 @@ KERNEL_FQ KERNEL_FA void m18500_sxx (KERN_ATTR_BASIC ())
 
     l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8
                  | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0;
+    l_bin2asc_be[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 0
+                    | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 8;
   }
 
   SYNC_THREADS ();
@@ -189,6 +227,12 @@ KERNEL_FQ KERNEL_FA void m18500_sxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx);
 
+  // -a 12 may put a piece of mask in front of the base word, and the context below can then not
+  // be reused. This is the same context one update earlier, so whatever went in before the base
+  // word still goes in only once.
+
+  md5_ctx_t ctx_pre = ctx;
+
   md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
   /**
@@ -200,7 +244,28 @@ KERNEL_FQ KERNEL_FA void m18500_sxx (KERN_ATTR_BASIC ())
 
     md5_ctx_t ctx0 = ctx;
 
-    md5_update_global (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx0 = ctx_pre;
+
+        md5_update_global (&ctx0, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx0, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx0, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx0, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_final (&ctx0);
 
@@ -242,22 +307,22 @@ KERNEL_FQ KERNEL_FA void m18500_sxx (KERN_ATTR_BASIC ())
 
     sha1_init (&ctx2);
 
-    ctx2.w0[0] = hc_swap32 (uint_to_hex_lower8 ((e >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((e >>  8) & 255) << 16);
-    ctx2.w0[1] = hc_swap32 (uint_to_hex_lower8 ((e >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((e >> 24) & 255) << 16);
-    ctx2.w0[2] = hc_swap32 (uint_to_hex_lower8 ((f >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((f >>  8) & 255) << 16);
-    ctx2.w0[3] = hc_swap32 (uint_to_hex_lower8 ((f >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((f >> 24) & 255) << 16);
-    ctx2.w1[0] = hc_swap32 (uint_to_hex_lower8 ((g >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((g >>  8) & 255) << 16);
-    ctx2.w1[1] = hc_swap32 (uint_to_hex_lower8 ((g >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((g >> 24) & 255) << 16);
-    ctx2.w1[2] = hc_swap32 (uint_to_hex_lower8 ((h >>  0) & 255) <<  0
-                          | uint_to_hex_lower8 ((h >>  8) & 255) << 16);
-    ctx2.w1[3] = hc_swap32 (uint_to_hex_lower8 ((h >> 16) & 255) <<  0
-                          | uint_to_hex_lower8 ((h >> 24) & 255) << 16);
+    ctx2.w0[0] = uint_to_hex_lower8_be ((e >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((e >>  8) & 255) <<  0;
+    ctx2.w0[1] = uint_to_hex_lower8_be ((e >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((e >> 24) & 255) <<  0;
+    ctx2.w0[2] = uint_to_hex_lower8_be ((f >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((f >>  8) & 255) <<  0;
+    ctx2.w0[3] = uint_to_hex_lower8_be ((f >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((f >> 24) & 255) <<  0;
+    ctx2.w1[0] = uint_to_hex_lower8_be ((g >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((g >>  8) & 255) <<  0;
+    ctx2.w1[1] = uint_to_hex_lower8_be ((g >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((g >> 24) & 255) <<  0;
+    ctx2.w1[2] = uint_to_hex_lower8_be ((h >>  0) & 255) << 16
+               | uint_to_hex_lower8_be ((h >>  8) & 255) <<  0;
+    ctx2.w1[3] = uint_to_hex_lower8_be ((h >> 16) & 255) << 16
+               | uint_to_hex_lower8_be ((h >> 24) & 255) <<  0;
     ctx2.len = 32;
 
     sha1_final (&ctx2);

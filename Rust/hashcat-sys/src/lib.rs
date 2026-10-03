@@ -5,7 +5,9 @@
     non_upper_case_globals
 )]
 #[rustfmt::skip]
-pub mod bindings;
+pub mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
 
 pub use bindings::*;
 

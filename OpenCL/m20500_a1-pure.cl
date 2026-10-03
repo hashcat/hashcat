@@ -82,6 +82,22 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
   (k2) = CRC32 ((k2), MSB (k1), (t));         \
 }
 
+// One buffer of the candidate through the key schedule. -a 12 assembles a candidate from five
+// pieces, so this runs once per piece rather than once for the base word and once for the amplifier.
+
+#define update_key012_buf(k0,k1,k2,buf,len,t)                                             \
+{                                                                                         \
+  const u32 blen = (len);                                                                 \
+                                                                                          \
+  for (u32 bi = 0, bj = 0; bi < blen; bi += 4, bj += 1)                                   \
+  {                                                                                       \
+    if (blen >= (bi + 1)) update_key012 (k0, k1, k2, unpack_v8a_from_v32_S ((buf)[bj]), t); \
+    if (blen >= (bi + 2)) update_key012 (k0, k1, k2, unpack_v8b_from_v32_S ((buf)[bj]), t); \
+    if (blen >= (bi + 3)) update_key012 (k0, k1, k2, unpack_v8c_from_v32_S ((buf)[bj]), t); \
+    if (blen >= (bi + 4)) update_key012 (k0, k1, k2, unpack_v8d_from_v32_S ((buf)[bj]), t); \
+  }                                                                                       \
+}
+
 KERNEL_FQ KERNEL_FA void m20500_sxx (KERN_ATTR_BASIC ())
 {
   /**
@@ -127,6 +143,13 @@ KERNEL_FQ KERNEL_FA void m20500_sxx (KERN_ATTR_BASIC ())
   u32x key1init = KEY1INIT;
   u32x key2init = KEY2INIT;
 
+  // -a 12 puts the base word inside the amplifier instead of beside it, so the base word does not
+  // start the candidate and the state in front of it is what the loop below has to begin from.
+
+  const u32x key0empty = key0init;
+  const u32x key1empty = key1init;
+  const u32x key2empty = key2init;
+
   for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
   {
     if (pws[gid].pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
@@ -141,13 +164,22 @@ KERNEL_FQ KERNEL_FA void m20500_sxx (KERN_ATTR_BASIC ())
     u32x key1 = key1init;
     u32x key2 = key2init;
 
-    for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+    if (COMBS_IS_MIDDLE)
     {
-      if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      // five pieces in a fixed order: mask, base word, mask, second word, mask, and the state the
+      // base word produced on its own is no longer the state this continues from
+
+      key0 = key0empty;
+      key1 = key1empty;
+      key2 = key2empty;
+
+      update_key012_buf (key0, key1, key2, COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, l_crc32tab);
+      update_key012_buf (key0, key1, key2, pws[gid].i,            pws[gid].pw_len,            l_crc32tab);
+      update_key012_buf (key0, key1, key2, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, l_crc32tab);
+      update_key012_buf (key0, key1, key2, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, l_crc32tab);
     }
+
+    update_key012_buf (key0, key1, key2, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, l_crc32tab);
 
     const u32x r0 = key0;
     const u32x r1 = key1;
@@ -203,6 +235,13 @@ KERNEL_FQ KERNEL_FA void m20500_mxx (KERN_ATTR_BASIC ())
   u32x key1init = KEY1INIT;
   u32x key2init = KEY2INIT;
 
+  // -a 12 puts the base word inside the amplifier instead of beside it, so the base word does not
+  // start the candidate and the state in front of it is what the loop below has to begin from.
+
+  const u32x key0empty = key0init;
+  const u32x key1empty = key1init;
+  const u32x key2empty = key2init;
+
   for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
   {
     if (pws[gid].pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
@@ -217,13 +256,22 @@ KERNEL_FQ KERNEL_FA void m20500_mxx (KERN_ATTR_BASIC ())
     u32x key1 = key1init;
     u32x key2 = key2init;
 
-    for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+    if (COMBS_IS_MIDDLE)
     {
-      if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      // five pieces in a fixed order: mask, base word, mask, second word, mask, and the state the
+      // base word produced on its own is no longer the state this continues from
+
+      key0 = key0empty;
+      key1 = key1empty;
+      key2 = key2empty;
+
+      update_key012_buf (key0, key1, key2, COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, l_crc32tab);
+      update_key012_buf (key0, key1, key2, pws[gid].i,            pws[gid].pw_len,            l_crc32tab);
+      update_key012_buf (key0, key1, key2, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, l_crc32tab);
+      update_key012_buf (key0, key1, key2, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, l_crc32tab);
     }
+
+    update_key012_buf (key0, key1, key2, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, l_crc32tab);
 
     const u32x r0 = key0;
     const u32x r1 = key1;

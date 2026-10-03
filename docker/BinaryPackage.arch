@@ -9,10 +9,15 @@ ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
 # Install all necessary packages
+# clang is here for its libclang, which bindgen loads at build time to generate the
+# hashcat-sys bindings. Without it the Rust bridges fail with "Unable to find libclang".
+# lld is here because the Windows Rust plugin is linked with -fuse-ld=lld, and without
+# it the cross build stops at "collect2: fatal error: cannot find 'ld'"
 RUN pacman -Sy --noconfirm \
     base-devel \
+    clang \
+    lld \
     git \
-    cmake \
     unzip \
     wget \
     zstd \
@@ -30,25 +35,32 @@ RUN pacman -Sy --noconfirm \
 # Set source working directory
 WORKDIR /root
 
-# Clone hashcat and win-iconv repositories
-RUN git clone https://github.com/win-iconv/win-iconv.git
+# This image does not build the Windows compressors that the release image builds, so the package it
+# writes carries a hashcat.exe with no liblzma.dll beside it. Use docker/hashcat_binaries.ubuntu for
+# a Windows package meant to be handed to anyone.
 
-# Build win-iconv for Windows target
-WORKDIR /root/win-iconv
-RUN cmake \
-    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
-    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
-    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
-    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
-    . && \
-    make -j$(nproc) && make install
+# GMP for Linux and for Windows
 
-# Download and extract MSYS2 Python headers (still 3.12)
+WORKDIR /root
+
+ENV GMP_VERSION=6.3.0
+
+RUN wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
+    tar -xf gmp-${GMP_VERSION}.tar.xz && cp -a gmp-${GMP_VERSION} gmp-win && \
+    cd /root/gmp-${GMP_VERSION} && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static --with-pic --enable-fat CC="gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root/gmp-win && \
+    ./configure --host=x86_64-w64-mingw32 --prefix=/opt/win-gmp-64 --disable-shared --enable-static --enable-fat CC="x86_64-w64-mingw32-gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
+
+# Download and extract MSYS2 Python headers
 RUN mkdir /opt/win-python
 WORKDIR /opt/win-python
-RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
-    zstd -d mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
-    tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst && \
+    zstd -d mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst && \
+    tar -xf mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar
 
 # Init rust
 RUN rustup default stable
@@ -59,13 +71,31 @@ WORKDIR /root
 COPY docker/patches/arch/ /root/patches/
 
 ## hashcat
+
+# the tree the package is built from. A clone of master names no particular commit, so what a past
+# release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
+# is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
+# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
+ARG HASHCAT_REF=v7.1.2
+
 WORKDIR /root
-RUN git clone https://github.com/hashcat/hashcat.git
+RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 ## Compile
 WORKDIR /root/hashcat
-RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
+# || exit 1 because a for loop returns the status of its last command, so without it a patch that
+# fails is reported as a success whenever another one follows it. A patch that touches binary files
+# has to be made with "git diff --binary"; a plain "git diff" writes only "Binary files a/x and b/x
+# differ", which carries no content, and git apply refuses it rather than applying half the patch.
+
+RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do echo "applying $p"; git apply "$p" || exit 1; done'
 RUN make -s binaries
 RUN tools/package_bin.sh
+
+# see the same step in BinaryPackage.ubuntu20: this is what the runtime images copy out, and it is
+# the package rather than the build tree.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
 
 CMD ["/bin/bash"]

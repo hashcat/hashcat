@@ -9,7 +9,10 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "parser.h"
 #include "memory.h"
+#include "limits.h"
 
 #define DGST_ELEM 4
 
@@ -31,14 +34,15 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_AUX1
-                                  | OPTS_TYPE_AUX2
-                                  | OPTS_TYPE_AUX3
-                                  | OPTS_TYPE_AUX4
                                   | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
+                                  | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_COPY_TMPS;
+static const u64   KERN_BITS      = KERN_BIT_AUX1
+                                  | KERN_BIT_AUX2
+                                  | KERN_BIT_AUX3
+                                  | KERN_BIT_AUX4;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat!";
 static const char *ST_HASH        = "WPA*01*4d4fe7aac3a2cecab195321ceb99a7d0*fc690c158264*f4747f87f9f4*686173686361742d6573736964***";
@@ -51,6 +55,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -274,11 +279,28 @@ int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 
   if (r == true)
   {
-    struct stat st;
+    // stat () would measure the file on disk, and hc_fopen () above transparently decompresses gzip,
+    // xz and zstd. A compressed hccapx therefore holds far more records than its size on disk
+    // suggests, and the count decides how many hash entries module_hash_binary_parse () may fill.
 
-    stat (hashes->hashfile, &st);
+    char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
-    count = st.st_size / sizeof (hccapx_t);
+    u64 records = 0;
+
+    while (hc_feof (&fp) == false)
+    {
+      const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp);
+
+      if (nread == 0) break;
+
+      records++;
+
+      if (records == INT_MAX) break;
+    }
+
+    hcfree (in);
+
+    count = (int) records;
   }
   else
   {
@@ -311,6 +333,80 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
+// What a WPA hash tells us about whoever chose the password.
+//
+// The default answer for every mode is the account name in front of the hash, and a WPA capture has no
+// such thing. What it has is better: the network name, which a person typed, and the two MAC addresses,
+// which are what a router's factory password is derived from where it is derived from anything.
+//
+// The network name goes first because it is the only one of the three a human chose. The MACs follow as
+// the twelve hex digits they are written as, which is the form a keygen takes them in.
+//
+// A network name is bytes rather than text and may hold anything, so one that holds a control byte is
+// left out. It would reach every candidate built on it and none of them would be a password anybody
+// typed. Anything above ASCII is kept: a network name in another script is exactly a name somebody
+// chose, and its bytes are exactly the bytes of a passphrase built on it. Both phases take them as
+// they are, because the host rule engine works on bytes and the grammar decodes UTF-8 itself.
+
+u32 module_hash_hints (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+{
+  if (esalt_buf == NULL) return 0;
+
+  const wpa_t *wpa = (const wpa_t *) esalt_buf;
+
+  u32 cnt = 0;
+  u32 at  = 0;
+
+  const u8 *essid = (const u8 *) wpa->essid_buf;
+
+  bool printable = (wpa->essid_len > 0);
+
+  for (u32 i = 0; i < wpa->essid_len; i++)
+  {
+    if ((essid[i] >= 0x20) && (essid[i] != 0x7f)) continue;
+
+    printable = false;
+
+    break;
+  }
+
+  if ((printable == true) && (cnt < out_max) && ((at + wpa->essid_len) < scratch_size))
+  {
+    memcpy (scratch + at, essid, wpa->essid_len);
+
+    out_words[cnt].buf = scratch + at;
+    out_words[cnt].len = wpa->essid_len;
+
+    cnt++;
+    at += wpa->essid_len;
+  }
+
+  const u8 *macs[2] = { (const u8 *) wpa->mac_ap, (const u8 *) wpa->mac_sta };
+
+  for (u32 m = 0; m < 2; m++)
+  {
+    if (cnt == out_max) break;
+
+    if ((at + 12) >= scratch_size) break;
+
+    for (u32 i = 0; i < 6; i++)
+    {
+      static const char hex[] = "0123456789abcdef";
+
+      scratch[at + (i * 2) + 0] = hex[macs[m][i] >> 4];
+      scratch[at + (i * 2) + 1] = hex[macs[m][i] & 15];
+    }
+
+    out_words[cnt].buf = scratch + at;
+    out_words[cnt].len = 12;
+
+    cnt++;
+    at += 12;
+  }
+
+  return cnt;
+}
+
 int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len, MAYBE_UNUSED void *tmps)
 {
   wpa_t *wpa = (wpa_t *) esalt_buf;
@@ -319,6 +415,11 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // here we have in line_hash_buf: PMK*essid:password
   // but we don't care about the password
+
+  // The 8 reads below take a fixed 64 characters out of the line, and the check that the separator
+  // sits at offset 64 comes after them. A shorter potfile line is read past its end.
+
+  if (line_len < 64) return (PARSER_HASH_LENGTH);
 
   // PMK
 
@@ -333,13 +434,13 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // essid
 
-  char *sep_pos = strrchr (line_buf, '*');
+  const char *sep_pos = strrchr (line_buf, '*');
 
   if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   if ((line_buf + 64) != sep_pos) return (PARSER_HASH_LENGTH);
 
-  char *essid_pos = sep_pos + 1;
+  const char *essid_pos = sep_pos + 1;
 
   const int essid_len = strlen (essid_pos);
 
@@ -572,8 +673,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param_t kernel_param;
 
   kernel_param.bitmap_mask         = 0;
-  kernel_param.bitmap_shift1       = 0;
-  kernel_param.bitmap_shift2       = 0;
   kernel_param.salt_pos_host       = 0;
   kernel_param.loop_pos            = 0;
   kernel_param.loop_cnt            = 0;
@@ -643,6 +742,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if ((hccapx->signature == HCCAPX_SIGNATURE) && (hccapx->version == HCCAPX_VERSION))
     {
+      if (hccapx->essid_len > 32) return (PARSER_SALT_LENGTH);
+      if (hccapx->eapol_len < 1 || hccapx->eapol_len > 256) return (PARSER_HCCAPX_EAPOL_LEN);
+
       tmp_len = 0;
 
       tmp_len += snprintf (tmp_buf, sizeof (tmp_buf) - tmp_len, "WPA*02*");
@@ -743,9 +845,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
     // if the tokenizer reports PARSER_OK, then modify the input line artificially to match the new input line format
+    //
+    // The line is rebuilt from the tokens rather than copied, because the old format is written with
+    // either separator and the new one only knows '*'. Copying a line that used ':' left all 4 fields
+    // as one token for the parser below, which then refused its own old format.
     if (rc_tokenizer == PARSER_OK)
     {
-      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA*01*%s***", line_buf);
+      tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "WPA*01*%.*s*%.*s*%.*s*%.*s***",
+        token.len[0], (const char *) token.buf[0],
+        token.len[1], (const char *) token.buf[1],
+        token.len[2], (const char *) token.buf[2],
+        token.len[3], (const char *) token.buf[3]);
 
       input_buf = tmp_buf;
       input_len = tmp_len;
@@ -802,7 +912,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[7]     = '*';
   token.len_min[7] = 0;
-  token.len_max[7] = 512;
+  token.len_max[7] = 1024;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -885,18 +995,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     wpa->pmkid_data[0] = 0x204b4d50; // "PMK "
     wpa->pmkid_data[1] = 0x656d614e; // "Name"
-    wpa->pmkid_data[2] = (mac_ap[0]  <<  0)
-                       | (mac_ap[1]  <<  8)
-                       | (mac_ap[2]  << 16)
-                       | (mac_ap[3]  << 24);
-    wpa->pmkid_data[3] = (mac_ap[4]  <<  0)
-                       | (mac_ap[5]  <<  8)
-                       | (mac_sta[0] << 16)
-                       | (mac_sta[1] << 24);
-    wpa->pmkid_data[4] = (mac_sta[2] <<  0)
-                       | (mac_sta[3] <<  8)
-                       | (mac_sta[4] << 16)
-                       | (mac_sta[5] << 24);
+    wpa->pmkid_data[2] = ((u32) mac_ap[0]  <<  0)
+                       | ((u32) mac_ap[1]  <<  8)
+                       | ((u32) mac_ap[2]  << 16)
+                       | ((u32) mac_ap[3]  << 24);
+    wpa->pmkid_data[3] = ((u32) mac_ap[4]  <<  0)
+                       | ((u32) mac_ap[5]  <<  8)
+                       | ((u32) mac_sta[0] << 16)
+                       | ((u32) mac_sta[1] << 24);
+    wpa->pmkid_data[4] = ((u32) mac_sta[2] <<  0)
+                       | ((u32) mac_sta[3] <<  8)
+                       | ((u32) mac_sta[4] << 16)
+                       | ((u32) mac_sta[5] << 24);
 
     // hash
 
@@ -944,7 +1054,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     wpa->eapol_len = hex_decode (eapol_pos, token.len[7], eapol_ptr);
 
-    memset (eapol_ptr + wpa->eapol_len, 0, (256 + 64) - wpa->eapol_len);
+    memset (eapol_ptr + wpa->eapol_len, 0, (512 + 64) - wpa->eapol_len);
 
     auth_packet_t *auth_packet = (auth_packet_t *) wpa->eapol;
 
@@ -1200,86 +1310,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const wpa_t *wpa = (const wpa_t *) esalt_buf;
-
-  int line_len = 0;
-
-  const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
-  const u8 *mac_sta = (const u8 *) wpa->mac_sta;
-
-  if (wpa->type == 1)
-  {
-    u32_to_hex (wpa->pmkid[0], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->pmkid[1], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->pmkid[2], (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (wpa->pmkid[3], (u8 *) line_buf + line_len); line_len += 8;
-  }
-  else if (wpa->type == 2)
-  {
-    u32_to_hex (byte_swap_32 (wpa->keymic[0]), (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (byte_swap_32 (wpa->keymic[1]), (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (byte_swap_32 (wpa->keymic[2]), (u8 *) line_buf + line_len); line_len += 8;
-    u32_to_hex (byte_swap_32 (wpa->keymic[3]), (u8 *) line_buf + line_len); line_len += 8;
-  }
-
-  line_buf[line_len] = ':';
-
-  line_len++;
-
-  if (need_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, ':', 0) == true)
-  {
-    char tmp_buf[128];
-
-    int tmp_len = 0;
-
-    tmp_buf[tmp_len++] = '$';
-    tmp_buf[tmp_len++] = 'H';
-    tmp_buf[tmp_len++] = 'E';
-    tmp_buf[tmp_len++] = 'X';
-    tmp_buf[tmp_len++] = '[';
-
-    exec_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, (u8 *) tmp_buf + tmp_len);
-
-    tmp_len += wpa->essid_len * 2;
-
-    tmp_buf[tmp_len++] = ']';
-
-    tmp_buf[tmp_len++] = 0;
-
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      mac_ap[0],
-      mac_ap[1],
-      mac_ap[2],
-      mac_ap[3],
-      mac_ap[4],
-      mac_ap[5],
-      mac_sta[0],
-      mac_sta[1],
-      mac_sta[2],
-      mac_sta[3],
-      mac_sta[4],
-      mac_sta[5],
-      tmp_buf);
-  }
-  else
-  {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      mac_ap[0],
-      mac_ap[1],
-      mac_ap[2],
-      mac_ap[3],
-      mac_ap[4],
-      mac_ap[5],
-      mac_sta[0],
-      mac_sta[1],
-      mac_sta[2],
-      mac_sta[3],
-      mac_sta[4],
-      mac_sta[5],
-      (const char *) wpa->essid_buf);
-  }
-
-  return line_len;
+  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
 }
 
 int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -1334,6 +1365,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -1350,7 +1382,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -1366,6 +1397,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = module_hash_hints;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -1388,6 +1420,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
@@ -1408,5 +1441,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
