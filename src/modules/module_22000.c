@@ -42,7 +42,9 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
 static const u64   KERN_BITS      = KERN_BIT_AUX1
                                   | KERN_BIT_AUX2
                                   | KERN_BIT_AUX3
-                                  | KERN_BIT_AUX4;
+                                  | KERN_BIT_AUX4
+                                  | KERN_BIT_AUX5
+                                  | KERN_BIT_AUX6;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat!";
 static const char *ST_HASH        = "WPA*01*4d4fe7aac3a2cecab195321ceb99a7d0*fc690c158264*f4747f87f9f4*686173686361742d6573736964***";
@@ -500,6 +502,28 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   const u8 *mac_ap  = (const u8 *) wpa->mac_ap;
   const u8 *mac_sta = (const u8 *) wpa->mac_sta;
 
+  // the three fields an FT record ends in, empty for the two plain types
+
+  char ft_buf[1 + 4 + 1 + 96 + 1 + 96 + 1];
+
+  ft_buf[0] = 0;
+
+  if ((wpa->type == 3) || (wpa->type == 4))
+  {
+    const u8 *mdid = (const u8 *) &wpa->mdid;
+
+    char r0khid_buf[96 + 1];
+    char r1khid_buf[96 + 1];
+
+    const int r0khid_len = hex_encode ((const u8 *) wpa->r0khid, wpa->r0khid_len, (u8 *) r0khid_buf);
+    const int r1khid_len = hex_encode ((const u8 *) wpa->r1khid, wpa->r1khid_len, (u8 *) r1khid_buf);
+
+    r0khid_buf[r0khid_len] = 0;
+    r1khid_buf[r1khid_len] = 0;
+
+    snprintf (ft_buf, sizeof (ft_buf), "*%02x%02x*%s*%s", mdid[0], mdid[1], r0khid_buf, r1khid_buf);
+  }
+
   if (wpa->type == 1)
   {
     const int len = hc_asprintf (buf, "WPA*01*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***" EOL,
@@ -523,11 +547,36 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
     return len;
   }
-  else if (wpa->type == 2)
+  else if (wpa->type == 3)
   {
-    u32 eapol_swapped[64 + 2];
+    const int len = hc_asprintf (buf, "WPA*03*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***%02x%s" EOL,
+      byte_swap_32 (wpa->pmkid[0]),
+      byte_swap_32 (wpa->pmkid[1]),
+      byte_swap_32 (wpa->pmkid[2]),
+      byte_swap_32 (wpa->pmkid[3]),
+      mac_ap[0],
+      mac_ap[1],
+      mac_ap[2],
+      mac_ap[3],
+      mac_ap[4],
+      mac_ap[5],
+      mac_sta[0],
+      mac_sta[1],
+      mac_sta[2],
+      mac_sta[3],
+      mac_sta[4],
+      mac_sta[5],
+      tmp_buf,
+      wpa->message_pair,
+      ft_buf);
 
-    for (int i = 0; i < 64; i++)
+    return len;
+  }
+  else if ((wpa->type == 2) || (wpa->type == 4))
+  {
+    u32 eapol_swapped[(WPA_EAPOL_LEN_MAX / 4) + 2];
+
+    for (int i = 0; i < (WPA_EAPOL_LEN_MAX / 4); i++)
     {
       eapol_swapped[i] = wpa->eapol[i];
 
@@ -537,16 +586,17 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       }
     }
 
-    eapol_swapped[64] = 0;
-    eapol_swapped[65] = 0;
+    eapol_swapped[(WPA_EAPOL_LEN_MAX / 4) + 0] = 0;
+    eapol_swapped[(WPA_EAPOL_LEN_MAX / 4) + 1] = 0;
 
-    char tmp2_buf[1024];
+    char tmp2_buf[(WPA_EAPOL_LEN_MAX * 2) + 1];
 
     const int tmp2_len = hex_encode ((const u8 *) eapol_swapped, wpa->eapol_len, (u8 *) tmp2_buf);
 
     tmp2_buf[tmp2_len] = 0;
 
-    const int len = hc_asprintf (buf, "WPA*02*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%s*%02x" EOL,
+    const int len = hc_asprintf (buf, "WPA*%02x*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%s*%02x%s" EOL,
+      wpa->type,
       wpa->keymic[0],
       wpa->keymic[1],
       wpa->keymic[2],
@@ -573,7 +623,8 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       byte_swap_32 (wpa->anonce[6]),
       byte_swap_32 (wpa->anonce[7]),
       tmp2_buf,
-      wpa->message_pair);
+      wpa->message_pair,
+      ft_buf);
 
     return len;
   }
@@ -607,6 +658,14 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
     {
       return KERN_RUN_AUX3;
     }
+  }
+  else if (wpa->type == 3)
+  {
+    return KERN_RUN_AUX5;
+  }
+  else if (wpa->type == 4)
+  {
+    return KERN_RUN_AUX6;
   }
 
   return 0;
@@ -664,6 +723,16 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
     {
       return false;
     }
+  }
+  else if (wpa_db->type == 3)
+  {
+    m22000_aux = m22000_aux5;
+  }
+  else if (wpa_db->type == 4)
+  {
+    if (wpa_db->keyver != 3) return false;
+
+    m22000_aux = m22000_aux6;
   }
   else
   {
@@ -868,7 +937,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 9;
+  // an FT record carries three fields the other types do not, and every field is hex, so the
+  // separators can be counted before the line is tokenized
+
+  int sep_cnt = 0;
+
+  for (int i = 0; i < input_len; i++)
+  {
+    if (input_buf[i] == '*') sep_cnt++;
+  }
+
+  token.token_cnt  = (sep_cnt == 11) ? 12 : 9;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = "WPA";
@@ -912,7 +991,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[7]     = '*';
   token.len_min[7] = 0;
-  token.len_max[7] = 1024;
+  token.len_max[7] = WPA_EAPOL_LEN_MAX * 2;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -921,6 +1000,26 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[8] = 2;
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
+
+  if (token.token_cnt == 12)
+  {
+    token.sep[9]      = '*';
+    token.len[9]      = 4;
+    token.attr[9]     = TOKEN_ATTR_FIXED_LENGTH
+                      | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[10]     = '*';
+    token.len_min[10] = 0;
+    token.len_max[10] = 96;
+    token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                      | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[11]     = '*';
+    token.len_min[11] = 0;
+    token.len_max[11] = 96;
+    token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                      | TOKEN_ATTR_VERIFY_HEX;
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) input_buf, input_len, &token);
 
@@ -974,9 +1073,85 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 type = hex_to_u8 (type_buf);
 
-  if ((type != 1) && (type != 2)) return (PARSER_SALT_VALUE);
+  if ((type != 1) && (type != 2) && (type != 3) && (type != 4)) return (PARSER_SALT_VALUE);
+
+  const bool is_ft = ((type == 3) || (type == 4));
+
+  // the extra separators were what the token count was taken from, so a record has to carry either
+  // all three FT fields or none of them
+
+  if ((is_ft == true)  && (token.token_cnt != 12)) return (PARSER_SALT_VALUE);
+  if ((is_ft == false) && (token.token_cnt !=  9)) return (PARSER_SALT_VALUE);
 
   wpa->type = type;
+
+  // FT specific code, shared by both FT types
+
+  if (is_ft == true)
+  {
+    // mdid
+
+    const u8 *mdid_pos = token.buf[9];
+
+    u8 *mdid_ptr = (u8 *) &wpa->mdid;
+
+    mdid_ptr[0] = hex_to_u8 (mdid_pos + 0);
+    mdid_ptr[1] = hex_to_u8 (mdid_pos + 2);
+
+    // r0kh-id
+
+    if (token.len[10] & 1) return (PARSER_SALT_VALUE);
+
+    u8 *r0khid_ptr = (u8 *) wpa->r0khid;
+
+    wpa->r0khid_len = hex_decode (token.buf[10], token.len[10], r0khid_ptr);
+
+    // r1kh-id
+
+    if (token.len[11] & 1) return (PARSER_SALT_VALUE);
+
+    u8 *r1khid_ptr = (u8 *) wpa->r1khid;
+
+    wpa->r1khid_len = hex_decode (token.buf[11], token.len[11], r1khid_ptr);
+
+    // PMK-R0 = KDF-384 (PMK, "FT-R0", ESSIDlen || ESSID || MDID || R0KHIDlen || R0KH-ID || STA-MAC).
+    // The EAPOL path uses the first of the two KDF blocks, which is the key itself. The PMKID path
+    // uses the second one, whose first 16 bytes are the PMK-R0-Name salt, so it never derives the key
+    // at all. The two inputs differ only in the counter in front of them.
+
+    u8 *pke_r0_ptr = (u8 *) wpa->pke_r0;
+
+    memset (pke_r0_ptr, 0, sizeof (wpa->pke_r0));
+
+    pke_r0_ptr[0] = (type == 3) ? 2 : 1;
+    pke_r0_ptr[1] = 0;
+
+    memcpy (pke_r0_ptr + 2, "FT-R0", 5);
+
+    pke_r0_ptr[7] = (u8) wpa->essid_len;
+
+    memcpy (pke_r0_ptr + 8, wpa->essid_buf, wpa->essid_len);
+    memcpy (pke_r0_ptr + 8 + wpa->essid_len, mdid_ptr, 2);
+
+    pke_r0_ptr[10 + wpa->essid_len] = (u8) wpa->r0khid_len;
+
+    memcpy (pke_r0_ptr + 11 + wpa->essid_len, r0khid_ptr, wpa->r0khid_len);
+    memcpy (pke_r0_ptr + 11 + wpa->essid_len + wpa->r0khid_len, mac_sta, 6);
+
+    // the KDF output size, 384 bits, little endian
+
+    pke_r0_ptr[17 + wpa->essid_len + wpa->r0khid_len] = 0x80;
+    pke_r0_ptr[18 + wpa->essid_len + wpa->r0khid_len] = 1;
+
+    for (u32 i = 0; i < (sizeof (wpa->pke_r0) / 4); i++)
+    {
+      wpa->pke_r0[i] = byte_swap_32 (wpa->pke_r0[i]);
+    }
+
+    // an FT record from hcxpcapngtool carries a message pair even where it carries no EAPOL frame
+
+    if (token.len[8] == 2) wpa->message_pair = hex_to_u8 (token.buf[8]);
+  }
 
   // PMKID specific code
 
@@ -1021,9 +1196,48 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[3] = byte_swap_32 (digest[3]);
   }
 
-  // EAPOL specific code
+  // FT PMKID specific code
 
-  if (type == 2)
+  if (type == 3)
+  {
+    // pmkid
+
+    const u8 *pmkid_buf = token.buf[2];
+
+    wpa->pmkid[0] = hex_to_u32 (pmkid_buf +  0);
+    wpa->pmkid[1] = hex_to_u32 (pmkid_buf +  8);
+    wpa->pmkid[2] = hex_to_u32 (pmkid_buf + 16);
+    wpa->pmkid[3] = hex_to_u32 (pmkid_buf + 24);
+
+    // The PMKID of an FT record is PMK-R1-Name, which is a SHA-256 over
+    // "FT-R1N" || PMK-R0-Name || R1KH-ID || STA-MAC. PMK-R0-Name follows from the candidate, so the
+    // input is stored with a 16 byte gap and the kernel ORs the name into it rather than writing the
+    // whole input back to global memory.
+
+    u8 *pmkid_data_ptr = (u8 *) wpa->pmkid_data;
+
+    memset (pmkid_data_ptr, 0, sizeof (wpa->pmkid_data));
+
+    memcpy (pmkid_data_ptr, "FT-R1N", 6);
+    memcpy (pmkid_data_ptr + 22, (const u8 *) wpa->r1khid, wpa->r1khid_len);
+    memcpy (pmkid_data_ptr + 22 + wpa->r1khid_len, mac_sta, 6);
+
+    for (u32 i = 0; i < (sizeof (wpa->pmkid_data) / 4); i++)
+    {
+      wpa->pmkid_data[i] = byte_swap_32 (wpa->pmkid_data[i]);
+    }
+
+    // hash
+
+    digest[0] = byte_swap_32 (wpa->pmkid[0]);
+    digest[1] = byte_swap_32 (wpa->pmkid[1]);
+    digest[2] = byte_swap_32 (wpa->pmkid[2]);
+    digest[3] = byte_swap_32 (wpa->pmkid[3]);
+  }
+
+  // EAPOL specific code, shared by the plain and the FT record
+
+  if ((type == 2) || (type == 4))
   {
     // checks
 
@@ -1054,7 +1268,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     wpa->eapol_len = hex_decode (eapol_pos, token.len[7], eapol_ptr);
 
-    memset (eapol_ptr + wpa->eapol_len, 0, (512 + 64) - wpa->eapol_len);
+    memset (eapol_ptr + wpa->eapol_len, 0, (WPA_EAPOL_LEN_MAX + 64) - wpa->eapol_len);
 
     auth_packet_t *auth_packet = (auth_packet_t *) wpa->eapol;
 
@@ -1066,13 +1280,59 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if ((wpa->keyver != 1) && (wpa->keyver != 2) && (wpa->keyver != 3)) return (PARSER_SALT_VALUE);
 
+    // 802.11r defines the FT key hierarchy over AES-CMAC only
+
+    if ((type == 4) && (wpa->keyver != 3)) return (PARSER_SALT_VALUE);
+
     // pke
 
     u8 *pke_ptr = (u8 *) wpa->pke;
 
     memset (pke_ptr, 0, 128);
 
-    if ((wpa->keyver == 1) || (wpa->keyver == 2))
+    if (type == 4)
+    {
+      // PTK = KDF-384 (PMK-R1, "FT-PTK", SNonce || ANonce || AP-MAC || STA-MAC)
+
+      pke_ptr[0] = 1;
+      pke_ptr[1] = 0;
+
+      memcpy (pke_ptr + 2, "FT-PTK", 6);
+
+      memcpy (pke_ptr +  8, auth_packet->wpa_key_nonce, 32);
+      memcpy (pke_ptr + 40, wpa->anonce, 32);
+
+      memcpy (pke_ptr + 72, mac_ap,  6);
+      memcpy (pke_ptr + 78, mac_sta, 6);
+
+      pke_ptr[84] = 0x80;
+      pke_ptr[85] = 1;
+
+      // PMK-R1 = KDF-256 (PMK-R0, "FT-R1", R1KH-ID || STA-MAC)
+
+      u8 *pke_r1_ptr = (u8 *) wpa->pke_r1;
+
+      memset (pke_r1_ptr, 0, sizeof (wpa->pke_r1));
+
+      pke_r1_ptr[0] = 1;
+      pke_r1_ptr[1] = 0;
+
+      memcpy (pke_r1_ptr + 2, "FT-R1", 5);
+
+      memcpy (pke_r1_ptr + 7, (const u8 *) wpa->r1khid, wpa->r1khid_len);
+      memcpy (pke_r1_ptr + 7 + wpa->r1khid_len, mac_sta, 6);
+
+      // the KDF output size, 256 bits, little endian
+
+      pke_r1_ptr[13 + wpa->r1khid_len] = 0;
+      pke_r1_ptr[14 + wpa->r1khid_len] = 1;
+
+      for (u32 i = 0; i < (sizeof (wpa->pke_r1) / 4); i++)
+      {
+        wpa->pke_r1[i] = byte_swap_32 (wpa->pke_r1[i]);
+      }
+    }
+    else if ((wpa->keyver == 1) || (wpa->keyver == 2))
     {
       memcpy (pke_ptr, "Pairwise key expansion\x00", 23);
 
@@ -1142,7 +1402,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if (wpa->keyver == 2)
     {
-      for (int i = 0; i < 64; i++)
+      for (int i = 0; i < (WPA_EAPOL_LEN_MAX / 4); i++)
       {
         wpa->eapol[i] = byte_swap_32 (wpa->eapol[i]);
       }

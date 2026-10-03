@@ -454,9 +454,9 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   }
   else if (wpa->type == 2)
   {
-    u32 eapol_swapped[64 + 2];
+    u32 eapol_swapped[(WPA_EAPOL_LEN_MAX / 4) + 2];
 
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < (WPA_EAPOL_LEN_MAX / 4); i++)
     {
       eapol_swapped[i] = wpa->eapol[i];
 
@@ -466,10 +466,10 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       }
     }
 
-    eapol_swapped[64] = 0;
-    eapol_swapped[65] = 0;
+    eapol_swapped[(WPA_EAPOL_LEN_MAX / 4) + 0] = 0;
+    eapol_swapped[(WPA_EAPOL_LEN_MAX / 4) + 1] = 0;
 
-    char tmp2_buf[1024];
+    char tmp2_buf[(WPA_EAPOL_LEN_MAX * 2) + 1];
 
     const int tmp2_len = hex_encode ((const u8 *) eapol_swapped, wpa->eapol_len, (u8 *) tmp2_buf);
 
@@ -839,7 +839,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[7]     = '*';
   token.len_min[7] = 0;
-  token.len_max[7] = 1024;
+  token.len_max[7] = WPA_EAPOL_LEN_MAX * 2;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -981,7 +981,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     wpa->eapol_len = hex_decode (eapol_pos, token.len[7], eapol_ptr);
 
-    memset (eapol_ptr + wpa->eapol_len, 0, (512 + 64) - wpa->eapol_len);
+    memset (eapol_ptr + wpa->eapol_len, 0, (WPA_EAPOL_LEN_MAX + 64) - wpa->eapol_len);
 
     auth_packet_t *auth_packet = (auth_packet_t *) wpa->eapol;
 
@@ -1069,7 +1069,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if (wpa->keyver == 2)
     {
-      for (int i = 0; i < 64; i++)
+      for (int i = 0; i < (WPA_EAPOL_LEN_MAX / 4); i++)
       {
         wpa->eapol[i] = byte_swap_32 (wpa->eapol[i]);
       }

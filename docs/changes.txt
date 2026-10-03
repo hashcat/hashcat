@@ -796,6 +796,9 @@ Measurements depend on the device, runtime and workload.
 - Mode "-m 34300" is now named "KeePass Argon2 (KDBX v4)", which tells it apart from "-m 34301",
   the KDBX v4 AESKDF mode
 - Usage notices now guide users of 45 modes, and mode 1000 can show an additional advice notice
+- Mode 22000 now accepts the two 802.11r Fast BSS Transition records that hcxpcapngtool writes, types
+  03 and 04, beside the PMKID and EAPOL types 01 and 02. The PMK feeds the FT key hierarchy rather
+  than the PTK directly, so both crack under the same attack without a second hash mode
 
 ## Package maintainers
 
