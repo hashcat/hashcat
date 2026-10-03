@@ -1278,6 +1278,18 @@ static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char
 
 static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_device_types, cl_device_type *out)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // A device type that matches nothing refuses a run, which has nothing left to run on, but not the
+  // listing: -I is a question about the machine and the answer is the devices that match, even when
+  // those are none.
+  //
+  // The reason is still said, except where the listing emits JSON and a plain line would be read as
+  // part of the document. bridge_units_info () is left out of that form for the same reason.
+
+  const bool listing_only = (user_options->backend_info > 0);
+  const bool say_reason   = (listing_only == false) || (user_options->machine_readable == false);
+
   cl_device_type opencl_device_types_filter = 0;
 
   if (opencl_device_types)
@@ -1300,24 +1312,37 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
 
       if (device_type == 3)
       {
-        event_log_error (hashcat_ctx, "OpenCL device-type 3, the accelerator card, no longer exists.");
+        if (say_reason == true)
+        {
+          event_log_error (hashcat_ctx, "OpenCL device-type 3, the accelerator card, no longer exists.");
 
-        event_log_warning (hashcat_ctx, "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.");
-        event_log_warning (hashcat_ctx, "-D 1 is CPU and -D 2 is GPU.");
-        event_log_warning (hashcat_ctx, NULL);
+          event_log_warning (hashcat_ctx, "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.");
+          event_log_warning (hashcat_ctx, "-D 1 is CPU and -D 2 is GPU.");
+          event_log_warning (hashcat_ctx, NULL);
+        }
 
-        hcfree (device_types);
+        if (listing_only == false)
+        {
+          hcfree (device_types);
 
-        return false;
+          return false;
+        }
+
+        continue;
       }
 
       if (device_type < 1 || device_type > 2)
       {
-        event_log_error (hashcat_ctx, "Invalid OpenCL device-type %d specified.", device_type);
+        if (say_reason == true) event_log_error (hashcat_ctx, "Invalid OpenCL device-type %d specified.", device_type);
 
-        hcfree (device_types);
+        if (listing_only == false)
+        {
+          hcfree (device_types);
 
-        return false;
+          return false;
+        }
+
+        continue;
       }
 
       opencl_device_types_filter |= 1U << device_type;
@@ -10586,6 +10611,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx->backend_devices_active == 0)
   {
+    // The listing is the exception: it describes the machine, so no device left to run on is an empty
+    // listing and not a failure. Taken here rather than further down, because everything below is
+    // written for a run and the first of it divides by the number of active devices.
+    //
+    // Why it came out empty is still worth saying, in the form that does not emit a document.
+
+    if (user_options->backend_info > 0)
+    {
+      if (user_options->machine_readable == false) backend_ctx_devices_none_reason (hashcat_ctx);
+
+      return 0;
+    }
+
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     backend_ctx_devices_none_reason (hashcat_ctx);
@@ -11288,6 +11326,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   // check again to catch error on OpenCL/Metal
   if (backend_ctx->backend_devices_active == 0)
   {
+    if (user_options->backend_info > 0)
+    {
+      if (user_options->machine_readable == false) backend_ctx_devices_none_reason (hashcat_ctx);
+
+      return 0;
+    }
+
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     backend_ctx_devices_none_reason (hashcat_ctx);
