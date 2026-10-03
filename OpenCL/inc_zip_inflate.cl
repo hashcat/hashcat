@@ -144,7 +144,7 @@ typedef PRIVATE_AS void *const voidpc;
 #define MZ_MACRO_END while (0)
 
 // hashcat-patched: there is no resume state to clear any more, only the terminal result a finished
-// decompressor answers with if it is called again.
+// decompressor returns on a later call.
 
 #define tinfl_init(r)            \
     do                           \
@@ -280,15 +280,16 @@ enum
     MZ_MACRO_END
 
 // hashcat-patched: the jump this replaces went to the tail of tinfl_decompress (), which ends in a
-// return, so it is a call to that tail. Metal has no goto and takes the call.
+// return, so it is a call to that tail. The tail moved out with the resume labels, which are what
+// Metal's compiler fails on.
 
 #define TINFL_EXIT                                                  \
     tinfl_exit (r, status, pIn_buf_next, pIn_buf_cur, pIn_buf_size, \
                 pOut_buf_next, pOut_buf_cur, pOut_buf_size,         \
                 num_bits, decomp_flags)
 
-// hashcat-patched: every way out of the decompressor is final, and a caller that comes back is
-// answered with the result it already had, which is what resuming inside a for (;;) used to give it.
+// hashcat-patched: every way out of the decompressor is final, and a later call returns the result
+// the previous one ended on, which is what resuming inside a for (;;) used to give it.
 
 #define TINFL_RETURN_FOREVER(result)        \
     do                                      \
@@ -301,14 +302,14 @@ enum
     MZ_MACRO_END
 
 // hashcat-patched: the output window is full. A caller that lets the decoder wrap has the bytes it
-// is about to write over checksummed here and carries on from the start of the buffer. Any other
-// caller is told there is more output than it asked for, and for that caller the stream ends there.
+// is about to write over checksummed here and carries on from the start of the buffer. For any
+// other caller the status becomes HAS_MORE_OUTPUT and the stream ends there.
 //
 // A whole window that came out of no input at all is not a stream, it is a decoder walking a huffman
-// table that decodes a symbol in zero bits, which a wrong password builds often enough. miniz has no
-// answer to it: what stopped it before was the caller, which handed over sixteen bytes at a time and
-// dropped the candidate as soon as a call gave back output without taking any input. The window is
-// where that same question gets asked now.
+// table that decodes a symbol in zero bits, which a wrong password builds often enough. miniz does
+// not detect it: what stopped it before was the caller, which handed over sixteen bytes at a time
+// and dropped the candidate as soon as a call produced output without consuming input. The check is
+// here now.
 
 #define TINFL_WINDOW_FULL                                                                                          \
     do                                                                                                             \
@@ -463,9 +464,9 @@ struct tinfl_decompressor_tag
     tinfl_huff_table m_tables[TINFL_MAX_HUFF_TABLES];
     mz_uint8 m_raw_header[4], m_len_codes[TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137];
 
-    // hashcat-patched: what a finished decompressor answers from here on. miniz kept a terminal result
-    // by resuming inside a for (;;) that returned it again on every call; the result is remembered
-    // here instead, and answered on entry, which is the same behaviour without the resume label.
+    // hashcat-patched: the terminal result a finished decompressor returns from here on. miniz
+    // kept it by resuming inside a for (;;) that returned it again on every call. It is stored
+    // here instead and returned on entry, which is the same behaviour without the resume label.
     //
     // The bit buffer, the bit count, the match distance, the counter, the extra bit count and the
     // offset into the output that used to sit above are gone with it: each one was saved on the way
@@ -578,8 +579,9 @@ DECLSPEC HC_NOINLINE_ALWAYS void tinfl_flush_window (mz_streamp pStream, PRIVATE
   pStream->avail_out  = TINFL_LZ_DICT_SIZE;
 }
 
-// hashcat-patched: this is the tail the decompressor used to jump to. Metal has no goto, so the tail
-// is a function and every return inside tinfl_decompress () calls it.
+// hashcat-patched: this is the tail the decompressor used to jump to. It is a function now and
+// every return inside tinfl_decompress () calls it. The jump went with the resume labels, which
+// are what Metal's compiler fails on.
 
 DECLSPEC tinfl_status tinfl_exit (PRIVATE_AS tinfl_decompressor *r, tinfl_status status,
                                   MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, MAYBE_GLOBAL const mz_uint8 *pIn_buf_cur, PRIVATE_AS size_t *pIn_buf_size,
@@ -682,8 +684,9 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
     // hashcat-patched: dist_from_out_buf_start is also the whole output so far until the buffer wraps
     // once, and that is what tells a back reference reaching behind the start of the stream from a
     // legitimate one. A wrong password builds the first kind, and not dropping the candidate on it
-    // costs 17.7 percent of 17200. It starts set for a caller that neither wraps nor owns the whole
-    // output, because for that one the offset was never the total and the test below never applied.
+    // costs 17.7 percent of 17200. wrapped starts set for a caller that neither wraps nor owns the
+    // whole output, because for that one the offset was never the total and the test below never
+    // applied.
 
     mz_uint wrapped = (decomp_flags & (TINFL_FLAG_FLUSH_WINDOW | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF)) ? 0 : 1;
 
@@ -694,9 +697,9 @@ DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_deco
         return TINFL_STATUS_BAD_PARAM;
     }
 
-    // hashcat-patched: a decompressor that has finished answers with what it finished with, and does
-    // not run again. Nothing is read and nothing is written on the way out, so the tail below has no
-    // work to do here.
+    // hashcat-patched: a decompressor that has finished returns the result it finished with and
+    // does not run again. Nothing is read and nothing is written on the way out, so the tail below
+    // has no work to do here.
 
     if (r->m_finished)
     {
@@ -1245,9 +1248,9 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         else if ((in_bytes == 0) && (out_bytes == 0))
         {
             // hashcat-patched: this loop used to rely on the decompressor resuming. Nothing resumes any
-            // more, so a call that took nothing and produced nothing will answer the same way for ever,
-            // and the conditions below do not all cover that. Breaking out would return MZ_OK, which
-            // sends the caller round again for output that is not coming.
+            // more, so a call that took nothing and produced nothing repeats for ever, and the
+            // conditions below do not all cover that. Breaking out would return MZ_OK, which sends
+            // the caller round again for output that is not coming.
 
             if (status == TINFL_STATUS_DONE) break;
 
@@ -1267,7 +1270,9 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
 DECLSPEC int hc_inflate (mz_streamp pStream)
 {
   // hashcat-patched: the whole stream goes in at once. Handing it over sixteen bytes at a time was
-  // what kept the output buffer inside this function, and the decompressor wraps it itself now.
+  // what kept the output buffer inside this function, and the decompressor wraps it itself now. One
+  // call is enough: TINFL_FLAG_FLUSH_WINDOW means the decoder never stops for output, so it cannot
+  // come back with MZ_OK and ask to be called again.
 
   size_t in_bytes = pStream->avail_in;
 

@@ -669,11 +669,6 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   int ret = hc_inflate (&infstream);
 
-  while (ret == MZ_OK)
-  {
-    ret = hc_inflate (&infstream);
-  }
-
   if (ret != MZ_STREAM_END || infstream.total_out != hc->esalt_bufs[hc->digest_pos].hash.uncompressed_length) return false;
 
   dgst[0] = ~infstream.crc32;
@@ -839,11 +834,6 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
   mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
   int ret = hc_inflate (&infstream);
-
-  while (ret == MZ_OK)
-  {
-    ret = hc_inflate (&infstream);
-  }
 
   if (ret != MZ_STREAM_END || infstream.total_out != hc->esalt_bufs[hc->digest_pos].hash.uncompressed_length) return false;
 

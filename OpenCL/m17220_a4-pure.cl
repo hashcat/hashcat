@@ -691,11 +691,6 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
     int ret = hc_inflate (&infstream);
 
-    while (ret == MZ_OK)
-    {
-      ret = hc_inflate (&infstream);
-    }
-
     if (ret != MZ_STREAM_END || infstream.total_out != hc->esalt_bufs[hc->digest_pos].hashes[idx].uncompressed_length) return false;
 
     // we check the crc32, but it might not necessarily be the last one (depending how strict

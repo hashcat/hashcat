@@ -727,11 +727,6 @@ KERNEL_FQ KERNEL_FA void m17225_sxx (KERN_ATTR_ESALT (pkzip_t))
 
         int ret = hc_inflate (&infstream);
 
-        while (ret == MZ_OK)
-        {
-          ret = hc_inflate (&infstream);
-        }
-
         if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET_HOST].hashes[idx].uncompressed_length) break;
 
         crc = ~infstream.crc32;
@@ -1071,11 +1066,6 @@ KERNEL_FQ KERNEL_FA void m17225_mxx (KERN_ATTR_ESALT (pkzip_t))
         mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
         int ret = hc_inflate (&infstream);
-
-        while (ret == MZ_OK)
-        {
-          ret = hc_inflate (&infstream);
-        }
 
         if (ret != MZ_STREAM_END || infstream.total_out != esalt_bufs[DIGESTS_OFFSET_HOST].hashes[idx].uncompressed_length) break;
 
