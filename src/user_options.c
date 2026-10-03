@@ -371,11 +371,6 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (user_options->lookup_alias);
 
-  if (user_options->backend_info > 0)
-  {
-    hcfree (user_options->opencl_device_types);
-  }
-
   //do not reset this, it might be used from main.c
   //memset (user_options, 0, sizeof (user_options_t));
 }
@@ -3159,9 +3154,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_info > 0)
   {
-    user_options->backend_devices     = NULL;
-    user_options->opencl_device_types = hcstrdup ("1,2");
-    user_options->quiet               = true;
+    user_options->backend_devices = NULL;
+    user_options->quiet           = true;
+
+    if (user_options->opencl_device_types == NULL) user_options->opencl_device_types = "1,2";
   }
 
   if (user_options->left == true)
