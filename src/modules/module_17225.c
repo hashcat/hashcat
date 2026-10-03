@@ -165,11 +165,6 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // problem with this kernel is the huge amount of register pressure on u8 tmp[TMPSIZ];
-  // some runtimes cant handle it by swapping it to global memory
-  // it leads to CL_KERNEL_WORK_GROUP_SIZE to return 0 and later we will divide with 0
-  // workaround would be to rewrite kernel to use global memory
-
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
     // Apple, OpenCL, AMD GPU: abort on the first kernel launch, signal 6, no output
@@ -179,6 +174,8 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
+    // Apple, OpenCL, Intel GPU: the shader compiler does not come back from register allocation
+
     return true;
   }
 
