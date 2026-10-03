@@ -50,7 +50,21 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  const u32 pw_max = (optimized_kernel == true) ? 64 : PW_MAX;
+  u32 pw_max = PW_MAX;
+
+  if (optimized_kernel == true)
+  {
+    // The a0 and a1 kernels load 32 bytes of the word. Brute force hashes 64 of the candidate.
+
+    if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      pw_max = 64;
+    }
+    else
+    {
+      pw_max = 32;
+    }
+  }
 
   return pw_max;
 }

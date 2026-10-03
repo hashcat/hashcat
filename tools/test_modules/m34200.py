@@ -47,7 +47,7 @@ def murmur64a(word, seed):
 
 
 def module_constraints():
-  return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+  return [[0, 256], [16, 16], [0, 64], [16, 16], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):
