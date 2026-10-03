@@ -2654,6 +2654,26 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
     tg->pwmax = hashconfig->pw_max;
   }
 
+  // Less than that where the rules can move a length, for the reason in user_options_extra_base_length ().
+  // The bound here is the hash mode's own and nobody asked for it, so there is nothing to report, only
+  // work to give up. It goes into the table cache key as well, which is right: such a run does enumerate
+  // a different set.
+
+  const u32 effect = hashcat_ctx->straight_ctx->rules_length_effect;
+
+  if (effect & RULE_LENGTH_LONGER) tg->pwmin = 0;
+
+  // The ceiling stays where it is if it is the cap an optimized kernel puts on a dictionary word rather
+  // than the hash mode's own length. See user_options_extra_base_length (): a rule that shortens does
+  // not make a word the optimized rule engine cannot hold fit into it.
+
+  if (effect & RULE_LENGTH_SHORTER)
+  {
+    const u32 ceiling = (rules_dict_capped (hashcat_ctx) == true) ? PW_DICTMAX : PW_MAX;
+
+    if ((tg->pwmax != 0) && (ceiling > tg->pwmax)) tg->pwmax = ceiling;
+  }
+
   // With several tables the list is longer than the status line has room for, so it says how many.
 
   if (tables_cnt == 1)

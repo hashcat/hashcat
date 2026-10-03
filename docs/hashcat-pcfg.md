@@ -361,13 +361,17 @@ The defaults are suitable for most attacks.
 | `pwmin` | from the hash-mode | Shortest candidate to produce. |
 | `pwmax` | from the hash-mode | Longest candidate to produce. |
 
-Settings `pwmin` and `pwmax` are useful when the password length is known, such as with a list grouped by length or a format that fixes it. The limits apply while counting the keyspace, so candidates outside the range are never generated.
+Settings `pwmin` and `pwmax` are useful when the password length is known, such as with a list grouped by length or a format that fixes it. The limits apply while counting the keyspace, so a shape whose lengths all lie outside the range is not enumerated at all. A shape that spans the range is kept, and so is an OMEN level, because a level counts characters while the range counts bytes. What those two let through is refused before it is hashed.
 
 In the bundled ruleset, 1,370 of 23,159 shapes can produce 12-character passwords and together carry 1.4 percent of the probability mass. Setting `pwmin=12 pwmax=12` for a list of 12-character passwords therefore eliminates almost all unrelated work.
 
 A run that names a length also changes what the OMEN escape carries. The escape counts by level rather than by length, and a level holds one length only where every opening is the same width and every step writes one byte. So where a length is named and the model is not that shape, the wider openings and steps are left out of it and the run says how many, which is what lets the keyspace count exactly the guesses the bound admits. A run that names no length keeps the whole model.
 
 Both settings can only narrow the range allowed by the hash mode. They cannot request a length unsupported by the kernel. A value of `0` leaves the corresponding hash-mode limit unchanged, while a value that would widen the range is reported and ignored.
+
+A ruleset given with `-r` or `-g` is applied after a candidate has been counted and built, so the word this feed judges is not the one that will be hashed. Where the rules run on the host, a rule that can make a candidate longer gives up `pwmin` and one that can make it shorter gives up `pwmax`, and the run reports which bound it gave up and why. Where they run inside the device engine the bound is not given up but moved: the kernel holds the candidate to the range the run was given, after the rule has had it.
+
+Not with `mask`. There the range is the mask's own position count, and the grammar is rewritten around it, so widening it would reopen what the mask is for. A rule still applies to what the mask admits, and the candidate it produces is held to the range the run itself named.
 
 Setting `scale` belongs to hashcat and is not read from the ruleset. The status display therefore shows `scale 1` unless another value is requested. It is unrelated to `--coverage` in the trainer, which is set when the ruleset is built and cannot be changed afterwards. If a ruleset was trained at a coverage below 1.0 and you are cracking a fast hash, section 7.4 is the part that matters.
 

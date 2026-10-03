@@ -401,6 +401,13 @@ typedef struct
 
   bool mcss_high;
 
+  // The range the run itself is held to, kept whole for the kernel, which reads the length of the
+  // candidate the rule made. The pair above is what the host may hold itself to, which is less as soon
+  // as a rule can move a length, and is the mask's own length where a mask was given.
+
+  u32 kpwmin;
+  u32 kpwmax;
+
   // The hint list, which is what a hint ruleset puts where a trained ruleset has its letters.
   //
   // hint_cnt is how wide that list is: the number of words a named set holds, counting every case form
@@ -10558,6 +10565,22 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
 
   const pcfg_struct_t *s = &pg->structs[th->si];
 
+  // Outside the varlen regime every bucket the cell walk accepted holds entries of one length, so the
+  // cell is as long as its base word and can be taken or refused whole. The escape above cannot be,
+  // because its candidates do not share a length.
+  //
+  // Under varlen a bucket mixes lengths, so the base word stands for the cell only where the cell
+  // varies nothing. Where it varies something the kernel judges the candidates one at a time.
+
+  if (((pg->varlen == false) || (th->devstart == s->nslot)) && (pg->pwmax != 0) && (((u32) len < pg->pwmin) || ((u32) len > pg->pwmax)))
+  {
+    cell->rect = unit_rect (pg, th);
+
+    unit_step (pg, th);
+
+    return GENERIC_RC_SKIP;
+  }
+
   u32 off[PCFG_MAXSLOT];
   u32 wid[PCFG_MAXSLOT];
 
@@ -10686,6 +10709,12 @@ static int account_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, cons
 
   if (len > out_size) return 0;
 
+  // And the same for a candidate outside the range this run is held to. It is the zero length answer
+  // again rather than a skip, because a skip costs a position and this walk has none to give: the
+  // account it belongs to would take the next account's candidate.
+
+  if ((pg->pwmax != 0) && (((u32) len < pg->pwmin) || ((u32) len > pg->pwmax))) return 0;
+
   return len;
 }
 
@@ -10747,6 +10776,12 @@ static int plain_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const 
   }
 
   plain_step (pg, th);
+
+  // Here the candidate is built and its byte length is one number, which neither the structure filter
+  // nor the escape's ladder could be exact about. The position is spent whichever way this goes, so the
+  // walk has already stepped over it.
+
+  if ((pg->pwmax != 0) && (((u32) len < pg->pwmin) || ((u32) len > pg->pwmax))) return GENERIC_RC_SKIP;
 
   return len;
 }
@@ -11506,6 +11541,18 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     event_log_info (pg->hcctx, "lookup: structure %s derives it as well, at cost %u, which this run reaches later", name, hit.s_cost);
   }
 
+  // The keyspace still holds the position, because the count is what it was: a structure is admitted
+  // on the range of lengths it can produce and a level of the escape on the range its count of
+  // characters reaches, and neither is a test in bytes. What the run does with the position now is
+  // walk it and build nothing, so giving the offset without saying that promises a candidate this
+  // attack does not try.
+
+  if ((pg->pwmax != 0) && ((cand_len < pg->pwmin) || (cand_len > pg->pwmax)))
+  {
+    event_log_info (pg->hcctx, "lookup: it is %u bytes and this attack is held to %u to %u, so the run walks its position and skips the candidate", cand_len, pg->pwmin, pg->pwmax);
+    event_log_info (pg->hcctx, "lookup: a wider pwmin or pwmax, or a hash mode whose limits admit that length, tries it, and so does -a 0 over the same words");
+  }
+
   if (dev == true)
   {
     // The device engine counts -s in base words rather than candidates, so the number it is given
@@ -11727,6 +11774,13 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
+  // What the kernel is given, taken before a mask fixes the pair below. A mask says what the base word
+  // looks like, and the rules run after it, so the candidate the kernel weighs is not held to the mask's
+  // length: it is held to what the run itself asked for, which is what this pair keeps.
+
+  pg->kpwmin = pg->pwmin;
+  pg->kpwmax = pg->pwmax;
+
   // The mask, which is a filter over what the grammar spells and not a source of candidates of its
   // own. The mask processor parses it, so everything a mask means in -a 3 it means here.
 
@@ -11830,6 +11884,47 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
         gerr (global_ctx, "a custom charset belongs to a mask, and this run named no mask. Add mask= to use it");
 
         return false;
+      }
+    }
+  }
+
+  // And what the host keeps of it, which is less as soon as a rule can move a length: see
+  // user_options_extra_base_length () for why each direction the ruleset can move takes the test on that
+  // side away. The pair above is what the kernel weighs instead.
+  //
+  // Not where a mask was given. There the pair is the mask's own position count, and grammar_load () and
+  // omen_load () below read it to rewrite the grammar around the mask and to cut the escape's ladder, so
+  // widening it would reopen what the mask is for.
+
+  if ((hashcat_ctx != NULL) && (pg->mask == NULL))
+  {
+    const u32 effect = hashcat_ctx->straight_ctx->rules_length_effect;
+
+    if (effect & RULE_LENGTH_LONGER)
+    {
+      if ((pwmin != 0) && (global_ctx->dev_rules == false) && (global_ctx->quiet == false))
+      {
+        pmsg (pg, "pcfg: pwmin %u is not held to, because a rule in this run can make a candidate longer than the word it was given", (u32) pwmin);
+      }
+
+      pg->pwmin = 0;
+    }
+
+    // As far as PW_MAX, except where the optimized rule engine is the one applying the rules: there it
+    // is that engine's cap. See user_options_extra_base_length ().
+
+    if (effect & RULE_LENGTH_SHORTER)
+    {
+      const u32 ceiling = (rules_dict_capped (hashcat_ctx) == true) ? PW_DICTMAX : PW_MAX;
+
+      if ((pg->pwmax != 0) && (ceiling > pg->pwmax))
+      {
+        if ((pwmax != 0) && (global_ctx->dev_rules == false) && (global_ctx->quiet == false))
+        {
+          pmsg (pg, "pcfg: pwmax %u is not held to, because a rule in this run can make a candidate shorter than the word it was given", (u32) pwmax);
+        }
+
+        pg->pwmax = ceiling;
       }
     }
   }
@@ -13304,6 +13399,15 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   memset (pg->pool, 0, pg->pool_size);
 
+  // The range this run is held to, for the kernel. A cell of the escape spans lengths by construction
+  // and so does a cell of the grammar under varlen, so the host cannot hold either to a byte range as
+  // a whole, and the candidates of both are built on the device. pool_layout () starts the terminals
+  // at byte 4, which leaves the first word as the one place a value the whole run shares can sit
+  // without an option the kernel cache would have to be taught. Two 16 bit halves, because PW_MAX
+  // bounds both ends, and zero is a run that never said what it accepts.
+
+  pg->pool[0] = (pg->kpwmax != 0) ? ((pg->kpwmin & 0xffff) | (pg->kpwmax << 16)) : 0;
+
   u8 *bytes = (u8 *) pg->pool;
 
   for (u32 i = 0; i < pg->lists_cnt; i++)
@@ -13867,7 +13971,15 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     memset (&cell, 0, sizeof (cell));
 
-    if (unit_emit (pg, pth, bw, sizeof (bw), &cell) < 0) break;
+    // A cell the range excludes is not laid out and stands for no work on a device, so it is stepped
+    // over rather than ending the sample. Breaking on it would size the step from however many cells
+    // came before the first one refused, and under a narrow range that can be none.
+
+    const int rc = unit_emit (pg, pth, bw, sizeof (bw), &cell);
+
+    if (rc == GENERIC_RC_SKIP) continue;
+
+    if (rc < 0) break;
 
     if (cell.slot_cnt > 0)
     {
@@ -14029,7 +14141,11 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
       memset (&cell, 0, sizeof (cell));
 
-      if (unit_emit (pg, rp, bw, sizeof (bw), &cell) < 0) break;
+      const int rc = unit_emit (pg, rp, bw, sizeof (bw), &cell);
+
+      if (rc == GENERIC_RC_SKIP) continue;
+
+      if (rc < 0) break;
 
       const u64 rect = (cell.rect > 0) ? cell.rect : 1;
 
