@@ -1880,6 +1880,28 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // What each backend will print, and for OpenCL what each of its platforms will. A section with
+  // nothing to show is left out whole, and what is left decides where a comma goes.
+
+  const u32 cuda_shown  = (backend_ctx->cuda) ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_cuda,  backend_ctx->cuda_devices_cnt)  : 0;
+  const u32 hip_shown   = (backend_ctx->hip)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_hip,   backend_ctx->hip_devices_cnt)   : 0;
+  const u32 metal_shown = (backend_ctx->mtl)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_metal, backend_ctx->metal_devices_cnt) : 0;
+
+  u32 opencl_platform_shown[CL_PLATFORMS_MAX];
+  u32 opencl_shown = 0;
+
+  memset (opencl_platform_shown, 0, sizeof (opencl_platform_shown));
+
+  if (backend_ctx->ocl)
+  {
+    for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < backend_ctx->opencl_platforms_cnt; opencl_platforms_idx++)
+    {
+      opencl_platform_shown[opencl_platforms_idx] = backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx], (int) backend_ctx->opencl_platforms_devices_cnt[opencl_platforms_idx]);
+
+      opencl_shown += opencl_platform_shown[opencl_platforms_idx];
+    }
+  }
+
   if (user_options->backend_info > 1)
   {
     if (user_options->machine_readable == false)
@@ -2066,29 +2088,18 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       printf ("\"CacheDirectory\": \"%s\", ", folder_config->cache_dir);
       printf ("\"SharedDirectory\": \"%s\", ", folder_config->shared_dir);
       printf ("\"CLIncludePath\": \"%s\" ", folder_config->cpath_real);
-      printf ("}, ");
-    }
-  }
 
-  // What each backend will print, and for OpenCL what each of its platforms will. A section with
-  // nothing to show is left out whole, and what is left decides where a comma goes.
+      // The last object before the backend sections, and -D can leave every one of them empty. The
+      // comma belongs here only when something still follows it.
 
-  const u32 cuda_shown  = (backend_ctx->cuda) ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_cuda,  backend_ctx->cuda_devices_cnt)  : 0;
-  const u32 hip_shown   = (backend_ctx->hip)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_hip,   backend_ctx->hip_devices_cnt)   : 0;
-  const u32 metal_shown = (backend_ctx->mtl)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_metal, backend_ctx->metal_devices_cnt) : 0;
-
-  u32 opencl_platform_shown[CL_PLATFORMS_MAX];
-  u32 opencl_shown = 0;
-
-  memset (opencl_platform_shown, 0, sizeof (opencl_platform_shown));
-
-  if (backend_ctx->ocl)
-  {
-    for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < backend_ctx->opencl_platforms_cnt; opencl_platforms_idx++)
-    {
-      opencl_platform_shown[opencl_platforms_idx] = backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx], (int) backend_ctx->opencl_platforms_devices_cnt[opencl_platforms_idx]);
-
-      opencl_shown += opencl_platform_shown[opencl_platforms_idx];
+      if (cuda_shown || hip_shown || metal_shown || opencl_shown)
+      {
+        printf ("}, ");
+      }
+      else
+      {
+        printf ("} ");
+      }
     }
   }
 

@@ -660,9 +660,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 }
 
 // Which kernels the session runs, for the decisions that are not settled when hashconfig_init ()
-// runs. attack_kern is one of them: user_options_extra_init_late () is what turns -a 4, -a 7 and
-// -a 9 into ATTACK_KERN_PCFG, and is_opti_kernel_no_pcfg () answers wrongly before that. So this is
-// called after it, and from here on the backend only asks whether a bit is set.
+// runs. attack_kern is one of them, and the feed is what settles it: generic_instance_init () holds
+// the only assignment of ATTACK_KERN_PCFG in the tree, and makes it only once the device engine is
+// known to have base words. is_opti_kernel_no_pcfg () returns the wrong value before that, so this
+// is called after generic_ctx_init (), and from here on the backend only asks whether a bit is set.
 
 void hashconfig_kern_bits_init (hashcat_ctx_t *hashcat_ctx)
 {

@@ -493,11 +493,13 @@ static void hc_dev_mem_free (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
 int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const void *src, const u64 size)
 {
-  // Nothing to copy. cuMemcpyHtoD and hipMemcpyHtoD accept a zero length transfer and do nothing
-  // with it, while Metal refuses one and so does AMD's OpenCL and PoCL, which answers CL_INVALID_VALUE.
+  // Nothing to copy. CUDA and HIP accept a zero length transfer as a no-op, while Metal, AMD's
+  // OpenCL and PoCL all refuse one. Metal reports an invalid buffer size and the two OpenCL
+  // runtimes return CL_INVALID_VALUE.
+  //
   // Several of the sizes handed to this function are counts the host worked out and can legitimately
   // come out zero: a mask of markers only has no character positions, and an amplifier chunk whose
-  // every word was rejected holds no items. Answering those here keeps a run from ending on one
+  // every word was rejected holds no items. Returning early on those keeps a run from ending on one
   // backend where another completes it.
 
   if (size == 0) return 0;
@@ -701,8 +703,12 @@ static hc_dev_kern_t kern_run_to_slot (const int kern_run)
 }
 
 // The auxiliary kernels in slot order, so the kernel setup and the association run walk them rather
-// than repeat a block per slot. Adding a slot is one entry here, one in hc_dev_kern_t, one in
-// kern_run_t, one KERN_BIT_ define and AUX_KERNEL_CNT.
+// than repeat a block per slot. Adding a slot is 7 lines: one entry here, one in the switch above,
+// one in aux_kern_run_selftest in selftest.c, and in types.h one each in kern_run_t, hc_dev_kern_t,
+// the KERN_BIT_ defines and AUX_KERNEL_CNT.
+//
+// Only the 4 in types.h are checked for you. Raising AUX_KERNEL_CNT without extending both tables
+// compiles without a diagnostic and leaves the new slot reading kern_run 0.
 
 static const int aux_kern_run[AUX_KERNEL_CNT] =
 {
@@ -1775,16 +1781,13 @@ void generate_source_kernel_filename (const bool slow_candidates, const u32 atta
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
           snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
-        // The device engine has one kernel and it is the pure one, so this arm names a file that does
-        // not exist and is not meant to. It is unreachable: generic_instance_init () refuses -O for a
-        // feed that runs on the device, because hashconfig settled the optimized flag long before the
-        // attack kernel was known and the digests were parsed under it, so clearing the flag that late
-        // would leave them wrong. Nothing sets attack_kern to ATTACK_KERN_PCFG until after that
-        // refusal, and interface.c probes this with the mode's own attack_kern, which is never PCFG.
+        // 43 modes ship an _a4-optimized.cl, from when -a 4 gained a device engine on the modes that
+        // have only an optimized kernel. A mode without one never reaches this arm, because
+        // generic_instance_init () refuses -O there and says to run without it.
         //
-        // Naming the pure kernel here instead would be worse. If the refusal ever went away, the run
-        // would quietly hash with a kernel the digests were not prepared for and crack nothing, where
-        // a missing file stops the session and says which file.
+        // Those files export _mxx and _sxx rather than the length split names, which is why the
+        // kern_bits decision has to come after the feed has set attack_kern. Taken any earlier it
+        // names _s04, and the entry point lookup fails on a file that is otherwise correct.
 
         else if (attack_kern == ATTACK_KERN_PCFG)
           snprintf (source_file, 255, "%s/OpenCL/m%05d_a4-optimized.cl", shared_dir, (int) kern_type);
@@ -1844,16 +1847,13 @@ void generate_cached_kernel_filename (const bool slow_candidates, const u32 atta
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
           snprintf (cached_file, 255, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
-        // The device engine has one kernel and it is the pure one, so this arm names a file that does
-        // not exist and is not meant to. It is unreachable: generic_instance_init () refuses -O for a
-        // feed that runs on the device, because hashconfig settled the optimized flag long before the
-        // attack kernel was known and the digests were parsed under it, so clearing the flag that late
-        // would leave them wrong. Nothing sets attack_kern to ATTACK_KERN_PCFG until after that
-        // refusal, and interface.c probes this with the mode's own attack_kern, which is never PCFG.
+        // 43 modes ship an _a4-optimized.cl, from when -a 4 gained a device engine on the modes that
+        // have only an optimized kernel. A mode without one never reaches this arm, because
+        // generic_instance_init () refuses -O there and says to run without it.
         //
-        // Naming the pure kernel here instead would be worse. If the refusal ever went away, the run
-        // would quietly hash with a kernel the digests were not prepared for and crack nothing, where
-        // a missing file stops the session and says which file.
+        // Those files export _mxx and _sxx rather than the length split names, which is why the
+        // kern_bits decision has to come after the feed has set attack_kern. Taken any earlier it
+        // names _s04, and the entry point lookup fails on a file that is otherwise correct.
 
         else if (attack_kern == ATTACK_KERN_PCFG)
           snprintf (cached_file, 255, "%s/kernels/m%05d_a4-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
@@ -7026,9 +7026,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
 
         // In another case, when the user uses --stdout, using CPU devices is much faster to setup
-        // If we have a CPU device, force it to be used
+        // If we have a CPU device, force it to be used. Narrowing the filter to CPU is only safe
+        // while the user has named no device of their own: a -d picking a GPU would otherwise be
+        // left matching nothing, and the run ends saying no device is usable while naming the -d
+        // that is not the reason.
 
-        if (user_options->stdout_flag == true)
+        if ((user_options->stdout_flag == true) && (user_options->backend_devices == NULL))
         {
           if (opencl_device_types_all & CL_DEVICE_TYPE_CPU)
           {

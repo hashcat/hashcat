@@ -1010,8 +1010,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   user_options_extra_init_late (hashcat_ctx);
 
-  hashconfig_kern_bits_init (hashcat_ctx);
-
   EVENT (EVENT_HASHCONFIG_POST);
 
   /**
@@ -1381,6 +1379,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     return -1;
   }
+
+  // Which kernels the session runs is settled here for the same reason the loop count below is: the
+  // bits are derived from attack_kern, and generic_ctx_init () is what sets it to ATTACK_KERN_PCFG.
+  // Asked any earlier, a -a 4 run with -O is told to build the length split kernels, where the file
+  // it loads exports the single kernel instead.
+
+  hashconfig_kern_bits_init (hashcat_ctx);
 
   // Whether the device engine runs is settled by the feed, not by the attack mode: -a 4, -a 5 and a
   // feed on -a 8 or -a 9 all reach it, and any of them falls back to the host engine when the feed
