@@ -1027,6 +1027,18 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
   */
 
+  // Both branches below launch kernels, so the fake words go in before either one. A launch reads
+  // whatever the pws buffer holds, and the self test leaves it zeroed. The branch below is not only
+  // the fixed -n -u one its comment describes: an association attack lands there too.
+
+  const u32 hardware_power_max = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads_max);
+
+  const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
+
+  device_param->at_rc = -2;
+
+  if (run_kernel_atinit (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], kernel_power_max) == -1) return -1;
+
   // in this case the user specified a fixed -n and -u on the commandline
   // no way to tune anything
   // but we need to run a few caching rounds
@@ -1053,15 +1065,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   else
   {
     // from here it's clear we are allowed to autotune
-    // so let's init some fake words
-
-    const u32 hardware_power_max = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads_max);
-
-    const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
-
-    device_param->at_rc = -2;
-
-    if (run_kernel_atinit (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], kernel_power_max) == -1) return -1;
 
     if (user_options->slow_candidates == true)
     {
