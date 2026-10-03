@@ -48,6 +48,11 @@ typedef struct wpa_pmk_tmp
 
 } wpa_pmk_tmp_t;
 
+// A WPA2 M2 frame can pass 256 bytes once the RSN extension element is present, so the limit on a
+// stored EAPOL frame follows the frame rather than the old hccapx field it was inherited from.
+
+#define WPA_EAPOL_LEN_MAX 512
+
 typedef struct wpa
 {
   u32  essid_buf[16];
@@ -70,7 +75,7 @@ typedef struct wpa
 
   u32  keyver;
 
-  u32  eapol[128 + 16];
+  u32  eapol[(WPA_EAPOL_LEN_MAX / 4) + 16];
   u32  eapol_len;
 
   u32  pke[32];
