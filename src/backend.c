@@ -690,10 +690,25 @@ static hc_dev_kern_t kern_run_to_slot (const int kern_run)
     case KERN_RUN_AUX3:   return HC_DEV_KERN_AUX3;
     case KERN_RUN_AUX4:   return HC_DEV_KERN_AUX4;
     case KERN_RUN_AUX5:   return HC_DEV_KERN_AUX5;
+    case KERN_RUN_AUX6:   return HC_DEV_KERN_AUX6;
   }
 
   return HC_DEV_KERN_CNT;
 }
+
+// The auxiliary kernels in slot order, so the kernel setup and the association run walk them rather
+// than repeat a block per slot. Adding a slot is one entry here, one in hc_dev_kern_t, one in
+// kern_run_t, one KERN_BIT_ define and AUX_KERNEL_CNT.
+
+static const int aux_kern_run[AUX_KERNEL_CNT] =
+{
+  KERN_RUN_AUX1,
+  KERN_RUN_AUX2,
+  KERN_RUN_AUX3,
+  KERN_RUN_AUX4,
+  KERN_RUN_AUX5,
+  KERN_RUN_AUX6,
+};
 
 static void **kernel_params_mp_with_id (hc_device_param_t *device_param, const int kern_run)
 {
@@ -2691,50 +2706,25 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             int aux_cnt = 0;
 
-            if (hashconfig->kern_bits & KERN_BIT_AUX1)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+            bool aux_stopped = false;
 
-              if (status_ctx->run_thread_level2 == false) break;
+            for (u32 aux_idx = 0; aux_idx < AUX_KERNEL_CNT; aux_idx++)
+            {
+              if ((hashconfig->kern_bits & (KERN_BIT_AUX1 << aux_idx)) == 0) continue;
+
+              if (run_kernel (hashcat_ctx, device_param, aux_kern_run[aux_idx], pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false)
+              {
+                aux_stopped = true;
+
+                break;
+              }
 
               aux_cnt++;
             }
 
-            if (hashconfig->kern_bits & KERN_BIT_AUX2)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
-
-            if (hashconfig->kern_bits & KERN_BIT_AUX3)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
-
-            if (hashconfig->kern_bits & KERN_BIT_AUX4)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
-
-            if (hashconfig->kern_bits & KERN_BIT_AUX5)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
+            if (aux_stopped == true) break;
 
             if (aux_cnt == 0)
             {
@@ -13249,49 +13239,15 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       SETUP_KERNEL (HC_DEV_KERN_LOOP2, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
-    // aux1
+    // the auxiliary kernels this mode names, m<type>_aux1 upwards
 
-    if (hashconfig->kern_bits & KERN_BIT_AUX1)
+    for (u32 aux_idx = 0; aux_idx < AUX_KERNEL_CNT; aux_idx++)
     {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", kern_type);
+      if ((hashconfig->kern_bits & (KERN_BIT_AUX1 << aux_idx)) == 0) continue;
 
-      SETUP_KERNEL (HC_DEV_KERN_AUX1, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux%u", kern_type, aux_idx + 1);
 
-    // aux2
-
-    if (hashconfig->kern_bits & KERN_BIT_AUX2)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX2, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
-
-    // aux3
-
-    if (hashconfig->kern_bits & KERN_BIT_AUX3)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX3, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
-
-    // aux4
-
-    if (hashconfig->kern_bits & KERN_BIT_AUX4)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX4, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
-
-    // aux5
-
-    if (hashconfig->kern_bits & KERN_BIT_AUX5)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux5", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX5, HC_DEV_PROGRAM_MAIN, kernel_name);
+      SETUP_KERNEL (kern_run_to_slot (aux_kern_run[aux_idx]), HC_DEV_PROGRAM_MAIN, kernel_name);
     }
   }
 

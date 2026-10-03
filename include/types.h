@@ -442,6 +442,7 @@ typedef enum kern_run
   KERN_RUN_AUX3   = 7003,
   KERN_RUN_AUX4   = 7004,
   KERN_RUN_AUX5   = 7005,
+  KERN_RUN_AUX6   = 7006,
 
 } kern_run_t;
 
@@ -489,6 +490,7 @@ typedef enum hc_dev_kern
   HC_DEV_KERN_AUX3,
   HC_DEV_KERN_AUX4,
   HC_DEV_KERN_AUX5,
+  HC_DEV_KERN_AUX6,
   HC_DEV_KERN_CNT,
 
 } hc_dev_kern_t;
@@ -527,6 +529,13 @@ typedef enum hc_dev_kern
 #define KERN_BIT_AUX3           (1ULL << HC_DEV_KERN_AUX3)
 #define KERN_BIT_AUX4           (1ULL << HC_DEV_KERN_AUX4)
 #define KERN_BIT_AUX5           (1ULL << HC_DEV_KERN_AUX5)
+#define KERN_BIT_AUX6           (1ULL << HC_DEV_KERN_AUX6)
+
+// How many auxiliary slots exist, so the setup and the run walk them instead of naming each one.
+// Adding a slot is an entry in hc_dev_kern_t, one in kern_run_t, a KERN_BIT_ define, a line in the
+// aux_kern_run tables in backend.c and selftest.c, and this count.
+
+#define AUX_KERNEL_CNT 6
 
 // The programs a device builds. The hashing kernels come out of the main one, the utility kernels
 // out of the shared one, and the mask processor and the amplifier each have their own. A program is

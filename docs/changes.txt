@@ -394,11 +394,11 @@ have to act on rather than one you will simply notice.
 - Bridges must use "bridge_salt_pos()" and "salt_per_pw" to select the per-candidate salt in
   association attacks
 - The kernels a session runs are a bit mask over "hc_dev_kern_t" now, in "hashconfig_t.kern_bits". A
-  module names the optional ones it provides in a new "module_kern_bits()" hook, built from
-  "KERN_BIT_*" constants, and the 16 "OPTS_TYPE" flags that used to say this are removed: INIT, LOOP, COMP,
-  LOOP_PREPARE, LOOP_EXTENDED, HOOK12, HOOK23, INIT2, LOOP2_PREPARE, LOOP2, TM_KERNEL and AUX1 to
-  AUX5. hashcat decides the rest from the attack mode and the hash mode in
-  "hashconfig_kern_bits_init()", so the backend only asks whether a bit is set
+  module names the optional ones it provides in a new "module_kern_bits()" hook, built from the
+  "KERN_BIT_*" constants, and the 16 "OPTS_TYPE" flags that used to carry this are removed: INIT,
+  LOOP, COMP, LOOP_PREPARE, LOOP_EXTENDED, HOOK12, HOOK23, INIT2, LOOP2_PREPARE, LOOP2, TM_KERNEL
+  and AUX1 to AUX5. There are 6 auxiliary slots now rather than 5. hashcat selects the rest from the
+  attack mode and the hash mode in "hashconfig_kern_bits_init()", and the backend tests the bits
 - Native builds now target the build processor. Set "MAINTAINER_MODE=1" for distributable builds or
   "MCPU=<core>" to choose one explicitly. Raspberry Pi targets may be read from "/proc/cpuinfo",
   and mixed native and cross-compilation targets are rejected
@@ -985,6 +985,9 @@ Measurements depend on the device, runtime and workload.
 
 ## Hash modes and kernels
 
+- Fixed modes 22000 and 22001 refusing an EAPOL frame longer than 256 bytes. A vendor may append
+  an RSN extension to the key data, which takes M2 past the length the old hccapx field allowed,
+  and such a handshake was rejected with a token length exception
 - Fixed modes 22000 and 22001 refusing the old PMKID format when it was written with ":" separators
   rather than "*". The line was rewritten into the current format by copying it whole, which left all
   4 fields as one token

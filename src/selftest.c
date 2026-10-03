@@ -12,6 +12,19 @@
 #include "thread.h"
 #include "selftest.h"
 
+// The auxiliary kernels in slot order. backend.c keeps its own copy for the cracking loop, and
+// neither is worth a shared symbol for a handful of entries.
+
+static const int aux_kern_run_selftest[AUX_KERNEL_CNT] =
+{
+  KERN_RUN_AUX1,
+  KERN_RUN_AUX2,
+  KERN_RUN_AUX3,
+  KERN_RUN_AUX4,
+  KERN_RUN_AUX5,
+  KERN_RUN_AUX6,
+};
+
 static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 *highest_pw_len)
 {
   hashes_t             *hashes             = hashcat_ctx->hashes;
@@ -658,29 +671,11 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       device_param->kernel_param.loop_pos = 0;
       device_param->kernel_param.loop_cnt = 1;
 
-      if (hashconfig->kern_bits & KERN_BIT_AUX1)
+      for (u32 aux_idx = 0; aux_idx < AUX_KERNEL_CNT; aux_idx++)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 0, 1, false, 0, false) == -1) return -1;
-      }
+        if ((hashconfig->kern_bits & (KERN_BIT_AUX1 << aux_idx)) == 0) continue;
 
-      if (hashconfig->kern_bits & KERN_BIT_AUX2)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 0, 1, false, 0, false) == -1) return -1;
-      }
-
-      if (hashconfig->kern_bits & KERN_BIT_AUX3)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 0, 1, false, 0, false) == -1) return -1;
-      }
-
-      if (hashconfig->kern_bits & KERN_BIT_AUX4)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 0, 1, false, 0, false) == -1) return -1;
-      }
-
-      if (hashconfig->kern_bits & KERN_BIT_AUX5)
-      {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, 0, 1, false, 0, false) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, aux_kern_run_selftest[aux_idx], 0, 1, false, 0, false) == -1) return -1;
       }
     }
 

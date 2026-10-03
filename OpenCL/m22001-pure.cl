@@ -70,7 +70,7 @@ typedef struct wpa
 
   u32  keyver;
 
-  u32  eapol[64 + 16];
+  u32  eapol[128 + 16];
   u32  eapol_len;
 
   u32  pke[32];
