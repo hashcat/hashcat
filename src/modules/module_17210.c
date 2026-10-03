@@ -112,8 +112,8 @@ static const char *ST_HASH        = "$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1
 
 #define MAX_DATA (320 * 1024)
 
-// this is required to force mingw to accept the packed attribute
-#pragma pack(push,1)
+// Without the packed attribute the compiler lays data[] out at offset 40 of pkzip_t. Packed it
+// fell on 34, which is 2 mod 4, and every u32 read of the file data was misaligned.
 
 struct pkzip_hash
 {
@@ -130,7 +130,7 @@ struct pkzip_hash
   u16 checksum_from_timestamp;
   u32 data[MAX_DATA / 4]; // a quarter because of the u32 type
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip_hash pkzip_hash_t;
 
@@ -142,11 +142,9 @@ struct pkzip
 
   pkzip_hash_t hash;
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip pkzip_t;
-
-#pragma pack(pop)
 
 static const char *SIGNATURE_PKZIP_V1 = "$pkzip$";
 static const char *SIGNATURE_PKZIP_V2 = "$pkzip2$";
