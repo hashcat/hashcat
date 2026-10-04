@@ -65,6 +65,7 @@ static const char *const PA_044 = "PT length exception";
 static const char *const PA_045 = "PT offset exception";
 static const char *const PA_046 = "Invalid or unsupported CryptoAPI hash type";
 static const char *const PA_047 = "Invalid CryptoAPI key size";
+static const char *const PA_048 = "Required compression library libzstd was not found";
 static const char *const PA_255 = "Unknown error";
 
 // input_tokenizer() records the offending part of the input line in here when it rejects that line.
@@ -270,6 +271,7 @@ const char *strparser (const u32 parser_status)
     case PARSER_PT_OFFSET:            return PA_045;
     case PARSER_CRYPTOAPI_KERNELTYPE: return PA_046;
     case PARSER_CRYPTOAPI_KEYSIZE:    return PA_047;
+    case PARSER_ZSTD_UNAVAILABLE:     return PA_048;
   }
 
   return PA_255;

@@ -4589,26 +4589,6 @@ def edge_hexify_plain(mode):
   return b"OPTS_TYPE_PT_ALWAYS_HEXIFY" in src and b"OPTS_TYPE_PT_HEX" not in src
 
 
-def edge_pyenv_free_threaded():
-  # test_edge.sh reads 'pyenv local' to decide 72000 and 73000. A missing pyenv leaves the flag off,
-  # so 72000 is skipped and 73000 runs, which is what a machine without pyenv does.
-
-  try:
-    proc = subprocess.run(["pyenv", "local"], cwd=ROOT,
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-  except OSError:
-    return False
-
-  if proc.returncode != 0:
-    return False
-
-  for line in proc.stdout.split(b"\n"):
-    if re.search(rb"t-dev", line) or re.search(rb"[0-9]t$", line):
-      return True
-
-  return False
-
-
 class EdgeCtx:
   # The per-mode facts an attack cell needs, read once off -HH and the module source.
 
@@ -5128,16 +5108,6 @@ def edge_process_mode(args, mode, cfg, tmp):
 
     return 0, 0
 
-  if mode == 72000 and not edge_pyenv_free_threaded():
-    print("[ test.py edge ] > Skip Type %d (missing python free-threaded support)" % mode)
-
-    return 0, 0
-
-  if mode == 73000 and edge_pyenv_free_threaded():
-    print("[ test.py edge ] > Skip Type %d (needs a python without free-threaded support)" % mode)
-
-    return 0, 0
-
   slow         = hh["slow"]
   binary       = edge_binary_hashfile(mode)
   hexify_plain = edge_hexify_plain(mode)
@@ -5472,8 +5442,23 @@ def run_parallel(args):
   rc = 0
   retry = []
 
+  # Submit the dearest modes first. A mode is indivisible, so the longest one sets the floor for any
+  # job count, and submitting in mode order leaves it starting late: on the -M set the three dearest
+  # sit at positions 10 to 12 of 24, so with 8 workers none of them begins until a cheap mode frees a
+  # slot. ATTACK_EXEC_OUTSIDE_KERNEL is the cost proxy, read off the module rather than kept in a
+  # table that would go stale, and on that set it names the five dearest modes exactly. A mode it
+  # names wrongly is cheap and gives its slot straight back, so a false positive costs nothing.
+  #
+  # Results are still read in mode order, so the output of a -j run is unchanged.
+
+  order = sorted(modes, key=lambda m: (0 if host_engine(m) else 1, -m))
+
   with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for mode, (prc, out) in zip(modes, pool.map(run_one, modes)):
+    submitted = {m: pool.submit(run_one, m) for m in order}
+
+    for mode in modes:
+      prc, out = submitted[mode].result()
+
       if prc == MEMSKIP_RC:
         # Skipped only because -j gave this worker a fraction of the card. Defer it and re-run on the
         # whole card below, so its memory-skip output here is left out.

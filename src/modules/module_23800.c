@@ -33,8 +33,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_REGISTER_LIMIT;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_HOOK23
                                   | OPTS_TYPE_POST_AMP_UTF16LE;
+static const u64   KERN_BITS      = KERN_BIT_HOOK23;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$RAR3$*1*ad56eb40219c9da2*834064ce*32*13*1*eb47b1abe17a1a75bce6c92ab1cef3f4126035ea95deaf08b3f32a0c7b8078e1*33";
@@ -47,6 +47,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 bool        module_length_sort    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return LENGTH_SORT;     }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
@@ -827,6 +828,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_length_sort              = module_length_sort;

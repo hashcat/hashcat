@@ -69,9 +69,7 @@ the oracle's `module_verify_hash` to regenerate H and digests the result, which 
 only when the candidate is the password. A hash line longer than the bridge's 1024 byte salt does not
 fit and is skipped, which the `vectors` command reports.
 
-Both bridge modes run the same oracle. On Linux use `-m 73000` (multiprocessing): it spawns the
-system Python, so it covers every oracle including the ones that use pycryptodome. `-m 72000` is the
-free-threaded bridge; its embedded interpreter cannot load pycryptodome, so an oracle that imports
-`Crypto` (m01000, for MD4) runs under 73000 but not 72000, while a hashlib-only oracle runs under both.
-Building the 72000 plugin needs Python 3.13+ headers and a free-threaded runtime to load it; see
+The bridge runs each oracle in an ordinary Python process, so an oracle that imports pycryptodome
+works the same as a hashlib-only one, on Linux, macOS and Windows alike. It needs a `python3` on PATH
+and nothing else. See
 [docs/hashcat-python-plugin-requirements.md](/docs/hashcat-python-plugin-requirements.md).

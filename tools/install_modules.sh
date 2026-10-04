@@ -44,8 +44,12 @@ if [ $? -eq 0 ]; then
 
   else
 
-    # enum last version available
-    latest=$(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]$" | tail -n 1)
+    # The newest final 3.x release pyenv offers. The patch number needs more than one digit: with a
+    # single [0-9] the pattern skips 3.14.10 and settles on 3.14.7, quietly installing an older python
+    # than the one asked for. The suffixed builds, 3.13.3t and the release candidates, stay out because
+    # they carry something after the patch number.
+
+    latest=$(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]+$" | tail -n 1)
 
     if [ $IS_APPLE -eq 1 ]; then
       if [ $IS_APPLE_SILICON -eq 0 ]; then
@@ -77,39 +81,47 @@ if [ $? -eq 0 ]; then
   fi
 fi
 
+# Without pyenv there is no interpreter this script is allowed to install into, so there is nothing
+# left for it to do. It used to carry on to the check at the end, which runs under whatever python3 is
+# on PATH. That check passes wherever the system python happens to carry pycryptodome already, so the
+# script could report the suite as usable and exit 0 having installed none of the pinned packages.
+
 if [ ${pyenv_enabled} -eq 0 ]; then
 
-  echo "! something is wrong with pyenv. Please setup latest version manually and re-run this script."
-  (( ERRORS++ ))
+  echo "! pyenv is not usable, so there is nothing to install into. Nothing was installed."
+  echo
+  echo "  tools/install_dependencies.sh installs pyenv. Run it, then open a new shell so the lines it"
+  echo "  appends to .bashrc take effect. Sourcing .bashrc from a script will not do, because the stock"
+  echo "  one returns before those lines when the shell is not interactive."
 
-else
-
-  echo "> Installing python3 deps ..."
-
-  # One file lists what the test modules import, so a contributor writing a module has one place
-  # to read and one place to add to.
-
-  pip3 install -r "${TOOLS_DIR}/requirements.txt"
-  ERRORS=$((ERRORS+$?))
-
-  # A python import that fails inside a test module is invisible from here. The module shells out
-  # to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
-  # error. Import each one now, while the cause is still in front of you.
-
-  PYTHON_MODULES="Crypto cryptography argon2 gostcrypto crypt_r"
-
-  for python_module in ${PYTHON_MODULES}; do
-
-    if python3 -c "import ${python_module}" > /dev/null 2>&1; then
-      echo "  ok      ${python_module}"
-    else
-      echo "  FAILED  ${python_module}"
-      FAILED_MODULES="${FAILED_MODULES} ${python_module}"
-    fi
-
-  done
+  exit 1
 
 fi
+
+echo "> Installing python3 deps ..."
+
+# One file lists what the test modules import, so a contributor writing a module has one place
+# to read and one place to add to.
+
+pip3 install -r "${TOOLS_DIR}/requirements.txt"
+ERRORS=$((ERRORS+$?))
+
+# A python import that fails inside a test module is invisible from here. The module shells out
+# to python3 and reads stdout only, so a dead dependency produces a wrong hash rather than an
+# error. Import each one now, while the cause is still in front of you.
+
+PYTHON_MODULES="Crypto cryptography argon2 gostcrypto crypt_r"
+
+for python_module in ${PYTHON_MODULES}; do
+
+  if python3 -c "import ${python_module}" > /dev/null 2>&1; then
+    echo "  ok      ${python_module}"
+  else
+    echo "  FAILED  ${python_module}"
+    FAILED_MODULES="${FAILED_MODULES} ${python_module}"
+  fi
+
+done
 
 echo
 
@@ -132,6 +144,19 @@ fi
 
 if python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | grep -q hashcat; then
 
+  # pip failing is a setup failure even when mode 1000 still works, because the suite would then run
+  # against whatever versions are already installed rather than against the pinned ones.
+
+  if [ ${ERRORS} -ne 0 ]; then
+
+    echo "[ FAIL ] tools/test_module_runner.py can generate hashes, but pip did not install the pinned set"
+    echo "         in tools/requirements.txt. The suite would run against whatever versions are already"
+    echo "         there. Read the pip output above and run this script again."
+
+    exit 1
+
+  fi
+
   echo "[  OK  ] tools/test_module_runner.py can generate hashes, the suite is usable"
 
   if [ -n "${FAILED_MODULES}" ]; then
@@ -143,7 +168,13 @@ if python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | grep 
 fi
 
 echo "[ FAIL ] tools/test_module_runner.py cannot generate hashes. The suite would report 'Error : 0/0' on"
-echo "         every mode, which is a setup failure and not a hashcat one. Fix the modules above"
-echo "         and run this script again."
+echo "         every mode, which is a setup failure and not a hashcat one."
+
+if [ -n "${FAILED_MODULES}" ]; then
+  echo "         Fix the modules above and run this script again."
+else
+  echo "         Every package imported, so run the check by hand to see what it says:"
+  echo "         python3 tools/test_module_runner.py single 1000"
+fi
 
 exit 1

@@ -33,14 +33,14 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_AUX1
-                                  | OPTS_TYPE_AUX2
-                                  | OPTS_TYPE_AUX3
                                   | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_POTFILE_NOPASS
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
+static const u64   KERN_BITS      = KERN_BIT_AUX1
+                                  | KERN_BIT_AUX2
+                                  | KERN_BIT_AUX3;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "7f620a599c445155935a35634638fa67b4aafecb92e0bd8625388757a63c2dda";
 static const char *ST_HASH        = "4843505804000000000235380000000000000000000000000000000000000000000000000000000000000151aecc428f182acefbd1a9e62d369a079265784da83ba4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b823a1cd402aed449cced04f552c5b5acfebf06ae96a09c96d9a01c443a17aa62258c4f651a68aa67b0001030077fe010900200000000000000001a4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b8230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018dd160050f20101000050f20201000050f20201000050f20200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
@@ -53,6 +53,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -994,6 +995,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

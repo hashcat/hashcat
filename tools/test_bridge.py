@@ -5,10 +5,9 @@
 ## License.....: MIT
 ##
 
-# Run any test oracle (tools/test_modules/mNNNNN.py) inside hashcat through the Python bridge, modes
-# 72000 and 73000. The oracle is then the hashing code hashcat cracks with, so a mode's reference
-# implementation can be checked against hashcat's own parser and candidate handling, or stepped
-# through, without a kernel.
+# Run any test oracle (tools/test_modules/mNNNNN.py) inside hashcat through the Python bridge. The
+# oracle is then the hashing code hashcat cracks with, so a mode's reference implementation can be
+# checked against hashcat's own parser and candidate handling, or stepped through, without a kernel.
 #
 #   python3 tools/test_bridge.py vectors 1000 /tmp/b.hash /tmp/b.words
 #   ./hashcat -m 73000 --bridge-parameter1 tools/test_bridge.py /tmp/b.hash /tmp/b.words
@@ -29,17 +28,10 @@ import re
 import struct
 import subprocess
 import sys
-import types
 
 
 def _root():
-  # The bridge compiles this file from source and may not set __file__, so fall back to the working
-  # directory, which is the hashcat directory for a bridge run (it adds ./Python to sys.path).
-
-  try:
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-  except NameError:
-    return os.getcwd()
+  return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 ROOT  = _root()
@@ -50,11 +42,8 @@ for p in (TESTS, os.path.join(ROOT, "Python")):
     sys.path.insert(0, p)
 
 import hcshared  # noqa: E402
-import hcsp      # noqa: E402
 
 SALT_MAX = 1024
-
-PLUGIN_NAME = "test_bridge_plugin"
 
 ST_PASS = "hashcat"
 ST_HASH = "74ee1fae245edd6f27bf36efc3604942479fceefbadab5dc5c0b538c196eb0f1*0:o:ODc0M2I1MjA2M2NkODQwOTdhNjVkMTYzM2Y1Yzc0ZjU="
@@ -115,32 +104,6 @@ def extract_esalts(esalts_buf):
     esalts.append({"hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len]})
 
   return esalts
-
-
-# Single process on purpose: it works under both 72000 and 73000, and on the platforms where 73000
-# falls back to a single process anyway. An oracle is reference code, not a fast path.
-
-def kernel_loop(ctx, passwords, salt_id, is_selftest):
-  return hcsp.handle_queue(ctx, passwords, salt_id, is_selftest)
-
-
-def init(ctx):
-  hcsp.init(ctx, extract_esalts)
-
-  # hcsp finds calc_hash by importing ctx["module_name"], which the bridge sets to this file's
-  # name. Only ./Python is on sys.path, so that import fails for a plugin kept in tools/. Register
-  # calc_hash under a name the import resolves from sys.modules instead.
-
-  plugin = types.ModuleType(PLUGIN_NAME)
-  plugin.calc_hash = calc_hash
-
-  sys.modules[PLUGIN_NAME] = plugin
-
-  ctx["module_name"] = PLUGIN_NAME
-
-
-def term(ctx):
-  hcsp.term(ctx)
 
 
 # The oracle's test vectors, as test.py reads them: echo <word> | ./hashcat ${OPTS} -a 0 -m N '<h>'.

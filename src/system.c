@@ -44,7 +44,7 @@
 #include <sys/sysinfo.h>
 #endif
 #endif
-void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options)
+void setup_environment_variables (const folder_config_t *folder_config)
 {
   char *compute = getenv ("COMPUTE");
 
@@ -85,10 +85,6 @@ void setup_environment_variables (const folder_config_t *folder_config, const us
 
     // we can't free tmpdir at this point!
   }
-
-  if (user_options->hash_mode == 72000) // ugly but rare hack, we might move this to modules at a later stage
-    if (getenv ("PYTHON_GIL") == NULL)
-     putenv ((char *) "PYTHON_GIL=0");
 
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);

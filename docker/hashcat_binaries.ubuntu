@@ -72,7 +72,7 @@ RUN echo "$WD/native/lib" > /etc/ld.so.conf.d/toolchain.conf && \
     update-alternatives --set g++ $WD/native/bin/g++ && \
     update-alternatives --set cc $WD/native/bin/gcc && \
     update-alternatives --set c++ $WD/native/bin/g++ && \
-    mkdir -p $WD/src /opt/win-python /root/out
+    mkdir -p $WD/src /root/out
 
 # 7zip
 
@@ -192,16 +192,6 @@ RUN cd $WD/src && wget --no-verbose -t 3 -c --https-only https://gmplib.org/down
     make -j ${MAX_CORE} && make install && \
     cd $WD/src && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
 
-# Python (windows)
-
-ARG WIN_PYTHON_VERSION=3.14.6-2
-ENV WIN_PYTHON_VERSION=${WIN_PYTHON_VERSION}
-
-RUN cd /opt/win-python && \
-    wget --no-verbose -t 3 -c --https-only https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.tar.zst && \
-    unzstd mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.tar.zst && tar -xf mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.tar && \
-    rm -rf mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.*
-
 # rust
 
 ARG RUST_VERSION=1.97.1
@@ -246,6 +236,14 @@ ENV CACHE_BUST=${CACHE_BUST} \
 RUN cd /root && git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 RUN test -f /root/hashcat/include/export.h || { echo "HASHCAT_REF=${HASHCAT_REF} predates the shared core, which this file cannot build"; exit 1; }
+
+# The Python bridge used to be built against Windows Python headers from an MSYS2 package, which this
+# file installed under /opt/win-python. It starts an interpreter as a separate process now and needs no
+# headers at all, so the package is gone from here. A tree that still wants it would build without its
+# Python plugin and say so only in a warning, which is a release package quietly missing a hash mode,
+# so it is refused here instead.
+
+RUN if grep -q 'WIN_PYTHON' /root/hashcat/src/Makefile; then echo "HASHCAT_REF=${HASHCAT_REF} builds its Python bridge from Windows Python headers, which this file no longer installs"; exit 1; fi
 
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
@@ -321,7 +319,6 @@ ARG WITH_CODE_ANALYSIS=0
 ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
 
 RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
-    echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
     echo "XZ_VERSION: ${XZ_VERSION}" >> /root/toolchain-info.log && \
     echo "ZLIB_VERSION: ${ZLIB_VERSION}" >> /root/toolchain-info.log && \
     echo "ZSTD_VERSION: ${ZSTD_VERSION}" >> /root/toolchain-info.log && \

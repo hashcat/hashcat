@@ -15,8 +15,8 @@
 
 DECLSPEC u64 MurmurHash64A (const u64 seed, PRIVATE_AS const u32 *data, const u32 len)
 {
-#define M 0xc6a4a7935bd1e995
-#define R 47
+  #define M 0xc6a4a7935bd1e995
+  #define R 47
 
   // Initialize hash
   u64 hash = seed ^ (len * M);
@@ -59,8 +59,8 @@ DECLSPEC u64 MurmurHash64A (const u64 seed, PRIVATE_AS const u32 *data, const u3
   hash *= M;
   hash ^= hash >> R;
 
-#undef M
-#undef R
+  #undef M
+  #undef R
 
   return hash;
 }
@@ -112,6 +112,10 @@ KERNEL_FQ KERNEL_FA void m34200_m04 (KERN_ATTR_BASIC ())
     const u32 pw_r_len = COMBS_PW_R_LEN (il_pos);
 
     const u32 pw_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can exceed the 64 bytes the concat fills.
+
+    if (pw_len > 64) continue;
 
     /**
      * concat password candidate
@@ -302,6 +306,10 @@ KERNEL_FQ KERNEL_FA void m34200_s04 (KERN_ATTR_BASIC ())
     const u32 pw_r_len = COMBS_PW_R_LEN (il_pos);
 
     const u32 pw_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can exceed the 64 bytes the concat fills.
+
+    if (pw_len > 64) continue;
 
     /**
      * concat password candidate

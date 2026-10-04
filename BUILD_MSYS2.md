@@ -50,15 +50,15 @@ Tested on Windows 11 23H2 x64
 2. **Compile:**
 
    ```sh
-   make -j"$(nproc)" WIN_PYTHON=""
+   make -j"$(nproc)"
    ```
 
-   > Upstream uses `make WIN_PYTHON=""`; the `-j$(nproc)` just speeds things up.
+   > The `-j$(nproc)` just speeds things up.
    >
    > To rebuild cleanly later, use:
    >
    > ```sh
-   > make clean && make -j"$(nproc)" WIN_PYTHON=""
+   > make clean && make -j"$(nproc)"
    > ```
 
 ---

@@ -15,6 +15,7 @@
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
 #include "ext_zlib.h"
+#include "ext_zstd.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -29,8 +30,8 @@ static const bool  LENGTH_SORT    = true;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_SUGGEST_KG
-                                  | OPTS_TYPE_HOOK23;
+                                  | OPTS_TYPE_SUGGEST_KG;
+static const u64   KERN_BITS      = KERN_BIT_HOOK23;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269";
@@ -43,6 +44,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 bool        module_length_sort    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return LENGTH_SORT;     }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
@@ -318,7 +320,11 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
     {
       ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
     }
-    else // we only support LZMA2 in addition to LZMA1
+    else if (data_type == 8) // ZSTD
+    {
+      ok = hc_zstd_decompress (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
+    }
+    else // we only support LZMA2 in addition to LZMA1 and ZSTD
     {
       ok = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
@@ -571,9 +577,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // this check also returns an error with data_type == 0x80 (special case that means "truncated")
 
-  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7))
+  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7) && (data_type != 8))
   {
     return (PARSER_SALT_VALUE);
+  }
+
+  if ((data_type == 8) && (hc_zstd_available () == false))
+  {
+    return (PARSER_ZSTD_UNAVAILABLE);
   }
 
   if (salt_len != 0) return (PARSER_SALT_VALUE);
@@ -863,6 +874,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_length_sort              = module_length_sort;
