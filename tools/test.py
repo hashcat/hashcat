@@ -2766,7 +2766,8 @@ def container_truecrypt(args, mode, width, tmp):
 # test.sh veracrypt_test (test.sh) derives the container name from the mode digits rather than a
 # case table, so the whole family ports as data. hash_digit = mode[3], cipher_digit = mode[4].
 VC_HASH_DIGIT  = {1: "ripemd160", 2: "sha512", 3: "whirlpool", 4: "ripemd160",
-                  5: "sha256", 6: "sha256", 7: "streebog", 8: "streebog"}
+                  5: "sha256", 6: "sha256", 7: "streebog", 8: "streebog",
+                  9: "blake2s"}
 VC_BOOT_DIGITS = {4, 6, 8}
 VC_CASCADES    = {
   1: {0: "aes", 1: "serpent", 2: "twofish", 3: "camellia", 5: "kuznyechik"},
@@ -2778,7 +2779,8 @@ VC_CASCADES    = {
 VC_MODES = {13711, 13712, 13713, 13721, 13722, 13723, 13731, 13732, 13733, 13741, 13742, 13743,
             13751, 13752, 13753, 13761, 13762, 13763, 13771, 13772, 13773, 13781, 13782, 13783,
             29411, 29412, 29413, 29421, 29422, 29423, 29431, 29432, 29433, 29441, 29442, 29443,
-            29451, 29452, 29453, 29461, 29462, 29463, 29471, 29472, 29473, 29481, 29482, 29483}
+            29451, 29452, 29453, 29461, 29462, 29463, 29471, 29472, 29473, 29481, 29482, 29483,
+            29491, 29492, 29493}
 
 
 def container_veracrypt(args, mode, width, tmp):

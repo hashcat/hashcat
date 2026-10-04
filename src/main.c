@@ -1726,11 +1726,17 @@ static bool main_timing_report_enabled (const user_options_t *user_options)
   return true;
 }
 
-static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled)
+static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled, const int rc_final)
 {
   main_timing_finalize ();
 
   if (enabled == false) return;
+
+  // A session that never ran still reaches here, so the times below can describe a run that gave up
+  // in its first few milliseconds. Every value RC_FINAL names for a session that reached a
+  // conclusion is zero or above, so a negative one is the signal, whichever way it failed.
+
+  const bool failed = (rc_final < 0);
 
   const double total          = main_timing_msec (MAIN_TIMING_TOTAL);
   const double before         = main_timing_msec (MAIN_TIMING_BEFORE_ATTACK);
@@ -1762,8 +1768,18 @@ static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled)
   const double cleanup     = main_timing_other (after, session_close);
 
   event_log_info (hashcat_ctx, NULL);
-  event_log_info (hashcat_ctx, "Task Time Breakdown");
-  event_log_info (hashcat_ctx, "===================");
+
+  if (failed == true)
+  {
+    event_log_info (hashcat_ctx, "Task Time Breakdown (THE SESSION FAILED, SO THESE TIMES ARE INCOMPLETE)");
+    event_log_info (hashcat_ctx, "=======================================================================");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Task Time Breakdown");
+    event_log_info (hashcat_ctx, "===================");
+  }
+
   event_log_info (hashcat_ctx, NULL);
 
   main_timing_line (hashcat_ctx, "BEFORE ATTACK", before, total, 0);
@@ -1831,7 +1847,7 @@ static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled)
 
   event_log_info (hashcat_ctx, NULL);
 
-  main_timing_line (hashcat_ctx, "MEASURED TOTAL", total, total, 0);
+  main_timing_line (hashcat_ctx, (failed == true) ? "MEASURED TOTAL, SESSION FAILED" : "MEASURED TOTAL", total, total, 0);
 
   // What the run cost in memory as well as in time. Peak rather than current, because the interesting
   // number is the high water mark a machine had to have room for, and by here it has usually passed.
@@ -2106,7 +2122,7 @@ int main (int argc, char **argv)
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
 
-  main_timing_report (hashcat_ctx, timing_report_enabled);
+  main_timing_report (hashcat_ctx, timing_report_enabled, rc_final);
 
   hashcat_destroy (hashcat_ctx);
 

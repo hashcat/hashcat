@@ -79,6 +79,7 @@ comgr-*/
 
 Rust/feeds/*/target
 Rust/bridges/*/target
+Rust/hashcat-sys/target
 
 # Left behind by builds from before the bindings moved into OUT_DIR
 Rust/hashcat-sys/src/bindings.rs

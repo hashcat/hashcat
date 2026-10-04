@@ -185,7 +185,14 @@ int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val)
 
   proc_stat_t cur;
 
-  if (read_proc_stat (hashcat_ctx, &cur) == false) return false;
+  // -1 and 0, the convention hm_SYSFS_CPU_get_temperature_current above uses and the one the caller
+  // in src/hwmon.c tests. This returned true and false, which are 1 and 0, so neither exit was ever
+  // -1: a /proc/stat that could not be read came back as a successful reading of whatever the
+  // caller had initialised, which is 0, and the sensor was never marked unsupported.
+  //
+  // A /proc/stat that cannot be read will not start working, so that one is worth reporting.
+
+  if (read_proc_stat (hashcat_ctx, &cur) == false) return -1;
 
   unsigned long prev_idle = prev.idle
                           + prev.iowait;
@@ -221,8 +228,14 @@ int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val)
 
     *val = (int) cpu_percentage;
 
-    return true;
+    return 0;
   }
 
-  return false;
+  // No time passed between this sample and the last, which happens when two refreshes land inside
+  // one jiffy. There is nothing to report and nothing wrong with the sensor, so it says zero for
+  // this tick rather than disabling itself for the run.
+
+  *val = 0;
+
+  return 0;
 }
