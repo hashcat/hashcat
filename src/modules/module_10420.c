@@ -44,6 +44,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/sighook/pdf2hashcat to extract the $pdf$ line. This mode also needs the 40 bit RC4 key appended to that line after a colon, which pdf2hashcat does not emit: crack the $pdf$ line with mode 10410 first to recover the key, then append it as ':<key>'.";
+}
+
 typedef struct pdf
 {
   int V;
@@ -326,11 +331,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   );
 
   return line_len;
-}
-
-const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return USAGE_NOTICE_PDF;
 }
 
 void module_init (module_ctx_t *module_ctx)
