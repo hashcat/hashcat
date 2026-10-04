@@ -74,13 +74,19 @@ static bool hm_same_hardware (hashcat_ctx_t *hashcat_ctx, const hc_device_param_
 
   if (bridge_ctx->enabled == true)
   {
-    if (bridge_ctx->get_unit_info == NULL) return true;
+    // Not knowing has to answer no, for the reason the header of this function gives: a wrong yes
+    // hides a device. These three said yes, so a bridge that does not implement get_unit_info, or
+    // one that returns no string for a unit, collapsed every one of its units onto the first one's
+    // row. hm_is_hwmon_group_leader then kept only that first unit, and the watchdog walks the same
+    // answer, so the rest went unwatched as well.
+
+    if (bridge_ctx->get_unit_info == NULL) return false;
 
     const char *info_a = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_a->bridge_link_device);
     const char *info_b = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_b->bridge_link_device);
 
-    if (info_a == NULL) return true;
-    if (info_b == NULL) return true;
+    if (info_a == NULL) return false;
+    if (info_b == NULL) return false;
 
     const bool same = (strcmp (info_a, info_b) == 0);
 
