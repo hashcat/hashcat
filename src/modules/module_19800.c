@@ -63,8 +63,8 @@ typedef struct krb5pa_17_tmp
 {
   u32 ipad[5];
   u32 opad[5];
-  u32 dgst[10];
-  u32 out[10];
+  u32 dgst[5];
+  u32 out[5];
 
 } krb5pa_17_tmp_t;
 

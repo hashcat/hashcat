@@ -64,8 +64,8 @@ typedef struct krb5asrep_17_tmp
 {
   u32 ipad[5];
   u32 opad[5];
-  u32 dgst[16];
-  u32 out[16];
+  u32 dgst[5];
+  u32 out[5];
 
 } krb5asrep_17_tmp_t;
 

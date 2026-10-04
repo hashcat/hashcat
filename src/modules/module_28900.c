@@ -58,8 +58,8 @@ typedef struct krb5db_18_tmp
 {
   u32 ipad[5];
   u32 opad[5];
-  u32 dgst[16];
-  u32 out[16];
+  u32 dgst[10];
+  u32 out[10];
 
 } krb5db_18_tmp_t;
 
