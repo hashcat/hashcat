@@ -58,6 +58,7 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
 
 bool is_hex_notation (const char *rule_buf, u32 rule_len, u32 rule_pos);
 
+u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos);
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 

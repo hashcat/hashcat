@@ -8,6 +8,15 @@
 
 #include "inc_rp_common.h"
 
+// Apple's OpenCL is Metal underneath, and its compiler spends minutes building one pipeline out of
+// an inlined rule engine. inc_rp_common.h already asks for noinline on the Metal backend; the same
+// compiler is reached through OpenCL, where that header leaves it inlined.
+
+#if defined (IS_OPENCL) && defined (IS_APPLE_SILICON)
+#undef HC_INLINE_RP
+#define HC_INLINE_RP __attribute__ ((noinline))
+#endif
+
 DECLSPEC void truncate_right_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 offset);
 DECLSPEC void truncate_left_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 offset);
 DECLSPEC void lshift_block_optimized (PRIVATE_AS const u32 *in0, PRIVATE_AS const u32 *in1, PRIVATE_AS u32 *out0, PRIVATE_AS u32 *out1);

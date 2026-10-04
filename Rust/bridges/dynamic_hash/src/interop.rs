@@ -34,6 +34,10 @@ pub(crate) struct ThreadContext {
     pub bridge_parameter2: String,
     pub bridge_parameter3: String,
     pub bridge_parameter4: String,
+
+    // Under attack mode 9 salt_id is the salt the batch starts at and each candidate adds its own
+    // position in it. Every other attack has one salt for the whole batch.
+    pub salt_per_pw: bool,
 }
 
 impl ThreadContext {
@@ -82,6 +86,7 @@ pub extern "C" fn new_context(
     bridge_parameter2: *const c_char,
     bridge_parameter3: *const c_char,
     bridge_parameter4: *const c_char,
+    salt_per_pw: bool,
 ) -> *mut c_void {
     assert!(!module_name.is_null());
     assert!(!salts_buf.is_null());
@@ -105,6 +110,7 @@ pub extern "C" fn new_context(
         bridge_parameter2,
         bridge_parameter3,
         bridge_parameter4,
+        salt_per_pw,
     })) as *mut c_void
 }
 
@@ -172,7 +178,7 @@ pub extern "C" fn kernel_loop(
     io: *mut generic_io_tmp_t,
     pws_cnt: u64,
     salt_id: c_int,
-    _is_self_test: bool,
+    is_self_test: bool,
 ) -> bool {
     assert!(!ctx.is_null());
     assert!(!io.is_null());
@@ -180,29 +186,48 @@ pub extern "C" fn kernel_loop(
 
     let ctx = unsafe { &*ctx.cast::<ThreadContext>() };
 
-    process_batch(ctx, io, salt_id as usize);
+    process_batch(ctx, io, salt_id as usize, is_self_test);
 
     true
 }
 
-fn process_batch(ctx: &ThreadContext, io: &mut [generic_io_tmp_t], salt_id: usize) {
-    let esalt = ctx.get_raw_esalt(salt_id);
-    let salt = unsafe {
-        slice::from_raw_parts(
-            esalt.salt_buf.as_ptr() as *const u8,
-            esalt.salt_len as usize,
-        )
+fn process_batch(
+    ctx: &ThreadContext,
+    io: &mut [generic_io_tmp_t],
+    salt_id: usize,
+    is_selftest: bool,
+) {
+    let stride = if ctx.salt_per_pw && !is_selftest {
+        1
+    } else {
+        0
     };
 
     let mut eval_ctx = EvalContext::new();
-    eval_ctx.set_var("s", salt);
-    if salt.contains(&b'*') {
-        for (i, s) in salt.split(|&b| b == b'*').enumerate() {
-            eval_ctx.set_var(format!("s{}", i + 1), s);
-        }
-    }
 
-    for in_out in io {
+    for (pw_pos, in_out) in io.iter_mut().enumerate() {
+        // Bind the salt in a context of its own each time it moves. A salt names as many of s1..sn as
+        // it has parts, and one the next salt does not name would keep the value the last one left.
+
+        if pw_pos == 0 || stride != 0 {
+            let esalt = ctx.get_raw_esalt(salt_id + (pw_pos * stride));
+            let salt = unsafe {
+                slice::from_raw_parts(
+                    esalt.salt_buf.as_ptr() as *const u8,
+                    esalt.salt_len as usize,
+                )
+            };
+
+            eval_ctx = EvalContext::new();
+            eval_ctx.set_var("s", salt);
+
+            if salt.contains(&b'*') {
+                for (i, s) in salt.split(|&b| b == b'*').enumerate() {
+                    eval_ctx.set_var(format!("s{}", i + 1), s);
+                }
+            }
+        }
+
         let pw = unsafe {
             slice::from_raw_parts(in_out.pw_buf.as_ptr() as *const u8, in_out.pw_len as usize)
         };

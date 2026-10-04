@@ -6,6 +6,8 @@
 #ifndef HC_EXT_HIP_H
 #define HC_EXT_HIP_H
 
+#include "export.h"
+
 // The general Idea with HIP is to use it for AMD GPU since we use CUDA for NV
 // Therefore, we need to take certain items, such as hipDeviceptr_t from driver specific paths like amd_driver_types.h
 // We just need to keep this in mind in case we need to update these constants from future SDK versions
@@ -451,6 +453,73 @@ typedef struct hipDeviceProp_t
 
 } hipDeviceProp_t;
 
+/*
+ * Hygon DTK 25.04.2 exposes a legacy HIP ABI through libgalaxyhip.so. Its
+ * hipDeviceProp_t comes from hip_runtime_defines.h and has a different,
+ * 792-byte layout than the ROCm layout above. Keep the two layouts in
+ * separate types so a single hashcat binary can select the right one at
+ * runtime based on the library it actually loaded.
+ */
+typedef struct hipDevicePropDTK_t
+{
+  char name[256];
+  size_t totalGlobalMem;
+  size_t sharedMemPerBlock;
+  int regsPerBlock;
+  int warpSize;
+  int maxThreadsPerBlock;
+  int maxThreadsDim[3];
+  u32 maxGridSize[3];
+  int clockRate;
+  int memoryClockRate;
+  int memoryBusWidth;
+  size_t totalConstMem;
+  int major;
+  int minor;
+  int multiProcessorCount;
+  int l2CacheSize;
+  int maxThreadsPerMultiProcessor;
+  int computeMode;
+  int clockInstructionRate;
+  hipDeviceArch_t arch;
+  int concurrentKernels;
+  int pciDomainID;
+  int pciBusID;
+  int pciDeviceID;
+  size_t maxSharedMemoryPerMultiProcessor;
+  int isMultiGpuBoard;
+  int canMapHostMemory;
+  int gcnArch;
+  char gcnArchName[256];
+  int integrated;
+  int cooperativeLaunch;
+  int cooperativeMultiDeviceLaunch;
+  int maxTexture1DLinear;
+  int maxTexture1D;
+  int maxTexture2D[2];
+  int maxTexture3D[3];
+  unsigned int *hdpMemFlushCntl;
+  unsigned int *hdpRegFlushCntl;
+  size_t memPitch;
+  size_t textureAlignment;
+  size_t texturePitchAlignment;
+  int kernelExecTimeoutEnabled;
+  int ECCEnabled;
+  int tccDriver;
+  int cooperativeMultiDeviceUnmatchedFunc;
+  int cooperativeMultiDeviceUnmatchedGridDim;
+  int cooperativeMultiDeviceUnmatchedBlockDim;
+  int cooperativeMultiDeviceUnmatchedSharedMem;
+  int isLargeBar;
+  int asicRevision;
+  int managedMemory;
+  int directManagedMemAccessFromHost;
+  int concurrentManagedAccess;
+  int pageableMemoryAccess;
+  int pageableMemoryAccessUsesHostPageTables;
+
+} hipDevicePropDTK_t;
+
 //Flags that can be used with hipStreamCreateWithFlags.
 /** Default stream creation flags. These are used with hipStreamCreate().*/
 #define hipStreamDefault 0x00
@@ -492,7 +561,7 @@ typedef struct hipDeviceProp_t
 #define hipDeviceScheduleBlockingSync 0x4
 #define hipDeviceScheduleMask 0x7
 #define hipDeviceMapHost 0x8
-#define hipDeviceLmemResizeToMax 0x16
+#define hipDeviceLmemResizeToMax 0x10
 
 typedef enum hipJitOption
 {
@@ -558,6 +627,8 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPINIT)                   (unsigned int);
 typedef hipError_t (HIP_API_CALL *HIP_HIPLAUNCHKERNEL)           (hipFunction_t, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, hipStream_t, void **, void **);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMALLOC)               (hipDeviceptr_t *, size_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMFREE)                (hipDeviceptr_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPHOSTMALLOC)             (void **, size_t, unsigned int);
+typedef hipError_t (HIP_API_CALL *HIP_HIPHOSTFREE)               (void *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMGETINFO)             (size_t *, size_t *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYDTOD)             (hipDeviceptr_t, hipDeviceptr_t, size_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYDTOH)             (void *, hipDeviceptr_t, size_t);
@@ -581,11 +652,13 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMCREATEWITHFLAGS)  (hipStream_t *,
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMDESTROY)          (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMSYNCHRONIZE)      (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPGETDEVICEPROPERTIES)    (hipDeviceProp_t *, hipDevice_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPGETDEVICEPROPERTIES_DTK) (hipDevicePropDTK_t *, hipDevice_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR)  (int *, hipFunction_t, int, size_t);
 
 typedef struct hc_hip_lib
 {
   hc_dynlib_t lib;
+  bool is_dtk;
 
   // deprecated
   HIP_HIPCTXCREATE              hipCtxCreate;
@@ -618,6 +691,8 @@ typedef struct hc_hip_lib
   HIP_HIPLAUNCHKERNEL           hipLaunchKernel;
   HIP_HIPMEMALLOC               hipMemAlloc;
   HIP_HIPMEMFREE                hipMemFree;
+  HIP_HIPHOSTMALLOC             hipHostMalloc;
+  HIP_HIPHOSTFREE               hipHostFree;
   HIP_HIPMEMGETINFO             hipMemGetInfo;
   HIP_HIPMEMCPYDTOD             hipMemcpyDtoD;
   HIP_HIPMEMCPYDTOH             hipMemcpyDtoH;
@@ -641,6 +716,7 @@ typedef struct hc_hip_lib
   HIP_HIPSTREAMDESTROY          hipStreamDestroy;
   HIP_HIPSTREAMSYNCHRONIZE      hipStreamSynchronize;
   HIP_HIPGETDEVICEPROPERTIES    hipGetDeviceProperties;
+  HIP_HIPGETDEVICEPROPERTIES_DTK hipGetDevicePropertiesDTK;
   HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR  hipModuleOccupancyMaxActiveBlocksPerMultiprocessor;
 
 } hc_hip_lib_t;
@@ -682,31 +758,33 @@ int hc_hipEventRecord           (void *hashcat_ctx, hipEvent_t hEvent, hipStream
 int hc_hipEventSynchronize      (void *hashcat_ctx, hipEvent_t hEvent);
 int hc_hipFuncGetAttribute      (void *hashcat_ctx, int *pi, hipFunction_attribute attrib, hipFunction_t hfunc);
 int hc_hipInit                  (void *hashcat_ctx, unsigned int Flags);
-int hc_hipLaunchKernel          (void *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
-int hc_hipMemAlloc              (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
-int hc_hipMemFree               (void *hashcat_ctx, hipDeviceptr_t dptr);
+HC_PLUGIN_API int hc_hipLaunchKernel          (void *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
+HC_PLUGIN_API int hc_hipMemAlloc              (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
+HC_PLUGIN_API int hc_hipMemFree               (void *hashcat_ctx, hipDeviceptr_t dptr);
+int hc_hipHostMalloc            (void *hashcat_ctx, void **pp, size_t bytesize);
+int hc_hipHostFree              (void *hashcat_ctx, void *p);
 int hc_hipMemGetInfo            (void *hashcat_ctx, size_t *free, size_t *total);
 int hc_hipMemcpyDtoD            (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount);
 int hc_hipMemcpyDtoH            (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount);
-int hc_hipMemcpyHtoD            (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount);
+HC_PLUGIN_API int hc_hipMemcpyHtoD            (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount);
 int hc_hipMemsetD32             (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N);
 int hc_hipMemsetD8              (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N);
 int hc_hipMemcpyDtoDAsync       (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
-int hc_hipMemcpyDtoHAsync       (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
+HC_PLUGIN_API int hc_hipMemcpyDtoHAsync       (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
 int hc_hipMemcpyHtoDAsync       (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount, hipStream_t hStream);
 int hc_hipMemsetD32Async        (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N, hipStream_t hStream);
 int hc_hipMemsetD8Async         (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N, hipStream_t hStream);
-int hc_hipModuleGetFunction     (void *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name);
+HC_PLUGIN_API int hc_hipModuleGetFunction     (void *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name);
 int hc_hipModuleGetGlobal       (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t *bytes, hipModule_t hmod, const char *name);
-int hc_hipModuleLoadDataEx      (void *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
-int hc_hipModuleUnload          (void *hashcat_ctx, hipModule_t hmod);
+HC_PLUGIN_API int hc_hipModuleLoadDataEx      (void *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
+HC_PLUGIN_API int hc_hipModuleUnload          (void *hashcat_ctx, hipModule_t hmod);
 int hc_hipRuntimeGetVersion     (void *hashcat_ctx, int *runtimeVersion);
-int hc_hipSetDevice             (void *hashcat_ctx, hipDevice_t dev);
+HC_PLUGIN_API int hc_hipSetDevice             (void *hashcat_ctx, hipDevice_t dev);
 int hc_hipSetDeviceFlags        (void *hashcat_ctx, unsigned int flags);
 int hc_hipStreamCreate          (void *hashcat_ctx, hipStream_t *phStream);
-int hc_hipStreamCreateWithFlags (void *hashcat_ctx, hipStream_t *phStream, unsigned int flags);
-int hc_hipStreamDestroy         (void *hashcat_ctx, hipStream_t hStream);
-int hc_hipStreamSynchronize     (void *hashcat_ctx, hipStream_t hStream);
+HC_PLUGIN_API int hc_hipStreamCreateWithFlags (void *hashcat_ctx, hipStream_t *phStream, unsigned int flags);
+HC_PLUGIN_API int hc_hipStreamDestroy         (void *hashcat_ctx, hipStream_t hStream);
+HC_PLUGIN_API int hc_hipStreamSynchronize     (void *hashcat_ctx, hipStream_t hStream);
 int hc_hipGetDeviceProperties   (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevice_t dev);
 int hc_hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, hipFunction_t f, int blockSize, size_t dynSharedMemPerBlk);
 

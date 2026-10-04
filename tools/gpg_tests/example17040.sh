@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# TODO move this logic to tools/test.sh
+# TODO move this logic to tools/test.py
 
 FILE="./hashcat.exe"
 if [[ -f "$FILE" ]]; then

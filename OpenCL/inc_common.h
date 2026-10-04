@@ -90,12 +90,41 @@
  * do not use rules or tmps, etc.
  */
 
+// The device engine's kernel has exactly one constant argument, and which one it is depends on whether
+// the rules are applied inside it. Without them the rules buffer is never read, so the constant goes to
+// bfs_buf as it does for every other kernel of this shape. With them apply_rules () takes a CONSTANT_AS
+// pointer and the constant has to be the rules, so the two swap. This kernel reads bfs_buf in neither
+// case, which is what makes the swap free. On CUDA and HIP both qualifiers are empty and the pair below
+// is not used at all, which is why only the other branch spells it.
+
+#if PCFG_DEV_RULES
+#define PCFG_RULES_AS CONSTANT_AS
+#define PCFG_BFS_AS   GLOBAL_AS
+#else
+#define PCFG_RULES_AS GLOBAL_AS
+#define PCFG_BFS_AS   CONSTANT_AS
+#endif
+
 #if defined IS_CUDA || defined IS_HIP
 #define _KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define _KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void),  \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e),     \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
 #define _KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    h,    void)
@@ -108,6 +137,20 @@
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (PCFG_RULES_AS, PCFG_BFS_AS const bf_t    *bfs_buf,       void, void, void),  \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (PCFG_RULES_AS, PCFG_BFS_AS const bf_t    *bfs_buf,       void, void, e),     \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)
 #define _KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    h,    void)
@@ -123,7 +166,7 @@
  */
 
 #if defined IS_METAL
-#define KERN_ATTR_MAIN_PARAMS                       \
+#define KERN_ATTR_MAIN_PARAMS                        \
   uint3 hc_gid [[ thread_position_in_grid ]],        \
   uint3 hc_lid [[ thread_position_in_threadgroup ]], \
   uint3 hc_lsz [[ threads_per_threadgroup ]],        \
@@ -150,6 +193,8 @@
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES(), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES_ESALT(e)               _KERN_ATTR_RULES_ESALT(e), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_PCFG()                       _KERN_ATTR_PCFG(), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_PCFG_ESALT(e)                _KERN_ATTR_PCFG_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS(t)                      _KERN_ATTR_TMPS(t), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS_ESALT(t,e)              _KERN_ATTR_TMPS_ESALT(t,e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS_HOOKS(t,h)              _KERN_ATTR_TMPS_HOOKS(t,h), KERN_ATTR_MAIN_PARAMS
@@ -163,6 +208,8 @@
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e)
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES()
 #define KERN_ATTR_RULES_ESALT(e)               _KERN_ATTR_RULES_ESALT(e)
+#define KERN_ATTR_PCFG()                       _KERN_ATTR_PCFG()
+#define KERN_ATTR_PCFG_ESALT(e)                _KERN_ATTR_PCFG_ESALT(e)
 #define KERN_ATTR_TMPS(t)                      _KERN_ATTR_TMPS(t)
 #define KERN_ATTR_TMPS_ESALT(t,e)              _KERN_ATTR_TMPS_ESALT(t,e)
 #define KERN_ATTR_TMPS_HOOKS(t,h)              _KERN_ATTR_TMPS_HOOKS(t,h)
@@ -284,10 +331,7 @@ DECLSPEC u32  hc_byte_perm_S    (const u32  a, const u32  b, const int  c);
 
 DECLSPEC u32x hc_add3           (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32  hc_add3_S         (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_bfe            (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32  hc_bfe_S          (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_lop_0x96       (const u32x a, const u32x b, const u32x c);
-DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
 
 // arithmetic operations
 
@@ -300,7 +344,7 @@ DECLSPEC int ffz (const u32 v);
 
 #ifdef KERNEL_STATIC
 DECLSPEC int hash_comp (PRIVATE_AS const u32 *d1, GLOBAL_AS const u32 *d2);
-DECLSPEC int find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
+DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
 #endif
 
 DECLSPEC int hc_enc_scan (PRIVATE_AS const u32 *buf, const int len);
@@ -309,15 +353,14 @@ DECLSPEC void hc_enc_init (PRIVATE_AS hc_enc_t *hc_enc);
 DECLSPEC int hc_enc_has_next (PRIVATE_AS hc_enc_t *hc_enc, const int sz);
 DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz);
 DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz);
-DECLSPEC int hc_enc_validate_utf8 (PRIVATE_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead);
-DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead);
+DECLSPEC u32 hc_enc_seq_byte (const u32 w0, const u32 w1, const int p, const int j);
+DECLSPEC int hc_enc_validate_utf8 (const u32 w0, const u32 w1, const int src_pos, const int extraBytesToRead);
 
 DECLSPEC int pkcs_padding_bs8 (PRIVATE_AS const u32 *data_buf, const int data_len);
 DECLSPEC int pkcs_padding_bs16 (PRIVATE_AS const u32 *data_buf, const int data_len);
 DECLSPEC int asn1_detect (PRIVATE_AS const u32 *buf, const int len);
 DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len);
-DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest);
-DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2);
+DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask);
 DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2);
 DECLSPEC int hc_count_char (PRIVATE_AS const u32 *buf, const int elems, const u32 c);
 DECLSPEC float hc_get_entropy (PRIVATE_AS const u32 *buf, const int elems);
@@ -327,8 +370,20 @@ DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_32 (const u32 v);
 DECLSPEC int is_valid_printable_8 (const u8 v);
 DECLSPEC int is_valid_printable_32 (const u32 v);
-DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
-DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
+
+// A keyboard layout map belongs to one hash, and an association attack takes its hash from the
+// global id, so a map copied into shared memory would hold a different hash's map in every slot.
+// Those kernels hand this function a pointer into global memory instead, and the address space of
+// the map follows the attack.
+
+#if ATTACK_MODE == 9
+#define KEYBOARD_MAP_AS GLOBAL_AS const
+#else
+#define KEYBOARD_MAP_AS LOCAL_AS
+#endif
+
+DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, KEYBOARD_MAP_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
+DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, KEYBOARD_MAP_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
 DECLSPEC int count_bits_32 (const u32 v0, const u32 v1);
 
 DECLSPEC void make_utf16be (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
@@ -354,11 +409,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (PRIVATE_AS u32x *w0, PRIVATE_AS u3
 DECLSPEC void switch_buffer_by_offset_8x4_carry_le (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, PRIVATE_AS u32x *c0, PRIVATE_AS u32x *c1, PRIVATE_AS u32x *c2, PRIVATE_AS u32x *c3, PRIVATE_AS u32x *c4, PRIVATE_AS u32x *c5, PRIVATE_AS u32x *c6, PRIVATE_AS u32x *c7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_be (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, PRIVATE_AS u32x *c0, PRIVATE_AS u32x *c1, PRIVATE_AS u32x *c2, PRIVATE_AS u32x *c3, PRIVATE_AS u32x *c4, PRIVATE_AS u32x *c5, PRIVATE_AS u32x *c6, PRIVATE_AS u32x *c7, const u32 offset);
-DECLSPEC void switch_buffer_by_offset_1x64_le (PRIVATE_AS u32x *w, const u32 offset);
-DECLSPEC void switch_buffer_by_offset_1x64_be (PRIVATE_AS u32x *w, const u32 offset);
-DECLSPEC void truncate_block_4x4_le_S (PRIVATE_AS u32 *w0, const u32 len);
-DECLSPEC void truncate_block_4x4_be_S (PRIVATE_AS u32 *w0, const u32 len);
-DECLSPEC void truncate_block_16x4_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 len);
+DECLSPEC void truncate_block_4x4_le_S (PRIVATE_AS u32 *w, const u32 len);
+DECLSPEC void truncate_block_4x4_be_S (PRIVATE_AS u32 *w, const u32 len);
 DECLSPEC void truncate_block_16x4_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 len);
 DECLSPEC void set_mark_1x4_S (PRIVATE_AS u32 *v, const u32 offset);
 DECLSPEC void append_helper_1x4_S (PRIVATE_AS u32 *r, const u32 v, PRIVATE_AS const u32 *m);
@@ -384,6 +436,18 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u
 DECLSPEC void switch_buffer_by_offset_8x4_carry_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, PRIVATE_AS u32 *c0, PRIVATE_AS u32 *c1, PRIVATE_AS u32 *c2, PRIVATE_AS u32 *c3, PRIVATE_AS u32 *c4, PRIVATE_AS u32 *c5, PRIVATE_AS u32 *c6, PRIVATE_AS u32 *c7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, PRIVATE_AS u32 *c0, PRIVATE_AS u32 *c1, PRIVATE_AS u32 *c2, PRIVATE_AS u32 *c3, PRIVATE_AS u32 *c4, PRIVATE_AS u32 *c5, PRIVATE_AS u32 *c6, PRIVATE_AS u32 *c7, const u32 offset);
+DECLSPEC u32 combs_len_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode);
+
+DECLSPEC u32 combs_copy_bytes (PRIVATE_AS u8 *out, const u32 out_len, GLOBAL_AS const u32 *src, const u32 src_len);
+
+DECLSPEC void combs_base_copy (PRIVATE_AS u32 *out, PRIVATE_AS const u32 *base, const u32 base_len);
+
+DECLSPEC void combs_append_1x64_le_S (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_AS u32 *src);
+DECLSPEC void combs_append_1x64_be_S (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_AS u32 *src);
+
+DECLSPEC u32 combs_assemble_1x64_le_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode, PRIVATE_AS const u32 *base, const u32 base_len, PRIVATE_AS u32 *out);
+DECLSPEC u32 combs_assemble_1x64_be_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode, PRIVATE_AS const u32 *base, const u32 base_len, PRIVATE_AS u32 *out);
+
 DECLSPEC void switch_buffer_by_offset_1x64_le_S (PRIVATE_AS u32 *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_1x64_be_S (PRIVATE_AS u32 *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_le_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
@@ -395,5 +459,12 @@ DECLSPEC void append_0x80_2x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, cons
 DECLSPEC void append_0x80_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 DECLSPEC void append_0x2d_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 DECLSPEC void append_0x3a_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
+
+DECLSPEC u32 hc_bounded_word_le_S (PRIVATE_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32 hc_bounded_word_be_S (PRIVATE_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32 hc_bounded_word_global_le_S (GLOBAL_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32 hc_bounded_word_global_be_S (GLOBAL_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32x hc_bounded_word_le (PRIVATE_AS const u32x *w, const int idx, const int avail);
+DECLSPEC u32x hc_bounded_word_be (PRIVATE_AS const u32x *w, const int idx, const int avail);
 
 #endif // INC_COMMON_H

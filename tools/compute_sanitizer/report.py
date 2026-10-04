@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Aggregates past tools/compute_sanitizer/run.py runs into a table.
+
+Usage:
+  report.py                    # all standalone runs in results/
+  report.py --test NAME        # filter by test name
+  report.py --failed           # only runs with primary findings or a wrapper failure
+  report.py --latest N         # last N, after other filters
+  report.py --dir <sweep-dir>  # a test.py sweep's own results directory
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_RESULTS_DIR = SCRIPT_DIR / "results"
+
+
+def load_runs(base):
+    runs = []
+    if not base.exists():
+        return runs
+
+    def add(entry):
+        # A run directory has a summary.json. Returns True when this was a run
+        # (well formed or not), False when it holds none and may nest runs below.
+        summary_path = entry / "summary.json"
+        if not summary_path.exists():
+            return False
+        try:
+            data = json.loads(summary_path.read_text())
+            runs.append({"dir": entry, "malformed": False, "data": data})
+        except Exception:
+            runs.append({"dir": entry, "malformed": True})
+        return True
+
+    for entry in sorted(base.iterdir()):
+        if not entry.is_dir():
+            continue
+        if add(entry):
+            continue
+        # A directory with no summary.json nests runs or is malformed. selftest nests one level
+        # deeper (results/selftest/<ts>-<name>/), so descend into it and list its cases. A sweep
+        # (results/sweep-<ts>/<ts>-<name>/) has the same shape but is read with --dir, so leave it
+        # out here: descending would spill every run of the sweep into the plain listing, one row
+        # per hashcat invocation. Anything else without a run below it is malformed.
+        if entry.name == "selftest":
+            nested = [add(sub) for sub in sorted(entry.iterdir()) if sub.is_dir()]
+            if not any(nested):
+                runs.append({"dir": entry, "malformed": True})
+        elif not entry.name.startswith("sweep-"):
+            runs.append({"dir": entry, "malformed": True})
+
+    return runs
+
+
+def render_table(runs):
+    header = f"{'RUN':<40} {'HC_RC':<7} {'SANITIZER':<10} {'PRIMARY_ERR':<12} {'FIRST LOCATION'}"
+    print(header)
+    print("-" * len(header))
+
+    for r in runs:
+        name = r["dir"].name
+        if r["malformed"]:
+            print(f"{name:<40} {'?':<7} {'<malformed>':<10} {'?':<12}")
+            continue
+
+        d = r["data"]
+        hc_rc = d["run"].get("hashcat_rc_signed")
+        san = d["sanitizer"]
+        # A log that was missing or could not be parsed has primary_errors 0,
+        # which would otherwise read as PASS. Report it as NO-LOG instead, so a
+        # run that never produced a verdict is not counted as a clean one.
+        if not san["parse_ok"]:
+            verdict = "NO-LOG"
+            err_col = "?"
+        else:
+            verdict = "PASS" if san["primary_errors"] == 0 else "FAIL"
+            err_col = str(san["primary_errors"])
+        first = next((f for f in d["errors"] if f.get("relevance") == "primary"), None)
+        frame = first.get("first_source_frame") if first else None
+        loc = f"{frame['file']}:{frame['line']}" if frame else ""
+
+        print(f"{name:<40} {str(hc_rc):<7} {verdict:<10} {err_col:<12} {loc}")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--test", default=None)
+    p.add_argument("--failed", action="store_true")
+    p.add_argument("--latest", type=int, default=None)
+    p.add_argument("--dir", default=None)
+    ns = p.parse_args(argv)
+
+    base = Path(ns.dir) if ns.dir else DEFAULT_RESULTS_DIR
+    runs = load_runs(base)
+
+    if ns.test:
+        runs = [r for r in runs if ns.test in r["dir"].name]
+
+    if ns.failed:
+        def is_failed(r):
+            if r["malformed"]:
+                return True
+            san = r["data"]["sanitizer"]
+            return san["primary_errors"] > 0 or not san["parse_ok"]
+        runs = [r for r in runs if is_failed(r)]
+
+    if ns.latest:
+        runs = runs[-ns.latest:]
+
+    if not runs:
+        print("No runs found.")
+        return 0
+
+    render_table(runs)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

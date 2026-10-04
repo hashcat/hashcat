@@ -6,7 +6,21 @@
 COMPGENSCRIPT=/etc/bash_completion
 COMPGENFOLDER=${COMPGENSCRIPT}.d
 COMPGENTARGET=${COMPGENFOLDER}/hashcat.sh
-BASHRC=~/.bashrc
+
+# The install half of this script runs itself again under sudo, where ~ is root's home rather than
+# the home of the person who invoked it. Ask for the invoking user's home when sudo tells us who
+# that was, so the completion is enabled for them and not for root.
+
+if [ -z "${SUDO_USER:-}" ]; then
+
+  BASHRC=~/.bashrc
+
+else
+
+  BASHRC="$(getent passwd "${SUDO_USER}" | cut -d: -f6)/.bashrc"
+
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 #############################################################################
@@ -85,7 +99,7 @@ is_root ()
 is_sourced
 was_sourced=${?}
 
-ROOT_PARENT="$(cd ${ROOT}/.. && pwd)"
+ROOT_PARENT="$(cd "${ROOT}/../.." && pwd)"
 
 # Check (install) permissions
 
@@ -141,7 +155,7 @@ if [ -d "${COMPGENFOLDER}" ]; then
 
   # adjust paths to the main binaries of hashcat
 
-  sed -ri 's!^(HASHCAT_ROOT=).*!\1\"${ROOT_PARENT}\"!' "${COMPGENTARGET}"
+  sed -ri "s!^(HASHCAT_ROOT=).*!\\1\"${ROOT_PARENT}\"!" "${COMPGENTARGET}"
 
 
   # add the compgen to bashrc if not already there

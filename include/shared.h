@@ -16,127 +16,98 @@
 #include <ctype.h>
 #include <math.h>
 
-#include "zlib.h"
-#include "filehandling.h"
-
-#if defined (_WIN)
-#include <winsock2.h> // needed for select()
-#else
-#include <sys/select.h>
-#endif
-
 #ifndef __MINGW_PRINTF_FORMAT
 #define __MINGW_PRINTF_FORMAT printf
 #endif
 
-int sort_by_string_sized (const void *p1, const void *p2);
-int sort_by_stringptr    (const void *p1, const void *p2);
+HC_PLUGIN_API int sort_by_string_sized (const void *p1, const void *p2);
+HC_PLUGIN_API int sort_by_stringptr    (const void *p1, const void *p2);
 
-bool overflow_check_u32_add (const u32 a, const u32 b);
-bool overflow_check_u32_mul (const u32 a, const u32 b);
-bool overflow_check_u64_add (const u64 a, const u64 b);
-bool overflow_check_u64_mul (const u64 a, const u64 b);
+HC_PLUGIN_API bool overflow_check_u32_add (const u32 a, const u32 b);
+HC_PLUGIN_API bool overflow_check_u32_mul (const u32 a, const u32 b);
+HC_PLUGIN_API bool overflow_check_u64_add (const u64 a, const u64 b);
+HC_PLUGIN_API bool overflow_check_u64_mul (const u64 a, const u64 b);
 
-bool is_power_of_2 (const u32 v);
-u32 smallest_repeat_double (const u32 v);
+HC_PLUGIN_API bool is_power_of_2 (const u32 v);
+HC_PLUGIN_API u32 smallest_repeat_double (const u32 v);
 
-u32 get_random_num (const u32 min, const u32 max);
+HC_PLUGIN_API u32 mydivc32 (const u32 dividend, const u32 divisor);
+HC_PLUGIN_API u64 mydivc64 (const u64 dividend, const u64 divisor);
 
-u32 mydivc32 (const u32 dividend, const u32 divisor);
-u64 mydivc64 (const u64 dividend, const u64 divisor);
+HC_PLUGIN_API void naive_replace (char *s, const char key_char, const char replace_char);
+HC_PLUGIN_API void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
 
-char *filename_from_filepath (char *filepath);
+HC_PLUGIN_API __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
 
-void naive_replace (char *s, const char key_char, const char replace_char);
-void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
+HC_PLUGIN_API void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
+HC_PLUGIN_API void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 
-__attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
+HC_PLUGIN_API bool hc_string_is_digit (const char *s);
+HC_PLUGIN_API int  hc_string_bom_size (const u8 *s);
 
-void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options);
-void setup_umask (void);
-void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
+HC_PLUGIN_API void hc_string_trim_trailing (char *s);
+HC_PLUGIN_API void hc_string_trim_leading (char *s);
 
-void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
-void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
+HC_PLUGIN_API u32 hc_strtoul  (const char *nptr, char **endptr, int base);
+HC_PLUGIN_API u64 hc_strtoull (const char *nptr, char **endptr, int base);
 
-bool hc_path_is_file (const char *path);
-bool hc_path_is_directory (const char *path);
-bool hc_path_is_fifo (const char *path);
-bool hc_path_is_empty (const char *path);
-bool hc_path_exist (const char *path);
-bool hc_path_read (const char *path);
-bool hc_path_write (const char *path);
-bool hc_path_create (const char *path);
-bool hc_path_has_bom (const char *path);
+HC_PLUGIN_API u32 power_of_two_ceil_32  (const u32 v);
+HC_PLUGIN_API u32 power_of_two_floor_32 (const u32 v);
 
-bool hc_string_is_digit (const char *s);
-int  hc_string_bom_size (const u8 *s);
+HC_PLUGIN_API u32 round_up_multiple_32 (const u32 v, const u32 m);
+HC_PLUGIN_API u64 round_up_multiple_64 (const u64 v, const u64 m);
 
-void hc_string_trim_trailing (char *s);
-void hc_string_trim_leading (char *s);
+HC_PLUGIN_API void hc_strncat (u8 *dst, const u8 *src, const size_t n);
 
-int hc_get_processor_count (void);
+HC_PLUGIN_API int count_char (const u8 *buf, const int len, const u8 c);
+HC_PLUGIN_API float get_entropy (const u8 *buf, const int len);
 
-bool hc_same_files (char *file1, char *file2);
+HC_API const char *strhashcategory (const u32 hash_category);
+HC_API const char *stroptitype (const u32 opti_type);
 
-u32 hc_strtoul  (const char *nptr, char **endptr, int base);
-u64 hc_strtoull (const char *nptr, char **endptr, int base);
+HC_PLUGIN_API u32 previous_power_of_two (const u32 x);
+HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 
-u32 power_of_two_ceil_32  (const u32 v);
-u32 power_of_two_floor_32 (const u32 v);
+// A percentage on its way to a two decimal print, held off 0 and 100 until the fraction gets there.
 
-u32 round_up_multiple_32 (const u32 v, const u32 m);
-u64 round_up_multiple_64 (const u64 v, const u64 m);
+HC_API double hc_percent_display (const double percent);
 
-void hc_strncat (u8 *dst, const u8 *src, const size_t n);
+// On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
+bool hc_env_flag (const char *name, int *cache);
 
-const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator);
-const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator);
+// Byte value of an environment switch written in MiB, looked up once. 0 when the variable is unset,
+// which every caller reads as no limit. Pass a static i64 initialised to -1 as the cache.
+u64 hc_env_mib (const char *name, i64 *cache);
 
-int count_char (const u8 *buf, const int len, const u8 c);
-float get_entropy (const u8 *buf, const int len);
+// Bounded appenders for a fixed size output buffer, used by outfile.c and potfile.c to build one
+// cracked line. buf_sz is the whole buffer, and 1 byte is always kept back for the caller's trailing
+// null. A field that does not fit is truncated. Each returns the new length.
 
-int select_read_timeout  (int sockfd, const int sec);
-int select_write_timeout (int sockfd, const int sec);
+int hc_append_raw    (char *buf, const int len, const int buf_sz, const u8 *src, int src_len);
+int hc_append_hex    (char *buf, const int len, const int buf_sz, const u8 *src, int src_len);
+int hc_append_hexify (char *buf, const int len, const int buf_sz, const u8 *src, int src_len);
+int hc_append_chr    (char *buf, const int len, const int buf_sz, const char c);
 
-int select_read_timeout_console (const int sec);
+// The candidate a cell reaches at il_pos, written into w, and its byte length as the answer.
+//
+// This is the one host copy of the device engine's expander, exported rather than internal so that
+// outfile.c can rebuild a cracked plaintext with it. A second copy of this walk is a copy that will
+// one day disagree with the kernel.
+//
+// It has to produce the same bytes the kernel does, so it reads the cell the same way: entry n of a
+// slot is at pool_off + (n * ent_len) unless the cell says PCFG_CELL_VARLEN, in which case it is at
+// pool[pool_off + n].
+//
+// base_len is the base word's length, which is the answer when the cell has no device slots at all and
+// the base word is therefore the whole candidate. -1 means il_pos is past the end of the rectangle.
 
-const char *strparser (const u32 parser_status);
-const char *strhashcategory (const u32 hash_category);
-const char *stroptitype (const u32 opti_type);
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len);
 
-bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len);
-int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf);
+// What tells this process apart from every other one writing into the same directory, the ones on
+// other machines included. See src/shared.c for what goes into it.
 
-int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token);
+HC_PLUGIN_API u64 hc_tmp_tag (void);
 
-int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len);
-
-int get_current_arch();
-
-#if defined (__APPLE__)
-bool is_apple_silicon (void);
-#endif
-
-char *file_to_buffer (const char *filename);
-
-bool check_file_suffix (const char *file, const char *suffix);
-bool remove_file_suffix (char *file, const char *suffix);
-
-int suppress_stderr (void);
-void restore_stderr (int saved_fd);
-
-bool get_free_memory (u64 *free_mem);
-
-u32 previous_power_of_two (const u32 x);
-u32 next_power_of_two (const u32 x);
-
-typedef size_t (*hc_memchr_t) (const u8 *ptr, int ch, size_t max_len);
-
-size_t hc_memchr_generic      (const u8 *ptr, int ch, size_t max_len);
-size_t hc_memchr_avx2         (const u8 *ptr, int ch, size_t max_len);
-size_t hc_memchr_avx512       (const u8 *ptr, int ch, size_t max_len);
-
-hc_memchr_t hc_memchr_get     (void);
+HC_API u64 hc_peak_rss (void);
 
 #endif // HC_SHARED_H

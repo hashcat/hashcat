@@ -5,92 +5,20 @@
 
 #include "common.h"
 #include "types.h"
-#include "convert.h"
 #include "shared.h"
-#include "memory.h"
-#include "ext_lzma.h"
-#include "cpu_features.h"
-#include <errno.h>
-
-#if defined (__CYGWIN__)
-#include <sys/cygwin.h>
-#endif
-
-#if defined (__APPLE__)   || defined (__OpenBSD__)   || defined (__NetBSD__) || \
-    defined (__FreeBSD__) || defined (__DragonFly__)
-#include <sys/sysctl.h>
-#if defined (__APPLE__)
-#include <mach/mach.h>
-#endif
-#endif
+#include "emu_inc_pcfg_omen.h"
 
 #if defined (_WIN)
-#include <winsock2.h>
+#include <psapi.h>
+#else
+#include <sys/resource.h>
 #endif
+#include "memory.h"
+#include "convert.h"
+#include "paw64.h"
+#include "timer.h"
 
-#if defined (_POSIX)
-#include <sys/utsname.h>
-#if !defined (__APPLE__)   && !defined (__OpenBSD__)   && !defined (__NetBSD__) && \
-    !defined (__FreeBSD__) && !defined (__DragonFly__)
-#include <sys/sysinfo.h>
-#endif
-#endif
-
-#if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86)
-#include <immintrin.h>
-#elif defined (__aarch64__)
-#include <sse2neon.h>
-#endif
-
-static const char *const PA_000 = "OK";
-static const char *const PA_001 = "Ignored due to comment";
-static const char *const PA_002 = "Ignored due to zero length";
-static const char *const PA_003 = "Line-length exception";
-static const char *const PA_004 = "Hash-length exception";
-static const char *const PA_005 = "Hash-value exception";
-static const char *const PA_006 = "Salt-length exception";
-static const char *const PA_007 = "Salt-value exception";
-static const char *const PA_008 = "Salt-iteration count exception";
-static const char *const PA_009 = "Separator unmatched";
-static const char *const PA_010 = "Signature unmatched";
-static const char *const PA_011 = "Invalid hccapx file size";
-static const char *const PA_012 = "Invalid hccapx eapol size";
-static const char *const PA_013 = "Invalid psafe2 filesize";
-static const char *const PA_014 = "Invalid psafe3 filesize";
-static const char *const PA_015 = "Invalid truecrypt filesize";
-static const char *const PA_016 = "Invalid veracrypt filesize";
-static const char *const PA_017 = "Invalid SIP directive, only MD5 is supported";
-static const char *const PA_018 = "Hash-file exception";
-static const char *const PA_019 = "Hash-encoding exception";
-static const char *const PA_020 = "Salt-encoding exception";
-static const char *const PA_021 = "Invalid LUKS filesize";
-static const char *const PA_022 = "Invalid LUKS identifier";
-static const char *const PA_023 = "Invalid LUKS version";
-static const char *const PA_024 = "Invalid or unsupported LUKS cipher type";
-static const char *const PA_025 = "Invalid or unsupported LUKS cipher mode";
-static const char *const PA_026 = "Invalid or unsupported LUKS hash type";
-static const char *const PA_027 = "Invalid LUKS key size";
-static const char *const PA_028 = "Disabled LUKS key detected";
-static const char *const PA_029 = "Invalid LUKS key AF stripes count";
-static const char *const PA_030 = "Invalid combination of LUKS hash type and cipher type";
-static const char *const PA_031 = "Invalid hccapx signature";
-static const char *const PA_032 = "Invalid hccapx version";
-static const char *const PA_033 = "Invalid hccapx message pair";
-static const char *const PA_034 = "Token encoding exception";
-static const char *const PA_035 = "Token length exception";
-static const char *const PA_036 = "Insufficient entropy exception";
-static const char *const PA_037 = "Hash contains unsupported compression type for current mode";
-static const char *const PA_038 = "Invalid key size";
-static const char *const PA_039 = "Invalid block size";
-static const char *const PA_040 = "Invalid or unsupported cipher";
-static const char *const PA_041 = "Invalid filesize";
-static const char *const PA_042 = "IV length exception";
-static const char *const PA_043 = "CT length exception";
-static const char *const PA_044 = "PT length exception";
-static const char *const PA_045 = "PT offset exception";
-static const char *const PA_046 = "Invalid or unsupported CryptoAPI hash type";
-static const char *const PA_047 = "Invalid CryptoAPI key size";
-static const char *const PA_255 = "Unknown error";
+#include <stdarg.h>
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
@@ -194,9 +122,69 @@ bool is_power_of_2 (const u32 v)
   return (v && !(v & (v - 1)));
 }
 
+// The odd part of v, which is v with every trailing zero bit shifted out. Zero has no odd part, and
+// the lowest set bit of zero is zero, so the division has to be guarded rather than attempted. A
+// caller reaches this with zero by overflowing an iteration count: a salt holding UINT32_MAX passes
+// a plain non-zero test, and one more than it is zero.
+
 u32 smallest_repeat_double (const u32 v)
 {
+  if (v == 0) return 0;
+
   return (v / (v & -v));
+}
+
+// A name no other writer will pick, for the file a cache is written under before it is renamed into
+// place.
+//
+// Everything hashcat caches is written that way, so that a reader finds either the whole of a file
+// or none of it, and that name carried a pid alone. A pid tells two processes on one host apart and
+// says nothing at all between hosts, while --cache-path is there to point a whole cluster at one
+// directory: two hosts that pick the same pid open the same temporary file, write into it at once,
+// and the rename publishes whatever the two of them left behind.
+//
+// So the pid is only a part of it. The host name separates two machines, and neither separates two
+// containers on one host that were given the same name and both start at pid 1, which is why the
+// clock and an address off this stack go in as well: the first differs between two runs however
+// close together they start, and the second differs again wherever the loader puts them.
+//
+// They are folded rather than spelled out, because the result becomes part of a path that a caller
+// keeps in a fixed buffer, and a fold is the same sixteen characters whatever went into it.
+//
+// The answer is a new one on every call, which is what a name for one write wants to be: two threads
+// writing two caches at once are asking for two names, not one.
+
+u64 hc_tmp_tag (void)
+{
+  char host[256];
+
+  memset (host, 0, sizeof (host));
+
+  #if defined (_WIN)
+  DWORD host_len = (DWORD) sizeof (host) - 1;
+
+  if (GetComputerNameA (host, &host_len) == 0) host[0] = 0;
+  #else
+  if (gethostname (host, sizeof (host) - 1) != 0) host[0] = 0;
+  #endif
+
+  host[sizeof (host) - 1] = 0;
+
+  hc_timer_t now;
+
+  hc_timer_set (&now);
+
+  const void *here = (const void *) &now;
+
+  paw64_ctx_t state;
+
+  paw64_init (&state, (u64) HC_GETPID ());
+
+  paw64_update (&state, host, strlen (host));
+  paw64_update (&state, &now, sizeof (now));
+  paw64_update (&state, &here, sizeof (here));
+
+  return paw64_final (&state);
 }
 
 u32 mydivc32 (const u32 dividend, const u32 divisor)
@@ -215,26 +203,6 @@ u64 mydivc64 (const u64 dividend, const u64 divisor)
   if (dividend % divisor) quotient++;
 
   return quotient;
-}
-
-char *filename_from_filepath (char *filepath)
-{
-  char *ptr = NULL;
-
-  if ((ptr = strrchr (filepath, '/')) != NULL)
-  {
-    ptr++;
-  }
-  else if ((ptr = strrchr (filepath, '\\')) != NULL)
-  {
-    ptr++;
-  }
-  else
-  {
-    ptr = filepath;
-  }
-
-  return ptr;
 }
 
 void naive_replace (char *s, const char key_char, const char replace_char)
@@ -351,119 +319,6 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
   return (NULL);
 }
 
-bool hc_path_is_file (const char *path)
-{
-  struct stat s;
-
-  memset (&s, 0, sizeof (s));
-
-  if (stat (path, &s) == -1) return false;
-
-  if (S_ISREG (s.st_mode)) return true;
-
-  return false;
-}
-
-bool hc_path_is_directory (const char *path)
-{
-  struct stat s;
-
-  memset (&s, 0, sizeof (s));
-
-  if (stat (path, &s) == -1) return false;
-
-  if (S_ISDIR (s.st_mode)) return true;
-
-  return false;
-}
-
-bool hc_path_is_fifo (const char *path)
-{
-  struct stat s;
-
-  memset (&s, 0, sizeof (s));
-
-  if (stat (path, &s) == -1) return false;
-
-  if (S_ISFIFO (s.st_mode) == true) return true;
-
-  return false;
-}
-
-bool hc_path_is_empty (const char *path)
-{
-  struct stat s;
-
-  memset (&s, 0, sizeof (s));
-
-  if (stat (path, &s) == -1) return false;
-
-  if (s.st_size == 0) return true;
-
-  return false;
-}
-
-bool hc_path_exist (const char *path)
-{
-  if (access (path, F_OK) == -1) return false;
-
-  return true;
-}
-
-bool hc_path_read (const char *path)
-{
-  if (access (path, R_OK) == -1) return false;
-
-  return true;
-}
-
-bool hc_path_write (const char *path)
-{
-  if (access (path, W_OK) == -1) return false;
-
-  return true;
-}
-
-bool hc_path_create (const char *path)
-{
-  if (hc_path_exist (path) == true) return false;
-
-#ifdef O_CLOEXEC
-  const int fd = open (path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR);
-#else
-  const int fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-#endif
-
-  if (fd == -1) return false;
-
-  close (fd);
-
-  unlink (path);
-
-  return true;
-}
-
-bool hc_path_has_bom (const char *path)
-{
-  u8 buf[8] = { 0 };
-
-  HCFILE fp;
-
-  if (hc_fopen_raw (&fp, path, "rb") == false) return false;
-
-  const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
-
-  hc_fclose (&fp);
-
-  if (nread < 1) return false;
-
-  const int bom_size = hc_string_bom_size (buf);
-
-  const bool has_bom = bom_size > 0;
-
-  return has_bom;
-}
-
 int hc_string_bom_size (const u8 *s)
 {
   /* signatures from https://en.wikipedia.org/wiki/Byte_order_mark#Byte_order_marks_by_encoding */
@@ -575,104 +430,6 @@ bool hc_string_is_digit (const char *s)
   return true;
 }
 
-void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options)
-{
-  char *compute = getenv ("COMPUTE");
-
-  if (compute)
-  {
-    char *display;
-
-    hc_asprintf (&display, "DISPLAY=%s", compute);
-
-    putenv (display);
-
-    hcfree (display);
-  }
-  else
-  {
-    if (getenv ("DISPLAY") == NULL)
-      putenv ((char *) "DISPLAY=:0");
-  }
-
-  #if defined (DEBUG)
-  if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
-    putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
-
-  if (getenv ("CUDA_CACHE_DISABLE") == NULL)
-    putenv ((char *) "CUDA_CACHE_DISABLE=1");
-
-  if (getenv ("POCL_KERNEL_CACHE") == NULL)
-    putenv ((char *) "POCL_KERNEL_CACHE=0");
-  #endif
-
-  if (getenv ("TMPDIR") == NULL)
-  {
-    char *tmpdir = NULL;
-
-    hc_asprintf (&tmpdir, "TMPDIR=%s", folder_config->profile_dir);
-
-    putenv (tmpdir);
-
-    // we can't free tmpdir at this point!
-  }
-
-  // creates too much cpu load
-  if (getenv ("AMD_DIRECT_DISPATCH") == NULL)
-    putenv ((char *) "AMD_DIRECT_DISPATCH=0");
-
-  if (user_options->hash_mode == 72000) // ugly but rare hack, we might move this to modules at a later stage
-    if (getenv ("PYTHON_GIL") == NULL)
-     putenv ((char *) "PYTHON_GIL=0");
-
-  /*
-  if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
-    putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
-  */
-
-  #if defined (__CYGWIN__)
-  cygwin_internal (CW_SYNC_WINENV);
-  #endif
-}
-
-void setup_umask (void)
-{
-  umask (077);
-}
-
-void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
-{
-  if (rp_gen_seed_chgd == true)
-  {
-    srand (rp_gen_seed);
-  }
-  else
-  {
-    const time_t ts = time (NULL); // don't tell me that this is an insecure seed
-
-    srand ((unsigned int) ts);
-  }
-}
-
-u32 get_random_num (const u32 min, const u32 max)
-{
-  if (min == max) return (min);
-
-  const u32 low = max - min;
-
-  if (low == 0) return (0);
-
-  #if defined (_WIN)
-
-  return (((u32) rand () % (max - min + 1)) + min);
-
-  #else
-
-  return (((u32) random () % (max - min + 1)) + min);
-
-  #endif
-}
-
 void hc_string_trim_leading (char *s)
 {
   int skip = 0;
@@ -717,118 +474,6 @@ void hc_string_trim_trailing (char *s)
   const size_t new_len = len - skip;
 
   s[new_len] = 0;
-}
-
-int hc_get_processor_count (void)
-{
-  int cnt = 0;
-
-  #if defined (_WIN)
-
-  SYSTEM_INFO info;
-
-  GetSystemInfo (&info);
-
-  cnt = (int) info.dwNumberOfProcessors;
-
-  #else
-
-  cnt = (int) sysconf (_SC_NPROCESSORS_ONLN);
-
-  #endif
-
-  return cnt;
-}
-
-bool hc_same_files (char *file1, char *file2)
-{
-  if ((file1 != NULL) && (file2 != NULL))
-  {
-    if (hc_path_is_fifo (file1) == true || hc_path_is_fifo (file2) == true)
-    {
-      return false;
-    }
-
-    struct stat tmpstat_file1;
-    struct stat tmpstat_file2;
-
-    memset (&tmpstat_file1, 0, sizeof (tmpstat_file1));
-    memset (&tmpstat_file2, 0, sizeof (tmpstat_file2));
-
-    int do_check = 0;
-
-    HCFILE fp;
-
-    if (hc_fopen (&fp, file1, "r") == true)
-    {
-      if (hc_fstat (&fp, &tmpstat_file1))
-      {
-        hc_fclose (&fp);
-
-        return false;
-      }
-
-      hc_fclose (&fp);
-
-      do_check++;
-    }
-
-    if (hc_fopen (&fp, file2, "r") == true)
-    {
-      if (hc_fstat (&fp, &tmpstat_file2))
-      {
-        hc_fclose (&fp);
-
-        return false;
-      }
-
-      hc_fclose (&fp);
-
-      do_check++;
-    }
-
-    if (do_check == 2)
-    {
-      tmpstat_file1.st_mode     = 0;
-      tmpstat_file1.st_nlink    = 0;
-      tmpstat_file1.st_uid      = 0;
-      tmpstat_file1.st_gid      = 0;
-      tmpstat_file1.st_rdev     = 0;
-      tmpstat_file1.st_atime    = 0;
-
-      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
-      tmpstat_file1.STAT_NANOSECONDS_ACCESS_TIME = 0;
-      #endif
-
-      #if defined (_POSIX)
-      tmpstat_file1.st_blksize  = 0;
-      tmpstat_file1.st_blocks   = 0;
-      #endif
-
-      tmpstat_file2.st_mode     = 0;
-      tmpstat_file2.st_nlink    = 0;
-      tmpstat_file2.st_uid      = 0;
-      tmpstat_file2.st_gid      = 0;
-      tmpstat_file2.st_rdev     = 0;
-      tmpstat_file2.st_atime    = 0;
-
-      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
-      tmpstat_file2.STAT_NANOSECONDS_ACCESS_TIME = 0;
-      #endif
-
-      #if defined (_POSIX)
-      tmpstat_file2.st_blksize  = 0;
-      tmpstat_file2.st_blocks   = 0;
-      #endif
-
-      if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (struct stat)) == 0)
-      {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }
 
 u32 hc_strtoul (const char *nptr, char **endptr, int base)
@@ -940,96 +585,6 @@ float get_entropy (const u8 *buf, const int len)
   return entropy;
 }
 
-int select_read_timeout (int sockfd, const int sec)
-{
-  struct timeval tv;
-
-  tv.tv_sec  = sec;
-  tv.tv_usec = 0;
-
-  fd_set fds;
-
-  FD_ZERO (&fds);
-
-  #if defined (_WIN)
-  FD_SET ((SOCKET)sockfd, &fds);
-  #else
-  FD_SET (sockfd, &fds);
-  #endif
-
-  return select (sockfd + 1, &fds, NULL, NULL, &tv);
-}
-
-int select_write_timeout (int sockfd, const int sec)
-{
-  struct timeval tv;
-
-  tv.tv_sec  = sec;
-  tv.tv_usec = 0;
-
-  fd_set fds;
-
-  FD_ZERO (&fds);
-
-  #if defined (_WIN)
-  FD_SET ((SOCKET)sockfd, &fds);
-  #else
-  FD_SET (sockfd, &fds);
-  #endif
-
-  return select (sockfd + 1, NULL, &fds, NULL, &tv);
-}
-
-#if defined (_WIN)
-
-int select_read_timeout_console (const int sec)
-{
-  const HANDLE hStdIn = GetStdHandle (STD_INPUT_HANDLE);
-
-  const DWORD rc = WaitForSingleObject (hStdIn, sec * 1000);
-
-  if (rc == WAIT_OBJECT_0)
-  {
-    DWORD dwRead;
-
-    INPUT_RECORD inRecords;
-
-    inRecords.EventType = 0;
-
-    PeekConsoleInput (hStdIn, &inRecords, 1, &dwRead);
-
-    if (inRecords.EventType == 0)
-    {
-      // those are good ones
-
-      return 1;
-    }
-    else
-    {
-      // but we don't want that stuff like windows focus etc. in our stream
-
-      ReadConsoleInput (hStdIn, &inRecords, 1, &dwRead);
-    }
-
-    return select_read_timeout_console (sec);
-  }
-  else if (rc == WAIT_TIMEOUT)
-  {
-    return 0;
-  }
-
-  return -1;
-}
-
-#else
-
-int select_read_timeout_console (const int sec)
-{
-  return select_read_timeout (fileno (stdin), sec);
-}
-
-#endif
-
 const char *strhashcategory (const u32 hash_category)
 {
   switch (hash_category)
@@ -1099,723 +654,6 @@ const char *stroptitype (const u32 opti_type)
   return NULL;
 }
 
-const char *strparser (const u32 parser_status)
-{
-  switch (parser_status)
-  {
-    case PARSER_OK:                   return PA_000;
-    case PARSER_COMMENT:              return PA_001;
-    case PARSER_GLOBAL_ZERO:          return PA_002;
-    case PARSER_GLOBAL_LENGTH:        return PA_003;
-    case PARSER_HASH_LENGTH:          return PA_004;
-    case PARSER_HASH_VALUE:           return PA_005;
-    case PARSER_SALT_LENGTH:          return PA_006;
-    case PARSER_SALT_VALUE:           return PA_007;
-    case PARSER_SALT_ITERATION:       return PA_008;
-    case PARSER_SEPARATOR_UNMATCHED:  return PA_009;
-    case PARSER_SIGNATURE_UNMATCHED:  return PA_010;
-    case PARSER_HCCAPX_FILE_SIZE:     return PA_011;
-    case PARSER_HCCAPX_EAPOL_LEN:     return PA_012;
-    case PARSER_PSAFE2_FILE_SIZE:     return PA_013;
-    case PARSER_PSAFE3_FILE_SIZE:     return PA_014;
-    case PARSER_TC_FILE_SIZE:         return PA_015;
-    case PARSER_VC_FILE_SIZE:         return PA_016;
-    case PARSER_SIP_AUTH_DIRECTIVE:   return PA_017;
-    case PARSER_HASH_FILE:            return PA_018;
-    case PARSER_HASH_ENCODING:        return PA_019;
-    case PARSER_SALT_ENCODING:        return PA_020;
-    case PARSER_LUKS_FILE_SIZE:       return PA_021;
-    case PARSER_LUKS_MAGIC:           return PA_022;
-    case PARSER_LUKS_VERSION:         return PA_023;
-    case PARSER_LUKS_CIPHER_TYPE:     return PA_024;
-    case PARSER_LUKS_CIPHER_MODE:     return PA_025;
-    case PARSER_LUKS_HASH_TYPE:       return PA_026;
-    case PARSER_LUKS_KEY_SIZE:        return PA_027;
-    case PARSER_LUKS_KEY_DISABLED:    return PA_028;
-    case PARSER_LUKS_KEY_STRIPES:     return PA_029;
-    case PARSER_LUKS_HASH_CIPHER:     return PA_030;
-    case PARSER_HCCAPX_SIGNATURE:     return PA_031;
-    case PARSER_HCCAPX_VERSION:       return PA_032;
-    case PARSER_HCCAPX_MESSAGE_PAIR:  return PA_033;
-    case PARSER_TOKEN_ENCODING:       return PA_034;
-    case PARSER_TOKEN_LENGTH:         return PA_035;
-    case PARSER_INSUFFICIENT_ENTROPY: return PA_036;
-    case PARSER_PKZIP_CT_UNMATCHED:   return PA_037;
-    case PARSER_KEY_SIZE:             return PA_038;
-    case PARSER_BLOCK_SIZE:           return PA_039;
-    case PARSER_CIPHER:               return PA_040;
-    case PARSER_FILE_SIZE:            return PA_041;
-    case PARSER_IV_LENGTH:            return PA_042;
-    case PARSER_CT_LENGTH:            return PA_043;
-    case PARSER_PT_LENGTH:            return PA_044;
-    case PARSER_PT_OFFSET:            return PA_045;
-    case PARSER_CRYPTOAPI_KERNELTYPE: return PA_046;
-    case PARSER_CRYPTOAPI_KEYSIZE:    return PA_047;
-  }
-
-  return PA_255;
-}
-
-static int rounds_count_length (const char *input_buf, const int input_len)
-{
-  if (input_len >= 9) // 9 is minimum because of "rounds=X$"
-  {
-    static const char *const rounds = "rounds=";
-
-    if (memcmp (input_buf, rounds, 7) == 0)
-    {
-      const char *next_pos = strchr (input_buf + 8, '$');
-
-      if (next_pos == NULL) return -1;
-
-      const int rounds_len = next_pos - input_buf;
-
-      return rounds_len;
-    }
-  }
-
-  return -1;
-}
-
-const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator)
-{
-  for (int i = 0; i < input_len; i++)
-  {
-    if (input_buf[i] == separator) return &input_buf[i];
-  }
-
-  return NULL;
-}
-
-const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator)
-{
-  for (int i = input_len - 1; i >= 0; i--)
-  {
-    if (input_buf[i] == separator) return &input_buf[i];
-  }
-
-  return NULL;
-}
-
-int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token)
-{
-  int len_left = input_len;
-
-  token->buf[0] = input_buf;
-
-  int token_idx;
-
-  for (token_idx = 0; token_idx < token->token_cnt - 1; token_idx++)
-  {
-    if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
-    {
-      int len = token->len[token_idx];
-
-      if (len_left < len) return (PARSER_TOKEN_LENGTH);
-    }
-    else
-    {
-      if (token->attr[token_idx] & TOKEN_ATTR_OPTIONAL_ROUNDS)
-      {
-        const int len = rounds_count_length ((const char *) token->buf[token_idx], len_left);
-
-        token->opt_buf = token->buf[token_idx];
-
-        token->opt_len = len; // we want an eventual -1 in here, it's used later for verification
-
-        if (len > 0)
-        {
-          token->buf[token_idx] += len + 1; // +1 = separator
-
-          len_left -= len + 1; // +1 = separator
-        }
-      }
-    }
-
-    if (token->sep[token_idx] != 0x00)
-    {
-      const u8 *next_pos = NULL;
-
-      if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
-      {
-        next_pos = hc_strchr_last (token->buf[token_idx], len_left, token->sep[token_idx]);
-      }
-      else
-      {
-        next_pos = hc_strchr_next (token->buf[token_idx], len_left, token->sep[token_idx]);
-      }
-
-      if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-      const int len = next_pos - token->buf[token_idx];
-
-      if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
-      {
-        if (len != token->len[token_idx]) return (PARSER_TOKEN_LENGTH);
-      }
-
-      token->len[token_idx] = len;
-
-      token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
-
-      len_left -= len + 1; // +1 = separator
-    }
-    else
-    {
-      const int len = token->len[token_idx];
-
-      if (len)
-      {
-        token->buf[token_idx + 1] = token->buf[token_idx] + len;
-
-        len_left -= len;
-
-        if (token->sep[token_idx] != 0)
-        {
-          token->buf[token_idx + 1]++; // +1 = separator
-
-          len_left--; // -1 = separator
-        }
-      }
-
-      const int len_min = token->len_min[token_idx];
-      const int len_max = token->len_max[token_idx];
-
-      if (len_max)
-      {
-        bool matched = false;
-
-        if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
-        {
-          for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
-          {
-            const int len_sig = strlen (token->signatures_buf[signature_idx]);
-
-            if (len_sig > len_left) continue;
-
-            if ((len_sig >= len_min) && (len_sig <= len_max))
-            {
-              if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], len_sig) == 0)
-              {
-                token->len[token_idx] = len_sig;
-
-                token->buf[token_idx + 1] = token->buf[token_idx] + len_sig;
-
-                len_left -= len_sig;
-
-                matched = true;
-              }
-            }
-          }
-
-          if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
-        }
-      }
-    }
-  }
-
-  if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
-  {
-    int len = token->len[token_idx];
-
-    if (len_left != len) return (PARSER_TOKEN_LENGTH);
-  }
-  else
-  {
-    token->len[token_idx] = len_left;
-  }
-
-  // verify data
-
-  for (token_idx = 0; token_idx < token->token_cnt; token_idx++)
-  {
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
-    {
-      bool matched = false;
-
-      for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
-      {
-        if (strncmp ((char *) token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
-      }
-
-      if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
-    {
-      if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
-      if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_DIGIT)
-    {
-      if (is_valid_digit_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_FLOAT)
-    {
-      if (is_valid_float_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)
-    {
-      if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64A)
-    {
-      if (is_valid_base64a_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64B)
-    {
-      if (is_valid_base64b_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64C)
-    {
-      if (is_valid_base64c_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE58)
-    {
-      if (is_valid_base58_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BECH32)
-    {
-      if (is_valid_bech32_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-  }
-
-  return PARSER_OK;
-}
-
-bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len)
-{
-  u32 tmp_u32[(64 * 2) + 1] = { 0 };
-
-  u8 *tmp_u8 = (u8 *) tmp_u32;
-
-  if (in_len > 512) return false; // 512 = 2 * 256 -- (2 * because of hex), 256 because of maximum salt length in salt_t
-
-  int tmp_len = 0;
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if (in_len < (int) (hashconfig->salt_min * 2)) return false;
-    if (in_len > (int) (hashconfig->salt_max * 2)) return false;
-
-    if (in_len & 1) return false;
-
-    for (int i = 0, j = 0; j < in_len; i += 1, j += 2)
-    {
-      u8 p0 = in_buf[j + 0];
-      u8 p1 = in_buf[j + 1];
-
-      tmp_u8[i]  = hex_convert (p1) << 0;
-      tmp_u8[i] |= hex_convert (p0) << 4;
-    }
-
-    tmp_len = in_len / 2;
-  }
-  else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
-  {
-    if (in_len < (int) (((hashconfig->salt_min * 8) / 6) + 0)) return false;
-    if (in_len > (int) (((hashconfig->salt_max * 8) / 6) + 3)) return false;
-
-    tmp_len = base64_decode (base64_to_int, in_buf, in_len, tmp_u8);
-  }
-  else
-  {
-    if (in_len < (int) hashconfig->salt_min) return false;
-    if (in_len > (int) hashconfig->salt_max) return false;
-
-    memcpy (tmp_u8, in_buf, in_len);
-
-    tmp_len = in_len;
-  }
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
-  {
-    if (tmp_len >= 128) return false;
-
-    for (int i = 64 - 1; i >= 1; i -= 2)
-    {
-      const u32 v = tmp_u32[i / 2];
-
-      tmp_u32[i - 0] = ((v >> 8) & 0x00FF0000) | ((v >> 16) & 0x000000FF);
-      tmp_u32[i - 1] = ((v << 8) & 0x00FF0000) | ((v >>  0) & 0x000000FF);
-    }
-
-    tmp_len = tmp_len * 2;
-  }
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_LOWER)
-  {
-    lowercase (tmp_u8, tmp_len);
-  }
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_UPPER)
-  {
-    uppercase (tmp_u8, tmp_len);
-  }
-
-  int tmp2_len = tmp_len;
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
-  {
-    if (tmp2_len >= 256) return false;
-
-    tmp_u8[tmp2_len++] = 0x80;
-  }
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD01)
-  {
-    if (tmp2_len >= 256) return false;
-
-    tmp_u8[tmp2_len++] = 0x01;
-  }
-
-  memcpy (out_buf, tmp_u8, tmp2_len);
-
-  *out_len = tmp_len;
-
-  return true;
-}
-
-int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf)
-{
-  u32 tmp_u32[(64 * 2) + 1] = { 0 };
-
-  u8 *tmp_u8 = (u8 *) tmp_u32;
-
-  memcpy (tmp_u8, in_buf, in_len);
-
-  int tmp_len = in_len;
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
-  {
-    for (int i = 0, j = 0; j < in_len; i += 1, j += 2)
-    {
-      const u8 p = tmp_u8[j];
-
-      tmp_u8[i] = p;
-    }
-
-    tmp_len = tmp_len / 2;
-  }
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    for (int i = 0, j = 0; i < in_len; i += 1, j += 2)
-    {
-      u8_to_hex (in_buf[i], tmp_u8 + j);
-    }
-
-    tmp_len = in_len * 2;
-  }
-  else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
-  {
-    tmp_len = base64_encode (int_to_base64, in_buf, in_len, tmp_u8);
-  }
-
-  memcpy (out_buf, tmp_u8, tmp_len);
-
-  return tmp_len;
-}
-
-int get_current_arch ()
-{
-  #if defined (_WIN)
-
-  SYSTEM_INFO sysinfo;
-
-  GetNativeSystemInfo (&sysinfo);
-
-  switch (sysinfo.wProcessorArchitecture)
-  {
-    case PROCESSOR_ARCHITECTURE_AMD64: return 1;
-    case PROCESSOR_ARCHITECTURE_INTEL: return 2;
-    case PROCESSOR_ARCHITECTURE_ARM64: return 3;
-    case PROCESSOR_ARCHITECTURE_ARM: return 4;
-    default: return 0;
-  }
-
-  #else
-
-  struct utsname uts;
-
-  if (uname(&uts) != 0) return 0; // same as default, it doesn't matter if it fails here
-
-  if (strstr(uts.machine, "x86_64")) return 1;
-  else if (strstr(uts.machine, "i386") || strstr(uts.machine, "i686")) return 2;
-  else if (strstr(uts.machine, "aarch64") || strstr(uts.machine, "arm64")) return 3;
-  else if (strstr(uts.machine, "arm")) return 4;
-  else return 0;
-
-  #endif
-}
-
-#if defined (__APPLE__)
-
-bool is_apple_silicon (void)
-{
-  size_t size;
-  cpu_type_t cpu_type = 0;
-  size = sizeof (cpu_type);
-  sysctlbyname ("hw.cputype", &cpu_type, &size, NULL, 0);
-
-  return (cpu_type == 0x100000c);
-}
-
-#endif // __APPLE__
-
-char *file_to_buffer (const char *filename)
-{
-  HCFILE fp;
-
-  if (hc_fopen (&fp, filename, "r") == true)
-  {
-    struct stat st;
-
-    memset (&st, 0, sizeof (st));
-
-    if (hc_fstat (&fp, &st))
-    {
-      hc_fclose (&fp);
-
-      return NULL;
-    }
-
-    char *buffer = malloc (st.st_size + 1);
-
-    const size_t nread = hc_fread (buffer, 1, st.st_size, &fp);
-
-    hc_fclose (&fp);
-
-    buffer[nread] = 0;
-
-    return buffer;
-  }
-
-  return NULL;
-}
-
-int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len)
-{
-  int hash_mode = -1;
-
-  if (sscanf ((char *) input_buf, "$dynamic_%d$", &hash_mode) != 1) return -1;
-
-  *output_buf = (u8 *) strchr ((char *) input_buf + 10, '$');
-
-  if (*output_buf == NULL) return -1;
-
-  *output_buf += 1; // the $ itself
-
-  *output_len = input_len - (*output_buf - input_buf);
-
-  return hash_mode;
-}
-
-bool check_file_suffix (const char *file, const char *suffix)
-{
-  if (file == NULL)   return false;
-  if (suffix == NULL) return false;
-
-  const size_t len_file = strlen (file);
-  const size_t len_suffix = strlen (suffix);
-
-  if (len_suffix > len_file) return false;
-
-  return strcmp (file + len_file - len_suffix, suffix) == 0;
-}
-
-bool remove_file_suffix (char *file, const char *suffix)
-{
-  if (file == NULL)   return false;
-  if (suffix == NULL) return false;
-
-  if (check_file_suffix (file, suffix) == false) return false;
-
-  const size_t len_file = strlen (file);
-  const size_t len_suffix = strlen (suffix);
-
-  file[len_file - len_suffix] = 0;
-
-  return true;
-}
-
-#if defined (_WIN)
-#define DEVNULL "NUL"
-#else
-#define DEVNULL "/dev/null"
-#endif
-
-int suppress_stderr (void)
-{
-  int null_fd = open (DEVNULL, O_WRONLY);
-
-  if (null_fd < 0) return -1;
-
-  int saved_fd = dup (fileno (stderr));
-
-  if (saved_fd < 0)
-  {
-    close (null_fd);
-
-    return -1;
-  }
-
-  dup2 (null_fd, fileno (stderr));
-
-  close (null_fd);
-
-  return saved_fd;
-}
-
-void restore_stderr (int saved_fd)
-{
-  if (saved_fd < 0) return;
-
-  dup2 (saved_fd, fileno (stderr));
-
-  close (saved_fd);
-}
-
-bool get_free_memory (u64 *free_mem)
-{
-  #if defined (_WIN)
-
-  MEMORYSTATUSEX memStatus;
-
-  memStatus.dwLength = sizeof (memStatus);
-
-  if (GlobalMemoryStatusEx (&memStatus))
-  {
-    *free_mem = (u64) memStatus.ullAvailPhys;
-
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-
-  #elif defined (__APPLE__)
-
-  mach_port_t host_port = mach_host_self ();
-
-  mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
-
-  vm_statistics_data_t vm_stat;
-
-  if (host_statistics (host_port, HOST_VM_INFO, (host_info_t) &vm_stat, &count) != KERN_SUCCESS)
-  {
-    return false;
-  }
-
-  int64_t page_size;
-
-  host_page_size (host_port, (vm_size_t*) &page_size);
-
-  *free_mem = (u64) (vm_stat.free_count + vm_stat.inactive_count) * page_size;
-
-  return true;
-
-  #elif defined (__OpenBSD__)
-
-  struct uvmexp uvmexp;
-
-  size_t size = sizeof (uvmexp);
-
-  int mib[2] = {CTL_VM, VM_UVMEXP};
-
-  if (sysctl (mib, 2, &uvmexp, &size, NULL, 0) == -1) return false;
-
-  *free_mem = (uint64_t)(uvmexp.free * uvmexp.pagesize);
-
-  return true;
-
-  #elif defined (__FreeBSD__) || defined (__NetBSD__) || defined (__DragonFly__)
-
-  size_t len;
-
-  u64 pagesize = 0, free_pages = 0, cache_pages = 0, inactive_pages = 0;
-
-  len = sizeof (pagesize);
-
-  if (sysctlbyname ("hw.pagesize", &pagesize, &len, NULL, 0) == -1) return false;
-
-  len = sizeof (free_pages);
-
-  if (sysctlbyname ("vm.stats.vm.v_free_count", &free_pages, &len, NULL, 0) == -1) return false;
-
-  #if defined (__OpenBSD__) || defined (__FreeBSD__) || defined (__DragonFly__)
-
-  len = sizeof (cache_pages);
-
-  if (sysctlbyname ("vm.stats.vm.v_cache_count", &cache_pages, &len, NULL, 0) == -1) return false;
-
-  #endif // __OpenBSD__ || __FreeBSD__ || __DragonFly__
-
-  len = sizeof (inactive_pages);
-
-  if (sysctlbyname ("vm.stats.vm.v_inactive_count", &inactive_pages, &len, NULL, 0) == -1) return false;
-
-  u64 total_pages = free_pages + cache_pages + inactive_pages;
-
-  *free_mem = (u64) (total_pages * pagesize);
-
-  return true;
-
-  #else
-
-  // Get MemAvailable from /proc/meminfo instead of sysinfo()
-
-  FILE *fp = fopen ("/proc/meminfo", "r");
-
-  if (fp == NULL)
-  {
-    // fallback
-
-    struct sysinfo info;
-
-    if (sysinfo (&info) != 0) return false;
-
-    const unsigned long freeram = info.freeram;
-    const unsigned long bufferram = info.bufferram;
-    const unsigned long sharedram = info.sharedram;
-
-    const unsigned long totamram = freeram + bufferram + sharedram;
-
-    *free_mem = (u64) totamram * info.mem_unit;
-
-    return true;
-  }
-
-  char line[256] = { 0 };
-
-  u64 memAvailable_kb = 0;
-
-  while (fgets (line, sizeof (line) - 1, fp))
-  {
-    if (sscanf (line, "MemAvailable: %" SCNu64 " kB", &memAvailable_kb) == 1)
-    {
-      fclose (fp);
-
-      *free_mem = (memAvailable_kb * 1024);
-
-      return true;
-    }
-  }
-
-  fclose (fp);
-
-  #endif
-
-  return false;
-}
-
 u32 previous_power_of_two (const u32 x)
 {
   // https://stackoverflow.com/questions/2679815/previous-power-of-2
@@ -1851,148 +689,391 @@ u32 next_power_of_two (const u32 x)
   return r;
 }
 
-size_t hc_memchr_generic (const u8 *ptr, int ch, size_t max_len)
-{
-  const u8 *found = memchr (ptr, ch, max_len);
+// What to print for a percentage that is shown with two decimals.
+//
+// Two decimals round, so a run one hash short of the whole list reads as 100.00% and a run one hash
+// short of none reads as 0.00%. Those two values are the ones a reader acts on, so hold the printed
+// figure off them until the fraction has really arrived.
 
-  return found ? (size_t)(found - ptr) : max_len;
+double hc_percent_display (const double percent)
+{
+  if (percent >= 100.0) return 100.0;
+  if (percent <= 0.0) return 0.0;
+
+  if (percent > 99.99) return 99.99;
+  if (percent < 0.01) return 0.01;
+
+  return percent;
 }
 
-#if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86) || defined (__aarch64__)
-#if !defined (__aarch64__)
-__attribute__((target("avx2")))
-#endif
-size_t hc_memchr_avx2 (const u8 *ptr, int ch, size_t max_len)
+// Whether an on/off environment switch is set, looked up once.
+//
+// Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each would otherwise
+// carry its own copy of the lookup and its own cache. The cache is what forced the duplication: one
+// static inside a shared function would be a single slot shared by every variable, so the slot stays
+// with the caller and only the logic moves here. Pass a static int initialised to -1.
+//
+// Presence is what counts, not the value, which is how these switches have always behaved.
+
+bool hc_env_flag (const char *name, int *cache)
 {
-  size_t offset = 0;
+  if (*cache == -1) *cache = (getenv (name) != NULL) ? 1 : 0;
 
-  while (max_len >= 32)
-  {
-    #if defined (__aarch64__)
+  const bool result = (*cache == 1) ? true : false;
 
-    __m128i block1 = _mm_loadu_si128      ((const __m128i *)(ptr));
-    __m128i block2 = _mm_loadu_si128      ((const __m128i *)(ptr + 16));
-
-    __m128i nl     = _mm_set1_epi8        (ch);
-
-    __m128i cmp1   = _mm_cmpeq_epi8       (block1, nl);
-    __m128i cmp2   = _mm_cmpeq_epi8       (block2, nl);
-
-    int mask1      = _mm_movemask_epi8    (cmp1);
-    int mask2      = _mm_movemask_epi8    (cmp2);
-
-    if (mask1) return offset + __builtin_ctz (mask1);
-    if (mask2) return offset + 16 + __builtin_ctz  (mask2);
-
-    #else
-
-    __m256i block  = _mm256_loadu_si256   ((const __m256i *)ptr);
-    __m256i nl     = _mm256_set1_epi8     (ch);
-    __m256i cmp    = _mm256_cmpeq_epi8    (block, nl);
-
-    int mask       = _mm256_movemask_epi8 (cmp);
-
-    if (mask != 0) return offset + __builtin_ctz (mask);
-
-    #endif
-
-    ptr     += 32;
-    max_len -= 32;
-    offset  += 32;
-  }
-
-  size_t tail = hc_memchr_generic (ptr, ch, max_len);
-
-  return offset + tail;
+  return result;
 }
 
-#if !defined (__aarch64__)
-__attribute__((target("avx512f,avx512bw")))
-#endif
-size_t hc_memchr_avx512 (const u8 *ptr, int ch, size_t max_len)
+// The byte value of an environment switch written in MiB, looked up once.
+//
+// A launcher that starts several hashcat processes against one machine has to tell each of them how
+// much of that machine to assume, because a process cannot see what the others are about to take.
+// MiB is the unit every memory figure hashcat prints already uses. An unset variable gives 0, and
+// the value is held well inside the range where the conversion to bytes stays exact. Pass a static
+// i64 initialised to -1.
+
+u64 hc_env_mib (const char *name, i64 *cache)
 {
-  size_t offset = 0;
-
-  while (max_len >= 64)
+  if (*cache == -1)
   {
-    #if defined (__aarch64__)
+    const char *value = getenv (name);
 
-    // Map 64-byte scan using two 32-byte NEON blocks
+    const u64 mib = (value == NULL) ? 0 : hc_strtoull (value, NULL, 10);
 
-    __m128i block1 = _mm_loadu_si128        ((const __m128i *)(ptr));
-    __m128i block2 = _mm_loadu_si128        ((const __m128i *)(ptr + 16));
-    __m128i block3 = _mm_loadu_si128        ((const __m128i *)(ptr + 32));
-    __m128i block4 = _mm_loadu_si128        ((const __m128i *)(ptr + 48));
+    const i64 mib_max = 0x7fffffff;
 
-    __m128i nl     = _mm_set1_epi8          (ch);
-
-    int mask1      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block1, nl));
-    int mask2      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block2, nl));
-    int mask3      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block3, nl));
-    int mask4      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block4, nl));
-
-    if (mask1) return offset + __builtin_ctz      (mask1);
-    if (mask2) return offset + 16 + __builtin_ctz (mask2);
-    if (mask3) return offset + 32 + __builtin_ctz (mask3);
-    if (mask4) return offset + 48 + __builtin_ctz (mask4);
-
-    #else
-
-    __m512i block  = _mm512_loadu_si512     ((const __m512i *)ptr);
-    __m512i nl     = _mm512_set1_epi8       (ch);
-    __mmask64 mask = _mm512_cmpeq_epi8_mask (block, nl);
-
-    if (mask != 0) return offset + __builtin_ctzll (mask);
-
-    #endif
-
-    ptr     += 64;
-    max_len -= 64;
-    offset  += 64;
+    *cache = (mib > (u64) mib_max) ? mib_max : (i64) mib;
   }
 
-  size_t tail = hc_memchr_generic (ptr, ch, max_len);
+  const u64 result = (u64) *cache * 1024 * 1024;
 
-  return offset + tail;
+  return result;
 }
-#endif // __x86_64__ || _M_X64 || __i386__ || _M_IX86 || __aarch64__
 
-static hc_memchr_t hc_memchr_cached = hc_memchr_generic;
+// Bounded appenders for a fixed size output buffer.
+//
+// A cracked hash is written out by src/outfile.c and by src/potfile.c, and both build the line in one
+// buffer of HCBUFSIZ_LARGE. The username, the hash and the plaintext all originate in the input line,
+// so none of the 3 has a length this code decides. Every write is therefore clamped to the room
+// actually left, and 1 byte is always kept back so that the caller's trailing null lands inside the
+// buffer. A field that does not fit is truncated and the entry itself is still written out.
+//
+// buf_sz is the size of the whole buffer, not the room remaining. Each function returns the new length.
+//
+// These lived in src/outfile.c alone. potfile.c builds the same kind of line into the same size of
+// buffer and had no bound of any kind, which is exactly the shape a second copy of security relevant
+// code takes when it is not shared, so there is one copy and both callers use it.
 
-__attribute__((constructor))
-static void hc_memchr_init (void)
+int hc_append_raw (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
 {
-  #if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86)
+  const int room = buf_sz - 1 - len;
 
-  if (cpu_supports_avx512f ())
+  if (src_len > room)
   {
-    hc_memchr_cached = hc_memchr_avx512;
-  }
-  else if (cpu_supports_avx2 ())
-  {
-    hc_memchr_cached = hc_memchr_avx2;
-  }
-  else
-  {
-    hc_memchr_cached = hc_memchr_generic;
+    src_len = (room > 0) ? room : 0;
   }
 
-  #elif defined (__aarch64__)
+  memcpy (buf + len, src, (size_t) src_len);
 
-  // Use 64-byte NEON-mapped function for Apple Silicon
-  // hc_memchr_cached = hc_memchr_avx512;
+  const int out_len = len + src_len;
 
-  // Use 32-byte NEON-mapped function for Apple Silicon by default
-  hc_memchr_cached   = hc_memchr_avx2;
+  return out_len;
+}
+
+// hex_encode () writes 2 bytes per input byte and no terminator.
+
+int hc_append_hex (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const int out_len = len + hex_encode (src, src_len, (u8 *) buf + len);
+
+  return out_len;
+}
+
+// exec_hexify () writes 2 bytes per input byte and then a terminator, which is what the byte held
+// back above is for. It also clamps its own input to PW_MAX, so it can write less than asked.
+
+int hc_append_hexify (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const size_t hex_len = exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
+
+  const int out_len = len + (int) hex_len;
+
+  return out_len;
+}
+
+int hc_append_chr (char *buf, const int len, const int buf_sz, const char c)
+{
+  if (len >= (buf_sz - 1)) return len;
+
+  buf[len] = c;
+
+  const int out_len = len + 1;
+
+  return out_len;
+}
+
+// Expanding a PCFG cell on the host, so that a crack can be reported as the candidate that produced it
+// rather than as the base word the device started from. This is the same walk as pcfg_expand () in
+// OpenCL/inc_pcfg.cl and has to stay the same walk: the device decides which candidate matched, and
+// this decides what that candidate was.
+//
+// Bytes are addressed directly here rather than through shifts, which is the same thing on a little
+// endian host and is what the kernel's word arithmetic amounts to.
+
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len)
+{
+  if (pool == NULL) return -1;
+
+  // The walk is not written again here. It is the one in OpenCL/inc_pcfg_omen.cl, the same text the
+  // kernel runs, compiled for the host through src/emu_inc_pcfg_omen.c. It has to be the same walk,
+  // because the device decides which candidate matched a digest and this says what that candidate
+  // was, so two spellings of one order would eventually report a password that did not crack it.
+
+  if ((cell->flags & PCFG_CELL_OMEN) != 0)
+  {
+    // The host holds the pool in one piece, so every part is that one buffer and the starts are put
+    // where no index reaches them.
+
+    PCFG_POOL_ONE (pv, pool)
+
+    const int cost      = (int) cell->slots[0].pool_off;
+    const u32 dir_at    = cell->slots[0].packed;
+    const u32 model_idx = cell->slots[1].pool_off;
+
+    pcfg_omen_model_t m;
+
+    pcfg_omen_model (PCFG_POOL_REF (pv), dir_at, model_idx, &m);
+
+    // The host left the rank here when it judged this cell's first candidate, and this candidate
+    // carries its own offset from it. The kernel resumes from the same landing, by the same offset.
+
+    pcfg_omen_land_t ld;
+
+    if (cell->slots[2].digit != 0)
+    {
+      ld.li   = cell->slots[1].radix;
+      ld.sc   = cell->slots[1].digit;
+      ld.i    = cell->slots[1].packed;
+      ld.rank = (((u64) cell->slots[2].radix) << 32) | (u64) cell->slots[2].pool_off;
+    }
+    else
+    {
+      ld.li   = 0;
+      ld.sc   = 0;
+      ld.i    = pcfg_pool_u32 (PCFG_POOL_REF (pv), m.start_lvl);
+      ld.rank = (((u64) cell->slots[0].digit) << 32) | (u64) cell->slots[0].radix;
+    }
+
+    pcfg_omen_walk_t ow;
+
+    if (pcfg_omen_seed (PCFG_POOL_REF (pv), &m, cost, &ld, il_pos, &ow) == false) return -1;
+
+    // Nothing to clear, because the caller reads the length this returns and the bytes below it. And
+    // the bound is the model's own rather than the kernel's: a walk never writes more than this, and
+    // the buffer the caller hands over is larger than it.
+
+    return pcfg_omen_emit (PCFG_POOL_REF (pv), &m, &ow, w, 0, PCFG_OMEN_MAXBYTE);
+  }
+
+  const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
+
+  // Whether an entry is reached by multiplying or by looking its offset up, which is a property of the
+  // grammar and therefore of the cell. The kernel knows it at build time; this is compiled once and is
+  // told. See PCFG_DEV_VARLEN.
+
+  const bool varlen = ((cell->flags & PCFG_CELL_VARLEN) != 0);
+
+  // Nothing on the device and nothing to expand: the base word is the candidate, and its length is the
+  // one the caller handed over. A position past the end of a rectangle of one is still past the end.
+
+  if (slot_cnt == 0)
+  {
+    if (il_pos != 0) return -1;
+
+    return base_len;
+  }
+
+  u32 digit[PCFG_DEV_MAXSLOT];
+
+  u64 carry = il_pos;
+
+  for (int j = (int) slot_cnt - 1; j >= 0; j--)
+  {
+    const u32 radix = cell->slots[j].radix;
+
+    if (radix == 0) return false;
+
+    // The position in the rectangle is the whole of it. A slot's digit field is not a starting digit
+    // and is never added here, because pcfg_odo_seed () in the kernel decomposes il_pos alone and this
+    // has to name the candidate the card actually hashed. See pcfg_slot_t for what the field does mean.
+
+    digit[j] = (u32) (carry % radix);
+
+    carry = carry / radix;
+  }
+
+  if (carry != 0) return -1;
+
+  const u8 *pb = (const u8 *) pool;
+  const u8 *bb = (const u8 *) base;
+
+  u8 *wb = (u8 *) w;
+
+  // Where each slot writes and how long the candidate ends up. Without per entry offsets both are
+  // constants of the cell and sit in the descriptor; with them the offset is a running sum over the
+  // digits, exactly as the kernel's odometer word carries it.
+
+  u32 dpos[PCFG_DEV_MAXSLOT];
+
+  u32 pos = PCFG_SLOT_DST_OFF (cell->slots[0].packed);
+
+  for (u32 j = 0; j < slot_cnt; j++)
+  {
+    const u32 packed = cell->slots[j].packed;
+
+    const u32 kind = PCFG_SLOT_KIND (packed);
+
+    // A run of the base word is not in the pool and its length is in the descriptor either way, so it
+    // is settled before the two that read the pool to find out.
+
+    if (kind == PCFG_SLOT_KIND_COPY)
+    {
+      const u32 ent_len = PCFG_SLOT_ENT_LEN (packed);
+      const u32 dst_off = (varlen == true) ? pos : PCFG_SLOT_DST_OFF (packed);
+      const u32 src     = cell->slots[j].pool_off;
+
+      dpos[j] = dst_off;
+
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        wb[dst_off + k] = bb[src + k];
+      }
+
+      pos += ent_len;
+
+      continue;
+    }
+
+    const u32 ent_len = (varlen == true) ? (pool[cell->slots[j].pool_off + digit[j] + 1] - pool[cell->slots[j].pool_off + digit[j]]) : PCFG_SLOT_ENT_LEN (packed);
+    const u32 dst_off = (varlen == true) ? pos                                                                                      : PCFG_SLOT_DST_OFF (packed);
+
+    dpos[j] = dst_off;
+
+    if (kind == PCFG_SLOT_KIND_BYTES)
+    {
+      const u32 src = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]] : cell->slots[j].pool_off + (digit[j] * ent_len);
+
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        wb[dst_off + k] = pb[src + k];
+      }
+
+      pos += ent_len;
+
+      continue;
+    }
+
+    // The capitalisation walk, character by character, which is pcfg_case_slot () in inc_pcfg.cl and
+    // has to agree with it byte for byte. A mask writes over the token in front of it and adds nothing
+    // of its own, so it takes that token's offset and leaves the running one where it found it.
+
+    const u32 from = PCFG_SLOT_FROM (cell->slots[j].packed);
+
+    const u32 tok_len = (varlen == true) ? (pool[cell->slots[from].pool_off + digit[from] + 1] - pool[cell->slots[from].pool_off + digit[from]]) : PCFG_SLOT_ENT_LEN (cell->slots[from].packed);
+
+    const u32 mask_src = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]] : cell->slots[j].pool_off + (digit[j] * ent_len);
+    const u32 up_src   = (varlen == true) ? pool[cell->slots[from].pool_off + digit[from]] + cell->slots[j].digit : cell->slots[j].digit + (digit[from] * tok_len);
+
+    // Where the mask writes, which is where the token in front of it wrote. Without per entry offsets
+    // slot_geometry () already put that offset in the mask's own descriptor, so the two agree.
+
+    const u32 mdst_off = dpos[from];
+
+    u32 ci = 0;
+    u32 at = 0;
+
+    // Equal lengths mean the token is one byte per character, and the continuation walk below must
+    // not run: a latin-1 or cp1252 list keeps letters in 0x80-0xBF. The same test the kernel and
+    // assemble () make, because all three have to agree on what a character is.
+
+    const bool wide = (tok_len != ent_len);
+
+    while ((at < tok_len) && (ci < ent_len))
+    {
+      if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
+
+      at++;
+
+      while ((wide == true) && (at < tok_len))
+      {
+        if ((wb[mdst_off + at] & 0xc0) != 0x80) break;
+
+        if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
+
+        at++;
+      }
+
+      ci++;
+    }
+  }
+
+  // How long the candidate is, and it has to be the length the kernel hashed or a crack is reported as
+  // a password that does not produce its own digest.
+  //
+  // Where the entries are all one length the kernel hashes the base word's length, because the slots
+  // write over bytes that were already there and nothing moves. The running offset is not that length:
+  // it stops where the last slot stopped. For a grammar the two agree, because its slots are a suffix
+  // of the structure and the last of them ends the candidate. For a table they do not, because a slot
+  // is wherever a token varies, so a word that does not end in one leaves the offset short and the
+  // plaintext was reported truncated.
+  //
+  // Where the entries vary in length the offset is the length, and it is what the kernel returns too.
+
+  const int len = (varlen == true) ? (int) pos : base_len;
+
+  return len;
+}
+
+// Peak resident memory of this process, in bytes, or 0 where the platform will not say.
+//
+// The three platforms disagree about the unit as well as the call: ru_maxrss is kilobytes on Linux
+// and bytes on macOS, and Windows does not have getrusage at all.
+
+u64 hc_peak_rss (void)
+{
+  #if defined (_WIN)
+
+  PROCESS_MEMORY_COUNTERS pmc;
+
+  if (GetProcessMemoryInfo (GetCurrentProcess (), &pmc, sizeof (pmc)) == 0) return 0;
+
+  return (u64) pmc.PeakWorkingSetSize;
 
   #else
 
-  hc_memchr_cached   = hc_memchr_generic;
+  struct rusage ru;
+
+  if (getrusage (RUSAGE_SELF, &ru) != 0) return 0;
+
+  #if defined (__APPLE__)
+  return (u64) ru.ru_maxrss;
+  #else
+  return (u64) ru.ru_maxrss * 1024;
+  #endif
 
   #endif
-}
-
-hc_memchr_t hc_memchr_get (void)
-{
-  return hc_memchr_cached;
 }

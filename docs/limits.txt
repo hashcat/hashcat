@@ -1,104 +1,72 @@
 ##
-## Maximum password lengths vary depending on kernel, hash type, and encoding
+## Maximum password length depends on the kernel, hash type and encoding
 ##
 
 See https://hashcat.net/faq/lengths
 
 ##
-## Generic hash modes only support salt lengths up to 256
+## Generic salt storage is limited to 256 bytes
 ##
 
-This limitation on salt lengths only affects generic hash modes, such as md5(pass.salt).
-
-Dedicated hash modes allow unlimited salt length support.
+Hash modes that use the generic salt structure, such as md5(pass.salt), can store at most 256 bytes of salt. A dedicated mode can place additional data in its own extended-salt structure, but its format and module still define a finite limit.
 
 ##
-## File and folder names including UTF-16 characters are not supported
-##
-
-UTF-16 is mostly seen on Windows. UTF-8 (as mostly used on Linux and macOS) are fine.
-
-Important: That does not mean UTF-16 file content, which is fully supported.
-
-It only means the filename itself.
-
-##
-## Hashing algorithms that internally use UTF-16 characters could in special cases lead to false negatives
+## Optimized kernels can produce false negatives for some UTF-16 input
 ##
 
 This applies to optimized kernels (-O) only:
 
-The UTF-16 conversion implementation used within the kernel code is optimized for performance. For that
-reason, hashcat does not respect all complicated encoding rules required to correctly convert, for instance,
-ASCII or UTF-8 to UTF-16LE (or UTF-16BE). The implementation most likely fails with multi-byte characters,
-because we basically add a zero byte every second byte within the kernel conversion code.
+The optimized in-kernel conversion favors performance over complete encoding support. It does not implement every rule required to convert encodings such as UTF-8 to UTF-16LE or UTF-16BE. In particular, multibyte characters can fail because the optimized path generally inserts a zero byte after each input byte.
 
-Since hashcat v6.2.1 there is true UTF-16 support for pure kernels. UTF-16 is fully supported.
+Pure kernels have provided complete UTF-16 conversion since hashcat v6.2.1.
 
-There is an exception for mask attacks combined with compute devices that require vector data-types
-to achieve full performance. For example a modern CPU. For these devices, the recommendation is to use a
-combination of mask processor piped to hashcat. For modern GPUs it works as expected.
+One exception applies to mask attacks on devices that require vector data types for full performance, such as modern CPUs. A mask containing characters outside ASCII requires `--backend-vector-width 1` on those devices. Modern GPUs handle the conversion as expected.
 
 ##
-## The use of --keep-guessing eventually skips reporting duplicate passwords
+## --keep-guessing can miss a colliding password
 ##
 
-This does not mean that valid passwords are skipped; they are always reported.
+hashcat reports cracked hashes through a buffer with one entry for each loaded hash. The buffer is emptied after every kernel invocation, and the first candidate to reach a hash occupies its entry. Without `--keep-guessing`, this is sufficient because hashcat stops searching for a hash after it is cracked.
 
-Only if you hit the same password twice for the same hash the password may be shown only once.
+With `--keep-guessing`, the hash remains active and a second candidate can match it during the same kernel invocation. No free entry remains for that result, so it is dropped. Whichever candidate the device reaches first survives, and reversing the candidate order can therefore report a different password.
 
-If --keep-guessing is not used, this can not occur.
-
-This limitation cannot be fixed, because it would require too much device (GPU/CPU) memory. If we wanted
-to report back all possible password candidates executed in a single kernel invocation, it would require
-this much memory per device:
+Reporting every candidate of one kernel invocation would need an entry for every candidate that invocation runs:
 
 Number-of-MCU * Max-threads * Max-accel * Max-inner-loops * sizeof (plain_t)
 
-For example, on a Vega64: 64 * 1024 * 1024 * 1024 * 20 = 1,374,389,534,720 bytes = 1280 GB VRAM
+For example, on an RTX 4090: 128 * 1024 * 1024 * 1024 * 40 = 5,497,558,138,880 bytes = 5120 GB VRAM
+
+This requirement is impractical for a fast hash, but slow hashes have a lower bound. A slow hash reports from its `_comp` kernel once per work item, while its `_loop` kernel repeats key derivation for the same candidate instead of producing new candidates. The inner-loop factor therefore drops out, leaving the number of work items as the bound.
+
+On an RX 7900 XTX, the required entries occupy 17 MB for mode 11600 and 396 MB for modes 23100, 24410 and 24420. hashcat does not currently allocate such a buffer, so those modes can lose collisions in the same way as fast hashes. Unlike the fast-hash case, however, retaining every collision would require a practical amount of memory.
 
 ##
-## Hashcat GPU memory usage may be limited by maximum memory allocation sizes of OpenCL drivers
+## Device memory usage may be limited by the maximum size of one allocation
 ##
 
-Most hashcat memory allocations are supposed to remain inside the same memory area.
+Most hashcat buffers must each fit in one contiguous device-memory allocation. The maximum depends on the backend, runtime, driver and device. OpenCL guarantees that at least one quarter of global memory can be allocated at once, but a runtime may allow more.
 
-The maximum size of a memory allocation is limited by GPU drivers / OpenCL runtimes.
-
-Only a few modes (like scrypt) have special workarounds to make use of more than one allocation.
+Only a few modes, such as scrypt, split their storage across several allocations.
 
 ##
-## The maximum number of functions per rule is limited to 31
+## A rule can contain at most 31 functions
 ##
 
-This makes the size of one rule 128 byte.
-
-On the other hand, there is a 25% OpenCL single allocation memory limit.
-
-A typical GPU of today has 8GB = 2GB/128 = 16M rules max
-
-If hashcat supported more functions per rule, it would be limited to fewer rules.
-
-This is a trade-off game.
+This limit makes each rule 128 bytes. The number of rules that fit on a device therefore depends on the available memory and the largest single allocation permitted by its backend and runtime. Supporting more functions would enlarge every rule and reduce the number that fits.
 
 ##
-## Position identifiers in rules are limited to 36
+## Rules support 36 position identifiers
 ##
 
-The upper limit of maximum 36 positions for various rule functions (0-9, A-Z) was a design decision by the original authors of the rule engine.
+The original rule-engine design limits position arguments to the 36 identifiers `0-9` and `A-Z`.
 
 ##
-## Known Issue: Unreleased memory after register spilling
+## Register-spill memory remains allocated
 ##
 
-When a kernel requires more registers than the hardware can provide,
-the CUDA runtime automatically spills register data into global memory.
-After the kernel finishes, this reserved memory is not released by the CUDA runtime.
-The only way to free it is to destroy the CUDA context.
+When a kernel requires more registers than the hardware can provide, the CUDA runtime automatically spills register data into global memory. After the kernel finishes, this reserved memory is not released by the CUDA runtime. The only way to free it is to destroy the CUDA context.
 
-In normal runs this has no impact, since the context is destroyed at program exit.
+This has no effect on a normal run because the context is destroyed when hashcat exits.
 
-In benchmarks, however, where the same context is kept across multiple hash-mode tests,
-available device memory decreases over time. This has a negative impact on benchmark
-performance and can lead to runtime errors.
+Benchmarks previously kept the same context across every hash-mode test. Available device memory consequently decreased throughout the run, reducing performance and sometimes causing a runtime error. hashcat now destroys and recreates the context between modes to release that memory. If a device context cannot be recreated, hashcat skips the device instead of using an invalid handle.
 

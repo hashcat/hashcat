@@ -366,24 +366,6 @@ KERNEL_FQ KERNEL_FA void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t
   ukey2[6] = tmps[gid].out[14];
   ukey2[7] = tmps[gid].out[15];
 
-  ukey1[0] = hc_swap32_S (ukey1[0]);
-  ukey1[1] = hc_swap32_S (ukey1[1]);
-  ukey1[2] = hc_swap32_S (ukey1[2]);
-  ukey1[3] = hc_swap32_S (ukey1[3]);
-  ukey1[4] = hc_swap32_S (ukey1[4]);
-  ukey1[5] = hc_swap32_S (ukey1[5]);
-  ukey1[6] = hc_swap32_S (ukey1[6]);
-  ukey1[7] = hc_swap32_S (ukey1[7]);
-
-  ukey2[0] = hc_swap32_S (ukey2[0]);
-  ukey2[1] = hc_swap32_S (ukey2[1]);
-  ukey2[2] = hc_swap32_S (ukey2[2]);
-  ukey2[3] = hc_swap32_S (ukey2[3]);
-  ukey2[4] = hc_swap32_S (ukey2[4]);
-  ukey2[5] = hc_swap32_S (ukey2[5]);
-  ukey2[6] = hc_swap32_S (ukey2[6]);
-  ukey2[7] = hc_swap32_S (ukey2[7]);
-
   u32 ks[60];
 
   u32 aes_decrypt[16];
@@ -407,7 +389,7 @@ KERNEL_FQ KERNEL_FA void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t
   u32 S[4] = { 0 }; // tweak, 16 x 0x00
   u32 T[4] = { 0 };
 
-  aes256_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3);
+  AES256_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3);
   aes256_encrypt (ks, S, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   out[0] ^= T[0];
@@ -415,7 +397,7 @@ KERNEL_FQ KERNEL_FA void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t
   out[2] ^= T[2];
   out[3] ^= T[3];
 
-  aes256_set_decrypt_key (ks, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+  AES256_set_decrypt_key (ks, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
   aes256_decrypt (ks, out, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   out[0] ^= T[0];

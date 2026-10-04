@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "emu_inc_cipher_des.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -20,13 +21,16 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "RACF KDFAES";
 static const u64   KERN_TYPE      = 14200;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP2;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_ST_UPPER
                                   | OPTS_TYPE_HASH_COPY
-                                  | OPTS_TYPE_NATIVE_THREADS
-                                  | OPTS_TYPE_INIT2
-                                  | OPTS_TYPE_LOOP2;
+                                  | OPTS_TYPE_NATIVE_THREADS;
+static const u64   KERN_BITS      = KERN_BIT_INIT2
+                                  | KERN_BIT_LOOP2;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$racf-kdfaes$*USER*E7D7E66D000180000008003200100010*00112233445566778899AABBCCDDEEFF*5390653DEC0316FB5AD56053208056A6";
@@ -39,6 +43,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -55,16 +60,6 @@ typedef struct pbkdf2_sha256_tmp
   u32  out[32];
 
 } pbkdf2_sha256_tmp_t;
-
-typedef struct pbkdf2_sha256_tmpx
-{
-  u32x  ipad[8];
-  u32x  opad[8];
-
-  u32x  dgst[32];
-  u32x  out[32];
-
-} pbkdf2_sha256_tmpx_t;
 
 typedef struct racf_kdfaes_tmp
 {
@@ -100,20 +95,6 @@ u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   const u32 kernel_accel_max = 128;
 
   return kernel_accel_max;
-}
-
-u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_min = 8;
-
-  return kernel_loops_min;
-}
-
-u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_max = 8;
-
-  return kernel_loops_max;
 }
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -276,7 +257,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * due to the significant increase in bruteforce time with a high mem_fac the module is developed only for a mem_fac <= 10
    * If it's necessary to brute hash with mem_fac > 10 (not default option) then increase size for racf_kdfaes_tmp->out buffer
    */
-  racf_kdfaes->mem_fac = (2 << (mem_fac - 1)) / 32;
+  // mem_fac is four hex digits off the line, so it reaches 0xffff, and the shift below is then
+  // undefined rather than large. The buffer it sizes is racf_kdfaes_tmp->out, u32[256], which is
+  // what a mem_fac of 10 fills, and a mem_fac of 0 would shift by -1.
+
+  if ((mem_fac < 1) || (mem_fac > 10)) return (PARSER_SALT_VALUE);
+
+  racf_kdfaes->mem_fac = (2u << (mem_fac - 1)) / 32;
   /**
    * racf_kdfaes->rep_fac defines a number of iteration in PBKDF2-SHA256-HMAC
    */
@@ -297,8 +284,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
   salt->salt_len = tmp_len;
 
-  salt->salt_iter = racf_kdfaes->mem_fac;
-  salt->salt_iter2 = rep_fac*100 - 1;
+  salt->salt_iter = racf_kdfaes->mem_fac * rep_fac * 100 - 1;
+  salt->salt_iter2 = rep_fac * 100 - 1;
 
   // hash
 
@@ -326,6 +313,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -342,7 +330,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -358,6 +345,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -376,10 +364,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
   module_ctx->module_kernel_accel_min         = module_kernel_accel_min;
-  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
-  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
+  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
@@ -400,5 +389,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
