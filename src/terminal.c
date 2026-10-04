@@ -1048,7 +1048,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       const char *t_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
 
-      char *t_deprecated_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+      char *t_deprecated_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
 
       json_encode (t_deprecated_notice, t_deprecated_notice_json_encoded);
 
@@ -1065,7 +1065,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       const char *t_deprecated_notice = module_ctx->module_usage_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
 
-      char *t_usage_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+      char *t_usage_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
 
       json_encode (t_deprecated_notice, t_usage_notice_json_encoded);
 
@@ -1082,7 +1082,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       const char *t_deprecated_notice = module_ctx->module_advice_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
 
-      char *t_advice_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+      char *t_advice_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
 
       json_encode (t_deprecated_notice, t_advice_notice_json_encoded);
 
@@ -1215,7 +1215,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         printf ("\"example_hash_format\": \"%s\", ", "plain");
       }
 
-      char *example_hash_json_encoded = (char *) hcmalloc (strlen (hashconfig->st_hash) * 2);
+      char *example_hash_json_encoded = (char *) hcmalloc ((strlen (hashconfig->st_hash) * 2) + 1);
 
       json_encode (hashconfig->st_hash, example_hash_json_encoded);
 
@@ -3501,7 +3501,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  char *session_json_encoded = (char *) hcmalloc (strlen (hashcat_status->session) * 2);
+  char *session_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->session) * 2) + 1);
 
   json_encode (hashcat_status->session, session_json_encoded);
 
@@ -3513,7 +3513,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->guess_base)
   {
-    char *guess_base_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_base) * 2);
+    char *guess_base_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->guess_base) * 2) + 1);
 
     json_encode (hashcat_status->guess_base, guess_base_json_encoded);
 
@@ -3533,7 +3533,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->guess_mod)
   {
-    char *guess_mod_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_mod) * 2);
+    char *guess_mod_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->guess_mod) * 2) + 1);
 
     json_encode (hashcat_status->guess_mod, guess_mod_json_encoded);
 
@@ -3558,7 +3558,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
    * some salts can contain chars which need to be escaped to not break the JSON encoding.
    */
 
-  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+  char *target_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->hash_target) * 2) + 1);
 
   json_encode (hashcat_status->hash_target, target_json_encoded);
 
@@ -3611,7 +3611,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
       printf (" { \"device_id\": %u,", device_id + 1);
 
-      char *device_name_json_encoded = (char *) hcmalloc (strlen (device_info->device_name) * 2);
+      char *device_name_json_encoded = (char *) hcmalloc ((strlen (device_info->device_name) * 2) + 1);
 
       json_encode (device_info->device_name, device_name_json_encoded);
 
