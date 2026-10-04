@@ -102,7 +102,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #endif
 
 #define MAX_LOCAL 512 // too much leaves no room for compiler optimizations, simply benchmark to find a good trade-off - make it as big as possible
-#define TMPSIZ    (2 * TINFL_LZ_DICT_SIZE)
+#define TMPSIZ    TINFL_LZ_DICT_SIZE
 
 #define CRC32(x,c,t) (((x) >> 8) ^ (t)[((x) ^ (c)) & 0xff])
 #define MSB(x)       ((x) >> 24)
@@ -124,8 +124,8 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
   (k3) = ((temp * (temp ^ 1)) >> 8) & 0xff; \
 }
 
-// this is required to force mingw to accept the packed attribute
-#pragma pack(push,1)
+// Without the packed attribute the compiler lays data[] out at offset 40 of pkzip_t. Packed it
+// fell on 34, which is 2 mod 4, and every u32 read of the file data was misaligned.
 
 struct pkzip_hash
 {
@@ -142,7 +142,7 @@ struct pkzip_hash
   u16 checksum_from_timestamp;
   u32 data[MAX_DATA / 4]; // a quarter because of the u32 type
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip_hash pkzip_hash_t;
 
@@ -154,11 +154,9 @@ struct pkzip
 
   pkzip_hash_t hashes[8];
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip pkzip_t;
-
-#pragma pack(pop)
 
 #define CRC32_IN_INFLATE
 
@@ -256,17 +254,20 @@ CONSTANT_VK code distfix[32] = {
     {22,5,193},{64,5,0}
 };
 
-DECLSPEC int check_inflate_code2 (u8 *next)
+// hashcat-patched: Metal refuses a pointer that does not name its address space, and everything these
+// two walk lives in private memory.
+
+DECLSPEC int check_inflate_code2 (PRIVATE_AS u8 *next)
 {
   u32 bits, hold, thisget, have, i;
   int left;
   u32 ncode;
   u32 ncount[2];  // ends up being an array of 8 u8 count values.  But we can clear it, and later 'check' it with 2 u32 instructions.
-  u8 *count;    // this will point to ncount array. NOTE, this is alignment required 'safe' for Sparc systems or others requiring alignment.
+  PRIVATE_AS u8 *count;    // this will point to ncount array. NOTE, this is alignment required 'safe' for Sparc systems or others requiring alignment.
   hold = *next + (((u32) next[1]) << 8) + (((u32) next[2]) << 16) + (((u32) next[3]) << 24);
   next += 3;  // we pre-increment when pulling it in the loop, thus we need to be 1 byte back.
   hold >>= 3;  // we already processed 3 bits
-  count = (u8*)ncount;
+  count = (PRIVATE_AS u8 *) ncount;
 
   if (257 + (hold & 0x1F) > 286)
   {
@@ -342,7 +343,7 @@ DECLSPEC int check_inflate_code2 (u8 *next)
   return 1;
 }
 
-DECLSPEC int check_inflate_code1 (u8 *next, int left)
+DECLSPEC int check_inflate_code1 (PRIVATE_AS u8 *next, int left)
 {
   u32 whave = 0, op, bits, hold,len;
   code here1;
@@ -689,11 +690,6 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
     mz_inflateInit2 (&infstream, -MAX_WBITS, &pStream);
 
     int ret = hc_inflate (&infstream);
-
-    while (ret == MZ_OK)
-    {
-      ret = hc_inflate (&infstream);
-    }
 
     if (ret != MZ_STREAM_END || infstream.total_out != hc->esalt_bufs[hc->digest_pos].hashes[idx].uncompressed_length) return false;
 
