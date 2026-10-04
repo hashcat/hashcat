@@ -42,6 +42,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/pkcs12_to_hashcat.py to extract the hashes";
+}
+
 #define PKCS12_MIN_SALT_LEN     ( 8)
 #define PKCS12_MAX_SALT_LEN     (40)
 #define PKCS12_MIN_SALT_HEX_LEN (PKCS12_MIN_SALT_LEN * 2)
@@ -269,11 +274,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   out_len += snprintf ((char *) out_buf + out_len, line_size - out_len, "$%s", mac_hex);
 
   return out_len;
-}
-
-const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/pkcs12_to_hashcat.py to extract the hashes";
 }
 
 void module_init (module_ctx_t *module_ctx)

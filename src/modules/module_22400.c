@@ -43,6 +43,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/aescrypt2hashcat.pl to extract the hashes";
+}
+
 #define ITERATION_AESCRYPT 0x2000
 #define SALT_LEN_AESCRYPT  16
 #define IV_LEN_AESCRYPT    16
@@ -309,11 +314,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[7]);
 
   return line_len;
-}
-
-const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/aescrypt2hashcat.pl to extract the hashes";
 }
 
 void module_init (module_ctx_t *module_ctx)

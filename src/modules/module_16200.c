@@ -43,6 +43,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/securenotes2hashcat.pl to extract the hashes";
+}
+
 typedef struct apple_secure_notes
 {
   u32 Z_PK;
@@ -250,11 +255,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[5]));
 
   return line_len;
-}
-
-const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/securenotes2hashcat.pl to extract the hashes";
 }
 
 void module_init (module_ctx_t *module_ctx)
