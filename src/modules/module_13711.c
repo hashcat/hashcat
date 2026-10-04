@@ -9,6 +9,8 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "memory.h"
 #include "cpu_crc32.h"
 #include "keyboard_layout.h"
@@ -27,9 +29,9 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE
-                                  | OPTS_TYPE_LOOP_EXTENDED
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_COPY_TMPS;
+static const u64   KERN_BITS      = KERN_BIT_LOOP_EXTENDED;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "531aca1fa6db5118506320114cb11a9f00dade61720533fc12982b28ec71a1a3856ac6ee44b4acc207c8230352208d5f0dc37bf755bd98830279d6befcb6001cdf025f816a0aa1baf3b9b51be00fadb451ffbe9bdfc381115eeceeef778e29a8761f853b7c99e0ea9ec452ba77677f888ea40a39cf65db74d87147690684e273313dea15ff2039797e112006e5f80f2c5baf2c11eb62cb63cfb45883f8885fc7cd5bdb74ef57ec4fe3cec5c2025364582380366169d9419ac41b6f6e878429239e52538f9698e73700b920e7b58c56a4563f5aa512e334ddc56909ac2a0ad4146833f050edd78b7954e6549d0fa2e3b26ed2a769a6c029bfa4de62d49575acce078ef035e366ec13b6092cb205e481bc822f87972bfbe4a3915fad620c4b8645e96bcc468d5804208ae251a560068a09455657f4539dc7e80637fa85fbce058ffee421a98d85b2ae1118d9bd4f24e1e810627cc9893b7166e199dc91fd7f79740530a472df0948f285293478042b28cd2caef086a6ce9d5f656f97adde7d68924ef477fdf2a0c0b107671a1f94b2906d8fb58114836982e4e130e6944df8b42288512376553a1fa6526f9e46dc19b99bb568b30269d9f5d7db2d70a9aa85371b0ac71a6f6f564aaef26a0508c16bf03934973504a5188de37b18a689a020bc37a54d2863879e12902b43bc71c057fa47cbaac1e0100696af365e8226daeba346";
@@ -42,6 +44,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -179,7 +182,12 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   hc_fclose (&fp);
 
-  if (n != VC_HEADER_LEN) return (PARSER_VC_FILE_SIZE);
+  if (n != VC_HEADER_LEN)
+  {
+    hcfree (in);
+
+    return (PARSER_VC_FILE_SIZE);
+  }
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
@@ -187,7 +195,12 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, VC_HEADER_LEN);
 
-  if (parser_status != PARSER_OK) return 0;
+  if (parser_status != PARSER_OK)
+  {
+    hcfree (in);
+
+    return 0;
+  }
 
   hcfree (in);
 
@@ -295,6 +308,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -311,7 +325,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -327,6 +340,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = MODULE_DEFAULT;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -349,6 +363,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
@@ -369,5 +384,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

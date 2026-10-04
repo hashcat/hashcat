@@ -24,6 +24,10 @@ The results will be saved in: `/root/code-analysis`.
 
 Optionally you can place additional *.patch or *.diff files into `patches/` folder (`patches/hashcat_binaries/` in this case). They will be applied before compiling.
 
+They are applied with `git apply`, so they have to be in git's own diff format, which is what `git diff` and `git format-patch` write. A patch that fails to apply stops the build.
+
+**If your patch touches a binary file, produce it with `git diff --binary`.** A plain `git diff` writes only `Binary files a/x and b/x differ` for such a file. That line names the change without carrying it, so nothing can apply it, and `git apply` will refuse the whole patch rather than apply the text half and drop the rest.
+
 ### Output ###
 
 Using the default settings, the resulting output package will be located in: `/root/xy/hashcat-<version>.7z`,

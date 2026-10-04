@@ -141,7 +141,32 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_ESALT (radmin3_t))
 
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      // -a 12 puts the base word inside the amplifier, so ctx0 is no longer a prefix of what has to
+      // be hashed and the whole candidate goes in behind the user name.
+
+      u32 c[64];
+
+      const u32 c_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
+
+      sha1_init (&c0);
+
+      sha1_update_global (&c0, esalt_bufs[DIGESTS_OFFSET_HOST].user, esalt_bufs[DIGESTS_OFFSET_HOST].user_len);
+
+      sha1_update_utf16le_swap (&c0, c, c_len);
+    }
+    else
+    {
+      sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
 
     sha1_final (&c0);
 
@@ -414,7 +439,32 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_ESALT (radmin3_t))
 
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      // -a 12 puts the base word inside the amplifier, so ctx0 is no longer a prefix of what has to
+      // be hashed and the whole candidate goes in behind the user name.
+
+      u32 c[64];
+
+      const u32 c_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
+
+      sha1_init (&c0);
+
+      sha1_update_global (&c0, esalt_bufs[DIGESTS_OFFSET_HOST].user, esalt_bufs[DIGESTS_OFFSET_HOST].user_len);
+
+      sha1_update_utf16le_swap (&c0, c, c_len);
+    }
+    else
+    {
+      sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
 
     sha1_final (&c0);
 

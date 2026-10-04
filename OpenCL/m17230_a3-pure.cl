@@ -310,7 +310,7 @@ KERNEL_FQ KERNEL_FA void m17230_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
-      if (esalt_bufs[DIGESTS_OFFSET_HOST].hashes[idx].compression_type == 8 && ((plain & 6) == 0 || (plain & 6) == 6)) break;
+      if (esalt_bufs[DIGESTS_OFFSET_HOST].hashes[idx].compression_type == 8 && ((plain & 6) == 6)) break;
 
       if (idx + 1 == hash_count)
       {
@@ -496,7 +496,7 @@ KERNEL_FQ KERNEL_FA void m17230_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 
       update_key3 (key2, key3);
       plain = unpack_v8a_from_v32_S (next) ^ key3;
-      if (esalt_bufs[DIGESTS_OFFSET_HOST].hashes[idx].compression_type == 8 && ((plain & 6) == 0 || (plain & 6) == 6)) break;
+      if (esalt_bufs[DIGESTS_OFFSET_HOST].hashes[idx].compression_type == 8 && ((plain & 6) == 6)) break;
 
       if (idx + 1 == esalt_bufs[DIGESTS_OFFSET_HOST].hash_count)
       {

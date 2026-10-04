@@ -11,8 +11,9 @@ use std::{
     sync::{Once, OnceLock},
 };
 
-use crate::{Expr, eval::EvalContext, parse};
 use hashcat_sys::generic::{ThreadContext, bridge_context_t, generic_io_tmp_t, string_from_ptr};
+
+use crate::{Expr, eval::EvalContext, parse};
 
 thread_local! {
     static AST: OnceCell<Expr> = OnceCell::new();
@@ -21,14 +22,6 @@ thread_local! {
 static LOG_ERROR_ONCE: Once = Once::new();
 
 static INFO: OnceLock<&'static str> = OnceLock::new();
-
-#[unsafe(no_mangle)]
-pub extern "C" fn drop_context(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    unsafe {
-        drop(Box::from_raw(ctx as *mut ThreadContext));
-    }
-}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
@@ -47,12 +40,12 @@ pub extern "C" fn global_init(ctx: *mut bridge_context_t) -> bool {
     let ctx = unsafe { &mut *ctx };
     assert!(!ctx.dynlib_filename.is_null());
 
-    let dynlib_name = string_from_ptr(ctx.dynlib_filename).unwrap_or_default();
+    let dynlib_name = unsafe { string_from_ptr(ctx.dynlib_filename) };
     let dynlib_name = Path::new(&dynlib_name)
         .file_name()
         .and_then(|x| x.to_str())
         .unwrap_or_default();
-    let algorithm = string_from_ptr(ctx.bridge_parameter2).unwrap_or_default();
+    let algorithm = unsafe { string_from_ptr(ctx.bridge_parameter2) };
     match parse::parse(&algorithm) {
         Ok(_) => {
             let info = format!("Rust [{}] [{}]", dynlib_name, algorithm);
@@ -86,7 +79,7 @@ pub extern "C" fn kernel_loop(
     io: *mut generic_io_tmp_t,
     pws_cnt: u64,
     salt_id: c_int,
-    _is_self_test: bool,
+    is_self_test: bool,
 ) -> bool {
     assert!(!ctx.is_null());
     assert!(!io.is_null());
@@ -94,29 +87,48 @@ pub extern "C" fn kernel_loop(
 
     let ctx = unsafe { &*ctx.cast::<ThreadContext>() };
 
-    process_batch(ctx, io, salt_id as usize);
+    process_batch(ctx, io, salt_id as usize, is_self_test);
 
     true
 }
 
-fn process_batch(ctx: &ThreadContext, io: &mut [generic_io_tmp_t], salt_id: usize) {
-    let esalt = ctx.get_raw_esalt(salt_id, false);
-    let salt = unsafe {
-        slice::from_raw_parts(
-            esalt.salt_buf.as_ptr() as *const u8,
-            esalt.salt_len as usize,
-        )
+fn process_batch(
+    ctx: &ThreadContext,
+    io: &mut [generic_io_tmp_t],
+    salt_id: usize,
+    is_selftest: bool,
+) {
+    let stride = if ctx.salt_per_pw && !is_selftest {
+        1
+    } else {
+        0
     };
 
     let mut eval_ctx = EvalContext::new();
-    eval_ctx.set_var("s", salt);
-    if salt.contains(&b'*') {
-        for (i, s) in salt.split(|&b| b == b'*').enumerate() {
-            eval_ctx.set_var(format!("s{}", i + 1), s);
-        }
-    }
 
-    for in_out in io {
+    for (pw_pos, in_out) in io.iter_mut().enumerate() {
+        // Bind the salt in a context of its own each time it moves. A salt names as many of s1..sn as
+        // it has parts, and one the next salt does not name would keep the value the last one left.
+
+        if pw_pos == 0 || stride != 0 {
+            let esalt = ctx.get_raw_esalt(salt_id + (pw_pos * stride), is_selftest);
+            let salt = unsafe {
+                slice::from_raw_parts(
+                    esalt.salt_buf.as_ptr() as *const u8,
+                    esalt.salt_len as usize,
+                )
+            };
+
+            eval_ctx = EvalContext::new();
+            eval_ctx.set_var("s", salt);
+
+            if salt.contains(&b'*') {
+                for (i, s) in salt.split(|&b| b == b'*').enumerate() {
+                    eval_ctx.set_var(format!("s{}", i + 1), s);
+                }
+            }
+        }
+
         let pw = unsafe {
             slice::from_raw_parts(in_out.pw_buf.as_ptr() as *const u8, in_out.pw_len as usize)
         };

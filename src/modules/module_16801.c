@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 
 #define DGST_ELEM 4
@@ -29,11 +30,11 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_AUX1
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_POTFILE_NOPASS
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
+static const u64   KERN_BITS      = KERN_BIT_AUX1;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "5b13d4babb3714ccc62c9f71864bc984efd6a55f237c7a87fc2151e1ca658a9d";
 static const char *ST_HASH        = "2582a8281bf9d4308d6f5731d0e61c61:4604ba734d4e:89acf0e761f4";
@@ -46,6 +47,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -118,6 +120,11 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // here we have in line_hash_buf: PMK*essid:password
   // but we don't care about the password
 
+  // The 8 reads below take a fixed 64 characters out of the line, and the check that the separator
+  // sits at offset 64 comes after them. A shorter potfile line is read past its end.
+
+  if (line_len < 64) return (PARSER_HASH_LENGTH);
+
   // PMK
 
   wpa_pmk_tmp->out[0] = hex_to_u32 ((const u8 *) line_buf +  0);
@@ -131,13 +138,13 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // essid
 
-  char *sep_pos = strrchr (line_buf, '*');
+  const char *sep_pos = strrchr (line_buf, '*');
 
   if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   if ((line_buf + 64) != sep_pos) return (PARSER_HASH_LENGTH);
 
-  char *essid_pos = sep_pos + 1;
+  const char *essid_pos = sep_pos + 1;
 
   const int essid_len = strlen (essid_pos);
 
@@ -281,8 +288,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param_t kernel_param;
 
   kernel_param.bitmap_mask         = 0;
-  kernel_param.bitmap_shift1       = 0;
-  kernel_param.bitmap_shift2       = 0;
   kernel_param.salt_pos_host       = 0;
   kernel_param.loop_pos            = 0;
   kernel_param.loop_cnt            = 0;
@@ -452,18 +457,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_pmkid->pmkid_data[0] = 0x204b4d50; // "PMK "
   wpa_pmkid->pmkid_data[1] = 0x656d614e; // "Name"
-  wpa_pmkid->pmkid_data[2] = (wpa_pmkid->orig_mac_ap[0]  <<  0)
-                           | (wpa_pmkid->orig_mac_ap[1]  <<  8)
-                           | (wpa_pmkid->orig_mac_ap[2]  << 16)
-                           | (wpa_pmkid->orig_mac_ap[3]  << 24);
-  wpa_pmkid->pmkid_data[3] = (wpa_pmkid->orig_mac_ap[4]  <<  0)
-                           | (wpa_pmkid->orig_mac_ap[5]  <<  8)
-                           | (wpa_pmkid->orig_mac_sta[0] << 16)
-                           | (wpa_pmkid->orig_mac_sta[1] << 24);
-  wpa_pmkid->pmkid_data[4] = (wpa_pmkid->orig_mac_sta[2] <<  0)
-                           | (wpa_pmkid->orig_mac_sta[3] <<  8)
-                           | (wpa_pmkid->orig_mac_sta[4] << 16)
-                           | (wpa_pmkid->orig_mac_sta[5] << 24);
+  wpa_pmkid->pmkid_data[2] = ((u32) wpa_pmkid->orig_mac_ap[0]  <<  0)
+                           | ((u32) wpa_pmkid->orig_mac_ap[1]  <<  8)
+                           | ((u32) wpa_pmkid->orig_mac_ap[2]  << 16)
+                           | ((u32) wpa_pmkid->orig_mac_ap[3]  << 24);
+  wpa_pmkid->pmkid_data[3] = ((u32) wpa_pmkid->orig_mac_ap[4]  <<  0)
+                           | ((u32) wpa_pmkid->orig_mac_ap[5]  <<  8)
+                           | ((u32) wpa_pmkid->orig_mac_sta[0] << 16)
+                           | ((u32) wpa_pmkid->orig_mac_sta[1] << 24);
+  wpa_pmkid->pmkid_data[4] = ((u32) wpa_pmkid->orig_mac_sta[2] <<  0)
+                           | ((u32) wpa_pmkid->orig_mac_sta[3] <<  8)
+                           | ((u32) wpa_pmkid->orig_mac_sta[4] << 16)
+                           | ((u32) wpa_pmkid->orig_mac_sta[5] << 24);
 
   // salt
 
@@ -514,9 +519,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       tmp_buf[tmp_len++] = 'X';
       tmp_buf[tmp_len++] = '[';
 
-      exec_hexify ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf + tmp_len);
+      const size_t hex_len = exec_hexify ((const u8 *) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf + tmp_len);
 
-      tmp_len += wpa_pmkid->essid_len * 2;
+      tmp_len += (int) hex_len;
 
       tmp_buf[tmp_len++] = ']';
 
@@ -587,6 +592,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -603,7 +609,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -619,6 +624,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -641,6 +647,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
@@ -661,5 +668,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

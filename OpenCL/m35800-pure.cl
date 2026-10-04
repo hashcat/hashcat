@@ -215,7 +215,7 @@ KERNEL_FQ KERNEL_FA void m35800_comp (KERN_ATTR_TMPS (symfony_sha512_tmp))
   }
 
   sha256_ctx_t ctx;
-  
+
   sha256_init (&ctx);
 
   sha256_update (&ctx, buf, 128);

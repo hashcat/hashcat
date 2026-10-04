@@ -13,7 +13,15 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
+#define RC4_INIT_128_UNROLL8
+#define RC4_ENABLE_NEXT_4
+#define RC4_NEXT_16_PREFETCH
+#define RC4_NEXT_16_UNROLL2
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_NEXT_16_UNROLL2
+#undef RC4_NEXT_16_PREFETCH
+#undef RC4_ENABLE_NEXT_4
+#undef RC4_INIT_128_UNROLL8
 #endif
 
 #define MIN_NULL_BYTES 10
@@ -35,7 +43,7 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
 
   /**
    * base
@@ -95,7 +103,7 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
 
     const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
@@ -122,22 +130,74 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
     u32x wordr2[4] = { 0 };
     u32x wordr3[4] = { 0 };
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
     {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0)
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+      }
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
     }
     else
+    #endif
     {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
     }
 
     u32x w0[4];
@@ -219,14 +279,17 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     digest[0] = hc_swap32_S (digest[0]);
     digest[1] = hc_swap32_S (digest[1]);
-    digest[2] = hc_swap32_S (digest[2]);
-    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
       digest[1] &= 0xff;
       digest[2]  = 0;
       digest[3]  = 0;
+    }
+    else
+    {
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
     }
 
     rc4_init_128 (S, digest, lid);
@@ -269,9 +332,9 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     // initial compare
 
-    int digest_pos = find_hash (out, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+    const u32 digest_pos = find_hash (out, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-    if (digest_pos == -1) continue;
+    if (digest_pos == (u32) -1) continue;
 
     if (esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockLen != 0)
     {
@@ -371,7 +434,7 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
 
   /**
    * base
@@ -443,7 +506,7 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
 
     const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
@@ -470,22 +533,74 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
     u32x wordr2[4] = { 0 };
     u32x wordr3[4] = { 0 };
 
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    #if ATTACK_MODE == 12
+    if (COMBS_IS_MIDDLE)
     {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
+      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
+      // last word is left in wordr, because the OR below already folds wordr in.
+      //
+      // Only the second word changes length from one amplifier item to the next. Every other offset
+      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
+      // pw_l_len costs today.
+
+      if (COMBS_PRE_LEN > 0)
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+      }
+
+      u32x comb_off = COMBS_PRE_LEN + pw_l_len;
+
+      if (COMBS_MID_LEN > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += COMBS_MID_LEN;
+      }
+
+      if (COMBS_HAS_Q > 0)
+      {
+        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
+
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+
+        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
+
+        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
+      }
+
+      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
+
+      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
     }
     else
+    #endif
     {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
+      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
+      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
+      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
+      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
+      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
+      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
+      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
+
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
+      }
+      else
+      {
+        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
+      }
     }
 
     u32x w0[4];
@@ -567,14 +682,17 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     digest[0] = hc_swap32_S (digest[0]);
     digest[1] = hc_swap32_S (digest[1]);
-    digest[2] = hc_swap32_S (digest[2]);
-    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
       digest[1] &= 0xff;
       digest[2]  = 0;
       digest[3]  = 0;
+    }
+    else
+    {
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
     }
 
     rc4_init_128 (S, digest, lid);
@@ -613,14 +731,17 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_ESALT (oldoffice34_t))
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out, lid);
+    j = rc4_next_4 (S, 16, j, digest, out, lid);
 
     // initial compare
 
     if (out[0] != search[0]) continue;
-    if (out[1] != search[1]) continue;
-    if (out[2] != search[2]) continue;
-    if (out[3] != search[3]) continue;
+
+    rc4_next_16 (S, 20, j, digest + 1, out, lid);
+
+    if (out[0] != search[1]) continue;
+    if (out[1] != search[2]) continue;
+    if (out[2] != search[3]) continue;
 
     if (esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockLen != 0)
     {

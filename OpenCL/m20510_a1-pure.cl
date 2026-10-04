@@ -88,6 +88,19 @@ typedef struct pkzip_extra
   (k1) = ((k1) - 1) * INVCONST - ((k0) & 0xff); \
   (k0) = INVCRC32 ((k0), (c), (t));
 
+// One buffer of the candidate back through the key schedule. -a 12 assembles a candidate from five
+// pieces, so this runs once per piece rather than once for the amplifier and once for the base word.
+
+#define inv_update_key012_buf(k0,k1,k2,buf,len,t)                 \
+{                                                                 \
+  for (int bpos = (int) (len) - 1; bpos >= 0; bpos--)             \
+  {                                                               \
+    const u32 bt = hc_bfe_S ((buf)[bpos / 4], (bpos & 3) * 8, 8); \
+                                                                  \
+    inv_update_key012 (k0, k1, k2, bt, t);                        \
+  }                                                               \
+}
+
 CONSTANT_VK u32a lsbk0[256] =
 {
   0x00, 0x56, 0xac, 0x21, 0x77, 0xcd, 0x42, 0x98,
@@ -415,18 +428,21 @@ KERNEL_FQ KERNEL_FA void m20510_sxx (KERN_ATTR_BASIC ())
     u32x key1 = prep1;
     u32x key2 = prep2;
 
-    for (int pos = combs_buf[il_pos].pw_len - 1; pos >= 0; pos--)
+    if (COMBS_IS_MIDDLE)
     {
-      const u32 t = hc_bfe_S (combs_buf[il_pos].i[pos / 4], (pos & 3) * 8, 8);
+      // five pieces in a fixed order: mask, base word, mask, second word, mask. This walks the
+      // candidate backwards, so the pieces go in the other way round.
 
-      inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, w,                     pws_pw_len,                 l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, l_icrc32tab);
     }
-
-    for (int pos = pws_pw_len - 1; pos >= 0; pos--)
+    else
     {
-      const u32 t = hc_bfe_S (w[pos / 4], (pos & 3) * 8, 8);
-
-      inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len, l_icrc32tab);
+      inv_update_key012_buf (key0, key1, key2, w,                   pws_pw_len,               l_icrc32tab);
     }
 
     u32 password[2];

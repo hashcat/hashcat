@@ -44,7 +44,10 @@ typedef struct rar3_hook
 
   u32 first_block_decrypted[4];
 
-  u32 unpack_failed;
+  // One of the HC_RAR3_UNPACK_* values in src/modules/rar3/rar3_status.h, written by the host hook. Zero means
+  // the block unpacked to the expected length, and only then is crc32 worth comparing.
+
+  u32 unpack_status;
 
   u32 crc32;
 
@@ -497,7 +500,7 @@ KERNEL_FQ KERNEL_FA void m23800_comp (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, ra
 
   if (gid >= GID_CNT) return;
 
-  if (hooks[gid].unpack_failed == 1) return;
+  if (hooks[gid].unpack_status != 0) return;
 
   u32 crc32 = hooks[gid].crc32;
 

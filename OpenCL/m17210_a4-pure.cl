@@ -1,0 +1,560 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+/*
+
+PKZIP Kernels for Hashcat (c) 2018, European Union
+
+PKZIP Kernels for Hashcat has been developed by the Joint Research Centre of the European Commission.
+It is released as open source software under the MIT License.
+
+PKZIP Kernels for Hashcat makes use of two primary external components, which continue to be subject
+to the terms and conditions stipulated in the respective licences they have been released under. These
+external components include, but are not necessarily limited to, the following:
+
+-----
+
+1. Hashcat: MIT License
+
+Copyright (c) 2015-2018 Jens Steube
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+-----
+
+2. Miniz: MIT License
+
+Copyright 2013-2014 RAD Game Tools and Valve Software
+Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+
+All Rights Reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+-----
+
+The European Union disclaims all liability related to or arising out of the use made by third parties of
+any external components and dependencies which may be included with PKZIP Kernels for Hashcat.
+
+-----
+
+The MIT License
+
+Copyright (c) 2018, EUROPEAN UNION
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Author:              Sein Coray
+Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp5g=
+
+*/
+
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_scalar.cl)
+#include M2S(INCLUDE_PATH/inc_pcfg.h)
+#include M2S(INCLUDE_PATH/inc_pcfg.cl)
+#include M2S(INCLUDE_PATH/inc_checksum_crc.cl)
+#endif
+
+#define MAX_LOCAL 512
+#define TMPSIZ    32
+
+#define CRC32(x,c,t) (((x) >> 8) ^ (t)[((x) ^ (c)) & 0xff])
+#define MSB(x)       ((x) >> 24)
+#define CONST        0x08088405
+
+#define MAX_DATA (320 * 1024)
+
+#define update_key012(k0,k1,k2,c,t)           \
+{                                             \
+  (k0) = CRC32 ((k0), c, (t));                \
+  (k1) = ((k1) + ((k0) & 0xff)) * CONST + 1;  \
+  (k2) = CRC32 ((k2), MSB (k1), (t));         \
+}
+
+#define update_key3(k2,k3)                  \
+{                                           \
+  const u32 temp = ((k2) & 0xffff) | 3;     \
+                                            \
+  (k3) = ((temp * (temp ^ 1)) >> 8) & 0xff; \
+}
+
+#pragma pack(push,1)
+
+struct pkzip_hash
+{
+  u8  data_type_enum;
+  u8  magic_type_enum;
+  u32 compressed_length;
+  u32 uncompressed_length;
+  u32 crc32;
+  u32 offset;
+  u32 additional_offset;
+  u8  compression_type;
+  u32 data_length;
+  u16 checksum_from_crc;
+  u16 checksum_from_timestamp;
+  u32 data[MAX_DATA / 4];
+
+} __attribute__((packed));
+
+typedef struct pkzip_hash pkzip_hash_t;
+
+struct pkzip
+{
+  u8 hash_count;
+  u8 checksum_size;
+  u8 version;
+
+  pkzip_hash_t hash;
+
+} __attribute__((packed));
+
+typedef struct pkzip pkzip_t;
+
+#pragma pack(pop)
+
+#define PCFG_KERN_ATTR      KERN_ATTR_PCFG_ESALT (pkzip_t)
+
+#define PCFG_HASH_SHARED_DECL                                 \
+  LOCAL_VK u32 l_crc32tab[256];                               \
+  LOCAL_VK u32 l_data[MAX_LOCAL];                             \
+  for (u64 i = lid; i < 256; i += lsz)                        \
+  {                                                           \
+    l_crc32tab[i] = crc32tab[i];                              \
+  }                                                           \
+  SYNC_THREADS ();                                            \
+  for (u64 i = lid; i < MAX_LOCAL; i += lsz)                  \
+  {                                                           \
+    l_data[i] = esalt_bufs[DIGESTS_OFFSET_HOST].hash.data[i]; \
+  }                                                           \
+  SYNC_THREADS ();
+
+#define PCFG_HASH_SHARED_BIND(hc) \
+  (hc)->l_crc32tab = l_crc32tab;  \
+  (hc)->l_data = l_data;
+
+typedef struct pcfg_hash_ctx
+{
+  u32 checksum_size;
+  u32 checksum_from_crc;
+  u32 checksum_from_timestamp;
+  u32 data_length;
+  LOCAL_AS u32 *l_crc32tab;
+  LOCAL_AS u32 *l_data;
+  GLOBAL_AS const pkzip_t *esalt_bufs;
+  u32 digest_pos;
+
+} pcfg_hash_ctx_t;
+
+DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const salt_t *salt_bufs, const u32 salt_pos, GLOBAL_AS const pkzip_t *esalt_bufs, MAYBE_UNUSED GLOBAL_AS const digest_t *digests_buf, const u32 digest_pos)
+{
+  hc->esalt_bufs = esalt_bufs;
+  hc->digest_pos = digest_pos;
+
+  u32 crc32_final;
+
+  hc->checksum_size = esalt_bufs[digest_pos].checksum_size;
+
+  hc->checksum_from_crc = esalt_bufs[digest_pos].hash.checksum_from_crc;
+
+  hc->checksum_from_timestamp = esalt_bufs[digest_pos].hash.checksum_from_timestamp;
+
+  crc32_final = esalt_bufs[digest_pos].hash.crc32;
+
+  hc->data_length = esalt_bufs[digest_pos].hash.data_length;
+}
+
+DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED PRIVATE_AS u32 *w, MAYBE_UNUSED const u32 pw_len)
+{
+}
+
+DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
+{
+  LOCAL_AS u32 *l_crc32tab = hc->l_crc32tab;
+  LOCAL_AS u32 *l_data = hc->l_data;
+
+  u32x key0 = 0x12345678;
+  u32x key1 = 0x23456789;
+  u32x key2 = 0x34567890;
+
+  for (u32 i = 0, j = 0; i < len; i += 4, j += 1)
+  {
+    if (len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (w[j]), l_crc32tab);
+    if (len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (w[j]), l_crc32tab);
+    if (len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (w[j]), l_crc32tab);
+    if (len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (w[j]), l_crc32tab);
+  }
+
+  u32 plain;
+  u32 key3;
+  u32 next;
+
+  next = l_data[0];
+
+  update_key3 (key2, key3);
+  plain = unpack_v8a_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8b_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8c_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8d_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  next = l_data[1];
+
+  update_key3 (key2, key3);
+  plain = unpack_v8a_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8b_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8c_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8d_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  next = l_data[2];
+
+  update_key3 (key2, key3);
+  plain = unpack_v8a_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8b_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8c_from_v32_S (next) ^ key3;
+  if ((hc->checksum_size == 2) && ((hc->checksum_from_crc & 0xff) != plain) && ((hc->checksum_from_timestamp & 0xff) != plain)) return false;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8d_from_v32_S (next) ^ key3;
+  if ((plain != (hc->checksum_from_crc >> 8)) && (plain != (hc->checksum_from_timestamp >> 8))) return false;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  u32x crc = 0xffffffff;
+
+  for (u32 i = 12, j = 3; i < hc->data_length && j < MAX_LOCAL; i += 4, j += 1)
+  {
+    next = l_data[j];
+
+    if (hc->data_length >= (i + 1))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 2))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 3))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 4))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+  }
+
+  for (u32 j = MAX_LOCAL, i = MAX_LOCAL * 4; i < hc->data_length; j++, i += 4)
+  {
+    next = hc->esalt_bufs[hc->digest_pos].hash.data[j];
+
+    if (hc->data_length >= (i + 1))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 2))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 3))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 4))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+  }
+
+  dgst[0] = ~crc;
+  dgst[1] = 0;
+  dgst[2] = 0;
+  dgst[3] = 0;
+
+  return true;
+}
+
+DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
+{
+  LOCAL_AS u32 *l_crc32tab = hc->l_crc32tab;
+  LOCAL_AS u32 *l_data = hc->l_data;
+
+  u32x key0 = 0x12345678;
+  u32x key1 = 0x23456789;
+  u32x key2 = 0x34567890;
+
+  for (u32 i = 0, j = 0; i < len; i += 4, j += 1)
+  {
+    if (len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (w[j]), l_crc32tab);
+    if (len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (w[j]), l_crc32tab);
+    if (len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (w[j]), l_crc32tab);
+    if (len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (w[j]), l_crc32tab);
+  }
+
+  u32 plain;
+  u32 key3;
+  u32 next;
+
+  next = l_data[0];
+
+  update_key3 (key2, key3);
+  plain = unpack_v8a_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8b_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8c_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8d_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  next = l_data[1];
+
+  update_key3 (key2, key3);
+  plain = unpack_v8a_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8b_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8c_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8d_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  next = l_data[2];
+
+  update_key3 (key2, key3);
+  plain = unpack_v8a_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8b_from_v32_S (next) ^ key3;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8c_from_v32_S (next) ^ key3;
+  if ((hc->checksum_size == 2) && ((hc->checksum_from_crc & 0xff) != plain) && ((hc->checksum_from_timestamp & 0xff) != plain)) return false;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  update_key3 (key2, key3);
+  plain = unpack_v8d_from_v32_S (next) ^ key3;
+  if ((plain != (hc->checksum_from_crc >> 8)) && (plain != (hc->checksum_from_timestamp >> 8))) return false;
+  update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+  u32x crc = 0xffffffff;
+
+  for (u32 i = 12, j = 3; i < hc->data_length && j < MAX_LOCAL; i += 4, j += 1)
+  {
+    next = l_data[j];
+
+    if (hc->data_length >= (i + 1))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 2))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 3))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 4))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+  }
+
+  for (u32 j = MAX_LOCAL, i = MAX_LOCAL * 4; i < hc->data_length; j++, i += 4)
+  {
+    next = hc->esalt_bufs[hc->digest_pos].hash.data[j];
+
+    if (hc->data_length >= (i + 1))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8a_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 2))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8b_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 3))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8c_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+
+    if (hc->data_length >= (i + 4))
+    {
+      update_key3 (key2, key3);
+      plain = unpack_v8d_from_v32_S (next) ^ key3;
+      update_key012 (key0, key1, key2, plain, l_crc32tab);
+
+      crc = CRC32 (crc, plain, l_crc32tab);
+    }
+  }
+
+  dgst[0] = ~crc;
+  dgst[1] = 0;
+  dgst[2] = 0;
+  dgst[3] = 0;
+
+  return true;
+}
+
+#define PCFG_KERNEL_MXX m17210_mxx
+#define PCFG_KERNEL_SXX m17210_sxx
+
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_pcfg_kernel.cl)
+#endif

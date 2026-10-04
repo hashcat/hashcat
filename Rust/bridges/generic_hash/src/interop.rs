@@ -17,14 +17,6 @@ use crate::generic_hash;
 static INFO: OnceLock<&'static str> = OnceLock::new();
 
 #[unsafe(no_mangle)]
-pub extern "C" fn drop_context(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    unsafe {
-        drop(Box::from_raw(ctx as *mut ThreadContext));
-    }
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
     assert!(buf_size > 0);
     let info = INFO.get().unwrap_or(&"");
@@ -41,7 +33,7 @@ pub extern "C" fn global_init(ctx: *mut bridge_context_t) -> bool {
     let ctx = unsafe { &mut *ctx };
     assert!(!ctx.dynlib_filename.is_null());
 
-    let dynlib_name = string_from_ptr(ctx.dynlib_filename).unwrap_or_default();
+    let dynlib_name = unsafe { string_from_ptr(ctx.dynlib_filename) };
     let dynlib_name = Path::new(&dynlib_name)
         .file_name()
         .and_then(|x| x.to_str())
@@ -113,15 +105,21 @@ fn process_batch(
     salt_id: usize,
     is_selftest: bool,
 ) -> Vec<Vec<String>> {
-    let esalt = ctx.get_raw_esalt(salt_id, is_selftest);
-    let salt = unsafe {
-        slice::from_raw_parts(
-            esalt.salt_buf.as_ptr() as *const u8,
-            esalt.salt_len as usize,
-        )
+    let stride = if ctx.salt_per_pw && !is_selftest {
+        1
+    } else {
+        0
     };
     io.iter()
-        .map(|x| {
+        .enumerate()
+        .map(|(i, x)| {
+            let esalt = ctx.get_raw_esalt(salt_id + (i * stride), is_selftest);
+            let salt = unsafe {
+                slice::from_raw_parts(
+                    esalt.salt_buf.as_ptr() as *const u8,
+                    esalt.salt_len as usize,
+                )
+            };
             let pw =
                 unsafe { slice::from_raw_parts(x.pw_buf.as_ptr() as *const u8, x.pw_len as usize) };
             generic_hash::calc_hash(pw, salt)

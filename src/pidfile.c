@@ -8,6 +8,8 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "pidfile.h"
 
 static int check_running_process (hashcat_ctx_t *hashcat_ctx)
@@ -157,7 +159,7 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&fp, pidfile_filename, "wb") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", pidfile_filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", pidfile_filename, hc_fopen_strerror ());
 
     return -1;
   }

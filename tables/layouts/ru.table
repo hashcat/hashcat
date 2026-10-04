@@ -1,0 +1,96 @@
+# Russian keyboard to US. This is the direction --keyboard-layout-mapping takes:
+#
+#   hashcat -m 13721 hashes.txt --keyboard-layout-mapping tables/layouts/ru.table ...
+#
+# It is also a table for attack mode 8, which brings layout conversion to every hash mode rather than
+# only to TrueCrypt and VeraCrypt. Use identity=0 with it: leaving a token as it was is one of its
+# choices by default, and for a conversion that is not wanted. With identity=0 every match is
+# converted and a word is worth one candidate.
+#
+#   hashcat -m 0 -a 8 hashes.txt table words.txt tables/layouts/ru.table identity=0
+#
+# Without identity=0 a word of n covered characters is worth 2^n candidates, every mixture of
+# converted and not. That is a different attack, and the one to use for a password you think was only
+# partly typed in the other layout.
+#
+# One rule to a line: the source token, a tab, then what to put in its place. Blank lines and lines
+# beginning with # are skipped, and a token that would otherwise be read as a comment is written as
+# $HEX[..].
+#
+# Keys that produce the same character in both layouts are left out. They are what the mapping does
+# not change, and listing them says nothing.
+
+ё	`
+й	q
+ц	w
+у	e
+к	r
+е	t
+н	y
+г	u
+ш	i
+щ	o
+з	p
+х	[
+ъ	]
+ф	a
+ы	s
+в	d
+а	f
+п	g
+р	h
+о	j
+л	k
+д	l
+ж	;
+э	'
+я	z
+ч	x
+с	c
+м	v
+и	b
+т	n
+ь	m
+б	,
+ю	.
+.	/
+Ё	~
+"	@
+№	#
+;	$
+:	^
+?	&
+Й	Q
+Ц	W
+У	E
+К	R
+Е	T
+Н	Y
+Г	U
+Ш	I
+Щ	O
+З	P
+Х	{
+Ъ	}
+Ф	A
+Ы	S
+В	D
+А	F
+П	G
+Р	H
+О	J
+Л	K
+Д	L
+Ж	:
+Э	"
+/	|
+Я	Z
+Ч	X
+С	C
+М	V
+И	B
+Т	N
+Ь	M
+Б	<
+Ю	>
+,	?

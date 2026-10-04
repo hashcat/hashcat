@@ -16,6 +16,7 @@
 #include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
+#include M2S(INCLUDE_PATH/inc_bitcoin_address.cl)
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
 
@@ -81,6 +82,15 @@ KERNEL_FQ KERNEL_FA void m30905_mxx (KERN_ATTR_VECTOR ())
    * loop
    */
 
+  // the public key of the last candidate, carried across the loop as a Jacobian point
+
+  u32 kx[8];
+  u32 ky[8];
+  u32 kz[8];
+
+  u32 last_top = 0;
+  u32 have_key = 0;
+
   u32 w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
@@ -102,90 +112,73 @@ KERNEL_FQ KERNEL_FA void m30905_mxx (KERN_ATTR_VECTOR ())
       tmp[i] = hex_u32_to_u32 (w[j + 0], w[j + 1]);
     }
 
-    u32 prv_key[9] = { 0 };
+    // convert: pub_key = G * prv_key. The candidates of this loop differ only in the top 16 bits of
+    // the key, so after the first one the public key moves by point_move_top16 () instead.
 
-    prv_key[0] = tmp[7];
-    prv_key[1] = tmp[6];
-    prv_key[2] = tmp[5];
-    prv_key[3] = tmp[4];
-    prv_key[4] = tmp[3];
-    prv_key[5] = tmp[2];
-    prv_key[6] = tmp[1];
-    prv_key[7] = tmp[0];
+    const u32 key_top = tmp[0] >> 16;
 
-    // convert: pub_key = G * prv_key
+    // A key whose lower 240 bits are all zero is multiplied in full every time. The walk would
+    // start from 0 * G there, which is no point it can add to.
 
-    u32 x[8] = { 0 };
-    u32 y[8] = { 0 };
+    const u32 key_low = (tmp[0] & 0xffff) | tmp[1] | tmp[2] | tmp[3] | tmp[4] | tmp[5] | tmp[6] | tmp[7];
 
-    point_mul_xy (x, y, prv_key, &preG);
+    u32 moved = 0;
 
-    // to public key:
+    if ((have_key == 1) && (key_low != 0)) moved = point_move_top16 (kx, ky, kz, last_top, key_top);
 
-    u32 pub_key[16] = { 0 }; // why is re-using the "tmp" variable here slower ?
+    if (moved == 0)
+    {
+      u32 prv_key[9] = { 0 };
 
-    const u32 type = 0x02 | (y[0] & 1);
+      prv_key[0] = tmp[7];
+      prv_key[1] = tmp[6];
+      prv_key[2] = tmp[5];
+      prv_key[3] = tmp[4];
+      prv_key[4] = tmp[3];
+      prv_key[5] = tmp[2];
+      prv_key[6] = tmp[1];
+      prv_key[7] = tmp[0];
 
-    pub_key[8] =               (x[0] << 24);
-    pub_key[7] = (x[0] >> 8) | (x[1] << 24);
-    pub_key[6] = (x[1] >> 8) | (x[2] << 24);
-    pub_key[5] = (x[2] >> 8) | (x[3] << 24);
-    pub_key[4] = (x[3] >> 8) | (x[4] << 24);
-    pub_key[3] = (x[4] >> 8) | (x[5] << 24);
-    pub_key[2] = (x[5] >> 8) | (x[6] << 24);
-    pub_key[1] = (x[6] >> 8) | (x[7] << 24);
-    pub_key[0] = (x[7] >> 8) | (type << 24);
+      point_mul_xy (kx, ky, prv_key, &preG);
 
-    // calculate HASH160 for pub key
+      for (u32 i = 0; i < 8; i++) kz[i] = 0;
 
-    sha256_ctx_t ctx;
+      kz[0] = 1;
 
-    sha256_init   (&ctx);
-    sha256_update (&ctx, pub_key, 33); // length of public key: 33
-    sha256_final  (&ctx);
+      // n itself maps to the point at infinity, which a walk cannot start from either
 
-    for (u32 i = 0; i < 8; i++) tmp[i] = ctx.h[i];
+      const u32 key_is_n = (prv_key[0] == SECP256K1_N0) && (prv_key[1] == SECP256K1_N1) && (prv_key[2] == SECP256K1_N2) && (prv_key[3] == SECP256K1_N3) && (prv_key[4] == SECP256K1_N4) && (prv_key[5] == SECP256K1_N5) && (prv_key[6] == SECP256K1_N6) && (prv_key[7] == SECP256K1_N7);
 
-    // tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
-    // tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
+      have_key = (key_is_n == 1) ? 0 : 1;
+    }
 
-    for (u32 i = 8; i < 16; i++) tmp[i] = 0;
+    last_top = key_top;
 
-    // now let's do RIPEMD-160 on the sha256sum
+    u32 x[8];
+    u32 y[8];
+    u32 z[8];
 
-    ripemd160_ctx_t rctx;
+    for (u32 i = 0; i < 8; i++)
+    {
+      x[i] = kx[i];
+      y[i] = ky[i];
+      z[i] = kz[i];
+    }
 
-    ripemd160_init        (&rctx);
-    ripemd160_update_swap (&rctx, tmp, 32);
-    ripemd160_final       (&rctx);
+    point_to_affine (x, y, z);
 
-    /*
-     * 2nd RIPEMD160 (SHA256 ()):
-     */
+    // to the address hash, by way of the P2SH redeem script wrapping the P2WPKH
 
-    tmp[0] = (rctx.h[0] << 16) | (         0x1400); // (swapped) OP_0 operation (0x00),
-    tmp[1] = (rctx.h[1] << 16) | (rctx.h[0] >> 16); // 0x14 == 20, this indicates the
-    tmp[2] = (rctx.h[2] << 16) | (rctx.h[1] >> 16); // data len
-    tmp[3] = (rctx.h[3] << 16) | (rctx.h[2] >> 16);
-    tmp[4] = (rctx.h[4] << 16) | (rctx.h[3] >> 16);
-    tmp[5] =                     (rctx.h[4] >> 16);
+    u32 h160[5];
+    u32 script_h160[5];
 
-    for (u32 i = 6; i < 16; i++) tmp[i] = 0;
+    hash160_pubkey_compressed (h160, x, y);
+    hash160_p2sh_p2wpkh (script_h160, h160);
 
-    sha256_init        (&ctx);
-    sha256_update_swap (&ctx, tmp, 22);
-    sha256_final       (&ctx);
-
-    for (u32 i = 0; i <  8; i++) tmp[i] = ctx.h[i];
-
-    ripemd160_init        (&rctx);
-    ripemd160_update_swap (&rctx, tmp, 32);
-    ripemd160_final       (&rctx);
-
-    const u32 r0 = rctx.h[0];
-    const u32 r1 = rctx.h[1];
-    const u32 r2 = rctx.h[2];
-    const u32 r3 = rctx.h[3];
+    const u32 r0 = script_h160[0];
+    const u32 r1 = script_h160[1];
+    const u32 r2 = script_h160[2];
+    const u32 r3 = script_h160[3];
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -243,6 +236,15 @@ KERNEL_FQ KERNEL_FA void m30905_sxx (KERN_ATTR_VECTOR ())
    * loop
    */
 
+  // the public key of the last candidate, carried across the loop as a Jacobian point
+
+  u32 kx[8];
+  u32 ky[8];
+  u32 kz[8];
+
+  u32 last_top = 0;
+  u32 have_key = 0;
+
   u32 w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
@@ -264,90 +266,73 @@ KERNEL_FQ KERNEL_FA void m30905_sxx (KERN_ATTR_VECTOR ())
       tmp[i] = hex_u32_to_u32 (w[j + 0], w[j + 1]);
     }
 
-    u32 prv_key[9] = { 0 };
+    // convert: pub_key = G * prv_key. The candidates of this loop differ only in the top 16 bits of
+    // the key, so after the first one the public key moves by point_move_top16 () instead.
 
-    prv_key[0] = tmp[7];
-    prv_key[1] = tmp[6];
-    prv_key[2] = tmp[5];
-    prv_key[3] = tmp[4];
-    prv_key[4] = tmp[3];
-    prv_key[5] = tmp[2];
-    prv_key[6] = tmp[1];
-    prv_key[7] = tmp[0];
+    const u32 key_top = tmp[0] >> 16;
 
-    // convert: pub_key = G * prv_key
+    // A key whose lower 240 bits are all zero is multiplied in full every time. The walk would
+    // start from 0 * G there, which is no point it can add to.
 
-    u32 x[8] = { 0 };
-    u32 y[8] = { 0 };
+    const u32 key_low = (tmp[0] & 0xffff) | tmp[1] | tmp[2] | tmp[3] | tmp[4] | tmp[5] | tmp[6] | tmp[7];
 
-    point_mul_xy (x, y, prv_key, &preG);
+    u32 moved = 0;
 
-    // to public key:
+    if ((have_key == 1) && (key_low != 0)) moved = point_move_top16 (kx, ky, kz, last_top, key_top);
 
-    u32 pub_key[16] = { 0 }; // why is re-using the "tmp" variable here slower ?
+    if (moved == 0)
+    {
+      u32 prv_key[9] = { 0 };
 
-    const u32 type = 0x02 | (y[0] & 1);
+      prv_key[0] = tmp[7];
+      prv_key[1] = tmp[6];
+      prv_key[2] = tmp[5];
+      prv_key[3] = tmp[4];
+      prv_key[4] = tmp[3];
+      prv_key[5] = tmp[2];
+      prv_key[6] = tmp[1];
+      prv_key[7] = tmp[0];
 
-    pub_key[8] =               (x[0] << 24);
-    pub_key[7] = (x[0] >> 8) | (x[1] << 24);
-    pub_key[6] = (x[1] >> 8) | (x[2] << 24);
-    pub_key[5] = (x[2] >> 8) | (x[3] << 24);
-    pub_key[4] = (x[3] >> 8) | (x[4] << 24);
-    pub_key[3] = (x[4] >> 8) | (x[5] << 24);
-    pub_key[2] = (x[5] >> 8) | (x[6] << 24);
-    pub_key[1] = (x[6] >> 8) | (x[7] << 24);
-    pub_key[0] = (x[7] >> 8) | (type << 24);
+      point_mul_xy (kx, ky, prv_key, &preG);
 
-    // calculate HASH160 for pub key
+      for (u32 i = 0; i < 8; i++) kz[i] = 0;
 
-    sha256_ctx_t ctx;
+      kz[0] = 1;
 
-    sha256_init   (&ctx);
-    sha256_update (&ctx, pub_key, 33); // length of public key: 33
-    sha256_final  (&ctx);
+      // n itself maps to the point at infinity, which a walk cannot start from either
 
-    for (u32 i = 0; i < 8; i++) tmp[i] = ctx.h[i];
+      const u32 key_is_n = (prv_key[0] == SECP256K1_N0) && (prv_key[1] == SECP256K1_N1) && (prv_key[2] == SECP256K1_N2) && (prv_key[3] == SECP256K1_N3) && (prv_key[4] == SECP256K1_N4) && (prv_key[5] == SECP256K1_N5) && (prv_key[6] == SECP256K1_N6) && (prv_key[7] == SECP256K1_N7);
 
-    // tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
-    // tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
+      have_key = (key_is_n == 1) ? 0 : 1;
+    }
 
-    for (u32 i = 8; i < 16; i++) tmp[i] = 0;
+    last_top = key_top;
 
-    // now let's do RIPEMD-160 on the sha256sum
+    u32 x[8];
+    u32 y[8];
+    u32 z[8];
 
-    ripemd160_ctx_t rctx;
+    for (u32 i = 0; i < 8; i++)
+    {
+      x[i] = kx[i];
+      y[i] = ky[i];
+      z[i] = kz[i];
+    }
 
-    ripemd160_init        (&rctx);
-    ripemd160_update_swap (&rctx, tmp, 32);
-    ripemd160_final       (&rctx);
+    point_to_affine (x, y, z);
 
-    /*
-     * 2nd RIPEMD160 (SHA256 ()):
-     */
+    // to the address hash, by way of the P2SH redeem script wrapping the P2WPKH
 
-    tmp[0] = (rctx.h[0] << 16) | (         0x1400); // (swapped) OP_0 operation (0x00),
-    tmp[1] = (rctx.h[1] << 16) | (rctx.h[0] >> 16); // 0x14 == 20, this indicates the
-    tmp[2] = (rctx.h[2] << 16) | (rctx.h[1] >> 16); // data len
-    tmp[3] = (rctx.h[3] << 16) | (rctx.h[2] >> 16);
-    tmp[4] = (rctx.h[4] << 16) | (rctx.h[3] >> 16);
-    tmp[5] =                     (rctx.h[4] >> 16);
+    u32 h160[5];
+    u32 script_h160[5];
 
-    for (u32 i = 6; i < 16; i++) tmp[i] = 0;
+    hash160_pubkey_compressed (h160, x, y);
+    hash160_p2sh_p2wpkh (script_h160, h160);
 
-    sha256_init        (&ctx);
-    sha256_update_swap (&ctx, tmp, 22);
-    sha256_final       (&ctx);
-
-    for (u32 i = 0; i <  8; i++) tmp[i] = ctx.h[i];
-
-    ripemd160_init        (&rctx);
-    ripemd160_update_swap (&rctx, tmp, 32);
-    ripemd160_final       (&rctx);
-
-    const u32 r0 = rctx.h[0];
-    const u32 r1 = rctx.h[1];
-    const u32 r2 = rctx.h[2];
-    const u32 r3 = rctx.h[3];
+    const u32 r0 = script_h160[0];
+    const u32 r1 = script_h160[1];
+    const u32 r2 = script_h160[2];
+    const u32 r3 = script_h160[3];
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }

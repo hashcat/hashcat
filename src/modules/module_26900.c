@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 #include "emu_inc_hash_sha1.h"
 
@@ -21,6 +22,7 @@ static const u32   DGST_SIZE      = DGST_SIZE_8_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
 static const char *HASH_NAME      = "SNMPv3 HMAC-SHA384-256";
 static const u64   KERN_TYPE      = 26900;
+static const bool  LENGTH_SORT    = true;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_REGISTER_LIMIT
                                   | OPTI_TYPE_USES_BITS_64;
@@ -29,7 +31,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
-static const char *ST_HASH        = "$SNMPv3$5$45889431$3081a70201033011020455c0c85c020300ffe30401010201030450304e041180001f88808106d566db57fd600000000002011002020118040e6d61747269785f5348412d333834042000000000000000000000000000000000000000000000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411b3c3590201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd60$89424907553231aaa27055f4b3b0a97c626ed4cdc4b660d903765b607af792a5";
+static const char *ST_HASH        = "$SNMPv3$5$45889431$3081a70201033011020455c0c85c020300ffe30401010201030450304e041180001f88808106d566db57fd600000000002011002020118040e6d61747269785f5348412d333834042000000000000000000000000000000000000000000000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411b3c3590201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$89424907553231aaa27055f4b3b0a97c626ed4cdc4b660d903765b607af792a5";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -40,6 +42,7 @@ u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
+bool        module_length_sort    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return LENGTH_SORT;     }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
@@ -200,8 +203,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
+  // len_min lowered from 26 to 10 to accept short (>=5 byte) engine IDs (RFC 3411)
   token.sep[3]     = '$';
-  token.len_min[3] = 26;
+  token.len_min[3] = 10;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -259,10 +263,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *engineID_ptr = (u8 *) snmpv3->engineID_buf;
 
-  hex_decode (engineID_pos, engineID_len, engineID_ptr);
-
-  // force len to 17, zero padding
-  snmpv3->engineID_len = SNMPV3_ENGINEID_MAX / 2;
+  // use the real decoded length so engine IDs != 17 bytes localize correctly
+  snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
 
   // digest
 
@@ -303,7 +305,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 engineID_len = snmpv3->engineID_len;
 
-  while (engineID_buf_tmp[engineID_len] == 0x00) engineID_len--;
+  // engineID_buf is zeroed and only engineID_len bytes are written into it, so the byte at
+  // engineID_len is always zero and the walk always takes at least one step. An engine ID that is
+  // all zero bytes walks the unsigned index below zero and reads 4 GB past the esalt.
+
+  while ((engineID_len > 0) && (engineID_buf_tmp[engineID_len] == 0x00)) engineID_len--;
 
   engineID_len++;
 
@@ -337,6 +343,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -353,7 +360,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -369,6 +375,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
@@ -391,8 +398,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = module_length_sort;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -411,5 +420,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

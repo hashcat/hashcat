@@ -76,6 +76,12 @@ KERNEL_FQ KERNEL_FA void m21310_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
   sha1_update_global (&ctx00, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
 
+  // -a 12 may put a piece of mask in front of the base word, and the context below can then not
+  // be reused. This is the same context one update earlier, so whatever went in before the base
+  // word still goes in only once.
+
+  sha1_ctx_t ctx00_pre = ctx00;
+
   sha1_update_global_swap (&ctx00, pws[gid].i, pws[gid].pw_len);
 
   md5_ctx_t ctx11;
@@ -97,7 +103,28 @@ KERNEL_FQ KERNEL_FA void m21310_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
   {
     sha1_ctx_t ctx0 = ctx00;
 
-    sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx0 = ctx00_pre;
+
+        sha1_update_global_swap (&ctx0, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) sha1_update_global_swap (&ctx0, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) sha1_update_global_swap (&ctx0, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    sha1_update_global_swap (&ctx0, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     sha1_final (&ctx0);
 
@@ -200,6 +227,12 @@ KERNEL_FQ KERNEL_FA void m21310_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
   sha1_update_global (&ctx00, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
 
+  // -a 12 may put a piece of mask in front of the base word, and the context below can then not
+  // be reused. This is the same context one update earlier, so whatever went in before the base
+  // word still goes in only once.
+
+  sha1_ctx_t ctx00_pre = ctx00;
+
   sha1_update_global_swap (&ctx00, pws[gid].i, pws[gid].pw_len);
 
   md5_ctx_t ctx11;
@@ -221,7 +254,28 @@ KERNEL_FQ KERNEL_FA void m21310_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
   {
     sha1_ctx_t ctx0 = ctx00;
 
-    sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0)
+      {
+        ctx0 = ctx00_pre;
+
+        sha1_update_global_swap (&ctx0, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+        sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+      }
+
+      if (COMBS_MID  (il_pos).pw_len > 0) sha1_update_global_swap (&ctx0, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) sha1_update_global_swap (&ctx0, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    sha1_update_global_swap (&ctx0, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     sha1_final (&ctx0);
 
