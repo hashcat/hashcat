@@ -6,9 +6,9 @@ Contributions written with an AI coding agent are welcome. This file is the part
 
 ## Build and test
 
-    make                       # builds ./hashcat and libhashcat.so
-    ./tools/test.py --edge -m 0 -D 2  # edge test for one mode
-    ./tools/test.py -h                # all options
+    make                        # builds ./hashcat and libhashcat.so
+    ./tools/test.py --edge -m 0 # edge test for one mode
+    ./tools/test.py -h          # all options
 
 With only `-m`, the suite covers every attack type, kernel type, target type and vector width for that mode. Add `-D 1 -f` on a machine with no GPU, where hashcat runs on the CPU backend and needs `--force`.
 

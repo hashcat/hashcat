@@ -603,25 +603,31 @@ def bridge_opts(mode):
   # picks among the devices -D kept, it cannot bring a dropped one back, so -D itself is set to the
   # CPU here and virthost is pinned to the CPU's own number, which stays correct when the CPU is not
   # backend device #1. These override the run's -D, appended last so they win; -D never selects the
-  # bridge's own hardware anyway. A box with no CPU backend has nothing to host it, and hashcat
-  # reports that.
+  # bridge's own hardware anyway.
+  #
+  # On a box with no CPU backend at all there is nothing to move the host role to, and -D 1 would
+  # drop the one device that could have done it, so the run keeps the -D it came with instead. That
+  # is a plain GPU install, where -D 2 hosts the bridge on the GPU and the cases pass.
   if not is_bridged(mode):
     return []
 
-  out = ["-D", "1"]
-
   cid = cpu_backend_id()
 
-  if cid is not None:
-    out += ["--backend-devices-virthost", str(cid)]
+  if cid is None:
+    return []
 
-  return out
+  return ["-D", "1", "--backend-devices-virthost", str(cid)]
 
 
 def device_for(args, mode):
   # The device type a mode actually runs on: the CPU for a bridged mode (see bridge_opts), the run's
-  # -D otherwise. Used for the reported Device-Type so the line matches what ran.
-  return "1" if is_bridged(mode) else args.device
+  # -D otherwise. Used for the reported Device-Type so the line matches what ran. The condition is
+  # the one bridge_opts uses, because a bridged mode on a box with no CPU backend stays on the -D it
+  # came with and the line has to say so.
+  if is_bridged(mode) and (cpu_backend_id() is not None):
+    return "1"
+
+  return args.device
 
 
 def is_slow(mode):
