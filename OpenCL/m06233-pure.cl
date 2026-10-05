@@ -150,11 +150,16 @@ KERNEL_FQ KERNEL_FA void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
+  // A thread past the work item count cannot return here, because the barrier below needs every
+  // thread of the group, so the digest index is clamped instead.
+
+  const u64 digests_offset = (gid < GID_CNT) ? DIGESTS_OFFSET_HOST : 0;
+
   /**
    * keyboard layout shared
    */
 
-  const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_cnt;
+  const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
   #if ATTACK_MODE == 9
 
@@ -163,7 +168,7 @@ KERNEL_FQ KERNEL_FA void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   // out of global memory instead, which is what KEYBOARD_MAP_AS carries into the function that
   // walks it.
 
-  GLOBAL_AS const keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_buf;
+  GLOBAL_AS const keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf = esalt_bufs[digests_offset].keyboard_layout_mapping_buf;
 
   #else
 
@@ -265,7 +270,7 @@ KERNEL_FQ KERNEL_FA void m06233_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   hc_execute_keyboard_layout_mapping (w, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
-  pw_len = hc_apply_keyfile_tc (w, pw_len, &esalt_bufs[DIGESTS_OFFSET_HOST]);
+  pw_len = hc_apply_keyfile_tc (w, pw_len, &esalt_bufs[digests_offset]);
 
   whirlpool_hmac_ctx_t whirlpool_hmac_ctx;
 
