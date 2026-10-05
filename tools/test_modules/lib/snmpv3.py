@@ -23,25 +23,25 @@ def localized_key(algo, word, engine_id):
   return algo(bytes.fromhex(key + engine_id + key)).digest()
 
 
-def generate_hash(tag, algo, word, salt, pkt_num=None, engine_id=None, digest_len=24, engine_pad=0, print_padded=False):
-  # digest_len is how many hex characters of the HMAC the line keeps; engine_pad zero pads the
-  # engine id to that many hex characters for the key, and for the line as well with print_padded
+def generate_hash(tag, algo, word, salt, pkt_num=None, engine_id=None, digest_len=24):
+  # digest_len is how many hex characters of the HMAC the line keeps
 
   if pkt_num is None:
     pkt_num = random_number(0, 99999999)
 
   if engine_id is None:
-    engine_id = random_hex_string(26)
+    # engine id length as RFC 3411 allows it, 5 to 32 bytes. The RFC forbids a value of all zeros
+    # and one of all 0xff, and the modules reject both, so draw again on the two it would refuse.
+
+    while True:
+      engine_id = random_hex_string(10 + 2 * random_number(0, 27))
+
+      if set(engine_id) != {"0"} and set(engine_id) != {"f"}: break
 
   if len(salt) % 2 == 1:
     salt += "8"
 
-  padded = engine_id + "0" * max(0, engine_pad - len(engine_id))
-
-  key = localized_key(algo, word, padded)
-
-  if print_padded:
-    engine_id = padded
+  key = localized_key(algo, word, engine_id)
 
   digest = hmac.new(key, bytes.fromhex(salt), algo).hexdigest()[:digest_len]
 
@@ -69,7 +69,7 @@ def parse(tag, line):
   return (data[3], data[4], data[5], data[6], word)
 
 
-def verify_hash(tag, algo, line, digest_len=24, engine_pad=0, print_padded=False):
+def verify_hash(tag, algo, line, digest_len=24):
   parsed = parse(tag, line)
 
   if parsed is None:
@@ -78,6 +78,6 @@ def verify_hash(tag, algo, line, digest_len=24, engine_pad=0, print_padded=False
   pkt_num, salt, engine_id, _, word = parsed
 
   try:
-    return (generate_hash(tag, algo, word, salt, pkt_num, engine_id, digest_len, engine_pad, print_padded), word)
+    return (generate_hash(tag, algo, word, salt, pkt_num, engine_id, digest_len), word)
   except ValueError:
     return None
