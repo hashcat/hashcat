@@ -9,7 +9,7 @@ import hashlib
 
 from lib import snmpv3
 
-# SNMPv3 HMAC-SHA384-256, see lib/snmpv3.py. The line carries the engine id the digest is keyed with.
+# SNMPv3 HMAC-SHA384-256, see lib/snmpv3.py.
 
 
 def module_constraints():
@@ -17,8 +17,8 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return snmpv3.generate_hash(5, hashlib.sha384, word, salt, None, None, 64)
+  return snmpv3.generate_hash(5, hashlib.sha384, word, salt, None, None, 64, 34)
 
 
 def module_verify_hash(line):
-  return snmpv3.verify_hash(5, hashlib.sha384, line, 64)
+  return snmpv3.verify_hash(5, hashlib.sha384, line, 64, 34)
