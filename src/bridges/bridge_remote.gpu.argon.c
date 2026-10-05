@@ -3,12 +3,9 @@
  * License.....: MIT
  */
 
-#ifdef WIN32
-#define _WIN32_WINNT 0x0A00
-#endif
-
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "bridges.h"
 #include "bitops.h"
 #include "memory.h"
@@ -16,15 +13,13 @@
 #include "emu_inc_hash_md5.h"
 
 #ifdef WIN32
+#undef  _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00
 #include <ws2tcpip.h>
-#define SOCK_RECV(s,b,l,f) recv (s, (char *) (b), l, f)
-#define SOCK_SEND(s,b,l,f) send (s, (const char *) (b), l, f)
 #else
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#define SOCK_RECV(s,b,l,f) recv (s, (b), l, f)
-#define SOCK_SEND(s,b,l,f) send (s, (b), l, f)
 #endif
 
 #include <stdio.h>
@@ -36,8 +31,6 @@
 #define HASH_MODE 76000
 #define MAX_BLOCK_SIZE 2048
 
-
-
 typedef struct unit
 {
   char    unit_info_buf[1024];
@@ -46,9 +39,11 @@ typedef struct unit
   u64     workitem_count;
   int     chunk_size;
   size_t  workitem_size;
-  
+#ifdef WIN32
+  SOCKET  client_fd;
+#else
   int     client_fd;
-
+#endif
 } unit_t;
 
 typedef struct remote
@@ -77,7 +72,7 @@ typedef struct argon2id_tmp
 
 } argon2id_hybrid_tmp_t;
 
-static bool units_init (remote_t *remote, const char *servers)
+static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char *servers)
 {
   const int max_num_devices = DEVICES_MAX;
 
@@ -90,15 +85,21 @@ static bool units_init (remote_t *remote, const char *servers)
 
   if (address == NULL)
   {
-    printf ("[bridge-client]: No server addresses given\n");
+    event_log_error (hashcat_ctx, "[bridge-client]: No server addresses given");
     return false;
   }
 
-#ifdef WIN32
+  #if defined (WIN32)
   WSADATA wsaData;
 
-  WSAStartup (0x202, &wsaData);
-#endif
+  WORD wVersionRequested = MAKEWORD (2,2);
+
+  if (WSAStartup (wVersionRequested, &wsaData) != 0)
+  {
+    event_log_error (hashcat_ctx, "[bridge-client]: WSAStartup failed: %d\n", WSAGetLastError ());
+    return false;
+  }
+  #endif
 
   int units_cnt = 0;
 
@@ -112,7 +113,7 @@ static bool units_init (remote_t *remote, const char *servers)
 
     if (ip == NULL || port == NULL)
     {
-      fprintf (stderr, "Invalid server address: %s\n", address);
+      event_log_error (hashcat_ctx, "Invalid server address: %s", address);
       return false;
     }
 
@@ -122,19 +123,19 @@ static bool units_init (remote_t *remote, const char *servers)
 
     if (inet_pton (AF_INET, ip, &server_address.sin_addr) <= 0)
     {
-      fprintf (stderr, "Invalid server IP: %s\n", ip);
+      event_log_error (hashcat_ctx, "Invalid server IP: %s", ip);
       return false;
     }
 
     int client_fd = socket (AF_INET, SOCK_STREAM, 0);
     if (client_fd < 0)
     {
-      printf ("[bridge-client]: Unable to create socket\n");
+      event_log_error (hashcat_ctx, "[bridge-client]: Unable to create socket.");
       return false;
     }
     if (connect (client_fd, (struct sockaddr *) &server_address,  sizeof (server_address)) < 0)
     {
-      printf ("[bridge-client]: Failed to create connection\n");
+      event_log_error (hashcat_ctx, "[bridge-client]: Failed to create connection.");
       return false;
     }
 
@@ -144,7 +145,7 @@ static bool units_init (remote_t *remote, const char *servers)
     unit->unit_info_len = snprintf (unit->unit_info_buf, sizeof (unit->unit_info_buf) - 1, "Remote Argon @ %s", address);
     unit->unit_info_buf[unit->unit_info_len] = 0;
 
-    printf ("[bridge-client]: Connected to: %s\n", address);
+    event_log_info (hashcat_ctx, "[bridge-client]: Connected to: %s", address);
 
     units_cnt++;
 
@@ -171,16 +172,16 @@ static void units_term (remote_t *remote)
     {
       unit_t *unit = &remote->units[i];
       int pws_cnt_no = 0;
-      SOCK_SEND (unit->client_fd, &pws_cnt_no, sizeof (pws_cnt_no), 0);
+      send (unit->client_fd, (void *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
       close (unit->client_fd);
     }
 
     hcfree (remote->units);
 
-#ifdef WIN32
+  #if defined (WIN32)
   WSACleanup ();
-#endif
-  }
+  #endif
+ }
 }
 
 void *platform_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
@@ -191,7 +192,7 @@ void *platform_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   const char *servers  = user_options->bridge_parameter1 ? user_options->bridge_parameter1 : "";
 
-  if (units_init (remote, servers) == false)
+  if (units_init (hashcat_ctx, remote, servers) == false)
   {
     hcfree (remote);
 
@@ -260,24 +261,24 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   const int parallelism_no         = htonl (argon2id_hybrid->parallelism);
   const int memory_usage_in_kib_no = htonl (argon2id_hybrid->memory_usage_in_kib);
 
-  printf("[bridge-client]: Sending hash parameters\n"); 
+  event_log_info (hashcat_ctx, "[bridge-client]: Sending hash parameters"); 
 
   for (int unit_idx = 0; unit_idx < remote ->units_cnt; unit_idx++)
   {
     unit_t *unit = &remote->units[unit_idx];
 
-    SOCK_SEND (unit->client_fd, &hash_mode, sizeof (hash_mode), 0);
-    SOCK_SEND (unit->client_fd, &iterations_no, sizeof (iterations_no), 0);
-    SOCK_SEND (unit->client_fd, &parallelism_no, sizeof (parallelism_no), 0);
-    SOCK_SEND (unit->client_fd, &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0);
+    if (send (unit->client_fd, (void *) &hash_mode, sizeof (hash_mode), 0) != sizeof (hash_mode)) return false;
+    if (send (unit->client_fd, (void *) &iterations_no, sizeof (iterations_no), 0) != sizeof (iterations_no)) return false;
+    if (send (unit->client_fd, (void *) &parallelism_no, sizeof (parallelism_no), 0) != sizeof (parallelism_no)) return false;
+    if (send (unit->client_fd, (void *) &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0) != sizeof (memory_usage_in_kib_no)) return false;
 
-    int chunk_size_no = 0; 
-    SOCK_RECV (unit->client_fd, &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL);
+    uint32_t chunk_size_no = 0;
+    if (recv (unit->client_fd, (void *) &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL) != sizeof (chunk_size_no)) return false;
 
-    int chunk_size = ntohl(chunk_size_no);
-    printf("[bridge-client]: Chunk size for unit %d will be %d\n", unit_idx, chunk_size);
+    uint32_t chunk_size = ntohl (chunk_size_no);
+    unit->chunk_size = MIN (chunk_size, unit->workitem_count);
 
-    unit->chunk_size = chunk_size;
+    event_log_info (hashcat_ctx, "[bridge-client]: Chunk size for unit %d will be %d", unit_idx, unit->chunk_size);
   }
 
   return true;
@@ -298,7 +299,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   argon2id_hybrid_tmp_t *argon2id_hybrid_tmp = (argon2id_hybrid_tmp_t *) device_param->h_tmps;
 
   const int pws_cnt_no = htonl (pws_cnt);
-  SOCK_SEND (unit->client_fd, &pws_cnt_no, sizeof (pws_cnt_no), 0);
+  if (send (unit->client_fd, (void *) &pws_cnt_no, sizeof (pws_cnt_no), 0) != sizeof (pws_cnt_no)) return false;
 
   md5_ctx_t md5_ctx;
   md5_init (&md5_ctx);
@@ -309,8 +310,8 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
     for (u32 lane = 0; lane < argon2id_hybrid->parallelism; lane++)
     {
-      SOCK_SEND (unit->client_fd, tmp->first_block[lane], sizeof (tmp->first_block[lane]), 0);
-      SOCK_SEND (unit->client_fd, tmp->second_block[lane], sizeof (tmp->second_block[lane]), 0);
+      if (send (unit->client_fd, (void *) tmp->first_block[lane], sizeof (tmp->first_block[lane]), 0) != sizeof (tmp->first_block[lane])) return false;
+      if (send (unit->client_fd, (void *) tmp->second_block[lane], sizeof (tmp->second_block[lane]), 0) != sizeof (tmp->second_block[lane])) return false;
 
       md5_update (&md5_ctx, tmp->first_block[lane], sizeof (tmp->first_block[lane]));
       md5_update (&md5_ctx, tmp->second_block[lane], sizeof (tmp->second_block[lane]));
@@ -319,7 +320,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   md5_final (&md5_ctx);
 
-  SOCK_SEND (unit->client_fd, md5_ctx.h, sizeof (md5_ctx.h), 0);
+  if (send (unit->client_fd, (void *) md5_ctx.h, sizeof (md5_ctx.h), 0) != sizeof (md5_ctx.h)) return false;
 
   md5_init (&md5_ctx);
 
@@ -327,7 +328,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   {
     argon2id_hybrid_tmp_t *tmp = &argon2id_hybrid_tmp[p];
 
-    SOCK_RECV (unit->client_fd, tmp->final_block, sizeof (tmp->final_block), MSG_WAITALL);
+    if (recv (unit->client_fd, (void *) tmp->final_block, sizeof (tmp->final_block), MSG_WAITALL) != sizeof (tmp->final_block)) return false;
 
     md5_update (&md5_ctx, tmp->final_block, sizeof (tmp->final_block));
   }
@@ -335,11 +336,11 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   md5_final (&md5_ctx);
 
   uint8_t expected_md5[16];
-  SOCK_RECV (unit->client_fd, expected_md5, 16, MSG_WAITALL);
+  if (recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), MSG_WAITALL) != sizeof (expected_md5)) return false;
 
   if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
   {
-    printf ("[client]: MD5 is NOT correct!\n");
+    event_log_error (hashcat_ctx, "[client]: MD5 is NOT correct!");
     return false;
   }
 
