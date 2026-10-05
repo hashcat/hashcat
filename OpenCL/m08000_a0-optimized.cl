@@ -262,6 +262,15 @@ KERNEL_FQ KERNEL_FA void m08000_m04 (KERN_ATTR_RULES ())
    * salt
    */
 
+  #if ATTACK_MODE == 9
+
+  // The salt index is the work item id here, so a thread past the count reads past the end of
+  // salt_bufs. No barrier stands above, so the bound goes here.
+
+  if (gid >= GID_CNT) return;
+
+  #endif
+
   const u32 salt_buf0 = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 0]);
   const u32 salt_buf1 = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 1]);
   const u32 salt_buf2 = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 2]); // 0x80
@@ -275,8 +284,6 @@ KERNEL_FQ KERNEL_FA void m08000_m04 (KERN_ATTR_RULES ())
   // The schedule thread zero precomputes would be handed to every other thread of the workgroup
   // along with the wrong salt, so each thread builds its own. One candidate is tried per hash in
   // this attack, so the schedule is built once and read once.
-
-  if (gid >= GID_CNT) return;
 
   u32 w_s1[64];
   u32 w_s2[64];
@@ -465,6 +472,15 @@ KERNEL_FQ KERNEL_FA void m08000_s04 (KERN_ATTR_RULES ())
    * salt
    */
 
+  #if ATTACK_MODE == 9
+
+  // The salt index is the work item id here, so a thread past the count reads past the end of
+  // salt_bufs. No barrier stands above, so the bound goes here.
+
+  if (gid >= GID_CNT) return;
+
+  #endif
+
   const u32 salt_buf0 = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 0]);
   const u32 salt_buf1 = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 1]);
   const u32 salt_buf2 = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 2]); // 0x80
@@ -478,8 +494,6 @@ KERNEL_FQ KERNEL_FA void m08000_s04 (KERN_ATTR_RULES ())
   // The schedule thread zero precomputes would be handed to every other thread of the workgroup
   // along with the wrong salt, so each thread builds its own. One candidate is tried per hash in
   // this attack, so the schedule is built once and read once.
-
-  if (gid >= GID_CNT) return;
 
   u32 w_s1[64];
   u32 w_s2[64];
