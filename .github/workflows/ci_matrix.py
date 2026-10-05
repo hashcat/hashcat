@@ -57,6 +57,83 @@ def minimal_shards(n):
 
     return [sorted(b) for b in bins if b]
 
+
+# How a PR spreads its impacted test modes across shards. A host-engine mode hashes on the CPU
+# (ATTACK_EXEC_OUTSIDE_KERNEL: the container, wallet and document families), which dominates the time
+# on a GPU-less runner, and the heavier MINIMAL_WEIGHT kernels (bcrypt, scrypt, LUKS, argon) cost
+# almost as much. Two of those landing in one shard is what overran the 90 minute PR timeout, so each
+# heavy mode gets a shard to itself while the light ones bundle, this many at a time, to still share a
+# build. The shard a mode lands in is not stable here, unlike the crc32 placement entries () uses, but
+# a test shard carries no per-shard state that needs to be, so balancing wins.
+PR_LIGHT_PER_SHARD = 8
+
+_HOST_ENGINE = {}
+
+
+def host_engine(mode):
+    # True when the module hashes on the host rather than in the kernel, read off the module source the
+    # way tools/test.py does. Cached, since a PR asks about several.
+    if mode not in _HOST_ENGINE:
+        try:
+            with open("src/modules/module_%05d.c" % mode, "rb") as fh:
+                _HOST_ENGINE[mode] = b"ATTACK_EXEC_OUTSIDE_KERNEL" in fh.read()
+        except OSError:
+            _HOST_ENGINE[mode] = False
+
+    return _HOST_ENGINE[mode]
+
+
+def mode_weight(mode):
+    # Cost estimate for balancing shards. A host-engine mode runs its KDF on the CPU and dominates on a
+    # GPU-less runner; the MINIMAL_WEIGHT entries carry the known slow kernels (bcrypt, scrypt, LUKS,
+    # argon) at their measured weight. Everything else is light.
+    if mode in MINIMAL_WEIGHT:
+        return MINIMAL_WEIGHT[mode]
+
+    return 6 if host_engine(mode) else 1
+
+
+def is_heavy(mode):
+    # Slow enough that two of them in one PR shard risk the 90 minute timeout.
+    return mode_weight(mode) >= 3
+
+
+def pr_test_shards(modes):
+    """Spread a PR's impacted test modes so no shard runs two heavy modes. Each heavy mode gets a shard
+    of its own; the light ones are chunked, so the fast modes still amortize one build across a shard."""
+    heavy = sorted(m for m in modes if is_heavy(m))
+    light = sorted(m for m in modes if not is_heavy(m))
+
+    shards = [[m] for m in heavy]
+
+    for i in range(0, len(light), PR_LIGHT_PER_SHARD):
+        shards.append(light[i:i + PR_LIGHT_PER_SHARD])
+
+    return shards
+
+
+def balance_shards(modes, n):
+    """Longest-processing-time bin-packing of modes into n shards by mode_weight, so the heavy modes
+    spread across the shards instead of piling into whichever one crc32 happened to draw them to. For
+    the weekly all-mode test run, which must bundle (far more modes than shards) and keeps no per-shard
+    state that a stable hash placement would protect."""
+    bins = [[] for _ in range(n)]
+    load = [0] * n
+
+    for mode in sorted(modes, key=lambda m: (mode_weight(m), m), reverse=True):
+        i = load.index(min(load))
+        bins[i].append(mode)
+        load[i] += mode_weight(mode)
+
+    return [sorted(b) for b in bins if b]
+
+
+def test_matrix(groups):
+    # One matrix entry per shard of modes. The test job reads name and modes; its shard number is
+    # only a label here (unlike fuzz, which keys its corpus off it).
+    return [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
+            for i, group in enumerate(groups)]
+
 # A PR that touches shared code, but no mode of its own, still gets a run:
 # test.py -M for the kernels, and the starting set of parser targets for fuzz.
 # That starting set is FUZZ_MODES in tools/fuzz/build.sh, where the reason for
@@ -168,7 +245,11 @@ def main():
     notes = []
 
     if scope == "all":
-        matrix = entries(kind, pool, True)
+        if kind == "test":
+            matrix = test_matrix(balance_shards(pool, SHARDS["test"]))
+        else:
+            matrix = entries(kind, pool, True)
+
         notes.append(f"all {len(pool)} modes in {len(matrix)} shards")
 
     elif scope == "list":
@@ -177,7 +258,11 @@ def main():
         if asked - pool:
             notes.append("not testable here, skipped: " + " ".join(str(m) for m in sorted(asked - pool)))
 
-        matrix = entries(kind, asked & pool, kind == "fuzz")
+        if kind == "test":
+            matrix = test_matrix(balance_shards(asked & pool, SHARDS["test"]))
+        else:
+            matrix = entries(kind, asked & pool, kind == "fuzz")
+
         notes.append(f"{len(asked & pool)} modes named")
 
     else:
@@ -222,7 +307,7 @@ def main():
 
             matrix = entries(kind, impacted, shared)
         else:
-            matrix = entries(kind, impacted, False)
+            matrix = test_matrix(pr_test_shards(impacted))
 
             if shared:
                 for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
