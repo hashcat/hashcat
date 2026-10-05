@@ -87,7 +87,7 @@ DECLSPEC void compress(const u32 inlen, const u32 *in, const u32 outlen , u32 *b
   block [240 +15] = h32_from_64_S (ctx.h[7]);
 }
 
-KERNEL_FQ void m75000_init (_KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
+KERNEL_FQ void m76000_init (_KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -155,12 +155,12 @@ KERNEL_FQ void m75000_init (_KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
   }
 }
 
-KERNEL_FQ void m75000_loop (_KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
+KERNEL_FQ void m76000_loop (_KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
 {
   // Empty because the bridge is used for the memory intensive part
 }
 
-KERNEL_FQ void m75000_comp ( _KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
+KERNEL_FQ void m76000_comp ( _KERN_ATTR_TMPS_ESALT (argon2id_tmp_t, argon2id_t))
 {
   const u64 gid = get_global_id (0);
 

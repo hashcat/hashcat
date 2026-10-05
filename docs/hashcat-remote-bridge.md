@@ -15,7 +15,7 @@ Various concepts are tested with this:
 
 Here is a command-line examples which will crack with ‘hashcat’ as password:
 
-hashcat : ./hashcat -a 3 -m 75000 '$argon2id$v=19$m=1048576,t=3,p=3$2XsI78UNmyI=$W+DIZS8IGMaJo+ru2Uhq5GfOUdDP+cXthKlHBCy60fA=' hashc?l?l --bridge-parameter1=<ip-addres:port-number>
+hashcat : ./hashcat -a 3 -m 76000 '$argon2id$v=19$m=1048576,t=3,p=3$2XsI78UNmyI=$W+DIZS8IGMaJo+ru2Uhq5GfOUdDP+cXthKlHBCy60fA=' hashc?l?l --bridge-parameter1=<ip-addres:port-number>
 
 legion : java -Xmx6G -Xms6G --enable-native-access=ALL-UNNAMED -jar legion.jar <port-number>
 

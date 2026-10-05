@@ -33,7 +33,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define HASH_MODE 75000
+#define HASH_MODE 76000
 #define MAX_BLOCK_SIZE 2048
 
 
