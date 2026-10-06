@@ -24,6 +24,8 @@ HC_PLUGIN_API bool is_valid_base58_string   (const u8 *s, const size_t len);
 HC_PLUGIN_API bool is_valid_base58_char     (const u8 c);
 HC_PLUGIN_API bool is_valid_bech32_string   (const u8 *s, const size_t len);
 HC_PLUGIN_API bool is_valid_bech32_char     (const u8 c);
+HC_PLUGIN_API bool is_valid_base32a_string  (const u8 *s, const size_t len);
+HC_PLUGIN_API bool is_valid_base32a_char    (const u8 c);
 HC_PLUGIN_API bool is_valid_hex_string      (const u8 *s, const size_t len);
 HC_PLUGIN_API bool is_valid_hex_char        (const u8 c);
 HC_PLUGIN_API bool is_valid_digit_string    (const u8 *s, const size_t len);

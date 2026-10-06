@@ -77,6 +77,7 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
   memset (transform, 0, sizeof (pw_transform_t));
 
   transform->pt_uppercase     = (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) ? true : false;
+  transform->pt_lowercase     = (hashconfig->opts_type & OPTS_TYPE_PT_LOWER) ? true : false;
   transform->pt_hex           = (hashconfig->opts_type & OPTS_TYPE_PT_HEX)   ? true : false;
   transform->wordlist_autohex = generic_ctx->autohex_enable && user_options->wordlist_autohex;
 
@@ -120,7 +121,7 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
     transform->iconv_enabled = true;
   }
 
-  const bool others = transform->pt_hex | transform->pt_uppercase | transform->iconv_enabled;
+  const bool others = transform->pt_hex | transform->pt_uppercase | transform->pt_lowercase | transform->iconv_enabled;
   const bool rules  = (run_rule_engine (transform->rule_len, transform->rule_buf) != 0);
 
   transform->autohex_only = (others == false) && (rules == false);
@@ -218,6 +219,7 @@ int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len,
   // 3. what this hash mode hashes
 
   if (transform->pt_uppercase == true) uppercase (buf, (size_t) out_len);
+  if (transform->pt_lowercase == true) lowercase (buf, (size_t) out_len);
 
   // 4. the bytes the kernel gets
 

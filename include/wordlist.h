@@ -31,6 +31,7 @@ size_t convert_hex_wordlist (char *line_buf, const size_t line_len);
 typedef struct pw_transform
 {
   bool pt_uppercase;
+  bool pt_lowercase;
   bool pt_hex;
   bool wordlist_autohex;
 

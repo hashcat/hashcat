@@ -384,6 +384,31 @@ bool is_valid_bech32_char (const u8 c)
   return false;
 }
 
+bool is_valid_base32a_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_base32a_char (c) == false) return false;
+  }
+
+  return true;
+}
+
+bool is_valid_base32a_char (const u8 c)
+{
+  // The alphabet of RFC 4648 7, which spells it in upper case while RFC 5155 writes the names it
+  // hashes in lower case. Both spellings are the same owner name, so both are read, and a character
+  // outside the alphabet is refused rather than decoded as some other byte.
+
+  if ((c >= '0') && (c <= '9')) return true;
+  if ((c >= 'a') && (c <= 'v')) return true;
+  if ((c >= 'A') && (c <= 'V')) return true;
+
+  return false;
+}
+
 static const u8 hex_nibble[256] =
 {
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -608,6 +633,10 @@ u8 itoa32_to_int (const u8 c)
 {
   if ((c >= '0') && (c <= '9')) return c - '0';
   if ((c >= 'a') && (c <= 'v')) return c - 'a' + 10;
+
+  // RFC 4648 7 spells the alphabet in upper case, and a DNS name means the same in either case.
+
+  if ((c >= 'A') && (c <= 'V')) return c - 'A' + 10;
 
   return 0;
 }

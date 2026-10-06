@@ -246,6 +246,7 @@ static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, const u32 *in_buf, size_t 
     u32 u = in_buf[i] & 0xff;
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) u = (u32) toupper (u);
+    if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER) u = (u32) tolower (u);
 
     if (css_uniq[u] == 1) continue;
 
@@ -1592,6 +1593,13 @@ static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig,
     for (u32 i = 0; i < cand_len; i++) cand[i] = (u8) toupper (cand[i]);
 
     lookup->uppered = true;
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+  {
+    for (u32 i = 0; i < cand_len; i++) cand[i] = (u8) tolower (cand[i]);
+
+    lookup->lowered = true;
   }
 
   // The candidate as the mask spells it. A mode that hashes UTF-16 has had its css expanded to two
@@ -3085,6 +3093,11 @@ void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
   if (lookup->uppered == true)
   {
     event_log_info (hashcat_ctx, "lookup: this mode hashes in upper case, so every candidate in the run is, and this one was folded to match");
+  }
+
+  if (lookup->lowered == true)
+  {
+    event_log_info (hashcat_ctx, "lookup: this mode hashes in lower case, so every candidate in the run is, and this one was folded to match");
   }
 
   // No round was sized at all, so there was nothing to search. A mask outside the mode's password

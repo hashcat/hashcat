@@ -97,6 +97,11 @@ KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_BASIC ())
 
     const u32 pw_len = pws[gid].pw_len + combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
+    // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+    // behind its length byte, the domain and the root that ends it. A longer one is not a name.
+
+    if ((salt_len_pc + 1 + ((pw_len > 0) ? (1 + pw_len) : 0)) > 255) continue;
+
     // replace "." with the length:
 
     if (pw_len > 0)
@@ -264,6 +269,11 @@ KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_BASIC ())
     sha1_init (&ctx1);
 
     const u32 pw_len = pws[gid].pw_len + combs_len_S (combs_buf, il_pos, COMBS_MODE);
+
+    // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+    // behind its length byte, the domain and the root that ends it. A longer one is not a name.
+
+    if ((salt_len_pc + 1 + ((pw_len > 0) ? (1 + pw_len) : 0)) > 255) continue;
 
     // replace "." with the length:
 

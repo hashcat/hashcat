@@ -60,6 +60,12 @@ KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_len_pc = salt_bufs[SALT_POS_HOST].salt_len_pc;
 
+  // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+  // behind its length byte, the domain and the root that ends it. A longer one is not a name.
+  // The mask fixes the candidate length for the whole launch, so this is tested once.
+
+  if ((salt_len_pc + 1 + ((pw_len > 0) ? (1 + pw_len) : 0)) > 255) return;
+
   u32x s_pc[64] = { 0 };
 
   for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
@@ -244,6 +250,12 @@ KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_VECTOR ())
   }
 
   const u32 salt_len_pc = salt_bufs[SALT_POS_HOST].salt_len_pc;
+
+  // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+  // behind its length byte, the domain and the root that ends it. A longer one is not a name.
+  // The mask fixes the candidate length for the whole launch, so this is tested once.
+
+  if ((salt_len_pc + 1 + ((pw_len > 0) ? (1 + pw_len) : 0)) > 255) return;
 
   u32x s_pc[64] = { 0 };
 
