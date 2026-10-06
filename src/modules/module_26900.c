@@ -52,7 +52,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 static const char *SIGNATURE_SNMPV3 = "$SNMPv3$5$";
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_ENGINEID_MAX         64
 #define SNMPV3_MSG_AUTH_PARAMS_LEN  32
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        128
@@ -61,7 +61,7 @@ static const char *SIGNATURE_SNMPV3 = "$SNMPv3$5$";
 #define SNMPV3_HASH_ELEMS           8
 
 #define SNMPV3_MAX_SALT_ELEMS       512 // 512 * 4 = 2048 > 1500, also has to be multiple of SNMPV3_MAX_PW_LENGTH
-#define SNMPV3_MAX_ENGINE_ELEMS     32  // 32 * 4 = 128 > 34, also has to be multiple of SNMPV3_MAX_PW_LENGTH
+#define SNMPV3_MAX_ENGINE_ELEMS     32  // 32 * 4 = 128 > 64, also has to be multiple of SNMPV3_MAX_PW_LENGTH
 #define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
 
 typedef struct hmac_sha384_tmp
@@ -265,6 +265,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // use the real decoded length so engine IDs != 17 bytes localize correctly
   snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
+
+  // RFC 3411 forbids an engine id of all zeros and one of all 0xff
+
+  u8 acc_or  = 0;
+  u8 acc_and = 0xff;
+
+  for (u32 i = 0; i < snmpv3->engineID_len; i++)
+  {
+    acc_or  |= engineID_ptr[i];
+    acc_and &= engineID_ptr[i];
+  }
+
+  if ((acc_or == 0) || (acc_and == 0xff)) return (PARSER_SALT_VALUE);
 
   // digest
 

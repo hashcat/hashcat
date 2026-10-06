@@ -18,7 +18,7 @@
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_ENGINEID_MAX         64
 #define SNMPV3_MSG_AUTH_PARAMS_MAX  32
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        128
@@ -27,7 +27,7 @@
 #define SNMPV3_HASH_ELEMS           8
 
 #define SNMPV3_MAX_SALT_ELEMS       512 // 512 * 4 = 2048 > 1500, also has to be multiple of SNMPV3_MAX_PW_LENGTH
-#define SNMPV3_MAX_ENGINE_ELEMS     32  // 32 * 4 = 128 > 34, also has to be multiple of SNMPV3_MAX_PW_LENGTH
+#define SNMPV3_MAX_ENGINE_ELEMS     32  // 32 * 4 = 128 > 64, also has to be multiple of SNMPV3_MAX_PW_LENGTH
 #define SNMPV3_MAX_PNUM_ELEMS       4   // 4 * 4 = 16 > 9
 
 #define SNMPV3_MAX_PW_LENGTH_OPT    32
@@ -174,6 +174,10 @@ KERNEL_FQ KERNEL_FA void m26900_loop (KERN_ATTR_TMPS_ESALT (hmac_sha384_tmp_t, s
 
   const u32 pw_len = pws[gid].pw_len;
 
+  // an empty candidate makes pw_len128 zero, and the index below divides by it
+
+  if (pw_len == 0) return;
+
   const int pw_len128 = pw_len * 128;
 
   if (pw_len <= SNMPV3_MAX_PW_LENGTH_OPT)
@@ -185,7 +189,7 @@ KERNEL_FQ KERNEL_FA void m26900_loop (KERN_ATTR_TMPS_ESALT (hmac_sha384_tmp_t, s
       tmp[i] = tmps[gid].tmp[i];
     }
 
-    for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i += 128, j += 128)
+    for (int i = 0, j = LOOP_POS; i < LOOP_CNT; i += 128, j += 128)
     {
       const int idx = (j % pw_len128) / 4; // the optimization trick is to be able to do this
 
@@ -236,7 +240,7 @@ KERNEL_FQ KERNEL_FA void m26900_loop (KERN_ATTR_TMPS_ESALT (hmac_sha384_tmp_t, s
   }
   else
   {
-    for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i += 128, j += 128)
+    for (int i = 0, j = LOOP_POS; i < LOOP_CNT; i += 128, j += 128)
     {
       const int idx = (j % pw_len128) / 4; // the optimization trick is to be able to do this
 

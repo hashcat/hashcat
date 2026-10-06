@@ -50,7 +50,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 static const char *SIGNATURE_SNMPV3 = "$SNMPv3$1$";
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_ENGINEID_MAX         64
 #define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
@@ -231,6 +231,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *engineID_ptr = (u8 *) snmpv3->engineID_buf;
 
   snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
+
+  // RFC 3411 forbids an engine id of all zeros and one of all 0xff
+
+  u8 acc_or  = 0;
+  u8 acc_and = 0xff;
+
+  for (u32 i = 0; i < snmpv3->engineID_len; i++)
+  {
+    acc_or  |= engineID_ptr[i];
+    acc_and &= engineID_ptr[i];
+  }
+
+  if ((acc_or == 0) || (acc_and == 0xff)) return (PARSER_SALT_VALUE);
 
   // digest
 
