@@ -58,6 +58,7 @@ CORE="src/rp.c
       src/keyboard_layout.c
       src/ext_lzma.c
       src/ext_zlib.c
+      src/ext_zstd.c
       src/dynloader.c
       src/folder.c
       src/path.c
