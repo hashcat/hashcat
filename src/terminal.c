@@ -1260,6 +1260,20 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
         hcfree (tmp_buf);
       }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        lowercase ((u8 *) tmp_buf, st_pass_len);
+
+        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
       else
       {
         printf ("\"example_pass\": \"%s\", ", hashconfig->st_pass);
@@ -1526,6 +1540,20 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        lowercase ((u8 *) tmp_buf, st_pass_len);
 
         event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
 

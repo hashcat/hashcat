@@ -115,6 +115,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           uppercase ((u8 *) pw_ptr, pw.pw_len);
         }
 
+        if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+        {
+          lowercase ((u8 *) pw_ptr, pw.pw_len);
+        }
+
         if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -137,6 +142,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           uppercase ((u8 *) pw_ptr, pw.pw_len);
         }
 
+        if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+        {
+          lowercase ((u8 *) pw_ptr, pw.pw_len);
+        }
+
         memset (&comb, 0, sizeof (comb));
 
         char *comb_ptr = (char *) &comb.i;
@@ -148,6 +158,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
         if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
         {
           uppercase ((u8 *) comb_ptr, comb.pw_len);
+        }
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+        {
+          lowercase ((u8 *) comb_ptr, comb.pw_len);
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
@@ -188,6 +203,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
             uppercase ((u8 *) pw_ptr, pw_len);
           }
 
+          if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+          {
+            lowercase ((u8 *) pw_ptr, pw_len);
+          }
+
           pw.pw_len = (u32) pw_len;
 
           if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
@@ -224,6 +244,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
           {
             uppercase ((u8 *) bf_ptr, 4);
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+          {
+            lowercase ((u8 *) bf_ptr, 4);
           }
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
@@ -271,6 +296,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
           {
             uppercase ((u8 *) pw_ptr, new_pass_len);
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+          {
+            lowercase ((u8 *) pw_ptr, new_pass_len);
           }
 
           if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)

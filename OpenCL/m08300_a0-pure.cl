@@ -63,6 +63,17 @@ KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_RULES ())
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
+    // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+    // behind its length byte, the domain and the root that ends it. A longer one is not a name.
+
+    if ((salt_len_pc + 1 + ((tmp.pw_len > 0) ? (1 + tmp.pw_len) : 0)) > 255) continue;
+
+    // RFC 4034 6.2 hashes the name in its canonical form. The host folds the word it hands over and
+    // the rule above runs after that, so the fold happens again here, while the dots are still dots:
+    // once they are length bytes an ASCII fold cannot tell them from letters.
+
+    mangle_lrest (0, 0, tmp.i, (int) tmp.pw_len);
+
     sha1_ctx_t ctx1;
 
     sha1_init (&ctx1);
@@ -206,6 +217,17 @@ KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_RULES ())
     pw_t tmp = PASTE_PW;
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+
+    // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+    // behind its length byte, the domain and the root that ends it. A longer one is not a name.
+
+    if ((salt_len_pc + 1 + ((tmp.pw_len > 0) ? (1 + tmp.pw_len) : 0)) > 255) continue;
+
+    // RFC 4034 6.2 hashes the name in its canonical form. The host folds the word it hands over and
+    // the rule above runs after that, so the fold happens again here, while the dots are still dots:
+    // once they are length bytes an ASCII fold cannot tell them from letters.
+
+    mangle_lrest (0, 0, tmp.i, (int) tmp.pw_len);
 
     sha1_ctx_t ctx1;
 

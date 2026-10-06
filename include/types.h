@@ -1278,6 +1278,13 @@ typedef enum token_attr
 
   TOKEN_ATTR_VERIFY_BASE16      = 1 << 13,
 
+  // base32hex, the alphabet RFC 4648 7 defines and RFC 5155 prints an NSEC3 owner name in. Section 6
+  // spells a different one, hence the letter, as with the base64 attributes above. A character
+  // outside this alphabet reads as a zero in the decoder, so a line carrying one is refused here
+  // rather than ground against a digest it does not hold.
+
+  TOKEN_ATTR_VERIFY_BASE32A     = 1 << 14,
+
 } token_attr_t;
 
 #ifdef WITH_BRAIN
@@ -3151,12 +3158,13 @@ typedef struct mask_lookup
   bool  hit;
   bool  placed;     // whether word has been moved from this round's numbering to the queue's
 
-  // A mode that hashes the candidate in upper case has every mask charset built in upper case, so
-  // the candidate is folded the same way before it is looked for and the user is told it was. What
+  // A mode that hashes the candidate in one case has every mask charset built that way, so the
+  // candidate is folded the same way before it is looked for and the user is told it was. What
   // the run reaches is the folded spelling, and saying so is the difference between an answer and a
   // wrong one.
 
   bool  uppered;
+  bool  lowered;
 
   u32   round;      // masks_pos of the round that reached it
   char  mask[0x400]; // as wide as mf_t's, so no mask a maskfile can hold is truncated
