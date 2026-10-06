@@ -70,6 +70,16 @@ The protocol provides no encryption or transport integrity. A party able to obse
 
 These protocol properties are part of the design and are not themselves vulnerabilities. That includes the authentication. A party that observed a handshake can attack the brain password offline. The response is stretched by a fixed iteration count, but there is no memory hardness and the only salt is the observed challenge, so this is far weaker than a password hashing function. Recovering it that way and connecting later is a consequence of the design, not an authentication bypass. The transport advice above is the mitigation. Memory safety issues, real authentication bypasses and similar implementation defects are different, in the server and in the client alike. In particular, an issue reachable by a remote peer before authentication completes is within hashcat's security boundary.
 
+## Remote bridge for Argon2id
+
+The remote bridge extends hashcat's cracking abilities to a remote system over a network connection. The remote bridge is an optional feature and is only used when explicitly configured by the user.
+
+The remote bridge transmits intermediate values required to perform the middle computational heavy of argon2id, see also docs/hashcat-remote-bridge.md.
+
+The remote bridge must nevertheless be treated as a network trust boundary. The connection does not, by itself, provide confidentiality, authentication, or protection against a malicious remote endpoint unless these properties are provided by an external trusted transport. Users should therefore only connect to remote bridge endpoints they trust and should use an encrypted and authenticated transport when communication crosses an untrusted network.
+
+A malicious or compromised remote bridge endpoint may observe intermediate computation data and may interfere with or manipulate the computation. Users should not expose a remote bridge service directly to untrusted networks.
+
 ## CVE identifiers
 
 Hashcat is not a CVE Numbering Authority. When a report falls within the security boundary described above, we will treat it as a vulnerability, work on a fix and cooperate with the organization assigning a CVE identifier. When a report does not cross that boundary, we will classify it as a bug and explain why. If a CVE has been requested or assigned for such an issue, we may ask for the record to be rejected, corrected or marked disputed.
