@@ -194,15 +194,44 @@ jobs:
           fi
 
           fail=0
+          failed_modes=""
 
           for mode in $MODES; do
             echo "::group::test.py -m ${mode} ${opts}"
 
-            # shellcheck disable=SC2086
-            python3 tools/test.py -m "${mode}" ${opts} -D 1 -f || fail=1
+            log="testpy_${mode}.log"
 
+            # shellcheck disable=SC2086
+            python3 tools/test.py -m "${mode}" ${opts} -D 1 -f > "${log}" 2>&1
+            rc=$?
+
+            cat "${log}"
             echo "::endgroup::"
+
+            if [ "${rc}" -ne 0 ]; then
+              fail=1
+              failed_modes="${failed_modes} ${mode}"
+
+              # A red run should name the failure, not just its exit code. Pull the worker's own
+              # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
+              # into an annotation and the job summary.
+              reason=$(grep -m1 -E '> Error :|oracle failed|did not round trip' "${log}" | sed 's/^[[:space:]]*//')
+              echo "::error title=test.py failed on mode ${mode}::${reason:-see the job summary}"
+
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                {
+                  echo "### mode ${mode} failed: test.py -m ${mode} ${opts} (exit ${rc})"
+                  echo '```'
+                  grep -E '> (OK|Error) :|oracle failed|did not round trip|not found|not matched|Traceback' "${log}" | head -n 40
+                  echo '```'
+                } >> "${GITHUB_STEP_SUMMARY}"
+              fi
+            fi
           done
+
+          if [ "${fail}" -ne 0 ]; then
+            echo "::error title=test.py failed::modes that failed:${failed_modes}"
+          fi
 
           exit $fail
 
