@@ -16227,6 +16227,22 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const u64 pw_comp_stride = (u64) CEILDIV (MIN (pw_comp_bound + 1, PW_MAX), 4) * 4;
 
+    // Whether the two buffers are staging anything at all. They hold candidates the host built, and a
+    // mask attack builds none: the device runs the mask processor from an offset instead, which is what
+    // BASE_SOURCE_MASK means and covers -a 3, -a 7 under a pure kernel and -a 12 under a pure kernel
+    // whose mask ends in ?w.
+    //
+    // Nothing on either side of the bus reads them there. run_copy () answers that source with
+    // run_kernel_mp () and uploads neither buffer, build_plain () rebuilds the candidate with sp_exec ()
+    // rather than reading it back, process_stdout () has its own arm for it, and the producer in
+    // dispatch.c never takes a pipeline batch, so pw_batch_reset () does not run either.
+    //
+    // --slow-candidates is the exception that keeps them, because it builds every candidate on the host
+    // whatever the attack mode is. base_source is final by now: user_options_extra_init_late () settles
+    // it once the kernel type is known, long before this.
+
+    const bool pws_staging_in_use = (user_options->slow_candidates == true) || (user_options_extra->base_source != BASE_SOURCE_MASK);
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -16337,11 +16353,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // finds there. Both write at the offset one past the last accepted candidate, which is the same
       // reason size_pws_idx below holds kernel_power_max + 1 entries.
 
-      size_pws_comp = (kernel_power_max * pw_comp_stride) + PW_MAX;
+      size_pws_comp = (pws_staging_in_use == true) ? (kernel_power_max * pw_comp_stride) + PW_MAX : 4;
 
       // size_pws_idx
+      //
+      // One entry rather than 4 bytes where nothing stages, so pws_idx[0] stays a whole pw_idx_t. That
+      // is the one element pw_batch_reset () writes, and it writes it before any producer runs, so a
+      // mask attack routed through the pipeline later would find room rather than a short buffer.
 
-      size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
+      size_pws_idx = (pws_staging_in_use == true) ? (kernel_power_max + 1) * sizeof (pw_idx_t) : sizeof (pw_idx_t);
 
       // size_pws_sort_idx, size_pws_sort_map
       //
