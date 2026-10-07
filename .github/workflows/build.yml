@@ -221,7 +221,27 @@ jobs:
             if [ "$GITHUB_EVENT_NAME" = "push" ]; then
               if [ "$GITHUB_REF_NAME" = "master" ]; then
                 git commit -m "Automatically updated docs/hashcat-help.md or docs/hashcat-example-hashes.md (by Github Action)"
-                git push
+
+                # Several commits can land on master close together, each starting a Build that
+                # regenerates and pushes these docs, so this push can be rejected as a non fast
+                # forward. Rebase our docs only commit onto the latest master and retry. If a
+                # concurrent run already pushed the same docs the rebase has nothing to add and we
+                # stop. A push that still does not land after the retries is left for the next run,
+                # the same way generate_docs.sh above is allowed to fail without breaking the build.
+                for attempt in 1 2 3 4 5; do
+                  if git push origin "HEAD:$GITHUB_REF_NAME"; then
+                    break
+                  fi
+                  echo "push rejected on attempt $attempt, rebasing onto the latest $GITHUB_REF_NAME"
+                  git fetch origin "$GITHUB_REF_NAME"
+                  if ! git rebase "origin/$GITHUB_REF_NAME"; then
+                    git rebase --abort
+                    git reset --hard "origin/$GITHUB_REF_NAME"
+                    echo "docs already current after a concurrent run, nothing to push"
+                    break
+                  fi
+                  sleep $(( (RANDOM % 5) + 2 ))
+                done
               else
                 echo "Not on master branch (currently: $GITHUB_REF_NAME): skipping commit because otherwise we may be in detached head"
               fi
