@@ -48,6 +48,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/openwall/john/blob/bleeding-jumbo/run/office2john.py to extract the $oldoffice$ line, dropping the file name and colon it prints in front. This mode also needs the RC4 key appended after a colon, which the extractor does not emit: crack the $oldoffice$ line with mode 9810 first to recover the key, then append it as ':<key>'.";
+}
+
 typedef struct oldoffice34
 {
   u32 version;
@@ -390,6 +395,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
-  module_ctx->module_usage_notice             = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = module_usage_notice;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

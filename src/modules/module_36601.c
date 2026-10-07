@@ -151,7 +151,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   /*
    * Decode the 64-byte (128 hex char) derived key.
-   * hex_to_u64 stores bytes in little-endian order (first hex pair → LSB),
+   * hex_to_u64 stores bytes in little-endian order (first hex pair is the LSB),
    * so byte_swap_64 is required to convert each word to the big-endian
    * representation that the PBKDF2 kernel comparison expects.
    */
