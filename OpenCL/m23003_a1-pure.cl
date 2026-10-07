@@ -283,15 +283,24 @@ KERNEL_FQ KERNEL_FA void m23003_mxx (KERN_ATTR_ESALT (securezip_t))
     data[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[34];
     data[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[35];
 
-    #define KEYLEN 60
+    u32 out[4];
 
-    u32 ks[KEYLEN];
+    #if defined IS_APPLE && defined IS_OPENCL
+
+    // Apple's OpenCL compiler is the one runtime that codegens the compressed schedule worse than
+    // the materialised one for this mode, so it keeps the array here.
+
+    u32 ks[60];
 
     AES256_set_decrypt_key_inv (ks, key, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
-    u32 out[4];
-
     aes256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+    #else
+
+    AES256_decrypt_cs (key, data, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
+
+    #endif
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
@@ -570,15 +579,24 @@ KERNEL_FQ KERNEL_FA void m23003_sxx (KERN_ATTR_ESALT (securezip_t))
     data[2] = esalt_bufs[DIGESTS_OFFSET_HOST].data[34];
     data[3] = esalt_bufs[DIGESTS_OFFSET_HOST].data[35];
 
-    #define KEYLEN 60
+    u32 out[4];
 
-    u32 ks[KEYLEN];
+    #if defined IS_APPLE && defined IS_OPENCL
+
+    // Apple's OpenCL compiler is the one runtime that codegens the compressed schedule worse than
+    // the materialised one for this mode, so it keeps the array here.
+
+    u32 ks[60];
 
     AES256_set_decrypt_key_inv (ks, key, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
-    u32 out[4];
-
     aes256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+    #else
+
+    AES256_decrypt_cs (key, data, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
+
+    #endif
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];

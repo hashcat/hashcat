@@ -30,7 +30,7 @@ fi
 
 mkdir -p "$OUT" "$WORK"
 
-rm -f "${OUT}/build_failures.txt"
+rm -f "${OUT}/build_failures.txt" "${OUT}"/build_*.log
 
 # Absolute from here on. OUT defaults to a relative path, the seed corpora are zipped from inside
 # the directory they live in, and a relative OUT does not survive that cd: zip reports
@@ -58,6 +58,7 @@ CORE="src/rp.c
       src/keyboard_layout.c
       src/ext_lzma.c
       src/ext_zlib.c
+      src/ext_zstd.c
       src/dynloader.c
       src/folder.c
       src/path.c
@@ -160,12 +161,21 @@ for mode in $FUZZ_MODES; do
 
   hash_mode=$((10#$mode))
 
+  # The compiler and linker output goes to a per mode log, so a failure can be reported with its
+  # reason, the file and the line, rather than just the mode number. The log is kept under OUT as
+  # build_<mode>.log on a failure for the caller to put in the job summary, and removed on success.
+
+  buildlog="${OUT}/build_${hash_mode}.log"
+
   # shellcheck disable=SC2086
   if ! { $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DFUZZ_HASH_MODE=${hash_mode} \
              -c tools/fuzz/fuzz_parse.c -o "${WORK}/fuzz_parse_${hash_mode}.o" &&
          $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "$module" -o "${WORK}/module_${mode}.o" &&
          $CXX $CXXFLAGS "${WORK}/fuzz_parse_${hash_mode}.o" "${WORK}/module_${mode}.o" $objs \
-             $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_${hash_mode}"; }; then
+             $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_${hash_mode}"; } > "$buildlog" 2>&1; then
+
+    # Print the reason beside the failure, so "did not build" never stands alone.
+    cat "$buildlog" >&2
 
     # FUZZ_KEEP_GOING=1 is for a CI shard of forty modes, where one module that does not build
     # should not take the other thirty nine down with it. It is still a failure: the mode is
@@ -179,6 +189,8 @@ for mode in $FUZZ_MODES; do
 
     exit 1
   fi
+
+  rm -f "$buildlog"
 
   cp "tools/fuzz/fuzz_parse.dict" "${OUT}/"
 

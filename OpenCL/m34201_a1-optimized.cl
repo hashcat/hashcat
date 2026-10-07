@@ -104,6 +104,10 @@ KERNEL_FQ KERNEL_FA void m34201_m04 (KERN_ATTR_BASIC ())
 
     const u32 pw_len = pw_l_len + pw_r_len;
 
+    // pw_max bounds the base word alone, so the pair can exceed the 64 bytes the concat fills.
+
+    if (pw_len > 64) continue;
+
     /**
      * concat password candidate
      */
@@ -284,6 +288,10 @@ KERNEL_FQ KERNEL_FA void m34201_s04 (KERN_ATTR_BASIC ())
     const u32 pw_r_len = COMBS_PW_R_LEN (il_pos);
 
     const u32 pw_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can exceed the 64 bytes the concat fills.
+
+    if (pw_len > 64) continue;
 
     /**
      * concat password candidate

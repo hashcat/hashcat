@@ -151,7 +151,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   /*
    * Decode the 64-byte (128 hex char) derived key.
-   * hex_to_u64 stores bytes in little-endian order (first hex pair → LSB),
+   * hex_to_u64 stores bytes in little-endian order (first hex pair is the LSB),
    * so byte_swap_64 is required to convert each word to the big-endian
    * representation that the PBKDF2 kernel comparison expects.
    */
@@ -249,6 +249,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

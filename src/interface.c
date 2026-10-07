@@ -245,6 +245,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_hook_size);
   CHECK_DEFINED (module_ctx, module_jit_build_options);
   CHECK_DEFINED (module_ctx, module_jit_cache_disable);
+  CHECK_DEFINED (module_ctx, module_kern_bits);
   CHECK_DEFINED (module_ctx, module_kern_type);
   CHECK_DEFINED (module_ctx, module_kern_type_dynamic);
   CHECK_DEFINED (module_ctx, module_kernel_accel_max);
@@ -313,6 +314,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->kern_type     = module_ctx->module_kern_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opti_type     = module_ctx->module_opti_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type     = module_ctx->module_opts_type      (hashconfig, user_options, user_options_extra);
+
+  // The optional kernels a mode provides. hashcat adds the ones every slow hash needs further down.
+
+  if (module_ctx->module_kern_bits != MODULE_DEFAULT)
+  {
+    hashconfig->kern_bits = module_ctx->module_kern_bits (hashconfig, user_options, user_options_extra);
+  }
   hashconfig->salt_type     = module_ctx->module_salt_type      (hashconfig, user_options, user_options_extra);
   hashconfig->st_hash       = module_ctx->module_st_hash        (hashconfig, user_options, user_options_extra);
   hashconfig->st_pass       = module_ctx->module_st_pass        (hashconfig, user_options, user_options_extra);
@@ -435,7 +443,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
   {
-    hashconfig->opts_type |= OPTS_TYPE_INIT |  OPTS_TYPE_LOOP | OPTS_TYPE_COMP;
+    hashconfig->kern_bits |= KERN_BIT_INIT | KERN_BIT_LOOP | KERN_BIT_COMP;
   }
 
   hashconfig->has_optimized_kernel  = false;
@@ -629,14 +637,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // bridges have some serious impact on hashconfig
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
   {
-    hashconfig->opts_type &= ~OPTS_TYPE_LOOP;
+    hashconfig->kern_bits &= ~KERN_BIT_LOOP;
 
     hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP;
   }
 
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2)
   {
-    hashconfig->opts_type &= ~OPTS_TYPE_LOOP2;
+    hashconfig->kern_bits &= ~KERN_BIT_LOOP2;
 
     hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP2;
   }
@@ -649,6 +657,45 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   return 0;
+}
+
+// Which kernels the session runs, for the decisions that are not settled when hashconfig_init ()
+// runs. attack_kern is one of them, and the feed is what settles it: generic_instance_init () holds
+// the only assignment of ATTACK_KERN_PCFG in the tree, and makes it only once the device engine is
+// known to have base words. is_opti_kernel_no_pcfg () returns the wrong value before that, so this
+// is called after generic_ctx_init (), and from here on the backend only asks whether a bit is set.
+
+void hashconfig_kern_bits_init (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t       *hashconfig       = hashcat_ctx->hashconfig;
+  const user_options_t *user_options   = hashcat_ctx->user_options;
+
+  // A fast hash hashes in the cracking kernel itself. An optimized build splits that over the three
+  // length-bounded kernels and a pure build does it all in one.
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  {
+    if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
+    {
+      hashconfig->kern_bits |= KERN_BIT_04 | KERN_BIT_08 | KERN_BIT_16;
+    }
+    else
+    {
+      hashconfig->kern_bits |= KERN_BIT_XX;
+    }
+  }
+
+  // The mask kernel only has a table to build when hashcat expands the mask itself.
+
+  if (user_options->slow_candidates == true)
+  {
+    hashconfig->kern_bits &= ~KERN_BIT_TM;
+  }
+
+  if (user_options->attack_mode != ATTACK_MODE_BF)
+  {
+    hashconfig->kern_bits &= ~KERN_BIT_TM;
+  }
 }
 
 void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)

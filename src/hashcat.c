@@ -1380,6 +1380,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     return -1;
   }
 
+  // Which kernels the session runs is settled here for the same reason the loop count below is: the
+  // bits are derived from attack_kern, and generic_ctx_init () is what sets it to ATTACK_KERN_PCFG.
+  // Asked any earlier, a -a 4 run with -O is told to build the length split kernels, where the file
+  // it loads exports the single kernel instead.
+
+  hashconfig_kern_bits_init (hashcat_ctx);
+
   // Whether the device engine runs is settled by the feed, not by the attack mode: -a 4, -a 5 and a
   // feed on -a 8 or -a 9 all reach it, and any of them falls back to the host engine when the feed
   // has no base word for it. So a loop count can only be judged here, once generic_ctx_init () has
@@ -1587,9 +1594,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (bridges_init_late (hashcat_ctx) == false)
   {
     // A sweep over every hash mode reaches modes whose bridge cannot come up on this machine, a
-    // python bridge without the free threaded library behind it for one. That is the same kind of
-    // answer as a kernel that will not build, so it skips the mode and carries on. A named mode is
-    // the user asking for that one, and there the failure is the answer.
+    // python bridge with no python3 on PATH for one. That is the same kind of answer as a kernel
+    // that will not build, so it skips the mode and carries on. A named mode is the user asking for
+    // that one, and there the failure is the answer.
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
@@ -2128,7 +2135,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * To help users a bit
    */
 
-  setup_environment_variables (hashcat_ctx->folder_config, hashcat_ctx->user_options);
+  setup_environment_variables (hashcat_ctx->folder_config);
 
   setup_umask ();
 

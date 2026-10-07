@@ -55,6 +55,12 @@ DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYB
 
 DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
+  // RFC 1035 2.3.4 holds a name to 255 bytes, and what goes into the digest is the candidate
+  // behind its length byte, the domain and the root that ends it. A longer one is not a name,
+  // and false is how this hook declines a candidate.
+
+  if ((hc->salt_len_pc + 1 + ((len > 0) ? (1 + len) : 0)) > 255) return false;
+
   sha1_ctx_t ctx1;
 
   sha1_init (&ctx1);
@@ -75,7 +81,16 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
       const u32 mod = pos  & 3;
       const u32 sht = mod << 3;
 
-      if (((t[div] >> sht) & 0xff) == 0x2e) // '.'
+      // RFC 4034 6.2 hashes the name in its canonical form. The device engine cases the candidate
+      // the cell made and the rules amplify it after that, so the fold happens again on the byte
+      // this walk already reads. It is spelled out because the rule processor that carries
+      // generate_cmask () reaches this kernel only after this function.
+
+      const u32 c = (t[div] >> sht) & 0xff;
+
+      if ((c >= 'A') && (c <= 'Z')) t[div] += 0x20 << sht;
+
+      if (c == 0x2e) // '.'
       {
         t[div] += (label_len - 0x2e) << sht;
 

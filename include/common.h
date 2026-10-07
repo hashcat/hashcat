@@ -177,3 +177,7 @@ but this is needed for VS compiler which doesn't have inline keyword but has __i
 #define USAGE_NOTICE_ITUNES_BACKUP "You can use https://github.com/philsmd/itunes_backup2hashcat/ to extract the hashes from the Manifest.plist file"
 #define USAGE_NOTICE_GPG "You can use https://github.com/pwrbob/pgp2hc or the older https://github.com/openwall/john/blob/bleeding-jumbo/src/gpg2john.c to extract the hashes"
 #define USAGE_NOTICE_LUKS "You can use https://github.com/hashcat/hashcat/blob/master/tools/luks2hashcat.py to extract the hashes"
+#define USAGE_NOTICE_TRUECRYPT "You can use https://github.com/hashcat/hashcat/blob/master/tools/truecrypt2hashcat.py to extract the hashes"
+#define USAGE_NOTICE_VERACRYPT "You can use https://github.com/hashcat/hashcat/blob/master/tools/veracrypt2hashcat.py to extract the hashes"
+#define USAGE_NOTICE_OFFICE "You can use https://github.com/openwall/john/blob/bleeding-jumbo/run/office2john.py to extract the hash. It prints the file name and a colon in front of the hash, so drop everything up to and including that first ':'."
+#define USAGE_NOTICE_PDF "You can use https://github.com/sighook/pdf2hashcat to extract the hashes"

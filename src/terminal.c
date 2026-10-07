@@ -1048,7 +1048,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       const char *t_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
 
-      char *t_deprecated_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+      char *t_deprecated_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
 
       json_encode (t_deprecated_notice, t_deprecated_notice_json_encoded);
 
@@ -1065,7 +1065,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       const char *t_deprecated_notice = module_ctx->module_usage_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
 
-      char *t_usage_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+      char *t_usage_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
 
       json_encode (t_deprecated_notice, t_usage_notice_json_encoded);
 
@@ -1082,7 +1082,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       const char *t_deprecated_notice = module_ctx->module_advice_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
 
-      char *t_advice_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+      char *t_advice_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
 
       json_encode (t_deprecated_notice, t_advice_notice_json_encoded);
 
@@ -1178,11 +1178,18 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       {
         bool multi_hash_same_salt = true;
 
+        // the loader accepts either flag for several hashes under one salt, so both have to be
+        // tested here or a mode that carries only the second one is reported as refusing what it
+        // in fact allows. See the issue 3641 guard in hashes.c.
+
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
-          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          if ((hashconfig->opts_type & OPTS_TYPE_MULTIHASH_DESPITE_ESALT) == 0)
           {
-            multi_hash_same_salt = false;
+            if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+            {
+              multi_hash_same_salt = false;
+            }
           }
         }
 
@@ -1208,7 +1215,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         printf ("\"example_hash_format\": \"%s\", ", "plain");
       }
 
-      char *example_hash_json_encoded = (char *) hcmalloc (strlen (hashconfig->st_hash) * 2);
+      char *example_hash_json_encoded = (char *) hcmalloc ((strlen (hashconfig->st_hash) * 2) + 1);
 
       json_encode (hashconfig->st_hash, example_hash_json_encoded);
 
@@ -1248,6 +1255,20 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        lowercase ((u8 *) tmp_buf, st_pass_len);
 
         printf ("\"example_pass\": \"%s\", ", tmp_buf);
 
@@ -1435,11 +1456,18 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
       {
         bool multi_hash_same_salt = true;
 
+        // the loader accepts either flag for several hashes under one salt, so both have to be
+        // tested here or a mode that carries only the second one is reported as refusing what it
+        // in fact allows. See the issue 3641 guard in hashes.c.
+
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
-          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          if ((hashconfig->opts_type & OPTS_TYPE_MULTIHASH_DESPITE_ESALT) == 0)
           {
-            multi_hash_same_salt = false;
+            if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+            {
+              multi_hash_same_salt = false;
+            }
           }
         }
 
@@ -1512,6 +1540,20 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        lowercase ((u8 *) tmp_buf, st_pass_len);
 
         event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
 
@@ -1803,6 +1845,35 @@ static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
   event_log_info (hashcat_ctx, NULL);
 }
 
+// Whether the listing has a line for this device: one entry per physical device, because the other
+// copies of a virtualised one are the bridge units that the Assimilation Bridge section describes,
+// and then the device types -D asked for.
+
+static bool backend_info_shown (const backend_ctx_t *backend_ctx, const hc_device_param_t *device_param)
+{
+  if (device_param->is_virtual == true) return false;
+
+  if ((backend_ctx->opencl_device_types_filter & device_param->opencl_device_type) == 0) return false;
+
+  return true;
+}
+
+// How many of a backend's devices the listing has a line for. Asked before anything is printed,
+// because a section whose devices are all filtered away prints no header, and because the separator
+// between two sections of machine-readable output depends on whether a later one has anything to say.
+
+static u32 backend_info_shown_cnt (const backend_ctx_t *backend_ctx, const int *backend_device_from, const int devices_cnt)
+{
+  u32 shown = 0;
+
+  for (int devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
+  {
+    if (backend_info_shown (backend_ctx, backend_ctx->devices_param + backend_device_from[devices_idx]) == true) shown++;
+  }
+
+  return shown;
+}
+
 void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -1834,6 +1905,28 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "Bridge units are selected by the hash mode, so none are listed here.");
       event_log_info (hashcat_ctx, "Add -m <hash mode> to list the units that mode would use.");
       event_log_info (hashcat_ctx, NULL);
+    }
+  }
+
+  // What each backend will print, and for OpenCL what each of its platforms will. A section with
+  // nothing to show is left out whole, and what is left decides where a comma goes.
+
+  const u32 cuda_shown  = (backend_ctx->cuda) ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_cuda,  backend_ctx->cuda_devices_cnt)  : 0;
+  const u32 hip_shown   = (backend_ctx->hip)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_hip,   backend_ctx->hip_devices_cnt)   : 0;
+  const u32 metal_shown = (backend_ctx->mtl)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_metal, backend_ctx->metal_devices_cnt) : 0;
+
+  u32 opencl_platform_shown[CL_PLATFORMS_MAX];
+  u32 opencl_shown = 0;
+
+  memset (opencl_platform_shown, 0, sizeof (opencl_platform_shown));
+
+  if (backend_ctx->ocl)
+  {
+    for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < backend_ctx->opencl_platforms_cnt; opencl_platforms_idx++)
+    {
+      opencl_platform_shown[opencl_platforms_idx] = backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx], (int) backend_ctx->opencl_platforms_devices_cnt[opencl_platforms_idx]);
+
+      opencl_shown += opencl_platform_shown[opencl_platforms_idx];
     }
   }
 
@@ -2023,11 +2116,22 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       printf ("\"CacheDirectory\": \"%s\", ", folder_config->cache_dir);
       printf ("\"SharedDirectory\": \"%s\", ", folder_config->shared_dir);
       printf ("\"CLIncludePath\": \"%s\" ", folder_config->cpath_real);
-      printf ("}, ");
+
+      // The last object before the backend sections, and -D can leave every one of them empty. The
+      // comma belongs here only when something still follows it.
+
+      if (cuda_shown || hip_shown || metal_shown || opencl_shown)
+      {
+        printf ("}, ");
+      }
+      else
+      {
+        printf ("} ");
+      }
     }
   }
 
-  if (backend_ctx->cuda)
+  if (backend_ctx->cuda && cuda_shown)
   {
     if (user_options->machine_readable == false)
     {
@@ -2054,21 +2158,27 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       printf ("\"BackendDevices\": [ ");
     }
 
+    u32 cuda_emitted = 0;
+
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
     {
-      if (user_options->machine_readable == true)
-      {
-        printf ("{ ");
-      }
-
       const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
-      // One entry per physical device. The other copies of a virtualised device are the bridge
-      // units, and the Assimilation Bridge section above is where those are described.
+      if (backend_info_shown (backend_ctx, device_param) == false) continue;
 
-      if (device_param->is_virtual == true) continue;
+      // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+      // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+      if (user_options->machine_readable == true)
+      {
+        if (cuda_emitted > 0) printf (", ");
+
+        printf ("{ ");
+      }
+
+      cuda_emitted++;
 
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
@@ -2135,22 +2245,14 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"PCIAddrBDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((cuda_devices_idx + 1) < cuda_devices_cnt)
-        {
-          printf ("}, ");
-        }
-        else
-        {
-          printf ("} ");
-        }
-      }
+      if (user_options->machine_readable == true) printf ("}");
     }
 
     if (user_options->machine_readable == true)
     {
-      if (backend_ctx->hip || backend_ctx->mtl || backend_ctx->ocl)
+      printf (" ");
+
+      if (hip_shown || metal_shown || opencl_shown)
       {
         printf ("] }, ");
       }
@@ -2161,7 +2263,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (backend_ctx->hip)
+  if (backend_ctx->hip && hip_shown)
   {
     if (user_options->machine_readable == false)
     {
@@ -2211,21 +2313,27 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       printf ("\"BackendDevices\": [ ");
     }
 
+    u32 hip_emitted = 0;
+
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
     {
-      if (user_options->machine_readable == true)
-      {
-        printf ("{ ");
-      }
-
       const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
-      // One entry per physical device. The other copies of a virtualised device are the bridge
-      // units, and the Assimilation Bridge section above is where those are described.
+      if (backend_info_shown (backend_ctx, device_param) == false) continue;
 
-      if (device_param->is_virtual == true) continue;
+      // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+      // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+      if (user_options->machine_readable == true)
+      {
+        if (hip_emitted > 0) printf (", ");
+
+        printf ("{ ");
+      }
+
+      hip_emitted++;
 
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
@@ -2292,22 +2400,14 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"PCIAddrBDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((hip_devices_idx + 1) < hip_devices_cnt)
-        {
-          printf ("}, ");
-        }
-        else
-        {
-          printf ("} ");
-        }
-      }
+      if (user_options->machine_readable == true) printf ("}");
     }
 
     if (user_options->machine_readable == true)
     {
-      if (backend_ctx->mtl || backend_ctx->ocl)
+      printf (" ");
+
+      if (metal_shown || opencl_shown)
       {
         printf ("] }, ");
       }
@@ -2319,7 +2419,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   }
 
   #if defined (__APPLE__)
-  if (backend_ctx->mtl)
+  if (backend_ctx->mtl && metal_shown)
   {
     if (user_options->machine_readable == false)
     {
@@ -2351,21 +2451,27 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       printf ("\"BackendDevices\": [ ");
     }
 
+    u32 metal_emitted = 0;
+
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
     {
-      if (user_options->machine_readable == true)
-      {
-        printf ("{ ");
-      }
-
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
-      // One entry per physical device. The other copies of a virtualised device are the bridge
-      // units, and the Assimilation Bridge section above is where those are described.
+      if (backend_info_shown (backend_ctx, device_param) == false) continue;
 
-      if (device_param->is_virtual == true) continue;
+      // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+      // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+      if (user_options->machine_readable == true)
+      {
+        if (metal_emitted > 0) printf (", ");
+
+        printf ("{ ");
+      }
+
+      metal_emitted++;
 
       int   device_id                        = device_param->device_id;
       int   device_max_transfer_rate         = device_param->device_max_transfer_rate;
@@ -2551,22 +2657,14 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("} ");
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((metal_devices_idx + 1) < metal_devices_cnt)
-        {
-          printf ("}, ");
-        }
-        else
-        {
-          printf ("} ");
-        }
-      }
+      if (user_options->machine_readable == true) printf ("}");
     }
 
     if (user_options->machine_readable == true)
     {
-      if (backend_ctx->ocl)
+      printf (" ");
+
+      if (opencl_shown)
       {
         printf ("] }, ");
       }
@@ -2578,7 +2676,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
-  if (backend_ctx->ocl)
+  if (backend_ctx->ocl && opencl_shown)
   {
     if (user_options->machine_readable == false)
     {
@@ -2598,12 +2696,23 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     char    **opencl_platforms_vendor      = backend_ctx->opencl_platforms_vendor;
     char    **opencl_platforms_version     = backend_ctx->opencl_platforms_version;
 
+    u32 opencl_platforms_emitted = 0;
+
     for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
+      // A platform whose devices are all filtered away is left out whole, header and version with
+      // them, the way backend_info_compact () leaves out a platform that holds no device at all.
+
+      if (opencl_platform_shown[opencl_platforms_idx] == 0) continue;
+
       if (user_options->machine_readable == true)
       {
+        if (opencl_platforms_emitted > 0) printf (", ");
+
         printf ("{ ");
       }
+
+      opencl_platforms_emitted++;
 
       char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
       char     *opencl_platform_name         = opencl_platforms_name[opencl_platforms_idx];
@@ -2631,21 +2740,27 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"BackendDevices\": [ ");
       }
 
+      u32 opencl_devices_emitted = 0;
+
       for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
       {
-        if (user_options->machine_readable == true)
-        {
-          printf ("{ ");
-        }
-
         const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
-        // One entry per physical device. The other copies of a virtualised device are the bridge
-        // units, and the Assimilation Bridge section above is where those are described.
+        if (backend_info_shown (backend_ctx, device_param) == false) continue;
 
-        if (device_param->is_virtual == true) continue;
+        // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+        // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+        if (user_options->machine_readable == true)
+        {
+          if (opencl_devices_emitted > 0) printf (", ");
+
+          printf ("{ ");
+        }
+
+        opencl_devices_emitted++;
 
         int            device_id                      = device_param->device_id;
         char          *device_name                    = device_param->device_name;
@@ -2761,29 +2876,14 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          if ((opencl_platform_devices_idx + 1) < opencl_platform_devices_cnt)
-          {
-            printf ("}, ");
-          }
-          else
-          {
-            printf ("} ");
-          }
+          printf ("}");
         }
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((opencl_platforms_idx + 1) < opencl_platforms_cnt)
-        {
-          printf ("] }, ");
-        }
-        else
-        {
-          printf ("] } ");
-        }
-      }
+      if (user_options->machine_readable == true) printf (" ] }");
     }
+
+    if (user_options->machine_readable == true) printf (" ");
 
     if (user_options->machine_readable == true)
     {
@@ -3429,7 +3529,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  char *session_json_encoded = (char *) hcmalloc (strlen (hashcat_status->session) * 2);
+  char *session_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->session) * 2) + 1);
 
   json_encode (hashcat_status->session, session_json_encoded);
 
@@ -3441,7 +3541,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->guess_base)
   {
-    char *guess_base_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_base) * 2);
+    char *guess_base_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->guess_base) * 2) + 1);
 
     json_encode (hashcat_status->guess_base, guess_base_json_encoded);
 
@@ -3461,7 +3561,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->guess_mod)
   {
-    char *guess_mod_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_mod) * 2);
+    char *guess_mod_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->guess_mod) * 2) + 1);
 
     json_encode (hashcat_status->guess_mod, guess_mod_json_encoded);
 
@@ -3486,7 +3586,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
    * some salts can contain chars which need to be escaped to not break the JSON encoding.
    */
 
-  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+  char *target_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->hash_target) * 2) + 1);
 
   json_encode (hashcat_status->hash_target, target_json_encoded);
 
@@ -3539,7 +3639,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
       printf (" { \"device_id\": %u,", device_id + 1);
 
-      char *device_name_json_encoded = (char *) hcmalloc (strlen (device_info->device_name) * 2);
+      char *device_name_json_encoded = (char *) hcmalloc ((strlen (device_info->device_name) * 2) + 1);
 
       json_encode (device_info->device_name, device_name_json_encoded);
 

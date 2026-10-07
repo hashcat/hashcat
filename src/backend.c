@@ -33,6 +33,7 @@
 #include "terminal.h"
 #include "hwmon.h"
 #include "autotune.h"
+#include "user_options.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -493,6 +494,17 @@ static void hc_dev_mem_free (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
 int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const void *src, const u64 size)
 {
+  // Nothing to copy. CUDA and HIP accept a zero length transfer as a no-op, while Metal, AMD's
+  // OpenCL and PoCL all refuse one. Metal reports an invalid buffer size and the two OpenCL
+  // runtimes return CL_INVALID_VALUE.
+  //
+  // Several of the sizes handed to this function are counts the host worked out and can legitimately
+  // come out zero: a mask of markers only has no character positions, and an amplifier chunk whose
+  // every word was rejected holds no items. Returning early on those keeps a run from ending on one
+  // backend where another completes it.
+
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyHtoD (hashcat_ctx, mem.cuda + offset, src, size) == -1) return -1;
@@ -522,6 +534,8 @@ int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
 int hc_dev_memcpy_d2h (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, void *dst, hc_dev_mem_t mem, const u64 offset, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyDtoH (hashcat_ctx, dst, mem.cuda + offset, size) == -1) return -1;
@@ -551,6 +565,8 @@ int hc_dev_memcpy_d2h (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
 int hc_dev_memcpy_d2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t dst, const u64 dst_offset, hc_dev_mem_t src, const u64 src_offset, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuMemcpyDtoD (hashcat_ctx, dst.cuda + dst_offset, src.cuda + src_offset, size) == -1) return -1;
@@ -681,10 +697,29 @@ static hc_dev_kern_t kern_run_to_slot (const int kern_run)
     case KERN_RUN_AUX3:   return HC_DEV_KERN_AUX3;
     case KERN_RUN_AUX4:   return HC_DEV_KERN_AUX4;
     case KERN_RUN_AUX5:   return HC_DEV_KERN_AUX5;
+    case KERN_RUN_AUX6:   return HC_DEV_KERN_AUX6;
   }
 
   return HC_DEV_KERN_CNT;
 }
+
+// The auxiliary kernels in slot order, so the kernel setup and the association run walk them rather
+// than repeat a block per slot. Adding a slot is 7 lines: one entry here, one in the switch above,
+// one in aux_kern_run_selftest in selftest.c, and in types.h one each in kern_run_t, hc_dev_kern_t,
+// the KERN_BIT_ defines and AUX_KERNEL_CNT.
+//
+// Only the 4 in types.h are checked for you. Raising AUX_KERNEL_CNT without extending both tables
+// compiles without a diagnostic and leaves the new slot reading kern_run 0.
+
+static const int aux_kern_run[AUX_KERNEL_CNT] =
+{
+  KERN_RUN_AUX1,
+  KERN_RUN_AUX2,
+  KERN_RUN_AUX3,
+  KERN_RUN_AUX4,
+  KERN_RUN_AUX5,
+  KERN_RUN_AUX6,
+};
 
 static void **kernel_params_mp_with_id (hc_device_param_t *device_param, const int kern_run)
 {
@@ -1278,6 +1313,18 @@ static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char
 
 static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_device_types, cl_device_type *out)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // A device type that matches nothing refuses a run, which has nothing left to run on, but not the
+  // listing: -I is a question about the machine and the answer is the devices that match, even when
+  // those are none.
+  //
+  // The reason is still said, except where the listing emits JSON and a plain line would be read as
+  // part of the document. bridge_units_info () is left out of that form for the same reason.
+
+  const bool listing_only = (user_options->backend_info > 0);
+  const bool say_reason   = (listing_only == false) || (user_options->machine_readable == false);
+
   cl_device_type opencl_device_types_filter = 0;
 
   if (opencl_device_types)
@@ -1300,24 +1347,37 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
 
       if (device_type == 3)
       {
-        event_log_error (hashcat_ctx, "OpenCL device-type 3, the accelerator card, no longer exists.");
+        if (say_reason == true)
+        {
+          event_log_error (hashcat_ctx, "OpenCL device-type 3, the accelerator card, no longer exists.");
 
-        event_log_warning (hashcat_ctx, "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.");
-        event_log_warning (hashcat_ctx, "-D 1 is CPU and -D 2 is GPU.");
-        event_log_warning (hashcat_ctx, NULL);
+          event_log_warning (hashcat_ctx, "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.");
+          event_log_warning (hashcat_ctx, "-D 1 is CPU and -D 2 is GPU.");
+          event_log_warning (hashcat_ctx, NULL);
+        }
 
-        hcfree (device_types);
+        if (listing_only == false)
+        {
+          hcfree (device_types);
 
-        return false;
+          return false;
+        }
+
+        continue;
       }
 
       if (device_type < 1 || device_type > 2)
       {
-        event_log_error (hashcat_ctx, "Invalid OpenCL device-type %d specified.", device_type);
+        if (say_reason == true) event_log_error (hashcat_ctx, "Invalid OpenCL device-type %d specified.", device_type);
 
-        hcfree (device_types);
+        if (listing_only == false)
+        {
+          hcfree (device_types);
 
-        return false;
+          return false;
+        }
+
+        continue;
       }
 
       opencl_device_types_filter |= 1U << device_type;
@@ -1722,16 +1782,13 @@ void generate_source_kernel_filename (const bool slow_candidates, const u32 atta
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
           snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
-        // The device engine has one kernel and it is the pure one, so this arm names a file that does
-        // not exist and is not meant to. It is unreachable: generic_instance_init () refuses -O for a
-        // feed that runs on the device, because hashconfig settled the optimized flag long before the
-        // attack kernel was known and the digests were parsed under it, so clearing the flag that late
-        // would leave them wrong. Nothing sets attack_kern to ATTACK_KERN_PCFG until after that
-        // refusal, and interface.c probes this with the mode's own attack_kern, which is never PCFG.
+        // 43 modes ship an _a4-optimized.cl, from when -a 4 gained a device engine on the modes that
+        // have only an optimized kernel. A mode without one never reaches this arm, because
+        // generic_instance_init () refuses -O there and says to run without it.
         //
-        // Naming the pure kernel here instead would be worse. If the refusal ever went away, the run
-        // would quietly hash with a kernel the digests were not prepared for and crack nothing, where
-        // a missing file stops the session and says which file.
+        // Those files export _mxx and _sxx rather than the length split names, which is why the
+        // kern_bits decision has to come after the feed has set attack_kern. Taken any earlier it
+        // names _s04, and the entry point lookup fails on a file that is otherwise correct.
 
         else if (attack_kern == ATTACK_KERN_PCFG)
           snprintf (source_file, 255, "%s/OpenCL/m%05d_a4-optimized.cl", shared_dir, (int) kern_type);
@@ -1791,16 +1848,13 @@ void generate_cached_kernel_filename (const bool slow_candidates, const u32 atta
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
           snprintf (cached_file, 255, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
-        // The device engine has one kernel and it is the pure one, so this arm names a file that does
-        // not exist and is not meant to. It is unreachable: generic_instance_init () refuses -O for a
-        // feed that runs on the device, because hashconfig settled the optimized flag long before the
-        // attack kernel was known and the digests were parsed under it, so clearing the flag that late
-        // would leave them wrong. Nothing sets attack_kern to ATTACK_KERN_PCFG until after that
-        // refusal, and interface.c probes this with the mode's own attack_kern, which is never PCFG.
+        // 43 modes ship an _a4-optimized.cl, from when -a 4 gained a device engine on the modes that
+        // have only an optimized kernel. A mode without one never reaches this arm, because
+        // generic_instance_init () refuses -O there and says to run without it.
         //
-        // Naming the pure kernel here instead would be worse. If the refusal ever went away, the run
-        // would quietly hash with a kernel the digests were not prepared for and crack nothing, where
-        // a missing file stops the session and says which file.
+        // Those files export _mxx and _sxx rather than the length split names, which is why the
+        // kern_bits decision has to come after the feed has set attack_kern. Taken any earlier it
+        // names _s04, and the entry point lookup fails on a file that is otherwise correct.
 
         else if (attack_kern == ATTACK_KERN_PCFG)
           snprintf (cached_file, 255, "%s/kernels/m%05d_a4-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
@@ -1963,42 +2017,6 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
     }
 
     pw->pw_len = len;
-  }
-
-  if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
-
-  return rc;
-}
-
-int copy_pws_idx (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest)
-{
-  if (hc_dev_bind (hashcat_ctx, device_param) == -1) return -1;
-
-  int rc = 0;
-
-  if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, dest, device_param->d_buf[HC_DEV_BUF_PWS_IDX], gidd * sizeof (pw_idx_t), cnt * sizeof (pw_idx_t)) == -1) rc = -1;
-
-  if (rc == 0)
-  {
-    if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) rc = -1;
-  }
-
-  if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
-
-  return rc;
-}
-
-int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest)
-{
-  if (hc_dev_bind (hashcat_ctx, device_param) == -1) return -1;
-
-  int rc = 0;
-
-  if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, dest, device_param->d_buf[HC_DEV_BUF_PWS_COMP_BUF], off * sizeof (u32), cnt * sizeof (u32)) == -1) rc = -1;
-
-  if (rc == 0)
-  {
-    if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) rc = -1;
   }
 
   if (hc_dev_unbind (hashcat_ctx, device_param) == -1) rc = -1;
@@ -2263,23 +2281,17 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   {
     if (user_options->attack_mode == ATTACK_MODE_BF)
     {
-      if (user_options->slow_candidates == true)
+      if (hashconfig->kern_bits & KERN_BIT_TM)
       {
-      }
-      else
-      {
-        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
-        {
-          const u32 size_tm = device_param->size_tm;
+        const u32 size_tm = device_param->size_tm;
 
-          if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TM_C], size_tm) == -1) return -1;
+        if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TM_C], size_tm) == -1) return -1;
 
-          if (run_kernel_tm (hashcat_ctx, device_param) == -1) return -1;
+        if (run_kernel_tm (hashcat_ctx, device_param) == -1) return -1;
 
-          if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_BFS_C], 0, device_param->d_buf[HC_DEV_BUF_TM_C], 0, size_tm) == -1) return -1;
+        if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_BFS_C], 0, device_param->d_buf[HC_DEV_BUF_TM_C], 0, size_tm) == -1) return -1;
 
-          if (hc_dev_queue_flush (hashcat_ctx, device_param) == -1) return -1;
-        }
+        if (hc_dev_queue_flush (hashcat_ctx, device_param) == -1) return -1;
       }
     }
 
@@ -2393,12 +2405,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         if (run_kernel_utf8toutf16le (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], pws_cnt) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_INIT)
+      if (hashconfig->kern_bits & KERN_BIT_INIT)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+      if (hashconfig->kern_bits & KERN_BIT_HOOK12)
       {
         if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2468,7 +2480,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         device_param->kernel_param.salt_repeat = salt_repeat;
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
         }
@@ -2497,12 +2509,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             device_param->kernel_param.loop_pos = loop_pos;
             device_param->kernel_param.loop_cnt = loop_left;
 
-            if (hashconfig->opts_type & OPTS_TYPE_LOOP)
+            if (hashconfig->kern_bits & KERN_BIT_LOOP)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+            if (hashconfig->kern_bits & KERN_BIT_LOOP_EXTENDED)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
             }
@@ -2564,7 +2576,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             }
           }
 
-          if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+          if (hashconfig->kern_bits & KERN_BIT_HOOK23)
           {
             if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
 
@@ -2629,7 +2641,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     // note: they also do not influence the performance screen
     // in case you want to use this, this cane make sense only if your input data comes out of tmps[]
 
-    if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+    if (hashconfig->kern_bits & KERN_BIT_INIT2)
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
     }
@@ -2642,12 +2654,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         device_param->kernel_param.salt_repeat = salt_repeat;
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
         }
 
-        if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+        if (hashconfig->kern_bits & KERN_BIT_LOOP2)
         {
           u32 iter = hashes->salts_buf[salt_pos].salt_iter2;
 
@@ -2724,54 +2736,29 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             int aux_cnt = 0;
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX1)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+            bool aux_stopped = false;
 
-              if (status_ctx->run_thread_level2 == false) break;
+            for (u32 aux_idx = 0; aux_idx < AUX_KERNEL_CNT; aux_idx++)
+            {
+              if ((hashconfig->kern_bits & (KERN_BIT_AUX1 << aux_idx)) == 0) continue;
+
+              if (run_kernel (hashcat_ctx, device_param, aux_kern_run[aux_idx], pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false)
+              {
+                aux_stopped = true;
+
+                break;
+              }
 
               aux_cnt++;
             }
 
-            if (hashconfig->opts_type & OPTS_TYPE_AUX2)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
-
-            if (hashconfig->opts_type & OPTS_TYPE_AUX3)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
-
-            if (hashconfig->opts_type & OPTS_TYPE_AUX4)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
-
-            if (hashconfig->opts_type & OPTS_TYPE_AUX5)
-            {
-              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX5, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
-
-              if (status_ctx->run_thread_level2 == false) break;
-
-              aux_cnt++;
-            }
+            if (aux_stopped == true) break;
 
             if (aux_cnt == 0)
             {
-              if (hashconfig->opts_type & OPTS_TYPE_COMP)
+              if (hashconfig->kern_bits & KERN_BIT_COMP)
               {
                 if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
               }
@@ -2799,7 +2786,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
       else
       {
-        if (hashconfig->opts_type & OPTS_TYPE_COMP)
+        if (hashconfig->kern_bits & KERN_BIT_COMP)
         {
           if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
         }
@@ -2830,7 +2817,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     }
     */
 
-    if ((hashconfig->opts_type & OPTS_TYPE_HOOK12) || (hashconfig->opts_type & OPTS_TYPE_HOOK23))
+    if ((hashconfig->kern_bits & KERN_BIT_HOOK12) || (hashconfig->kern_bits & KERN_BIT_HOOK23))
     {
       if (run_kernel_bzero (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_HOOKS], pws_cnt * hashconfig->hook_size) == -1) return -1;
     }
@@ -3349,6 +3336,8 @@ int run_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
 int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda   == true) return run_cuda_kernel_bzero   (hashcat_ctx, device_param, mem.cuda, size);
   if (device_param->is_hip    == true) return run_hip_kernel_bzero    (hashcat_ctx, device_param, mem.hip,  size);
   #if defined (__APPLE__)
@@ -3361,6 +3350,8 @@ int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
 int run_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, hc_dev_mem_t mem, const u64 offset, const u32 value, const u64 size)
 {
+  if (size == 0) return 0;
+
   if (device_param->is_cuda   == true) return run_cuda_kernel_memset32   (hashcat_ctx, device_param, mem.cuda, offset, value, size);
   if (device_param->is_hip    == true) return run_hip_kernel_memset32    (hashcat_ctx, device_param, mem.hip,  offset, value, size);
   #if defined (__APPLE__)
@@ -7036,9 +7027,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
 
         // In another case, when the user uses --stdout, using CPU devices is much faster to setup
-        // If we have a CPU device, force it to be used
+        // If we have a CPU device, force it to be used. Narrowing the filter to CPU is only safe
+        // while the user has named no device of their own: a -d picking a GPU would otherwise be
+        // left matching nothing, and the run ends saying no device is usable while naming the -d
+        // that is not the reason.
 
-        if (user_options->stdout_flag == true)
+        if ((user_options->stdout_flag == true) && (user_options->backend_devices == NULL))
         {
           if (opencl_device_types_all & CL_DEVICE_TYPE_CPU)
           {
@@ -10586,6 +10580,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx->backend_devices_active == 0)
   {
+    // The listing is the exception: it describes the machine, so no device left to run on is an empty
+    // listing and not a failure. Taken here rather than further down, because everything below is
+    // written for a run and the first of it divides by the number of active devices.
+    //
+    // Why it came out empty is still worth saying, in the form that does not emit a document.
+
+    if (user_options->backend_info > 0)
+    {
+      if (user_options->machine_readable == false) backend_ctx_devices_none_reason (hashcat_ctx);
+
+      return 0;
+    }
+
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     backend_ctx_devices_none_reason (hashcat_ctx);
@@ -11288,6 +11295,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   // check again to catch error on OpenCL/Metal
   if (backend_ctx->backend_devices_active == 0)
   {
+    if (user_options->backend_info > 0)
+    {
+      if (user_options->machine_readable == false) backend_ctx_devices_none_reason (hashcat_ctx);
+
+      return 0;
+    }
+
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     backend_ctx_devices_none_reason (hashcat_ctx);
@@ -13158,79 +13172,45 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+    // A single-hash build compares against the one digest inside the kernel, which is a different
+    // kernel from the one that walks a list, so the two families are named apart. Which of them a
+    // session builds is hashconfig_kern_bits_init ()'s decision, read here as bits.
+
+    const char sm = (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) ? 's' : 'm';
+
+    if (hashconfig->kern_bits & KERN_BIT_04)
     {
-      if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
-      {
-        // kernel1
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%c%02d", kern_type, sm, 4);
 
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 4);
-
-        SETUP_KERNEL (HC_DEV_KERN_1, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel2
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 8);
-
-        SETUP_KERNEL (HC_DEV_KERN_2, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel3
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 16);
-
-        SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
-      else
-      {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_sxx", kern_type);
-
-        SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
-    }
-    else
-    {
-      if (is_opti_kernel_no_pcfg (hashcat_ctx) == true)
-      {
-        // kernel1
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 4);
-
-        SETUP_KERNEL (HC_DEV_KERN_1, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel2
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 8);
-
-        SETUP_KERNEL (HC_DEV_KERN_2, HC_DEV_PROGRAM_MAIN, kernel_name);
-
-        // kernel3
-
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 16);
-
-        SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
-      else
-      {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_mxx", kern_type);
-
-        SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
-      }
+      SETUP_KERNEL (HC_DEV_KERN_1, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
-    if (user_options->slow_candidates == true)
+    if (hashconfig->kern_bits & KERN_BIT_08)
     {
-    }
-    else
-    {
-      if (user_options->attack_mode == ATTACK_MODE_BF)
-      {
-        if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
-        {
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%c%02d", kern_type, sm, 8);
 
-          SETUP_KERNEL (HC_DEV_KERN_TM, HC_DEV_PROGRAM_MAIN, kernel_name);
-        }
-      }
+      SETUP_KERNEL (HC_DEV_KERN_2, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_16)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%c%02d", kern_type, sm, 16);
+
+      SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_XX)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_%cxx", kern_type, sm);
+
+      SETUP_KERNEL (HC_DEV_KERN_4, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_TM)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_TM, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
   }
   else
@@ -13253,7 +13233,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     SETUP_KERNEL (HC_DEV_KERN_3, HC_DEV_PROGRAM_MAIN, kernel_name);
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
     {
       // kernel2p
 
@@ -13262,7 +13242,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       SETUP_KERNEL (HC_DEV_KERN_2P, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP_EXTENDED)
     {
       // kernel2e
 
@@ -13273,7 +13253,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // kernel12
 
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+    if (hashconfig->kern_bits & KERN_BIT_HOOK12)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook12", kern_type);
 
@@ -13282,7 +13262,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // kernel23
 
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+    if (hashconfig->kern_bits & KERN_BIT_HOOK23)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook23", kern_type);
 
@@ -13291,7 +13271,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // init2
 
-    if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+    if (hashconfig->kern_bits & KERN_BIT_INIT2)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_init2", kern_type);
 
@@ -13300,7 +13280,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // loop2 prepare
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2_prepare", kern_type);
 
@@ -13309,56 +13289,22 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
     // loop2
 
-    if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+    if (hashconfig->kern_bits & KERN_BIT_LOOP2)
     {
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
 
       SETUP_KERNEL (HC_DEV_KERN_LOOP2, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
-    // aux1
+    // the auxiliary kernels this mode names, m<type>_aux1 upwards
 
-    if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+    for (u32 aux_idx = 0; aux_idx < AUX_KERNEL_CNT; aux_idx++)
     {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", kern_type);
+      if ((hashconfig->kern_bits & (KERN_BIT_AUX1 << aux_idx)) == 0) continue;
 
-      SETUP_KERNEL (HC_DEV_KERN_AUX1, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux%u", kern_type, aux_idx + 1);
 
-    // aux2
-
-    if (hashconfig->opts_type & OPTS_TYPE_AUX2)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX2, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
-
-    // aux3
-
-    if (hashconfig->opts_type & OPTS_TYPE_AUX3)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX3, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
-
-    // aux4
-
-    if (hashconfig->opts_type & OPTS_TYPE_AUX4)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX4, HC_DEV_PROGRAM_MAIN, kernel_name);
-    }
-
-    // aux5
-
-    if (hashconfig->opts_type & OPTS_TYPE_AUX5)
-    {
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux5", kern_type);
-
-      SETUP_KERNEL (HC_DEV_KERN_AUX5, HC_DEV_PROGRAM_MAIN, kernel_name);
+      SETUP_KERNEL (kern_run_to_slot (aux_kern_run[aux_idx]), HC_DEV_PROGRAM_MAIN, kernel_name);
     }
   }
 
@@ -13379,7 +13325,7 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
 
       SETUP_KERNEL (HC_DEV_KERN_MP_R, HC_DEV_PROGRAM_MP, "r_markov");
 
-      if (hashconfig->opts_type & OPTS_TYPE_TM_KERNEL)
+      if (hashconfig->kern_bits & KERN_BIT_TM)
       {
         if (device_param->is_opencl == true)
         {
@@ -16266,6 +16212,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const char *memory_limit_reason = "none";
 
+    // What one candidate costs in the compressed arena. pws_comp is packed, not an array of fixed
+    // slots: pw_add () advances the index by the candidate's length rounded up to a multiple of 4, so
+    // charging PW_MAX for every work item made the compressed buffer as large as the uncompressed
+    // pw_t buffer it feeds, and the compression bought bus time and no memory at all.
+    //
+    // A candidate above hashconfig->pw_max is rejected before it reaches pw_add (), except under -a 9,
+    // where the length policy is BASE_LENGTH_NONE and nothing bounds a base word below PW_MAX. The
+    // + 1 is the byte rebuild_pws_compressed_append () adds to each candidate. It is free unless
+    // pw_max is itself a multiple of 4, where it costs one word per work item. The MIN leaves a mode
+    // that already allows PW_MAX at the stride it had.
+
+    const u32 pw_comp_bound = (user_options_extra_base_length (hashcat_ctx) == BASE_LENGTH_NONE) ? PW_MAX : hashconfig->pw_max;
+
+    const u64 pw_comp_stride = (u64) CEILDIV (MIN (pw_comp_bound + 1, PW_MAX), 4) * 4;
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -16370,8 +16331,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       // size_pws_comp
+      //
+      // The tail is one whole PW_MAX, because fill_generic () has the feed write into the arena at the
+      // current offset before the length is known and pw_transform_apply () may still grow what it
+      // finds there. Both write at the offset one past the last accepted candidate, which is the same
+      // reason size_pws_idx below holds kernel_power_max + 1 entries.
 
-      size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
+      size_pws_comp = (kernel_power_max * pw_comp_stride) + PW_MAX;
 
       // size_pws_idx
 

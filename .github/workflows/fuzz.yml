@@ -275,7 +275,33 @@ jobs:
           printf '%s' "$reports"
 
           if [ -s fuzz_out/build_failures.txt ]; then
-            echo "::error title=did not build::parser targets that did not build: $(tr '\n' ' ' < fuzz_out/build_failures.txt)"
+            modes=$(tr '\n' ' ' < fuzz_out/build_failures.txt)
+            echo "::error title=did not build::parser targets that did not build: ${modes}"
+
+            # Not just the mode: the first compiler or linker error from each target's
+            # build_<mode>.log, which names the file and the line, as a clickable annotation and in
+            # the job summary.
+
+            {
+              echo "## parser targets that did not build"
+              for m in ${modes}; do
+                echo "### mode ${m}"
+                echo '```'
+                grep -E 'error:|undefined reference|fatal error' "fuzz_out/build_${m}.log" 2>/dev/null | head -n 20
+                echo '```'
+              done
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            for m in ${modes}; do
+              reason=$(grep -E 'error:|undefined reference|fatal error' "fuzz_out/build_${m}.log" 2>/dev/null | head -n 1)
+              where=$(grep -oE '[A-Za-z0-9_./-]+\.(c|h|cl):[0-9]+' "fuzz_out/build_${m}.log" 2>/dev/null | head -n 1)
+              if [ -n "$where" ]; then
+                file=${where%:*}
+                file=${file#"${GITHUB_WORKSPACE}/"}   # repo-relative, so the annotation links to the line
+                echo "::error file=${file},line=${where##*:},title=fuzz_parse_${m} did not build::${reason}"
+              fi
+            done
+
             failed="$failed build"
           fi
 

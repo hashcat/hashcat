@@ -18,7 +18,7 @@
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_ENGINEID_MAX         64
 #define SNMPV3_MSG_AUTH_PARAMS_LEN  12
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
@@ -151,6 +151,10 @@ KERNEL_FQ KERNEL_FA void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snm
   h[4] = tmps[gid].h[4];
 
   const u32 pw_len = pws[gid].pw_len;
+
+  // an empty candidate makes pw_len64 zero, and the index below divides by it
+
+  if (pw_len == 0) return;
 
   const int pw_len64 = pw_len * 64;
 

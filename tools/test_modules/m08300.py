@@ -52,7 +52,10 @@ def _name2hash(name, iterations, salt_hex):
 
 
 def _get_random_dnssec_salt(domain):
-  return "." + domain + ":" + random_numeric_string(8)
+  # An empty domain is the zone apex, whose name is the candidate alone: hashcat spells that with
+  # an empty domain field, and prefixing a dot would put an empty label in front of the name.
+
+  return (("." + domain) if domain.split(":")[0] else domain) + ":" + random_numeric_string(8)
 
 
 def module_generate_hash(word, salt, iterations=None):
@@ -65,6 +68,12 @@ def module_generate_hash(word, salt, iterations=None):
   domain, salt_hex = parts[0], parts[1]
 
   name = (word + domain.encode("latin-1")).lower()
+
+  # With no candidate at all the kernel writes no length byte, so the name is the domain on its own
+  # rather than the domain behind an empty label.
+
+  if not word:
+    name = name[1:]
 
   hash_buf = _name2hash(name, iterations, salt_hex)
 

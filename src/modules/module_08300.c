@@ -23,6 +23,7 @@ static const u64   KERN_TYPE      = 8300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_BE
+                                  | OPTS_TYPE_PT_LOWER
                                   | OPTS_TYPE_ST_HEX
                                   | OPTS_TYPE_ST_ADD80;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -43,6 +44,28 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+
+const char *module_advice_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "When using the optimized-kernel: the length byte, the candidate, the domain name, the root that ends it and the salt share a single 55 byte block, so a candidate longer than what the domain and the salt leave of that block is never found. The pure-kernel takes the name a block at a time and does not have this limit.";
+}
+
+int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
+{
+  // A rule runs on the device, after the host folded, and src/outfile.c rebuilds a cracked plaintext
+  // by replaying that rule rather than the fold. What went into the digest is the folded name, so
+  // that is the name reported.
+
+  const u8 *ptr_src = (const u8 *) src_buf;
+
+  u8 *ptr_dst = (u8 *) dst_buf;
+
+  memcpy (ptr_dst, ptr_src, src_len);
+
+  lowercase (ptr_dst, src_len);
+
+  return src_len;
+}
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -68,22 +91,32 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[0]     = ':';
   token.len[0]     = 32;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE32A;
+
+  // The optimized kernels read seven words of the domain and force the eighth to zero, so 28 bytes
+  // of it is all they hash. RFC 1035 2.3.4 holds a name to 255 bytes, and the shortest name a
+  // domain can be part of is the one an empty candidate makes, the domain and the root that ends
+  // it, so 254 is the longest domain that can belong to a name at all.
 
   token.sep[1]     = ':';
   token.len_min[1] = 0;
-  token.len_max[1] = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? 32 : 256;
+  token.len_max[1] = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? 28 : 254;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  // RFC 5155 3.1.5 carries the salt behind a one byte length field, so 255 bytes, written in hex.
 
   token.sep[2]     = ':';
   token.len_min[2] = 0;
-  token.len_max[2] = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? 32 : 256;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len_max[2] = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? 32 : 510;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = ':';
   token.len_min[3] = 1;
   token.len_max[3] = 6;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -124,6 +157,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     if (domain_pos[0] != '.') return (PARSER_SALT_VALUE);
 
     memcpy (salt_buf_pc_ptr, domain_pos, domain_len);
+
+    // RFC 4034 6.2 hashes the name in its canonical form, where an ASCII letter is lower case. The
+    // candidate is folded by OPTS_TYPE_PT_LOWER, and the domain is the rest of the same name.
+
+    lowercase (salt_buf_pc_ptr, domain_len);
   }
 
   u8 *len_ptr = salt_buf_pc_ptr;
@@ -144,6 +182,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     }
   }
 
+  // RFC 1035 2.3.4 holds a label to 63 bytes, and 4.1.4 reserves the two top bits of a length byte
+  // for a compression pointer, so a longer label cannot be written at all. An empty label is what
+  // ends a name, so one before the end is not part of a name either.
+
+  for (int i = 0; i < domain_len; i += salt_buf_pc_ptr[i] + 1)
+  {
+    if (salt_buf_pc_ptr[i] == 0) return (PARSER_SALT_VALUE);
+    if (salt_buf_pc_ptr[i] > 63) return (PARSER_SALT_VALUE);
+  }
+
   salt->salt_len_pc = domain_len;
 
   // "real" salt
@@ -155,11 +203,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
+  // The one block the optimized kernels hash has to hold the length byte, a candidate, the domain,
+  // the root and the salt. A hash that leaves no room for a candidate at all cannot be found there.
+
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    if ((1 + 1 + domain_len + 1 + (int) salt->salt_len) > PW_MAX_OLD) return (PARSER_SALT_LENGTH);
+  }
+
   // iteration
 
   const u8 *iter_pos = token.buf[3];
 
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
+  // RFC 5155 3.1.3 carries the iteration count in a 16 bit field, so a record cannot ask for more.
+
+  const u64 salt_iter = hc_strtoull ((const char *) iter_pos, NULL, 10);
+
+  if (salt_iter > 65535) return (PARSER_SALT_ITERATION);
+
+  salt->salt_iter = (u32) salt_iter;
 
   return (PARSER_OK);
 }
@@ -219,7 +281,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
-  module_ctx->module_advice_notice            = MODULE_DEFAULT;
+  module_ctx->module_advice_notice            = module_advice_notice;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -228,7 +290,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
@@ -274,6 +336,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

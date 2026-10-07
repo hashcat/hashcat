@@ -332,37 +332,62 @@ int hm_IOKIT_get_power_current (void *hashcat_ctx, int64_t *power)
   iokit->pwr_t1 = t2;
   iokit->pwr_e1 = e2;
 
+  // This is a difference between two samples, so there is nothing to report until a second one
+  // exists. The energy counter runs from boot, and t1 and e1 are zero before the first call, so
+  // the first difference used to be the whole counter over the whole uptime. That is the average
+  // power since boot rather than the current draw, and it went into the moving average, where it
+  // dragged every later reading with it.
+  //
+  // A counter that goes backwards has the same problem the other way. The subtraction is unsigned,
+  // so a reset or an overflow wraps it to an enormous number. The code claimed to check for that
+  // and did not: the only guard it had looked at the time delta.
+  //
+  // An energy counter reading 0 means IOReport is not delivering one, which is not a GPU that drew
+  // no power. Left alone it either wraps the subtraction or, once e1 is 0 as well, reports a real
+  // looking 0 watts.
+  //
+  // All three report no reading for this tick instead. -1 is how src/hwmon.c spells that, and it
+  // has to arrive through *power rather than as a return value, because the caller takes a -1
+  // return to mean the sensor does not work and stops asking for the rest of the run.
+
+  if ((t1 == 0) || (e2 == 0) || (e2 < e1))
+  {
+    *power = -1;
+
+    return 0;
+  }
+
   mach_timebase_info_data_t timebase;
   mach_timebase_info (&timebase);
 
   // elapsed time in nanoseconds
 
-  int64_t delta_mach = (int64_t) (t2 - t1);
+  const int64_t delta_mach = (int64_t) (t2 - t1);
 
-  double delta_ns = (double) (delta_mach * timebase.numer / timebase.denom);
+  const double delta_ns = (double) (delta_mach * timebase.numer / timebase.denom);
 
   // nanoseconds to seconds as a double for precision
 
-  double delta_sc = delta_ns / 1e9;
+  const double delta_sc = delta_ns / 1e9;
 
-  // calculate energy difference in nanojoules
-
-  uint64_t delta_e_nJ = e2 - e1;
-
-  double delta_e_J = (double) (delta_e_nJ / 1e9);
-
-  // check for negative energy delta which can happen on counter reset or overflow
-
-  double power_W = 0.0;
-
-  if (delta_sc > 0.0)
+  if (delta_sc <= 0.0)
   {
-    power_W = delta_e_J / delta_sc;
+    *power = -1;
+
+    return 0;
   }
 
-  // Convert power to milliwatts for your output
+  // energy difference in nanojoules, now known not to have wrapped
 
-  int64_t raw_power_mW = (int64_t)(power_W * 1000.0);
+  const uint64_t delta_e_nJ = e2 - e1;
+
+  const double delta_e_J = (double) delta_e_nJ / 1e9;
+
+  const double power_W = delta_e_J / delta_sc;
+
+  // milliwatts, which is what the status view expects
+
+  const int64_t raw_power_mW = (int64_t) (power_W * 1000.0);
 
   // add new power sample to moving average filter
 
@@ -377,7 +402,13 @@ int hm_IOKIT_get_power_current (void *hashcat_ctx, int64_t *power)
 
 int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
 {
-  bool rc = false;
+  // -1 and 0, the convention the caller in src/hwmon.c tests. This returned true and false, which
+  // are 1 and 0, so neither exit was ever -1: a registry that could not be read, or one with no
+  // utilization key in it, came back as a successful reading of whatever the caller had
+  // initialised, which is 0. The sensor was never marked unsupported either, so it reported that
+  // same 0 on every refresh and logged its error again each time.
+
+  bool found = false;
 
   io_iterator_t iterator;
 
@@ -387,7 +418,7 @@ int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
   {
     event_log_error (hashcat_ctx, "IOServiceGetMatchingServices(): failure");
 
-    return rc;
+    return -1;
   }
 
   io_registry_entry_t regEntry;
@@ -421,7 +452,7 @@ int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
 
         *utilization = gpuCoreUtil;
 
-        rc = true;
+        found = true;
       }
     }
 
@@ -429,12 +460,14 @@ int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
 
     IOObjectRelease (regEntry);
 
-    if (rc == true) break;
+    if (found == true) break;
   }
 
   IOObjectRelease (iterator);
 
-  return rc;
+  if (found == false) return -1;
+
+  return 0;
 }
 
 int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf)

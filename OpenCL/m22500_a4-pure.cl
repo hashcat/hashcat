@@ -38,6 +38,7 @@ DECLSPEC int is_valid_bitcoinj_8 (const u8 v)
   LOCAL_VK u32 s_te1[256];             \
   LOCAL_VK u32 s_te2[256];             \
   LOCAL_VK u32 s_te3[256];             \
+  LOCAL_VK u32 s_te4[256];             \
   LOCAL_VK u32 s_inv0[256];            \
   LOCAL_VK u32 s_inv1[256];            \
   LOCAL_VK u32 s_inv2[256];            \
@@ -53,6 +54,7 @@ DECLSPEC int is_valid_bitcoinj_8 (const u8 v)
     s_te1[i] = te1[i];                 \
     s_te2[i] = te2[i];                 \
     s_te3[i] = te3[i];                 \
+    s_te4[i] = te4[i];                 \
     s_inv0[i] = td_inv0[i];            \
     s_inv1[i] = td_inv1[i];            \
     s_inv2[i] = td_inv2[i];            \
@@ -70,6 +72,7 @@ DECLSPEC int is_valid_bitcoinj_8 (const u8 v)
   (hc)->s_te1 = s_te1;            \
   (hc)->s_te2 = s_te2;            \
   (hc)->s_te3 = s_te3;            \
+  (hc)->s_te4 = s_te4;            \
   (hc)->s_inv0 = s_inv0;          \
   (hc)->s_inv1 = s_inv1;          \
   (hc)->s_inv2 = s_inv2;          \
@@ -94,6 +97,7 @@ typedef struct pcfg_hash_ctx
   LOCAL_AS u32 *s_te1;
   LOCAL_AS u32 *s_te2;
   LOCAL_AS u32 *s_te3;
+  LOCAL_AS u32 *s_te4;
   LOCAL_AS u32 *s_inv0;
   LOCAL_AS u32 *s_inv1;
   LOCAL_AS u32 *s_inv2;
@@ -140,6 +144,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
   LOCAL_AS u32 *s_te1 = hc->s_te1;
   LOCAL_AS u32 *s_te2 = hc->s_te2;
   LOCAL_AS u32 *s_te3 = hc->s_te3;
+  LOCAL_AS u32 *s_te4 = hc->s_te4;
   LOCAL_AS u32 *s_inv0 = hc->s_inv0;
   LOCAL_AS u32 *s_inv1 = hc->s_inv1;
   LOCAL_AS u32 *s_inv2 = hc->s_inv2;
@@ -154,6 +159,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
   CONSTANT_AS u32a *s_te1 = te1;
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
   CONSTANT_AS u32a *s_inv0 = td_inv0;
   CONSTANT_AS u32a *s_inv1 = td_inv1;
   CONSTANT_AS u32a *s_inv2 = td_inv2;
@@ -210,10 +216,6 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
   iv[2] = ctx.h[2];
   iv[3] = ctx.h[3];
 
-  u32 ks[60];
-
-  aes256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
-
   u32 encrypted[4];
 
   encrypted[0] = hc->data[0];
@@ -223,7 +225,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   u32 out[4];
 
-  aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+  aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
   out[0] ^= iv[0];
 
@@ -267,7 +269,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
     encrypted[2] = hc->data[6];
     encrypted[3] = hc->data[7];
 
-    aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
@@ -320,7 +322,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
     encrypted[2] = hc->data[6];
     encrypted[3] = hc->data[7];
 
-    aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];

@@ -4,16 +4,16 @@
  */
 use std::{
     cell::OnceCell,
-    ffi::{c_char, c_int, c_void, CStr},
+    ffi::{c_char, c_int, c_void},
     mem,
     path::Path,
     process, ptr, slice,
     sync::{Once, OnceLock},
 };
 
-use hashcat_sys::{bridge_context_t, generic_io_t, generic_io_tmp_t, salt_t};
+use hashcat_sys::generic::{ThreadContext, bridge_context_t, generic_io_tmp_t, string_from_ptr};
 
-use crate::{eval::EvalContext, parse, Expr};
+use crate::{Expr, eval::EvalContext, parse};
 
 thread_local! {
     static AST: OnceCell<Expr> = OnceCell::new();
@@ -22,105 +22,6 @@ thread_local! {
 static LOG_ERROR_ONCE: Once = Once::new();
 
 static INFO: OnceLock<&'static str> = OnceLock::new();
-
-#[repr(C)]
-pub(crate) struct ThreadContext {
-    pub module_name: String,
-
-    pub salts: Vec<salt_t>,
-    pub esalts: Vec<generic_io_t>,
-
-    pub bridge_parameter1: String,
-    pub bridge_parameter2: String,
-    pub bridge_parameter3: String,
-    pub bridge_parameter4: String,
-
-    // Under attack mode 9 salt_id is the salt the batch starts at and each candidate adds its own
-    // position in it. Every other attack has one salt for the whole batch.
-    pub salt_per_pw: bool,
-}
-
-impl ThreadContext {
-    fn get_raw_esalt(&self, salt_id: usize) -> &generic_io_t {
-        &self.esalts[salt_id]
-    }
-}
-
-unsafe fn vec_from_raw_parts<T: Clone>(data: *const T, length: c_int) -> Vec<T> {
-    if data.is_null() {
-        vec![]
-    } else {
-        Vec::from(unsafe { slice::from_raw_parts(data, length as usize) })
-    }
-}
-
-unsafe fn string_from_ptr(ptr: *const c_char) -> String {
-    if ptr.is_null() {
-        String::new()
-    } else {
-        unsafe { CStr::from_ptr(ptr).to_str().unwrap_or_default().to_string() }
-    }
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn new_context(
-    module_name: *const c_char,
-
-    salts_cnt: c_int,
-    salts_size: c_int,
-    salts_buf: *const c_char,
-
-    esalts_cnt: c_int,
-    esalts_size: c_int,
-    esalts_buf: *const c_char,
-
-    _st_salts_cnt: c_int,
-    _st_salts_size: c_int,
-    _st_salts_buf: *const c_char,
-
-    _st_esalts_cnt: c_int,
-    _st_esalts_size: c_int,
-    _st_esalts_buf: *const c_char,
-
-    bridge_parameter1: *const c_char,
-    bridge_parameter2: *const c_char,
-    bridge_parameter3: *const c_char,
-    bridge_parameter4: *const c_char,
-    salt_per_pw: bool,
-) -> *mut c_void {
-    assert!(!module_name.is_null());
-    assert!(!salts_buf.is_null());
-    assert!(!esalts_buf.is_null());
-    assert_eq!(salts_size as usize, mem::size_of::<salt_t>());
-    assert_eq!(esalts_size as usize, mem::size_of::<generic_io_t>());
-    let module_name = unsafe { string_from_ptr(module_name) };
-    let salts = unsafe { vec_from_raw_parts(salts_buf as *const salt_t, salts_cnt) };
-    let esalts = unsafe { vec_from_raw_parts(esalts_buf as *const generic_io_t, esalts_cnt) };
-
-    let bridge_parameter1 = unsafe { string_from_ptr(bridge_parameter1) };
-    let bridge_parameter2 = unsafe { string_from_ptr(bridge_parameter2) };
-    let bridge_parameter3 = unsafe { string_from_ptr(bridge_parameter3) };
-    let bridge_parameter4 = unsafe { string_from_ptr(bridge_parameter4) };
-
-    Box::into_raw(Box::new(ThreadContext {
-        module_name,
-        salts,
-        esalts,
-        bridge_parameter1,
-        bridge_parameter2,
-        bridge_parameter3,
-        bridge_parameter4,
-        salt_per_pw,
-    })) as *mut c_void
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn drop_context(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    unsafe {
-        drop(Box::from_raw(ctx as *mut ThreadContext));
-    }
-}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
@@ -210,7 +111,7 @@ fn process_batch(
         // it has parts, and one the next salt does not name would keep the value the last one left.
 
         if pw_pos == 0 || stride != 0 {
-            let esalt = ctx.get_raw_esalt(salt_id + (pw_pos * stride));
+            let esalt = ctx.get_raw_esalt(salt_id + (pw_pos * stride), is_selftest);
             let salt = unsafe {
                 slice::from_raw_parts(
                     esalt.salt_buf.as_ptr() as *const u8,

@@ -1166,7 +1166,6 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   event_log_info (hashcat_ctx, "* Filename..: %s", cache_hit->dictfile);
   event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_hit->cached_cnt);
   event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_hit->stat.st_size);
-  event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_hit->keyspace);
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -1190,26 +1189,24 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
     if (cache_generate->percent >= 100) return;
   }
 
+  // comp is a count of bytes and runtime a count of milliseconds, so their quotient is bytes a
+  // millisecond. A mebibyte a second is 1048.576 of those.
+
+  const u64 speed = (cache_generate->runtime > 0) ? (u64) (cache_generate->comp / cache_generate->runtime / 1048.576) : 0;
+
   if (cache_generate->percent < 100)
   {
-    const u64 speed = cache_generate->comp / cache_generate->runtime;
-
-    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " MiB/s", cache_generate->dictfile, cache_generate->comp, cache_generate->percent, speed / 1024);
+    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " MiB/s", cache_generate->dictfile, cache_generate->comp, cache_generate->percent, speed);
   }
   else
   {
-    char *runtime = (char *) hcmalloc (HCBUFSIZ_TINY);
-
     event_log_info (hashcat_ctx, "Dictionary cache built:");
     event_log_info (hashcat_ctx, "* Filename..: %s", cache_generate->dictfile);
-    event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt2);
+    event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt);
     event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_generate->comp);
-    event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_generate->cnt);
-    event_log_info (hashcat_ctx, "* Speed.....: %" PRIu64 " MiB/s", (u64) (cache_generate->comp / cache_generate->runtime) / 1024);
+    event_log_info (hashcat_ctx, "* Speed.....: %" PRIu64 " MiB/s", speed);
     event_log_info (hashcat_ctx, "* Runtime...: %.2fs", cache_generate->runtime / 1000);
     event_log_info (hashcat_ctx, NULL);
-
-    hcfree (runtime);
   }
 }
 
@@ -1726,11 +1723,17 @@ static bool main_timing_report_enabled (const user_options_t *user_options)
   return true;
 }
 
-static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled)
+static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled, const int rc_final)
 {
   main_timing_finalize ();
 
   if (enabled == false) return;
+
+  // A session that never ran still reaches here, so the times below can describe a run that gave up
+  // in its first few milliseconds. Every value RC_FINAL names for a session that reached a
+  // conclusion is zero or above, so a negative one is the signal, whichever way it failed.
+
+  const bool failed = (rc_final < 0);
 
   const double total          = main_timing_msec (MAIN_TIMING_TOTAL);
   const double before         = main_timing_msec (MAIN_TIMING_BEFORE_ATTACK);
@@ -1762,8 +1765,18 @@ static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled)
   const double cleanup     = main_timing_other (after, session_close);
 
   event_log_info (hashcat_ctx, NULL);
-  event_log_info (hashcat_ctx, "Task Time Breakdown");
-  event_log_info (hashcat_ctx, "===================");
+
+  if (failed == true)
+  {
+    event_log_info (hashcat_ctx, "Task Time Breakdown (THE SESSION FAILED, SO THESE TIMES ARE INCOMPLETE)");
+    event_log_info (hashcat_ctx, "=======================================================================");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Task Time Breakdown");
+    event_log_info (hashcat_ctx, "===================");
+  }
+
   event_log_info (hashcat_ctx, NULL);
 
   main_timing_line (hashcat_ctx, "BEFORE ATTACK", before, total, 0);
@@ -1831,7 +1844,7 @@ static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled)
 
   event_log_info (hashcat_ctx, NULL);
 
-  main_timing_line (hashcat_ctx, "MEASURED TOTAL", total, total, 0);
+  main_timing_line (hashcat_ctx, (failed == true) ? "MEASURED TOTAL, SESSION FAILED" : "MEASURED TOTAL", total, total, 0);
 
   // What the run cost in memory as well as in time. Peak rather than current, because the interesting
   // number is the high water mark a machine had to have room for, and by here it has usually passed.
@@ -2106,7 +2119,7 @@ int main (int argc, char **argv)
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
 
-  main_timing_report (hashcat_ctx, timing_report_enabled);
+  main_timing_report (hashcat_ctx, timing_report_enabled, rc_final);
 
   hashcat_destroy (hashcat_ctx);
 

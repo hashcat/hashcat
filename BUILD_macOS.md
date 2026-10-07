@@ -11,9 +11,6 @@ Make sure to have the HomeBrew upgraded.
 ```
 brew install mingw-w64
 git clone https://github.com/hashcat/hashcat
-wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-sudo mkdir /opt/win-python
-sudo tar --zstd -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst -C /opt/win-python
 ```
 
 ### Building ###

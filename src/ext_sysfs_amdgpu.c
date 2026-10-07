@@ -288,7 +288,13 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_sclk (void *hashcat_ctx, const int backend_device
 
     char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
-    if (ptr == NULL) continue;
+    // Leave the loop on a NULL rather than going round again. The loop condition only tests for the
+    // end of the file, and it is tested before the read, so the last read of a file that ended
+    // cleanly lands here too and must not be treated as a fault. What it must not do is carry on:
+    // amdgpu answers EBUSY on these files while the device is busy, which more than one process
+    // polling them hits easily, and reading again just repeats the same error forever.
+
+    if (ptr == NULL) break;
 
     size_t len = strlen (ptr);
 
@@ -343,7 +349,7 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device
 
     char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
-    if (ptr == NULL) continue;
+    if (ptr == NULL) break;
 
     size_t len = strlen (ptr);
 
@@ -398,7 +404,7 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device
 
     char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
-    if (ptr == NULL) continue;
+    if (ptr == NULL) break;
 
     size_t len = strlen (ptr);
 
@@ -449,7 +455,7 @@ int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_d
 
     char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
-    if (ptr == NULL) continue;
+    if (ptr == NULL) break;
 
     size_t len = strlen (ptr);
 
@@ -500,7 +506,7 @@ int hm_SYSFS_AMDGPU_get_mem_info_vram_used (void *hashcat_ctx, const int backend
 
     char *ptr = hc_fgets (buf, sizeof (buf), &fp);
 
-    if (ptr == NULL) continue;
+    if (ptr == NULL) break;
 
     size_t len = strlen (ptr);
 

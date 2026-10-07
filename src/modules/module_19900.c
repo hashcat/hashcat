@@ -63,8 +63,8 @@ typedef struct krb5pa_18_tmp
 {
   u32 ipad[5];
   u32 opad[5];
-  u32 dgst[16];
-  u32 out[16];
+  u32 dgst[10];
+  u32 out[10];
 
 } krb5pa_18_tmp_t;
 
@@ -386,6 +386,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

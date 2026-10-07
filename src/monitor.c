@@ -249,6 +249,15 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         if (device_param->skipped == true) continue;
         if (device_param->skipped_warning == true) continue;
 
+        // One physical card can appear as many devices, as bridge units or under
+        // --backend-devices-virtmulti, and throttling is a property of the card. Counting it once per
+        // clone drove slowdown_warnings past all three thresholds inside a single tick, so the three
+        // warnings fired together instead of over three sustained ticks, and the decrement below
+        // cleared the counter just as fast. Only the device carrying the hwmon line for that hardware
+        // is asked.
+
+        if (hm_is_hwmon_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
         const int rc_throttle = hm_get_throttle_with_devices_idx (hashcat_ctx, backend_devices_idx);
 
         if (rc_throttle == -1) continue;

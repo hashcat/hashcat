@@ -11762,13 +11762,17 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     // charset, so the filter has to measure a stored terminal the same way.
 
     bool pt_upper = false;
+    bool pt_lower = false;
 
     if (hashcat_ctx->hashconfig != NULL)
     {
       pt_upper = ((hashcat_ctx->hashconfig->opts_type & OPTS_TYPE_PT_UPPER) != 0);
+      pt_lower = ((hashcat_ctx->hashconfig->opts_type & OPTS_TYPE_PT_LOWER) != 0);
     }
 
-    const bool built = mask_css_build (pg->mcss, css, css_cnt, pcfg_byte_upper, pt_upper);
+    const bool built = mask_css_build (pg->mcss, css, css_cnt,
+                                       (pt_lower == true) ? pcfg_byte_lower : pcfg_byte_upper,
+                                       pt_upper | pt_lower);
 
     hcfree (css);
 

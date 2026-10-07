@@ -3,7 +3,8 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//incompatible because of branches
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
@@ -287,9 +288,13 @@ KERNEL_FQ KERNEL_FA void m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos);
 
     const u32x out_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can exceed the 32 byte key.
+
+    if (out_len > 32) continue;
 
     /**
      * concat password candidate
@@ -480,9 +485,13 @@ KERNEL_FQ KERNEL_FA void m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
+    const u32x pw_r_len = COMBS_PW_R_LEN (il_pos);
 
     const u32x out_len = pw_l_len + pw_r_len;
+
+    // pw_max bounds the base word alone, so the pair can exceed the 32 byte key.
+
+    if (out_len > 32) continue;
 
     /**
      * concat password candidate

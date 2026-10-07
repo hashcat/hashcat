@@ -11,6 +11,9 @@ from Crypto.Cipher import AES
 from Crypto.Hash import RIPEMD160
 from Crypto.Util.strxor import strxor
 
+from lib import whirlpool
+from lib.pyserpent import Serpent
+from lib.pytwofish import Twofish
 from lib.test_helpers import random_bytes, random_number
 
 # Linux Kernel Crypto API (2.4). This is a known plaintext attack, not a hash:
@@ -27,19 +30,30 @@ from lib.test_helpers import random_bytes, random_number
 # from a second digest, of the password with a literal "A" in front of it. That is what the
 # kernels spell out as ctx.w0[0] = 0x41000000 with ctx.len = 1.
 #
-# This oracle covers the AES types, 0, 3, 6 and 9, across all three key sizes, which is every key
-# derivation path the mode has: the two short digests that need the second pass and the two long
-# ones that do not. Serpent, Twofish and Whirlpool are left out, as they were in the .pm this
-# replaces, and test.sh covers those ciphers through the containers in tools/cl_tests.
+# Every one of the fifteen combinations is its own kernel, from m14511 for SHA-1 with AES to
+# m14553 for Whirlpool with Twofish, and the type field is what selects it. The type is an
+# argument with a fixed default, the way m24600 handles the same thing: hashcat builds one kernel
+# per run, so a file that mixed types could only ever crack the hashes that happened to match the
+# kernel it built. A caller that wants one of the other fourteen asks for it, and the key size is
+# free to vary inside one file because the kernel reads it rather than being picked by it.
 
-DIGESTS = {
-  0: lambda b: hashlib.sha1(b).digest(),
-  3: lambda b: hashlib.sha256(b).digest(),
-  6: lambda b: hashlib.sha512(b).digest(),
-  9: lambda b: RIPEMD160.new(b).digest(),
-}
+DIGESTS = (
+  lambda b: hashlib.sha1(b).digest(),
+  lambda b: hashlib.sha256(b).digest(),
+  lambda b: hashlib.sha512(b).digest(),
+  lambda b: RIPEMD160.new(b).digest(),
+  lambda b: whirlpool.whirlpool(b),
+)
+
+CIPHERS = (
+  lambda key, block: AES.new(key, AES.MODE_ECB).encrypt(block),
+  lambda key, block: Serpent(key).encrypt(block),
+  lambda key, block: Twofish(key).encrypt(block),
+)
 
 KEY_LEN = (16, 24, 32)
+
+TYPE_DEFAULT = 0
 
 
 def module_constraints():
@@ -47,7 +61,7 @@ def module_constraints():
 
 
 def _key(word, hash_type, key_size):
-  digest = DIGESTS[hash_type]
+  digest = DIGESTS[hash_type // 3]
 
   key = digest(word)
 
@@ -61,15 +75,17 @@ def _build(hash_type, key_size, iv, plain, cipher):
   return "$cryptoapi$%d$%d$%s$%s$%s" % (hash_type, key_size, iv.hex(), plain.hex(), cipher.hex())
 
 
-def module_generate_hash(word, salt, iterations=None):
-  types     = sorted(DIGESTS)
-  hash_type = types[random_number(0, len(types) - 1)]
-  key_size  = random_number(0, 2)
+def module_generate_hash(word, salt, iterations=None, hash_type=None, key_size=None, iv=None, plain=None):
+  hash_type = TYPE_DEFAULT if hash_type is None else int(hash_type)
+  key_size  = random_number(0, 2) if key_size is None else int(key_size)
 
-  iv    = random_bytes(16)
-  plain = random_bytes(16)
+  if iv is None:
+    iv = random_bytes(16)
 
-  cipher = AES.new(_key(word, hash_type, key_size), AES.MODE_ECB).encrypt(strxor(plain, iv))
+  if plain is None:
+    plain = random_bytes(16)
+
+  cipher = CIPHERS[hash_type % 3](_key(word, hash_type, key_size), strxor(plain, iv))
 
   return _build(hash_type, key_size, iv, plain, cipher)
 
@@ -95,12 +111,10 @@ def module_verify_hash(line):
   except (UnicodeDecodeError, ValueError):
     return None
 
-  if hash_type not in DIGESTS or key_size > 2:
+  if hash_type < 0 or hash_type > 14 or key_size > 2:
     return None
 
   if len(iv) != 16 or len(plain) != 16:
     return None
 
-  cipher = AES.new(_key(word, hash_type, key_size), AES.MODE_ECB).encrypt(strxor(plain, iv))
-
-  return (_build(hash_type, key_size, iv, plain, cipher), word)
+  return (module_generate_hash(word, None, None, hash_type, key_size, iv, plain), word)

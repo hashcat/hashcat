@@ -489,7 +489,7 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  if ((hashconfig->opts_type & OPTS_TYPE_INIT2) == 0) return;
+  if ((hashconfig->kern_bits & KERN_BIT_INIT2) == 0) return;
 
   const u32 threads_sav = device_param->kernel_threads;
 
@@ -501,7 +501,7 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 0, kernel_power, false, 0, true);
 
-  if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
+  if (hashconfig->kern_bits & KERN_BIT_LOOP2_PREPARE)
   {
     run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, 0, kernel_power, false, 0, true);
   }
@@ -750,7 +750,7 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   double per_loop2  = 0;
   double base_msec2 = 0;
 
-  if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+  if (hashconfig->kern_bits & KERN_BIT_LOOP2)
   {
     if (hashes->salts_buf != NULL) work2 = (double) hashes->salts_buf[0].salt_iter2;
 
@@ -1027,6 +1027,18 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
   */
 
+  // Both branches below launch kernels, so the fake words go in before either one. A launch reads
+  // whatever the pws buffer holds, and the self test leaves it zeroed. The branch below is not only
+  // the fixed -n -u one its comment describes: an association attack lands there too.
+
+  const u32 hardware_power_max = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads_max);
+
+  const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
+
+  device_param->at_rc = -2;
+
+  if (run_kernel_atinit (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], kernel_power_max) == -1) return -1;
+
   // in this case the user specified a fixed -n and -u on the commandline
   // no way to tune anything
   // but we need to run a few caching rounds
@@ -1053,15 +1065,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   else
   {
     // from here it's clear we are allowed to autotune
-    // so let's init some fake words
-
-    const u32 hardware_power_max = autotune_hardware_power (hashcat_ctx, device_param, kernel_threads_max);
-
-    const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
-
-    device_param->at_rc = -2;
-
-    if (run_kernel_atinit (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], kernel_power_max) == -1) return -1;
 
     if (user_options->slow_candidates == true)
     {
@@ -1113,7 +1116,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0, true);
 
-      if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
+      if (hashconfig->kern_bits & KERN_BIT_LOOP_PREPARE)
       {
         device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_2P], kernel_threads_max);
 

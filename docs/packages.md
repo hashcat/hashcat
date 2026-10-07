@@ -23,7 +23,7 @@ hashcat no longer bundles zlib or the LZMA SDK. It loads the system zlib, liblzm
 
 ### What `make install` places where ###
 
-`make install` installs the feeds, the rule files and the PCFG rulesets into the shared data directory, where hashcat can resolve them by name. A package that ships only the binary and the core library leaves `-a 4` without its rulesets.
+`make install` installs the feeds, the rule files, the PCFG rulesets and the `Python` directory into the shared data directory, where hashcat can resolve them by name. A package that ships only the binary and the core library leaves `-a 4` without its rulesets and mode 73000 without the worker it starts.
 
 Installed builds no longer write to `$HOME/.hashcat`. Potfiles and sessions go to the XDG profile directory and everything hashcat can rebuild goes to the XDG cache directory. No data is migrated, and hashcat reports the old directory alongside both new ones.
 

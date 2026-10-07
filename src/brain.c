@@ -936,6 +936,20 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 // writes the brain SERVER's timestamped format straight to stderr, which is wrong for a client and
 // never reaches the session log.
 
+// A socket is closed in any process hashcat starts, for the reason HC_O_NOINHERIT gives in
+// filehandling.c: the Python bridge runs one interpreter per CPU thread, and a brain client's socket is
+// hashcat's conversation with the server, not theirs. SOCK_CLOEXEC would do it in the socket () call but
+// does not exist on macOS, so the flag is set afterwards.
+
+static void sock_no_inherit (MAYBE_UNUSED const int fd)
+{
+  #if defined (_WIN)
+  SetHandleInformation ((HANDLE) (intptr_t) fd, HANDLE_FLAG_INHERIT, 0);
+  #else
+  fcntl (fd, F_SETFD, FD_CLOEXEC);
+  #endif
+}
+
 static void brain_client_report (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *format, ...)
 {
   if (device_param->brain_link_reported == true) return;
@@ -974,6 +988,8 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     return false;
   }
+
+  sock_no_inherit (brain_link_client_fd);
 
   #if defined (__linux__)
   const int one = 1;

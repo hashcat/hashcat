@@ -9,6 +9,7 @@ import random
 import zlib
 
 import hashlib
+import hmac
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
@@ -149,9 +150,15 @@ def module_generate_hash(word, salt=None, iterations=None):
 
   encrypted_data = AES.new(aes_key, AES.MODE_CBC, iv).encrypt(pad(compressed_data, 16))
 
+  # The last field is the message authentication code, over the whole ciphertext and keyed with the
+  # upper half of the derived key. module_21800.c reads it as a 64 character hex token and refuses a
+  # hash without one, so an empty field makes every generated hash unloadable.
+
+  mac = hmac.new(key[32:], encrypted_data, hashlib.sha256).hexdigest()
+
   encrypted_data = encrypted_data[0:TRUNCATE_DATA_LEN]
 
-  return "$electrum$5*%s*%s*%s" % (ephemeral_pubkey.hex(), encrypted_data.hex(), "")
+  return "$electrum$5*%s*%s*%s" % (ephemeral_pubkey.hex(), encrypted_data.hex(), mac)
 
 
 def module_verify_hash(line):

@@ -220,6 +220,16 @@ KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bit
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
+  #if ATTACK_MODE == 9
+
+  // The salt and esalt positions are the work item id here, so a thread past the count reads past
+  // the end of both arrays. Only this arm can return: the others fill s_wb_ke_pc cooperatively and
+  // the barrier that orders the fill is compiled with them, under REAL_SHM_PC.
+
+  if (gid >= GID_CNT) return;
+
+  #endif
+
   // init
 
   u32x w0[4];

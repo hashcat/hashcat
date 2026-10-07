@@ -13,13 +13,13 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #endif
 
-DECLSPEC u64 MurmurHash64A (const u64 seed, PRIVATE_AS const u32 *data, const u32 len)
+DECLSPEC u64x MurmurHash64A (const u64x seed, PRIVATE_AS const u32x *data, const u32 len)
 {
-#define M 0xc6a4a7935bd1e995
-#define R 47
+  #define M 0xc6a4a7935bd1e995
+  #define R 47
 
   // Initialize hash
-  u64 hash = seed ^ (len * M);
+  u64x hash = seed ^ (len * M);
 
   // Twice the number of u64 blocks
   const u32 num_u32_blocks = (len / 8) * 2;
@@ -29,7 +29,7 @@ DECLSPEC u64 MurmurHash64A (const u64 seed, PRIVATE_AS const u32 *data, const u3
   while (i < num_u32_blocks)
   {
     // Reconstruct u64 from two u32s
-    u64 k = hl32_to_64 (data[i + 1], data[i]);
+    u64x k = hl32_to_64 (data[i + 1], data[i]);
 
     k *= M;
     k ^= k >> R;
@@ -59,8 +59,8 @@ DECLSPEC u64 MurmurHash64A (const u64 seed, PRIVATE_AS const u32 *data, const u3
   hash *= M;
   hash ^= hash >> R;
 
-#undef M
-#undef R
+  #undef M
+  #undef R
 
   return hash;
 }

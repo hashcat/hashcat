@@ -229,15 +229,11 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_RULES_ESALT (pem_t))
     ukey[6] = hc_swap32_S (ukey[6]);
     ukey[7] = hc_swap32_S (ukey[7]);
 
-    u32 ks[60];
-
-    AES256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
-
     u32 dec[4];
 
     // first check the padding
 
-    aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, enc, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= iv[0];
     dec[1] ^= iv[1];
@@ -250,7 +246,7 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 
     // second check (naive code) ASN.1 structure
 
-    aes256_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, first_data, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= s[0];
     dec[1] ^= s[1];
@@ -479,15 +475,11 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_RULES_ESALT (pem_t))
     ukey[6] = hc_swap32_S (ukey[6]);
     ukey[7] = hc_swap32_S (ukey[7]);
 
-    u32 ks[60];
-
-    AES256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
-
     u32 dec[4];
 
     // first check the padding
 
-    aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, enc, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= iv[0];
     dec[1] ^= iv[1];
@@ -500,7 +492,7 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 
     // second check (naive code) ASN.1 structure
 
-    aes256_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, first_data, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= s[0];
     dec[1] ^= s[1];

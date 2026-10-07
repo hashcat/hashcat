@@ -51,7 +51,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 static const char *SIGNATURE_SNMPV3 = "$SNMPv3$3$";
 
 #define SNMPV3_SALT_MAX             1500
-#define SNMPV3_ENGINEID_MAX         34
+#define SNMPV3_ENGINEID_MAX         64
 #define SNMPV3_MSG_AUTH_PARAMS_LEN  16
 #define SNMPV3_ROUNDS               1048576
 #define SNMPV3_MAX_PW_LENGTH        64
@@ -228,6 +228,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
 
+  // RFC 3411 forbids an engine id of all zeros and one of all 0xff
+
+  u8 acc_or  = 0;
+  u8 acc_and = 0xff;
+
+  for (u32 i = 0; i < snmpv3->engineID_len; i++)
+  {
+    acc_or  |= engineID_ptr[i];
+    acc_and &= engineID_ptr[i];
+  }
+
+  if ((acc_or == 0) || (acc_and == 0xff)) return (PARSER_SALT_VALUE);
+
   // digest
 
   const u8 *hash_pos = token.buf[4];
@@ -344,6 +357,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_length_sort              = module_length_sort;

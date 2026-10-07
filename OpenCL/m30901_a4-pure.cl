@@ -15,6 +15,7 @@
 #include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
+#include M2S(INCLUDE_PATH/inc_bitcoin_address.cl)
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
 
@@ -95,40 +96,16 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   point_mul_xy (x, y, prv_key, &hc->preG);
 
-  u32 pub_key[16] = { 0 };
+  // to the address hash
 
-  const u32 type = 0x02 | (y[0] & 1);
+  u32 h160[5];
 
-  pub_key[8] =               (x[0] << 24);
-  pub_key[7] = (x[0] >> 8) | (x[1] << 24);
-  pub_key[6] = (x[1] >> 8) | (x[2] << 24);
-  pub_key[5] = (x[2] >> 8) | (x[3] << 24);
-  pub_key[4] = (x[3] >> 8) | (x[4] << 24);
-  pub_key[3] = (x[4] >> 8) | (x[5] << 24);
-  pub_key[2] = (x[5] >> 8) | (x[6] << 24);
-  pub_key[1] = (x[6] >> 8) | (x[7] << 24);
-  pub_key[0] = (x[7] >> 8) | (type << 24);
+  hash160_pubkey_compressed (h160, x, y);
 
-  sha256_ctx_t ctx;
-
-  sha256_init   (&ctx);
-  sha256_update (&ctx, pub_key, 33);
-  sha256_final  (&ctx);
-
-  for (u32 i = 0; i < 8; i++) tmp[i] = ctx.h[i];
-
-  for (u32 i = 8; i < 16; i++) tmp[i] = 0;
-
-  ripemd160_ctx_t rctx;
-
-  ripemd160_init        (&rctx);
-  ripemd160_update_swap (&rctx, tmp, 32);
-  ripemd160_final       (&rctx);
-
-  dgst[0] = rctx.h[0];
-  dgst[1] = rctx.h[1];
-  dgst[2] = rctx.h[2];
-  dgst[3] = rctx.h[3];
+  dgst[0] = h160[0];
+  dgst[1] = h160[1];
+  dgst[2] = h160[2];
+  dgst[3] = h160[3];
 
   return true;
 }

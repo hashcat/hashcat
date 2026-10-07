@@ -85,8 +85,8 @@ u8 lo = (code >> 0) & 0xF;
 * `//` for a comment. `/** ... */` only for the file header.
 * A comment goes on its own line above the code it describes, not trailing it.
 * Do not cite another file by line number in a comment. Line numbers go stale the moment either
-  file changes, so `see test.sh:7263` is wrong within a commit or two. Name the file, and the
-  function or variable if it helps, instead: `see test.sh` or `mirrors test.sh PASS_ONLY`.
+  file changes, so `see test.py:5200` is wrong within a commit or two. Name the file, and the
+  function or variable if it helps, instead: `see test.py` or `mirrors test.py setup_isolation`.
 * Project includes first, then system includes, separated by a blank line.
 * Every source file opens with:
 
@@ -129,7 +129,7 @@ Keep the description short. The reader wants to reproduce the problem before rea
 1. One or two sentences of summary.
 2. The reproduction command, in full, with the result before and after the change.
 3. The explanation, once the reader can already see the failure.
-4. The `tools/test_edge.sh` output for every mode you touched.
+4. The `tools/test.py --edge` output for every mode you touched.
 
 A claim that something is broken carries the command that shows it. Not a description of the command, the command itself:
 
@@ -149,9 +149,9 @@ Attack mode 3, with the password as a literal mask, is usually the shortest rout
 
 For step 4, run the suite yourself and paste what it printed:
 
-    ./tools/test_edge.sh -m 0
+    ./tools/test.py --edge -m 0
 
-With only `-m`, the suite covers every attack type, kernel type, target type and vector width for that mode, and it clears the kernel cache before it starts. Add `-D 1 -f` on a machine with no GPU, where hashcat runs on the CPU backend and needs `--force`. `./tools/test_edge.sh -h` lists the rest.
+With only `-m`, the suite covers every attack type, kernel type, target type and vector width for that mode, and it builds its kernels in a private cache path for the run rather than touching `cache/kernels/`. Add `-D 1 -f` on a machine with no GPU, where hashcat runs on the CPU backend and needs `--force`. `./tools/test.py -h` lists the rest.
 
 Paste the tail of the run, down to and including the line that reports how many errors were detected. That line is the one a reviewer looks for.
 

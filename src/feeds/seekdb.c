@@ -900,6 +900,35 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
         }
 
         tmp[checkpoints++] = pos;
+
+        // Two throttles, because either on its own is wrong. The byte one decides how often the clock
+        // is worth asking, and moves on whether anything is said or not, so a file read at a gigabyte
+        // a second costs 200 clock reads rather than one per line. The clock one decides whether to
+        // say anything, so a fast file is redrawn at most twice a second and a slow one still
+        // reports while it works. Nothing is said for the first 500 milliseconds, so a wordlist
+        // counted in an instant is counted in silence.
+
+        if (pos >= say_next)
+        {
+          say_next = pos + say_step;
+
+          const double msec = hc_timer_get (start);
+
+          if ((msec - say_last) >= 500.0)
+          {
+            say_last = msec;
+
+            cache_generate_t cache_generate;
+
+            cache_generate.dictfile = wordlist;
+            cache_generate.comp     = pos;
+            cache_generate.percent  = ((double) pos / (double) feed_thread->file_size) * 100;
+            cache_generate.cnt      = lines;
+            cache_generate.runtime  = msec;
+
+            EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
+          }
+        }
       }
 
       // All that the tail below wants from the walk is whether the file ends on a line ending, so that
@@ -933,36 +962,6 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
       lines++;
 
       last_nl_end = pos;
-
-      // Two throttles, because either on its own is wrong. The byte one decides how often the clock
-      // is worth asking, and moves on whether anything is said or not, so a file read at a gigabyte
-      // a second costs two hundred clock reads rather than one per line. The clock one decides
-      // whether to say anything, so a fast file is not redrawn fifty times a second and a slow one
-      // still reports while it works. Nothing at all is said for the first two seconds, so a
-      // wordlist counted in an instant is counted in silence.
-
-      if ((feed_thread->compressed == false) && (pos >= say_next))
-      {
-        say_next = pos + say_step;
-
-        const double msec = hc_timer_get (start);
-
-        if ((msec - say_last) >= 2000.0)
-        {
-          say_last = msec;
-
-          cache_generate_t cache_generate;
-
-          cache_generate.dictfile = wordlist;
-          cache_generate.comp     = pos;
-          cache_generate.percent  = ((double) pos / (double) feed_thread->file_size) * 100;
-          cache_generate.cnt      = lines;
-          cache_generate.cnt2     = lines;
-          cache_generate.runtime  = msec;
-
-          EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
-        }
-      }
 
       // A frame boundary lands wherever the compressor put it, which is almost never on a line
       // ending, so what a reader restarting there finds first is the tail of a line that began in
@@ -1032,7 +1031,6 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
       cache_generate.comp        = cur_pos;
       cache_generate.percent     = percent;
       cache_generate.cnt         = lines;
-      cache_generate.cnt2        = lines;
       cache_generate.runtime     = hc_timer_get (start);
 
       EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));

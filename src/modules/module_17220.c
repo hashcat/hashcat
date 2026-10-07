@@ -111,8 +111,8 @@ static const char *ST_HASH        = "$pkzip2$3*1*1*0*8*24*a425*8827*d1730095cd82
 
 #define MAX_DATA (320 * 1024)
 
-// this is required to force mingw to accept the packed attribute
-#pragma pack(push,1)
+// Without the packed attribute the compiler lays data[] out at offset 40 of pkzip_t. Packed it
+// fell on 34, which is 2 mod 4, and every u32 read of the file data was misaligned.
 
 struct pkzip_hash
 {
@@ -129,7 +129,7 @@ struct pkzip_hash
   u16 checksum_from_timestamp;
   u32 data[MAX_DATA / 4]; // a quarter because of the u32 type
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip_hash pkzip_hash_t;
 
@@ -141,11 +141,9 @@ struct pkzip
 
   pkzip_hash_t hashes[8];
 
-} __attribute__((packed));
+};
 
 typedef struct pkzip pkzip_t;
-
-#pragma pack(pop)
 
 static const char *SIGNATURE_PKZIP_V1 = "$pkzip$";
 static const char *SIGNATURE_PKZIP_V2 = "$pkzip2$";
@@ -167,32 +165,18 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // problem with this kernel is the huge amount of register pressure on u8 tmp[TMPSIZ];
-  // some runtimes cant handle it by swapping it to global memory
-  // it leads to CL_KERNEL_WORK_GROUP_SIZE to return 0 and later we will divide with 0
-  // workaround would be to rewrite kernel to use global memory
-
-  if (device_param->is_metal == true)
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    // error: 'goto' is not supported in Metal
+    // Apple, OpenCL, AMD GPU: abort on the first kernel launch, signal 6, no output
+
     return true;
   }
 
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    return true;
-  }
+    // Apple, OpenCL, Intel GPU: the shader compiler does not come back from register allocation
 
-  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-  {
-    if (device_param->is_metal == false)
-    {
-      if (strncmp (device_param->device_name, "Apple M", 7) == 0)
-      {
-        // AppleM1, OpenCL, MTLCompilerService never-end
-        return true;
-      }
-    }
+    return true;
   }
 
   return false;
@@ -467,6 +451,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

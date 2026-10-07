@@ -245,13 +245,9 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
   ukey[6] = hc_swap32_S (ukey[6]);
   ukey[7] = hc_swap32_S (ukey[7]);
 
-  u32 ks[60];
-
-  AES256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
-
   u32 dec[4];
 
-  aes256_decrypt (ks, hc->enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_decrypt_cs (ukey, hc->enc, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
   dec[0] ^= hc->iv[0];
   dec[1] ^= hc->iv[1];
@@ -262,7 +258,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   if (paddingv == -1) return false;
 
-  aes256_decrypt (ks, hc->first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_decrypt_cs (ukey, hc->first_data, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
   dec[0] ^= hc->s[0];
   dec[1] ^= hc->s[1];
@@ -386,13 +382,9 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
   ukey[6] = hc_swap32_S (ukey[6]);
   ukey[7] = hc_swap32_S (ukey[7]);
 
-  u32 ks[60];
-
-  AES256_set_decrypt_key_inv (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
-
   u32 dec[4];
 
-  aes256_decrypt (ks, hc->enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_decrypt_cs (ukey, hc->enc, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
   dec[0] ^= hc->iv[0];
   dec[1] ^= hc->iv[1];
@@ -403,7 +395,7 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
   if (paddingv == -1) return false;
 
-  aes256_decrypt (ks, hc->first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_decrypt_cs (ukey, hc->first_data, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
   dec[0] ^= hc->s[0];
   dec[1] ^= hc->s[1];
