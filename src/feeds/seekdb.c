@@ -924,7 +924,6 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
             cache_generate.comp     = pos;
             cache_generate.percent  = ((double) pos / (double) feed_thread->file_size) * 100;
             cache_generate.cnt      = lines;
-            cache_generate.cnt2     = lines;
             cache_generate.runtime  = msec;
 
             EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
@@ -1032,7 +1031,6 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
       cache_generate.comp        = cur_pos;
       cache_generate.percent     = percent;
       cache_generate.cnt         = lines;
-      cache_generate.cnt2        = lines;
       cache_generate.runtime     = hc_timer_get (start);
 
       EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));

@@ -680,7 +680,6 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
       cache_hit.dictfile      = source->path;
       cache_hit.stat.st_size  = source->size;
       cache_hit.cached_cnt    = source->line_count;
-      cache_hit.keyspace      = source->line_count;
 
       EVENT_DATA (EVENT_WORDLIST_CACHE_HIT, &cache_hit, sizeof (cache_hit));
 
@@ -723,7 +722,6 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
     cache_generate.comp        = source->size;
     cache_generate.percent     = 100;
     cache_generate.cnt         = source->line_count;
-    cache_generate.cnt2        = source->line_count;
     cache_generate.runtime     = hc_timer_get (start);
 
     EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));

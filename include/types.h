@@ -3918,7 +3918,6 @@ typedef struct cache_hit
   struct stat stat;
 
   u64 cached_cnt;
-  u64 keyspace;
 
 } cache_hit_t;
 
@@ -3930,7 +3929,6 @@ typedef struct cache_generate
 
   u64 comp;
   u64 cnt;
-  u64 cnt2;
 
   float runtime;
 
