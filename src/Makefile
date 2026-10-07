@@ -831,6 +831,7 @@ endif
 CFLAGS_WIN              := $(filter-out $(CFLAGS_HOST_ONLY),$(CFLAGS))
 CFLAGS_WIN              += -fPIC
 CFLAGS_WIN              += -DWITH_HWMON
+CFLAGS_WIN              += -DWINVER=0x0601 -D_WIN32_WINNT=0x0601
 
 # clang is one compiler for every target and has to be told which one it is building for. A cross gcc
 # is a compiler for a single target and needs nothing said. The flag is kept in a variable of its own
