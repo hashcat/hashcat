@@ -116,7 +116,7 @@ KERNEL_FQ KERNEL_FA void m28000_m04 (KERN_ATTR_RULES_ESALT (crc64_t))
     w[14] = 0;
     w[15] = 0;
 
-    u64 a = crc64j_opti (w, pw_len, iv, s_crc64jonestab);
+    u64 a = crc64j_opti (w, out_len, iv, s_crc64jonestab);
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);
@@ -240,7 +240,7 @@ KERNEL_FQ KERNEL_FA void m28000_s04 (KERN_ATTR_RULES_ESALT (crc64_t))
     w[14] = 0;
     w[15] = 0;
 
-    u64 a = crc64j_opti (w, pw_len, iv, s_crc64jonestab);
+    u64 a = crc64j_opti (w, out_len, iv, s_crc64jonestab);
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);

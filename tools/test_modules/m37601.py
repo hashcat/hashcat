@@ -13,7 +13,7 @@ from lib.test_helpers import split_hash_word
 
 
 def module_constraints():
-  return [[0, 256], [10, 128], [-1, -1], [-1, -1], [-1, -1]]
+  return [[0, 256], [10, 128], [0, 55], [10, 55], [0, 55]]
 
 
 def module_generate_hash(word, salt, iterations=None):

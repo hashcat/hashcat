@@ -195,13 +195,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // payload
 
-  u8 payload_base64[512];
+  u8 payload_base64[512] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) payload->pl_buf, payload->pl_len, payload_base64);
 
   // salt
 
-  u8 salt_base64[32];
+  u8 salt_base64[32] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, salt_base64);
 

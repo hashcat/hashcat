@@ -443,9 +443,9 @@ NOCHECK_ENCODING = {16800, 16801, 22000}
 
 MASK_ONLY_MODES = {37000}
 
-# MIFARE Ultralight C 3DES key recovery: hashcat prints the cracked hash with its 32-bit words byte
-# swapped and may recover a different valid 4 byte segment than the oracle used, so its crack is
-# scored by that re-encoded hash appearing in the output. See mfulc_output_digest.
+# MIFARE Ultralight C 3DES key recovery: the key recovery is not unique, so hashcat may recover a
+# different valid 4 byte segment than the oracle used. Its crack is scored by the hash appearing in
+# the output, whatever segment was printed with it.
 
 MFULC_MODES = {37000}
 
@@ -1493,26 +1493,6 @@ def run_verify(mode, digest, crack_lines, tmp):
   return os.path.getsize(out_file) > 0
 
 
-def mfulc_output_digest(digest):
-  # 37000 re-encodes its hash with each 32-bit word byte-swapped when it prints a crack, and the key
-  # recovery is not unique, so hashcat may recover a different 4 byte segment than the oracle used.
-  # The success criterion is that hashcat cracked this hash, which the re-encoded form in the output
-  # shows, whatever segment it printed.
-  parts = digest.split("$")
-
-  if len(parts) != 9:
-    return None
-
-  def swap(hexs):
-    b = bytes.fromhex(hexs)
-    return b"".join(b[i:i + 4][::-1] for i in range(0, len(b), 4)).hex()
-
-  for i in (5, 6, 7, 8):
-    parts[i] = swap(parts[i])
-
-  return "$".join(parts)
-
-
 def output_has_crack(mode, out, word, digest, pass_only, tmp):
   # test.sh output_has_crack (test.sh). The recovered line hash:password is looked for as it was
   # generated first. A mode that drops bits of the password can print a different password with the
@@ -1523,10 +1503,15 @@ def output_has_crack(mode, out, word, digest, pass_only, tmp):
   if match_search(digest, word, pass_only) in out:
     return True
 
-  if mode in MFULC_MODES:
-    swapped = mfulc_output_digest(digest)
+  # A mode that always hexifies writes its plaintext as bare hex, so the recovered line carries the
+  # hex of the password rather than its bytes. The edge suite compares the same way.
 
-    if swapped is not None and swapped.encode("ascii") + b":" in out:
+  if edge_hexify_plain(mode):
+    if match_search(digest, word.hex().encode("ascii"), pass_only) in out:
+      return True
+
+  if mode in MFULC_MODES:
+    if digest.encode("ascii") + b":" in out:
       return True
 
   if pass_only:

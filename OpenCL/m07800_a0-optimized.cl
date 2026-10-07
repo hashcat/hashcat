@@ -264,7 +264,7 @@ KERNEL_FQ KERNEL_FA void m07800_m04 (KERN_ATTR_RULES ())
 
     for (u32 j = 16; j < 64; j++) final[j] = 0;
 
-    u32 final_len = pw_len;
+    u32 final_len = out_len;
 
     u32 i;
 
@@ -547,7 +547,7 @@ KERNEL_FQ KERNEL_FA void m07800_s04 (KERN_ATTR_RULES ())
 
     for (u32 j = 16; j < 64; j++) final[j] = 0;
 
-    u32 final_len = pw_len;
+    u32 final_len = out_len;
 
     u32 i;
 

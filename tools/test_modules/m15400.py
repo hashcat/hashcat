@@ -72,7 +72,7 @@ def _keystream(key, counter_bin, iv_bin, length):
 
 
 def module_constraints():
-  return [[32, 32], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+  return [[-1, -1], [-1, -1], [32, 32], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt=None, param=None, param2=None, param3=None):

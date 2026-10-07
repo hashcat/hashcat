@@ -312,23 +312,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len++;
 
-  // remove zero padding from snmpv3->engineID_buf
-
-  const u8 *engineID_buf_tmp = (const u8 *) snmpv3->engineID_buf;
-
-  u32 engineID_len = snmpv3->engineID_len;
-
-  // engineID_buf is zeroed and only engineID_len bytes are written into it, so the byte at
-  // engineID_len is always zero and the walk always takes at least one step. An engine ID that is
-  // all zero bytes walks the unsigned index below zero and reads 4 GB past the esalt.
-
-  while ((engineID_len > 0) && (engineID_buf_tmp[engineID_len] == 0x00)) engineID_len--;
-
-  engineID_len++;
-
-  // append to output
-
-  out_len += hex_encode ((const u8 *) snmpv3->engineID_buf, engineID_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
