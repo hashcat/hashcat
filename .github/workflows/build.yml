@@ -225,11 +225,15 @@ jobs:
                 # Several commits can land on master close together, each starting a Build that
                 # regenerates and pushes these docs, so this push can be rejected as a non fast
                 # forward. Rebase our docs only commit onto the latest master and retry. If a
-                # concurrent run already pushed the same docs the rebase has nothing to add and we
-                # stop. A push that still does not land after the retries is left for the next run,
-                # the same way generate_docs.sh above is allowed to fail without breaking the build.
+                # concurrent run already pushed the docs the rebase finds nothing to replay and we
+                # stop, since that run has them. Five attempts absorb the race seen in practice, so
+                # if none of them land the push is failing for another reason (the token lost write
+                # access, say), and the step exits 1 to surface that rather than let the docs go
+                # stale with no run showing it.
+                pushed=0
                 for attempt in 1 2 3 4 5; do
                   if git push origin "HEAD:$GITHUB_REF_NAME"; then
+                    pushed=1
                     break
                   fi
                   echo "push rejected on attempt $attempt, rebasing onto the latest $GITHUB_REF_NAME"
@@ -238,10 +242,15 @@ jobs:
                     git rebase --abort
                     git reset --hard "origin/$GITHUB_REF_NAME"
                     echo "docs already current after a concurrent run, nothing to push"
+                    pushed=1
                     break
                   fi
                   sleep $(( (RANDOM % 5) + 2 ))
                 done
+                if [ "$pushed" = 0 ]; then
+                  echo "docs push did not land in 5 attempts; this is not the race the retries cover, failing the step"
+                  exit 1
+                fi
               else
                 echo "Not on master branch (currently: $GITHUB_REF_NAME): skipping commit because otherwise we may be in detached head"
               fi
