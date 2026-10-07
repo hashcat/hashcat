@@ -248,11 +248,29 @@ char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_con
   return unit_buf->unit_info_buf;
 }
 
+static bool is_same_argon2_options (const argon2id_hybrid_t *options1, const argon2id_hybrid_t *options2)
+{
+  if (options1->iterations          != options2->iterations)          return false;
+  if (options1->parallelism         != options2->parallelism)         return false;
+  if (options1->memory_usage_in_kib != options2->memory_usage_in_kib) return false;
+
+  return true;
+}
+
 bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   remote_t *remote = platform_context;
 
   argon2id_hybrid_t *esalts_buf = (argon2id_hybrid_t *) hashes->esalts_buf;
+
+  for (u32 salt_idx = 1; salt_idx < hashes->salts_cnt; salt_idx++)
+  {
+    if (!is_same_argon2_options (&esalts_buf[0], &esalts_buf[salt_idx]))
+    {
+      event_log_error (hashcat_ctx, "Remote bridge does not support multi-hash with different argon2id parameters."); 
+      return false;
+    } 
+  }
 
   argon2id_hybrid_t *argon2id_hybrid = &esalts_buf[0];
 
