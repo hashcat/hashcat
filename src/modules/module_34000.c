@@ -178,6 +178,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_iter = argon2_options->iterations * ARGON2_SYNC_POINTS;
   salt->salt_dimy = argon2_options->parallelism;
 
+  // Hashes are grouped by salt, and sort_by_salt () compares only the salt string, salt_iter and
+  // salt_buf_pc. salt_iter carries t, and the memory cost and the parallelism go into salt_buf_pc,
+  // which the kernel does not read, so 2 hashes that share a salt string but differ in m or p stay
+  // separate salts.
+
+  salt->salt_buf_pc[0] = argon2_options->memory_usage_in_kib;
+  salt->salt_buf_pc[1] = argon2_options->parallelism;
+
   // base64_decode writes ceil (in_len / 4) * 3 bytes, which is more than the length it returns.
   // The salt token reaches 344 characters and the target hash token 173, so the writes reach
   // 258 and 132 bytes. Decode through a buffer that can hold the whole write.
