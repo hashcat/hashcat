@@ -47,6 +47,19 @@ KERNEL_FQ KERNEL_FA void m00030_mxx (KERN_ATTR_VECTOR ())
     s[idx] = salt_bufs[SALT_POS_HOST].salt_buf[idx];
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
@@ -77,13 +90,44 @@ KERNEL_FQ KERNEL_FA void m00030_mxx (KERN_ATTR_VECTOR ())
 
     md5_ctx_vector_t ctx;
 
-    md5_init_vector (&ctx);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      md5_init_vector (&ctx);
 
-    md5_update_vector_utf16le (&ctx, w, pw_len);
+      md5_update_vector_utf16le (&ctx, w, pw_len);
 
-    md5_update_vector (&ctx, s, salt_len);
+      md5_update_vector (&ctx, s, salt_len);
 
-    md5_final_vector (&ctx);
+      md5_final_vector (&ctx);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        u32 st[64] = { 0 };
+
+        hc_vector_get_lane (st, s, salt_len, 0);
+
+        md5_ctx_t lctx;
+
+        md5_init (&lctx);
+
+        md5_update_utf16le (&lctx, t, pw_len);
+
+        md5_update (&lctx, st, salt_len);
+
+        md5_final (&lctx);
+
+        hc_vector_set_lane (ctx.h, lctx.h, 4, lane);
+      }
+    }
 
     #endif
 
@@ -141,6 +185,19 @@ KERNEL_FQ KERNEL_FA void m00030_sxx (KERN_ATTR_VECTOR ())
     s[idx] = salt_bufs[SALT_POS_HOST].salt_buf[idx];
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
@@ -171,13 +228,44 @@ KERNEL_FQ KERNEL_FA void m00030_sxx (KERN_ATTR_VECTOR ())
 
     md5_ctx_vector_t ctx;
 
-    md5_init_vector (&ctx);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      md5_init_vector (&ctx);
 
-    md5_update_vector_utf16le (&ctx, w, pw_len);
+      md5_update_vector_utf16le (&ctx, w, pw_len);
 
-    md5_update_vector (&ctx, s, salt_len);
+      md5_update_vector (&ctx, s, salt_len);
 
-    md5_final_vector (&ctx);
+      md5_final_vector (&ctx);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        u32 st[64] = { 0 };
+
+        hc_vector_get_lane (st, s, salt_len, 0);
+
+        md5_ctx_t lctx;
+
+        md5_init (&lctx);
+
+        md5_update_utf16le (&lctx, t, pw_len);
+
+        md5_update (&lctx, st, salt_len);
+
+        md5_final (&lctx);
+
+        hc_vector_set_lane (ctx.h, lctx.h, 4, lane);
+      }
+    }
 
     #endif
 

@@ -72,6 +72,19 @@ KERNEL_FQ KERNEL_FA void m31300_mxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
@@ -100,11 +113,36 @@ KERNEL_FQ KERNEL_FA void m31300_mxx (KERN_ATTR_VECTOR ())
 
     md4_ctx_vector_t ctx0;
 
-    md4_init_vector (&ctx0);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      md4_init_vector (&ctx0);
 
-    md4_update_vector_utf16le (&ctx0, w, pw_len);
+      md4_update_vector_utf16le (&ctx0, w, pw_len);
 
-    md4_final_vector (&ctx0);
+      md4_final_vector (&ctx0);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        md4_ctx_t lctx0;
+
+        md4_init (&lctx0);
+
+        md4_update_utf16le (&lctx0, t, pw_len);
+
+        md4_final (&lctx0);
+
+        hc_vector_set_lane (ctx0.h, lctx0.h, 4, lane);
+      }
+    }
 
     #endif
 
@@ -218,6 +256,19 @@ KERNEL_FQ KERNEL_FA void m31300_sxx (KERN_ATTR_VECTOR ())
     w[idx] = pws[gid].i[idx];
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
@@ -246,11 +297,36 @@ KERNEL_FQ KERNEL_FA void m31300_sxx (KERN_ATTR_VECTOR ())
 
     md4_ctx_vector_t ctx0;
 
-    md4_init_vector (&ctx0);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      md4_init_vector (&ctx0);
 
-    md4_update_vector_utf16le (&ctx0, w, pw_len);
+      md4_update_vector_utf16le (&ctx0, w, pw_len);
 
-    md4_final_vector (&ctx0);
+      md4_final_vector (&ctx0);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        md4_ctx_t lctx0;
+
+        md4_init (&lctx0);
+
+        md4_update_utf16le (&lctx0, t, pw_len);
+
+        md4_final (&lctx0);
+
+        hc_vector_set_lane (ctx0.h, lctx0.h, 4, lane);
+      }
+    }
 
     #endif
 

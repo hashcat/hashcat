@@ -1153,4 +1153,9 @@ DECLSPEC void combs_piece8_VV (GLOBAL_AS const pw_t *arr, const u32 il_pos, cons
 
 DECLSPEC void combs_fold_VV (PRIVATE_AS u32x *wl0, PRIVATE_AS u32x *wl1, PRIVATE_AS u32x *wl2, PRIVATE_AS u32x *wl3, PRIVATE_AS const u32x *wr0, PRIVATE_AS const u32x *wr1, PRIVATE_AS const u32x *wr2, PRIVATE_AS const u32x *wr3);
 
+DECLSPEC bool hc_vector_is_zero (const u32x v);
+DECLSPEC void hc_vector_get_lane (PRIVATE_AS u32 *dst, PRIVATE_AS const u32x *src, const int len, const int lane);
+DECLSPEC void hc_vector_set_lane (PRIVATE_AS u32x *dst, PRIVATE_AS const u32 *src, const int cnt, const int lane);
+DECLSPEC void hc_vector_set_lane_64 (PRIVATE_AS u64x *dst, PRIVATE_AS const u64 *src, const int cnt, const int lane);
+
 #endif

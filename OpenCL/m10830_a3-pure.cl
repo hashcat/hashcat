@@ -47,6 +47,19 @@ KERNEL_FQ KERNEL_FA void m10830_mxx (KERN_ATTR_VECTOR ())
     s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
@@ -94,13 +107,46 @@ KERNEL_FQ KERNEL_FA void m10830_mxx (KERN_ATTR_VECTOR ())
 
     sha384_ctx_vector_t ctx;
 
-    sha384_init_vector (&ctx);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      sha384_init_vector (&ctx);
 
-    sha384_update_vector_utf16beN (&ctx, w, pw_len);
+      sha384_update_vector_utf16beN (&ctx, w, pw_len);
 
-    sha384_update_vector (&ctx, s, salt_len);
+      sha384_update_vector (&ctx, s, salt_len);
 
-    sha384_final_vector (&ctx);
+      sha384_final_vector (&ctx);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) t[idx] = hc_swap32_S (t[idx]);
+
+        u32 st[64] = { 0 };
+
+        hc_vector_get_lane (st, s, salt_len, 0);
+
+        sha384_ctx_t lctx;
+
+        sha384_init (&lctx);
+
+        sha384_update_utf16le_swap (&lctx, t, pw_len);
+
+        sha384_update (&lctx, st, salt_len);
+
+        sha384_final (&lctx);
+
+        hc_vector_set_lane_64 (ctx.h, lctx.h, 8, lane);
+      }
+    }
 
     #endif
 
@@ -158,6 +204,19 @@ KERNEL_FQ KERNEL_FA void m10830_sxx (KERN_ATTR_VECTOR ())
     s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
@@ -205,13 +264,46 @@ KERNEL_FQ KERNEL_FA void m10830_sxx (KERN_ATTR_VECTOR ())
 
     sha384_ctx_vector_t ctx;
 
-    sha384_init_vector (&ctx);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      sha384_init_vector (&ctx);
 
-    sha384_update_vector_utf16beN (&ctx, w, pw_len);
+      sha384_update_vector_utf16beN (&ctx, w, pw_len);
 
-    sha384_update_vector (&ctx, s, salt_len);
+      sha384_update_vector (&ctx, s, salt_len);
 
-    sha384_final_vector (&ctx);
+      sha384_final_vector (&ctx);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) t[idx] = hc_swap32_S (t[idx]);
+
+        u32 st[64] = { 0 };
+
+        hc_vector_get_lane (st, s, salt_len, 0);
+
+        sha384_ctx_t lctx;
+
+        sha384_init (&lctx);
+
+        sha384_update_utf16le_swap (&lctx, t, pw_len);
+
+        sha384_update (&lctx, st, salt_len);
+
+        sha384_final (&lctx);
+
+        hc_vector_set_lane_64 (ctx.h, lctx.h, 8, lane);
+      }
+    }
 
     #endif
 

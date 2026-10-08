@@ -209,3 +209,39 @@ DECLSPEC u32x pwlenx_create_combsum (GLOBAL_AS const pw_t *arr, const u32 il_pos
 
   return sum;
 }
+
+// The vector UTF-16 updates widen every byte, while the scalar ones decode UTF-8 first. The two agree
+// only while no lane holds a byte above 0x7f, so a kernel tests that before it takes the vector path.
+
+DECLSPEC bool hc_vector_is_zero (const u32x v)
+{
+  #ifdef IS_OPENCL
+  const bool r = (any (v != 0) == 0);
+  #else
+  u32 lanes = 0;
+
+  for (int lane = 0; lane < VECT_SIZE; lane++) lanes |= VECTOR_ELEMENT (v, lane);
+
+  const bool r = (lanes == 0);
+  #endif
+
+  return r;
+}
+
+DECLSPEC void hc_vector_get_lane (PRIVATE_AS u32 *dst, PRIVATE_AS const u32x *src, const int len, const int lane)
+{
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1) dst[idx] = VECTOR_ELEMENT (src[idx], lane);
+}
+
+// u32x is a vector type, or on CUDA and HIP a struct of VECT_SIZE u32 members, so in both cases lane
+// n of element i is the n-th u32 at &dst[i].
+
+DECLSPEC void hc_vector_set_lane (PRIVATE_AS u32x *dst, PRIVATE_AS const u32 *src, const int cnt, const int lane)
+{
+  for (int i = 0; i < cnt; i++) ((PRIVATE_AS u32 *) &dst[i])[lane] = src[i];
+}
+
+DECLSPEC void hc_vector_set_lane_64 (PRIVATE_AS u64x *dst, PRIVATE_AS const u64 *src, const int cnt, const int lane)
+{
+  for (int i = 0; i < cnt; i++) ((PRIVATE_AS u64 *) &dst[i])[lane] = src[i];
+}
