@@ -7,9 +7,12 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 
-# MSSQL (2005): the password widened to UTF-16LE byte by byte, then the 4 byte salt.
+# MSSQL (2005): the password in UTF-16LE, then the 4 byte salt. The two kernel families convert the
+# password to UTF-16 differently, see kernel_charset ().
+
+CHARSET = kernel_charset()
 
 
 def module_constraints():
@@ -17,7 +20,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  wide = word.decode("latin-1").encode("utf-16-le")
+  wide = utf16le(word, CHARSET)
 
   digest = hashlib.sha1(wide + bytes.fromhex(salt)).hexdigest()
 

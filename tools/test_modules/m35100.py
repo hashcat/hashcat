@@ -10,9 +10,7 @@ import hashlib
 from lib import shacrypt
 
 # sm3crypt: the sha256crypt construction over ShangMi 3, which OpenSSL provides to hashlib by name.
-#
-# There is no pure kernel: OpenCL/ carries only m35100-optimized.cl, so hashcat falls back to it even
-# under -P and module_pw_max () then caps the password at 15.
+# The optimized kernel takes a password of at most 15 bytes, see module_pw_max ().
 
 
 def sm3(data):
@@ -20,7 +18,7 @@ def sm3(data):
 
 
 def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 15], [0, 20], [-1, -1]]
+  return [[0, 256], [0, 20], [0, 15], [0, 20], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -356,11 +356,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     esalt->mode,
     esalt->segment + 1,
     esalt->lfsr_type,
-    esalt->erndb0, esalt->erndb1,
-    esalt->iv0, esalt->iv1,
-    esalt->ct0, esalt->ct1,
-    esalt->k1_0, esalt->k1_1,
-    esalt->k2_0, esalt->k2_1);
+    byte_swap_32 (esalt->erndb0), byte_swap_32 (esalt->erndb1),
+    byte_swap_32 (esalt->iv0),    byte_swap_32 (esalt->iv1),
+    byte_swap_32 (esalt->ct0),    byte_swap_32 (esalt->ct1),
+    byte_swap_32 (esalt->k1_0),   byte_swap_32 (esalt->k1_1),
+    byte_swap_32 (esalt->k2_0),   byte_swap_32 (esalt->k2_1));
 
   return out_len;
 }

@@ -8,9 +8,12 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 
-# PeopleSoft: base64 of SHA-1 over the password widened to UTF-16LE byte by byte.
+# PeopleSoft: base64 of SHA-1 over the password in UTF-16LE. The two kernel families convert the
+# password to UTF-16 differently, see kernel_charset ().
+
+CHARSET = kernel_charset()
 
 
 def module_constraints():
@@ -18,7 +21,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  wide = word.decode("latin-1").encode("utf-16-le")
+  wide = utf16le(word, CHARSET)
 
   return base64.b64encode(hashlib.sha1(wide).digest()).decode()
 

@@ -12,7 +12,7 @@ import hashlib
 
 
 def module_constraints():
-  return [[0, 256], [1, 10], [-1, -1], [-1, -1], [-1, -1]]
+  return [[0, 256], [1, 10], [0, 16], [1, 10], [-1, -1]]
 
 
 def as400_ssha1(username, password):

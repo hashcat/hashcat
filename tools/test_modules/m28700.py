@@ -15,7 +15,7 @@ from lib.test_helpers import random_hex_string, split_hash_word
 
 
 def module_constraints():
-  return [[0, 256], [8, 16], [-1, -1], [-1, -1], [-1, -1]]
+  return [[0, 252], [8, 16], [0, 51], [8, 16], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, region="us-east-1", service="s3", canonical=None):

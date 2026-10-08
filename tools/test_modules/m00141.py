@@ -9,10 +9,13 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 
-# EPiServer 6.x (v<4): SHA1 over the salt and the password widened to UTF-16LE byte by
-# byte, both base64 encoded, the digest cut to 27 characters.
+# EPiServer 6.x (v<4): SHA1 over the salt and the password in UTF-16LE, both base64 encoded, the
+# digest cut to 27 characters. The two kernel families convert the password to UTF-16 differently,
+# see kernel_charset ().
+
+CHARSET = kernel_charset()
 
 
 def module_constraints():
@@ -22,7 +25,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   salt_bytes = salt.encode("latin-1")
 
-  digest = hashlib.sha1(salt_bytes + word.decode("latin-1").encode("utf-16-le")).digest()
+  digest = hashlib.sha1(salt_bytes + utf16le(word, CHARSET)).digest()
 
   return "$episerver$*0*%s*%s" % (base64.b64encode(salt_bytes).decode(), base64.b64encode(digest).decode()[:27])
 

@@ -850,7 +850,15 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
   }
   else
   {
-    const u32 outfile_format = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) ? 5 : outfile_ctx->outfile_format;
+    u32 outfile_format = outfile_ctx->outfile_format;
+
+    // A mode that always hexifies prints the password in hex in place of the plain field.
+    // Every other field stays as requested, so --left still prints the hash alone.
+
+    if ((hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) && (outfile_format & OUTFILE_FMT_PLAIN))
+    {
+      outfile_format = (outfile_format & ~OUTFILE_FMT_PLAIN) | OUTFILE_FMT_HEXPLAIN;
+    }
 
     if (user_len > 0)
     {

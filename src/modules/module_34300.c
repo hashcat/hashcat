@@ -255,6 +255,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_dimy = argon2_options->parallelism;
   salt->salt_len = hex_decode ((const u8 *) salt_pos, salt_len, (u8 *) salt->salt_buf);
 
+  // Hashes are grouped by salt, and sort_by_salt () compares only the salt string, salt_iter and
+  // salt_buf_pc. salt_iter carries t, and the memory cost and the parallelism go into salt_buf_pc,
+  // which the kernel does not read, so 2 hashes that share a salt string but differ in m or p stay
+  // separate salts.
+
+  salt->salt_buf_pc[0] = argon2_options->memory_usage_in_kib;
+  salt->salt_buf_pc[1] = argon2_options->parallelism;
+
   // 9. header
   const int header_len = token.len[9];
   const u8 *header_pos = token.buf[9];

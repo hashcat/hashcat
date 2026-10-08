@@ -223,7 +223,7 @@ KERNEL_FQ KERNEL_FA void m11700_m04 (KERN_ATTR_RULES ())
     z[4] = 0;
     z[5] = 0;
     z[6] = 0;
-    z[7] = hc_swap64 ((u64) (pw_len * 8));
+    z[7] = hc_swap64 ((u64) (out_len * 8));
 
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
@@ -393,7 +393,7 @@ KERNEL_FQ KERNEL_FA void m11700_s04 (KERN_ATTR_RULES ())
     z[4] = 0;
     z[5] = 0;
     z[6] = 0;
-    z[7] = hc_swap64 ((u64) (pw_len * 8));
+    z[7] = hc_swap64 ((u64) (out_len * 8));
 
     streebog_g (h, z, s_sbob_sl64);
     streebog_g (h, m, s_sbob_sl64);
