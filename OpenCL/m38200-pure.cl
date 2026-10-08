@@ -18,11 +18,11 @@
 
 #define md5crypt_magic 0x00243124u
 
-// byte p into word-packed array a, little-endian within each u32 -- same convention pws[].i uses
+// byte p into word-packed array a, little-endian within each u32, the same convention pws[].i uses
 
 #define PUTCHAR_LE(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xffu << (((p) & 3) * 8))) | ((u32) (c) << (((p) & 3) * 8))))
 
-CONSTANT_AS u8 CISCO9301_ITOA64[64] =
+CONSTANT_VK u8 CISCO38200_ITOA64[64] =
 {
   '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
@@ -31,12 +31,12 @@ CONSTANT_AS u8 CISCO9301_ITOA64[64] =
   'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
 };
 
-DECLSPEC u8 cisco9301_itoa64 (const u32 v)
+DECLSPEC u8 cisco38200_itoa64 (const u32 v)
 {
-  return CISCO9301_ITOA64[v & 0x3f];
+  return CISCO38200_ITOA64[v & 0x3f];
 }
 
-typedef struct cisco9301_tmp
+typedef struct cisco38200_tmp
 {
   u32 digest_buf[4]; // md5crypt (Type 5) running / final digest
   u32 pw_buf[8];     // assembled "$1$<salt>$<hash>" string fed to scrypt as its password
@@ -48,9 +48,9 @@ typedef struct cisco9301_tmp
   u32 in[SCRYPT_TMP_ELEM / 2];
   u32 out[SCRYPT_TMP_ELEM / 2];
 
-} cisco9301_tmp_t;
+} cisco38200_tmp_t;
 
-KERNEL_FQ KERNEL_FA void m09301_init (KERN_ATTR_TMPS (cisco9301_tmp_t))
+KERNEL_FQ KERNEL_FA void m38200_init (KERN_ATTR_TMPS (cisco38200_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -139,7 +139,7 @@ KERNEL_FQ KERNEL_FA void m09301_init (KERN_ATTR_TMPS (cisco9301_tmp_t))
   tmps[gid].digest_buf[3] = md5_ctx.h[3];
 }
 
-KERNEL_FQ KERNEL_FA void m09301_loop (KERN_ATTR_TMPS (cisco9301_tmp_t))
+KERNEL_FQ KERNEL_FA void m38200_loop (KERN_ATTR_TMPS (cisco38200_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -218,7 +218,7 @@ KERNEL_FQ KERNEL_FA void m09301_loop (KERN_ATTR_TMPS (cisco9301_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-KERNEL_FQ KERNEL_FA void m09301_init2 (KERN_ATTR_TMPS (cisco9301_tmp_t))
+KERNEL_FQ KERNEL_FA void m38200_init2 (KERN_ATTR_TMPS (cisco38200_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -252,22 +252,22 @@ KERNEL_FQ KERNEL_FA void m09301_init2 (KERN_ATTR_TMPS (cisco9301_tmp_t))
   int l;
 
   l = (d[0] << 16) | (d[6] << 8) | d[12];
-  enc[0] = cisco9301_itoa64 (l); l >>= 6; enc[1] = cisco9301_itoa64 (l); l >>= 6; enc[2] = cisco9301_itoa64 (l); l >>= 6; enc[3] = cisco9301_itoa64 (l);
+  enc[0] = cisco38200_itoa64 (l); l >>= 6; enc[1] = cisco38200_itoa64 (l); l >>= 6; enc[2] = cisco38200_itoa64 (l); l >>= 6; enc[3] = cisco38200_itoa64 (l);
 
   l = (d[1] << 16) | (d[7] << 8) | d[13];
-  enc[4] = cisco9301_itoa64 (l); l >>= 6; enc[5] = cisco9301_itoa64 (l); l >>= 6; enc[6] = cisco9301_itoa64 (l); l >>= 6; enc[7] = cisco9301_itoa64 (l);
+  enc[4] = cisco38200_itoa64 (l); l >>= 6; enc[5] = cisco38200_itoa64 (l); l >>= 6; enc[6] = cisco38200_itoa64 (l); l >>= 6; enc[7] = cisco38200_itoa64 (l);
 
   l = (d[2] << 16) | (d[8] << 8) | d[14];
-  enc[8] = cisco9301_itoa64 (l); l >>= 6; enc[9] = cisco9301_itoa64 (l); l >>= 6; enc[10] = cisco9301_itoa64 (l); l >>= 6; enc[11] = cisco9301_itoa64 (l);
+  enc[8] = cisco38200_itoa64 (l); l >>= 6; enc[9] = cisco38200_itoa64 (l); l >>= 6; enc[10] = cisco38200_itoa64 (l); l >>= 6; enc[11] = cisco38200_itoa64 (l);
 
   l = (d[3] << 16) | (d[9] << 8) | d[15];
-  enc[12] = cisco9301_itoa64 (l); l >>= 6; enc[13] = cisco9301_itoa64 (l); l >>= 6; enc[14] = cisco9301_itoa64 (l); l >>= 6; enc[15] = cisco9301_itoa64 (l);
+  enc[12] = cisco38200_itoa64 (l); l >>= 6; enc[13] = cisco38200_itoa64 (l); l >>= 6; enc[14] = cisco38200_itoa64 (l); l >>= 6; enc[15] = cisco38200_itoa64 (l);
 
   l = (d[4] << 16) | (d[10] << 8) | d[5];
-  enc[16] = cisco9301_itoa64 (l); l >>= 6; enc[17] = cisco9301_itoa64 (l); l >>= 6; enc[18] = cisco9301_itoa64 (l); l >>= 6; enc[19] = cisco9301_itoa64 (l);
+  enc[16] = cisco38200_itoa64 (l); l >>= 6; enc[17] = cisco38200_itoa64 (l); l >>= 6; enc[18] = cisco38200_itoa64 (l); l >>= 6; enc[19] = cisco38200_itoa64 (l);
 
   l = d[11];
-  enc[20] = cisco9301_itoa64 (l); l >>= 6; enc[21] = cisco9301_itoa64 (l);
+  enc[20] = cisco38200_itoa64 (l); l >>= 6; enc[21] = cisco38200_itoa64 (l);
 
   // assemble "$1$<type5 salt>$<enc>", zero padded, into tmps[gid].pw_buf
 
@@ -312,7 +312,7 @@ KERNEL_FQ KERNEL_FA void m09301_init2 (KERN_ATTR_TMPS (cisco9301_tmp_t))
   scrypt_blockmix_in (tmps[gid].in, tmps[gid].out, SCRYPT_SZ);
 }
 
-KERNEL_FQ KERNEL_FA void m09301_loop2_prepare (KERN_ATTR_TMPS (cisco9301_tmp_t))
+KERNEL_FQ KERNEL_FA void m38200_loop2_prepare (KERN_ATTR_TMPS (cisco38200_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -328,7 +328,7 @@ KERNEL_FQ KERNEL_FA void m09301_loop2_prepare (KERN_ATTR_TMPS (cisco9301_tmp_t))
   scrypt_smix_init (P, X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
 }
 
-KERNEL_FQ KERNEL_FA void m09301_loop2 (KERN_ATTR_TMPS (cisco9301_tmp_t))
+KERNEL_FQ KERNEL_FA void m38200_loop2 (KERN_ATTR_TMPS (cisco38200_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -345,7 +345,7 @@ KERNEL_FQ KERNEL_FA void m09301_loop2 (KERN_ATTR_TMPS (cisco9301_tmp_t))
   scrypt_smix_loop (P, X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
 }
 
-KERNEL_FQ KERNEL_FA void m09301_comp (KERN_ATTR_TMPS (cisco9301_tmp_t))
+KERNEL_FQ KERNEL_FA void m38200_comp (KERN_ATTR_TMPS (cisco38200_tmp_t))
 {
   const u64 gid = get_global_id (0);
 

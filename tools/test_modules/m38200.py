@@ -12,7 +12,7 @@ from lib.md5crypt import md5_crypt
 from lib.test_helpers import random_mixedcase_string, split_hash_word
 
 # Cisco IOS XE "convoluted Type 9": $14$<type5 salt>$<type9 salt>$<digest>.
-# scrypt(md5_crypt(password, type5_salt), type9_salt, N=16384, r=1, p=1) -- IOS XE
+# scrypt(md5_crypt(password, type5_salt), type9_salt, N=16384, r=1, p=1). IOS XE
 # auto-converts a Type 5 (MD5-crypt) secret to this on upgrade to Gibraltar 16.12.x+,
 # running scrypt over the existing Type 5 hash string because the plaintext is gone.
 
