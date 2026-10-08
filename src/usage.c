@@ -95,6 +95,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -b, --benchmark                |      | Run benchmark of selected hash-modes                 |",
   " -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |",
   "     --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |",
+  "     --benchmark-json           |      | Enable JSON format for benchmark output (requires -b)|",
   "     --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100",
   "     --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",

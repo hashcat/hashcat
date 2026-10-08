@@ -681,7 +681,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->benchmark == true)
   {
-    if ((user_options->machine_readable == false) && (user_options->json == false))
+    if ((user_options->machine_readable == false) && (user_options->benchmark_json == false))
     {
       char buf[HCBUFSIZ_TINY] = { 0 };
 

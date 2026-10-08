@@ -4964,10 +4964,11 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  // Benchmark never had a JSON form before, so only the --json umbrella turns it on.
-  // Keying off status_json instead would change what plain --status-json does with -b.
+  // --benchmark-json is the dedicated switch; --json turns it on too (see
+  // user_options_postprocess). status_json is deliberately not consulted here, so plain
+  // --status-json keeps printing the human benchmark it always did.
 
-  if (user_options->json == true)
+  if (user_options->benchmark_json == true)
   {
     status_benchmark_json (hashcat_ctx);
 

@@ -994,6 +994,7 @@ typedef enum user_options_defaults
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST  = 1,
   BENCHMARK_ALL             = false,
+  BENCHMARK_JSON            = false,
   BENCHMARK_MAX             = 99999,
   BENCHMARK_MIN             = 0,
   BENCHMARK_PURE            = false,
@@ -1120,6 +1121,7 @@ typedef enum user_options_map
   IDX_BACKEND_INFO              = 'I',
   IDX_BACKEND_VECTOR_WIDTH      = 0xff05,
   IDX_BENCHMARK_ALL             = 0xff06,
+  IDX_BENCHMARK_JSON            = 0xff8e,
   IDX_BENCHMARK_MAX             = 0xff56,
   IDX_BENCHMARK_MIN             = 0xff57,
   IDX_BENCHMARK_PURE            = 'B',
@@ -2860,6 +2862,7 @@ typedef struct user_options
   bool         advice;
   bool         benchmark;
   bool         benchmark_all;
+  bool         benchmark_json;
   bool         benchmark_pure;
   #ifdef WITH_BRAIN
   bool         brain_client;
