@@ -303,6 +303,7 @@ endif
 
 ifeq ($(PRODUCTION),1)
 VERSION_TAG             := $(PRODUCTION_VERSION)
+VERSION_NUM             := 0,0,0,0
 else
 VERSION_TAG             := $(shell git describe --tags --dirty=+ || echo $(PRODUCTION_VERSION))
 
