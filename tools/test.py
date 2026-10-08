@@ -1839,6 +1839,12 @@ def multi_len_params(mode):
     min_len = 7
   elif mode == 22000:
     min_len = 7
+  elif mode in (9710, 9810, 10410):
+    # Collider #1: the candidate is the 5 byte RC4 key, the only length the oracle makes. Without
+    # a fixed length every slot but one asks for a length the mode has no vector for, so the multi
+    # run feeds hashcat an empty hash file and, once the empty tail mask is dropped, no mask either,
+    # which hashcat rejects. Pin every slot to length 5 so each builds a valid run.
+    fixed_len = 5
   elif mode == 33500:
     fixed_len = 5
   elif mode == 33501:
