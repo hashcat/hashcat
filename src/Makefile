@@ -752,6 +752,7 @@ endif # CYGWIN
 ifeq ($(UNAME),MSYS2)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
+CFLAGS_NATIVE           += -DWINVER=0x0601 -D_WIN32_WINNT=0x0601
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -lws2_32
