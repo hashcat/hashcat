@@ -205,8 +205,9 @@ jobs:
               case "${opts}" in *-P) kind=pure ;; *) kind=opt ;; esac
               log="testpy_${mode}_${kind}.log"
 
-              # The runner shell is 'bash -e', so capture the exit code through an if rather than a
-              # bare command, or the first failing mode would end the step before the rest run.
+              # Capture the exit code through an if so rc is kept for the annotation and the job
+              # summary below. bash -e does not abort on a command that is an if condition, so the
+              # loop still runs every mode.
               # shellcheck disable=SC2086
               if python3 tools/test.py -m "${mode}" ${opts} -D 1 -f > "${log}" 2>&1; then
                 rc=0
@@ -224,14 +225,14 @@ jobs:
                 # A red run should name the failure, not just its exit code. Pull the worker's own
                 # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
                 # into an annotation and the job summary.
-                reason=$(grep -m1 -E '> Error :|oracle failed|did not round trip' "${log}" | sed 's/^[[:space:]]*//' || true)
+                reason=$(grep -m1 -E '> (Error|Fault|Compare Error) :|oracle failed|did not round trip' "${log}" | sed 's/^[[:space:]]*//' || true)
                 echo "::error title=test.py failed on mode ${mode} (${kind})::${reason:-see the job summary}"
 
                 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
                   {
                     echo "### mode ${mode} (${kind}) failed: test.py -m ${mode} ${opts} (exit ${rc})"
                     echo '```'
-                    grep -E '> (OK|Error) :|oracle failed|did not round trip|not found|not matched|Traceback' "${log}" | head -n 40 || true
+                    grep -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback' "${log}" | head -n 40 || true
                     echo '```'
                   } >> "${GITHUB_STEP_SUMMARY}"
                 fi
