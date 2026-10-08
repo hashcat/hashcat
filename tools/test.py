@@ -1847,6 +1847,14 @@ def multi_len_params(mode):
   elif mode == 33502:
     min_len   = 5
     fixed_len = 13
+  elif mode == 37400:
+    # pw_min is 9, so a length slot below it produces no vector and the multi run would feed
+    # hashcat an empty hash file. Pin every slot to a valid length, and push the split toward the
+    # tail so the mask the hybrid runs brute force stays one digit rather than the whole word. The
+    # offset is 4 so the slot the a6/a12 multi runs (its head is 8 of the 9 bytes) still leaves a
+    # one byte tail for the mask, since an empty mask would drop the argument and fail the run.
+    min_len   = 4
+    fixed_len = 9
 
   return min_len, fixed_len
 
@@ -2035,6 +2043,10 @@ def a6_multi_params(mode):
   elif mode == 33500:
     min_i = 5
   elif mode in (33501, 33502):
+    min_i = 8
+  elif mode == 37400:
+    # pw_min 9: run only the longest slot (head 8 of the 9 bytes, one digit in the mask) so the
+    # hybrid does not brute force a long run of digits over a slow DES hash.
     min_i = 8
 
   if is_timeout(mode):
@@ -2266,6 +2278,10 @@ def a7_multi_max(mode):
   elif mode in (14000, 14100, 14900, 15400, 16800, 22000):
     max_i = 5
   elif mode in (33501, 33502):
+    max_i = 3
+  elif mode == 37400:
+    # pw_min 9: keep the mask-on-the-left run to the shortest slot so the brute forced head stays a
+    # few digits over a slow DES hash.
     max_i = 3
 
   if is_timeout(mode):
