@@ -107,6 +107,7 @@ static const struct option long_options[] =
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
   {"increment-inverse",         no_argument,       NULL, IDX_INCREMENT_INVERSE},
   {"induction-dir",             required_argument, NULL, IDX_INDUCTION_DIR},
+  {"json",                      no_argument,       NULL, IDX_JSON},
   {"keep-guessing",             no_argument,       NULL, IDX_KEEP_GUESSING},
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, NULL, IDX_KERNEL_LOOPS},
@@ -280,6 +281,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->increment_max              = INCREMENT_MAX;
   user_options->increment_min              = INCREMENT_MIN;
   user_options->induction_dir              = NULL;
+  user_options->json                       = JSON;
   user_options->keep_guessing              = KEEP_GUESSING;
   user_options->kernel_accel               = KERNEL_ACCEL;
   user_options->kernel_loops               = KERNEL_LOOPS;
@@ -500,6 +502,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ENCODING_FROM:             user_options->encoding_from             = optarg;                          break;
       case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;                          break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
+      case IDX_JSON:                      user_options->json                      = true;                            break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
       case IDX_HASH_INFO:                 user_options->hash_info++;                                                 break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
@@ -1673,6 +1676,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->status_json == true)
     {
       event_log_error (hashcat_ctx, "The --status-json flag can not be used with --machine-readable.");
+
+      return -1;
+    }
+
+    if (user_options->json == true)
+    {
+      event_log_error (hashcat_ctx, "The --json flag can not be used with --machine-readable.");
 
       return -1;
     }
@@ -3317,6 +3327,18 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // --json is the umbrella switch: it turns on the per-surface JSON flags so every
+  // output goes out as JSON. The surfaces that key off machine_readable (hash-info,
+  // backend-info) and the ones with no dedicated flag (benchmark, keyspace, identify)
+  // read user_options->json directly. --show is reached before this runs, so its
+  // explicit --outfile-json guard still rejects that pairing while allowing --json.
+
+  if (user_options->json == true)
+  {
+    user_options->status_json  = true;
+    user_options->outfile_json = true;
+  }
 
   // automatic status
 
@@ -5107,6 +5129,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->speed_only);
   logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->json);
   logfile_top_uint   (user_options->status_json);
   logfile_top_uint   (user_options->status_timer);
   logfile_top_uint   (user_options->stdout_flag);

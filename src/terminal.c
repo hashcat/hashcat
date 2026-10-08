@@ -1628,7 +1628,12 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->machine_readable == false)
+  // JSON here is selected by --machine-readable (its historic meaning for hash-info)
+  // or by the --json umbrella flag.
+
+  const bool json_output = (user_options->machine_readable == true) || (user_options->json == true);
+
+  if (json_output == false)
   {
     event_log_info (hashcat_ctx, "Hash Info:");
     event_log_info (hashcat_ctx, "==========");
@@ -1637,7 +1642,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hash_mode_chgd == true)
   {
-    if (user_options->machine_readable == true)
+    if (json_output == true)
     {
       printf ("{ ");
       hash_info_single_json (hashcat_ctx, user_options_extra);
@@ -1652,7 +1657,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   {
     char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    if (user_options->machine_readable == true) printf ("{ ");
+    if (json_output == true) printf ("{ ");
 
     for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
@@ -1662,7 +1667,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
-      if (user_options->machine_readable == true)
+      if (json_output == true)
       {
         if (i != 0)
         {
@@ -1677,7 +1682,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (user_options->machine_readable == true) printf (" }");
+    if (json_output == true) printf (" }");
 
     hcfree (modulefile);
   }
@@ -1888,7 +1893,12 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
-  if (user_options->machine_readable == true)
+  // JSON here is selected by --machine-readable (its historic meaning for -I) or by
+  // the --json umbrella flag, so both drive the machine-readable layout below.
+
+  const bool machine_readable = (user_options->machine_readable == true) || (user_options->json == true);
+
+  if (machine_readable == true)
   {
     printf ("{ ");
   }
@@ -1900,7 +1910,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   //
   // Left out of --machine-readable, which emits JSON here and would be broken by plain lines.
 
-  if (user_options->machine_readable == false)
+  if (machine_readable == false)
   {
     bridge_units_info (hashcat_ctx);
 
@@ -1940,7 +1950,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_info > 1)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "System Info:");
       event_log_info (hashcat_ctx, "============");
@@ -1992,7 +2002,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
                osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber);
     }
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "OS.Name......: Windows");
       event_log_info (hashcat_ctx, "OS.Release...: %s", release_buf);
@@ -2072,7 +2082,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       rc_uname = true;
     }
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
       event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
@@ -2096,7 +2106,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     #endif // _WIN || __CYGWIN__ || __MSYS__
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, NULL);
 
@@ -2141,7 +2151,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->cuda && cuda_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "CUDA Info:");
       event_log_info (hashcat_ctx, "==========");
@@ -2155,7 +2165,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
     int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "CUDA.Version.: %u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
       event_log_info (hashcat_ctx, NULL);
@@ -2179,7 +2189,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
       // goes in front of the next one rather than coming from an index that counts devices, not lines.
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
         if (cuda_emitted > 0) printf (", ");
 
@@ -2204,7 +2214,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
@@ -2216,7 +2226,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
         }
@@ -2226,7 +2236,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
@@ -2253,10 +2263,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"PCIAddrBDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       }
 
-      if (user_options->machine_readable == true) printf ("}");
+      if (machine_readable == true) printf ("}");
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
       printf (" ");
 
@@ -2273,7 +2283,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->hip && hip_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "HIP Info:");
       event_log_info (hashcat_ctx, "=========");
@@ -2293,7 +2303,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
       int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "HIP.Version.: %u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
         event_log_info (hashcat_ctx, NULL);
@@ -2305,7 +2315,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "HIP.Version.: %u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
         event_log_info (hashcat_ctx, NULL);
@@ -2316,7 +2326,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
       printf ("\"BackendDevices\": [ ");
     }
@@ -2334,7 +2344,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
       // goes in front of the next one rather than coming from an index that counts devices, not lines.
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
         if (hip_emitted > 0) printf (", ");
 
@@ -2359,7 +2369,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
@@ -2371,7 +2381,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
         }
@@ -2381,7 +2391,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
@@ -2408,10 +2418,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"PCIAddrBDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       }
 
-      if (user_options->machine_readable == true) printf ("}");
+      if (machine_readable == true) printf ("}");
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
       printf (" ");
 
@@ -2429,7 +2439,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   #if defined (__APPLE__)
   if (backend_ctx->mtl && metal_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "Metal Info:");
       event_log_info (hashcat_ctx, "===========");
@@ -2444,7 +2454,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
     char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "Metal.Runtime.Version.: %s", metal_runtimeVersionStr);
       event_log_info (hashcat_ctx, NULL);
@@ -2454,7 +2464,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       printf ("\"RuntimeVersion\": \"%s\", ", metal_runtimeVersionStr);
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
       printf ("\"BackendDevices\": [ ");
     }
@@ -2472,7 +2482,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
       // goes in front of the next one rather than coming from an index that counts devices, not lines.
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
         if (metal_emitted > 0) printf (", ");
 
@@ -2507,7 +2517,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
@@ -2519,7 +2529,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
         }
@@ -2529,7 +2539,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
         event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
@@ -2565,7 +2575,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       switch (device_physical_location)
       {
         case MTL_DEVICE_LOCATION_BUILTIN:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: built-in");
           }
@@ -2576,7 +2586,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           break;
         case MTL_DEVICE_LOCATION_SLOT:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %u", device_location_number);
           }
@@ -2587,7 +2597,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           break;
         case MTL_DEVICE_LOCATION_EXTERNAL:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %u)", device_location_number);
           }
@@ -2598,7 +2608,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           break;
         case MTL_DEVICE_LOCATION_UNSPECIFIED:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: unspecified");
           }
@@ -2609,7 +2619,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           break;
         default:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: N/A");
           }
@@ -2621,7 +2631,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
           break;
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
       }
@@ -2632,7 +2642,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "  Max.TX.Rate....: %u MB/sec", device_max_transfer_rate);
         }
@@ -2643,7 +2653,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
         }
@@ -2653,7 +2663,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  GPU.Properties.: headless %u, low-power %u, removable %u", device_is_headless, device_is_low_power, device_is_removable);
         event_log_info (hashcat_ctx, NULL);
@@ -2667,10 +2677,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("} ");
       }
 
-      if (user_options->machine_readable == true) printf ("}");
+      if (machine_readable == true) printf ("}");
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
       printf (" ");
 
@@ -2688,7 +2698,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->ocl && opencl_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "OpenCL Info:");
       event_log_info (hashcat_ctx, "============");
@@ -2715,7 +2725,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (opencl_platform_shown[opencl_platforms_idx] == 0) continue;
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
         if (opencl_platforms_emitted > 0) printf (", ");
 
@@ -2729,7 +2739,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
       cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "OpenCL Platform ID #%u", opencl_platforms_idx + 1);
         event_log_info (hashcat_ctx, "  Vendor..: %s",  opencl_platform_vendor);
@@ -2745,7 +2755,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"Version\": \"%s\", ", opencl_platform_version);
       }
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
         printf ("\"BackendDevices\": [ ");
       }
@@ -2763,7 +2773,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
         // goes in front of the next one rather than coming from an index that counts devices, not lines.
 
-        if (user_options->machine_readable == true)
+        if (machine_readable == true)
         {
           if (opencl_devices_emitted > 0) printf (", ");
 
@@ -2791,7 +2801,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->device_id_alias_cnt)
         {
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
           }
@@ -2803,7 +2813,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Backend Device ID #%02u", device_id + 1);
           }
@@ -2813,7 +2823,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
           event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
@@ -2857,7 +2867,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
-            if (user_options->machine_readable == false)
+            if (machine_readable == false)
             {
               event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
             }
@@ -2869,7 +2879,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
-            if (user_options->machine_readable == false)
+            if (machine_readable == false)
             {
               event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
             }
@@ -2880,7 +2890,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, NULL);
         }
@@ -2890,18 +2900,18 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (user_options->machine_readable == true) printf (" ] }");
+      if (machine_readable == true) printf (" ] }");
     }
 
-    if (user_options->machine_readable == true) printf (" ");
+    if (machine_readable == true) printf (" ");
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
       printf ("] } ");
     }
   }
 
-  if (user_options->machine_readable == true)
+  if (machine_readable == true)
   {
     printf ("}");
   }
@@ -4877,6 +4887,71 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_benchmark_json (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  const u32 hash_mode = hashconfig->hash_mode;
+
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+
+  printf ("{ \"devices\": [");
+
+  int device_num = 0;
+
+  if (bridge_ctx->enabled == true)
+  {
+    printf (" { \"device_id\": %d,", device_num + 1);
+    printf (" \"hash_mode\": %u,", hash_mode);
+    printf (" \"corespeed\": %u,", 0);
+    printf (" \"memoryspeed\": %u,", 0);
+    printf (" \"exec_msec\": %.2f,", hashcat_status->hashes_msec_all);
+    printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
+    device_num++;
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      if (device_num != 0)
+      {
+        printf (",");
+      }
+
+      printf (" { \"device_id\": %d,", device_id + 1);
+      printf (" \"hash_mode\": %u,", hash_mode);
+      printf (" \"corespeed\": %u,", device_info->corespeed_dev);
+      printf (" \"memoryspeed\": %u,", device_info->memoryspeed_dev);
+      printf (" \"exec_msec\": %.2f,", device_info->exec_msec_dev);
+      printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+      device_num++;
+    }
+  }
+
+  printf (" ] }");
+
+  fwrite (EOL, strlen (EOL), 1, stdout);
+
+  fflush (stdout);
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
+}
+
 void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -4885,6 +4960,16 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_benchmark_machine_readable (hashcat_ctx);
+
+    return;
+  }
+
+  // Benchmark never had a JSON form before, so only the --json umbrella turns it on.
+  // Keying off status_json instead would change what plain --status-json does with -b.
+
+  if (user_options->json == true)
+  {
+    status_benchmark_json (hashcat_ctx);
 
     return;
   }

@@ -1036,6 +1036,7 @@ typedef enum user_options_defaults
   INCREMENT_INVERSE        = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
+  JSON                     = false,
   KEEP_GUESSING            = false,
   KERNEL_ACCEL             = 0,
   KERNEL_LOOPS             = 0,
@@ -1178,6 +1179,7 @@ typedef enum user_options_map
   IDX_INCREMENT_MAX             = 0xff21,
   IDX_INCREMENT_MIN             = 0xff22,
   IDX_INDUCTION_DIR             = 0xff23,
+  IDX_JSON                      = 0xff86,
   IDX_KEEP_GUESSING             = 0xff24,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
@@ -2873,6 +2875,7 @@ typedef struct user_options
   bool         hex_salt;
   bool         hex_wordlist;
   increment_t  increment;
+  bool         json;
   bool         keep_guessing;
   bool         keyspace;
   bool         total_candidates;
