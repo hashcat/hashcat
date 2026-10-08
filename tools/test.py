@@ -911,7 +911,15 @@ def run_single(opts, mode, pairs, args, width, file_only, pass_only, tmp):
     else:
       target = digest
 
-    rc, out = run_hashcat(opts, mode, target, word + b"\n")
+    candidate = word
+
+    if mode == 20510:
+      # PKZIP master key, 6 byte optimization: hashcat is fed the key without its first 6 bytes and
+      # reconstructs the whole password in the crack line, which output_has_crack still matches
+      # against the full word. The other attacks already cut the word the same way.
+      candidate = word[6:]
+
+    rc, out = run_hashcat(opts, mode, target, candidate + b"\n")
 
     matched = output_has_crack(mode, out, word, digest, pass_only, tmp)
 
@@ -1548,18 +1556,28 @@ def a3_single_mask(mode, word, i):
   # test.sh attack_3 single mask (test.sh): the first i bytes become a '?d' run rewritten to
   # spell them and the rest of the password trails as literals. 14000 and 14100 hand hashcat the
   # whole password as a literal mask instead, and 20510 drops the leading groups the mode does not
-  # keep (test.sh).
+  # keep.
 
   if mode in (14000, 14100):
     return word
 
-  mask = mask_literalize(mask_dots(i), word[:i]) + word[i:]
-
   if mode == 20510:
-    cut_pos = 13 if i > 6 else i + 7
-    mask = mask[cut_pos - 1:]
+    # PKZIP master key, 6 byte optimization: the kernel is fed the password with its first 6 bytes
+    # dropped and reconstructs them, so the mask has to spell that stripped candidate, not the whole
+    # word. Build it over the candidate directly, byte by byte, rather than cutting a literalized
+    # whole word mask by a fixed offset. The offset form miscounts whenever a non-digit byte sits in
+    # the first 6 bytes, since mask_literalize spells a non-digit as a one character literal while a
+    # '?d' group is two, so the cut lands wrong and the mask spells the wrong candidate. Brute force
+    # the leading positions the index reaches past the 6 byte cut; spell the rest literally.
+    cand = word[6:]
+    nd   = max(i - 6, 0)
 
-  return mask
+    if nd > len(cand):
+      nd = len(cand)
+
+    return mask_literalize(mask_dots(nd), cand[:nd]) + cand[nd:]
+
+  return mask_literalize(mask_dots(i), word[:i]) + word[i:]
 
 
 def attack_3_single(r):
@@ -1821,6 +1839,12 @@ def multi_len_params(mode):
     min_len = 7
   elif mode == 22000:
     min_len = 7
+  elif mode in (9710, 9810, 10410):
+    # Collider #1: the candidate is the 5 byte RC4 key, the only length the oracle makes. Without
+    # a fixed length every slot but one asks for a length the mode has no vector for, so the multi
+    # run feeds hashcat an empty hash file and, once the empty tail mask is dropped, no mask either,
+    # which hashcat rejects. Pin every slot to length 5 so each builds a valid run.
+    fixed_len = 5
   elif mode == 33500:
     fixed_len = 5
   elif mode == 33501:
@@ -1829,6 +1853,14 @@ def multi_len_params(mode):
   elif mode == 33502:
     min_len   = 5
     fixed_len = 13
+  elif mode == 37400:
+    # pw_min is 9, so a length slot below it produces no vector and the multi run would feed
+    # hashcat an empty hash file. Pin every slot to a valid length, and push the split toward the
+    # tail so the mask the hybrid runs brute force stays one digit rather than the whole word. The
+    # offset is 4 so the slot the a6/a12 multi runs (its head is 8 of the 9 bytes) still leaves a
+    # one byte tail for the mask, since an empty mask would drop the argument and fail the run.
+    min_len   = 4
+    fixed_len = 9
 
   return min_len, fixed_len
 
@@ -2018,6 +2050,10 @@ def a6_multi_params(mode):
     min_i = 5
   elif mode in (33501, 33502):
     min_i = 8
+  elif mode == 37400:
+    # pw_min 9: run only the longest slot (head 8 of the 9 bytes, one digit in the mask) so the
+    # hybrid does not brute force a long run of digits over a slow DES hash.
+    min_i = 8
 
   if is_timeout(mode):
     max_i = 5
@@ -2167,43 +2203,58 @@ def attack_7_single(r):
       active   = custom_active
 
       if r.mode == 20510:
-        # test.sh. The length-slot mask only sizes the split, then a one line custom pair
-        # is rebuilt around the 6 byte prefix the mode drops.
+        # PKZIP master key, 6 byte optimization: the kernel is fed the password with its first 6
+        # bytes dropped and reconstructs them, so the candidate the mask and the dict build between
+        # them has to be that stripped password, not the whole one. A short head spells the mask,
+        # the rest trails in the dict; the head length follows the multi slot so the single and
+        # multi runs line up, and is kept to at least 1 byte since an empty mask drops the argument
+        # and the run faults.
         pass_full = sed_line(dict1_lines, line_nr) + sed_line(dict2_lines, line_nr)
 
         if len(pass_full) <= 6:
           continue
 
-        mpairs     = multi_pairs(20510, i, optimized) if "multi" in r.targets else []
+        cut        = pass_full[6:]
+        mpairs     = multi_pairs(20510, i, optimized)
         md1, _     = build_multi_dicts(20510, i, mpairs)
         multi_head = md1[0] if md1 else b""
-        slot_mask  = mask_literalize(mask_dots(len(multi_head)), multi_head)
-        mask_len   = len(slot_mask) // 2
+        mask_len   = len(mask_literalize(mask_dots(len(multi_head)), multi_head)) // 2
 
-        cut     = pass_full[6:]
-        cust_d1 = [pass_full[:6 + mask_len]]
+        if mask_len < 1:
+          mask_len = 1
+
+        if mask_len > len(cut):
+          mask_len = len(cut)
+
+        cust_d1 = [cut[:mask_len]]
         cust_d2 = [cut[mask_len:]]
 
         write_dict(dict2_cust, cust_d2)
 
         active = True
 
+      # The custom dicts hold one line, built for this hash, so they are read at line 1, not at the
+      # growing hash index line_nr.
+
+      read_nr = line_nr
+
       if active:
         d1_lines = cust_d1
         d2_lines = cust_d2
         d2_path  = dict2_cust
+        read_nr  = 1
 
       # -a 7 is mask plus dict, dict2 holds the tail, so the mask spells the head that dict1 holds.
       # It is built from what dict1 actually holds rather than from a fixed table, because a split
       # moved to a character boundary changes dict1's length (test.sh).
 
-      dict1_line = sed_line(d1_lines, line_nr)
+      dict1_line = sed_line(d1_lines, read_nr)
       mask       = mask_literalize(mask_dots(len(dict1_line)), dict1_line)
 
       rc, out = run_hashcat(r.opts, r.mode, target, None, attack=7,
                             extra=hybrid_extra([mask, d2_path]))
 
-      search_word = sed_line(d1_lines, line_nr) + sed_line(d2_lines, line_nr)
+      search_word = sed_line(d1_lines, read_nr) + sed_line(d2_lines, read_nr)
 
       matched = output_has_crack(r.mode, out, search_word, digest,
                                  r.pass_only, r.tmp) if rc == 0 else False
@@ -2233,6 +2284,10 @@ def a7_multi_max(mode):
   elif mode in (14000, 14100, 14900, 15400, 16800, 22000):
     max_i = 5
   elif mode in (33501, 33502):
+    max_i = 3
+  elif mode == 37400:
+    # pw_min 9: keep the mask-on-the-left run to the shortest slot so the brute forced head stays a
+    # few digits over a slow DES hash.
     max_i = 3
 
   if is_timeout(mode):
