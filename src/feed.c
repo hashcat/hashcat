@@ -883,12 +883,12 @@ static void feed_gpu_cache_key (hashcat_ctx_t *hashcat_ctx, const hc_device_para
 
   char ident[HCBUFSIZ_TINY];
 
-  const int ident_len = snprintf (ident, sizeof (ident), "%s-%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d",
+  const int ident_len = snprintf (ident, sizeof (ident), "%s-%d-%d-%d-%s-%u-%u-%s-%d-%u-%s-%s-%s-%d",
     name,
     backend_ctx->comptime,
     backend_ctx->cuda_driver_version,
     backend_ctx->hip_runtimeVersion,
-    backend_ctx->metal_runtimeVersion,
+    (backend_ctx->metal_runtimeVersionStr != NULL) ? backend_ctx->metal_runtimeVersionStr : "",
     device_param->sm_major,
     device_param->sm_minor,
     (device_param->is_hip == true) ? device_param->gcnArchName : "",
@@ -1640,8 +1640,8 @@ feed_gpu_t *feed_gpu_init (hashcat_ctx_t *hashcat_ctx, const int device_id, cons
   {
     // Metal, today. hc_mtlBuildOptionsToDict () does not hand the option string to a compiler: it
     // strips "-D ", splits on whitespace and drops anything that is not a name=value pair. And
-    // load_kernel () never writes a .metallib, so there would be a full cold build at every session
-    // start with no cache to fall back on.
+    // load_kernel () caches only the pipelines of a Metal program, so the library would be a full
+    // cold build at every session start.
 
     snprintf (reason, reason_size, "this backend cannot build a feed kernel");
 

@@ -288,7 +288,7 @@ static int hc_dev_mem_alloc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size, host_ptr, &mem->metal, metal_storage_modes[slot]) == -1) return -1;
+    if (hc_mtlCreateBuffer (hashcat_ctx, device_param, device_param->metal_device, size, host_ptr, &mem->metal, metal_storage_modes[slot]) == -1) return -1;
   }
   #endif
 
@@ -479,7 +479,7 @@ static void hc_dev_mem_free (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    hc_mtlReleaseMemObject (hashcat_ctx, &mem->metal);
+    hc_mtlReleaseMemObject (hashcat_ctx, device_param, &mem->metal);
   }
   #endif
 
@@ -518,7 +518,7 @@ int hc_dev_memcpy_h2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, mem.metal, offset, src, size) == -1) return -1;
+    if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, mem.metal, offset, src, size) == -1) return -1;
   }
   #endif
 
@@ -549,7 +549,7 @@ int hc_dev_memcpy_d2h (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, dst, mem.metal, offset, size) == -1) return -1;
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, dst, mem.metal, offset, size) == -1) return -1;
   }
   #endif
 
@@ -580,7 +580,7 @@ int hc_dev_memcpy_d2d (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, dst.metal, dst_offset, src.metal, src_offset, size) == -1) return -1;
+    if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param, device_param->metal_command_queue, dst.metal, dst_offset, src.metal, src_offset, size) == -1) return -1;
   }
   #endif
 
@@ -3058,14 +3058,14 @@ static int run_metal_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_
   id metal_command_buffer = NULL;
   id metal_command_encoder = NULL;
 
-  if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param->metal_pipeline[HC_DEV_KERN_ATINIT], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+  if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, device_param->metal_pipeline[HC_DEV_KERN_ATINIT], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
-  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 0, mem.buf_ptr, NULL, 0) == -1) return -1;
-  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 1, NULL, device_param->kernel_params_atinit[1], sizeof (u64)) == -1) return -1;
+  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 0, mem.buf_ptr, NULL, 0) == -1) return -1;
+  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 1, NULL, device_param->kernel_params_atinit[1], sizeof (u64)) == -1) return -1;
 
   double ms = 0;
 
-  if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
+  if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
 
   return 0;
 }
@@ -3086,14 +3086,14 @@ static int run_metal_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device
   id metal_command_buffer = NULL;
   id metal_command_encoder = NULL;
 
-  if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param->metal_pipeline[HC_DEV_KERN_UTF8TOUTF16LE], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+  if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, device_param->metal_pipeline[HC_DEV_KERN_UTF8TOUTF16LE], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
-  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 0, mem.buf_ptr, NULL, 0) == -1) return -1;
-  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 1, NULL, device_param->kernel_params_utf8toutf16le[1], sizeof (u64)) == -1) return -1;
+  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 0, mem.buf_ptr, NULL, 0) == -1) return -1;
+  if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 1, NULL, device_param->kernel_params_utf8toutf16le[1], sizeof (u64)) == -1) return -1;
 
   double ms = 0;
 
-  if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
+  if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
 
   return 0;
 }
@@ -3114,17 +3114,17 @@ static int run_metal_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
     id metal_command_buffer = NULL;
     id metal_command_encoder = NULL;
 
-    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param->metal_pipeline[HC_DEV_KERN_BZERO], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, device_param->metal_pipeline[HC_DEV_KERN_BZERO], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
-    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 0, mem.buf_ptr, NULL, 0) == -1) return -1;
-    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 1, NULL, (void *) &num16d, sizeof (u64)) == -1) return -1;
+    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 0, mem.buf_ptr, NULL, 0) == -1) return -1;
+    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 1, NULL, (void *) &num16d, sizeof (u64)) == -1) return -1;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
   }
 
   if (num16m)
@@ -3135,13 +3135,13 @@ static int run_metal_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
     {
       u8 *bzeros_apple = (u8 *) hccalloc (num16m, sizeof (u8));
 
-      if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, mem, num16d * 16, bzeros_apple, num16m) == -1) return -1;
+      if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, mem, num16d * 16, bzeros_apple, num16m) == -1) return -1;
 
       hcfree (bzeros_apple);
     }
     else
     {
-      if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, mem, num16d * 16, bzeros, num16m) == -1) return -1;
+      if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, mem, num16d * 16, bzeros, num16m) == -1) return -1;
     }
   }
 
@@ -3167,7 +3167,7 @@ static int run_metal_kernel_memset32 (hashcat_ctx_t *hashcat_ctx, hc_device_para
     tmp[i] = value;
   }
 
-  rc = hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, mem, offset, tmp, size);
+  rc = hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, mem, offset, tmp, size);
 
   hcfree (tmp);
 
@@ -3712,12 +3712,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
 
-    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
-
-    mtl_mem_t mem;
-    mem.buf_ptr = NULL;
-
-    if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, sizeof (u8), NULL, &mem, MTL_STORAGE_MODE_PRIVATE) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
     // kernel_params[24] is the last of the shared list and the device engine adds the ones behind it,
     // so this has to be counted the same way as the OpenCL path below. An encoder that stops short
@@ -3728,24 +3723,13 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     // all buffers must be allocated
     for (u32 i = 0; i <= kernel_params_max; i++)
     {
-      // allocate fake buffer if NULL
       if (device_param->kernel_params[i] == NULL)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, mem.buf_ptr, NULL, 0) == -1)
-        {
-          hc_mtlReleaseMemObject (hashcat_ctx, &mem);
-
-          return -1;
-        }
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->metal_fake_buf.buf_ptr, NULL, 0) == -1) return -1;
       }
       else
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1)
-        {
-          hc_mtlReleaseMemObject (hashcat_ctx, &mem);
-
-          return -1;
-        }
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1) return -1;
       }
     }
 
@@ -3828,66 +3812,43 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (is_autotune == true)
     {
-      hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, &ms);
+      hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, &ms);
 
       // hc_mtlEncodeComputeCommand_pre() must be called before every hc_mtlEncodeComputeCommand()
-      if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1)
-      {
-        hc_mtlReleaseMemObject (hashcat_ctx, &mem);
-
-        return -1;
-      }
+      if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
       for (u32 i = 0; i <= kernel_params_max; i++)
       {
-        // allocate fake buffer if NULL
         if (device_param->kernel_params[i] == NULL)
         {
-          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, mem.buf_ptr, NULL, 0) == -1)
-          {
-            hc_mtlReleaseMemObject (hashcat_ctx, &mem);
-
-            return -1;
-          }
+          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->metal_fake_buf.buf_ptr, NULL, 0) == -1) return -1;
         }
         else
         {
-          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1)
-          {
-            hc_mtlReleaseMemObject (hashcat_ctx, &mem);
-
-            return -1;
-          }
+          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1) return -1;
         }
       }
     }
 
-    const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, &ms);
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, &ms) == -1) return -1;
 
-    if (rc_cc != -1)
+    float exec_ms = (float) ms;
+
+    if (event_update)
     {
-      float exec_ms = (float) ms;
+      u32 exec_pos = device_param->exec_pos;
 
-      if (event_update)
+      device_param->exec_msec[exec_pos] = exec_ms;
+
+      exec_pos++;
+
+      if (exec_pos == EXEC_CACHE)
       {
-        u32 exec_pos = device_param->exec_pos;
-
-        device_param->exec_msec[exec_pos] = exec_ms;
-
-        exec_pos++;
-
-        if (exec_pos == EXEC_CACHE)
-        {
-          exec_pos = 0;
-        }
-
-        device_param->exec_pos = exec_pos;
+        exec_pos = 0;
       }
+
+      device_param->exec_pos = exec_pos;
     }
-
-    hc_mtlReleaseMemObject (hashcat_ctx, &mem);
-
-    if (rc_cc == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -4197,55 +4158,55 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     id metal_pipeline = device_param->metal_pipeline[slot];
 
-    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
     if (kern_run == KERN_RUN_MP)
     {
       for (int i = 0; i < 3; i++)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params_mp[i], NULL, 0) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params_mp[i], NULL, 0) == -1) return -1;
       }
 
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_mp[3], sizeof (u64)) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_mp[3], sizeof (u64)) == -1) return -1;
 
       for (int i = 4; i < 8; i++)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, NULL, device_param->kernel_params_mp[i], sizeof (u32)) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, NULL, device_param->kernel_params_mp[i], sizeof (u32)) == -1) return -1;
       }
 
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 8, NULL, device_param->kernel_params_mp[8], sizeof (u64)) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 8, NULL, device_param->kernel_params_mp[8], sizeof (u64)) == -1) return -1;
     }
     else if (kern_run == KERN_RUN_MP_R)
     {
       for (int i = 0; i < 3; i++)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params_mp_r[i], NULL, 0) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params_mp_r[i], NULL, 0) == -1) return -1;
       }
 
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_mp_r[3], sizeof (u64)) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_mp_r[3], sizeof (u64)) == -1) return -1;
 
       for (int i = 4; i < 8; i++)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, NULL, device_param->kernel_params_mp_r[i], sizeof (u32)) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, NULL, device_param->kernel_params_mp_r[i], sizeof (u32)) == -1) return -1;
       }
 
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 8, NULL, device_param->kernel_params_mp_r[8], sizeof (u64)) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 8, NULL, device_param->kernel_params_mp_r[8], sizeof (u64)) == -1) return -1;
     }
     else if (kern_run == KERN_RUN_MP_L)
     {
       for (int i = 0; i < 3; i++)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params_mp_l[i], NULL, 0) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params_mp_l[i], NULL, 0) == -1) return -1;
       }
 
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_mp_l[3], sizeof (u64)) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_mp_l[3], sizeof (u64)) == -1) return -1;
 
       for (int i = 4; i < 9; i++)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, NULL, device_param->kernel_params_mp_l[i], sizeof (u32)) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, NULL, device_param->kernel_params_mp_l[i], sizeof (u32)) == -1) return -1;
       }
 
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 9, NULL, device_param->kernel_params_mp_l[9], sizeof (u64)) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 9, NULL, device_param->kernel_params_mp_l[9], sizeof (u64)) == -1) return -1;
     }
 
     num_elements = round_up_multiple_32 (num_elements, kernel_threads);
@@ -4255,7 +4216,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -4330,16 +4291,16 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     id metal_command_buffer  = NULL;
     id metal_pipeline        = device_param->metal_pipeline[HC_DEV_KERN_TM];
 
-    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
     for (int i = 0; i < 2; i++)
     {
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params_tm[i], NULL, 0) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params_tm[i], NULL, 0) == -1) return -1;
     }
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -4394,49 +4355,27 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     id metal_command_buffer  = NULL;
     id metal_pipeline        = device_param->metal_pipeline[HC_DEV_KERN_AMP];
 
-    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
     // all buffers must be allocated
-    int tmp_buf_cnt = 0;
-
-    mtl_mem_t tmp_buf[5];
-
     for (int i = 0; i < 5; i++)
     {
-      // allocate fake buffer if NULL
       if (device_param->kernel_params_amp[i] == NULL)
       {
-        tmp_buf[tmp_buf_cnt].buf_ptr = NULL;
-
-        if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, sizeof (u8), NULL, &tmp_buf[tmp_buf_cnt], MTL_STORAGE_MODE_PRIVATE) == -1) return -1;
-
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, tmp_buf[tmp_buf_cnt].buf_ptr, NULL, 0) == -1) return -1;
-
-        tmp_buf_cnt++;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->metal_fake_buf.buf_ptr, NULL, 0) == -1) return -1;
       }
       else
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params_amp[i], NULL, 0) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params_amp[i], NULL, 0) == -1) return -1;
       }
     }
 
-    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 5, NULL, device_param->kernel_params_amp[5], sizeof (u32)) == -1) return -1;
-    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 6, NULL, device_param->kernel_params_amp[6], sizeof (u64)) == -1) return -1;
+    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 5, NULL, device_param->kernel_params_amp[5], sizeof (u32)) == -1) return -1;
+    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 6, NULL, device_param->kernel_params_amp[6], sizeof (u64)) == -1) return -1;
 
     double ms = 0;
 
-    const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms);
-
-    // release tmp_buf
-
-    for (int i = 0; i < tmp_buf_cnt; i++)
-    {
-      hc_mtlReleaseMemObject (hashcat_ctx, &tmp_buf[i]);
-
-      tmp_buf[i].buf_ptr = NULL;
-    }
-
-    if (rc_cc == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -4502,18 +4441,18 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     id metal_command_buffer  = NULL;
     id metal_command_encoder = NULL;
 
-    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param->metal_pipeline[HC_DEV_KERN_DECOMPRESS], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, device_param, device_param->metal_pipeline[HC_DEV_KERN_DECOMPRESS], device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
     for (int i = 0; i < 3; i++)
     {
-      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params_decompress[i], NULL, 0) == -1) return -1;
+      if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, i, device_param->kernel_params_decompress[i], NULL, 0) == -1) return -1;
     }
 
-    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_decompress[3], sizeof (u64)) == -1) return -1;
+    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 3, NULL, device_param->kernel_params_decompress[3], sizeof (u64)) == -1) return -1;
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, 1, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -6647,10 +6586,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             metal_usable = false;
           }
-          else
-          {
-            backend_ctx->metal_runtimeVersion = atoi (backend_ctx->metal_runtimeVersionStr);
-          }
         }
       }
 
@@ -8423,6 +8358,19 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       }
 
       device_param->device_host_unified_memory = device_host_unified_memory;
+
+      // metal_version
+
+      int metal_version = 0;
+
+      if (hc_mtlDeviceGetAttribute (hashcat_ctx, &metal_version, MTL_DEVICE_ATTRIBUTE_METAL_VERSION, metal_device) == -1)
+      {
+        device_skip (device_param, "mtlDeviceGetAttribute() failed");
+
+        continue;
+      }
+
+      device_param->metal_version = metal_version;
 
       // device_global_mem, device_available_mem
 
@@ -10723,7 +10671,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // one-time init metal command-queue
 
-      if (hc_mtlCreateCommandQueue (hashcat_ctx, device_param->metal_device, &device_param->metal_command_queue) == -1)
+      if (hc_mtlCreateCommandQueue (hashcat_ctx, device_param, device_param->metal_device, &device_param->metal_command_queue) == -1)
       {
         device_skip (device_param, "mtlCreateCommandQueue() failed");
 
@@ -10741,13 +10689,26 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       #define MAX_ALLOC_CHECKS_CNT  8192
       #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
 
-      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+      // On unified memory the device's memory is the system's, and the kernel says how much of it is
+      // free, every process counted, which is the figure the other backends get from their runtime.
+      // A discrete GPU has no such count and keeps the probe below.
 
-      // Metal reports no free memory of its own and there is no hardware monitor branch for it, so
-      // walking allocations until one fails is the only measurement available here. Anything else is
-      // the physical size with a guess subtracted.
+      size_t mem_free = 0;
 
-      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
+      if (hc_mtlDeviceMemFree (hashcat_ctx, &mem_free, device_param->metal_device) == 0)
+      {
+        device_param->device_available_mem        = MIN ((u64) mem_free, device_param->device_global_mem);
+        device_param->device_available_mem_source = MEM_SOURCE_RUNTIME;
+      }
+      else
+      {
+        device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+      }
+
+      // Without that count, walking allocations until one fails is the only measurement left, and
+      // anything else is the physical size with a guess subtracted.
+
+      if ((device_param->device_available_mem_source == MEM_SOURCE_UNKNOWN) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
       {
         // following the same logic as for OpenCL, explained later
 
@@ -10760,7 +10721,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
 
           // using SHARED by default here, no performance requirements
-          if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, MAX_ALLOC_CHECKS_SIZE, NULL, &tmp_device[c], MTL_STORAGE_MODE_SHARED) == -1)
+          if (hc_mtlCreateBuffer (hashcat_ctx, device_param, device_param->metal_device, MAX_ALLOC_CHECKS_SIZE, NULL, &tmp_device[c], MTL_STORAGE_MODE_SHARED) == -1)
           {
             c--;
 
@@ -10771,11 +10732,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           u8 tmp_host[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
 
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, tmp_device[c], 0, tmp_host, sizeof (tmp_host)) == -1) break;
-          if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, tmp_host, tmp_device[c], 0, sizeof (tmp_host)) == -1) break;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, tmp_device[c], 0, tmp_host, sizeof (tmp_host)) == -1) break;
+          if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, tmp_host, tmp_device[c], 0, sizeof (tmp_host)) == -1) break;
 
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, tmp_device[c], MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), tmp_host, sizeof (tmp_host)) == -1) break;
-          if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, tmp_host, tmp_device[c], MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host)) == -1) break;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, tmp_device[c], MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), tmp_host, sizeof (tmp_host)) == -1) break;
+          if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, tmp_host, tmp_device[c], MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host)) == -1) break;
         }
 
         device_param->device_available_mem = MAX_ALLOC_CHECKS_SIZE;
@@ -10795,7 +10756,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           if (tmp_device[c].buf_ptr != NULL)
           {
-            if (hc_mtlReleaseMemObject (hashcat_ctx, &tmp_device[c]) == -1) return -1;
+            if (hc_mtlReleaseMemObject (hashcat_ctx, device_param, &tmp_device[c]) == -1) return -1;
           }
         }
 
@@ -11121,6 +11082,22 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             }
           }
         }
+        #if defined (__APPLE__)
+        else if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->device_host_unified_memory == 1))
+        {
+          // On unified memory the device's memory is the system's, so its free memory is the
+          // system's, the figure the Metal view of the same GPU reports.
+
+          u64 free_mem = 0;
+
+          if (get_free_memory (&free_mem) == true)
+          {
+            device_param->device_available_mem        = MIN (free_mem, device_param->device_global_mem);
+            device_param->device_available_mem_source = MEM_SOURCE_RUNTIME;
+            updated_device_available_mem              = true;
+          }
+        }
+        #endif
       }
 
       // Still nothing? AMD answers for itself. CL_DEVICE_GLOBAL_FREE_MEMORY_AMD returns two
@@ -11373,7 +11350,7 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       if (device_param->metal_command_queue)
       {
-        hc_mtlReleaseCommandQueue (hashcat_ctx, &device_param->metal_command_queue);
+        hc_mtlReleaseCommandQueue (hashcat_ctx, device_param, &device_param->metal_command_queue);
 
         device_param->metal_command_queue = NULL;
       }
@@ -12226,7 +12203,10 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
    * kernel compile or load
    */
 
-  if (cached == false)
+  // The Metal cache file holds the compiled pipelines and not, on every macOS, the library: the
+  // library is built from the source on every run, and hc_mtlArchiveOpen picks the pipelines up.
+
+  if ((cached == false) || (device_param->is_metal == true))
   {
     // Building is the slow half of a cold start and it is cached, so it is worth telling apart
     // from loading that cache. --task-time-breakdown is what reads these.
@@ -12234,7 +12214,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     EVENT (EVENT_KERNEL_BUILD_PRE);
 
     #if defined (DEBUG)
-    if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache. Please be patient...", device_param->device_id + 1, filename_from_filepath (cached_file));
+    if ((cached == false) && (user_options->quiet == false)) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache. Please be patient...", device_param->device_id + 1, filename_from_filepath (cached_file));
     #endif
 
     if (read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources) == false) return false;
@@ -12720,9 +12700,11 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       mtl_library metal_lib = NULL;
 
-      if (hc_mtlCreateLibraryWithSource (hashcat_ctx, device_param->metal_device, kernel_sources[0], build_options_buf, folder_config->cpath_real, &metal_lib) == -1) return false;
+      if (hc_mtlCreateLibraryWithSource (hashcat_ctx, device_param, device_param->metal_device, kernel_sources[0], build_options_buf, folder_config->cpath_real, &metal_lib) == -1) return false;
 
       device_param->metal_library[program] = metal_lib;
+
+      if (hc_mtlArchiveOpen (hashcat_ctx, device_param, program, cached_file, cache_disable) == -1) return false;
 
       #if defined (DEBUG)
       event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful.", device_param->device_id + 1, source_file);
@@ -12953,22 +12935,6 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       hcfree (mod_error_log);
     }
 
-    #if defined (__APPLE__)
-    if (device_param->is_metal == true)
-    {
-      mtl_library metal_lib = NULL;
-
-      if (hc_mtlCreateLibraryWithFile (hashcat_ctx, device_param->metal_device, cached_file, &metal_lib) == -1) return false;
-
-      device_param->metal_library[program] = metal_lib;
-
-      #if defined (DEBUG)
-      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s load successful.", device_param->device_id + 1, source_file);
-      event_log_info (hashcat_ctx, NULL);
-      #endif
-    }
-    #endif
-
     if (device_param->is_opencl == true)
     {
       if (hc_clCreateProgramWithBinary (hashcat_ctx, device_param->opencl_context, 1, &device_param->opencl_device, kernel_lengths, (const unsigned char **) kernel_sources, NULL, &device_param->opencl_program[program]) == -1) return false;
@@ -13089,7 +13055,7 @@ static int backend_session_setup_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_p
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    if (hc_mtlCreateKernel (hashcat_ctx, device_param->metal_device, device_param->metal_library[program], kernel_name, &device_param->metal_function[slot], &device_param->metal_pipeline[slot]) == -1)
+    if (hc_mtlCreateKernel (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_library[program], program, slot, kernel_name, &device_param->metal_function[slot], &device_param->metal_pipeline[slot]) == -1)
     {
       event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s create failed.", device_param->device_id + 1, kernel_name);
 
@@ -13898,7 +13864,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * If there's no low-level API available we will silently ignore
      */
 
-    const u64 used_bytes = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_id);
+    u64 used_bytes = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_id);
+
+    #if defined (__APPLE__)
+    if ((used_bytes == 0) && (device_param->is_metal == true))
+    {
+      size_t mem_free = 0;
+
+      if ((hc_mtlDeviceMemFree (hashcat_ctx, &mem_free, device_param->metal_device) == 0) && ((u64) mem_free < device_param->device_global_mem)) used_bytes = device_param->device_global_mem - (u64) mem_free;
+    }
+    #endif
 
     if (used_bytes)
     {
@@ -14978,7 +14953,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // and the source digests match. The "-debug" marker keeps the two apart; the release key, without
     // it, is unchanged.
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u"
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%u-%u"
       #if defined (DEBUG)
       "-debug"
       #endif
@@ -14987,10 +14962,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       backend_ctx->kernel_shared_chksum,
       backend_ctx->cuda_driver_version,
       backend_ctx->hip_runtimeVersion,
-      backend_ctx->metal_runtimeVersion,
+      (backend_ctx->metal_runtimeVersionStr != NULL) ? backend_ctx->metal_runtimeVersionStr : "",
       device_param->sm_major,
       device_param->sm_minor,
       (device_param->is_hip == true) ? device_param->gcnArchName : "",
+      device_param->is_metal,
+      device_param->metal_version,
+      device_param->use_metal4,
       device_param->is_opencl,
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
@@ -15221,7 +15199,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
         // the same DEBUG marker as the shared key above, so a DEBUG main kernel never loads a release one
         #if defined (DEBUG)
         "-debug"
@@ -15232,10 +15210,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         source_chksum,
         backend_ctx->cuda_driver_version,
         backend_ctx->hip_runtimeVersion,
-        backend_ctx->metal_runtimeVersion,
+        (backend_ctx->metal_runtimeVersionStr != NULL) ? backend_ctx->metal_runtimeVersionStr : "",
         device_param->sm_major,
         device_param->sm_minor,
         (device_param->is_hip == true) ? device_param->gcnArchName : "",
+        device_param->is_metal,
+        device_param->metal_version,
+        device_param->use_metal4,
         device_param->is_opencl,
         device_param->opencl_platform_vendor_id,
         device_param->device_name,
@@ -15804,6 +15785,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
 
     if (rc == -1) return -1;
+
+    // Every pipeline of this device exists now, so the archives that were not read from the cache
+    // can be written, where the other backends wrote their binary at the end of the build.
+
+    #if defined (__APPLE__)
+    if (device_param->is_metal == true)
+    {
+      for (u32 program = 0; program < HC_DEV_PROGRAM_CNT; program++)
+      {
+        hc_mtlArchiveFlush (hashcat_ctx, device_param, program);
+      }
+    }
+    #endif // __APPLE__
 
     // Everything below is the same work on every backend. The three argument binds are not: OpenCL
     // binds them to the kernel object once, where the other three pass them at launch.
@@ -17307,6 +17301,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       for (u32 i = 0; i < HC_DEV_PROGRAM_CNT; i++)
       {
+        hc_mtlArchiveRelease (hashcat_ctx, device_param, i);
+
         hc_mtlReleaseLibrary (hashcat_ctx, &device_param->metal_library[i]);
       }
 

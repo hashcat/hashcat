@@ -2438,12 +2438,12 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->machine_readable == false)
     {
-      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
+      event_log_info (hashcat_ctx, "Metal.Runtime.Version.: %s", metal_runtimeVersionStr);
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      printf ("\"Version\": \"%s\", ", metal_runtimeVersionStr);
+      printf ("\"RuntimeVersion\": \"%s\", ", metal_runtimeVersionStr);
     }
 
     if (user_options->machine_readable == true)
@@ -2535,6 +2535,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
         event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Metal.Version..: %d", device_param->metal_version);
       }
       else
       {
@@ -2550,6 +2551,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
         printf ("\"MemoryUnified\": \"%d\", ", device_host_unified_memory);
         printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        printf ("\"MetalVersion\": \"%d\", ", device_param->metal_version);
       }
 
       switch (device_physical_location)
@@ -3136,14 +3138,19 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
         u64   device_global_mem    = device_param->device_global_mem;
         u64   device_available_mem = device_param->device_available_mem;
 
+        char metal_version[16] = { 0 };
+
+        if (device_param->metal_version > 0) snprintf (metal_version, sizeof (metal_version), ", Metal %d", device_param->metal_version);
+
         if ((device_param->skipped == false) && (device_param->skipped_warning == false))
         {
-          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU%s",
                     device_id + 1, unit_count,
                     device_name,
                     device_available_mem / 1024 / 1024,
                     device_global_mem    / 1024 / 1024,
-                    device_processors);
+                    device_processors,
+                    metal_version);
         }
         else
         {
@@ -3167,14 +3174,19 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
           u64   device_global_mem    = device_param->device_global_mem;
           u64   device_available_mem = device_param->device_available_mem;
 
+          char metal_version[16] = { 0 };
+
+          if (device_param->metal_version > 0) snprintf (metal_version, sizeof (metal_version), ", Metal %d", device_param->metal_version);
+
           if ((device_param->skipped == false) && (device_param->skipped_warning == false))
           {
-            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU%s",
                       device_id + 1,
                       device_name,
                       device_available_mem / 1024 / 1024,
                       device_global_mem    / 1024 / 1024,
-                      device_processors);
+                      device_processors,
+                      metal_version);
           }
           else
           {
