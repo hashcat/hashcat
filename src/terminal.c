@@ -21,6 +21,7 @@
 #include "monitor.h"
 #include "terminal.h"
 #include "user_options.h"
+#include "json.h"
 
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
@@ -1028,7 +1029,7 @@ void json_encode (const char *text, char *escaped)
   escaped[j] = 0;
 }
 
-void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
+void hash_info_single_json (json_ctx_t *js, hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -1037,65 +1038,47 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
     module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
-    printf ("\"%u\": { ", hashconfig->hash_mode);
-    printf ("\"name\": \"%s\", ", hashconfig->hash_name);
-    printf ("\"category\": \"%s\", ", strhashcategory (hashconfig->hash_category));
-    printf ("\"slow_hash\": %s, ", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "false" : "true");
+    char mode_key[16];
 
-    printf ("\"is_deprecated\": %s, ", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? "true" : "false");
+    snprintf (mode_key, sizeof (mode_key), "%u", hashconfig->hash_mode);
+
+    json_key (js, mode_key);
+
+    json_object_begin (js);
+
+    json_kv_string (js, "name",          hashconfig->hash_name);
+    json_kv_string (js, "category",      strhashcategory (hashconfig->hash_category));
+    json_kv_bool   (js, "slow_hash",     (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? false : true);
+    json_kv_bool   (js, "is_deprecated", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? true : false);
 
     if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
     {
-      const char *t_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-
-      char *t_deprecated_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
-
-      json_encode (t_deprecated_notice, t_deprecated_notice_json_encoded);
-
-      printf ("\"deprecated_notice\": \"%s\", ", t_deprecated_notice_json_encoded);
-
-      hcfree (t_deprecated_notice_json_encoded);
+      json_kv_string (js, "deprecated_notice", module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra));
     }
     else
     {
-      printf ("\"deprecated_notice\": \"%s\", ", "N/A");
+      json_kv_string (js, "deprecated_notice", "N/A");
     }
 
     if (module_ctx->module_usage_notice != MODULE_DEFAULT)
     {
-      const char *t_deprecated_notice = module_ctx->module_usage_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-
-      char *t_usage_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
-
-      json_encode (t_deprecated_notice, t_usage_notice_json_encoded);
-
-      printf ("\"usage_notice\": \"%s\", ", t_usage_notice_json_encoded);
-
-      hcfree (t_usage_notice_json_encoded);
+      json_kv_string (js, "usage_notice", module_ctx->module_usage_notice (hashconfig, hashcat_ctx->user_options, user_options_extra));
     }
     else
     {
-      printf ("\"usage_notice\": \"%s\", ", "N/A");
+      json_kv_string (js, "usage_notice", "N/A");
     }
 
     if (module_ctx->module_advice_notice != MODULE_DEFAULT)
     {
-      const char *t_deprecated_notice = module_ctx->module_advice_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-
-      char *t_advice_notice_json_encoded = (char *) hcmalloc ((strlen (t_deprecated_notice) * 2) + 1);
-
-      json_encode (t_deprecated_notice, t_advice_notice_json_encoded);
-
-      printf ("\"advice_notice\": \"%s\", ", t_advice_notice_json_encoded);
-
-      hcfree (t_advice_notice_json_encoded);
+      json_kv_string (js, "advice_notice", module_ctx->module_advice_notice (hashconfig, hashcat_ctx->user_options, user_options_extra));
     }
     else
     {
-      printf ("\"advice_notice\": \"%s\", ", "N/A");
+      json_kv_string (js, "advice_notice", "N/A");
     }
 
-    char *t_pw_desc = "plain";
+    const char *t_pw_desc = "plain";
     if (hashconfig->opts_type & OPTS_TYPE_PT_HEX) t_pw_desc = "HEX";
     else if (hashconfig->opts_type & OPTS_TYPE_PT_BASE58) t_pw_desc = "BASE58";
 
@@ -1111,11 +1094,10 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       }
     }
 
-    printf ("\"password_type\": \"%s\", ", t_pw_desc);
-    printf ("\"password_len_min\": %u, ", t_pw_min);
-    printf ("\"password_len_max\": %u, ", t_pw_max);
-
-    printf ("\"is_salted\": %s, ", (hashconfig->is_salted == true) ? "true" : "false");
+    json_kv_string (js, "password_type",    t_pw_desc);
+    json_kv_uint   (js, "password_len_min", t_pw_min);
+    json_kv_uint   (js, "password_len_max", t_pw_max);
+    json_kv_bool   (js, "is_salted",        (hashconfig->is_salted == true) ? true : false);
 
     if (hashconfig->is_salted == true)
     {
@@ -1123,7 +1105,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
       const char *t_salt_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
 
-      printf ("\"salt_type\": \"%s\", ", t_salt_desc);
+      json_kv_string (js, "salt_type", t_salt_desc);
 
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {
@@ -1139,40 +1121,46 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
           }
         }
 
-        printf ("\"salt_len_min\": %u, ", t_salt_min);
-        printf ("\"salt_len_max\": %u, ", t_salt_max);
+        json_kv_uint (js, "salt_len_min", t_salt_min);
+        json_kv_uint (js, "salt_len_max", t_salt_max);
       }
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
     {
-      printf ("\"kernel_type\": %s, ", "[ \"pure\", \"optimized\" ]");
+      json_key (js, "kernel_type");
+      json_array_begin (js);
+      json_string (js, "pure");
+      json_string (js, "optimized");
+      json_array_end (js);
     }
     else if (hashconfig->has_pure_kernel)
     {
-      printf ("\"kernel_type\": %s, ", "[ \"pure\" ]");
+      json_key (js, "kernel_type");
+      json_array_begin (js);
+      json_string (js, "pure");
+      json_array_end (js);
     }
     else if (hashconfig->has_optimized_kernel)
     {
-      printf ("\"kernel_type\": %s, ", "[ \"optimized\" ]");
+      json_key (js, "kernel_type");
+      json_array_begin (js);
+      json_string (js, "optimized");
+      json_array_end (js);
     }
 
     if (user_options->hash_info > 1)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        printf ("\"kernel_type_filter\": %s, ", "[ \"optimized\" ]");
-      }
-      else
-      {
-        printf ("\"kernel_type_filter\": %s, ", "[ \"pure\" ]");
-      }
+      json_key (js, "kernel_type_filter");
+      json_array_begin (js);
+      json_string (js, (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? "optimized" : "pure");
+      json_array_end (js);
 
-      printf ("\"attack_mode_filter\": %d, ", user_options->attack_mode);
+      json_kv_int (js, "attack_mode_filter", user_options->attack_mode);
 
       // almost always 1 and -1
-      printf ("\"hashes_count_min\": %d, ", hashconfig->hashes_count_min);
-      printf ("\"hashes_count_max\": %d, ", hashconfig->hashes_count_max);
+      json_kv_int (js, "hashes_count_min", hashconfig->hashes_count_min);
+      json_kv_int (js, "hashes_count_max", hashconfig->hashes_count_max);
 
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {
@@ -1197,7 +1185,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
           }
         }
 
-        printf ("\"hashes_with_same_salt\": %s, ", (multi_hash_same_salt == true) ? "true" : "false");
+        json_kv_bool (js, "hashes_with_same_salt", multi_hash_same_salt);
       }
     }
 
@@ -1207,25 +1195,19 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       {
         if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
         {
-          printf ("\"example_hash_format\": \"%s\", ", "hex-encoded");
+          json_kv_string (js, "example_hash_format", "hex-encoded");
         }
         else
         {
-          printf ("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
+          json_kv_string (js, "example_hash_format", "hex-encoded (binary file only)");
         }
       }
       else
       {
-        printf ("\"example_hash_format\": \"%s\", ", "plain");
+        json_kv_string (js, "example_hash_format", "plain");
       }
 
-      char *example_hash_json_encoded = (char *) hcmalloc ((strlen (hashconfig->st_hash) * 2) + 1);
-
-      json_encode (hashconfig->st_hash, example_hash_json_encoded);
-
-      printf ("\"example_hash\": \"%s\", ", example_hash_json_encoded);
-
-      hcfree (example_hash_json_encoded);
+      json_kv_string (js, "example_hash", hashconfig->st_hash);
 
       if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
       {
@@ -1246,7 +1228,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
 
-        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+        json_kv_string (js, "example_pass", tmp_buf);
 
         hcfree (tmp_buf);
       }
@@ -1260,7 +1242,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
 
-        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+        json_kv_string (js, "example_pass", tmp_buf);
 
         hcfree (tmp_buf);
       }
@@ -1274,61 +1256,67 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
         lowercase ((u8 *) tmp_buf, st_pass_len);
 
-        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+        json_kv_string (js, "example_pass", tmp_buf);
 
         hcfree (tmp_buf);
       }
       else
       {
-        printf ("\"example_pass\": \"%s\", ", hashconfig->st_pass);
+        json_kv_string (js, "example_pass", hashconfig->st_pass);
       }
     }
     else
     {
-      printf ("\"example_hash_format\": \"%s\", ", "N/A");
-      printf ("\"example_hash\": \"%s\", ", "N/A");
-      printf ("\"example_pass\": \"%s\", ", "N/A");
+      json_kv_string (js, "example_hash_format", "N/A");
+      json_kv_string (js, "example_hash",        "N/A");
+      json_kv_string (js, "example_pass",        "N/A");
     }
 
     if (hashconfig->benchmark_mask != NULL)
     {
-      printf ("\"benchmark_mask\": \"%s\", ", hashconfig->benchmark_mask);
+      json_kv_string (js, "benchmark_mask", hashconfig->benchmark_mask);
     }
     else
     {
-      printf ("\"benchmark_mask\": \"%s\", ", "N/A");
+      json_kv_string (js, "benchmark_mask", "N/A");
     }
 
     if (hashconfig->benchmark_charset != NULL)
     {
-      printf ("\"benchmark_charset1\": \"%s\", ", hashconfig->benchmark_charset);
+      json_kv_string (js, "benchmark_charset1", hashconfig->benchmark_charset);
     }
     else
     {
-      printf ("\"benchmark_charset1\": \"%s\", ", "N/A");
+      json_kv_string (js, "benchmark_charset1", "N/A");
     }
 
-    printf ("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
-    printf ("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
-    printf ("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
-    printf ("\"keep_guessing\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG) ? "true" : "false");
-    printf ("\"custom_plugin\": %s, ", (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? "false" : "true");
+    json_kv_bool (js, "autodetect_enabled", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? false : true);
+    json_kv_bool (js, "self_test_enabled",  (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? false : true);
+    json_kv_bool (js, "potfile_enabled",    (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? false : true);
+    json_kv_bool (js, "keep_guessing",      (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG) ? true : false);
+    json_kv_bool (js, "custom_plugin",      (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? false : true);
+
+    json_key (js, "plaintext_encoding");
+    json_array_begin (js);
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
     {
-      printf ("\"plaintext_encoding\": %s", "[ \"ASCII\" ]");
+      json_string (js, "ASCII");
     }
     else if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
     {
-      printf ("\"plaintext_encoding\": %s", "[ \"HEX\" ]");
+      json_string (js, "HEX");
     }
     else
     {
-      printf ("\"plaintext_encoding\": %s", "[ \"ASCII\", \"HEX\" ]");
+      json_string (js, "ASCII");
+      json_string (js, "HEX");
     }
-  }
 
-  printf (" }");
+    json_array_end (js);
+
+    json_object_end (js);
+  }
 
   hashconfig_destroy (hashcat_ctx);
 }
@@ -1640,13 +1628,17 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
   }
 
+  json_ctx_t js;
+
+  if (json_output == true) json_init (&js, stdout);
+
   if (user_options->hash_mode_chgd == true)
   {
     if (json_output == true)
     {
-      printf ("{ ");
-      hash_info_single_json (hashcat_ctx, user_options_extra);
-      printf (" }");
+      json_object_begin (&js);
+      hash_info_single_json (&js, hashcat_ctx, user_options_extra);
+      json_object_end (&js);
     }
     else
     {
@@ -1657,7 +1649,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   {
     char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    if (json_output == true) printf ("{ ");
+    if (json_output == true) json_object_begin (&js);
 
     for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
@@ -1669,12 +1661,9 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
       if (json_output == true)
       {
-        if (i != 0)
-        {
-          printf (", ");
-        }
-
-        hash_info_single_json (hashcat_ctx, user_options_extra);
+        // the emitter places the comma between modes, so a mode whose module is missing cannot
+        // leave a stray one the way the old hand-placed ", " could.
+        hash_info_single_json (&js, hashcat_ctx, user_options_extra);
       }
       else
       {
@@ -1682,7 +1671,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (json_output == true) printf (" }");
+    if (json_output == true) json_object_end (&js);
 
     hcfree (modulefile);
   }
