@@ -14,6 +14,10 @@
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
+// Radmin2 hashes the password zero padded to 100 bytes, so the candidate array has to reach that far
+
+#define PCFG_HASH_BLKWORDS  32
+
 typedef struct pcfg_hash_ctx
 {
   u32 unused;

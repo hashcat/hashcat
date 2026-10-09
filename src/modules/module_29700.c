@@ -23,8 +23,7 @@ static const u64   KERN_TYPE      = 29700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PT_HEX
-                                  | OPTS_TYPE_PT_ALWAYS_HEXIFY;
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "127e6fbfe24a750e72930c220a8e138275656b8e5d8f48a98c3c92df2caba935";
 static const char *ST_HASH        = "$keepass$*2*60000*0*02078d460c3c837003f22ee2ba42b3ac2a9ad9e913efb61349b3f91aacd0b004*c901781373cb6806df4b4c7b427ba698440f9e9dd68101e6a198e4a95cb10098*c602f182f8b03671c944a5af357eede7*135443633e6d2b6dba314dee0a1e2b5d0c025ca5fcaf692a20d77fb62cc44f63*51b0b2d19d82c88a0d1a646151be0b68c5e3c841a7a21b4abb2e9be14f298ed1";
@@ -91,18 +90,18 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // we only accept hex encoded sha256
+  // the keyfile's sha256 as 64 hex characters, which the kernel decodes
 
-  const u32 pw_min = 32;
+  const u32 pw_min = 64;
 
   return pw_min;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // we only accept hex encoded sha256
+  // the keyfile's sha256 as 64 hex characters, which the kernel decodes
 
-  const u32 pw_max = 32;
+  const u32 pw_max = 64;
 
   return pw_max;
 }

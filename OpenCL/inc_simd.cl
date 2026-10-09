@@ -228,7 +228,7 @@ DECLSPEC bool hc_vector_is_zero (const u32x v)
   return r;
 }
 
-DECLSPEC void hc_vector_get_lane (PRIVATE_AS u32 *dst, PRIVATE_AS const u32x *src, const int len, const int lane)
+DECLSPEC void hc_vector_get_lane (PRIVATE_AS u32 *dst, PRIVATE_AS const u32x *src, const int len, MAYBE_UNUSED const int lane)
 {
   for (int i = 0, idx = 0; i < len; i += 4, idx += 1) dst[idx] = VECTOR_ELEMENT (src[idx], lane);
 }

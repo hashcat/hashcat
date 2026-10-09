@@ -458,9 +458,11 @@ LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 295
 
 # The modes test.sh's has_multi_hash reports true for: one hash each, so no multi-hash run at all
 # (test.sh). 37500 joins them because its oracle builds every hash on one fixed salt, and a slow mode
-# with an esalt and no OPTS_TYPE_MULTIHASH_DESPITE_ESALT refuses more than one hash per salt.
+# with an esalt and no OPTS_TYPE_MULTIHASH_DESPITE_ESALT refuses more than one hash per salt. 5200
+# and 9000 read the hash file as one Password Safe database, so a file of several loads only the
+# first.
 
-MULTI_ONE_HASH = {14000, 14100, 14600, 14900, 15400, 37500}
+MULTI_ONE_HASH = {5200, 9000, 14000, 14100, 14600, 14900, 15400, 37500}
 
 # The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
 # no .pm and no .py oracle, so the ground truth is the module's own example hash read from
@@ -681,7 +683,7 @@ def oracle_spare(mode, optimized, length):
   env = dict(os.environ)
   env["IS_OPTIMIZED"] = "1" if optimized else "0"
 
-  proc = subprocess.run([sys.executable, RUNNER, "single", str(mode), str(length)],
+  proc = subprocess.run([sys.executable, RUNNER, "spare", str(mode), str(length)],
                         env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   if proc.returncode != 0:
@@ -1853,6 +1855,10 @@ def multi_len_params(mode):
   elif mode == 33502:
     min_len   = 5
     fixed_len = 13
+  elif mode == 36900:
+    fixed_len = 8
+  elif mode == 36901:
+    fixed_len = 5
   elif mode == 37400:
     # pw_min is 9, so a length slot below it produces no vector and the multi run would feed
     # hashcat an empty hash file. Pin every slot to a valid length, and push the split toward the
@@ -2085,6 +2091,14 @@ def attack_6_multi(r):
       continue
 
     pairs  = multi_pairs(r.mode, i, optimized)
+
+    # a length outside the mode's password range has no passwords to test
+
+    if len(pairs) == 0:
+      i += 1
+
+      continue
+
     d1, d2 = build_multi_dicts(r.mode, i, pairs)
 
     write_hashes(hash_file, pairs, r.mode, r.file_only)
@@ -2316,6 +2330,14 @@ def attack_7_multi(r):
 
   while i < max_i:
     pairs  = multi_pairs(r.mode, i, optimized)
+
+    # a length outside the mode's password range has no passwords to test
+
+    if len(pairs) == 0:
+      i += 1
+
+      continue
+
     d1, d2 = build_multi_dicts(r.mode, i, pairs)
 
     # The mask spells the head dict2 does not hold. 40001 and 40002 read it from a table instead,
@@ -2538,6 +2560,14 @@ def attack_12_multi(r):
       continue
 
     pairs  = multi_pairs(r.mode, i, optimized)
+
+    # a length outside the mode's password range has no passwords to test
+
+    if len(pairs) == 0:
+      i += 1
+
+      continue
+
     d1, d2 = build_multi_dicts(r.mode, i, pairs)
 
     write_hashes(hash_file, pairs, r.mode, r.file_only)

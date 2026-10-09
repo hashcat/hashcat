@@ -25,7 +25,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, type5_salt=None):
-  # iterations is accepted and ignored -- the scrypt config here is fixed, same as m09300.py
+  # iterations is accepted and ignored, because the scrypt config here is fixed, as in m09300.py
 
   type9_salt = salt
 

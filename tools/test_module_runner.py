@@ -264,6 +264,7 @@ def usage_exit():
     "\nUsage:\n"
     " {0} edge        <mode> [attack-type] [optimized]\n"
     " {0} single      <mode> [length]\n"
+    " {0} spare       <mode> [length]\n"
     " {0} password    <mode> [length]\n"
     " {0} passthrough <mode> [iter]\n"
     " {0} potthrough  <mode> [iter]\n"
@@ -568,7 +569,7 @@ def password(count):
   sys.stdout.buffer.write(random_non_ascii_string(count, NON_ASCII_OK) + b"\n")
 
 
-def single(mod, mode, length):
+def single(mod, mode, length, spare=False):
   word, salt, comb = constraints(mod)
 
   db_word = word_lengths(word, salt, comb)
@@ -594,6 +595,14 @@ def single(mod, mode, length):
 
     if salt[0] != -1:
       salt_len = salt[0] if salt[0] == salt[1] else db_salt[giveup % len(db_salt)]
+
+      # A spare stands in for one vector of a list another call drew, and the two calls walk the same
+      # salt length pool, so a short random salt can repeat one already in the list. A mode that
+      # cannot hold 2 hashes on one salt then refuses the whole list. The longest salt the mode
+      # allows makes that repeat practically impossible.
+
+      if (spare == True) and (giveup == 1):
+        salt_len = max(db_salt)
 
     if IS_OPTIMIZED and comb[0] != -1:
       if not comb[0] <= word_len + salt_len <= comb[1]:
@@ -704,7 +713,7 @@ def main():
 
   kind, mode = argv[0], argv[1]
 
-  if kind not in ("edge", "single", "password", "passthrough", "potthrough", "verify"):
+  if kind not in ("edge", "single", "spare", "password", "passthrough", "potthrough", "verify"):
     usage_exit()
 
   if not mode.isdigit():
@@ -760,8 +769,8 @@ def main():
 
     return
 
-  if kind == "single":
-    single(mod, mode, int(extra) if extra is not None and extra.isdigit() else None)
+  if kind in ("single", "spare"):
+    single(mod, mode, int(extra) if extra is not None and extra.isdigit() else None, kind == "spare")
   else:
     passthrough(mod, int(extra) if extra is not None and extra.isdigit() else None,
           kind == "potthrough")
