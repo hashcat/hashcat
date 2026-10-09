@@ -2246,7 +2246,12 @@ def a6_multi_params(mode):
     max_i = 5
   elif mode == 33500:
     min_i = 5
-  elif mode in (33501, 33502):
+  elif mode == 33501:
+    # The candidate is only a few characters once a multibyte byte is folded in, so a head of 8
+    # would cover the whole word and leave the mask empty. Keep the head short enough that every
+    # slot still has a tail for the mask.
+    min_i = 5
+  elif mode == 33502:
     min_i = 8
   elif mode == 37400:
     # pw_min 9: run only the longest slot (head 8 of the 9 bytes, one digit in the mask) so the
@@ -2302,6 +2307,15 @@ def attack_6_multi(r):
     multi_model = pairs[0][0] if pairs else b""
     multi_head  = d1[0] if d1 else b""
     multi_tail  = multi_model[len(multi_head):]
+
+    # When dict1 already holds the whole password the tail is empty, so there is nothing for the
+    # mask to brute force. An empty mask drops the argument and hashcat faults with a usage error,
+    # so skip the slot: it is not a valid -a 6 run at this length. This happens on the optimized
+    # pass of a mode like 33501 whose short multibyte candidate leaves no byte past the dict head.
+    if not multi_tail:
+      i += 1
+
+      continue
 
     mask = mask_literalize(mask_dots(len(multi_tail)), multi_tail)
 
