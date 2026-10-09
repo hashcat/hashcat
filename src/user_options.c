@@ -1875,6 +1875,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     user_options->benchmark = true;
   }
 
+  // --benchmark-json on its own turns benchmark mode on, the way --benchmark-all does, so it does
+  // something without -b. This runs before the --json implication in user_options_postprocess, so
+  // only an explicit --benchmark-json reaches here; the --json umbrella does not force benchmark.
+  if (user_options->benchmark_json == true)
+  {
+    user_options->benchmark = true;
+  }
+
   if (user_options->benchmark == true)
   {
     // sanity checks based on automatically overwritten configuration variables by
