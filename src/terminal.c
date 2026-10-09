@@ -3548,70 +3548,50 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  char *session_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->session) * 2) + 1);
+  // A few fields are inline fixed-shape tokens the emitter does not model: a percentage printed to
+  // two decimals, and the two element [done, total] arrays. They are built into numbuf and emitted
+  // raw so their exact spelling is kept, while the emitter owns the object, the commas and the
+  // string escaping around them.
+  char numbuf[64];
 
-  json_encode (hashcat_status->session, session_json_encoded);
+  json_ctx_t js;
 
-  printf ("{ \"session\": \"%s\",", session_json_encoded);
+  json_init (&js, stdout);
 
-  hcfree (session_json_encoded);
+  json_object_begin (&js);
 
-  printf (" \"guess\": {");
+  json_kv_string (&js, "session", hashcat_status->session);
 
-  if (hashcat_status->guess_base)
-  {
-    char *guess_base_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->guess_base) * 2) + 1);
+  json_key (&js, "guess");
+  json_object_begin (&js);
 
-    json_encode (hashcat_status->guess_base, guess_base_json_encoded);
+  json_kv_string (&js, "guess_base", hashcat_status->guess_base);
+  json_kv_uint   (&js, "guess_base_count", hashcat_status->guess_base_count);
+  json_kv_uint   (&js, "guess_base_offset", hashcat_status->guess_base_offset);
 
-    printf (" \"guess_base\": \"%s\",", guess_base_json_encoded);
+  snprintf (numbuf, sizeof (numbuf), "%.02f", hashcat_status->guess_base_percent);
+  json_key (&js, "guess_base_percent");
+  json_raw (&js, numbuf);
 
-    hcfree (guess_base_json_encoded);
-  }
-  else
-  {
-    printf (" \"guess_base\": null,");
-  }
+  json_kv_uint   (&js, "guess_mask_length", hashcat_status->guess_mask_length);
+  json_kv_string (&js, "guess_mod", hashcat_status->guess_mod);
+  json_kv_uint   (&js, "guess_mod_count", hashcat_status->guess_mod_count);
+  json_kv_uint   (&js, "guess_mod_offset", hashcat_status->guess_mod_offset);
 
-  printf (" \"guess_base_count\": %u,", hashcat_status->guess_base_count);
-  printf (" \"guess_base_offset\": %u,", hashcat_status->guess_base_offset);
-  printf (" \"guess_base_percent\": %.02f,", hashcat_status->guess_base_percent);
-  printf (" \"guess_mask_length\": %u,", hashcat_status->guess_mask_length);
+  snprintf (numbuf, sizeof (numbuf), "%.02f", hashcat_status->guess_mod_percent);
+  json_key (&js, "guess_mod_percent");
+  json_raw (&js, numbuf);
 
-  if (hashcat_status->guess_mod)
-  {
-    char *guess_mod_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->guess_mod) * 2) + 1);
+  json_kv_uint   (&js, "guess_mode", hashcat_status->guess_mode);
 
-    json_encode (hashcat_status->guess_mod, guess_mod_json_encoded);
+  json_object_end (&js);
 
-    printf (" \"guess_mod\": \"%s\",", guess_mod_json_encoded);
+  json_kv_int (&js, "status", hashcat_status->status_number);
 
-    hcfree (guess_mod_json_encoded);
-  }
-  else
-  {
-    printf (" \"guess_mod\": null,");
-  }
+  // As the hash target can contain the hash (in case of a single attacked hash), especially some
+  // salts can contain chars which need escaping; json_string escapes every one.
 
-  printf (" \"guess_mod_count\": %u,", hashcat_status->guess_mod_count);
-  printf (" \"guess_mod_offset\": %u,", hashcat_status->guess_mod_offset);
-  printf (" \"guess_mod_percent\": %.02f,", hashcat_status->guess_mod_percent);
-  printf (" \"guess_mode\": %u", hashcat_status->guess_mode);
-  printf (" },");
-  printf (" \"status\": %d,", hashcat_status->status_number);
-
-  /*
-   * As the hash target can contain the hash (in case of a single attacked hash), especially
-   * some salts can contain chars which need to be escaped to not break the JSON encoding.
-   */
-
-  char *target_json_encoded = (char *) hcmalloc ((strlen (hashcat_status->hash_target) * 2) + 1);
-
-  json_encode (hashcat_status->hash_target, target_json_encoded);
-
-  printf (" \"target\": \"%s\",", target_json_encoded);
-
-  hcfree (target_json_encoded);
+  json_kv_string (&js, "target", hashcat_status->hash_target);
 
   // see the note in status_display_machine_readable
 
@@ -3619,58 +3599,58 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   const u64 json_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
   const u64 json_rejected      = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_rejected;
 
-  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", json_progress_cur, hashcat_status->progress_end_relative_skip);
-  printf (" \"restore_point\": %" PRIu64 ",", json_restore_point);
-  printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
-  printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
-  printf (" \"rejected\": %" PRIu64 ",", json_rejected);
+  snprintf (numbuf, sizeof (numbuf), "[%" PRIu64 ", %" PRIu64 "]", json_progress_cur, hashcat_status->progress_end_relative_skip);
+  json_key (&js, "progress");
+  json_raw (&js, numbuf);
+
+  json_kv_uint (&js, "restore_point", json_restore_point);
+
+  snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->digests_done, hashcat_status->digests_cnt);
+  json_key (&js, "recovered_hashes");
+  json_raw (&js, numbuf);
+
+  snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->salts_done, hashcat_status->salts_cnt);
+  json_key (&js, "recovered_salts");
+  json_raw (&js, numbuf);
+
+  json_kv_uint (&js, "rejected", json_rejected);
+
   #ifdef WITH_BRAIN
-  printf (" \"brain_rejected_position\": %" PRIu64 ",", hashcat_status->brain_rejects_attacks);
-  printf (" \"brain_rejected_candidate\": %" PRIu64 ",", hashcat_status->brain_rejects_hashes);
+  json_kv_uint (&js, "brain_rejected_position", hashcat_status->brain_rejects_attacks);
+  json_kv_uint (&js, "brain_rejected_candidate", hashcat_status->brain_rejects_hashes);
   #endif
-  printf (" \"devices\": [");
+
+  json_key (&js, "devices");
+  json_array_begin (&js);
 
   if (bridge_ctx->enabled == true)
   {
-    printf (" { \"device_id\": %u,", 0);
-    printf (" \"device_name\": \"%s\",", "Assimilation Bridge");
-    printf (" \"device_type\": \"%s\",", "Assimilation Bridge");
-
-    printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_begin (&js);
+    json_kv_uint   (&js, "device_id", 0);
+    json_kv_string (&js, "device_name", "Assimilation Bridge");
+    json_kv_string (&js, "device_type", "Assimilation Bridge");
+    json_kv_uint   (&js, "speed", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_end (&js);
   }
   else
   {
-    for (int device_id = 0, first_dev = 1; device_id < hashcat_status->device_info_cnt; device_id++)
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (first_dev)
-      {
-        first_dev = 0;
-      }
-      else
-      {
-        printf (",");
-      }
+      json_object_begin (&js);
 
-      printf (" { \"device_id\": %u,", device_id + 1);
-
-      char *device_name_json_encoded = (char *) hcmalloc ((strlen (device_info->device_name) * 2) + 1);
-
-      json_encode (device_info->device_name, device_name_json_encoded);
-
-      printf (" \"device_name\": \"%s\",", device_name_json_encoded);
-
-      hcfree (device_name_json_encoded);
+      json_kv_uint (&js, "device_id", device_id + 1);
+      json_kv_string (&js, "device_name", device_info->device_name);
 
       const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
                                      ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
-      printf (" \"device_type\": \"%s\",", device_type_desc);
 
-      printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
+      json_kv_string (&js, "device_type", device_type_desc);
+      json_kv_uint   (&js, "speed", (u64) (device_info->hashes_msec_dev * 1000));
 
       const int temp        = hm_get_temperature_with_devices_idx (hashcat_ctx, device_id);
       const int util        = hm_get_utilization_with_devices_idx (hashcat_ctx, device_id);
@@ -3680,19 +3660,24 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       const int buslanes    = hm_get_buslanes_with_devices_idx (hashcat_ctx, device_id);
       const int64_t power   = hm_get_power_with_devices_idx (hashcat_ctx, device_id);
 
-      printf (" \"temp\": %d,", temp);
-      printf (" \"util\": %d,", util);
-      printf (" \"fanspeed\": %d,", fanspeed);
-      printf (" \"corespeed\": %d,", corespeed);
-      printf (" \"memoryspeed\": %d,", memoryspeed);
-      printf (" \"buslanes\": %d,", buslanes);
-      printf (" \"power\": %" PRId64 " }", power);
+      json_kv_int (&js, "temp",        temp);
+      json_kv_int (&js, "util",        util);
+      json_kv_int (&js, "fanspeed",    fanspeed);
+      json_kv_int (&js, "corespeed",   corespeed);
+      json_kv_int (&js, "memoryspeed", memoryspeed);
+      json_kv_int (&js, "buslanes",    buslanes);
+      json_kv_int (&js, "power",       power);
+
+      json_object_end (&js);
     }
   }
 
-  printf (" ],");
-  printf (" \"time_start\": %" PRIu64 ",", (u64) status_ctx->runtime_start);
-  printf (" \"estimated_stop\": %" PRIu64 " }", (u64) end);
+  json_array_end (&js);
+
+  json_kv_uint (&js, "time_start", (u64) status_ctx->runtime_start);
+  json_kv_uint (&js, "estimated_stop", (u64) end);
+
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 
