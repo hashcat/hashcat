@@ -4867,7 +4867,7 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    event_log_info (hashcat_ctx, "%u:%u:%u:%u:%.2f:%" PRIu64, 0, hash_mode, 0, 0, hashcat_status->hashes_msec_all, (u64) (hashcat_status->hashes_msec_all * 1000));
+    event_log_info (hashcat_ctx, "%u:%u:%u:%u:%.2f:%" PRIu64, 0, hash_mode, 0, 0, hashcat_status->exec_msec_all, (u64) (hashcat_status->hashes_msec_all * 1000));
   }
   else
   {
@@ -4913,7 +4913,7 @@ void status_benchmark_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"hash_mode\": %u,", hash_mode);
     printf (" \"corespeed\": %u,", 0);
     printf (" \"memoryspeed\": %u,", 0);
-    printf (" \"exec_msec\": %.2f,", hashcat_status->hashes_msec_all);
+    printf (" \"exec_msec\": %.2f,", hashcat_status->exec_msec_all);
     printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
     device_num++;
   }
