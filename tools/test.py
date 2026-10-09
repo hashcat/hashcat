@@ -15,6 +15,7 @@ import atexit
 import base64
 import fcntl
 import glob
+import importlib.util
 import json
 import os
 import queue
@@ -5851,14 +5852,49 @@ def run_parallel_depth(args):
   return rc
 
 
-def bridge_vectors(mode, pure, hash_path, word_path):
-  # Build bridge-format vectors for a mode from its own oracle, through tools/test_bridge.py. Returns
-  # the vector count, or -1 when none could be made: no oracle, no kernel for the family, or every
-  # hash too long for the bridge's 1024 byte salt. The family follows -P because an oracle can pick
-  # its charset from IS_OPTIMIZED.
+def bridge_family(mode):
+  # The bridge hashes in Python, so it has no kernel of its own and the optimized/pure split does not
+  # apply to the crack. It still draws its candidates from the mode's oracle, which offers one
+  # constraint set per family (word slot 0 is pure, slot 2 is optimized; [-1, -1] means that family
+  # has no kernel). So pick the family the mode actually has, preferring pure, which covers almost
+  # every mode; a few dozen are optimized only. Returns "p", "o", or None when the mode has an oracle
+  # with neither, so there is nothing to generate.
+  tests = os.path.join(TDIR, "test_modules")
+  path  = os.path.join(tests, "m%05d.py" % mode)
+
+  if not os.path.isfile(path):
+    return None
+
+  # The oracle modules import their shared helpers as "lib.test_helpers", so their directory has to
+  # be importable the way test_bridge.py and the runner make it.
+  if tests not in sys.path:
+    sys.path.insert(0, tests)
+
+  spec = importlib.util.spec_from_file_location("bridge_family_m%05d" % mode, path)
+  mod  = importlib.util.module_from_spec(spec)
+
+  spec.loader.exec_module(mod)
+
+  pairs    = mod.module_constraints()
+  has_pure = not (pairs[0][0] == -1 and pairs[0][1] == -1)
+  has_opt  = not (pairs[2][0] == -1 and pairs[2][1] == -1)
+
+  if has_pure:
+    return "p"
+
+  if has_opt:
+    return "o"
+
+  return None
+
+
+def bridge_vectors(mode, family, hash_path, word_path):
+  # Build bridge-format vectors for a mode from its own oracle, through tools/test_bridge.py, under
+  # the given family ("p" or "o"; see bridge_family). Returns the vector count, or -1 when none could
+  # be made: oracle error, or every hash too long for the bridge's 1024 byte salt.
   cmd = [sys.executable, os.path.join(TDIR, "test_bridge.py"), "vectors", str(mode), hash_path, word_path]
 
-  if pure:
+  if family == "p":
     cmd.append("-P")
 
   proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -5880,9 +5916,10 @@ def run_bridge(args):
   # no mode kernel, so hashcat's parser and candidate handling are checked against the reference
   # implementation. test_bridge.py builds the vectors and is itself the bridge module. One hashcat
   # run per mode is one test cell: it passes only when every vector the oracle produced is recovered.
+  # The bridge hashes in Python, so the optimized/pure split does not apply; bridge_family picks the
+  # family only to draw valid candidates from the oracle, and -P on the run is ignored here.
   bridge_py = os.path.join(TDIR, "test_bridge.py")
   modes     = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
-  family    = "Pure" if args.pure else "Optimized"
 
   # mode 73000 has no optimized or pure kernel of its own, so -O does not apply to the bridge run.
   opts = [o for o in base_opts(args) if o != "-O"]
@@ -5892,9 +5929,17 @@ def run_bridge(args):
       hpath = os.path.join(tmp, "m%05d.hash" % mode)
       wpath = os.path.join(tmp, "m%05d.words" % mode)
 
-      label = "[ test.py ] [ Type %d, Bridge, Device-Type Cpu, Kernel-Type %s ]" % (mode, family)
+      label  = "[ test.py ] [ Type %d, Bridge, Device-Type Cpu ]" % mode
+      family = bridge_family(mode)
 
-      n = bridge_vectors(mode, args.pure, hpath, wpath)
+      if family is None:
+        print("%s > Skip : mode has no oracle to drive the bridge" % label)
+        record("Skip")
+        note_verdict("Skip")
+
+        continue
+
+      n = bridge_vectors(mode, family, hpath, wpath)
 
       if n <= 0:
         print("%s > Skip : oracle produced no bridge vectors" % label)
