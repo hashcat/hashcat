@@ -12586,6 +12586,24 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D XM2S(x)=#x");
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D M2S(x)=XM2S(x)");
 
+      // A long branch in a called function can be relaxed through s[30:31], the return address,
+      // which nothing saves, so the function returns into the branch target and the wave never
+      // finishes. Without the pre-allocation reservation the register scavenger picks a pair that
+      // is dead at the branch.
+      // https://github.com/llvm/llvm-project/issues/224205
+      //
+      // The option dates from LLVM 17, and HIP 6.2, the oldest hashcat accepts, ships LLVM 18. DTK
+      // reports HIP 6.3 but keeps the legacy 792-byte hipDeviceProp_t, so its version says nothing
+      // about its LLVM, and LLVM ends the process on an option it does not know.
+
+      const HIPRTC_PTR *hiprtc = backend_ctx->hiprtc;
+
+      if (hiprtc->is_dtk == false)
+      {
+        hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-mllvm");
+        hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-amdgpu-long-branch-factor=0");
+      }
+
       char *hiprtc_options_string = hcstrdup (build_options_buf);
 
       const int num_options = hiprtc_options_idx + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + hiprtc_options_idx);
