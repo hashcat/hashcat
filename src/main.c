@@ -1083,6 +1083,24 @@ static void main_monitor_temp_abort_feeder (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   event_log_error (hashcat_ctx, "Temperature limit on the candidate generator reached, aborting");
 }
 
+// A bridge unit, named the way the watchdog banner names it. The watchdog only checks a device that is
+// not a bridge unit when it is a GPU, so the other message can keep calling it one.
+
+static void main_monitor_temp_abort_bridge (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_error (hashcat_ctx, "Temperature limit on Bridge unit #%u reached, aborting", *device_id + 1);
+}
+
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -1909,6 +1927,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_STATUS_REFRESH:    main_monitor_status_refresh    (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT:        main_monitor_temp_abort        (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT_FEEDER: main_monitor_temp_abort_feeder (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_TEMP_ABORT_BRIDGE: main_monitor_temp_abort_bridge (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE1:         main_monitor_throttle1         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;

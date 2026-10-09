@@ -312,6 +312,7 @@ changes that may require action.
 - Added mode 29493: VeraCrypt BLAKE2s-256 + XTS 1536 bit
 - Added mode 24430: PKCS#12 (.pfx, .p12) (SHA1 + HMAC-SHA1)
 - Added mode 24440: PKCS#12 (.pfx, .p12) (SHA256 + HMAC-SHA256)
+- Added mode 38200: Cisco-IOS $14$ (convoluted Type 9)
 
 ##
 ## New Features and Options
@@ -476,7 +477,7 @@ Results depend on the device, runtime and workload.
   with counts of at least 2 reaches up to 2.3x in pure kernels
 - A SHA-1-order shared hex table speeds mode 18500 by less than 1% on an RX 7900 XTX
 - Avoiding width conversion through a union improves mode 6100 under Mesa rusticl
-- Removing unneeded register limits improves compiler allocation for modes 01800, 08300, 10700 and
+- Removing unneeded register limits improves compiler allocation for modes 1800, 8300, 10700 and
   16600
 - The built-in RAR3 decoder uses less device memory than UnRAR
 - Plain wordlist attacks no longer reserve unused mask buffers on the device
@@ -507,6 +508,9 @@ Results depend on the device, runtime and workload.
 - Mode 31100 moves fixed schedule words outside the mask loop and rejects candidates one round
   earlier, speeding "-a 3" with "-O"
 - Modes 31100 and 35100 use an NVIDIA byte permute for the second SM3 P0/P1 rotate
+- Modes 16600, 22500, 22951 and 23003 fold the AES-256 decrypt key schedule into the decrypt rounds
+  instead of building a 60-word array first, for +8% to +36% on a GeForce RTX 4090 and +22% to +45%
+  on a Radeon RX 7900 XTX
 
 ##
 ## Improvements
@@ -535,6 +539,11 @@ Results depend on the device, runtime and workload.
   no benefit for host CPU use or cracking speed
 - Removed obsolete "OCL_CODE_CACHE_ENABLE" and "CL_CONFIG_USE_VECTORIZER" settings.
   Debug builds still use "CUDA_CACHE_DISABLE" and "POCL_KERNEL_CACHE"
+- Mask attacks no longer allocate the device and host buffers for host-built candidates, which they
+  never use
+- The 8 krb5 modes that derive a key with PBKDF2-HMAC-SHA1 declare their tmp buffers at the size
+  their kernels write, which lowers device memory per work item: modes 19600, 19700, 19800, 19900,
+  28800, 28900, 32100 and 32200
 
 ## Autotune and tuning database
 
@@ -638,7 +647,8 @@ Results depend on the device, runtime and workload.
   option reports this, and other plaintext is displayed as "$HEX[...]"
 - Mode 34300 is now called "KeePass Argon2 (KDBX v4)", distinguishing it from
   mode 34301, the KDBX v4 AESKDF mode
-- Usage notices now cover 45 modes. Mode 1000 can display an additional advice notice
+- Usage notices now cover 124 modes and name the tool that extracts the hash. Mode 1000 can display
+  an additional advice notice
 - Modes 22000 and 22001 now accept hcxpcapngtool's 802.11r FT record types 03 and 04
   alongside PMKID and EAPOL types 01 and 02. Both crack under the existing modes
 
@@ -702,14 +712,14 @@ Results depend on the device, runtime and workload.
 
 ## Memory safety: hash parsing and encoding
 
-- Fixed short or malformed hashes causing out-of-bounds reads in modules 07100, 07900, 08500,
-  08501, 11600, 19600, 19700, 28800, 28900, 29100, 32100 and 32200
+- Fixed short or malformed hashes causing out-of-bounds reads in modules 7100, 7900, 8500,
+  8501, 11600, 19600, 19700, 28800, 28900, 29100, 32100 and 32200
 - Fixed a hash that specifies zero iterations underflowing the salt iteration count, which could
   hang the device
-- Fixed modules 00400, 03200, 06400, 06500, 06700, 07900, 11600, 13000, 25600, 25800, 28400, 30600,
+- Fixed modules 400, 3200, 6400, 6500, 6700, 7900, 11600, 13000, 25600, 25800, 28400, 30600,
   30601, 33800, 35500 and 35700 not rejecting an iteration-count shift of 32 or more, which exceeded
   the type's width and gave the wrong iteration count
-- Fixed modules 08900, 15700, 27700, 28200 and 29800 underflowing "salt_repeats"
+- Fixed modules 8900, 15700, 27700, 28200 and 29800 underflowing "salt_repeats"
 - Fixed scrypt kernels hanging when a hash specifies zero parallelism
 - Fixed a salt buffer sized for the longest "generic_salt_encode()" output leaving no room for the
   terminator, which was then written just past it. This was a one byte stack buffer overflow in 39
@@ -717,8 +727,8 @@ Results depend on the device, runtime and workload.
 - Fixed pure kernels overflowing "salt_buf" when decoding base64 salts
 - Fixed encoders not capping reported hash lengths to their output buffers. Potfile and status paths
   that bypass "hash_encode()" now also enforce bounds
-- Fixed modules 00111, 01411, 01711, 05300, 05400, 11400, 13100, 13600 and 18200 writing a "0x80"
-  padding byte beyond a full buffer. The pure kernels of modes 00111, 01411 and 01711 also accept
+- Fixed modules 111, 1411, 1711, 5300, 5400, 11400, 13100, 13600 and 18200 writing a "0x80"
+  padding byte beyond a full buffer. The pure kernels of modes 111, 1411 and 1711 also accept
   their advertised 256-byte salts
 - Fixed encoding at maximum data length overflowing buffers under "--show" or "--left" in modules
   13100, 16900, 18200, 19600, 19700, 32100 and 32200
@@ -729,7 +739,7 @@ Results depend on the device, runtime and workload.
 - Fixed decode errors in damaged gzip, xz or zip files becoming byte counts that overrun hash-list,
   brain or charset buffers
 - Fixed line reading in "fgetl()" writing beyond a buffer filled exactly by one line
-- Fixed hccapx modules 02500, 02501, 22000 and 22001 sizing decompressed data incorrectly, not
+- Fixed hccapx modules 2500, 2501, 22000 and 22001 sizing decompressed data incorrectly, not
   validating ESSID and EAPOL lengths, and accepting short potfile lines
 - Fixed modules 16800 and 16801 not checking potfile line length before reading a 64-character PMKID
 - Fixed KeePass modules 13400, 29700 and 34300 accepting invalid content lengths and leaving encoded
@@ -744,7 +754,7 @@ Results depend on the device, runtime and workload.
   their destination fields
 - Fixed LM hash-file growth writing past the hash list when one line adds 2 entries
 - Fixed split-hash display not bounding both plaintext halves copied from the potfile under "--show"
-- Fixed modules 08900, 10200, 21500, 21501, 28200, 70100 and 70200 accepting oversized unpadded
+- Fixed modules 8900, 10200, 21500, 21501, 28200, 70100 and 70200 accepting oversized unpadded
   base64 fields
 - Fixed SAP CODVN F/G modes 7800 and 7801 not bounding the combined password and salt buffer
 - Fixed module 10000 accepting salts beyond its buffer and reserving no space for the encoded
@@ -766,6 +776,8 @@ Results depend on the device, runtime and workload.
 - Fixed odd-length hex tokens being accepted, which "input_tokenizer()" now rejects centrally
 - Fixed modes 34000, 34100 and 34300 not reserving enough self-test buffer space for hashes with an
   Argon2 memory cost below the built-in test vector
+- Fixed module 32500 printing bytes from uninitialized stack memory into every hash it encoded, so
+  cracked hashes in the outfile and potfile could not be loaded or matched again
 
 ## Memory safety: candidates, rules and masks
 
@@ -784,6 +796,8 @@ Results depend on the device, runtime and workload.
   overflow their 256-byte buffers
 - Fixed random rule generation selecting past a rule group in 17 paths, and empty
   "--generate-rules-func-sel" values dividing by zero instead of returning an error
+- Fixed modes 26900 and 27300 ending the session with an illegal memory access when a rule shortened
+  a candidate to zero length, which their loop kernels divided by
 
 ## Memory safety: services and interface
 
@@ -800,6 +814,8 @@ Results depend on the device, runtime and workload.
 - Fixed early failures in "outer_loop()" and "--identify" not releasing their allocations
 - Fixed running from the install directory leaking "profile_dir", "session_dir" or "shared_dir"
 - Fixed libhashcat sessions not freeing argument vectors read from restore files
+- Fixed the JSON output writing one byte past its buffer for a string made only of characters that
+  need escaping, which a session name or hash file name can be
 
 ## Hash modes and kernels
 
@@ -811,7 +827,7 @@ Results depend on the device, runtime and workload.
   principal salts and kept hash lines that carry that field from loading
 - Fixed the 41 UTF-8-to-UTF-16 kernel modes not recognizing valid 3 and 4 byte UTF-8 characters,
   including the euro sign and Japanese kana
-- Fixed modules 00130, 00140, 00170, 01430, 01440, 01470, 01730, 01740, 01770, 10830, 10840, 10870,
+- Fixed modules 130, 140, 170, 1430, 1440, 1470, 1730, 1740, 1770, 10830, 10840, 10870,
   13500, 13800, 29000 and 29200 widening non-ASCII UTF-8 with "-a 3" instead of decoding it, which
   kept valid passwords from cracking
 - The non-ASCII "-a 3" fix requires "--backend-vector-width 1" on CPU devices
@@ -821,7 +837,7 @@ Results depend on the device, runtime and workload.
   6241-6243, 13721-13723, 13741-13743, 13761-13763 and 13781-13783
 - Fixed VeraCrypt modes 13723, 13733, 13751, 13753, 13761 and 13763 failing self-tests and hanging
   after a crack with "--self-test-disable"
-- Fixed mode 01500 not cracking "-a 3" lists with several hashes sharing one salt
+- Fixed mode 1500 not cracking "-a 3" lists with several hashes sharing one salt
 - Fixed PKZIP modes 17200, 17220 and 17225 not decoding stored DEFLATE blocks on AMD HIP and
   OpenCL. The fix also covers mode 17230 under attack-modes 1, 3, 6, 7 and 12
 - Fixed mode 10500 rejecting PDF hashes with an empty ID
@@ -836,23 +852,23 @@ Results depend on the device, runtime and workload.
   kept a shorter ID from cracking during password localization
 - Fixed 8 scrypt modules reporting a misleading self-test or configuration error instead of
   rejecting hashes whose large "r" and "p" values require too much memory
-- Fixed optimized modes 03710, 04010 and 04110 accepting salts beyond their kernel limits
+- Fixed optimized modes 3710, 4010 and 4110 accepting salts beyond their kernel limits
 - Fixed mode 35100 rejecting passwords longer than 15 characters, which its new pure kernel now
   accepts
 - Fixed association workgroups not using each hash's salt, keyboard map and page table, and not
-  passing the correct salt to host hooks in modules 01100, 05300, 05400, 05600, 06211-06233, 07300,
-  08000, 11600, 13711-13773, 13800, 17200-17230, 22100 and 23800
+  passing the correct salt to host hooks in modules 1100, 5300, 5400, 5600, 6211-6233, 7300,
+  8000, 11600, 13711-13773, 13800, 17200-17230, 22100 and 23800
 - Fixed PKZIP modes 17220 and 17225 exceeding the AMD private-memory aperture, which could prevent
   HIP launches or severely reduce throughput
 - Fixed mode 31100 hanging at vector width 16 in its optimized "-a 3" kernel on AMD, and returning
   into its own SM3 schedule function
 - Fixed secp256k1 "inv_mod()" looping forever for zero input on CPU devices
-- Fixed pure kernels in modes 01500, 03000, 08500, 14000, 14100 and 16000 assuming CPU devices have
+- Fixed pure kernels in modes 1500, 3000, 8500, 14000, 14100 and 16000 assuming CPU devices have
   dedicated shared memory
 - Fixed modes 8500, 8501, 12400 and 14100 failing to build when OpenCL reports local memory as
   global memory
 - Fixed mode 17220 failing to build with "-a 3" after the CRC32 include rename
-- Fixed modes 03730, 18100, 19300, 19500, 21310, 21900, 29000, 30700, 31700, 32300 and 33000 not
+- Fixed modes 3730, 18100, 19300, 19500, 21310, 21900, 29000, 30700, 31700, 32300 and 33000 not
   using fixed separators for internal hash fields. Module 30700 now uses the colon its parser
   expects, leaving "--separator" for the plaintext boundary
 - Fixed Mega.nz password-protected links having the wrong hash category
@@ -876,6 +892,39 @@ Results depend on the device, runtime and workload.
 - Fixed mode 31900 rejecting MetaMask Mobile vaults with 44-character base64 salts, which encode 32
   bytes instead of the previously assumed 16
 - Fixed mode 22001 not reading its own potfile entries or recognizing previously cracked hashes
+- Fixed modes 17200, 17220, 17225 and 21800 refusing to run on Apple Metal. The PKZIP decoder was
+  miniz's coroutine form, which resumed at a case label inside the loop it had stopped in, and no
+  Metal compiler would build that
+- Fixed modes 17200, 17220 and 17225 aborting on Apple OpenCL over an AMD GPU, a device no guard
+  covered, so the run died with no output instead of declining
+- Fixed modes 7700 and 7701 never cracking under a rule that changes the candidate length. The two
+  attack mode 0 kernels handed the walldorf transform the length the word had before the rule
+  engine ran, so the digest covered the wrong number of bytes
+- Fixed modes 7800, 7801, 11700, 11800 and 28000 never cracking under a rule that changes the
+  candidate length, in the optimized kernels. The attack mode 0 kernel used the length the word had
+  before the rule ran, the same fault fixed for modes 7700 and 7701
+- Fixed modes 34000, 34100 and 34300 rejecting a hash list in which 2 hashes share a salt string but
+  differ only in the Argon2 memory cost or parallelism
+- Fixed pure mask attacks on 22 UTF-16 modes, such as NTLM and DCC, missing passwords with non-ASCII
+  characters on devices running at a vector width above 1, which includes most CPUs
+- Fixed mode 14500 reading the key size of every hash after the first from the wrong place, so a
+  list of several 128 or 192 bit hashes could miss all but the first
+- Fixed mode 8300 never cracking a domain written with uppercase letters, which RFC 4034 hashes in
+  lowercase, and accepting owner names, salts and iteration counts outside what the RFCs and its
+  kernels allow
+- Fixed the SNMPv3 modules rejecting engine IDs of 18 to 32 bytes, which RFC 3411 allows, and
+  accepting the all zero and all 0xff IDs it forbids
+- Fixed the optimized mask attack of mode 8000 never returning on AMD GPUs at a vector width of 4
+  or 8
+- Fixed modes 22000 and 22001 never cracking PMKIDs from AKM 6 (PSK-SHA256) networks, which
+  hcxpcapngtool marks with message pair 03
+- Fixed nonce error correction never correcting a key version 3 handshake in modes 2500, 2501, 22000
+  and 22001
+- Fixed the pure mask attack of modes 4410 and 4420 failing its self-test or not building on CPU
+  devices, which hashed the wrong salt bytes at vector widths above 1
+- Fixed mode 32500 hashing only 1 in 4 candidates on CPU devices at vector width 4
+- Changed mode 29700 to take its keyfile hash as 64 hex characters that the kernel decodes, so every
+  attack mode can supply it. Older potfile entries still count as cracked and show as $HEX[...]
 
 ## Backends: OpenCL, tuning and memory
 
@@ -914,6 +963,9 @@ Results depend on the device, runtime and workload.
 - Fixed explicit device selection under "--stdout" not keeping the requested device when an
   OpenCL CPU is also present
 - Fixed device listing with "-I" ignoring the type filter set by "-D"
+- Fixed autotune running some kernels over an empty password buffer when it had nothing to tune,
+  which kept mode 10700 with -O in autotune indefinitely and crashed modes 26900 and 27300 under an
+  association attack on a single salt
 
 ## Backends: Metal and resource lifecycle
 
@@ -966,6 +1018,13 @@ Results depend on the device, runtime and workload.
 - Fixed Intel xe GPU temperature monitoring not reading "temp2_input" when needed
 - Fixed one throttling GPU producing unstable warnings across its virtual devices
 - Fixed failed Apple power readings showing 0 watts instead of no value
+- Fixed the macOS GPU utilization sensor reporting a failed read as 0 percent. Its return type is
+  int and its caller tests for -1, but it returned true or false, so a registry it could not read
+  came back as a valid reading and the sensor stayed enabled to repeat it
+- Fixed the macOS GPU power sensor printing a wattage it had not measured. The first sample divided
+  the energy counter by the machine's uptime, giving an average since boot, a counter that reset or
+  read as zero wrapped the unsigned subtraction into an enormous figure, and a GPU with no energy
+  counter showed a flat 0 mW
 
 ## Attack modes and candidates
 
@@ -995,6 +1054,9 @@ Results depend on the device, runtime and workload.
   file as a wordlist
 - Fixed candidate output under "--stdout" not preserving order. It now uses one device, while
   cracking runs still use all selected devices
+- Fixed attack mode 9 reading past the end of the salt or esalt array in modes 6231, 6232, 6233,
+  8000, 22100 and 33400, which could make the run fail at autotune or self-test
+- Fixed the 51 VeraCrypt modes not building their kernels under attack mode 9
 
 ## Hash lists, potfile and outfile
 
@@ -1014,6 +1076,12 @@ Results depend on the device, runtime and workload.
 - Fixed hash-list format detection not needing more than half of the scanned lines to match before
   interpreting a file as pwdump, passwd or shadow
 - Fixed hash-list format detection picking a format other than the one matching the most lines
+- Fixed "--left" output of modes 9710, 9810, 10410 and 29700 ending each hash with a separator,
+  which hashcat could not load again. These modes also ignored "--outfile-format"
+- Fixed module 26900 dropping trailing zero bytes of the engine ID from every hash it printed, so
+  cracked hashes in the outfile and potfile did not match the hash that was loaded
+- Fixed loading a large potfile taking hours for modes with a large esalt or hook salt, such as
+  BitLocker, 7-Zip, KeePass and WinZip, which cleared it for every line of the potfile
 
 ## Brain
 
@@ -1056,6 +1124,9 @@ Results depend on the device, runtime and workload.
 - Fixed idle devices showing stale speed, ETA or candidates instead of 0 H/s and "[Idle]"
 - Fixed status and hash-list progress rounding to 100.00% before completion or 0.00% after work has
   started
+- Fixed "--status-json" writing invalid JSON for bridged hash modes, because their device entry was
+  never closed
+- Fixed the dictionary cache summary reporting its read speed 2.4 percent too high
 
 ## Windows
 
@@ -1094,6 +1165,8 @@ Results depend on the device, runtime and workload.
   root rather than the invoking user when it reruns itself under "sudo"
 - Fixed the "qsort_r()" conflict and a "cpuset" warning in NetBSD builds
 - Fixed an install with a different "PREFIX" not rebuilding paths tied to the build prefix
+- Fixed cross compiling for Windows on older Ubuntu LTS releases, whose mingw headers default to a
+  Windows version older than Vista. Both Windows builds now target Windows 7
 
 ## Tools and tests
 

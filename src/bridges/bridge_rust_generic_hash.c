@@ -339,6 +339,11 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   const char *module_name = extract_module_name (bridge_context->dynlib_filename);
 
+  // A plugin that exports no ST_HASH, such as dynamic_hash, leaves the run without a self-test, and
+  // then there is no self-test salt to hand over.
+
+  const int st_cnt = (hashes->st_salts_buf == NULL) ? 0 : 1;
+
   unit_buf->unit_context = bridge_context->new_context(
     module_name,
 
@@ -350,11 +355,11 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
     hashconfig->esalt_size,
     (const char *) hashes->esalts_buf,
 
-    1,
+    st_cnt,
     sizeof (salt_t),
     hashes->st_salts_buf,
 
-    1,
+    st_cnt,
     hashconfig->esalt_size,
     (const char *) hashes->st_esalts_buf,
 

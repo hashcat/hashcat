@@ -47,8 +47,12 @@ impl ThreadContext {
 /// `data` must point at `length` initialised, aligned values of T that stay valid for the call. A
 /// pointer that merely survives a null check can still be dangling or misaligned, and a `length`
 /// that does not match the allocation is undefined behaviour whatever the pointer is, so the
-/// obligation stays with the caller.
+/// obligation stays with the caller. A `length` of 0 reads nothing, so `data` may then be null.
 pub unsafe fn vec_from_raw_parts<T: Clone>(data: *const T, length: c_int) -> Vec<T> {
+    if length == 0 {
+        return Vec::new();
+    }
+
     Vec::from(unsafe { slice::from_raw_parts(data, length as usize) })
 }
 
@@ -95,8 +99,9 @@ pub extern "C" fn new_context(
     assert!(!module_name.is_null());
     assert!(!salts_buf.is_null());
     assert!(!esalts_buf.is_null());
-    assert!(!st_salts_buf.is_null());
-    assert!(!st_esalts_buf.is_null());
+    // A run without a self-test hash has no self-test salt, and the core says so with a count of 0.
+    assert!((st_salts_cnt == 0) || (st_salts_buf.is_null() == false));
+    assert!((st_esalts_cnt == 0) || (st_esalts_buf.is_null() == false));
     assert_eq!(salts_size as usize, mem::size_of::<salt_t>());
     assert_eq!(st_salts_size as usize, mem::size_of::<salt_t>());
     assert_eq!(esalts_size as usize, mem::size_of::<generic_io_t>());

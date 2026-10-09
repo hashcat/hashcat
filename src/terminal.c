@@ -3617,7 +3617,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     printf (" \"device_name\": \"%s\",", "Assimilation Bridge");
     printf (" \"device_type\": \"%s\",", "Assimilation Bridge");
 
-    printf (" \"speed\": %" PRIu64 ",", (u64) (hashcat_status->hashes_msec_all * 1000));
+    printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
   }
   else
   {
@@ -4363,9 +4363,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
 
   // Per GROUP, not per device. Many identical devices report as one line, and a total underneath a
-  // single line only repeats it.
+  // single line only repeats it. A bridge of many narrow units printed no line for them above, so
+  // there the total is the only speed line.
 
-  if (hashcat_status->group_info_active > 1)
+  const bool bridge_folded = (bridge_ctx->enabled == true) && (hashcat_status->device_info_active > 1) && (bridge_workitem_multiple (hashcat_ctx, 0) == 1);
+
+  if ((hashcat_status->group_info_active > 1) || (bridge_folded == true))
   {
     event_log_info (hashcat_ctx,
       "Speed.#*.........: %9sH/s",
