@@ -37,6 +37,18 @@
 
 name: test
 
+# Name a manual run after the kinds it was dispatched with, so the run list shows "test: opt pure
+# (all)" rather than a column of identical "test". A schedule or pull request keeps the event name.
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('test: {0}{1}{2}{3}({4})',
+                inputs.optimized && 'opt ' || '',
+                inputs.pure && 'pure ' || '',
+                inputs.bridge && 'bridge ' || '',
+                inputs.container && 'container ' || '',
+                inputs.modes)
+      || format('test ({0})', github.event_name) }}
+
 on:
   schedule:
     - cron: '0 1 * * 1'
@@ -54,11 +66,11 @@ on:
         type: boolean
         default: true
       bridge:
-        description: 'Test the bridge pass (test.py --bridge)'
+        description: 'Test Python bridge kernels'
         type: boolean
         default: true
       container:
-        description: 'Crack the TrueCrypt/VeraCrypt/CryptoLoop/LUKS container files'
+        description: 'Test container files (TrueCrypt/VeraCrypt/LUKS/..)'
         type: boolean
         default: true
   pull_request:
