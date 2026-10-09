@@ -2139,8 +2139,6 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       json_array_begin (&js);
     }
 
-
-
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
     {
       const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
@@ -2284,8 +2282,6 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       json_array_begin (&js);
     }
 
-
-
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
     {
       const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
@@ -2411,8 +2407,6 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       json_key (&js, "BackendDevices");
       json_array_begin (&js);
     }
-
-
 
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
     {
@@ -2650,8 +2644,6 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     char    **opencl_platforms_vendor      = backend_ctx->opencl_platforms_vendor;
     char    **opencl_platforms_version     = backend_ctx->opencl_platforms_version;
 
-
-
     for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
       // A platform whose devices are all filtered away is left out whole, header and version with
@@ -2690,8 +2682,6 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         json_key (&js, "BackendDevices");
         json_array_begin (&js);
       }
-
-
 
       for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
       {
@@ -2833,8 +2823,6 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         json_object_end (&js);
       }
     }
-
-
 
     if (machine_readable == true)
     {
