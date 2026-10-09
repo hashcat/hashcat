@@ -3576,24 +3576,21 @@ def archive_crack(args, mode, hash_file, label, tmp, fast):
 # ---- container generators (test.sh veracrypt_generate/truecrypt_generate/luks*_generate) ----
 
 def vc_encryption_name(cascade):
-  # test.sh spells a cascade "aes-twofish-serpent"; veracrypt wants "AES(Twofish(Serpent))".
+  # test.sh spells a cascade "aes-twofish-serpent"; the veracrypt console wants the parts dash
+  # separated, "AES-Twofish-Serpent". 1.26 rejects the older nested "AES(Twofish(Serpent))" form
+  # on "--create" with "Unknown option", so the dash form is the only one that builds a volume.
   names = {"aes": "AES", "serpent": "Serpent", "twofish": "Twofish",
            "camellia": "Camellia", "kuznyechik": "Kuznyechik"}
 
-  out   = ""
-  close = ""
+  parts = []
 
   for part in cascade.split("-"):
     if part not in names:
       return None
 
-    if not out:
-      out = names[part]
-    else:
-      out   = "%s(%s" % (out, names[part])
-      close += ")"
+    parts.append(names[part])
 
-  return out + close
+  return "-".join(parts)
 
 
 def veracrypt_generate(mode, vc_hash, cascade, out_file):
