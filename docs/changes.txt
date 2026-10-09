@@ -691,6 +691,8 @@ Results depend on the device, runtime and workload.
   pygost. DiskCryptor XTS now uses pycryptodome instead of pycryptoplus
 - Added "tools/README.md", "tools/install_dependencies.sh" and
   "tools/requirements.txt" for test setup. Failed installs name each package
+- The 14000 oracle keys DES with the first 8 bytes of the password, and the 33501
+  hybrid run skips a slot whose mask would be empty, so both pass the pure/opt suite
 
 ## Documentation and licensing
 
