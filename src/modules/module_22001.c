@@ -458,7 +458,11 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 
   if (wpa->type == 1)
   {
-    const int len = hc_asprintf (buf, "WPA*01*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***" EOL,
+    // keep the bit that selects HMAC-SHA256, written the way hcxpcapngtool writes it
+
+    const char *message_pair = (wpa->keyver == 3) ? "03" : "";
+
+    const int len = hc_asprintf (buf, "WPA*01*%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s***%s" EOL,
       byte_swap_32 (wpa->pmkid[0]),
       byte_swap_32 (wpa->pmkid[1]),
       byte_swap_32 (wpa->pmkid[2]),
@@ -475,7 +479,8 @@ int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
       mac_sta[3],
       mac_sta[4],
       mac_sta[5],
-      tmp_buf);
+      tmp_buf,
+      message_pair);
 
     return len;
   }
@@ -1113,6 +1118,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                        | ((u32) mac_sta[4] << 16)
                        | ((u32) mac_sta[5] << 24);
 
+    // hcxpcapngtool sets bit 1 of the message pair on a PMKID it took from an M1 of key version 3.
+    // That M1 comes from an AKM 6 (PSK-SHA256) network, whose PMKID is HMAC-SHA256 and not HMAC-SHA1.
+
+    wpa->keyver = 0;
+
+    if (token.len[8] == 2)
+    {
+      const u8 message_pair = hex_to_u8 (token.buf[8]);
+
+      if ((message_pair & 0x02) == 0x02) wpa->keyver = 3;
+    }
+
     // hash
 
     digest[0] = wpa->pmkid[0];
@@ -1229,8 +1246,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       memcpy (pke_ptr + 2, "FT-PTK", 6);
 
-      memcpy (pke_ptr +  8, auth_packet->wpa_key_nonce, 32);
-      memcpy (pke_ptr + 40, wpa->anonce, 32);
+      // Message pairs 3 and 4 store M3, which carries the ANonce, and put the SNonce in the nonce
+      // field. The plain WPA PRF sorts the two nonces, but the FT KDF takes them in a fixed order.
+
+      const u8 eapol_msg = wpa->message_pair & 7;
+
+      if ((eapol_msg == 3) || (eapol_msg == 4))
+      {
+        memcpy (pke_ptr +  8, wpa->anonce, 32);
+        memcpy (pke_ptr + 40, auth_packet->wpa_key_nonce, 32);
+      }
+      else
+      {
+        memcpy (pke_ptr +  8, auth_packet->wpa_key_nonce, 32);
+        memcpy (pke_ptr + 40, wpa->anonce, 32);
+      }
 
       memcpy (pke_ptr + 72, mac_ap,  6);
       memcpy (pke_ptr + 78, mac_sta, 6);
