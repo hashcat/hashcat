@@ -59,6 +59,7 @@
 #include "ext_zstd.h"
 #include "ext_iconv.h"
 #include "usage.h"
+#include "json.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -2676,18 +2677,27 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
       if ((user_options->json == true) && (user_options->identify == true))
       {
-        printf ("{ \"modes\": [");
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
 
         for (int i = 0; i < modes_cnt; i++)
         {
-          if (i != 0) printf (",");
-
-          printf (" { \"hash_mode\": %u, \"name\": \"%s\", \"category\": \"%s\" }", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+          json_object_begin (&js);
+          json_kv_uint   (&js, "hash_mode", usage_sort_buf[i].hash_mode);
+          json_kv_string (&js, "name", usage_sort_buf[i].hash_name);
+          json_kv_string (&js, "category", strhashcategory (usage_sort_buf[i].hash_category));
+          json_object_end (&js);
 
           hcfree (usage_sort_buf[i].hash_name);
         }
 
-        printf (" ] }");
+        json_array_end (&js);
+        json_object_end (&js);
 
         fwrite (EOL, strlen (EOL), 1, stdout);
 
