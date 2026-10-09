@@ -6,66 +6,17 @@
 #include "common.h"
 #include "json.h"
 
-#include <math.h>
 #include <stdarg.h>
 #include <string.h>
 
-// Grows the accumulation buffer so at least extra more bytes and a NUL fit. A FILE target keeps no
-// buffer, so this is a no-op there. A failed allocation sets overflow, and every later write then
-// does nothing, so json_finish can report it once rather than each call having to.
-static void json_reserve (json_ctx_t *ctx, const size_t extra)
+static void json_puts (json_ctx_t *ctx, const char *text)
 {
-  if (ctx->fp != NULL) return;
-  if (ctx->overflow == true) return;
-
-  const size_t need = ctx->buf_len + extra + 1;
-
-  if (need <= ctx->buf_size) return;
-
-  size_t size = (ctx->buf_size == 0) ? 256 : ctx->buf_size;
-
-  while (size < need) size *= 2;
-
-  char *tmp = (char *) realloc (ctx->buf, size);
-
-  if (tmp == NULL)
-  {
-    ctx->overflow = true;
-
-    return;
-  }
-
-  ctx->buf      = tmp;
-  ctx->buf_size = size;
-}
-
-static void json_write (json_ctx_t *ctx, const char *text, const size_t len)
-{
-  if (ctx->fp != NULL)
-  {
-    fwrite (text, 1, len, ctx->fp);
-
-    return;
-  }
-
-  json_reserve (ctx, len);
-
-  if (ctx->overflow == true) return;
-
-  memcpy (ctx->buf + ctx->buf_len, text, len);
-
-  ctx->buf_len += len;
-  ctx->buf[ctx->buf_len] = 0;
+  fputs (text, ctx->fp);
 }
 
 static void json_putc (json_ctx_t *ctx, const char c)
 {
-  json_write (ctx, &c, 1);
-}
-
-static void json_puts (json_ctx_t *ctx, const char *text)
-{
-  json_write (ctx, text, strlen (text));
+  fputc (c, ctx->fp);
 }
 
 // Writes a string value or key with the quotes and the RFC 8259 escaping: the named short escapes,
@@ -142,38 +93,13 @@ void json_init (json_ctx_t *ctx, FILE *fp)
   ctx->fp = fp;
 }
 
-const char *json_finish (json_ctx_t *ctx)
-{
-  if (ctx->fp != NULL) return NULL;
-  if (ctx->overflow == true) return NULL;
-
-  return (ctx->buf != NULL) ? ctx->buf : "";
-}
-
-void json_free (json_ctx_t *ctx)
-{
-  if (ctx->buf != NULL)
-  {
-    free (ctx->buf);
-
-    ctx->buf      = NULL;
-    ctx->buf_len  = 0;
-    ctx->buf_size = 0;
-  }
-}
-
 void json_object_begin (json_ctx_t *ctx)
 {
   json_pre_value (ctx);
 
   json_putc (ctx, '{');
 
-  if (ctx->depth >= JSON_MAX_DEPTH)
-  {
-    ctx->overflow = true;
-
-    return;
-  }
+  if (ctx->depth >= JSON_MAX_DEPTH) return;
 
   ctx->depth++;
   ctx->need_sep[ctx->depth] = false;
@@ -194,12 +120,7 @@ void json_array_begin (json_ctx_t *ctx)
 
   json_putc (ctx, '[');
 
-  if (ctx->depth >= JSON_MAX_DEPTH)
-  {
-    ctx->overflow = true;
-
-    return;
-  }
+  if (ctx->depth >= JSON_MAX_DEPTH) return;
 
   ctx->depth++;
   ctx->need_sep[ctx->depth] = false;
@@ -259,26 +180,6 @@ void json_uint (json_ctx_t *ctx, const unsigned long long value)
   json_puts (ctx, tmp);
 }
 
-void json_double (json_ctx_t *ctx, const double value)
-{
-  json_pre_value (ctx);
-
-  // JSON has no way to spell a NaN or an infinity, so a non finite value becomes null rather than
-  // an unparsable token.
-  if (isfinite (value) == 0)
-  {
-    json_puts (ctx, "null");
-
-    return;
-  }
-
-  char tmp[64];
-
-  snprintf (tmp, sizeof (tmp), "%f", value);
-
-  json_puts (ctx, tmp);
-}
-
 void json_bool (json_ctx_t *ctx, const bool value)
 {
   json_pre_value (ctx);
@@ -300,21 +201,6 @@ void json_raw (json_ctx_t *ctx, const char *token)
   json_puts (ctx, token);
 }
 
-void json_kv_fmt (json_ctx_t *ctx, const char *key, const char *fmt, ...)
-{
-  char buf[512];
-
-  va_list ap;
-
-  va_start (ap, fmt);
-
-  vsnprintf (buf, sizeof (buf), fmt, ap);
-
-  va_end (ap);
-
-  json_kv_string (ctx, key, buf);
-}
-
 void json_kv_string (json_ctx_t *ctx, const char *key, const char *text)
 {
   json_key (ctx, key);
@@ -333,14 +219,23 @@ void json_kv_uint (json_ctx_t *ctx, const char *key, const unsigned long long va
   json_uint (ctx, value);
 }
 
-void json_kv_double (json_ctx_t *ctx, const char *key, const double value)
-{
-  json_key (ctx, key);
-  json_double (ctx, value);
-}
-
 void json_kv_bool (json_ctx_t *ctx, const char *key, const bool value)
 {
   json_key (ctx, key);
   json_bool (ctx, value);
+}
+
+void json_kv_fmt (json_ctx_t *ctx, const char *key, const char *fmt, ...)
+{
+  char buf[512];
+
+  va_list ap;
+
+  va_start (ap, fmt);
+
+  vsnprintf (buf, sizeof (buf), fmt, ap);
+
+  va_end (ap);
+
+  json_kv_string (ctx, key, buf);
 }
