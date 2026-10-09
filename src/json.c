@@ -292,6 +292,13 @@ void json_null (json_ctx_t *ctx)
   json_puts (ctx, "null");
 }
 
+void json_raw (json_ctx_t *ctx, const char *token)
+{
+  json_pre_value (ctx);
+
+  json_puts (ctx, token);
+}
+
 void json_kv_string (json_ctx_t *ctx, const char *key, const char *text)
 {
   json_key (ctx, key);

@@ -4892,19 +4892,28 @@ void status_benchmark_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  printf ("{ \"devices\": [");
+  json_ctx_t js;
 
-  int device_num = 0;
+  json_init (&js, stdout);
+
+  json_object_begin (&js);
+  json_key (&js, "devices");
+  json_array_begin (&js);
+
+  char exec_msec_buf[32];
 
   if (bridge_ctx->enabled == true)
   {
-    printf (" { \"device_id\": %d,", device_num + 1);
-    printf (" \"hash_mode\": %u,", hash_mode);
-    printf (" \"corespeed\": %u,", 0);
-    printf (" \"memoryspeed\": %u,", 0);
-    printf (" \"exec_msec\": %.2f,", hashcat_status->exec_msec_all);
-    printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
-    device_num++;
+    json_object_begin (&js);
+    json_kv_int  (&js, "device_id",   1);
+    json_kv_uint (&js, "hash_mode",   hash_mode);
+    json_kv_uint (&js, "corespeed",   0);
+    json_kv_uint (&js, "memoryspeed", 0);
+    snprintf (exec_msec_buf, sizeof (exec_msec_buf), "%.2f", hashcat_status->exec_msec_all);
+    json_key (&js, "exec_msec");
+    json_raw (&js, exec_msec_buf);
+    json_kv_uint (&js, "speed", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_end (&js);
   }
   else
   {
@@ -4915,22 +4924,21 @@ void status_benchmark_json (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (device_num != 0)
-      {
-        printf (",");
-      }
-
-      printf (" { \"device_id\": %d,", device_id + 1);
-      printf (" \"hash_mode\": %u,", hash_mode);
-      printf (" \"corespeed\": %u,", device_info->corespeed_dev);
-      printf (" \"memoryspeed\": %u,", device_info->memoryspeed_dev);
-      printf (" \"exec_msec\": %.2f,", device_info->exec_msec_dev);
-      printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
-      device_num++;
+      json_object_begin (&js);
+      json_kv_int  (&js, "device_id",   device_id + 1);
+      json_kv_uint (&js, "hash_mode",   hash_mode);
+      json_kv_uint (&js, "corespeed",   (u32) device_info->corespeed_dev);
+      json_kv_uint (&js, "memoryspeed", (u32) device_info->memoryspeed_dev);
+      snprintf (exec_msec_buf, sizeof (exec_msec_buf), "%.2f", device_info->exec_msec_dev);
+      json_key (&js, "exec_msec");
+      json_raw (&js, exec_msec_buf);
+      json_kv_uint (&js, "speed", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+      json_object_end (&js);
     }
   }
 
-  printf (" ] }");
+  json_array_end (&js);
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 
@@ -5057,15 +5065,20 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  printf ("{ \"devices\": [");
+  json_ctx_t js;
 
-  int device_num = 0;
+  json_init (&js, stdout);
+
+  json_object_begin (&js);
+  json_key (&js, "devices");
+  json_array_begin (&js);
 
   if (bridge_ctx->enabled == true)
   {
-    printf (" { \"device_id\": %d,", device_num + 1);
-    printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
-    device_num++;
+    json_object_begin (&js);
+    json_kv_int  (&js, "device_id", 1);
+    json_kv_uint (&js, "speed", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_end (&js);
   }
   else
   {
@@ -5076,18 +5089,15 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (device_num != 0)
-      {
-        printf (",");
-      }
-
-      printf (" { \"device_id\": %d,", device_id + 1);
-      printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
-      device_num++;
+      json_object_begin (&js);
+      json_kv_int  (&js, "device_id", device_id + 1);
+      json_kv_uint (&js, "speed", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+      json_object_end (&js);
     }
   }
 
-  printf (" ] }");
+  json_array_end (&js);
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 
@@ -5227,7 +5237,15 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  printf ("{ \"devices\": [");
+  json_ctx_t js;
+
+  json_init (&js, stdout);
+
+  json_object_begin (&js);
+  json_key (&js, "devices");
+  json_array_begin (&js);
+
+  char runtime_buf[32];
 
   if (bridge_ctx->enabled == true)
   {
@@ -5244,14 +5262,16 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
       runtime_msec_highest = MAX (runtime_msec_highest, device_info->runtime_msec_dev);
     }
 
-    printf (" { \"device_id\": %d,", 0);
-    printf (" \"progress\": %" PRIu64 ",", progress_all);
-    printf (" \"runtime\": %0.2f }", runtime_msec_highest);
+    json_object_begin (&js);
+    json_kv_int  (&js, "device_id", 0);
+    json_kv_uint (&js, "progress", progress_all);
+    snprintf (runtime_buf, sizeof (runtime_buf), "%0.2f", runtime_msec_highest);
+    json_key (&js, "runtime");
+    json_raw (&js, runtime_buf);
+    json_object_end (&js);
   }
   else
   {
-    int device_num = 0;
-
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -5259,20 +5279,18 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (device_num != 0)
-      {
-        printf (",");
-      }
-
-      printf (" { \"device_id\": %d,", device_id + 1);
-      printf (" \"progress\": %" PRIu64 ",", device_info->progress_dev);
-      printf (" \"runtime\": %0.2f }", device_info->runtime_msec_dev);
-
-      device_num++;
+      json_object_begin (&js);
+      json_kv_int  (&js, "device_id", device_id + 1);
+      json_kv_uint (&js, "progress", device_info->progress_dev);
+      snprintf (runtime_buf, sizeof (runtime_buf), "%0.2f", device_info->runtime_msec_dev);
+      json_key (&js, "runtime");
+      json_raw (&js, runtime_buf);
+      json_object_end (&js);
     }
   }
 
-  printf (" ] }");
+  json_array_end (&js);
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 
