@@ -15,20 +15,22 @@
 ##                  modes test.py -M covers, each on the normal per-mode path.
 ##
 ##   weekly         every mode, in shards, every attack mode, single and multi
-##                  hash, and three kinds per shard: the optimized kernels, the
-##                  pure kernels, and a bridge pass that cracks each mode's own
-##                  test oracle through the Python bridge (test.py --bridge, no
-##                  mode kernel). Only if master has had a commit in the last
-##                  seven days.
+##                  hash, and four kinds: the optimized kernels, the pure
+##                  kernels, a bridge pass that cracks each mode's own test
+##                  oracle through the Python bridge (test.py --bridge, no mode
+##                  kernel), and a container pass that cracks the shipped or
+##                  fetched TrueCrypt/VeraCrypt/CryptoLoop/LUKS container files.
+##                  Only if master has had a commit in the last seven days.
 ##
 ##   manual         the weekly run, or the modes given as input, with the kinds
-##                  picked by three checkboxes (optimized, pure, bridge). All
-##                  three are on by default; clear one to skip that kind.
+##                  picked by four checkboxes (optimized, pure, bridge,
+##                  container). All are on by default; clear one to skip it.
 ##
 ## .github/workflows/ci_matrix.py decides which modes, shard and kind. Each
-## matrix entry carries a kind (opt, pure or bridge); the test step below runs
-## the one pass for its kind, so the three kinds are parallel jobs rather than
-## three passes in one. A pull request is optimized only, to keep its latency.
+## matrix entry carries a kind (opt, pure, bridge or container); the test step
+## below runs the one pass for its kind, so the kinds are parallel jobs rather
+## than passes in one. The kernel kinds share the on-disk mode pool; container
+## has its own and runs once. A pull request is optimized only, for latency.
 ##
 ## test.py exits non-zero when a mode fails, so a job here reads its exit code:
 ## the per-mode runs are OR'd into one status and a nonzero one fails the job.
@@ -53,6 +55,10 @@ on:
         default: true
       bridge:
         description: 'Test the bridge pass (test.py --bridge)'
+        type: boolean
+        default: true
+      container:
+        description: 'Crack the TrueCrypt/VeraCrypt/CryptoLoop/LUKS container files'
         type: boolean
         default: true
   pull_request:
@@ -94,16 +100,18 @@ jobs:
           OPTIMIZED: ${{ inputs.optimized }}
           PURE: ${{ inputs.pure }}
           BRIDGE: ${{ inputs.bridge }}
+          CONTAINER: ${{ inputs.container }}
         run: |
-          # A manual dispatch chooses the kernel kinds with three checkboxes; pass the chosen ones
-          # to ci_matrix.py as --kinds so it emits only those matrix jobs. A schedule has no inputs,
-          # so the three are empty and the run covers all three kinds. If a dispatch clears every
-          # box, fall back to all three rather than plan an empty run.
+          # A manual dispatch chooses the kinds with four checkboxes; pass the chosen ones to
+          # ci_matrix.py as --kinds so it emits only those matrix jobs. A schedule has no inputs, so
+          # the four are empty and the run covers all of them. If a dispatch clears every box, fall
+          # back to all four rather than plan an empty run.
           kinds=""
           [ "$OPTIMIZED" = "true" ] && kinds="$kinds opt"
           [ "$PURE" = "true" ]      && kinds="$kinds pure"
           [ "$BRIDGE" = "true" ]    && kinds="$kinds bridge"
-          [ -z "$kinds" ] && kinds="opt pure bridge"
+          [ "$CONTAINER" = "true" ] && kinds="$kinds container"
+          [ -z "$kinds" ] && kinds="opt pure bridge container"
           kinds_arg="--kinds $(echo $kinds | tr ' ' ',')"
 
           if [ "$EVENT" = "pull_request" ]; then
@@ -225,15 +233,19 @@ jobs:
           # take the normal path below (test.py now handles the container families).
 
           # One pass, chosen by the shard's kind: opt runs the optimized kernels, pure adds -P for
-          # the pure kernels, and bridge runs --bridge, which cracks each mode's own test oracle
-          # through the Python bridge with no mode kernel. A pull request is optimized only and a
-          # single hash, to keep its latency.
+          # the pure kernels, bridge runs --bridge (cracks each mode's own test oracle through the
+          # Python bridge with no mode kernel), and container cracks the container files for the
+          # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
+          # the family's own fixed attack, so the container kind passes neither. A pull request is
+          # optimized only and a single hash, to keep its latency.
           if [ "$EVENT" = "pull_request" ]; then
             OPTS="-a all -t single"
           elif [ "$KIND" = "pure" ]; then
             OPTS="-a all -t all -P"
           elif [ "$KIND" = "bridge" ]; then
             OPTS="--bridge"
+          elif [ "$KIND" = "container" ]; then
+            OPTS=""
           else
             OPTS="-a all -t all"
           fi

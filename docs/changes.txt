@@ -696,8 +696,9 @@ Results depend on the device, runtime and workload.
 - The "--bridge" option cracks each selected mode's own test oracle through the Python
   bridge (mode 73000) with no mode kernel, so the parser and candidate handling are checked
   against the reference implementation
-- The weekly CI run now tests the pure kernels and the bridge pass beside the optimized
-  kernels, as parallel jobs per shard
+- The weekly CI run now tests the pure kernels, the bridge pass, and a container pass that
+  cracks the TrueCrypt, VeraCrypt, CryptoLoop and LUKS container files, beside the optimized
+  kernels, as parallel jobs
 
 ## Documentation and licensing
 

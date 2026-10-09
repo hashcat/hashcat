@@ -6003,6 +6003,10 @@ def main():
                        "need sudo. On its own runs every mode -g can build.")
   ap.add_argument("--test-coverage", dest="test_coverage", action="store_true",
                   help="report modes with no test and exit; reads the source tree, needs no hashcat")
+  ap.add_argument("--list-container-modes", dest="list_container_modes", action="store_true",
+                  help="print the container test modes (TrueCrypt, VeraCrypt, CryptoLoop, LUKS) and exit; "
+                       "these crack a shipped or fetched container file and have no oracle, so a mode "
+                       "list builder cannot find them from the test modules on disk")
   ap.add_argument("--compute-sanitizer", dest="compute_sanitizer", nargs="?", const="memcheck",
                   default=None, metavar="TOOL",
                   help="run the CUDA kernels under NVIDIA Compute Sanitizer (memcheck|racecheck|"
@@ -6035,6 +6039,13 @@ def main():
   # --test-coverage reads the source tree only, so it runs before the isolation and binary checks.
   if args.test_coverage:
     sys.exit(run_test_coverage())
+
+  # --list-container-modes just prints a constant, so it too runs before any isolation or binary
+  # check. It is the single source of truth for the container modes a mode list builder cannot find
+  # on disk (they have no test module).
+  if args.list_container_modes:
+    print(" ".join(str(m) for m in sorted(CONTAINER_MODES)))
+    sys.exit(0)
 
   # --compute-sanitizer points hashcat at the sweep shim, which wraps every run in
   # tools/compute_sanitizer/run.py under NVIDIA Compute Sanitizer and routes findings into a results
