@@ -128,10 +128,16 @@ def balance_shards(modes, n):
     return [sorted(b) for b in bins if b]
 
 
-def test_matrix(groups):
-    # One matrix entry per shard of modes. The test job reads name and modes; its shard number is
-    # only a label here (unlike fuzz, which keys its corpus off it).
-    return [{"name": "shard-%d" % i, "shard": i, "modes": " ".join(str(m) for m in group)}
+def test_matrix(groups, kinds):
+    # One matrix entry per shard of modes and kernel kind. kinds is a subset of ("opt", "pure"): the
+    # test job runs the optimized kernels for "opt" and the pure kernels for "pure". The two kinds
+    # are separate parallel jobs rather than two passes in one, so running both does not add the
+    # pure time on top of the opt time in a single shard. The shard number is only a label here
+    # (unlike fuzz, which keys its corpus off it); the kind is appended to the name so the two jobs
+    # of a shard are told apart in the run list.
+    return [{"name": "shard-%d-%s" % (i, kind), "shard": i, "kind": kind,
+             "modes": " ".join(str(m) for m in group)}
+            for kind in kinds
             for i, group in enumerate(groups)]
 
 # A PR that touches shared code, but no mode of its own, still gets a run:
@@ -235,18 +241,31 @@ def entries(kind, modes, rule_tok):
 
 def main():
     if len(sys.argv) < 3 or sys.argv[1] not in ("test", "fuzz") or sys.argv[2] not in ("pr", "all", "list"):
-        sys.exit(__doc__ or "usage: ci_matrix.py test|fuzz pr <base> | all | list \"<modes>\"")
+        sys.exit(__doc__ or "usage: ci_matrix.py test|fuzz pr <base> | all | list \"<modes>\" [--kinds opt,pure,bridge]")
 
     kind, scope = sys.argv[1], sys.argv[2]
 
     pool = modes_on_disk(kind)
+
+    # A test all/list run covers up to three kinds, as parallel jobs per shard: "opt" and "pure" run
+    # the mode's optimized and pure kernels, and "bridge" cracks the mode's own test oracle through
+    # the Python bridge (tools/test_bridge.py), so the parser and candidate handling are checked
+    # against the reference implementation with no mode kernel. --kinds picks the subset to emit,
+    # which is how a manual dispatch selects kinds with its checkboxes; it defaults to all three. A
+    # fuzz run has no kinds, and a pull request stays optimized only whatever is passed.
+    test_kinds = ["opt", "pure", "bridge"]
+
+    if "--kinds" in sys.argv:
+        i = sys.argv.index("--kinds")
+        chosen = set(sys.argv[i + 1].split(",")) if i + 1 < len(sys.argv) else set()
+        test_kinds = [k for k in ("opt", "pure", "bridge") if k in chosen] or test_kinds
 
     matrix = []
     notes = []
 
     if scope == "all":
         if kind == "test":
-            matrix = test_matrix(balance_shards(pool, SHARDS["test"]))
+            matrix = test_matrix(balance_shards(pool, SHARDS["test"]), test_kinds)
         else:
             matrix = entries(kind, pool, True)
 
@@ -259,7 +278,7 @@ def main():
             notes.append("not testable here, skipped: " + " ".join(str(m) for m in sorted(asked - pool)))
 
         if kind == "test":
-            matrix = test_matrix(balance_shards(asked & pool, SHARDS["test"]))
+            matrix = test_matrix(balance_shards(asked & pool, SHARDS["test"]), test_kinds)
         else:
             matrix = entries(kind, asked & pool, kind == "fuzz")
 
@@ -307,11 +326,13 @@ def main():
 
             matrix = entries(kind, impacted, shared)
         else:
-            matrix = test_matrix(pr_test_shards(impacted))
+            # A pull request stays optimized only, to keep its latency unchanged; the pure and
+            # bridge kinds are left to the weekly and manual runs.
+            matrix = test_matrix(pr_test_shards(impacted), ["opt"])
 
             if shared:
                 for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
-                    matrix.append({"name": f"minimal-{i}", "shard": -1,
+                    matrix.append({"name": f"minimal-{i}-opt", "shard": -1, "kind": "opt",
                                    "modes": " ".join(str(m) for m in shard)})
 
         note = f"{len(impacted)} impacted modes"

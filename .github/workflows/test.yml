@@ -15,14 +15,20 @@
 ##                  modes test.py -M covers, each on the normal per-mode path.
 ##
 ##   weekly         every mode, in shards, every attack mode, single and multi
-##                  hash, and only if master has had a commit in the last seven
-##                  days.
+##                  hash, and three kinds per shard: the optimized kernels, the
+##                  pure kernels, and a bridge pass that cracks each mode's own
+##                  test oracle through the Python bridge (test.py --bridge, no
+##                  mode kernel). Only if master has had a commit in the last
+##                  seven days.
 ##
-##   manual         the weekly run, or the modes given as input, and with
-##                  "campaign" set the pure kernels as well as the optimized
-##                  ones, for a larger run before a release.
+##   manual         the weekly run, or the modes given as input, with the kinds
+##                  picked by three checkboxes (optimized, pure, bridge). All
+##                  three are on by default; clear one to skip that kind.
 ##
-## .github/workflows/ci_matrix.py decides which modes and which shard.
+## .github/workflows/ci_matrix.py decides which modes, shard and kind. Each
+## matrix entry carries a kind (opt, pure or bridge); the test step below runs
+## the one pass for its kind, so the three kinds are parallel jobs rather than
+## three passes in one. A pull request is optimized only, to keep its latency.
 ##
 ## test.py exits non-zero when a mode fails, so a job here reads its exit code:
 ## the per-mode runs are OR'd into one status and a nonzero one fails the job.
@@ -37,10 +43,18 @@ on:
       modes:
         description: 'Modes to test, "all" or a space separated list'
         default: 'all'
-      campaign:
-        description: 'Run the pure kernels too'
+      optimized:
+        description: 'Test the optimized kernels'
         type: boolean
-        default: false
+        default: true
+      pure:
+        description: 'Test the pure kernels'
+        type: boolean
+        default: true
+      bridge:
+        description: 'Test the bridge pass (test.py --bridge)'
+        type: boolean
+        default: true
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -77,17 +91,31 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
           MODES: ${{ inputs.modes }}
+          OPTIMIZED: ${{ inputs.optimized }}
+          PURE: ${{ inputs.pure }}
+          BRIDGE: ${{ inputs.bridge }}
         run: |
+          # A manual dispatch chooses the kernel kinds with three checkboxes; pass the chosen ones
+          # to ci_matrix.py as --kinds so it emits only those matrix jobs. A schedule has no inputs,
+          # so the three are empty and the run covers all three kinds. If a dispatch clears every
+          # box, fall back to all three rather than plan an empty run.
+          kinds=""
+          [ "$OPTIMIZED" = "true" ] && kinds="$kinds opt"
+          [ "$PURE" = "true" ]      && kinds="$kinds pure"
+          [ "$BRIDGE" = "true" ]    && kinds="$kinds bridge"
+          [ -z "$kinds" ] && kinds="opt pure bridge"
+          kinds_arg="--kinds $(echo $kinds | tr ' ' ',')"
+
           if [ "$EVENT" = "pull_request" ]; then
             python3 .github/workflows/ci_matrix.py test pr "$BASE" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
-            python3 .github/workflows/ci_matrix.py test list "$MODES" | tee -a "$GITHUB_OUTPUT"
+            python3 .github/workflows/ci_matrix.py test list "$MODES" $kinds_arg | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "schedule" ] &&
                [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
             echo "no commit on master in the last seven days, nothing new to test"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
-            python3 .github/workflows/ci_matrix.py test all | tee -a "$GITHUB_OUTPUT"
+            python3 .github/workflows/ci_matrix.py test all $kinds_arg | tee -a "$GITHUB_OUTPUT"
           fi
 
   test:
@@ -172,6 +200,17 @@ jobs:
           path: tools/luks2_tests
           key: luks2-tests-v1
 
+      - name: Install the Rust toolchain
+        # Mode 74000 is a Rust bridge: its plugin only builds when cargo is present, and the mode
+        # skips without it. The crates are edition 2024, which needs cargo 1.85 or newer. Install a
+        # toolchain only on a shard that carries 74000, so the bridge builds and the mode runs
+        # instead of skipping, without paying the install on every shard.
+        if: contains(matrix.modes, '74000')
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain 1.85.0 --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
       - name: Build
         run: make -j$(nproc)
 
@@ -179,65 +218,65 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
-          CAMPAIGN: ${{ inputs.campaign }}
+          KIND: ${{ matrix.kind }}
         run: |
           # A shared-code change with no mode of its own runs test.py -M's 24
           # representative modes, sharded by ci_matrix.py into per-mode lists that
           # take the normal path below (test.py now handles the container families).
 
+          # One pass, chosen by the shard's kind: opt runs the optimized kernels, pure adds -P for
+          # the pure kernels, and bridge runs --bridge, which cracks each mode's own test oracle
+          # through the Python bridge with no mode kernel. A pull request is optimized only and a
+          # single hash, to keep its latency.
           if [ "$EVENT" = "pull_request" ]; then
-            passes=("-a all -t single")
-          elif [ "$CAMPAIGN" = "true" ]; then
-            # the optimized pass and, as this step's name promises, the pure kernels too: test.py
-            # runs one kernel type per invocation (optimized unless -P), so a campaign needs both.
-            passes=("-a all -t all" "-a all -t all -P")
+            OPTS="-a all -t single"
+          elif [ "$KIND" = "pure" ]; then
+            OPTS="-a all -t all -P"
+          elif [ "$KIND" = "bridge" ]; then
+            OPTS="--bridge"
           else
-            passes=("-a all -t all")
+            OPTS="-a all -t all"
           fi
 
           fail=0
           failed_modes=""
 
           for mode in $MODES; do
-            for opts in "${passes[@]}"; do
-              echo "::group::test.py -m ${mode} ${opts}"
+            echo "::group::test.py -m ${mode} ${OPTS}"
+            log="testpy_${mode}_${KIND}.log"
 
-              case "${opts}" in *-P) kind=pure ;; *) kind=opt ;; esac
-              log="testpy_${mode}_${kind}.log"
+            # Capture the exit code through an if so rc is kept for the annotation and the job
+            # summary below. bash -e does not abort on a command that is an if condition, so the
+            # loop still runs every mode.
+            # shellcheck disable=SC2086
+            if python3 tools/test.py -m "${mode}" ${OPTS} -D 1 -f > "${log}" 2>&1; then
+              rc=0
+            else
+              rc=$?
+            fi
 
-              # Capture the exit code through an if so rc is kept for the annotation and the job
-              # summary below. bash -e does not abort on a command that is an if condition, so the
-              # loop still runs every mode.
-              # shellcheck disable=SC2086
-              if python3 tools/test.py -m "${mode}" ${opts} -D 1 -f > "${log}" 2>&1; then
-                rc=0
-              else
-                rc=$?
+            cat "${log}"
+            echo "::endgroup::"
+
+            if [ "${rc}" -ne 0 ]; then
+              fail=1
+              failed_modes="${failed_modes} ${mode}(${KIND})"
+
+              # A red run should name the failure, not just its exit code. Pull the worker's own
+              # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
+              # into an annotation and the job summary.
+              reason=$(grep -m1 -E '> (Error|Fault|Compare Error) :|oracle failed|did not round trip' "${log}" | sed 's/^[[:space:]]*//' || true)
+              echo "::error title=test.py failed on mode ${mode} (${KIND})::${reason:-see the job summary}"
+
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                {
+                  echo "### mode ${mode} (${KIND}) failed: test.py -m ${mode} ${OPTS} (exit ${rc})"
+                  echo '```'
+                  grep -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback' "${log}" | head -n 40 || true
+                  echo '```'
+                } >> "${GITHUB_STEP_SUMMARY}"
               fi
-
-              cat "${log}"
-              echo "::endgroup::"
-
-              if [ "${rc}" -ne 0 ]; then
-                fail=1
-                failed_modes="${failed_modes} ${mode}(${kind})"
-
-                # A red run should name the failure, not just its exit code. Pull the worker's own
-                # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
-                # into an annotation and the job summary.
-                reason=$(grep -m1 -E '> (Error|Fault|Compare Error) :|oracle failed|did not round trip' "${log}" | sed 's/^[[:space:]]*//' || true)
-                echo "::error title=test.py failed on mode ${mode} (${kind})::${reason:-see the job summary}"
-
-                if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-                  {
-                    echo "### mode ${mode} (${kind}) failed: test.py -m ${mode} ${opts} (exit ${rc})"
-                    echo '```'
-                    grep -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback' "${log}" | head -n 40 || true
-                    echo '```'
-                  } >> "${GITHUB_STEP_SUMMARY}"
-                fi
-              fi
-            done
+            fi
           done
 
           if [ "${fail}" -ne 0 ]; then
