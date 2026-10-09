@@ -290,6 +290,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (salt->salt_len != 8) return (PARSER_SALT_LENGTH);
 
+  // make salt sorter happy: the sort ignores salt_repeats, so an AES-128 and an AES-256 key on one
+  // S2K salt must not share it. The kernel reads the first two words only.
+
+  salt->salt_buf[2] = salt->salt_repeats;
+
   // hash fake
   digest[0] = gpg->iv[0];
   digest[1] = gpg->iv[1];

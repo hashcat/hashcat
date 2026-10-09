@@ -7,7 +7,7 @@
 
 from Crypto.Cipher import DES
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_salt_word
 
 # DES (PT = $salt, key = $pass): one block of DES-ECB, the 8 byte password as key, the 8 byte salt
 # (16 hex) as plaintext.
@@ -24,19 +24,14 @@ def module_generate_hash(word, salt, iterations=None):
 
 
 def module_verify_hash(line):
-  parts = split_hash_word(line)
+  parts = split_hash_salt_word(line)
 
   if parts is None:
     return None
 
-  hash_in, word = parts
-
-  fields = hash_in.split(":")
-
-  if len(fields) < 2:
-    return None
+  hash_in, salt, word = parts
 
   try:
-    return (module_generate_hash(word, fields[1]), word)
+    return (module_generate_hash(word, salt), word)
   except ValueError:
     return None

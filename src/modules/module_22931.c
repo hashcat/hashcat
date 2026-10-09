@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "parser.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -177,6 +178,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // data has to be a multiple of cipher block size
 
   if (pem->data_len % 16) return (PARSER_HASH_LENGTH);
+
+  // make salt sorter happy: the kernel checks the data of the first hash of a salt only, so keys
+  // with the same IV must not share one. The md5 of the data follows the IV, the only part of the
+  // salt the kernel reads.
+
+  md5_ctx_t md5_ctx;
+
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, pem->data_buf, pem->data_len);
+  md5_final  (&md5_ctx);
+
+  salt->salt_buf[4] = md5_ctx.h[0];
+  salt->salt_buf[5] = md5_ctx.h[1];
+  salt->salt_buf[6] = md5_ctx.h[2];
+  salt->salt_buf[7] = md5_ctx.h[3];
+
+  salt->salt_len += 16;
 
   // hash
 

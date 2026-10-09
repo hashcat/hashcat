@@ -129,8 +129,12 @@ def _aes_cfb(key, iv):
 
 
 def aes_cfb_generate(word, hashname, hash_id):
+  # The IV comes from the salt and the password, not from the generator. module_17010.c takes the IV
+  # as the digest, and a SHARED_SALT pair, drawn from one generator state, would otherwise carry one
+  # IV and reach hashcat as a single hash.
+
   salt        = random_bytes(8)
-  iv          = random_bytes(16)
+  iv          = hashlib.sha256(salt + word).digest()[:AES_IV_LEN]
   count       = random_number(1024, 65536)
   cipher_algo = 7 if random_number(0, 1) else 9
 

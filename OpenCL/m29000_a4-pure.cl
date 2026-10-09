@@ -33,7 +33,7 @@ typedef struct pcfg_hash_ctx
 
 } pcfg_hash_ctx_t;
 
-DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const salt_t *salt_bufs, const u32 salt_pos, GLOBAL_AS const sha1_double_salt_t *esalt_bufs, MAYBE_UNUSED GLOBAL_AS const digest_t *digests_buf, const u32 digest_pos)
+DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED GLOBAL_AS const salt_t *salt_bufs, MAYBE_UNUSED const u32 salt_pos, GLOBAL_AS const sha1_double_salt_t *esalt_bufs, MAYBE_UNUSED GLOBAL_AS const digest_t *digests_buf, const u32 digest_pos)
 {
   u32 colon[16];
 
@@ -56,11 +56,11 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const sa
 
   sha1_init (&hc->ctx0);
 
-  sha1_update_global_swap (&hc->ctx0, esalt_bufs[salt_pos].salt1_buf, esalt_bufs[salt_pos].salt1_len);
+  sha1_update_global_swap (&hc->ctx0, esalt_bufs[digest_pos].salt1_buf, esalt_bufs[digest_pos].salt1_len);
 
   sha1_init (&hc->ctx2);
 
-  sha1_update_global_utf16le_swap (&hc->ctx2, esalt_bufs[salt_pos].salt2_buf, esalt_bufs[salt_pos].salt2_len);
+  sha1_update_global_utf16le_swap (&hc->ctx2, esalt_bufs[digest_pos].salt2_buf, esalt_bufs[digest_pos].salt2_len);
 
   sha1_update(&hc->ctx2, colon, 1);
 }

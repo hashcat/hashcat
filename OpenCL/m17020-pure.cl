@@ -434,21 +434,25 @@ KERNEL_FQ KERNEL_FA void m17020_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   aes_key[2] = hc_swap32_S (h32_from_64 (tmps[gid].h[1]));
   aes_key[3] = hc_swap32_S (l32_from_64 (tmps[gid].h[1]));
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
+  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[digest_cur].iv[idx];
 
   u32 decoded_data[384];
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 
-  aes128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_decrypt_cfb (esalt_bufs[digest_cur].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }
@@ -511,21 +515,25 @@ KERNEL_FQ KERNEL_FA void m17020_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   aes_key[6] = hc_swap32_S (h32_from_64 (tmps[gid].h[3]));
   aes_key[7] = hc_swap32_S (l32_from_64 (tmps[gid].h[3]));
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
+  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[digest_cur].iv[idx];
 
   u32 decoded_data[384];
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 
-  aes256_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_decrypt_cfb (esalt_bufs[digest_cur].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

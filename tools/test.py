@@ -13,10 +13,12 @@
 import argparse
 import atexit
 import base64
+import contextlib
 import fcntl
 import glob
 import json
 import os
+import platform
 import queue
 import re
 import shlex
@@ -68,6 +70,7 @@ OUTDIR     = None
 OWN_OUTDIR = False
 LOGFULL    = None
 PROGRESS   = {}
+KEEP_TMP   = False
 
 # The count of results in the serial run that mean a test which should have cracked did not, or hit a
 # hard error. The -j and edge paths compute their own return code; the plain path had none and fell
@@ -119,7 +122,29 @@ def reason_for(ret):
 
 
 def _cmdline(cmd):
-  return " ".join(shlex.quote(str(a)) for a in cmd)
+  # One command line for the log. An edge run's argv is bytes, which str() would write as b'...' reprs,
+  # and backslashreplace keeps a byte that is not valid UTF-8 writable to a text file.
+  return " ".join(shlex.quote(a.decode("utf-8", "backslashreplace") if isinstance(a, bytes) else str(a))
+                  for a in cmd)
+
+
+@contextlib.contextmanager
+def work_dir(prefix):
+  # A scratch directory for the files a run generates, removed on the way out unless --keep-tmp. A
+  # kept one is named up front and in the log, so a run stopped by Ctrl-C, or a -j worker whose
+  # output is dropped for a re-run, still leaves its path behind.
+
+  path = tempfile.mkdtemp(prefix=prefix)
+
+  if KEEP_TMP:
+    print("[ test.py ] > scratch directory kept: %s" % path)
+    logfull_append("scratch directory kept: %s" % path)
+
+  try:
+    yield path
+  finally:
+    if not KEEP_TMP:
+      shutil.rmtree(path, ignore_errors=True)
 
 
 def logfull_append(text):
@@ -190,11 +215,14 @@ def host_avail_mib():
   return None
 
 
-def backend_devices():
+def backend_devices(device=None):
   # Run "hashcat -I --machine-readable" and hand its JSON to parse_backend_devices. Returns [] when -I
   # cannot be read; parse failures are handled by the parser.
+  # device passes a -D list, which -I honours by leaving the other types out of the listing.
+  types = ["-D", device] if device else []
+
   try:
-    proc = subprocess.run([BIN, "-I", "--machine-readable"] + ISOLATION, cwd=ROOT,
+    proc = subprocess.run([BIN, "-I", "--machine-readable"] + types + ISOLATION, cwd=ROOT,
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
   except Exception:
     return []
@@ -208,9 +236,9 @@ def parse_backend_devices(text):
   # fields, so there is nothing to scrape. Only the Metal and OpenCL device objects carry a Type; the
   # CUDA and HIP objects omit it. CUDA, HIP and Metal only ever enumerate GPUs, so a device under one of
   # those sections is taken as a GPU, which is also the only way to type a native CUDA or HIP device,
-  # since hashcat gives it no Type at all. -I lists every device regardless of -D, so callers filter by
-  # type themselves. Returns [] when the JSON cannot be parsed. Split from backend_devices so it can be
-  # unit tested on fixed -I fixtures without a GPU.
+  # since hashcat gives it no Type at all. Without -D, -I lists the CPUs and the GPUs, so callers
+  # filter by type themselves. Returns [] when the JSON cannot be parsed. Split from backend_devices so
+  # it can be unit tested on fixed -I fixtures without a GPU.
   try:
     info = json.loads(text)
   except Exception:
@@ -271,16 +299,18 @@ def wanted_types(device):
   return {type_of[d] for d in re.split(r"[ ,]+", device.strip()) if d in type_of}
 
 
-def min_device_free_mib(device, devices=None):
+def min_device_free_mib(device, devices=None, ids=None):
   # The smallest free-memory reading among the devices this run will use. A CPU device's reading must
   # not set a GPU run's share, so keep only devices whose Type matches -D. One HASHCAT_DEVICE_MEM_LIMIT
   # serves every device, so the smallest matching one is the safe share. Returns None when nothing
   # matches, so the caller leaves the cap unset. devices lets a test pass a parsed list in place of the
   # live -I query.
+  # ids is the -d list, and when it is given the share comes from those devices alone.
   want  = wanted_types(device)
   devs  = backend_devices() if devices is None else devices
+  pick  = set(backend_device_ids(ids) or []) if ids else None
   frees = [d["free"] for d in devs
-           if d["free"] is not None and (not want or d["type"] in want)]
+           if d["free"] is not None and (not want or d["type"] in want) and (pick is None or d["id"] in pick)]
 
   return min(frees) if frees else None
 
@@ -322,7 +352,7 @@ def export_worker_mem_shares(args):
   if args.jobs <= 1:
     return
 
-  dev = min_device_free_mib(args.device)
+  dev = min_device_free_mib(args.device, ids=args.backend_devices)
   if dev:
     os.environ["HASHCAT_DEVICE_MEM_LIMIT"] = str(max(1, dev // args.jobs))
 
@@ -456,14 +486,6 @@ MFULC_MODES = {37000}
 LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
               34100}
 
-# The modes test.sh's has_multi_hash reports true for: one hash each, so no multi-hash run at all
-# (test.sh). 37500 joins them because its oracle builds every hash on one fixed salt, and a slow mode
-# with an esalt and no OPTS_TYPE_MULTIHASH_DESPITE_ESALT refuses more than one hash per salt. 5200
-# and 9000 read the hash file as one Password Safe database, so a file of several loads only the
-# first.
-
-MULTI_ONE_HASH = {5200, 9000, 14000, 14100, 14600, 14900, 15400, 37500}
-
 # The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
 # no .pm and no .py oracle, so the ground truth is the module's own example hash read from
 # --hash-info. 23800 is the only member today. -S runs the same path over every mode.
@@ -513,6 +535,139 @@ def die(msg):
   sys.stderr.write(msg + "\n")
 
   sys.exit(1)
+
+
+def child_flags(args, devices=True):
+  # The options a -j child needs to repeat its parent's hashcat invocation. --skip-clean-cache is not
+  # among them: a child never reaches the cache clean in the first place. The depth split pins each
+  # child to one device itself, so it asks for the rest without -d.
+
+  flags = []
+
+  if devices and args.backend_devices:
+    flags += ["-d", args.backend_devices]
+
+  if args.runtime:
+    flags += ["--runtime", str(args.runtime)]
+
+  if args.keep_tmp:
+    flags.append("--keep-tmp")
+
+  if args.verbose:
+    flags.append("--verbose")
+
+  if args.metal_compiler_runtime:
+    flags += ["--metal-compiler-runtime", str(args.metal_compiler_runtime)]
+
+  if args.compute_sanitizer:
+    flags += ["--compute-sanitizer", args.compute_sanitizer]
+
+  return flags
+
+
+def apply_run_options(args):
+  # Puts --keep-tmp and --runtime into the module state that work_dir and the opts builders read.
+
+  global KEEP_TMP, RUNTIME, SELFTEST_RUNTIME, EDGE_RUNTIME
+
+  KEEP_TMP = args.keep_tmp
+
+  for name, seconds in (("--runtime", args.runtime),
+                        ("--metal-compiler-runtime", args.metal_compiler_runtime)):
+    if seconds is not None and seconds <= 0:
+      die("! %s must be greater than 0" % name)
+
+  # One invocation runs one path, so --runtime sets whichever of the three caps that path reads.
+
+  if args.runtime:
+    RUNTIME = SELFTEST_RUNTIME = EDGE_RUNTIME = args.runtime
+
+
+def clean_apple_caches():
+  # Clears Apple's Metal compiler caches, which sit under DARWIN_USER_CACHE_DIR, not under hashcat's
+  # --cache-path, and outlive a change to a file a kernel #includes.
+
+  if platform.system() != "Darwin":
+    return
+
+  try:
+    proc = subprocess.run(["getconf", "DARWIN_USER_CACHE_DIR"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  except OSError:
+    return
+
+  cache_dir = proc.stdout.decode("utf-8", "replace").strip()
+
+  if not cache_dir:
+    return
+
+  for name in ("com.apple.metalfe", "com.apple.metal"):
+    shutil.rmtree(os.path.join(cache_dir, name), ignore_errors=True)
+
+
+def backend_device_ids(spec):
+  # The device numbers in a -d list, read the way hashcat reads them: comma separated, empty fields
+  # skipped, each field up to its first non-digit. None for a list hashcat refuses: a field with no
+  # number, a number outside 1 to 255, or no field at all.
+
+  ids = []
+
+  for field in spec.split(","):
+    if field == "":
+      continue
+
+    m = re.match(r"[ \t\n\v\f\r]*\+?0*([0-9]+)", field)
+
+    if m is None or len(m.group(1)) > 3 or not 1 <= int(m.group(1)) <= 255:
+      return None
+
+    ids.append(int(m.group(1)))
+
+  return ids or None
+
+
+def bridged_only(spec):
+  # Whether every mode a -m number or range names is bridged, and so runs on the CPU bridge_opts
+  # picks whatever -D says, which needs a CPU backend. "all" and a malformed -m are left to the path
+  # that selects the modes.
+
+  m = re.fullmatch(r"([0-9]+)(?:-([0-9]+))?", spec)
+
+  if m is None:
+    return False
+
+  lo = int(m.group(1))
+  hi = int(m.group(2)) if m.group(2) else lo
+
+  named = [lo] if lo == hi else [x for x in discover_modes() if lo <= x <= hi]
+
+  return bool(named) and all(is_bridged(x) for x in named) and cpu_backend_id() is not None
+
+
+def require_device_type(device, ids):
+  # Stops the run when -d is a list hashcat refuses, when -D selects no device hashcat -I lists, or
+  # when -d names none of those, rather than letting every case fail. An -I that lists nothing at all,
+  # or cannot be read, rules out neither -D nor the -d devices.
+  picked = backend_device_ids(ids) if ids else None
+
+  if ids and picked is None:
+    die("! -d %s: hashcat takes comma separated device numbers from 1 to 255" % ids)
+
+  listed = backend_devices(device)
+
+  if listed:
+    if picked is None or set(picked) & {d["id"] for d in listed}:
+      return
+
+    die("! -d %s names no device hashcat -I lists under -D %s, so no run can start." % (ids, device))
+
+  have = {d["type"] for d in backend_devices() if d["type"]}
+
+  if not have:
+    return
+
+  die("! -D %s selects no device on this machine, where hashcat -I lists only %s, so no run can start."
+      % (device, "/".join(sorted(have))))
 
 
 def discover_modes():
@@ -621,6 +776,19 @@ def bridge_opts(mode):
   return ["-D", "1", "--backend-devices-virthost", str(cid)]
 
 
+def with_bridge_opts(opts, mode):
+  # The run's options followed by bridge_opts. A bridged mode is hosted on the CPU bridge_opts picks,
+  # so a -d naming the run's GPUs would leave it no device: it is dropped there, as the depth split
+  # does not pin a bridged mode either.
+  extra = bridge_opts(mode)
+
+  if extra and "--backend-devices" in opts:
+    i    = opts.index("--backend-devices")
+    opts = opts[:i] + opts[i + 2:]
+
+  return list(opts) + extra
+
+
 def device_for(args, mode):
   # The device type a mode actually runs on: the CPU for a bridged mode (see bridge_opts), the run's
   # -D otherwise. Used for the reported Device-Type so the line matches what ran. The condition is
@@ -673,15 +841,42 @@ def a4_optimized_skip(mode, optimized):
 
 
 def has_multi_hash(mode):
-  return mode in MULTI_ONE_HASH
+  # A mode whose module takes at most one hash (Hashes.Count.Max) has no multi run, read off -HH the
+  # way the edge path reads it.
+
+  return edge_hh(mode)["cnt_max"] == 1
+
+
+def oracle_env(mode, optimized):
+  # The environment of an oracle run. A multi run loads its vectors together, so the runner is told
+  # what -HH says about hashes that share a salt: where they are not allowed, UNIQUE_SALT keeps it from
+  # drawing one salt twice, and where they are, SHARED_SALT has some of the vectors share a salt, so
+  # that the run tests it.
+
+  env = dict(os.environ)
+  env["IS_OPTIMIZED"] = "1" if optimized else "0"
+
+  # The runner reads the two flags by name alone, so one left in the caller's environment must not
+  # reach it.
+
+  env.pop("UNIQUE_SALT", None)
+  env.pop("SHARED_SALT", None)
+
+  hh = edge_hh(mode)
+
+  if hh["same_salt_not"]:
+    env["UNIQUE_SALT"] = "1"
+  elif hh["salt_present"] and not hh["salt_virtual"]:
+    env["SHARED_SALT"] = "1"
+
+  return env
 
 
 def oracle_spare(mode, optimized, length):
   # test.sh whole_word_vectors: one vector of a fixed length from the same oracle, to stand in for
   # a word -a 4 cannot express. Returns (word, digest) or None.
 
-  env = dict(os.environ)
-  env["IS_OPTIMIZED"] = "1" if optimized else "0"
+  env = oracle_env(mode, optimized)
 
   proc = subprocess.run([sys.executable, RUNNER, "spare", str(mode), str(length)],
                         env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -748,8 +943,7 @@ def oracle_vectors(mode, optimized):
   # Generate this mode's vectors with the same engine test.sh's run_oracle uses. Exit code 2 means
   # the mode has no kernel for the requested family, which is a Skip and not a failure.
 
-  env = dict(os.environ)
-  env["IS_OPTIMIZED"] = "1" if optimized else "0"
+  env = oracle_env(mode, optimized)
 
   proc = subprocess.run([sys.executable, RUNNER, "single", str(mode)],
                         env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -839,7 +1033,7 @@ def verdict(c):
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
   global LAST_CMD
 
-  cmd = [BIN] + opts + bridge_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
+  cmd = [BIN] + with_bridge_opts(opts, mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
 
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
@@ -982,9 +1176,7 @@ def attack_0(r):
     run_single(r.opts, r.mode, r.pairs, r.args, r.width, r.file_only, r.pass_only, r.tmp)
 
   if "multi" in r.targets:
-    # test.sh gives the has_multi_hash modes one hash each, so there is no multi run and no line.
-    # Everything else, binary hashfile included, runs one multi as test.sh does (its has_multi_hash
-    # list omits the binary hashfile modes, so for those it runs a one-hash multi that ends Error).
+    # A has_multi_hash mode takes one hash at most, so there is no multi run and no line.
     if has_multi_hash(r.mode):
       return
 
@@ -1532,8 +1724,11 @@ def output_has_crack(mode, out, word, digest, pass_only, tmp):
 
     return False
 
+  # Without --quiet hashcat clears its status prompt with carriage returns in front of a crack, so
+  # the crack is what follows the last one.
+
   prefix = digest.encode("ascii") + b":"
-  crack_lines = [line for line in out.split(b"\n") if prefix in line]
+  crack_lines = [line.rstrip(b"\r").rsplit(b"\r", 1)[-1] for line in out.split(b"\n") if prefix in line]
 
   if not crack_lines:
     return False
@@ -1820,7 +2015,7 @@ def hybrid_extra(items):
   return [x for x in items if not (isinstance(x, bytes) and x == b"")]
 
 
-def multi_len_params(mode):
+def multi_len_params(mode, attack=None):
   # test.sh init () multi split (test.sh). min_len shifts the split toward the tail, and a
   # fixed_len mode draws every length slot at that one length except the slot that already matches.
 
@@ -1829,14 +2024,12 @@ def multi_len_params(mode):
 
   if mode == 2500:
     min_len = 7
-  elif mode == 14000:
-    min_len = 7
-  elif mode == 14100:
-    min_len = 23
-  elif mode == 14900:
-    min_len = 9
-  elif mode == 15400:
-    min_len = 31
+  elif mode in (14000, 14100, 14900, 15400):
+    # The oracle makes one password length only, so every slot is pinned to it, or the hybrid multi
+    # runs feed hashcat an empty hash file. The split keeps the masked part to a few bytes: the tail
+    # for -a 6 and the head for -a 7.
+    fixed_len = {14000: 8, 14100: 24, 14900: 10, 15400: 32}[mode]
+    min_len   = 3 if attack == 7 else fixed_len - 5
   elif mode == 16800:
     min_len = 7
   elif mode == 22000:
@@ -1889,8 +2082,7 @@ def multi_pairs(mode, i, optimized):
   if key in MULTI_CACHE:
     return MULTI_CACHE[key]
 
-  env = dict(os.environ)
-  env["IS_OPTIMIZED"] = "1" if optimized else "0"
+  env = oracle_env(mode, optimized)
 
   proc = subprocess.run([sys.executable, RUNNER, "single", str(mode), str(length)],
                         env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1909,13 +2101,13 @@ def multi_pairs(mode, i, optimized):
   return pairs
 
 
-def build_multi_dicts(mode, i, pairs):
+def build_multi_dicts(mode, i, pairs, attack=None):
   # test.sh init () (test.sh): split each length-i password into dict1_multi (head) and
   # dict2_multi (tail) at i/2 + min_len, moved back to a UTF-8 boundary. The offset carries from one
   # password to the next exactly as the shell loop leaves it, which only matters once a split lands
   # inside a multi byte character.
 
-  min_len, _ = multi_len_params(mode)
+  min_len, _ = multi_len_params(mode, attack)
 
   p0 = i // 2 + min_len
 
@@ -2338,7 +2530,7 @@ def attack_7_multi(r):
 
       continue
 
-    d1, d2 = build_multi_dicts(r.mode, i, pairs)
+    d1, d2 = build_multi_dicts(r.mode, i, pairs, attack=7)
 
     # The mask spells the head dict2 does not hold. 40001 and 40002 read it from a table instead,
     # but neither has a python oracle so neither is reached here (test.sh).
@@ -4240,6 +4432,11 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
   if attack == 65535:
     attack = 0
 
+  # A MASK_ONLY_MODES mode ships an -a 3 kernel only, so that is the attack its vector is cracked with.
+
+  if mode in MASK_ONLY_MODES:
+    attack = 3
+
   lines = []
 
   vector = selftest_vector_read(mode)
@@ -4312,7 +4509,9 @@ def selftest_opts(args):
   # test.sh -S run options: the base options with --runtime 60 and no --backend-vector-width, since
   # the sweep leaves VECTOR at "default" (test.sh).
 
-  opts = ["--quiet", "--potfile-disable", "--logfile-disable"]
+  opts = [] if args.verbose else ["--quiet"]
+
+  opts += ["--potfile-disable", "--logfile-disable"]
 
   opts += ISOLATION
 
@@ -4320,6 +4519,12 @@ def selftest_opts(args):
     opts.append("-O")
 
   opts += ["--runtime", str(SELFTEST_RUNTIME), "-D", args.device]
+
+  if args.backend_devices:
+    opts += ["--backend-devices", args.backend_devices]
+
+  if args.metal_compiler_runtime:
+    opts += ["--metal-compiler-runtime", str(args.metal_compiler_runtime)]
 
   if args.force:
     opts.append("--force")
@@ -4399,7 +4604,7 @@ def selftest_vector_sweep(args):
   if not args.selftest_child:
     print("[ test.py ] > Cracking every hash-mode's own self-test vector")
 
-  with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
+  with work_dir("test_py_") as tmp:
     for sweep_mode in sweep_modes:
       if not all_modes and (sweep_mode < lo or sweep_mode > hi):
         continue
@@ -4442,7 +4647,7 @@ def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_ba
         % (sweep_ok, sweep_total))
 
   if sweep_slow:
-    print("[ test.py ] > hit --runtime %d, rerun those with -r: %s"
+    print("[ test.py ] > hit --runtime %d, rerun those with --runtime: %s"
           % (SELFTEST_RUNTIME, sweep_slow))
 
   if sweep_na:
@@ -4469,6 +4674,8 @@ def run_parallel_selftest(args):
 
   base = [sys.executable, os.path.abspath(__file__), "-S", "--selftest-child",
           "-D", args.device]
+
+  base += child_flags(args)
 
   if args.pure:
     base.append("-P")
@@ -4539,7 +4746,9 @@ def targets_for(spec):
 def base_opts(args):
   # --deprecated-check-disable matches test.sh's global OPTS: 2500/2501/16800/16801 are deprecated
   # plugins hashcat refuses to run without it, and it is a no-op for every non-deprecated mode.
-  opts = ["--quiet", "--potfile-disable", "--logfile-disable", "--deprecated-check-disable"]
+  opts = [] if args.verbose else ["--quiet"]
+
+  opts += ["--potfile-disable", "--logfile-disable", "--deprecated-check-disable"]
 
   opts += ISOLATION
 
@@ -4548,10 +4757,13 @@ def base_opts(args):
 
   opts += ["--runtime", str(RUNTIME), "-D", args.device]
 
-  # The depth -j split pins each worker to one backend device with -d, so its instances do not share a
-  # card. -D stays as the type, which the pinned device already is.
+  # -d pins the run to those backend devices: the ones the user named, or the single card the depth -j
+  # split gives each worker. -D stays as the type, which a pinned device already is.
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
+
+  if args.metal_compiler_runtime:
+    opts += ["--metal-compiler-runtime", str(args.metal_compiler_runtime)]
 
   if args.force:
     opts.append("--force")
@@ -4628,7 +4840,7 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
 
-EDGE_SKIP_SAME_SALT = {6600, 7100, 7200, 8200, 13200, 13400, 15300, 15310, 15900, 15910, 16900,
+EDGE_SKIP_SAME_SALT = {6600, 7100, 7200, 8200, 13400, 15300, 15310, 15900, 15910, 16900,
                        18300, 18900, 20200, 20300, 20400, 27000, 27100, 29700, 29930, 29940}
 
 EDGE_HH_CACHE = {}
@@ -4650,17 +4862,24 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   # Like run_hashcat, but every argument is bytes, because an edge hash, salt or mask can carry a
   # byte that is not valid ASCII and subprocess will not mix str and bytes in one argv.
 
+  global LAST_CMD
+
   argv = [os.fsencode(BIN)]
-  argv += [edge_as_bytes(o) for o in opts]
-  argv += [edge_as_bytes(o) for o in bridge_opts(mode)]
+  argv += [edge_as_bytes(o) for o in with_bridge_opts(opts, mode)]
   argv += [b"-a", str(attack).encode("ascii"), b"-m", str(mode).encode("ascii")]
   argv += [edge_as_bytes(target)]
   argv += [edge_as_bytes(x) for x in extra]
 
+  LAST_CMD = argv
+
   proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-  return proc.returncode, proc.stdout + proc.stderr
+  out = proc.stdout + proc.stderr
+
+  log_output(argv, out)
+
+  return proc.returncode, out
 
 
 def edge_echo_norm(data):
@@ -5382,6 +5601,11 @@ def edge_process_mode(args, mode, cfg, tmp):
   cells  = 0
 
   for attack in cfg["attacks"]:
+    # A MASK_ONLY_MODES mode ships an -a 3 kernel only, so every other attack has nothing to run.
+
+    if mode in MASK_ONLY_MODES and attack != 3:
+      continue
+
     kernel_types = hh["kernel_types"]
 
     # No kernel family means nothing to test; test_edge.sh counts that as an error rather than a
@@ -5457,10 +5681,18 @@ def edge_opts(args, optimized, width, pt_hex, outfile):
   # test_edge.sh's global OPTS plus the per-kernel and per-width flags, with test.py's ISOLATION
   # appended so any number of runs share no mutable state.
 
-  opts = ["--quiet", "--potfile-disable", "--machine-readable", "--logfile-disable"]
+  opts = [] if args.verbose else ["--quiet"]
+
+  opts += ["--potfile-disable", "--machine-readable", "--logfile-disable"]
 
   opts += ISOLATION
   opts += ["-D", args.device, "--runtime", str(EDGE_RUNTIME), "--self-test-disable"]
+
+  if args.backend_devices:
+    opts += ["--backend-devices", args.backend_devices]
+
+  if args.metal_compiler_runtime:
+    opts += ["--metal-compiler-runtime", str(args.metal_compiler_runtime)]
 
   if args.force:
     opts.append("--force")
@@ -5591,6 +5823,8 @@ def run_parallel_edge(args, modes, all_scope):
           "-a", args.attack, "-t", args.target, "-D", args.device,
           "-V", args.vector, "-K", args.kernel, "-A", args.attack_exec]
 
+  base += child_flags(args)
+
   if args.force:
     base.append("-f")
 
@@ -5662,7 +5896,7 @@ def run_edge(args):
   total_err  = 0
   total_cell = 0
 
-  with tempfile.TemporaryDirectory(prefix="test_py_edge_") as tmp:
+  with work_dir("test_py_edge_") as tmp:
     for mode in selected:
       e, c = edge_process_mode(args, mode, cfg, tmp)
 
@@ -5691,6 +5925,8 @@ def run_parallel(args):
 
   base = [sys.executable, os.path.abspath(__file__),
           "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
+
+  base += child_flags(args)
 
   if args.pure:
     base.append("-P")
@@ -5777,7 +6013,18 @@ def run_parallel_depth(args):
   # breadth split and the serial run do.
   modes = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
 
-  ids = backend_ids_for(args.device)
+  # A -d list narrows the slots to the cards it names. Either way there is one slot per card of the -D
+  # type, alias twins counted once.
+  if args.backend_devices:
+    picked = backend_device_ids(args.backend_devices) or []
+    listed = backend_devices()
+
+    # An -I that lists nothing leaves the -d ids as they are, each once.
+
+    ids = backend_ids_for(args.device, devices=[d for d in listed if d["id"] in picked]) if listed \
+          else list(dict.fromkeys(picked))
+  else:
+    ids = backend_ids_for(args.device)
 
   if ids:
     slots = ids
@@ -5794,6 +6041,8 @@ def run_parallel_depth(args):
 
   base = [sys.executable, os.path.abspath(__file__),
           "-a", args.attack, "-t", args.target, "-D", args.device, "-V", args.vector]
+
+  base += child_flags(args, devices=False)
 
   if args.pure:
     base.append("-P")
@@ -5852,7 +6101,21 @@ def main():
                   help="0 | 1 | 3 | 4 | 6 | 7 | 8 | 9 | 12 | all (--edge takes a comma list too)")
   ap.add_argument("-t", dest="target", default="all", choices=["single", "multi", "all"])
   ap.add_argument("-D", dest="device", default="2", help="OpenCL device type")
-  ap.add_argument("-d", dest="backend_devices", default=None, help=argparse.SUPPRESS)
+  ap.add_argument("--skip-clean-cache", dest="skip_clean_cache", action="store_true",
+                  help="do not clear Apple's Metal compiler caches before the run (Darwin only)")
+  ap.add_argument("--metal-compiler-runtime", dest="metal_compiler_runtime", type=int, default=None,
+                  help="hashcat --metal-compiler-runtime in seconds, for a Metal build that needs longer")
+  ap.add_argument("--verbose", dest="verbose", action="store_true",
+                  help="drop hashcat's --quiet, so every run's Status, speed and timing reach "
+                       "logfull.txt instead of only its cracks")
+  ap.add_argument("--keep-tmp", dest="keep_tmp", action="store_true",
+                  help="keep the scratch directory a run writes its generated files into, and print "
+                       "its path")
+  ap.add_argument("--runtime", dest="runtime", type=int, default=None,
+                  help="hashcat --runtime in seconds for whichever path runs "
+                       "(defaults: %d self-test, %d full, %d edge)" % (SELFTEST_RUNTIME, RUNTIME, EDGE_RUNTIME))
+  ap.add_argument("-d", dest="backend_devices", default=None,
+                  help="hashcat --backend-devices: 1 | 1,2 | ... (default: every device of the -D type)")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is
   # what switches to the pure kernel, and if both are given -P wins.
   ap.add_argument("-O", dest="optimized", action="store_true", help="optimized kernels (default)")
@@ -5913,7 +6176,12 @@ def main():
     if not os.path.isfile(sanitizer_bin):
       die("! no %s; build it first with tools/compute_sanitizer/run.py build" % sanitizer_bin)
 
-    sweep_dir = os.path.join(TDIR, "compute_sanitizer", "results", "sweep-%d" % int(time.time()))
+    # A -j child takes the parent's results directory, the way it takes the parent's log folder.
+
+    inherited_sweep = os.environ.get("SANITIZER_SWEEP_DIR") if os.environ.get("TESTPY_OUTDIR") else None
+    sweep_dir       = inherited_sweep or os.path.join(TDIR, "compute_sanitizer", "results",
+                                                      "sweep-%d" % int(time.time()))
+
     os.makedirs(sweep_dir, exist_ok=True)
 
     os.environ["SANITIZER_SWEEP_DIR"]  = sweep_dir
@@ -5921,8 +6189,9 @@ def main():
 
     BIN = os.path.join(TDIR, "compute_sanitizer", "sweep_shim.sh")
 
-    print("[ test.py ] Compute Sanitizer sweep enabled (tool=%s). Results: %s" % (args.compute_sanitizer, sweep_dir))
-    print("[ test.py ] Report with: tools/compute_sanitizer/report.py --dir %s" % sweep_dir)
+    if not inherited_sweep:
+      print("[ test.py ] Compute Sanitizer sweep enabled (tool=%s). Results: %s" % (args.compute_sanitizer, sweep_dir))
+      print("[ test.py ] Report with: tools/compute_sanitizer/report.py --dir %s" % sweep_dir)
 
   # -a is unset by default so the two paths can differ: the crack path runs -a 0, the edge path the
   # whole attack set, as their test.sh and test_edge.sh counterparts do.
@@ -5934,6 +6203,18 @@ def main():
 
   if not os.path.isfile(BIN):
     die("! no hashcat binary at %s, build it first" % BIN)
+
+  apply_run_options(args)
+
+  # The parent's job alone. A full-test -j child carries no flag of its own, so the folder it inherited
+  # is what identifies it.
+
+  if not (args.edge_child or args.selftest_child or os.environ.get("TESTPY_OUTDIR")):
+    if args.minimal or not bridged_only(args.mode):
+      require_device_type(args.device, args.backend_devices)
+
+    if not args.skip_clean_cache:
+      clean_apple_caches()
 
   # Ctrl-C persists what has been gathered and prints the total; a -j run hands each worker its share
   # of memory; the reason log opens before any hashcat runs, and its path is exported so -j children
@@ -6026,7 +6307,7 @@ def main():
   skips   = []
   missing = set()
 
-  with tempfile.TemporaryDirectory(prefix="test_py_") as tmp:
+  with work_dir("test_py_") as tmp:
     # With -g the container families read the volumes this run builds, not the ones in the tree or
     # fetched from hashcat.net, so point their directories at a per-run location (test.sh).
     if args.generate:

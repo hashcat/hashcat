@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "parser.h"
+#include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -196,6 +197,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     memcpy (&racf_ph->hash_blocks[i * 2], hash_bytes + (i * 8), 8);
   }
+
+  // make salt sorter happy: the kernel checks the hash of the first entry of a salt only, so two
+  // passphrases of one user must not share one. The md5 of the hash follows the user, the only part
+  // of the salt the kernel reads.
+
+  md5_ctx_t md5_ctx;
+
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, racf_ph->hash_blocks, pw_len);
+  md5_final  (&md5_ctx);
+
+  salt->salt_buf[2] = md5_ctx.h[0];
+  salt->salt_buf[3] = md5_ctx.h[1];
+  salt->salt_buf[4] = md5_ctx.h[2];
+  salt->salt_buf[5] = md5_ctx.h[3];
+
+  salt->salt_len += 16;
 
   digest[0] = racf_ph->hash_blocks[0];
   digest[1] = racf_ph->hash_blocks[1];

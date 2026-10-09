@@ -32,11 +32,15 @@ pub struct ThreadContext {
 
 impl ThreadContext {
     pub fn get_raw_esalt(&self, salt_id: usize, is_selftest: bool) -> &generic_io_t {
-        if is_selftest {
-            &self.st_esalts[salt_id]
+        // There is one esalt per hash but one salt per distinct salt, so the two only line up when
+        // every salt holds one hash. A salt names the first of its hashes with digests_offset.
+        let (salts, esalts) = if is_selftest {
+            (&self.st_salts, &self.st_esalts)
         } else {
-            &self.esalts[salt_id]
-        }
+            (&self.salts, &self.esalts)
+        };
+
+        &esalts[salts[salt_id].digests_offset as usize]
     }
 }
 
