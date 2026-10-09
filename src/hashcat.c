@@ -2756,7 +2756,20 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->json == true)
       {
-        printf ("{ \"modes\": [ { \"hash_mode\": %u, \"name\": \"%s\", \"category\": \"%s\" } ] }", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+        json_object_begin (&js);
+        json_kv_uint   (&js, "hash_mode", usage_sort_buf[0].hash_mode);
+        json_kv_string (&js, "name", usage_sort_buf[0].hash_name);
+        json_kv_string (&js, "category", strhashcategory (usage_sort_buf[0].hash_category));
+        json_object_end (&js);
+        json_array_end (&js);
+        json_object_end (&js);
 
         fwrite (EOL, strlen (EOL), 1, stdout);
 
