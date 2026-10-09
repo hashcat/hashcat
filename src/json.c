@@ -7,6 +7,7 @@
 #include "json.h"
 
 #include <math.h>
+#include <stdarg.h>
 #include <string.h>
 
 // Grows the accumulation buffer so at least extra more bytes and a NUL fit. A FILE target keeps no
@@ -297,6 +298,21 @@ void json_raw (json_ctx_t *ctx, const char *token)
   json_pre_value (ctx);
 
   json_puts (ctx, token);
+}
+
+void json_kv_fmt (json_ctx_t *ctx, const char *key, const char *fmt, ...)
+{
+  char buf[512];
+
+  va_list ap;
+
+  va_start (ap, fmt);
+
+  vsnprintf (buf, sizeof (buf), fmt, ap);
+
+  va_end (ap);
+
+  json_kv_string (ctx, key, buf);
 }
 
 void json_kv_string (json_ctx_t *ctx, const char *key, const char *text)

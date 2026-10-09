@@ -63,6 +63,10 @@ void json_null   (json_ctx_t *ctx);
 // fixed number of decimals. The text must be a valid JSON token; the emitter does not check it.
 void json_raw (json_ctx_t *ctx, const char *token);
 
+// A key whose value is a printf-formatted string, for the outputs that spell even their numbers as
+// strings ("Processors": "16"). The formatted text is escaped like any other string.
+void json_kv_fmt (json_ctx_t *ctx, const char *key, const char *fmt, ...);
+
 // Key plus value in one call, for the common "key": value pair.
 void json_kv_string (json_ctx_t *ctx, const char *key, const char *text);
 void json_kv_int    (json_ctx_t *ctx, const char *key, long long value);
