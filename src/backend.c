@@ -13399,6 +13399,9 @@ void backend_session_context_reset (hashcat_ctx_t *hashcat_ctx)
       {
         device_param->skipped = true;
 
+        backend_ctx->cuda_devices_active--;
+        backend_ctx->backend_devices_active--;
+
         continue;
       }
 
@@ -13800,16 +13803,24 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   int backend_runtime_skip_warnings  = 0;
   int backend_kernel_build_warnings  = 0;
   int backend_kernel_create_warnings = 0;
-  int backend_kernel_accel_warnings  = 0;
   int backend_extra_size_warning     = 0;
 
   backend_ctx->memory_hit_warning    = false;
   backend_ctx->runtime_skip_warning  = false;
   backend_ctx->kernel_build_warning  = false;
   backend_ctx->kernel_create_warning = false;
-  backend_ctx->kernel_accel_warnings = false;
   backend_ctx->extra_size_warning    = false;
   backend_ctx->mixed_warnings        = false;
+
+  // A device can be dropped for good after enumeration, see backend_session_context_reset (). With
+  // none left the warnings below would all hold for zero devices and name a reason there is not.
+
+  if (backend_ctx->backend_devices_active == 0)
+  {
+    event_log_error (hashcat_ctx, "No devices found/left.");
+
+    return -1;
+  }
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -17095,7 +17106,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->runtime_skip_warning  = (backend_runtime_skip_warnings  == backend_ctx->backend_devices_active);
   backend_ctx->kernel_build_warning  = (backend_kernel_build_warnings  == backend_ctx->backend_devices_active);
   backend_ctx->kernel_create_warning = (backend_kernel_create_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->kernel_accel_warnings = (backend_kernel_accel_warnings  == backend_ctx->backend_devices_active);
   backend_ctx->extra_size_warning    = (backend_extra_size_warning     == backend_ctx->backend_devices_active);
 
   // if all active devices failed, set rc to -1
@@ -17104,7 +17114,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       (backend_ctx->runtime_skip_warning  == true) ||
       (backend_ctx->kernel_build_warning  == true) ||
       (backend_ctx->kernel_create_warning == true) ||
-      (backend_ctx->kernel_accel_warnings == true) ||
       (backend_ctx->extra_size_warning    == true))
   {
     rc = -1;
@@ -17112,7 +17121,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   else
   {
     // handle mix of, in case of multiple devices with different warnings
-    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_create_warnings + backend_kernel_accel_warnings + backend_extra_size_warning) == backend_ctx->backend_devices_active);
+    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_create_warnings + backend_extra_size_warning) == backend_ctx->backend_devices_active);
 
     if (backend_ctx->mixed_warnings) rc = -1;
   }
@@ -17208,6 +17217,22 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    // A device that failed its autotune sat out the rest of this session only. It gives back what
+    // the session gave it, and the next session, one per hash mode in a benchmark, tunes it again.
+
+    if (device_param->skipped_autotune == true)
+    {
+      device_param->skipped          = false;
+      device_param->skipped_autotune = false;
+
+      if (device_param->is_hip == true)    backend_ctx->hip_devices_active++;
+      if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active++;
+      if (device_param->is_metal == true)  backend_ctx->metal_devices_active++;
+      if (device_param->is_opencl == true) backend_ctx->opencl_devices_active++;
+
+      backend_ctx->backend_devices_active++;
+    }
 
     if (device_param->skipped == true) continue;
 

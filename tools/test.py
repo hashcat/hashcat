@@ -93,13 +93,15 @@ MEMSKIP_RC = 90
 
 AUTO_LOGDIR = "\0auto"     # --logdir with no argument: pick test_<ts>/
 
-# test.sh's status() reason strings, keyed by hashcat's exit code. The 246,248-253 and 30 codes are
-# runtime skips; 1 is a clean exhaust, 4 a timeout, 10 a crack whose plains were not in the output.
+# Reasons keyed by hashcat's exit code, as rc_final in hashcat.c sets it: -3 to -11 wrap to 253 to
+# 245. The 246-253 and 30 codes are runtime skips. 1 is a clean exhaust, 4 a timeout, 10 a crack
+# whose plains were not in the output, and 245, a failed self-test, is an error.
 REASON = {
+  245: "self-test failed",
   246: "autotune failure",
-  248: "skipped by runtime (mixed backend errors detected)",
-  249: "skipped by runtime (Invalid module_extra_buffer_size)",
-  250: "skipped by runtime (Too many compute units to keep minimum kernel accel limit)",
+  247: "skipped by runtime (mixed backend errors detected)",
+  248: "skipped by runtime (Invalid module_extra_buffer_size)",
+  250: "skipped by runtime (kernel create error)",
   251: "skipped by runtime (main kernel build error)",
   252: "skipped by runtime (memory hit limit)",
   253: "skipped by runtime (module_unstable_warning)",
@@ -1016,8 +1018,8 @@ def classify(rc, matched, c):
   # runtime-skip codes to skipped. The one deviation: test.sh sent every other
   # code, 255 (cuMemAlloc out of memory) and a signal crash included, to not found, so a worker that
   # never got its memory read the same as one that ran and missed the password. Those go to err
-  # instead, a hard error kept apart from a failed crack. The skip set is spelled out, not a range,
-  # because 247 is not a skip; it lands in err with the rest.
+  # instead, a hard error kept apart from a failed crack. The skip set is 246 to 253, 247 included:
+  # every device skipped, though not all for the same one of those reasons.
 
   c["cnt"] += 1
 
@@ -1034,7 +1036,7 @@ def classify(rc, matched, c):
     c["to"] += 1
   elif ret == 10:
     c["nm"] += 1
-  elif ret == 30 or ret in (246, 248, 249, 250, 251, 252, 253):
+  elif ret == 30 or 246 <= ret <= 253:
     c["rs"] += 1
 
     if ret == 252 and os.environ.get("HASHCAT_DEVICE_MEM_LIMIT"):
@@ -3076,8 +3078,7 @@ def container_report(args, mode, attack, width, label, e):
 
   v = selftest_verdict(e)
 
-  print("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
-        % (ctx, v, e["nf"], e["nm"], e["to"], e["rs"]))
+  print(selftest_line(ctx, v, e))
 
   note_verdict(v)
 
@@ -3093,6 +3094,8 @@ def container_crack(args, opts, mode, attack, hash_file, width, label, extra, cr
 
   rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], crack_mode or mode, hash_file,
                       None, attack=attack, extra=list(extra))
+  log_result(rc)
+
   e = selftest_status(rc)
 
   container_report(args, mode, attack if report_attack is None else report_attack, width, label, e)
@@ -4417,14 +4420,15 @@ MINIMAL_MODES = [0, 100, 110, 400, 500, 2600, 3000, 3200, 6211, 11600, 12500, 13
 def selftest_status(rc):
   # test.sh status() as container_run_and_report calls it (test.sh): bucket the raw hashcat
   # exit code. Unlike the oracle attacks there is no cracked-but-not-matched rewrite, because the
-  # self-test path checks the exit code alone, not the output.
+  # self-test path checks the exit code alone, not the output. A code outside the known set, a crash
+  # or a failed self-test among them, is a hard error, as classify() counts it.
 
-  e = {"ce": 0, "rs": 0, "to": 0, "nf": 0, "nm": 0}
+  e = {"ce": 0, "rs": 0, "to": 0, "nf": 0, "nm": 0, "err": 0}
 
   if rc == 0:
     return e
 
-  if rc == 246 or rc == 30 or rc in (248, 249, 250, 251, 252, 253):
+  if rc == 30 or 246 <= rc <= 253:
     e["rs"] += 1
   elif rc == 1:
     e["nf"] += 1
@@ -4436,13 +4440,17 @@ def selftest_status(rc):
     e["ce"] += 1
     e["nm"] += 1
   else:
-    e["nf"] += 1
+    e["err"] += 1
 
   return e
 
 
 def selftest_verdict(e):
-  # test.sh container_run_and_report's message (test.sh), with cnt fixed at 1.
+  # test.sh container_run_and_report's message (test.sh), with cnt fixed at 1, and the hard error
+  # first, as verdict() puts it.
+
+  if e["err"]:
+    return "Fault"
 
   if e["ce"]:
     return "Compare Error"
@@ -4457,6 +4465,18 @@ def selftest_verdict(e):
     return "Warning"
 
   return "OK"
+
+
+def selftest_line(ctx, v, e):
+  # test.sh's one-run result line, plus the errors field report() adds when there is one.
+
+  line = ("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
+          % (ctx, v, e["nf"], e["nm"], e["to"], e["rs"]))
+
+  if e["err"]:
+    line += ", %d/1 errors" % e["err"]
+
+  return line
 
 
 def selftest_context(args, mode, attack, width_label):
@@ -4529,12 +4549,12 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
 
   rc, _ = run_hashcat(opts, mode, hash_file, None, attack=attack, extra=extra)
 
+  log_result(rc)
+
   e   = selftest_status(rc)
   msg = selftest_verdict(e)
 
-  lines.append("%s > %s : %d/1 not found, %d/1 not matched, %d/1 timeout, %d/1 skipped"
-               % (selftest_context(args, mode, attack, width_label),
-                  msg, e["nf"], e["nm"], e["to"], e["rs"]))
+  lines.append(selftest_line(selftest_context(args, mode, attack, width_label), msg, e))
   note_verdict(msg)
 
   return lines
@@ -4646,6 +4666,7 @@ def selftest_vector_sweep(args):
   sweep_total = 0
   sweep_ok    = 0
   sweep_bad   = ""
+  sweep_fault = ""
   sweep_slow  = ""
   sweep_na    = ""
 
@@ -4674,22 +4695,25 @@ def selftest_vector_sweep(args):
       # falls through to "did not crack", because selftest_vector_test runs in a $(...) subshell and
       # its record_skip never reaches the parent's list (test.sh). So anything that is not
       # OK or Warning, a skip included, is counted as not cracked, and print_skip_summary at the end
-      # of the sweep prints nothing.
+      # of the sweep prints nothing. A Fault, which test.sh did not have, is hashcat failing rather
+      # than a vector that did not crack, so it is listed on its own.
 
       if "> OK :" in text:
         sweep_ok += 1
       elif "> Warning :" in text:
         sweep_slow += "%d " % sweep_mode
+      elif "> Fault :" in text:
+        sweep_fault += "%d " % sweep_mode
       else:
         sweep_bad += "%d " % sweep_mode
 
   if not args.selftest_child:
-    selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad)
+    selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
-  return 1 if sweep_bad else 0
+  return 1 if (sweep_bad or sweep_fault) else 0
 
 
-def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad):
+def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault):
   print("")
   print("[ test.py ] > %d/%d hash-modes cracked their own self-test vector"
         % (sweep_ok, sweep_total))
@@ -4703,6 +4727,9 @@ def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_ba
 
   if sweep_bad:
     print("[ test.py ] > did not crack: %s" % sweep_bad)
+
+  if sweep_fault:
+    print("[ test.py ] > hashcat failed: %s" % sweep_fault)
 
 
 def run_parallel_selftest(args):
@@ -4742,6 +4769,7 @@ def run_parallel_selftest(args):
   sweep_slow  = ""
   sweep_na    = ""
   sweep_bad   = ""
+  sweep_fault = ""
 
   print("[ test.py ] > Cracking every hash-mode's own self-test vector")
 
@@ -4765,13 +4793,16 @@ def run_parallel_selftest(args):
       elif "> Warning :" in text:
         sweep_slow += "%d " % mode
         record("Warning")
+      elif "> Fault :" in text:
+        sweep_fault += "%d " % mode
+        record("Fault")
       else:
         sweep_bad += "%d " % mode
         record("not-OK")
 
-  selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad)
+  selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
-  return 1 if sweep_bad else 0
+  return 1 if (sweep_bad or sweep_fault) else 0
 
 
 def widths_for(spec):
