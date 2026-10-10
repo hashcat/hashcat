@@ -19,6 +19,7 @@
 #include "locking.h"
 #include "thread.h"
 #include "outfile.h"
+#include "json.h"
 
 #include <stdarg.h>
 
@@ -789,64 +790,34 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
   if (outfile_ctx->outfile_json == true)
   {
-    tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '{');
+    // Built through the JSON emitter in its fixed-buffer mode: it writes into tmp_buf with no
+    // allocation, so this per-crack path stays off the heap, and it owns the braces, the commas and
+    // the quoting. The values are byte buffers, emitted as hex, which needs no escaping.
+    json_ctx_t js;
 
-    if (user_len > 0)
+    json_init_buffer (&js, tmp_buf, HCBUFSIZ_LARGE);
+
+    json_object_begin (&js);
+
+    if ((user_len > 0) && (username != NULL))
     {
-      if (username != NULL)
-      {
-        tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"username_hex\": ");
-
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-        tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) username, (int) user_len);
-
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
-      }
+      json_kv_hex (&js, "username_hex", username, (size_t) user_len);
     }
 
     if (hashes->hashlist_mode == HL_MODE_FILE_BINARY)
     {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"filename_hex\": ");
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) hashes->hashfile, (int) strlen (hashes->hashfile));
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
+      json_kv_hex (&js, "filename_hex", (const unsigned char *) hashes->hashfile, strlen (hashes->hashfile));
     }
     else
     {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"hash_hex\": ");
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) out_buf, (int) out_len);
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
+      json_kv_hex (&js, "hash_hex", (const unsigned char *) out_buf, (size_t) out_len);
     }
 
-    if (1) // plain
-    {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"password_hex\": ");
+    json_kv_hex (&js, "password_hex", plain_ptr, (size_t) plain_len);
 
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
+    json_object_end (&js);
 
-      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) plain_ptr, (int) plain_len);
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-    }
-
-    tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '}');
+    tmp_len = (int) js.buf_len;
   }
   else
   {

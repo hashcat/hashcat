@@ -55,6 +55,7 @@ static const struct option long_options[] =
   {"bypass-delay",              required_argument, NULL, IDX_BYPASS_DELAY},
   {"bypass-threshold",          required_argument, NULL, IDX_BYPASS_THRESHOLD},
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
+  {"benchmark-json",            no_argument,       NULL, IDX_BENCHMARK_JSON},
   {"benchmark-max",             required_argument, NULL, IDX_BENCHMARK_MAX},
   {"benchmark-min",             required_argument, NULL, IDX_BENCHMARK_MIN},
   {"benchmark-pure",            no_argument,       NULL, IDX_BENCHMARK_PURE},
@@ -107,6 +108,7 @@ static const struct option long_options[] =
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
   {"increment-inverse",         no_argument,       NULL, IDX_INCREMENT_INVERSE},
   {"induction-dir",             required_argument, NULL, IDX_INDUCTION_DIR},
+  {"json",                      no_argument,       NULL, IDX_JSON},
   {"keep-guessing",             no_argument,       NULL, IDX_KEEP_GUESSING},
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, NULL, IDX_KERNEL_LOOPS},
@@ -223,6 +225,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->backend_info               = BACKEND_INFO;
   user_options->backend_vector_width       = BACKEND_VECTOR_WIDTH;
   user_options->benchmark_all              = BENCHMARK_ALL;
+  user_options->benchmark_json             = BENCHMARK_JSON;
   user_options->benchmark_max              = BENCHMARK_MAX;
   user_options->benchmark_min              = BENCHMARK_MIN;
   user_options->benchmark_pure             = BENCHMARK_PURE;
@@ -280,6 +283,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->increment_max              = INCREMENT_MAX;
   user_options->increment_min              = INCREMENT_MIN;
   user_options->induction_dir              = NULL;
+  user_options->json                       = JSON;
   user_options->keep_guessing              = KEEP_GUESSING;
   user_options->kernel_accel               = KERNEL_ACCEL;
   user_options->kernel_loops               = KERNEL_LOOPS;
@@ -500,6 +504,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ENCODING_FROM:             user_options->encoding_from             = optarg;                          break;
       case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;                          break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
+      case IDX_JSON:                      user_options->json                      = true;                            break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
       case IDX_HASH_INFO:                 user_options->hash_info++;                                                 break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
@@ -513,6 +518,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_TOTAL_CANDIDATES:          user_options->total_candidates          = true;                            break;
       case IDX_BENCHMARK:                 user_options->benchmark                 = true;                            break;
       case IDX_BENCHMARK_ALL:             user_options->benchmark_all             = true;                            break;
+      case IDX_BENCHMARK_JSON:            user_options->benchmark_json            = true;                            break;
       case IDX_BENCHMARK_MAX:             user_options->benchmark_max             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BENCHMARK_MIN:             user_options->benchmark_min             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BENCHMARK_PURE:            user_options->benchmark                 = true;
@@ -1676,6 +1682,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    if (user_options->json == true)
+    {
+      event_log_error (hashcat_ctx, "The --json flag can not be used with --machine-readable.");
+
+      return -1;
+    }
+
+    if (user_options->benchmark_json == true)
+    {
+      event_log_error (hashcat_ctx, "The --benchmark-json flag can not be used with --machine-readable.");
+
+      return -1;
+    }
   }
 
   if (user_options->remove_timer_chgd == true)
@@ -1851,6 +1871,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (user_options->benchmark_all == true)
+  {
+    user_options->benchmark = true;
+  }
+
+  // --benchmark-json on its own turns benchmark mode on, the way --benchmark-all does, so it does
+  // something without -b. This runs before the --json implication in user_options_postprocess, so
+  // only an explicit --benchmark-json reaches here; the --json umbrella does not force benchmark.
+  if (user_options->benchmark_json == true)
   {
     user_options->benchmark = true;
   }
@@ -3317,6 +3345,19 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // --json is the umbrella switch: it turns on the per-surface JSON flags so every
+  // output goes out as JSON. The surfaces that key off machine_readable (hash-info,
+  // backend-info) and the ones with no dedicated flag (keyspace, identify) read
+  // user_options->json directly. --show is reached before this runs, so its explicit
+  // --outfile-json guard still rejects that pairing while allowing --json.
+
+  if (user_options->json == true)
+  {
+    user_options->status_json    = true;
+    user_options->outfile_json   = true;
+    user_options->benchmark_json = true;
+  }
 
   // automatic status
 
@@ -5039,6 +5080,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->backend_devices_virthost);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
+  logfile_top_uint   (user_options->benchmark_json);
   logfile_top_uint   (user_options->benchmark_max);
   logfile_top_uint   (user_options->benchmark_min);
   logfile_top_uint   (user_options->benchmark_pure);
@@ -5107,6 +5149,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->speed_only);
   logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->json);
   logfile_top_uint   (user_options->status_json);
   logfile_top_uint   (user_options->status_timer);
   logfile_top_uint   (user_options->stdout_flag);

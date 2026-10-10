@@ -540,7 +540,14 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->lookup != NULL) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  if (user_options->json == true)
+  {
+    event_log_info (hashcat_ctx, "{ \"keyspace\": %" PRIu64 " }", status_ctx->words_base);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  }
 }
 
 static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -551,7 +558,14 @@ static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->keyspace == false) return;
   if (user_options->total_candidates == false) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
+  if (user_options->json == true)
+  {
+    event_log_info (hashcat_ctx, "{ \"keyspace\": %" PRIu64 " }", status_ctx->words_cnt);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
+  }
 }
 
 static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -667,7 +681,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->benchmark == true)
   {
-    if (user_options->machine_readable == false)
+    if ((user_options->machine_readable == false) && (user_options->benchmark_json == false))
     {
       char buf[HCBUFSIZ_TINY] = { 0 };
 
