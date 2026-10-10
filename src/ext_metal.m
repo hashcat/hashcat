@@ -549,7 +549,15 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
           [key isEqualToString:@"FORCE_DISABLE_SHM"] ||
           [key isEqualToString:@"COOP_SBOX_LDS"] ||
           [key isEqualToString:@"COOP_X_REGS"] ||
-          [key isEqualToString:@"COOP_X_GLOBAL"])
+          [key isEqualToString:@"COOP_X_GLOBAL"] ||
+          [key isEqualToString:@"RECIPE_ROOT_NATIVE"] ||
+          [key isEqualToString:@"RECIPE_WIDE"] ||
+          [key isEqualToString:@"RECIPE_WIDE_PASS"] ||
+          [key isEqualToString:@"RECIPE_WIDE_SALT"] ||
+          [key isEqualToString:@"RECIPE_HEX"] ||
+          [key isEqualToString:@"RECIPE_BE_PASS"] ||
+          [key isEqualToString:@"RECIPE_BE_SALT"] ||
+          [key isEqualToString:@"RECIPE_PASS_PLAIN"])
       {
         value = @"1";
       }

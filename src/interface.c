@@ -317,6 +317,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->opti_type     = module_ctx->module_opti_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type     = module_ctx->module_opts_type      (hashconfig, user_options, user_options_extra);
 
+  // A recipe replaces only the pure kernels and -O still runs the module's optimized ones, so the
+  // probes for those below use the kern_type the module declares.
+
+  const u32 optimized_kern_type = hashconfig->kern_type;
+
   // A mode whose module names a recipe runs mode 4000's pure kernels, built from that recipe. Option
   // -O selects the mode's optimized kernels when available. Otherwise, the fallback below uses the
   // recipe kernels. These read candidates as little endian words, so a mode that generates them big
@@ -504,7 +509,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig->has_pure_kernel = hc_path_read (source_file);
 
-  generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+  generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, optimized_kern_type, true, folder_config->shared_dir, source_file);
 
   hashconfig->has_optimized_kernel = hc_path_read (source_file);
 
@@ -568,7 +573,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // In hash-info mode there is no attack to run, so what a reader is asking is which kernel types the
   // mode has at all rather than which it has for the attack-mode that happens to be the default. The
   // probe above uses the selected attack_kern, so a mode whose only kernel serves one attack-mode
-  // reports no kernel type, and tools/test_edge.sh reads that line and concludes there is nothing to
+  // reports no kernel type, and test.py --edge reads that line and concludes there is nothing to
   // test. -m 37000 is the first mode of that shape, a 4 byte key recovery that only brute-force drives.
   //
   // This sits after opti_type and opts_type have had their say above, so it changes what is reported
@@ -581,13 +586,17 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     const u32 attack_kerns_cnt = sizeof (attack_kerns) / sizeof (attack_kerns[0]);
 
+    // a recipe mode's pure kernels are the recipe ones, also when -O left the module's kern_type
+
+    const u32 pure_kern_type = (module_ctx->module_hash_recipe != MODULE_DEFAULT) ? RECIPE_KERN_TYPE : hashconfig->kern_type;
+
     for (u32 i = 0; i < attack_kerns_cnt; i++)
     {
-      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], pure_kern_type, false, folder_config->shared_dir, source_file);
 
       if (hc_path_read (source_file) == true) hashconfig->has_pure_kernel = true;
 
-      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], optimized_kern_type, true, folder_config->shared_dir, source_file);
 
       if (hc_path_read (source_file) == true) hashconfig->has_optimized_kernel = true;
     }
