@@ -35,6 +35,7 @@
 #include "hwmon.h"
 #include "autotune.h"
 #include "user_options.h"
+#include "json.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -2180,36 +2181,91 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 
   if (g_pipe_json == true)
   {
-    fprintf (stderr, "{ \"device\": %u, \"launches\": %" PRIu64 ", \"total_ms\": %.3f, \"stages\": {", device_param->device_id + 1, device_param->pipe_launches, total);
+    json_ctx_t js;
+
+    json_init (&js, stderr);
+
+    char numbuf[32];
+
+    json_object_begin (&js);
+
+    json_kv_uint (&js, "device", device_param->device_id + 1);
+    json_kv_uint (&js, "launches", device_param->pipe_launches);
+
+    snprintf (numbuf, sizeof (numbuf), "%.3f", total);
+    json_key (&js, "total_ms");
+    json_raw (&js, numbuf);
+
+    json_key (&js, "stages");
+    json_object_begin (&js);
 
     for (int i = 0; i < PIPE_SLOTS; i++)
     {
+      const double per_launch = device_param->pipe_msec[i] / (double) device_param->pipe_launches;
+
+      json_key (&js, names[i]);
+      json_object_begin (&js);
+
+      snprintf (numbuf, sizeof (numbuf), "%.3f", device_param->pipe_msec[i]);
+      json_key (&js, "ms");
+      json_raw (&js, numbuf);
+
       // feed is not in the total, because it runs ahead of the launch rather than inside it, so it
       // has no share of the critical path to quote. Its time and its per launch cost still matter.
 
       if (i == PIPE_FEED)
       {
+        snprintf (numbuf, sizeof (numbuf), "%.4f", per_launch);
+        json_key (&js, "per_launch_ms");
+        json_raw (&js, numbuf);
+
         // On the critical path where the producer has no thread of its own. See pipe_serial.
 
-        fprintf (stderr, " \"%s\": { \"ms\": %.3f, \"per_launch_ms\": %.4f, \"in_critical_path\": %s }", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches, (device_param->pipe_serial == true) ? "true" : "false");
-
-        continue;
+        json_kv_bool (&js, "in_critical_path", device_param->pipe_serial);
       }
 
       // A sub-stage is quoted against the copy it sits inside, not against the total, because a share
       // of the total would read as if it were beside copy rather than part of it.
 
-      if (i >= PIPE_TOTAL_END)
+      else if (i >= PIPE_TOTAL_END)
       {
-        fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent_of_copy\": %.2f, \"per_launch_ms\": %.4f, \"counted_in\": \"copy\" }", names[i], device_param->pipe_msec[i], (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+        snprintf (numbuf, sizeof (numbuf), "%.2f", (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0);
+        json_key (&js, "percent_of_copy");
+        json_raw (&js, numbuf);
 
-        continue;
+        snprintf (numbuf, sizeof (numbuf), "%.4f", per_launch);
+        json_key (&js, "per_launch_ms");
+        json_raw (&js, numbuf);
+
+        json_kv_string (&js, "counted_in", "copy");
+      }
+      else
+      {
+        snprintf (numbuf, sizeof (numbuf), "%.2f", 100.0 * device_param->pipe_msec[i] / total);
+        json_key (&js, "percent");
+        json_raw (&js, numbuf);
+
+        snprintf (numbuf, sizeof (numbuf), "%.4f", per_launch);
+        json_key (&js, "per_launch_ms");
+        json_raw (&js, numbuf);
       }
 
-      fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent\": %.2f, \"per_launch_ms\": %.4f }", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+      json_object_end (&js);
     }
 
-    fprintf (stderr, " }, \"cells_pinned\": %s, \"effective_hs\": %.0f, \"peak_rss\": %" PRIu64 " }\n", (pipe_cells_pinned (device_param) == true) ? "true" : "false", (double) device_param->pipe_cands / (total / 1000.0), hc_peak_rss ());
+    json_object_end (&js);
+
+    json_kv_bool (&js, "cells_pinned", pipe_cells_pinned (device_param));
+
+    snprintf (numbuf, sizeof (numbuf), "%.0f", (double) device_param->pipe_cands / (total / 1000.0));
+    json_key (&js, "effective_hs");
+    json_raw (&js, numbuf);
+
+    json_kv_uint (&js, "peak_rss", hc_peak_rss ());
+
+    json_object_end (&js);
+
+    fputc ('\n', stderr);
 
     return;
   }
@@ -6232,7 +6288,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
 
-  pipe_enable (hashcat_ctx->user_options->pipeline_stats, hashcat_ctx->user_options->machine_readable);
+  // The JSON form is selected by --machine-readable (its historic meaning for --pipeline-stats) or
+  // by the --json umbrella flag, like the other machine-readable surfaces.
+  pipe_enable (hashcat_ctx->user_options->pipeline_stats, (hashcat_ctx->user_options->machine_readable == true) || (hashcat_ctx->user_options->json == true));
 
   // Sized for the worst case, every device needing its own four kernels, so a claim never has to
   // grow the table while another thread is walking it.
