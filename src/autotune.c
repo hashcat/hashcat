@@ -1417,6 +1417,21 @@ HC_THREAD_FUNC thread_autotune (void *p)
   device_param->at_status = AT_STATUS_FAILED;
   device_param->at_rc = -1; // generic error
 
+  // A bridge that replaced the loop kernel is what autotune times, and a bridge that keeps its state
+  // per thread has to be set up on the thread that calls it. The self test and the cracking threads
+  // do the same around their own work.
+
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
+  const bool bridge_thread = (bridge_ctx->enabled == true) && ((hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) != 0) && (bridge_ctx->thread_init != BRIDGE_DEFAULT);
+
+  if (bridge_thread == true)
+  {
+    if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+  }
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return 0;
@@ -1440,6 +1455,14 @@ HC_THREAD_FUNC thread_autotune (void *p)
     CUcontext cuda_context_popped;
 
     if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
+  }
+
+  if (bridge_thread == true)
+  {
+    if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
+    {
+      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
+    }
   }
 
   return 0;

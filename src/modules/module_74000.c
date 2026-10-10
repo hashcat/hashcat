@@ -31,7 +31,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_MULTIHASH_DESPITE_ESALT
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_LAUNCH_LOOP
+static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_REPLACE_LOOP
                                   | BRIDGE_TYPE_UPDATE_SELFTEST;
 static const char *BRIDGE_NAME    = "rust_generic_hash";
 static const char *ST_PASS        = "hashcat";
@@ -54,6 +54,10 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_bridge_name    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BRIDGE_NAME;     }
 u64         module_bridge_type    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BRIDGE_TYPE;     }
 
+// What the device holds for one candidate. The crate is handed a full record with 32 output slots,
+// but the bridge reduces each output to its MD4 before it goes back, so only the digests travel. See
+// src/bridges/bridge_rust_generic_hash.c.
+
 typedef struct
 {
   // input
@@ -63,11 +67,10 @@ typedef struct
 
   // output
 
-  u32 out_buf[32][64];
-  u32 out_len[32];
   u32 out_cnt;
+  u32 out_dgst[32][4];
 
-} generic_io_tmp_t;
+} generic_io_dgst_tmp_t;
 
 typedef struct
 {
@@ -81,7 +84,7 @@ typedef struct
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (generic_io_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (generic_io_dgst_tmp_t);
 
   return tmp_size;
 }
@@ -91,6 +94,27 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
   const u64 esalt_size = (const u64) sizeof (generic_io_t);
 
   return esalt_size;
+}
+
+// A plugin such as dynamic_hash brings no self-test hash, so -b cannot borrow the self-test salt. The
+// benchmark gets an empty hash and salt of its own instead, with the one iteration that makes the
+// loop call the bridge at all.
+
+salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  salt_t *salt = (salt_t *) hcmalloc (sizeof (salt_t));
+
+  salt->salt_iter = 1;
+  salt->salt_len  = 16;
+
+  return salt;
+}
+
+void *module_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  generic_io_t *generic_io = (generic_io_t *) hcmalloc (sizeof (generic_io_t));
+
+  return generic_io;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -183,11 +207,11 @@ void module_init (module_ctx_t *module_ctx)
 
   module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
-  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_esalt          = module_benchmark_esalt;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = module_benchmark_salt;
   module_ctx->module_bridge_name              = module_bridge_name;
   module_ctx->module_bridge_type              = module_bridge_type;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;

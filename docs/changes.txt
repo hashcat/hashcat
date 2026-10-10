@@ -404,6 +404,9 @@ Results depend on the device, runtime and workload.
 - Modes 73000 and 74000 handle up to 1k candidates per bridge launch, up from 8. On 28 i7-14700K
   threads, a SHA-256 Python plugin rises from 16 to 611 kH/s and the mode 74000 Rust crate from 16
   to 74 kH/s, and the shipped Python plugin gains 10%
+- Mode 74000 copies only output digests between host and device and lets autotune size launches of
+  up to 16k candidates. With 32 Ryzen 9 7950X threads and an RX 7900 XTX, the dynamic plugin runs
+  md5(md5($p)) 12x faster, and a bcrypt cost 10 launch falls from 29 to 0.4 seconds
 - PKZIP mode 17200 runs 12.8x faster on an RTX 4090 and 87% faster on an RX 7900 XTX
 - DPAPI mode 15910 gains 19% on NVIDIA and 97% on AMD
 - Raw private key modes 30901, 30902, 30905 and 30906 gain 35-45x on an RTX 4090 with "-a 3" and

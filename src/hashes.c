@@ -5628,6 +5628,23 @@ int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->is_salted == false) return 0;
 
+  // Without a self-test hash there is no self-test salt to copy, and a module that does not supply
+  // its own benchmark salt then has nothing to benchmark with. Mode 74000 with a plugin that brings no
+  // self-test hash is one such case, and copying from the missing salt crashed.
+
+  const bool st_missing = (hashes->st_salts_buf == NULL);
+
+  const bool need_st_salt      = (module_ctx->module_benchmark_salt == MODULE_DEFAULT);
+  const bool need_st_esalt     = (hashconfig->esalt_size     > 0) && (module_ctx->module_benchmark_esalt     == MODULE_DEFAULT);
+  const bool need_st_hook_salt = (hashconfig->hook_salt_size > 0) && (module_ctx->module_benchmark_hook_salt == MODULE_DEFAULT);
+
+  if ((st_missing == true) && ((need_st_salt == true) || (need_st_esalt == true) || (need_st_hook_salt == true)))
+  {
+    event_log_error (hashcat_ctx, "Hash-mode %u has no self-test hash in this configuration, so there is nothing to benchmark with.", hashconfig->hash_mode);
+
+    return -1;
+  }
+
   if (module_ctx->module_benchmark_salt != MODULE_DEFAULT)
   {
     salt_t *ptr = module_ctx->module_benchmark_salt (hashconfig, user_options, user_options_extra);

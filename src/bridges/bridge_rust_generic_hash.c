@@ -12,26 +12,22 @@
 #include "path.h"
 #include "cpu_features.h"
 #include "dynloader.h"
+#include "emu_inc_hash_md4.h"
 
 #if defined (_WIN)
 #include "processenv.h"
 #endif
 
 // The largest batch one unit can be handed. backend_session_begin () derives kernel_accel_max from it
-// and lowers that again where the candidate buffers would not fit the device, and autotune then settles
-// at about seven tenths of it.
+// and lowers that again where the candidate buffers would not fit the device.
 //
-// Autotune does NOT measure the crate to get there. It times whichever kernel the mode runs, and a
-// BRIDGE_TYPE_LAUNCH_LOOP mode's loop kernel is empty, so the figure it settles on depends on this
-// constant and on nothing else. Declaring BRIDGE_TYPE_REPLACE_LOOP instead would put the bridge itself
-// under the timer.
-//
-// So this number is the batch size in practice. On 28 units of an i7-14700K with the shipped crate it
-// is worth 74 kH/s here against 16 kH/s under the ceiling of 8 this used to be, and against a fixed
-// launch size the curve is flat from 512 on. The cost is memory: the buffers are sizeof
-// (generic_io_tmp_t) per candidate per unit, about 8.4 KB, so 1024 is 8.6 MB a unit.
+// Mode 74000 declares BRIDGE_TYPE_REPLACE_LOOP, so autotune times the bridge itself, transfers
+// included, and picks the batch below this ceiling by time. A cheap expression gets a large batch and
+// a slow one, such as bcrypt, a small one. The ceiling only bounds memory: the device buffer and its
+// host mirror hold sizeof (generic_io_dgst_tmp_t) per candidate per unit, 776 bytes, so 16384 is
+// 12.7 MB a unit.
 
-#define WORKITEM_COUNT_MAX 1024
+#define WORKITEM_COUNT_MAX 16384
 
 typedef struct
 {
@@ -47,6 +43,27 @@ typedef struct
   u32 out_cnt;
 
 } generic_io_tmp_t;
+
+// What the device holds for one candidate, and what crosses the bus in both directions on every
+// launch. The full record above is 8584 bytes, almost all of it output slots that are rarely used,
+// and moving it was what limited this mode. The comparison only ever needs the MD4 of each output, so
+// the crate's outputs are hashed here and only their digests go back, which is 776 bytes. Sync with
+// src/modules/module_74000.c and OpenCL/m72000-pure.cl.
+
+typedef struct
+{
+  u32 pw_buf[64];
+  u32 pw_len;
+
+  u32 out_cnt;
+  u32 out_dgst[32][4];
+
+} generic_io_dgst_tmp_t;
+
+// The crate still works on full records, so a launch is converted through a buffer of this many of
+// them. It keeps the host memory a unit needs independent of the launch size.
+
+#define IO_CHUNK 1024
 
 typedef struct bridge_context bridge_context_t;
 
@@ -99,6 +116,8 @@ typedef struct
   // implementation specific
 
   void *unit_context;
+
+  generic_io_tmp_t *io_buf;
 
 } unit_t;
 
@@ -380,6 +399,17 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   if (!unit_buf->unit_context) return false;
 
+  unit_buf->io_buf = (generic_io_tmp_t *) hcmalloc (IO_CHUNK * sizeof (generic_io_tmp_t));
+
+  if (unit_buf->io_buf == NULL)
+  {
+    bridge_context->drop_context (unit_buf->unit_context);
+
+    unit_buf->unit_context = NULL;
+
+    return false;
+  }
+
   bridge_context->thread_init (unit_buf->unit_context);
 
   return true;
@@ -396,6 +426,10 @@ void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   bridge_context->thread_term (unit_buf->unit_context);
 
   bridge_context->drop_context (unit_buf->unit_context);
+
+  hcfree (unit_buf->io_buf);
+
+  unit_buf->io_buf = NULL;
 }
 
 int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
@@ -444,14 +478,61 @@ bool launch_loop (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   unit_t *unit_buf = &bridge_context->units_buf[unit_idx];
 
-  generic_io_tmp_t *generic_io_tmp = (generic_io_tmp_t *) device_param->h_tmps;
+  generic_io_dgst_tmp_t *dgst_tmp = (generic_io_dgst_tmp_t *) device_param->h_tmps;
 
-  // The Rust side is handed the salt the batch starts at and adds the position of the candidate
-  // itself, so the position passed here is zero. The salt_per_pw it was built with tells it to add.
+  generic_io_tmp_t *io_buf = unit_buf->io_buf;
 
-  if (!bridge_context->kernel_loop (unit_buf->unit_context, generic_io_tmp, pws_cnt, bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, 0), hashes->salts_buf == hashes->st_salts_buf))
+  const bool is_selftest = (hashes->salts_buf == hashes->st_salts_buf);
+
+  for (u64 chunk_pos = 0; chunk_pos < pws_cnt; chunk_pos += IO_CHUNK)
   {
-    return false;
+    const u64 chunk_cnt = MIN (pws_cnt - chunk_pos, IO_CHUNK);
+
+    for (u64 i = 0; i < chunk_cnt; i++)
+    {
+      const generic_io_dgst_tmp_t *src = &dgst_tmp[chunk_pos + i];
+
+      generic_io_tmp_t *dst = &io_buf[i];
+
+      memcpy (dst->pw_buf, src->pw_buf, sizeof (dst->pw_buf));
+
+      dst->pw_len  = MIN (src->pw_len, sizeof (dst->pw_buf));
+      dst->out_cnt = 0;
+    }
+
+    // The Rust side is handed the salt the chunk starts at and adds the position of the candidate
+    // within it. The salt_per_pw it was built with tells it to add.
+
+    const u32 chunk_salt_pos = bridge_salt_pos (hashcat_ctx, device_param, hashes, salt_pos, chunk_pos);
+
+    if (bridge_context->kernel_loop (unit_buf->unit_context, io_buf, chunk_cnt, chunk_salt_pos, is_selftest) == false) return false;
+
+    for (u64 i = 0; i < chunk_cnt; i++)
+    {
+      const generic_io_tmp_t *src = &io_buf[i];
+
+      generic_io_dgst_tmp_t *dst = &dgst_tmp[chunk_pos + i];
+
+      const u32 out_cnt = MIN (src->out_cnt, 32);
+
+      for (u32 j = 0; j < out_cnt; j++)
+      {
+        const u32 out_len = MIN (src->out_len[j], sizeof (src->out_buf[j]));
+
+        md4_ctx_t ctx;
+
+        md4_init   (&ctx);
+        md4_update (&ctx, src->out_buf[j], (int) out_len);
+        md4_final  (&ctx);
+
+        dst->out_dgst[j][0] = ctx.h[0];
+        dst->out_dgst[j][1] = ctx.h[1];
+        dst->out_dgst[j][2] = ctx.h[2];
+        dst->out_dgst[j][3] = ctx.h[3];
+      }
+
+      dst->out_cnt = out_cnt;
+    }
   }
 
   return true;

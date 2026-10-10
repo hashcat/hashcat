@@ -87,7 +87,7 @@ Two sets of flags were removed without direct replacements: `BRIDGE_TYPE_MATCH_T
 
 Tuning no longer requires an opt-in flag. For every bridge, hashcat sizes launches and device buffers from the value returned by `get_workitem_count()`. This value is an upper bound that hashcat never exceeds.
 
-The reported count is not necessarily the launch size. Autotune searches from one work-item multiple up to that maximum and selects the fastest measured size, so the bridge does not need to predict an ideal value. Option `-n` sets the size directly and is clamped to the same range.
+The reported count is not necessarily the launch size. When a bridge declares `BRIDGE_TYPE_REPLACE_LOOP`, autotune times the bridge itself and picks the size, from one work-item multiple up to that maximum, at which one launch fills its time budget. The bridge therefore does not need to predict an ideal value, and a slow unit gets short launches. A `BRIDGE_TYPE_LAUNCH_LOOP` bridge runs after the loop kernel, and autotune times that kernel instead, so its launches follow the maximum. Option `-n` sets the size directly and is clamped to the same range.
 
 Mandatory callback `get_workitem_multiple()` reports the granularity at which a unit computes. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width when the unit processes candidates in parallel waves, as an accelerator with many cores behind one unit would.
 
@@ -251,11 +251,11 @@ Callback `get_workitem_multiple` is mandatory in the current interface. An older
 - Callback `platform_term` performs final cleanup and frees context data allocated during initialization.
 - Callback `get_unit_count` returns the number of available units. For example, return `2` when two FPGAs are detected.
 - Callback `get_unit_info` returns a human-readable unit description, such as `Python v3.13.3`.
-- Callback `get_workitem_count` returns the maximum number of candidates a unit can receive in one invocation. This is an upper bound, not a requested launch size. Autotune searches below it and selects the fastest measured value.
+- Callback `get_workitem_count` returns the maximum number of candidates a unit can receive in one invocation. This is an upper bound, not a requested launch size. For a `BRIDGE_TYPE_REPLACE_LOOP` bridge, autotune searches below it for the size that fills one launch's time budget.
 - Callback `get_workitem_multiple` returns the computational granularity of the unit. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width for parallel waves so hashcat never supplies a partial wave.
 - Optional callback `get_unit_class` identifies the type of unit so hashcat can determine which units are interchangeable. See the section below.
 - Optional callbacks `get_unit_member_count` and `get_unit_member_info` describe the hardware members combined into one unit. Implement both or neither.
-- Optional callback `thread_init` performs per-thread setup, such as creating a Python interpreter.
+- Optional callback `thread_init` performs per-thread setup, such as creating a Python interpreter. hashcat calls it on every thread that drives a unit: the self-test, the cracking thread and, for a `BRIDGE_TYPE_REPLACE_LOOP` bridge, autotune.
 - Optional callback `thread_term` performs per-thread cleanup.
 - Callback `salt_prepare` runs once after the hashes are loaded and can preprocess salt or esalt data for the complete hash set.
 - Callback `salt_destroy` releases data allocated by `salt_prepare`.
