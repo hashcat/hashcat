@@ -15083,11 +15083,20 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      */
 
     {
-      char build_options_module_buf[sizeof (build_options_buf)];
+      // A hash recipe adds a few kB of options, see recipe_jit_build_options (). snprintf () returns
+      // the length it wanted, so each append gets the room that is actually left, and a set of
+      // options that does not fit is refused below instead of building a kernel from part of it.
+
+      char build_options_module_buf[16384];
+
+      const size_t build_options_module_sz = sizeof (build_options_module_buf);
 
       int build_options_module_len = 0;
 
-      build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s ", build_options_buf);
+      #define BUILD_OPTIONS_MODULE_ROOM (((size_t) build_options_module_len < build_options_module_sz) ? (build_options_module_sz - (size_t) build_options_module_len) : 0)
+      #define BUILD_OPTIONS_MODULE_POS  (build_options_module_buf + MIN ((size_t) build_options_module_len, build_options_module_sz - 1))
+
+      build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, "%s ", build_options_buf);
 
       if (module_ctx->module_jit_build_options != MODULE_DEFAULT)
       {
@@ -15095,7 +15104,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (jit_build_options != NULL)
         {
-          build_options_module_len += snprintf (build_options_module_buf + build_options_module_len, build_options_sz - build_options_module_len, "%s", jit_build_options);
+          build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, "%s", jit_build_options);
 
           // this is a bit ugly
           // would be better to have the module return the value as value
@@ -15134,7 +15143,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      build_options_module_buf[build_options_module_len] = 0;
+      #undef BUILD_OPTIONS_MODULE_ROOM
+      #undef BUILD_OPTIONS_MODULE_POS
+
+      if ((size_t) build_options_module_len >= build_options_module_sz)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Kernel build options exceed %u bytes.", device_id + 1, (u32) build_options_module_sz);
+
+        return -1;
+      }
 
       #if defined (DEBUG)
       if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_options_module '%s'", device_id + 1, build_options_module_buf);

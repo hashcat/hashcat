@@ -1165,6 +1165,7 @@ typedef enum user_options_map
   IDX_HWMON_DISABLE             = 0xff19,
   IDX_HWMON_TEMP_ABORT          = 0xff1a,
   IDX_HASH_MODE                 = 'm',
+  IDX_HASH_RECIPE               = 0xff8d,
   IDX_HCCAPX_MESSAGE_PAIR       = 0xff1b,
   IDX_HELP                      = 'h',
   IDX_HEX_CHARSET               = 0xff1c,
@@ -2921,6 +2922,7 @@ typedef struct user_options
   char        *bridge_parameter4;
   char        *cpu_affinity;
   char        *debug_file;
+  char        *hash_recipe;
   char        *induction_dir;
   char        *keyboard_layout_mapping;
   char        *lookup;

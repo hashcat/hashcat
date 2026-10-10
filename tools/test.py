@@ -11,6 +11,7 @@
 # attack modes it runs, and it runs every one the old suite did.
 
 import argparse
+import ast
 import atexit
 import base64
 import contextlib
@@ -753,6 +754,38 @@ def cpu_backend_id():
   return CPU_BACKEND_ID
 
 
+def module_opts(mode):
+  # Test modules can define a top-level HASHCAT_ARGS list of strings for options needed on each run.
+  # Mode 4000 uses it to supply --hash-recipe. Read the source without importing the module so the
+  # options remain available when its Python dependencies are missing.
+  if mode in MODULE_OPTS_CACHE:
+    return MODULE_OPTS_CACHE[mode]
+
+  opts = []
+
+  path = os.path.join(TDIR, "test_modules", "m%05d.py" % mode)
+
+  if os.path.isfile(path):
+    with open(path) as f:
+      tree = ast.parse(f.read())
+
+    for node in tree.body:
+      if isinstance(node, ast.Assign) is False:
+        continue
+
+      names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+
+      if "HASHCAT_ARGS" in names:
+        opts = [str(x) for x in ast.literal_eval(node.value)]
+
+  MODULE_OPTS_CACHE[mode] = opts
+
+  return opts
+
+
+MODULE_OPTS_CACHE = {}
+
+
 def bridge_opts(mode):
   # For a bridged mode the bridge does the hashing, but hashcat still needs a real device to generate
   # candidates and host the bridge's virtual instances. That device has to survive -D first: the
@@ -1034,7 +1067,7 @@ def verdict(c):
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
   global LAST_CMD
 
-  cmd = [BIN] + with_bridge_opts(opts, mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
+  cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
 
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
@@ -2876,7 +2909,7 @@ def selftest_vector_read(mode):
 
   # ISOLATION gives this read its own --session and cache, so -j workers reading vectors at the same
   # time do not collide on the default session files in ROOT and read back an empty result.
-  proc = subprocess.run([BIN, "-m", str(mode), "--hash-info", "--machine-readable"] + ISOLATION,
+  proc = subprocess.run([BIN, "-m", str(mode), "--hash-info", "--machine-readable"] + module_opts(mode) + ISOLATION,
                         cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
   info = proc.stdout
@@ -4881,6 +4914,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
 
   argv = [os.fsencode(BIN)]
   argv += [edge_as_bytes(o) for o in with_bridge_opts(opts, mode)]
+  argv += [edge_as_bytes(o) for o in module_opts(mode)]
   argv += [b"-a", str(attack).encode("ascii"), b"-m", str(mode).encode("ascii")]
   argv += [edge_as_bytes(target)]
   argv += [edge_as_bytes(x) for x in extra]
@@ -5033,7 +5067,7 @@ def edge_hh(mode):
   # race and one comes back without the kernel line, which reads as "no kernel type" and a false
   # error. A private --cache-path per worker removes the shared state.
 
-  proc = subprocess.run([BIN, "-m", str(mode), "-HH"] + ISOLATION, cwd=ROOT,
+  proc = subprocess.run([BIN, "-m", str(mode), "-HH"] + module_opts(mode) + ISOLATION, cwd=ROOT,
                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
   info = {"deprecated": False, "kernel_types": [], "slow": False, "salt_present": False,

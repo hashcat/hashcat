@@ -10,6 +10,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  Options Short / Long           | Type | Description                                          | Example
 ================================+======+======================================================+=======================
  -m, --hash-type                | Num  | Hash-type, references below (otherwise autodetect)   | -m 1000
+     --hash-recipe              | Str  | Hash recipe for hash-mode 4000                       | --hash-recipe 'md5(md5(salt) . pass)'
  -a, --attack-mode              | Num  | Attack-mode, see references below                    | -a 3
  -V, --version                  |      | Print version                                        |
  -h, --help                     |      | Print help. Use -hh to show all supported hash-modes | -h or -hh

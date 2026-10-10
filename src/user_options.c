@@ -23,6 +23,7 @@
 #include "feed_ctx.h"
 #include "feed.h"
 #include "mpsp.h"
+#include "recipe.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -92,6 +93,7 @@ static const struct option long_options[] =
   {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
   {"hash-copy",                 no_argument,       NULL, IDX_HASH_COPY},
   {"hash-info",                 no_argument,       NULL, IDX_HASH_INFO},
+  {"hash-recipe",               required_argument, NULL, IDX_HASH_RECIPE},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR}, // alias of eapol-message-pair
   {"help",                      no_argument,       NULL, IDX_HELP},
@@ -267,6 +269,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hwmon_temp_abort           = HWMON_TEMP_ABORT;
   user_options->hash_info                  = HASH_INFO;
   user_options->hash_mode                  = HASH_MODE;
+  user_options->hash_recipe                = NULL;
   user_options->hccapx_message_pair        = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset                = HEX_CHARSET;
   user_options->hex_salt                   = HEX_SALT;
@@ -531,6 +534,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
       case IDX_LOOKUP:                    user_options->lookup                    = optarg;                          break;
+      case IDX_HASH_RECIPE:               user_options->hash_recipe               = optarg;                          break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
       case IDX_SESSION:                   user_options->session                   = optarg;
                                           user_options->session_chgd              = true;                            break;
@@ -1802,6 +1806,48 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  // Mode 4000 uses --hash-recipe to define its hash. Validate it to report parser errors before
+  // building a kernel. Other modes do not accept this option.
+
+  if (user_options->hash_recipe != NULL)
+  {
+    if ((user_options->hash_mode_chgd == false) || (user_options->hash_mode != 4000))
+    {
+      event_log_error (hashcat_ctx, "Use of --hash-recipe requires --hash-type 4000.");
+
+      return -1;
+    }
+
+    recipe_prog_t recipe_prog;
+
+    if (recipe_compile (&recipe_prog, user_options->hash_recipe) == false)
+    {
+      // Recipes can span several lines. Show the line containing the error.
+
+      const char *recipe = user_options->hash_recipe;
+
+      u32 line_start = recipe_prog.error_pos;
+
+      while ((line_start > 0) && (recipe[line_start - 1] != '\n')) line_start--;
+
+      u32 line_end = recipe_prog.error_pos;
+
+      while ((recipe[line_end] != 0) && (recipe[line_end] != '\n')) line_end++;
+
+      event_log_error (hashcat_ctx, "Invalid --hash-recipe, %s:", recipe_prog.error);
+      event_log_error (hashcat_ctx, "  %.*s", (int) (line_end - line_start), recipe + line_start);
+      event_log_error (hashcat_ctx, "  %*s^", (int) (recipe_prog.error_pos - line_start), "");
+
+      return -1;
+    }
+  }
+  else if ((user_options->hash_mode_chgd == true) && (user_options->hash_mode == 4000) && (user_options->hash_info == 0))
+  {
+    event_log_error (hashcat_ctx, "Hash-mode 4000 needs --hash-recipe, for example --hash-recipe 'md5(md5(salt) . pass)'.");
+
+    return -1;
   }
 
   if (user_options->benchmark_all == true)
@@ -4952,6 +4998,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->bridge_parameter2);
   logfile_top_string (user_options->bridge_parameter3);
   logfile_top_string (user_options->bridge_parameter4);
+  logfile_top_string (user_options->hash_recipe);
   logfile_top_string (user_options->cache_path);
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);

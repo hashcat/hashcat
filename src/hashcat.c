@@ -1012,6 +1012,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_HASHCONFIG_POST);
 
+  // Modes without a self-test hash need a module-supplied benchmark salt. Mode 4000 without
+  // --hash-recipe has neither, so --benchmark-all skips it instead of stopping the whole run. See
+  // hashes_init_benchmark ().
+
+  if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+  {
+    if ((hashconfig->st_hash == NULL) && (module_ctx->module_benchmark_salt == MODULE_DEFAULT))
+    {
+      outer_loop_destroy (hashcat_ctx);
+
+      return 0;
+    }
+  }
+
   /**
    * deprecated notice
    */

@@ -80,6 +80,8 @@ Other contributors to hashcat
 
 * xxHash by Yann Collet (@Cyan4973). paw64, hashcat's 64-bit identity hash, contains no xxHash code and produces different digests. It follows the design principles established by xxHash: short and long inputs benefit from different processing, while multiplication, folding and a strong final avalanche provide sufficient mixing.
 
+* hx, the hash expression language, by Cynosure Prime (https://github.com/Cynosureprime/hx). Hash-mode 4000 reads its recipes in the expression syntax of hx and gives each recipe the meaning hx defines. hashcat implements a subset of the language from its specification. Its parser and kernels are hashcat's own and contain no code from the hx reference implementation.
+
 # The following people also helped the project:
 
 Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)

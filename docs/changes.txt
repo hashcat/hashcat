@@ -313,6 +313,9 @@ changes that may require action.
 - Added mode 24430: PKCS#12 (.pfx, .p12) (SHA1 + HMAC-SHA1)
 - Added mode 24440: PKCS#12 (.pfx, .p12) (SHA256 + HMAC-SHA256)
 - Added mode 38200: Cisco-IOS $14$ (convoluted Type 9)
+- Added mode 4000: Hash Recipe, a recipe of MD4, MD5, SHA-1, SHA-2, RIPEMD-160, BLAKE2, SM3 and HMAC
+  calls over the password and salt, and string transforms such as upper(), rev() and pad() of
+  either, given with "--hash-recipe"
 
 ##
 ## New Features and Options
@@ -329,6 +332,9 @@ changes that may require action.
 - GPG (CAST5 (SHA-1($pass))) accepts nonzero IVs and "s2ktype" 3
 - Mode 74000 adds a dynamic hash plugin. The "--bridge-parameter2" option describes combinations of
   12 digests, HMAC, PBKDF2-HMAC, bcrypt, slicing, UTF-16LE, case changes and hex/base64 encoding
+- Option "--hash-recipe" gives mode 4000 its hash as a recipe in hx expression syntax, such as
+  "md5(md5(salt) . pass)". The recipe is compiled into the kernel, so it runs close to the speed of
+  the matching built-in pure kernel. See "docs/hashcat-hash-recipe.md"
 - Wordlists, hash lists and rules accept zstd files as well as gzip and xz. Hashcat can seek
   directly in multi-frame files created by "pzstd"
 - John's dynamic format covers 56 built-in formats. The "--show", "--left" and "--remove" options
