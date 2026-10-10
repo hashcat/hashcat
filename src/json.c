@@ -9,14 +9,34 @@
 #include <stdarg.h>
 #include <string.h>
 
+// Routes output to the FILE, or appends it to the fixed buffer, bounded so a short buffer truncates
+// rather than overruns. The buffer stays NUL terminated.
+static void json_write (json_ctx_t *ctx, const char *text, const size_t len)
+{
+  if (ctx->fp != NULL)
+  {
+    fwrite (text, 1, len, ctx->fp);
+
+    return;
+  }
+
+  if (ctx->buf_len + len < ctx->buf_size)
+  {
+    memcpy (ctx->buf + ctx->buf_len, text, len);
+
+    ctx->buf_len += len;
+    ctx->buf[ctx->buf_len] = 0;
+  }
+}
+
 static void json_puts (json_ctx_t *ctx, const char *text)
 {
-  fputs (text, ctx->fp);
+  json_write (ctx, text, strlen (text));
 }
 
 static void json_putc (json_ctx_t *ctx, const char c)
 {
-  fputc (c, ctx->fp);
+  json_write (ctx, &c, 1);
 }
 
 // Writes a string value or key with the quotes and the RFC 8259 escaping: the named short escapes,
@@ -91,6 +111,16 @@ void json_init (json_ctx_t *ctx, FILE *fp)
   memset (ctx, 0, sizeof (json_ctx_t));
 
   ctx->fp = fp;
+}
+
+void json_init_buffer (json_ctx_t *ctx, char *buf, const size_t size)
+{
+  memset (ctx, 0, sizeof (json_ctx_t));
+
+  ctx->buf      = buf;
+  ctx->buf_size = size;
+
+  if (size > 0) buf[0] = 0;
 }
 
 void json_object_begin (json_ctx_t *ctx)
@@ -223,6 +253,25 @@ void json_kv_bool (json_ctx_t *ctx, const char *key, const bool value)
 {
   json_key (ctx, key);
   json_bool (ctx, value);
+}
+
+void json_kv_hex (json_ctx_t *ctx, const char *key, const unsigned char *data, const size_t len)
+{
+  static const char hex[] = "0123456789abcdef";
+
+  json_key (ctx, key);
+
+  json_pre_value (ctx);
+
+  json_putc (ctx, '"');
+
+  for (size_t i = 0; i < len; i++)
+  {
+    json_putc (ctx, hex[data[i] >> 4]);
+    json_putc (ctx, hex[data[i] & 0x0f]);
+  }
+
+  json_putc (ctx, '"');
 }
 
 void json_kv_fmt (json_ctx_t *ctx, const char *key, const char *fmt, ...)
