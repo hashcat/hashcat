@@ -693,6 +693,12 @@ Results depend on the device, runtime and workload.
   "tools/requirements.txt" for test setup. Failed installs name each package
 - The 14000 oracle keys DES with the first 8 bytes of the password, and the 33501
   hybrid run skips a slot whose mask would be empty, so both pass the pure/opt suite
+- The "--bridge" option cracks each selected mode's own test oracle through the Python
+  bridge (mode 73000) with no mode kernel, so the parser and candidate handling are checked
+  against the reference implementation
+- The weekly CI run now tests the pure kernels, the bridge pass, and a container pass that
+  cracks the TrueCrypt, VeraCrypt, CryptoLoop and LUKS container files, beside the optimized
+  kernels, as parallel jobs
 
 ## Documentation and licensing
 

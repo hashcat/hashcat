@@ -485,7 +485,11 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, cid=6, blob=None, ct_off=None):
-  rounds = int(iterations) if (iterations is not None and str(iterations) != "") else 16
+  # The default round count is kept low on purpose: bcrypt_pbkdf is implemented in pure Python here
+  # and is the whole cost of the test, so a realistic 16 makes a bridged run, which runs the KDF once
+  # per candidate, take minutes. The test exercises the format and the kernel, not a real work
+  # factor, so 4 rounds is plenty, and hashcat reads the count out of the hash so the crack is right.
+  rounds = int(iterations) if (iterations is not None and str(iterations) != "") else 4
 
   cid = int(cid)
 

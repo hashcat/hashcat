@@ -16,6 +16,7 @@ import base64
 import contextlib
 import fcntl
 import glob
+import importlib.util
 import json
 import os
 import platform
@@ -6100,6 +6101,123 @@ def run_parallel_depth(args):
   return rc
 
 
+def bridge_family(mode):
+  # The bridge hashes in Python, so it has no kernel of its own and the optimized/pure split does not
+  # apply to the crack. It still draws its candidates from the mode's oracle, which offers one
+  # constraint set per family (word slot 0 is pure, slot 2 is optimized; [-1, -1] means that family
+  # has no kernel). So pick the family the mode actually has, preferring pure, which covers almost
+  # every mode; a few dozen are optimized only. Returns "p", "o", or None when the mode has an oracle
+  # with neither, so there is nothing to generate.
+  tests = os.path.join(TDIR, "test_modules")
+  path  = os.path.join(tests, "m%05d.py" % mode)
+
+  if not os.path.isfile(path):
+    return None
+
+  # The oracle modules import their shared helpers as "lib.test_helpers", so their directory has to
+  # be importable the way test_bridge.py and the runner make it.
+  if tests not in sys.path:
+    sys.path.insert(0, tests)
+
+  spec = importlib.util.spec_from_file_location("bridge_family_m%05d" % mode, path)
+  mod  = importlib.util.module_from_spec(spec)
+
+  spec.loader.exec_module(mod)
+
+  pairs    = mod.module_constraints()
+  has_pure = not (pairs[0][0] == -1 and pairs[0][1] == -1)
+  has_opt  = not (pairs[2][0] == -1 and pairs[2][1] == -1)
+
+  if has_pure:
+    return "p"
+
+  if has_opt:
+    return "o"
+
+  return None
+
+
+def bridge_vectors(mode, family, hash_path, word_path):
+  # Build bridge-format vectors for a mode from its own oracle, through tools/test_bridge.py, under
+  # the given family ("p" or "o"; see bridge_family). Returns the vector count, or -1 when none could
+  # be made: oracle error, or every hash too long for the bridge's 1024 byte salt.
+  cmd = [sys.executable, os.path.join(TDIR, "test_bridge.py"), "vectors", str(mode), hash_path, word_path]
+
+  if family == "p":
+    cmd.append("-P")
+
+  proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+  if proc.returncode != 0 or not os.path.isfile(hash_path):
+    return -1
+
+  with open(hash_path, "rb") as fh:
+    return sum(1 for line in fh if line.strip())
+
+
+# A cracked bridge line is "<sha256 hex>*<mode>:<family>:<base64>:<password>", so a line that opens
+# with the 64 hex digit digest and a star is one recovered hash.
+BRIDGE_CRACK = re.compile(rb"(?m)^[0-9a-f]{64}\*")
+
+
+def run_bridge(args):
+  # Crack every selected mode's own test oracle through the Python bridge (mode 73000), with -a 0 and
+  # no mode kernel, so hashcat's parser and candidate handling are checked against the reference
+  # implementation. test_bridge.py builds the vectors and is itself the bridge module. One hashcat
+  # run per mode is one test cell: it passes only when every vector the oracle produced is recovered.
+  # The bridge hashes in Python, so the optimized/pure split does not apply; bridge_family picks the
+  # family only to draw valid candidates from the oracle, and -P on the run is ignored here.
+  bridge_py = os.path.join(TDIR, "test_bridge.py")
+  modes     = MINIMAL_MODES if args.minimal else select_modes(args.mode, discover_modes())
+
+  # mode 73000 has no optimized or pure kernel of its own, so -O does not apply to the bridge run.
+  opts = [o for o in base_opts(args) if o != "-O"]
+
+  with tempfile.TemporaryDirectory(prefix="test_py_bridge_") as tmp:
+    for mode in modes:
+      hpath = os.path.join(tmp, "m%05d.hash" % mode)
+      wpath = os.path.join(tmp, "m%05d.words" % mode)
+
+      label  = "[ test.py ] [ Type %d, Bridge, Device-Type Cpu ]" % mode
+      family = bridge_family(mode)
+
+      if family is None:
+        print("%s > Skip : mode has no oracle to drive the bridge" % label)
+        record("Skip")
+        note_verdict("Skip")
+
+        continue
+
+      n = bridge_vectors(mode, family, hpath, wpath)
+
+      if n <= 0:
+        print("%s > Skip : oracle produced no bridge vectors" % label)
+        record("Skip")
+        note_verdict("Skip")
+
+        continue
+
+      rc, out = run_hashcat(opts, 73000, hpath, None, attack=0,
+                            extra=["--bridge-parameter1", bridge_py, wpath])
+
+      cracked = len(BRIDGE_CRACK.findall(out))
+
+      c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
+
+      classify(rc, cracked == n, c)
+
+      v = verdict(c)
+
+      print("%s > %s : %d/%d not found, %d/%d not matched, %d/%d timeout, %d/%d skipped%s"
+            % (label, v, n - cracked if rc == 0 else 0, n, 0, n, 0, n, 0, n,
+               (", %d/%d errors" % (c["err"], c["cnt"])) if c.get("err") else ""))
+
+      record(v)
+      note_verdict(v)
+
+  return 1 if ERRORS else 0
+
+
 def main():
   # Line-buffer stdout so the serial paths (-S, single mode) stream under CI, where stdout is a
   # pipe Python would otherwise block-buffer. The -j paths already flush by hand.
@@ -6134,6 +6252,8 @@ def main():
   # what switches to the pure kernel, and if both are given -P wins.
   ap.add_argument("-O", dest="optimized", action="store_true", help="optimized kernels (default)")
   ap.add_argument("-P", dest="pure", action="store_true", help="pure kernels")
+  ap.add_argument("--bridge", dest="bridge", action="store_true",
+                  help="crack each mode's own test oracle through the Python bridge (-m 73000), no mode kernel")
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
@@ -6146,6 +6266,10 @@ def main():
                        "need sudo. On its own runs every mode -g can build.")
   ap.add_argument("--test-coverage", dest="test_coverage", action="store_true",
                   help="report modes with no test and exit; reads the source tree, needs no hashcat")
+  ap.add_argument("--list-container-modes", dest="list_container_modes", action="store_true",
+                  help="print the container test modes (TrueCrypt, VeraCrypt, CryptoLoop, LUKS) and exit; "
+                       "these crack a shipped or fetched container file and have no oracle, so a mode "
+                       "list builder cannot find them from the test modules on disk")
   ap.add_argument("--compute-sanitizer", dest="compute_sanitizer", nargs="?", const="memcheck",
                   default=None, metavar="TOOL",
                   help="run the CUDA kernels under NVIDIA Compute Sanitizer (memcheck|racecheck|"
@@ -6178,6 +6302,13 @@ def main():
   # --test-coverage reads the source tree only, so it runs before the isolation and binary checks.
   if args.test_coverage:
     sys.exit(run_test_coverage())
+
+  # --list-container-modes just prints a constant, so it too runs before any isolation or binary
+  # check. It is the single source of truth for the container modes a mode list builder cannot find
+  # on disk (they have no test module).
+  if args.list_container_modes:
+    print(" ".join(str(m) for m in sorted(CONTAINER_MODES)))
+    sys.exit(0)
 
   # --compute-sanitizer points hashcat at the sweep shim, which wraps every run in
   # tools/compute_sanitizer/run.py under NVIDIA Compute Sanitizer and routes findings into a results
@@ -6247,6 +6378,12 @@ def main():
 
   if args.edge:
     sys.exit(run_edge(args))
+
+  # --bridge runs on its own: it ignores -a and -t and cracks each selected mode's oracle through
+  # the Python bridge (mode 73000), so it checks hashcat's parser and candidate handling against the
+  # reference implementation rather than the mode's own kernel.
+  if args.bridge:
+    sys.exit(run_bridge(args))
 
   # -S runs on its own: it walks every hash-mode hashcat reports rather than the .py oracle set, so
   # it reaches the modes that have no oracle, and it needs no oracle engine (test.sh).
