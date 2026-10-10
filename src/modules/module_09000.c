@@ -70,6 +70,13 @@ typedef struct pwsafe2_tmp
 
 #include "blowfish_common.c"
 
+u32 module_hashes_count_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hashes_count_max = 1;
+
+  return hashes_count_max;
+}
+
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 tmp_size = (const u64) sizeof (pwsafe2_tmp_t);
@@ -169,7 +176,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
+  module_ctx->module_hashes_count_max         = module_hashes_count_max;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
   module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;

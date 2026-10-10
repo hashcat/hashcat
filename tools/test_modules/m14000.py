@@ -30,6 +30,7 @@ def module_verify_hash(line):
   # The hash is "ct:salt", both halves separated by a colon, so the recovered line is
   # "ct:salt:password" and the hash has to be split off as two fields, not at the first colon (which
   # would hand the salt to the password). Mode 14100 splits its hash the same way.
+
   parts = split_hash_salt_word(line)
 
   if parts is None:

@@ -5,10 +5,8 @@
 ## License.....: MIT
 ##
 
-import time
-
 from lib.kerberos_rc4 import hmac_md5, ntlm_key, rc4
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, random_numeric_string
 
 # Kerberos 5 AS-REQ Pre-Auth (krb5pa, etype 23). The RC4 key encrypts the PA-ENC-TIMESTAMP; on the
 # verify path the stored ciphertext is decrypted and kept only when its timestamp is 14 digits.
@@ -17,7 +15,9 @@ MSG_TYPE = b"\x01\x00\x00\x00"
 
 
 def get_random_kerberos5_salt(custom_salt):
-  clear_data = random_bytes(14) + time.strftime("%Y%m%d%H%M%S", time.localtime()).encode("ascii") + random_bytes(8)
+  # the kernels check the timestamp only for the "20" it starts with and the twelve digits after it
+
+  clear_data = random_bytes(14) + b"20" + random_numeric_string(12).encode("ascii") + random_bytes(8)
 
   return "user$realm$salt$%s$%s$" % (custom_salt.hex(), clear_data.hex())
 

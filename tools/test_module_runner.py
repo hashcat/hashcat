@@ -576,7 +576,16 @@ def single(mod, mode, length, spare=False):
   db_salt = salt_lengths(salt)
 
   seen  = set()
+  salts = set()
   pairs = []
+  lens  = []
+
+  # tools/test.py loads all of these at once in its multi-hash run, so it says what -HH declares about
+  # several hashes on one salt: UNIQUE_SALT for a mode that refuses them, SHARED_SALT for one that
+  # allows them, so that the run tests it. A spare is one vector, so it shares nothing.
+
+  unique_salt = salt[1] > 0 and "UNIQUE_SALT" in os.environ
+  shared_salt = salt[1] > 0 and "SHARED_SALT" in os.environ and not spare
 
   giveup = 0
 
@@ -613,11 +622,80 @@ def single(mod, mode, length, spare=False):
     if candidate in seen:
       continue
 
+    if unique_salt and candidate[1] in salts:
+      continue
+
     seen.add(candidate)
+    salts.add(candidate[1])
     pairs.append(candidate)
+    lens.append(word_len)
+
+  # Two pairs each take the salt of another, and the two salts differ. A shared salt sorted last
+  # would hide a kernel that confuses the salt index with the hash index, since the two only part
+  # after the first salt that holds more than one hash, and hashcat's order is not the oracle's when a
+  # module hashes the salt. Of two shared salts, the one sorted first has the other after it. A lead
+  # is the shortest salt left, which fits a length limit best.
+
+  shares = []
+  used   = set()
+
+  while shared_salt and len(shares) < 2:
+    found = None
+    rest  = [i for i in range(len(pairs)) if i not in used]
+
+    for lead in sorted(rest, key=lambda i: len(pairs[i][1])):
+      if any(pairs[lead][1] == pairs[j][1] for j in used):
+        continue
+
+      for i in rest:
+        candidate = (pairs[i][0], pairs[lead][1])
+
+        if i == lead or candidate in seen:
+          continue
+
+        if IS_OPTIMIZED and comb[0] != -1:
+          if not comb[0] <= lens[i] + len(candidate[1]) <= comb[1]:
+            continue
+
+        found = (lead, i, candidate)
+
+        break
+
+      if found is not None:
+        break
+
+    if found is None:
+      break
+
+    lead, i, candidate = found
+
+    pairs[i] = candidate
+
+    seen.add(candidate)
+    used.update((lead, i))
+    shares.append({pairs[lead], candidate})
+
+  replay = {}
 
   for word_bytes, salt_str in sorted(pairs, key=lambda p: len(p[0])):
+    # The second hash of a shared pair is generated from the same generator state as the first, so
+    # whatever else the module draws into the salt (a site key, a user name) comes out equal too.
+
+    resume = None
+    group  = next((k for k, share in enumerate(shares) if (word_bytes, salt_str) in share), None)
+
+    if group is not None:
+      if group not in replay:
+        replay[group] = test_helpers.rand_state()
+      else:
+        resume = test_helpers.rand_state()
+
+        test_helpers.set_rand_state(replay[group])
+
     digest = mod.module_generate_hash(word_bytes, salt_str, None)
+
+    if resume is not None:
+      test_helpers.set_rand_state(resume)
 
     # possible if the requested length is not supported by the algorithm
 

@@ -7,8 +7,9 @@
 
 import base64
 import hashlib
-import os
 import struct
+
+from lib.test_helpers import random_bytes
 
 # Password Safe v3. The mode is OPTS_TYPE_BINARY_HASHFILE: hashcat is handed a
 # .psafe3 file rather than a hash string, and test.sh rebuilds that file by
@@ -55,7 +56,7 @@ def module_generate_hash(word, salt, iterations=None):
   if not iterations or iterations <= 0:
     iterations = ITERATIONS_DEFAULT
 
-  return _psafe3(word, bytes.fromhex(salt), iterations, os.urandom(TAIL_LEN))
+  return _psafe3(word, bytes.fromhex(salt), iterations, random_bytes(TAIL_LEN))
 
 
 def module_verify_hash(line):

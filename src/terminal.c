@@ -1180,7 +1180,8 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
         // the loader accepts either flag for several hashes under one salt, so both have to be
         // tested here or a mode that carries only the second one is reported as refusing what it
-        // in fact allows. See the issue 3641 guard in hashes.c.
+        // in fact allows. The same goes for a slow mode without an esalt, which the loader never
+        // refuses. See the issue 3641 guard in hashes.c.
 
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
@@ -1188,7 +1189,10 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
           {
             if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
             {
-              multi_hash_same_salt = false;
+              if (hashconfig->esalt_size > 0)
+              {
+                multi_hash_same_salt = false;
+              }
             }
           }
         }
@@ -1458,7 +1462,8 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
 
         // the loader accepts either flag for several hashes under one salt, so both have to be
         // tested here or a mode that carries only the second one is reported as refusing what it
-        // in fact allows. See the issue 3641 guard in hashes.c.
+        // in fact allows. The same goes for a slow mode without an esalt, which the loader never
+        // refuses. See the issue 3641 guard in hashes.c.
 
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
@@ -1466,7 +1471,10 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
           {
             if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
             {
-              multi_hash_same_salt = false;
+              if (hashconfig->esalt_size > 0)
+              {
+                multi_hash_same_salt = false;
+              }
             }
           }
         }
