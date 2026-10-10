@@ -231,7 +231,7 @@ typedef enum vendor_id
 typedef enum mem_source
 {
   MEM_SOURCE_UNKNOWN   = 0,   // nothing asked; derived from the physical size
-  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo ()
+  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo (), the system's free memory on unified Apple devices
   MEM_SOURCE_ALIAS     = 2,   // copied from the CUDA or HIP view of the same device
   MEM_SOURCE_EXTENSION = 3,   // CL_DEVICE_GLOBAL_FREE_MEMORY_AMD
   MEM_SOURCE_HWMON     = 4,   // the hardware monitor's used-memory reading
@@ -2168,6 +2168,12 @@ typedef struct hc_device_param
 
   bool              is_metal;
 
+  // The Metal family level, 1 to 4 and 0 for none, and whether the Metal 4 path was taken. Outside
+  // the Apple guard because the kernel cache key carries both on every platform.
+
+  int               metal_version;
+  bool              use_metal4;
+
   #if defined (__APPLE__)
 
   //int               mtl_major;
@@ -2186,13 +2192,41 @@ typedef struct hc_device_param
   mtl_device_id     metal_device;
   mtl_command_queue metal_command_queue;
 
+  // Bound in place of every kernel argument the mode leaves NULL, because Metal takes no nil buffer.
+
+  mtl_mem_t         metal_fake_buf;
+
+  // Metal 4, when the device takes that path: the queue above is then an MTL4CommandQueue and these
+  // are what a launch or a copy needs around it. All nil on the Metal 3 path.
+
+  mtl_command_allocator metal_command_allocator;
+  mtl_command_buffer    metal_command_buffer;
+  mtl_argument_table    metal_argument_table;
+  mtl_residency_set     metal_residency_set;
+  mtl_compiler          metal_compiler;
+  id                    metal_scratch_buf;
+  size_t                metal_scratch_offset;
+  dispatch_semaphore_t  metal_sema;
+
   mtl_library       metal_library[HC_DEV_PROGRAM_CNT];
+
+  // The archive the compiled pipelines of a program are cached in, see hc_mtlArchiveOpen.
+
+  mtl_archive       metal_archive[HC_DEV_PROGRAM_CNT];
+  mtl_serializer    metal_serializer[HC_DEV_PROGRAM_CNT];
+  mtl_compiler      metal_program_compiler[HC_DEV_PROGRAM_CNT];
+  char             *metal_archive_file[HC_DEV_PROGRAM_CNT];
+  bool              metal_archive_write[HC_DEV_PROGRAM_CNT];
 
   mtl_function      metal_function[HC_DEV_KERN_CNT];
 
   mtl_pipeline      metal_pipeline[HC_DEV_KERN_CNT];
 
+  // The program each kernel slot was built from, and whether its pipeline is in the archive that
+  // will be written: a pipeline taken from an archive that turns out stale is added at the flush.
 
+  int               metal_function_program[HC_DEV_KERN_CNT];
+  bool              metal_function_archived[HC_DEV_KERN_CNT];
 
   #endif // __APPLE__
 
@@ -2389,7 +2423,9 @@ typedef struct backend_ctx
 
   int                 rc_metal_init;
 
-  unsigned int        metal_runtimeVersion;
+  // The kernel cache key carries the whole string, 368.53 rather than 368, since the runtime moves
+  // with every macOS update and an archive from another OS build only falls back to a compile.
+
   char               *metal_runtimeVersionStr;
 
   // opencl

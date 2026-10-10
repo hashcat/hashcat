@@ -8,6 +8,9 @@
 #include "memory.h"
 #include "event.h"
 #include "timer.h"
+#include "path.h"
+#include "shared.h"
+#include "system.h"
 #include "ext_metal.h"
 #include "requirements.h"
 
@@ -33,6 +36,356 @@ typedef NS_ENUM(NSUInteger, hc_mtlLanguageVersion)
   MTL_LANGUAGEVERSION_3_2 = (3 << 16) + 2
 
 } metalLanguageVersion_t;
+
+// Metal 4 arrived with macOS 26, and the backend still runs on macOS 13. Every Metal 4 class and
+// selector is therefore reached by name, through the Objective-C runtime, so that one binary builds
+// against any SDK and runs on every macOS the backend accepts. A device without it, or one the setup
+// below turns down, keeps the Metal 3 path, which is unchanged.
+
+static SEL mtl4_sel (const char *name)
+{
+  return sel_registerName (name);
+}
+
+static bool mtl4_responds (id obj, const char *name)
+{
+  if (obj == nil) return false;
+
+  return ([obj respondsToSelector: mtl4_sel (name)] == YES);
+}
+
+static id mtl4_new (id obj, const char *name)
+{
+  return ((id (*) (id, SEL)) objc_msgSend) (obj, mtl4_sel (name));
+}
+
+static id mtl4_new_desc (id obj, const char *name, id desc, NSError **error)
+{
+  return ((id (*) (id, SEL, id, NSError **)) objc_msgSend) (obj, mtl4_sel (name), desc, error);
+}
+
+static void mtl4_call (id obj, const char *name)
+{
+  ((void (*) (id, SEL)) objc_msgSend) (obj, mtl4_sel (name));
+}
+
+static void mtl4_call_obj (id obj, const char *name, id arg)
+{
+  ((void (*) (id, SEL, id)) objc_msgSend) (obj, mtl4_sel (name), arg);
+}
+
+static void mtl4_call_uint (id obj, const char *name, NSUInteger arg)
+{
+  ((void (*) (id, SEL, NSUInteger)) objc_msgSend) (obj, mtl4_sel (name), arg);
+}
+
+static id   hc_mtl4_pipeline_desc (mtl_library metal_library, NSString *f_name);
+static void hc_mtlArchiveStale    (void *hashcat_ctx, hc_device_param_t *device_param, const int program);
+static void hc_mtlArchiveAbandon  (void *hashcat_ctx, hc_device_param_t *device_param, const int program, const char *func_name);
+
+// Everything a device holds for Metal 4 beyond its queue. Released with the queue.
+
+static void hc_mtl4_fini (hc_device_param_t *device_param)
+{
+  if (device_param->metal_sema != NULL)
+  {
+    dispatch_release (device_param->metal_sema);
+
+    device_param->metal_sema = NULL;
+  }
+
+  #if !__has_feature(objc_arc)
+  if (device_param->metal_scratch_buf       != nil) [device_param->metal_scratch_buf       release];
+  if (device_param->metal_argument_table    != nil) [device_param->metal_argument_table    release];
+  if (device_param->metal_command_buffer    != nil) [device_param->metal_command_buffer    release];
+  if (device_param->metal_command_allocator != nil) [device_param->metal_command_allocator release];
+  if (device_param->metal_residency_set     != nil) [device_param->metal_residency_set     release];
+  if (device_param->metal_compiler          != nil) [device_param->metal_compiler          release];
+  #endif
+
+  device_param->metal_scratch_buf       = nil;
+  device_param->metal_argument_table    = nil;
+  device_param->metal_command_buffer    = nil;
+  device_param->metal_command_allocator = nil;
+  device_param->metal_residency_set     = nil;
+  device_param->metal_compiler          = nil;
+
+  device_param->metal_scratch_offset = 0;
+}
+
+static int hc_mtl4_init_failed (void *hashcat_ctx, hc_device_param_t *device_param, mtl_command_queue queue, const char *what, NSError *error)
+{
+  if (error != nil)
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: Metal 4 setup failed, %s: %s. Using Metal 3.", device_param->device_id + 1, what, [[error localizedDescription] UTF8String]);
+  }
+  else
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: Metal 4 setup failed, %s is not available. Using Metal 3.", device_param->device_id + 1, what);
+  }
+
+  event_log_warning (hashcat_ctx, NULL);
+
+  hc_mtl4_fini (device_param);
+
+  #if !__has_feature(objc_arc)
+  if (queue != nil) [queue release];
+  #endif
+
+  return -1;
+}
+
+// Set a device up for Metal 4: its queue, and around it the allocator, the one command buffer every
+// launch and copy reuses, the argument table, the residency set the queue carries, the compiler, and
+// the scratch buffer that stands in for setBytes:. Every object is asked for the selectors the
+// launch and copy paths send, so a system with a different Metal 4 is turned down here rather than
+// at the first launch.
+
+static int hc_mtl4_init (void *hashcat_ctx, hc_device_param_t *device_param, mtl_command_queue *command_queue)
+{
+  mtl_device_id metal_device = device_param->metal_device;
+
+  static const char *classes[] =
+  {
+    "MTL4CommandAllocatorDescriptor",
+    "MTLResidencySetDescriptor",
+    "MTL4ArgumentTableDescriptor",
+    "MTL4CompilerDescriptor",
+    "MTL4LibraryDescriptor",
+    "MTL4LibraryFunctionDescriptor",
+    "MTL4ComputePipelineDescriptor",
+    "MTL4CommitOptions",
+  };
+
+  for (size_t i = 0; i < sizeof (classes) / sizeof (classes[0]); i++)
+  {
+    if (objc_getClass (classes[i]) == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, nil, classes[i], nil);
+  }
+
+  static const char *device_selectors[] =
+  {
+    "newMTL4CommandQueue",
+    "newCommandAllocatorWithDescriptor:error:",
+    "newResidencySetWithDescriptor:error:",
+    "newArgumentTableWithDescriptor:error:",
+    "newCommandBuffer",
+    "newCompilerWithDescriptor:error:",
+  };
+
+  for (size_t i = 0; i < sizeof (device_selectors) / sizeof (device_selectors[0]); i++)
+  {
+    if (mtl4_responds (metal_device, device_selectors[i]) == false) return hc_mtl4_init_failed (hashcat_ctx, device_param, nil, device_selectors[i], nil);
+  }
+
+  NSError *error = nil;
+
+  mtl_command_queue queue = mtl4_new (metal_device, "newMTL4CommandQueue");
+
+  if (queue == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, nil, "newMTL4CommandQueue", nil);
+
+  id desc = [objc_getClass ("MTL4CommandAllocatorDescriptor") new];
+
+  device_param->metal_command_allocator = mtl4_new_desc (metal_device, "newCommandAllocatorWithDescriptor:error:", desc, &error);
+
+  #if !__has_feature(objc_arc)
+  [desc release];
+  #endif
+
+  if (device_param->metal_command_allocator == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, "newCommandAllocatorWithDescriptor", error);
+
+  desc = [objc_getClass ("MTLResidencySetDescriptor") new];
+
+  mtl4_call_uint (desc, "setInitialCapacity:", 128);
+
+  device_param->metal_residency_set = mtl4_new_desc (metal_device, "newResidencySetWithDescriptor:error:", desc, &error);
+
+  #if !__has_feature(objc_arc)
+  [desc release];
+  #endif
+
+  if (device_param->metal_residency_set == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, "newResidencySetWithDescriptor", error);
+
+  // the queue carries the set, so every command buffer committed to it runs with the same
+  // allocations resident
+
+  mtl4_call_obj (queue, "addResidencySet:", device_param->metal_residency_set);
+
+  // 31 is the most an argument table takes, and the device engine binds that many
+
+  desc = [objc_getClass ("MTL4ArgumentTableDescriptor") new];
+
+  mtl4_call_uint (desc, "setMaxBufferBindCount:", 31);
+
+  device_param->metal_argument_table = mtl4_new_desc (metal_device, "newArgumentTableWithDescriptor:error:", desc, &error);
+
+  #if !__has_feature(objc_arc)
+  [desc release];
+  #endif
+
+  if (device_param->metal_argument_table == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, "newArgumentTableWithDescriptor", error);
+
+  device_param->metal_command_buffer = mtl4_new (metal_device, "newCommandBuffer");
+
+  if (device_param->metal_command_buffer == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, "newCommandBuffer", nil);
+
+  desc = [objc_getClass ("MTL4CompilerDescriptor") new];
+
+  device_param->metal_compiler = mtl4_new_desc (metal_device, "newCompilerWithDescriptor:error:", desc, &error);
+
+  #if !__has_feature(objc_arc)
+  [desc release];
+  #endif
+
+  if (device_param->metal_compiler == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, "newCompilerWithDescriptor", error);
+
+  device_param->metal_scratch_buf = [metal_device newBufferWithLength: METAL4_SCRATCH_SIZE options: MTLResourceStorageModeShared];
+
+  if (device_param->metal_scratch_buf == nil) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, "newBufferWithLength", nil);
+
+  device_param->metal_scratch_offset = 0;
+
+  mtl4_call_obj (device_param->metal_residency_set, "addAllocation:", device_param->metal_scratch_buf);
+  mtl4_call     (device_param->metal_residency_set, "commit");
+  mtl4_call     (device_param->metal_residency_set, "requestResidency");
+
+  device_param->metal_sema = dispatch_semaphore_create (0);
+
+  const struct { id obj; const char *name; } sends[] =
+  {
+    { queue,                                 "commit:count:options:" },
+    { device_param->metal_command_allocator, "reset" },
+    { device_param->metal_residency_set,     "removeAllocation:" },
+    { device_param->metal_command_buffer,    "beginCommandBufferWithAllocator:" },
+    { device_param->metal_command_buffer,    "endCommandBuffer" },
+    { device_param->metal_command_buffer,    "useResidencySet:" },
+    { device_param->metal_command_buffer,    "computeCommandEncoder" },
+    { device_param->metal_argument_table,    "setAddress:atIndex:" },
+    { device_param->metal_scratch_buf,       "gpuAddress" },
+    { device_param->metal_compiler,          "newLibraryWithDescriptor:error:" },
+    { device_param->metal_compiler,          "newComputePipelineStateWithDescriptor:compilerTaskOptions:error:" },
+  };
+
+  for (size_t i = 0; i < sizeof (sends) / sizeof (sends[0]); i++)
+  {
+    if (mtl4_responds (sends[i].obj, sends[i].name) == false) return hc_mtl4_init_failed (hashcat_ctx, device_param, queue, sends[i].name, nil);
+  }
+
+  *command_queue = queue;
+
+  return 0;
+}
+
+// The one command buffer a device has, begun again for each launch or copy. Each is committed and
+// waited for before the next begins, which is what the Metal 3 path does with a fresh command buffer
+// every time, and the allocator is given back only once the GPU is done, as the API asks.
+
+static id hc_mtl4_begin (void *hashcat_ctx, hc_device_param_t *device_param)
+{
+  id command_buffer = device_param->metal_command_buffer;
+
+  if (command_buffer == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): Metal 4 command buffer is nil", __func__);
+
+    return nil;
+  }
+
+  mtl4_call_obj (command_buffer, "beginCommandBufferWithAllocator:", device_param->metal_command_allocator);
+  mtl4_call_obj (command_buffer, "useResidencySet:", device_param->metal_residency_set);
+
+  return command_buffer;
+}
+
+static int hc_mtl4_commit_and_wait (void *hashcat_ctx, hc_device_param_t *device_param, id command_buffer, double *ms)
+{
+  mtl4_call (command_buffer, "endCommandBuffer");
+
+  // Metal 4 has no waitUntilCompleted. The commit takes a feedback handler that runs once the GPU is
+  // done, with the same start and end times the Metal 3 completion handler reported, and a semaphore
+  // turns that into the wait.
+
+  dispatch_semaphore_t sema = device_param->metal_sema;
+
+  __block double   gpu_ms    = 0;
+  __block NSError *gpu_error = nil;
+
+  id options = [objc_getClass ("MTL4CommitOptions") new];
+
+  ((void (*) (id, SEL, void (^) (id))) objc_msgSend) (options, mtl4_sel ("addFeedbackHandler:"), ^(id feedback)
+  {
+    double (*time_of) (id, SEL) = (double (*) (id, SEL)) objc_msgSend;
+
+    gpu_ms = (time_of (feedback, mtl4_sel ("GPUEndTime")) - time_of (feedback, mtl4_sel ("GPUStartTime"))) * 1000.0;
+
+    gpu_error = [mtl4_new (feedback, "error") retain];
+
+    dispatch_semaphore_signal (sema);
+  });
+
+  id command_buffers[1] = { command_buffer };
+
+  ((void (*) (id, SEL, id *, NSUInteger, id)) objc_msgSend) (device_param->metal_command_queue, mtl4_sel ("commit:count:options:"), command_buffers, 1, options);
+
+  dispatch_semaphore_wait (sema, DISPATCH_TIME_FOREVER);
+
+  mtl4_call (device_param->metal_command_allocator, "reset");
+
+  device_param->metal_scratch_offset = 0;
+
+  #if !__has_feature(objc_arc)
+  [options release];
+  #endif
+
+  if (gpu_error != nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): Metal 4 command buffer failed, %s", __func__, [[gpu_error localizedDescription] UTF8String]);
+
+    #if !__has_feature(objc_arc)
+    [gpu_error release];
+    #endif
+
+    return -1;
+  }
+
+  if (ms != NULL) *ms = gpu_ms;
+
+  return 0;
+}
+
+// A copy between two buffers, which the Metal 4 compute encoder took over from the blit encoder. The
+// two are made resident for it the way a launch makes its arguments resident.
+
+static int hc_mtl4_copy (void *hashcat_ctx, hc_device_param_t *device_param, id dst, size_t dst_off, id src, size_t src_off, size_t size)
+{
+  mtl4_call_obj (device_param->metal_residency_set, "addAllocation:", src);
+  mtl4_call_obj (device_param->metal_residency_set, "addAllocation:", dst);
+  mtl4_call     (device_param->metal_residency_set, "commit");
+
+  id command_buffer = hc_mtl4_begin (hashcat_ctx, device_param);
+
+  if (command_buffer == nil) return -1;
+
+  id command_encoder = mtl4_new (command_buffer, "computeCommandEncoder");
+
+  if (command_encoder == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): Metal 4 compute command encoder is nil", __func__);
+
+    return -1;
+  }
+
+  ((void (*) (id, SEL, id, NSUInteger, id, NSUInteger, NSUInteger)) objc_msgSend) (command_encoder, mtl4_sel ("copyFromBuffer:sourceOffset:toBuffer:destinationOffset:size:"), src, (NSUInteger) src_off, dst, (NSUInteger) dst_off, (NSUInteger) size);
+
+  mtl4_call (command_encoder, "endEncoding");
+
+  return hc_mtl4_commit_and_wait (hashcat_ctx, device_param, command_buffer, NULL);
+}
+
+static void hc_mtl4_forget (hc_device_param_t *device_param, id buffer)
+{
+  mtl4_call_obj (device_param->metal_residency_set, "removeAllocation:", buffer);
+  mtl4_call     (device_param->metal_residency_set, "commit");
+}
 
 static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
 {
@@ -351,15 +704,6 @@ int hc_mtlDeviceGet (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal
     return -1;
   }
 
-  /*
-  // parallelize pipeline state object (PSO) compilation internally
-
-  if ([device respondsToSelector:@selector(setShouldMaximizeConcurrentCompilation:)])
-  {
-    ((void (*)(id, SEL, BOOL))objc_msgSend)(device, @selector(setShouldMaximizeConcurrentCompilation:), YES);
-  }
-  */
-
   *metal_device = device;
 
   return 0;
@@ -548,6 +892,28 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
       break;
 
+    case MTL_DEVICE_ATTRIBUTE_METAL_VERSION:
+      // asked from the top down; the feature sets are the answer of a runtime without supportsFamily:
+
+      *pi = 0;
+
+      BOOL (*supports) (id, SEL, long) = (BOOL (*) (id, SEL, long)) objc_msgSend;
+
+      if (mtl4_responds (metal_device, "supportsFamily:") == true)
+      {
+        if      (supports (metal_device, mtl4_sel ("supportsFamily:"), MTL_GPU_FAMILY_METAL4) == YES) *pi = 4;
+        else if (supports (metal_device, mtl4_sel ("supportsFamily:"), MTL_GPU_FAMILY_METAL3) == YES) *pi = 3;
+        else if (supports (metal_device, mtl4_sel ("supportsFamily:"), MTL_GPU_FAMILY_MAC2)   == YES) *pi = 2;
+        else if (supports (metal_device, mtl4_sel ("supportsFamily:"), MTL_GPU_FAMILY_MAC1)   == YES) *pi = 1;
+      }
+      else if (mtl4_responds (metal_device, "supportsFeatureSet:") == true)
+      {
+        if      (supports (metal_device, mtl4_sel ("supportsFeatureSet:"), MTL_FEATURE_SET_MACOS_GPUFAMILY2_V1) == YES) *pi = 2;
+        else if (supports (metal_device, mtl4_sel ("supportsFeatureSet:"), MTL_FEATURE_SET_MACOS_GPUFAMILY1_V1) == YES) *pi = 1;
+      }
+
+      break;
+
     default:
       event_log_error (hashcat_ctx, "%s(): unknown attribute (%d)", __func__, attrib);
       return -1;
@@ -681,7 +1047,11 @@ int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_
   return 0;
 }
 
-int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue *command_queue)
+// The free memory of a device that shares the system's is the system's free memory, read the way
+// the host side reads it, which is what cuMemGetInfo answers on the other backends. Metal has no
+// such query of its own, and a discrete GPU is answered as unknown.
+
+int hc_mtlDeviceMemFree (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -696,19 +1066,79 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl
     return -1;
   }
 
-  mtl_command_queue queue = [metal_device newCommandQueue];
+  if ([metal_device respondsToSelector: @selector (hasUnifiedMemory)] == NO) return -1;
 
-  if (queue == nil)
+  if ([metal_device hasUnifiedMemory] == NO) return -1;
+
+  u64 free_mem = 0;
+
+  if (get_free_memory (&free_mem) == false) return -1;
+
+  *bytes = (size_t) free_mem;
+
+  return 0;
+}
+
+int hc_mtlCreateCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue *command_queue)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
+  MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
+
+  if (mtl == NULL) return -1;
+
+  if (metal_device == nil)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create newCommandQueue", __func__);
+    event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
 
     return -1;
   }
 
-  *command_queue = queue;
+  device_param->use_metal4 = false;
+
+  // A device that reports the Metal 4 family and shares its memory with the host runs on Metal 4. A
+  // discrete GPU stays on Metal 3: its buffers may come back Managed, and the Metal 4 compute encoder
+  // has no synchronizeResource: to bring those back to the host.
+
+  if ((device_param->metal_version >= 4) && (device_param->device_host_unified_memory == 1))
+  {
+    if (hc_mtl4_init (hashcat_ctx, device_param, command_queue) == 0)
+    {
+      device_param->use_metal4 = true;
+    }
+  }
+
+  if (device_param->use_metal4 == false)
+  {
+    // Let the framework build pipeline states in parallel. Asked here, once per device being set up:
+    // at enumeration, in hc_mtlDeviceGet, the same call crashes on macOS 26.
+
+    SEL setShouldMaximizeConcurrentCompilationSel = NSSelectorFromString (@"setShouldMaximizeConcurrentCompilation:");
+
+    if ([metal_device respondsToSelector: setShouldMaximizeConcurrentCompilationSel] == YES)
+    {
+      ((void (*) (id, SEL, BOOL)) objc_msgSend) (metal_device, setShouldMaximizeConcurrentCompilationSel, YES);
+    }
+
+    mtl_command_queue queue = [metal_device newCommandQueue];
+
+    if (queue == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create newCommandQueue", __func__);
+
+      return -1;
+    }
+
+    *command_queue = queue;
+  }
+
+  device_param->metal_fake_buf.buf_ptr = nil;
+
+  if (hc_mtlCreateBuffer (hashcat_ctx, device_param, metal_device, sizeof (u8), NULL, &device_param->metal_fake_buf, MTL_STORAGE_MODE_PRIVATE) == -1) return -1;
 
   return 0;
-
 }
 
 // A pipeline that will not build is nearly always Apple's shader compiler running out of room on one
@@ -724,10 +1154,110 @@ static void hc_mtlCompilerGaveUp (void *hashcat_ctx, const char *func_name)
   event_log_warning (hashcat_ctx, NULL);
 }
 
-int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
+// One attempt at a pipeline, on a worker thread under the compiler timeout. The block touches
+// nothing but what it captured, since it outlives the call when the timeout hits; what it found is
+// applied to the device by the caller, once the wait has returned. With lookup the archive is asked
+// and a miss is reported in place of a build; with add, Metal 3 puts the built pipeline into the
+// archive.
+
+static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_function mtl_func, id pipeline_desc, mtl_compiler compiler, mtl_archive archive, const bool lookup, const bool add, const char *func_name, mtl_pipeline *pipeline, bool *missed, bool *added)
 {
-  backend_ctx_t  *backend_ctx  = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
   user_options_t *user_options = ((hashcat_ctx_t *) hashcat_ctx)->user_options;
+
+  __block mtl_pipeline mtl_pipe   = nil;
+  __block bool         was_missed = false;
+  __block bool         was_added  = false;
+  __block int          rc_async   = 0;
+
+  dispatch_group_t group = dispatch_group_create ();
+  dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+  // if no user-defined runtime, set to METAL_COMPILER_RUNTIME
+
+  long timeout = (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
+
+  dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW, NSEC_PER_SEC * timeout);
+
+  dispatch_group_async (group, queue, ^(void)
+  {
+    NSError *error = nil;
+
+    if (pipeline_desc != nil)
+    {
+      if (lookup == true)
+      {
+        mtl_pipe = ((id (*) (id, SEL, id, NSError **)) objc_msgSend) (archive, mtl4_sel ("newComputePipelineStateWithDescriptor:error:"), pipeline_desc, &error);
+
+        if (mtl_pipe == nil) was_missed = true;
+
+        return;
+      }
+
+      id (*build) (id, SEL, id, id, NSError **) = (id (*) (id, SEL, id, id, NSError **)) objc_msgSend;
+
+      mtl_pipe = build (compiler, mtl4_sel ("newComputePipelineStateWithDescriptor:compilerTaskOptions:error:"), pipeline_desc, nil, &error);
+    }
+    else
+    {
+      MTLComputePipelineDescriptor *desc = [MTLComputePipelineDescriptor new];
+
+      desc.computeFunction = mtl_func;
+
+      if (lookup == true)
+      {
+        desc.binaryArchives = @[archive];
+
+        mtl_pipe = [metal_device newComputePipelineStateWithDescriptor: desc options: MTLPipelineOptionFailOnBinaryArchiveMiss reflection: nil error: &error];
+
+        if (mtl_pipe == nil) was_missed = true;
+
+        error = nil;
+      }
+      else
+      {
+        mtl_pipe = [metal_device newComputePipelineStateWithDescriptor: desc options: MTLPipelineOptionNone reflection: nil error: &error];
+
+        if ((mtl_pipe != nil) && (add == true))
+        {
+          NSError *add_error = nil;
+
+          was_added = ([(id <MTLBinaryArchive>) archive addComputePipelineFunctionsWithDescriptor: desc error: &add_error] == YES);
+        }
+      }
+
+      #if !__has_feature(objc_arc)
+      [desc release];
+      #endif
+    }
+
+    if (error != nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
+
+      rc_async = -1;
+    }
+  });
+
+  long rc_queue = dispatch_group_wait (group, when);
+
+  dispatch_release (group);
+
+  if (rc_queue != 0) return -2;
+
+  if (rc_async != 0) return -1;
+
+  *pipeline = mtl_pipe;
+  *missed   = was_missed;
+  *added    = was_added;
+
+  return 0;
+}
+
+int hc_mtlCreateKernel (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_library metal_library, const int program, const int slot, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
@@ -754,8 +1284,6 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
     return -1;
   }
 
-  __block NSError *error = nil;
-
   NSString *f_name = [NSString stringWithCString: func_name encoding: NSUTF8StringEncoding];
 
   if (f_name == nil)
@@ -774,61 +1302,61 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
     return -1;
   }
 
-  // workaround for MTLCompilerService 'Infinite Loop' bug
+  // The slot is kept with its program so that the flush can tell which pipelines of the program
+  // the archive to be written still lacks.
 
-  /*
-  mtl_pipeline mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
+  device_param->metal_function_program[slot]  = program;
+  device_param->metal_function_archived[slot] = false;
 
-  if (error != nil)
+  // Metal 4 builds the pipeline from a descriptor naming the function; the MTLFunction is made all
+  // the same, so the kernel slot holds the same thing on both paths.
+
+  id pipeline_desc = (device_param->use_metal4 == true) ? hc_mtl4_pipeline_desc (metal_library, f_name) : nil;
+
+  // An archive read from the cache is asked first, and answers nil for a pipeline it does not
+  // hold, which an archive from another OS build does for every pipeline. The program then goes
+  // back to a fresh archive, builds as a first run would, and the flush rewrites the file.
+
+  bool lookup = (device_param->metal_archive[program] != nil) && (device_param->metal_archive_write[program] == false);
+
+  mtl_pipeline mtl_pipe = nil;
+
+  bool added = false;
+
+  int rc = 0;
+
+  for (int round = 0; round < 2; round++)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
+    const bool add = (lookup == false) && (device_param->metal_archive_write[program] == true);
 
-    return -1;
+    mtl_compiler compiler = (device_param->metal_program_compiler[program] != nil) ? device_param->metal_program_compiler[program] : device_param->metal_compiler;
+
+    bool missed = false;
+
+    rc = hc_mtlBuildRound (hashcat_ctx, metal_device, mtl_func, pipeline_desc, compiler, device_param->metal_archive[program], lookup, add, func_name, &mtl_pipe, &missed, &added);
+
+    if ((rc != 0) || (missed == false)) break;
+
+    hc_mtlArchiveStale (hashcat_ctx, device_param, program);
+
+    lookup = false;
   }
-  */
 
-  error = nil;
+  #if !__has_feature(objc_arc)
+  if (pipeline_desc != nil) [pipeline_desc release];
+  #endif
 
-  __block mtl_pipeline mtl_pipe;
-
-  dispatch_group_t group = dispatch_group_create ();
-  dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-
-  // if no user-defined runtime, set to METAL_COMPILER_RUNTIME
-
-  long timeout = (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
-
-  dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW,NSEC_PER_SEC * timeout);
-
-  __block int rc_async_err = 0;
-
-  dispatch_group_async (group, queue, ^(void)
+  if (rc == -2)
   {
-    mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
+    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached", __func__, func_name);
 
-    if (error != nil)
-    {
-      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
-
-      rc_async_err = -1;
-    }
-  });
-
-  long rc_queue = dispatch_group_wait (group, when);
-
-  dispatch_release (group);
-
-  if (rc_async_err != 0)
-  {
     hc_mtlCompilerGaveUp (hashcat_ctx, func_name);
 
     return -1;
   }
 
-  if (rc_queue != 0)
+  if (rc == -1)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached (status %ld)", __func__, func_name, rc_queue);
-
     hc_mtlCompilerGaveUp (hashcat_ctx, func_name);
 
     return -1;
@@ -839,6 +1367,21 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
     event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline", __func__, func_name);
 
     return -1;
+  }
+
+  // A pipeline built through the program's compiler is in its serializer on Metal 4; on Metal 3 it
+  // is in the archive only if the add went through, and a refusal ends the writing of the archive.
+
+  if (device_param->metal_archive_write[program] == true)
+  {
+    if ((device_param->use_metal4 == true) || (added == true))
+    {
+      device_param->metal_function_archived[slot] = true;
+    }
+    else
+    {
+      hc_mtlArchiveAbandon (hashcat_ctx, device_param, program, func_name);
+    }
   }
 
   *metal_function = mtl_func;
@@ -907,9 +1450,11 @@ int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline meta
   return 0;
 }
 
-int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode)
+int hc_mtlCreateBuffer (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
@@ -1013,18 +1558,32 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
       return -1;
   }
 
+  // Metal 4 runs nothing against a buffer that is not resident, so every buffer joins the device's
+  // residency set as it is made, and the set is committed at once rather than at the next launch.
+
+  if (device_param->use_metal4 == true)
+  {
+    mtl4_call_obj (device_param->metal_residency_set, "addAllocation:", mem->buf_ptr);
+    mtl4_call     (device_param->metal_residency_set, "commit");
+    mtl4_call     (device_param->metal_residency_set, "requestResidency");
+  }
+
   return 0;
 }
 
-int hc_mtlReleaseMemObject (void *hashcat_ctx, mtl_mem_t *mem)
+int hc_mtlReleaseMemObject (void *hashcat_ctx, void *device_param_ptr, mtl_mem_t *mem)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
   if (mtl == NULL) return -1;
 
   if (mem == NULL || mem->buf_ptr == nil) return -1;
+
+  if (device_param->use_metal4 == true) hc_mtl4_forget (device_param, mem->buf_ptr);
 
   [mem->buf_ptr setPurgeableState: MTLPurgeableStateEmpty];
 
@@ -1094,13 +1653,24 @@ int hc_mtlReleaseLibrary (void *hashcat_ctx, mtl_library *metal_library)
   return 0;
 }
 
-int hc_mtlReleaseCommandQueue (void *hashcat_ctx, mtl_command_queue *command_queue)
+int hc_mtlReleaseCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == NULL || *command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal command queue", __func__);
 
     return -1;
+  }
+
+  if (device_param->metal_fake_buf.buf_ptr != nil) hc_mtlReleaseMemObject (hashcat_ctx, device_param, &device_param->metal_fake_buf);
+
+  if (device_param->use_metal4 == true)
+  {
+    hc_mtl4_fini (device_param);
+
+    device_param->use_metal4 = false;
   }
 
   #if !__has_feature(objc_arc)
@@ -1132,8 +1702,10 @@ int hc_mtlReleaseDevice (void *hashcat_ctx, mtl_device_id *metal_device)
 
 // device to device
 
-int hc_mtlMemcpyDtoD (void *hashcat_ctx, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+int hc_mtlMemcpyDtoD (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
@@ -1197,6 +1769,11 @@ int hc_mtlMemcpyDtoD (void *hashcat_ctx, mtl_command_queue command_queue, mtl_me
     return -1;
   }
 
+  if (device_param->use_metal4 == true)
+  {
+    return hc_mtl4_copy (hashcat_ctx, device_param, mem_dst.buf_ptr, mem_dst_off, mem_src.buf_ptr, mem_src_off, size);
+  }
+
   id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
 
   if (command_buffer == nil)
@@ -1240,8 +1817,10 @@ int hc_mtlMemcpyDtoD (void *hashcat_ctx, mtl_command_queue command_queue, mtl_me
 
 // host to device
 
-int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
+int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
@@ -1306,6 +1885,19 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
 
     memcpy (staging_buf_ptr, host_buf_src, size);
 
+    if (device_param->use_metal4 == true)
+    {
+      const int rc = hc_mtl4_copy (hashcat_ctx, device_param, mem_dst.buf_ptr, mem_dst_off, staging_buf, 0, size);
+
+      hc_mtl4_forget (device_param, staging_buf);
+
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
+
+      return rc;
+    }
+
     id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
 
     if (command_buffer == nil)
@@ -1365,8 +1957,10 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
 
 // device to host
 
-int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+int hc_mtlMemcpyDtoH (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
@@ -1423,6 +2017,40 @@ int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
     }
 
     return 0;
+  }
+
+  if (device_param->use_metal4 == true)
+  {
+    // A Managed buffer cannot occur here: the Metal 4 path is only taken on unified memory, where
+    // every buffer the backend makes is Shared, and Shared returned above.
+
+    if (mem_src.buf_mode != MTL_STORAGE_MODE_PRIVATE)
+    {
+      event_log_error (hashcat_ctx, "%s(): unexpected storage mode %u on Metal 4", __func__, mem_src.buf_mode);
+
+      return -1;
+    }
+
+    id<MTLBuffer> staging_buf4 = [metal_device newBufferWithLength: size options: MTLResourceStorageModeShared];
+
+    if (staging_buf4 == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create staging buffer", __func__);
+
+      return -1;
+    }
+
+    const int rc = hc_mtl4_copy (hashcat_ctx, device_param, staging_buf4, 0, mem_src.buf_ptr, mem_src_off, size);
+
+    if (rc == 0) memcpy (host_buf_dst, [staging_buf4 contents], size);
+
+    hc_mtl4_forget (device_param, staging_buf4);
+
+    #if !__has_feature(objc_arc)
+    [staging_buf4 release];
+    #endif
+
+    return rc;
   }
 
   id<MTLBuffer> staging_buf = nil;
@@ -1643,8 +2271,10 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
   return -1;
 }
 
-int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder)
+int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (metal_pipeline == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_pipeline", __func__);
@@ -1657,6 +2287,31 @@ int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, mtl_pipeline metal_pipeli
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_queue", __func__);
 
     return -1;
+  }
+
+  if (device_param->use_metal4 == true)
+  {
+    id command_buffer = hc_mtl4_begin (hashcat_ctx, device_param);
+
+    if (command_buffer == nil) return -1;
+
+    id command_encoder = mtl4_new (command_buffer, "computeCommandEncoder");
+
+    if (command_encoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): Metal 4 compute command encoder is nil", __func__);
+
+      return -1;
+    }
+
+    mtl4_call_obj (command_encoder, "setComputePipelineState:", metal_pipeline);
+
+    device_param->metal_scratch_offset = 0;
+
+    *metal_command_buffer  = command_buffer;
+    *metal_command_encoder = command_encoder;
+
+    return 0;
   }
 
   id<MTLCommandBuffer> metal_commandBuffer = [metal_command_queue commandBuffer];
@@ -1686,8 +2341,10 @@ int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, mtl_pipeline metal_pipeli
   return 0;
 }
 
-int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
+int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (metal_command_encoder == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_encoder", __func__);
@@ -1730,6 +2387,47 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
     return -1;
   }
 
+  if (device_param->use_metal4 == true)
+  {
+    // Metal 4 binds addresses through the device's argument table rather than objects through the
+    // encoder, and a buffer handed to a kernel has to be in the residency set when it runs.
+
+    uint64_t (*address_of) (id, SEL) = (uint64_t (*) (id, SEL)) objc_msgSend;
+
+    uint64_t address = 0;
+
+    if (host_data == nil)
+    {
+      address = address_of (mem, mtl4_sel ("gpuAddress")) + off;
+
+      mtl4_call_obj (device_param->metal_residency_set, "addAllocation:", mem);
+    }
+    else
+    {
+      // setBytes: has no Metal 4 equivalent. The bytes go into the device's scratch buffer, each
+      // argument on a 256 byte boundary, and the kernel is handed their address.
+
+      const size_t scratch_off = (device_param->metal_scratch_offset + 255) & ~((size_t) 255);
+
+      if ((scratch_off + host_data_size) > METAL4_SCRATCH_SIZE)
+      {
+        event_log_error (hashcat_ctx, "%s(): Metal 4 scratch buffer is full", __func__);
+
+        return -1;
+      }
+
+      memcpy ((char *) [device_param->metal_scratch_buf contents] + scratch_off, host_data, host_data_size);
+
+      address = address_of (device_param->metal_scratch_buf, mtl4_sel ("gpuAddress")) + scratch_off;
+
+      device_param->metal_scratch_offset = scratch_off + host_data_size;
+    }
+
+    ((void (*) (id, SEL, uint64_t, NSUInteger)) objc_msgSend) (device_param->metal_argument_table, mtl4_sel ("setAddress:atIndex:"), address, (NSUInteger) idx);
+
+    return 0;
+  }
+
   // host_data can be objective-c object (so use nil) or C pointer (so use NULL)
   if (host_data == nil)
   {
@@ -1743,8 +2441,10 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
   return 0;
 }
 
-int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
+int hc_mtlEncodeComputeCommand (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (metal_command_encoder == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_encoder", __func__);
@@ -1773,6 +2473,18 @@ int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_com
     work_dim > 2 ? (global_work_size[2] + threadsPerThreadgroup.depth - 1) / threadsPerThreadgroup.depth : 1
   };
 
+  if (device_param->use_metal4 == true)
+  {
+    mtl4_call     (device_param->metal_residency_set, "commit");
+    mtl4_call_obj (metal_command_encoder, "setArgumentTable:", device_param->metal_argument_table);
+
+    ((void (*) (id, SEL, MTLSize, MTLSize)) objc_msgSend) (metal_command_encoder, mtl4_sel ("dispatchThreadgroups:threadsPerThreadgroup:"), threadgroupsPerGrid, threadsPerThreadgroup);
+
+    mtl4_call (metal_command_encoder, "endEncoding");
+
+    return hc_mtl4_commit_and_wait (hashcat_ctx, device_param, metal_command_buffer, ms);
+  }
+
   [metal_command_encoder dispatchThreadgroups: threadgroupsPerGrid threadsPerThreadgroup: threadsPerThreadgroup];
 
   [metal_command_encoder endEncoding];
@@ -1796,52 +2508,10 @@ int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_com
   return 0;
 }
 
-int hc_mtlCreateLibraryWithFile (void *hashcat_ctx, mtl_device_id metal_device, const char *cached_file, mtl_library *metal_library)
+int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
 {
-  NSError *error = nil;
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
-  if (metal_device == nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): invalid metal device", __func__);
-
-    return -1;
-  }
-
-  if (cached_file == NULL)
-  {
-    event_log_error (hashcat_ctx, "%s(): invalid metallib", __func__);
-
-    return -1;
-  }
-
-  NSString *k_string = [NSString stringWithCString: cached_file encoding: NSUTF8StringEncoding];
-
-  if (k_string != nil)
-  {
-    NSURL *libURL = [NSURL fileURLWithPath: k_string];
-
-    if (libURL != nil)
-    {
-      id <MTLLibrary> metal_library_tmp = [metal_device newLibraryWithURL: libURL error: &error];
-
-      if (error != nil)
-      {
-        event_log_error (hashcat_ctx, "%s(): failed to create metal library from metallib, %s", __func__, [[error localizedDescription] UTF8String]);
-
-        return -1;
-      }
-
-      *metal_library = metal_library_tmp;
-
-      return 0;
-    }
-  }
-
-  return -1;
-}
-
-int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
-{
   NSError *error = nil;
 
   NSString *k_string = [NSString stringWithCString: kernel_sources encoding: NSUTF8StringEncoding];
@@ -1938,7 +2608,25 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
       compileOptions.languageVersion = MTL_LANGUAGEVERSION_1_1;
     }
 */
-    id<MTLLibrary> metal_library_tmp = [metal_device newLibraryWithSource: k_string options: compileOptions error: &error];
+    id<MTLLibrary> metal_library_tmp = nil;
+
+    if (device_param->use_metal4 == true)
+    {
+      id library_desc = [objc_getClass ("MTL4LibraryDescriptor") new];
+
+      mtl4_call_obj (library_desc, "setSource:",  k_string);
+      mtl4_call_obj (library_desc, "setOptions:", compileOptions);
+
+      metal_library_tmp = mtl4_new_desc (device_param->metal_compiler, "newLibraryWithDescriptor:error:", library_desc, &error);
+
+      #if !__has_feature(objc_arc)
+      [library_desc release];
+      #endif
+    }
+    else
+    {
+      metal_library_tmp = [metal_device newLibraryWithSource: k_string options: compileOptions error: &error];
+    }
 
     #if !__has_feature(objc_arc)
     [compileOptions release];
@@ -1970,14 +2658,352 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
   return -1;
 }
 
-int hc_mtlFinish (void *hashcat_ctx, mtl_command_queue command_queue)
+// The pipelines of a program are cached in the file the other backends cache their binary in: a
+// MTLBinaryArchive on Metal 3, on Metal 4 the archive the data set serializer of a compiler made for
+// the program writes. A file that exists is read and asked for every pipeline; otherwise, or once a
+// pipeline is not in it, the program builds into a fresh archive and hc_mtlArchiveFlush writes the
+// file once all of its pipelines are there.
+
+static id hc_mtl4_pipeline_desc (mtl_library metal_library, NSString *f_name)
 {
+  id function_desc = [objc_getClass ("MTL4LibraryFunctionDescriptor") new];
+
+  mtl4_call_obj (function_desc, "setName:",    f_name);
+  mtl4_call_obj (function_desc, "setLibrary:", metal_library);
+
+  id pipeline_desc = [objc_getClass ("MTL4ComputePipelineDescriptor") new];
+
+  mtl4_call_obj (pipeline_desc, "setComputeFunctionDescriptor:", function_desc);
+
+  #if !__has_feature(objc_arc)
+  [function_desc release];
+  #endif
+
+  return pipeline_desc;
+}
+
+// The archive the program builds into. When it cannot be made the program runs without a cache,
+// which is a warning and nothing more, as the other backends run without theirs.
+
+static void hc_mtlArchiveFresh (void *hashcat_ctx, hc_device_param_t *device_param, const int program)
+{
+  mtl_device_id metal_device = device_param->metal_device;
+
+  NSError *error = nil;
+
+  if (device_param->use_metal4 == true)
+  {
+    id serializer_desc = [objc_getClass ("MTL4PipelineDataSetSerializerDescriptor") new];
+
+    mtl4_call_uint (serializer_desc, "setConfiguration:", MTL4_PIPELINE_DATA_SET_SERIALIZER_CAPTURE_BINARIES);
+
+    device_param->metal_serializer[program] = ((id (*) (id, SEL, id)) objc_msgSend) (metal_device, mtl4_sel ("newPipelineDataSetSerializerWithDescriptor:"), serializer_desc);
+
+    #if !__has_feature(objc_arc)
+    [serializer_desc release];
+    #endif
+
+    if (device_param->metal_serializer[program] != nil)
+    {
+      id compiler_desc = [objc_getClass ("MTL4CompilerDescriptor") new];
+
+      mtl4_call_obj (compiler_desc, "setPipelineDataSetSerializer:", device_param->metal_serializer[program]);
+
+      device_param->metal_program_compiler[program] = mtl4_new_desc (metal_device, "newCompilerWithDescriptor:error:", compiler_desc, &error);
+
+      #if !__has_feature(objc_arc)
+      [compiler_desc release];
+      #endif
+    }
+
+    if (device_param->metal_program_compiler[program] == nil)
+    {
+      #if !__has_feature(objc_arc)
+      if (device_param->metal_serializer[program] != nil) [device_param->metal_serializer[program] release];
+      #endif
+
+      device_param->metal_serializer[program] = nil;
+    }
+  }
+  else
+  {
+    MTLBinaryArchiveDescriptor *desc = [MTLBinaryArchiveDescriptor new];
+
+    device_param->metal_archive[program] = [metal_device newBinaryArchiveWithDescriptor: desc error: &error];
+
+    #if !__has_feature(objc_arc)
+    [desc release];
+    #endif
+  }
+
+  const bool made = (device_param->use_metal4 == true) ? (device_param->metal_program_compiler[program] != nil) : (device_param->metal_archive[program] != nil);
+
+  if (made == false)
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s will not be cached, %s", device_param->device_id + 1, filename_from_filepath (device_param->metal_archive_file[program]), (error != nil) ? [[error localizedDescription] UTF8String] : "no archive");
+
+    return;
+  }
+
+  device_param->metal_archive_write[program] = true;
+}
+
+static void hc_mtlArchiveStale (void *hashcat_ctx, hc_device_param_t *device_param, const int program)
+{
+  event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s does not hold its pipelines any more. Rebuilding it...", device_param->device_id + 1, filename_from_filepath (device_param->metal_archive_file[program]));
+
+  #if !__has_feature(objc_arc)
+  [device_param->metal_archive[program] release];
+  #endif
+
+  device_param->metal_archive[program] = nil;
+
+  hc_mtlArchiveFresh (hashcat_ctx, device_param, program);
+}
+
+// Metal 3 refused to add a pipeline to the archive the program builds into: the archive is dropped,
+// nothing is written, and the next run builds again.
+
+static void hc_mtlArchiveAbandon (void *hashcat_ctx, hc_device_param_t *device_param, const int program, const char *func_name)
+{
+  event_log_warning (hashcat_ctx, "* Device #%u: Kernel '%s' was not added to the cache. Kernel %s will not be written.", device_param->device_id + 1, func_name, filename_from_filepath (device_param->metal_archive_file[program]));
+
+  #if !__has_feature(objc_arc)
+  if (device_param->metal_archive[program] != nil) [device_param->metal_archive[program] release];
+  #endif
+
+  device_param->metal_archive[program]       = nil;
+  device_param->metal_archive_write[program] = false;
+}
+
+// A pipeline taken from the archive that turned out stale is put into the fresh one here: added
+// from its function on Metal 3, built once more through the program's compiler on Metal 4, whose
+// serializer captures it.
+
+static bool hc_mtlArchiveRecord (void *hashcat_ctx, hc_device_param_t *device_param, const int program, const int slot)
+{
+  mtl_function mtl_func = device_param->metal_function[slot];
+
+  const char *func_name = [[mtl_func name] UTF8String];
+
+  if (device_param->use_metal4 == true)
+  {
+    NSError *error = nil;
+
+    id pipeline_desc = hc_mtl4_pipeline_desc (device_param->metal_library[program], [mtl_func name]);
+
+    id (*build) (id, SEL, id, id, NSError **) = (id (*) (id, SEL, id, id, NSError **)) objc_msgSend;
+
+    mtl_pipeline mtl_pipe = build (device_param->metal_program_compiler[program], mtl4_sel ("newComputePipelineStateWithDescriptor:compilerTaskOptions:error:"), pipeline_desc, nil, &error);
+
+    #if !__has_feature(objc_arc)
+    [pipeline_desc release];
+
+    if (mtl_pipe != nil) [mtl_pipe release];
+    #endif
+
+    if (mtl_pipe == nil)
+    {
+      hc_mtlArchiveAbandon (hashcat_ctx, device_param, program, func_name);
+
+      return false;
+    }
+
+    return true;
+  }
+
+  MTLComputePipelineDescriptor *desc = [MTLComputePipelineDescriptor new];
+
+  desc.computeFunction = mtl_func;
+
+  NSError *error = nil;
+
+  const bool added = ([(id <MTLBinaryArchive>) device_param->metal_archive[program] addComputePipelineFunctionsWithDescriptor: desc error: &error] == YES);
+
+  #if !__has_feature(objc_arc)
+  [desc release];
+  #endif
+
+  if (added == false) hc_mtlArchiveAbandon (hashcat_ctx, device_param, program, func_name);
+
+  return added;
+}
+
+int hc_mtlArchiveOpen (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
+  MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
+
+  if (mtl == NULL) return -1;
+
+  device_param->metal_archive[program]          = nil;
+  device_param->metal_serializer[program]       = nil;
+  device_param->metal_program_compiler[program] = nil;
+  device_param->metal_archive_file[program]     = NULL;
+  device_param->metal_archive_write[program]    = false;
+
+  if (cache_disable == true) return 0;
+
+  device_param->metal_archive_file[program] = hcstrdup (cached_file);
+
+  if (hc_path_read (cached_file) == true)
+  {
+    mtl_device_id metal_device = device_param->metal_device;
+
+    NSURL *url = [NSURL fileURLWithPath: [NSString stringWithCString: cached_file encoding: NSUTF8StringEncoding]];
+
+    // The Metal 3 loader refuses a file that is not an archive, where the Metal 4 loader takes it and
+    // fails later, so the file is opened as a Metal 3 archive first on both paths.
+
+    MTLBinaryArchiveDescriptor *desc = [MTLBinaryArchiveDescriptor new];
+
+    desc.url = url;
+
+    id <MTLBinaryArchive> archive = [metal_device newBinaryArchiveWithDescriptor: desc error: nil];
+
+    #if !__has_feature(objc_arc)
+    [desc release];
+    #endif
+
+    if ((archive != nil) && (device_param->use_metal4 == true))
+    {
+      #if !__has_feature(objc_arc)
+      [archive release];
+      #endif
+
+      archive = mtl4_new_desc (metal_device, "newArchiveWithURL:error:", url, NULL);
+    }
+
+    if (archive != nil)
+    {
+      device_param->metal_archive[program] = archive;
+
+      return 0;
+    }
+
+    event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s is not a usable archive. Rebuilding it...", device_param->device_id + 1, filename_from_filepath (device_param->metal_archive_file[program]));
+  }
+
+  hc_mtlArchiveFresh (hashcat_ctx, device_param, program);
+
+  return 0;
+}
+
+// The file is written once every pipeline of the device exists. A write that fails is a warning,
+// since the next run only builds again, as it does on the other backends without their cache.
+
+void hc_mtlArchiveFlush (void *hashcat_ctx, void *device_param_ptr, const int program)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
+  MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
+
+  if (mtl == NULL) return;
+
+  if (device_param->metal_archive_write[program] == false) return;
+
+  // the pipelines of the program that were taken from the archive before it turned out stale
+
+  for (int slot = 0; slot < HC_DEV_KERN_CNT; slot++)
+  {
+    if (device_param->metal_function[slot] == nil) continue;
+
+    if (device_param->metal_function_program[slot] != program) continue;
+
+    if (device_param->metal_function_archived[slot] == true) continue;
+
+    if (hc_mtlArchiveRecord (hashcat_ctx, device_param, program, slot) == false) return;
+
+    device_param->metal_function_archived[slot] = true;
+  }
+
+  device_param->metal_archive_write[program] = false;
+
+  // The archive is written next to its final name and renamed over it, so that a run cut short in
+  // the middle of the write never leaves a partial file under the name the next run looks for.
+
+  char *tmp_file = NULL;
+
+  hc_asprintf (&tmp_file, "%s.tmp", device_param->metal_archive_file[program]);
+
+  unlink (tmp_file);
+
+  NSError *error = nil;
+
+  NSURL *url = [NSURL fileURLWithPath: [NSString stringWithCString: tmp_file encoding: NSUTF8StringEncoding]];
+
+  BOOL written = NO;
+
+  if (device_param->use_metal4 == true)
+  {
+    written = ((BOOL (*) (id, SEL, id, NSError **)) objc_msgSend) (device_param->metal_serializer[program], mtl4_sel ("serializeAsArchiveAndFlushToURL:error:"), url, &error);
+  }
+  else
+  {
+    written = [(id <MTLBinaryArchive>) device_param->metal_archive[program] serializeToURL: url error: &error];
+  }
+
+  if (written == NO)
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s was not written, %s", device_param->device_id + 1, filename_from_filepath (device_param->metal_archive_file[program]), (error != nil) ? [[error localizedDescription] UTF8String] : "not written");
+
+    unlink (tmp_file);
+  }
+  else if (rename (tmp_file, device_param->metal_archive_file[program]) == -1)
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s was not written, %s", device_param->device_id + 1, filename_from_filepath (device_param->metal_archive_file[program]), strerror (errno));
+
+    unlink (tmp_file);
+  }
+
+  hcfree (tmp_file);
+}
+
+void hc_mtlArchiveRelease (void *hashcat_ctx, void *device_param_ptr, const int program)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
+  MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
+
+  if (mtl == NULL) return;
+
+  #if !__has_feature(objc_arc)
+  if (device_param->metal_program_compiler[program] != nil) [device_param->metal_program_compiler[program] release];
+  if (device_param->metal_serializer[program]       != nil) [device_param->metal_serializer[program]       release];
+  if (device_param->metal_archive[program]          != nil) [device_param->metal_archive[program]          release];
+  #endif
+
+  device_param->metal_program_compiler[program] = nil;
+  device_param->metal_serializer[program]       = nil;
+  device_param->metal_archive[program]          = nil;
+
+  hcfree (device_param->metal_archive_file[program]);
+
+  device_param->metal_archive_file[program]  = NULL;
+  device_param->metal_archive_write[program] = false;
+}
+
+int hc_mtlFinish (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue)
+{
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
 
     return -1;
   }
+
+  // nothing is ever left pending on the Metal 4 queue: every commit above waits for the GPU
+
+  if (device_param->use_metal4 == true) return 0;
 
   id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
 
