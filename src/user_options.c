@@ -3920,6 +3920,32 @@ u32 user_options_extra_base_length (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options_extra->attack_kern == ATTACK_KERN_COMBI) return BASE_LENGTH_MAX;
 
+  // The rules run after this, on the device, so what is judged here is the base word and not the
+  // candidate that will be hashed. A ruleset that can lengthen saves a word that is too short, and one
+  // that can shorten saves a word that is too long, so each direction it can move takes away the test
+  // on that side. It is the same reason -a 9 is above: a word refused there is not a word the run was
+  // going to try.
+  //
+  // A ruleset that can only shorten leaves pw_min exact, because a word already too short cannot be
+  // rescued by a rule that takes bytes away. There is no BASE_LENGTH value for testing only the
+  // minimum, so that case gives up both, which costs work and loses nothing.
+
+  const u32 effect = hashcat_ctx->straight_ctx->rules_length_effect;
+
+  // Giving up the upper bound gives it up as far as PW_MAX, and where the optimized rule engine is the
+  // one applying the rules that is past what it can hold. There the bound given up becomes its cap,
+  // PW_DICTMAX, which is the ceiling default_pw_max () in interface.c would have imposed. The floor is
+  // the hash mode's either way, and is given up either way.
+
+  if (effect & RULE_LENGTH_SHORTER)
+  {
+    const u32 policy = (rules_dict_capped (hashcat_ctx) == true) ? BASE_LENGTH_DICTMAX : BASE_LENGTH_NONE;
+
+    return policy;
+  }
+
+  if (effect & RULE_LENGTH_LONGER) return BASE_LENGTH_MAX;
+
   return BASE_LENGTH_BOTH;
 }
 

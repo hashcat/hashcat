@@ -103,6 +103,12 @@ int hc_append_chr    (char *buf, const int len, const int buf_sz, const char c);
 
 HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 *base, const u32 il_pos, u32 *w, const int base_len);
 
+// Whether the ceiling a base word is held to is the cap an optimized kernel puts on a dictionary word
+// rather than a length the hash mode refuses. See src/shared.c, and user_options_extra_base_length ()
+// for what is done with it.
+
+HC_PLUGIN_API bool rules_dict_capped (const hashcat_ctx_t *hashcat_ctx);
+
 // What tells this process apart from every other one writing into the same directory, the ones on
 // other machines included. See src/shared.c for what goes into it.
 

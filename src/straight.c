@@ -679,11 +679,19 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
+// The rules alone, parsed before the feeds count their keyspace: see the call in outer_loop () for why.
+// The guards are the ones straight_ctx_init () takes, and enabled is set here as well, so a failure
+// between the two calls still leaves straight_ctx_destroy () able to give the rules back.
+
+int straight_ctx_init_rules (hashcat_ctx_t *hashcat_ctx)
 {
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  // outer_loop () runs this once an iteration and the walk below can only add to the answer, so it is
+  // put back the way enabled is.
+
+  straight_ctx->rules_length_effect = RULE_LENGTH_KEEP;
 
   straight_ctx->enabled = false;
 
@@ -726,6 +734,40 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt, user_options->rp_gen_func_sel) == -1) return -1;
     }
   }
+
+  // The union over the ruleset: one rule that can lengthen says it of the whole run, and so does one
+  // that can shorten, so the walk stops once both are known. Both loaders have put everything they
+  // accepted into this one buffer by now, which is what makes -g and several -r files answer here.
+
+  for (u32 i = 0; i < straight_ctx->kernel_rules_cnt; i++)
+  {
+    straight_ctx->rules_length_effect |= kernel_rule_length_effect (&straight_ctx->kernel_rules_buf[i]);
+
+    if (straight_ctx->rules_length_effect == (RULE_LENGTH_LONGER | RULE_LENGTH_SHORTER)) break;
+  }
+
+  return 0;
+}
+
+int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
+{
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  straight_ctx->enabled = false;
+
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+  if (user_options->hash_info     > 0)    return 0;
+
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->version      == true) return 0;
+
+  if (user_options->attack_mode  == ATTACK_MODE_BF)      return 0;
+
+  straight_ctx->enabled = true;
 
   /**
    * wordlist based work

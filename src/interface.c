@@ -1041,8 +1041,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
       pw_max /= 2;
     }
 
-    #define PW_DICTMAX 31
-
     if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
     {
       if (user_options->slow_candidates == true)

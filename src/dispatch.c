@@ -947,8 +947,10 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (gf->length_policy != BASE_LENGTH_NONE)
       {
+        const int pw_ceil = (gf->length_policy == BASE_LENGTH_DICTMAX) ? PW_DICTMAX : (int) hashconfig->pw_max;
+
         const bool too_short = (gf->length_policy == BASE_LENGTH_BOTH) && (pw_len < (int) hashconfig->pw_min);
-        const bool too_long  = (pw_len > (int) hashconfig->pw_max);
+        const bool too_long  = (pw_len > pw_ceil);
 
         if ((too_short == true) || (too_long == true))
         {

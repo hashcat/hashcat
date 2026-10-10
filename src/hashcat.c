@@ -1379,6 +1379,22 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   cpt_ctx_init (hashcat_ctx);
 
   /**
+   * rules
+   */
+
+  // Before the feeds, and that is the only reason the rules are reached in two places. A feed asks the
+  // hash mode which lengths it accepts while it counts its keyspace, and whether it may hold itself to
+  // that answer depends on the rules it will be amplified with. The rest of straight_ctx_init () runs
+  // below, where it always did.
+
+  if (straight_ctx_init_rules (hashcat_ctx) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
+  /**
    * generic mode init
    */
 
