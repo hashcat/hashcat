@@ -118,6 +118,25 @@ show a traceback. On 28 i7-14700K threads, a SHA-256 plugin reached 611 kH/s, up
 16 kH/s. See "docs/hashcat-python-plugin-development-guide.md"
 for the upgrade steps.
 
+10. Hash recipes in hash-mode 4000
+
+Hash-mode 4000 cracks hashes described by a recipe on the command line, such as
+"md5(md5(salt) . pass)" or "hmac_sha256(salt, upper(pass))". Hashcat compiles the recipe into a
+kernel at startup, so most recipes run close to the speed of a matching built-in pure kernel.
+
+Recipes use the syntax of hx, the hash expression language. They combine MD4, MD5, SHA-1, SHA-2,
+RIPEMD-160, BLAKE2, SM3 and their HMACs. Functions such as upper, rev and pad transform passwords
+and salts, while digests can be sliced or re-encoded. Many custom schemes can now use a recipe in
+place of a dedicated mode or the slower dynamic plugin of mode 74000.
+See "docs/hashcat-hash-recipe.md".
+
+The same engine now replaces the pure kernels of 145 fast hash modes, including MD5, NTLM and the
+HMAC modes. Each module keeps its hash parser, self-test and optimized kernels. This removes 428
+kernel files and about 85,000 lines, while the engine, documentation and tests add about 5,700.
+A new fast hash mode built from these families needs only a module that parses the hash line and
+names its recipe. See "Kernel: fast hash type (recipe)" in
+"docs/hashcat-plugin-development-guide.md".
+
 ##
 ## Migration and Compatibility
 ##
@@ -262,6 +281,10 @@ changes that may require action.
   "KERN_BIT_*" constants in place of the 16 removed kernel "OPTS_TYPE" flags: INIT, LOOP, COMP,
   LOOP_PREPARE, LOOP_EXTENDED, HOOK12, HOOK23, INIT2, LOOP2_PREPARE, LOOP2, TM_KERNEL and AUX1 to
   AUX5. There are now 6 auxiliary kernel slots instead of 5
+- Modules have a new "module_hash_recipe()" hook, with which a module runs its pure kernels as a
+  hash recipe instead of kernels of its own. Every module sets it in "module_init()", and
+  "MODULE_DEFAULT" if it has no recipe. See "Kernel: fast hash type (recipe)" and the porting
+  section in the plugin guide
 - Native builds now target the build CPU. Use "MAINTAINER_MODE=1" for release builds or
   "MCPU=<core>" for a chosen target. Mixed native and cross targets are rejected
 - Rust plugins now require Cargo 1.85
@@ -572,6 +595,10 @@ Results depend on the device, runtime and workload.
   compile slowly
 - Fast kernels reserve constant memory only for data the attack reads. Mask attacks regain
   28 KB and combinator attacks 32 KB of the 64 KB budget
+- The pure kernels of 145 fast hash modes (MD4, MD5, SHA-1, SHA-2, RIPEMD-160, BLAKE2 and SM3
+  compositions, their HMAC modes, and Radmin2) now run as hash recipes through the mode 4000
+  kernels, and their 428 pure kernel files are removed. Optimized kernels, hash formats and mode
+  numbers are unchanged
 
 ## Attack modes and candidate input
 

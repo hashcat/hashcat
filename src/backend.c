@@ -31,6 +31,7 @@
 #include "backend.h"
 #include "bridges.h"
 #include "terminal.h"
+#include "recipe.h"
 #include "hwmon.h"
 #include "autotune.h"
 #include "user_options.h"
@@ -15140,6 +15141,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           // copy into build_options_module_buf and the sscanf () reads are both done with it here.
 
           hcfree (jit_build_options);
+        }
+      }
+
+      // A mode whose pure kernels run as a hash recipe, see hashconfig_init (). The module's own
+      // options above still apply.
+
+      if (hashconfig->hash_recipe != NULL)
+      {
+        char *recipe_options = recipe_jit_build_options (hashconfig->hash_recipe, true);
+
+        if (recipe_options != NULL)
+        {
+          build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, " %s", recipe_options);
+
+          hcfree (recipe_options);
         }
       }
 

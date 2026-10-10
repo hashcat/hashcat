@@ -20,6 +20,10 @@
 #define RECIPE_MAX_XOPS   4
 #define RECIPE_MAX_XBYTES 256
 
+// Kernel type for the recipe kernels in OpenCL/m04000_*-pure.cl.
+
+#define RECIPE_KERN_TYPE  4000
+
 typedef enum recipe_algo
 {
   RECIPE_ALGO_MD4    = 1,

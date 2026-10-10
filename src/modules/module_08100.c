@@ -19,6 +19,7 @@ static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "Citrix NetScaler (SHA1)";
+static const char *HASH_RECIPE    = "sha1(salt . pass . \"\\0\")";
 static const u64   KERN_TYPE      = 8100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
@@ -40,6 +41,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -84,8 +86,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (salt->salt_buf, salt_pos, salt_len);
 
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  // Optimized kernels need big endian salt words. Recipe kernels read the original bytes.
+
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+    salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  }
 
   salt->salt_len = salt_len;
 
@@ -140,9 +147,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 tmp_salt[3];
 
-  tmp_salt[0] = byte_swap_32 (salt->salt_buf[0]);
-  tmp_salt[1] = byte_swap_32 (salt->salt_buf[1]);
+  tmp_salt[0] = salt->salt_buf[0];
+  tmp_salt[1] = salt->salt_buf[1];
   tmp_salt[2] = 0;
+
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    tmp_salt[0] = byte_swap_32 (tmp_salt[0]);
+    tmp_salt[1] = byte_swap_32 (tmp_salt[1]);
+  }
 
   const int line_len = snprintf (line_buf, line_size, "1%s%08x%08x%08x%08x%08x",
     (unsigned char *) tmp_salt,
@@ -197,6 +210,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

@@ -1502,6 +1502,10 @@ typedef struct hashconfig
   const char *st_hash;
   const char *st_pass;
 
+  // Optional recipe for a mode's pure kernels. See hashconfig_init ().
+
+  const char *hash_recipe;
+
   u32         hash_category;
   const char *hash_name;
 
@@ -4193,6 +4197,7 @@ typedef struct module_ctx
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   int         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_hash_recipe)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hashes_count_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hashes_count_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

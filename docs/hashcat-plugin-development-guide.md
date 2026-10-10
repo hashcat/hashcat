@@ -743,7 +743,29 @@ You do not write the kernel. You write four hooks and include the engine, which 
 * `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
 * `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
 
-File `OpenCL/inc_pcfg_kernel.cl` documents all four hooks and is worth reading before writing one. Files `OpenCL/m00100_a4-pure.cl` and `OpenCL/m00200_a4-optimized.cl` are the smallest complete examples of the two variants. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
+File `OpenCL/inc_pcfg_kernel.cl` documents all four hooks and is worth reading before writing one. Files `OpenCL/m11500_a4-pure.cl` and `OpenCL/m00200_a4-optimized.cl` are the smallest complete examples of the two variants. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
+
+#### Kernel: fast hash type (recipe) ####
+
+A fast hash built from the families supported by hash-mode 4000 can use a recipe for its pure kernels. Define the recipe using the syntax in `docs/hashcat-hash-recipe.md`. hashcat then runs mode 4000's pure kernels with that recipe. The module keeps its optimized kernels, parser, digest layout and self-test hash. Add the recipe, its accessor and its registration in `module_init ()`. Modules without a recipe set this hook to `MODULE_DEFAULT`:
+
+```
+static const char *HASH_RECIPE    = "md5(pass . salt)";
+
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
+
+  module_ctx->module_hash_recipe              = module_hash_recipe;
+```
+
+When `-O` is omitted, or the mode has no optimized kernels, hashcat uses kernel type 4000. It compiles the recipe with any options returned by `module_jit_build_options ()`. An invalid recipe is rejected at startup with the parser's error message.
+
+The kernel stores the complete final digest in the word layout used by the family's own kernels: little endian words for MD4, MD5, RIPEMD-160 and BLAKE2, big endian words for SHA-1, SHA-2 and SM3, and each 64-bit SHA-512 word as its low half followed by its high half. The hooks `module_dgst_pos0 ()` through `module_dgst_pos3 ()` select the comparison words as they would for the mode's own pure kernel.
+
+hashcat generates the candidate little endian for the recipe kernels. The recipe hashes each candidate as generated and the salt as stored by `module_hash_decode ()`.
+
+Apply salt and digest preparation for optimized kernels only when `OPTI_TYPE_OPTIMIZED_KERNEL` is set. This includes byte swapping salt words or subtracting a precomputed state from the digest. Recipe kernels read the salt as bytes and compare the complete digest. See the examples in `src/modules/module_08100.c` and `src/modules/module_12600.c`.
+
+Migrate all modes that share a kernel type together, because the recipe replaces their shared pure kernel files.
 
 ### Kernel: slow hash type ###
 
@@ -1046,14 +1068,15 @@ A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only 
 
 `feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
-Remove the `module_dictstat_disable` registration from `module_init()`. Four hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, and `module_kern_bits` names the optional kernels the mode provides. Assigning all four to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
+Remove the `module_dictstat_disable` registration from `module_init()`. Five hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Assigning all five to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
 
-The following command applies all five changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+The following command applies all six changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
 
 ```
 sed -i -e '/module_ctx->module_dictstat_disable/d' \
        -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_hashes_count_min/i\  module_ctx->module_hash_recipe              = MODULE_DEFAULT;' \
        -e '/module_ctx->module_kern_type /i\  module_ctx->module_kern_bits                = MODULE_DEFAULT;' \
        -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
        src/modules/module_*.c

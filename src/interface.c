@@ -15,6 +15,7 @@
 #include "interface.h"
 #include "hlfmt.h"
 #include "keyboard_layout.h"
+#include "recipe.h"
 
 // The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
 // is the first thing a plugin has to get past, and the checks below are what catch a plugin that
@@ -233,6 +234,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_hash_init_selftest);
   CHECK_DEFINED (module_ctx, module_hash_mode);
   CHECK_DEFINED (module_ctx, module_hash_name);
+  CHECK_DEFINED (module_ctx, module_hash_recipe);
   CHECK_DEFINED (module_ctx, module_hashes_count_max);
   CHECK_DEFINED (module_ctx, module_hashes_count_min);
   CHECK_DEFINED (module_ctx, module_hlfmt_disable);
@@ -314,6 +316,46 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->kern_type     = module_ctx->module_kern_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opti_type     = module_ctx->module_opti_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type     = module_ctx->module_opts_type      (hashconfig, user_options, user_options_extra);
+
+  // A mode whose module names a recipe runs mode 4000's pure kernels, built from that recipe. Option
+  // -O selects the mode's optimized kernels when available. Otherwise, the fallback below uses the
+  // recipe kernels. These read candidates as little endian words, so a mode that generates them big
+  // endian for its optimized kernels generates them little endian here. Validate the recipe now to
+  // report the parser's error instead of a kernel build error. See docs/hashcat-hash-recipe.md.
+
+  if (module_ctx->module_hash_recipe != MODULE_DEFAULT)
+  {
+    bool use_recipe = true;
+
+    if (user_options->optimized_kernel == true)
+    {
+      char optimized_file[256] = { 0 };
+
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, optimized_file);
+
+      if (hc_path_read (optimized_file) == true) use_recipe = false;
+    }
+
+    if (use_recipe == true)
+    {
+      const char *recipe = module_ctx->module_hash_recipe (hashconfig, user_options, user_options_extra);
+
+      recipe_prog_t prog;
+
+      if (recipe_compile (&prog, recipe) == false)
+      {
+        event_log_error (hashcat_ctx, "Recipe of hash-mode %d is invalid at position %u: %s", hashconfig->hash_mode, prog.error_pos, prog.error);
+
+        return -1;
+      }
+
+      hashconfig->hash_recipe = recipe;
+      hashconfig->kern_type   = RECIPE_KERN_TYPE;
+
+      hashconfig->opts_type &= ~OPTS_TYPE_PT_GENERATE_BE;
+      hashconfig->opts_type |=  OPTS_TYPE_PT_GENERATE_LE;
+    }
+  }
 
   // The optional kernels a mode provides. hashcat adds the ones every slow hash needs further down.
 
