@@ -436,6 +436,9 @@ Results depend on the device, runtime and workload.
 - Omitting an integrated GPU cuts cold mode 0 startup by 26% at a 1% throughput cost
 - Removing an unused OpenCL helper cuts cold builds by 42% and backend-info startup by 70% under
   ROCm 7.0.1
+- CPU kernels shift a buffer by a byte offset with one loop instead of a switch over every word
+  offset. On the Intel CPU runtime a first run of mode 2600 falls from 12 minutes to 44 seconds and
+  of mode 1410 from 10 to 3 minutes, almost all of it kernel compile, at the same cracking speed
 - Sizing register-spill reserves for resident work items cuts the mode 0 reserve by 99% on a
   GeForce RTX 4090
 - Unified-memory devices reserve only needed host buffers instead of half their pool

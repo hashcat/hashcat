@@ -3739,6 +3739,62 @@ DECLSPEC void append_0x80_1x16 (PRIVATE_AS u32x *w, const u32 offset)
   FORM (62, N, ALIGN)                  \
   FORM (63, N, ALIGN)
 
+// A CPU reads a private array at an index only known at runtime as cheaply as at a constant one, so
+// there the shift is written once as a loop rather than once per case. Generating the cases costs it
+// nothing at runtime but a great deal of compile time: at 16 vector lanes every case is a block of
+// 512 bit operations, and the update functions inline several of these switches each. A GPU keeps
+// the cases, because a runtime index moves the array out of registers into scratch memory.
+//
+// The loops run from the top word down, so every word is read before it is overwritten. The same
+// switch statement stays around them, with the one default case below.
+
+#ifdef IS_CPU
+
+#define SBBO_CASE_PLAIN_LOOP(n, N, ALIGN)                                                        \
+  for (int i = (N) - 1; i >= 0; i--)                                                             \
+  {                                                                                              \
+    if (i > (n))                                                                                 \
+    {                                                                                            \
+      w[i] = ALIGN (w[i - (n) - 1], w[i - (n)], offset);                                         \
+    }                                                                                            \
+    else if (i == (n))                                                                           \
+    {                                                                                            \
+      w[i] = ALIGN (0, w[0], offset);                                                            \
+    }                                                                                            \
+    else                                                                                         \
+    {                                                                                            \
+      w[i] = 0;                                                                                  \
+    }                                                                                            \
+  }
+
+#define SBBO_CASE_CARRY_LOOP(n, N, ALIGN)                                                        \
+  w[(n) + (N)] = ALIGN (w[(N) - 1], 0, offset);                                                  \
+  for (int i = (n) + (N) - 1; i >= 0; i--)                                                       \
+  {                                                                                              \
+    if (i > (n))                                                                                 \
+    {                                                                                            \
+      w[i] = ALIGN (w[i - (n) - 1], w[i - (n)], offset);                                         \
+    }                                                                                            \
+    else if (i == (n))                                                                           \
+    {                                                                                            \
+      w[i] = ALIGN (0, w[0], offset);                                                            \
+    }                                                                                            \
+    else                                                                                         \
+    {                                                                                            \
+      w[i] = 0;                                                                                  \
+    }                                                                                            \
+  }
+
+#undef  SBBO_CASES_16
+#undef  SBBO_CASES_32
+#undef  SBBO_CASES_64
+
+#define SBBO_CASES_16(FORM, N, ALIGN) default: FORM##_LOOP (offset_switch, N, ALIGN) break;
+#define SBBO_CASES_32(FORM, N, ALIGN) default: FORM##_LOOP (offset_switch, N, ALIGN) break;
+#define SBBO_CASES_64(FORM, N, ALIGN) default: FORM##_LOOP (offset_switch, N, ALIGN) break;
+
+#endif
+
 #define TRUNC_CASES_16(MASK, N)  \
   TRUNC_CASE ( 0, N, MASK)       \
   TRUNC_CASE ( 1, N, MASK)       \

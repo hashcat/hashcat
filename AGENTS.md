@@ -72,6 +72,10 @@ One problem per pull request, and you can violate that by accident, because you 
 
 The same goes for reformatting, renaming and tidying code you happened to read. If it is not the problem being solved, leave it alone.
 
+## Do not edit docs/changes.txt
+
+Almost every commit in the history touches `docs/changes.txt`, so it looks like part of a complete change. Those are the maintainers' commits. A pull request leaves the file alone and suggests its entry on a `Changelog:` line instead, in the format given in CONTRIBUTING.md.
+
 ## Attribution
 
 Commit as the human you are working for, using the `user.name` and `user.email` they have configured. Do not invent an identity of your own.
