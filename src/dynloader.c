@@ -212,6 +212,8 @@ static void hc_dynlib_best_dll (const char *dir, const char *prefix, char *best,
 
     if ((c < '0') || (c > '9')) continue;
 
+    if (!strcmp(prefix, "nvrtc64_") && strstr(fd.cFileName + prefix_len, ".alt.")) continue;
+
     int ver[HC_DYNLIB_VER_MAX];
 
     hc_dynlib_ver_of_dll (fd.cFileName, prefix_len, ver);
