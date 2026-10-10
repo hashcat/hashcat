@@ -83,6 +83,24 @@ def find_opencl(zfilled_key, visited=None):
                     return find_opencl(redirect_key, visited)
     return ""
 
+def uses_hash_recipe(zfilled_key):
+    """True when the module runs its pure kernels through the mode 4000 hash-recipe engine.
+
+    Such a module sets module_ctx->module_hash_recipe to module_hash_recipe (the default is
+    MODULE_DEFAULT), so its own pure kernel files were removed and the pure path is built from a
+    recipe into OpenCL/m04000_*.cl instead. Only the optimized kernels, if any, stay mode specific.
+    """
+    module_file = os.path.join(MODULES_DIR, f"module_{zfilled_key}.c")
+    if not os.path.isfile(module_file):
+        return False
+    with open(module_file, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            if "module_ctx->module_hash_recipe" not in line:
+                continue
+            value = line.split("=", 1)[1].strip() if "=" in line else ""
+            return value == "module_hash_recipe;"
+    return False
+
 def find_test(zfilled_key):
     """Return markdown links for Perl tests"""
     # List of TrueCrypt modes which have test containers
@@ -210,6 +228,14 @@ def main():
                 footnote_map[footnote_val] = footnote_counter
                 footnote_counter += 1
             footnote += f"[^{footnote_map[footnote_val]}]"
+
+        # A recipe mode has no pure kernel files of its own: the pure path is compiled from a recipe
+        # into the mode 4000 kernels, so find_opencl only sees the optimized kernels, or none. Add a
+        # "recipe" link to the kernel column so the pure path is visible and points at its documentation
+        # (the mode's own recipe is the HASH_RECIPE in its module, which the mode number already links).
+        if uses_hash_recipe(zfilled_key):
+            recipe_link = "[recipe](/docs/hashcat-hash-recipe.md)"
+            opencl_links = f"{opencl_links},&nbsp;{recipe_link}" if opencl_links else f" {recipe_link}"
 
         # Make sure we refer to root for display
         opencl_links = opencl_links.replace('/../../', '/')
