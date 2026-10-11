@@ -404,9 +404,11 @@ DECLSPEC void pbkdf2_sha512_run_V (PRIVATE_AS const u64x *ipad, PRIVATE_AS const
 
 // Initialize the pad states, then compute U1 = HMAC (key, salt . INT (i)) for each
 // output block i. Store U1 as both the last U and the running XOR. The block number
-// INT (i) uses 4 big endian bytes.
+// INT (i) uses 4 big endian bytes. The state stores the requested number of blocks, starting
+// at block first + 1. This allows a caller that reads only later blocks of the derived key to
+// skip the earlier blocks.
 
-DECLSPEC void pbkdf2_md5_init (PRIVATE_AS pbkdf2_md5_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks)
+DECLSPEC void pbkdf2_md5_init (PRIVATE_AS pbkdf2_md5_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks)
 {
   md5_hmac_ctx_t ctx;
 
@@ -426,7 +428,7 @@ DECLSPEC void pbkdf2_md5_init (PRIVATE_AS pbkdf2_md5_state_t *st, PRIVATE_AS con
     u32 w2[4];
     u32 w3[4];
 
-    w0[0] = (b + 1) << 24;
+    w0[0] = (first + b + 1) << 24;
     w0[1] = 0;
     w0[2] = 0;
     w0[3] = 0;
@@ -452,7 +454,7 @@ DECLSPEC void pbkdf2_md5_init (PRIVATE_AS pbkdf2_md5_state_t *st, PRIVATE_AS con
   }
 }
 
-DECLSPEC void pbkdf2_sha1_init (PRIVATE_AS pbkdf2_sha1_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks)
+DECLSPEC void pbkdf2_sha1_init (PRIVATE_AS pbkdf2_sha1_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks)
 {
   sha1_hmac_ctx_t ctx;
 
@@ -472,7 +474,7 @@ DECLSPEC void pbkdf2_sha1_init (PRIVATE_AS pbkdf2_sha1_state_t *st, PRIVATE_AS c
     u32 w2[4];
     u32 w3[4];
 
-    w0[0] = b + 1;
+    w0[0] = first + b + 1;
     w0[1] = 0;
     w0[2] = 0;
     w0[3] = 0;
@@ -498,7 +500,7 @@ DECLSPEC void pbkdf2_sha1_init (PRIVATE_AS pbkdf2_sha1_state_t *st, PRIVATE_AS c
   }
 }
 
-DECLSPEC void pbkdf2_sha256_init (PRIVATE_AS pbkdf2_sha256_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks)
+DECLSPEC void pbkdf2_sha256_init (PRIVATE_AS pbkdf2_sha256_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks)
 {
   sha256_hmac_ctx_t ctx;
 
@@ -518,7 +520,7 @@ DECLSPEC void pbkdf2_sha256_init (PRIVATE_AS pbkdf2_sha256_state_t *st, PRIVATE_
     u32 w2[4];
     u32 w3[4];
 
-    w0[0] = b + 1;
+    w0[0] = first + b + 1;
     w0[1] = 0;
     w0[2] = 0;
     w0[3] = 0;
@@ -544,7 +546,7 @@ DECLSPEC void pbkdf2_sha256_init (PRIVATE_AS pbkdf2_sha256_state_t *st, PRIVATE_
   }
 }
 
-DECLSPEC void pbkdf2_sha512_init (PRIVATE_AS pbkdf2_sha512_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks)
+DECLSPEC void pbkdf2_sha512_init (PRIVATE_AS pbkdf2_sha512_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks)
 {
   sha512_hmac_ctx_t ctx;
 
@@ -568,7 +570,7 @@ DECLSPEC void pbkdf2_sha512_init (PRIVATE_AS pbkdf2_sha512_state_t *st, PRIVATE_
     u32 w6[4];
     u32 w7[4];
 
-    w0[0] = b + 1;
+    w0[0] = first + b + 1;
     w0[1] = 0;
     w0[2] = 0;
     w0[3] = 0;

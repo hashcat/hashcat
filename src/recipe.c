@@ -28,6 +28,14 @@
 #define RECIPE_MAX_NODES  64
 #define RECIPE_MAX_KIDS   8
 #define RECIPE_MAX_WRAP   8
+
+// The rounds of lowering the loop body before the final, conservative round. See
+// recipe_lower_loop (). A change in what one carried variable holds can take a round to reach each
+// variable that reads it. A chain of RECIPE_MAX_CARRY variables therefore needs that many rounds
+// and one more to settle. Guesses only expand, so this provides a safe margin rather than a bound
+// that needs to be tight.
+
+#define RECIPE_LOOP_ROUNDS 16
 #define RECIPE_MAX_SRCLIT 64
 #define RECIPE_MAX_VARS   16
 
@@ -52,6 +60,8 @@ typedef enum recipe_node_kind
   RECIPE_NODE_EQ       = 17,
   RECIPE_NODE_LENGTH   = 18,
   RECIPE_NODE_NONEMPTY = 19,
+  RECIPE_NODE_FIELD    = 20,
+  RECIPE_NODE_BOP      = 21,
 
 } recipe_node_kind_t;
 
@@ -96,7 +106,7 @@ typedef struct recipe_node
   u32 kids[RECIPE_MAX_KIDS];
   u32 kids_cnt;
 
-  // VAR, the carried variable it reads
+  // VAR, the carried variable it reads. FIELD, the field it reads, see recipe_field_t.
 
   u32 slot;
 
@@ -104,7 +114,8 @@ typedef struct recipe_node
 
   u32 dklen;
 
-  // AES, the operation, see recipe_aes_op_t. role is the output format as for a hash call.
+  // AES, the operation, see recipe_aes_op_t. role is the output format as for a hash call. BOP,
+  // the operation, see recipe_bop_op_t, and role is RECIPE_FMT_RAW.
 
   u32 aop;
 
@@ -166,6 +177,15 @@ typedef struct recipe_parser
 
   u32 cur_sec;
 
+  // While the loop body is lowered, the results of earlier rounds for each carried variable's
+  // value from the body: its fixed length or 0, the maximum number of bytes it holds and whether
+  // those bytes are ASCII. See recipe_lower_loop ().
+
+  bool guess_ok;
+  u32  guess_len[RECIPE_MAX_CARRY];
+  u32  guess_most[RECIPE_MAX_CARRY];
+  bool guess_ascii[RECIPE_MAX_CARRY];
+
 } recipe_parser_t;
 
 // Hash families use their hx names. HMAC pads keys to the family's block size. BLAKE2 has no
@@ -199,15 +219,17 @@ static const recipe_algo_entry_t RECIPE_ALGOS[] =
   { "blake2s256", RECIPE_ALGO_BLAKE2S256, 32,  64, false, false },
   { "sm3",        RECIPE_ALGO_SM3,        32,  64, true,  true  },
   { "aes",        RECIPE_ALGO_AES,         0,  16, false, false },
+  { "bop",        RECIPE_ALGO_BOP,         0,   0, false, false },
+  { "xfrm",       RECIPE_ALGO_XFRM,        0,   0, false, false },
 };
 
 static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_entry_t);
 
 // Kernel names for transforms on a copy. See RECIPE_XOP_* in the kernel include.
 
-static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64" };
+static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE" };
 
-static const char *RECIPE_KNOWN = "mode 4000 supports md4, md5, sha1, sha224, sha256, sha384, sha512, rmd160, blake2b512, blake2b256, blake2s256, sm3, their hmac_ forms, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le and length";
+static const char *RECIPE_KNOWN = "mode 4000 supports md4, md5, sha1, sha224, sha256, sha384, sha512, rmd160, blake2b512, blake2b256, blake2s256, sm3, their hmac_ forms, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
 const char *recipe_algo_name (const u32 algo)
 {
@@ -777,10 +799,50 @@ static u32 recipe_parse_aes (recipe_parser_t *p, const u32 aop, const u32 role, 
   return id;
 }
 
+// xor (a, b), and (a, b) and or (a, b), whose result is raw bytes. See recipe_bop_op_t.
+
+static u32 recipe_parse_bop (recipe_parser_t *p, const u32 op, const u32 name_pos)
+{
+  if (p->src[p->pos] == '^') { recipe_fail (p, "^ applies to hash calls, not to xor, and or or"); return 0; }
+
+  if (recipe_accept (p, '(') == false) { recipe_fail (p, "expected ("); return 0; }
+
+  const u32 a = recipe_parse_expr (p);
+
+  if (a == 0) return 0;
+
+  if (recipe_accept (p, ',') == false) { recipe_fail (p, "xor, and and or take two values"); return 0; }
+
+  const u32 b = recipe_parse_expr (p);
+
+  if (b == 0) return 0;
+
+  if (recipe_accept (p, ')') == false) { recipe_fail (p, (p->src[p->pos] == ',') ? "xor, and and or take two values" : "expected ) or ."); return 0; }
+
+  const u32 id = recipe_new_node (p, RECIPE_NODE_BOP, name_pos);
+
+  if (id == 0) { recipe_fail (p, "the recipe is too long"); return 0; }
+
+  recipe_node_t *node = recipe_node (p, id);
+
+  node->aop      = op;
+  node->role     = RECIPE_FMT_RAW;
+  node->iter     = 1;
+  node->kids[0]  = a;
+  node->kids[1]  = b;
+  node->kids_cnt = 2;
+
+  return id;
+}
+
 static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 name_pos)
 {
   u32 algo = 0;
   u32 role = 0;
+
+  if (strcmp (name, "xor") == 0) return recipe_parse_bop (p, RECIPE_BOP_XOR, name_pos);
+  if (strcmp (name, "and") == 0) return recipe_parse_bop (p, RECIPE_BOP_AND, name_pos);
+  if (strcmp (name, "or")  == 0) return recipe_parse_bop (p, RECIPE_BOP_OR,  name_pos);
 
   if ((strncmp (name, "pbkdf2_", 7) == 0) && (recipe_hash_name (name + 7, &algo, &role) == true)) return recipe_parse_kdf (p, algo, role, name_pos);
 
@@ -892,6 +954,8 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
   else if (strcmp (name, "wperm")      == 0) xop = RECIPE_XOP_WPERM;
   else if (strcmp (name, "fromhex")    == 0) xop = RECIPE_XOP_FROMHEX;
   else if (strcmp (name, "frombase64") == 0) xop = RECIPE_XOP_FROMB64;
+  else if (strcmp (name, "zext16")     == 0) xop = RECIPE_XOP_ZEXT16;
+  else if (strcmp (name, "utf16be")    == 0) xop = RECIPE_XOP_UTF16BE;
 
   if (xop != 0) return recipe_parse_xop (p, xop, name, name_pos);
 
@@ -1067,24 +1131,27 @@ static u32 recipe_parse_term (recipe_parser_t *p)
     if (strcmp (p->var_names[v], name) == 0) return recipe_var_ref (p, v, start);
   }
 
-  u32 kind = 0;
+  u32 kind  = 0;
+  u32 field = 0;
 
-  if      (strcmp (name, "pass") == 0) kind = RECIPE_NODE_PASS;
-  else if (strcmp (name, "salt") == 0) kind = RECIPE_NODE_SALT;
+  if      (strcmp (name, "pass")   == 0) kind = RECIPE_NODE_PASS;
+  else if (strcmp (name, "salt")   == 0) kind = RECIPE_NODE_SALT;
+  else if (strcmp (name, "salt2")  == 0) kind = RECIPE_NODE_FIELD;
+  else if (strcmp (name, "pepper") == 0) kind = RECIPE_NODE_FIELD;
+  else if (strcmp (name, "user")   == 0) kind = RECIPE_NODE_FIELD;
+
+  if (strcmp (name, "pepper") == 0) field = RECIPE_FIELD_PEPPER;
+  if (strcmp (name, "user")   == 0) field = RECIPE_FIELD_USER;
 
   if (kind == 0)
   {
-    if ((strcmp (name, "salt2") == 0) || (strcmp (name, "pepper") == 0) || (strcmp (name, "user") == 0))
-    {
-      recipe_fail_at (p, start, "mode 4000 has no salt2, pepper or user, only pass and salt");
-    }
-    else if (strcmp (name, "iter") == 0)
+    if (strcmp (name, "iter") == 0)
     {
       recipe_fail_at (p, start, "iter can only be the last value of a for loop or the iteration count of pbkdf2");
     }
     else
     {
-      recipe_fail_at (p, start, "unknown variable, mode 4000 has pass, salt and variables assigned before");
+      recipe_fail_at (p, start, "unknown variable, mode 4000 has pass, salt, salt2, pepper, user and variables assigned before");
     }
 
     return 0;
@@ -1093,6 +1160,8 @@ static u32 recipe_parse_term (recipe_parser_t *p)
   const u32 id = recipe_new_node (p, kind, start);
 
   if (id == 0) { recipe_fail (p, "the recipe is too long"); return 0; }
+
+  recipe_node (p, id)->slot = field;
 
   return id;
 }
@@ -1612,6 +1681,78 @@ static bool recipe_decode_valid (const u32 dec, const u8 *in, const u32 len)
 // Apply byte transforms to string literals at compile time and to copies during the host self-test.
 // The buffer holds RECIPE_MAX_XBYTES bytes and remains zeroed past len. Return the new length.
 
+// Decode the UTF-8 in buffer as UTF-16BE, using the same strict rules as utf8_to_utf32 () in
+// mdxfind, which hx follows. These require a lead byte from 0xc2 to 0xf4 and continuation bytes,
+// with no overlong form, no surrogate and no code point above U+10FFFF. Code points from U+10000
+// onward become surrogate pairs. Input that is not well-formed produces 0 bytes. The out buffer
+// holds RECIPE_MAX_XBYTES, which 2 * len never exceeds. The recipe_utf16be () function in the
+// kernel include uses the same decoder.
+
+static u32 recipe_utf8_to_utf16be (const u8 *in, const u32 len, u8 *out)
+{
+  u32 i = 0;
+  u32 o = 0;
+
+  while (i < len)
+  {
+    const u32 c = in[i];
+
+    u32 cl = 0;
+
+    if      (c < 0x80)                   cl = 1;
+    else if ((c >= 0xc2) && (c <= 0xdf)) cl = 2;
+    else if ((c >= 0xe0) && (c <= 0xef)) cl = 3;
+    else if ((c >= 0xf0) && (c <= 0xf4)) cl = 4;
+
+    if (cl == 0) return 0;
+
+    if ((i + cl) > len) return 0;
+
+    u32 cp = (cl == 1) ? c : (c & (0x7f >> cl));
+
+    for (u32 k = 1; k < cl; k++)
+    {
+      const u32 cc = in[i + k];
+
+      if ((cc & 0xc0) != 0x80) return 0;
+
+      cp = (cp << 6) | (cc & 0x3f);
+    }
+
+    const u32 least = (cl == 2) ? 0x80 : ((cl == 3) ? 0x800 : 0x10000);
+
+    if ((cl > 1) && (cp < least)) return 0;
+
+    if ((cp >= 0xd800) && (cp <= 0xdfff)) return 0;
+
+    if (cp > 0x10ffff) return 0;
+
+    i += cl;
+
+    if (cp >= 0x10000)
+    {
+      const u32 hi = 0xd800 + ((cp - 0x10000) >> 10);
+      const u32 lo = 0xdc00 + ((cp - 0x10000) & 0x3ff);
+
+      out[o + 0] = (u8) (hi >> 8);
+      out[o + 1] = (u8) (hi & 255);
+      out[o + 2] = (u8) (lo >> 8);
+      out[o + 3] = (u8) (lo & 255);
+
+      o += 4;
+    }
+    else
+    {
+      out[o + 0] = (u8) (cp >> 8);
+      out[o + 1] = (u8) (cp & 255);
+
+      o += 2;
+    }
+  }
+
+  return o;
+}
+
 static u32 recipe_xop_apply (const recipe_xop_entry_t *op, u8 *buf, const u32 len)
 {
   u8 tmp[RECIPE_MAX_XBYTES];
@@ -1654,6 +1795,30 @@ static u32 recipe_xop_apply (const recipe_xop_entry_t *op, u8 *buf, const u32 le
     memcpy (buf, tmp, RECIPE_MAX_XBYTES);
 
     r = n * 2;
+  }
+  else if (op->op == RECIPE_XOP_ZEXT16)
+  {
+    const u32 n = MIN (len, RECIPE_MAX_XBYTES / 2);
+
+    for (u32 i = 0; i < n; i++)
+    {
+      tmp[(i * 2) + 0] = buf[i];
+      tmp[(i * 2) + 1] = 0;
+    }
+
+    memcpy (buf, tmp, RECIPE_MAX_XBYTES);
+
+    r = n * 2;
+  }
+  else if (op->op == RECIPE_XOP_UTF16BE)
+  {
+    r = recipe_utf8_to_utf16be (buf, MIN (len, RECIPE_MAX_XBYTES / 2), tmp);
+
+    // Clear what the decoder wrote before it stopped, so the copy stays zeroed past its length.
+
+    if (r == 0) memset (tmp, 0, sizeof (tmp));
+
+    memcpy (buf, tmp, RECIPE_MAX_XBYTES);
   }
   else if (op->op == RECIPE_XOP_REV)
   {
@@ -1778,6 +1943,17 @@ static u32 recipe_xop_len (const recipe_xop_entry_t *op, const u32 len)
   return r;
 }
 
+// The length after a list of transforms, innermost first.
+
+static u32 recipe_xops_len (const recipe_xop_entry_t *ops, const u32 ops_cnt, const u32 len)
+{
+  u32 r = len;
+
+  for (u32 i = 0; i < ops_cnt; i++) r = recipe_xop_len (&ops[i], r);
+
+  return r;
+}
+
 // A wrapping transform as an entry of a transformed copy. This covers the XOP nodes and the upper,
 // lower, hex and cut nodes, which have node kinds of their own.
 
@@ -1819,7 +1995,9 @@ static bool recipe_xform_eq (const recipe_xform_t *a, const recipe_xform_t *b)
   return true;
 }
 
-// Check that a copy of len bytes fits RECIPE_MAX_XBYTES after every transform. Only hex grows it.
+// Check that a copy of len bytes fits RECIPE_MAX_XBYTES after every transform. Only hex, zext16 and
+// utf16be grow it with its length, each to at most twice its input. pad sets a length of its own,
+// which the parser keeps within RECIPE_MAX_XBYTES.
 
 static bool recipe_xform_fits (const recipe_xform_t *xform, const u32 len)
 {
@@ -1827,7 +2005,9 @@ static bool recipe_xform_fits (const recipe_xform_t *xform, const u32 len)
 
   for (u32 i = 0; i < xform->ops_cnt; i++)
   {
-    if ((xform->ops[i].op == RECIPE_XOP_HEX) && (r > (RECIPE_MAX_XBYTES / 2))) return false;
+    const u32 o = xform->ops[i].op;
+
+    if (((o == RECIPE_XOP_HEX) || (o == RECIPE_XOP_ZEXT16) || (o == RECIPE_XOP_UTF16BE)) && (r > (RECIPE_MAX_XBYTES / 2))) return false;
 
     r = recipe_xop_len (&xform->ops[i], r);
   }
@@ -1909,7 +2089,13 @@ static bool recipe_lit_bytes (recipe_parser_t *p, const recipe_node_t *node, con
 
     if ((op.op == RECIPE_XOP_HEX) && ((len * 2) > RECIPE_MAX_XBYTES)) return recipe_fail_at (p, node->pos, "string too long for hex");
 
+    if (((op.op == RECIPE_XOP_ZEXT16) || (op.op == RECIPE_XOP_UTF16BE)) && ((len * 2) > RECIPE_MAX_XBYTES)) return recipe_fail_at (p, node->pos, "string too long for zext16 or utf16be");
+
+    const u32 in_len = len;
+
     len = recipe_xop_apply (&op, buf, len);
+
+    if ((op.op == RECIPE_XOP_UTF16BE) && (in_len > 0) && (len == 0)) return recipe_fail_at (p, t->pos, "utf16be needs a string of well-formed UTF-8");
   }
 
   *len_out = len;
@@ -1953,8 +2139,19 @@ static bool recipe_lower_kdf  (recipe_parser_t *p, const u32 id, u32 *slot);
 static bool recipe_kdf_slice  (recipe_parser_t *p, const recipe_node_t *node, const recipe_wrap_t *wrap, u32 *slot);
 static bool recipe_lower_one  (recipe_parser_t *p, const u32 id, recipe_part_t *out, const char *what);
 
-// Append expression parts to the current step. The transforms upper, lower, hex, rot13 and utf16le
-// apply to each element of a concatenation. Other transforms accept only a single element.
+static bool recipe_kdf_slice_ok   (recipe_parser_t *p, const recipe_node_t *node, const recipe_wrap_t *wrap);
+static bool recipe_lower_var_xfrm (recipe_parser_t *p, const u32 c, const recipe_wrap_t *wrap, u32 *step_out, bool *wide_out);
+
+// A value's length when it is the same for every candidate, salt and iteration, or 0. Unlike
+// recipe_part_len (), a copy such as cut (pass, 0, 16) has no fixed length here: AES pads it to
+// 16 bytes, but the other steps take it as it is.
+
+static u32  recipe_part_fixed (const recipe_parser_t *p, const recipe_part_t *part);
+static u32  recipe_part_most  (const recipe_parser_t *p, const recipe_part_t *part);
+static void recipe_var_shape  (const recipe_parser_t *p, const u32 c, u32 *len_out, u32 *most_out, bool *ascii_out);
+
+// Append expression parts to the current step. The transforms upper, lower, hex, rot13, zext16 and
+// utf16le apply to each element of a concatenation. Other transforms accept only a single element.
 
 static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_wrap_t *wrap, recipe_step_t *step)
 {
@@ -1972,7 +2169,7 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
 
       if (t->kind == RECIPE_NODE_B64) return recipe_fail_at (p, t->pos, "base64 of a concatenation is not supported");
 
-      if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op != RECIPE_XOP_ROT13)) return recipe_fail_at (p, t->pos, "rev, rotate, cap, pad, bswap32, wperm, fromhex and frombase64 of a concatenation are not supported");
+      if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op != RECIPE_XOP_ROT13) && (t->xop.op != RECIPE_XOP_ZEXT16)) return recipe_fail_at (p, t->pos, "rev, rotate, cap, pad, bswap32, wperm, fromhex, frombase64 and utf16be of a concatenation are not supported");
     }
 
     for (u32 i = 0; i < node->kids_cnt; i++)
@@ -2002,8 +2199,9 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
 
   recipe_part_t *part = &step->parts[step->parts_cnt];
 
-  // Read a pbkdf2 call from the carried variable containing its derived key. Read a cut of that key
-  // from the carried variable assigned to the selected slice.
+  // Read a pbkdf2 call from the carried variable containing its derived key. For a cut of its _bin
+  // form that starts and ends on word boundaries, read the carried variable assigned to that slice.
+  // Other transforms read the whole key in a step of their own.
 
   if (node->kind == RECIPE_NODE_KDF)
   {
@@ -2011,7 +2209,27 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
 
     if (recipe_lower_kdf (p, id, &slot) == false) return false;
 
+    if ((wrap->cnt > 0) && (recipe_kdf_slice_ok (p, node, wrap) == false))
+    {
+      p->prog->kdf_whole = 1;
+
+      u32  k    = 0;
+      bool wide = false;
+
+      if (recipe_lower_var_xfrm (p, slot, wrap, &k, &wide) == false) return false;
+
+      part->kind = RECIPE_PART_STEP;
+      part->idx  = k;
+      part->wide = (wide == true) ? 1 : 0;
+
+      step->parts_cnt++;
+
+      return true;
+    }
+
     if ((wrap->cnt > 0) && (recipe_kdf_slice (p, node, wrap, &slot) == false)) return false;
+
+    if (wrap->cnt == 0) p->prog->kdf_whole = 1;
 
     part->kind = RECIPE_PART_VAR;
     part->idx  = slot;
@@ -2022,11 +2240,26 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
     return true;
   }
 
-  // Read a carried variable in the format it was stored. See RECIPE_PART_VAR for the part type.
+  // Read a carried variable using its stored output format. See RECIPE_PART_VAR for the part type.
+  // Alternatively, transform that value in a step of its own.
 
   if (node->kind == RECIPE_NODE_VAR)
   {
-    if (wrap->cnt > 0) return recipe_fail_at (p, recipe_node (p, wrap->ids[0])->pos, "transforms of a variable carried through the loop are not supported yet");
+    if (wrap->cnt > 0)
+    {
+      u32  k    = 0;
+      bool wide = false;
+
+      if (recipe_lower_var_xfrm (p, node->slot, wrap, &k, &wide) == false) return false;
+
+      part->kind = RECIPE_PART_STEP;
+      part->idx  = k;
+      part->wide = (wide == true) ? 1 : 0;
+
+      step->parts_cnt++;
+
+      return true;
+    }
 
     part->kind = RECIPE_PART_VAR;
     part->idx  = node->slot;
@@ -2037,12 +2270,17 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
     return true;
   }
 
-  // Transforming pass or salt creates a copy. See recipe_xform_t. The kernel decodes UTF-8 while
-  // hashing the copy, so utf16le must be the outermost transform.
+  // Transforming pass, salt or a field creates a copy. See recipe_xform_t. The kernel decodes UTF-8
+  // while hashing the copy, so utf16le must be the outermost transform.
 
-  if ((node->kind == RECIPE_NODE_PASS) || (node->kind == RECIPE_NODE_SALT))
+  if ((node->kind == RECIPE_NODE_PASS) || (node->kind == RECIPE_NODE_SALT) || (node->kind == RECIPE_NODE_FIELD))
   {
     u32 src = (node->kind == RECIPE_NODE_PASS) ? RECIPE_PART_PASS : RECIPE_PART_SALT;
+
+    if (node->kind == RECIPE_NODE_FIELD) src = RECIPE_PART_SALT2 + node->slot;
+
+    if (node->kind == RECIPE_NODE_SALT)  p->prog->salt_read = 1;
+    if (node->kind == RECIPE_NODE_FIELD) p->prog->fields   |= 1u << node->slot;
 
     // Applying fromhex or frombase64 to the salt itself produces the decoded salt. Other transforms
     // can then use that decoded value as their source.
@@ -2053,13 +2291,13 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
     {
       const recipe_node_t *t = recipe_node (p, wrap->ids[w]);
 
-      if (t->kind == RECIPE_NODE_B64) return recipe_fail_at (p, t->pos, "base64 of pass and salt is not supported yet, it takes a _bin hash call or a string");
+      if (t->kind == RECIPE_NODE_B64) return recipe_fail_at (p, t->pos, "base64 of pass, salt or a field is not supported yet, it takes a _bin hash call or a string");
 
       if (t->kind != RECIPE_NODE_XOP) continue;
 
       if ((t->xop.op != RECIPE_XOP_FROMHEX) && (t->xop.op != RECIPE_XOP_FROMB64)) continue;
 
-      if (src == RECIPE_PART_PASS) return recipe_fail_at (p, t->pos, "fromhex and frombase64 apply to salt and strings, not to pass");
+      if (src != RECIPE_PART_SALT) return recipe_fail_at (p, t->pos, "fromhex and frombase64 apply to salt and strings, not to pass, salt2, pepper or user yet");
 
       if (w != (wrap->cnt - 1)) return recipe_fail_at (p, t->pos, "fromhex and frombase64 have to apply to salt itself");
 
@@ -2109,6 +2347,8 @@ static bool recipe_lower_parts (recipe_parser_t *p, const u32 id, const recipe_w
       const recipe_node_t *t = recipe_node (p, wrap->ids[w - 1]);
 
       if (t->kind == RECIPE_NODE_UTF16) return recipe_fail_at (p, t->pos, "utf16le of pass or salt has to be the outermost transform");
+
+      if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op == RECIPE_XOP_UTF16BE) && (src == RECIPE_PART_SALTD)) return recipe_fail_at (p, t->pos, "utf16be of a decoded salt is not supported");
 
       if (xf.ops_cnt >= RECIPE_MAX_XOPS) return recipe_fail_at (p, t->pos, "more than 4 transforms of pass or salt");
 
@@ -2299,6 +2539,427 @@ static bool recipe_lower_aes (recipe_parser_t *p, const recipe_node_t *node, rec
   return true;
 }
 
+// Return the maximum number of bytes a step's output can hold. This is its length when
+// fixed. Otherwise, it is the bound of an xor, and or or call or of transforms, expressed in
+// the step's output format.
+
+static u32 recipe_step_most (const recipe_step_t *step)
+{
+  if (step->cut_len > 0) return step->cut_len;
+
+  u32 most = step->data_len;
+
+  if ((step->fmt == RECIPE_FMT_HEX) || (step->fmt == RECIPE_FMT_HEXU)) most = step->data_len * 2;
+
+  if (step->fmt == RECIPE_FMT_B64) most = recipe_b64_len (step->data_len);
+
+  return most;
+}
+
+// Whether the output of a BOP step is cut, rather than kept whole at the length it has at run time.
+// A carried variable among its values can change that length after the first iteration.
+
+static bool recipe_bop_cuts (const recipe_step_t *step)
+{
+  if (step->cut_len == 0) return false;
+
+  const u32 n = MAX (step->part_lens[0], step->part_lens[1]);
+
+  u32 full = n;
+
+  if ((step->fmt == RECIPE_FMT_HEX) || (step->fmt == RECIPE_FMT_HEXU)) full = n * 2;
+
+  if (step->fmt == RECIPE_FMT_B64) full = recipe_b64_len (n);
+
+  const bool r = (step->cut_start != 0) || (step->cut_len != full);
+
+  return r;
+}
+
+// Add a step, or reuse an earlier one that is the same. A hash call can appear more than once, for
+// example through a variable, and it gives the same output each time.
+
+static bool recipe_add_step (recipe_parser_t *p, const recipe_step_t *step, const u32 pos, u32 *step_out)
+{
+  recipe_prog_t *prog = p->prog;
+
+  for (u32 k = 0; k < prog->steps_cnt; k++)
+  {
+    if (memcmp (&prog->steps[k], step, sizeof (recipe_step_t)) != 0) continue;
+
+    *step_out = k;
+
+    return true;
+  }
+
+  if (prog->steps_cnt >= RECIPE_MAX_STEPS) return recipe_fail_at (p, pos, "more than 8 hash and aes calls");
+
+  prog->steps[prog->steps_cnt] = *step;
+
+  *step_out = prog->steps_cnt;
+
+  prog->steps_cnt++;
+
+  return true;
+}
+
+// An xor, and or or call combines two single values of up to RECIPE_MAX_BOP bytes. Pass, salt, a
+// field or a copy of one can vary in length, and the module limits their lengths so that they fit,
+// see recipe_bop_limit (). A result has a fixed length when both values do, which a cut of it and
+// a comparison of it need.
+
+static bool recipe_lower_bop (recipe_parser_t *p, const recipe_node_t *node, recipe_step_t *step)
+{
+  step->aop = node->aop;
+
+  u32 most = 0;
+
+  for (u32 i = 0; i < 2; i++)
+  {
+    const u32 pos = recipe_node (p, node->kids[i])->pos;
+
+    if (recipe_lower_one (p, node->kids[i], &step->parts[i], "a value of xor, and or or") == false) return false;
+
+    const recipe_part_t *part = &step->parts[i];
+
+    const u32 len = recipe_part_fixed (p, part);
+
+    // The limits for pass, the salt, fields and their copies ensure that they fit. See
+    // recipe_bop_limit (). A step output or a carried variable is bounded by what it can hold
+    // instead, see recipe_part_most ().
+
+    u32 bound = (len == 0) ? RECIPE_MAX_BOP : len;
+
+    if ((len == 0) && ((part->kind == RECIPE_PART_STEP) || (part->kind == RECIPE_PART_VAR))) bound = recipe_part_most (p, part);
+
+    if (bound > RECIPE_MAX_BOP) return recipe_fail_at (p, pos, "xor, and and or take values of up to 64 bytes");
+
+    step->part_lens[i] = len;
+
+    most = MAX (most, bound);
+  }
+
+  step->parts_cnt = 2;
+  step->data_len  = most;
+
+  return true;
+}
+
+// Transforms of a hash output, such as rev (md5 (pass)) or pad (md5_bin (pass), 32), require a step
+// of their own. So do encodings that cannot be expressed by the output format, such as
+// hex (md5 (pass)), and transforms of a variable carried through a loop or of a pbkdf2 key. The
+// step copies its source part src. This is either a step output after the wraps inside the first
+// such wrap, or a carried variable. It applies the cnt outer wraps of wrap as the transforms of a
+// copy. The src_len value is the source's fixed length or 0. The src_most value is the maximum
+// number of bytes it holds, and src_ascii indicates whether its bytes are ASCII. A final hex, upper
+// or lower of hex, or base64 wrap becomes the step's output format instead. This allows a
+// transformed value to be the result. As for a hash call, utf16le can only be the outermost wrap.
+
+static bool recipe_lower_xfrm (recipe_parser_t *p, const recipe_wrap_t *wrap, const u32 cnt, const recipe_part_t *src, const u32 src_len, const u32 src_most, const bool src_ascii, u32 *step_out, bool *wide_out)
+{
+  const recipe_node_t *list[RECIPE_MAX_WRAP];
+
+  for (u32 i = 0; i < cnt; i++) list[i] = recipe_node (p, wrap->ids[cnt - 1 - i]);
+
+  recipe_step_t step;
+
+  memset (&step, 0, sizeof (step));
+
+  step.sec       = p->cur_sec;
+  step.kind      = RECIPE_KIND_XFRM;
+  step.algo      = RECIPE_ALGO_XFRM;
+  step.chain_fmt = RECIPE_FMT_RAW;
+  step.fmt       = RECIPE_FMT_RAW;
+  step.iter      = 1;
+
+  step.parts[0].kind = src->kind;
+  step.parts[0].idx  = src->idx;
+
+  step.parts_cnt = 1;
+
+  u32 n = cnt;
+
+  bool wide = false;
+
+  if ((n > 0) && (list[n - 1]->kind == RECIPE_NODE_UTF16))
+  {
+    wide = true;
+
+    n--;
+  }
+
+  const u32 last = (n > 0) ? list[n - 1]->kind : 0;
+
+  if (last == RECIPE_NODE_B64)
+  {
+    step.fmt = RECIPE_FMT_B64;
+
+    n--;
+  }
+  else if (((last == RECIPE_NODE_UPPER) || (last == RECIPE_NODE_LOWER)) && (n > 1) && (list[n - 2]->kind == RECIPE_NODE_HEX))
+  {
+    step.fmt = (last == RECIPE_NODE_UPPER) ? RECIPE_FMT_HEXU : RECIPE_FMT_HEX;
+
+    n -= 2;
+  }
+  else if (last == RECIPE_NODE_HEX)
+  {
+    step.fmt = RECIPE_FMT_HEX;
+
+    n--;
+  }
+
+  // Raw bytes need not be ASCII. The transforms keep bytes as they are, except hex, whose output is
+  // ASCII.
+
+  bool ascii = src_ascii;
+
+  for (u32 i = 0; i < n; i++)
+  {
+    const recipe_node_t *t = list[i];
+
+    if (t->kind == RECIPE_NODE_UTF16) return recipe_fail_at (p, t->pos, "utf16le of a transformed value has to be the outermost transform");
+
+    if (t->kind == RECIPE_NODE_B64) return recipe_fail_at (p, t->pos, "base64 of a value that is not a whole _bin output has to be the outermost transform");
+
+    if ((t->kind == RECIPE_NODE_XOP) && ((t->xop.op == RECIPE_XOP_FROMHEX) || (t->xop.op == RECIPE_XOP_FROMB64))) return recipe_fail_at (p, t->pos, "fromhex and frombase64 of a transformed value are not supported");
+
+    if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op == RECIPE_XOP_UTF16BE) && (ascii == false)) return recipe_fail_at (p, t->pos, "utf16be of raw bytes, or of a variable that can hold them, is not supported");
+
+    if (t->kind == RECIPE_NODE_HEX) ascii = true;
+
+    if (step.xops_cnt >= RECIPE_MAX_XOPS) return recipe_fail_at (p, t->pos, "more than 4 transforms of a hash output or variable");
+
+    recipe_xop_of (t, &step.xops[step.xops_cnt]);
+
+    step.xops_cnt++;
+  }
+
+  if ((wide == true) && (step.fmt == RECIPE_FMT_RAW) && (ascii == false)) return recipe_fail_at (p, list[cnt - 1]->pos, "utf16le of raw bytes is not supported");
+
+  // The length is fixed when the source has a fixed length or when the final transform imposes one,
+  // as pad does. The kernel and host still use the length produced by the transforms at run time.
+  // See RECIPE_STEP_XFRM for that behavior.
+
+  const u32 most = recipe_xops_len (step.xops, step.xops_cnt, src_most);
+
+  u32 fixed = (src_len > 0) ? most : 0;
+
+  if (recipe_xops_len (step.xops, step.xops_cnt, 0) == most) fixed = most;
+
+  const u32 cap = (step.fmt == RECIPE_FMT_RAW) ? 128 : RECIPE_MAX_BOP;
+
+  if (most > cap) return recipe_fail_at (p, list[0]->pos, "a transformed hash output or variable can have up to 128 bytes, or 64 bytes before hex or base64");
+
+  u32 len = fixed;
+
+  if ((step.fmt == RECIPE_FMT_HEX) || (step.fmt == RECIPE_FMT_HEXU)) len = fixed * 2;
+
+  if (step.fmt == RECIPE_FMT_B64) len = (fixed > 0) ? recipe_b64_len (fixed) : 0;
+
+  step.data_len  = most;
+  step.cut_start = 0;
+  step.cut_len   = len;
+
+  *wide_out = wide;
+
+  const bool rc = recipe_add_step (p, &step, list[0]->pos, step_out);
+
+  return rc;
+}
+
+// Determine the maximum number of bytes a value can hold and whether they are ASCII. The value can
+// initialize a carried variable or be assigned to it: a string, a step output, or pass, the salt, a
+// field or a copy of one.
+
+static u32 recipe_part_most (const recipe_parser_t *p, const recipe_part_t *part)
+{
+  const u32 len = recipe_part_fixed (p, part);
+
+  if (len > 0) return len;
+
+  if (part->kind == RECIPE_PART_STEP) return recipe_step_most (&p->prog->steps[part->idx]);
+
+  if (part->kind == RECIPE_PART_XFORM)
+  {
+    const recipe_xform_t *xform = &p->prog->xforms[part->idx];
+
+    const u32 r = recipe_xops_len (xform->ops, xform->ops_cnt, RECIPE_MAX_XBYTES);
+
+    return r;
+  }
+
+  if (part->kind == RECIPE_PART_VAR)
+  {
+    u32  fixed = 0;
+    u32  most  = 0;
+    bool ascii = false;
+
+    recipe_var_shape (p, part->idx, &fixed, &most, &ascii);
+
+    return most;
+  }
+
+  return RECIPE_MAX_XBYTES;
+}
+
+static bool recipe_part_ascii (const recipe_parser_t *p, const recipe_part_t *part)
+{
+  const recipe_prog_t *prog = p->prog;
+
+  if (part->kind == RECIPE_PART_STEP)
+  {
+    const bool r = (prog->steps[part->idx].fmt != RECIPE_FMT_RAW);
+
+    return r;
+  }
+
+  if (part->kind != RECIPE_PART_LIT) return false;
+
+  for (u32 i = 0; i < prog->lit_lens[part->idx]; i++)
+  {
+    if (prog->lits[part->idx][i] >= 0x80) return false;
+  }
+
+  return true;
+}
+
+// Describe carried variable c: its fixed length or 0, the maximum number of bytes and whether
+// they are ASCII. The derived key of pbkdf2 and its slices have fixed lengths. A variable
+// carried through the loop contains its value from before the loop during the first
+// iteration. Later iterations use its value from the body, so its shape inside the loop must
+// cover both values. After the loop, it contains the value from the body. That value can
+// still be unknown while the body is lowered. The guesses from recipe_lower_loop () are used
+// in its place until it is determined.
+
+static void recipe_var_shape (const recipe_parser_t *p, const u32 c, u32 *len_out, u32 *most_out, bool *ascii_out)
+{
+  const recipe_prog_t *prog = p->prog;
+
+  if (p->kdf_slot == (c + 1))
+  {
+    const u32 len = recipe_kdf_text_len (prog);
+
+    *len_out   = len;
+    *most_out  = len;
+    *ascii_out = (prog->kdf_fmt != RECIPE_FMT_RAW);
+
+    return;
+  }
+
+  for (u32 i = 0; i < prog->kdf_slices_cnt; i++)
+  {
+    if (prog->kdf_slice_var[i] != c) continue;
+
+    *len_out   = prog->kdf_slice_len[i];
+    *most_out  = prog->kdf_slice_len[i];
+    *ascii_out = false;
+
+    return;
+  }
+
+  // The values the variable can hold here, each described by its fixed length, maximum number
+  // of bytes and ASCII flag.
+
+  u32  lens[2];
+  u32  mosts[2];
+  bool asciis[2];
+  u32  cnt = 0;
+
+  const bool in_loop = (p->cur_sec == RECIPE_SEC_LOOP);
+
+  if ((prog->carry_has_init[c] == 1) && ((in_loop == true) || (prog->carry_has_loop[c] == 0)))
+  {
+    lens[cnt]   = recipe_part_fixed (p, &prog->carry_init[c]);
+    mosts[cnt]  = recipe_part_most  (p, &prog->carry_init[c]);
+    asciis[cnt] = recipe_part_ascii (p, &prog->carry_init[c]);
+
+    cnt++;
+  }
+
+  if (prog->carry_has_loop[c] == 1)
+  {
+    lens[cnt]   = recipe_part_fixed (p, &prog->carry_loop[c]);
+    mosts[cnt]  = recipe_part_most  (p, &prog->carry_loop[c]);
+    asciis[cnt] = recipe_part_ascii (p, &prog->carry_loop[c]);
+
+    cnt++;
+  }
+  else if ((p->var_body[p->slot_var[c]] != 0) && (p->guess_ok == true))
+  {
+    lens[cnt]   = p->guess_len[c];
+    mosts[cnt]  = p->guess_most[c];
+    asciis[cnt] = p->guess_ascii[c];
+
+    cnt++;
+  }
+
+  u32  len   = (cnt > 0) ? lens[0] : 0;
+  u32  most  = 0;
+  bool ascii = (cnt > 0);
+
+  for (u32 i = 0; i < cnt; i++)
+  {
+    if (lens[i] != len) len = 0;
+
+    most = MAX (most, mosts[i]);
+
+    if (asciis[i] == false) ascii = false;
+  }
+
+  *len_out   = len;
+  *most_out  = most;
+  *ascii_out = ascii;
+}
+
+static u32 recipe_part_fixed (const recipe_parser_t *p, const recipe_part_t *part)
+{
+  if (part->kind == RECIPE_PART_XFORM)
+  {
+    const recipe_xform_t *xform = &p->prog->xforms[part->idx];
+
+    const u32 a = recipe_xops_len (xform->ops, xform->ops_cnt, 0);
+    const u32 b = recipe_xops_len (xform->ops, xform->ops_cnt, RECIPE_MAX_XBYTES);
+
+    const u32 r = (a == b) ? a : 0;
+
+    return r;
+  }
+
+  if (part->kind == RECIPE_PART_VAR)
+  {
+    u32  len   = 0;
+    u32  most  = 0;
+    bool ascii = false;
+
+    recipe_var_shape (p, part->idx, &len, &most, &ascii);
+
+    return len;
+  }
+
+  const u32 r = recipe_part_len (p, part);
+
+  return r;
+}
+
+// Transforms of carried variable c, a variable carried through the loop or the derived key of
+// pbkdf2, see recipe_lower_xfrm ().
+
+static bool recipe_lower_var_xfrm (recipe_parser_t *p, const u32 c, const recipe_wrap_t *wrap, u32 *step_out, bool *wide_out)
+{
+  u32  len   = 0;
+  u32  most  = 0;
+  bool ascii = false;
+
+  recipe_var_shape (p, c, &len, &most, &ascii);
+
+  const recipe_part_t src = { .kind = RECIPE_PART_VAR, .idx = c, .wide = 0 };
+
+  const bool rc = recipe_lower_xfrm (p, wrap, wrap->cnt, &src, len, most, ascii, step_out, wide_out);
+
+  return rc;
+}
+
 static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wrap_t *wrap, u32 *step_out, bool *wide_out)
 {
   const recipe_node_t *node = recipe_node (p, id);
@@ -2321,6 +2982,12 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
     step.algo = RECIPE_ALGO_AES;
   }
 
+  if (node->kind == RECIPE_NODE_BOP)
+  {
+    step.kind = RECIPE_KIND_BOP;
+    step.algo = RECIPE_ALGO_BOP;
+  }
+
   const recipe_wrap_t none = { .cnt = 0 };
 
   // An AES call's raw output has the same length as its data, minus the 8 byte check for
@@ -2328,11 +2995,24 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
 
   u32 digest_len = recipe_digest_len (node->algo);
 
+  // An xor, and or or call with a value of no fixed length produces an output whose length is
+  // determined by the kernel only per candidate or per salt.
+
+  bool bop_var = false;
+
   if (step.kind == RECIPE_KIND_AES)
   {
     if (recipe_lower_aes (p, node, &step) == false) return false;
 
     digest_len = recipe_aes_out_len (&step);
+  }
+  else if (step.kind == RECIPE_KIND_BOP)
+  {
+    if (recipe_lower_bop (p, node, &step) == false) return false;
+
+    bop_var = (step.part_lens[0] == 0) || (step.part_lens[1] == 0);
+
+    digest_len = (bop_var == true) ? step.data_len : MAX (step.part_lens[0], step.part_lens[1]);
   }
   else if (step.kind == RECIPE_KIND_HMAC)
   {
@@ -2357,7 +3037,7 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
     if (recipe_lower_parts (p, node->kids[0], &none, &step) == false) return false;
   }
 
-  if ((step.kind != RECIPE_KIND_AES) && (recipe_algo (node->algo)->utf16 == false))
+  if ((step.kind != RECIPE_KIND_AES) && (step.kind != RECIPE_KIND_BOP) && (recipe_algo (node->algo)->utf16 == false))
   {
     for (u32 i = 0; i < step.parts_cnt; i++)
     {
@@ -2365,135 +3045,225 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
     }
   }
 
+  // The kernel moves a step's output a word at a time. A cut performed by the step must
+  // therefore start at a multiple of 4 bytes. If a cut would start elsewhere, a second lowering
+  // round stops at the innermost cut. That cut and its outer wraps then become the transforms of
+  // a separate step, as below.
+
   u32  fmt   = node->role;
   u32  start = 0;
-  u32  len   = (fmt == RECIPE_FMT_RAW) ? digest_len : (digest_len * 2);
+  u32  len   = 0;
   bool wide  = false;
 
-  if (fmt == RECIPE_FMT_B64) len = recipe_b64_len (digest_len);
+  // The wraps outside the first transform, applied by recipe_lower_xfrm (), and the innermost cut.
+  // Both are the wrap index plus 1.
 
-  for (u32 w = wrap->cnt; w > 0; w--)
+  u32 rest      = 0;
+  u32 inner_cut = 0;
+  u32 stop      = 0;
+
+  for (u32 attempt = 0; attempt < 2; attempt++)
   {
-    const recipe_node_t *t = recipe_node (p, wrap->ids[w - 1]);
+    fmt   = node->role;
+    start = 0;
+    len   = (fmt == RECIPE_FMT_RAW) ? digest_len : (digest_len * 2);
+    wide  = false;
+    rest  = 0;
 
-    if (t->kind == RECIPE_NODE_CUT)
+    if (fmt == RECIPE_FMT_B64) len = recipe_b64_len (digest_len);
+
+    for (u32 w = wrap->cnt; w > 0; w--)
     {
-      u32 s = 0;
-      u32 l = 0;
+      const recipe_node_t *t = recipe_node (p, wrap->ids[w - 1]);
 
-      recipe_resolve_cut (t, len, &s, &l);
+      if (t->kind == RECIPE_NODE_CUT)
+      {
+        if (bop_var == true) return recipe_fail_at (p, t->pos, "a cut of xor, and or or needs two values of fixed length");
 
-      start += s;
-      len    = l;
+        if (w == stop)
+        {
+          rest = w;
+
+          break;
+        }
+
+        if (inner_cut == 0) inner_cut = w;
+
+        u32 s = 0;
+        u32 l = 0;
+
+        recipe_resolve_cut (t, len, &s, &l);
+
+        start += s;
+        len    = l;
+      }
+      else if (t->kind == RECIPE_NODE_B64)
+      {
+        // A cut of the digest is not a cut of its base64, so base64 of anything but the whole raw
+        // digest is a transform, see below.
+
+        if ((fmt != RECIPE_FMT_RAW) || (start != 0) || (len != digest_len))
+        {
+          rest = w;
+
+          break;
+        }
+
+        fmt = RECIPE_FMT_B64;
+        len = recipe_b64_len (digest_len);
+      }
+      else if (t->kind == RECIPE_NODE_HEX)
+      {
+        if (fmt != RECIPE_FMT_RAW)
+        {
+          rest = w;
+
+          break;
+        }
+
+        fmt    = RECIPE_FMT_HEX;
+        start *= 2;
+        len   *= 2;
+      }
+      else if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op == RECIPE_XOP_FROMHEX))
+      {
+        // fromhex of hex output gives the raw digest bytes.
+
+        if (fmt == RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "fromhex takes a hex hash call, not a _bin one");
+
+        if (fmt == RECIPE_FMT_B64) return recipe_fail_at (p, t->pos, "fromhex of base64 output is not supported");
+
+        if (wide == true) return recipe_fail_at (p, t->pos, "fromhex of utf16le is not supported");
+
+        if (((start % 2) != 0) || ((len % 2) != 0)) return recipe_fail_at (p, t->pos, "fromhex needs a cut that keeps whole hex pairs");
+
+        fmt    = RECIPE_FMT_RAW;
+        start /= 2;
+        len   /= 2;
+      }
+      else if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op == RECIPE_XOP_FROMB64))
+      {
+        return recipe_fail_at (p, t->pos, "frombase64 of a hash output is not supported, the output is hex");
+      }
+      else if (t->kind == RECIPE_NODE_XOP)
+      {
+        // rev, pad and the other transforms of a copy apply to the current step output in a step of
+        // their own. See recipe_lower_xfrm (). The same holds for the encodings above that cannot
+        // change the output format, such as hex of a hex string.
+
+        rest = w;
+
+        break;
+      }
+      else if (t->kind == RECIPE_NODE_UTF16)
+      {
+        if (fmt == RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "utf16le of raw bytes is not supported");
+
+        if (wide == true) return recipe_fail_at (p, t->pos, "utf16le of utf16le is not supported");
+
+        wide   = true;
+        start *= 2;
+        len   *= 2;
+      }
+      else
+      {
+        if ((fmt == RECIPE_FMT_RAW) || (fmt == RECIPE_FMT_B64))
+        {
+          rest = w;
+
+          break;
+        }
+
+        fmt = (t->kind == RECIPE_NODE_UPPER) ? RECIPE_FMT_HEXU : RECIPE_FMT_HEX;
+      }
     }
-    else if (t->kind == RECIPE_NODE_B64)
+
+    // A UTF-16LE slice must preserve whole characters to map back to the hex output.
+
+    if (wide == true)
     {
-      // A cut of the digest is not a cut of its base64, so base64 takes the whole raw digest.
+      if (((start % 2) != 0) || ((len % 2) != 0)) return recipe_fail_at (p, node->pos, "a cut of utf16le output has to keep whole characters");
 
-      if (fmt != RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "base64 takes a _bin hash or aes call");
-
-      if ((start != 0) || (len != digest_len)) return recipe_fail_at (p, t->pos, "base64 of a cut is not supported");
-
-      fmt = RECIPE_FMT_B64;
-      len = recipe_b64_len (digest_len);
-    }
-    else if (t->kind == RECIPE_NODE_HEX)
-    {
-      if (fmt == RECIPE_FMT_B64) return recipe_fail_at (p, t->pos, "hex of base64 output is not supported");
-
-      if (fmt != RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "hex of a hex string is not supported, hex takes a _bin hash call");
-
-      fmt    = RECIPE_FMT_HEX;
-      start *= 2;
-      len   *= 2;
-    }
-    else if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op == RECIPE_XOP_FROMHEX))
-    {
-      // fromhex of hex output gives the raw digest bytes.
-
-      if (fmt == RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "fromhex takes a hex hash call, not a _bin one");
-
-      if (fmt == RECIPE_FMT_B64) return recipe_fail_at (p, t->pos, "fromhex of base64 output is not supported");
-
-      if (wide == true) return recipe_fail_at (p, t->pos, "fromhex of utf16le is not supported");
-
-      if (((start % 2) != 0) || ((len % 2) != 0)) return recipe_fail_at (p, t->pos, "fromhex needs a cut that keeps whole hex pairs");
-
-      fmt    = RECIPE_FMT_RAW;
       start /= 2;
       len   /= 2;
     }
-    else if ((t->kind == RECIPE_NODE_XOP) && (t->xop.op == RECIPE_XOP_FROMB64))
-    {
-      return recipe_fail_at (p, t->pos, "frombase64 of a hash output is not supported, the output is hex");
-    }
-    else if (t->kind == RECIPE_NODE_XOP)
-    {
-      return recipe_fail_at (p, t->pos, "mode 4000 applies rev, rotate, cap, rot13, pad, bswap32 and wperm to pass, salt and strings, not yet to a hash output");
-    }
-    else if (t->kind == RECIPE_NODE_UTF16)
-    {
-      if (fmt == RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "utf16le of raw bytes is not supported");
 
-      if (wide == true) return recipe_fail_at (p, t->pos, "utf16le of utf16le is not supported");
+    if ((start % 4) == 0) break;
 
-      wide   = true;
-      start *= 2;
-      len   *= 2;
-    }
-    else
-    {
-      if (fmt == RECIPE_FMT_RAW) return recipe_fail_at (p, t->pos, "upper and lower of raw bytes are not supported");
-
-      if (fmt == RECIPE_FMT_B64) return recipe_fail_at (p, t->pos, "upper and lower of base64 output are not supported");
-
-      fmt = (t->kind == RECIPE_NODE_UPPER) ? RECIPE_FMT_HEXU : RECIPE_FMT_HEX;
-    }
+    stop = inner_cut;
   }
 
-  // A UTF-16LE slice must preserve whole characters to map back to the hex output.
-
-  if (wide == true)
-  {
-    if (((start % 2) != 0) || ((len % 2) != 0)) return recipe_fail_at (p, node->pos, "a cut of utf16le output has to keep whole characters");
-
-    start /= 2;
-    len   /= 2;
-  }
-
-  // The kernel passes slices as words, so the start must be word-aligned.
-
-  if ((start % 4) != 0) return recipe_fail_at (p, node->pos, "mode 4000 needs cut to start at a multiple of 4 bytes");
+  if (bop_var == true) len = 0;
 
   step.fmt       = fmt;
   step.cut_start = start;
   step.cut_len   = len;
 
-  *wide_out = wide;
+  u32 k = 0;
 
-  recipe_prog_t *prog = p->prog;
+  if (recipe_add_step (p, &step, node->pos, &k) == false) return false;
 
-  // The same hash call can appear more than once, for example through a variable. It gives the same
-  // output each time, so a repeat reuses the first one's step.
-
-  for (u32 k = 0; k < prog->steps_cnt; k++)
+  if (rest == 0)
   {
-    if (memcmp (&prog->steps[k], &step, sizeof (recipe_step_t)) != 0) continue;
-
     *step_out = k;
+    *wide_out = wide;
 
     return true;
   }
 
-  if (prog->steps_cnt >= RECIPE_MAX_STEPS) return recipe_fail_at (p, node->pos, "more than 8 hash and aes calls");
+  if (wide == true) return recipe_fail_at (p, recipe_node (p, wrap->ids[rest - 1])->pos, "a transform of utf16le output is not supported, utf16le has to be the outermost transform");
 
-  prog->steps[prog->steps_cnt] = step;
+  const recipe_step_t *from = &p->prog->steps[k];
 
-  *step_out = prog->steps_cnt;
+  const recipe_part_t src = { .kind = RECIPE_PART_STEP, .idx = k, .wide = 0 };
 
-  prog->steps_cnt++;
+  const bool rc = recipe_lower_xfrm (p, wrap, rest, &src, from->cut_len, recipe_step_most (from), (from->fmt != RECIPE_FMT_RAW), step_out, wide_out);
 
-  return true;
+  return rc;
+}
+
+// Whether a part kind is one of the fields from the hash line, salt2, pepper and user.
+
+static bool recipe_is_field (const u32 kind)
+{
+  const bool r = (kind == RECIPE_PART_SALT2) || (kind == RECIPE_PART_PEPPER) || (kind == RECIPE_PART_USER);
+
+  return r;
+}
+
+// Return the length of a transformed copy whose source contains len bytes.
+
+static u32 recipe_xform_out_len (const recipe_xform_t *xform, const u32 len)
+{
+  const u32 r = recipe_xops_len (xform->ops, xform->ops_cnt, len);
+
+  return r;
+}
+
+// Each input value of xor, and or or can hold up to RECIPE_MAX_BOP bytes. Limit the length of pass,
+// the salt or a field when it is such an input value, or when its transformed copy is used as one.
+
+static void recipe_bop_limit (recipe_prog_t *prog, const recipe_part_t *part)
+{
+  u32 src = part->kind;
+  u32 len = RECIPE_MAX_BOP;
+
+  if (part->kind == RECIPE_PART_XFORM)
+  {
+    const recipe_xform_t *xform = &prog->xforms[part->idx];
+
+    src = xform->src;
+    len = RECIPE_MAX_XBYTES;
+
+    while ((len > 0) && (recipe_xform_out_len (xform, len) > RECIPE_MAX_BOP)) len--;
+  }
+
+  if (src == RECIPE_PART_PASS) prog->pw_max   = MIN (prog->pw_max,   len);
+  if (src == RECIPE_PART_SALT) prog->salt_max = MIN (prog->salt_max, len);
+
+  if (recipe_is_field (src) == true) prog->field_max = MIN (prog->field_max, len);
+
+  if (src == RECIPE_PART_SALTD) prog->salt_max = MIN (prog->salt_max, (prog->salt_dec == RECIPE_DEC_HEX) ? (len * 2) : ((len * 4) / 3));
 }
 
 // A part depends on the candidate if it is pass, a transformed copy of pass, a carried variable, or
@@ -2511,8 +3281,9 @@ static bool recipe_part_dep_on (const recipe_prog_t *prog, const recipe_part_t *
   return false;
 }
 
-// A step depends on the candidate if it hashes pass or the output of a step that does, or if it is
-// an HMAC whose key does. Other steps use only the salt and strings.
+// A step depends on the candidate if one of its parts does: pass, a copy of it, a carried variable
+// or the output of a step that does. An HMAC also depends on it through its key, and an AES step
+// always does, see below. Other steps use only the salt, the fields and strings.
 
 static void recipe_deps (const recipe_prog_t *prog, bool *dep)
 {
@@ -2680,38 +3451,12 @@ static bool recipe_lower_kdf (recipe_parser_t *p, const u32 id, u32 *slot)
   return true;
 }
 
-// A cut of a raw derived key selects a slice, such as cut (dk, 32, 16) for an IV after the key.
-// Each distinct slice has its own carried variable, filled by the comp kernel from the derived key.
-// The slice has a fixed length and can be used as an AES key, IV or data part. Its start and end
-// must both fall on word boundaries.
+// Return the carried variable for a slice of the derived key starting at byte start and spanning
+// len bytes. Reading the same slice twice uses one shared variable.
 
-static bool recipe_kdf_slice (recipe_parser_t *p, const recipe_node_t *node, const recipe_wrap_t *wrap, u32 *slot)
+static bool recipe_kdf_slot (recipe_parser_t *p, const u32 pos, const u32 start, const u32 len, u32 *slot)
 {
   recipe_prog_t *prog = p->prog;
-
-  const u32 pos = recipe_node (p, wrap->ids[0])->pos;
-
-  if (node->role != RECIPE_FMT_RAW) return recipe_fail_at (p, pos, "a cut of a pbkdf2 key needs its _bin form, such as cut(pbkdf2_sha1_bin(pass, salt, iter, 32), 0, 16)");
-
-  u32 start = 0;
-  u32 len   = node->dklen;
-
-  for (u32 w = wrap->cnt; w > 0; w--)
-  {
-    const recipe_node_t *t = recipe_node (p, wrap->ids[w - 1]);
-
-    if (t->kind != RECIPE_NODE_CUT) return recipe_fail_at (p, t->pos, "transforms of a pbkdf2 key other than cut are not supported yet, its suffix sets the format");
-
-    u32 s = 0;
-    u32 l = 0;
-
-    recipe_resolve_cut (t, len, &s, &l);
-
-    start += s;
-    len    = l;
-  }
-
-  if (((start % 4) != 0) || ((len % 4) != 0) || (len == 0)) return recipe_fail_at (p, pos, "a cut of a pbkdf2 key has to start and end at a multiple of 4 bytes");
 
   for (u32 i = 0; i < prog->kdf_slices_cnt; i++)
   {
@@ -2742,10 +3487,105 @@ static bool recipe_kdf_slice (recipe_parser_t *p, const recipe_node_t *node, con
   return true;
 }
 
+// The slice a raw derived key's cuts select, as its start and length in bytes.
+
+static void recipe_kdf_cuts (recipe_parser_t *p, const recipe_node_t *node, const recipe_wrap_t *wrap, u32 *start_out, u32 *len_out)
+{
+  u32 start = 0;
+  u32 len   = node->dklen;
+
+  for (u32 w = wrap->cnt; w > 0; w--)
+  {
+    u32 s = 0;
+    u32 l = 0;
+
+    recipe_resolve_cut (recipe_node (p, wrap->ids[w - 1]), len, &s, &l);
+
+    start += s;
+    len    = l;
+  }
+
+  *start_out = start;
+  *len_out   = len;
+}
+
+// Whether the wraps of a pbkdf2 call select a slice: cuts alone of its _bin form, starting and
+// ending at multiples of 4 bytes.
+
+static bool recipe_kdf_slice_ok (recipe_parser_t *p, const recipe_node_t *node, const recipe_wrap_t *wrap)
+{
+  if (node->role != RECIPE_FMT_RAW) return false;
+
+  for (u32 w = 0; w < wrap->cnt; w++)
+  {
+    if (recipe_node (p, wrap->ids[w])->kind != RECIPE_NODE_CUT) return false;
+  }
+
+  u32 start = 0;
+  u32 len   = 0;
+
+  recipe_kdf_cuts (p, node, wrap, &start, &len);
+
+  if ((start % 4) != 0) return false;
+  if ((len   % 4) != 0) return false;
+
+  if (len == 0) return false;
+
+  return true;
+}
+
+// A cut of a raw derived key selects a slice, such as cut (dk, 32, 16) for an IV after the key.
+// Each distinct slice has its own carried variable, filled by the comp kernel from the derived key.
+// The slice has a fixed length and can be used as an AES key, IV or data part. The caller checks
+// with recipe_kdf_slice_ok () that the cuts select one.
+
+static bool recipe_kdf_slice (recipe_parser_t *p, const recipe_node_t *node, const recipe_wrap_t *wrap, u32 *slot)
+{
+  const u32 pos = recipe_node (p, wrap->ids[0])->pos;
+
+  u32 start = 0;
+  u32 len   = 0;
+
+  recipe_kdf_cuts (p, node, wrap, &start, &len);
+
+  const bool rc = recipe_kdf_slot (p, pos, start, len, slot);
+
+  return rc;
+}
+
+// Lower each carried variable's final assignment from the body for the loop kernel. Every variable
+// assigned by the body must be assigned a step's output: a hash call, an xor, and or or call, or a
+// transformed value such as rev (h). After each iteration, the loop kernel copies that step's
+// output into the carried variable.
+
+static bool recipe_lower_body (recipe_parser_t *p)
+{
+  recipe_prog_t *prog = p->prog;
+
+  bool any = false;
+
+  for (u32 c = 0; c < p->carry_cnt; c++)
+  {
+    const u32 body = p->var_body[p->slot_var[c]];
+
+    if (body == 0) continue;
+
+    if (recipe_lower_one (p, body, &prog->carry_loop[c], "a variable carried through the loop") == false) return false;
+
+    if (prog->carry_loop[c].kind != RECIPE_PART_STEP) return recipe_fail_at (p, recipe_node (p, body)->pos, "a variable assigned in the loop has to be assigned a hash call");
+
+    prog->carry_has_loop[c] = 1;
+
+    any = true;
+  }
+
+  if (any == false) return recipe_fail_at (p, 0, "the loop assigns no variable that the next iteration or the result reads");
+
+  return true;
+}
+
 // Lower each carried variable's values: its value before the loop in the init kernel, and its
-// final assignment from the body in the loop kernel. Every variable assigned by the body must be
-// assigned a hash call. After each iteration, the loop kernel copies that call's step output into
-// the carried variable.
+// final assignment from the body in the loop kernel. See recipe_lower_body () for that lowering.
 
 static bool recipe_lower_loop (recipe_parser_t *p)
 {
@@ -2778,26 +3618,114 @@ static bool recipe_lower_loop (recipe_parser_t *p)
 
   p->cur_sec = RECIPE_SEC_LOOP;
 
-  bool any = false;
+  // A loop body can read a carried variable before assigning it, as in t = xor (t, u). How that
+  // read is lowered depends on what the variable can hold. See recipe_var_shape (). The first round
+  // uses the shape of the value before the loop as its guess for the value from the body. Each
+  // later round restarts from the program produced by init lowering. Its guesses combine the
+  // results of earlier rounds. Lowering stops when a round produces values matching its guesses. If
+  // no round does, a final round guesses the values that any hash call can produce.
 
-  for (u32 c = 0; c < p->carry_cnt; c++)
+  recipe_prog_t   *prog0 = (recipe_prog_t *)   hcmalloc (sizeof (recipe_prog_t));
+  recipe_parser_t *p0    = (recipe_parser_t *) hcmalloc (sizeof (recipe_parser_t));
+
+  memcpy (prog0, prog, sizeof (recipe_prog_t));
+  memcpy (p0,    p,    sizeof (recipe_parser_t));
+
+  bool rc = true;
+
+  for (u32 round = 0; round <= RECIPE_LOOP_ROUNDS; round++)
   {
-    const u32 body = p->var_body[p->slot_var[c]];
+    if (recipe_lower_body (p) == false)
+    {
+      rc = false;
 
-    if (body == 0) continue;
+      break;
+    }
 
-    if (recipe_lower_one (p, body, &prog->carry_loop[c], "a variable carried through the loop") == false) return false;
+    bool same = (p->guess_ok == true);
 
-    if (prog->carry_loop[c].kind != RECIPE_PART_STEP) return recipe_fail_at (p, recipe_node (p, body)->pos, "a variable assigned in the loop has to be assigned a hash call");
+    u32  lens[RECIPE_MAX_CARRY];
+    u32  mosts[RECIPE_MAX_CARRY];
+    bool asciis[RECIPE_MAX_CARRY];
 
-    prog->carry_has_loop[c] = 1;
+    for (u32 c = 0; c < p->carry_cnt; c++)
+    {
+      lens[c]   = 0;
+      mosts[c]  = 0;
+      asciis[c] = false;
 
-    any = true;
+      if (prog->carry_has_loop[c] == 0) continue;
+
+      lens[c]   = recipe_part_fixed (p, &prog->carry_loop[c]);
+      mosts[c]  = recipe_part_most  (p, &prog->carry_loop[c]);
+      asciis[c] = recipe_part_ascii (p, &prog->carry_loop[c]);
+
+      if (p->guess_ok == true)
+      {
+        if (lens[c] != p->guess_len[c]) lens[c] = 0;
+
+        mosts[c] = MAX (mosts[c], p->guess_most[c]);
+
+        if (p->guess_ascii[c] == false) asciis[c] = false;
+      }
+
+      if ((lens[c] != p->guess_len[c]) || (mosts[c] != p->guess_most[c]) || (asciis[c] != p->guess_ascii[c])) same = false;
+    }
+
+    if (same == true) break;
+
+    // A step output holds up to 128 bytes, see recipe_lower_xfrm ().
+
+    if (round == (RECIPE_LOOP_ROUNDS - 1))
+    {
+      for (u32 c = 0; c < p->carry_cnt; c++)
+      {
+        if (prog->carry_has_loop[c] == 0) continue;
+
+        lens[c]   = 0;
+        mosts[c]  = 128;
+        asciis[c] = false;
+      }
+    }
+
+    if (round == RECIPE_LOOP_ROUNDS) break;
+
+    memcpy (prog, prog0, sizeof (recipe_prog_t));
+    memcpy (p,    p0,    sizeof (recipe_parser_t));
+
+    p->guess_ok = true;
+
+    for (u32 c = 0; c < p->carry_cnt; c++)
+    {
+      p->guess_len[c]   = lens[c];
+      p->guess_most[c]  = mosts[c];
+      p->guess_ascii[c] = asciis[c];
+    }
   }
 
-  if (any == false) return recipe_fail_at (p, 0, "the loop assigns no variable that the next iteration or the result reads");
+  hcfree (prog0);
+  hcfree (p0);
 
-  return true;
+  return rc;
+}
+
+// Identify the step whose output is the result: a call, or transforms of a carried variable or of
+// the key of pbkdf2. In the pbkdf2 case, the transforms read the whole key.
+
+static bool recipe_lower_root_step (recipe_parser_t *p, const u32 id, const recipe_node_t *node, const bool var_xfrm, const recipe_wrap_t *wrap, u32 *step_out, bool *wide_out)
+{
+  if (var_xfrm == false)
+  {
+    const bool rc = recipe_lower_hash (p, id, wrap, step_out, wide_out);
+
+    return rc;
+  }
+
+  if (p->kdf_slot == (node->slot + 1)) p->prog->kdf_whole = 1;
+
+  const bool rc = recipe_lower_var_xfrm (p, node->slot, wrap, step_out, wide_out);
+
+  return rc;
 }
 
 // The result can be a carried variable, as in h = sha512 (salt . pass); for ... { h = ... }; h.
@@ -2809,7 +3737,7 @@ static bool recipe_lower_root_var (recipe_parser_t *p, const recipe_node_t *node
 {
   recipe_prog_t *prog = p->prog;
 
-  const u32 c = node->slot;
+  u32 c = node->slot;
 
   // The derived key of pbkdf2 is stored in the format of its suffix, and its length decides
   // whether it holds the 16 compared bytes.
@@ -2837,7 +3765,59 @@ static bool recipe_lower_root_var (recipe_parser_t *p, const recipe_node_t *node
 
   u32 fmt = vfmt;
 
-  for (u32 w = wrap->cnt; w > 0; w--)
+  // The innermost transforms of the derived key can cut it using bytes of its _bin form or
+  // characters of its hex form. The cut reads a separate slice, stored by the comp kernel as raw
+  // bytes. See recipe_kdf_slot () for that slice.
+
+  u32 outer = wrap->cnt;
+
+  if (p->kdf_slot == (c + 1))
+  {
+    while ((outer > 0) && (recipe_node (p, wrap->ids[outer - 1])->kind == RECIPE_NODE_CUT)) outer--;
+  }
+
+  if (outer < wrap->cnt)
+  {
+    const u32 pos = recipe_node (p, wrap->ids[outer])->pos;
+
+    if (vfmt == RECIPE_FMT_B64) return recipe_fail_at (p, pos, "a cut of a pbkdf2 key needs its _bin or hex form");
+
+    const u32 unit = (vfmt == RECIPE_FMT_RAW) ? 1 : 2;
+
+    u32 start = 0;
+    u32 len   = prog->kdf_dklen * unit;
+
+    for (u32 w = wrap->cnt; w > outer; w--)
+    {
+      u32 s = 0;
+      u32 l = 0;
+
+      recipe_resolve_cut (recipe_node (p, wrap->ids[w - 1]), len, &s, &l);
+
+      start += s;
+      len    = l;
+    }
+
+    if (((start % (unit * 4)) != 0) || ((len % (unit * 4)) != 0)) return recipe_fail_at (p, pos, "a cut of a pbkdf2 key has to start and end at a multiple of 4 bytes");
+
+    if (len < (unit * 16)) return recipe_fail_at (p, pos, "a cut of a pbkdf2 key as the result has to keep at least 16 bytes");
+
+    if (recipe_kdf_slot (p, pos, start / unit, len / unit, &c) == false) return false;
+
+    vfmt  = RECIPE_FMT_RAW;
+    keeps = true;
+  }
+  else if ((p->kdf_slot == (c + 1)) && (prog->kdf_whole == 0))
+  {
+    // The whole derived key, used only as the result and read by no call, is stored as raw bytes.
+    // The device compares its first 16 bytes. The host writes the hash line in its required format.
+
+    prog->kdf_raw = 1;
+
+    vfmt = RECIPE_FMT_RAW;
+  }
+
+  for (u32 w = outer; w > 0; w--)
   {
     const recipe_node_t *t = recipe_node (p, wrap->ids[w - 1]);
 
@@ -3064,7 +4044,7 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
     {
       const recipe_node_t *node = recipe_node (p, id);
 
-      if ((node->kind != RECIPE_NODE_UPPER) && (node->kind != RECIPE_NODE_LOWER) && (node->kind != RECIPE_NODE_HEX) && (node->kind != RECIPE_NODE_CUT) && (node->kind != RECIPE_NODE_UTF16) && (node->kind != RECIPE_NODE_B64)) break;
+      if ((node->kind != RECIPE_NODE_UPPER) && (node->kind != RECIPE_NODE_LOWER) && (node->kind != RECIPE_NODE_HEX) && (node->kind != RECIPE_NODE_CUT) && (node->kind != RECIPE_NODE_UTF16) && (node->kind != RECIPE_NODE_B64) && (node->kind != RECIPE_NODE_XOP)) break;
 
       if (wrap.cnt >= RECIPE_MAX_WRAP) break;
 
@@ -3100,6 +4080,19 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
       node = &kdf_var;
     }
 
+    // A carried variable or the key of pbkdf2 under a transform such as rev is the output of a step
+    // of its own, see recipe_lower_xfrm ().
+
+    bool var_xfrm = false;
+
+    if (node->kind == RECIPE_NODE_VAR)
+    {
+      for (u32 w = 0; w < wrap.cnt; w++)
+      {
+        if (recipe_node (p, wrap.ids[w])->kind == RECIPE_NODE_XOP) var_xfrm = true;
+      }
+    }
+
     if ((kdf_ok == false) || (cmp_ok == false))
     {
       // The lowering has already recorded the error.
@@ -3108,11 +4101,11 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
     {
       recipe_fail_at (p, node->pos, "length can only be compared, as in length (aes_unwrap (kek, x)) > 0");
     }
-    else if ((cmp == true) && (node->kind == RECIPE_NODE_VAR))
+    else if ((cmp == true) && (node->kind == RECIPE_NODE_VAR) && (var_xfrm == false))
     {
       recipe_fail_at (p, node->pos, "the left side of == has to be a hash or aes call, a variable carried through a loop or the key of pbkdf2 is not supported yet");
     }
-    else if (node->kind == RECIPE_NODE_VAR)
+    else if ((node->kind == RECIPE_NODE_VAR) && (var_xfrm == false))
     {
       if (recipe_lower_root_var (p, node, &wrap) == true)
       {
@@ -3126,11 +4119,11 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
         }
       }
     }
-    else if ((node->kind != RECIPE_NODE_HASH) && (node->kind != RECIPE_NODE_HMAC) && (node->kind != RECIPE_NODE_AES))
+    else if ((node->kind != RECIPE_NODE_HASH) && (node->kind != RECIPE_NODE_HMAC) && (node->kind != RECIPE_NODE_AES) && (node->kind != RECIPE_NODE_BOP) && (var_xfrm == false))
     {
-      recipe_fail_at (p, node->pos, "the result must be a hash or aes call, possibly inside upper, lower, hex, base64, cut or trunc");
+      recipe_fail_at (p, node->pos, "the result must be a hash, aes, xor, and or or call, possibly inside upper, lower, hex, base64, cut, trunc or another transform");
     }
-    else if (recipe_lower_hash (p, id, &wrap, &root_step, &root_wide) == true)
+    else if (recipe_lower_root_step (p, id, node, var_xfrm, &wrap, &root_step, &root_wide) == true)
     {
       const recipe_step_t *step = &prog->steps[root_step];
 
@@ -3138,7 +4131,15 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
 
       bool fmt_ok = false;
 
-      if (cmp == true)
+      if ((step->kind == RECIPE_KIND_BOP) && (step->cut_len == 0))
+      {
+        recipe_fail_at (p, node->pos, "xor, and or or as the result needs two values of fixed length, the hash line holds a digest of one length");
+      }
+      else if ((step->kind == RECIPE_KIND_XFRM) && (step->cut_len == 0))
+      {
+        recipe_fail_at (p, node->pos, "a transformed hash output or variable as the result needs a fixed length, the hash line holds a digest of one length");
+      }
+      else if (cmp == true)
       {
         fmt_ok = recipe_cmp_root (p, node->pos, step, root_wide, cmp_buf, cmp_len);
       }
@@ -3204,8 +4205,9 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
 
   // Find the maximum password and salt lengths that fit all transformed copies.
 
-  prog->pw_max   = RECIPE_MAX_XBYTES;
-  prog->salt_max = RECIPE_MAX_XBYTES;
+  prog->pw_max    = RECIPE_MAX_XBYTES;
+  prog->salt_max  = RECIPE_MAX_XBYTES;
+  prog->field_max = RECIPE_FIELD_MAX;
 
   for (u32 x = 0; x < prog->xforms_cnt; x++)
   {
@@ -3218,9 +4220,21 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
     if (xform->src == RECIPE_PART_PASS) prog->pw_max   = MIN (prog->pw_max,   len);
     if (xform->src == RECIPE_PART_SALT) prog->salt_max = MIN (prog->salt_max, len);
 
+    if (recipe_is_field (xform->src) == true) prog->field_max = MIN (prog->field_max, len);
+
     // The decoded salt is half as long as a hex salt and 3/4 as long as a base64 salt.
 
     if (xform->src == RECIPE_PART_SALTD) prog->salt_max = MIN (prog->salt_max, (prog->salt_dec == RECIPE_DEC_HEX) ? (len * 2) : ((len * 4) / 3));
+  }
+
+  for (u32 k = 0; k < prog->steps_cnt; k++)
+  {
+    const recipe_step_t *step = &prog->steps[k];
+
+    if (step->kind != RECIPE_KIND_BOP) continue;
+
+    recipe_bop_limit (prog, &step->parts[0]);
+    recipe_bop_limit (prog, &step->parts[1]);
   }
 
   return rc;
@@ -3239,6 +4253,10 @@ static const char *recipe_part_token (const recipe_prog_t *prog, const recipe_pa
 
   if (part->kind == RECIPE_PART_SALTD) snprintf (buf, buf_size, "SALTD");
   if (part->kind == RECIPE_PART_VAR)   snprintf (buf, buf_size, "VAR%u", part->idx);
+
+  if (part->kind == RECIPE_PART_SALT2)  snprintf (buf, buf_size, "SALT2%s",  (part->wide == 1) ? "_16" : "");
+  if (part->kind == RECIPE_PART_PEPPER) snprintf (buf, buf_size, "PEPPER%s", (part->wide == 1) ? "_16" : "");
+  if (part->kind == RECIPE_PART_USER)   snprintf (buf, buf_size, "USER%s",   (part->wide == 1) ? "_16" : "");
 
   // Password copies are made per candidate. Salt copies are stored in the state once per salt.
 
@@ -3260,6 +4278,30 @@ static const char *recipe_part_token (const recipe_prog_t *prog, const recipe_pa
 // changing parts are the carried variables assigned by the loop and the outputs of earlier
 // steps in the iteration.
 
+// Check whether step k's output length can change between candidates, salts or iterations. This
+// applies to the output of xor, and or or, or of transforms, when it has no fixed length or has a
+// carried variable among its sources.
+
+static bool recipe_step_len_moves (const recipe_prog_t *prog, const u32 k)
+{
+  const recipe_step_t *step = &prog->steps[k];
+
+  if ((step->kind != RECIPE_KIND_BOP) && (step->kind != RECIPE_KIND_XFRM)) return false;
+
+  if (step->cut_len == 0) return true;
+
+  for (u32 i = 0; i < step->parts_cnt; i++)
+  {
+    const recipe_part_t *part = &step->parts[i];
+
+    if (part->kind == RECIPE_PART_VAR) return true;
+
+    if ((part->kind == RECIPE_PART_STEP) && (recipe_step_len_moves (prog, part->idx) == true)) return true;
+  }
+
+  return false;
+}
+
 static bool recipe_tpl_ok (const recipe_prog_t *prog, const u32 k, const bool *dep)
 {
   const recipe_step_t *step = &prog->steps[k];
@@ -3276,12 +4318,57 @@ static bool recipe_tpl_ok (const recipe_prog_t *prog, const u32 k, const bool *d
 
     if (part->wide == 1) return false;
 
+    // The output of xor, and or or, or of transforms, can have no fixed length to lay out.
+
+    if ((part->kind == RECIPE_PART_STEP) && (recipe_step_len_moves (prog, part->idx) == true)) return false;
+
     if ((part->kind == RECIPE_PART_STEP) && (dep[part->idx] == true) && ((prog->steps[part->idx].cut_len % 4) != 0)) return false;
+
+    if ((part->kind == RECIPE_PART_VAR) && (prog->carry_has_loop[part->idx] == 1) && (recipe_step_len_moves (prog, prog->carry_loop[part->idx].idx) == true)) return false;
 
     if ((part->kind == RECIPE_PART_VAR) && (prog->carry_has_loop[part->idx] == 1) && ((prog->steps[prog->carry_loop[part->idx].idx].cut_len % 4) != 0)) return false;
   }
 
   return true;
+}
+
+// Write the transforms of a copy (PRE is X) or of an XFRM step (PRE is S) as
+// RECIPE_<PRE><k>_O<j>, together with their arguments. See RECIPE_XOP in the kernel include.
+// Return the new length of buf.
+
+static int recipe_jit_xops (char *buf, const size_t size, int len, const char *pre, const u32 k, const recipe_xop_entry_t *ops, const u32 ops_cnt)
+{
+  for (u32 i = 0; i < RECIPE_MAX_XOPS; i++)
+  {
+    if (i >= ops_cnt)
+    {
+      len += snprintf (buf + len, size - len, " -D RECIPE_%s%u_O%u=NONE", pre, k, i);
+
+      continue;
+    }
+
+    const recipe_xop_entry_t *op = &ops[i];
+
+    const u64 a = (u64) op->a;
+
+    const u32 a_lo = (u32) (a >>  0);
+    const u32 a_hi = (u32) (a >> 32);
+
+    len += snprintf (buf + len, size - len, " -D RECIPE_%s%u_O%u=%s", pre, k, i, RECIPE_XOP_NAMES[op->op]);
+
+    if (op->op == RECIPE_XOP_WPERM)
+    {
+      len += snprintf (buf + len, size - len, " -D RECIPE_%s%u_A%u=0x%08x -D RECIPE_%s%u_H%u=0x%08x", pre, k, i, a_lo, pre, k, i, a_hi);
+    }
+    else
+    {
+      len += snprintf (buf + len, size - len, " -D RECIPE_%s%u_A%u=%d -D RECIPE_%s%u_H%u=0", pre, k, i, (int) op->a, pre, k, i);
+    }
+
+    len += snprintf (buf + len, size - len, " -D RECIPE_%s%u_B%u=%d -D RECIPE_%s%u_L%u=%u", pre, k, i, (int) op->b, pre, k, i, (op->has_len == true) ? 1 : 0);
+  }
+
+  return len;
 }
 
 // Kernel build options for OpenCL/inc_recipe.cl. Each step names its hash family and eight part
@@ -3311,8 +4398,15 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
   {
     const u32 c = prog.root_var - 1;
 
-    if      ((prog.kdf_blocks > 0) && (c == prog.kdf_out)) root_algo = prog.kdf_algo;
-    else if (prog.carry_has_loop[c] == 1)                  root_algo = prog.steps[prog.carry_loop[c].idx].algo;
+    bool kdf_var = (c == prog.kdf_out);
+
+    for (u32 i = 0; i < prog.kdf_slices_cnt; i++)
+    {
+      if (prog.kdf_slice_var[i] == c) kdf_var = true;
+    }
+
+    if      ((prog.kdf_blocks > 0) && (kdf_var == true)) root_algo = prog.kdf_algo;
+    else if (prog.carry_has_loop[c] == 1)                root_algo = prog.steps[prog.carry_loop[c].idx].algo;
   }
 
   int len = snprintf (buf, sizeof (buf), "-D RECIPE_STEPS=%u -D RECIPE_ROOT_FN=%s", prog.steps_cnt, recipe_algo_name (root_algo));
@@ -3340,8 +4434,9 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
   // UTF-16LE conversion can give candidates different lengths. See recipe_eval () in the kernel
   // include for how the kernels handle this.
 
-  bool wide_pass = false;
-  bool wide_salt = false;
+  bool wide_pass  = false;
+  bool wide_salt  = false;
+  bool wide_field = false;
 
   for (u32 k = 0; k < prog.steps_cnt; k++)
   {
@@ -3357,13 +4452,38 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
       if (src == RECIPE_PART_PASS) wide_pass = true;
       if (src == RECIPE_PART_SALT) wide_salt = true;
+
+      if (recipe_is_field (src) == true) wide_field = true;
     }
   }
 
-  if ((wide_pass == true) || (wide_salt == true)) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE");
+  // utf16be copies decode UTF-8 as well, so their length can differ between lanes too.
 
-  if (wide_pass == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_PASS");
-  if (wide_salt == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_SALT");
+  for (u32 x = 0; x < prog.xforms_cnt; x++)
+  {
+    const recipe_xform_t *xform = &prog.xforms[x];
+
+    bool be16 = false;
+
+    for (u32 j = 0; j < xform->ops_cnt; j++)
+    {
+      if (xform->ops[j].op == RECIPE_XOP_UTF16BE) be16 = true;
+    }
+
+    if (be16 == false) continue;
+
+    if (xform->src == RECIPE_PART_PASS) wide_pass = true;
+
+    if ((xform->src == RECIPE_PART_SALT) || (xform->src == RECIPE_PART_SALTD)) wide_salt = true;
+
+    if (recipe_is_field (xform->src) == true) wide_field = true;
+  }
+
+  if ((wide_pass == true) || (wide_salt == true) || (wide_field == true)) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE");
+
+  if (wide_pass  == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_PASS");
+  if (wide_salt  == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_SALT");
+  if (wide_field == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_FIELDS");
 
   // GPUs read hex output from a table when a later step or round needs it. See RECIPE_HEX_TABLE in
   // the kernel include.
@@ -3387,6 +4507,14 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
     for (u32 i = 0; i < prog.xforms[x].ops_cnt; i++)
     {
       if (prog.xforms[x].ops[i].op == RECIPE_XOP_HEX) hex = true;
+    }
+  }
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    for (u32 i = 0; i < prog.steps[k].xops_cnt; i++)
+    {
+      if (prog.steps[k].xops[i].op == RECIPE_XOP_HEX) hex = true;
     }
   }
 
@@ -3422,15 +4550,26 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
   if (prog.salt_dec != RECIPE_DEC_NONE) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SALT_DEC=%u", prog.salt_dec);
 
+  // The fields the recipe reads, as a bit mask, and the size of each one's slot in salt_buf_pc.
+
+  if (prog.fields != 0) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_LINE_FIELDS=%u -D RECIPE_FIELD_WORDS=%u", prog.fields, RECIPE_FIELD_WORDS);
+
   // Whether the password is only hashed as parts, so the combinator kernel can hand it over as the
-  // base word and the right word, see RECIPE_TAIL in the kernel include. An HMAC key and the source
-  // of a transformed copy need it in one piece.
+  // base word and the right word. See RECIPE_TAIL in the kernel include. An HMAC key, the source of
+  // a transformed copy and a value of xor, and or or require the password in one piece.
 
   bool pass_plain = true;
 
   for (u32 k = 0; k < prog.steps_cnt; k++)
   {
     if ((prog.steps[k].kind == RECIPE_KIND_HMAC) && (prog.steps[k].key.kind == RECIPE_PART_PASS)) pass_plain = false;
+
+    if (prog.steps[k].kind != RECIPE_KIND_BOP) continue;
+
+    for (u32 i = 0; i < prog.steps[k].parts_cnt; i++)
+    {
+      if (prog.steps[k].parts[i].kind == RECIPE_PART_PASS) pass_plain = false;
+    }
   }
 
   for (u32 x = 0; x < prog.xforms_cnt; x++)
@@ -3456,18 +4595,25 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
     const bool is_hmac = (step->kind == RECIPE_KIND_HMAC);
     const bool is_aes  = (step->kind == RECIPE_KIND_AES);
+    const bool is_bop  = (step->kind == RECIPE_KIND_BOP);
+    const bool is_xfrm = (step->kind == RECIPE_KIND_XFRM);
 
     u32 lead = 0;
 
     while ((lead < step->parts_cnt) && (recipe_part_dep_on (&prog, &step->parts[lead], dep) == false)) lead++;
 
-    // An AES step always runs per candidate, see recipe_deps ().
+    // An AES step always runs per candidate, see recipe_deps (). A BOP or XFRM step runs per
+    // candidate or, when its parts do not depend on it, once per salt.
 
     u32 phase = 0;
 
     if (is_aes == true)
     {
       phase = 0;
+    }
+    else if ((is_bop == true) || (is_xfrm == true))
+    {
+      phase = (dep[k] == true) ? 0 : 1;
     }
     else if (dep[k] == false)
     {
@@ -3504,6 +4650,8 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
     if (is_hmac == true) kind = "HMAC";
     if (is_aes  == true) kind = "AES";
+    if (is_bop  == true) kind = "BOP";
+    if (is_xfrm == true) kind = "XFRM";
 
     len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_KIND=%s -D RECIPE_S%u_KEY=%s -D RECIPE_S%u_PH=P%u", k, kind, k, key, k, phase);
 
@@ -3538,10 +4686,32 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
       }
     }
 
+    // A BOP step specifies its operation, its maximum number of output bytes rounded up to whole
+    // words, and whether its output is cut. See RECIPE_STEP_BOP in the kernel include.
+
+    if (is_bop == true)
+    {
+      const u32 most = (step->data_len + 3) & ~3u;
+
+      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_BOP=%u -D RECIPE_S%u_BMAX=%u -D RECIPE_S%u_BFIX=%u", k, step->aop, k, most, k, (recipe_bop_cuts (step) == true) ? 1 : 0);
+    }
+
+    // An XFRM step specifies its transforms in the form used for a copy, and the maximum number of
+    // bytes before applying its output format. See RECIPE_STEP_XFRM in the kernel include.
+
+    if (is_xfrm == true)
+    {
+      const u32 most = (MIN (step->data_len, RECIPE_MAX_BOP) + 3) & ~3u;
+
+      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_BMAX=%u", k, most);
+
+      len = recipe_jit_xops (buf, sizeof (buf), len, "S", k, step->xops, step->xops_cnt);
+    }
+
     // A step whose first P slot is the password can start from the base word, which the combinator
     // kernel then feeds once per work item. See RECIPE_S<k>_BW in the kernel include.
 
-    const bool bw_phase = (is_aes == false) && (((is_hmac == false) && ((phase == 0) || (phase == 3))) || ((is_hmac == true) && (phase == 2)));
+    const bool bw_phase = (is_aes == false) && (is_bop == false) && (is_xfrm == false) && (((is_hmac == false) && ((phase == 0) || (phase == 3))) || ((is_hmac == true) && (phase == 2)));
 
     const bool bw = (bw_phase == true) && (q_cnt < step->parts_cnt) && (step->parts[q_cnt].kind == RECIPE_PART_PASS);
 
@@ -3625,15 +4795,43 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
       recipe_part_token (&prog, &prog.kdf_key,  false, dep, key_tok,  sizeof (key_tok));
       recipe_part_token (&prog, &prog.kdf_salt, false, dep, salt_tok, sizeof (salt_tok));
 
-      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF=%s -D RECIPE_KDF_BLOCKS=%u -D RECIPE_KDF_DKLEN=%u -D RECIPE_KDF_FMT=%u -D RECIPE_KDF_KEY=%s -D RECIPE_KDF_SALT=%s -D RECIPE_KDF_OUT=%u", recipe_algo_name (prog.kdf_algo), prog.kdf_blocks, prog.kdf_dklen, prog.kdf_fmt, key_tok, salt_tok, prog.kdf_out);
+      // PBKDF2 computes each block on its own, so the device computes only the blocks from the
+      // first to the last one that is read: the whole key for a call that reads it, its first 16
+      // bytes for the whole key as the result, and each slice. The comp kernel writes them from the first of those blocks on, as
+      // RECIPE_KDF_DKLEN bytes.
 
-      // Each slice of the derived key: its carried variable, its first word and its word count.
+      const u32 hlen = recipe_digest_len (prog.kdf_algo);
+
+      u32 lo = (prog.kdf_whole == 1) ? 0 : prog.kdf_dklen;
+      u32 hi = (prog.kdf_whole == 1) ? prog.kdf_dklen : 0;
+
+      if (prog.kdf_raw == 1) lo = 0;
+      if (prog.kdf_raw == 1) hi = MAX (hi, 16);
+
+      for (u32 i = 0; i < prog.kdf_slices_cnt; i++)
+      {
+        lo = MIN (lo, prog.kdf_slice_start[i]);
+        hi = MAX (hi, prog.kdf_slice_start[i] + prog.kdf_slice_len[i]);
+      }
+
+      const u32 first  = lo / hlen;
+      const u32 blocks = ((hi + hlen - 1) / hlen) - first;
+      const u32 skip   = first * hlen;
+      const u32 dklen  = MIN (prog.kdf_dklen, (first + blocks) * hlen) - skip;
+
+      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF=%s -D RECIPE_KDF_FIRST=%u -D RECIPE_KDF_BLOCKS=%u -D RECIPE_KDF_DKLEN=%u -D RECIPE_KDF_FMT=%u -D RECIPE_KDF_KEY=%s -D RECIPE_KDF_SALT=%s -D RECIPE_KDF_OUT=%u", recipe_algo_name (prog.kdf_algo), first, blocks, dklen, prog.kdf_fmt, key_tok, salt_tok, prog.kdf_out);
+
+      if (prog.kdf_whole == 1) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF_WHOLE");
+      if (prog.kdf_raw   == 1) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF_RAW");
+
+      // Each slice of the derived key specifies its carried variable, its first word counted from
+      // the first computed block, and the number of words it contains.
 
       len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF_SLICES=%u", prog.kdf_slices_cnt);
 
       for (u32 i = 0; i < prog.kdf_slices_cnt; i++)
       {
-        len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF_SL%u_V=%u -D RECIPE_KDF_SL%u_W=%u -D RECIPE_KDF_SL%u_N=%u", i, prog.kdf_slice_var[i], i, prog.kdf_slice_start[i] / 4, i, prog.kdf_slice_len[i] / 4);
+        len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_KDF_SL%u_V=%u -D RECIPE_KDF_SL%u_W=%u -D RECIPE_KDF_SL%u_N=%u", i, prog.kdf_slice_var[i], i, (prog.kdf_slice_start[i] - skip) / 4, i, prog.kdf_slice_len[i] / 4);
       }
     }
 
@@ -3702,40 +4900,15 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
     const char *src = "SALT";
 
-    if (xform->src == RECIPE_PART_PASS)  src = "PASS";
-    if (xform->src == RECIPE_PART_SALTD) src = "SALTD";
+    if (xform->src == RECIPE_PART_PASS)   src = "PASS";
+    if (xform->src == RECIPE_PART_SALTD)  src = "SALTD";
+    if (xform->src == RECIPE_PART_SALT2)  src = "SALT2";
+    if (xform->src == RECIPE_PART_PEPPER) src = "PEPPER";
+    if (xform->src == RECIPE_PART_USER)   src = "USER";
 
     len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_X%u_SRC=%s", x, src);
 
-    for (u32 i = 0; i < RECIPE_MAX_XOPS; i++)
-    {
-      if (i >= xform->ops_cnt)
-      {
-        len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_X%u_O%u=NONE", x, i);
-
-        continue;
-      }
-
-      const recipe_xop_entry_t *op = &xform->ops[i];
-
-      const u64 a = (u64) op->a;
-
-      const u32 a_lo = (u32) (a >>  0);
-      const u32 a_hi = (u32) (a >> 32);
-
-      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_X%u_O%u=%s", x, i, RECIPE_XOP_NAMES[op->op]);
-
-      if (op->op == RECIPE_XOP_WPERM)
-      {
-        len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_X%u_A%u=0x%08x -D RECIPE_X%u_H%u=0x%08x", x, i, a_lo, x, i, a_hi);
-      }
-      else
-      {
-        len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_X%u_A%u=%d -D RECIPE_X%u_H%u=0", x, i, (int) op->a, x, i);
-      }
-
-      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_X%u_B%u=%d -D RECIPE_X%u_L%u=%u", x, i, (int) op->b, x, i, (op->has_len == true) ? 1 : 0);
-    }
+    len = recipe_jit_xops (buf, sizeof (buf), len, "X", x, xform->ops, xform->ops_cnt);
   }
 
   char *jit_build_options = NULL;
@@ -4109,6 +5282,9 @@ typedef struct recipe_env
   u32 sd[RECIPE_MAX_XBYTES / 4];
   u32 sd_len;
 
+  u32 f[RECIPE_MAX_FIELDS][RECIPE_MAX_XBYTES / 4];
+  u32 fl[RECIPE_MAX_FIELDS];
+
   u32 lits[RECIPE_MAX_LITS][RECIPE_MAX_LIT / 4];
 
   u32 outs[RECIPE_MAX_STEPS][32];
@@ -4137,6 +5313,14 @@ static void recipe_env_part (const recipe_prog_t *prog, const recipe_env_t *env,
   if (part->kind == RECIPE_PART_STEP)  { *buf = env->outs[part->idx]; *len = env->out_lens[part->idx];    }
   if (part->kind == RECIPE_PART_XFORM) { *buf = env->xbufs[part->idx]; *len = env->xlens[part->idx];      }
   if (part->kind == RECIPE_PART_VAR)   { *buf = env->vb[part->idx];   *len = env->vl[part->idx];          }
+
+  if (recipe_is_field (part->kind) == true)
+  {
+    const u32 f = part->kind - RECIPE_PART_SALT2;
+
+    *buf = env->f[f];
+    *len = env->fl[f];
+  }
 }
 
 // Copy a part into carried variable c, as the init and loop kernels do.
@@ -4198,6 +5382,41 @@ static void recipe_aes_block (const u32 *ks, const u32 key_len, const bool dec, 
 // For an AES step, place each data part at its fixed length and pad it with zero bytes. Prepare the
 // key and IV in the same way. The raw buffer receives output as little endian words. A failed
 // aes_unwrap check leaves the output zero, as in the kernel. Return the length of the output.
+
+// Compute the bytes of an xor, and or or call in the same way as RECIPE_STEP_BOP in the kernel
+// include. The raw buffer holds RECIPE_MAX_BOP bytes.
+
+static u32 recipe_env_bop (const recipe_step_t *step, const u32 **bufs, const u32 *lens, u32 *raw)
+{
+  const u8 *a = (const u8 *) bufs[0];
+  const u8 *b = (const u8 *) bufs[1];
+
+  const u32 la = lens[0];
+  const u32 lb = lens[1];
+
+  u32 n = MIN (MAX (la, lb), RECIPE_MAX_BOP);
+
+  if ((la == 0) || (lb == 0)) n = 0;
+
+  memset (raw, 0, RECIPE_MAX_BOP);
+
+  u8 *r = (u8 *) raw;
+
+  for (u32 i = 0; i < n; i++)
+  {
+    const u8 x = a[i % la];
+    const u8 y = b[i % lb];
+
+    u8 v = x ^ y;
+
+    if (step->aop == RECIPE_BOP_AND) v = x & y;
+    if (step->aop == RECIPE_BOP_OR)  v = x | y;
+
+    r[i] = v;
+  }
+
+  return n;
+}
 
 static u32 recipe_env_aes (const recipe_prog_t *prog, const recipe_env_t *env, const recipe_step_t *step, const u32 **bufs, const u32 *lens, u32 *raw)
 {
@@ -4369,6 +5588,37 @@ static void recipe_eval_sec (const recipe_prog_t *prog, recipe_env_t *env, const
     {
       env->raw_len = recipe_env_aes (prog, env, step, bufs, lens, env->raw);
     }
+    else if (step->kind == RECIPE_KIND_BOP)
+    {
+      env->raw_len = recipe_env_bop (step, bufs, lens, env->raw);
+    }
+    else if (step->kind == RECIPE_KIND_XFRM)
+    {
+      // As in RECIPE_STEP_XFRM in the kernel include, raw receives the first 64 bytes. The output
+      // in raw bytes can contain up to 128 bytes.
+
+      u8 x[RECIPE_MAX_XBYTES];
+
+      memset (x, 0, sizeof (x));
+      memcpy (x, bufs[0], lens[0]);
+
+      u32 l = lens[0];
+
+      for (u32 i = 0; i < step->xops_cnt; i++) l = recipe_xop_apply (&step->xops[i], x, l);
+
+      memcpy (env->raw, x, sizeof (env->raw));
+
+      env->raw_len = MIN (l, (u32) sizeof (env->raw));
+
+      if (step->fmt == RECIPE_FMT_RAW)
+      {
+        memcpy (env->outs[k], x, sizeof (env->outs[k]));
+
+        env->out_lens[k] = l;
+
+        continue;
+      }
+    }
     else if (step->kind == RECIPE_KIND_HMAC)
     {
       const u32 *key_buf = NULL;
@@ -4396,7 +5646,17 @@ static void recipe_eval_sec (const recipe_prog_t *prog, recipe_env_t *env, const
       env->raw_len = recipe_hash_parts (step->algo, &chain_buf, &chain_len, &chain_wide, 1, env->raw);
     }
 
-    recipe_format (step->fmt, env->raw, env->raw_len, env->outs[k]);
+    const u32 out_len = recipe_format (step->fmt, env->raw, env->raw_len, env->outs[k]);
+
+    // The output of xor, and or or that is not cut, and the output of transforms, retain their
+    // current lengths at run time.
+
+    if (((step->kind == RECIPE_KIND_BOP) && (recipe_bop_cuts (step) == false)) || (step->kind == RECIPE_KIND_XFRM))
+    {
+      env->out_lens[k] = out_len;
+
+      continue;
+    }
 
     u8 *o = (u8 *) env->outs[k];
 
@@ -4480,7 +5740,8 @@ static void recipe_env_kdf (const recipe_prog_t *prog, recipe_env_t *env)
 
   u32 text[32];
 
-  const u32 text_len = recipe_format (prog->kdf_fmt, dk, prog->kdf_dklen, text);
+  const u32 fmt      = (prog->kdf_raw == 1) ? RECIPE_FMT_RAW : prog->kdf_fmt;
+  const u32 text_len = recipe_format (fmt, dk, prog->kdf_dklen, text);
 
   memset (env->vb[prog->kdf_out], 0, sizeof (env->vb[prog->kdf_out]));
   memcpy (env->vb[prog->kdf_out], text, text_len);
@@ -4498,6 +5759,34 @@ static void recipe_env_kdf (const recipe_prog_t *prog, recipe_env_t *env)
   }
 }
 
+// Pack field into its slot of salt_buf_pc, specified by RECIPE_FIELD_WORDS, and pack its length
+// into the last word. The caller must keep len at or below RECIPE_FIELD_MAX.
+
+void recipe_field_set (u32 *fields, const u32 field, const u8 *buf, const u32 len)
+{
+  u8 *slot = (u8 *) (fields + (field * RECIPE_FIELD_WORDS));
+
+  memset (slot, 0, RECIPE_FIELD_MAX);
+  memcpy (slot, buf, len);
+
+  u8 *lens = (u8 *) (fields + RECIPE_FIELD_LENS);
+
+  lens[field] = (u8) len;
+}
+
+// Unpack field into buf, which holds RECIPE_FIELD_MAX bytes, and return its length.
+
+u32 recipe_field_get (const u32 *fields, const u32 field, u8 *buf)
+{
+  const u8 *lens = (const u8 *) (fields + RECIPE_FIELD_LENS);
+
+  const u32 len = MIN (lens[field], RECIPE_FIELD_MAX);
+
+  memcpy (buf, fields + (field * RECIPE_FIELD_WORDS), len);
+
+  return len;
+}
+
 // Evaluate the recipe on the host for the self-test, using emulated kernel functions. A device
 // self-test failure therefore points at that device's build of the kernel rather than at the recipe.
 // The raw buffer receives the final digest as little endian words, up to 64 bytes. Return its
@@ -4505,7 +5794,7 @@ static void recipe_env_kdf (const recipe_prog_t *prog, recipe_env_t *env)
 // number of iterations here as on the device. Its count therefore determines the self-test's
 // running time on one CPU core.
 
-u32 recipe_eval (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, const u8 *salt, const u32 salt_len, u32 *raw, u8 *out, u32 *out_len)
+u32 recipe_eval (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, const u8 *salt, const u32 salt_len, const u32 *fields, u32 *raw, u8 *out, u32 *out_len)
 {
   recipe_env_t *env = (recipe_env_t *) hccalloc (1, sizeof (recipe_env_t));
 
@@ -4514,6 +5803,13 @@ u32 recipe_eval (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, cons
 
   memcpy (env->w, pw,   env->pw_len);
   memcpy (env->s, salt, env->salt_len);
+
+  // salt2, pepper and user, packed as in salt_buf_pc.
+
+  if (fields != NULL)
+  {
+    for (u32 f = 0; f < RECIPE_MAX_FIELDS; f++) env->fl[f] = recipe_field_get (fields, f, (u8 *) env->f[f]);
+  }
 
   for (u32 l = 0; l < prog->lits_cnt; l++) memcpy (env->lits[l], prog->lits[l], prog->lit_lens[l]);
 
@@ -4532,6 +5828,12 @@ u32 recipe_eval (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, cons
 
     if (xform->src == RECIPE_PART_PASS)  { src = env->w;  src_len = env->pw_len; }
     if (xform->src == RECIPE_PART_SALTD) { src = env->sd; src_len = env->sd_len; }
+
+    if (recipe_is_field (xform->src) == true)
+    {
+      src     = env->f[xform->src - RECIPE_PART_SALT2];
+      src_len = env->fl[xform->src - RECIPE_PART_SALT2];
+    }
 
     memcpy (env->xbufs[x], src, RECIPE_MAX_XBYTES);
 

@@ -6298,7 +6298,8 @@ def main():
   ap.add_argument("--skip-clean-cache", dest="skip_clean_cache", action="store_true",
                   help="do not clear Apple's Metal compiler caches before the run (Darwin only)")
   ap.add_argument("--metal-compiler-runtime", dest="metal_compiler_runtime", type=int, default=None,
-                  help="hashcat --metal-compiler-runtime in seconds, for a Metal build that needs longer")
+                  help="hashcat --metal-compiler-runtime in seconds, for a Metal build that needs "
+                       "longer than hashcat's 180")
   ap.add_argument("--verbose", dest="verbose", action="store_true",
                   help="drop hashcat's --quiet, so every run's Status, speed and timing reach "
                        "logfull.txt instead of only its cracks")

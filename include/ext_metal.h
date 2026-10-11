@@ -155,7 +155,6 @@ int  hc_mtlReleaseFunction                  (void *hashcat_ctx, mtl_function *me
 int  hc_mtlReleasePipeline                  (void *hashcat_ctx, mtl_pipeline *metal_pipeline);
 int  hc_mtlReleaseLibrary                   (void *hashcat_ctx, mtl_library *metal_library);
 int  hc_mtlReleaseCommandQueue              (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue);
-int  hc_mtlReleaseDevice                    (void *hashcat_ctx, mtl_device_id *metal_device);
 
 int  hc_mtlCreateLibraryWithSource          (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *include_path, mtl_library *metal_library);
 int  hc_mtlArchiveOpen                      (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable);
@@ -166,6 +165,7 @@ int  hc_mtlEncodeComputeCommand_pre         (void *hashcat_ctx, void *device_par
 int  hc_mtlSetCommandEncoderArg             (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id buf, void *host_data, size_t host_data_size);
 
 int  hc_mtlEncodeComputeCommand             (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms);
+int  hc_mtlEncodeComputeCommand_abort       (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer);
 
 int  hc_mtlFinish                           (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue);
 

@@ -17,12 +17,14 @@ In a Unix shell, quote the recipe with single quotes and write strings inside it
 ## Hash line
 
 Each hash line contains the recipe's output, followed by `*` and the salt. The output uses hex
-unless the recipe produces a base64 result. In that case, it uses base64. Keep the `*` even when the
-recipe does not use a salt:
+unless the recipe produces a base64 result. In that case, it uses base64. For a recipe that does
+not use a salt, the `*` after the digest is optional, so the second and third lines are the same
+hash:
 
 ```
 ab8faf3c7835359d3a2f1ba736f3b3a3*x7Qp
 a930da511a48094f9d543d349a3d329c*
+a930da511a48094f9d543d349a3d329c
 ```
 
 A recipe that uses `iter` adds a `*` and the iteration count after the salt:
@@ -30,6 +32,27 @@ A recipe that uses `iter` adds a `*` and the iteration count after the salt:
 ```
 3d1e5ee7417951b10852c0ceb6ccc2ab*x7Qp*5000
 ```
+
+A recipe that uses `salt2`, `pepper` or `user` adds each of them after the salt, in that order and
+before the iteration count. A line carries only the fields its recipe uses. These fields cannot
+contain a `*`, while the salt can. This line is for `md5(pass . user)` with an empty salt:
+
+```
+0a245ea64f49f9aa79fa9c79bbd95c8d**admin
+```
+
+With `--username`, `user` comes from the hash list instead. Hashcat splits it off each input line,
+so the hash line has no user field. Together with lines that contain only the digest, this lets
+hashcat read the hash list formats that `--username` supports, such as `user:hash` and passwd
+files. With
+`md5(pass . user)` and `--username`, this line represents the same hash as the one above:
+
+```
+admin:0a245ea64f49f9aa79fa9c79bbd95c8d
+```
+
+The potfile always writes the user on the line, so a potfile entry matches with and without
+`--username`.
 
 Only the first 16 bytes of the digest are compared. Cracking accepts either hex case, and base64
 with or without `=` padding. The outfile and output from `--show` preserve the original hash line.
@@ -43,6 +66,7 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 |---|---|
 | `pass` | The password candidate |
 | `salt` | The salt from the hash line |
+| `salt2`, `pepper`, `user` | Further fields from the hash line, see [Hash line](#hash-line) |
 | `"text"`, `'text'` | A string. Double quotes support the escapes `\\` `\"` `\'` `\n` `\r` `\t` `\0` and `\xHH`. Single quotes preserve every byte |
 | `a . b` | Concatenation |
 | `md4(x)` `md5(x)` `sha1(x)` `sha224(x)` `sha256(x)` `sha384(x)` `sha512(x)` | Hash of `x`, as lowercase hex |
@@ -70,6 +94,9 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `bswap32(x)` | Reverses each complete group of 4 bytes and leaves any trailing bytes unchanged |
 | `wperm(x, w0, w1, ...)` | Reorders the 4-byte words of `x` using the given zero-based indices |
 | `utf16le(x)` | Converts `x` to UTF-16LE. Passwords and salts are decoded from UTF-8. Hex output and ASCII strings get a zero byte after each byte |
+| `utf16be(x)` | Converts `x` from UTF-8 to UTF-16BE. A value that is not well-formed UTF-8 gives an empty result |
+| `zext16(x)` | Appends a zero byte after each input byte, without decoding the input. For ASCII, it produces the same bytes as `utf16le(x)` |
+| `xor(a, b)` `and(a, b)` `or(a, b)` | Combines `a` and `b` byte by byte, as raw bytes. The shorter value repeats to the length of the longer one. An empty value gives an empty result |
 | `( ... )` | Grouping |
 | `# ...` | A comment to the end of the line |
 | `h = x` | Assigns `x` to the variable `h`, for the statements that follow |
@@ -80,7 +107,7 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `length(x) > 0` | As the last statement, true when `x`, an `aes_unwrap` call, passes its integrity check |
 
 All hash families support the same suffixes and `^N` syntax. When applied to a concatenation, the
-transforms `upper`, `lower`, `hex`, `rot13` and `utf16le` act on each element.
+transforms `upper`, `lower`, `hex`, `rot13`, `zext16` and `utf16le` act on each element.
 
 A variable stands for the expression assigned to it, and the last statement must be an expression.
 A hash call that appears more than once, for example through a variable, is computed once:
@@ -112,10 +139,11 @@ hex(h)
 
 A recipe with a loop runs as a slow hash, so the iteration count determines the cost of each
 candidate. The body can contain only variable assignments, and each assignment must assign a hash
-call. A variable that the body reads before assigning it contains its value from the previous
-iteration. On the first iteration, it contains its value from before the loop. The result can be a
-hash call or a carried variable, used directly or wrapped in `hex` or `base64` for raw bytes, or
-`upper` or `lower` for hex output.
+call, an `xor`, `and` or `or` call, or a transformed value such as `rev(h)`. A variable that the
+body reads before assigning it contains its value from the previous iteration. On the first
+iteration, it contains its value from before the loop. The result can be a hash call or a carried
+variable, used directly or wrapped in `hex` or `base64` for raw bytes, or `upper` or `lower` for
+hex output.
 
 ## Key derivation
 
@@ -140,6 +168,26 @@ provide both an AES key and its IV. Each cut must start and end at a multiple of
 dk = pbkdf2_sha256_bin(pass, cut(fromhex(salt), 0, 16), iter, 48)
 aes_cbc_decrypt(cut(dk, 0, 32), cut(dk, 32, 16), cut(fromhex(salt), 16, 16))
 ```
+
+Other transforms of a derived key, such as `rev`, `hex` of the `_bin` form or a cut that does not
+start and end at a multiple of 4 bytes, apply to the whole key as they apply to a hash output.
+
+A format may store only part of its derived key. For such a format, a cut can also be the recipe's
+result. Write it as `hex` or `base64` of a cut of the `_bin` form, or cut the hex form using offsets
+and lengths counted in hex characters. The result must retain at least 16 bytes. Both examples below
+return the last 32 bytes of a 64 byte key:
+
+```
+hex(cut(pbkdf2_sha256_bin(pass, salt, iter, 64), 32, 32))
+cut(pbkdf2_sha256(pass, salt, iter, 64), 64, 64)
+```
+
+PBKDF2 computes its derived key in blocks the size of its hash digest. Mode 4000 computes only the
+blocks from the first to the last one that the recipe reads. A cut skips the blocks before its
+selected range, as the 2 examples above
+skip the first block. When the whole key is the result, only the block containing its first 16 bytes
+is needed. Those are the bytes compared, so using a longer key does not make the recipe slower.
+Transforms other than such cuts read every block.
 
 ## Ciphers
 
@@ -223,6 +271,10 @@ produces from its salt.
 | `h = md5(salt); md5(h . pass)` | `md5(md5(salt) . pass)` |
 | `sha1_b64(pass)` | mode 101 without the `{SHA}` prefix |
 | `md5(md5_b64(pass) . salt)` | |
+| `md5(xor(sha1_bin(pass), salt))` | the salt repeats over the 20 digest bytes |
+| `hex(xor(md5_bin(pass), md5_bin(salt)))` | |
+| `md5(rev(md5(pass)))` | |
+| `sha1(pad(md5_bin(pass), 32))` | |
 
 ## Limits
 
@@ -232,10 +284,10 @@ produces from its salt.
   `salt2`, `pepper`, `user`, `iter`, `for`, `to`, `if` and `else`. The value `iter` can only be used
   as the last bound of a loop or as the iteration count of `pbkdf2`.
 - A recipe supports one loop with integer bounds, running from 1 to 10000000 times. Up to 4
-  variables can be carried through it. The body cannot yet read the loop counter or apply a
-  transform to a variable carried through the loop. The self-test runs the loop on the host, so a
-  long loop delays the start of the attack.
-- A recipe supports up to 3 different cuts of its derived key. A cut cannot be the result yet.
+  variables can be carried through it. The body cannot yet read the loop counter. The self-test
+  runs the loop on the host, so a long loop delays the start of the attack.
+- A recipe supports up to 3 different cuts of its derived key, including a cut used as the
+  recipe's result. A cut of the derived key's base64 form is not supported.
 - A recipe supports one `pbkdf2` call and cannot combine it with a loop. Its key and salt must each
   be a single value, as required for a variable carried through a loop. The derived key's length
   must be a multiple of 4, from 4 to 64 bytes. When used as the result, the derived key must be at
@@ -251,44 +303,68 @@ produces from its salt.
   key instead of hx's empty string.
 - A loop up to `iter` has to start at 0 or 1. The hash line can give `iter` up to 999999999, and
   the self-test uses 1000.
-- Passwords and salts can contain up to 256 bytes. Applying `hex` reduces the limit for that input
-  to 128 bytes.
-- A recipe supports up to 4 transformed copies of `pass` and `salt`, such as `upper(pass)` or
-  `pad(salt, 16)`, with up to 4 transforms per copy. `utf16le` must be the outermost transform.
-- The transforms `rev`, `rotate`, `cap`, `rot13`, `pad`, `bswap32` and `wperm` accept `pass`, `salt`
-  and strings. Hash outputs are not supported yet. Except for `rot13`, these transforms and `cut`
-  accept a single element rather than a concatenation.
+- Passwords and salts can contain up to 256 bytes. Applying `hex`, `zext16` or `utf16be` reduces
+  the limit for that input to 128 bytes.
+- `salt2`, `pepper` and `user` can contain up to 84 bytes each. A transformed copy can lower that
+  limit, as it does for passwords and salts. `fromhex`, `frombase64` and `base64` do not accept them
+  yet.
+- A recipe supports up to 4 transformed copies of `pass`, `salt` and the fields, such as
+  `upper(pass)` or `pad(salt, 16)`, with up to 4 transforms per copy. `utf16le` must be the
+  outermost transform.
+- The transforms `rev`, `rotate`, `cap`, `rot13`, `pad`, `bswap32`, `wperm`, `zext16` and `utf16be`
+  accept `pass`, `salt`, the fields, strings and hash outputs. Except for `rot13` and `zext16`,
+  these transforms and `cut` accept a single element rather than a concatenation.
+- A hash output, a variable carried through a loop or the derived key of `pbkdf2` can have up to 4
+  transforms applied to it. The transformed result can contain up to 128 bytes, or up to 64 bytes
+  before a final `hex` or `base64` encoding. Applying `utf16be` to raw bytes is not supported, nor
+  is applying it to a carried variable that can hold raw bytes. Applying a transform to `utf16le`
+  output is also unsupported.
 - `pad` accepts N from 0 to 256. `wperm` accepts up to 16 word indices from 0 to 15. A word beyond
   the end of `x` contributes 4 zero bytes.
 - `^N` accepts N from 1 to 100000.
-- A `cut` of a hash output must start at a multiple of 4 bytes of that output. A `cut` of its
-  `utf16le` form must preserve whole characters.
+- A `cut` of a hash output can start anywhere. One that does not start at a multiple of 4 bytes of
+  that output is applied as a transform, which counts toward its 4 transforms. A `cut` of its
+  `utf16le` form must preserve whole characters and start at a multiple of 4 bytes.
 - The key of an `hmac_` call must be a single part: `pass`, `salt`, a transformed copy of either, a
   string or a hash call. Concatenations and `utf16le` keys are not supported. Keys longer than the
   hash family's block size are hashed first, as HMAC requires.
 - `utf16le` accepts `pass`, `salt`, hex output and ASCII strings. It does not accept raw bytes or
   feed the BLAKE2 families yet. A password or salt with invalid UTF-8 cannot match a recipe
   that applies `utf16le` to it.
+- `utf16be` decodes UTF-8 strictly: overlong forms, surrogates, code points above U+10FFFF and
+  truncated sequences make the result empty. A string given to `utf16be` in the recipe must be
+  well-formed. `utf16be` cannot apply to a decoded salt or be inside `utf16le`.
+- `xor`, `and` and `or` take 2 single values: `pass`, `salt`, a field, a transformed copy, a
+  string, a hash call or a variable carried through a loop. A concatenation or a `utf16le` value
+  is not supported. Each value can contain up to 64 bytes. Using `pass`, `salt` or a field as a
+  value therefore limits that input to 64 bytes. The result has a fixed length when both values
+  have fixed lengths, as hash calls, strings and copies such as `pad(salt, 16)` do. Only a result
+  with a fixed length can be cut or used as the recipe's result. A variable carried through a loop
+  whose length changes between iterations has no fixed length.
 - The decoders `fromhex` and `frombase64` accept `salt` itself and strings. The decoder `fromhex`
   also accepts hex hash output. A recipe can decode its salt using only one encoding. Applying
   `utf16le` to a decoded salt is not supported. The hash line preserves the salt as encoded text. A
   salt with invalid hex or base64 is rejected when the hash file is loaded. A string with an invalid
   encoding in the recipe is rejected at startup.
-- `base64` accepts a whole `_bin` hash call and strings, not `pass`, `salt`, a concatenation or a
-  cut of a digest. `upper`, `lower`, `hex` and `fromhex` do not accept base64 output.
-- The result must be a hash call or an AES call in hex or base64, optionally wrapped in `upper`,
-  `lower`, `hex`, `base64`, `cut` or `trunc`. It must retain at least the first 32 hex characters or
-  22 base64 characters. A `pbkdf2` call or a variable carried through a loop can be the result as
-  well, wrapped only in `hex` or `base64` of raw bytes or in `upper` or `lower` of hex. The result
-  can also be a comparison. See [Comparisons](#comparisons).
+- `base64` accepts hash outputs and strings, not `pass`, `salt` or a concatenation. Applied to
+  anything but a whole `_bin` output, as in `base64(md5(pass))`, it has to be the outermost
+  transform of that output. `fromhex` does not accept base64 output.
+- The result must be a hash, AES, `xor`, `and` or `or` call in hex or base64, optionally wrapped in
+  `upper`, `lower`, `hex`, `base64`, `cut` or `trunc`. It must retain at least the first 32 hex
+  characters or 22 base64 characters. A `pbkdf2` call or a variable carried through a loop can be
+  the result as well, wrapped in `hex` or `base64` of raw bytes or in `upper` or `lower` of hex. A
+  `pbkdf2` call can also be cut. See [Key derivation](#key-derivation). Such a cut can start at any
+  offset that is a multiple of 4 bytes. A transformed hash output, carried variable or derived key
+  can be the result when its transforms end in `hex` or `base64` and its length is fixed, as in
+  `hex(rev(md5_bin(pass)))`. The result can also be a comparison. See [Comparisons](#comparisons).
 
 ## Not supported yet
 
 Mode 4000 supports only part of hx. It does not support nested or several loops, `if`, `emit`, key
-derivation other than `pbkdf2`, ciphers other than AES or character encodings other than `utf16le`.
-Hash families such as Whirlpool, Streebog, SHA-3 and Keccak are also unsupported, as are `xor`,
-`and` and `or`. `length` is supported only in `length(aes_unwrap(kek, x)) > 0`. A recipe that uses
-an unsupported feature is rejected at startup with the reason and position of the error.
+derivation other than `pbkdf2`, ciphers other than AES or character encodings other than `utf16le`
+and `utf16be`. Hash families such as Whirlpool, Streebog, SHA-3 and Keccak are also unsupported.
+`length` is supported only in `length(aes_unwrap(kek, x)) > 0`. A recipe that uses an unsupported
+feature is rejected at startup with the reason and position of the error.
 
 Mode 74000's dynamic plugin supports bcrypt. It runs on the CPU and is much slower for fast hashes.
 

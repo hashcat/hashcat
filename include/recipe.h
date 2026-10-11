@@ -32,10 +32,33 @@
 
 #define RECIPE_MAX_AES 64
 
+// The values produced by xor, and and or can contain up to RECIPE_MAX_BOP bytes, which fit
+// in a step's raw output.
+
+#define RECIPE_MAX_BOP 64
+
 // A cut of a raw derived key, such as cut (dk, 32, 16), uses its own carried variable. The derived
 // key occupies one of the RECIPE_MAX_CARRY variables, and its slices occupy the others.
 
 #define RECIPE_MAX_KDF_SLICES 3
+
+// The hash line supplies salt2, pepper and user. Each field occupies a slot of RECIPE_FIELD_WORDS
+// words in salt_buf_pc. The final word of salt_buf_pc stores their lengths, using 1 byte per field.
+// The sort_by_salt () call compares the whole buffer. This keeps lines separate even when their
+// only difference is how the bytes are split between the fields.
+
+#define RECIPE_MAX_FIELDS  3
+#define RECIPE_FIELD_WORDS 21
+#define RECIPE_FIELD_MAX   (RECIPE_FIELD_WORDS * 4)
+#define RECIPE_FIELD_LENS  (RECIPE_MAX_FIELDS * RECIPE_FIELD_WORDS)
+
+typedef enum recipe_field
+{
+  RECIPE_FIELD_SALT2  = 0,
+  RECIPE_FIELD_PEPPER = 1,
+  RECIPE_FIELD_USER   = 2,
+
+} recipe_field_t;
 
 // Kernel type for the recipe kernels in OpenCL/m04000_*-pure.cl.
 
@@ -57,6 +80,8 @@ typedef enum recipe_algo
   RECIPE_ALGO_BLAKE2S256 = 11,
   RECIPE_ALGO_SM3        = 12,
   RECIPE_ALGO_AES        = 13,
+  RECIPE_ALGO_BOP        = 14,
+  RECIPE_ALGO_XFRM       = 15,
 
 } recipe_algo_t;
 
@@ -69,17 +94,33 @@ typedef enum recipe_fmt
 
 } recipe_fmt_t;
 
-// A step is a plain hash call, an HMAC or an AES call. An HMAC step hashes key ^ ipad followed by
-// its parts. It then hashes key ^ opad followed by that digest. An AES step encrypts or decrypts
-// its parts using its key. See recipe_aes_op_t for the AES operations.
+// A step is a plain hash call, an HMAC, an AES call, a bitwise call, or transforms of a hash
+// output. The bitwise calls are xor, and, and or. An HMAC step hashes key ^ ipad followed by its
+// parts. It then hashes key ^ opad followed by that digest. An AES step encrypts or decrypts its
+// parts using its key. See recipe_aes_op_t for the AES operations. A BOP step combines its 2 parts
+// byte by byte. See recipe_bop_op_t. An XFRM step applies the transforms of a copy to another
+// step's output, as in rev (md5 (pass)).
 
 typedef enum recipe_step_kind
 {
   RECIPE_KIND_HASH = 0,
   RECIPE_KIND_HMAC = 1,
   RECIPE_KIND_AES  = 2,
+  RECIPE_KIND_BOP  = 3,
+  RECIPE_KIND_XFRM = 4,
 
 } recipe_step_kind_t;
+
+// xor (a, b), and (a, b) and or (a, b). The shorter value repeats to the length of the longer one,
+// and an empty value gives an empty result, as in hx. Each value is at most RECIPE_MAX_BOP bytes.
+
+typedef enum recipe_bop_op
+{
+  RECIPE_BOP_XOR = 1,
+  RECIPE_BOP_AND = 2,
+  RECIPE_BOP_OR  = 3,
+
+} recipe_bop_op_t;
 
 // aes_ecb_encrypt (key, pt), aes_cbc_encrypt (key, iv, pt), aes_cbc_decrypt (key, iv, ct) and
 // aes_unwrap (kek, wrapped), see OpenCL/inc_cipher_aes-modes.cl. RECIPE_AES_UNWRAP_A is the unwrap
@@ -98,13 +139,16 @@ typedef enum recipe_aes_op
 
 typedef enum recipe_part_kind
 {
-  RECIPE_PART_PASS  = 1,
-  RECIPE_PART_SALT  = 2,
-  RECIPE_PART_LIT   = 3,
-  RECIPE_PART_STEP  = 4,
-  RECIPE_PART_XFORM = 5,
-  RECIPE_PART_SALTD = 6,
-  RECIPE_PART_VAR   = 7,
+  RECIPE_PART_PASS   = 1,
+  RECIPE_PART_SALT   = 2,
+  RECIPE_PART_LIT    = 3,
+  RECIPE_PART_STEP   = 4,
+  RECIPE_PART_XFORM  = 5,
+  RECIPE_PART_SALTD  = 6,
+  RECIPE_PART_VAR    = 7,
+  RECIPE_PART_SALT2  = 8,
+  RECIPE_PART_PEPPER = 9,
+  RECIPE_PART_USER   = 10,
 
 } recipe_part_kind_t;
 
@@ -158,6 +202,12 @@ typedef enum recipe_xop
 
   RECIPE_XOP_FROMHEX = 12,
   RECIPE_XOP_FROMB64 = 13,
+
+  // zext16 appends a zero byte after each input byte. utf16be decodes UTF-8 and writes UTF-16BE. It
+  // returns an empty result for input that is not well-formed UTF-8, as hx does.
+
+  RECIPE_XOP_ZEXT16  = 14,
+  RECIPE_XOP_UTF16BE = 15,
 
 } recipe_xop_t;
 
@@ -223,13 +273,22 @@ typedef struct recipe_step
 
   // An AES step stores its operation, its IV for CBC, and the fixed lengths of its key, data and
   // each part within the data. If a part is shorter than its fixed length at run time, it is padded
-  // with zero bytes to that length.
+  // with zero bytes to that length. A BOP step stores its operation and the fixed lengths of its 2
+  // parts, or 0 for a length that is not fixed. The data_len member stores the maximum number of
+  // bytes it produces. Its cut_len is 0 when its length is not fixed.
 
   u32           aop;
   recipe_part_t iv;
   u32           key_len;
   u32           data_len;
   u32           part_lens[RECIPE_MAX_PARTS];
+
+  // An XFRM step stores its transforms from innermost to outermost. Its one part is the output to
+  // transform. As for a BOP step, data_len stores the maximum number of bytes before applying its
+  // output format. The cut_len member is 0 when its length is not fixed.
+
+  recipe_xop_entry_t xops[RECIPE_MAX_XOPS];
+  u32                xops_cnt;
 
 } recipe_step_t;
 
@@ -248,6 +307,12 @@ typedef struct recipe_prog
   // The salt decoding method selected by the recipe. See recipe_dec_t.
 
   u32 salt_dec;
+
+  // Whether the recipe reads the salt, and the fields it reads as a bit mask of
+  // recipe_field_t.
+
+  u32 salt_read;
+  u32 fields;
 
   // The encoding of the result on the hash line: RECIPE_FMT_HEX, RECIPE_FMT_HEXU or RECIPE_FMT_B64.
 
@@ -280,6 +345,14 @@ typedef struct recipe_prog
   recipe_part_t kdf_salt;
 
   u32 kdf_out;
+
+  // kdf_whole is set when a call reads the whole derived key. The kdf_raw flag is set when the
+  // whole key is used only as the result. In that case, kdf_out contains the raw bytes, of
+  // which the device compares the first 16. The device computes only the blocks from the
+  // first to the last one that these reads and the slices cover.
+
+  u32 kdf_whole;
+  u32 kdf_raw;
 
   // The slices of the derived key: the carried variable each one fills, and its start and length in
   // bytes, both multiples of 4.
@@ -316,10 +389,11 @@ typedef struct recipe_prog
   u32 cmp_len;
   u8  cmp_digest[16];
 
-  // Maximum password and salt lengths whose transformed copies fit RECIPE_MAX_XBYTES.
+  // Maximum password, salt and field lengths whose transformed copies fit RECIPE_MAX_XBYTES.
 
   u32 pw_max;
   u32 salt_max;
+  u32 field_max;
 
   // Parser error position and reason. The error pointer may refer to error_buf.
 
@@ -330,7 +404,9 @@ typedef struct recipe_prog
 } recipe_prog_t;
 
 HC_PLUGIN_API bool        recipe_compile   (recipe_prog_t *prog, const char *src);
-HC_PLUGIN_API u32         recipe_eval      (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, const u8 *salt, const u32 salt_len, u32 *raw, u8 *out, u32 *out_len);
+HC_PLUGIN_API u32         recipe_eval      (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, const u8 *salt, const u32 salt_len, const u32 *fields, u32 *raw, u8 *out, u32 *out_len);
+HC_PLUGIN_API void        recipe_field_set (u32 *fields, const u32 field, const u8 *buf, const u32 len);
+HC_PLUGIN_API u32         recipe_field_get (const u32 *fields, const u32 field, u8 *buf);
 HC_PLUGIN_API const char *recipe_algo_name (const u32 algo);
 HC_PLUGIN_API u32         recipe_xform_apply (const recipe_xform_t *xform, u8 *buf, const u32 len);
 HC_PLUGIN_API char       *recipe_jit_build_options (const char *src, const bool root_native);

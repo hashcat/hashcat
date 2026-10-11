@@ -296,6 +296,15 @@ static id hc_mtl4_begin (void *hashcat_ctx, hc_device_param_t *device_param)
   return command_buffer;
 }
 
+// A command buffer begun for work that never got encoded is ended without a commit, and the
+// allocator taken back, so that the next begin starts from a closed buffer.
+
+static void hc_mtl4_abort (hc_device_param_t *device_param, id command_buffer)
+{
+  mtl4_call (command_buffer, "endCommandBuffer");
+  mtl4_call (device_param->metal_command_allocator, "reset");
+}
+
 static int hc_mtl4_commit_and_wait (void *hashcat_ctx, hc_device_param_t *device_param, id command_buffer, double *ms)
 {
   mtl4_call (command_buffer, "endCommandBuffer");
@@ -370,6 +379,8 @@ static int hc_mtl4_copy (void *hashcat_ctx, hc_device_param_t *device_param, id 
   if (command_encoder == nil)
   {
     event_log_error (hashcat_ctx, "%s(): Metal 4 compute command encoder is nil", __func__);
+
+    hc_mtl4_abort (device_param, command_buffer);
 
     return -1;
   }
@@ -607,7 +618,7 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
   return 0;
 }
 
-int mtl_init (void *hashcat_ctx)
+static int mtl_init_inner (void *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -617,17 +628,37 @@ int mtl_init (void *hashcat_ctx)
 
   mtl->devices = nil;
 
-  if (MTLCreateSystemDefaultDevice () == nil)
+  // the device comes back retained, and it is only asked for here to know whether Metal is there
+
+  mtl_device_id default_device = MTLCreateSystemDefaultDevice ();
+
+  if (default_device == nil)
   {
     event_log_error (hashcat_ctx, "Metal is not supported on this computer");
 
     return -1;
   }
 
+  #if !__has_feature(objc_arc)
+  [default_device release];
+  #endif
+
   return 0;
 }
 
-void mtl_close (void *hashcat_ctx)
+// Every function the backend calls, but hc_mtlEncodeComputeCommand_pre (), runs its _inner body
+// inside an autorelease pool. The threads that call them have none, so what Metal hands back
+// autoreleased would otherwise pile up for as long as the thread runs.
+
+int mtl_init (void *hashcat_ctx)
+{
+  @autoreleasepool
+  {
+    return mtl_init_inner (hashcat_ctx);
+  }
+}
+
+static void mtl_close_inner (void *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -637,17 +668,8 @@ void mtl_close (void *hashcat_ctx)
   {
     if (mtl->devices)
     {
-      int count = (int) CFArrayGetCount (mtl->devices);
-
-      for (int i = 0; i < count; i++)
-      {
-        mtl_device_id device = (mtl_device_id) CFArrayGetValueAtIndex (mtl->devices, i);
-
-        if (device != nil)
-        {
-          hc_mtlReleaseDevice (hashcat_ctx, &device);
-        }
-      }
+      // the array holds hashcat's only reference to each device, since hc_mtlDeviceGet hands them
+      // out without one of their own
 
       CFRelease (mtl->devices);
 
@@ -660,7 +682,15 @@ void mtl_close (void *hashcat_ctx)
   }
 }
 
-int hc_mtlDeviceGetCount (void *hashcat_ctx, int *count)
+void mtl_close (void *hashcat_ctx)
+{
+  @autoreleasepool
+  {
+    mtl_close_inner (hashcat_ctx);
+  }
+}
+
+static int hc_mtlDeviceGetCount_inner (void *hashcat_ctx, int *count)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -693,7 +723,15 @@ int hc_mtlDeviceGetCount (void *hashcat_ctx, int *count)
   return 0;
 }
 
-int hc_mtlDeviceGet (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal)
+int hc_mtlDeviceGetCount (void *hashcat_ctx, int *count)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceGetCount_inner (hashcat_ctx, count);
+  }
+}
+
+static int hc_mtlDeviceGet_inner (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -722,7 +760,15 @@ int hc_mtlDeviceGet (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal
   return 0;
 }
 
-int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_id metal_device)
+int hc_mtlDeviceGet (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceGet_inner (hashcat_ctx, metal_device, ordinal);
+  }
+}
+
+static int hc_mtlDeviceGetName_inner (void *hashcat_ctx, char *name, size_t len, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -780,7 +826,15 @@ int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_i
   return 0;
 }
 
-int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t attrib, mtl_device_id metal_device)
+int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_id metal_device)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceGetName_inner (hashcat_ctx, name, len, metal_device);
+  }
+}
+
+static int hc_mtlDeviceGetAttribute_inner (void *hashcat_ctx, int *pi, metalDeviceAttribute_t attrib, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -935,7 +989,15 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
   return 0;
 }
 
-int hc_mtlMemGetInfo (void *hashcat_ctx, size_t *mem_free, size_t *mem_total)
+int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t attrib, mtl_device_id metal_device)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceGetAttribute_inner (hashcat_ctx, pi, attrib, metal_device);
+  }
+}
+
+static int hc_mtlMemGetInfo_inner (void *hashcat_ctx, size_t *mem_free, size_t *mem_total)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -982,7 +1044,15 @@ int hc_mtlMemGetInfo (void *hashcat_ctx, size_t *mem_free, size_t *mem_total)
   return 0;
 }
 
-int hc_mtlDeviceMaxMemAlloc (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
+int hc_mtlMemGetInfo (void *hashcat_ctx, size_t *mem_free, size_t *mem_total)
+{
+  @autoreleasepool
+  {
+    return hc_mtlMemGetInfo_inner (hashcat_ctx, mem_free, mem_total);
+  }
+}
+
+static int hc_mtlDeviceMaxMemAlloc_inner (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1015,7 +1085,15 @@ int hc_mtlDeviceMaxMemAlloc (void *hashcat_ctx, size_t *bytes, mtl_device_id met
   return 0;
 }
 
-int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
+int hc_mtlDeviceMaxMemAlloc (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceMaxMemAlloc_inner (hashcat_ctx, bytes, metal_device);
+  }
+}
+
+static int hc_mtlDeviceTotalMem_inner (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1060,11 +1138,19 @@ int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_
   return 0;
 }
 
+int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceTotalMem_inner (hashcat_ctx, bytes, metal_device);
+  }
+}
+
 // The free memory of a device that shares the system's is the system's free memory, read the way
 // the host side reads it, which is what cuMemGetInfo answers on the other backends. Metal has no
 // such query of its own, and a discrete GPU is answered as unknown.
 
-int hc_mtlDeviceMemFree (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
+static int hc_mtlDeviceMemFree_inner (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1092,7 +1178,15 @@ int hc_mtlDeviceMemFree (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_d
   return 0;
 }
 
-int hc_mtlCreateCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue *command_queue)
+int hc_mtlDeviceMemFree (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
+{
+  @autoreleasepool
+  {
+    return hc_mtlDeviceMemFree_inner (hashcat_ctx, bytes, metal_device);
+  }
+}
+
+static int hc_mtlCreateCommandQueue_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue *command_queue)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1154,100 +1248,129 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_dev
   return 0;
 }
 
-// A pipeline that will not build is nearly always Apple's shader compiler running out of room on one
-// of our larger kernels, not anything the user did. The error the framework hands back says only that
-// the compiler service went away, so say what that means and name the way around it.
-
-static void hc_mtlCompilerGaveUp (void *hashcat_ctx, const char *func_name)
+int hc_mtlCreateCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue *command_queue)
 {
-  event_log_warning (hashcat_ctx, "* Apple's Metal shader compiler could not build kernel '%s'.", func_name);
-  event_log_warning (hashcat_ctx, "  The kernel is too large for it. This is a limit of the compiler, not of the GPU.");
-  event_log_warning (hashcat_ctx, "  The same GPU can run this hash mode through the OpenCL backend instead.");
-  event_log_warning (hashcat_ctx, "  Use --backend-ignore-metal, or select the OpenCL device with -d.");
-  event_log_warning (hashcat_ctx, NULL);
+  @autoreleasepool
+  {
+    return hc_mtlCreateCommandQueue_inner (hashcat_ctx, device_param_ptr, metal_device, command_queue);
+  }
 }
 
-// One attempt at a pipeline, on a worker thread under the compiler timeout. The block touches
-// nothing but what it captured, since it outlives the call when the timeout hits; what it found is
-// applied to the device by the caller, once the wait has returned. With lookup the archive is asked
-// and a miss is reported in place of a build; with add, Metal 3 puts the built pipeline into the
-// archive.
+// How long a pipeline build is waited for, in seconds.
 
-static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_function mtl_func, id pipeline_desc, mtl_compiler compiler, mtl_archive archive, const bool lookup, const bool add, const char *func_name, mtl_pipeline *pipeline, bool *missed, bool *added)
+static long hc_mtlCompilerRuntime (void *hashcat_ctx)
 {
   user_options_t *user_options = ((hashcat_ctx_t *) hashcat_ctx)->user_options;
 
-  __block mtl_pipeline mtl_pipe   = nil;
-  __block bool         was_missed = false;
-  __block bool         was_added  = false;
-  __block int          rc_async   = 0;
+  return (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
+}
+
+// When a pipeline does not build, hashcat knows one of two things: the compiler returned an error,
+// or it had not finished when the time it is given ran out. The warning says which of the two.
+
+static void hc_mtlCompilerGaveUp (void *hashcat_ctx, const char *func_name, const bool timed_out)
+{
+  if (timed_out == true)
+  {
+    event_log_warning (hashcat_ctx, "* Apple's Metal shader compiler had not finished kernel '%s' after %ld seconds,", func_name, hc_mtlCompilerRuntime (hashcat_ctx));
+    event_log_warning (hashcat_ctx, "  the time --metal-compiler-runtime gives it.");
+  }
+  else
+  {
+    event_log_warning (hashcat_ctx, "* Apple's Metal shader compiler returned an error for kernel '%s'.", func_name);
+  }
+
+  event_log_warning (hashcat_ctx, "  -d can select the same GPU's OpenCL device instead, or --backend-ignore-metal skips Metal.");
+  event_log_warning (hashcat_ctx, NULL);
+}
+
+// One attempt at a pipeline, on a worker thread under the compiler timeout. The block outlives the
+// call when the timeout hits, so it touches only the objects it holds, and what it made belongs to
+// whichever of the two is done last: the caller when the build ends in time, the block otherwise.
+// With lookup the archive is asked and a miss is reported in place of a build. With add, Metal 3
+// puts the built pipeline into the archive.
+
+static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_function mtl_func, id pipeline_desc, mtl_compiler compiler, mtl_archive archive, const bool lookup, const bool add, const char *func_name, mtl_pipeline *pipeline, bool *missed, bool *added)
+{
+  __block mtl_pipeline mtl_pipe    = nil;
+  __block NSError     *build_error = nil;
+  __block bool         was_missed  = false;
+  __block bool         was_added   = false;
+
+  // 0 while the block builds, 1 once the caller has stopped waiting, 2 once the block is done
+
+  __block int state = 0;
 
   dispatch_group_t group = dispatch_group_create ();
   dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 
-  // if no user-defined runtime, set to METAL_COMPILER_RUNTIME
-
-  long timeout = (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
-
-  dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW, NSEC_PER_SEC * timeout);
+  dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW, NSEC_PER_SEC * hc_mtlCompilerRuntime (hashcat_ctx));
 
   dispatch_group_async (group, queue, ^(void)
   {
-    NSError *error = nil;
-
-    if (pipeline_desc != nil)
+    @autoreleasepool
     {
-      if (lookup == true)
+      NSError *error = nil;
+
+      if (pipeline_desc != nil)
       {
-        mtl_pipe = ((id (*) (id, SEL, id, NSError **)) objc_msgSend) (archive, mtl4_sel ("newComputePipelineStateWithDescriptor:error:"), pipeline_desc, &error);
+        if (lookup == true)
+        {
+          mtl_pipe = ((id (*) (id, SEL, id, NSError **)) objc_msgSend) (archive, mtl4_sel ("newComputePipelineStateWithDescriptor:error:"), pipeline_desc, &error);
 
-        if (mtl_pipe == nil) was_missed = true;
+          if (mtl_pipe == nil) was_missed = true;
 
-        return;
-      }
+          error = nil;
+        }
+        else
+        {
+          id (*build) (id, SEL, id, id, NSError **) = (id (*) (id, SEL, id, id, NSError **)) objc_msgSend;
 
-      id (*build) (id, SEL, id, id, NSError **) = (id (*) (id, SEL, id, id, NSError **)) objc_msgSend;
-
-      mtl_pipe = build (compiler, mtl4_sel ("newComputePipelineStateWithDescriptor:compilerTaskOptions:error:"), pipeline_desc, nil, &error);
-    }
-    else
-    {
-      MTLComputePipelineDescriptor *desc = [MTLComputePipelineDescriptor new];
-
-      desc.computeFunction = mtl_func;
-
-      if (lookup == true)
-      {
-        desc.binaryArchives = @[archive];
-
-        mtl_pipe = [metal_device newComputePipelineStateWithDescriptor: desc options: MTLPipelineOptionFailOnBinaryArchiveMiss reflection: nil error: &error];
-
-        if (mtl_pipe == nil) was_missed = true;
-
-        error = nil;
+          mtl_pipe = build (compiler, mtl4_sel ("newComputePipelineStateWithDescriptor:compilerTaskOptions:error:"), pipeline_desc, nil, &error);
+        }
       }
       else
       {
-        mtl_pipe = [metal_device newComputePipelineStateWithDescriptor: desc options: MTLPipelineOptionNone reflection: nil error: &error];
+        MTLComputePipelineDescriptor *desc = [MTLComputePipelineDescriptor new];
 
-        if ((mtl_pipe != nil) && (add == true))
+        desc.computeFunction = mtl_func;
+
+        if (lookup == true)
         {
-          NSError *add_error = nil;
+          desc.binaryArchives = @[archive];
 
-          was_added = ([(id <MTLBinaryArchive>) archive addComputePipelineFunctionsWithDescriptor: desc error: &add_error] == YES);
+          mtl_pipe = [metal_device newComputePipelineStateWithDescriptor: desc options: MTLPipelineOptionFailOnBinaryArchiveMiss reflection: nil error: &error];
+
+          if (mtl_pipe == nil) was_missed = true;
+
+          error = nil;
         }
+        else
+        {
+          mtl_pipe = [metal_device newComputePipelineStateWithDescriptor: desc options: MTLPipelineOptionNone reflection: nil error: &error];
+
+          if ((mtl_pipe != nil) && (add == true))
+          {
+            NSError *add_error = nil;
+
+            was_added = ([(id <MTLBinaryArchive>) archive addComputePipelineFunctionsWithDescriptor: desc error: &add_error] == YES);
+          }
+        }
+
+        #if !__has_feature(objc_arc)
+        [desc release];
+        #endif
       }
 
-      #if !__has_feature(objc_arc)
-      [desc release];
-      #endif
-    }
+      if (error != nil) build_error = [error retain];
 
-    if (error != nil)
-    {
-      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
-
-      rc_async = -1;
+      if (__atomic_exchange_n (&state, 2, __ATOMIC_ACQ_REL) == 1)
+      {
+        #if !__has_feature(objc_arc)
+        [mtl_pipe    release];
+        [build_error release];
+        #endif
+      }
     }
   });
 
@@ -1255,9 +1378,21 @@ static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_
 
   dispatch_release (group);
 
-  if (rc_queue != 0) return -2;
+  // a block that is done between the end of the wait and this exchange counts as done in time
 
-  if (rc_async != 0) return -1;
+  if ((rc_queue != 0) && (__atomic_exchange_n (&state, 1, __ATOMIC_ACQ_REL) == 0)) return -2;
+
+  if (build_error != nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[build_error localizedDescription] UTF8String]);
+
+    #if !__has_feature(objc_arc)
+    [build_error release];
+    [mtl_pipe    release];
+    #endif
+
+    return -1;
+  }
 
   *pipeline = mtl_pipe;
   *missed   = was_missed;
@@ -1266,7 +1401,7 @@ static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_
   return 0;
 }
 
-int hc_mtlCreateKernel (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_library metal_library, const int program, const int slot, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
+static int hc_mtlCreateKernel_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_library metal_library, const int program, const int slot, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1357,20 +1492,23 @@ int hc_mtlCreateKernel (void *hashcat_ctx, void *device_param_ptr, mtl_device_id
 
   #if !__has_feature(objc_arc)
   if (pipeline_desc != nil) [pipeline_desc release];
+
+  // the function is handed out only together with its pipeline
+  if ((rc != 0) || (mtl_pipe == nil)) [mtl_func release];
   #endif
 
   if (rc == -2)
   {
     event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached", __func__, func_name);
 
-    hc_mtlCompilerGaveUp (hashcat_ctx, func_name);
+    hc_mtlCompilerGaveUp (hashcat_ctx, func_name, true);
 
     return -1;
   }
 
   if (rc == -1)
   {
-    hc_mtlCompilerGaveUp (hashcat_ctx, func_name);
+    hc_mtlCompilerGaveUp (hashcat_ctx, func_name, false);
 
     return -1;
   }
@@ -1403,7 +1541,15 @@ int hc_mtlCreateKernel (void *hashcat_ctx, void *device_param_ptr, mtl_device_id
   return 0;
 }
 
-int hc_mtlGetMaxTotalThreadsPerThreadgroup (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *maxTotalThreadsPerThreadgroup)
+int hc_mtlCreateKernel (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_library metal_library, const int program, const int slot, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
+{
+  @autoreleasepool
+  {
+    return hc_mtlCreateKernel_inner (hashcat_ctx, device_param_ptr, metal_device, metal_library, program, slot, func_name, metal_function, metal_pipeline);
+  }
+}
+
+static int hc_mtlGetMaxTotalThreadsPerThreadgroup_inner (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *maxTotalThreadsPerThreadgroup)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1423,7 +1569,15 @@ int hc_mtlGetMaxTotalThreadsPerThreadgroup (void *hashcat_ctx, mtl_pipeline meta
   return 0;
 }
 
-int hc_mtlGetThreadExecutionWidth (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *threadExecutionWidth)
+int hc_mtlGetMaxTotalThreadsPerThreadgroup (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *maxTotalThreadsPerThreadgroup)
+{
+  @autoreleasepool
+  {
+    return hc_mtlGetMaxTotalThreadsPerThreadgroup_inner (hashcat_ctx, metal_pipeline, maxTotalThreadsPerThreadgroup);
+  }
+}
+
+static int hc_mtlGetThreadExecutionWidth_inner (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *threadExecutionWidth)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1443,7 +1597,15 @@ int hc_mtlGetThreadExecutionWidth (void *hashcat_ctx, mtl_pipeline metal_pipelin
   return 0;
 }
 
-int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *staticThreadgroupMemoryLength)
+int hc_mtlGetThreadExecutionWidth (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *threadExecutionWidth)
+{
+  @autoreleasepool
+  {
+    return hc_mtlGetThreadExecutionWidth_inner (hashcat_ctx, metal_pipeline, threadExecutionWidth);
+  }
+}
+
+static int hc_mtlGetStaticThreadgroupMemoryLength_inner (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *staticThreadgroupMemoryLength)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1463,7 +1625,15 @@ int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline meta
   return 0;
 }
 
-int hc_mtlCreateBuffer (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode)
+int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *staticThreadgroupMemoryLength)
+{
+  @autoreleasepool
+  {
+    return hc_mtlGetStaticThreadgroupMemoryLength_inner (hashcat_ctx, metal_pipeline, staticThreadgroupMemoryLength);
+  }
+}
+
+static int hc_mtlCreateBuffer_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1584,7 +1754,15 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, void *device_param_ptr, mtl_device_id
   return 0;
 }
 
-int hc_mtlReleaseMemObject (void *hashcat_ctx, void *device_param_ptr, mtl_mem_t *mem)
+int hc_mtlCreateBuffer (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode)
+{
+  @autoreleasepool
+  {
+    return hc_mtlCreateBuffer_inner (hashcat_ctx, device_param_ptr, metal_device, size, ptr, mem, metal_storage_mode);
+  }
+}
+
+static int hc_mtlReleaseMemObject_inner (void *hashcat_ctx, void *device_param_ptr, mtl_mem_t *mem)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1609,7 +1787,15 @@ int hc_mtlReleaseMemObject (void *hashcat_ctx, void *device_param_ptr, mtl_mem_t
   return 0;
 }
 
-int hc_mtlReleaseFunction (void *hashcat_ctx, mtl_function *metal_function)
+int hc_mtlReleaseMemObject (void *hashcat_ctx, void *device_param_ptr, mtl_mem_t *mem)
+{
+  @autoreleasepool
+  {
+    return hc_mtlReleaseMemObject_inner (hashcat_ctx, device_param_ptr, mem);
+  }
+}
+
+static int hc_mtlReleaseFunction_inner (void *hashcat_ctx, mtl_function *metal_function)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1628,7 +1814,15 @@ int hc_mtlReleaseFunction (void *hashcat_ctx, mtl_function *metal_function)
   return 0;
 }
 
-int hc_mtlReleasePipeline (void *hashcat_ctx, mtl_pipeline *metal_pipeline)
+int hc_mtlReleaseFunction (void *hashcat_ctx, mtl_function *metal_function)
+{
+  @autoreleasepool
+  {
+    return hc_mtlReleaseFunction_inner (hashcat_ctx, metal_function);
+  }
+}
+
+static int hc_mtlReleasePipeline_inner (void *hashcat_ctx, mtl_pipeline *metal_pipeline)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1647,7 +1841,15 @@ int hc_mtlReleasePipeline (void *hashcat_ctx, mtl_pipeline *metal_pipeline)
   return 0;
 }
 
-int hc_mtlReleaseLibrary (void *hashcat_ctx, mtl_library *metal_library)
+int hc_mtlReleasePipeline (void *hashcat_ctx, mtl_pipeline *metal_pipeline)
+{
+  @autoreleasepool
+  {
+    return hc_mtlReleasePipeline_inner (hashcat_ctx, metal_pipeline);
+  }
+}
+
+static int hc_mtlReleaseLibrary_inner (void *hashcat_ctx, mtl_library *metal_library)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -1666,7 +1868,15 @@ int hc_mtlReleaseLibrary (void *hashcat_ctx, mtl_library *metal_library)
   return 0;
 }
 
-int hc_mtlReleaseCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue)
+int hc_mtlReleaseLibrary (void *hashcat_ctx, mtl_library *metal_library)
+{
+  @autoreleasepool
+  {
+    return hc_mtlReleaseLibrary_inner (hashcat_ctx, metal_library);
+  }
+}
+
+static int hc_mtlReleaseCommandQueue_inner (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -1695,27 +1905,17 @@ int hc_mtlReleaseCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_co
   return 0;
 }
 
-int hc_mtlReleaseDevice (void *hashcat_ctx, mtl_device_id *metal_device)
+int hc_mtlReleaseCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue)
 {
-  if (metal_device == NULL || *metal_device == nil)
+  @autoreleasepool
   {
-    event_log_error (hashcat_ctx, "%s(): invalid metal device", __func__);
-
-    return -1;
+    return hc_mtlReleaseCommandQueue_inner (hashcat_ctx, device_param_ptr, command_queue);
   }
-
-  #if !__has_feature(objc_arc)
-  [*metal_device release];
-  #endif
-
-  *metal_device = nil;
-
-  return 0;
 }
 
 // device to device
 
-int hc_mtlMemcpyDtoD (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+static int hc_mtlMemcpyDtoD_inner (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -1828,9 +2028,17 @@ int hc_mtlMemcpyDtoD (void *hashcat_ctx, void *device_param_ptr, mtl_command_que
   return 0;
 }
 
+int hc_mtlMemcpyDtoD (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+{
+  @autoreleasepool
+  {
+    return hc_mtlMemcpyDtoD_inner (hashcat_ctx, device_param_ptr, command_queue, mem_dst, mem_dst_off, mem_src, mem_src_off, size);
+  }
+}
+
 // host to device
 
-int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
+static int hc_mtlMemcpyHtoD_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -1893,6 +2101,10 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id m
     {
       event_log_error (hashcat_ctx, "%s(): failed to get staging buffer ptr", __func__);
 
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
+
       return -1;
     }
 
@@ -1917,6 +2129,10 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id m
     {
       event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
 
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
+
       return -1;
     }
 
@@ -1925,6 +2141,10 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id m
     if (blit_encoder == nil)
     {
       event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
 
       return -1;
     }
@@ -1968,9 +2188,17 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id m
   return 0;
 }
 
+int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
+{
+  @autoreleasepool
+  {
+    return hc_mtlMemcpyHtoD_inner (hashcat_ctx, device_param_ptr, metal_device, command_queue, mem_dst, mem_dst_off, host_buf_src, size);
+  }
+}
+
 // device to host
 
-int hc_mtlMemcpyDtoH (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+static int hc_mtlMemcpyDtoH_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -2183,7 +2411,15 @@ int hc_mtlMemcpyDtoH (void *hashcat_ctx, void *device_param_ptr, mtl_device_id m
   return 0;
 }
 
-int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, size_t *size)
+int hc_mtlMemcpyDtoH (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+{
+  @autoreleasepool
+  {
+    return hc_mtlMemcpyDtoH_inner (hashcat_ctx, device_param_ptr, metal_device, command_queue, host_buf_dst, mem_src, mem_src_off, size);
+  }
+}
+
+static int hc_mtlRuntimeGetVersionString_inner (void *hashcat_ctx, char *runtimeVersion_str, size_t *size)
 {
   CFURLRef plist_url = CFURLCreateWithFileSystemPath (kCFAllocatorDefault, CFSTR ("/System/Library/Frameworks/Metal.framework/Versions/Current/Resources/version.plist"), kCFURLPOSIXPathStyle, false);
 
@@ -2228,12 +2464,12 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
     return -1;
   }
 
-  CFStringRef runtime_version_cfstr = CFRetain (CFDictionaryGetValue (plist_prop, CFSTR ("CFBundleVersion")));
+  // the dictionary owns the value and outlives every use of it below
+
+  CFStringRef runtime_version_cfstr = CFDictionaryGetValue (plist_prop, CFSTR ("CFBundleVersion"));
 
   if (runtime_version_cfstr != NULL)
   {
-    CFRetain (runtime_version_cfstr);
-
     if (runtimeVersion_str == NULL)
     {
       CFIndex len = CFStringGetLength (runtime_version_cfstr);
@@ -2241,7 +2477,6 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
 
       *size = maxSize;
 
-      CFRelease (runtime_version_cfstr);
       CFRelease (plist_prop);
       CFReadStreamClose (plist_stream);
       CFRelease (plist_stream);
@@ -2256,9 +2491,6 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
     {
       event_log_error (hashcat_ctx, "%s(): CFStringGetCString() failed\n", __func__);
 
-      hcfree (runtimeVersion_str);
-
-      CFRelease (runtime_version_cfstr);
       CFRelease (plist_prop);
       CFReadStreamClose (plist_stream);
       CFRelease (plist_stream);
@@ -2267,7 +2499,6 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
       return -1;
     }
 
-    CFRelease (runtime_version_cfstr);
     CFRelease (plist_prop);
     CFReadStreamClose (plist_stream);
     CFRelease (plist_stream);
@@ -2282,6 +2513,14 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
   CFRelease (plist_url);
 
   return -1;
+}
+
+int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, size_t *size)
+{
+  @autoreleasepool
+  {
+    return hc_mtlRuntimeGetVersionString_inner (hashcat_ctx, runtimeVersion_str, size);
+  }
 }
 
 int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder)
@@ -2308,11 +2547,28 @@ int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, m
 
     if (command_buffer == nil) return -1;
 
-    id command_encoder = mtl4_new (command_buffer, "computeCommandEncoder");
+    // The encoder comes back autoreleased, and the thread that launches kernels has no pool, so it
+    // is taken here and given back by hc_mtlEncodeComputeCommand () after the wait, together with
+    // the device's command buffer, retained here so that the same release balances on both paths.
+
+    [command_buffer retain];
+
+    id command_encoder = nil;
+
+    @autoreleasepool
+    {
+      command_encoder = [mtl4_new (command_buffer, "computeCommandEncoder") retain];
+    }
 
     if (command_encoder == nil)
     {
       event_log_error (hashcat_ctx, "%s(): Metal 4 compute command encoder is nil", __func__);
+
+      hc_mtl4_abort (device_param, command_buffer);
+
+      #if !__has_feature(objc_arc)
+      [command_buffer release];
+      #endif
 
       return -1;
     }
@@ -2327,7 +2583,16 @@ int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, m
     return 0;
   }
 
-  id<MTLCommandBuffer> metal_commandBuffer = [metal_command_queue commandBuffer];
+  // The command buffer and the encoder come back autoreleased, and the thread that launches kernels
+  // has no pool, so they are taken here and given back by hc_mtlEncodeComputeCommand () after the
+  // wait. What else the two calls autorelease goes with their pools.
+
+  id<MTLCommandBuffer> metal_commandBuffer = nil;
+
+  @autoreleasepool
+  {
+    metal_commandBuffer = [[metal_command_queue commandBuffer] retain];
+  }
 
   if (metal_commandBuffer == nil)
   {
@@ -2336,11 +2601,20 @@ int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, m
     return -1;
   }
 
-  id<MTLComputeCommandEncoder> metal_commandEncoder = [metal_commandBuffer computeCommandEncoder];
+  id<MTLComputeCommandEncoder> metal_commandEncoder = nil;
+
+  @autoreleasepool
+  {
+    metal_commandEncoder = [[metal_commandBuffer computeCommandEncoder] retain];
+  }
 
   if (metal_commandEncoder == nil)
   {
-    event_log_error (hashcat_ctx, "%s(): invalid metal_commandBuffer", __func__);
+    event_log_error (hashcat_ctx, "%s(): invalid metal_commandEncoder", __func__);
+
+    #if !__has_feature(objc_arc)
+    [metal_commandBuffer release];
+    #endif
 
     return -1;
   }
@@ -2354,7 +2628,7 @@ int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, m
   return 0;
 }
 
-int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
+static int hc_mtlSetCommandEncoderArg_inner (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -2454,7 +2728,15 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, void *device_param_ptr, mtl_c
   return 0;
 }
 
-int hc_mtlEncodeComputeCommand (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
+int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
+{
+  @autoreleasepool
+  {
+    return hc_mtlSetCommandEncoderArg_inner (hashcat_ctx, device_param_ptr, metal_command_encoder, off, idx, mem, host_data, host_data_size);
+  }
+}
+
+static int hc_mtlEncodeComputeCommand_inner (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -2521,7 +2803,60 @@ int hc_mtlEncodeComputeCommand (void *hashcat_ctx, void *device_param_ptr, mtl_c
   return 0;
 }
 
-int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
+int hc_mtlEncodeComputeCommand (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
+{
+  @autoreleasepool
+  {
+    const int rc = hc_mtlEncodeComputeCommand_inner (hashcat_ctx, device_param_ptr, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, ms);
+
+    // hc_mtlEncodeComputeCommand_pre () took the encoder and the command buffer for this launch
+
+    #if !__has_feature(objc_arc)
+    [metal_command_encoder release];
+    [metal_command_buffer  release];
+    #endif
+
+    return rc;
+  }
+}
+
+// The way out for a launch that will not be dispatched, because an argument could not be bound:
+// the encoder is ended, the Metal 4 command buffer is closed without a commit, and what
+// hc_mtlEncodeComputeCommand_pre () took is given back, as hc_mtlEncodeComputeCommand () does once
+// the launch has been waited for.
+
+static int hc_mtlEncodeComputeCommand_abort_inner (MAYBE_UNUSED void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer)
+{
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
+  if (device_param->use_metal4 == true)
+  {
+    mtl4_call (metal_command_encoder, "endEncoding");
+
+    hc_mtl4_abort (device_param, metal_command_buffer);
+  }
+  else
+  {
+    [metal_command_encoder endEncoding];
+  }
+
+  #if !__has_feature(objc_arc)
+  [metal_command_encoder release];
+  [metal_command_buffer  release];
+  #endif
+
+  return -1;
+}
+
+int hc_mtlEncodeComputeCommand_abort (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer)
+{
+  @autoreleasepool
+  {
+    return hc_mtlEncodeComputeCommand_abort_inner (hashcat_ctx, device_param_ptr, metal_command_encoder, metal_command_buffer);
+  }
+}
+
+static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -2539,13 +2874,18 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mt
     {
       //printf ("using build_opts from arg:\n%s\n", build_options_buf);
 
-      build_options_dict = [NSMutableDictionary dictionary]; //[[NSMutableDictionary alloc] init];
+      // owned, since it is released below and the pool around this call would release it again
+
+      build_options_dict = [[NSMutableDictionary alloc] init];
 
       if (hc_mtlBuildOptionsToDict (hashcat_ctx, build_options_buf, cpath, build_options_dict) == -1)
       {
         event_log_error (hashcat_ctx, "%s(): failed to build options dictionary", __func__);
 
+        #if !__has_feature(objc_arc)
         [build_options_dict release];
+        [compileOptions release];
+        #endif
 
         return -1;
       }
@@ -2660,6 +3000,13 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mt
     {
       event_log_error (hashcat_ctx, "%s(): failed to create metal library, %s", __func__, [[error localizedDescription] UTF8String]);
 
+      // MTLLibraryErrorCompileWarning says the library compiled, so one can come back with the
+      // error, and it is not used
+
+      #if !__has_feature(objc_arc)
+      [metal_library_tmp release];
+      #endif
+
       return -1;
     }
 
@@ -2669,6 +3016,14 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mt
   }
 
   return -1;
+}
+
+int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
+{
+  @autoreleasepool
+  {
+    return hc_mtlCreateLibraryWithSource_inner (hashcat_ctx, device_param_ptr, metal_device, kernel_sources, build_options_buf, cpath, metal_library);
+  }
 }
 
 // The pipelines of a program are cached in the file the other backends cache their binary in: a
@@ -2842,7 +3197,7 @@ static bool hc_mtlArchiveRecord (void *hashcat_ctx, hc_device_param_t *device_pa
   return added;
 }
 
-int hc_mtlArchiveOpen (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable)
+static int hc_mtlArchiveOpen_inner (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -2905,10 +3260,18 @@ int hc_mtlArchiveOpen (void *hashcat_ctx, void *device_param_ptr, const int prog
   return 0;
 }
 
+int hc_mtlArchiveOpen (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable)
+{
+  @autoreleasepool
+  {
+    return hc_mtlArchiveOpen_inner (hashcat_ctx, device_param_ptr, program, cached_file, cache_disable);
+  }
+}
+
 // The file is written once every pipeline of the device exists. A write that fails is a warning,
 // since the next run only builds again, as it does on the other backends without their cache.
 
-void hc_mtlArchiveFlush (void *hashcat_ctx, void *device_param_ptr, const int program)
+static void hc_mtlArchiveFlush_inner (void *hashcat_ctx, void *device_param_ptr, const int program)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -2977,7 +3340,15 @@ void hc_mtlArchiveFlush (void *hashcat_ctx, void *device_param_ptr, const int pr
   hcfree (tmp_file);
 }
 
-void hc_mtlArchiveRelease (void *hashcat_ctx, void *device_param_ptr, const int program)
+void hc_mtlArchiveFlush (void *hashcat_ctx, void *device_param_ptr, const int program)
+{
+  @autoreleasepool
+  {
+    hc_mtlArchiveFlush_inner (hashcat_ctx, device_param_ptr, program);
+  }
+}
+
+static void hc_mtlArchiveRelease_inner (void *hashcat_ctx, void *device_param_ptr, const int program)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -3003,7 +3374,15 @@ void hc_mtlArchiveRelease (void *hashcat_ctx, void *device_param_ptr, const int 
   device_param->metal_archive_write[program] = false;
 }
 
-int hc_mtlFinish (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue)
+void hc_mtlArchiveRelease (void *hashcat_ctx, void *device_param_ptr, const int program)
+{
+  @autoreleasepool
+  {
+    hc_mtlArchiveRelease_inner (hashcat_ctx, device_param_ptr, program);
+  }
+}
+
+static int hc_mtlFinish_inner (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -3032,4 +3411,12 @@ int hc_mtlFinish (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue c
   [command_buffer waitUntilCompleted];
 
   return 0;
+}
+
+int hc_mtlFinish (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue)
+{
+  @autoreleasepool
+  {
+    return hc_mtlFinish_inner (hashcat_ctx, device_param_ptr, command_queue);
+  }
 }

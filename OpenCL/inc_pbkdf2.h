@@ -65,10 +65,10 @@ DECLSPEC void pbkdf2_sha1_run_V   (PRIVATE_AS const u32x *ipad, PRIVATE_AS const
 DECLSPEC void pbkdf2_sha256_run_V (PRIVATE_AS const u32x *ipad, PRIVATE_AS const u32x *opad, PRIVATE_AS u32x *dgst);
 DECLSPEC void pbkdf2_sha512_run_V (PRIVATE_AS const u64x *ipad, PRIVATE_AS const u64x *opad, PRIVATE_AS u64x *dgst);
 
-DECLSPEC void pbkdf2_md5_init    (PRIVATE_AS pbkdf2_md5_state_t    *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks);
-DECLSPEC void pbkdf2_sha1_init   (PRIVATE_AS pbkdf2_sha1_state_t   *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks);
-DECLSPEC void pbkdf2_sha256_init (PRIVATE_AS pbkdf2_sha256_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks);
-DECLSPEC void pbkdf2_sha512_init (PRIVATE_AS pbkdf2_sha512_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 blocks);
+DECLSPEC void pbkdf2_md5_init    (PRIVATE_AS pbkdf2_md5_state_t    *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks);
+DECLSPEC void pbkdf2_sha1_init   (PRIVATE_AS pbkdf2_sha1_state_t   *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks);
+DECLSPEC void pbkdf2_sha256_init (PRIVATE_AS pbkdf2_sha256_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks);
+DECLSPEC void pbkdf2_sha512_init (PRIVATE_AS pbkdf2_sha512_state_t *st, PRIVATE_AS const u32 *key, const int key_len, PRIVATE_AS const u32 *salt, const int salt_len, const u32 first, const u32 blocks);
 
 DECLSPEC void pbkdf2_md5_loop    (PRIVATE_AS pbkdf2_md5_state_t    *st, const u32 blocks, const u32 loops);
 DECLSPEC void pbkdf2_sha1_loop   (PRIVATE_AS pbkdf2_sha1_state_t   *st, const u32 blocks, const u32 loops);

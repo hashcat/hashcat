@@ -71,8 +71,8 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
 
   #if (VECT_SIZE > 1) && defined (RECIPE_WIDE)
 
-  // utf16le decodes pass or salt from UTF-8. Only the generated part of w[0] changes in the loop,
-  // so check the rest of the password and the salt for bytes above 0x7f once here.
+  // utf16le decodes pass, salt or a field from UTF-8. Only the generated part of w[0] changes in the
+  // loop, so check the rest of the password, the salt and the fields for bytes above 0x7f once here.
 
   u32 base_hi = 0;
 
@@ -82,6 +82,10 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
 
   #ifdef RECIPE_WIDE_SALT
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1) base_hi |= salt_bufs[SALT_POS_HOST].salt_buf[idx];
+  #endif
+
+  #ifdef RECIPE_WIDE_FIELDS
+  for (u32 i = 0; i < (3 * RECIPE_FIELD_WORDS); i++) base_hi |= salt_bufs[SALT_POS_HOST].salt_buf_pc[i];
   #endif
 
   const bool base_ascii = ((base_hi & 0x80808080) == 0);
@@ -95,6 +99,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
   RECIPE_HEX_BIND (&st)
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+  RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 
@@ -209,8 +214,8 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
 
   #if (VECT_SIZE > 1) && defined (RECIPE_WIDE)
 
-  // utf16le decodes pass or salt from UTF-8. Only the generated part of w[0] changes in the loop,
-  // so check the rest of the password and the salt for bytes above 0x7f once here.
+  // utf16le decodes pass, salt or a field from UTF-8. Only the generated part of w[0] changes in the
+  // loop, so check the rest of the password, the salt and the fields for bytes above 0x7f once here.
 
   u32 base_hi = 0;
 
@@ -220,6 +225,10 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
 
   #ifdef RECIPE_WIDE_SALT
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1) base_hi |= salt_bufs[SALT_POS_HOST].salt_buf[idx];
+  #endif
+
+  #ifdef RECIPE_WIDE_FIELDS
+  for (u32 i = 0; i < (3 * RECIPE_FIELD_WORDS); i++) base_hi |= salt_bufs[SALT_POS_HOST].salt_buf_pc[i];
   #endif
 
   const bool base_ascii = ((base_hi & 0x80808080) == 0);
@@ -233,6 +242,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
   RECIPE_HEX_BIND (&st)
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+  RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 
