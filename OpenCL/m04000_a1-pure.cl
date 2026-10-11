@@ -74,6 +74,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_BASIC ())
   RECIPE_HEX_BIND (&st)
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+  RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 
@@ -202,6 +203,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_BASIC ())
   RECIPE_HEX_BIND (&st)
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+  RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 

@@ -322,7 +322,8 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 // recipe_jit_build_options (). Password copies are made per candidate in recipe_eval (). Salt
 // copies are stored in the state once per salt by recipe_prep (). Each copy contains 64 words and
 // stays zeroed past its length L after every transform. Its length depends only on the source
-// length, so all vector lanes share the same length.
+// length, so all lanes in a vector use the same length. The exception is utf16be: its UTF-8
+// decoding produces lengths that depend on the input bytes. See RECIPE_XU16BE.
 //
 // Each transform modifies copy B and length L using arguments A, BB, H and LL from the module.
 // UPPER, LOWER and ROT13 process 4 bytes at a time. A byte is a lowercase letter exactly when bit 7
@@ -560,18 +561,140 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
   L = n;                                                                                  \
 }
 
+// Widen each byte to a unit of 2 bytes. Place the byte first for SH 0 and second for SH 8. Bytes
+// beyond L are zero, so the copy remains zeroed beyond its new length.
+
+#define RECIPE_XWIDEN(T,B,L,SH)                                                           \
+{                                                                                         \
+  const u32 n = ((L) > 128) ? 128 : (L);                                                  \
+                                                                                          \
+  T t[64];                                                                                \
+                                                                                          \
+  for (u32 i = 0; i < 64; i++) t[i] = 0;                                                  \
+                                                                                          \
+  for (u32 i = 0; i < ((n + 3) / 4); i++)                                                 \
+  {                                                                                       \
+    const T b0 = (B[i] >>  0) & 255;                                                      \
+    const T b1 = (B[i] >>  8) & 255;                                                      \
+    const T b2 = (B[i] >> 16) & 255;                                                      \
+    const T b3 = (B[i] >> 24) & 255;                                                      \
+                                                                                          \
+    t[(i * 2) + 0] = (b0 << ((SH) + 0)) | (b1 << ((SH) + 16));                            \
+    t[(i * 2) + 1] = (b2 << ((SH) + 0)) | (b3 << ((SH) + 16));                            \
+  }                                                                                       \
+                                                                                          \
+  for (u32 i = 0; i < 64; i++) B[i] = t[i];                                               \
+                                                                                          \
+  L = n * 2;                                                                              \
+}
+
+// Decode len bytes from in as UTF-8 and write UTF-16BE, using the same decoding rules as
+// recipe_utf8_to_utf16be () in src/recipe.c. Input that is not well-formed UTF-8 produces 0 bytes.
+// The out buffer is zeroed and holds 64 words.
+
+DECLSPEC u32 recipe_utf16be (PRIVATE_AS const u32 *in, const u32 len, PRIVATE_AS u32 *out)
+{
+  const u32 n = (len > 128) ? 128 : len;
+
+  u32 i = 0;
+  u32 o = 0;
+
+  while (i < n)
+  {
+    const u32 c = RECIPE_XGET (in, i);
+
+    u32 cl = 0;
+
+    if      (c < 0x80)                   cl = 1;
+    else if ((c >= 0xc2) && (c <= 0xdf)) cl = 2;
+    else if ((c >= 0xe0) && (c <= 0xef)) cl = 3;
+    else if ((c >= 0xf0) && (c <= 0xf4)) cl = 4;
+
+    if (cl == 0) return 0;
+
+    if ((i + cl) > n) return 0;
+
+    u32 cp = (cl == 1) ? c : (c & (0x7f >> cl));
+
+    for (u32 k = 1; k < cl; k++)
+    {
+      const u32 cc = RECIPE_XGET (in, i + k);
+
+      if ((cc & 0xc0) != 0x80) return 0;
+
+      cp = (cp << 6) | (cc & 0x3f);
+    }
+
+    const u32 least = (cl == 2) ? 0x80 : ((cl == 3) ? 0x800 : 0x10000);
+
+    if ((cl > 1) && (cp < least)) return 0;
+
+    if ((cp >= 0xd800) && (cp <= 0xdfff)) return 0;
+
+    if (cp > 0x10ffff) return 0;
+
+    i += cl;
+
+    if (cp >= 0x10000)
+    {
+      const u32 hi = 0xd800 + ((cp - 0x10000) >> 10);
+      const u32 lo = 0xdc00 + ((cp - 0x10000) & 0x3ff);
+
+      RECIPE_XPUT (out, o + 0, hi >> 8);
+      RECIPE_XPUT (out, o + 1, hi & 255);
+      RECIPE_XPUT (out, o + 2, lo >> 8);
+      RECIPE_XPUT (out, o + 3, lo & 255);
+
+      o += 4;
+    }
+    else
+    {
+      RECIPE_XPUT (out, o + 0, cp >> 8);
+      RECIPE_XPUT (out, o + 1, cp & 255);
+
+      o += 2;
+    }
+  }
+
+  return o;
+}
+
+#define RECIPE_XOP_ZEXT16(T,HS,B,L,A,BB,H,LL)  RECIPE_XWIDEN (T, B, L, 0)
+#define RECIPE_XOP_UTF16BE(T,HS,B,L,A,BB,H,LL) RECIPE_XU16BE##HS (T, B, L)
+
+// The vector state processes utf16be only when every lane is ASCII. See RECIPE_WIDE. It therefore
+// widens the bytes directly. The scalar state decodes UTF-8. The clip empties the copy when the
+// decoder stops at a byte that is not valid UTF-8.
+
+#define RECIPE_XU16BE(T,B,L) RECIPE_XWIDEN (T, B, L, 8)
+
+#define RECIPE_XU16BE_S(T,B,L)                                                            \
+{                                                                                         \
+  u32 t[64];                                                                              \
+                                                                                          \
+  for (u32 i = 0; i < 64; i++) t[i] = 0;                                                  \
+                                                                                          \
+  L = recipe_utf16be (B, L, t);                                                           \
+                                                                                          \
+  for (u32 i = 0; i < 64; i++) B[i] = t[i];                                               \
+                                                                                          \
+  RECIPE_XCLIP (B, L)                                                                     \
+}
+
 #define RECIPE_XOP3(OP,T,HS,B,L,A,BB,H,LL) RECIPE_XOP_##OP (T, HS, B, L, A, BB, H, LL)
 #define RECIPE_XOP2(OP,T,HS,B,L,A,BB,H,LL) RECIPE_XOP3 (OP, T, HS, B, L, A, BB, H, LL)
 #define RECIPE_XOP(K,J,T,HS,B,L)           RECIPE_XOP2 (RECIPE_X##K##_O##J, T, HS, B, L, RECIPE_X##K##_A##J, RECIPE_X##K##_B##J, RECIPE_X##K##_H##J, RECIPE_X##K##_L##J)
 
-// Make copy K from the SLEN-byte source SRC and apply its transforms, storing its bytes in B and
-// its length in L.
+// Make copy K from the SLEN-byte source SRC, which holds NW words, and apply its transforms,
+// storing its bytes in B and its length in L. A field holds fewer words than the copy.
 
-#define RECIPE_XRUN(K,T,HS,SRC,SLEN,B,L)       \
-{                                              \
-  for (u32 i = 0; i < 64; i++) B[i] = SRC[i];  \
-                                               \
-  L = (SLEN);                                  \
+#define RECIPE_XRUN(K,T,HS,SRC,SLEN,NW,B,L)      \
+{                                                \
+  for (u32 i = 0; i < 64; i++) B[i] = 0;         \
+                                                 \
+  for (u32 i = 0; i < (NW); i++) B[i] = SRC[i];  \
+                                                 \
+  L = (SLEN);                                    \
                                                \
   RECIPE_XOP (K, 0, T, HS, B, L)               \
   RECIPE_XOP (K, 1, T, HS, B, L)               \
@@ -581,16 +704,26 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 
 // What recipe_eval () and recipe_prep () do for copy K, and the state fields it needs, by its source.
 
-#define RECIPE_XEV_PASS(K,T,HS) T xb##K[64]; u32 xl##K; RECIPE_XRUN (K, T, HS, w, pw_len, xb##K, xl##K)
+#define RECIPE_XEV_PASS(K,T,HS) T xb##K[64]; u32 xl##K; RECIPE_XRUN (K, T, HS, w, pw_len, 64, xb##K, xl##K)
 #define RECIPE_XEV_SALT(K,T,HS)
 #define RECIPE_XPR_PASS(K,T,HS)
-#define RECIPE_XPR_SALT(K,T,HS) RECIPE_XRUN (K, T, HS, s, salt_len, st->xb##K, st->xl##K)
+#define RECIPE_XPR_SALT(K,T,HS) RECIPE_XRUN (K, T, HS, s, salt_len, 64, st->xb##K, st->xl##K)
 #define RECIPE_XFLD_PASS(K,T)
 #define RECIPE_XFLD_SALT(K,T)   T xb##K[64]; u32 xl##K;
 
 #define RECIPE_XEV_SALTD(K,T,HS)
-#define RECIPE_XPR_SALTD(K,T,HS) RECIPE_XRUN (K, T, HS, st->sd, st->sd_len, st->xb##K, st->xl##K)
+#define RECIPE_XPR_SALTD(K,T,HS) RECIPE_XRUN (K, T, HS, st->sd, st->sd_len, 64, st->xb##K, st->xl##K)
 #define RECIPE_XFLD_SALTD(K,T)   T xb##K[64]; u32 xl##K;
+
+#define RECIPE_XEV_SALT2(K,T,HS)
+#define RECIPE_XEV_PEPPER(K,T,HS)
+#define RECIPE_XEV_USER(K,T,HS)
+#define RECIPE_XPR_SALT2(K,T,HS)  RECIPE_XRUN (K, T, HS, st->fd0, st->fd0_len, RECIPE_FIELD_WORDS, st->xb##K, st->xl##K)
+#define RECIPE_XPR_PEPPER(K,T,HS) RECIPE_XRUN (K, T, HS, st->fd1, st->fd1_len, RECIPE_FIELD_WORDS, st->xb##K, st->xl##K)
+#define RECIPE_XPR_USER(K,T,HS)   RECIPE_XRUN (K, T, HS, st->fd2, st->fd2_len, RECIPE_FIELD_WORDS, st->xb##K, st->xl##K)
+#define RECIPE_XFLD_SALT2(K,T)    T xb##K[64]; u32 xl##K;
+#define RECIPE_XFLD_PEPPER(K,T)   T xb##K[64]; u32 xl##K;
+#define RECIPE_XFLD_USER(K,T)     T xb##K[64]; u32 xl##K;
 
 #define RECIPE_XEV3(S,K,T,HS) RECIPE_XEV_##S (K, T, HS)
 #define RECIPE_XEV2(S,K,T,HS) RECIPE_XEV3 (S, K, T, HS)
@@ -746,6 +879,70 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 
 #endif
 
+// salt2, pepper and user are represented by the parts SALT2, PEPPER and USER. The module packs the
+// fields a recipe reads into salt_buf_pc, each in a slot of RECIPE_FIELD_WORDS words. Their lengths
+// occupy the bytes of the word after those slots. See include/recipe.h. Each work item copies them
+// into the state once with RECIPE_FIELDS_BIND, before recipe_prep (). The RECIPE_LINE_FIELDS mask
+// has bit F set for field F.
+
+#ifdef RECIPE_LINE_FIELDS
+
+#define RECIPE_FIELD_BIND(S,SALT,F)                                                       \
+{                                                                                         \
+  const u32 o = (F) * RECIPE_FIELD_WORDS;                                                 \
+  const u32 l = (SALT).salt_buf_pc[3 * RECIPE_FIELD_WORDS];                               \
+                                                                                          \
+  for (u32 i = 0; i < RECIPE_FIELD_WORDS; i++) (S)->fd##F[i] = (SALT).salt_buf_pc[o + i]; \
+                                                                                          \
+  (S)->fd##F##_len = (l >> ((F) * 8)) & 0xff;                                             \
+}
+
+// Copy field F from lane 0 of the vector state S into the scalar state D. All vector lanes
+// share the same field bytes.
+
+#define RECIPE_FIELD_LANE(D,S,F)                                                \
+{                                                                               \
+  for (u32 i = 0; i < RECIPE_FIELD_WORDS; i++) (D).fd##F[i] = 0;                \
+                                                                                \
+  hc_vector_get_lane ((D).fd##F, (S)->fd##F, (int) (S)->fd##F##_len, 0);        \
+                                                                                \
+  (D).fd##F##_len = (S)->fd##F##_len;                                           \
+}
+
+#if (RECIPE_LINE_FIELDS & 1)
+#define RECIPE_FD0_BIND(S,SALT) RECIPE_FIELD_BIND (S, SALT, 0)
+#define RECIPE_STATE_FD0(T)     T fd0[RECIPE_FIELD_WORDS]; u32 fd0_len;
+#else
+#define RECIPE_FD0_BIND(S,SALT)
+#define RECIPE_STATE_FD0(T)
+#endif
+
+#if (RECIPE_LINE_FIELDS & 2)
+#define RECIPE_FD1_BIND(S,SALT) RECIPE_FIELD_BIND (S, SALT, 1)
+#define RECIPE_STATE_FD1(T)     T fd1[RECIPE_FIELD_WORDS]; u32 fd1_len;
+#else
+#define RECIPE_FD1_BIND(S,SALT)
+#define RECIPE_STATE_FD1(T)
+#endif
+
+#if (RECIPE_LINE_FIELDS & 4)
+#define RECIPE_FD2_BIND(S,SALT) RECIPE_FIELD_BIND (S, SALT, 2)
+#define RECIPE_STATE_FD2(T)     T fd2[RECIPE_FIELD_WORDS]; u32 fd2_len;
+#else
+#define RECIPE_FD2_BIND(S,SALT)
+#define RECIPE_STATE_FD2(T)
+#endif
+
+#define RECIPE_FIELDS_BIND(S,SALT) { RECIPE_FD0_BIND (S, SALT) RECIPE_FD1_BIND (S, SALT) RECIPE_FD2_BIND (S, SALT) }
+#define RECIPE_STATE_FDS(T)        RECIPE_STATE_FD0 (T) RECIPE_STATE_FD1 (T) RECIPE_STATE_FD2 (T)
+
+#else
+
+#define RECIPE_FIELDS_BIND(S,SALT)
+#define RECIPE_STATE_FDS(T)
+
+#endif
+
 // Feed one part into the running hash. U is the plain update and W is the UTF-16LE update. PU and
 // PB are the update and buffer for pass. SU and SB are their salt equivalents. See RECIPE_UPDP_*.
 // Part tokens are PASS, SALT, LIT0 through LIT3, STEP0 through STEP7, their UTF-16LE variants with
@@ -769,6 +966,15 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 #endif
 #define RECIPE_CALL_SALT16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, s, (int) salt_len);
 #define RECIPE_CALL_SALTD(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, st->sd, (int) st->sd_len);
+
+// SALT2, PEPPER and USER are the fields of the hash line, see RECIPE_LINE_FIELDS.
+
+#define RECIPE_CALL_SALT2(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, st->fd0, (int) st->fd0_len);
+#define RECIPE_CALL_PEPPER(U,W,PU,PB,SU,SB,G,WG)     U (&ctx, st->fd1, (int) st->fd1_len);
+#define RECIPE_CALL_USER(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, st->fd2, (int) st->fd2_len);
+#define RECIPE_CALL_SALT2_16(U,W,PU,PB,SU,SB,G,WG)   W (&ctx, st->fd0, (int) st->fd0_len);
+#define RECIPE_CALL_PEPPER_16(U,W,PU,PB,SU,SB,G,WG)  W (&ctx, st->fd1, (int) st->fd1_len);
+#define RECIPE_CALL_USER_16(U,W,PU,PB,SU,SB,G,WG)    W (&ctx, st->fd2, (int) st->fd2_len);
 
 // VAR0 through VAR3 are the carried variables of a loop recipe, see RECIPE_LOOP.
 
@@ -1276,6 +1482,9 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 #define RECIPE_KBUF_PASS  w
 #define RECIPE_KBUF_SALT  s
 #define RECIPE_KBUF_SALTD (st->sd)
+#define RECIPE_KBUF_SALT2  (st->fd0)
+#define RECIPE_KBUF_PEPPER (st->fd1)
+#define RECIPE_KBUF_USER   (st->fd2)
 #define RECIPE_KBUF_VAR0   (vb + (0 * 64))
 #define RECIPE_KBUF_VAR1   (vb + (1 * 64))
 #define RECIPE_KBUF_VAR2   (vb + (2 * 64))
@@ -1312,6 +1521,9 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 #define RECIPE_KLEN_PASS  pw_len
 #define RECIPE_KLEN_SALT  salt_len
 #define RECIPE_KLEN_SALTD (st->sd_len)
+#define RECIPE_KLEN_SALT2  (st->fd0_len)
+#define RECIPE_KLEN_PEPPER (st->fd1_len)
+#define RECIPE_KLEN_USER   (st->fd2_len)
 #define RECIPE_KLEN_VAR0   vl[0]
 #define RECIPE_KLEN_VAR1   vl[1]
 #define RECIPE_KLEN_VAR2   vl[2]
@@ -1603,6 +1815,121 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 
 #endif
 
+// A bitwise step applies xor, and or or. See RECIPE_KIND_BOP in src/recipe.c. It combines its 2
+// parts byte by byte into raw. The shorter part repeats to the length of the longer one. An
+// empty part produces an empty output. Parts of equal length are combined a word at a time. The
+// step formats the output at its current length, up to RECIPE_S<k>_BMAX bytes, and cuts it when
+// RECIPE_S<k>_BFIX is set.
+
+#define RECIPE_BOP_1(A,B) ((A) ^ (B))
+#define RECIPE_BOP_2(A,B) ((A) & (B))
+#define RECIPE_BOP_3(A,B) ((A) | (B))
+
+#define RECIPE_BOP3(O,A,B) RECIPE_BOP_##O (A, B)
+#define RECIPE_BOP2(O,A,B) RECIPE_BOP3 (O, A, B)
+#define RECIPE_BOP(K,A,B)  RECIPE_BOP2 (RECIPE_S##K##_BOP, A, B)
+
+// Format N bytes of raw according to the format number: hex, raw, uppercase hex or base64. Hex and
+// raw convert M bytes, covering the whole words that N can reach, while retaining N as the length.
+
+#define RECIPE_BFMT_0(T,HS,K,N,M) RECIPE_FORMAT_TXT (T, HS, 0, K, M) out_lens[K] = (N) * 2;
+#define RECIPE_BFMT_1(T,HS,K,N,M) RECIPE_FORMAT_TXT (T, HS, 1, K, M) out_lens[K] = (N);
+#define RECIPE_BFMT_2(T,HS,K,N,M) RECIPE_FORMAT_TXT (T, HS, 2, K, M) out_lens[K] = (N) * 2;
+#define RECIPE_BFMT_3(T,HS,K,N,M) RECIPE_FORMAT_3 (T, HS, 3, K, N)
+
+#define RECIPE_BFMT3(F,T,HS,K,N,M) RECIPE_BFMT_##F (T, HS, K, N, M)
+#define RECIPE_BFMT2(F,T,HS,K,N,M) RECIPE_BFMT3 (F, T, HS, K, N, M)
+
+#define RECIPE_STEP_BOP(F,K,X,HS,T,INIT)                                                                                         \
+{                                                                                                                                \
+  const u32 la = (u32) RECIPE_KLEN (RECIPE_S##K##_P0);                                                                           \
+  const u32 lb = (u32) RECIPE_KLEN (RECIPE_S##K##_P1);                                                                           \
+                                                                                                                                 \
+  u32 n = (la > lb) ? la : lb;                                                                                                   \
+                                                                                                                                 \
+  if (n > 64) n = 64;                                                                                                            \
+                                                                                                                                 \
+  if ((la == 0) || (lb == 0)) n = 0;                                                                                             \
+                                                                                                                                 \
+  for (u32 i = 0; i < 16; i++) raw[i] = 0;                                                                                       \
+                                                                                                                                 \
+  if (la == lb)                                                                                                                  \
+  {                                                                                                                              \
+    for (u32 i = 0; i < ((n + 3) / 4); i++) raw[i] = RECIPE_BOP (K, RECIPE_KBUF (RECIPE_S##K##_P0)[i], RECIPE_KBUF (RECIPE_S##K##_P1)[i]); \
+                                                                                                                                 \
+    if ((n & 3) != 0) raw[n / 4] &= (1u << ((n & 3) * 8)) - 1;                                                                   \
+  }                                                                                                                              \
+  else                                                                                                                           \
+  {                                                                                                                              \
+    u32 ia = 0;                                                                                                                  \
+    u32 ib = 0;                                                                                                                  \
+                                                                                                                                 \
+    for (u32 i = 0; i < n; i++)                                                                                                  \
+    {                                                                                                                            \
+      const T a = RECIPE_XGET (RECIPE_KBUF (RECIPE_S##K##_P0), ia);                                                              \
+      const T b = RECIPE_XGET (RECIPE_KBUF (RECIPE_S##K##_P1), ib);                                                              \
+                                                                                                                                 \
+      RECIPE_XPUT (raw, i, RECIPE_BOP (K, a, b));                                                                                \
+                                                                                                                                 \
+      ia++;                                                                                                                      \
+      ib++;                                                                                                                      \
+                                                                                                                                 \
+      if (ia == la) ia = 0;                                                                                                      \
+      if (ib == lb) ib = 0;                                                                                                      \
+    }                                                                                                                            \
+  }                                                                                                                              \
+                                                                                                                                 \
+  if (RECIPE_FMT_STEP (K))                                                                                                       \
+  {                                                                                                                              \
+    RECIPE_BFMT2 (RECIPE_S##K##_FMT, T, HS, K, n, RECIPE_S##K##_BMAX)                                                            \
+                                                                                                                                 \
+    if (RECIPE_S##K##_BFIX == 1) RECIPE_CUT (K, RECIPE_S##K##_CUT0, RECIPE_S##K##_CUTN)                                          \
+  }                                                                                                                              \
+}
+
+// A step applies transforms to a hash output or a carried variable. See RECIPE_KIND_XFRM in
+// src/recipe.c. It copies its part into a buffer of 64 words and applies the transforms of a copy,
+// specified by RECIPE_S<k>_O<j> in the form of RECIPE_X<k>_O<j>. The bytes are copied to raw for
+// the result and for an output format, which uses up to 64 bytes. When the output is raw bytes,
+// they are copied straight to the output instead, up to 128 of them. The output retains the length
+// produced by the transforms because a carried variable can change length after the first
+// iteration.
+
+#define RECIPE_SXOP(K,J,T,HS,B,L) RECIPE_XOP2 (RECIPE_S##K##_O##J, T, HS, B, L, RECIPE_S##K##_A##J, RECIPE_S##K##_B##J, RECIPE_S##K##_H##J, RECIPE_S##K##_L##J)
+
+#define RECIPE_XFMT_0(T,HS,K,N,M,B) RECIPE_BFMT_0 (T, HS, K, N, M)
+#define RECIPE_XFMT_1(T,HS,K,N,M,B) { for (u32 i = 0; i < 32; i++) outs[((K) * 32) + i] = B[i]; out_lens[K] = (N); }
+#define RECIPE_XFMT_2(T,HS,K,N,M,B) RECIPE_BFMT_2 (T, HS, K, N, M)
+#define RECIPE_XFMT_3(T,HS,K,N,M,B) RECIPE_BFMT_3 (T, HS, K, N, M)
+
+#define RECIPE_XFMT3(F,T,HS,K,N,M,B) RECIPE_XFMT_##F (T, HS, K, N, M, B)
+#define RECIPE_XFMT2(F,T,HS,K,N,M,B) RECIPE_XFMT3 (F, T, HS, K, N, M, B)
+
+#define RECIPE_STEP_XFRM(F,K,X,HS,T,INIT)                                                    \
+{                                                                                            \
+  u32 l = (u32) RECIPE_KLEN (RECIPE_S##K##_P0);                                              \
+                                                                                             \
+  T b[64];                                                                                   \
+                                                                                             \
+  for (u32 i = 0; i < 64; i++) b[i] = 0;                                                     \
+                                                                                             \
+  for (u32 i = 0; i < ((l + 3) / 4); i++) b[i] = RECIPE_KBUF (RECIPE_S##K##_P0)[i];          \
+                                                                                             \
+  RECIPE_XCLIP (b, l)                                                                        \
+                                                                                             \
+  RECIPE_SXOP (K, 0, T, HS, b, l)                                                            \
+  RECIPE_SXOP (K, 1, T, HS, b, l)                                                            \
+  RECIPE_SXOP (K, 2, T, HS, b, l)                                                            \
+  RECIPE_SXOP (K, 3, T, HS, b, l)                                                            \
+                                                                                             \
+  for (u32 i = 0; i < 16; i++) raw[i] = b[i];                                                \
+                                                                                             \
+  if (RECIPE_FMT_STEP (K))                                                                   \
+  {                                                                                          \
+    RECIPE_XFMT2 (RECIPE_S##K##_FMT, T, HS, K, l, RECIPE_S##K##_BMAX, b)                     \
+  }                                                                                          \
+}
+
 #define RECIPE_STEP_HMACSF(F,K,X,HS,T,INIT,FEED)                                                                                           \
 {                                                                                                                                          \
   RECIPE_HASH_##F (X, HS, INIT, FEED)                                                                                                      \
@@ -1810,6 +2137,7 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
   RECIPE_STATE_AES                 \
   RECIPE_STATE_SB (T)              \
   RECIPE_STATE_SD (T)              \
+  RECIPE_STATE_FDS (T)             \
   RECIPE_XFLDS (T)
 
 typedef struct recipe_state_vector
@@ -2202,6 +2530,18 @@ DECLSPEC void recipe_eval_lanes (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS
   sts.sd_len = st->sd_len;
   #endif
 
+  #if (RECIPE_LINE_FIELDS & 1)
+  RECIPE_FIELD_LANE (sts, st, 0)
+  #endif
+
+  #if (RECIPE_LINE_FIELDS & 2)
+  RECIPE_FIELD_LANE (sts, st, 1)
+  #endif
+
+  #if (RECIPE_LINE_FIELDS & 4)
+  RECIPE_FIELD_LANE (sts, st, 2)
+  #endif
+
   recipe_prep_scalar (&sts, st_salt, salt_len);
 
   for (int lane = 0; lane < VECT_SIZE; lane++)
@@ -2322,6 +2662,9 @@ DECLSPEC void recipe_eval_lanes (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS
 #define RECIPE_TK_PASS   TKS
 #define RECIPE_TK_SALT   TKS
 #define RECIPE_TK_SALTD  TKS
+#define RECIPE_TK_SALT2  TKS
+#define RECIPE_TK_PEPPER TKS
+#define RECIPE_TK_USER   TKS
 #define RECIPE_TK_LIT0   TKS
 #define RECIPE_TK_LIT1   TKS
 #define RECIPE_TK_LIT2   TKS
@@ -2364,6 +2707,9 @@ DECLSPEC void recipe_eval_lanes (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS
 #define RECIPE_TLEN_PASS   pw_len
 #define RECIPE_TLEN_SALT   salt_len
 #define RECIPE_TLEN_SALTD  (st->sd_len)
+#define RECIPE_TLEN_SALT2  (st->fd0_len)
+#define RECIPE_TLEN_PEPPER (st->fd1_len)
+#define RECIPE_TLEN_USER   (st->fd2_len)
 #define RECIPE_TLEN_LIT0   RECIPE_L0_LEN
 #define RECIPE_TLEN_LIT1   RECIPE_L1_LEN
 #define RECIPE_TLEN_LIT2   RECIPE_L2_LEN
@@ -2402,25 +2748,28 @@ DECLSPEC void recipe_eval_lanes (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS
 #define RECIPE_TLV_0(C)    vl[C]
 #define RECIPE_TLV_1(C)    RECIPE_C##C##_LEN
 
-#define RECIPE_TQ_NONE  NONE
-#define RECIPE_TQ_SALT  SALT
-#define RECIPE_TQ_SALTD SALTD
-#define RECIPE_TQ_LIT0  LIT0
-#define RECIPE_TQ_LIT1  LIT1
-#define RECIPE_TQ_LIT2  LIT2
-#define RECIPE_TQ_LIT3  LIT3
-#define RECIPE_TQ_XS0   XS0
-#define RECIPE_TQ_XS1   XS1
-#define RECIPE_TQ_XS2   XS2
-#define RECIPE_TQ_XS3   XS3
-#define RECIPE_TQ_STEP0 PSTEP0
-#define RECIPE_TQ_STEP1 PSTEP1
-#define RECIPE_TQ_STEP2 PSTEP2
-#define RECIPE_TQ_STEP3 PSTEP3
-#define RECIPE_TQ_STEP4 PSTEP4
-#define RECIPE_TQ_STEP5 PSTEP5
-#define RECIPE_TQ_STEP6 PSTEP6
-#define RECIPE_TQ_STEP7 PSTEP7
+#define RECIPE_TQ_NONE   NONE
+#define RECIPE_TQ_SALT   SALT
+#define RECIPE_TQ_SALTD  SALTD
+#define RECIPE_TQ_SALT2  SALT2
+#define RECIPE_TQ_PEPPER PEPPER
+#define RECIPE_TQ_USER   USER
+#define RECIPE_TQ_LIT0   LIT0
+#define RECIPE_TQ_LIT1   LIT1
+#define RECIPE_TQ_LIT2   LIT2
+#define RECIPE_TQ_LIT3   LIT3
+#define RECIPE_TQ_XS0    XS0
+#define RECIPE_TQ_XS1    XS1
+#define RECIPE_TQ_XS2    XS2
+#define RECIPE_TQ_XS3    XS3
+#define RECIPE_TQ_STEP0  PSTEP0
+#define RECIPE_TQ_STEP1  PSTEP1
+#define RECIPE_TQ_STEP2  PSTEP2
+#define RECIPE_TQ_STEP3  PSTEP3
+#define RECIPE_TQ_STEP4  PSTEP4
+#define RECIPE_TQ_STEP5  PSTEP5
+#define RECIPE_TQ_STEP6  PSTEP6
+#define RECIPE_TQ_STEP7  PSTEP7
 
 #define RECIPE_TQ3(TOK) RECIPE_TQ_##TOK
 #define RECIPE_TQ2(TOK) RECIPE_TQ3 (TOK)
@@ -2855,10 +3204,13 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_eval_comp (PRIVATE_AS const recipe_state_t
 }
 
 // A pbkdf2 recipe, see OpenCL/inc_pbkdf2.cl. The init kernel runs its steps and starts pbkdf2 from
-// the key and salt parts, read as a step reads its parts. The comp kernel formats the derived key
-// into a carried variable, as a step formats its output, for the steps that read it or for the
-// result. Each cut of the raw derived key, RECIPE_KDF_SL<i>, gets the words of its slice in a
-// carried variable of its own.
+// the key and salt parts, read in the same way as a step's parts. It computes only
+// RECIPE_KDF_BLOCKS blocks, starting at block RECIPE_KDF_FIRST + 1, from the first to the last
+// block that the recipe reads. The comp kernel formats the derived key into a carried variable in the same way as a
+// step's output. It does this under RECIPE_KDF_WHOLE for steps that read the key. Under
+// RECIPE_KDF_RAW, the whole key is used only as the result, and the variable receives the 16
+// compared bytes as raw bytes. Each cut of the raw derived key, RECIPE_KDF_SL<i>, receives its
+// slice's words in a carried variable of its own.
 
 #ifdef RECIPE_KDF
 
@@ -2870,7 +3222,7 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_eval_comp (PRIVATE_AS const recipe_state_t
 #define RECIPE_KDF_FN1(F,N) RECIPE_KDF_FN2 (F, N)
 #define RECIPE_KDF_FN(N)    RECIPE_KDF_FN1 (RECIPE_KDF, N)
 
-#define RECIPE_KDF_START RECIPE_KDF_FN (init) (kdf, RECIPE_KBUF (RECIPE_KDF_KEY), (int) RECIPE_KLEN (RECIPE_KDF_KEY), RECIPE_KBUF (RECIPE_KDF_SALT), (int) RECIPE_KLEN (RECIPE_KDF_SALT), RECIPE_KDF_BLOCKS);
+#define RECIPE_KDF_START RECIPE_KDF_FN (init) (kdf, RECIPE_KBUF (RECIPE_KDF_KEY), (int) RECIPE_KLEN (RECIPE_KDF_KEY), RECIPE_KBUF (RECIPE_KDF_SALT), (int) RECIPE_KLEN (RECIPE_KDF_SALT), RECIPE_KDF_FIRST, RECIPE_KDF_BLOCKS);
 
 DECLSPEC HC_INLINE_ALWAYS void recipe_kdf_init (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS RECIPE_KDF_STATE *kdf, PRIVATE_AS const RECIPE_VT *w, const u32 pw_len, PRIVATE_AS const RECIPE_VT *s, const u32 salt_len)
 {
@@ -2897,6 +3249,8 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_kdf_comp (PRIVATE_AS const recipe_state_t 
 
   RECIPE_KDF_FN (comp) (kdf, raw, RECIPE_KDF_DKLEN);
 
+  #ifdef RECIPE_KDF_WHOLE
+
   u32 outs[32];
   u32 out_lens[1];
 
@@ -2907,6 +3261,16 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_kdf_comp (PRIVATE_AS const recipe_state_t 
   for (u32 i = 0; i < n; i++) vb[(RECIPE_KDF_OUT * 64) + i] = outs[i];
 
   vl[RECIPE_KDF_OUT] = out_lens[0];
+
+  #endif
+
+  #ifdef RECIPE_KDF_RAW
+
+  for (u32 i = 0; i < 4; i++) vb[(RECIPE_KDF_OUT * 64) + i] = raw[i];
+
+  vl[RECIPE_KDF_OUT] = 16;
+
+  #endif
 
   #if RECIPE_KDF_SLICES > 0
   RECIPE_KDF_SLICE (0)

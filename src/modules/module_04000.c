@@ -36,6 +36,11 @@ static const char *ST_SALT        = "hashcat";
 static const char *ST_SALT_HEX    = "68617368636174";
 static const char *ST_SALT_B64    = "aGFzaGNhdA==";
 
+// The self-test values for salt2, pepper and user. Their capital letter distinguishes the
+// effects of upper and lower.
+
+static const char *ST_FIELDS[RECIPE_MAX_FIELDS] = { "hashcat2", "pepper", "Admin" };
+
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
 u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
 u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
@@ -170,12 +175,18 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   if (prog.salt_dec == RECIPE_DEC_HEX) st_salt = ST_SALT_HEX;
   if (prog.salt_dec == RECIPE_DEC_B64) st_salt = ST_SALT_B64;
 
+  u32 st_fields[64];
+
+  memset (st_fields, 0, sizeof (st_fields));
+
+  for (u32 f = 0; f < RECIPE_MAX_FIELDS; f++) recipe_field_set (st_fields, f, (const u8 *) ST_FIELDS[f], (u32) strlen (ST_FIELDS[f]));
+
   u32 raw[16];
 
   u8  out[128];
   u32 out_len = 0;
 
-  recipe_eval (&prog, (const u8 *) ST_PASS, (u32) strlen (ST_PASS), (const u8 *) st_salt, (u32) strlen (st_salt), raw, out, &out_len);
+  recipe_eval (&prog, (const u8 *) ST_PASS, (u32) strlen (ST_PASS), (const u8 *) st_salt, (u32) strlen (st_salt), st_fields, raw, out, &out_len);
 
   // A comparison's self-test line contains the bytes compared by the host rather than the constant.
   // Store the result's compared bytes in hex, padded with zeros to 16 bytes.
@@ -192,7 +203,14 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
     out_len = 32;
   }
 
-  const int st_len = snprintf (st_hash_buf, sizeof (st_hash_buf), "%.*s*%s", (int) out_len, (const char *) out, st_salt);
+  int st_len = snprintf (st_hash_buf, sizeof (st_hash_buf), "%.*s*%s", (int) out_len, (const char *) out, st_salt);
+
+  for (u32 f = 0; f < RECIPE_MAX_FIELDS; f++)
+  {
+    if ((prog.fields & (1u << f)) == 0) continue;
+
+    st_len += snprintf (st_hash_buf + st_len, sizeof (st_hash_buf) - st_len, "*%s", ST_FIELDS[f]);
+  }
 
   if (prog.line_iter == 1) snprintf (st_hash_buf + st_len, sizeof (st_hash_buf) - st_len, "*%u", RECIPE_ITER_ST);
 
@@ -242,6 +260,10 @@ typedef struct recipe_hash
 {
   u32 hash_buf[32];
   u32 hash_len;
+
+  // The original line contained only the digest. See module_hash_decode ().
+
+  u32 bare;
 
 } recipe_hash_t;
 
@@ -299,6 +321,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const bool b64 = (prog != NULL) && (prog->root_fmt == RECIPE_FMT_B64);
   const bool cmp = (prog != NULL) && (prog->cmp == 1);
 
+  // A line without a star contains only the digest, as supplied by hash lists such as
+  // user:hash, passwd and pwdump, provided the recipe does not read a salt. A recipe that
+  // reads the salt, a field from the hash line or iter rejects that line below because its
+  // required separator is missing.
+
+  const bool bare = (prog != NULL) && (prog->salt_read == 0) && (memchr (line_buf, '*', line_len) == NULL);
+
   // A recipe using iter reads the iteration count from the final field of the hash line. A salt can
   // contain a star, so the count field starts after the last star.
 
@@ -343,11 +372,52 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     parse_len = iter_pos;
   }
 
+  // salt2, pepper and user follow the salt in that order, each included only if the recipe reads
+  // it. These fields cannot contain a star, so each is the text after the last star in the
+  // remaining input. With --username, the user comes from the hash list instead. The hlfmt code
+  // splits it off the line, which then has no user field. The potfile has no hash list, so its
+  // lines always include that field.
+
+  const bool user_listed = (hash_info != NULL) && (hash_info->user != NULL);
+
+  if (prog != NULL)
+  {
+    for (int f = RECIPE_MAX_FIELDS - 1; f >= 0; f--)
+    {
+      if ((prog->fields & (1u << f)) == 0) continue;
+
+      if ((f == RECIPE_FIELD_USER) && (user_listed == true)) continue;
+
+      int field_pos = parse_len - 1;
+
+      while ((field_pos >= 0) && (line_buf[field_pos] != '*')) field_pos--;
+
+      if (field_pos < 0) return (PARSER_SEPARATOR_UNMATCHED);
+
+      const int field_len = parse_len - (field_pos + 1);
+
+      if (field_len > (int) prog->field_max) return (PARSER_SALT_LENGTH);
+
+      recipe_field_set (salt->salt_buf_pc, (u32) f, (const u8 *) &line_buf[field_pos + 1], (u32) field_len);
+
+      parse_len = field_pos;
+    }
+
+    if (((prog->fields & (1u << RECIPE_FIELD_USER)) != 0) && (user_listed == true))
+    {
+      const user_t *user = hash_info->user;
+
+      if (user->user_len > prog->field_max) return (PARSER_SALT_LENGTH);
+
+      recipe_field_set (salt->salt_buf_pc, RECIPE_FIELD_USER, (const u8 *) user->user_name, user->user_len);
+    }
+  }
+
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 2;
+  token.token_cnt  = (bare == true) ? 1 : 2;
 
   token.sep[0]     = '*';
   token.len_min[0] = (cmp == true) ? 0 : ((b64 == true) ? 22 : 32);
@@ -398,9 +468,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (recipe_hash->hash_buf, hash_pos, hash_len);
 
   recipe_hash->hash_len = hash_len;
+  recipe_hash->bare     = (bare == true) ? 1 : 0;
 
   const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
+  const int salt_len = (bare == true) ? 0 : token.len[1];
 
   if (salt_len > (int) hashconfig->salt_max) return (PARSER_SALT_LENGTH);
 
@@ -427,9 +498,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return (PARSER_OK);
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+// Write the hash line: only the digest if that was its original form, otherwise the digest, salt,
+// fields and iteration count. The user field supplied by --username is omitted from the line, so
+// the outfile and --show preserve the line's original form. The potfile has no hash list from which
+// to obtain the user, so its lines always include the salt and every field.
+
+static int module_line_write (const hashconfig_t *hashconfig, const salt_t *salt, const recipe_hash_t *recipe_hash, const hashinfo_t *hash_info, char *line_buf, const int line_size, const bool potfile)
 {
-  const recipe_hash_t *recipe_hash = (const recipe_hash_t *) esalt_buf;
+  const recipe_prog_t *prog = module_recipe (hashconfig);
+
+  const bool user_listed = (potfile == false) && (hash_info != NULL) && (hash_info->user != NULL);
 
   u8 *out_buf = (u8 *) line_buf;
 
@@ -438,6 +516,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (out_buf + out_len, recipe_hash->hash_buf, recipe_hash->hash_len);
 
   out_len += recipe_hash->hash_len;
+
+  out_buf[out_len] = 0;
+
+  if ((recipe_hash->bare == 1) && (potfile == false)) return out_len;
 
   out_buf[out_len] = '*';
 
@@ -449,7 +531,20 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_buf[out_len] = 0;
 
-  const recipe_prog_t *prog = module_recipe (hashconfig);
+  for (u32 f = 0; f < RECIPE_MAX_FIELDS; f++)
+  {
+    if ((prog == NULL) || ((prog->fields & (1u << f)) == 0)) continue;
+
+    if ((f == RECIPE_FIELD_USER) && (user_listed == true)) continue;
+
+    out_buf[out_len] = '*';
+
+    out_len += 1;
+
+    out_len += recipe_field_get (salt->salt_buf_pc, f, out_buf + out_len);
+
+    out_buf[out_len] = 0;
+  }
 
   if ((prog != NULL) && (prog->line_iter == 1))
   {
@@ -459,6 +554,20 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
 
   return out_len;
+}
+
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+{
+  const int line_len = module_line_write (hashconfig, salt, (const recipe_hash_t *) esalt_buf, hash_info, line_buf, line_size, false);
+
+  return line_len;
+}
+
+int module_hash_encode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size, MAYBE_UNUSED const void *tmps)
+{
+  const int line_len = module_line_write (hashconfig, salt, (const recipe_hash_t *) esalt_buf, hash_info, line_buf, line_size, true);
+
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -496,7 +605,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
-  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = module_hash_encode_potfile;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
