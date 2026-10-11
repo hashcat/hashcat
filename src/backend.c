@@ -35,6 +35,7 @@
 #include "hwmon.h"
 #include "autotune.h"
 #include "user_options.h"
+#include "json.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -2180,36 +2181,91 @@ void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 
   if (g_pipe_json == true)
   {
-    fprintf (stderr, "{ \"device\": %u, \"launches\": %" PRIu64 ", \"total_ms\": %.3f, \"stages\": {", device_param->device_id + 1, device_param->pipe_launches, total);
+    json_ctx_t js;
+
+    json_init (&js, stderr);
+
+    char numbuf[32];
+
+    json_object_begin (&js);
+
+    json_kv_uint (&js, "device", device_param->device_id + 1);
+    json_kv_uint (&js, "launches", device_param->pipe_launches);
+
+    snprintf (numbuf, sizeof (numbuf), "%.3f", total);
+    json_key (&js, "total_ms");
+    json_raw (&js, numbuf);
+
+    json_key (&js, "stages");
+    json_object_begin (&js);
 
     for (int i = 0; i < PIPE_SLOTS; i++)
     {
+      const double per_launch = device_param->pipe_msec[i] / (double) device_param->pipe_launches;
+
+      json_key (&js, names[i]);
+      json_object_begin (&js);
+
+      snprintf (numbuf, sizeof (numbuf), "%.3f", device_param->pipe_msec[i]);
+      json_key (&js, "ms");
+      json_raw (&js, numbuf);
+
       // feed is not in the total, because it runs ahead of the launch rather than inside it, so it
       // has no share of the critical path to quote. Its time and its per launch cost still matter.
 
       if (i == PIPE_FEED)
       {
+        snprintf (numbuf, sizeof (numbuf), "%.4f", per_launch);
+        json_key (&js, "per_launch_ms");
+        json_raw (&js, numbuf);
+
         // On the critical path where the producer has no thread of its own. See pipe_serial.
 
-        fprintf (stderr, " \"%s\": { \"ms\": %.3f, \"per_launch_ms\": %.4f, \"in_critical_path\": %s }", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches, (device_param->pipe_serial == true) ? "true" : "false");
-
-        continue;
+        json_kv_bool (&js, "in_critical_path", device_param->pipe_serial);
       }
 
       // A sub-stage is quoted against the copy it sits inside, not against the total, because a share
       // of the total would read as if it were beside copy rather than part of it.
 
-      if (i >= PIPE_TOTAL_END)
+      else if (i >= PIPE_TOTAL_END)
       {
-        fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent_of_copy\": %.2f, \"per_launch_ms\": %.4f, \"counted_in\": \"copy\" }", names[i], device_param->pipe_msec[i], (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+        snprintf (numbuf, sizeof (numbuf), "%.2f", (copy_ms > 0.0) ? 100.0 * device_param->pipe_msec[i] / copy_ms : 0.0);
+        json_key (&js, "percent_of_copy");
+        json_raw (&js, numbuf);
 
-        continue;
+        snprintf (numbuf, sizeof (numbuf), "%.4f", per_launch);
+        json_key (&js, "per_launch_ms");
+        json_raw (&js, numbuf);
+
+        json_kv_string (&js, "counted_in", "copy");
+      }
+      else
+      {
+        snprintf (numbuf, sizeof (numbuf), "%.2f", 100.0 * device_param->pipe_msec[i] / total);
+        json_key (&js, "percent");
+        json_raw (&js, numbuf);
+
+        snprintf (numbuf, sizeof (numbuf), "%.4f", per_launch);
+        json_key (&js, "per_launch_ms");
+        json_raw (&js, numbuf);
       }
 
-      fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent\": %.2f, \"per_launch_ms\": %.4f }", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+      json_object_end (&js);
     }
 
-    fprintf (stderr, " }, \"cells_pinned\": %s, \"effective_hs\": %.0f, \"peak_rss\": %" PRIu64 " }\n", (pipe_cells_pinned (device_param) == true) ? "true" : "false", (double) device_param->pipe_cands / (total / 1000.0), hc_peak_rss ());
+    json_object_end (&js);
+
+    json_kv_bool (&js, "cells_pinned", pipe_cells_pinned (device_param));
+
+    snprintf (numbuf, sizeof (numbuf), "%.0f", (double) device_param->pipe_cands / (total / 1000.0));
+    json_key (&js, "effective_hs");
+    json_raw (&js, numbuf);
+
+    json_kv_uint (&js, "peak_rss", hc_peak_rss ());
+
+    json_object_end (&js);
+
+    fputc ('\n', stderr);
 
     return;
   }
@@ -6232,7 +6288,9 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
 
-  pipe_enable (hashcat_ctx->user_options->pipeline_stats, hashcat_ctx->user_options->machine_readable);
+  // The JSON form is selected by --machine-readable (its historic meaning for --pipeline-stats) or
+  // by the --json umbrella flag, like the other machine-readable surfaces.
+  pipe_enable (hashcat_ctx->user_options->pipeline_stats, (hashcat_ctx->user_options->machine_readable == true) || (hashcat_ctx->user_options->json == true));
 
   // Sized for the worst case, every device needing its own four kernels, so a claim never has to
   // grow the table while another thread is walking it.
@@ -12567,6 +12625,12 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D XM2S(x)=#x");
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D M2S(x)=XM2S(x)");
 
+      // hiprtc compiles in a GNU mode by default, where linux and unix are predefined macros, and
+      // INCLUDE_PATH goes through M2S (): an install path holding either word reached the compiler
+      // rewritten. In ISO C++17 neither is defined.
+
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-std=c++17");
+
       // A long branch in a called function can be relaxed through s[30:31], the return address,
       // which nothing saves, so the function returns into the branch target and the wave never
       // finishes. Without the pre-allocation reservation the register scavenger picks a pair that
@@ -13399,6 +13463,9 @@ void backend_session_context_reset (hashcat_ctx_t *hashcat_ctx)
       {
         device_param->skipped = true;
 
+        backend_ctx->cuda_devices_active--;
+        backend_ctx->backend_devices_active--;
+
         continue;
       }
 
@@ -13800,16 +13867,24 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   int backend_runtime_skip_warnings  = 0;
   int backend_kernel_build_warnings  = 0;
   int backend_kernel_create_warnings = 0;
-  int backend_kernel_accel_warnings  = 0;
   int backend_extra_size_warning     = 0;
 
   backend_ctx->memory_hit_warning    = false;
   backend_ctx->runtime_skip_warning  = false;
   backend_ctx->kernel_build_warning  = false;
   backend_ctx->kernel_create_warning = false;
-  backend_ctx->kernel_accel_warnings = false;
   backend_ctx->extra_size_warning    = false;
   backend_ctx->mixed_warnings        = false;
+
+  // A device can be dropped for good after enumeration, see backend_session_context_reset (). With
+  // none left the warnings below would all hold for zero devices and name a reason there is not.
+
+  if (backend_ctx->backend_devices_active == 0)
+  {
+    event_log_error (hashcat_ctx, "No devices found/left.");
+
+    return -1;
+  }
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -15145,7 +15220,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       // A mode whose pure kernels run as a hash recipe, see hashconfig_init (). The module's own
-      // options above still apply.
+      // options above still apply. Fast recipe kernels build only the entry point the
+      // session runs, either _sxx or _mxx. See the kernel name below for that selection. The
+      // slow kernel has neither.
 
       if (hashconfig->hash_recipe != NULL)
       {
@@ -15153,7 +15230,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (recipe_options != NULL)
         {
-          build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, " %s", recipe_options);
+          const char *only = (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) ? " -D RECIPE_SXX_ONLY" : " -D RECIPE_MXX_ONLY";
+
+          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) only = "";
+
+          build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, " %s%s", recipe_options, only);
 
           hcfree (recipe_options);
         }
@@ -15232,7 +15313,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
+      // Include a separate checksum for the module's options. A hash recipe produces
+      // several kB of option text, which exceeded device_name_chksum. The snprintf () call
+      // truncated the remaining text, so 2 recipes differing only in that text shared a
+      // cached kernel. The paw64 () call also read past the buffer because it used the full
+      // length reported by snprintf ().
+
+      const u64 options_chksum = paw64 (build_options_module_buf, (size_t) build_options_module_len, 0);
+
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%016" PRIx64
         // the same DEBUG marker as the shared key above, so a DEBUG main kernel never loads a release one
         #if defined (DEBUG)
         "-debug"
@@ -15260,9 +15349,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         extra_value,
         (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max,
         get_current_arch(),
-        build_options_module_buf);
+        options_chksum);
 
-      const u64 chksum_main = paw64 (device_name_chksum, dnclen, 0);
+      const u64 chksum_main = paw64 (device_name_chksum, MIN (dnclen, (size_t) HCBUFSIZ_TINY - 1), 0);
 
       snprintf (device_name_chksum, HCBUFSIZ_TINY, "%016" PRIx64, chksum_main);
 
@@ -17095,7 +17184,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->runtime_skip_warning  = (backend_runtime_skip_warnings  == backend_ctx->backend_devices_active);
   backend_ctx->kernel_build_warning  = (backend_kernel_build_warnings  == backend_ctx->backend_devices_active);
   backend_ctx->kernel_create_warning = (backend_kernel_create_warnings == backend_ctx->backend_devices_active);
-  backend_ctx->kernel_accel_warnings = (backend_kernel_accel_warnings  == backend_ctx->backend_devices_active);
   backend_ctx->extra_size_warning    = (backend_extra_size_warning     == backend_ctx->backend_devices_active);
 
   // if all active devices failed, set rc to -1
@@ -17104,7 +17192,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       (backend_ctx->runtime_skip_warning  == true) ||
       (backend_ctx->kernel_build_warning  == true) ||
       (backend_ctx->kernel_create_warning == true) ||
-      (backend_ctx->kernel_accel_warnings == true) ||
       (backend_ctx->extra_size_warning    == true))
   {
     rc = -1;
@@ -17112,7 +17199,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   else
   {
     // handle mix of, in case of multiple devices with different warnings
-    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_create_warnings + backend_kernel_accel_warnings + backend_extra_size_warning) == backend_ctx->backend_devices_active);
+    backend_ctx->mixed_warnings = ((backend_memory_hit_warnings + backend_runtime_skip_warnings + backend_kernel_build_warnings + backend_kernel_create_warnings + backend_extra_size_warning) == backend_ctx->backend_devices_active);
 
     if (backend_ctx->mixed_warnings) rc = -1;
   }
@@ -17208,6 +17295,22 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    // A device that failed its autotune sat out the rest of this session only. It gives back what
+    // the session gave it, and the next session, one per hash mode in a benchmark, tunes it again.
+
+    if (device_param->skipped_autotune == true)
+    {
+      device_param->skipped          = false;
+      device_param->skipped_autotune = false;
+
+      if (device_param->is_hip == true)    backend_ctx->hip_devices_active++;
+      if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active++;
+      if (device_param->is_metal == true)  backend_ctx->metal_devices_active++;
+      if (device_param->is_opencl == true) backend_ctx->opencl_devices_active++;
+
+      backend_ctx->backend_devices_active++;
+    }
 
     if (device_param->skipped == true) continue;
 

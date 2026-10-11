@@ -25,6 +25,11 @@
 #include M2S(INCLUDE_PATH/inc_recipe.cl)
 #endif
 
+// A session runs one of these 2 kernels: m04000_sxx for a single hash, or m04000_mxx otherwise.
+// hashcat selects it with RECIPE_SXX_ONLY or RECIPE_MXX_ONLY, so the unused kernel is not built.
+
+#ifndef RECIPE_SXX_ONLY
+
 KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_RULES ())
 {
   /**
@@ -59,6 +64,8 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_RULES ())
 
   RECIPE_HEX_BIND (&st)
 
+  RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+
   recipe_prep (&st, s, salt_len);
 
   /**
@@ -83,6 +90,10 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_RULES ())
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
+
+#endif
+
+#ifndef RECIPE_MXX_ONLY
 
 KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_RULES ())
 {
@@ -130,6 +141,8 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_RULES ())
 
   RECIPE_HEX_BIND (&st)
 
+  RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+
   recipe_prep (&st, s, salt_len);
 
   /**
@@ -154,3 +167,5 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_RULES ())
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }
+
+#endif

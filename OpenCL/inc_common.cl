@@ -2090,6 +2090,10 @@ DECLSPEC int hash_comp (PRIVATE_AS const u32 *d1, GLOBAL_AS const u32 *d2)
   return (0);
 }
 
+// This comparison omits the early returns used by hash_comp (). COMPARE_M_SIMD inlines the search
+// once per vector lane. At the native vector width on CPU runtimes, the 16 copies of those returns
+// made a kernel for multiple hashes 30 times slower to build.
+
 DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
@@ -2098,16 +2102,29 @@ DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLO
 
     const u32 c = l + m;
 
-    const int cmp = hash_comp (digest, digests_buf[c].digest_buf);
+    GLOBAL_AS const u32 *d = digests_buf[c].digest_buf;
 
-    if (cmp > 0)
+    const u32 gt3 = (digest[3] > d[DGST_R3]) ? 1 : 0;
+    const u32 gt2 = (digest[2] > d[DGST_R2]) ? 1 : 0;
+    const u32 gt1 = (digest[1] > d[DGST_R1]) ? 1 : 0;
+    const u32 gt0 = (digest[0] > d[DGST_R0]) ? 1 : 0;
+
+    const u32 eq3 = (digest[3] == d[DGST_R3]) ? 1 : 0;
+    const u32 eq2 = (digest[2] == d[DGST_R2]) ? 1 : 0;
+    const u32 eq1 = (digest[1] == d[DGST_R1]) ? 1 : 0;
+    const u32 eq0 = (digest[0] == d[DGST_R0]) ? 1 : 0;
+
+    const u32 gt = gt3 | (eq3 & (gt2 | (eq2 & (gt1 | (eq1 & gt0)))));
+    const u32 eq = eq3 & eq2 & eq1 & eq0;
+
+    if (eq == 1) return (c);
+
+    if (gt == 1)
     {
       l += m + 1;
 
       r--;
     }
-
-    if (cmp == 0) return (c);
   }
 
   return (-1);

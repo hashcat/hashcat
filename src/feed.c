@@ -1698,6 +1698,21 @@ feed_gpu_t *feed_gpu_init (hashcat_ctx_t *hashcat_ctx, const int device_id, cons
     feed_optv_add (&o, "--gpu-architecture=%s", device_param->gcnArchName);
     feed_optv_add (&o, "--gpu-max-threads-per-block=%u", threads);
 
+    // The same two options as the hiprtc build in backend.c, for the reasons given there: ISO C++17
+    // keeps linux and unix undefined in the include path M2S () expands, and the long branch factor
+    // keeps a relaxed branch in a called function off the return address. DTK's LLVM ends the
+    // process on an option it does not know.
+
+    feed_optv_add (&o, "-std=c++17");
+
+    const HIPRTC_PTR *hiprtc = backend_ctx->hiprtc;
+
+    if (hiprtc->is_dtk == false)
+    {
+      feed_optv_add (&o, "-mllvm");
+      feed_optv_add (&o, "-amdgpu-long-branch-factor=0");
+    }
+
     feed_optv_include_path (&o, folder_config, device_param, false);
   }
   else

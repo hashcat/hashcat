@@ -380,7 +380,7 @@ static const char *HASH_NAME = "MD5";
 
 ### module_kern_type() ###
 
-Callback `module_kern_type()` selects the kernel number loaded by the module. A fast hash using `ATTACK_EXEC_INSIDE_KERNEL` loads `OpenCL/mXXXXX_a[0|1|3|4]-[optimized|pure].cl`: `a0` for straight, `a1` for combinator, `a3` for brute force, and optional `a4` for the PCFG device engine. A slow hash using `ATTACK_EXEC_OUTSIDE_KERNEL` loads `OpenCL/mXXXXX-[optimized|pure].cl` without an attack-mode suffix. For example, kernel type 7100 loads `OpenCL/m07100-pure.cl`. Multiple modules may select the same kernel, as the GRUB2 and macOS 10.8 modes do for PBKDF2-HMAC-SHA512.
+Callback `module_kern_type()` selects the kernel number loaded by the module. A fast hash using `ATTACK_EXEC_INSIDE_KERNEL` loads `OpenCL/mXXXXX_a[0|1|3|4]-[optimized|pure].cl`: `a0` for straight, `a1` for combinator, `a3` for brute force, and optional `a4` for the PCFG device engine. A slow hash using `ATTACK_EXEC_OUTSIDE_KERNEL` loads `OpenCL/mXXXXX-[optimized|pure].cl` without an attack-mode suffix. For example, kernel type 8900 loads `OpenCL/m08900-pure.cl`. Multiple modules may select the same kernel, as the scrypt and Cisco-IOS $9$ modes do.
 
 Several modules can share one kernel implementation, but combining unrelated modes creates branches that reduce performance and maintainability. Performance-sensitive modes therefore usually have dedicated kernels, as the `OpenCL/` directory demonstrates.
 
@@ -766,6 +766,12 @@ hashcat generates the candidate little endian for the recipe kernels. The recipe
 Apply salt and digest preparation for optimized kernels only when `OPTI_TYPE_OPTIMIZED_KERNEL` is set. This includes byte swapping salt words or subtracting a precomputed state from the digest. Recipe kernels read the salt as bytes and compare the complete digest. See the examples in `src/modules/module_08100.c` and `src/modules/module_12600.c`.
 
 Migrate all modes that share a kernel type together, because the recipe replaces their shared pure kernel files.
+
+#### Kernel: slow hash type (recipe) ####
+
+A slow hash that applies PBKDF2 to the password and salt can also use a recipe, such as `pbkdf2_sha256(pass, salt, iter, 32)`. For this recipe, hashcat runs mode 4000's slow kernel, `OpenCL/m04000-pure.cl`. It sizes the tmps for that kernel regardless of the value returned by `module_tmp_size ()`. The loop kernel processes `VECT_SIZE` candidates per work item, so hashcat sets `OPTI_TYPE_SLOW_HASH_SIMD_LOOP`. The module keeps its parser, digest layout and self-test hash. It registers the recipe using the same 3 lines shown for a fast hash.
+
+The recipe reads the complete salt from `salt->salt_buf`, using `salt->salt_len` bytes. Store the complete salt there, including any words beyond the first ones. The value `iter` in the recipe represents the iteration count. Store that count minus 1 in `salt->salt_iter`, as the modes' own PBKDF2 kernels already expect. The kernel compares the first 4 words of the derived key in the family's word layout, as described above for a hash call. A slow mode requires a slow recipe, and a fast mode requires a fast recipe. If they do not match, hashcat rejects the recipe at startup.
 
 ### Kernel: slow hash type ###
 

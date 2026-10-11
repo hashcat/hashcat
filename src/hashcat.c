@@ -59,10 +59,31 @@
 #include "ext_zstd.h"
 #include "ext_iconv.h"
 #include "usage.h"
+#include "json.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
 #endif
+
+// A round ends with -1 on an error, and with -10 when autotune failed on every device, which
+// inner2_autotune () has already announced. A benchmark over every hash mode skips that mode, as
+// outer_loop () skips one whose backend session does not start. Anywhere else -10 stops the session
+// and is passed back up so that it reaches the exit code.
+
+static int round_failed (hashcat_ctx_t *hashcat_ctx, const int rc)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (rc == -1) myabort (hashcat_ctx);
+
+  if (rc != -10) return 0;
+
+  if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false)) return 0;
+
+  myabort (hashcat_ctx);
+
+  return -10;
+}
 
 // Measure how every device should be launched for this round.
 //
@@ -146,12 +167,16 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
       {
         event_log_warning (hashcat_ctx, "* Device #%u: skipped, due to kernel autotune failure (%d).", device_param->device_id + 1, device_param->at_rc);
 
-        device_param->skipped = true;
+        // for the rest of this session only, see backend_session_destroy ()
+
+        device_param->skipped          = true;
+        device_param->skipped_autotune = true;
 
         // update counters
 
         if (device_param->is_hip == true)    backend_ctx->hip_devices_active--;
         if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active--;
+        if (device_param->is_metal == true)  backend_ctx->metal_devices_active--;
         if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
 
         backend_ctx->backend_devices_active--;
@@ -169,10 +194,18 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
 
     if (user_options->force == false)
     {
-      // if all enabled devices fail, abort session
+      // if all enabled devices fail, abort session, or in a benchmark over every hash mode skip
+      // this one (see round_failed ())
       if (backend_ctx->backend_devices_active <= 0)
       {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+        if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+        {
+          event_log_error (hashcat_ctx, "Skipping hash-mode %u due to kernel autotune failures, for all active devices.", user_options->hash_mode);
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+        }
 
         event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
@@ -810,6 +843,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // New induction folder check, which is a controlled recursion
 
+  int rc_induction = 0;
+
   if (induct_ctx->induction_dictionaries_cnt == 0)
   {
     induct_ctx_scan (hashcat_ctx);
@@ -822,7 +857,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       {
         if (status_ctx->devices_status == STATUS_EXHAUSTED)
         {
-          if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+          if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_induction = -10;
 
           if (status_ctx->run_main_level3 == false) break;
         }
@@ -857,7 +892,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  return 0;
+  return rc_induction;
 }
 
 // inner1_loop iterates through masks, then calls inner2_loop
@@ -873,6 +908,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
+
+  int rc_inner1 = 0;
 
   /**
    * loop through wordlists
@@ -898,7 +935,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     {
       straight_ctx->dicts_pos = dicts_pos;
 
-      if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+      if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_inner1 = -10;
 
       if (status_ctx->run_main_level3 == false) break;
     }
@@ -910,12 +947,12 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+    if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_inner1 = -10;
   }
 
   EVENT (EVENT_INNERLOOP2_FINISHED);
 
-  return 0;
+  return rc_inner1;
 }
 
 // outer_loop iterates through hash_modes (in benchmark mode)
@@ -1614,6 +1651,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
+      // STATUS_INIT would end the sweep as an error when this is its last mode, see the feed that
+      // describes its attack further up
+
+      status_ctx->devices_status = STATUS_RUNNING;
+
       outer_loop_destroy (hashcat_ctx);
 
       return 0;
@@ -1653,7 +1695,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     if (user_options->benchmark == true)
     {
-      if (user_options->hash_mode_chgd == false)
+      // with no device left no later hash mode can run either, so that one ends the sweep
+
+      if ((user_options->hash_mode_chgd == false) && (backend_ctx->backend_devices_active > 0))
       {
         // finalize backend session
 
@@ -1662,6 +1706,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
         // clean up
 
         outer_loop_destroy (hashcat_ctx);
+
+        // as for a bridge that does not come up, above
+
+        status_ctx->devices_status = STATUS_RUNNING;
 
         return 0;
       }
@@ -1858,13 +1906,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_ctx->words_walk_base = 0;
   status_ctx->words_walk_cnt  = 0;
 
+  int rc_outer = 0;
+
   if (mask_ctx->masks_cnt)
   {
     for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
       mask_ctx->masks_pos = masks_pos;
 
-      if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+      if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
 
       if (status_ctx->run_main_level2 == false) break;
     }
@@ -1876,7 +1926,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
   else
   {
-    if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+    if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
   }
 
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
@@ -1931,7 +1981,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   outer_loop_destroy (hashcat_ctx);
 
-  return 0;
+  return rc_outer;
 }
 
 static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -2671,6 +2721,42 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (modes_cnt > 1)
     {
+      // --json prints the matches as one object. Hash-mode names are fixed module
+      // strings without quote or backslash bytes, so they need no JSON escaping.
+
+      if ((user_options->json == true) && (user_options->identify == true))
+      {
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+
+        for (int i = 0; i < modes_cnt; i++)
+        {
+          json_object_begin (&js);
+          json_kv_uint   (&js, "hash_mode", usage_sort_buf[i].hash_mode);
+          json_kv_string (&js, "name", usage_sort_buf[i].hash_name);
+          json_kv_string (&js, "category", strhashcategory (usage_sort_buf[i].hash_category));
+          json_object_end (&js);
+
+          hcfree (usage_sort_buf[i].hash_name);
+        }
+
+        json_array_end (&js);
+        json_object_end (&js);
+
+        fwrite (EOL, strlen (EOL), 1, stdout);
+
+        fflush (stdout);
+
+        hcfree (usage_sort_buf);
+
+        return 0;
+      }
+
       if (user_options->machine_readable == false)
       {
         event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
@@ -2717,7 +2803,28 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->identify == true)
     {
-      if (user_options->machine_readable == true)
+      if (user_options->json == true)
+      {
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+        json_object_begin (&js);
+        json_kv_uint   (&js, "hash_mode", usage_sort_buf[0].hash_mode);
+        json_kv_string (&js, "name", usage_sort_buf[0].hash_name);
+        json_kv_string (&js, "category", strhashcategory (usage_sort_buf[0].hash_category));
+        json_object_end (&js);
+        json_array_end (&js);
+        json_object_end (&js);
+
+        fwrite (EOL, strlen (EOL), 1, stdout);
+
+        fflush (stdout);
+      }
+      else if (user_options->machine_readable == true)
       {
         event_log_info (hashcat_ctx, "%u", usage_sort_buf[0].hash_mode);
       }
@@ -2843,12 +2950,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 is marked as used in status_codes.txt
+    // -2 and -7 are reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;
     if (backend_ctx->kernel_create_warning == true)               rc_final = -6;
-    if (backend_ctx->kernel_accel_warnings == true)               rc_final = -7;
     if (backend_ctx->extra_size_warning    == true)               rc_final = -8;
     if (backend_ctx->mixed_warnings        == true)               rc_final = -9;
     if (backend_ctx->self_test_warnings    == true)               rc_final = -11;

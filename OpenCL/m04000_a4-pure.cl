@@ -45,6 +45,8 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const sa
     hc->s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  RECIPE_SALTD_BIND (&hc->st, salt_bufs[salt_pos])
+
   // Prepare work independent of the candidate once per salt.
 
   recipe_prep (&hc->st, hc->s, hc->salt_len);
@@ -58,7 +60,40 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 {
   u32 r[16];
 
+  // This gate assumes the password is read wide, as a full 64 word copy, exactly when
+  // RECIPE_PASS_PLAIN is not set. The wide read is RECIPE_XRUN, which a recipe runs only to
+  // transform the password, plus the HMAC key path; RECIPE_PASS_PLAIN marks the recipes that do
+  // neither, so where it is set the recipe reads only the candidate's own bytes.
+
+#ifdef RECIPE_PASS_PLAIN
+
+  // The recipe hashes the password as is, reading only its own bytes, which the candidate array
+  // holds. Evaluate it in place, no copy.
+
   recipe_eval (&hc->st, w, w, len, hc->s, hc->salt_len, r);
+
+#else
+
+  // The pcfg candidate array holds the candidate zero padded only as far as the generator needs,
+  // which can be fewer than 64 words. A recipe that transforms the password reads it as a full 64
+  // word copy, past the candidate, so it would read whatever is left in the array beyond it. Copy
+  // the candidate into a buffer cleared to the full 256 bytes the recipe may reach, the same way
+  // the global path does, so the bytes past the candidate are zero.
+
+  u32 pw[64];
+
+  for (u32 i = 0; i < 64; i++) pw[i] = 0;
+
+  const u32 pw_len = (len >= 256) ? 256 : len;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    pw[idx] = w[idx];
+  }
+
+  recipe_eval (&hc->st, pw, pw, pw_len, hc->s, hc->salt_len, r);
+
+#endif
 
   dgst[0] = r[DGST_R0];
   dgst[1] = r[DGST_R1];
@@ -103,6 +138,14 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
 #define PCFG_KERNEL_MXX m04000_mxx
 #define PCFG_KERNEL_SXX m04000_sxx
+
+#ifdef RECIPE_SXX_ONLY
+#define PCFG_SXX_ONLY
+#endif
+
+#ifdef RECIPE_MXX_ONLY
+#define PCFG_MXX_ONLY
+#endif
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_pcfg_kernel.cl)

@@ -317,6 +317,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->opti_type     = module_ctx->module_opti_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type     = module_ctx->module_opts_type      (hashconfig, user_options, user_options_extra);
 
+  // Mode 4000 uses the recipe to parse its hash lines and determine the encoding of the hash.
+
+  hashconfig->hash_recipe_option = user_options->hash_recipe;
+
   // A recipe replaces only the pure kernels and -O still runs the module's optimized ones, so the
   // probes for those below use the kern_type the module declares.
 
@@ -354,11 +358,34 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
+      // A recipe with pbkdf2 or a loop runs in mode 4000's slow kernel and can replace only a slow
+      // mode's kernels. A fast recipe can replace only a fast mode's kernels. For pbkdf2, each work
+      // item in the loop kernel processes VECT_SIZE candidates. For a for loop, it processes one
+      // candidate per work item.
+
+      const bool mode_slow = (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL);
+
+      if (mode_slow != (prog.slow == 1))
+      {
+        event_log_error (hashcat_ctx, "Recipe of hash-mode %d is a %s hash, but the mode is a %s one", hashconfig->hash_mode, (prog.slow == 1) ? "slow" : "fast", (mode_slow == true) ? "slow" : "fast");
+
+        return -1;
+      }
+
       hashconfig->hash_recipe = recipe;
       hashconfig->kern_type   = RECIPE_KERN_TYPE;
 
       hashconfig->opts_type &= ~OPTS_TYPE_PT_GENERATE_BE;
       hashconfig->opts_type |=  OPTS_TYPE_PT_GENERATE_LE;
+
+      if (prog.kdf_blocks > 0)
+      {
+        hashconfig->opti_type |= OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+      }
+      else if (prog.slow == 1)
+      {
+        hashconfig->opti_type &= ~OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+      }
     }
   }
 
@@ -628,6 +655,17 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_separator                != MODULE_DEFAULT) hashconfig->separator               = module_ctx->module_separator                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_tmp_size                 != MODULE_DEFAULT) hashconfig->tmp_size                = module_ctx->module_tmp_size                 (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_warmup_disable           != MODULE_DEFAULT) hashconfig->warmup_disable          = module_ctx->module_warmup_disable           (hashconfig, user_options, user_options_extra);
+
+  // A stored recipe running as a slow hash keeps its pbkdf2 state or carried variables in
+  // the tmps. Their layout must match mode 4000's slow kernel, rather than the layout used
+  // by the mode's own kernels.
+
+  if (hashconfig->hash_recipe != NULL)
+  {
+    recipe_prog_t prog;
+
+    if ((recipe_compile (&prog, hashconfig->hash_recipe) == true) && (prog.slow == 1)) hashconfig->tmp_size = recipe_tmp_size (&prog);
+  }
 
   // those depend on some previously defined values
 

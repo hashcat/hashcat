@@ -994,6 +994,7 @@ typedef enum user_options_defaults
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST  = 1,
   BENCHMARK_ALL             = false,
+  BENCHMARK_JSON            = false,
   BENCHMARK_MAX             = 99999,
   BENCHMARK_MIN             = 0,
   BENCHMARK_PURE            = false,
@@ -1036,6 +1037,7 @@ typedef enum user_options_defaults
   INCREMENT_INVERSE        = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
+  JSON                     = false,
   KEEP_GUESSING            = false,
   KERNEL_ACCEL             = 0,
   KERNEL_LOOPS             = 0,
@@ -1119,6 +1121,7 @@ typedef enum user_options_map
   IDX_BACKEND_INFO              = 'I',
   IDX_BACKEND_VECTOR_WIDTH      = 0xff05,
   IDX_BENCHMARK_ALL             = 0xff06,
+  IDX_BENCHMARK_JSON            = 0xff8e,
   IDX_BENCHMARK_MAX             = 0xff56,
   IDX_BENCHMARK_MIN             = 0xff57,
   IDX_BENCHMARK_PURE            = 'B',
@@ -1178,6 +1181,7 @@ typedef enum user_options_map
   IDX_INCREMENT_MAX             = 0xff21,
   IDX_INCREMENT_MIN             = 0xff22,
   IDX_INDUCTION_DIR             = 0xff23,
+  IDX_JSON                      = 0xff86,
   IDX_KEEP_GUESSING             = 0xff24,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
@@ -1506,6 +1510,11 @@ typedef struct hashconfig
 
   const char *hash_recipe;
 
+  // The recipe supplied through --hash-recipe, used by a module to determine how its
+  // hash lines are parsed.
+
+  const char *hash_recipe_option;
+
   u32         hash_category;
   const char *hash_name;
 
@@ -1779,6 +1788,7 @@ typedef struct hc_device_param
 
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
+  bool    skipped_autotune;     // session
 
   // Why this device is not being used, for the summary printed once enumeration is over. A device
   // the user excluded is not a loss and leaves this empty, so what remains here is a device that was
@@ -2330,7 +2340,6 @@ typedef struct backend_ctx
   bool                runtime_skip_warning;
   bool                kernel_build_warning;
   bool                kernel_create_warning;
-  bool                kernel_accel_warnings;
   bool                extra_size_warning;
   bool                mixed_warnings;
   bool                self_test_warnings;
@@ -2858,6 +2867,7 @@ typedef struct user_options
   bool         advice;
   bool         benchmark;
   bool         benchmark_all;
+  bool         benchmark_json;
   bool         benchmark_pure;
   #ifdef WITH_BRAIN
   bool         brain_client;
@@ -2873,6 +2883,7 @@ typedef struct user_options
   bool         hex_salt;
   bool         hex_wordlist;
   increment_t  increment;
+  bool         json;
   bool         keep_guessing;
   bool         keyspace;
   bool         total_candidates;
