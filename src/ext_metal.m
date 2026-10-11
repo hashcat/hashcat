@@ -557,7 +557,12 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
           [key isEqualToString:@"RECIPE_HEX"] ||
           [key isEqualToString:@"RECIPE_BE_PASS"] ||
           [key isEqualToString:@"RECIPE_BE_SALT"] ||
-          [key isEqualToString:@"RECIPE_PASS_PLAIN"])
+          [key isEqualToString:@"RECIPE_PASS_PLAIN"] ||
+          [key isEqualToString:@"RECIPE_CMP"] ||
+          [key isEqualToString:@"RECIPE_AES"] ||
+          [key isEqualToString:@"RECIPE_LOOP"] ||
+          [key isEqualToString:@"RECIPE_SXX_ONLY"] ||
+          [key isEqualToString:@"RECIPE_MXX_ONLY"])
       {
         value = @"1";
       }
