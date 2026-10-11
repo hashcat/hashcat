@@ -1510,6 +1510,11 @@ typedef struct hashconfig
 
   const char *hash_recipe;
 
+  // The recipe supplied through --hash-recipe, used by a module to determine how its
+  // hash lines are parsed.
+
+  const char *hash_recipe_option;
+
   u32         hash_category;
   const char *hash_name;
 

@@ -26,6 +26,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *HASH_RECIPE    = "pbkdf2_sha512(pass, salt, iter, 64)";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "grub.pbkdf2.sha512.1024.03510507805003756325721848020561235456073188241051876082416068104377357018503082587026352628170170411053726157658716047762755750.aac26b18c2b0c44bcf56514d46aabd52eea097d9c95122722087829982e9dd957b2b641cb1e015d4df16a84d0571e96cf6d3de6361431bdeed4ddb0940f2425b";
 
@@ -41,6 +42,7 @@ u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
@@ -148,15 +150,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt_buf_ptr[salt_len + 3] = 0x01;
   salt_buf_ptr[salt_len + 4] = 0x80;
 
-  salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
-  salt->salt_buf[4] = pbkdf2_sha512->salt_buf[4];
-  salt->salt_buf[5] = pbkdf2_sha512->salt_buf[5];
-  salt->salt_buf[6] = pbkdf2_sha512->salt_buf[6];
-  salt->salt_buf[7] = pbkdf2_sha512->salt_buf[7];
-  salt->salt_len    = salt_len;
+  salt->salt_len = salt_len;
+
+  // The recipe reads the whole salt from salt_buf.
+
+  memcpy (salt->salt_buf, pbkdf2_sha512->salt_buf, salt->salt_len);
 
   const u8 *iter_pos = token.buf[1];
 
@@ -241,7 +239,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

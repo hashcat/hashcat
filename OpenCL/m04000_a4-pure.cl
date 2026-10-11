@@ -139,6 +139,14 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 #define PCFG_KERNEL_MXX m04000_mxx
 #define PCFG_KERNEL_SXX m04000_sxx
 
+#ifdef RECIPE_SXX_ONLY
+#define PCFG_SXX_ONLY
+#endif
+
+#ifdef RECIPE_MXX_ONLY
+#define PCFG_MXX_ONLY
+#endif
+
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_pcfg_kernel.cl)
 #endif

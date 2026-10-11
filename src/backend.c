@@ -15220,7 +15220,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       // A mode whose pure kernels run as a hash recipe, see hashconfig_init (). The module's own
-      // options above still apply.
+      // options above still apply. Fast recipe kernels build only the entry point the
+      // session runs, either _sxx or _mxx. See the kernel name below for that selection. The
+      // slow kernel has neither.
 
       if (hashconfig->hash_recipe != NULL)
       {
@@ -15228,7 +15230,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (recipe_options != NULL)
         {
-          build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, " %s", recipe_options);
+          const char *only = (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH) ? " -D RECIPE_SXX_ONLY" : " -D RECIPE_MXX_ONLY";
+
+          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) only = "";
+
+          build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, " %s%s", recipe_options, only);
 
           hcfree (recipe_options);
         }
@@ -15307,7 +15313,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s"
+      // Include a separate checksum for the module's options. A hash recipe produces
+      // several kB of option text, which exceeded device_name_chksum. The snprintf () call
+      // truncated the remaining text, so 2 recipes differing only in that text shared a
+      // cached kernel. The paw64 () call also read past the buffer because it used the full
+      // length reported by snprintf ().
+
+      const u64 options_chksum = paw64 (build_options_module_buf, (size_t) build_options_module_len, 0);
+
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%016" PRIx64
         // the same DEBUG marker as the shared key above, so a DEBUG main kernel never loads a release one
         #if defined (DEBUG)
         "-debug"
@@ -15335,9 +15349,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         extra_value,
         (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max,
         get_current_arch(),
-        build_options_module_buf);
+        options_chksum);
 
-      const u64 chksum_main = paw64 (device_name_chksum, dnclen, 0);
+      const u64 chksum_main = paw64 (device_name_chksum, MIN (dnclen, (size_t) HCBUFSIZ_TINY - 1), 0);
 
       snprintf (device_name_chksum, HCBUFSIZ_TINY, "%016" PRIx64, chksum_main);
 
