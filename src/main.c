@@ -670,6 +670,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -694,7 +695,18 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
       size_t len = 0;
 
-      if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
+      if (module_ctx->module_benchmark_hint != MODULE_DEFAULT)
+      {
+        // A mode whose cost is not one iteration count, such as argon2 with its m, t and p, spells
+        // out its own parameters here in place of the Iterations readout.
+
+        char hint[HCBUFSIZ_TINY] = { 0 };
+
+        module_ctx->module_benchmark_hint (hashconfig, &hashes[0].salts_buf[0], hint, sizeof (hint));
+
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [%s] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hint, kernel_name);
+      }
+      else if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {
         len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter, kernel_name);
       }

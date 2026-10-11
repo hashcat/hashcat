@@ -139,6 +139,20 @@ u64 argon2_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
   return MAX (size_argon2, size_selftest);
 }
 
+int argon2_module_benchmark_hint (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, char *line_buf, const int line_size)
+{
+  // Every argon2 mode packs the cost parameters into the salt the same way: t (time) goes into
+  // salt_iter scaled by ARGON2_SYNC_POINTS, and m (memory in KiB) and p (parallelism) go into
+  // salt_buf_pc. Printed as plain Iterations, salt_iter reads as t * ARGON2_SYNC_POINTS rather than
+  // the t from the hash, so show the three parameters the way the hash spells them instead.
+
+  const u32 m = salt->salt_buf_pc[0];
+  const u32 t = salt->salt_iter / ARGON2_SYNC_POINTS;
+  const u32 p = salt->salt_buf_pc[1];
+
+  return snprintf (line_buf, line_size, "m=%u, t=%u, p=%u", m, t, p);
+}
+
 char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   int   build_options_sz  = 1024;

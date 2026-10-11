@@ -150,16 +150,18 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   module_ctx->module_usage_notice = MODULE_DEFAULT; // set all module to have usage_notice by empty default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
   module_ctx->module_advice_notice = MODULE_DEFAULT; // set all module to have advice_notice empty by default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
   module_ctx->module_length_sort = MODULE_DEFAULT; // same for length_sort, so a mode that does not want the length sort does not have to say so
+  module_ctx->module_benchmark_hint = MODULE_DEFAULT; // same for benchmark_hint, so a mode without extra benchmark cost parameters to show does not have to say so
   module_ctx->module_init (module_ctx);
 
-  // The three optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
+  // The four optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
   // assigns NULL to one of them instead of leaving it alone gets past every guard: the readers test
   // against MODULE_DEFAULT, not against NULL, and then call it. Seeding them before module_init ()
   // only covers the module that says nothing. This covers the one that says NULL.
 
-  if (module_ctx->module_usage_notice  == NULL) module_ctx->module_usage_notice  = MODULE_DEFAULT;
-  if (module_ctx->module_advice_notice == NULL) module_ctx->module_advice_notice = MODULE_DEFAULT;
-  if (module_ctx->module_length_sort   == NULL) module_ctx->module_length_sort   = MODULE_DEFAULT;
+  if (module_ctx->module_usage_notice   == NULL) module_ctx->module_usage_notice   = MODULE_DEFAULT;
+  if (module_ctx->module_advice_notice  == NULL) module_ctx->module_advice_notice  = MODULE_DEFAULT;
+  if (module_ctx->module_length_sort    == NULL) module_ctx->module_length_sort    = MODULE_DEFAULT;
+  if (module_ctx->module_benchmark_hint == NULL) module_ctx->module_benchmark_hint = MODULE_DEFAULT;
 
   // What a hash tells us about whoever chose the password. A module that says nothing gets the answer
   // that works for every mode, which is the account name in front of the hash cut into words, and a
@@ -201,6 +203,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_benchmark_mask);
   CHECK_DEFINED (module_ctx, module_benchmark_charset);
   CHECK_DEFINED (module_ctx, module_benchmark_salt);
+  // CHECK_DEFINED (module_ctx, module_benchmark_hint); // we don't check this here as it's an optional field
   CHECK_DEFINED (module_ctx, module_bridge_name);
   CHECK_DEFINED (module_ctx, module_bridge_type);
   CHECK_DEFINED (module_ctx, module_build_plain_postprocess);
