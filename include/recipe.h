@@ -67,8 +67,20 @@ typedef enum recipe_part_kind
   RECIPE_PART_LIT   = 3,
   RECIPE_PART_STEP  = 4,
   RECIPE_PART_XFORM = 5,
+  RECIPE_PART_SALTD = 6,
 
 } recipe_part_kind_t;
+
+// fromhex (salt) and frombase64 (salt) give the decoded salt, RECIPE_PART_SALTD. A recipe decodes
+// the salt one way only.
+
+typedef enum recipe_dec
+{
+  RECIPE_DEC_NONE = 0,
+  RECIPE_DEC_HEX  = 1,
+  RECIPE_DEC_B64  = 2,
+
+} recipe_dec_t;
 
 // Supported hx string transforms for pass and salt. Each runs on a copy, allowing a recipe to
 // hash both pass and upper (pass).
@@ -87,6 +99,13 @@ typedef enum recipe_xop
   RECIPE_XOP_WPERM   = 10,
   RECIPE_XOP_CUT     = 11,
 
+  // The compiler resolves decoding according to the input. Decoding salt gives RECIPE_PART_SALTD,
+  // a string is decoded itself, and fromhex of a hex hash call gives its raw bytes. Decoding is
+  // never stored as a transform on a copy.
+
+  RECIPE_XOP_FROMHEX = 12,
+  RECIPE_XOP_FROMB64 = 13,
+
 } recipe_xop_t;
 
 // Arguments a and b store the rotation offset, cap position (-1 for the first lowercase letter),
@@ -102,8 +121,8 @@ typedef struct recipe_xop_entry
 
 } recipe_xop_entry_t;
 
-// A transformed copy of pass or salt. The src field is RECIPE_PART_PASS or RECIPE_PART_SALT.
-// Transforms apply in order, innermost first.
+// A transformed copy of pass or salt. The src field is RECIPE_PART_PASS, RECIPE_PART_SALT or
+// RECIPE_PART_SALTD. Transforms apply in order, innermost first.
 
 typedef struct recipe_xform
 {
@@ -161,6 +180,10 @@ typedef struct recipe_prog
 
   recipe_xform_t xforms[RECIPE_MAX_XFORMS];
   u32            xforms_cnt;
+
+  // The salt decoding method selected by the recipe. See recipe_dec_t.
+
+  u32 salt_dec;
 
   // Maximum password and salt lengths whose transformed copies fit RECIPE_MAX_XBYTES.
 

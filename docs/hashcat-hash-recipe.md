@@ -44,6 +44,8 @@ and output from `--show` preserve the original hash line.
 | `md5^3(x)` | Equivalent to `md5(md5(md5(x)))`. The suffix sets the output format for each round. For example, `md5_bin^3` chains raw bytes and `md5_uc^3` chains uppercase hex |
 | `upper(x)`, `lower(x)` | Converts ASCII letters to uppercase or lowercase. Applying `upper` to `md5^3(x)` changes only the final result, while `md5_uc^3(x)` uses uppercase hex in every round |
 | `hex(x)` | Encodes raw bytes as hex. For example, `hex(md5_bin(x))` is equivalent to `md5(x)` |
+| `fromhex(x)` | Decodes hex to bytes. For example, `fromhex(md5(x))` is equivalent to `md5_bin(x)` |
+| `frombase64(x)` | Decodes standard base64 to bytes. The `=` padding is optional |
 | `cut(x, start, length)` | Selects `length` bytes from the zero-based position `start`. A negative start counts from the end. Omitting the length selects the rest of `x` |
 | `trunc(x, length)` | `cut(x, 0, length)` |
 | `rev(x)` | The bytes in reverse order |
@@ -56,9 +58,19 @@ and output from `--show` preserve the original hash line.
 | `utf16le(x)` | Converts `x` to UTF-16LE. Passwords and salts are decoded from UTF-8. Hex output and ASCII strings get a zero byte after each byte |
 | `( ... )` | Grouping |
 | `# ...` | A comment to the end of the line |
+| `h = x` | Assigns `x` to the variable `h`, for the statements that follow |
+| `a; b` | Statements, separated by `;` or a line break. The last one is the result |
 
 All hash families support the same suffixes and `^N` syntax. When applied to a concatenation, the
 transforms `upper`, `lower`, `hex`, `rot13` and `utf16le` act on each element.
+
+A variable stands for the expression assigned to it, and the last statement must be an expression.
+A hash call that appears more than once, for example through a variable, is computed once:
+
+```
+h = md5_bin(salt . pass)
+sha256(h . salt . h)
+```
 
 ## Examples
 
@@ -86,11 +98,16 @@ transforms `upper`, `lower`, `hex`, `rot13` and `utf16le` act on each element.
 | `sha224(sha224_bin(pass))` | |
 | `trunc(sha512(pass), 32)` | the first 32 hex characters of a SHA-512 digest |
 | `sha1(upper(pass) . salt)` | |
+| `sha1(utf16le(pass) . frombase64(salt))` | a salt stored in base64 |
+| `sha256(pass . fromhex(salt))` | a salt stored in hex |
+| `h = md5(salt); md5(h . pass)` | `md5(md5(salt) . pass)` |
 
 ## Limits
 
 - A recipe supports up to 8 hash calls, 8 concatenated parts per call and 4 strings. Each string
   can contain up to 16 bytes after its transforms are applied.
+- A recipe supports up to 16 variables. The names `pass`, `salt`, `salt2`, `pepper`, `user`, `for`,
+  `to`, `if` and `else` cannot be assigned.
 - Passwords and salts can contain up to 256 bytes. Applying `hex` reduces the limit for that input
   to 128 bytes.
 - A recipe supports up to 4 transformed copies of `pass` and `salt`, such as `upper(pass)` or
@@ -109,15 +126,19 @@ transforms `upper`, `lower`, `hex`, `rot13` and `utf16le` act on each element.
 - `utf16le` accepts `pass`, `salt`, hex output and ASCII strings. It does not accept raw bytes or
   feed the BLAKE2 families yet. A password or salt with invalid UTF-8 cannot match a recipe
   that applies `utf16le` to it.
+- `fromhex` and `frombase64` accept `salt` itself and strings, and `fromhex` also accepts hex hash
+  output. A recipe can decode its salt in one way only, and `utf16le` of a decoded salt is not
+  supported. The hash line keeps the salt as encoded text, and its encoding is not checked when the
+  hash file is loaded. A string that is not valid hex or base64 is rejected at startup.
 - The result must be a hash call in hex, optionally wrapped in `upper`, `lower`, `hex`, `cut` or
   `trunc`. It must retain at least the first 32 hex characters.
 
 ## Not supported yet
 
-Mode 4000 supports only part of hx. It does not support statements, loops, `if`, key derivation,
+Mode 4000 supports only part of hx. It does not support loops, `if`, `emit`, key derivation,
 ciphers or character encodings other than `utf16le`. Hash families such as Whirlpool, Streebog,
-SHA-3 and Keccak are also unsupported, as are `xor`, `and`, `or`, `length` and `fromhex`. A recipe
-that uses an unsupported feature is rejected at startup with the reason and position of the error.
+SHA-3 and Keccak are also unsupported, as are `xor`, `and`, `or` and `length`. A recipe that uses an
+unsupported feature is rejected at startup with the reason and position of the error.
 
 Mode 74000's dynamic plugin supports PBKDF2 and bcrypt. It runs on the CPU and is much slower for
 fast hashes.

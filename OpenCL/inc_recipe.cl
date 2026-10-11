@@ -468,6 +468,10 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 #define RECIPE_XFLD_PASS(K,T)
 #define RECIPE_XFLD_SALT(K,T)   T xb##K[64]; u32 xl##K;
 
+#define RECIPE_XEV_SALTD(K,T,HS)
+#define RECIPE_XPR_SALTD(K,T,HS) RECIPE_XRUN (K, T, HS, st->sd, st->sd_len, st->xb##K, st->xl##K)
+#define RECIPE_XFLD_SALTD(K,T)   T xb##K[64]; u32 xl##K;
+
 #define RECIPE_XEV3(S,K,T,HS) RECIPE_XEV_##S (K, T, HS)
 #define RECIPE_XEV2(S,K,T,HS) RECIPE_XEV3 (S, K, T, HS)
 #define RECIPE_XPR3(S,K,T,HS) RECIPE_XPR_##S (K, T, HS)
@@ -523,12 +527,112 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 #define RECIPE_XPRS(T,HS) RECIPE_XPR_0 (T, HS) RECIPE_XPR_1 (T, HS) RECIPE_XPR_2 (T, HS) RECIPE_XPR_3 (T, HS)
 #define RECIPE_XFLDS(T)   RECIPE_XFLD_0 (T) RECIPE_XFLD_1 (T) RECIPE_XFLD_2 (T) RECIPE_XFLD_3 (T)
 
+// Calls to fromhex (salt) and frombase64 (salt) hash a decoded salt copy, represented by part
+// SALTD. The module sets RECIPE_SALT_DEC to 1 for hex and 2 for base64. Each work item decodes the
+// salt from global memory once with RECIPE_SALTD_BIND, before recipe_prep (). A base64 salt's
+// decoded length can depend on its padding. This works because all lanes of a vector share the same
+// salt. Bytes outside the alphabet are decoded using the same rules as recipe_decode () in
+// src/recipe.c, so the host and device produce the same decoded bytes for every salt.
+
+#ifdef RECIPE_SALT_DEC
+
+DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, const u32 len)
+{
+  for (u32 i = 0; i < 64; i++) out[i] = 0;
+
+  #if RECIPE_SALT_DEC == 1
+
+  const u32 n = len / 2;
+
+  for (u32 i = 0; i < n; i++)
+  {
+    const u32 c0 = RECIPE_XGET (in, (i * 2) + 0);
+    const u32 c1 = RECIPE_XGET (in, (i * 2) + 1);
+
+    const u32 h0 = ((c0 & 15) + (((c0 >> 6) & 1) * 9)) & 15;
+    const u32 h1 = ((c1 & 15) + (((c1 >> 6) & 1) * 9)) & 15;
+
+    RECIPE_XPUT (out, i, (h0 << 4) | h1);
+  }
+
+  #else
+
+  // Up to 2 trailing = characters are treated as padding. Any other byte outside the
+  // alphabet counts as 0.
+
+  u32 m = len;
+
+  if ((m > 0) && (RECIPE_XGET (in, m - 1) == '=')) m--;
+  if ((m > 0) && (RECIPE_XGET (in, m - 1) == '=')) m--;
+
+  const u32 n = (m * 6) / 8;
+
+  for (u32 g = 0; g < ((m + 3) / 4); g++)
+  {
+    u32 v[4];
+
+    for (u32 j = 0; j < 4; j++)
+    {
+      const u32 at = (g * 4) + j;
+
+      const u32 c = (at < m) ? RECIPE_XGET (in, at) : 0;
+
+      u32 x = 0;
+
+      if ((c >= 'A') && (c <= 'Z')) x = c - 65;
+      if ((c >= 'a') && (c <= 'z')) x = c - 71;
+      if ((c >= '0') && (c <= '9')) x = c + 4;
+
+      if (c == '+') x = 62;
+      if (c == '/') x = 63;
+
+      v[j] = x;
+    }
+
+    const u32 b0 = ((v[0] << 2) | (v[1] >> 4)) & 255;
+    const u32 b1 = ((v[1] << 4) | (v[2] >> 2)) & 255;
+    const u32 b2 = ((v[2] << 6) | (v[3] >> 0)) & 255;
+
+    const u32 at = g * 3;
+
+    if ((at + 0) < n) RECIPE_XPUT (out, at + 0, b0);
+    if ((at + 1) < n) RECIPE_XPUT (out, at + 1, b1);
+    if ((at + 2) < n) RECIPE_XPUT (out, at + 2, b2);
+  }
+
+  #endif
+
+  return n;
+}
+
+#define RECIPE_SALTD_BIND(S,SALT)                                             \
+{                                                                             \
+  u32 sdt[64];                                                                \
+                                                                              \
+  const u32 sdl = recipe_salt_decode (sdt, (SALT).salt_buf, (SALT).salt_len); \
+                                                                              \
+  for (u32 i = 0; i < 64; i++) (S)->sd[i] = sdt[i];                           \
+                                                                              \
+  (S)->sd_len = sdl;                                                          \
+}
+
+#define RECIPE_STATE_SD(T) T sd[64]; u32 sd_len;
+
+#else
+
+#define RECIPE_SALTD_BIND(S,SALT)
+
+#define RECIPE_STATE_SD(T)
+
+#endif
+
 // Feed one part into the running hash. U is the plain update and W is the UTF-16LE update. PU and
 // PB are the update and buffer for pass. SU and SB are their salt equivalents. See RECIPE_UPDP_*.
 // Part tokens are PASS, SALT, LIT0 through LIT3, STEP0 through STEP7, their UTF-16LE variants with
-// 16 appended, or NONE for unused slots. PSTEP0 through PSTEP7 read outputs computed once per salt
-// by recipe_prep () from the state during per-candidate evaluation. XP0 through XP3 are password
-// copies, and XS0 through XS3 are salt copies stored in the state by recipe_prep ().
+// 16 appended, or NONE for unused slots. SALTD is the decoded salt, see RECIPE_SALT_DEC. PSTEP0
+// through PSTEP7 read outputs computed once per salt by recipe_prep () from the state during
+// per-candidate evaluation. XP0 through XP3 are password copies, and XS0 through XS3 are salt
+// copies stored in the state by recipe_prep ().
 
 #define RECIPE_CALL_NONE(U,W,PU,PB,SU,SB,G,WG)
 #define RECIPE_CALL_SALT(U,W,PU,PB,SU,SB,G,WG)       SU (&ctx, SB, (int) salt_len);
@@ -544,6 +648,7 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 #define RECIPE_CALL_PASS16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, w, (int) pw_len);
 #endif
 #define RECIPE_CALL_SALT16(U,W,PU,PB,SU,SB,G,WG)     W (&ctx, s, (int) salt_len);
+#define RECIPE_CALL_SALTD(U,W,PU,PB,SU,SB,G,WG)      U (&ctx, st->sd, (int) st->sd_len);
 #define RECIPE_CALL_LIT0(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits +  0, RECIPE_L0_LEN);
 #define RECIPE_CALL_LIT1(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits +  4, RECIPE_L1_LEN);
 #define RECIPE_CALL_LIT2(U,W,PU,PB,SU,SB,G,WG)       U (&ctx, lits +  8, RECIPE_L2_LEN);
@@ -1009,9 +1114,11 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 // whose result is read only from raw. With N = 1, the compiler removes the unused loop. INIT starts the first round from scratch or
 // from a prefix context saved during preparation.
 
-#define RECIPE_STEP_HASH(F,K,X,HS,T,INIT)                                                                        \
+#define RECIPE_STEP_HASH(F,K,X,HS,T,INIT) RECIPE_STEP_HASHF (F, K, X, HS, T, INIT, RECIPE_FEED (K, F, X))
+
+#define RECIPE_STEP_HASHF(F,K,X,HS,T,INIT,FEED)                                                                  \
 {                                                                                                                \
-  RECIPE_HASH_##F (X, HS, INIT, RECIPE_FEED (K, F, X))                                                           \
+  RECIPE_HASH_##F (X, HS, INIT, FEED)                                                                            \
                                                                                                                  \
   for (u32 j = 1; j < RECIPE_S##K##_ITER; j++)                                                                   \
   {                                                                                                              \
@@ -1032,6 +1139,7 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 
 #define RECIPE_KBUF_PASS  w
 #define RECIPE_KBUF_SALT  s
+#define RECIPE_KBUF_SALTD (st->sd)
 #define RECIPE_KBUF_LIT0  (lits +  0)
 #define RECIPE_KBUF_LIT1  (lits +  4)
 #define RECIPE_KBUF_LIT2  (lits +  8)
@@ -1063,6 +1171,7 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 
 #define RECIPE_KLEN_PASS  pw_len
 #define RECIPE_KLEN_SALT  salt_len
+#define RECIPE_KLEN_SALTD (st->sd_len)
 #define RECIPE_KLEN_LIT0  RECIPE_L0_LEN
 #define RECIPE_KLEN_LIT1  RECIPE_L1_LEN
 #define RECIPE_KLEN_LIT2  RECIPE_L2_LEN
@@ -1285,9 +1394,11 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 // An HMAC with a key independent of the candidate starts from the two saved pad contexts. The inner
 // context also includes leading parts independent of the candidate.
 
-#define RECIPE_STEP_HMACS(F,K,X,HS,T)                                                                                                      \
+#define RECIPE_STEP_HMACS(F,K,X,HS,T) RECIPE_STEP_HMACSF (F, K, X, HS, T, ctx = st->hi##K;, RECIPE_FEED (K, F, X))
+
+#define RECIPE_STEP_HMACSF(F,K,X,HS,T,INIT,FEED)                                                                                           \
 {                                                                                                                                          \
-  RECIPE_HASH_##F (X, HS, ctx = st->hi##K;, RECIPE_FEED (K, F, X))                                                                         \
+  RECIPE_HASH_##F (X, HS, INIT, FEED)                                                                                                      \
                                                                                                                                            \
   RECIPE_HASH_##F (X, HS, ctx = st->ho##K;, RECIPE_RAW_##F (F, X, HS, T, RECIPE_LEN_##F))                                                  \
                                                                                                                                            \
@@ -1363,6 +1474,75 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 #define RECIPE_PR2(P,D,F,K,X,HS,T) RECIPE_PR3 (P, D, F, K, X, HS, T)
 #define RECIPE_PR(K,X,HS,T)        RECIPE_PR2 (RECIPE_S##K##_PH, RECIPE_S##K##_KIND, RECIPE_S##K##_FN, K, X, HS, T)
 
+// Under RECIPE_TAIL, the base word is the same for every candidate in a work item. The module
+// sets RECIPE_S<k>_BW when the first part of step k not fed by recipe_prep () is the password.
+// The recipe_base () function then feeds the base word once per work item and saves the
+// context. The recipe_eval_base () function continues from that context with the right word, as
+// the native combinator kernels do with ctx0. This preparation works for P0 and P3 hash steps
+// and for P2 HMAC steps.
+
+#ifdef RECIPE_TAIL
+
+#define RECIPE_BCALL_PASS(PU,PB,W)   PU (&ctx, PB, (int) pw_len);
+#define RECIPE_BCALL_PASS16(PU,PB,W) W (&ctx, w, (int) pw_len);
+
+#define RECIPE_TCALL_PASS(G,WG)      G (&ctx, tail, (int) tail_len);
+#define RECIPE_TCALL_PASS16(G,WG)    WG (&ctx, tail, (int) tail_len);
+
+#define RECIPE_BPART3(TOK,F,X) RECIPE_BCALL_##TOK (RECIPE_UPDP_##F (X), RECIPE_PBUF_##F, RECIPE_UPDW_##F (X))
+#define RECIPE_BPART2(TOK,F,X) RECIPE_BPART3 (TOK, F, X)
+
+#define RECIPE_TPART3(TOK,F)   RECIPE_TCALL_##TOK (RECIPE_UPDG_##F, RECIPE_UPDWG_##F)
+#define RECIPE_TPART2(TOK,F)   RECIPE_TPART3 (TOK, F)
+
+#define RECIPE_FEEDB(K,F,X)            \
+  RECIPE_TPART2 (RECIPE_S##K##_P0, F)  \
+  RECIPE_PART (K, 1, F, X)             \
+  RECIPE_PART (K, 2, F, X)             \
+  RECIPE_PART (K, 3, F, X)             \
+  RECIPE_PART (K, 4, F, X)             \
+  RECIPE_PART (K, 5, F, X)             \
+  RECIPE_PART (K, 6, F, X)             \
+  RECIPE_PART (K, 7, F, X)
+
+#define RECIPE_BINIT_P0(F,K,X) RECIPE_INIT_##F (X)
+#define RECIPE_BINIT_P2(F,K,X) ctx = st->hi##K;
+#define RECIPE_BINIT_P3(F,K,X) ctx = st->hc##K;
+
+#define RECIPE_BS_0(P,D,F,K,X,HS,T)
+#define RECIPE_BS_1(P,D,F,K,X,HS,T)          \
+{                                            \
+  RECIPE_CTX_##F (X) ctx;                    \
+                                             \
+  RECIPE_BINIT_##P (F, K, X)                 \
+                                             \
+  RECIPE_BPART2 (RECIPE_S##K##_P0, F, X)     \
+                                             \
+  bst->bc##K = ctx;                          \
+}
+
+#define RECIPE_EVB_0(P,D,F,K,X,HS,T) RECIPE_EV_##P (D, F, K, X, HS, T)
+#define RECIPE_EVB_1(P,D,F,K,X,HS,T) RECIPE_EVB_##D (F, K, X, HS, T)
+
+#define RECIPE_EVB_HASH(F,K,X,HS,T)  RECIPE_STEP_HASHF  (F, K, X, HS, T, ctx = bst->bc##K;, RECIPE_FEEDB (K, F, X))
+#define RECIPE_EVB_HMAC(F,K,X,HS,T)  RECIPE_STEP_HMACSF (F, K, X, HS, T, ctx = bst->bc##K;, RECIPE_FEEDB (K, F, X))
+
+#define RECIPE_BS3(B,P,D,F,K,X,HS,T)  RECIPE_BS_##B (P, D, F, K, X, HS, T)
+#define RECIPE_BS2(B,P,D,F,K,X,HS,T)  RECIPE_BS3 (B, P, D, F, K, X, HS, T)
+#define RECIPE_BS(K,X,HS,T)           RECIPE_BS2 (RECIPE_S##K##_BW, RECIPE_S##K##_PH, RECIPE_S##K##_KIND, RECIPE_S##K##_FN, K, X, HS, T)
+
+#define RECIPE_EVB3(B,P,D,F,K,X,HS,T) RECIPE_EVB_##B (P, D, F, K, X, HS, T)
+#define RECIPE_EVB2(B,P,D,F,K,X,HS,T) RECIPE_EVB3 (B, P, D, F, K, X, HS, T)
+#define RECIPE_EVB(K,X,HS,T)          RECIPE_EVB2 (RECIPE_S##K##_BW, RECIPE_S##K##_PH, RECIPE_S##K##_KIND, RECIPE_S##K##_FN, K, X, HS, T)
+
+#define RECIPE_BFLD_0(F,K)
+#define RECIPE_BFLD_1(F,K)  RECIPE_CTX_##F ( ) bc##K;
+#define RECIPE_BFLD3(B,F,K) RECIPE_BFLD_##B (F, K)
+#define RECIPE_BFLD2(B,F,K) RECIPE_BFLD3 (B, F, K)
+#define RECIPE_BFLD(K)      RECIPE_BFLD2 (RECIPE_S##K##_BW, RECIPE_S##K##_FN, K)
+
+#endif
+
 #if   RECIPE_STEPS == 1
 #define RECIPE_ALL(R,X,HS,T) R (0, X, HS, T)
 #elif RECIPE_STEPS == 2
@@ -1411,6 +1591,7 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
                                    \
   RECIPE_STATE_HEX                 \
   RECIPE_STATE_SB (T)              \
+  RECIPE_STATE_SD (T)              \
   RECIPE_XFLDS (T)
 
 typedef struct recipe_state_vector
@@ -1574,7 +1755,9 @@ typedef struct recipe_state_scalar
 // 16-word r buffer. The pouts array holds the outputs recipe_prep () computed, and outs holds the
 // candidate's outputs.
 
-#define RECIPE_EVAL(X,HS,T,M)                                 \
+#define RECIPE_EVAL(X,HS,T,M) RECIPE_EVALR (X, HS, T, M, RECIPE_EV)
+
+#define RECIPE_EVALR(X,HS,T,M,R)                              \
 {                                                             \
   RECIPE_LITS (T, M)                                          \
                                                               \
@@ -1590,7 +1773,7 @@ typedef struct recipe_state_scalar
                                                               \
   RECIPE_XEVS (T, HS)                                         \
                                                               \
-  RECIPE_ALL (RECIPE_EV, X, HS, T)                            \
+  RECIPE_ALL (R, X, HS, T)                                    \
                                                               \
   RECIPE_ROOT (HS)                                            \
 }
@@ -1660,8 +1843,10 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_prep (PRIVATE_AS recipe_state_t *st, PRIVA
 }
 
 // The wb argument is a big endian password copy. Kernels without one pass w. See RECIPE_PASS_COPY.
-// The combinator kernel calls RECIPE_EVAL_TAIL instead, which hands over the right word separately
-// under RECIPE_TAIL and otherwise expects it appended to w already.
+// The combinator kernel calls RECIPE_EVAL_BASE or RECIPE_EVAL_TAIL instead. Under RECIPE_TAIL,
+// these receive the right word separately. Otherwise, they expect it to be appended to w
+// already. RECIPE_EVAL_BASE also continues from the contexts saved by RECIPE_BASE after
+// hashing the base word.
 
 #ifdef RECIPE_TAIL
 
@@ -1671,6 +1856,53 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_eval_tail (PRIVATE_AS const recipe_state_t
 }
 
 #define RECIPE_EVAL_TAIL(ST,W,LEN,T,TLEN,S,SLEN,R) recipe_eval_tail (ST, W, LEN, T, TLEN, S, SLEN, R)
+
+// The contexts recipe_base () saves after the base word, one for each step with RECIPE_S<k>_BW.
+// The first member keeps the struct from being empty when no step has one.
+
+typedef struct recipe_base
+{
+  u32 unused;
+
+  #if RECIPE_STEPS > 0
+  RECIPE_BFLD (0)
+  #endif
+  #if RECIPE_STEPS > 1
+  RECIPE_BFLD (1)
+  #endif
+  #if RECIPE_STEPS > 2
+  RECIPE_BFLD (2)
+  #endif
+  #if RECIPE_STEPS > 3
+  RECIPE_BFLD (3)
+  #endif
+  #if RECIPE_STEPS > 4
+  RECIPE_BFLD (4)
+  #endif
+  #if RECIPE_STEPS > 5
+  RECIPE_BFLD (5)
+  #endif
+  #if RECIPE_STEPS > 6
+  RECIPE_BFLD (6)
+  #endif
+  #if RECIPE_STEPS > 7
+  RECIPE_BFLD (7)
+  #endif
+
+} recipe_base_t;
+
+DECLSPEC HC_INLINE_ALWAYS void recipe_base (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS recipe_base_t *bst, PRIVATE_AS const u32 *w, const u32 pw_len)
+{
+  RECIPE_ALL (RECIPE_BS, , _S, u32)
+}
+
+DECLSPEC HC_INLINE_ALWAYS void recipe_eval_base (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS const recipe_base_t *bst, PRIVATE_AS const u32 *w, const u32 pw_len, GLOBAL_AS const u32 *tail, const u32 tail_len, PRIVATE_AS const u32 *s, const u32 salt_len, PRIVATE_AS u32 *r)
+{
+  RECIPE_EVALR ( , _S, u32, , RECIPE_EVB)
+}
+
+#define RECIPE_BASE(B,ST,W,LEN)                          recipe_base_t B; recipe_base (ST, &B, W, LEN);
+#define RECIPE_EVAL_BASE(ST,B,W,LEN,T,TLEN,S,SLEN,R)     recipe_eval_base (ST, B, W, LEN, T, TLEN, S, SLEN, R)
 
 #else
 
@@ -1684,6 +1916,9 @@ DECLSPEC HC_INLINE_ALWAYS void recipe_eval (PRIVATE_AS const recipe_state_t *st,
 }
 
 #define RECIPE_EVAL_TAIL(ST,W,LEN,T,TLEN,S,SLEN,R) recipe_eval (ST, W, W, LEN, S, SLEN, R)
+
+#define RECIPE_BASE(B,ST,W,LEN)
+#define RECIPE_EVAL_BASE(ST,B,W,LEN,T,TLEN,S,SLEN,R)     RECIPE_EVAL_TAIL (ST, W, LEN, T, TLEN, S, SLEN, R)
 
 #endif
 
@@ -1702,6 +1937,14 @@ DECLSPEC void recipe_eval_lanes (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS
 
   #ifdef RECIPE_HEX_TABLE
   sts.hex = st->hex;
+  #endif
+
+  #ifdef RECIPE_SALT_DEC
+  for (u32 i = 0; i < 64; i++) sts.sd[i] = 0;
+
+  hc_vector_get_lane (sts.sd, st->sd, (int) st->sd_len, 0);
+
+  sts.sd_len = st->sd_len;
   #endif
 
   recipe_prep_scalar (&sts, st_salt, salt_len);

@@ -31,6 +31,11 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_SALT        = "hashcat";
 
+// ST_SALT in hex and in base64, for a recipe that decodes the salt.
+
+static const char *ST_SALT_HEX    = "68617368636174";
+static const char *ST_SALT_B64    = "aGFzaGNhdA==";
+
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
 u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
@@ -64,7 +69,8 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 }
 
 // Evaluate the supplied recipe with ST_PASS and ST_SALT to generate the self-test hash in the
-// recipe's output case and length. Without a recipe, the mode has no self-test or example hash.
+// recipe's output case and length. A recipe with fromhex (salt) or frombase64 (salt) gets ST_SALT
+// encoded that way. Without a recipe, the mode has no self-test or example hash.
 
 const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -76,14 +82,19 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
 
   if (recipe_compile (&prog, user_options->hash_recipe) == false) return NULL;
 
+  const char *st_salt = ST_SALT;
+
+  if (prog.salt_dec == RECIPE_DEC_HEX) st_salt = ST_SALT_HEX;
+  if (prog.salt_dec == RECIPE_DEC_B64) st_salt = ST_SALT_B64;
+
   u32 raw[16];
 
   u8  out[128];
   u32 out_len = 0;
 
-  recipe_eval (&prog, (const u8 *) ST_PASS, (u32) strlen (ST_PASS), (const u8 *) ST_SALT, (u32) strlen (ST_SALT), raw, out, &out_len);
+  recipe_eval (&prog, (const u8 *) ST_PASS, (u32) strlen (ST_PASS), (const u8 *) st_salt, (u32) strlen (st_salt), raw, out, &out_len);
 
-  snprintf (st_hash_buf, sizeof (st_hash_buf), "%.*s*%s", (int) out_len, (const char *) out, ST_SALT);
+  snprintf (st_hash_buf, sizeof (st_hash_buf), "%.*s*%s", (int) out_len, (const char *) out, st_salt);
 
   return st_hash_buf;
 }

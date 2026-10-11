@@ -45,6 +45,8 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const sa
     hc->s[idx] = salt_bufs[salt_pos].salt_buf[idx];
   }
 
+  RECIPE_SALTD_BIND (&hc->st, salt_bufs[salt_pos])
+
   // Prepare work independent of the candidate once per salt.
 
   recipe_prep (&hc->st, hc->s, hc->salt_len);

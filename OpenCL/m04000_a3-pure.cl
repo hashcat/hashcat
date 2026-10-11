@@ -89,6 +89,8 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
 
   RECIPE_HEX_BIND (&st)
 
+  RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+
   recipe_prep (&st, s, salt_len);
 
   // Only the first word changes per candidate. Swap the remaining words once here.
@@ -220,6 +222,8 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
   recipe_state_t st;
 
   RECIPE_HEX_BIND (&st)
+
+  RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 

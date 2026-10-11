@@ -68,7 +68,13 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_BASIC ())
 
   RECIPE_HEX_BIND (&st)
 
+  RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+
   recipe_prep (&st, s, salt_len);
+
+  // Hash the base word once per work item, see recipe_base ().
+
+  RECIPE_BASE (bst, &st, w, pw_len)
 
   /**
    * loop
@@ -86,7 +92,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_BASIC ())
 
     if ((split == true) && (COMBS_IS_MIDDLE == 0))
     {
-      RECIPE_EVAL_TAIL (&st, w, pw_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, s, salt_len, r);
+      RECIPE_EVAL_BASE (&st, &bst, w, pw_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, s, salt_len, r);
     }
     else
     {
@@ -186,7 +192,13 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_BASIC ())
 
   RECIPE_HEX_BIND (&st)
 
+  RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
+
   recipe_prep (&st, s, salt_len);
+
+  // Hash the base word once per work item, see recipe_base ().
+
+  RECIPE_BASE (bst, &st, w, pw_len)
 
   /**
    * loop
@@ -204,7 +216,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_BASIC ())
 
     if ((split == true) && (COMBS_IS_MIDDLE == 0))
     {
-      RECIPE_EVAL_TAIL (&st, w, pw_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, s, salt_len, r);
+      RECIPE_EVAL_BASE (&st, &bst, w, pw_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, s, salt_len, r);
     }
     else
     {
