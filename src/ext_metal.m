@@ -573,7 +573,10 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
           [key isEqualToString:@"RECIPE_AES"] ||
           [key isEqualToString:@"RECIPE_LOOP"] ||
           [key isEqualToString:@"RECIPE_SXX_ONLY"] ||
-          [key isEqualToString:@"RECIPE_MXX_ONLY"])
+          [key isEqualToString:@"RECIPE_MXX_ONLY"] ||
+          [key isEqualToString:@"RECIPE_WIDE_FIELDS"] ||
+          [key isEqualToString:@"RECIPE_KDF_WHOLE"] ||
+          [key isEqualToString:@"RECIPE_KDF_RAW"])
       {
         value = @"1";
       }
