@@ -1052,7 +1052,7 @@ typedef enum user_options_defaults
   MARKOV                   = true,
   MARKOV_INVERSE           = false,
   MARKOV_THRESHOLD         = 0,
-  METAL_COMPILER_RUNTIME   = 120,
+  METAL_COMPILER_RUNTIME   = 180,
   NONCE_ERROR_CORRECTIONS  = 8,
   BACKEND_IGNORE_CUDA      = false,
   BACKEND_IGNORE_HIP       = false,
