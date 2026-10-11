@@ -12567,6 +12567,12 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D XM2S(x)=#x");
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D M2S(x)=XM2S(x)");
 
+      // hiprtc compiles in a GNU mode by default, where linux and unix are predefined macros, and
+      // INCLUDE_PATH goes through M2S (): an install path holding either word reached the compiler
+      // rewritten. In ISO C++17 neither is defined.
+
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-std=c++17");
+
       // A long branch in a called function can be relaxed through s[30:31], the return address,
       // which nothing saves, so the function returns into the branch target and the wave never
       // finishes. Without the pre-allocation reservation the register scavenger picks a pair that
