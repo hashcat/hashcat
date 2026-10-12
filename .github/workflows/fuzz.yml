@@ -177,7 +177,7 @@ jobs:
 
           targets=""
 
-          [ "$RULE_TOK" = "true" ] && targets="rule tokenizer"
+          [ "$RULE_TOK" = "true" ] && targets="rule tokenizer recipe mask"
 
           for bin in fuzz_out/fuzz_parse_*; do
             case "$bin" in *.dict) continue ;; esac
