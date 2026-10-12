@@ -76,13 +76,19 @@ int LLVMFuzzerInitialize (int *argc, char ***argv)
   // laid out, and module_hash_decode reads a bare digest line until a recipe
   // is set. Fuzz it under a recipe that pulls in the pointer arithmetic paths:
   // the salt, the salt2, pepper and user fields split on '*', and the trailing
-  // iteration count. recipe_compile parses this once at startup.
+  // iteration count. recipe_compile parses this once at startup. A second target
+  // (FUZZ_RECIPE_B64, built by build.sh) uses a base64 recipe instead, so the
+  // base64 decode of the digest on the hash line is fuzzed too.
 
   #if FUZZ_HASH_MODE == 4000
+  #ifdef FUZZ_RECIPE_B64
+  uo.hash_recipe = (char *) "md5_b64(salt . salt2 . pepper . user . pass)";
+  #else
   uo.hash_recipe = (char *)
     "h = md5_bin(salt . salt2 . pepper . user . pass)\n"
     "for i = 1 to iter { h = md5_bin(h . pass) }\n"
     "md5(h)";
+  #endif
   #endif
 
   memset (&module_ctx, 0, sizeof (module_ctx));

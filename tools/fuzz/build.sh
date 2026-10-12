@@ -196,6 +196,33 @@ for mode in $FUZZ_MODES; do
   cp "tools/fuzz/fuzz_parse.dict" "${OUT}/"
 
   echo "built ${OUT}/fuzz_parse_${hash_mode}"
+
+  # A second mode 4000 target with a base64 recipe, so the base64 decode of the digest on the hash
+  # line is fuzzed as well as the hex form the default recipe uses. It reuses the module object just
+  # built and recompiles only the harness with FUZZ_RECIPE_B64. fuzz.yml finds it by the
+  # fuzz_parse_* glob, so nothing else needs to know about it.
+
+  if [ "$mode" = "04000" ]; then
+    b64log="${OUT}/build_4000_b64.log"
+
+    # shellcheck disable=SC2086
+    if { $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DFUZZ_HASH_MODE=${hash_mode} -DFUZZ_RECIPE_B64 \
+             -c tools/fuzz/fuzz_parse.c -o "${WORK}/fuzz_parse_4000_b64.o" &&
+         $CXX $CXXFLAGS "${WORK}/fuzz_parse_4000_b64.o" "${WORK}/module_${mode}.o" $objs \
+             $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_4000_b64"; } > "$b64log" 2>&1; then
+      rm -f "$b64log"
+      echo "built ${OUT}/fuzz_parse_4000_b64"
+    else
+      cat "$b64log" >&2
+      echo "error: fuzz_parse_4000_b64 did not build" >&2
+
+      if [ "${FUZZ_KEEP_GOING:-0}" = "1" ]; then
+        echo "${hash_mode}" >> "${OUT}/build_failures.txt"
+      else
+        exit 1
+      fi
+    fi
+  fi
 done
 
 # Seed corpora, one directory per target under ${WORK}/seeds. fuzz.yml and a
