@@ -56,6 +56,7 @@ CORE="src/rp.c
       src/bitops.c
       src/cpu_crc32.c
       src/keyboard_layout.c
+      src/recipe.c
       src/ext_lzma.c
       src/ext_zlib.c
       src/ext_zstd.c

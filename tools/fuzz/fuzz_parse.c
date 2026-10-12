@@ -72,6 +72,19 @@ int LLVMFuzzerInitialize (int *argc, char ***argv)
 
   uo.hash_mode = FUZZ_HASH_MODE;
 
+  // Mode 4000 has no fixed format: --hash-recipe decides how the hash line is
+  // laid out, and module_hash_decode reads a bare digest line until a recipe
+  // is set. Fuzz it under a recipe that pulls in the pointer arithmetic paths:
+  // the salt, the salt2, pepper and user fields split on '*', and the trailing
+  // iteration count. recipe_compile parses this once at startup.
+
+  #if FUZZ_HASH_MODE == 4000
+  uo.hash_recipe = (char *)
+    "h = md5_bin(salt . salt2 . pepper . user . pass)\n"
+    "for i = 1 to iter { h = md5_bin(h . pass) }\n"
+    "md5(h)";
+  #endif
+
   memset (&module_ctx, 0, sizeof (module_ctx));
 
   module_init (&module_ctx);
