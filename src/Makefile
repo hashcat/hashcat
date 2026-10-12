@@ -303,16 +303,15 @@ endif
 
 ifeq ($(PRODUCTION),1)
 VERSION_TAG             := $(PRODUCTION_VERSION)
-VERSION_NUM             := 0,0,0,0
 else
 VERSION_TAG             := $(shell git describe --tags --dirty=+ || echo $(PRODUCTION_VERSION))
+endif # PRODUCTION
 
 # A Windows version resource is four numbers. VERSION_TAG is a git description, so the release is
 # taken from the front of it and the commit count becomes the fourth field. Both forms work:
 # v7.1.2 gives 7,1,2,0 and v7.1.2-40-gabc1234 gives 7,1,2,40.
 
 VERSION_NUM             := $(shell echo "$(VERSION_TAG)" | sed -e 's/^v//' -e 's/+$$//' -e 's/-g[0-9a-f]*$$//' -e 's/-/./' | awk -F. '{printf "%d,%d,%d,%d", $$1+0, $$2+0, $$3+0, $$4+0}')
-endif # PRODUCTION
 
 VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
 VERSION_MAJOR           := $(firstword $(subst ., ,$(VERSION_PURE)))
