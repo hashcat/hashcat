@@ -121,15 +121,29 @@ for src in $CORE; do
   objs="$objs $obj"
 done
 
-for target in rule tokenizer; do
+for target in rule tokenizer recipe mask; do
   obj="${WORK}/fuzz_${target}.o"
 
   # shellcheck disable=SC2086
   $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "tools/fuzz/fuzz_${target}.c" -o "$obj"
 
+  # The mask parser lives in a core build file: src/mpsp.c includes feed_ctx.h, which needs
+  # HC_CORE_BUILD. The rest of that file drives the feed and the backend, which the harness never
+  # calls but the linker still resolves, so tools/fuzz/stubs.c carries the handful of core functions
+  # that code reaches for. A run only ever calls mask_css_parse, so none of the stubbed code runs.
+
+  extra=""
+
+  if [ "$target" = "mask" ]; then
+    # shellcheck disable=SC2086
+    $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DHC_CORE_BUILD -c src/mpsp.c -o "${WORK}/mpsp.o"
+
+    extra="${WORK}/mpsp.o"
+  fi
+
   # the C++ driver links every target, C project or not
   # shellcheck disable=SC2086
-  $CXX $CXXFLAGS "$obj" $objs $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_${target}"
+  $CXX $CXXFLAGS "$obj" $extra $objs $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_${target}"
 
   cp "tools/fuzz/fuzz_${target}.dict" "${OUT}/"
 
