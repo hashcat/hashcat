@@ -91,7 +91,7 @@ DECLSPEC void m06900m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     u32x tmp[8];
 
-    //if (pw_len > 0) // not really SIMD compatible
+    if (pw_len > 0)
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
@@ -274,7 +274,7 @@ DECLSPEC void m06900s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     u32x tmp[8];
 
-    //if (pw_len > 0) // not really SIMD compatible
+    if (pw_len > 0)
     {
       PASS0 (state, tmp, state_m, data_m, s_tables);
       PASS2 (state, tmp, state_m, data_m, s_tables);
