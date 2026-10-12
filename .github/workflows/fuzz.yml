@@ -47,6 +47,15 @@
 
 name: fuzz
 
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('fuzz: {0} ({1}s)', inputs.modes, inputs.seconds)
+      || github.event_name != 'schedule'
+      && format('fuzz ({0})', github.event_name)
+      || github.event.schedule == '0 3 * * 4'
+      && 'fuzz (corpus keepalive)'
+      || 'fuzz (weekly, all modes)' }}
+
 on:
   schedule:
     - cron: '0 3 * * 1'
