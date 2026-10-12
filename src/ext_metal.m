@@ -480,6 +480,48 @@ static int hc_mtlInvocationHelper (id target, SEL selector, void *returnValue)
   return -1;
 }
 
+// A preprocessor macro name is an identifier, with a parameter list after it for a function-like
+// macro. Metal writes every entry of the dictionary out as a #define line, so a key that is not a
+// macro name fails the whole build, and a quote in one breaks the compiler's command line.
+
+static bool hc_mtlIsMacroName (NSString *name)
+{
+  const NSUInteger len = [name length];
+
+  NSUInteger i = 0;
+
+  for (; i < len; i++)
+  {
+    const unichar c = [name characterAtIndex: i];
+
+    if (((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) || (c == '_')) continue;
+
+    if ((c >= '0') && (c <= '9') && (i > 0)) continue;
+
+    break;
+  }
+
+  if (i == 0)   return false;
+  if (i == len) return true;
+
+  // a function-like macro: letters, digits, underscores, commas and dots between the parentheses
+
+  if (([name characterAtIndex: i] != '(') || ([name characterAtIndex: len - 1] != ')')) return false;
+
+  for (i++; i < len - 1; i++)
+  {
+    const unichar c = [name characterAtIndex: i];
+
+    if (((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) || ((c >= '0') && (c <= '9'))) continue;
+
+    if ((c == '_') || (c == ',') || (c == '.')) continue;
+
+    return false;
+  }
+
+  return true;
+}
+
 static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_options_buf, const char *include_path, NSMutableDictionary *build_options_dict)
 {
   if (build_options_buf == NULL)
@@ -507,80 +549,37 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
     return -1;
   }
 
-  // replace '-D ' to ''
+  // Metal takes the preprocessor macros as a dictionary and not from a command line, so only the
+  // -D options are read out of the string, with or without a space before the name: NAME=VALUE as
+  // written, and NAME alone as 1, the way the preprocessor defines it. Everything else, -I, -w and
+  // the pieces of a quoted path, is not a macro and is left out.
 
-  options = [options stringByReplacingOccurrencesOfString:@"-D " withString:@""];
+  NSArray *tokens = [options componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
-  if (options == nil)
+  const NSUInteger tokens_cnt = [tokens count];
+
+  for (NSUInteger i = 0; i < tokens_cnt; i++)
   {
-    event_log_error (hashcat_ctx, "%s(): stringByReplacingOccurrencesOfString(-D) failed", __func__);
+    if ([tokens[i] hasPrefix:@"-D"] == NO) continue;
 
-    return -1;
-  }
+    NSString *define = [tokens[i] substringFromIndex:2];
 
-  // replace '-I OpenCL ' to ''
+    // "-D NAME": the name is the next piece, past the empty pieces that repeated spaces leave
 
-  options = [options stringByReplacingOccurrencesOfString:@"-I OpenCL " withString:@""];
+    while (([define length] == 0) && (++i < tokens_cnt)) define = tokens[i];
 
-  if (options == nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): stringByReplacingOccurrencesOfString(-I OpenCL) failed", __func__);
+    const NSRange eq = [define rangeOfString:@"="];
 
-    return -1;
-  }
+    NSString *key   = (eq.location == NSNotFound) ? define : [define substringToIndex:eq.location];
+    NSString *value = (eq.location == NSNotFound) ? @"1"   : [define substringFromIndex:eq.location + 1];
 
-  //NSLog(@"options: '%@'", options);
-
-  // creating NSDictionary from options
-
-  NSArray *lines = [options componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-
-  for (NSString *aKeyValue in lines)
-  {
-    NSArray *components = [aKeyValue componentsSeparatedByString:@"="];
-
-    NSString *key = [components[0] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-    NSString *value = nil;
-
-    if ([components count] != 2)
+    if (hc_mtlIsMacroName (key) == false)
     {
-      // Every -D the rest of hashcat can emit without a value has to be named here, because a
-      // preprocessor macro reaches Metal as a dictionary entry and a dictionary entry needs one.
-      // A name missing from this list is dropped silently, so the kernel compiles as if the option
-      // had never been given.
+      const char *tmp = [define UTF8String];
 
-      if ([key isEqualToString:@"KERNEL_STATIC"] ||
-          [key isEqualToString:@"IS_APPLE_SILICON"] ||
-          [key isEqualToString:@"DYNAMIC_LOCAL"] ||
-          [key isEqualToString:@"_unroll"] ||
-          [key isEqualToString:@"NO_UNROLL"] ||
-          [key isEqualToString:@"NO_INLINE"] ||
-          [key isEqualToString:@"FORCE_NO_INLINE"] ||
-          [key isEqualToString:@"NO_FUNNELSHIFT"] ||
-          [key isEqualToString:@"FORCE_DISABLE_SHM"] ||
-          [key isEqualToString:@"COOP_SBOX_LDS"] ||
-          [key isEqualToString:@"COOP_X_REGS"] ||
-          [key isEqualToString:@"COOP_X_GLOBAL"])
-      {
-        value = @"1";
-      }
-      else
-      {
-        #ifdef DEBUG
-        const char *tmp = [key UTF8String];
+      event_log_warning (hashcat_ctx, "%s(): skipping build option '-D %s': not a macro name", __func__, (tmp != NULL) ? tmp : "");
 
-        if (tmp != NULL && strlen (tmp) > 0)
-        {
-          event_log_warning (hashcat_ctx, "%s(): skipping malformed build option: '%s'", __func__, tmp);
-        }
-        #endif
-
-        continue;
-      }
-    }
-    else
-    {
-      value = [components[1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+      continue;
     }
 
     [build_options_dict setObject: value forKey: key];
