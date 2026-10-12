@@ -19,6 +19,19 @@ u32 blowfish_module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   return pw_max;
 }
 
+int blowfish_module_benchmark_hint (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // bcrypt is parameterised by a cost factor, and salt_iter holds that cost already expanded to its
+  // 2 ^ cost round count. Recover the cost with a base 2 logarithm so the readout names the factor
+  // the hash carries rather than the expanded count.
+
+  u32 cost = 0;
+
+  for (u32 v = salt->salt_iter; v > 1; v >>= 1) cost++;
+
+  return snprintf (line_buf, line_size, "cost=%u", cost);
+}
+
 bool blowfish_module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   return true;

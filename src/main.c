@@ -702,7 +702,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
         char hint[HCBUFSIZ_TINY] = { 0 };
 
-        module_ctx->module_benchmark_hint (hashconfig, &hashes[0].salts_buf[0], hint, sizeof (hint));
+        module_ctx->module_benchmark_hint (hashconfig, &hashes[0].salts_buf[0], hashes[0].esalts_buf, hint, sizeof (hint));
 
         len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [%s] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hint, kernel_name);
       }
