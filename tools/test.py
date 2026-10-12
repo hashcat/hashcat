@@ -1839,6 +1839,16 @@ def attack_3_single(r):
 
       continue
 
+    # PKZIP master key spells the candidate past the first 6 bytes, which the kernel
+    # reconstructs. A word of 6 bytes or fewer leaves nothing past the cut, so the mask would
+    # be empty and hashcat rejects it with "Invalid mask length (0)". Skip it; the other
+    # attacks still cover a password this short. A multibyte byte can make a word that looks
+    # long enough end up at 6 bytes, for example a 3 byte character followed by three digits.
+    if r.mode == 20510 and len(word) <= 6:
+      i += 1
+
+      continue
+
     if r.file_only:
       with open(temp_file, "wb") as fh:
         fh.write(decode_hashfile(r.mode, digest))
