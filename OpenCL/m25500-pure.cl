@@ -374,7 +374,7 @@ KERNEL_FQ KERNEL_FA void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t,
   // decrypt buffer is not useful here, skip
   u32 dec[14] = { 0 };
 
-  AES_GCM_GCTR (key, J0, enc, enc_len, dec, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES_GCM_GCTR (key, key_len, J0, enc, enc_len, dec, s_te0, s_te1, s_te2, s_te3, s_te4);
   */
 
   u32 T[4] = { 0 };
@@ -388,7 +388,7 @@ KERNEL_FQ KERNEL_FA void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t,
 
   AES_GCM_GHASH_GLOBAL (subKey, aad_buf, aad_len, esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf, esalt_bufs[DIGESTS_OFFSET_HOST].ct_len, S);
 
-  AES_GCM_GCTR (key, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES_GCM_GCTR (key, key_len, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   /* compare tag */
 

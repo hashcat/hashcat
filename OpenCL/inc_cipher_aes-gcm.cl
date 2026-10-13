@@ -169,7 +169,7 @@ DECLSPEC void AES_GCM_Init (PRIVATE_AS  const u32 *ukey, int key_len, PRIVATE_AS
   {
     AES128_set_encrypt_key (key, ukey, s_te0, s_te1, s_te2, s_te3);
 
-    AES192_encrypt (key, subkey, subkey, s_te0, s_te1, s_te2, s_te3, s_te4);
+    AES128_encrypt (key, subkey, subkey, s_te0, s_te1, s_te2, s_te3, s_te4);
   }
   else if (key_len == 192)
   {
@@ -206,7 +206,14 @@ DECLSPEC void AES_GCM_Prepare_J0 (PRIVATE_AS const u32 *iv, int iv_len, PRIVATE_
   }
 }
 
-DECLSPEC void AES_GCM_gctr (PRIVATE_AS const u32 *key, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_encrypt_block (PRIVATE_AS const u32 *key, int key_len, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  if      (key_len == 128) AES128_encrypt (key, in, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  else if (key_len == 192) AES192_encrypt (key, in, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  else                     AES256_encrypt (key, in, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+}
+
+DECLSPEC void AES_GCM_gctr (PRIVATE_AS const u32 *key, int key_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   PRIVATE_AS const u32 *xpos = (PRIVATE_AS u32 *) in;
   PRIVATE_AS       u32 *ypos = (PRIVATE_AS u32 *) out;
@@ -222,7 +229,7 @@ DECLSPEC void AES_GCM_gctr (PRIVATE_AS const u32 *key, PRIVATE_AS const u32 *iv,
 
   for (u32 i = 0; i < n; i++)
   {
-    AES256_encrypt (key, iv_buf, ypos, s_te0, s_te1, s_te2, s_te3, s_te4);
+    AES_GCM_encrypt_block (key, key_len, iv_buf, ypos, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     AES_GCM_xor_block (ypos, xpos);
 
@@ -240,7 +247,7 @@ DECLSPEC void AES_GCM_gctr (PRIVATE_AS const u32 *key, PRIVATE_AS const u32 *iv,
   {
     u32 tmp[4] = { 0 };
 
-    AES256_encrypt (key, iv_buf, tmp, s_te0, s_te1, s_te2, s_te3, s_te4);
+    AES_GCM_encrypt_block (key, key_len, iv_buf, tmp, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     if (last >= 1) *ypos++ = *xpos++ ^ tmp[0];
     if (last >= 2) *ypos++ = *xpos++ ^ tmp[1];
@@ -248,7 +255,7 @@ DECLSPEC void AES_GCM_gctr (PRIVATE_AS const u32 *key, PRIVATE_AS const u32 *iv,
   }
 }
 
-DECLSPEC void AES_GCM_GCTR (PRIVATE_AS u32 *key, PRIVATE_AS u32 *J0, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_GCTR (PRIVATE_AS u32 *key, int key_len, PRIVATE_AS u32 *J0, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 J0_incr[4];
 
@@ -257,7 +264,7 @@ DECLSPEC void AES_GCM_GCTR (PRIVATE_AS u32 *key, PRIVATE_AS u32 *J0, PRIVATE_AS 
   J0_incr[2] = J0[2];
   J0_incr[3] = J0[3];
 
-  AES_GCM_gctr (key, J0_incr, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES_GCM_gctr (key, key_len, J0_incr, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
 DECLSPEC void AES_GCM_GHASH (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 *aad_buf, int aad_len, PRIVATE_AS const u32 *enc_buf, int enc_len, PRIVATE_AS u32 *out)
@@ -304,11 +311,11 @@ DECLSPEC void AES_GCM_GHASH_GLOBAL (PRIVATE_AS const u32 *subkey, PRIVATE_AS con
   AES_GCM_ghash (subkey, len_buf, 16, out);
 }
 
-DECLSPEC void AES_GCM_decrypt (PRIVATE_AS u32 *key, PRIVATE_AS u32 *J0, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_decrypt (PRIVATE_AS u32 *key, int key_len, PRIVATE_AS u32 *J0, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // the first ctr is used to compute the tag, only the second is used for decryption: https://en.wikipedia.org/wiki/Galois/Counter_Mode#/media/File:GCM-Galois_Counter_Mode_with_IV.svg
   AES_GCM_inc32 (J0);
 
   // decrypt the first block of ciphertext
-  AES_GCM_GCTR (key, J0, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES_GCM_GCTR (key, key_len, J0, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
