@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Script to turn the Kerberos keys of a domain database into hashcat lines, for modes 38400,
-# 38401, 38402, 28800 and 28900
+# Script to turn the Kerberos keys of a domain database into hashcat lines, for modes 38400, 28800
+# and 28900
 
 #
 # Author......: See docs/credits.txt
@@ -25,9 +25,11 @@ next to the keys:
           des_cbc_md5       (4096) : <16 hex>
 
 the Kerberos key lines of impacket `secretsdump.py`, and of `gosecretsdump`, which writes the same
-shape; they carry no salt, so the realm has to be given with --realm:
+shape; they carry no salt, and the domain they may write in front of a backslash is the suffix of
+the userPrincipalName rather than the realm, so --realm is required:
 
     someone:des-cbc-md5:<16 hex>
+    EXAMPLE.COM\\someone:des-cbc-md5:<16 hex>
 
 DSInternals, from `Get-ADDBAccount` or `Get-ADReplAccount`, which puts the encryption type on a
 line of its own and the salt after the keys:
@@ -39,15 +41,19 @@ line of its own and the salt after the keys:
               Key: <16 hex>
           Salt: EXAMPLE.COMsomeone
 
-and ntdissector, one JSON record per line, which carries the realm in the user principal name:
+and ntdissector, one JSON record per line, which carries no salt either, so --realm is required
+here as well:
 
     {"sAMAccountName": "someone", "userPrincipalName": "someone@example.com",
      "supplementalCredentials": {"Primary:Kerberos-Newer-Keys": ["des-cbc-md5:<16 hex>"]}}
 
 The salt of a Kerberos key is the realm in upper case followed by the principal, with no separator,
-and the hashcat line wants the two apart. Where a salt is printed the realm is what is left of it
-once the principal is taken off its end; a salt that does not end in the principal is reported and
-skipped, because nothing in the output says what the rest of it is.
+and the hashcat line wants the two apart. Where a salt is printed both come out of it: the realm is
+what is left once the principal is taken off its end, and the principal is that end, which is the
+spelling the key was derived with and may differ in case from the account name printed above it. A
+salt that does not end in the principal is reported and skipped, because nothing in the output says
+what the rest of it is. With --realm, and where no salt is printed at all, the realm is the one
+given and the account name is the principal.
 
 mimikatz and DSInternals also print the keys of the passwords before the current one, under
 "OldCredentials" and "OlderCredentials". Those are named in a warning and left out unless
@@ -120,10 +126,11 @@ RE_USER = re.compile(r"^(?:SAM Username|User)\s*:\s*(\S+)\s*$")
 RE_SALT = re.compile(r"^\s*Default Salt\s*:\s*(\S+)\s*$")
 RE_KEY  = re.compile(r"^\s+(\S+)\s*(?:\(\d+\)\s*)?:\s*([0-9a-fA-F]+)\s*$")
 
-# secretsdump writes the account bare, or with a domain in front of a backslash. The domain is the
-# realm where it carries a dot, and the short NetBIOS name where it does not.
+# secretsdump writes the account bare, or with a domain in front of a backslash. That domain is the
+# suffix of the userPrincipalName, which is the realm only where the two were left alike, so it is
+# read as part of the line and not as the realm.
 
-RE_SDMP = re.compile(r"^(?:([^:\\]+)\\)?([^:\\]+):([a-z0-9-]+):([0-9a-fA-F]+)\s*$")
+RE_SDMP = re.compile(r"^(?:[^:\\]+\\)?([^:\\]+):([a-z0-9-]+):([0-9a-fA-F]+)\s*$")
 
 # a trust key is labelled with the other realm and the direction of the trust instead of with a
 # principal, and its salt is the two realms around "krbtgt"
@@ -193,6 +200,21 @@ def machine_realm(salt, name):
       return realm
 
   return None
+
+
+def salt_principal(salt, user):
+  """Gives back the principal as a printed salt spells it, or the account name without one.
+
+  The salt is what the key was derived with, and its tail is the principal as the database holds
+  it, which an account name printed on another line may differ from in case. It is the same end
+  split_salt () takes the realm from. A machine or trust account salt does not end in the account
+  name and keeps it, since machine_principals () builds the principal of those from the name.
+  """
+
+  if salt and len(salt) > len(user) and salt.lower().endswith(user.lower()):
+    return salt[len(salt) - len(user):]
+
+  return user
 
 
 def split_salt(salt, user, where, warn):
@@ -289,7 +311,7 @@ def parse_mimikatz(lines, realm_opt, machine, history, warn):
         warn("%s: no 'Default Salt' seen for %s, pass --realm" % (where, user))
       continue
 
-    emit_account(out, user, realm, etype, m.group(2), salt, machine, where, warn)
+    emit_account(out, salt_principal(salt, user), realm, etype, m.group(2), salt, machine, where, warn)
 
   return out
 
@@ -300,25 +322,22 @@ def parse_mimikatz(lines, realm_opt, machine, history, warn):
 def parse_secretsdump(lines, realm_opt, machine, history, warn):
   out = []
 
-  # A run targets one domain, so a realm written on any line serves the lines that carry none. Only
-  # one realm may be in play: two would make the choice a guess, and a wrong salt cracks nothing.
+  # Nothing in this output is the realm. The domain in front of the backslash is the suffix of the
+  # userPrincipalName, so in a domain whose users were given a suffix of their own every key would
+  # go out under a realm none of them is salted with, and none of them would crack.
 
   if realm_opt is None:
-    seen = {m.group(1).upper() for m in (RE_SDMP.match(l) for l in lines)
-            if m is not None and m.group(1) and "." in m.group(1) and etype_of(m.group(3))}
+    if any(m is not None and etype_of(m.group(2)) for m in (RE_SDMP.match(l) for l in lines)):
+      warn("secretsdump output carries the suffix of the userPrincipalName and not the realm, pass --realm")
 
-    if len(seen) == 1:
-      realm_opt = seen.pop()
-      warn("no --realm given, using %r, the realm the file itself carries" % realm_opt)
-    elif len(seen) > 1:
-      warn("the file carries more than one realm (%s), pass --realm to pick one" % ", ".join(sorted(seen)))
+    return out
 
   for n, line in enumerate(lines, 1):
     m = RE_SDMP.match(line)
     if m is None:
       continue
 
-    prefix, user, etype_name, key = m.groups()
+    user, etype_name, key = m.group(1), m.group(2), m.group(3)
 
     etype = etype_of(etype_name)
     if etype is None:
@@ -327,17 +346,6 @@ def parse_secretsdump(lines, realm_opt, machine, history, warn):
     where = "line %d" % n
 
     realm = realm_opt
-
-    if realm is None and prefix:
-      if "." not in prefix:
-        warn("%s: %r is a NetBIOS name, not a realm, and the salt is built from the realm; pass --realm" % (where, prefix))
-        continue
-
-      realm = prefix.upper()
-
-    if realm is None:
-      warn("%s: no realm in the line, pass --realm" % where)
-      continue
 
     m = RE_TRUST.match(user)
 
@@ -374,7 +382,7 @@ def parse_dsinternals(lines, realm_opt, machine, history, warn):
         warn("%s: no 'Salt' line seen for %s, pass --realm" % (where, user))
         continue
 
-      emit_account(out, user, realm, e, key, salt, machine, where, warn)
+      emit_account(out, salt_principal(salt, user), realm, e, key, salt, machine, where, warn)
 
     pending.clear()
 
@@ -428,6 +436,8 @@ def parse_dsinternals(lines, realm_opt, machine, history, warn):
 def parse_ntdissector(lines, realm_opt, machine, history, warn):
   out = []
 
+  missing_realm = False
+
   for n, line in enumerate(lines, 1):
     line = line.strip()
 
@@ -455,19 +465,14 @@ def parse_ntdissector(lines, realm_opt, machine, history, warn):
 
     where = "line %d" % n
 
-    # the realm is not in a salt of its own, it is the tail of the user principal name
+    # a record carries no salt, and the suffix of its userPrincipalName is the realm only where the
+    # two were left alike, so the realm is asked for rather than read off the record
+
+    if realm_opt is None:
+      missing_realm = True
+      continue
 
     realm = realm_opt
-
-    if realm is None:
-      upn = rec.get("userPrincipalName") or ""
-
-      if "@" in upn:
-        realm = upn.rsplit("@", 1)[1].upper()
-
-    if not realm:
-      warn("%s: no realm for %s, which a record carries only in a user principal name, pass --realm" % (where, user))
-      continue
 
     for group in ("Primary:Kerberos-Newer-Keys", "Primary:Kerberos"):
       for item in creds.get(group) or []:
@@ -486,13 +491,16 @@ def parse_ntdissector(lines, realm_opt, machine, history, warn):
 
         emit_account(out, user, realm, etype, key, None, machine, where, warn)
 
+  if missing_realm:
+    warn("an ntdissector record carries no salt and no realm of its own, pass --realm")
+
   return out
 
 
 def main():
   ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-  ap.add_argument("file", help="path to the mimikatz, secretsdump or DSInternals output, - to read stdin")
-  ap.add_argument("-r", "--realm", help="realm to use, required where the output carries no salt")
+  ap.add_argument("file", help="path to the mimikatz, secretsdump, DSInternals or ntdissector output, - to read stdin")
+  ap.add_argument("-r", "--realm", help="realm to use, required for secretsdump and ntdissector output, which carry no salt")
   ap.add_argument("-e", "--etype", type=int, choices=sorted(ETYPES), action="append", help="keep only these encryption types, repeatable")
   ap.add_argument("--machine-keys", action="store_true", help="write out the keys of machine and trust accounts as well, which no wordlist reaches")
   ap.add_argument("--history", action="store_true", help="write out the keys of the passwords before the current one as well")

@@ -11,12 +11,12 @@ from Crypto.Hash import MD5
 from lib.kerberos_des import string_to_key
 from lib.test_helpers import random_bytes, split_hash_word
 
-# Kerberos 5 TGS-REP with des-cbc-md5 (etype 3). The key is the RFC 3961 6.2 string-to-key, the
-# same one the 38400 to 38402 modes compare against, and the ticket is wrapped as RFC 3961 6.2.3
-# says: a confounder, the MD5 of the whole plaintext with the checksum field zeroed, and the
-# padded ticket, DES-CBC encrypted under a zero IV. On verify the stored ciphertext is decrypted
-# and kept only when the ASN.1 markers and the checksum both hold, so a wrong password does not
-# round trip into a false positive.
+# Kerberos 5 TGS-REP with des-cbc-md5 (etype 3). The key is the RFC 3961 6.2 string-to-key, the same
+# one mode 38400 compares against, and the ticket is wrapped as RFC 3961 6.2.3 says: a confounder,
+# the MD5 of the whole plaintext with the checksum field zeroed, and the padded ticket, DES-CBC
+# encrypted under a zero IV. On verify the stored ciphertext is decrypted and kept only when the
+# ASN.1 markers and the checksum both hold, so a wrong password does not round trip into a false
+# positive.
 
 ZERO_IV = b"\x00" * 8
 
