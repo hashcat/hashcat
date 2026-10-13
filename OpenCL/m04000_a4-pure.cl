@@ -19,9 +19,56 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha384.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha512.cl)
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
+#ifdef RECIPE_RMD320
+#include M2S(INCLUDE_PATH/inc_hash_ripemd320.cl)
+#endif
+#ifdef RECIPE_RMD128
+#include M2S(INCLUDE_PATH/inc_hash_ripemd128.cl)
+#endif
+#ifdef RECIPE_RMD256
+#include M2S(INCLUDE_PATH/inc_hash_ripemd256.cl)
+#endif
+#ifdef RECIPE_MD2
+#include M2S(INCLUDE_PATH/inc_hash_md2.cl)
+#endif
+#ifdef RECIPE_SHA0
+#include M2S(INCLUDE_PATH/inc_hash_sha0.cl)
+#endif
+#ifdef RECIPE_SNEFRU
+#include M2S(INCLUDE_PATH/inc_hash_snefru.cl)
+#endif
+#ifdef RECIPE_MYSQL323
+#include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
+#endif
+#ifdef RECIPE_HAVAL
+#include M2S(INCLUDE_PATH/inc_hash_haval.cl)
+#endif
+#ifdef RECIPE_TIGER
+#include M2S(INCLUDE_PATH/inc_hash_tiger.cl)
+#endif
 #include M2S(INCLUDE_PATH/inc_hash_blake2b.cl)
 #include M2S(INCLUDE_PATH/inc_hash_blake2s.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sm3.cl)
+#ifdef RECIPE_WRL
+#include M2S(INCLUDE_PATH/inc_hash_whirlpool.cl)
+#endif
+#ifdef RECIPE_SHA3
+#include M2S(INCLUDE_PATH/inc_hash_sha3.cl)
+#endif
+#ifdef RECIPE_SBOG256
+#undef BOX
+#undef BOX_S
+#include M2S(INCLUDE_PATH/inc_hash_streebog256.cl)
+#endif
+#ifdef RECIPE_SBOG512
+#undef BOX
+#undef BOX_S
+#include M2S(INCLUDE_PATH/inc_hash_streebog512.cl)
+#endif
+#if defined RECIPE_GOST94 || defined RECIPE_GOST94_CP
+#undef BOX
+#include M2S(INCLUDE_PATH/inc_hash_gost94.cl)
+#endif
 #include M2S(INCLUDE_PATH/inc_recipe.cl)
 #endif
 
@@ -134,8 +181,8 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
 // GPU hex lookup table. See RECIPE_HEX_TABLE in inc_recipe.cl.
 
-#define PCFG_HASH_SHARED_DECL     RECIPE_HEX_DECL
-#define PCFG_HASH_SHARED_BIND(hc) RECIPE_HEX_BIND (&((hc)->st))
+#define PCFG_HASH_SHARED_DECL     RECIPE_SHM_DECL
+#define PCFG_HASH_SHARED_BIND(hc) RECIPE_SHM_BIND (&((hc)->st))
 
 #define PCFG_KERNEL_MXX m04000_mxx
 #define PCFG_KERNEL_SXX m04000_sxx

@@ -682,7 +682,7 @@ DECLSPEC void streebog256_g (PRIVATE_AS u64 *h, PRIVATE_AS const u64 *n, PRIVATE
 
   for (int i = 0; i < 8; i++)
   {
-    k[i] = SBOG_LPSti64;
+    k[i] = SBOG_LPSti64_S;
   }
 
   #ifdef _unroll
@@ -708,7 +708,7 @@ DECLSPEC void streebog256_g (PRIVATE_AS u64 *h, PRIVATE_AS const u64 *n, PRIVATE
     #endif
     for (int i = 0; i < 8; i++)
     {
-      s[i] = SBOG_LPSti64;
+      s[i] = SBOG_LPSti64_S;
     }
 
     for (int i = 0; i < 8; i++)
@@ -721,7 +721,7 @@ DECLSPEC void streebog256_g (PRIVATE_AS u64 *h, PRIVATE_AS const u64 *n, PRIVATE
     #endif
     for (int i = 0; i < 8; i++)
     {
-      k[i] = SBOG_LPSti64;
+      k[i] = SBOG_LPSti64_S;
     }
   }
 

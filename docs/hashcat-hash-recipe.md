@@ -69,15 +69,24 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `salt2`, `pepper`, `user` | Further fields from the hash line, see [Hash line](#hash-line) |
 | `"text"`, `'text'` | A string. Double quotes support the escapes `\\` `\"` `\'` `\n` `\r` `\t` `\0` and `\xHH`. Single quotes preserve every byte |
 | `a . b` | Concatenation |
-| `md4(x)` `md5(x)` `sha1(x)` `sha224(x)` `sha256(x)` `sha384(x)` `sha512(x)` | Hash of `x`, as lowercase hex |
-| `rmd160(x)` `blake2b512(x)` `blake2b256(x)` `blake2s256(x)` `sm3(x)` | RIPEMD-160, BLAKE2b-512, BLAKE2b-256, BLAKE2s-256 and SM3, as lowercase hex |
+| `md2(x)` `md4(x)` `md5(x)` `sha0(x)` `sha1(x)` `sha224(x)` `sha256(x)` `sha384(x)` `sha512(x)` | Hash of `x`, as lowercase hex. `ed2k(x)` is an alias for `md4(x)` and `aich(x)` is an alias for `sha1(x)`. Each equals its corresponding hash for every input shorter than its first block |
+| `rmd128(x)` `rmd160(x)` `rmd256(x)` `rmd320(x)` `blake2b512(x)` `blake2b256(x)` `blake2s256(x)` `sm3(x)` | RIPEMD-128, RIPEMD-160, RIPEMD-256, RIPEMD-320, BLAKE2b-512, BLAKE2b-256, BLAKE2s-256 and SM3, as lowercase hex |
+| `wrl(x)` | Whirlpool, as lowercase hex. `whirlpool(x)` is the same call |
+| `sha3_224(x)` `sha3_256(x)` `sha3_384(x)` `sha3_512(x)` | SHA-3, as lowercase hex |
+| `keccak224(x)` `keccak256(x)` `keccak384(x)` `keccak512(x)` | Keccak with its original padding, as Ethereum uses it, as lowercase hex |
+| `streebog_32(x)` `streebog_64(x)` | Streebog-256 and Streebog-512 (GOST R 34.11-2012), as lowercase hex in the byte order hashcat's modes 11700 and 11800 print. `streebog256(x)`, `streebog512(x)`, `gost2012_32(x)` and `gost2012_64(x)` are the same calls |
+| `hav128(x)` `hav160_4(x)` `hav256_5(x)` | HAVAL, as lowercase hex. `havN_P` names the digest size N (128, 160, 192, 224 or 256 bits) and the pass count P (3, 4 or 5). `hav128`, `hav160`, `hav192`, `hav224` and `hav256` use 3 passes, the same as `hav128_3` to `hav256_3` |
+| `tiger(x)` `tiger128(x)` `tiger160(x)` `tiger2(x)` `tth(x)` | Tiger with 3 passes, as lowercase hex in the byte order printed by PHP and the reference implementation. `tiger128` and `tiger160` keep its first 16 and 20 bytes, `tiger192` is `tiger`, and `tiger2` is Tiger2, which pads with 0x80 instead of 0x01. `tth(x)` is the Tiger tree hash of one leaf, Tiger over a 0x00 byte and `x`. It matches TTH for inputs of up to 1024 bytes. A longer input gives an inverted digest, so it cannot crack the TTH of that input. It has no `hmac_` form |
+| `mysql3(x)` | The password hash of MySQL before 4.1, 8 bytes as lowercase hex. It skips spaces and tabs as MySQL does. It is too short to be the result, which needs 16 bytes, so it appears inside another call, as in `md5(mysql3(pass))`. It has no `hmac_` form |
+| `sne128(x)` `sne256(x)` | Snefru-128 and Snefru-256 with 8 rounds, as lowercase hex. `snefru128(x)` and `snefru256(x)` are the same calls. Their HMAC blocks are 48 and 32 bytes, the data each block takes |
+| `gost(x)` `gost_crypto(x)` | GOST R 34.11-94, as lowercase hex. `gost` uses the S-box of the test parameter set, as hashcat's mode 6900 does. `gost_crypto` uses the S-box of the CryptoPro parameter set |
 | `md5_bin(x)` | The digest as raw bytes |
 | `md5_hex(x)` | Lowercase hex, the same as `md5(x)` |
 | `md5_uc(x)` | Uppercase hex |
 | `md5_b64(x)` | Standard base64 of the digest, with `=` padding |
 | `pbkdf2_sha256(key, salt, N, len)` | PBKDF2 with HMAC-SHA256, N iterations and a derived key of len bytes, as lowercase hex. The variants `pbkdf2_md5`, `pbkdf2_sha1` and `pbkdf2_sha512` use the other families. All 4 variants accept the same output suffixes as a hash call, as in `pbkdf2_sha1_bin`. See [Key derivation](#key-derivation) |
 | `aes_cbc_decrypt(key, iv, x)` | AES-CBC decryption of `x`, as lowercase hex. A key of 16, 24 or 32 bytes selects AES-128, AES-192 or AES-256. No padding is added or removed. The calls `aes_cbc_encrypt(key, iv, x)` and `aes_ecb_encrypt(key, x)` encrypt data. The call `aes_unwrap(kek, x)` unwraps a key according to RFC 3394. All 4 calls accept the same output suffixes as a hash call. See [Ciphers](#ciphers) |
-| `hmac_md5(key, x)` | HMAC of `x` with `key`. All families support HMAC with the same suffixes, as in `hmac_sha256_bin(key, x)`. The alias `hmac_blake2s` means `hmac_blake2s256` |
+| `hmac_md5(key, x)` | HMAC of `x` with `key`. All families except `mysql3` and `tth` support HMAC with the same suffixes, as in `hmac_sha256_bin(key, x)`. The alias `hmac_blake2s` means `hmac_blake2s256`. SHA-3 and Keccak use their rate as the HMAC block, GOST R 34.11-94 its 32-byte block and MD2 its 16-byte block. `hmac_streebog256` and `hmac_streebog512` give the results of hashcat's modes 11750 to 11860 |
 | `md5^3(x)` | Equivalent to `md5(md5(md5(x)))`. The suffix sets the output format for each round. For example, `md5_bin^3` chains raw bytes and `md5_uc^3` chains uppercase hex |
 | `upper(x)`, `lower(x)` | Converts ASCII letters to uppercase or lowercase. Applying `upper` to `md5^3(x)` changes only the final result, while `md5_uc^3(x)` uses uppercase hex in every round |
 | `hex(x)` | Encodes raw bytes as hex. For example, `hex(md5_bin(x))` is equivalent to `md5(x)` |
@@ -229,6 +238,13 @@ The left side is a `_bin` hash or AES call, or a `cut` of one that starts at a m
 The right side is a string, decoded with `fromhex` or `frombase64` if needed, of the same length and
 at least 8 bytes long. Mode 4000 compares the first 16 bytes of both.
 
+Both sides can also be computed, as in `cut(sha256_bin(pass), 0, 16) == md5_bin(salt . pass)`. In
+this form, each side must be a single value, as required for `xor`, and both must have the same
+fixed length of at least 8 bytes. A salt has a fixed length only when a transform sets it, such as
+`cut(pad(fromhex(salt), 16), 0, 16)`. A variable carried through a loop, a `pbkdf2` key or a `cut`
+of either can be the left side in either kind of comparison. When that value is compared with a
+string, it is limited to the 16 bytes a string can hold.
+
 The comparison `length(aes_unwrap(kek, x)) > 0` is true when the key unwrap passes
 its integrity check:
 
@@ -293,9 +309,10 @@ produces from its salt.
   must be a multiple of 4, from 4 to 64 bytes. When used as the result, the derived key must be at
   least 16 bytes long. The call runs from 1 to 10000000 iterations, or up to 999999999 when the
   count comes from the hash line.
-- A comparison has to be the last statement. It compares with `==` and has a string on its right
-  side, or it is `length(aes_unwrap(kek, x)) > 0`. Comparing two computed values, or a variable
-  carried through a loop, is not supported yet.
+- A comparison must be the last statement. It compares with `==`, or it is
+  `length(aes_unwrap(kek, x)) > 0`. Both sides of `==` must have the same fixed length. For a
+  comparison between 2 computed sides, each must be a single value of up to 64 bytes, as required for
+  the values of `xor`.
 - An AES call requires a `pbkdf2` call or a loop in the recipe. It cannot yet run inside the loop or
   provide input to `pbkdf2`. Its key must be 16, 24 or 32 bytes long, and its IV must be 16 bytes.
   ECB and CBC data must be 16 to 64 bytes long, a multiple of 16. The input to `aes_unwrap` must be
@@ -329,8 +346,8 @@ produces from its salt.
   string or a hash call. Concatenations and `utf16le` keys are not supported. Keys longer than the
   hash family's block size are hashed first, as HMAC requires.
 - `utf16le` accepts `pass`, `salt`, hex output and ASCII strings. It does not accept raw bytes or
-  feed the BLAKE2 families yet. A password or salt with invalid UTF-8 cannot match a recipe
-  that applies `utf16le` to it.
+  feed the BLAKE2 and Streebog families yet. A password or salt with invalid UTF-8 cannot match a
+  recipe that applies `utf16le` to it.
 - `utf16be` decodes UTF-8 strictly: overlong forms, surrogates, code points above U+10FFFF and
   truncated sequences make the result empty. A string given to `utf16be` in the recipe must be
   well-formed. `utf16be` cannot apply to a decoded salt or be inside `utf16le`.
@@ -362,7 +379,7 @@ produces from its salt.
 
 Mode 4000 supports only part of hx. It does not support nested or several loops, `if`, `emit`, key
 derivation other than `pbkdf2`, ciphers other than AES or character encodings other than `utf16le`
-and `utf16be`. Hash families such as Whirlpool, Streebog, SHA-3 and Keccak are also unsupported.
+and `utf16be`. Hash families such as Skein are also unsupported.
 `length` is supported only in `length(aes_unwrap(kek, x)) > 0`. A recipe that uses an unsupported
 feature is rejected at startup with the reason and position of the error.
 

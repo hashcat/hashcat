@@ -23,9 +23,56 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha384.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha512.cl)
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
+#ifdef RECIPE_RMD320
+#include M2S(INCLUDE_PATH/inc_hash_ripemd320.cl)
+#endif
+#ifdef RECIPE_RMD128
+#include M2S(INCLUDE_PATH/inc_hash_ripemd128.cl)
+#endif
+#ifdef RECIPE_RMD256
+#include M2S(INCLUDE_PATH/inc_hash_ripemd256.cl)
+#endif
+#ifdef RECIPE_MD2
+#include M2S(INCLUDE_PATH/inc_hash_md2.cl)
+#endif
+#ifdef RECIPE_SHA0
+#include M2S(INCLUDE_PATH/inc_hash_sha0.cl)
+#endif
+#ifdef RECIPE_SNEFRU
+#include M2S(INCLUDE_PATH/inc_hash_snefru.cl)
+#endif
+#ifdef RECIPE_MYSQL323
+#include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
+#endif
+#ifdef RECIPE_HAVAL
+#include M2S(INCLUDE_PATH/inc_hash_haval.cl)
+#endif
+#ifdef RECIPE_TIGER
+#include M2S(INCLUDE_PATH/inc_hash_tiger.cl)
+#endif
 #include M2S(INCLUDE_PATH/inc_hash_blake2b.cl)
 #include M2S(INCLUDE_PATH/inc_hash_blake2s.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sm3.cl)
+#ifdef RECIPE_WRL
+#include M2S(INCLUDE_PATH/inc_hash_whirlpool.cl)
+#endif
+#ifdef RECIPE_SHA3
+#include M2S(INCLUDE_PATH/inc_hash_sha3.cl)
+#endif
+#ifdef RECIPE_SBOG256
+#undef BOX
+#undef BOX_S
+#include M2S(INCLUDE_PATH/inc_hash_streebog256.cl)
+#endif
+#ifdef RECIPE_SBOG512
+#undef BOX
+#undef BOX_S
+#include M2S(INCLUDE_PATH/inc_hash_streebog512.cl)
+#endif
+#if defined RECIPE_GOST94 || defined RECIPE_GOST94_CP
+#undef BOX
+#include M2S(INCLUDE_PATH/inc_hash_gost94.cl)
+#endif
 #include M2S(INCLUDE_PATH/inc_recipe.cl)
 #endif
 
@@ -43,7 +90,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  RECIPE_HEX_DECL
+  RECIPE_SHM_DECL
 
   if (gid >= GID_CNT) return;
 
@@ -69,7 +116,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
     s[idx] = salt_bufs[SALT_POS_HOST].salt_buf[idx];
   }
 
-  #if (VECT_SIZE > 1) && defined (RECIPE_WIDE)
+  #if (VECT_SIZE > 1) && defined (RECIPE_WIDE) && !defined (RECIPE_WIDE_LANES)
 
   // utf16le decodes pass, salt or a field from UTF-8. Only the generated part of w[0] changes in the
   // loop, so check the rest of the password, the salt and the fields for bytes above 0x7f once here.
@@ -96,7 +143,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
 
   recipe_state_t st;
 
-  RECIPE_HEX_BIND (&st)
+  RECIPE_SHM_BIND (&st)
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
   RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
@@ -129,7 +176,11 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
 
     u32x r[16];
 
-    #if (VECT_SIZE > 1) && defined (RECIPE_WIDE)
+    #if (VECT_SIZE > 1) && defined (RECIPE_WIDE) && defined (RECIPE_WIDE_LANES)
+
+    recipe_eval_lanes (&st, w, pw_len, s, salt_len, r);
+
+    #elif (VECT_SIZE > 1) && defined (RECIPE_WIDE)
 
     #ifdef RECIPE_WIDE_PASS
     const bool lanes_ascii = ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true));
@@ -174,7 +225,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
-  RECIPE_HEX_DECL
+  RECIPE_SHM_DECL
 
   if (gid >= GID_CNT) return;
 
@@ -212,7 +263,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
     s[idx] = salt_bufs[SALT_POS_HOST].salt_buf[idx];
   }
 
-  #if (VECT_SIZE > 1) && defined (RECIPE_WIDE)
+  #if (VECT_SIZE > 1) && defined (RECIPE_WIDE) && !defined (RECIPE_WIDE_LANES)
 
   // utf16le decodes pass, salt or a field from UTF-8. Only the generated part of w[0] changes in the
   // loop, so check the rest of the password, the salt and the fields for bytes above 0x7f once here.
@@ -239,7 +290,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
 
   recipe_state_t st;
 
-  RECIPE_HEX_BIND (&st)
+  RECIPE_SHM_BIND (&st)
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
   RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
@@ -272,7 +323,11 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
 
     u32x r[16];
 
-    #if (VECT_SIZE > 1) && defined (RECIPE_WIDE)
+    #if (VECT_SIZE > 1) && defined (RECIPE_WIDE) && defined (RECIPE_WIDE_LANES)
+
+    recipe_eval_lanes (&st, w, pw_len, s, salt_len, r);
+
+    #elif (VECT_SIZE > 1) && defined (RECIPE_WIDE)
 
     #ifdef RECIPE_WIDE_PASS
     const bool lanes_ascii = ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true));

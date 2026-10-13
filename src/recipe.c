@@ -15,9 +15,53 @@
 #include "emu_inc_hash_sha256.h"
 #include "emu_inc_hash_sha512.h"
 #include "emu_inc_hash_ripemd160.h"
+#include "emu_inc_hash_ripemd320.h"
+#include "emu_inc_hash_ripemd128.h"
+#include "emu_inc_hash_md2.h"
+#include "emu_inc_hash_sha0.h"
+#include "emu_inc_hash_snefru.h"
+#include "emu_inc_hash_ripemd256.h"
+#include "emu_inc_hash_mysql323.h"
+#include "emu_inc_hash_haval.h"
+#include "emu_inc_hash_tiger.h"
 #include "emu_inc_hash_blake2b.h"
 #include "emu_inc_hash_blake2s.h"
 #include "emu_inc_hash_sm3.h"
+#include "emu_inc_hash_whirlpool.h"
+#include "emu_inc_hash_sha3.h"
+
+// The Whirlpool and Streebog headers each define the table lookup macros BOX and BOX_S for their own
+// code, with different arguments.
+
+#undef BOX
+#undef BOX_S
+
+#include "emu_inc_hash_streebog256.h"
+
+#undef BOX
+#undef BOX_S
+
+#include "emu_inc_hash_streebog512.h"
+#include "emu_inc_hash_gost94.h"
+
+// The GOST R 34.11-94 header defines its step function macros under short names such as X, P and C.
+// These macros are not needed in this file.
+
+#undef _round
+#undef R
+#undef X
+#undef P
+#undef A
+#undef AA
+#undef C
+#undef SHIFT12
+#undef SHIFT16
+#undef SHIFT61
+#undef PASS0
+#undef PASS2
+#undef PASS4
+#undef PASS6
+
 #include "emu_inc_cipher_aes.h"
 #include "inc_pbkdf2.h"
 #include "recipe.h"
@@ -186,6 +230,10 @@ typedef struct recipe_parser
   u32  guess_most[RECIPE_MAX_CARRY];
   bool guess_ascii[RECIPE_MAX_CARRY];
 
+  // The xor node a comparison was lowered to, or 0. See recipe_compile ().
+
+  u32 eq_bop;
+
 } recipe_parser_t;
 
 // Hash families use their hx names. HMAC pads keys to the family's block size. BLAKE2 has no
@@ -206,21 +254,77 @@ typedef struct recipe_algo_entry
 
 static const recipe_algo_entry_t RECIPE_ALGOS[] =
 {
-  { "md4",        RECIPE_ALGO_MD4,        16,  64, true,  false },
-  { "md5",        RECIPE_ALGO_MD5,        16,  64, true,  false },
-  { "sha1",       RECIPE_ALGO_SHA1,       20,  64, true,  true  },
-  { "sha224",     RECIPE_ALGO_SHA224,     28,  64, true,  true  },
-  { "sha256",     RECIPE_ALGO_SHA256,     32,  64, true,  true  },
-  { "sha384",     RECIPE_ALGO_SHA384,     48, 128, true,  true  },
-  { "sha512",     RECIPE_ALGO_SHA512,     64, 128, true,  true  },
-  { "rmd160",     RECIPE_ALGO_RMD160,     20,  64, true,  false },
-  { "blake2b512", RECIPE_ALGO_BLAKE2B512, 64, 128, false, false },
-  { "blake2b256", RECIPE_ALGO_BLAKE2B256, 32, 128, false, false },
-  { "blake2s256", RECIPE_ALGO_BLAKE2S256, 32,  64, false, false },
-  { "sm3",        RECIPE_ALGO_SM3,        32,  64, true,  true  },
-  { "aes",        RECIPE_ALGO_AES,         0,  16, false, false },
-  { "bop",        RECIPE_ALGO_BOP,         0,   0, false, false },
-  { "xfrm",       RECIPE_ALGO_XFRM,        0,   0, false, false },
+  { "md2",         RECIPE_ALGO_MD2,        16,  16, true,  false },
+  { "md4",         RECIPE_ALGO_MD4,        16,  64, true,  false },
+  { "ed2k",        RECIPE_ALGO_MD4,        16,  64, true,  false },
+  { "md5",         RECIPE_ALGO_MD5,        16,  64, true,  false },
+  { "sha0",        RECIPE_ALGO_SHA0,       20,  64, true,  false },
+  { "sha1",        RECIPE_ALGO_SHA1,       20,  64, true,  true  },
+  { "aich",        RECIPE_ALGO_SHA1,       20,  64, true,  true  },
+  { "sha224",      RECIPE_ALGO_SHA224,     28,  64, true,  true  },
+  { "sha256",      RECIPE_ALGO_SHA256,     32,  64, true,  true  },
+  { "sha384",      RECIPE_ALGO_SHA384,     48, 128, true,  true  },
+  { "sha512",      RECIPE_ALGO_SHA512,     64, 128, true,  true  },
+  { "rmd128",      RECIPE_ALGO_RMD128,     16,  64, true,  false },
+  { "rmd160",      RECIPE_ALGO_RMD160,     20,  64, true,  false },
+  { "rmd256",      RECIPE_ALGO_RMD256,     32,  64, true,  false },
+  { "rmd320",      RECIPE_ALGO_RMD320,     40,  64, true,  false },
+  { "blake2b512",  RECIPE_ALGO_BLAKE2B512, 64, 128, false, false },
+  { "blake2b256",  RECIPE_ALGO_BLAKE2B256, 32, 128, false, false },
+  { "blake2s256",  RECIPE_ALGO_BLAKE2S256, 32,  64, false, false },
+  { "sm3",         RECIPE_ALGO_SM3,        32,  64, true,  true  },
+  { "wrl",         RECIPE_ALGO_WRL,        64,  64, true,  true  },
+  { "whirlpool",   RECIPE_ALGO_WRL,        64,  64, true,  true  },
+  { "sha3_224",    RECIPE_ALGO_SHA3_224,   28, 144, true,  false },
+  { "sha3_256",    RECIPE_ALGO_SHA3_256,   32, 136, true,  false },
+  { "sha3_384",    RECIPE_ALGO_SHA3_384,   48, 104, true,  false },
+  { "sha3_512",    RECIPE_ALGO_SHA3_512,   64,  72, true,  false },
+  { "keccak224",   RECIPE_ALGO_KECCAK224,  28, 144, true,  false },
+  { "keccak256",   RECIPE_ALGO_KECCAK256,  32, 136, true,  false },
+  { "keccak384",   RECIPE_ALGO_KECCAK384,  48, 104, true,  false },
+  { "keccak512",   RECIPE_ALGO_KECCAK512,  64,  72, true,  false },
+  { "streebog_32", RECIPE_ALGO_SBOG256,    32,  64, false, true  },
+  { "streebog256", RECIPE_ALGO_SBOG256,    32,  64, false, true  },
+  { "streebog_64", RECIPE_ALGO_SBOG512,    64,  64, false, true  },
+  { "streebog512", RECIPE_ALGO_SBOG512,    64,  64, false, true  },
+  { "gost2012_32", RECIPE_ALGO_SBOG256,    32,  64, false, true  },
+  { "gost2012_64", RECIPE_ALGO_SBOG512,    64,  64, false, true  },
+  { "gost",        RECIPE_ALGO_GOST94,     32,  32, true,  false },
+  { "gost_crypto", RECIPE_ALGO_GOST94_CP,  32,  32, true,  false },
+  { "mysql3",      RECIPE_ALGO_MYSQL323,    8,  64, true,  false },
+  { "tiger",       RECIPE_ALGO_TIGER,      24,  64, true,  false },
+  { "tiger192",    RECIPE_ALGO_TIGER,      24,  64, true,  false },
+  { "tiger128",    RECIPE_ALGO_TIGER128,   16,  64, true,  false },
+  { "tiger160",    RECIPE_ALGO_TIGER160,   20,  64, true,  false },
+  { "tiger2",      RECIPE_ALGO_TIGER2,     24,  64, true,  false },
+  { "tth",         RECIPE_ALGO_TTH,        24,  64, true,  false },
+  { "sne128",      RECIPE_ALGO_SNE128,     16,  48, true,  false },
+  { "snefru128",   RECIPE_ALGO_SNE128,     16,  48, true,  false },
+  { "sne256",      RECIPE_ALGO_SNE256,     32,  32, true,  false },
+  { "snefru256",   RECIPE_ALGO_SNE256,     32,  32, true,  false },
+  { "hav128",      RECIPE_ALGO_HAV128_3,   16, 128, true,  false },
+  { "hav128_3",    RECIPE_ALGO_HAV128_3,   16, 128, true,  false },
+  { "hav128_4",    RECIPE_ALGO_HAV128_4,   16, 128, true,  false },
+  { "hav128_5",    RECIPE_ALGO_HAV128_5,   16, 128, true,  false },
+  { "hav160_3",    RECIPE_ALGO_HAV160_3,   20, 128, true,  false },
+  { "hav160_4",    RECIPE_ALGO_HAV160_4,   20, 128, true,  false },
+  { "hav160_5",    RECIPE_ALGO_HAV160_5,   20, 128, true,  false },
+  { "hav160",      RECIPE_ALGO_HAV160_3,   20, 128, true,  false },
+  { "hav192_3",    RECIPE_ALGO_HAV192_3,   24, 128, true,  false },
+  { "hav192_4",    RECIPE_ALGO_HAV192_4,   24, 128, true,  false },
+  { "hav192_5",    RECIPE_ALGO_HAV192_5,   24, 128, true,  false },
+  { "hav192",      RECIPE_ALGO_HAV192_3,   24, 128, true,  false },
+  { "hav224_3",    RECIPE_ALGO_HAV224_3,   28, 128, true,  false },
+  { "hav224_4",    RECIPE_ALGO_HAV224_4,   28, 128, true,  false },
+  { "hav224_5",    RECIPE_ALGO_HAV224_5,   28, 128, true,  false },
+  { "hav224",      RECIPE_ALGO_HAV224_3,   28, 128, true,  false },
+  { "hav256",      RECIPE_ALGO_HAV256_3,   32, 128, true,  false },
+  { "hav256_3",    RECIPE_ALGO_HAV256_3,   32, 128, true,  false },
+  { "hav256_4",    RECIPE_ALGO_HAV256_4,   32, 128, true,  false },
+  { "hav256_5",    RECIPE_ALGO_HAV256_5,   32, 128, true,  false },
+  { "aes",         RECIPE_ALGO_AES,         0,  16, false, false },
+  { "bop",         RECIPE_ALGO_BOP,         0,   0, false, false },
+  { "xfrm",        RECIPE_ALGO_XFRM,        0,   0, false, false },
 };
 
 static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_entry_t);
@@ -229,7 +333,7 @@ static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_
 
 static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE" };
 
-static const char *RECIPE_KNOWN = "mode 4000 supports md4, md5, sha1, sha224, sha256, sha384, sha512, rmd160, blake2b512, blake2b256, blake2s256, sm3, their hmac_ forms, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
+static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), their hmac_ forms except for tth, mysql3, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
 const char *recipe_algo_name (const u32 algo)
 {
@@ -256,6 +360,33 @@ static u32 recipe_digest_len (const u32 algo)
   const recipe_algo_entry_t *entry = recipe_algo (algo);
 
   const u32 r = (entry == NULL) ? 0 : entry->digest_len;
+
+  return r;
+}
+
+// HAVAL, the 15 families of inc_hash_haval.cl: 3, 4 or 5 passes for each digest size of 4 to 8 words
+
+// Tiger, Tiger2, their truncations and the Tiger tree hash of one leaf, the families of inc_hash_tiger.cl
+
+static bool recipe_algo_is_tiger (const u32 algo)
+{
+  const bool r = ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH);
+
+  return r;
+}
+
+static bool recipe_algo_is_haval (const u32 algo)
+{
+  const bool r = (algo >= RECIPE_ALGO_HAV128_3) && (algo <= RECIPE_ALGO_HAV256_5);
+
+  return r;
+}
+
+// SHA-3 and Keccak, the families of inc_hash_sha3.cl
+
+static bool recipe_algo_is_sha3 (const u32 algo)
+{
+  const bool r = (algo >= RECIPE_ALGO_SHA3_224) && (algo <= RECIPE_ALGO_KECCAK512);
 
   return r;
 }
@@ -862,6 +993,10 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
 
   if ((hmac_blake2s == true) || ((strncmp (name, "hmac_", 5) == 0) && (recipe_hash_name (name + 5, &algo, &role) == true)))
   {
+    if (algo == RECIPE_ALGO_MYSQL323) { recipe_fail_at (p, name_pos, "mysql3 has no block size, so it has no hmac_ form"); return 0; }
+
+    if (algo == RECIPE_ALGO_TTH) { recipe_fail_at (p, name_pos, "tth is a tree hash, so it has no hmac_ form"); return 0; }
+
     if (p->src[p->pos] == '^') { recipe_fail (p, "^ applies to hash calls, not to hmac"); return 0; }
 
     if (recipe_accept (p, '(') == false) { recipe_fail (p, "expected ("); return 0; }
@@ -2612,13 +2747,15 @@ static bool recipe_lower_bop (recipe_parser_t *p, const recipe_node_t *node, rec
 {
   step->aop = node->aop;
 
+  const bool eq = (p->eq_bop != 0) && (recipe_node (p, p->eq_bop) == node);
+
   u32 most = 0;
 
   for (u32 i = 0; i < 2; i++)
   {
     const u32 pos = recipe_node (p, node->kids[i])->pos;
 
-    if (recipe_lower_one (p, node->kids[i], &step->parts[i], "a value of xor, and or or") == false) return false;
+    if (recipe_lower_one (p, node->kids[i], &step->parts[i], (eq == true) ? "a side of ==" : "a value of xor, and or or") == false) return false;
 
     const recipe_part_t *part = &step->parts[i];
 
@@ -2632,7 +2769,7 @@ static bool recipe_lower_bop (recipe_parser_t *p, const recipe_node_t *node, rec
 
     if ((len == 0) && ((part->kind == RECIPE_PART_STEP) || (part->kind == RECIPE_PART_VAR))) bound = recipe_part_most (p, part);
 
-    if (bound > RECIPE_MAX_BOP) return recipe_fail_at (p, pos, "xor, and and or take values of up to 64 bytes");
+    if (bound > RECIPE_MAX_BOP) return recipe_fail_at (p, pos, (eq == true) ? "== compares values of up to 64 bytes" : "xor, and and or take values of up to 64 bytes");
 
     step->part_lens[i] = len;
 
@@ -3041,7 +3178,7 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
   {
     for (u32 i = 0; i < step.parts_cnt; i++)
     {
-      if (step.parts[i].wide == 1) return recipe_fail_at (p, node->pos, "utf16le cannot feed blake2 yet");
+      if (step.parts[i].wide == 1) return recipe_fail_at (p, node->pos, "utf16le cannot feed blake2 or streebog yet");
     }
   }
 
@@ -3846,6 +3983,50 @@ static bool recipe_lower_root_var (recipe_parser_t *p, const recipe_node_t *node
 // The right side of a comparison: a string, as it is or under transforms such as fromhex. Its
 // bytes are what a hash line without a digest is compared with.
 
+// Whether the side of a comparison at id is a string, possibly under transforms such as fromhex.
+
+static bool recipe_is_lit (recipe_parser_t *p, const u32 id)
+{
+  u32 at = id;
+
+  for (u32 i = 0; i <= RECIPE_MAX_WRAP; i++)
+  {
+    const recipe_node_t *node = recipe_node (p, at);
+
+    if (node->kind == RECIPE_NODE_LIT) return true;
+
+    if ((node->kind != RECIPE_NODE_UPPER) && (node->kind != RECIPE_NODE_LOWER) && (node->kind != RECIPE_NODE_HEX) && (node->kind != RECIPE_NODE_CUT) && (node->kind != RECIPE_NODE_UTF16) && (node->kind != RECIPE_NODE_B64) && (node->kind != RECIPE_NODE_XOP)) return false;
+
+    at = node->kids[0];
+  }
+
+  return false;
+}
+
+// Whether the left side of a comparison at id is a variable carried through a loop or a pbkdf2 key
+// without an outer transform such as rev. A direct comparison with a string cannot accept that kind
+// of value.
+
+static bool recipe_is_var_side (recipe_parser_t *p, const u32 id)
+{
+  u32 at = id;
+
+  for (u32 i = 0; i <= RECIPE_MAX_WRAP; i++)
+  {
+    const recipe_node_t *node = recipe_node (p, at);
+
+    if ((node->kind == RECIPE_NODE_VAR) || (node->kind == RECIPE_NODE_KDF)) return true;
+
+    if (node->kind == RECIPE_NODE_XOP) return false;
+
+    if ((node->kind != RECIPE_NODE_UPPER) && (node->kind != RECIPE_NODE_LOWER) && (node->kind != RECIPE_NODE_HEX) && (node->kind != RECIPE_NODE_CUT) && (node->kind != RECIPE_NODE_UTF16) && (node->kind != RECIPE_NODE_B64)) return false;
+
+    at = node->kids[0];
+  }
+
+  return false;
+}
+
 static bool recipe_cmp_const (recipe_parser_t *p, const u32 id, u8 *buf, u32 *len)
 {
   recipe_wrap_t wrap = { .cnt = 0 };
@@ -3869,7 +4050,7 @@ static bool recipe_cmp_const (recipe_parser_t *p, const u32 id, u8 *buf, u32 *le
 
   const recipe_node_t *node = recipe_node (p, at);
 
-  if (node->kind != RECIPE_NODE_LIT) return recipe_fail_at (p, recipe_node (p, id)->pos, "the right side of == has to be a string, such as fromhex('0c0c0c0c0c0c0c0c'), comparing two computed values is not supported yet");
+  if (node->kind != RECIPE_NODE_LIT) return recipe_fail_at (p, recipe_node (p, id)->pos, "the right side of == has to be a string, such as fromhex('0c0c0c0c0c0c0c0c')");
 
   return recipe_lit_bytes (p, node, &wrap, buf, len);
 }
@@ -4012,9 +4193,44 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
 
     if (recipe_node (p, root)->kind == RECIPE_NODE_EQ)
     {
-      cmp    = true;
-      cmp_ok = recipe_cmp_const (p, recipe_node (p, root)->kids[1], cmp_buf, &cmp_len);
-      id     = recipe_node (p, root)->kids[0];
+      const u32 lhs = recipe_node (p, root)->kids[0];
+      const u32 rhs = recipe_node (p, root)->kids[1];
+
+      cmp = true;
+
+      // A string on the right is the digest assigned to every hash line. For 2 computed values, or
+      // a carried variable or pbkdf2 key on the left, equality means their xor is all zeros. That
+      // zero value becomes the digest for the comparison instead.
+
+      if ((recipe_is_lit (p, rhs) == true) && (recipe_is_var_side (p, lhs) == false))
+      {
+        cmp_ok = recipe_cmp_const (p, rhs, cmp_buf, &cmp_len);
+        id     = lhs;
+      }
+      else
+      {
+        const u32 x = recipe_new_node (p, RECIPE_NODE_BOP, recipe_node (p, root)->pos);
+
+        if (x == 0)
+        {
+          cmp_ok = recipe_fail (p, "the recipe is too long");
+        }
+        else
+        {
+          recipe_node_t *bop = recipe_node (p, x);
+
+          bop->aop      = RECIPE_BOP_XOR;
+          bop->role     = RECIPE_FMT_RAW;
+          bop->iter     = 1;
+          bop->kids[0]  = lhs;
+          bop->kids[1]  = rhs;
+          bop->kids_cnt = 2;
+
+          p->eq_bop = x;
+
+          id = x;
+        }
+      }
     }
     else if (recipe_node (p, root)->kind == RECIPE_NODE_NONEMPTY)
     {
@@ -4103,7 +4319,7 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
     }
     else if ((cmp == true) && (node->kind == RECIPE_NODE_VAR) && (var_xfrm == false))
     {
-      recipe_fail_at (p, node->pos, "the left side of == has to be a hash or aes call, a variable carried through a loop or the key of pbkdf2 is not supported yet");
+      recipe_fail_at (p, node->pos, "this left side of == cannot be compared with a string yet");
     }
     else if ((node->kind == RECIPE_NODE_VAR) && (var_xfrm == false))
     {
@@ -4131,7 +4347,13 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
 
       bool fmt_ok = false;
 
-      if ((step->kind == RECIPE_KIND_BOP) && (step->cut_len == 0))
+      const bool eq_bop = (p->eq_bop != 0) && (recipe_node (p, p->eq_bop) == node);
+
+      if ((eq_bop == true) && ((step->part_lens[0] == 0) || (step->part_lens[0] != step->part_lens[1])))
+      {
+        recipe_fail_at (p, node->pos, "the two sides of == need the same fixed length, such as two _bin calls of one family or a cut of each");
+      }
+      else if ((step->kind == RECIPE_KIND_BOP) && (step->cut_len == 0))
       {
         recipe_fail_at (p, node->pos, "xor, and or or as the result needs two values of fixed length, the hash line holds a digest of one length");
       }
@@ -4141,6 +4363,13 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
       }
       else if (cmp == true)
       {
+        if (eq_bop == true)
+        {
+          cmp_len = step->part_lens[0];
+
+          memset (cmp_buf, 0, cmp_len);
+        }
+
         fmt_ok = recipe_cmp_root (p, node->pos, step, root_wide, cmp_buf, cmp_len);
       }
       else if ((step->fmt == RECIPE_FMT_RAW) || (root_wide == true))
@@ -4311,6 +4540,30 @@ static bool recipe_tpl_ok (const recipe_prog_t *prog, const u32 k, const bool *d
   if (step->iter != 1)                return false;
 
   if ((step->algo == RECIPE_ALGO_BLAKE2B512) || (step->algo == RECIPE_ALGO_BLAKE2B256) || (step->algo == RECIPE_ALGO_BLAKE2S256)) return false;
+
+  if (step->algo == RECIPE_ALGO_WRL) return false;
+
+  if (recipe_algo_is_sha3 (step->algo) == true) return false;
+
+  if ((step->algo == RECIPE_ALGO_SBOG256) || (step->algo == RECIPE_ALGO_SBOG512)) return false;
+
+  if ((step->algo == RECIPE_ALGO_GOST94) || (step->algo == RECIPE_ALGO_GOST94_CP)) return false;
+
+  if (step->algo == RECIPE_ALGO_RMD320) return false;
+
+  if ((step->algo == RECIPE_ALGO_RMD128) || (step->algo == RECIPE_ALGO_RMD256)) return false;
+
+  if (step->algo == RECIPE_ALGO_MD2) return false;
+
+  if (step->algo == RECIPE_ALGO_SHA0) return false;
+
+  if ((step->algo == RECIPE_ALGO_SNE128) || (step->algo == RECIPE_ALGO_SNE256)) return false;
+
+  if (step->algo == RECIPE_ALGO_MYSQL323) return false;
+
+  if (recipe_algo_is_haval (step->algo) == true) return false;
+
+  if (recipe_algo_is_tiger (step->algo) == true) return false;
 
   for (u32 i = 0; i < step->parts_cnt; i++)
   {
@@ -4484,6 +4737,20 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
   if (wide_pass  == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_PASS");
   if (wide_salt  == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_SALT");
   if (wide_field == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_FIELDS");
+
+  // A wide recipe with a Whirlpool step evaluates each lane of a vector mask kernel on its own.
+  // Compiling its vector code alongside the per lane path took Intel's CPU compiler over 20
+  // minutes at vector width 8, compared with 5 seconds at width 1. hashcat also builds mode
+  // 6100 at width 1 on CPUs.
+
+  bool wide_wrl = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_WRL) wide_wrl = true;
+  }
+
+  if ((wide_wrl == true) && ((wide_pass == true) || (wide_salt == true) || (wide_field == true))) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WIDE_LANES");
 
   // GPUs read hex output from a table when a later step or round needs it. See RECIPE_HEX_TABLE in
   // the kernel include.
@@ -4783,6 +5050,150 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
   if (aes == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_AES");
 
+  // A Whirlpool step needs inc_hash_whirlpool.cl and its tables. See RECIPE_WRL
+  // in the kernel include.
+
+  bool wrl = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_WRL) wrl = true;
+  }
+
+  if (wrl == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_WRL");
+
+  // A SHA-3 or Keccak step needs inc_hash_sha3.cl.
+
+  bool sha3 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (recipe_algo_is_sha3 (prog.steps[k].algo) == true) sha3 = true;
+  }
+
+  if (sha3 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SHA3");
+
+  // A Streebog step needs its include and the table that both sizes share. See RECIPE_SBOG
+  // in the kernel include.
+
+  bool sbog256 = false;
+  bool sbog512 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_SBOG256) sbog256 = true;
+    if (prog.steps[k].algo == RECIPE_ALGO_SBOG512) sbog512 = true;
+  }
+
+  if (sbog256 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SBOG256");
+  if (sbog512 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SBOG512");
+
+  // A GOST R 34.11-94 step needs inc_hash_gost94.cl and the table of its S-box. See RECIPE_GOST94
+  // in the kernel include.
+
+  bool gost94    = false;
+  bool gost94_cp = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_GOST94)    gost94    = true;
+    if (prog.steps[k].algo == RECIPE_ALGO_GOST94_CP) gost94_cp = true;
+  }
+
+  if (gost94    == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_GOST94");
+  if (gost94_cp == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_GOST94_CP");
+
+  // A RIPEMD-320 step needs inc_hash_ripemd320.cl.
+
+  bool rmd320 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_RMD320) rmd320 = true;
+  }
+
+  if (rmd320 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_RMD320");
+
+  // RIPEMD-128 and RIPEMD-256 steps need inc_hash_ripemd128.cl and inc_hash_ripemd256.cl.
+
+  bool rmd128 = false;
+  bool rmd256 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_RMD128) rmd128 = true;
+    if (prog.steps[k].algo == RECIPE_ALGO_RMD256) rmd256 = true;
+  }
+
+  if (rmd128 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_RMD128");
+  if (rmd256 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_RMD256");
+
+  // An MD2 step needs inc_hash_md2.cl and its table. See RECIPE_MD2 in the kernel include.
+
+  bool md2 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_MD2) md2 = true;
+  }
+
+  if (md2 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_MD2");
+
+  // A SHA-0 step needs inc_hash_sha0.cl.
+
+  bool sha0 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_SHA0) sha0 = true;
+  }
+
+  if (sha0 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SHA0");
+
+  // A Snefru step needs inc_hash_snefru.cl and its table. See RECIPE_SNEFRU in the kernel include.
+
+  bool snefru = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if ((prog.steps[k].algo == RECIPE_ALGO_SNE128) || (prog.steps[k].algo == RECIPE_ALGO_SNE256)) snefru = true;
+  }
+
+  if (snefru == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SNEFRU");
+
+  // A mysql3 step needs inc_hash_mysql323.cl.
+
+  bool mysql323 = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (prog.steps[k].algo == RECIPE_ALGO_MYSQL323) mysql323 = true;
+  }
+
+  if (mysql323 == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_MYSQL323");
+
+  // A HAVAL step needs inc_hash_haval.cl.
+
+  bool haval = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (recipe_algo_is_haval (prog.steps[k].algo) == true) haval = true;
+  }
+
+  if (haval == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_HAVAL");
+
+  // A Tiger step needs inc_hash_tiger.cl and its table. See RECIPE_TIGER in the kernel include.
+
+  bool tiger = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (recipe_algo_is_tiger (prog.steps[k].algo) == true) tiger = true;
+  }
+
+  if (tiger == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_TIGER");
+
   if (prog.slow == 1)
   {
     len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_LOOP -D RECIPE_CARRY=%u -D RECIPE_ROOT_STEP=%u", prog.carry_cnt, prog.root_step);
@@ -5030,6 +5441,178 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
 
     raw_len = 20;
   }
+  else if (algo == RECIPE_ALGO_RMD128)
+  {
+    ripemd128_ctx_t ctx;
+
+    ripemd128_init (&ctx);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) ripemd128_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               ripemd128_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    ripemd128_final (&ctx);
+
+    for (u32 i = 0; i < 4; i++) raw[i] = ctx.h[i];
+
+    raw_len = 16;
+  }
+  else if (algo == RECIPE_ALGO_RMD256)
+  {
+    ripemd256_ctx_t ctx;
+
+    ripemd256_init (&ctx);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) ripemd256_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               ripemd256_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    ripemd256_final (&ctx);
+
+    for (u32 i = 0; i < 8; i++) raw[i] = ctx.h[i];
+
+    raw_len = 32;
+  }
+  else if (algo == RECIPE_ALGO_RMD320)
+  {
+    ripemd320_ctx_t ctx;
+
+    ripemd320_init (&ctx);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) ripemd320_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               ripemd320_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    ripemd320_final (&ctx);
+
+    for (u32 i = 0; i < 10; i++) raw[i] = ctx.h[i];
+
+    raw_len = 40;
+  }
+  else if ((algo == RECIPE_ALGO_SNE128) || (algo == RECIPE_ALGO_SNE256))
+  {
+    const u32 dlen = recipe_digest_len (algo);
+
+    snefru_ctx_t ctx;
+
+    snefru_init (&ctx, snefru_sbox, (int) dlen);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) snefru_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               snefru_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    snefru_final (&ctx);
+
+    for (u32 i = 0; i < (dlen / 4); i++) raw[i] = byte_swap_32 (ctx.h[i]);
+
+    raw_len = dlen;
+  }
+  else if (algo == RECIPE_ALGO_SHA0)
+  {
+    sha0_ctx_t ctx;
+
+    sha0_init (&ctx);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) sha0_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               sha0_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    sha0_final (&ctx);
+
+    for (u32 i = 0; i < 5; i++) raw[i] = byte_swap_32 (ctx.h[i]);
+
+    raw_len = 20;
+  }
+  else if (algo == RECIPE_ALGO_MD2)
+  {
+    md2_ctx_t ctx;
+
+    md2_init (&ctx, md2_sbox);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) md2_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               md2_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    md2_final (&ctx);
+
+    for (u32 i = 0; i < 4; i++) raw[i] = ctx.h[i];
+
+    raw_len = 16;
+  }
+  else if (recipe_algo_is_tiger (algo) == true)
+  {
+    tiger_ctx_t ctx;
+
+    if (algo == RECIPE_ALGO_TTH) tiger_init_tth (&ctx, tiger_sbox);
+    else                         tiger_init     (&ctx, tiger_sbox, (algo == RECIPE_ALGO_TIGER2) ? TIGER_PAD_TIGER2 : TIGER_PAD_TIGER);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) tiger_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               tiger_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    tiger_final (&ctx);
+
+    for (u32 i = 0; i < 3; i++)
+    {
+      raw[(i * 2) + 0] = (u32) (ctx.h[i] >>  0);
+      raw[(i * 2) + 1] = (u32) (ctx.h[i] >> 32);
+    }
+
+    raw_len = recipe_digest_len (algo);
+  }
+  else if (recipe_algo_is_haval (algo) == true)
+  {
+    const u32 idx = algo - RECIPE_ALGO_HAV128_3;
+
+    haval_ctx_t ctx;
+
+    haval_init (&ctx, (int) (3 + (idx % 3)), (int) (4 + (idx / 3)));
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) haval_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               haval_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    haval_final (&ctx);
+
+    raw_len = 4 * (4 + (idx / 3));
+
+    for (u32 i = 0; i < (raw_len / 4); i++) raw[i] = ctx.h[i];
+  }
+  else if (algo == RECIPE_ALGO_MYSQL323)
+  {
+    mysql323_ctx_t ctx;
+
+    mysql323_init (&ctx);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) mysql323_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               mysql323_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    mysql323_final (&ctx);
+
+    raw[0] = byte_swap_32 (ctx.nr);
+    raw[1] = byte_swap_32 (ctx.nr2);
+
+    raw_len = 8;
+  }
   else if ((algo == RECIPE_ALGO_BLAKE2B512) || (algo == RECIPE_ALGO_BLAKE2B256))
   {
     blake2b_ctx_t ctx;
@@ -5087,6 +5670,99 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
 
     raw_len = 32;
   }
+  else if (recipe_algo_is_sha3 (algo) == true)
+  {
+    const u32 dlen = recipe_digest_len (algo);
+    const u32 pad  = (algo >= RECIPE_ALGO_KECCAK224) ? SHA3_PAD_KECCAK : SHA3_PAD_SHA3;
+
+    sha3_ctx_t ctx;
+
+    sha3_init (&ctx, (int) dlen, pad);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) sha3_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               sha3_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    sha3_final (&ctx);
+
+    for (u32 i = 0; i < (dlen / 4); i++) raw[i] = (u32) (ctx.st[i / 2] >> ((i & 1) * 32));
+
+    raw_len = dlen;
+  }
+  else if (algo == RECIPE_ALGO_SBOG256)
+  {
+    streebog256_ctx_t ctx;
+
+    streebog256_init (&ctx, sbob256_sl64);
+
+    for (u32 i = 0; i < cnt; i++) streebog256_update_swap (&ctx, bufs[i], (int) lens[i]);
+
+    streebog256_final (&ctx);
+
+    for (u32 i = 0; i < 4; i++)
+    {
+      raw[(i * 2) + 0] = (u32) (ctx.h[i] >>  0);
+      raw[(i * 2) + 1] = (u32) (ctx.h[i] >> 32);
+    }
+
+    raw_len = 32;
+  }
+  else if (algo == RECIPE_ALGO_SBOG512)
+  {
+    streebog512_ctx_t ctx;
+
+    streebog512_init (&ctx, sbob512_sl64);
+
+    for (u32 i = 0; i < cnt; i++) streebog512_update_swap (&ctx, bufs[i], (int) lens[i]);
+
+    streebog512_final (&ctx);
+
+    for (u32 i = 0; i < 8; i++)
+    {
+      raw[(i * 2) + 0] = (u32) (ctx.h[i] >>  0);
+      raw[(i * 2) + 1] = (u32) (ctx.h[i] >> 32);
+    }
+
+    raw_len = 64;
+  }
+  else if ((algo == RECIPE_ALGO_GOST94) || (algo == RECIPE_ALGO_GOST94_CP))
+  {
+    gost94_ctx_t ctx;
+
+    gost94_init (&ctx, (algo == RECIPE_ALGO_GOST94) ? c_tables : c_tables_cryptopro);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) gost94_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               gost94_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    gost94_final (&ctx);
+
+    for (u32 i = 0; i < 8; i++) raw[i] = ctx.h[i];
+
+    raw_len = 32;
+  }
+  else if (algo == RECIPE_ALGO_WRL)
+  {
+    whirlpool_ctx_t ctx;
+
+    whirlpool_init (&ctx, MT0, MT1, MT2, MT3, MT4, MT5, MT6, MT7);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) whirlpool_update_utf16le_swap (&ctx, bufs[i], (int) lens[i]);
+      else               whirlpool_update_swap         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    whirlpool_final (&ctx);
+
+    for (u32 i = 0; i < 16; i++) raw[i] = byte_swap_32 (ctx.h[i]);
+
+    raw_len = 64;
+  }
   else
   {
     sha512_ctx_t ctx;
@@ -5128,11 +5804,32 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
 // Compute HMAC from two hashes: H (key ^ opad . H (key ^ ipad . parts)). Hash keys longer than
 // the block size first, then pad the key to the block size.
 
+// Reverse the len bytes in buf, which HMAC-Streebog does to a hashed key and to its inner digest.
+// See RECIPE_KW_streebog_32 in the kernel include.
+
+static void recipe_rev_bytes (u32 *buf, const u32 len)
+{
+  u8 *b = (u8 *) buf;
+
+  for (u32 i = 0; i < (len / 2); i++)
+  {
+    const u8 t = b[i];
+
+    b[i] = b[len - 1 - i];
+
+    b[len - 1 - i] = t;
+  }
+}
+
 static u32 recipe_hmac_parts (const u32 algo, const u32 *key_buf, const u32 key_len, const u32 **bufs, const u32 *lens, const u32 *wides, const u32 cnt, u32 *raw)
 {
   const u32 block = recipe_algo (algo)->block_len;
 
-  u32 kb[32];
+  const bool rev = (algo == RECIPE_ALGO_SBOG256) || (algo == RECIPE_ALGO_SBOG512);
+
+  // up to the 144 bytes of the SHA3-224 rate
+
+  u32 kb[36];
 
   memset (kb, 0, sizeof (kb));
 
@@ -5143,16 +5840,18 @@ static u32 recipe_hmac_parts (const u32 algo, const u32 *key_buf, const u32 key_
     const u32 key_digest_len = recipe_hash_parts (algo, &key_buf, &key_len, &zero, 1, raw);
 
     memcpy (kb, raw, key_digest_len);
+
+    if (rev == true) recipe_rev_bytes (kb, key_digest_len);
   }
   else
   {
     memcpy (kb, key_buf, key_len);
   }
 
-  u32 ipad[32];
-  u32 opad[32];
+  u32 ipad[36];
+  u32 opad[36];
 
-  for (u32 i = 0; i < 32; i++)
+  for (u32 i = 0; i < 36; i++)
   {
     ipad[i] = kb[i] ^ 0x36363636;
     opad[i] = kb[i] ^ 0x5c5c5c5c;
@@ -5178,6 +5877,8 @@ static u32 recipe_hmac_parts (const u32 algo, const u32 *key_buf, const u32 key_
   u32 inner[16];
 
   memcpy (inner, raw, sizeof (inner));
+
+  if (rev == true) recipe_rev_bytes (inner, inner_len);
 
   const u32 *obufs[2]  = { opad, inner };
   const u32  olens[2]  = { block, inner_len };

@@ -6,6 +6,8 @@
 #ifndef INC_HASH_STREEBOG256_H
 #define INC_HASH_STREEBOG256_H
 
+#define BOX_S(S,n,i)      ((S)[(n)][(i)])
+
 #if   VECT_SIZE == 1
 #define BOX(S,n,i)        ((S)[(n)][(i)])
 
@@ -25,6 +27,16 @@
                            (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], \
                            (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
+
+#define SBOG_LPSti64_S                                 \
+  BOX_S (s_sbob_sl64, 0, ((t[0] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 1, ((t[1] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 2, ((t[2] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 3, ((t[3] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 4, ((t[4] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 5, ((t[5] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 6, ((t[6] >> (i * 8)) & 0xff)) ^ \
+  BOX_S (s_sbob_sl64, 7, ((t[7] >> (i * 8)) & 0xff))
 
 #define SBOG_LPSti64                                 \
   BOX (s_sbob_sl64, 0, ((t[0] >> (i * 8)) & 0xff)) ^ \

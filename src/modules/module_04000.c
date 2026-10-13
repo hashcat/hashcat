@@ -70,7 +70,7 @@ u32 module_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
   {
     const u32 algo = prog.steps[k].algo;
 
-    if ((algo == RECIPE_ALGO_SHA384) || (algo == RECIPE_ALGO_SHA512) || (algo == RECIPE_ALGO_BLAKE2B512) || (algo == RECIPE_ALGO_BLAKE2B256)) bits_64 = true;
+    if ((algo == RECIPE_ALGO_SHA384) || (algo == RECIPE_ALGO_SHA512) || (algo == RECIPE_ALGO_BLAKE2B512) || (algo == RECIPE_ALGO_BLAKE2B256) || (algo == RECIPE_ALGO_WRL) || ((algo >= RECIPE_ALGO_SHA3_224) && (algo <= RECIPE_ALGO_KECCAK512)) || (algo == RECIPE_ALGO_SBOG256) || (algo == RECIPE_ALGO_SBOG512) || ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH)) bits_64 = true;
   }
 
   u32 opti_type = (bits_64 == true) ? (OPTI_TYPE | OPTI_TYPE_USES_BITS_64) : OPTI_TYPE;

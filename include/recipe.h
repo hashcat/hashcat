@@ -82,6 +82,47 @@ typedef enum recipe_algo
   RECIPE_ALGO_AES        = 13,
   RECIPE_ALGO_BOP        = 14,
   RECIPE_ALGO_XFRM       = 15,
+  RECIPE_ALGO_WRL        = 16,
+  RECIPE_ALGO_SHA3_224   = 17,
+  RECIPE_ALGO_SHA3_256   = 18,
+  RECIPE_ALGO_SHA3_384   = 19,
+  RECIPE_ALGO_SHA3_512   = 20,
+  RECIPE_ALGO_KECCAK224  = 21,
+  RECIPE_ALGO_KECCAK256  = 22,
+  RECIPE_ALGO_KECCAK384  = 23,
+  RECIPE_ALGO_KECCAK512  = 24,
+  RECIPE_ALGO_SBOG256    = 25,
+  RECIPE_ALGO_SBOG512    = 26,
+  RECIPE_ALGO_GOST94     = 27,
+  RECIPE_ALGO_GOST94_CP  = 28,
+  RECIPE_ALGO_RMD320     = 29,
+  RECIPE_ALGO_MYSQL323   = 30,
+  RECIPE_ALGO_HAV128_3   = 31,
+  RECIPE_ALGO_HAV128_4   = 32,
+  RECIPE_ALGO_HAV128_5   = 33,
+  RECIPE_ALGO_HAV160_3   = 34,
+  RECIPE_ALGO_HAV160_4   = 35,
+  RECIPE_ALGO_HAV160_5   = 36,
+  RECIPE_ALGO_HAV192_3   = 37,
+  RECIPE_ALGO_HAV192_4   = 38,
+  RECIPE_ALGO_HAV192_5   = 39,
+  RECIPE_ALGO_HAV224_3   = 40,
+  RECIPE_ALGO_HAV224_4   = 41,
+  RECIPE_ALGO_HAV224_5   = 42,
+  RECIPE_ALGO_HAV256_3   = 43,
+  RECIPE_ALGO_HAV256_4   = 44,
+  RECIPE_ALGO_HAV256_5   = 45,
+  RECIPE_ALGO_TIGER      = 46,
+  RECIPE_ALGO_TIGER128   = 47,
+  RECIPE_ALGO_TIGER160   = 48,
+  RECIPE_ALGO_TIGER2     = 49,
+  RECIPE_ALGO_RMD128     = 50,
+  RECIPE_ALGO_RMD256     = 51,
+  RECIPE_ALGO_MD2        = 52,
+  RECIPE_ALGO_SHA0       = 53,
+  RECIPE_ALGO_TTH        = 54,
+  RECIPE_ALGO_SNE128     = 55,
+  RECIPE_ALGO_SNE256     = 56,
 
 } recipe_algo_t;
 
@@ -380,9 +421,10 @@ typedef struct recipe_prog
 
   u32 root_step;
 
-  // A comparison result, either a == b with constant b or length (aes_unwrap (...)) > 0, compares
-  // cmp_len bytes of the root step's raw output starting at byte cmp_start. A hash line without a
-  // digest gets b in cmp_digest, padded with zeros to 16 bytes.
+  // A comparison result, either a == b or length (aes_unwrap (...)) > 0, compares cmp_len bytes of
+  // the root step's raw output starting at byte cmp_start. A hash line without a digest gets a
+  // constant b in cmp_digest, padded with zeros to 16 bytes. Two computed sides become their xor,
+  // compared with zeros.
 
   u32 cmp;
   u32 cmp_start;
@@ -399,7 +441,7 @@ typedef struct recipe_prog
 
   u32         error_pos;
   const char *error;
-  char        error_buf[512];
+  char        error_buf[1024];
 
 } recipe_prog_t;
 
