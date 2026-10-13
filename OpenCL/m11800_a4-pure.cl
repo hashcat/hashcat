@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_streebog512.cl)
 #endif
 
-#ifdef REAL_SHM
+#if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 #define PCFG_HASH_SHARED_DECL               \
   LOCAL_VK u64a s_sbob_sl64[8][256];        \
   for (u32 i = lid; i < 256; i += lsz)      \
@@ -35,7 +35,7 @@
 
 typedef struct pcfg_hash_ctx
 {
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
   LOCAL_AS u64a (*s_sbob_sl64)[256];
   #endif
 
@@ -51,7 +51,7 @@ DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYB
 
 DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
   LOCAL_AS u64a (*s_sbob_sl64)[256] = hc->s_sbob_sl64;
   #else
   CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;
@@ -75,7 +75,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
 DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
   LOCAL_AS u64a (*s_sbob_sl64)[256] = hc->s_sbob_sl64;
   #else
   CONSTANT_AS u64a (*s_sbob_sl64)[256] = sbob512_sl64;

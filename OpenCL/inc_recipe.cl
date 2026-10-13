@@ -299,7 +299,8 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 
 // Streebog-256 and Streebog-512 read the same table, which inc_hash_streebog256.cl and
 // inc_hash_streebog512.cl each carry. A recipe that uses both sizes loads it once, from the first
-// include. The module sets RECIPE_SBOG256 and RECIPE_SBOG512 for the sizes its steps use.
+// include, or reads it from constant memory when SBOG_CONSTANT_TABLES is defined. The module sets
+// RECIPE_SBOG256 and RECIPE_SBOG512 for the sizes its steps use.
 
 #if defined RECIPE_SBOG256 || defined RECIPE_SBOG512
 
@@ -309,7 +310,7 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 #define RECIPE_SBOG_SRC sbob512_sl64
 #endif
 
-#ifdef REAL_SHM
+#if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
 #define RECIPE_SBOG_DECL                                                        \
   LOCAL_VK u64a s_sbog[8][256];                                                 \
@@ -329,7 +330,7 @@ DECLSPEC u32 recipe_append_global (PRIVATE_AS u32 *buf, const u32 pos, GLOBAL_AS
 
 #define RECIPE_SBOG_BIND(S)   (S)->sbog = s_sbog;
 #define RECIPE_SBOG_COPY(D,S) (D).sbog = (S)->sbog;
-#define RECIPE_STATE_SBOG     SHM_TYPE u64a (*sbog)[256];
+#define RECIPE_STATE_SBOG     SBOG_SHM_TYPE u64a (*sbog)[256];
 
 #else
 

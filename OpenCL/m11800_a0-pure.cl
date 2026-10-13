@@ -30,7 +30,7 @@ KERNEL_FQ KERNEL_FA void m11800_mxx (KERN_ATTR_RULES ())
    * shared lookup table
    */
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 
@@ -103,7 +103,7 @@ KERNEL_FQ KERNEL_FA void m11800_sxx (KERN_ATTR_RULES ())
    * shared lookup table
    */
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 

@@ -5,6 +5,11 @@
 
 //#define NEW_SIMD_CODE
 
+// Under HIP, mode 11760 keeps the Streebog tables in shared memory. Reading them from constant
+// memory, as the other Streebog modes do there, made it slower on an RX 7900 XTX.
+
+#define SBOG_SHARED_TABLES
+
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)

@@ -17,7 +17,7 @@
 
 #define INITVAL 0x0101010101010101UL
 
-DECLSPEC void streebog_g (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
+DECLSPEC void streebog_g (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, SBOG_LOCAL_TYPE u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
@@ -99,6 +99,12 @@ KERNEL_FQ KERNEL_FA void m11700_m04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
+  #ifdef SBOG_CONSTANT_TABLES
+
+  CONSTANT_AS u64 (*s_sbob_sl64)[256] = sbob256_sl64;
+
+  #else
+
   LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -114,6 +120,8 @@ KERNEL_FQ KERNEL_FA void m11700_m04 (KERN_ATTR_BASIC ())
   }
 
   SYNC_THREADS ();
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -367,6 +375,12 @@ KERNEL_FQ KERNEL_FA void m11700_s04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
+  #ifdef SBOG_CONSTANT_TABLES
+
+  CONSTANT_AS u64 (*s_sbob_sl64)[256] = sbob256_sl64;
+
+  #else
+
   LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -382,6 +396,8 @@ KERNEL_FQ KERNEL_FA void m11700_s04 (KERN_ATTR_BASIC ())
   }
 
   SYNC_THREADS ();
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
