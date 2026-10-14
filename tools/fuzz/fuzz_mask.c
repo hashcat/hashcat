@@ -48,7 +48,7 @@ int LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
   mask[size] = 0;
 
   // The parser reads the custom charsets off user_options and its scratch flags off mask_ctx, and
-  // checks that hashconfig is present. A zeroed set of each is a valid empty configuration; the
+  // checks that hashconfig is present. A zeroed set of each is a valid empty configuration. The
   // four charsets are filled so the ?1 to ?4 groups in the mask are reachable rather than rejected.
 
   hashcat_ctx_t   hashcat_ctx;

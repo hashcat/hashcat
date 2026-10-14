@@ -138,32 +138,17 @@ u64 count_lines (HCFILE *fp)
 
 size_t superchop_with_length (char *buf, const size_t len)
 {
-  // The mask parser reaches this on its charset file path. The harness feeds inline charsets, so it
-  // is linked but not exercised; it is the real strip of a trailing CR or LF rather than a no op, so
-  // the one place it is reached still behaves.
+  // The mask parser reaches this only on its charset file path, after hc_fopen () succeeds. The
+  // hc_fopen () stub returns false, so this is never reached and a no op is enough.
 
-  size_t new_len = len;
+  (void) buf;
 
-  while (new_len)
-  {
-    if ((buf[new_len - 1] == '\n') || (buf[new_len - 1] == '\r'))
-    {
-      new_len--;
-
-      buf[new_len] = 0;
-
-      continue;
-    }
-
-    break;
-  }
-
-  return new_len;
+  return len;
 }
 
 // The mask parser shares src/mpsp.c with the feed-driving code (mask_ctx_update_loop and friends),
 // which the harness never calls but which the linker still has to resolve. These are the symbols
-// that code reaches into the core for; a run only ever calls mask_css_parse, so none of these runs.
+// that code reaches into the core for. A run only ever calls mask_css_parse, so none of these runs.
 
 int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 {
