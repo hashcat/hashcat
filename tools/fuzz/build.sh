@@ -231,7 +231,9 @@ for mode in $FUZZ_MODES; do
       echo "error: fuzz_parse_4000_b64 did not build" >&2
 
       if [ "${FUZZ_KEEP_GOING:-0}" = "1" ]; then
-        echo "${hash_mode}" >> "${OUT}/build_failures.txt"
+        # The suffix matches the b64log name, so the caller finds build_4000_b64.log and names the
+        # failing target fuzz_parse_4000_b64, not the hex target that built fine beside it.
+        echo "${hash_mode}_b64" >> "${OUT}/build_failures.txt"
       else
         exit 1
       fi

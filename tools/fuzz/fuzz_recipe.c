@@ -31,10 +31,9 @@ int LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 {
   if (size == 0) return 0;
 
-  // mode 4000 reads the recipe into a 4096 byte buffer, so a longer source is
-  // nothing a run compiles and fuzzing it only wastes executions
-
-  if (size > 4096) return 0;
+  // recipe_compile () parses a source of any length. module_recipe () caches the compiled program
+  // in a 4096 byte buffer, but a source that does not fit is still compiled on every line rather
+  // than skipped, so there is no length to bound the input to here.
 
   char *src = (char *) malloc (size + 1);
 
