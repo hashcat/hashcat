@@ -65,6 +65,10 @@ def setup_isolation():
 # process running its modes in sequence, so the last run is the one classify() is scoring.
 LAST_CMD = None
 
+# The stdin bytes of that same run, set alongside LAST_CMD. The -a 0 runs feed their candidate words
+# on stdin rather than as a wordlist file, so this is the only copy of them to save on a failure.
+LAST_STDIN = None
+
 # test.sh kept a test_<ts>/ folder per run. OUTDIR is its path or None, LOGFULL the open logfull.txt
 # handle. OWN_OUTDIR is True only in the process that made the folder, so a -j child does not
 # regenerate the parent's derived files. PROGRESS is the running tally the interrupt handler prints.
@@ -181,12 +185,14 @@ def log_output(cmd, output):
   logfull_append("> cmdline : %s\n%s" % (_cmdline(cmd), text.rstrip("\n")))
 
 
-def preserve_inputs(cmd):
+def preserve_inputs(cmd, stdin_bytes=None):
   # A failing run's hash file and dicts live in the scratch dir, which is deleted when the run ends,
   # so they are copied into the log folder CI uploads. The cmdline is logged next to this, so the
   # files plus that line reproduce the run. Only the arguments that name a file the run generated are
   # taken, which is the hash file and the dicts: an argument is kept when it is a file under the
   # temp root the scratch dir lives in, which leaves out the hashcat binary, the mask and the flags.
+  # The -a 0 runs feed their candidate words to hashcat on stdin rather than as a wordlist file, so
+  # those bytes are saved as a "stdin" file beside the rest, which is the only copy of them there is.
   # Each failure gets its own subdirectory, so a mode whose hash file is reused across runs keeps the
   # copy from each one.
   if OUTDIR is None:
@@ -202,7 +208,7 @@ def preserve_inputs(cmd):
 
   files = [a for a in cmd if is_scratch_file(a)]
 
-  if not files:
+  if not files and not stdin_bytes:
     return None
 
   try:
@@ -220,6 +226,10 @@ def preserve_inputs(cmd):
 
       shutil.copy2(f, os.path.join(dest, name))
 
+    if stdin_bytes:
+      with open(os.path.join(dest, "stdin"), "wb") as fh:
+        fh.write(stdin_bytes)
+
     return os.path.relpath(dest, OUTDIR)
   except Exception:
     return None
@@ -232,7 +242,7 @@ def log_result(ret):
   if ret == 0 or LAST_CMD is None:
     return
 
-  saved = preserve_inputs(LAST_CMD)
+  saved = preserve_inputs(LAST_CMD, LAST_STDIN)
 
   extra = (" (inputs: %s)" % saved) if saved else ""
 
@@ -1116,10 +1126,11 @@ def verdict(c):
 
 
 def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
-  global LAST_CMD
+  global LAST_CMD, LAST_STDIN
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
+  LAST_STDIN = stdin_bytes
 
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
   # there rather than in whatever directory the manager was invoked from.
@@ -4994,7 +5005,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   # Like run_hashcat, but every argument is bytes, because an edge hash, salt or mask can carry a
   # byte that is not valid ASCII and subprocess will not mix str and bytes in one argv.
 
-  global LAST_CMD
+  global LAST_CMD, LAST_STDIN
 
   argv = [os.fsencode(BIN)]
   argv += [edge_as_bytes(o) for o in with_bridge_opts(opts, mode)]
@@ -5004,6 +5015,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   argv += [edge_as_bytes(x) for x in extra]
 
   LAST_CMD = argv
+  LAST_STDIN = stdin_bytes
 
   proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -186,11 +186,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake salt:
 
-  // The salt only groups hashes; the kernel takes the IV and the data it needs from the esalt, not
-  // from here. Two SecureZIP entries can carry the same IV, so a salt built from the IV alone
-  // collides, hashcat files both hashes under one salt, and the kernel, which checks a single hash
-  // per salt, then recovers only the first. The encrypted data differs per entry, so the salt adds
-  // four words of it to the IV and each hash keeps its own salt.
+  // make salt sorter happy: the kernel checks the ct of the first hash of a salt only, so two
+  // entries that share an IV must not share a salt. The ct goes into the salt after the IV.
 
   salt->salt_buf[0] = iv[0];
   salt->salt_buf[1] = iv[1];
