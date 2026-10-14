@@ -6,7 +6,7 @@
 ##
 
 from lib.kerberos_des import string_to_key
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import split_hash_word
 
 # Kerberos 5, the key of a DES encryption type as a domain database holds it: the string-to-key of
 # RFC 3961 6.2 over the password followed by uppercase(realm)+user. That one function serves etypes
@@ -24,8 +24,11 @@ def module_generate_hash(word, salt, iterations=None, user="user", realm="realm"
 
   key = string_to_key(word, mysalt)
 
+  # the type follows the key, so two equal passwords give two equal lines, of which hashcat keeps
+  # one. The shift drops the parity bit, which left in skews the residue against type 1.
+
   if etype is None:
-    etype = ETYPES[random_number(0, len(ETYPES) - 1)]
+    etype = ETYPES[(key[0] >> 1) % len(ETYPES)]
 
   return "$krb5db$%d$%s$%s$%s" % (etype, user, realm, key.hex())
 
