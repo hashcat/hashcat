@@ -4913,6 +4913,13 @@ EDGE_SKIP_MODES = {2000}
 
 EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
 
+# 1500 prints a recovered byte above 0x7f with its top bit cleared wherever that leaves it printable
+# (module_build_plain_postprocess). DES ignores that bit, so the printed password is another spelling
+# of the generated one with the same hash. Its outfile is checked through the module's own verify
+# rather than compared literally.
+
+EDGE_VERIFY_OUT = {1500}
+
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
 
@@ -4984,6 +4991,31 @@ def edge_strip_userpw(data):
   # mode that appends a note to the plaintext line still matches. Applied per line here.
 
   return re.sub(rb"    \(user password[^\n]*", b"", data)
+
+
+def edge_out_verifies(mode, raw, hashes, tmp):
+  # The check for a mode in EDGE_VERIFY_OUT once the literal compare has failed. The outfile has to
+  # hold one line for each expected hash, and the module's verify has to accept every line, which
+  # is the run_verify fallback the crack path already takes.
+
+  if (mode in EDGE_VERIFY_OUT) == False:
+    return False
+
+  lines = edge_strip_userpw(raw).rstrip(b"\n").split(b"\n")
+
+  if len(lines) != len(hashes):
+    return False
+
+  for digest in hashes:
+    hits = [line for line in lines if line.startswith(digest + b":")]
+
+    if len(hits) != 1:
+      return False
+
+    if run_verify(mode, digest.decode("ascii"), hits, tmp) == False:
+      return False
+
+  return True
 
 
 def edge_noise_words(word, slow, suffix):
@@ -5417,6 +5449,9 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
     want = edge_echo_norm(hash_out + b":" + (word_compare if word_compare is not None else word))
 
     if got != want:
+      if edge_out_verifies(ctx.mode, raw, [hash_out], tmp) == True:
+        continue
+
       errors += 1
 
       print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
@@ -5642,6 +5677,9 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   want = edge_sort_lines(b"".join(l + b"\n" for l in hcout))
 
   if got != want:
+    if edge_out_verifies(mode, raw, [dig for _, _, _, dig in selected], tmp) == True:
+      return 0, 1, False
+
     print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, multi"
           % (mode, attack, ctx.ktype, width))
 

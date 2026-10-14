@@ -162,6 +162,13 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   {
     hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u -D _unroll", hashes->salts_buf[0].salt_buf[0] & 0xfff);
   }
+  else if (device_param->opencl_platform_vendor_id != VENDOR_ID_APPLE)
+  {
+    // Several salts or another attack mode: the salt stays a run time value, but the rounds still
+    // unroll. Apple is left out because neither of its runtimes has been measured with this.
+
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
 
   return jit_build_options;
 }
