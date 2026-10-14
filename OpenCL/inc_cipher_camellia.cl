@@ -11,8 +11,9 @@
  * the SBOX1 table. The example data in Appendix A is what it was checked against.
  */
 
-// Only the 256 bit key size is here, because that is the only one hashcat asks for: the VeraCrypt
-// legacy cascades and BestCrypt.
+// All three key sizes are here. A 128 bit key takes 18 rounds and its own subkey table, while 192
+// and 256 bit keys share the 24 round structure and differ only in how section 2.2 builds KR, so
+// camellia192_set_key () fills the same table the 256 bit rounds read.
 //
 // Two things about the shape of the code. A word holds four bytes of the block in the order they
 // arrived, so the first byte of the block sits in bits 0 to 7, and hc_swap32_S () is what turns a
@@ -143,7 +144,8 @@ DECLSPEC void camellia_feistel (PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *k
 }
 
 // The FL function on the left half and the FLINV function on the right half, which is where the
-// rounds in section 2.3.2 always put them, so the two are one step here. Section 2.4.2 defines both.
+// rounds of sections 2.3.1 and 2.3.2 always put them, so the two are one step here. Section
+// 2.4.2 defines both.
 //
 // Only the one bit rotation cares about byte order, so it is the only place that swaps.
 
@@ -165,18 +167,197 @@ DECLSPEC void camellia_fl (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *ke1, PRIVATE
   x[3] ^= hc_swap32_S (hc_rotl32_S (flinv, 1));
 }
 
+// Sigma1 to Sigma6 of section 2.2, each 64 bit constant as its two 32 bit halves in this file's
+// byte order. The RFC writes them as 0xA09E667F3BCC908B, 0xB67AE8584CAA73B2, 0xC6EF372FE94F82BE,
+// 0x54FF53A5F1D36F1C, 0x10E527FADE682D1D and 0xB05688C2B3E6C1FD.
+
+#define CAMELLIA_SIGMA             \
+  {                                \
+    0x7f669ea0, 0x8b90cc3b,        \
+    0x58e87ab6, 0xb273aa4c,        \
+    0x2f37efc6, 0xbe824fe9,        \
+    0xa553ff54, 0x1c6fd3f1,        \
+    0xfa27e510, 0x1d2d68de,        \
+    0xc28856b0, 0xfdc1e6b3         \
+  }
+
+// A 128 bit key is KL on its own, with KR zero, so the four Feistel steps of section 2.2 reduce to
+// the ones below and KB is never needed. The subkey table holds 26 of the RFC's 64 bit subkeys, so
+// ks is 52 words long.
+
+DECLSPEC void camellia128_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
+{
+  const u32 sigma[12] = CAMELLIA_SIGMA;
+
+  u32 d[4];
+
+  d[0] = ukey[0];                              // D1 = (KL ^ KR) >> 64, and KR is zero
+  d[1] = ukey[1];
+  d[2] = ukey[2];                              // D2 = (KL ^ KR) & MASK64
+  d[3] = ukey[3];
+
+  camellia_feistel (&d[0], &sigma[0], &d[2]);  // D2 = D2 ^ F (D1, Sigma1)
+  camellia_feistel (&d[2], &sigma[2], &d[0]);  // D1 = D1 ^ F (D2, Sigma2)
+
+  d[0] ^= ukey[0];                             // D1 = D1 ^ (KL >> 64)
+  d[1] ^= ukey[1];
+  d[2] ^= ukey[2];                             // D2 = D2 ^ (KL & MASK64)
+  d[3] ^= ukey[3];
+
+  camellia_feistel (&d[0], &sigma[4], &d[2]);  // D2 = D2 ^ F (D1, Sigma3)
+  camellia_feistel (&d[2], &sigma[6], &d[0]);  // D1 = D1 ^ F (D2, Sigma4)
+
+  // KA is now in d. The subkey table of section 2.2 rotates KL and KA, and a rotation is
+  // arithmetic, so the two are taken as numbers here.
+
+  u32 kl[4];
+  u32 ka[4];
+
+  kl[0] = hc_swap32_S (ukey[0]);
+  kl[1] = hc_swap32_S (ukey[1]);
+  kl[2] = hc_swap32_S (ukey[2]);
+  kl[3] = hc_swap32_S (ukey[3]);
+
+  ka[0] = hc_swap32_S (d[0]);
+  ka[1] = hc_swap32_S (d[1]);
+  ka[2] = hc_swap32_S (d[2]);
+  ka[3] = hc_swap32_S (d[3]);
+
+  ks[0] = ukey[0];  // kw1, kw2 = KL <<< 0
+  ks[1] = ukey[1];
+  ks[2] = ukey[2];
+  ks[3] = ukey[3];
+
+  ks[4] = d[0];     // k1,  k2  = KA <<< 0
+  ks[5] = d[1];
+  ks[6] = d[2];
+  ks[7] = d[3];
+
+  CAMELLIA_ROTL128 (&ks[8],  kl, 0, 15);  // k3,  k4  = KL <<<  15
+  CAMELLIA_ROTL128 (&ks[12], ka, 0, 15);  // k5,  k6  = KA <<<  15
+  CAMELLIA_ROTL128 (&ks[16], ka, 0, 30);  // ke1, ke2 = KA <<<  30
+  CAMELLIA_ROTL128 (&ks[20], kl, 1, 13);  // k7,  k8  = KL <<<  45
+
+  // k9 and k10 are the only pair the table takes from two different keys, the high half of one
+  // rotation and the low half of another, so each rotation is taken whole and the half kept
+
+  u32 t[4];
+
+  CAMELLIA_ROTL128 (t, ka, 1, 13);        // k9       = (KA <<<  45) >> 64
+
+  ks[24] = t[0];
+  ks[25] = t[1];
+
+  CAMELLIA_ROTL128 (t, kl, 1, 28);        // k10      = (KL <<<  60) & MASK64
+
+  ks[26] = t[2];
+  ks[27] = t[3];
+
+  CAMELLIA_ROTL128 (&ks[28], ka, 1, 28);  // k11, k12 = KA <<<  60
+  CAMELLIA_ROTL128 (&ks[32], kl, 2, 13);  // ke3, ke4 = KL <<<  77
+  CAMELLIA_ROTL128 (&ks[36], kl, 2, 30);  // k13, k14 = KL <<<  94
+  CAMELLIA_ROTL128 (&ks[40], ka, 2, 30);  // k15, k16 = KA <<<  94
+  CAMELLIA_ROTL128 (&ks[44], kl, 3, 15);  // k17, k18 = KL <<< 111
+  CAMELLIA_ROTL128 (&ks[48], ka, 3, 15);  // kw3, kw4 = KA <<< 111
+}
+
+// The 18 rounds of section 2.3.1, with the FL and FLINV pair after the sixth and the twelfth. out
+// holds D1 in its first two words and D2 in its last two.
+
+DECLSPEC void camellia128_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
+{
+  out[0] = in[0] ^ ks[0];  // prewhitening with kw1 and kw2
+  out[1] = in[1] ^ ks[1];
+  out[2] = in[2] ^ ks[2];
+  out[3] = in[3] ^ ks[3];
+
+  camellia_feistel (&out[0], &ks[4],  &out[2]);  // rounds 1 to 6, k1 to k6
+  camellia_feistel (&out[2], &ks[6],  &out[0]);
+  camellia_feistel (&out[0], &ks[8],  &out[2]);
+  camellia_feistel (&out[2], &ks[10], &out[0]);
+  camellia_feistel (&out[0], &ks[12], &out[2]);
+  camellia_feistel (&out[2], &ks[14], &out[0]);
+
+  camellia_fl (out, &ks[16], &ks[18]);           // ke1 and ke2
+
+  camellia_feistel (&out[0], &ks[20], &out[2]);  // rounds 7 to 12, k7 to k12
+  camellia_feistel (&out[2], &ks[22], &out[0]);
+  camellia_feistel (&out[0], &ks[24], &out[2]);
+  camellia_feistel (&out[2], &ks[26], &out[0]);
+  camellia_feistel (&out[0], &ks[28], &out[2]);
+  camellia_feistel (&out[2], &ks[30], &out[0]);
+
+  camellia_fl (out, &ks[32], &ks[34]);           // ke3 and ke4
+
+  camellia_feistel (&out[0], &ks[36], &out[2]);  // rounds 13 to 18, k13 to k18
+  camellia_feistel (&out[2], &ks[38], &out[0]);
+  camellia_feistel (&out[0], &ks[40], &out[2]);
+  camellia_feistel (&out[2], &ks[42], &out[0]);
+  camellia_feistel (&out[0], &ks[44], &out[2]);
+  camellia_feistel (&out[2], &ks[46], &out[0]);
+
+  // postwhitening with kw3 and kw4, and the two halves change places on the way out
+
+  u32 tmp[2];
+
+  tmp[0] = out[0];
+  tmp[1] = out[1];
+
+  out[0] = out[2] ^ ks[48];
+  out[1] = out[3] ^ ks[49];
+  out[2] = tmp[0] ^ ks[50];
+  out[3] = tmp[1] ^ ks[51];
+}
+
+// The same rounds with the subkeys taken in the order section 2.3.3 gives for a 128 bit key, which
+// is the encryption order reversed and the two members of each FL and FLINV pair exchanged.
+
+DECLSPEC void camellia128_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
+{
+  out[0] = in[0] ^ ks[48];
+  out[1] = in[1] ^ ks[49];
+  out[2] = in[2] ^ ks[50];
+  out[3] = in[3] ^ ks[51];
+
+  camellia_feistel (&out[0], &ks[46], &out[2]);
+  camellia_feistel (&out[2], &ks[44], &out[0]);
+  camellia_feistel (&out[0], &ks[42], &out[2]);
+  camellia_feistel (&out[2], &ks[40], &out[0]);
+  camellia_feistel (&out[0], &ks[38], &out[2]);
+  camellia_feistel (&out[2], &ks[36], &out[0]);
+
+  camellia_fl (out, &ks[34], &ks[32]);
+
+  camellia_feistel (&out[0], &ks[30], &out[2]);
+  camellia_feistel (&out[2], &ks[28], &out[0]);
+  camellia_feistel (&out[0], &ks[26], &out[2]);
+  camellia_feistel (&out[2], &ks[24], &out[0]);
+  camellia_feistel (&out[0], &ks[22], &out[2]);
+  camellia_feistel (&out[2], &ks[20], &out[0]);
+
+  camellia_fl (out, &ks[18], &ks[16]);
+
+  camellia_feistel (&out[0], &ks[14], &out[2]);
+  camellia_feistel (&out[2], &ks[12], &out[0]);
+  camellia_feistel (&out[0], &ks[10], &out[2]);
+  camellia_feistel (&out[2], &ks[8],  &out[0]);
+  camellia_feistel (&out[0], &ks[6],  &out[2]);
+  camellia_feistel (&out[2], &ks[4],  &out[0]);
+
+  u32 tmp[2];
+
+  tmp[0] = out[0];
+  tmp[1] = out[1];
+
+  out[0] = out[2] ^ ks[0];
+  out[1] = out[3] ^ ks[1];
+  out[2] = tmp[0] ^ ks[2];
+  out[3] = tmp[1] ^ ks[3];
+}
+
 DECLSPEC void camellia256_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
-  // Sigma1 to Sigma6 of section 2.2, each 64 bit constant as its two 32 bit halves in this file's
-  // byte order. The RFC writes them as 0xA09E667F3BCC908B, 0xB67AE8584CAA73B2, 0xC6EF372FE94F82BE,
-  // 0x54FF53A5F1D36F1C, 0x10E527FADE682D1D and 0xB05688C2B3E6C1FD.
-
-  const u32 sigma[12] =
-  {
-    0x7f669ea0, 0x8b90cc3b, 0x58e87ab6, 0xb273aa4c,
-    0x2f37efc6, 0xbe824fe9, 0xa553ff54, 0x1c6fd3f1,
-    0xfa27e510, 0x1d2d68de, 0xc28856b0, 0xfdc1e6b3
-  };
+  const u32 sigma[12] = CAMELLIA_SIGMA;
 
   // For a 256 bit key, KL is its leftmost 128 bits and KR its rightmost. KA and KB come out of the
   // six Feistel steps below, with d holding the RFC's D1 and D2 side by side.
@@ -377,6 +558,38 @@ DECLSPEC void camellia256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u3
   out[2] = tmp[0] ^ ks[2];
   out[3] = tmp[1] ^ ks[3];
 }
+
+// A 192 bit key differs from a 256 bit one only in KR, which section 2.2 builds from the key's
+// last 64 bits and their complement. Everything past that is the same, so the table this fills is
+// the 68 word one the 24 rounds above read, and those rounds are what the two calls below reach.
+
+DECLSPEC void camellia192_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
+{
+  u32 k[8];
+
+  k[0] =  ukey[0];
+  k[1] =  ukey[1];
+  k[2] =  ukey[2];
+  k[3] =  ukey[3];
+  k[4] =  ukey[4];
+  k[5] =  ukey[5];
+  k[6] = ~ukey[4];
+  k[7] = ~ukey[5];
+
+  camellia256_set_key (ks, k);
+}
+
+DECLSPEC void camellia192_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
+{
+  camellia256_encrypt (ks, in, out);
+}
+
+DECLSPEC void camellia192_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
+{
+  camellia256_decrypt (ks, in, out);
+}
+
+#undef CAMELLIA_SIGMA
 
 #undef CAMELLIA_SBOX1
 #undef CAMELLIA_SBOX2
