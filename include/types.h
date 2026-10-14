@@ -4194,7 +4194,7 @@ typedef struct module_ctx
   const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_charset)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  int         (*module_benchmark_hint)          (const hashconfig_t *, const salt_t *, const void *, char *, const int);
+  int         (*module_benchmark_cost)          (const hashconfig_t *, const salt_t *, const void *, char *, const int);
   const char *(*module_deprecated_notice)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_usage_notice)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_advice_notice)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

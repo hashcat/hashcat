@@ -739,10 +739,10 @@ u64 yescrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return tmp_size;
 }
 
-int yescrypt_module_benchmark_hint (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, char *line_buf, const int line_size)
+int yescrypt_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, char *line_buf, const int line_size)
 {
-  // yescrypt extends scrypt with a time factor t on top of N, r and p. N, r and p sit in the salt;
-  // the esalt opens with flags then t, so t is its second u32. salt_iter folds N together with the
+  // yescrypt extends scrypt with a time factor t on top of N, r and p. N, r and p sit in the salt.
+  // The esalt opens with flags then t, so t is its second u32. salt_iter folds N together with the
   // passes, so the plain Iterations readout stands for none of the four on its own.
 
   const u32 N = salt->scrypt_N;

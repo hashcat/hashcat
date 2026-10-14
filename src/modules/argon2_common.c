@@ -139,7 +139,7 @@ u64 argon2_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
   return MAX (size_argon2, size_selftest);
 }
 
-int argon2_module_benchmark_hint (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+int argon2_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
 {
   // Every argon2 mode packs the cost parameters into the salt the same way: t (time) goes into
   // salt_iter scaled by ARGON2_SYNC_POINTS, and m (memory in KiB) and p (parallelism) go into

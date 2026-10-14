@@ -151,7 +151,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hint           = yescrypt_module_benchmark_hint;
+  module_ctx->module_benchmark_cost           = yescrypt_module_benchmark_cost;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;

@@ -695,16 +695,16 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
       size_t len = 0;
 
-      if (module_ctx->module_benchmark_hint != MODULE_DEFAULT)
+      if (module_ctx->module_benchmark_cost != MODULE_DEFAULT)
       {
         // A mode whose cost is not one iteration count, such as argon2 with its m, t and p, spells
         // out its own parameters here in place of the Iterations readout.
 
-        char hint[HCBUFSIZ_TINY] = { 0 };
+        char cost[HCBUFSIZ_TINY] = { 0 };
 
-        module_ctx->module_benchmark_hint (hashconfig, &hashes[0].salts_buf[0], hashes[0].esalts_buf, hint, sizeof (hint));
+        module_ctx->module_benchmark_cost (hashconfig, &hashes[0].salts_buf[0], hashes[0].esalts_buf, cost, sizeof (cost));
 
-        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [%s] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hint, kernel_name);
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [%s] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, cost, kernel_name);
       }
       else if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {

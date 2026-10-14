@@ -304,7 +304,7 @@ u64 scrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   return tmp_size;
 }
 
-int scrypt_module_benchmark_hint (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+int scrypt_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
 {
   // scrypt's cost is the triple N, r and p, with the memory use set by 128 * N * r bytes. salt_iter
   // carries only N, so the plain Iterations readout hides r and p. Show the three the hash spells.

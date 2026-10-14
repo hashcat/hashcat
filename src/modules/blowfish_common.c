@@ -19,7 +19,7 @@ u32 blowfish_module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   return pw_max;
 }
 
-int blowfish_module_benchmark_hint (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+int blowfish_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
 {
   // bcrypt is parameterised by a cost factor, and salt_iter holds that cost already expanded to its
   // 2 ^ cost round count. Recover the cost with a base 2 logarithm so the readout names the factor
