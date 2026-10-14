@@ -124,17 +124,28 @@ Hash-mode 4000 cracks hashes described by a recipe on the command line, such as
 "md5(md5(salt) . pass)" or "hmac_sha256(salt, upper(pass))". Hashcat compiles the recipe into a
 kernel at startup, so most recipes run close to the speed of a matching built-in pure kernel.
 
-Recipes use the syntax of hx, the hash expression language. They combine MD4, MD5, SHA-1, SHA-2,
-RIPEMD-160, BLAKE2, SM3 and their HMACs. Functions such as upper, rev and pad transform passwords
-and salts, while digests can be sliced or re-encoded. Many custom schemes can now use a recipe in
-place of a dedicated mode or the slower dynamic plugin of mode 74000.
-See "docs/hashcat-hash-recipe.md".
+Recipes use the syntax of hx, the hash expression language. They combine MD2, MD4, MD5, SHA-0,
+SHA-1, SHA-2, SHA-3, Keccak, RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL,
+Tiger, Snefru and MySQL323 with HMAC, PBKDF2 and AES. Functions such as upper, rev and pad transform
+passwords and salts, salts stored as hex or base64 are decoded with fromhex and frombase64, and
+digests can be sliced or re-encoded. A recipe can also span several statements that assign
+variables, as in "h = md5(salt); md5(h . pass)". Recipes can loop, as in
+"for i = 1 to iter { h = md5_bin(h . pass) }", derive keys with pbkdf2, decrypt or unwrap with AES
+and end in a comparison, so slow formats such as phpass, PBKDF2 hashes and 1Password agilekeychain
+run as recipes too. The iteration count can come from each hash line, and results can be base64 as
+well as hex. Recipes can read a second salt, a pepper and the user name from the hash line, combine
+values with xor, and and or, encode with utf16be, and apply rev(), pad(), cut() and the other
+transforms to hash outputs, loop variables and derived keys as well. The last statement can compare
+two computed values as well as a value and a constant. Many custom schemes can now use a recipe in
+place of a dedicated mode or the slower dynamic plugin of mode 74000. See
+"docs/hashcat-hash-recipe.md".
 
 The same engine now replaces the pure kernels of 145 fast hash modes, including MD5, NTLM and the
-HMAC modes. Each module keeps its hash parser, self-test and optimized kernels. This removes 428
-kernel files and about 85,000 lines, while the engine, documentation and tests add about 5,700.
-A new fast hash mode built from these families needs only a module that parses the hash line and
-names its recipe. See "Kernel: fast hash type (recipe)" in
+HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes. It also runs 18 PBKDF2 modes, such as
+PBKDF2-HMAC-SHA256 and macOS. Each module keeps its hash parser, self-test and optimized kernels.
+This removes 428 kernel files and about 85,000 lines, while the engine, documentation and tests add
+about 5,700. A new fast hash mode built from these families needs only a module that parses the hash
+line and names its recipe. See "Kernel: fast hash type (recipe)" in
 "docs/hashcat-plugin-development-guide.md".
 
 ##
@@ -336,9 +347,15 @@ changes that may require action.
 - Added mode 24430: PKCS#12 (.pfx, .p12) (SHA1 + HMAC-SHA1)
 - Added mode 24440: PKCS#12 (.pfx, .p12) (SHA256 + HMAC-SHA256)
 - Added mode 38200: Cisco-IOS $14$ (convoluted Type 9)
-- Added mode 4000: Hash Recipe, a recipe of MD4, MD5, SHA-1, SHA-2, RIPEMD-160, BLAKE2, SM3 and HMAC
-  calls over the password and salt, and string transforms such as upper(), rev() and pad() of
-  either, given with "--hash-recipe"
+- Added mode 4000: Hash Recipe, a recipe of MD2, MD4, MD5, SHA-0, SHA-1, SHA-2, SHA-3, Keccak,
+  RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL, Tiger, Snefru, MySQL323, HMAC,
+  PBKDF2 and AES calls over the password, the salt and further hash line fields, with loops, xor,
+  comparisons and transforms such as upper(), rev() and pad(), given with "--hash-recipe"
+- Added mode 38300: Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + AES-192 key blob)
+- Added mode 38400: Kerberos 5, etype 1/2/3, DB
+- Added mode 38500: Kerberos 5, etype 3, TGS-REP
+- Added mode 38600: Kerberos 5, etype 3, AS-REP
+- Added mode 38700: FreeBSD GELI
 
 ##
 ## New Features and Options
@@ -408,6 +425,8 @@ changes that may require action.
   transfers, loops and comparisons. It includes effective hash rate and machine-readable JSON
 - All caches can now move to shared storage through "--cache-path". Feed caches fall back to memory
   on read-only storage, while kernel-cache writes still require permission
+- Option "--json" emits every structured output surface as JSON, including the benchmark, which had
+  no JSON form before. "--benchmark-json" emits only the benchmark and turns "-b" on
 
 ## Extraction tools
 
@@ -417,6 +436,8 @@ changes that may require action.
 - Added "tools/routeros2hashcat.py" for mode 38000 RouterOS backups, unpacked directories
   and monolithic config stores
 - Added "tools/pkcs12_to_hashcat.py" for modes 24430 and 24440 ".pfx" and ".p12" stores
+- Added "tools/geli2hashcat.py" for mode 38700 FreeBSD GELI providers, disk images and "geli backup"
+  files
 - The "tools/metamask2hashcat.py" tool now reads vaults from both "persist-root" and
   "persist-KeyringController" browser storage
 - The "tools/bitwarden2hashcat.py" tool now reads mode 23400 key hashes and KDF iterations stored
@@ -533,6 +554,16 @@ Results depend on the device, runtime and workload.
   Maxwell and newer compute only the needed S-box outputs at each of three stages
 - Unrolled bitsliced DES rounds on NVIDIA GPUs give mode 3000 ~10% more speed with "-a 3" on an
   RTX 4090
+- An early test after DES round 15 speeds mode 14000 with "-a 3" by 17-24% on an RTX 4090, 2-13% on
+  an RX 7900 XTX, 53-78% on an Arc A770 and 2.9-3.8x under Metal, the most with several hashes on
+  one plaintext as in NetNTLMv1
+- Mode 3000 with "-a 3" tests each digest after DES round 15 in its multi-hash kernel, speeding 2
+  hashes, one LM hash, by 10-17% on an RTX 4090, an RX 7900 XTX and an i7-14700K
+- Unrolled DES rounds under Metal and on Intel GPUs speed mode 3000 with "-a 3" by 2.4-2.6x on a
+  Radeon Pro W5700X and 2.4-4.7x on an Arc A770
+- Unrolled DES rounds with several salts and in every attack mode speed mode 1500 by 1.8-4x with
+  "-a 3" against 64 salts on an RTX 4090, an RX 7900 XTX and an Arc A770, and wordlist attacks by up
+  to 6%
 - Optimized mode 12500 cuts its private buffer from 3264 to 264 bytes per work item by storing
   four records and a prefix instead of 64 expanded records
 - Mode 17400 simplifies the first Keccak round and unrolls later rounds in pairs, speeding "-a 3"
@@ -546,6 +577,8 @@ Results depend on the device, runtime and workload.
 - Modes 16600, 22500, 22951 and 23003 fold the AES-256 decrypt key schedule into the decrypt rounds
   instead of building a 60-word array first, for +8% to +36% on a GeForce RTX 4090 and +22% to +45%
   on a Radeon RX 7900 XTX
+- Reading the Streebog lookup tables from constant memory under HIP speeds the Streebog modes by
+  7-42% on an RX 7900 XTX and 15-58% on a Radeon iGPU, and the VeraCrypt Streebog modes by 16-85%
 
 ##
 ## Improvements
@@ -579,6 +612,10 @@ Results depend on the device, runtime and workload.
 - The 8 krb5 modes that derive a key with PBKDF2-HMAC-SHA1 declare their tmp buffers at the size
   their kernels write, which lowers device memory per work item: modes 19600, 19700, 19800, 19900,
   28800, 28900, 32100 and 32200
+- Metal devices that report the Metal4 GPU family and unified memory, Apple Silicon on macOS 26, use
+  a Metal 4 command, resource and compiler path. Other Metal devices keep the Metal 3 path. Compiled
+  pipelines are cached under "cache/kernels" as binary archives, and "-I" reports each device's
+  Metal version
 
 ## Autotune and tuning database
 
@@ -596,8 +633,12 @@ Results depend on the device, runtime and workload.
 - Fast kernels reserve constant memory only for data the attack reads. Mask attacks regain
   28 KB and combinator attacks 32 KB of the 64 KB budget
 - The pure kernels of 145 fast hash modes (MD4, MD5, SHA-1, SHA-2, RIPEMD-160, BLAKE2 and SM3
-  compositions, their HMAC modes, and Radmin2) now run as hash recipes through the mode 4000
-  kernels, and their 428 pure kernel files are removed. Optimized kernels, hash formats and mode
+  compositions, the HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes, and Radmin2) now run as
+  hash recipes through the mode 4000 kernels, and their 428 pure kernel files are removed. Optimized
+  kernels, hash formats and mode numbers are unchanged
+- The slow kernels of 18 PBKDF2 modes (PBKDF2-HMAC-MD5, -SHA1, -SHA256 and -SHA512 and formats built
+  on them, such as macOS, GRUB 2, Django and Cisco-IOS $8$) now run as hash recipes through the slow
+  kernel of mode 4000, and the 4 pure kernel files they shared are removed. Hash formats and mode
   numbers are unchanged
 
 ## Attack modes and candidate input
@@ -738,6 +779,10 @@ Results depend on the device, runtime and workload.
 - The weekly CI run now tests the pure kernels, the bridge pass, and a container pass that
   cracks the TrueCrypt, VeraCrypt, CryptoLoop and LUKS container files, beside the optimized
   kernels, as parallel jobs
+- Added VeraCrypt BLAKE2s-256 test containers so modes 29491, 29492 and 29493 are cracked by the
+  suite instead of being silently skipped
+- Multi-hash test runs now give two pairs of hashes a shared salt where the mode allows it, and
+  "tools/test.py -d" selects devices for every test path
 
 ## Documentation and licensing
 
@@ -752,6 +797,8 @@ Results depend on the device, runtime and workload.
   candidates matching a hash in the same kernel call, with separate fast- and slow-hash cases
 - Added "docs/plugin-development-workshop/" with a syllabus, starter templates,
   a finished plugin and exercises for building a hash mode and pure kernel
+- The example-hashes table links the 145 hash modes whose pure kernels run as hash recipes to
+  "docs/hashcat-hash-recipe.md"
 
 ##
 ## Bug Fixes
@@ -972,6 +1019,11 @@ Results depend on the device, runtime and workload.
 - Fixed mode 32500 hashing only 1 in 4 candidates on CPU devices at vector width 4
 - Changed mode 29700 to take its keyfile hash as 64 hex characters that the kernel decodes, so every
   attack mode can supply it. Older potfile entries still count as cracked and show as $HEX[...]
+- Fixed 13 hash modes missing a hash when two hashes in the list share a salt: 17010, 17020, 17030,
+  19500, 22911, 22921, 22931, 22941, 22951, 23200, 26000, 29000 and 74000
+- Fixed mode 200 never cracking passwords that contain a space or a tab. MySQL323 skips both
+  characters when it hashes a password, but the kernels hashed them like any other byte
+- Fixed mode 6900 never cracking the empty password
 
 ## Backends: OpenCL, tuning and memory
 
@@ -1013,6 +1065,8 @@ Results depend on the device, runtime and workload.
 - Fixed autotune running some kernels over an empty password buffer when it had nothing to tune,
   which kept mode 10700 with -O in autotune indefinitely and crashed modes 26900 and 27300 under an
   association attack on a single salt
+- Fixed HIP kernels failing to build when the path of the hashcat directory holds the word "linux"
+  or "unix", which a GNU C++ dialect predefines as macros
 
 ## Backends: Metal and resource lifecycle
 
@@ -1030,6 +1084,11 @@ Results depend on the device, runtime and workload.
   selecting each one
 - Fixed backend sessions not closing after startup failures outside benchmarks
 - Fixed CUDA context creation and cleanup not using the correct threads and device contexts
+- Fixed Apple's drivers for Intel GPUs on macOS losing every candidate at an odd work item position
+  in the "-a 0" pure kernels, and cracking the optimized "-a 3" kernels only some of the time
+  (issue 2507)
+- Fixed the Metal backend never releasing the command buffer and encoder of each kernel launch and
+  copy, which grew memory for as long as a run lasted
 
 ## Backends: bridges and hardware monitoring
 
@@ -1174,6 +1233,12 @@ Results depend on the device, runtime and workload.
 - Fixed "--status-json" writing invalid JSON for bridged hash modes, because their device entry was
   never closed
 - Fixed the dictionary cache summary reporting its read speed 2.4 percent too high
+- Fixed hashcat exiting with 0 when autotune failed on every device, where it now exits with -10,
+  and a benchmark losing that device for every later hash-mode
+- Fixed the machine-readable benchmark reporting speed in place of execution time for bridged modes
+- Fixed "-I" and "-II" with "--machine-readable" emitting invalid JSON when a path contained a
+  double quote or a backslash. "--outfile-json" lines now use the same spaced style,
+  { "hash_hex": ... }, which parsers do not notice but byte-exact matching does
 
 ## Windows
 
