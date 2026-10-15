@@ -111,7 +111,7 @@ Every Python test module implements three functions used by all runner modes:
 
 The second argument is the hash-mode number. Verify mode takes additional arguments. Run `tools/test_module_runner.py` without arguments to display the complete syntax.
 
-The Python dependencies are listed in `tools/requirements.txt` and installed by `tools/install_modules.sh`. Review the script before running it.
+The test suite needs Python 3.10 or newer, the version Ubuntu 22.04 ships. The Python dependencies are listed in `tools/requirements.txt` and installed by `tools/install_modules.sh`. Review the script before running it.
 
 #### Single mode ####
 

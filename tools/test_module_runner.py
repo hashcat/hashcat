@@ -21,6 +21,12 @@ import random
 import re
 import sys
 
+# Checked before any test module is imported, since an older python fails inside one with an error
+# that does not name the interpreter.
+
+if sys.version_info < (3, 10):
+  sys.exit("tools/test_module_runner.py needs Python 3.10 or newer, and this is %d.%d.%d" % sys.version_info[:3])
+
 TDIR = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.insert(0, os.path.join(TDIR, "test_modules"))

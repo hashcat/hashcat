@@ -6386,6 +6386,11 @@ def run_bridge(args):
 
 
 def main():
+  # An older python fails inside a test module, with an error that does not name the interpreter.
+
+  if sys.version_info < (3, 10):
+    die("! tools/test.py needs Python 3.10 or newer, and this is %s" % platform.python_version())
+
   # Line-buffer stdout so the serial paths (-S, single mode) stream under CI, where stdout is a
   # pipe Python would otherwise block-buffer. The -j paths already flush by hand.
   try:
