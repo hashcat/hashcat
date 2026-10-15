@@ -135,3 +135,69 @@ u64 count_lines (HCFILE *fp)
 
   return 0;
 }
+
+size_t superchop_with_length (char *buf, const size_t len)
+{
+  // The mask parser reaches this only on its charset file path, after hc_fopen () succeeds. The
+  // hc_fopen () stub returns false, so this is never reached and a no op is enough.
+
+  (void) buf;
+
+  return len;
+}
+
+// The mask parser shares src/mpsp.c with the feed-driving code (mask_ctx_update_loop and friends),
+// which the harness never calls but which the linker still has to resolve. These are the symbols
+// that code reaches into the core for. A run only ever calls mask_css_parse, so none of these runs.
+
+int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
+{
+  (void) hashcat_ctx;
+
+  return 0;
+}
+
+int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
+{
+  (void) hashcat_ctx;
+
+  return 0;
+}
+
+int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r)
+{
+  (void) hashcat_ctx;
+  (void) css_cnt_l;
+  (void) css_cnt_r;
+
+  return 0;
+}
+
+const char *generic_ctx_segment_of (const hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u64 index)
+{
+  (void) hashcat_ctx;
+  (void) role;
+  (void) index;
+
+  return NULL;
+}
+
+int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *anchor, const u32 min_len, const u32 max_len, const bool backward, u64 *out_index, u64 *out_words)
+{
+  (void) hashcat_ctx;
+  (void) role;
+  (void) anchor;
+  (void) min_len;
+  (void) max_len;
+  (void) backward;
+  (void) out_index;
+  (void) out_words;
+
+  return -1;
+}
+
+void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+{
+  (void) hashcat_ctx;
+  (void) fmt;
+}
