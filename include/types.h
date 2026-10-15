@@ -4086,6 +4086,19 @@ typedef struct bridge_ctx
   int       (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
   char     *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
 
+  // A fixed tuning for one unit, for a bridge that knows what its hardware costs per launch. It is the
+  // bridge's counterpart to a module's extra tuning db block.
+  //
+  // OPTIONAL. A bridge that leaves it unset, or returns false for a unit, has that unit autotuned as
+  // before. A unit that gets an answer is not autotuned at all: nothing is launched to measure it, and
+  // the warm up launches are skipped as well. -n and -u still win over it.
+  //
+  // target_msec is the time budget autotune would have sized the launch against. kernel_accel counts
+  // the unit's own waves, as it does everywhere for a bridge unit, and the answer is clamped into the
+  // bounds the device was allocated for. hashes is passed explicitly for the reason given below.
+
+  bool      (*get_unit_tuning)       (hashcat_ctx_t *, void *, const int, const hashconfig_t *, const hashes_t *, const double, u32 *, u32 *);
+
   // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
   //
   // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its

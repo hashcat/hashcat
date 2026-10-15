@@ -319,6 +319,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_info         = get_unit_info;
   bridge_ctx->get_workitem_count    = get_workitem_count;
   bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->get_unit_tuning       = BRIDGE_DEFAULT;
   bridge_ctx->thread_init           = BRIDGE_DEFAULT;
   bridge_ctx->thread_term           = BRIDGE_DEFAULT;
   bridge_ctx->salt_prepare          = salt_prepare;

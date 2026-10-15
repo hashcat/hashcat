@@ -292,7 +292,7 @@ static u32 autotune_wide_accel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
   if (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL)
   {
-    event_log_info (hashcat_ctx, "AT2 wide loops=%u wave=%.3f fixed=%.3f budget=%.1f stretch=%.1f -> accel=%u", kernel_loops, per_wave, fixed_msec, waves_budget, waves_stretch, accel);
+    event_log_info (hashcat_ctx, "AT2 wide #%02u loops=%u wave=%.3f fixed=%.3f budget=%.1f stretch=%.1f -> accel=%u", device_param->device_id + 1, kernel_loops, per_wave, fixed_msec, waves_budget, waves_stretch, accel);
   }
 
   return accel;
@@ -1040,6 +1040,49 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   }
 }
 
+// A bridge that knows what its hardware costs per launch sizes a unit itself, the way a module sizes a
+// device from its tuning db block, and nothing is then launched to measure the unit.
+//
+// What the user gives with -n or -u wins, so the bridge is only asked when neither was given. Its
+// answer is clamped into the bounds the device was sized for: the buffers behind a launch were
+// allocated for kernel_accel_max, and a larger launch writes past them. The thread count is pinned to
+// the one a wide unit gets from autotune anyway, which needs no launch either, so that every bound is
+// fixed and the fixed path below is the one taken.
+
+static bool autotune_bridge_fixed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const double target_msec, u32 *accel_min, u32 *accel_max, u32 *loops_min, u32 *loops_max, u32 *threads_min, u32 *threads_max)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->kernel_accel_chgd == true) return false;
+  if (user_options->kernel_loops_chgd == true) return false;
+
+  if (bridge_active (hashcat_ctx, device_param->bridge_link_device) == false) return false;
+
+  u32 accel = 0;
+  u32 loops = 0;
+
+  if (bridge_unit_tuning (hashcat_ctx, device_param->bridge_link_device, target_msec, &accel, &loops) == false) return false;
+
+  accel = MIN (MAX (accel, *accel_min), *accel_max);
+  loops = MIN (MAX (loops, *loops_min), *loops_max);
+
+  const u32 threads = autotune2_threads_max (device_param, *threads_min, *threads_max);
+
+  *accel_min   = accel;
+  *accel_max   = accel;
+  *loops_min   = loops;
+  *loops_max   = loops;
+  *threads_min = threads;
+  *threads_max = threads;
+
+  if (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL)
+  {
+    event_log_info (hashcat_ctx, "AT2 bridge #%02u accel=%u loops=%u threads=%u, fixed by the bridge", device_param->device_id + 1, accel, loops, threads);
+  }
+
+  return true;
+}
+
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -1052,11 +1095,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
                            ? backend_ctx->target_msec * BRIDGE_TARGET_MSEC_SCALE
                            : backend_ctx->target_msec;
 
-  const u32 kernel_accel_min = device_param->kernel_accel_min;
-  const u32 kernel_accel_max = device_param->kernel_accel_max;
+  u32 kernel_accel_min = device_param->kernel_accel_min;
+  u32 kernel_accel_max = device_param->kernel_accel_max;
 
-  const u32 kernel_loops_min = device_param->kernel_loops_min;
-  const u32 kernel_loops_max = device_param->kernel_loops_max;
+  u32 kernel_loops_min = device_param->kernel_loops_min;
+  u32 kernel_loops_max = device_param->kernel_loops_max;
 
   u32 kernel_threads_max = device_param->kernel_threads_max;
 
@@ -1103,6 +1146,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   kernel_threads_min,
   kernel_threads_max);
   */
+
+  const bool bridge_fixed = autotune_bridge_fixed (hashcat_ctx, device_param, target_msec, &kernel_accel_min, &kernel_accel_max, &kernel_loops_min, &kernel_loops_max, &kernel_threads_min, &kernel_threads_max);
 
   // stores the minimum values
   // they could be used if the autotune fails and user specify --force
@@ -1188,7 +1233,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     #else
 
-    if (hashconfig->warmup_disable == false)
+    // A unit the bridge sized is not warmed up either. Its launches go to the bridge's hardware, which
+    // has no kernel cache to fill, and at a high iteration count each of the four is a full launch.
+
+    if ((hashconfig->warmup_disable == false) && (bridge_fixed == false))
     {
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);

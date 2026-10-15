@@ -167,6 +167,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_class        = BRIDGE_DEFAULT;
   bridge_ctx->get_unit_member_count = BRIDGE_DEFAULT;
   bridge_ctx->get_unit_member_info  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_tuning       = BRIDGE_DEFAULT;
 
   bridge_ctx->thread_init    = BRIDGE_DEFAULT;
   bridge_ctx->thread_term    = BRIDGE_DEFAULT;
@@ -203,6 +204,7 @@ The principal callbacks are declared as follows:
   char       *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
   int         (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
   char       *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
+  bool        (*get_unit_tuning)       (hashcat_ctx_t *, void *, const int, const hashconfig_t *, const hashes_t *, const double, u32 *, u32 *);
   bool        (*salt_prepare)          (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
   void        (*salt_destroy)          (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
   bool        (*thread_init)           (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
@@ -255,6 +257,7 @@ Callback `get_workitem_multiple` is mandatory in the current interface. An older
 - Callback `get_workitem_multiple` returns the computational granularity of the unit. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width for parallel waves so hashcat never supplies a partial wave.
 - Optional callback `get_unit_class` identifies the type of unit so hashcat can determine which units are interchangeable. See the section below.
 - Optional callbacks `get_unit_member_count` and `get_unit_member_info` describe the hardware members combined into one unit. Implement both or neither.
+- Optional callback `get_unit_tuning` returns a fixed `kernel_accel` and `kernel_loops` for one unit. It is the bridge's counterpart to a module's extra tuning db block, for a bridge that knows what its hardware costs per launch. A unit with an answer is not autotuned: hashcat launches nothing to measure it and skips the warm up launches. It receives the time budget autotune would have used, and `kernel_accel` counts the unit's own waves. Return `false` to have the unit autotuned. Values given with `-n` or `-u` win over the callback.
 - Optional callback `thread_init` performs per-thread setup, such as creating a Python interpreter. hashcat calls it on every thread that drives a unit: the self-test, the cracking thread and, for a `BRIDGE_TYPE_REPLACE_LOOP` bridge, autotune.
 - Optional callback `thread_term` performs per-thread cleanup.
 - Callback `salt_prepare` runs once after the hashes are loaded and can preprocess salt or esalt data for the complete hash set.
