@@ -188,14 +188,16 @@ static int hc_dynlib_ver_cmp (const int *a, const int *b)
 
 static bool hc_dynlib_is_valid_version (const char *version, const size_t version_size)
 {
-    for (size_t i = 0; i < version_size; i++)
-    {
-      const char c = version[i];
+  if ((version_size == 0) || (isdigit (version[0]) == 0)) return false;
 
-      if (((c < '0') || (c > '9')) && (c != '_')) return false;
-    }
+  for (size_t i = 1; i < version_size; i++)
+  {
+    const int c = (const int) version[i];
 
-    return true;
+    if ((isdigit (c) == 0) && (c != '_')) return false;
+  }
+
+  return true;
 }
 
 // A candidate is a file whose name starts with the fixed part and carries a digit straight after it.
