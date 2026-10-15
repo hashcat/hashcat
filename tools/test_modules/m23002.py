@@ -35,7 +35,10 @@ def _derive_key(word, key_len):
 
 
 def module_constraints():
-  return [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]]
+  # The IV is this mode's salt (module_generate_hash turns the salt into the IV), so a salt range
+  # is declared here. That lets the shared-salt multi run put two entries on one IV, the case the
+  # kernel has to recover both of.
+  return [[0, 256], [1, 16], [0, 55], [1, 16], [-1, -1]]
 
 
 def module_generate_hash(word, salt=None, iterations=None, iv=None, data=None, file=None):
@@ -44,7 +47,17 @@ def module_generate_hash(word, salt=None, iterations=None, iv=None, data=None, f
   is_decrypt = data is not None
 
   if not is_decrypt:
-    iv = random_bytes(random_number(1, 16))
+    # The IV is hashcat's salt for this mode. When the suite asks two entries to share a salt, it
+    # hands them the same salt string here, so deriving the IV from it puts them on the same IV
+    # while their data stays random. That is the case that must recover both, and without this the
+    # IV was always random and the shared salt run never actually shared one. Every run now supplies
+    # a salt, from the range module_constraints declares, so the self test, edge and normal paths all
+    # derive the IV from it. The no salt branch below is only for a direct call that passes none.
+    if salt:
+      salt_bytes = salt if isinstance(salt, (bytes, bytearray)) else salt.encode("ascii")
+      iv = bytes(salt_bytes[:16]) or random_bytes(random_number(1, 16))
+    else:
+      iv = random_bytes(random_number(1, 16))
     data = random_bytes(128)
     file = random_lowercase_string(random_number(1, 16)) + ".txt"
 
