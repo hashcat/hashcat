@@ -573,6 +573,10 @@ Callback `module_benchmark_charset()` supplies custom character set 1 for `--ben
 
 Callback `module_benchmark_salt()` fills a mode-specific `salt_t` for benchmarks that require particular iteration counts or salt lengths.
 
+### module_benchmark_cost() ###
+
+Callback `module_benchmark_cost()` formats the cost parameters shown in the benchmark header for a mode whose cost is not a single iteration count. The header normally prints `[Iterations: N]` from `salt_iter`, which misleads a mode that packs several parameters (argon2's `m`, `t` and `p`, scrypt's `N`, `r` and `p`, bcrypt's cost factor). The callback receives the decoded `salt_t` and esalt and writes the parameters the hash actually carries into `line_buf`, returning the length as `snprintf()` does; the header prints that in place of the Iterations readout. It is optional: a mode that leaves it at `MODULE_DEFAULT` keeps the Iterations readout, so only a mode with extra cost parameters to show needs to set it.
+
 ## Kernel ##
 
 The kernel is the second required part of a plugin. Kernel compilation is relatively expensive, so hashcat and the compute runtimes cache compiled binaries to reduce startup time.
