@@ -1839,6 +1839,12 @@ def attack_3_single(r):
 
       continue
 
+    # PKZIP master key: a word of 6 bytes or fewer leaves an empty mask past the cut.
+    if r.mode == 20510 and len(word) <= 6:
+      i += 1
+
+      continue
+
     if r.file_only:
       with open(temp_file, "wb") as fh:
         fh.write(decode_hashfile(r.mode, digest))
