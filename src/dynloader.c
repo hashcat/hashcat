@@ -186,6 +186,20 @@ static int hc_dynlib_ver_cmp (const int *a, const int *b)
   return 0;
 }
 
+static bool hc_dynlib_is_valid_version (const char *version, const size_t version_size)
+{
+  if ((version_size == 0) || (isdigit (version[0]) == 0)) return false;
+
+  for (size_t i = 1; i < version_size; i++)
+  {
+    const int c = (const int) version[i];
+
+    if ((isdigit (c) == 0) && (c != '_')) return false;
+  }
+
+  return true;
+}
+
 // A candidate is a file whose name starts with the fixed part and carries a digit straight after it.
 // That last condition is what keeps hiprtc-builtins0702.dll from being mistaken for hiprtc0702.dll.
 
@@ -208,9 +222,9 @@ static void hc_dynlib_best_dll (const char *dir, const char *prefix, char *best,
 
   do
   {
-    const char c = fd.cFileName[prefix_len];
+    const size_t version_size = strlen (fd.cFileName) - strlen (".dll") - prefix_len;
 
-    if ((c < '0') || (c > '9')) continue;
+    if (hc_dynlib_is_valid_version ((fd.cFileName + prefix_len), version_size) == false) continue;
 
     int ver[HC_DYNLIB_VER_MAX];
 
