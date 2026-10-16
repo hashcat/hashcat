@@ -79,6 +79,8 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `tiger(x)` `tiger128(x)` `tiger160(x)` `tiger2(x)` `tth(x)` | Tiger with 3 passes, as lowercase hex in the byte order printed by PHP and the reference implementation. `tiger128` and `tiger160` keep its first 16 and 20 bytes, `tiger192` is `tiger`, and `tiger2` is Tiger2, which pads with 0x80 instead of 0x01. `tth(x)` is the Tiger tree hash of one leaf, Tiger over a 0x00 byte and `x`. It matches TTH for inputs of up to 1024 bytes. A longer input gives an inverted digest, so it cannot crack the TTH of that input. It has no `hmac_` form |
 | `mysql3(x)` | The password hash of MySQL before 4.1, 8 bytes as lowercase hex. It skips spaces and tabs as MySQL does. It is too short to be the result, which needs 16 bytes, so it appears inside another call, as in `md5(mysql3(pass))`. It has no `hmac_` form |
 | `sne128(x)` `sne256(x)` | Snefru-128 and Snefru-256 with 8 rounds, as lowercase hex. `snefru128(x)` and `snefru256(x)` are the same calls. Their HMAC blocks are 48 and 32 bytes, the data each block takes |
+| `skein224(x)` `skein256(x)` `skein384(x)` `skein512(x)` | Skein-512 (Skein 1.3) with a digest of 224, 256, 384 or 512 bits, as lowercase hex. The Skein paper calls these Skein-512-224 to Skein-512-512 |
+| `panama(x)` | PANAMA in the little endian convention, as lowercase hex. Its HMAC block is 32 bytes |
 | `gost(x)` `gost_crypto(x)` | GOST R 34.11-94, as lowercase hex. `gost` uses the S-box of the test parameter set, as hashcat's mode 6900 does. `gost_crypto` uses the S-box of the CryptoPro parameter set |
 | `md5_bin(x)` | The digest as raw bytes |
 | `md5_hex(x)` | Lowercase hex, the same as `md5(x)` |
@@ -292,6 +294,37 @@ produces from its salt.
 | `md5(rev(md5(pass)))` | |
 | `sha1(pad(md5_bin(pass), 32))` | |
 
+## John's dynamic formats
+
+John the Ripper writes many of its formats as `$dynamic_N$` hashes. With `--dynamic-x`, hashcat
+reads the format from the first hash and runs it in mode 4000 with the recipe for that format, so
+neither `-m` nor `--hash-recipe` is needed:
+
+```
+hashcat --dynamic-x hashes.txt wordlist.txt
+```
+
+This covers John's built-in formats and the formats that ship in John's `dynamic.conf`, except
+phpass and HTTP digest authentication. John's second salt (`$$2`) and user name (`$$U`) become the
+`salt2` and `user` fields of the hash line. `--show`, `--left` and `--remove` write each hash back
+in John's format.
+
+Mode 4000 has no optimized kernels. With `-O`, a format that a hash-mode with optimized kernels also
+computes runs in that hash-mode instead, such as mode 0 for `$dynamic_0$`. That hash-mode loads only
+the lines it can parse. The two Cisco formats, `$dynamic_19$` and `$dynamic_20$`, always run in
+modes 2400 and 2410.
+
+Formats whose salt is binary, such as RADIUS, Telegram and net-md5, read it with `fromhex(salt)`.
+A salt with a null byte loads that way, and it can hold up to 128 bytes. These formats have no
+`-O` route.
+
+A format that hashcat does not know, such as one defined in a local copy of `dynamic.conf`, can
+still be loaded with `-m 4000` and a recipe for what it computes:
+
+```
+hashcat --dynamic-x -m 4000 --hash-recipe 'sha1(salt . md5(pass))' hashes.txt wordlist.txt
+```
+
 ## Limits
 
 - A recipe supports up to 8 hash calls, 8 concatenated parts per call and 4 strings. Each string
@@ -379,7 +412,7 @@ produces from its salt.
 
 Mode 4000 supports only part of hx. It does not support nested or several loops, `if`, `emit`, key
 derivation other than `pbkdf2`, ciphers other than AES or character encodings other than `utf16le`
-and `utf16be`. Hash families such as Skein are also unsupported.
+and `utf16be`. Hash families that are not listed under [Syntax](#syntax) are also unsupported.
 `length` is supported only in `length(aes_unwrap(kek, x)) > 0`. A recipe that uses an unsupported
 feature is rejected at startup with the reason and position of the error.
 

@@ -1723,7 +1723,9 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
         const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_pos, digest_pos);
 
-        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, separator, HCBUFSIZ_LARGE);
+        const hashinfo_t *hash_info = (tag_len > 0) ? hashes->hash_info[idx] : NULL;
+
+        const int out_len = dynamicx_encode ((char *) out_buf, hash_info, tag_len, hash_len, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -3279,7 +3281,7 @@ static bool hashlist_parse_threaded (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32
 //
 // hashfile is NULL for the single hash given on the command line.
 
-static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, int *line_len, hashinfo_t *hash_info, const char *hashfile, const u32 line_num)
+static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, int *line_len, const int line_size, hashinfo_t *hash_info, const char *hashfile, const u32 line_num)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -3317,7 +3319,10 @@ static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, in
 
   int hash_len = 0;
 
-  if (dynamicx_translate (line_buf, *line_len, hashconfig->separator, &tag_len, &hash_len, &error) < 0)
+  char *rest_buf = NULL;
+  u32   rest_len = 0;
+
+  if (dynamicx_translate (line_buf, *line_len, line_size, hashconfig->separator, user_options_extra->dynamicx_layout, &tag_len, &hash_len, &rest_buf, &rest_len, &error) < 0)
   {
     event_log_warning (hashcat_ctx, "%s has %s.", where, error);
 
@@ -3326,18 +3331,24 @@ static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, in
 
   *line_len = tag_len + hash_len;
 
-  if (hash_info != NULL)
+  dynamicx_t *dynamicx = (hash_info != NULL) ? hash_info->dynamicx : NULL;
+
+  if (dynamicx == NULL)
   {
-    dynamicx_t *dynamicx = hash_info->dynamicx;
+    hcfree (rest_buf);
 
-    if (dynamicx != NULL)
-    {
-      dynamicx->dynamicx_buf = (char *) hcmalloc (tag_len + 1);
-      dynamicx->dynamicx_len = (u32) tag_len;
-
-      memcpy (dynamicx->dynamicx_buf, line_buf, tag_len);
-    }
+    return true;
   }
+
+  dynamicx->dynamicx_buf = (char *) hcmalloc (tag_len + 1);
+  dynamicx->dynamicx_len = (u32) tag_len;
+
+  memcpy (dynamicx->dynamicx_buf, line_buf, tag_len);
+
+  hcfree (dynamicx->dynamicx_rest);
+
+  dynamicx->dynamicx_rest     = rest_buf;
+  dynamicx->dynamicx_rest_len = rest_len;
 
   return true;
 }
@@ -3366,6 +3377,7 @@ void hash_info_destroy (hashinfo_t *hash_info)
   if (dynamicx != NULL)
   {
     hcfree (dynamicx->dynamicx_buf);
+    hcfree (dynamicx->dynamicx_rest);
 
     hcfree (dynamicx);
   }
@@ -3700,13 +3712,16 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       char *dynamicx_buf = NULL;
 
       // before hlfmt_hash, which takes the line apart. hc_hash points into argv and the translation
-      // writes on the line it is given, so the single hash on the command line is copied first.
+      // writes on the line it is given, so the single hash on the command line is copied first,
+      // into a buffer as large as a hash file line. A salt written in hex can make the line longer.
 
       if (user_options->dynamic_x == true)
       {
-        dynamicx_buf = hcstrdup (input_buf);
+        dynamicx_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-        dynamicx_ok = hashes_dynamicx_line (hashcat_ctx, dynamicx_buf, &input_len, hashes_buf[hashes_cnt].hash_info, NULL, 0);
+        snprintf (dynamicx_buf, HCBUFSIZ_LARGE, "%s", input_buf);
+
+        dynamicx_ok = hashes_dynamicx_line (hashcat_ctx, dynamicx_buf, &input_len, HCBUFSIZ_LARGE, hashes_buf[hashes_cnt].hash_info, NULL, 0);
 
         input_buf = dynamicx_buf;
       }
@@ -4062,7 +4077,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->dynamic_x == true)
         {
-          if (hashes_dynamicx_line (hashcat_ctx, line_buf, &line_len, hashes_buf[hashes_cnt].hash_info, hashes->hashfile, line_num) == false) continue;
+          if (hashes_dynamicx_line (hashcat_ctx, line_buf, &line_len, HCBUFSIZ_LARGE, hashes_buf[hashes_cnt].hash_info, hashes->hashfile, line_num) == false) continue;
         }
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);

@@ -20,6 +20,8 @@
 #include "emu_inc_hash_md2.h"
 #include "emu_inc_hash_sha0.h"
 #include "emu_inc_hash_snefru.h"
+#include "emu_inc_hash_skein512.h"
+#include "emu_inc_hash_panama.h"
 #include "emu_inc_hash_ripemd256.h"
 #include "emu_inc_hash_mysql323.h"
 #include "emu_inc_hash_haval.h"
@@ -302,6 +304,11 @@ static const recipe_algo_entry_t RECIPE_ALGOS[] =
   { "snefru128",   RECIPE_ALGO_SNE128,     16,  48, true,  false },
   { "sne256",      RECIPE_ALGO_SNE256,     32,  32, true,  false },
   { "snefru256",   RECIPE_ALGO_SNE256,     32,  32, true,  false },
+  { "skein224",    RECIPE_ALGO_SKEIN224,   28,  64, true,  false },
+  { "skein256",    RECIPE_ALGO_SKEIN256,   32,  64, true,  false },
+  { "skein384",    RECIPE_ALGO_SKEIN384,   48,  64, true,  false },
+  { "skein512",    RECIPE_ALGO_SKEIN512,   64,  64, true,  false },
+  { "panama",      RECIPE_ALGO_PANAMA,     32,  32, true,  false },
   { "hav128",      RECIPE_ALGO_HAV128_3,   16, 128, true,  false },
   { "hav128_3",    RECIPE_ALGO_HAV128_3,   16, 128, true,  false },
   { "hav128_4",    RECIPE_ALGO_HAV128_4,   16, 128, true,  false },
@@ -333,7 +340,7 @@ static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_
 
 static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE" };
 
-static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), their hmac_ forms except for tth, mysql3, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
+static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, their hmac_ forms except for tth, mysql3, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
 const char *recipe_algo_name (const u32 algo)
 {
@@ -387,6 +394,15 @@ static bool recipe_algo_is_haval (const u32 algo)
 static bool recipe_algo_is_sha3 (const u32 algo)
 {
   const bool r = (algo >= RECIPE_ALGO_SHA3_224) && (algo <= RECIPE_ALGO_KECCAK512);
+
+  return r;
+}
+
+// Skein-512 with a digest of 28, 32, 48 or 64 bytes, the families of inc_hash_skein512.cl
+
+static bool recipe_algo_is_skein (const u32 algo)
+{
+  const bool r = (algo >= RECIPE_ALGO_SKEIN224) && (algo <= RECIPE_ALGO_SKEIN512);
 
   return r;
 }
@@ -4559,6 +4575,10 @@ static bool recipe_tpl_ok (const recipe_prog_t *prog, const u32 k, const bool *d
 
   if ((step->algo == RECIPE_ALGO_SNE128) || (step->algo == RECIPE_ALGO_SNE256)) return false;
 
+  if (recipe_algo_is_skein (step->algo) == true) return false;
+
+  if (step->algo == RECIPE_ALGO_PANAMA) return false;
+
   if (step->algo == RECIPE_ALGO_MYSQL323) return false;
 
   if (recipe_algo_is_haval (step->algo) == true) return false;
@@ -5161,6 +5181,21 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
   if (snefru == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SNEFRU");
 
+  // Skein steps need inc_hash_skein512.cl, and a PANAMA step needs inc_hash_panama.cl.
+
+  bool skein  = false;
+  bool panama = false;
+
+  for (u32 k = 0; k < prog.steps_cnt; k++)
+  {
+    if (recipe_algo_is_skein (prog.steps[k].algo) == true) skein = true;
+
+    if (prog.steps[k].algo == RECIPE_ALGO_PANAMA) panama = true;
+  }
+
+  if (skein  == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_SKEIN512");
+  if (panama == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_PANAMA");
+
   // A mysql3 step needs inc_hash_mysql323.cl.
 
   bool mysql323 = false;
@@ -5514,6 +5549,44 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
     for (u32 i = 0; i < (dlen / 4); i++) raw[i] = byte_swap_32 (ctx.h[i]);
 
     raw_len = dlen;
+  }
+  else if (recipe_algo_is_skein (algo) == true)
+  {
+    const u32 dlen = recipe_digest_len (algo);
+
+    skein512_ctx_t ctx;
+
+    skein512_init (&ctx, (int) dlen);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) skein512_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               skein512_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    skein512_final (&ctx);
+
+    for (u32 i = 0; i < (dlen / 4); i++) raw[i] = (u32) (ctx.h[i / 2] >> ((i & 1) * 32));
+
+    raw_len = dlen;
+  }
+  else if (algo == RECIPE_ALGO_PANAMA)
+  {
+    panama_ctx_t ctx;
+
+    panama_init (&ctx);
+
+    for (u32 i = 0; i < cnt; i++)
+    {
+      if (wides[i] == 1) panama_update_utf16le (&ctx, bufs[i], (int) lens[i]);
+      else               panama_update         (&ctx, bufs[i], (int) lens[i]);
+    }
+
+    panama_final (&ctx);
+
+    for (u32 i = 0; i < 8; i++) raw[i] = ctx.st[9 + i];
+
+    raw_len = 32;
   }
   else if (algo == RECIPE_ALGO_SHA0)
   {

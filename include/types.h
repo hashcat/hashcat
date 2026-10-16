@@ -1320,6 +1320,11 @@ typedef struct dynamicx
   char *dynamicx_buf;
   u32   dynamicx_len;
 
+  // John's text after the tag, as it was read, which --show, --left and --remove write back
+
+  char *dynamicx_rest;
+  u32   dynamicx_rest_len;
+
 } dynamicx_t;
 
 typedef struct user
@@ -3076,6 +3081,10 @@ typedef struct user_options_extra
   // every other line has to carry the same number, and this is what they are compared against.
 
   int    dynamicx_num;
+
+  // how the lines are laid out once they are hashcat's, DYNAMICX_LINE_* and DYNAMICX_SPLIT_*
+
+  u32    dynamicx_layout;
 
   int    hc_workc;  // can be 0 in bf-mode = default mask
   char **hc_workv;

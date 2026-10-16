@@ -41,6 +41,12 @@
 #ifdef RECIPE_SNEFRU
 #include M2S(INCLUDE_PATH/inc_hash_snefru.cl)
 #endif
+#ifdef RECIPE_SKEIN512
+#include M2S(INCLUDE_PATH/inc_hash_skein512.cl)
+#endif
+#ifdef RECIPE_PANAMA
+#include M2S(INCLUDE_PATH/inc_hash_panama.cl)
+#endif
 #ifdef RECIPE_MYSQL323
 #include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
 #endif

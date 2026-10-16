@@ -960,7 +960,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           hash_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len + hash_len, HCBUFSIZ_LARGE - tag_len - hash_len, salt_idx, split_neighbor);
         }
 
-        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
+        const int out_len = dynamicx_encode ((char *) out_buf, hash1->hash_info, tag_len, hash_len, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -1072,7 +1072,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
 
-        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
+        const int out_len = dynamicx_encode ((char *) out_buf, hash->hash_info, tag_len, hash_len, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -1243,7 +1243,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           hash_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len + hash_len, HCBUFSIZ_LARGE - tag_len - hash_len, salt_idx, split_neighbor);
         }
 
-        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
+        const int out_len = dynamicx_encode ((char *) out_buf, hash1->hash_info, tag_len, hash_len, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -1336,7 +1336,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
           const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
 
-          out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
+          out_len = dynamicx_encode ((char *) out_buf, hash->hash_info, tag_len, hash_len, HCBUFSIZ_LARGE);
         }
 
         out_buf[out_len] = 0;

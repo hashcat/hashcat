@@ -1829,7 +1829,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   }
 
   // Mode 4000 uses --hash-recipe to define its hash. Validate it to report parser errors before
-  // building a kernel. Other modes do not accept this option.
+  // building a kernel. Other modes do not accept this option. With --dynamic-x, the recipe can also
+  // come from the $dynamic_N$ format of the hashes.
 
   if (user_options->hash_recipe != NULL)
   {
@@ -1863,7 +1864,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-  else if ((user_options->hash_mode_chgd == true) && (user_options->hash_mode == 4000) && (user_options->hash_info == 0))
+  else if ((user_options->hash_mode_chgd == true) && (user_options->hash_mode == 4000) && (user_options->hash_info == 0) && (user_options->dynamic_x == false))
   {
     event_log_error (hashcat_ctx, "Hash-mode 4000 needs --hash-recipe, for example --hash-recipe 'md5(md5(salt) . pass)'.");
 
@@ -3789,7 +3790,8 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 
   // --dynamic-x
 
-  user_options_extra->dynamicx_num = -1;
+  user_options_extra->dynamicx_num    = -1;
+  user_options_extra->dynamicx_layout = 0;
 
   // hc_hash and hc_work*
 

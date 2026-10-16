@@ -2224,6 +2224,131 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 #define RECIPE_RAW_sne256       RECIPE_RAWG
 #define RECIPE_PAD_sne256       RECIPE_PADG
 
+// Skein-512 with the digest sizes of skein224 to skein512 uses inc_hash_skein512.cl. Its functions
+// take little endian words as MD5 does, and its digest is the first bytes of h, little endian. Its
+// message blocks, and therefore its HMAC blocks, contain 64 bytes.
+
+#define RECIPE_HASH_SKEIN512(X,HS,INIT,FEED,NW)                                \
+{                                                                             \
+  skein512_ctx##X##_t ctx;                                                    \
+                                                                              \
+  INIT                                                                        \
+                                                                              \
+  FEED                                                                        \
+                                                                              \
+  skein512_final##X (&ctx);                                                   \
+                                                                              \
+  for (u32 i = 0; i < ((NW) / 2); i++)                                        \
+  {                                                                           \
+    raw[(i * 2) + 0] = l32_from_64##HS (ctx.h[i]);                            \
+    raw[(i * 2) + 1] = h32_from_64##HS (ctx.h[i]);                            \
+  }                                                                           \
+                                                                              \
+  if (((NW) & 1) == 1) raw[(NW) - 1] = l32_from_64##HS (ctx.h[(NW) / 2]);     \
+}
+
+#define RECIPE_LEN_skein224    28
+#define RECIPE_BLOCK_skein224  64
+#define RECIPE_UPD_skein224(X)  skein512_update##X
+#define RECIPE_UPDW_skein224(X) skein512_update##X##_utf16le
+#define RECIPE_UPDG_skein224    skein512_update_global
+#define RECIPE_UPDWG_skein224   skein512_update_global_utf16le
+#define RECIPE_UPDP_skein224(X) skein512_update##X
+#define RECIPE_PBUF_skein224    w
+#define RECIPE_UPDS_skein224(X) skein512_update##X
+#define RECIPE_SBUF_skein224    s
+#define RECIPE_CTX_skein224(X)  skein512_ctx##X##_t
+#define RECIPE_INIT_skein224(X) skein512_init##X (&ctx, 28);
+#define RECIPE_HASH_skein224(X,HS,INIT,FEED) RECIPE_HASH_SKEIN512 (X, HS, INIT, FEED, 7)
+#define RECIPE_KS_skein224(HS,V)  (V)
+#define RECIPE_RAW_skein224       RECIPE_RAWG
+#define RECIPE_PAD_skein224       RECIPE_PADG
+
+#define RECIPE_LEN_skein256    32
+#define RECIPE_BLOCK_skein256  64
+#define RECIPE_UPD_skein256(X)  skein512_update##X
+#define RECIPE_UPDW_skein256(X) skein512_update##X##_utf16le
+#define RECIPE_UPDG_skein256    skein512_update_global
+#define RECIPE_UPDWG_skein256   skein512_update_global_utf16le
+#define RECIPE_UPDP_skein256(X) skein512_update##X
+#define RECIPE_PBUF_skein256    w
+#define RECIPE_UPDS_skein256(X) skein512_update##X
+#define RECIPE_SBUF_skein256    s
+#define RECIPE_CTX_skein256(X)  skein512_ctx##X##_t
+#define RECIPE_INIT_skein256(X) skein512_init##X (&ctx, 32);
+#define RECIPE_HASH_skein256(X,HS,INIT,FEED) RECIPE_HASH_SKEIN512 (X, HS, INIT, FEED, 8)
+#define RECIPE_KS_skein256(HS,V)  (V)
+#define RECIPE_RAW_skein256       RECIPE_RAWG
+#define RECIPE_PAD_skein256       RECIPE_PADG
+
+#define RECIPE_LEN_skein384    48
+#define RECIPE_BLOCK_skein384  64
+#define RECIPE_UPD_skein384(X)  skein512_update##X
+#define RECIPE_UPDW_skein384(X) skein512_update##X##_utf16le
+#define RECIPE_UPDG_skein384    skein512_update_global
+#define RECIPE_UPDWG_skein384   skein512_update_global_utf16le
+#define RECIPE_UPDP_skein384(X) skein512_update##X
+#define RECIPE_PBUF_skein384    w
+#define RECIPE_UPDS_skein384(X) skein512_update##X
+#define RECIPE_SBUF_skein384    s
+#define RECIPE_CTX_skein384(X)  skein512_ctx##X##_t
+#define RECIPE_INIT_skein384(X) skein512_init##X (&ctx, 48);
+#define RECIPE_HASH_skein384(X,HS,INIT,FEED) RECIPE_HASH_SKEIN512 (X, HS, INIT, FEED, 12)
+#define RECIPE_KS_skein384(HS,V)  (V)
+#define RECIPE_RAW_skein384       RECIPE_RAWG
+#define RECIPE_PAD_skein384       RECIPE_PADG
+
+#define RECIPE_LEN_skein512    64
+#define RECIPE_BLOCK_skein512  64
+#define RECIPE_UPD_skein512(X)  skein512_update##X
+#define RECIPE_UPDW_skein512(X) skein512_update##X##_utf16le
+#define RECIPE_UPDG_skein512    skein512_update_global
+#define RECIPE_UPDWG_skein512   skein512_update_global_utf16le
+#define RECIPE_UPDP_skein512(X) skein512_update##X
+#define RECIPE_PBUF_skein512    w
+#define RECIPE_UPDS_skein512(X) skein512_update##X
+#define RECIPE_SBUF_skein512    s
+#define RECIPE_CTX_skein512(X)  skein512_ctx##X##_t
+#define RECIPE_INIT_skein512(X) skein512_init##X (&ctx, 64);
+#define RECIPE_HASH_skein512(X,HS,INIT,FEED) RECIPE_HASH_SKEIN512 (X, HS, INIT, FEED, 16)
+#define RECIPE_KS_skein512(HS,V)  (V)
+#define RECIPE_RAW_skein512       RECIPE_RAWG
+#define RECIPE_PAD_skein512       RECIPE_PADG
+
+// PANAMA uses inc_hash_panama.cl. Its functions take little endian words as MD5 does, and its
+// digest is state words 9 to 16, little endian. Its blocks, and therefore its HMAC blocks, contain
+// 32 bytes.
+
+#define RECIPE_HASH_PANAMA(X,HS,INIT,FEED)                                     \
+{                                                                             \
+  panama_ctx##X##_t ctx;                                                      \
+                                                                              \
+  INIT                                                                        \
+                                                                              \
+  FEED                                                                        \
+                                                                              \
+  panama_final##X (&ctx);                                                     \
+                                                                              \
+  for (u32 i = 0; i < 8; i++) raw[i] = ctx.st[9 + i];                         \
+}
+
+#define RECIPE_LEN_panama    32
+#define RECIPE_BLOCK_panama  32
+#define RECIPE_UPD_panama(X)  panama_update##X
+#define RECIPE_UPDW_panama(X) panama_update##X##_utf16le
+#define RECIPE_UPDG_panama    panama_update_global
+#define RECIPE_UPDWG_panama   panama_update_global_utf16le
+#define RECIPE_UPDP_panama(X) panama_update##X
+#define RECIPE_PBUF_panama    w
+#define RECIPE_UPDS_panama(X) panama_update##X
+#define RECIPE_SBUF_panama    s
+#define RECIPE_CTX_panama(X)  panama_ctx##X##_t
+#define RECIPE_INIT_panama(X) panama_init##X (&ctx);
+#define RECIPE_HASH_panama(X,HS,INIT,FEED) RECIPE_HASH_PANAMA (X, HS, INIT, FEED)
+#define RECIPE_KS_panama(HS,V)  (V)
+#define RECIPE_RAW_panama       RECIPE_RAWG
+#define RECIPE_PAD_panama       RECIPE_PADG
+
 // Tiger uses inc_hash_tiger.cl. It takes little endian words as MD5 does and returns its
 // digest as the 3 words of h, each in little endian order. The tiger128 and tiger160 variants
 // retain the first 16 and 20 bytes. The tiger2 variant differs from tiger only in the padding
@@ -2927,6 +3052,11 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 #define RECIPE_KW_sha0(HS,R,I,LEN)        (R)[I]
 #define RECIPE_KW_sne128(HS,R,I,LEN)      (R)[I]
 #define RECIPE_KW_sne256(HS,R,I,LEN)      (R)[I]
+#define RECIPE_KW_skein224(HS,R,I,LEN)    (R)[I]
+#define RECIPE_KW_skein256(HS,R,I,LEN)    (R)[I]
+#define RECIPE_KW_skein384(HS,R,I,LEN)    (R)[I]
+#define RECIPE_KW_skein512(HS,R,I,LEN)    (R)[I]
+#define RECIPE_KW_panama(HS,R,I,LEN)      (R)[I]
 #define RECIPE_KW_tiger(HS,R,I,LEN)       (R)[I]
 #define RECIPE_KW_tiger128(HS,R,I,LEN)    (R)[I]
 #define RECIPE_KW_tiger160(HS,R,I,LEN)    (R)[I]

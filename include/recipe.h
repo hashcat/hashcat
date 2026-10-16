@@ -123,6 +123,11 @@ typedef enum recipe_algo
   RECIPE_ALGO_TTH        = 54,
   RECIPE_ALGO_SNE128     = 55,
   RECIPE_ALGO_SNE256     = 56,
+  RECIPE_ALGO_SKEIN224   = 57,
+  RECIPE_ALGO_SKEIN256   = 58,
+  RECIPE_ALGO_SKEIN384   = 59,
+  RECIPE_ALGO_SKEIN512   = 60,
+  RECIPE_ALGO_PANAMA     = 61,
 
 } recipe_algo_t;
 
@@ -441,7 +446,7 @@ typedef struct recipe_prog
 
   u32         error_pos;
   const char *error;
-  char        error_buf[1024];
+  char        error_buf[2048];
 
 } recipe_prog_t;
 
