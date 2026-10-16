@@ -19,6 +19,7 @@ static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "Cisco-ISE Hashed Password (SHA256)";
+static const char *HASH_RECIPE    = "hex(sha256_bin^129(salt . pass))";
 static const u64   KERN_TYPE      = 5720;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
@@ -40,6 +41,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -98,15 +100,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
-  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
-  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
-  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
-
   return (PARSER_OK);
 }
 
@@ -125,17 +118,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest_tmp[6] = byte_swap_32 (digest[6]);
   digest_tmp[7] = byte_swap_32 (digest[7]);
 
-  u32 salt_tmp[8] = { 0 };
-
-  salt_tmp[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt_tmp[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt_tmp[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt_tmp[3] = byte_swap_32 (salt->salt_buf[3]);
-  salt_tmp[4] = byte_swap_32 (salt->salt_buf[4]);
-  salt_tmp[5] = byte_swap_32 (salt->salt_buf[5]);
-  salt_tmp[6] = byte_swap_32 (salt->salt_buf[6]);
-  salt_tmp[7] = byte_swap_32 (salt->salt_buf[7]);
-
   u8 *out_buf = (u8 *) line_buf;
 
   int out_len = 0;
@@ -149,7 +131,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (digest_tmp[6], out_buf + out_len); out_len += 8;
   u32_to_hex (digest_tmp[7], out_buf + out_len); out_len += 8;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) salt_tmp, (const int) salt->salt_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
 
   return out_len;
 }
@@ -196,7 +178,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

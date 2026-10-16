@@ -27,6 +27,7 @@ static const u32 SALT_TYPE = SALT_TYPE_NONE;
 static const u32 PWDUMP_COLUMN = PWDUMP_COLUMN_NTLM_HASH;
 static const char *ST_PASS = "hashcat";
 static const char *HASH_NAME = "NTLM(NTLM_bin($pass))";
+static const char *HASH_RECIPE = "md4(zext16(md4_bin(utf16le(pass))))";
 static const u64 KERN_TYPE = 36500;
 static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE
                            | OPTS_TYPE_PT_GENERATE_LE;
@@ -71,6 +72,11 @@ u32 module_hash_category (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNU
 const char *module_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return HASH_NAME;
+}
+
+const char *module_hash_recipe (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return HASH_RECIPE;
 }
 
 u64 module_kern_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -220,7 +226,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode = MODULE_DEFAULT;
   module_ctx->module_hash_category = module_hash_category;
   module_ctx->module_hash_name = module_hash_name;
-  module_ctx->module_hash_recipe = MODULE_DEFAULT;
+  module_ctx->module_hash_recipe = module_hash_recipe;
   module_ctx->module_hashes_count_min = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable = MODULE_DEFAULT;

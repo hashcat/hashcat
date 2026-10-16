@@ -19,6 +19,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_8_16;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_DATABASE_SERVER;
 static const char *HASH_NAME      = "Oracle T: Type (Oracle 12+)";
+static const char *HASH_RECIPE    = "sha512(pbkdf2_sha512_bin(pass, salt, iter, 64) . cut(salt, 0, 16))";
 static const u64   KERN_TYPE      = 12300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
@@ -37,6 +38,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -65,7 +67,7 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  u32 *digest = (u32 *) digest_buf;
+  u64 *digest = (u64 *) digest_buf;
 
   hc_token_t token;
 
@@ -87,54 +89,34 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[0];
 
-  digest[ 0] = hex_to_u32 (hash_pos +   0);
-  digest[ 1] = hex_to_u32 (hash_pos +   8);
-  digest[ 2] = hex_to_u32 (hash_pos +  16);
-  digest[ 3] = hex_to_u32 (hash_pos +  24);
-  digest[ 4] = hex_to_u32 (hash_pos +  32);
-  digest[ 5] = hex_to_u32 (hash_pos +  40);
-  digest[ 6] = hex_to_u32 (hash_pos +  48);
-  digest[ 7] = hex_to_u32 (hash_pos +  56);
-  digest[ 8] = hex_to_u32 (hash_pos +  64);
-  digest[ 9] = hex_to_u32 (hash_pos +  72);
-  digest[10] = hex_to_u32 (hash_pos +  80);
-  digest[11] = hex_to_u32 (hash_pos +  88);
-  digest[12] = hex_to_u32 (hash_pos +  96);
-  digest[13] = hex_to_u32 (hash_pos + 104);
-  digest[14] = hex_to_u32 (hash_pos + 112);
-  digest[15] = hex_to_u32 (hash_pos + 120);
+  digest[0] = hex_to_u64 (hash_pos +   0);
+  digest[1] = hex_to_u64 (hash_pos +  16);
+  digest[2] = hex_to_u64 (hash_pos +  32);
+  digest[3] = hex_to_u64 (hash_pos +  48);
+  digest[4] = hex_to_u64 (hash_pos +  64);
+  digest[5] = hex_to_u64 (hash_pos +  80);
+  digest[6] = hex_to_u64 (hash_pos +  96);
+  digest[7] = hex_to_u64 (hash_pos + 112);
 
-  digest[ 0] = byte_swap_32 (digest[ 0]);
-  digest[ 1] = byte_swap_32 (digest[ 1]);
-  digest[ 2] = byte_swap_32 (digest[ 2]);
-  digest[ 3] = byte_swap_32 (digest[ 3]);
-  digest[ 4] = byte_swap_32 (digest[ 4]);
-  digest[ 5] = byte_swap_32 (digest[ 5]);
-  digest[ 6] = byte_swap_32 (digest[ 6]);
-  digest[ 7] = byte_swap_32 (digest[ 7]);
-  digest[ 8] = byte_swap_32 (digest[ 8]);
-  digest[ 9] = byte_swap_32 (digest[ 9]);
-  digest[10] = byte_swap_32 (digest[10]);
-  digest[11] = byte_swap_32 (digest[11]);
-  digest[12] = byte_swap_32 (digest[12]);
-  digest[13] = byte_swap_32 (digest[13]);
-  digest[14] = byte_swap_32 (digest[14]);
-  digest[15] = byte_swap_32 (digest[15]);
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
 
   const u8 *salt_pos = token.buf[1];
 
-  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
-  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16);
-  salt->salt_buf[3] = hex_to_u32 (salt_pos + 24);
+  hex_decode (salt_pos, 32, (u8 *) salt->salt_buf);
 
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  // the PBKDF2 salt of the recipe is the salt followed by this constant
+
+  memcpy ((u8 *) salt->salt_buf + 16, "AUTH_PBKDF2_SPEEDY_KEY", 22);
 
   salt->salt_iter = ROUNDS_ORACLET - 1;
-  salt->salt_len  = 16;
+  salt->salt_len  = 16 + 22;
 
   return (PARSER_OK);
 }
@@ -143,19 +125,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
+  // the digest is stored as 64-bit words, each with its high half in the second u32
+
   const int line_len = snprintf (line_buf, line_size, "%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X",
-    digest[ 0], digest[ 1],
-    digest[ 2], digest[ 3],
-    digest[ 4], digest[ 5],
-    digest[ 6], digest[ 7],
-    digest[ 8], digest[ 9],
-    digest[10], digest[11],
-    digest[12], digest[13],
-    digest[14], digest[15],
-    salt->salt_buf[0],
-    salt->salt_buf[1],
-    salt->salt_buf[2],
-    salt->salt_buf[3]);
+    digest[ 1], digest[ 0],
+    digest[ 3], digest[ 2],
+    digest[ 5], digest[ 4],
+    digest[ 7], digest[ 6],
+    digest[ 9], digest[ 8],
+    digest[11], digest[10],
+    digest[13], digest[12],
+    digest[15], digest[14],
+    byte_swap_32 (salt->salt_buf[0]),
+    byte_swap_32 (salt->salt_buf[1]),
+    byte_swap_32 (salt->salt_buf[2]),
+    byte_swap_32 (salt->salt_buf[3]));
 
   return line_len;
 }
@@ -202,7 +186,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

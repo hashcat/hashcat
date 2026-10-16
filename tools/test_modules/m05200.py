@@ -29,9 +29,9 @@ from lib.test_helpers import random_bytes
 # so a random tail stands in for it. The total length matches the module's own
 # self-test file at 360 bytes.
 #
-# There is no pure kernel for this mode: OpenCL/ carries only m05200-pure.cl, so
-# the optimized pair is [-1, -1] and a -O run reports the mode as not applicable
-# rather than testing the pure kernel under an optimized label.
+# There is no optimized kernel for this mode, so the optimized pair is [-1, -1]
+# and a -O run reports the mode as not applicable rather than testing the pure
+# kernel under an optimized label.
 
 ITERATIONS_DEFAULT = 2048
 TAIL_LEN           = 288

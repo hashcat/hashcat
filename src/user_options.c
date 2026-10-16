@@ -4845,7 +4845,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 400, 0, folder_config->shared_dir, kernelfile);
+  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 4000, 0, folder_config->shared_dir, kernelfile);
 
   if (hc_path_read (kernelfile) == false)
   {

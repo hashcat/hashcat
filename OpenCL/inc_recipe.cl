@@ -3663,6 +3663,24 @@ typedef struct recipe_state_scalar
 #define RECIPE_NAT_sha384(HS)     RECIPE_NAT_BE64 (12, HS)
 #define RECIPE_NAT_sha512(HS)     RECIPE_NAT_BE64 (16, HS)
 
+// SHA-3, Keccak, Streebog, GOST R 34.11-94 and RIPEMD-320 modes keep their digest in memory order.
+// The 224-bit SHA-3 and Keccak modes compare word 7, which their digest holds as zero.
+
+#define RECIPE_NAT_LE224(HS) { RECIPE_NAT_LE (7, HS); r[7] = 0; }
+
+#define RECIPE_NAT_sha3_224(HS)    RECIPE_NAT_LE224 (HS)
+#define RECIPE_NAT_sha3_256(HS)    RECIPE_NAT_LE    ( 8, HS)
+#define RECIPE_NAT_sha3_384(HS)    RECIPE_NAT_LE    (12, HS)
+#define RECIPE_NAT_sha3_512(HS)    RECIPE_NAT_LE    (16, HS)
+#define RECIPE_NAT_keccak224(HS)   RECIPE_NAT_LE224 (HS)
+#define RECIPE_NAT_keccak256(HS)   RECIPE_NAT_LE    ( 8, HS)
+#define RECIPE_NAT_keccak384(HS)   RECIPE_NAT_LE    (12, HS)
+#define RECIPE_NAT_keccak512(HS)   RECIPE_NAT_LE    (16, HS)
+#define RECIPE_NAT_streebog_32(HS) RECIPE_NAT_LE    ( 8, HS)
+#define RECIPE_NAT_streebog_64(HS) RECIPE_NAT_LE    (16, HS)
+#define RECIPE_NAT_gost(HS)        RECIPE_NAT_LE    ( 8, HS)
+#define RECIPE_NAT_rmd320(HS)      RECIPE_NAT_LE    (10, HS)
+
 #define RECIPE_NAT3(F,HS) RECIPE_NAT_##F (HS)
 #define RECIPE_NAT2(F,HS) RECIPE_NAT3 (F, HS)
 

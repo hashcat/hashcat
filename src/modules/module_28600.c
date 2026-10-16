@@ -20,6 +20,7 @@ static const u32 DGST_POS3     = 3;
 static const u32 DGST_SIZE     = DGST_SIZE_4_8;
 static const u32 HASH_CATEGORY = HASH_CATEGORY_DATABASE_SERVER;
 static const char *HASH_NAME   = "PostgreSQL SCRAM-SHA-256";
+static const char *HASH_RECIPE = "hmac_sha256(pbkdf2_sha256_bin(pass, salt, iter, 32), \"Server Key\")";
 static const u64 KERN_TYPE     = 28600;
 static const u32 OPTI_TYPE     = OPTI_TYPE_ZERO_BYTE
                                | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -40,6 +41,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -204,22 +206,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   postgres_sha256->salt_len = tmp_len;
   salt->salt_len            = tmp_len;
 
-  salt->salt_buf[ 0] = postgres_sha256->salt[ 0];
-  salt->salt_buf[ 1] = postgres_sha256->salt[ 1];
-  salt->salt_buf[ 2] = postgres_sha256->salt[ 2];
-  salt->salt_buf[ 3] = postgres_sha256->salt[ 3];
-  salt->salt_buf[ 4] = postgres_sha256->salt[ 4];
-  salt->salt_buf[ 5] = postgres_sha256->salt[ 5];
-  salt->salt_buf[ 6] = postgres_sha256->salt[ 6];
-  salt->salt_buf[ 7] = postgres_sha256->salt[ 7];
-  salt->salt_buf[ 8] = postgres_sha256->salt[ 8];
-  salt->salt_buf[ 9] = postgres_sha256->salt[ 9];
-  salt->salt_buf[10] = postgres_sha256->salt[10];
-  salt->salt_buf[11] = postgres_sha256->salt[11];
-  salt->salt_buf[12] = postgres_sha256->salt[12];
-  salt->salt_buf[13] = postgres_sha256->salt[13];
-  salt->salt_buf[14] = postgres_sha256->salt[14];
-  salt->salt_buf[15] = postgres_sha256->salt[15];
+  // the recipe kernels read the salt in its original byte order
+
+  memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
   // stored key
   const u8 *stored_key_pos = token.buf[3];
@@ -372,7 +361,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

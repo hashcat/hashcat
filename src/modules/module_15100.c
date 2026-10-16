@@ -19,6 +19,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "Juniper/NetBSD sha1crypt";
+static const char *HASH_RECIPE    = "h = hmac_sha1_bin(pass, salt); for i = 1 to iter { h = hmac_sha1_bin(pass, h) }; hex(h)";
 static const u64   KERN_TYPE      = 15100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -36,6 +37,7 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -238,9 +240,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[2];
   const int salt_len = token.len[2];
 
-  memcpy ((u8 *) salt->salt_buf, salt_pos, salt_len);
+  memcpy ((u8 *) salt->salt_buf_pc, salt_pos, salt_len);
 
-  salt->salt_len = salt_len;
+  salt->salt_len_pc = salt_len;
 
   // hash
 
@@ -254,15 +256,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  // precompute salt
+  // the first HMAC takes the salt, "$sha1$" and the iteration count as its message
 
-  char *ptr = (char *) salt->salt_buf_pc;
+  char *ptr = (char *) salt->salt_buf;
 
-  const int salt_len_pc = snprintf (ptr, 64, "%s$sha1$%u", (char *) salt->salt_buf, iter);
+  const int salt_len_msg = snprintf (ptr, 64, "%s$sha1$%u", (char *) salt->salt_buf_pc, iter);
 
-  ptr[salt_len_pc] = 0x80;
-
-  salt->salt_len_pc = salt_len_pc;
+  salt->salt_len = salt_len_msg;
 
   return (PARSER_OK);
 }
@@ -289,9 +289,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char tmp_salt[(SALT_MAX * 2) + 1];
 
-  memcpy (tmp_salt, salt->salt_buf, salt->salt_len);
+  memcpy (tmp_salt, salt->salt_buf_pc, salt->salt_len_pc);
 
-  tmp_salt[salt->salt_len] = 0;
+  tmp_salt[salt->salt_len_pc] = 0;
 
   // output:
 
@@ -345,7 +345,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
