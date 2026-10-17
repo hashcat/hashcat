@@ -428,6 +428,11 @@ Mode 74000's dynamic plugin supports bcrypt. It runs on the CPU and is much slow
 - Work that does not depend on the candidate runs once per salt. This includes calls on `salt` and
   strings alone, leading parts such as the salt in `sha256(salt . pass)`, and HMAC key pads when
   the key is `salt`.
+- In a loop, an HMAC of MD4, MD5, SHA-1, SHA-2, RIPEMD-160 or SM3 whose key the loop does not
+  change, such as `pass`, computes its key pads before the loop rather than in every iteration.
+- In a loop, a call of one of those families whose input fits one block, such as `md5_bin(h . pass)`
+  or `sha1_bin(pass . h)`, lays out its block once per kernel launch. Each iteration then replaces
+  only the words that change.
 - A recipe must use `pass`. Otherwise, every candidate would produce the same hash.
 - UTF-8 decoding can give candidates different lengths. The SIMD mask kernel on CPUs cannot track
   a separate length for each candidate. It hashes candidates together when all are ASCII and

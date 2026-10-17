@@ -4517,12 +4517,6 @@ static const char *recipe_part_token (const recipe_prog_t *prog, const recipe_pa
   return buf;
 }
 
-// Check whether loop step k can hash from a block template. See RECIPE_S<k>_TPL in the kernel
-// include. It must be a plain hash run once, in a family with a transform function, without
-// utf16le. Every part that changes per iteration must be a multiple of 4 bytes long. Those
-// changing parts are the carried variables assigned by the loop and the outputs of earlier
-// steps in the iteration.
-
 // Check whether step k's output length can change between candidates, salts or iterations. This
 // applies to the output of xor, and or or, or of transforms, when it has no fixed length or has a
 // carried variable among its sources.
@@ -4547,13 +4541,96 @@ static bool recipe_step_len_moves (const recipe_prog_t *prog, const u32 k)
   return false;
 }
 
-static bool recipe_tpl_ok (const recipe_prog_t *prog, const u32 k, const bool *dep)
+// The words of a family's chaining value, for a family whose context after whole blocks holds
+// nothing else, or 0.
+
+static u32 recipe_hk_words (const u32 algo)
+{
+  u32 words = 0;
+
+  if ((algo == RECIPE_ALGO_MD4) || (algo == RECIPE_ALGO_MD5)) words = 4;
+
+  if ((algo == RECIPE_ALGO_SHA1) || (algo == RECIPE_ALGO_RMD160)) words = 5;
+
+  if ((algo == RECIPE_ALGO_SHA224) || (algo == RECIPE_ALGO_SHA256) || (algo == RECIPE_ALGO_SM3)) words = 8;
+
+  if ((algo == RECIPE_ALGO_SHA384) || (algo == RECIPE_ALGO_SHA512)) words = 16;
+
+  return words;
+}
+
+// Check whether loop step k is an HMAC whose key depends on the candidate but keeps its value
+// through the loop: pass, a copy of pass, or a carried variable that the loop does not assign. The
+// init kernel then computes its key pads once per candidate, and the tmps carry their chaining
+// values to the loop kernel, see RECIPE_S<k>_HK in the kernel include. recipe_prep () already
+// prepares the pads of a key that does not depend on the candidate, and a hash call as the key runs
+// in the loop itself.
+//
+// Only families whose pads are a chaining value qualify. Computing the pads in the loop kernel
+// instead, once per launch, raised the loop kernel's register count from 127 to 164 for
+// h = hmac_sha1_bin (pass, h) on sm_89, because they ran next to the loads at its start. For the
+// other families, keeping two whole contexts through the loop costs registers instead: 216 rather
+// than 126 for SHA3-256, and the limit of 255 rather than 188 for Streebog.
+
+static bool recipe_key_hoist (const recipe_prog_t *prog, const u32 k, const bool *dep)
 {
   const recipe_step_t *step = &prog->steps[k];
 
   if (step->sec  != RECIPE_SEC_LOOP)  return false;
-  if (step->kind != RECIPE_KIND_HASH) return false;
-  if (step->iter != 1)                return false;
+  if (step->kind != RECIPE_KIND_HMAC) return false;
+
+  if (recipe_hk_words (step->algo) == 0) return false;
+
+  const recipe_part_t *key = &step->key;
+
+  if (recipe_part_dep_on (prog, key, dep) == false) return false;
+
+  if (key->kind == RECIPE_PART_STEP) return false;
+
+  if ((key->kind == RECIPE_PART_VAR) && (prog->carry_has_loop[key->idx] == 1)) return false;
+
+  return true;
+}
+
+// The tmps words that carry the chaining values of the hoisted key pads, ipad then opad for each
+// step. With hk set, store whether each step hoists its key pads, and with hko their first word.
+
+static u32 recipe_hk_layout (const recipe_prog_t *prog, u32 *hk, u32 *hko)
+{
+  bool dep[RECIPE_MAX_STEPS];
+
+  recipe_deps (prog, dep);
+
+  u32 total = 0;
+
+  for (u32 k = 0; k < prog->steps_cnt; k++)
+  {
+    const bool hoist = recipe_key_hoist (prog, k, dep);
+
+    if (hk  != NULL) hk[k]  = (hoist == true) ? 1 : 0;
+    if (hko != NULL) hko[k] = total;
+
+    if (hoist == true) total += recipe_hk_words (prog->steps[k].algo) * 2;
+  }
+
+  return total;
+}
+
+// Check whether loop step k can hash from a block template. See RECIPE_S<k>_TPL in the kernel
+// include. It must be a plain hash run once, or an HMAC with hoisted key pads, in a family with a
+// transform function, without utf16le. The template of an HMAC holds the inner message, which
+// follows the ipad block. Every part that changes per iteration must be a multiple of 4 bytes
+// long. Those changing parts are the carried variables assigned by the loop and the outputs of
+// earlier steps in the iteration.
+
+static bool recipe_tpl_ok (const recipe_prog_t *prog, const u32 k, const bool *dep)
+{
+  const recipe_step_t *step = &prog->steps[k];
+
+  if (step->sec  != RECIPE_SEC_LOOP) return false;
+  if (step->iter != 1)               return false;
+
+  if ((step->kind != RECIPE_KIND_HASH) && (recipe_key_hoist (prog, k, dep) == false)) return false;
 
   if ((step->algo == RECIPE_ALGO_BLAKE2B512) || (step->algo == RECIPE_ALGO_BLAKE2B256) || (step->algo == RECIPE_ALGO_BLAKE2S256)) return false;
 
@@ -4874,6 +4951,13 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
   recipe_deps (&prog, dep);
 
+  // The hoisted HMAC key pads of a loop recipe, see recipe_hk_layout ().
+
+  u32 hk[RECIPE_MAX_STEPS];
+  u32 hko[RECIPE_MAX_STEPS];
+
+  const u32 hk_words = recipe_hk_layout (&prog, hk, hko);
+
   for (u32 k = 0; k < prog.steps_cnt; k++)
   {
     const recipe_step_t *step = &prog.steps[k];
@@ -4942,6 +5026,13 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
     len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_KIND=%s -D RECIPE_S%u_KEY=%s -D RECIPE_S%u_PH=P%u", k, kind, k, key, k, phase);
 
+    // An HMAC in a family whose context is a chaining value hashes its key pads and its outer block
+    // with the family's transform, see RECIPE_S<k>_HT in the kernel include.
+
+    const bool ht = (is_hmac == true) && (recipe_hk_words (step->algo) > 0);
+
+    len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_HT=%u", k, (ht == true) ? 1 : 0);
+
     // An AES step specifies its operation, IV, raw output length, and the fixed lengths of
     // its key, data and each part within that data. See RECIPE_STEP_AES in the kernel
     // include for those fields.
@@ -5004,7 +5095,9 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
     len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_BW=%u", k, (bw == true) ? 1 : 0);
 
-    // The kernel of a loop recipe that runs the step, see RECIPE_LOOP in the kernel include.
+    // The kernel of a loop recipe that runs the step, whether it hashes from a block template, and
+    // whether it starts from key pads carried in the tmps, see recipe_hk_layout (). See RECIPE_LOOP
+    // in the kernel include.
 
     if (prog.slow == 1)
     {
@@ -5017,7 +5110,7 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
       const bool tpl = recipe_tpl_ok (&prog, k, dep);
 
-      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_TPL=%u -D RECIPE_S%u_OLEN=%u", k, (tpl == true) ? 1 : 0, k, step->cut_len);
+      len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_TPL=%u -D RECIPE_S%u_OLEN=%u -D RECIPE_S%u_HK=%u -D RECIPE_S%u_HKO=%u", k, (tpl == true) ? 1 : 0, k, step->cut_len, k, hk[k], k, hko[k]);
     }
 
     for (u32 i = 0; i < RECIPE_MAX_PARTS; i++)
@@ -5231,7 +5324,7 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
   if (prog.slow == 1)
   {
-    len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_LOOP -D RECIPE_CARRY=%u -D RECIPE_ROOT_STEP=%u", prog.carry_cnt, prog.root_step);
+    len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_LOOP -D RECIPE_CARRY=%u -D RECIPE_ROOT_STEP=%u -D RECIPE_HKW=%u", prog.carry_cnt, prog.root_step, hk_words);
 
     if (prog.kdf_blocks > 0)
     {
@@ -5320,6 +5413,25 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
       if (dyn == true) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_C%u_LEN=%u", c, prog.steps[prog.carry_loop[c].idx].cut_len);
     }
+
+    // When every loop step hashes from a block template, the loop kernel runs the iterations those
+    // templates cover in a loop of template steps only. See RECIPE_TLOOP in the kernel include.
+
+    u32 loop_steps = 0;
+    u32 tpl_steps  = 0;
+
+    for (u32 k = 0; k < prog.steps_cnt; k++)
+    {
+      if (prog.steps[k].sec != RECIPE_SEC_LOOP) continue;
+
+      loop_steps++;
+
+      if (recipe_tpl_ok (&prog, k, dep) == true) tpl_steps++;
+    }
+
+    const bool tloop = (prog.kdf_blocks == 0) && (loop_steps > 0) && (tpl_steps == loop_steps);
+
+    len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_TLOOP=%u", (tloop == true) ? 1 : 0);
 
     if (prog.root_var > 0) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_ROOT_VAR=%u -D RECIPE_ROOT_VFMT=%u", prog.root_var - 1, prog.root_vfmt);
   }
@@ -5979,9 +6091,10 @@ u32 recipe_kdf_state_size (const recipe_prog_t *prog)
 }
 
 // A slow recipe's tmps use recipe_tmp_t in OpenCL/m04000-pure.cl. They contain either the pbkdf2
-// state alone or carried variables, each with 64 words and a length. The pbkdf2_sha512 state has 64
-// bit members, so round the size up to a multiple of 8 bytes, at least the size required by the
-// kernel's struct. Return 0 for a fast recipe, which has no tmps of its own.
+// state alone or carried variables, each with 64 words and a length, followed by the chaining values
+// of hoisted HMAC key pads, see recipe_hk_layout (). The pbkdf2_sha512 state has 64 bit members, so
+// round the size up to a multiple of 8 bytes, at least the size required by the kernel's struct.
+// Return 0 for a fast recipe, which has no tmps of its own.
 
 u64 recipe_tmp_size (const recipe_prog_t *prog)
 {
@@ -5989,7 +6102,9 @@ u64 recipe_tmp_size (const recipe_prog_t *prog)
 
   const u64 carry_size = (prog->kdf_blocks > 0) ? 0 : ((u64) prog->carry_cnt * (64 + 1) * sizeof (u32));
 
-  const u64 tmp_size = ((recipe_kdf_state_size (prog) + carry_size + 7) / 8) * 8;
+  const u64 hk_size = (u64) recipe_hk_layout (prog, NULL, NULL) * sizeof (u32);
+
+  const u64 tmp_size = ((recipe_kdf_state_size (prog) + carry_size + hk_size + 7) / 8) * 8;
 
   return tmp_size;
 }

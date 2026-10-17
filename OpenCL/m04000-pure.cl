@@ -104,7 +104,8 @@
 
 // A pbkdf2 recipe keeps only its state from one kernel to the next: the init kernel reads its key
 // and salt where its steps leave them, and the comp kernel fills the derived key's variable itself.
-// See module_tmp_size ().
+// A loop recipe also carries the chaining values of hoisted HMAC key pads, see RECIPE_S<k>_HK. See
+// module_tmp_size ().
 
 typedef struct recipe_tmp
 {
@@ -113,6 +114,9 @@ typedef struct recipe_tmp
   #else
   u32 vb[RECIPE_CARRY * 64];
   u32 vl[RECIPE_CARRY];
+  #if RECIPE_HKW > 0
+  u32 hk[RECIPE_HKW];
+  #endif
   #endif
 
 } recipe_tmp_t;
@@ -227,14 +231,19 @@ KERNEL_FQ KERNEL_FA void m04000_init (KERN_ATTR_TMPS (recipe_tmp_t))
 
   u32 vb[RECIPE_CARRY * 64];
   u32 vl[RECIPE_CARRY];
+  u32 hk[RECIPE_HKN];
 
   for (u32 i = 0; i < (RECIPE_CARRY * 64); i++) vb[i] = 0;
   for (u32 i = 0; i <  RECIPE_CARRY;       i++) vl[i] = 0;
 
-  recipe_eval_init (&st, w, pw_len, s, salt_len, vb, vl);
+  recipe_eval_init (&st, w, pw_len, s, salt_len, vb, vl, hk);
 
   for (u32 i = 0; i < (RECIPE_CARRY * 64); i++) tmps[gid].vb[i] = vb[i];
   for (u32 i = 0; i <  RECIPE_CARRY;       i++) tmps[gid].vl[i] = vl[i];
+
+  #if RECIPE_HKW > 0
+  for (u32 i = 0; i < RECIPE_HKW; i++) tmps[gid].hk[i] = hk[i];
+  #endif
 
   #endif
 }
@@ -300,20 +309,46 @@ KERNEL_FQ KERNEL_FA void m04000_loop (KERN_ATTR_TMPS (recipe_tmp_t))
   for (u32 i = 0; i < (RECIPE_CARRY * 64); i++) vb[i] = tmps[gid].vb[i];
   for (u32 i = 0; i <  RECIPE_CARRY;       i++) vl[i] = tmps[gid].vl[i];
 
-  // The block templates of the loop steps, see recipe_tpl_build ().
+  u32 hk[RECIPE_HKN];
+
+  #if RECIPE_HKW > 0
+  for (u32 i = 0; i < RECIPE_HKW; i++) hk[i] = tmps[gid].hk[i];
+  #endif
+
+  // The block templates and the hoisted HMAC key pads of the loop steps, see recipe_tpl_build ().
 
   recipe_tpl_t tpl;
 
-  recipe_tpl_build (&st, &tpl, w, pw_len, s, salt_len, vb, vl);
+  recipe_tpl_build (&st, &tpl, w, pw_len, s, salt_len, vb, vl, hk);
 
   /**
    * loop
    */
 
-  for (u32 j = 0; j < LOOP_CNT; j++)
+  // A recipe whose loop steps all hash from templates runs the general evaluation only until the
+  // templates apply, see RECIPE_TLOOP.
+
+  u32 j = 0;
+
+  #if RECIPE_TLOOP == 1
+
+  for (; j < LOOP_CNT; j++)
+  {
+    if (recipe_tpl_ready (&tpl, vl) == true) break;
+
+    recipe_eval_loop (&st, &tpl, w, pw_len, s, salt_len, vb, vl);
+  }
+
+  if (j < LOOP_CNT) recipe_eval_tloop (&st, &tpl, w, pw_len, s, salt_len, vb, vl, LOOP_CNT - j);
+
+  #else
+
+  for (; j < LOOP_CNT; j++)
   {
     recipe_eval_loop (&st, &tpl, w, pw_len, s, salt_len, vb, vl);
   }
+
+  #endif
 
   for (u32 i = 0; i < (RECIPE_CARRY * 64); i++) tmps[gid].vb[i] = vb[i];
   for (u32 i = 0; i <  RECIPE_CARRY;       i++) tmps[gid].vl[i] = vl[i];
