@@ -23,6 +23,7 @@
 #include "path.h"
 #include "folder.h"
 #include "hashes.h"
+#include "interface.h"
 #include "emu_inc_hash_md5.h"
 #include "event.h"
 #include "requirements.h"
@@ -14341,10 +14342,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
               event_log_warning (hashcat_ctx, NULL);
               event_log_warning (hashcat_ctx, "This warning message disappears after a definition for the installed");
               event_log_warning (hashcat_ctx, "compute-device in this computer has been added to either list:");
-              event_log_warning (hashcat_ctx, "- src/modules/module_%05d.c", hashconfig->hash_mode);
+              event_log_warning (hashcat_ctx, "- src/modules/module_%05d.c", module_hash_mode_resolve (hashconfig->hash_mode));
               event_log_warning (hashcat_ctx, "- hashcat.hctune");
               event_log_warning (hashcat_ctx, NULL);
-              event_log_warning (hashcat_ctx, "For instructions on tuning, see src/modules/module_%05d.c", hashconfig->hash_mode);
+              event_log_warning (hashcat_ctx, "For instructions on tuning, see src/modules/module_%05d.c", module_hash_mode_resolve (hashconfig->hash_mode));
               event_log_warning (hashcat_ctx, "Also, consider sending a PR to Hashcat Master so that other users can benefit from your work.");
               event_log_warning (hashcat_ctx, NULL);
             }

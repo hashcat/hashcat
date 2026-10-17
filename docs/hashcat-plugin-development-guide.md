@@ -47,7 +47,8 @@ Slow kernels are usually easier to implement because they use one candidate-gene
 Choose a hash-mode number before creating the files:
 
 * For a private plugin, choose a number from 90000 through 99998. Upstream reserves this range for private use except for the stock Plaintext mode 99999, preventing collisions with future public modes.
-* For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22800 is a suitable temporary number. Maintainers assign the final number during pull-request review.
+* For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22900 is a suitable temporary number. Maintainers assign the final number during pull-request review.
+* Leave out the range 40000 to 44000 both when you look for the highest assigned mode and when you choose a number. It is reserved for hash-modes defined only by a stored recipe, see `docs/hashcat-hash-recipe.md`. The old numbers listed there are not free either, because hashcat still loads the moved hash-mode for each of them.
 
 ## Development environment ##
 
@@ -168,7 +169,7 @@ Function `module_verify_hash()` parses the hash line into every component needed
 
 What makes this work is that module_verify_hash() rebuilds the hash out of the hash. Everything the derivation needs is carried in the string, so the salt, the iteration count and anything else random are read back from it rather than drawn again. A hook that generated a fresh salt here could never reproduce its own output, and tools/test_module_runner.py refuses to print a vector whose module_verify_hash() does not round trip it.
 
-The following example comes from the Password Safe v3 test module (tools/test_modules/m05200.py)
+The following example comes from the Password Safe v3 test module (tools/test_modules/m40011.py)
 
 ```
 def module_verify_hash (line):
@@ -198,7 +199,7 @@ def module_verify_hash (line):
 The script is called with the following command line parameters:
 
 ```
-python3 tools/test_module_runner.py verify 5200 hash_list.txt cracked_list.txt verified_list.txt
+python3 tools/test_module_runner.py verify 40011 hash_list.txt cracked_list.txt verified_list.txt
 ```
 
 After `verify`, specify the mode number, the original hash list, the file containing hash-and-password pairs, and the output file. The cracked input uses hashcat's `hash[:salt]:password` format and may contain several lines. The output contains only correctly regenerated hashes also present in the original list.
@@ -387,7 +388,7 @@ Several modules can share one kernel implementation, but combining unrelated mod
 Example:
 
 ```
-static const u64 KERN_TYPE = 7100;
+static const u64 KERN_TYPE = 8900;
 ```
 
 ### module_opti_type() ###
@@ -513,7 +514,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_HASH_COPY`: Preserves the original input line in `hash_info->orighash` for formats that contain unused data not stored in `salt_t` or the esalt. Use it only when reconstruction is impractical. Reconstructing a line normally verifies that the decoder retained every required field, while copying every original line consumes additional host memory.
 * `OPTS_TYPE_HASH_SPLIT`: Marks a line that contains multiple independent hashes, such as an LM value stored as one 128-bit string but composed of two 64-bit hashes.
 * `module_kern_bits()`: Not an `OPTS_TYPE` flag. Returns the `KERN_BIT_*` constants, ored together, naming the optional kernels this mode provides, and a mode with none leaves the hook alone. Each one replaces the `OPTS_TYPE` flag of the same name: `KERN_BIT_LOOP_PREPARE` a `_loop_prepare` kernel run before each `_loop`, `KERN_BIT_LOOP_EXTENDED` a `_loop_extended` run after each one, `KERN_BIT_HOOK12` and `KERN_BIT_HOOK23` the `_hook12` and `_hook23` device hooks, `KERN_BIT_INIT2`, `KERN_BIT_LOOP2_PREPARE` and `KERN_BIT_LOOP2` a second derivation stage, `KERN_BIT_TM` the mask table kernel, and `KERN_BIT_AUX1` to `KERN_BIT_AUX6` auxiliary verification kernels for formats that share a KDF but use its result differently by version. hashcat decides the rest itself, so a module never names `KERN_BIT_INIT`, `KERN_BIT_LOOP` or `KERN_BIT_COMP`, nor the `KERN_BIT_04`, `KERN_BIT_08`, `KERN_BIT_16` and `KERN_BIT_XX` cracking kernels that share those first three bits. A plugin outside the tree that still sets one of the 16 removed flags will no longer compile.
-* `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_05200.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
+* `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_40011.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
 * `OPTS_TYPE_BINARY_HASHFILE_OPTIONAL`: Allows a mode with `OPTS_TYPE_BINARY_HASHFILE` to accept either binary files or text hashes, including hashes on the command line. The binary path converts its records into the form consumed by the text decoder. Mode 22000 is an example.
 * `OPTS_TYPE_PT_ADD06`: Same as OPTS_TYPE_PT_ADD01 but use 0x06 byte instead, which is the SHA-3 domain separation byte. See `src/modules/module_17300.c` for an example.
 * `OPTS_TYPE_KEYBOARD_MAPPING`: Enables kernel-side character remapping from a table loaded by the host. See `docs/keyboard-layout-mapping.md`.

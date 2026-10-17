@@ -433,7 +433,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   //
   // That headroom is not a property of every outside-kernel mode and must not be read as one. All 294
   // of them were measured on that card, and the fastest which takes a password rather than a key is
-  // 12700 at 355 MH/s, then 10500, 25400 and 06700 between 108 and 165. One core cannot feed those.
+  // 12700 at 355 MH/s, then 10500, 25400 and 40017 between 108 and 165. One core cannot feed those.
   // They land here anyway, because a mode with no attack kernel has nowhere else to go, and what
   // limits them is the feed rather than the card.
   //

@@ -25,6 +25,8 @@ int  module_filename (const folder_config_t *folder_config, const int hash_mode,
 bool module_load     (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode);
 void module_unload   (module_ctx_t *module_ctx);
 
+u32 module_hash_mode_resolve (const u32 hash_mode);
+
 int         hashconfig_init                 (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_kern_bits_init       (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy              (hashcat_ctx_t *hashcat_ctx);

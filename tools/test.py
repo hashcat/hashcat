@@ -543,7 +543,7 @@ MASK_ONLY_MODES = {37000}
 MFULC_MODES = {37000}
 
 # The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
-# leaves their -a 4 list alone (test.sh); 10300 takes its hash from another field and is excluded
+# leaves their -a 4 list alone (test.sh); 40023 takes its hash from another field and is excluded
 # there too.
 
 LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
@@ -993,12 +993,12 @@ def a4_vectors(mode, pairs, optimized):
   # least one character, so the zero length word the -a 0 vectors carry for a min-zero mode cannot be
   # written into a ruleset. Where one is present it is swapped for a spare word of length 1 and the
   # hash that goes with it. Returns the substituted pairs, or None to fall back to the -a 0 vectors,
-  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS or 10300 list, or no spare).
+  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS or 40023 list, or no spare).
 
   if not pairs:
     return None
 
-  if mode in LUKS_MODES or mode == 10300:
+  if mode in LUKS_MODES or mode == 40023:
     return None
 
   if not any(word == b"" for word, _ in pairs):
@@ -4989,8 +4989,8 @@ EDGE_VERIFY_OUT = {1500}
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
 
-EDGE_SKIP_SAME_SALT = {6600, 7100, 7200, 8200, 13400, 15300, 15310, 15900, 15910, 16900,
-                       18300, 18900, 20200, 20300, 20400, 27000, 27100, 29700, 29930, 29940}
+EDGE_SKIP_SAME_SALT = {6600, 8200, 13400, 15300, 15310, 15900, 15910, 16900, 18300, 18900,
+                       27000, 27100, 29700, 29930, 29940, 40018, 40019, 40042, 40043, 40044}
 
 EDGE_HH_CACHE = {}
 

@@ -42,12 +42,12 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   15900,
   33700,
   28100,
-  9200,
+  40021,
   9300,
   5700,
   1100,
   2100,
-  7100,
+  40018,
   3200,
   500,
   1500,
@@ -56,7 +56,7 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   35100,
   36300,
   36200,
-  12300,
+  40036,
   300,
   8300,
   1600,
@@ -144,6 +144,11 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = cur; i < MODULE_HASH_MODES_MAXIMUM; i++)
   {
+    // an old number loads the module of its new number, so a module file left under it by an
+    // earlier build or install would benchmark the hash-mode twice
+
+    if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
     module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
 
     if (hc_path_exist (modulefile) == true)

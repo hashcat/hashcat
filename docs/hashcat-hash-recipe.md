@@ -138,7 +138,7 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `pbkdf2_sha256(key, salt, N, len)` | PBKDF2 with HMAC-SHA256, N iterations and a derived key of len bytes, as lowercase hex. The variants `pbkdf2_md5`, `pbkdf2_sha1` and `pbkdf2_sha512` use the other families. All 4 variants accept the same output suffixes as a hash call, as in `pbkdf2_sha1_bin`. See [Key derivation](#key-derivation) |
 | `aes_cbc_decrypt(key, iv, x)` | AES-CBC decryption of `x`, as lowercase hex. A key of 16, 24 or 32 bytes selects AES-128, AES-192 or AES-256. No padding is added or removed. The calls `aes_cbc_encrypt(key, iv, x)` and `aes_ecb_encrypt(key, x)` encrypt data. The call `aes_unwrap(kek, x)` unwraps a key according to RFC 3394. All 4 calls accept the same output suffixes as a hash call. See [Ciphers](#ciphers) |
 | `des(key, x)` | DES encryption of one 8-byte block, as lowercase hex. It encrypts the first 8 bytes of `x` with the first 8 bytes of `key`, each padded with zero bytes if shorter. `des3(key, x)` takes the first 24 bytes of `key` as 3 keys and encrypts, decrypts and encrypts with them. `des_block(key, x)` spreads the first 7 bytes of `key` over the 8 bytes of a DES key, as NetNTLMv1 does. All 3 calls accept the same output suffixes as a hash call. See [Ciphers](#ciphers) |
-| `hmac_md5(key, x)` | HMAC of `x` with `key`. All families except `mysql3`, `tth`, `lm`, `mdc2`, Fugue, Hamsi, MD6 and RadioGatun support HMAC with the same suffixes, as in `hmac_sha256_bin(key, x)`. Fugue, Hamsi and RadioGatun take blocks shorter than their digest, and MD6 is a tree hash. The alias `hmac_blake2s` means `hmac_blake2s256`. SHA-3 and Keccak use their rate as the HMAC block, GOST R 34.11-94 its 32-byte block and MD2 its 16-byte block. `hmac_streebog256` and `hmac_streebog512` give the results of hashcat's modes 11750 to 11860 |
+| `hmac_md5(key, x)` | HMAC of `x` with `key`. All families except `mysql3`, `tth`, `lm`, `mdc2`, Fugue, Hamsi, MD6 and RadioGatun support HMAC with the same suffixes, as in `hmac_sha256_bin(key, x)`. Fugue, Hamsi and RadioGatun take blocks shorter than their digest, and MD6 is a tree hash. The alias `hmac_blake2s` means `hmac_blake2s256`. SHA-3 and Keccak use their rate as the HMAC block, GOST R 34.11-94 its 32-byte block and MD2 its 16-byte block. `hmac_streebog256` and `hmac_streebog512` give the results of hashcat's modes 40027 to 40030 |
 | `md5^3(x)` | Equivalent to `md5(md5(md5(x)))`. The suffix sets the output format for each round. For example, `md5_bin^3` chains raw bytes and `md5_uc^3` chains uppercase hex |
 | `upper(x)`, `lower(x)` | Converts ASCII letters to uppercase or lowercase. Applying `upper` to `md5^3(x)` changes only the final result, while `md5_uc^3(x)` uses uppercase hex in every round |
 | `hex(x)` | Encodes raw bytes as hex. For example, `hex(md5_bin(x))` is equivalent to `md5(x)` |
@@ -426,6 +426,88 @@ kernels of mode 4000. Where the hash-mode also has optimized kernels, `-O` runs 
 
 Hash-modes 40000 to 44000 are reserved for hash-modes that are defined only by a stored recipe and
 have no optimized kernels. A new hash-mode of that kind takes the next free number in this range.
+
+The existing hash-modes of that kind moved into this range. Their old numbers still work with `-m`
+and are never given to another hash-mode. `-hh`, `--identify`, `--example-hashes` and
+`--benchmark-all` list only the new numbers, and a hash-mode detected without `-m` runs under its
+new number.
+
+| Old | New | Name |
+|---|---|---|
+| 1310 | 40009 | `sha224($pass.$salt)` |
+| 1320 | 40010 | `sha224($salt.$pass)` |
+| 5200 | 40011 | `Password Safe v3` |
+| 5720 | 40012 | `Cisco-ISE Hashed Password (SHA256)` |
+| 6050 | 40013 | `HMAC-RIPEMD160 (key = $pass)` |
+| 6060 | 40014 | `HMAC-RIPEMD160 (key = $salt)` |
+| 6400 | 40015 | `AIX {ssha256}` |
+| 6500 | 40016 | `AIX {ssha512}` |
+| 6700 | 40017 | `AIX {ssha1}` |
+| 7100 | 40018 | `macOS v10.8+ (PBKDF2-SHA512)` |
+| 7200 | 40019 | `GRUB 2` |
+| 7900 | 40020 | `Drupal7` |
+| 9200 | 40021 | `Cisco-IOS $8$ (PBKDF2-SHA256)` |
+| 10000 | 40022 | `Django (PBKDF2-SHA256)` |
+| 10300 | 40023 | `SAP CODVN H (PWDSALTEDHASH) iSSHA-1` |
+| 10900 | 40024 | `PBKDF2-HMAC-SHA256` |
+| 10901 | 40025 | `RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)` |
+| 11000 | 40026 | `PrestaShop` |
+| 11750 | 40027 | `HMAC-Streebog-256 (key = $pass), big-endian` |
+| 11760 | 40028 | `HMAC-Streebog-256 (key = $salt), big-endian` |
+| 11850 | 40029 | `HMAC-Streebog-512 (key = $pass), big-endian` |
+| 11860 | 40030 | `HMAC-Streebog-512 (key = $salt), big-endian` |
+| 11900 | 40031 | `PBKDF2-HMAC-MD5` |
+| 12000 | 40032 | `PBKDF2-HMAC-SHA1` |
+| 12001 | 40033 | `Atlassian (PBKDF2-HMAC-SHA1)` |
+| 12100 | 40034 | `PBKDF2-HMAC-SHA512` |
+| 12150 | 40035 | `Apache Shiro 1 SHA-512` |
+| 12300 | 40036 | `Oracle T: Type (Oracle 12+)` |
+| 12800 | 40037 | `MS-AzureSync PBKDF2-HMAC-SHA256` |
+| 15100 | 40038 | `Juniper/NetBSD sha1crypt` |
+| 18500 | 40039 | `sha1(md5(md5($pass)))` |
+| 18800 | 40040 | `Blockchain, My Wallet, Second Password (SHA256)` |
+| 19210 | 40041 | `QNX 7 /etc/shadow (SHA512)` |
+| 20200 | 40042 | `Python passlib pbkdf2-sha512` |
+| 20300 | 40043 | `Python passlib pbkdf2-sha256` |
+| 20400 | 40044 | `Python passlib pbkdf2-sha1` |
+| 20600 | 40045 | `Oracle Transportation Management (SHA256)` |
+| 20720 | 40046 | `sha256($salt.sha256($pass))` |
+| 20730 | 40047 | `sha256(sha256($pass.$salt))` |
+| 21300 | 40048 | `md5($salt.sha1($salt.$pass))` |
+| 21420 | 40049 | `sha256($salt.sha256_bin($pass))` |
+| 21600 | 40050 | `Web2py pbkdf2-sha512` |
+| 22800 | 40051 | `Simpla CMS - md5($salt.$pass.md5($pass))` |
+| 23200 | 40052 | `XMPP SCRAM PBKDF2-SHA1` |
+| 24200 | 40053 | `MongoDB ServerKey SCRAM-SHA-256` |
+| 26300 | 40054 | `FortiGate256 (FortiOS256)` |
+| 28600 | 40055 | `PostgreSQL SCRAM-SHA-256` |
+| 29100 | 40056 | `Flask Session Cookie ($salt.$salt.$pass)` |
+| 32000 | 40057 | `NetIQ SSPR (MD5)` |
+| 32010 | 40058 | `NetIQ SSPR (SHA1)` |
+| 32020 | 40059 | `NetIQ SSPR (SHA-1 with Salt)` |
+| 32030 | 40060 | `NetIQ SSPR (SHA-256 with Salt)` |
+| 32031 | 40061 | `Adobe AEM (SSPR, SHA-256 with Salt)` |
+| 32040 | 40062 | `NetIQ SSPR (SHA-512 with Salt)` |
+| 32041 | 40063 | `Adobe AEM (SSPR, SHA-512 with Salt)` |
+| 32050 | 40064 | `NetIQ SSPR (PBKDF2WithHmacSHA1)` |
+| 32060 | 40065 | `NetIQ SSPR (PBKDF2WithHmacSHA256)` |
+| 32070 | 40066 | `NetIQ SSPR (PBKDF2WithHmacSHA512)` |
+| 32410 | 40067 | `sha512(sha512($pass).$salt)` |
+| 32420 | 40068 | `sha512(sha512_bin($pass).$salt)` |
+| 32600 | 40069 | `CubeCart (whirlpool($salt.$pass.$salt))` |
+| 32900 | 40070 | `PBKDF1-SHA1` |
+| 33100 | 40071 | `md5($salt.md5($pass).$salt)` |
+| 33300 | 40072 | `HMAC-BLAKE2S (key = $pass)` |
+| 33650 | 40073 | `HMAC-RIPEMD320 (key = $pass)` |
+| 33660 | 40074 | `HMAC-RIPEMD320 (key = $salt)` |
+| 33900 | 40075 | `Citrix NetScaler (PBKDF2-HMAC-SHA256)` |
+| 34400 | 40076 | `sha224(sha224($pass))` |
+| 34500 | 40077 | `sha224(sha1($pass))` |
+| 35000 | 40078 | `SAP CODVN H (PWDSALTEDHASH) isSHA512` |
+| 35700 | 40079 | `phpass(md5($pass))` |
+| 36500 | 40080 | `NTLM(NTLM_bin($pass))` |
+| 37300 | 40081 | `SAP CODVN H (PWDSALTEDHASH) iSSHA-256` |
+| 37301 | 40082 | `SAP CODVN H (PWDSALTEDHASH) iSSHA-384` |
 
 ## Limits
 

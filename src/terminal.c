@@ -1628,6 +1628,11 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
+      // an old number loads the module of its new number, so a module file left under it by an
+      // earlier build or install would list the hash-mode twice
+
+      if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
       if (json_output == true)
       {
         // the emitter places the comma between modes, so a mode whose module is missing cannot

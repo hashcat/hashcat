@@ -35,6 +35,117 @@ int module_filename (const folder_config_t *folder_config, const int hash_mode, 
   #endif
 }
 
+// Hash-modes defined only by a stored recipe are numbered in the range reserved for them, see
+// docs/hashcat-hash-recipe.md. Each pair maps the number such a hash-mode had outside that range to
+// its number inside it, so that -m still accepts the old number. module_load () opens the module of
+// the new number, and user_options->hash_mode keeps the number that was given, which is the number a
+// run reports. The listings skip every old number, even where an earlier build or install left a
+// module file under it. A number in this table can never get a module of its own, because
+// module_load () would not open it.
+
+typedef struct module_alias
+{
+  u32 hash_mode_old;
+  u32 hash_mode_new;
+
+} module_alias_t;
+
+static const module_alias_t MODULE_ALIASES[] =
+{
+  {  1310, 40009 },
+  {  1320, 40010 },
+  {  5200, 40011 },
+  {  5720, 40012 },
+  {  6050, 40013 },
+  {  6060, 40014 },
+  {  6400, 40015 },
+  {  6500, 40016 },
+  {  6700, 40017 },
+  {  7100, 40018 },
+  {  7200, 40019 },
+  {  7900, 40020 },
+  {  9200, 40021 },
+  { 10000, 40022 },
+  { 10300, 40023 },
+  { 10900, 40024 },
+  { 10901, 40025 },
+  { 11000, 40026 },
+  { 11750, 40027 },
+  { 11760, 40028 },
+  { 11850, 40029 },
+  { 11860, 40030 },
+  { 11900, 40031 },
+  { 12000, 40032 },
+  { 12001, 40033 },
+  { 12100, 40034 },
+  { 12150, 40035 },
+  { 12300, 40036 },
+  { 12800, 40037 },
+  { 15100, 40038 },
+  { 18500, 40039 },
+  { 18800, 40040 },
+  { 19210, 40041 },
+  { 20200, 40042 },
+  { 20300, 40043 },
+  { 20400, 40044 },
+  { 20600, 40045 },
+  { 20720, 40046 },
+  { 20730, 40047 },
+  { 21300, 40048 },
+  { 21420, 40049 },
+  { 21600, 40050 },
+  { 22800, 40051 },
+  { 23200, 40052 },
+  { 24200, 40053 },
+  { 26300, 40054 },
+  { 28600, 40055 },
+  { 29100, 40056 },
+  { 32000, 40057 },
+  { 32010, 40058 },
+  { 32020, 40059 },
+  { 32030, 40060 },
+  { 32031, 40061 },
+  { 32040, 40062 },
+  { 32041, 40063 },
+  { 32050, 40064 },
+  { 32060, 40065 },
+  { 32070, 40066 },
+  { 32410, 40067 },
+  { 32420, 40068 },
+  { 32600, 40069 },
+  { 32900, 40070 },
+  { 33100, 40071 },
+  { 33300, 40072 },
+  { 33650, 40073 },
+  { 33660, 40074 },
+  { 33900, 40075 },
+  { 34400, 40076 },
+  { 34500, 40077 },
+  { 35000, 40078 },
+  { 35700, 40079 },
+  { 36500, 40080 },
+  { 37300, 40081 },
+  { 37301, 40082 },
+};
+
+u32 module_hash_mode_resolve (const u32 hash_mode)
+{
+  const u32 aliases_cnt = sizeof (MODULE_ALIASES) / sizeof (MODULE_ALIASES[0]);
+
+  u32 hash_mode_resolved = hash_mode;
+
+  for (u32 i = 0; i < aliases_cnt; i++)
+  {
+    if (MODULE_ALIASES[i].hash_mode_old != hash_mode) continue;
+
+    hash_mode_resolved = MODULE_ALIASES[i].hash_mode_new;
+
+    break;
+  }
+
+  return hash_mode_resolved;
+}
+
 bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode)
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -43,7 +154,7 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
 
   char *module_file = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  module_filename (folder_config, hash_mode, module_file, HCBUFSIZ_TINY);
+  module_filename (folder_config, module_hash_mode_resolve (hash_mode), module_file, HCBUFSIZ_TINY);
 
   struct stat s;
 

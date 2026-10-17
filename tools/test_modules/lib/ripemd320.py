@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-# RIPEMD-320, for modes 33600, 33650 and 33660. Neither hashlib nor pycryptodome carries it, so this
+# RIPEMD-320, for modes 33600, 40073 and 40074. Neither hashlib nor pycryptodome carries it, so this
 # is a small self contained implementation of the reference algorithm.
 
 import struct

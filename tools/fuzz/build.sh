@@ -160,7 +160,7 @@ done
 # needed a memory safety fix before, one that carries a rounds field, and one
 # whose format is a long chain of star separated fields.
 
-FUZZ_MODES=${FUZZ_MODES:-"07400 17225 22000 29100"}
+FUZZ_MODES=${FUZZ_MODES:-"07400 17225 22000 40056"}
 
 for mode in $FUZZ_MODES; do
   module="src/modules/module_${mode}.c"

@@ -240,8 +240,8 @@ a hash on the command line is parsed out of `argv`
 (`user_options_extra->hc_hash`, `src/hashes.c:1298`) and a hash from a file is
 parsed out of a 16 MB zero-filled buffer (`hcmalloc (HCBUFSIZ_LARGE)`,
 `src/hashes.c:1557`; `hcmalloc` is `calloc`). Measured against an ASan build of
-plain hashcat, that slack absorbs every forward overread here: m7100, m19600,
-m28800, m8500, m8501, m7900, m11600, m29100 and `is_hexify` all run the
+plain hashcat, that slack absorbs every forward overread here: m40018, m19600,
+m28800, m8500, m8501, m40020, m11600, m40056 and `is_hexify` all run the
 defective code and report **nothing**.
 
 Three kinds of finding survive into plain hashcat, and they are worth knowing

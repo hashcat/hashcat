@@ -198,7 +198,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
   //    length from one field and applies it at another offset, which stays in
   //    bounds only while the fields happen to be similarly sized. The example
   //    hash is usually balanced enough to hide that, so the defect only
-  //    appears once one field is much longer than the rest: m29100 needed a
+  //    appears once one field is much longer than the rest: m40056 needed a
   //    120-character first field against a 20-character last one, and the
   //    mutations above reached it only by accident.
   //
