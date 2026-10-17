@@ -214,27 +214,24 @@ DECLSPEC void panama_update_global (PRIVATE_AS panama_ctx_t *ctx, GLOBAL_AS cons
 
 DECLSPEC void panama_update_global_utf16le (PRIVATE_AS panama_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+  // Decoding UTF-8 straight from global memory faults on NVIDIA GPUs in the combinator kernel of
+  // mode 4000, so the decoder reads a private copy. hc_enc takes up to 256 bytes, and a longer input
+  // with a non-ASCII byte is invalid either way.
+
   if (hc_enc_scan_global (w, len))
   {
-    hc_enc_t hc_enc;
-
-    hc_enc_init (&hc_enc);
-
-    while (hc_enc_has_next (&hc_enc, len))
+    if (len > 256)
     {
-      u32 enc_buf[16] = { 0 };
+      ctx->len = -1;
 
-      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
-
-      if (enc_len == -1)
-      {
-        ctx->len = -1;
-
-        return;
-      }
-
-      panama_update (ctx, enc_buf, enc_len);
+      return;
     }
+
+    u32 buf[64] = { 0 };
+
+    for (int i = 0; i < len; i += 4) buf[i / 4] = w[i / 4];
+
+    panama_update_utf16le (ctx, buf, len);
 
     return;
   }

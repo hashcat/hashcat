@@ -71,6 +71,7 @@ u32 module_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
     const u32 algo = prog.steps[k].algo;
 
     if ((algo == RECIPE_ALGO_SHA384) || (algo == RECIPE_ALGO_SHA512) || (algo == RECIPE_ALGO_BLAKE2B512) || (algo == RECIPE_ALGO_BLAKE2B256) || (algo == RECIPE_ALGO_WRL) || ((algo >= RECIPE_ALGO_SHA3_224) && (algo <= RECIPE_ALGO_KECCAK512)) || (algo == RECIPE_ALGO_SBOG256) || (algo == RECIPE_ALGO_SBOG512) || ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH) || ((algo >= RECIPE_ALGO_SKEIN224) && (algo <= RECIPE_ALGO_SKEIN512))) bits_64 = true;
+    if ((algo == RECIPE_ALGO_BLAKE384) || (algo == RECIPE_ALGO_BLAKE512) || (algo == RECIPE_ALGO_BMW384) || (algo == RECIPE_ALGO_BMW512) || ((algo >= RECIPE_ALGO_GROESTL224) && (algo <= RECIPE_ALGO_GROESTL512)) || ((algo >= RECIPE_ALGO_JH224) && (algo <= RECIPE_ALGO_JH512)) || (algo == RECIPE_ALGO_EDON512) || ((algo >= RECIPE_ALGO_MD6128) && (algo <= RECIPE_ALGO_MD6512)) || (algo == RECIPE_ALGO_RADIOGATUN64) || (algo == RECIPE_ALGO_WRL0) || (algo == RECIPE_ALGO_WRL1)) bits_64 = true;
   }
 
   u32 opti_type = (bits_64 == true) ? (OPTI_TYPE | OPTI_TYPE_USES_BITS_64) : OPTI_TYPE;
@@ -162,7 +163,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
 const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  static char st_hash_buf[512];
+  static char st_hash_buf[1024];
 
   if (user_options->hash_recipe == NULL) return NULL;
 
@@ -175,6 +176,43 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   if (prog.salt_dec == RECIPE_DEC_HEX) st_salt = ST_SALT_HEX;
   if (prog.salt_dec == RECIPE_DEC_B64) st_salt = ST_SALT_B64;
 
+  // An aes call on data of the salt's length takes ST_SALT repeated to a length it can encrypt,
+  // encoded as above.
+
+  char st_salt_buf[256];
+
+  const u32 st_salt_len = recipe_st_salt_len (&prog);
+
+  if (st_salt_len > 0)
+  {
+    u8 st_raw[128];
+
+    const u32 st_base_len = (u32) strlen (ST_SALT);
+
+    for (u32 i = 0; i < st_salt_len; i++) st_raw[i] = (u8) ST_SALT[i % st_base_len];
+
+    u32 st_text_len = st_salt_len;
+
+    if (prog.salt_dec == RECIPE_DEC_HEX)
+    {
+      for (u32 i = 0; i < st_salt_len; i++) u8_to_hex (st_raw[i], (u8 *) &st_salt_buf[i * 2]);
+
+      st_text_len = st_salt_len * 2;
+    }
+    else if (prog.salt_dec == RECIPE_DEC_B64)
+    {
+      st_text_len = (u32) base64_encode (int_to_base64, st_raw, st_salt_len, (u8 *) st_salt_buf);
+    }
+    else
+    {
+      memcpy (st_salt_buf, st_raw, st_salt_len);
+    }
+
+    st_salt_buf[st_text_len] = 0;
+
+    st_salt = st_salt_buf;
+  }
+
   u32 st_fields[64];
 
   memset (st_fields, 0, sizeof (st_fields));
@@ -183,7 +221,7 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
 
   u32 raw[16];
 
-  u8  out[128];
+  u8  out[RECIPE_MAX_TEXT];
   u32 out_len = 0;
 
   recipe_eval (&prog, (const u8 *) ST_PASS, (u32) strlen (ST_PASS), (const u8 *) st_salt, (u32) strlen (st_salt), st_fields, raw, out, &out_len);
@@ -203,7 +241,15 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
     out_len = 32;
   }
 
-  int st_len = snprintf (st_hash_buf, sizeof (st_hash_buf), "%.*s*%s", (int) out_len, (const char *) out, st_salt);
+  int st_len = snprintf (st_hash_buf, sizeof (st_hash_buf), "%.*s%.*s%.*s", (int) prog.root_pre_len, (const char *) prog.root_pre, (int) out_len, (const char *) out, (int) prog.root_suf_len, (const char *) prog.root_suf);
+
+  // A result such as base64 (sha1_bin (pass . salt) . salt) carries the salt in its text, so the line
+  // leaves the salt field empty, and leaves it out when no field or count follows.
+
+  const bool tail = (prog.root_tail > 0);
+  const bool more = (prog.fields != 0) || (prog.line_iter == 1);
+
+  if ((tail == false) || (more == true)) st_len += snprintf (st_hash_buf + st_len, sizeof (st_hash_buf) - st_len, "*%s", (tail == true) ? "" : st_salt);
 
   for (u32 f = 0; f < RECIPE_MAX_FIELDS; f++)
   {
@@ -252,24 +298,43 @@ u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 }
 
 // The hash line uses mode 74000's format: the recipe's output in hex or base64, a star and the
-// salt. A loop up to iter adds a star and the iteration count. Comparing only the first 16 digest
-// bytes gives every family the same comparison size. The esalt preserves the original text for the
-// outfile, potfile and --show, including its case. The kernel does not read this stored text.
+// salt, which a result such as base64 (sha1_bin (pass . salt) . salt) carries in its own text
+// instead. A loop up to iter adds a star and the iteration count. Mode 4000 compares up to 16 bytes
+// of the result, see root_len and root_off in recipe.h. The esalt preserves the original text for
+// the outfile, potfile and --show, including its case. The kernel does not read this stored text.
+// The strings a recipe puts around its result are the same on every line, so the esalt leaves them
+// out.
 
 typedef struct recipe_hash
 {
-  u32 hash_buf[32];
   u32 hash_len;
 
   // The original line contained only the digest. See module_hash_decode ().
 
   u32 bare;
 
+  // The salt came from the hash text rather than from the salt field, see root_tail in recipe.h.
+
+  u32 salt_tail;
+
+  // The result text, up to root_text bytes of the recipe, see module_esalt_size ().
+
+  u32 hash_buf[];
+
 } recipe_hash_t;
+
+// Most results take up to 128 characters. A long derived key of pbkdf2 as the result takes more,
+// and only a recipe that has one pays for the room in every esalt.
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (recipe_hash_t);
+  u32 text = 128;
+
+  recipe_prog_t prog;
+
+  if ((user_options->hash_recipe != NULL) && (recipe_compile (&prog, user_options->hash_recipe) == true)) text = prog.root_text;
+
+  const u64 esalt_size = (const u64) sizeof (recipe_hash_t) + (((text + 3) / 4) * 4);
 
   return esalt_size;
 }
@@ -305,7 +370,7 @@ static const recipe_prog_t *module_recipe (const hashconfig_t *hashconfig)
   return &prog;
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_in, MAYBE_UNUSED const int line_in_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
@@ -313,20 +378,38 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // A recipe producing base64, such as md5_b64 (pass), uses a base64 hash line. At least 22
   // characters are required for the 16 bytes compared by mode 4000, with or without padding. A
-  // recipe whose result is a comparison can leave the digest field empty. In that case, the
-  // comparison uses the constant from the recipe.
+  // result shorter than 16 bytes, such as mysql3 (pass), compares only its own bytes, and the rest
+  // of the digest stays zero, as on the device. A recipe whose result is a comparison can leave the
+  // digest field empty. In that case, the comparison uses the constant from the recipe.
 
   const recipe_prog_t *prog = module_recipe (hashconfig);
 
   const bool b64 = (prog != NULL) && (prog->root_fmt == RECIPE_FMT_B64);
   const bool cmp = (prog != NULL) && (prog->cmp == 1);
 
+  const u32 root_len = (prog != NULL) ? prog->root_len : 16;
+
+  // A string before the result, as in "*" . upper (sha1 (sha1_bin (pass))), starts every line. The
+  // rest of the line is parsed without it, since the string can contain a star.
+
+  const int pre_len = (prog != NULL) ? (int) prog->root_pre_len : 0;
+
+  if (line_in_len < pre_len) return (PARSER_SIGNATURE_UNMATCHED);
+
+  if ((pre_len > 0) && (memcmp (line_in, prog->root_pre, pre_len) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  const char *line_buf = &line_in[pre_len];
+  const int   line_len = line_in_len - pre_len;
+
   // A line without a star contains only the digest, as supplied by hash lists such as
   // user:hash, passwd and pwdump, provided the recipe does not read a salt. A recipe that
   // reads the salt, a field from the hash line or iter rejects that line below because its
-  // required separator is missing.
+  // required separator is missing. A result such as base64 (sha1_bin (pass . salt) . salt) holds
+  // the salt itself, so its line can contain only that text.
 
-  const bool bare = (prog != NULL) && (prog->salt_read == 0) && (memchr (line_buf, '*', line_len) == NULL);
+  const bool salt_free = (prog != NULL) && ((prog->salt_read == 0) || (prog->root_tail > 0));
+
+  const bool bare = (salt_free == true) && (memchr (line_buf, '*', line_len) == NULL);
 
   // A recipe using iter reads the iteration count from the final field of the hash line. A salt can
   // contain a star, so the count field starts after the last star.
@@ -413,6 +496,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     }
   }
 
+  // A string after the result, which cannot contain a star, ends the first field. Its alphabet is
+  // checked once that string is stripped.
+
+  const int suf_len = (prog != NULL) ? (int) prog->root_suf_len : 0;
+
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
@@ -420,10 +508,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = (bare == true) ? 1 : 2;
 
   token.sep[0]     = '*';
-  token.len_min[0] = (cmp == true) ? 0 : ((b64 == true) ? 22 : 32);
-  token.len_max[0] = 128;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | ((b64 == true) ? TOKEN_ATTR_VERIFY_BASE64A : TOKEN_ATTR_VERIFY_HEX);
+  token.len_min[0] = ((cmp == true) ? 0 : ((b64 == true) ? (((root_len * 4) + 2) / 3) : (root_len * 2))) + suf_len;
+  token.len_max[0] = ((prog != NULL) ? (int) prog->root_text : 128) + suf_len;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (suf_len == 0) token.attr[0] |= (b64 == true) ? TOKEN_ATTR_VERIFY_BASE64A : TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[1]     = '*';
   token.len_min[1] = 0;
@@ -435,7 +524,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *hash_pos = token.buf[0];
-  const int hash_len = token.len[0];
+  const int hash_len = token.len[0] - suf_len;
+
+  if (suf_len > 0)
+  {
+    if (memcmp (&hash_pos[hash_len], prog->root_suf, suf_len) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+
+    if ((b64 == false) && ((hash_len % 2) != 0)) return (PARSER_TOKEN_LENGTH);
+
+    const bool valid = (b64 == true) ? is_valid_base64a_string (hash_pos, hash_len) : is_valid_hex_string (hash_pos, hash_len);
+
+    if (valid == false) return (PARSER_TOKEN_ENCODING);
+  }
+
+  // The bytes after the hash output in a result such as base64 (sha1_bin (pass . salt) . salt).
+
+  u8  tail_buf[128];
+  int tail_len = 0;
 
   if ((cmp == true) && (hash_len == 0))
   {
@@ -447,22 +552,36 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else if (b64 == true)
   {
-    u8 tmp[128];
+    u8 tmp[(RECIPE_MAX_TEXT / 4) * 3];
 
     const size_t tmp_len = base64_decode (base64_to_int, hash_pos, (size_t) hash_len, tmp);
 
-    if (tmp_len < 16) return (PARSER_HASH_LENGTH);
+    if (tmp_len < root_len) return (PARSER_HASH_LENGTH);
 
-    memcpy (digest, tmp, 16);
+    if (tmp_len < prog->root_tail) return (PARSER_HASH_LENGTH);
+
+    memset (digest, 0, 16);
+
+    memcpy (digest, tmp, root_len);
+
+    if (prog->root_tail > 0)
+    {
+      tail_len = (int) (tmp_len - prog->root_tail);
+
+      memcpy (tail_buf, &tmp[prog->root_tail], tail_len);
+    }
   }
   else
   {
-    if ((token.len[0] % 2) != 0) return (PARSER_HASH_LENGTH);
+    if ((hash_len % 2) != 0) return (PARSER_HASH_LENGTH);
 
-    digest[0] = hex_to_u32 (hash_pos +  0);
-    digest[1] = hex_to_u32 (hash_pos +  8);
-    digest[2] = hex_to_u32 (hash_pos + 16);
-    digest[3] = hex_to_u32 (hash_pos + 24);
+    u8 dig[16];
+
+    memset (dig, 0, sizeof (dig));
+
+    for (u32 i = 0; i < root_len; i++) dig[i] = hex_to_u8 (&hash_pos[i * 2]);
+
+    memcpy (digest, dig, 16);
   }
 
   memcpy (recipe_hash->hash_buf, hash_pos, hash_len);
@@ -471,13 +590,37 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   recipe_hash->bare     = (bare == true) ? 1 : 0;
 
   const u8 *salt_pos = token.buf[1];
-  const int salt_len = (bare == true) ? 0 : token.len[1];
+  int       salt_len = (bare == true) ? 0 : token.len[1];
+
+  // A result that holds the salt after its hash output takes the salt from there when the salt field
+  // is empty or missing. A salt field that is given has to agree with it.
+
+  recipe_hash->salt_tail = 0;
+
+  if ((prog != NULL) && (prog->root_tail > 0))
+  {
+    if (salt_len == 0)
+    {
+      salt_pos = tail_buf;
+      salt_len = tail_len;
+
+      recipe_hash->salt_tail = 1;
+    }
+    else if ((salt_len != tail_len) || (memcmp (salt_pos, tail_buf, salt_len) != 0))
+    {
+      return (PARSER_SALT_VALUE);
+    }
+  }
 
   if (salt_len > (int) hashconfig->salt_max) return (PARSER_SALT_LENGTH);
 
   // Calls to fromhex (salt) and frombase64 (salt) require a salt in the corresponding encoding.
 
   if ((prog != NULL) && (recipe_salt_valid (prog, salt_pos, (u32) salt_len) == false)) return (PARSER_SALT_ENCODING);
+
+  // An aes call on data of the salt's length needs a salt that gives it a length it can take.
+
+  if ((prog != NULL) && (recipe_salt_fits (prog, salt_pos, (u32) salt_len) == false)) return (PARSER_SALT_LENGTH);
 
   memcpy (salt->salt_buf, salt_pos, salt_len);
 
@@ -501,7 +644,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 // Write the hash line: only the digest if that was its original form, otherwise the digest, salt,
 // fields and iteration count. The user field supplied by --username is omitted from the line, so
 // the outfile and --show preserve the line's original form. The potfile has no hash list from which
-// to obtain the user, so its lines always include the salt and every field.
+// to obtain the user, so its lines always include the salt field and every other field. The strings
+// around the result come from the recipe.
 
 static int module_line_write (const hashconfig_t *hashconfig, const salt_t *salt, const recipe_hash_t *recipe_hash, const hashinfo_t *hash_info, char *line_buf, const int line_size, const bool potfile)
 {
@@ -513,9 +657,23 @@ static int module_line_write (const hashconfig_t *hashconfig, const salt_t *salt
 
   int out_len = 0;
 
+  if (prog != NULL)
+  {
+    memcpy (out_buf + out_len, prog->root_pre, prog->root_pre_len);
+
+    out_len += prog->root_pre_len;
+  }
+
   memcpy (out_buf + out_len, recipe_hash->hash_buf, recipe_hash->hash_len);
 
   out_len += recipe_hash->hash_len;
+
+  if (prog != NULL)
+  {
+    memcpy (out_buf + out_len, prog->root_suf, prog->root_suf_len);
+
+    out_len += prog->root_suf_len;
+  }
 
   out_buf[out_len] = 0;
 
@@ -525,9 +683,14 @@ static int module_line_write (const hashconfig_t *hashconfig, const salt_t *salt
 
   out_len += 1;
 
-  memcpy (out_buf + out_len, salt->salt_buf, salt->salt_len);
+  // A salt taken from the hash text was not in the salt field, which stays empty.
 
-  out_len += salt->salt_len;
+  if (recipe_hash->salt_tail == 0)
+  {
+    memcpy (out_buf + out_len, salt->salt_buf, salt->salt_len);
+
+    out_len += salt->salt_len;
+  }
 
   out_buf[out_len] = 0;
 

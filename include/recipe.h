@@ -11,10 +11,10 @@
 // the password, salt, a literal or an earlier step's output. The last step is the outermost call.
 // See docs/hashcat-hash-recipe.md for the syntax.
 
-#define RECIPE_MAX_STEPS  8
+#define RECIPE_MAX_STEPS  16
 #define RECIPE_MAX_PARTS  8
 #define RECIPE_MAX_LITS   4
-#define RECIPE_MAX_LIT    16
+#define RECIPE_MAX_LIT    64
 #define RECIPE_MAX_ITER   100000
 #define RECIPE_MAX_XFORMS 4
 #define RECIPE_MAX_XOPS   4
@@ -27,6 +27,10 @@
 
 #define RECIPE_MAX_LINE_ITER 999999999
 #define RECIPE_ITER_ST       1000
+
+// The strings before and after the result can contain up to RECIPE_MAX_AFFIX bytes each.
+
+#define RECIPE_MAX_AFFIX 64
 
 // AES call data can contain up to RECIPE_MAX_AES bytes, with 8 additional bytes for aes_unwrap.
 
@@ -41,6 +45,19 @@
 // key occupies one of the RECIPE_MAX_CARRY variables, and its slices occupy the others.
 
 #define RECIPE_MAX_KDF_SLICES 3
+
+// The derived key of pbkdf2 can be up to RECIPE_MAX_KDF bytes long. The device computes only the
+// blocks from the first to the last one that the recipe reads, which must fit the state of
+// OpenCL/inc_pbkdf2.h and lie within 64 bytes. A whole key as the result is written to the hash
+// line in full, which takes up to RECIPE_MAX_TEXT characters.
+
+#define RECIPE_MAX_KDF  256
+#define RECIPE_MAX_TEXT 512
+
+// The backend builds a kernel with up to 16384 bytes of options, up to 4096 of which are its own.
+// A recipe whose options do not fit in the rest is refused.
+
+#define RECIPE_MAX_JIT 12000
 
 // The hash line supplies salt2, pepper and user. Each field occupies a slot of RECIPE_FIELD_WORDS
 // words in salt_buf_pc. The final word of salt_buf_pc stores their lengths, using 1 byte per field.
@@ -128,6 +145,69 @@ typedef enum recipe_algo
   RECIPE_ALGO_SKEIN384   = 59,
   RECIPE_ALGO_SKEIN512   = 60,
   RECIPE_ALGO_PANAMA     = 61,
+  RECIPE_ALGO_LM         = 62,
+  RECIPE_ALGO_MDC2       = 63,
+  RECIPE_ALGO_DES        = 64,
+
+  RECIPE_ALGO_BLAKE224     = 65,
+  RECIPE_ALGO_BLAKE256     = 66,
+  RECIPE_ALGO_BLAKE384     = 67,
+  RECIPE_ALGO_BLAKE512     = 68,
+  RECIPE_ALGO_BMW224       = 69,
+  RECIPE_ALGO_BMW256       = 70,
+  RECIPE_ALGO_BMW384       = 71,
+  RECIPE_ALGO_BMW512       = 72,
+  RECIPE_ALGO_CUBE224      = 73,
+  RECIPE_ALGO_CUBE256      = 74,
+  RECIPE_ALGO_CUBE384      = 75,
+  RECIPE_ALGO_CUBE512      = 76,
+  RECIPE_ALGO_ECHO224      = 77,
+  RECIPE_ALGO_ECHO256      = 78,
+  RECIPE_ALGO_ECHO384      = 79,
+  RECIPE_ALGO_ECHO512      = 80,
+  RECIPE_ALGO_FUGUE224     = 81,
+  RECIPE_ALGO_FUGUE256     = 82,
+  RECIPE_ALGO_FUGUE384     = 83,
+  RECIPE_ALGO_FUGUE512     = 84,
+  RECIPE_ALGO_GROESTL224   = 85,
+  RECIPE_ALGO_GROESTL256   = 86,
+  RECIPE_ALGO_GROESTL384   = 87,
+  RECIPE_ALGO_GROESTL512   = 88,
+  RECIPE_ALGO_HAMSI224     = 89,
+  RECIPE_ALGO_HAMSI256     = 90,
+  RECIPE_ALGO_HAMSI384     = 91,
+  RECIPE_ALGO_HAMSI512     = 92,
+  RECIPE_ALGO_JH224        = 93,
+  RECIPE_ALGO_JH256        = 94,
+  RECIPE_ALGO_JH384        = 95,
+  RECIPE_ALGO_JH512        = 96,
+  RECIPE_ALGO_LUFFA224     = 97,
+  RECIPE_ALGO_LUFFA256     = 98,
+  RECIPE_ALGO_LUFFA384     = 99,
+  RECIPE_ALGO_LUFFA512     = 100,
+  RECIPE_ALGO_SHABAL224    = 101,
+  RECIPE_ALGO_SHABAL256    = 102,
+  RECIPE_ALGO_SHABAL384    = 103,
+  RECIPE_ALGO_SHABAL512    = 104,
+  RECIPE_ALGO_SHAVITE224   = 105,
+  RECIPE_ALGO_SHAVITE256   = 106,
+  RECIPE_ALGO_SHAVITE384   = 107,
+  RECIPE_ALGO_SHAVITE512   = 108,
+  RECIPE_ALGO_SIMD224      = 109,
+  RECIPE_ALGO_SIMD256      = 110,
+  RECIPE_ALGO_SIMD384      = 111,
+  RECIPE_ALGO_SIMD512      = 112,
+  RECIPE_ALGO_HAS160       = 113,
+  RECIPE_ALGO_EDON256      = 114,
+  RECIPE_ALGO_EDON512      = 115,
+  RECIPE_ALGO_MD6128       = 116,
+  RECIPE_ALGO_MD6256       = 117,
+  RECIPE_ALGO_MD6512       = 118,
+  RECIPE_ALGO_RADIOGATUN32 = 119,
+  RECIPE_ALGO_RADIOGATUN64 = 120,
+  RECIPE_ALGO_RIPEMD       = 121,
+  RECIPE_ALGO_WRL0         = 122,
+  RECIPE_ALGO_WRL1         = 123,
 
 } recipe_algo_t;
 
@@ -140,12 +220,13 @@ typedef enum recipe_fmt
 
 } recipe_fmt_t;
 
-// A step is a plain hash call, an HMAC, an AES call, a bitwise call, or transforms of a hash
-// output. The bitwise calls are xor, and, and or. An HMAC step hashes key ^ ipad followed by its
+// A step is a plain hash call, an HMAC, an AES call, a bitwise call, transforms of a hash output or
+// a DES call. The bitwise calls are xor, and, and or. An HMAC step hashes key ^ ipad followed by its
 // parts. It then hashes key ^ opad followed by that digest. An AES step encrypts or decrypts its
 // parts using its key. See recipe_aes_op_t for the AES operations. A BOP step combines its 2 parts
 // byte by byte. See recipe_bop_op_t. An XFRM step applies the transforms of a copy to another
-// step's output, as in rev (md5 (pass)).
+// step's output, as in rev (md5 (pass)). A DES step encrypts one block, its second part, with the
+// key in its first part. See recipe_des_op_t.
 
 typedef enum recipe_step_kind
 {
@@ -154,6 +235,7 @@ typedef enum recipe_step_kind
   RECIPE_KIND_AES  = 2,
   RECIPE_KIND_BOP  = 3,
   RECIPE_KIND_XFRM = 4,
+  RECIPE_KIND_DES  = 5,
 
 } recipe_step_kind_t;
 
@@ -182,6 +264,19 @@ typedef enum recipe_aes_op
   RECIPE_AES_UNWRAP_A  = 5,
 
 } recipe_aes_op_t;
+
+// des (key, pt), des3 (key, pt) and des_block (key, pt), as in hx. Each encrypts the first 8 bytes
+// of pt, padded with zero bytes. des takes the first 8 bytes of key as a DES key, and des3 the first
+// 24 bytes as 3 keys for encrypt, decrypt and encrypt. des_block spreads the first 7 bytes of key
+// over the 8 bytes of a DES key, as NetNTLMv1 does. A shorter key is padded with zero bytes.
+
+typedef enum recipe_des_op
+{
+  RECIPE_DES_ECB   = 1,
+  RECIPE_DES3_ECB  = 2,
+  RECIPE_DES_BLOCK = 3,
+
+} recipe_des_op_t;
 
 typedef enum recipe_part_kind
 {
@@ -243,8 +338,8 @@ typedef enum recipe_xop
   RECIPE_XOP_CUT     = 11,
 
   // The compiler resolves decoding according to the input. Decoding salt gives RECIPE_PART_SALTD,
-  // a string is decoded itself, and fromhex of a hex hash call gives its raw bytes. Decoding is
-  // never stored as a transform on a copy.
+  // a string is decoded itself, and fromhex of a hex hash call gives its raw bytes. Decoding pass, a
+  // field or a transformed hash output is a transform, which accepts any input, as hx does.
 
   RECIPE_XOP_FROMHEX = 12,
   RECIPE_XOP_FROMB64 = 13,
@@ -254,6 +349,10 @@ typedef enum recipe_xop
 
   RECIPE_XOP_ZEXT16  = 14,
   RECIPE_XOP_UTF16BE = 15,
+
+  // base64 writes standard base64 with = padding, 4 bytes for every 3 input bytes or part of them.
+
+  RECIPE_XOP_B64     = 16,
 
 } recipe_xop_t;
 
@@ -283,7 +382,8 @@ typedef struct recipe_xform
 } recipe_xform_t;
 
 // The wide flag marks a part hashed as UTF-16LE. Passwords and salts are decoded from UTF-8.
-// Hex output is widened by inserting zero bytes.
+// Hex output is widened by inserting zero bytes. An HMAC key and the key and salt of pbkdf2 can
+// be wide as well.
 
 typedef struct recipe_part
 {
@@ -319,9 +419,10 @@ typedef struct recipe_step
 
   // An AES step stores its operation, its IV for CBC, and the fixed lengths of its key, data and
   // each part within the data. If a part is shorter than its fixed length at run time, it is padded
-  // with zero bytes to that length. A BOP step stores its operation and the fixed lengths of its 2
-  // parts, or 0 for a length that is not fixed. The data_len member stores the maximum number of
-  // bytes it produces. Its cut_len is 0 when its length is not fixed.
+  // with zero bytes to that length. One data part can be of the salt's length, with part length 0,
+  // and data_len is then the most the data can hold. A BOP step stores its operation and the fixed
+  // lengths of its 2 parts, or 0 for a length that is not fixed. The data_len member stores the
+  // maximum number of bytes it produces. Its cut_len is 0 when its length is not fixed.
 
   u32           aop;
   recipe_part_t iv;
@@ -363,6 +464,42 @@ typedef struct recipe_prog
   // The encoding of the result on the hash line: RECIPE_FMT_HEX, RECIPE_FMT_HEXU or RECIPE_FMT_B64.
 
   u32 root_fmt;
+
+  // Strings before and after the result, as in "{SHA}" . sha1_b64 (pass). The hash line carries
+  // them around the computed text, and the module checks and strips them.
+
+  u8  root_pre[RECIPE_MAX_AFFIX];
+  u32 root_pre_len;
+  u8  root_suf[RECIPE_MAX_AFFIX];
+  u32 root_suf_len;
+
+  // cap, upper and lower around a hex result, as in cap (md5 (pass)). They do not change the bytes
+  // compared, because hex compares in either case, so only the self-test hash applies them.
+
+  recipe_xop_entry_t root_case[RECIPE_MAX_XOPS];
+  u32                root_case_cnt;
+
+  // root_hex is set for a result of raw bytes, which the hash line holds in hex, as hx writes
+  // binary output. A result such as base64 (sha1_bin (pass . salt) . salt) holds root_tail bytes of
+  // the root step followed by the salt, so a hash line can carry its salt in that text alone.
+
+  u32 root_hex;
+  u32 root_tail;
+
+  // The word of the root step's raw output from which the bytes are compared, for a result cut
+  // from a later offset, as in cut (sha1 (pass), 8).
+
+  u32 root_off;
+
+  // The number of result bytes compared: 16, or 8 to 15 for a shorter result such as mysql3 (pass).
+  // The device and the hash line parser both zero the bytes past it.
+
+  u32 root_len;
+
+  // The longest text a hash line can hold for the result, without the strings around it: 128
+  // characters, or more for a long derived key of pbkdf2 as the result.
+
+  u32 root_text;
 
   // A recipe with a for loop or a pbkdf2 call runs as a slow hash. The loop_cnt field specifies how
   // often the loop kernel runs its body: the loop's iteration count, or the pbkdf2 count minus 1.
@@ -458,6 +595,8 @@ HC_PLUGIN_API const char *recipe_algo_name (const u32 algo);
 HC_PLUGIN_API u32         recipe_xform_apply (const recipe_xform_t *xform, u8 *buf, const u32 len);
 HC_PLUGIN_API char       *recipe_jit_build_options (const char *src, const bool root_native);
 HC_PLUGIN_API bool        recipe_salt_valid (const recipe_prog_t *prog, const u8 *salt, const u32 salt_len);
+HC_PLUGIN_API bool        recipe_salt_fits (const recipe_prog_t *prog, const u8 *salt, const u32 salt_len);
+HC_PLUGIN_API u32         recipe_st_salt_len (const recipe_prog_t *prog);
 HC_PLUGIN_API u32         recipe_kdf_state_size (const recipe_prog_t *prog);
 HC_PLUGIN_API u64         recipe_tmp_size  (const recipe_prog_t *prog);
 

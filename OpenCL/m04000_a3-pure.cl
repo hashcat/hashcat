@@ -47,8 +47,71 @@
 #ifdef RECIPE_PANAMA
 #include M2S(INCLUDE_PATH/inc_hash_panama.cl)
 #endif
+#ifdef RECIPE_BLAKE
+#include M2S(INCLUDE_PATH/inc_hash_blake.cl)
+#endif
+#ifdef RECIPE_BMW
+#include M2S(INCLUDE_PATH/inc_hash_bmw.cl)
+#endif
+#ifdef RECIPE_CUBEHASH
+#include M2S(INCLUDE_PATH/inc_hash_cubehash.cl)
+#endif
+#ifdef RECIPE_ECHO
+#include M2S(INCLUDE_PATH/inc_hash_echo.cl)
+#endif
+#ifdef RECIPE_FUGUE
+#include M2S(INCLUDE_PATH/inc_hash_fugue.cl)
+#endif
+#ifdef RECIPE_GROESTL
+#include M2S(INCLUDE_PATH/inc_hash_groestl.cl)
+#endif
+#ifdef RECIPE_HAMSI
+#include M2S(INCLUDE_PATH/inc_hash_hamsi.cl)
+#endif
+#ifdef RECIPE_JH
+#include M2S(INCLUDE_PATH/inc_hash_jh.cl)
+#endif
+#ifdef RECIPE_LUFFA
+#include M2S(INCLUDE_PATH/inc_hash_luffa.cl)
+#endif
+#ifdef RECIPE_SHABAL
+#include M2S(INCLUDE_PATH/inc_hash_shabal.cl)
+#endif
+#ifdef RECIPE_SHAVITE
+#include M2S(INCLUDE_PATH/inc_hash_shavite.cl)
+#endif
+#ifdef RECIPE_SIMD
+#include M2S(INCLUDE_PATH/inc_hash_simd.cl)
+#endif
+#ifdef RECIPE_HAS160
+#include M2S(INCLUDE_PATH/inc_hash_has160.cl)
+#endif
+#ifdef RECIPE_EDONR
+#include M2S(INCLUDE_PATH/inc_hash_edonr.cl)
+#endif
+#ifdef RECIPE_MD6
+#include M2S(INCLUDE_PATH/inc_hash_md6.cl)
+#endif
+#ifdef RECIPE_RADIOGATUN
+#include M2S(INCLUDE_PATH/inc_hash_radiogatun.cl)
+#endif
+#ifdef RECIPE_RIPEMD
+#include M2S(INCLUDE_PATH/inc_hash_ripemd.cl)
+#endif
+#ifdef RECIPE_WRL01
+#include M2S(INCLUDE_PATH/inc_hash_whirlpool01.cl)
+#endif
 #ifdef RECIPE_MYSQL323
 #include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
+#endif
+#ifdef RECIPE_DES
+#include M2S(INCLUDE_PATH/inc_cipher_des.cl)
+#endif
+#ifdef RECIPE_LM
+#include M2S(INCLUDE_PATH/inc_hash_lm.cl)
+#endif
+#ifdef RECIPE_MDC2
+#include M2S(INCLUDE_PATH/inc_hash_mdc2.cl)
 #endif
 #ifdef RECIPE_HAVAL
 #include M2S(INCLUDE_PATH/inc_hash_haval.cl)
@@ -78,6 +141,15 @@
 #if defined RECIPE_GOST94 || defined RECIPE_GOST94_CP
 #undef BOX
 #include M2S(INCLUDE_PATH/inc_hash_gost94.cl)
+#endif
+#if defined RECIPE_AES || defined RECIPE_ECHO || defined RECIPE_SHAVITE
+#ifndef RECIPE_AES
+#define AES_TE0_TE3_ONLY
+#endif
+#include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
+#endif
+#ifdef RECIPE_AES
+#include M2S(INCLUDE_PATH/inc_cipher_aes-modes.cl)
 #endif
 #include M2S(INCLUDE_PATH/inc_recipe.cl)
 #endif
