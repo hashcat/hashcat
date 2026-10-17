@@ -1092,6 +1092,15 @@ static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting");
 }
 
+static void main_monitor_stdin_overrun (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_warning (hashcat_ctx, "Input on stdin exceeded --stdin-count. Progress and time estimate are no longer shown.");
+}
+
 // The candidate generator, not the unit. Worth its own message because the device number in the
 // payload is a VIRTUAL one belonging to a bridge unit, so reporting it the usual way would name the
 // unit, which is running perfectly well, while the GPU beside it is the thing overheating.
@@ -1960,6 +1969,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_PERFORMANCE_HINT:  main_monitor_performance_hint  (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_HINT:      main_monitor_noinput_hint      (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_ABORT:     main_monitor_noinput_abort     (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_STDIN_OVERRUN:     main_monitor_stdin_overrun     (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_POST:      main_backend_session_post      (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_PRE:       main_backend_session_pre       (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_HOSTMEM:   main_backend_session_hostmem   (hashcat_ctx, buf, len); break;

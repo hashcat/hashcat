@@ -156,6 +156,7 @@ typedef enum event_identifier
   EVENT_MONITOR_PERFORMANCE_HINT   = 0x00000096,
   EVENT_MONITOR_NOINPUT_HINT       = 0x00000097,
   EVENT_MONITOR_NOINPUT_ABORT      = 0x00000098,
+  EVENT_MONITOR_STDIN_OVERRUN      = 0x0000009b,
   EVENT_BACKEND_SESSION_POST       = 0x000000a0,
   EVENT_BACKEND_SESSION_PRE        = 0x000000a1,
   EVENT_BACKEND_SESSION_HOSTMEM    = 0x000000a2,
@@ -1096,6 +1097,7 @@ typedef enum user_options_defaults
   PIPELINE_STATS           = false,
   TASK_TIME_BREAKDOWN      = false,
   STATUS_TIMER             = 10,
+  STDIN_COUNT              = 0,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
   USAGE                    = 0,
@@ -1247,6 +1249,7 @@ typedef enum user_options_map
   IDX_STATUS_JSON               = 0xff4b,
   IDX_STATUS_TIMER              = 0xff4c,
   IDX_STDOUT_FLAG               = 0xff4d,
+  IDX_STDIN_COUNT               = 0xff8f,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff4e,
   IDX_TOTAL_CANDIDATES          = 0xff58,
   IDX_TRUECRYPT_KEYFILES        = 0xff4f,
@@ -2925,6 +2928,7 @@ typedef struct user_options
   bool         pipeline_stats;
   bool         task_time_breakdown;
   bool         stdout_flag;
+  bool         stdin_count_chgd;
   bool         stdin_timeout_abort_chgd;
   bool         username;
   bool         veracrypt_pim_start_chgd;
@@ -3037,6 +3041,7 @@ typedef struct user_options
   u32          veracrypt_pim_stop;
   u64          limit;
   u64          skip;
+  u64          stdin_count;
   bool         hash_copy;
 
 } user_options_t;

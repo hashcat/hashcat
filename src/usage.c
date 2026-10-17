@@ -44,6 +44,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --status-json              |      | Enable JSON format for status output                 |",
   "     --json                     |      | Enable JSON format for all output                    |",
   "     --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1",
+  "     --stdin-count              | Num  | Expected number of lines on stdin, for the ETA       | --stdin-count=1000000",
   "     --stdin-timeout-abort      | Num  | Abort if there is no input from stdin for X seconds  | --stdin-timeout-abort=300",
   "     --machine-readable         |      | Display the status view in a machine-readable format |",
   "     --keep-guessing            |      | Keep guessing the hash after it has been cracked     |",

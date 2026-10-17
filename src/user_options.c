@@ -170,6 +170,7 @@ static const struct option long_options[] =
   {"task-time-breakdown",       no_argument,       NULL, IDX_TASK_TIME_BREAKDOWN},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
+  {"stdin-count",               required_argument, NULL, IDX_STDIN_COUNT},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
@@ -349,6 +350,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->pipeline_stats             = PIPELINE_STATS;
   user_options->task_time_breakdown        = TASK_TIME_BREAKDOWN;
   user_options->status_timer               = STATUS_TIMER;
+  user_options->stdin_count                = STDIN_COUNT;
   user_options->stdin_timeout_abort        = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag                = STDOUT_FLAG;
   user_options->truecrypt_keyfiles         = NULL;
@@ -419,6 +421,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_DEBUG_MODE:
       case IDX_SKIP:
       case IDX_LIMIT:
+      case IDX_STDIN_COUNT:
       case IDX_STATUS_TIMER:
       case IDX_HASH_MODE:
       case IDX_RUNTIME:
@@ -524,6 +527,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BENCHMARK_PURE:            user_options->benchmark                 = true;
                                           user_options->benchmark_pure            = true;                            break;
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;                            break;
+      case IDX_STDIN_COUNT:               user_options->stdin_count               = hc_strtoull (optarg, NULL, 10);
+                                          user_options->stdin_count_chgd          = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
@@ -994,6 +999,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->stdin_count_chgd == true) && (user_options->stdin_count == 0))
+  {
+    event_log_error (hashcat_ctx, "Invalid --stdin-count value specified.");
+
+    return -1;
+  }
+
   if (user_options->runtime_chgd == true && user_options->runtime == 0)
   {
     event_log_error (hashcat_ctx, "Invalid --runtime value specified.");
@@ -1013,6 +1025,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->limit_chgd == true && user_options->loopback == true)
   {
     event_log_error (hashcat_ctx, "Combining --limit with --loopback is not allowed.");
+
+    return -1;
+  }
+
+  // --limit already gives a pipe its denominator, and the two would disagree about which one the
+  // progress is measured against.
+
+  if ((user_options->stdin_count_chgd == true) && (user_options->limit_chgd == true))
+  {
+    event_log_error (hashcat_ctx, "Combining --stdin-count with --limit is not allowed.");
 
     return -1;
   }
@@ -4040,6 +4062,19 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
+  // Whether the candidates come from a pipe is settled by user_options_extra_init (), which runs
+  // after user_options_sanity (), so --stdin-count is checked against it here.
+
+  if (user_options->stdin_count_chgd == true)
+  {
+    if (user_options_extra->wordlist_mode != WL_MODE_STDIN)
+    {
+      event_log_error (hashcat_ctx, "Use of --stdin-count is only allowed in stdin mode (pipe).");
+
+      return -1;
+    }
+  }
+
   // public key
 
   if (user_options->encrypt_with_pubkey != NULL)
@@ -5077,6 +5112,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   #endif
   logfile_top_uint64 (user_options->limit);
   logfile_top_uint64 (user_options->skip);
+  logfile_top_uint64 (user_options->stdin_count);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);
   logfile_top_uint   (user_options->backend_devices_virthost);

@@ -128,6 +128,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   bool feeder_aborted = false;
 
+  bool stdin_overrun_warned = false;
+
   u32 restore_left  = user_options->restore_timer;
   u32 remove_left   = user_options->remove_timer;
   u32 status_left   = user_options->status_timer;
@@ -341,6 +343,15 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    // --stdin-count check
+
+    if ((stdin_overrun_warned == false) && (status_get_stdin_count_exceeded (hashcat_ctx) == true))
+    {
+      stdin_overrun_warned = true;
+
+      EVENT_DATA (EVENT_MONITOR_STDIN_OVERRUN, NULL, 0);
+    }
+
     if (status_check == true)
     {
       status_left--;
@@ -480,6 +491,13 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         status_ctx->timer_bypass_start += 1;
       }
     }
+  }
+
+  // final round of the --stdin-count check, for a pipe that passed it after the last tick
+
+  if ((stdin_overrun_warned == false) && (status_get_stdin_count_exceeded (hashcat_ctx) == true))
+  {
+    EVENT_DATA (EVENT_MONITOR_STDIN_OVERRUN, NULL, 0);
   }
 
   // final round of save_hash
