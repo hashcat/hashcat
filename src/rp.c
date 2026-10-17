@@ -313,6 +313,95 @@ u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
   return need + 1;
 }
 
+// Which way an opcode can move the length of the candidate it is given. Each answer is read out of the
+// mangle function apply_rule () hands it in OpenCL/inc_rp.cl, not out of the enum: one that returns len
+// on every path keeps the length, and otherwise the direction is the sign of the out_len it builds.
+//
+// The default answers "both ways", which is the direction that cannot lose a candidate, so an opcode
+// added later and not listed here only costs the caller a test it could have kept.
+
+static u32 rule_op_length_effect (const u32 name)
+{
+  switch (name)
+  {
+    case RULE_OP_MANGLE_NOOP:             return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_LREST:            return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_LREST_UFIRST:     return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_UREST:            return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_UREST_LFIRST:     return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_TREST:            return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_SHIFT_CASE:       return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_TOGGLE_AT:        return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_TOGGLE_AT_SEP:    return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_REVERSE:          return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_ROTATE_LEFT:      return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_ROTATE_RIGHT:     return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_OVERSTRIKE:       return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_REPLACE:          return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_REPLACE_CLASS:    return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_SWITCH_FIRST:     return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_SWITCH_LAST:      return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_SWITCH_AT:        return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_CHR_SHIFTL:       return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_CHR_SHIFTR:       return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_CHR_INCR:         return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_CHR_DECR:         return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_CHR_ADD:          return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_REPLACE_NP1:      return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_REPLACE_NM1:      return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_TITLE_SEP:        return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_TITLE_SEP_CLASS:  return RULE_LENGTH_KEEP;
+    case RULE_OP_MANGLE_TITLE:            return RULE_LENGTH_KEEP;
+
+    case RULE_OP_MANGLE_APPEND:           return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_PREPEND:          return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_INSERT:           return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_INSERT_EVERY:     return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPEWORD:         return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPEWORD_TIMES:   return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPECHAR_FIRST:   return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPECHAR_LAST:    return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPECHAR_ALL:     return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPEBLOCK_FIRST:  return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_DUPEBLOCK_LAST:   return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_REFLECT:          return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_TO_HEX_LOWER:     return RULE_LENGTH_LONGER;
+    case RULE_OP_MANGLE_TO_HEX_UPPER:     return RULE_LENGTH_LONGER;
+
+    case RULE_OP_MANGLE_DELETE_FIRST:     return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_DELETE_LAST:      return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_DELETE_AT:        return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_EXTRACT:          return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_OMIT:             return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_TRUNCATE_AT:      return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_PURGECHAR:        return RULE_LENGTH_SHORTER;
+    case RULE_OP_MANGLE_PURGECHAR_CLASS:  return RULE_LENGTH_SHORTER;
+  }
+
+  const u32 both_ways = RULE_LENGTH_LONGER | RULE_LENGTH_SHORTER;
+
+  return both_ways;
+}
+
+// A rule is read from the form the device runs, where the opcode is the low byte of each command and a
+// zero command ends the chain, which is how apply_rules () walks it. Reading the text again would mean
+// a second parser to keep in step with this one, and the class based form does not survive it: the
+// function below resolves ~ into REPLACE_CLASS, PURGECHAR_CLASS or TITLE_SEP_CLASS while it compiles.
+
+u32 kernel_rule_length_effect (const kernel_rule_t *rule)
+{
+  u32 effect = RULE_LENGTH_KEEP;
+
+  for (u32 i = 0; i < RULES_MAX; i++)
+  {
+    if (rule->cmds[i] == 0) break;
+
+    effect |= rule_op_length_effect (rule->cmds[i] & 0xff);
+  }
+
+  return effect;
+}
+
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 {
   u32 rule_pos;

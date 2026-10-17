@@ -134,6 +134,32 @@ u32 smallest_repeat_double (const u32 v)
   return (v / (v & -v));
 }
 
+// default_pw_max () in interface.c caps a dictionary word at PW_DICTMAX where an optimized kernel is the
+// one applying the rules, because that is what its rule engine can hold and not a length the hash mode
+// refuses. Which attack kernels that covers is its own switch, and -a 4 is not in it: there the rules run
+// in the pcfg kernel, over a candidate buffer of its own.
+//
+// Read where it is used, not kept: -a 4 reaches ATTACK_KERN_PCFG in generic_ctx_init (), and before that
+// it answers as a straight attack.
+
+bool rules_dict_capped (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) return false;
+
+  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0)) return false;
+
+  if (user_options->slow_candidates == true) return true;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) return true;
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    return true;
+
+  return false;
+}
+
 // A name no other writer will pick, for the file a cache is written under before it is renamed into
 // place.
 //
