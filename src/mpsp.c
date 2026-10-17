@@ -1841,7 +1841,7 @@ u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_b
   return out_len;
 }
 
-static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
+static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask, const size_t mask_pos)
 {
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -1860,17 +1860,27 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 
   // -a 6 and -a 7 are -a 12 masks with the ?w at one end, and this is where it goes on. Here rather
   // than on the argument, because every mask arrives here and this is the last thing that happens to
-  // one: a mask file line arrives with its own charsets already split off, and an --increment mask
-  // arrives already truncated and already mirrored. So -i keeps working for both of them with no
-  // change to the increment machinery at all.
+  // one: an --increment mask arrives already truncated and already mirrored, so -i keeps working with
+  // no change to the increment machinery at all. A mask file line still carries its charsets in front
+  // of the mask, and mask_pos is where the mask itself starts, so a leading ?w goes there and not
+  // into the first charset.
 
   char mask_buf[256];
 
   if (user_options->marker_policy != MARKER_POLICY_NONE)
   {
-    const char *fmt = (user_options->marker_policy == MARKER_POLICY_PREFIX_W) ? "?w%s" : "%s?w";
+    int mask_buf_len = 0;
 
-    if (snprintf (mask_buf, sizeof (mask_buf), fmt, mask) >= (int) sizeof (mask_buf))
+    if (user_options->marker_policy == MARKER_POLICY_PREFIX_W)
+    {
+      mask_buf_len = snprintf (mask_buf, sizeof (mask_buf), "%.*s?w%s", (int) mask_pos, mask, mask + mask_pos);
+    }
+    else
+    {
+      mask_buf_len = snprintf (mask_buf, sizeof (mask_buf), "%s?w", mask);
+    }
+
+    if (mask_buf_len >= (int) sizeof (mask_buf))
     {
       event_log_error (hashcat_ctx, "%s: mask is too long.", mask);
 
@@ -1981,6 +1991,11 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
         mask_truncated_next += prepend_len;
       }
 
+      // reverseMask () below hands back a new buffer that starts with the same prefix, so the offset
+      // of the mask is taken here, while mask_truncated_next still points into this one.
+
+      const size_t mask_pos = (size_t) (mask_truncated_next - mask_truncated);
+
       if (user_options->increment == INCREMENT_INVERSED)
       {
         if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated)) == -1)
@@ -2009,7 +2024,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
         }
       }
 
-      const int rc = mask_append_final (hashcat_ctx, mask_truncated);
+      const int rc = mask_append_final (hashcat_ctx, mask_truncated, mask_pos);
 
       hcfree (mask_truncated);
 
@@ -2026,7 +2041,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       hc_asprintf (&prepend_mask, "%s,%s", prepend, mask);
 
-      const int rc = mask_append_final (hashcat_ctx, prepend_mask);
+      const int rc = mask_append_final (hashcat_ctx, prepend_mask, strlen (prepend) + 1);
 
       hcfree (prepend_mask);
 
@@ -2034,7 +2049,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
     }
     else
     {
-      if (mask_append_final (hashcat_ctx, mask) == -1) return -1;
+      if (mask_append_final (hashcat_ctx, mask, 0) == -1) return -1;
     }
   }
 

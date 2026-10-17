@@ -358,8 +358,8 @@ void clear_prompt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 }
 
 // Rewind and advance, which are the same move in the two directions. Both are offered on a letter and
-// on the keys a user reaches for without reading a prompt: the arrows, and the two characters that
-// point the same way.
+// on the keys a user reaches for without reading a prompt: the left and right arrows, and the two
+// characters that point the same way.
 
 static void keypress_seek (hashcat_ctx_t *hashcat_ctx, const int direction, const bool quiet)
 {
@@ -427,6 +427,11 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
     if (ch ==  0) continue;
 
+    // tmux and many terminal emulators turn a mouse wheel or touchpad scroll into the up and down
+    // arrows, so those two keys do nothing here, not even redraw the prompt.
+
+    if ((ch == TTY_KEY_UP) || (ch == TTY_KEY_DOWN)) continue;
+
     //https://github.com/hashcat/hashcat/issues/302
     //#if defined (_POSIX)
     //if (ch != '\n')
@@ -455,7 +460,6 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
       case 'a':
       case '>':
       case TTY_KEY_RIGHT:
-      case TTY_KEY_UP:
 
         keypress_seek (hashcat_ctx, 1, quiet);
 
@@ -463,7 +467,6 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case '<':
       case TTY_KEY_LEFT:
-      case TTY_KEY_DOWN:
 
         keypress_seek (hashcat_ctx, -1, quiet);
 
