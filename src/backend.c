@@ -11347,6 +11347,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (backend_ctx_devices_lost (hashcat_ctx) == -1) return -1;
 
+  // Every session starts from what enumeration found, see backend_session_begin ().
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    device_param->device_available_mem_init        = device_param->device_available_mem;
+    device_param->device_available_mem_source_init = device_param->device_available_mem_source;
+  }
+
   backend_ctx->target_msec  = TARGET_MSEC;
 
   backend_ctx->comptime = comptime;
@@ -11707,9 +11717,9 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 //
 // run_cracker saves kernel_accel, kernel_loops and kernel_threads and then zeroes them on its way out
 // of every round, so a round that wants to skip autotune has the numbers waiting but only if a round
-// really ran before it in this process. A session restored into the middle of a queue has not run one,
-// and a device that was skipped for part of the run has not either, so the answer there is false and
-// the caller measures as usual.
+// really ran before it since backend_session_begin (). A session restored into the middle of a queue
+// has not run one, and a device that was skipped for part of the run has not either, so it returns
+// false there and the caller measures as usual.
 //
 // hardware_power and kernel_power are recomputed here rather than saved, exactly as autotune computes
 // them, because kernel_threads is what they are derived from and that is one of the three.
@@ -13884,6 +13894,29 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "No devices found/left.");
 
     return -1;
+  }
+
+  // A benchmark runs each hash mode as a session of its own on the same devices, so the state one
+  // session leaves on a device must not carry over to the next. The tuning saved for the next round of
+  // an attack would be restored for the next hash mode whenever the loop bounds agree. That hash mode
+  // would then launch at a thread count and accel its buffers were not sized for. Every mode that
+  // builds its own tuning rows would take another 34 percent off the free memory estimate. One refusal
+  // for memory would keep the device out of every hash mode after it.
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    device_param->kernel_accel_prev     = 0;
+    device_param->kernel_loops_prev     = 0;
+    device_param->kernel_threads_prev   = 0;
+    device_param->kernel_loops_min_prev = 0;
+    device_param->kernel_loops_max_prev = 0;
+
+    device_param->device_available_mem        = device_param->device_available_mem_init;
+    device_param->device_available_mem_source = device_param->device_available_mem_source_init;
+
+    device_param->memory_hit_shared = false;
   }
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)

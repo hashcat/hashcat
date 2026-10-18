@@ -2275,6 +2275,12 @@ typedef struct hc_device_param
 
   mem_source_t      device_available_mem_source;
 
+  // device_available_mem and its source as enumeration found them. A session adjusts both for itself,
+  // and the next session starts again from these.
+
+  u64               device_available_mem_init;
+  mem_source_t      device_available_mem_source_init;
+
   cl_device_id      opencl_device;
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;

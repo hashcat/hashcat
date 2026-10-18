@@ -46,9 +46,12 @@ KERNEL_FQ KERNEL_FA void m36200_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   const u32 lid = get_local_id (0);
   const u32 lsz = get_local_size (0);
 
+  // Declared as uint4 for the alignment. pwxform moves the Sbox and X 16 bytes at a time, and a u32
+  // array is only aligned to 4 bytes. NVIDIA's OpenCL faults on the first such access.
+
   #ifdef COOP_SBOX_LDS
-  LOCAL_VK u32 s_sbox[Swords];
-  LOCAL_AS u32 *sbox = s_sbox;
+  LOCAL_VK uint4 s_sbox[Swords / 4];
+  LOCAL_AS u32 *sbox = (LOCAL_AS u32 *) s_sbox;
   #else
   GLOBAL_AS u32 *sbox = tmps[bid].S;
   #endif
@@ -66,8 +69,8 @@ KERNEL_FQ KERNEL_FA void m36200_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   #ifdef COOP_X_GLOBAL
   GLOBAL_AS u32 *X = tmps[bid].P;
   #else
-  LOCAL_VK u32 s_X[YESCRYPT_STATE_CNT4];
-  LOCAL_AS u32 *X = s_X;
+  LOCAL_VK uint4 s_X[YESCRYPT_STATE_CNT4 / 4];
+  LOCAL_AS u32 *X = (LOCAL_AS u32 *) s_X;
   #endif
 
   yescrypt_smix_loop (X, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT);

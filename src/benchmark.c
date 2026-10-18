@@ -120,6 +120,7 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   1420,
   10820,
   1720,
+  -1,
 };
 
 int benchmark_next (hashcat_ctx_t *hashcat_ctx)
