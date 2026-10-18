@@ -440,6 +440,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
 
+    status_ctx->user_error = true;
+
     return -1;
   }
 
@@ -1068,6 +1070,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     outer_loop_destroy (hashcat_ctx);
 
+    hashcat_ctx->status_ctx->user_error = true;
+
     return -1;
   }
 
@@ -1181,6 +1185,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       event_log_error (hashcat_ctx, "No hashes loaded.");
 
       outer_loop_destroy (hashcat_ctx);
+
+      hashcat_ctx->status_ctx->user_error = true;
 
       return -1;
     }
@@ -1298,6 +1304,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     outer_loop_destroy (hashcat_ctx);
 
+    hashcat_ctx->status_ctx->user_error = true;
+
     return -1;
   }
 
@@ -1306,6 +1314,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     event_log_error (hashcat_ctx, "Too many hashes loaded - maximum is %u for this hash-mode.", hashconfig->hashes_count_max);
 
     outer_loop_destroy (hashcat_ctx);
+
+    hashcat_ctx->status_ctx->user_error = true;
 
     return -1;
   }
@@ -2290,7 +2300,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * Try to detect if all the files we're going to use are accessible in the mode we want them
    */
 
-  if (user_options_check_files (hashcat_ctx) == -1) return -1;
+  if (user_options_check_files (hashcat_ctx) == -1)
+  {
+    hashcat_ctx->status_ctx->user_error = true;
+
+    return -1;
+  }
 
   /**
    * Load bridge a bit too early actually, but we need to know the unit count so we can automatically configure virtualization for the user
@@ -3157,7 +3172,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 and -7 are reserved in docs/exit_status_code.txt
+    // -2 is a user error, set in main (), and -7 is reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;

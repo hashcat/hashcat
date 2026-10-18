@@ -3029,6 +3029,8 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
+  status_ctx->user_error = false;
+
   status_ctx->run_main_level1     = true;
   status_ctx->run_main_level2     = true;
   status_ctx->run_main_level3     = true;

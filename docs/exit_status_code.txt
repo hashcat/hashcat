@@ -10,7 +10,7 @@ Exit Status Codes:
  -5 = backend error: main kernel build failed
  -4 = backend error: memory limit reached
  -3 = backend error: hash type skipped by module_unstable_warning
- -2 = reserved, not produced
+ -2 = user error: invalid command for the task (bad options, hashlist, mask or input files)
  -1 = error
   0 = OK/cracked
   1 = exhausted

@@ -2274,6 +2274,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
+      hashcat_ctx->status_ctx->user_error = true;
+
       return -1;
     }
 
@@ -2340,6 +2342,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
+      hashcat_ctx->status_ctx->user_error = true;
+
       return -1;
     }
   }
@@ -2373,6 +2377,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
+        hashcat_ctx->status_ctx->user_error = true;
+
         return -1;
       }
 
@@ -2401,6 +2407,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        hashcat_ctx->status_ctx->user_error = true;
 
         return -1;
       }
@@ -2434,6 +2442,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         if (overflow_check_u64_mul (combinator_ctx->combs_cnt, words_cnt) == true)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+          hashcat_ctx->status_ctx->user_error = true;
 
           return -1;
         }
@@ -2602,6 +2612,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
+        hashcat_ctx->status_ctx->user_error = true;
+
         return -1;
       }
 
@@ -2614,6 +2626,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       if (sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        hashcat_ctx->status_ctx->user_error = true;
 
         return -1;
       }

@@ -2064,6 +2064,8 @@ int main (int argc, char **argv)
 
   // parse commandline parameters and check them
 
+  // getopt and sanity reject a wrong command line, which is a user error, so they exit with -2
+
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
     user_options_destroy (hashcat_ctx);
@@ -2072,7 +2074,7 @@ int main (int argc, char **argv)
 
     hcfree (hashcat_ctx);
 
-    return -1;
+    return -2;
   }
 
   if (user_options_sanity (hashcat_ctx) == -1)
@@ -2083,7 +2085,7 @@ int main (int argc, char **argv)
 
     hcfree (hashcat_ctx);
 
-    return -1;
+    return -2;
   }
 
   // some early exits
@@ -2195,6 +2197,11 @@ int main (int argc, char **argv)
       rc_final = hashcat_session_execute (hashcat_ctx);
     }
   }
+
+  // a wrong command for the task is a user error, reported as -2 so a caller can tell it apart from
+  // the generic -1; read before hashcat_session_destroy, while status_ctx is still valid
+
+  if (rc_final == -1 && hashcat_ctx->status_ctx->user_error == true) rc_final = -2;
 
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 

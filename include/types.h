@@ -3967,6 +3967,12 @@ typedef struct status_ctx
 
   u32  stdin_read_timeout_cnt;
 
+  /**
+   * exit code refinement
+   */
+
+  bool user_error;              // session aborted because the command is wrong, not the environment; refines exit -1 to -2
+
 } status_ctx_t;
 
 typedef struct hashcat_user

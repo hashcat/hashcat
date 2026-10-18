@@ -32,12 +32,16 @@ static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictf
   {
     event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile1);
 
+    hashcat_ctx->status_ctx->user_error = true;
+
     return -1;
   }
 
   if (words2_cnt[0] == GENERIC_KEYSPACE_UNKNOWN)
   {
     event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile2);
+
+    hashcat_ctx->status_ctx->user_error = true;
 
     return -1;
   }
@@ -136,6 +140,8 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN)
     {
       event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile);
+
+      hashcat_ctx->status_ctx->user_error = true;
 
       return -1;
     }
