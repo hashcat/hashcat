@@ -126,10 +126,12 @@ kernel at startup, so most recipes run close to the speed of a matching built-in
 
 Recipes use the syntax of hx, the hash expression language. They combine MD2, MD4, MD5, SHA-0,
 SHA-1, SHA-2, SHA-3, Keccak, RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL,
-Tiger, Snefru and MySQL323 with HMAC, PBKDF2 and AES. Functions such as upper, rev and pad transform
-passwords and salts, salts stored as hex or base64 are decoded with fromhex and frombase64, and
-digests can be sliced or re-encoded. A recipe can also span several statements that assign
-variables, as in "h = md5(salt); md5(h . pass)". Recipes can loop, as in
+Tiger, Snefru and MySQL323 with HMAC, PBKDF2 and AES. The SHA-3 candidates BLAKE, BMW, CubeHash,
+ECHO, Fugue, Groestl, Hamsi, JH, Luffa, Shabal, SHAvite-3, SIMD and Skein are available as well, and
+so are HAS-160, EDON-R, MD6, RadioGatun, PANAMA, DES and LM. Functions such as upper, rev and pad
+transform passwords and salts, salts stored as hex or base64 are decoded with fromhex and
+frombase64, and digests can be sliced or re-encoded. A recipe can also span several statements that
+assign variables, as in "h = md5(salt); md5(h . pass)". Recipes can loop, as in
 "for i = 1 to iter { h = md5_bin(h . pass) }", derive keys with pbkdf2, decrypt or unwrap with AES
 and end in a comparison, so slow formats such as phpass, PBKDF2 hashes and 1Password agilekeychain
 run as recipes too. The iteration count can come from each hash line, and results can be base64 as
@@ -140,13 +142,12 @@ two computed values as well as a value and a constant. Many custom schemes can n
 place of a dedicated mode or the slower dynamic plugin of mode 74000. See
 "docs/hashcat-hash-recipe.md".
 
-The same engine now replaces the pure kernels of 145 fast hash modes, including MD5, NTLM and the
-HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes. It also runs 18 PBKDF2 modes, such as
-PBKDF2-HMAC-SHA256 and macOS. Each module keeps its hash parser, self-test and optimized kernels.
-This removes 428 kernel files and about 85,000 lines, while the engine, documentation and tests add
-about 5,700. A new fast hash mode built from these families needs only a module that parses the hash
-line and names its recipe. See "Kernel: fast hash type (recipe)" in
-"docs/hashcat-plugin-development-guide.md".
+The same engine now replaces the pure kernels of 182 fast hash modes, including MD5, NTLM and the
+HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes. It also runs 47 slow modes, such as
+PBKDF2-HMAC-SHA256, macOS, phpass and Drupal7. Each module keeps its hash parser, self-test and
+optimized kernels. This removes 567 kernel files and about 110,000 lines. A new fast hash mode built
+from these families needs only a module that parses the hash line and names its recipe. See
+"Kernel: fast hash type (recipe)" in "docs/hashcat-plugin-development-guide.md".
 
 ##
 ## Migration and Compatibility
@@ -225,6 +226,90 @@ changes that may require action.
 - Mode 22001 now uses 1240 bytes of salt data per hash, up from 956, matching mode 22000, to hold
   802.11r fields. Large hash lists will need more host and device memory
 
+## Hash mode numbers
+
+- Hash modes that are defined only by a stored hash recipe and have no optimized kernels moved to
+  the range from 40000 to 44000, which is reserved for them. Hash formats and results are unchanged.
+  See "docs/hashcat-hash-recipe.md"
+- The old numbers still work with "-m", and a run shows the number it was given. The "-hh",
+  "--identify", "--example-hashes" and "--benchmark-all" output lists only the new numbers, and the
+  default "--benchmark" list uses them
+- A hash detected without "-m" runs under its new number, which the status screen then shows
+- Tuning rows that name an old number apply to the new one. Scripts that open module or test module
+  files by number need the new number, as in "src/modules/module_40032.c" for mode 12000
+- The moved hash modes, old number to new:
+  Old    New    Name
+  1310   40009  sha224($pass.$salt)
+  1320   40010  sha224($salt.$pass)
+  5200   40011  Password Safe v3
+  5720   40012  Cisco-ISE Hashed Password (SHA256)
+  6050   40013  HMAC-RIPEMD160 (key = $pass)
+  6060   40014  HMAC-RIPEMD160 (key = $salt)
+  6400   40015  AIX {ssha256}
+  6500   40016  AIX {ssha512}
+  6700   40017  AIX {ssha1}
+  7100   40018  macOS v10.8+ (PBKDF2-SHA512)
+  7200   40019  GRUB 2
+  7900   40020  Drupal7
+  9200   40021  Cisco-IOS $8$ (PBKDF2-SHA256)
+  10000  40022  Django (PBKDF2-SHA256)
+  10300  40023  SAP CODVN H (PWDSALTEDHASH) iSSHA-1
+  10900  40024  PBKDF2-HMAC-SHA256
+  10901  40025  RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)
+  11000  40026  PrestaShop
+  11750  40027  HMAC-Streebog-256 (key = $pass), big-endian
+  11760  40028  HMAC-Streebog-256 (key = $salt), big-endian
+  11850  40029  HMAC-Streebog-512 (key = $pass), big-endian
+  11860  40030  HMAC-Streebog-512 (key = $salt), big-endian
+  11900  40031  PBKDF2-HMAC-MD5
+  12000  40032  PBKDF2-HMAC-SHA1
+  12001  40033  Atlassian (PBKDF2-HMAC-SHA1)
+  12100  40034  PBKDF2-HMAC-SHA512
+  12150  40035  Apache Shiro 1 SHA-512
+  12300  40036  Oracle T: Type (Oracle 12+)
+  12800  40037  MS-AzureSync PBKDF2-HMAC-SHA256
+  15100  40038  Juniper/NetBSD sha1crypt
+  18500  40039  sha1(md5(md5($pass)))
+  18800  40040  Blockchain, My Wallet, Second Password (SHA256)
+  19210  40041  QNX 7 /etc/shadow (SHA512)
+  20200  40042  Python passlib pbkdf2-sha512
+  20300  40043  Python passlib pbkdf2-sha256
+  20400  40044  Python passlib pbkdf2-sha1
+  20600  40045  Oracle Transportation Management (SHA256)
+  20720  40046  sha256($salt.sha256($pass))
+  20730  40047  sha256(sha256($pass.$salt))
+  21300  40048  md5($salt.sha1($salt.$pass))
+  21420  40049  sha256($salt.sha256_bin($pass))
+  21600  40050  Web2py pbkdf2-sha512
+  22800  40051  Simpla CMS - md5($salt.$pass.md5($pass))
+  23200  40052  XMPP SCRAM PBKDF2-SHA1
+  24200  40053  MongoDB ServerKey SCRAM-SHA-256
+  26300  40054  FortiGate256 (FortiOS256)
+  28600  40055  PostgreSQL SCRAM-SHA-256
+  29100  40056  Flask Session Cookie ($salt.$salt.$pass)
+  32000  40057  NetIQ SSPR (MD5)
+  32010  40058  NetIQ SSPR (SHA1)
+  32020  40059  NetIQ SSPR (SHA-1 with Salt)
+  32030  40060  NetIQ SSPR (SHA-256 with Salt)
+  32031  40061  Adobe AEM (SSPR, SHA-256 with Salt)
+  32040  40062  NetIQ SSPR (SHA-512 with Salt)
+  32041  40063  Adobe AEM (SSPR, SHA-512 with Salt)
+  32050  40064  NetIQ SSPR (PBKDF2WithHmacSHA1)
+  32060  40065  NetIQ SSPR (PBKDF2WithHmacSHA256)
+  32070  40066  NetIQ SSPR (PBKDF2WithHmacSHA512)
+  32410  40067  sha512(sha512($pass).$salt)
+  32420  40068  sha512(sha512_bin($pass).$salt)
+  32600  40069  CubeCart (whirlpool($salt.$pass.$salt))
+  32900  40070  PBKDF1-SHA1
+  33100  40071  md5($salt.md5($pass).$salt)
+  33300  40072  HMAC-BLAKE2S (key = $pass)
+  33650  40073  HMAC-RIPEMD320 (key = $pass)
+  33660  40074  HMAC-RIPEMD320 (key = $salt)
+  33900  40075  Citrix NetScaler (PBKDF2-HMAC-SHA256)
+  34400  40076  sha224(sha224($pass))
+  34500  40077  sha224(sha1($pass))
+  35000  40078  SAP CODVN H (PWDSALTEDHASH) isSHA512
+
 ## Brain protocol and stored sessions
 
 - Brain clients now default to value 3, enabling range and candidate deduplication. In-kernel
@@ -239,6 +324,9 @@ changes that may require action.
   downgrades cannot undo it
 - Attack identity now includes whether "-S" is active because host and device positions count
   different units. Old coverage records are not loaded. Candidate identity databases are unchanged
+- The computed brain session identity and the attack identity include the hash mode number as it
+  was given. Clients that give a moved hash mode by its old and by its new number therefore do not
+  share them. A hash detected without "-m" counts as the new number
 
 ## Python bridge and plugins
 
@@ -323,9 +411,9 @@ changes that may require action.
 - Added mode 36000: BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)
 - Added mode 36400: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
 - Added mode 36410: KDE KWallet < 4.13 (SHA-1, Blowfish)
-- Added mode 36500: NTLM(NTLM_bin($pass))
+- Added mode 40080: NTLM(NTLM_bin($pass))
 - Added mode 35500: WordPress bcrypt(hmac-sha384($pass))
-- Added mode 35700: phpass(md5($pass))
+- Added mode 40079: phpass(md5($pass))
 - Added mode 35800: Symfony Legacy SHA256
 - Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
 - Added mode 37700: Cardano Eternl Wallet (PBKDF2-HMAC-SHA512 + ChaCha20-Poly1305)
@@ -335,8 +423,8 @@ changes that may require action.
 - Added mode 36900: iClass Standard (DES + hash0 + iClass Cipher, dual-MAC)
 - Added mode 36901: iClass Legacy Brute-Force (partial div_key + iClass Cipher, dual-MAC)
 - Added mode 37000: MIFARE Ultralight C 3DES Key Recovery
-- Added mode 37300: SAP CODVN H (PWDSALTEDHASH) iSSHA-256
-- Added mode 37301: SAP CODVN H (PWDSALTEDHASH) iSSHA-384
+- Added mode 40081: SAP CODVN H (PWDSALTEDHASH) iSSHA-256
+- Added mode 40082: SAP CODVN H (PWDSALTEDHASH) iSSHA-384
 - Added mode 37400: RACF DES Passphrase
 - Added mode 37500: RACF KDFAES Passphrase
 - Added mode 37600: SASL DIGEST-MD5
@@ -348,14 +436,23 @@ changes that may require action.
 - Added mode 24440: PKCS#12 (.pfx, .p12) (SHA256 + HMAC-SHA256)
 - Added mode 38200: Cisco-IOS $14$ (convoluted Type 9)
 - Added mode 4000: Hash Recipe, a recipe of MD2, MD4, MD5, SHA-0, SHA-1, SHA-2, SHA-3, Keccak,
-  RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL, Tiger, Snefru, MySQL323, HMAC,
-  PBKDF2 and AES calls over the password, the salt and further hash line fields, with loops, xor,
-  comparisons and transforms such as upper(), rev() and pad(), given with "--hash-recipe"
+  RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL, Tiger, Snefru, MySQL323, the
+  SHA-3 candidates, Skein, PANAMA, HAS-160, EDON-R, MD6, RadioGatun, DES, HMAC, PBKDF2 and AES calls
+  over the password, the salt and further hash line fields, with loops, xor, comparisons and
+  transforms such as upper(), rev() and pad(), given with "--hash-recipe"
 - Added mode 38300: Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + AES-192 key blob)
 - Added mode 38400: Kerberos 5, etype 1/2/3, DB
 - Added mode 38500: Kerberos 5, etype 3, TGS-REP
 - Added mode 38600: Kerberos 5, etype 3, AS-REP
 - Added mode 38700: FreeBSD GELI
+- Added mode 40000: XCA database password
+- Added mode 40001: OSPFv2/RIPv2 MD5 authentication
+- Added mode 40002: Huawei / H3C / HPE Comware $h$6$
+- Added mode 40004: UUID v3 (RFC 4122 name-based, MD5)
+- Added mode 40005: UUID v5 (RFC 4122 name-based, SHA-1)
+- Added mode 40006: MySQL caching_sha2_password challenge-response (fast authentication)
+- Added mode 40007: MODX Evolution (uncrypt)
+- Added mode 40083: Fernet (key = SHA256($pass))
 
 ##
 ## New Features and Options
@@ -377,8 +474,9 @@ changes that may require action.
   the matching built-in pure kernel. See "docs/hashcat-hash-recipe.md"
 - Wordlists, hash lists and rules accept zstd files as well as gzip and xz. Hashcat can seek
   directly in multi-frame files created by "pzstd"
-- John's dynamic format covers 56 built-in formats. The "--show", "--left" and "--remove" options
-  keep John's original hash spelling
+- John's dynamic format covers 407 of John's built-in formats and the 58 in its "dynamic.conf".
+  Formats without a hash mode of their own run as hash recipes. The "--show", "--left" and
+  "--remove" options keep John's original hash spelling
 - Use "--hash-copy" to keep the input spelling of cracked hashes in outfiles, potfiles and status
   output
 - Encrypt recovered plaintext with "--encrypt-with-pubkey" and an RSA key of at least 3344 bits. It
@@ -414,7 +512,7 @@ changes that may require action.
 
 ## Runtime control and reporting
 
-- Rewind or advance a running attack with "r", "a", the arrow keys, "<" or ">".
+- Rewind or advance a running attack with "r", "a", the left and right arrow keys, "<" or ">".
   Holding a key moves faster
 - Press "e" to change a running attack's "--runtime" limit
 - Pure-kernel benchmarks use "--benchmark-pure" ("-B"). Optimized-kernel benchmarks still use "-b",
@@ -427,6 +525,8 @@ changes that may require action.
   on read-only storage, while kernel-cache writes still require permission
 - Option "--json" emits every structured output surface as JSON, including the benchmark, which had
   no JSON form before. "--benchmark-json" emits only the benchmark and turns "-b" on
+- Option "--stdin-count" takes the expected number of lines on stdin, so a piped attack shows its
+  progress and an estimated finish time
 
 ## Extraction tools
 
@@ -449,6 +549,7 @@ changes that may require action.
 
 Results depend on the device, runtime and workload.
 
+- Mode 29200 (Radmin3) runs about 8x faster, 14.0 MH/s against 1.70 MH/s on an RX 7900 XTX
 - Brain sharding cuts commit, lookup and insertion time by 92-99% and resident memory overhead by
   95%
 - Modes 73000 and 74000 handle up to 1k candidates per bridge launch, up from 8. On 28 i7-14700K
@@ -635,11 +736,14 @@ Results depend on the device, runtime and workload.
 - The pure kernels of 145 fast hash modes (MD4, MD5, SHA-1, SHA-2, RIPEMD-160, BLAKE2 and SM3
   compositions, the HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes, and Radmin2) now run as
   hash recipes through the mode 4000 kernels, and their 428 pure kernel files are removed. Optimized
-  kernels, hash formats and mode numbers are unchanged
+  kernels and hash formats are unchanged. Some of these modes have new numbers, see Migration
 - The slow kernels of 18 PBKDF2 modes (PBKDF2-HMAC-MD5, -SHA1, -SHA256 and -SHA512 and formats built
   on them, such as macOS, GRUB 2, Django and Cisco-IOS $8$) now run as hash recipes through the slow
-  kernel of mode 4000, and the 4 pure kernel files they shared are removed. Hash formats and mode
-  numbers are unchanged
+  kernel of mode 4000, and the 4 pure kernel files they shared are removed. Hash formats are
+  unchanged. Some of these modes have new numbers, see Migration
+- The pure kernels of 37 more fast hash modes and 29 slow ones, such as Whirlpool, Streebog, SHA-3,
+  phpass, Drupal7 and the SCRAM modes, now run as hash recipes and their 135 pure kernel files are
+  removed. Optimized kernels and hash formats are unchanged
 
 ## Attack modes and candidate input
 
@@ -705,6 +809,8 @@ Results depend on the device, runtime and workload.
   Kerberos 5 etype 23 AS-REP. MyBB replaces vBulletin
 - Redundant "md5($pass.$salt)" benchmark modes were removed. The differing
   "md5($salt.$pass)" forms remain
+- The benchmark header shows the cost parameters of Argon2, scrypt, yescrypt and bcrypt modes, such
+  as "m=65536, t=3, p=1", instead of an iteration count
 
 ## Plugins and bridges
 
@@ -720,6 +826,9 @@ Results depend on the device, runtime and workload.
 - The "hc_fopen_mem()" function reads an existing memory buffer through the normal file interface
 - Rust bridges share "hashcat-sys" and build crates under "Rust/bridges" into
   "bridges/subs". CI builds and tests both plugin families
+- Modules can set "module_benchmark_hint" to show their own cost parameters in the benchmark header
+- Bridges can return a fixed "kernel_accel" and "kernel_loops" for a unit through
+  "get_unit_tuning", which skips autotune for that unit
 
 ## Modules
 
@@ -783,6 +892,10 @@ Results depend on the device, runtime and workload.
   suite instead of being silently skipped
 - Multi-hash test runs now give two pairs of hashes a shared salt where the mode allows it, and
   "tools/test.py -d" selects devices for every test path
+- The test suite needs Python 3.10 or newer and calls libc crypt directly, without the "crypt-r"
+  package
+- A failing test run keeps its hash file and dictionaries in the log folder, so it can be
+  reproduced from the uploaded log
 
 ## Documentation and licensing
 
@@ -913,6 +1026,10 @@ Results depend on the device, runtime and workload.
 
 ## Hash modes and kernels
 
+- Fixed modes 23001, 23002 and 23003 (SecureZIP) recovering only one of several hashes that share
+  an IV
+- Fixed modes 34200, 34201 and 34211 missing cracks in -a 1 and -a 7 with pure kernels when a
+  candidate followed a longer one
 - Fixed modes 22000 and 22001 not accepting EAPOL frames longer than 256 bytes, including M2 frames
   with vendor RSN extensions
 - Fixed modes 22000 and 22001 failing to parse older PMKID lines separated with ":" instead of "*"
@@ -1028,6 +1145,8 @@ Results depend on the device, runtime and workload.
 ## Backends: OpenCL, tuning and memory
 
 - Fixed Windows HIP comparing runtime versions on the wrong scale
+- Fixed "-b" lowering the free memory estimate of a device again for every hash mode with its own
+  tuning rows, so later hash modes could be refused for memory
 - Fixed OpenCL 1.2 devices needing obsolete atomic and byte-store extension strings, and Beignet
   and Mesa version strings triggering an old-driver rejection
 - Fixed OpenCL C standard selection and too-old diagnostics using the platform version instead of
@@ -1279,6 +1398,8 @@ Results depend on the device, runtime and workload.
 - Fixed an install with a different "PREFIX" not rebuilding paths tied to the build prefix
 - Fixed cross compiling for Windows on older Ubuntu LTS releases, whose mingw headers default to a
   Windows version older than Vista. Both Windows builds now target Windows 7
+- Fixed the build on 32-bit x86 without SSE2, such as i586, in the CPU feature detection and in
+  the Argon2 reference bridge
 
 ## Tools and tests
 
