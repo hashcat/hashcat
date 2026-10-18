@@ -2199,9 +2199,11 @@ int main (int argc, char **argv)
   }
 
   // a wrong command for the task is a user error, reported as -2 so a caller can tell it apart from
-  // the generic -1; read before hashcat_session_destroy, while status_ctx is still valid
+  // the generic -1. Most sites surface as -1, but the restore-value check aborts through myabort,
+  // which reports 2, so that code is refined here too. Read before hashcat_session_destroy, while
+  // status_ctx is still valid.
 
-  if (rc_final == -1 && hashcat_ctx->status_ctx->user_error == true) rc_final = -2;
+  if ((rc_final == -1 || rc_final == RC_FINAL_ABORT) && hashcat_ctx->status_ctx->user_error == true) rc_final = -2;
 
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
