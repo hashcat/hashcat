@@ -32,6 +32,10 @@
 
 #define RECIPE_MAX_AFFIX 64
 
+// The hash line parser undoes up to RECIPE_MAX_ROOT_XOPS transforms around the result.
+
+#define RECIPE_MAX_ROOT_XOPS 8
+
 // AES call data can contain up to RECIPE_MAX_AES bytes, with 8 additional bytes for aes_unwrap.
 
 #define RECIPE_MAX_AES 64
@@ -354,6 +358,11 @@ typedef enum recipe_xop
 
   RECIPE_XOP_B64     = 16,
 
+  // xor with a string appears only among the transforms around the result, see root_xops in
+  // recipe_prog_t. Its argument a is the index of the string.
+
+  RECIPE_XOP_XOR     = 17,
+
 } recipe_xop_t;
 
 // Arguments a and b store the rotation offset, cap position (-1 for the first lowercase letter),
@@ -496,6 +505,15 @@ typedef struct recipe_prog
 
   u32 root_len;
 
+  // Transforms around the root step's raw output that keep its length and can be undone, as in
+  // hex (rev (md5_bin (pass))), innermost first. The hash line holds all root_xlen bytes of their
+  // output. The parser undoes them once per line, see recipe_root_undo (), so the device compares
+  // the root step's own output.
+
+  recipe_xop_entry_t root_xops[RECIPE_MAX_ROOT_XOPS];
+  u32                root_xops_cnt;
+  u32                root_xlen;
+
   // The longest text a hash line can hold for the result, without the strings around it: 128
   // characters, or more for a long derived key of pbkdf2 as the result.
 
@@ -593,6 +611,7 @@ HC_PLUGIN_API void        recipe_field_set (u32 *fields, const u32 field, const 
 HC_PLUGIN_API u32         recipe_field_get (const u32 *fields, const u32 field, u8 *buf);
 HC_PLUGIN_API const char *recipe_algo_name (const u32 algo);
 HC_PLUGIN_API u32         recipe_xform_apply (const recipe_xform_t *xform, u8 *buf, const u32 len);
+HC_PLUGIN_API void        recipe_root_undo (const recipe_prog_t *prog, u8 *buf);
 HC_PLUGIN_API char       *recipe_jit_build_options (const char *src, const bool root_native);
 HC_PLUGIN_API bool        recipe_salt_valid (const recipe_prog_t *prog, const u8 *salt, const u32 salt_len);
 HC_PLUGIN_API bool        recipe_salt_fits (const recipe_prog_t *prog, const u8 *salt, const u32 salt_len);

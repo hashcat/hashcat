@@ -661,6 +661,12 @@ Mode 74000's dynamic plugin supports bcrypt. It runs on the CPU and is much slow
 - Work that does not depend on the candidate runs once per salt. This includes calls on `salt` and
   strings alone, leading parts such as the salt in `sha256(salt . pass)`, and HMAC key pads when
   the key is `salt`.
+- `rev`, `rotate`, `bswap32`, `rot13`, a `wperm` of all words and an `xor` with a string around
+  the result, as in `hex(rev(md5_bin(pass)))`, are undone once for each hash line as it loads. The
+  kernel compares the hash output inside them, so they cost nothing per candidate. This applies to
+  recipes without a loop or `pbkdf2` when nothing cuts the result. `rev` and `bswap32` of SHA-1,
+  SHA-2 and some other families stay in the kernel, where they undo a byte swap the kernel makes
+  anyway and cost nothing.
 - In a loop, an HMAC of MD4, MD5, SHA-1, SHA-2, RIPEMD-160 or SM3 whose key the loop does not
   change, such as `pass`, computes its key pads before the loop rather than in every iteration.
 - In a loop, a call of one of those families whose input fits one block, such as `md5_bin(h . pass)`

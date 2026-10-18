@@ -431,7 +431,7 @@ static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_
 
 // Kernel names for transforms on a copy. See RECIPE_XOP_* in the kernel include.
 
-static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE", "B64" };
+static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE", "B64", "XOR" };
 
 static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
@@ -2439,6 +2439,63 @@ u32 recipe_xform_apply (const recipe_xform_t *xform, u8 *buf, const u32 len)
   for (u32 i = 0; i < xform->ops_cnt; i++) r = recipe_xop_apply (&xform->ops[i], buf, r);
 
   return r;
+}
+
+// Apply a transform around the result to the root_xlen bytes in x, which holds RECIPE_MAX_XBYTES, or
+// undo it. Each of them keeps the length, see recipe_root_peel (). rev, bswap32, rot13 and xor undo
+// themselves.
+
+static void recipe_root_xop (const recipe_prog_t *prog, const recipe_xop_entry_t *op, const bool undo, u8 *x)
+{
+  const u32 len = prog->root_xlen;
+
+  if (op->op == RECIPE_XOP_XOR)
+  {
+    const u8 *lit = prog->lits[op->a];
+
+    const u32 lit_len = prog->lit_lens[op->a];
+
+    for (u32 i = 0; i < len; i++) x[i] ^= lit[i % lit_len];
+
+    return;
+  }
+
+  recipe_xop_entry_t inv = *op;
+
+  if ((undo == true) && (op->op == RECIPE_XOP_ROTATE)) inv.a = -op->a;
+
+  // wperm moves word w_j to word j, so its inverse moves word j back to word w_j.
+
+  if ((undo == true) && (op->op == RECIPE_XOP_WPERM))
+  {
+    u64 a = 0;
+
+    for (u32 j = 0; j < (u32) op->b; j++)
+    {
+      const u32 w = (u32) ((op->a >> (j * 4)) & 15);
+
+      a |= (u64) j << (w * 4);
+    }
+
+    inv.a = (i64) a;
+  }
+
+  recipe_xop_apply (&inv, x, len);
+}
+
+// Undo the transforms around the result on the root_xlen bytes in buf, decoded from a hash line.
+// buf then holds the root step's output.
+
+void recipe_root_undo (const recipe_prog_t *prog, u8 *buf)
+{
+  u8 x[RECIPE_MAX_XBYTES];
+
+  memset (x, 0, sizeof (x));
+  memcpy (x, buf, prog->root_xlen);
+
+  for (u32 i = prog->root_xops_cnt; i > 0; i--) recipe_root_xop (prog, &prog->root_xops[i - 1], true, x);
+
+  memcpy (buf, x, prog->root_xlen);
 }
 
 // Compute the transformed length to determine the maximum password and salt sizes a copy can hold.
@@ -5098,9 +5155,213 @@ static bool recipe_root_tail (recipe_parser_t *p, u32 *id, bool *tail)
   return true;
 }
 
+// Whether a transform of len bytes keeps their length and can be undone: rev, rotate, bswap32,
+// rot13, and wperm when it reorders all words of its input.
+
+static bool recipe_xop_undoable (const recipe_xop_entry_t *op, const u32 len)
+{
+  if ((op->op == RECIPE_XOP_REV) || (op->op == RECIPE_XOP_ROTATE) || (op->op == RECIPE_XOP_BSWAP32) || (op->op == RECIPE_XOP_ROT13)) return true;
+
+  if (op->op != RECIPE_XOP_WPERM) return false;
+
+  const u32 cnt = (u32) op->b;
+
+  if ((cnt * 4) != len) return false;
+
+  u32 seen = 0;
+
+  for (u32 j = 0; j < cnt; j++)
+  {
+    const u32 w = (u32) ((op->a >> (j * 4)) & 15);
+
+    if (w >= cnt) return false;
+
+    seen |= 1u << w;
+  }
+
+  const bool r = (seen == ((1u << cnt) - 1));
+
+  return r;
+}
+
+// Whether the kernel byte swaps a family's state words into its raw output, in RECIPE_HASH_* or in
+// the family's final. rev and bswap32 of that output swap the bytes back, which the compiler folds
+// away, so they cost the kernel nothing.
+
+static bool recipe_algo_swaps (const u32 algo)
+{
+  if ((algo >= RECIPE_ALGO_SHA1) && (algo <= RECIPE_ALGO_SHA512)) return true;
+
+  if ((algo == RECIPE_ALGO_SHA0) || (algo == RECIPE_ALGO_SM3) || (algo == RECIPE_ALGO_WRL) || (algo == RECIPE_ALGO_MYSQL323)) return true;
+
+  if ((algo >= RECIPE_ALGO_BLAKE224)   && (algo <= RECIPE_ALGO_BLAKE512))   return true;
+  if ((algo >= RECIPE_ALGO_ECHO224)    && (algo <= RECIPE_ALGO_ECHO512))    return true;
+  if ((algo >= RECIPE_ALGO_HAMSI224)   && (algo <= RECIPE_ALGO_HAMSI512))   return true;
+  if ((algo >= RECIPE_ALGO_LUFFA224)   && (algo <= RECIPE_ALGO_LUFFA512))   return true;
+  if ((algo >= RECIPE_ALGO_SHAVITE224) && (algo <= RECIPE_ALGO_SHAVITE512)) return true;
+  if ((algo >= RECIPE_ALGO_MD6128)     && (algo <= RECIPE_ALGO_MD6512))     return true;
+
+  return false;
+}
+
+// The step whose output reaches step k through xor with strings only, or k itself.
+
+static u32 recipe_step_under_xor (const recipe_prog_t *prog, const u32 k)
+{
+  u32 at = k;
+
+  while (true)
+  {
+    const recipe_step_t *step = &prog->steps[at];
+
+    if ((step->kind != RECIPE_KIND_BOP) || (step->aop != RECIPE_BOP_XOR) || (step->parts_cnt != 2)) break;
+
+    const u32 s = (step->parts[0].kind == RECIPE_PART_LIT) ? 1 : 0;
+
+    if ((step->parts[1 - s].kind != RECIPE_PART_LIT) || (step->parts[s].kind != RECIPE_PART_STEP)) break;
+
+    at = step->parts[s].idx;
+  }
+
+  return at;
+}
+
+// Steps around the result that keep its length and can be undone would run for every candidate:
+// the transforms of recipe_xop_undoable () and xor with a string, as in hex (rev (md5_bin (pass)))
+// or hex (xor (md5_bin (pass), fromhex ("..."))). The hash line parser undoes them once per line
+// instead. The line has to hold all of their output, so none of them may be cut. Removing them
+// leaves the step they read as the last step, whose raw output the device compares. Removal stops
+// at a step the kernel gets for free, see recipe_algo_swaps ().
+
+static void recipe_root_peel (recipe_prog_t *prog)
+{
+  if ((prog->slow == 1) || (prog->cmp == 1) || (prog->root_var > 0) || (prog->root_tail > 0)) return;
+
+  if ((prog->steps_cnt == 0) || (prog->root_step != (prog->steps_cnt - 1))) return;
+
+  // The transforms, outermost first, and the length they keep.
+
+  recipe_xop_entry_t ops[RECIPE_MAX_ROOT_XOPS];
+  u32                ops_cnt = 0;
+
+  u32 xlen = 0;
+  u32 root = prog->root_step;
+
+  while (root > 0)
+  {
+    const recipe_step_t *step = &prog->steps[root];
+
+    if ((step->kind != RECIPE_KIND_XFRM) && (step->kind != RECIPE_KIND_BOP)) break;
+
+    // The input is the raw output of the step before, of a fixed length.
+
+    const recipe_step_t *src = &prog->steps[root - 1];
+
+    if ((src->fmt != RECIPE_FMT_RAW) || (src->cut_len == 0) || (src->cut_len > 64) || ((src->cut_start % 4) != 0)) break;
+
+    const u32 len = src->cut_len;
+
+    u32 full = len;
+
+    if ((step->fmt == RECIPE_FMT_HEX) || (step->fmt == RECIPE_FMT_HEXU)) full = len * 2;
+
+    if (step->fmt == RECIPE_FMT_B64) full = recipe_b64_len (len);
+
+    if ((step->cut_start != 0) || (step->cut_len != full)) break;
+
+    if (step->kind == RECIPE_KIND_XFRM)
+    {
+      const recipe_part_t *part = &step->parts[0];
+
+      if ((step->parts_cnt != 1) || (part->kind != RECIPE_PART_STEP) || (part->idx != (root - 1)) || (part->wide == 1)) break;
+
+      if ((ops_cnt + step->xops_cnt) > RECIPE_MAX_ROOT_XOPS) break;
+
+      bool undoable = true;
+
+      for (u32 i = 0; i < step->xops_cnt; i++)
+      {
+        if (recipe_xop_undoable (&step->xops[i], len) == false) undoable = false;
+      }
+
+      if (undoable == false) break;
+
+      // rev and bswap32 stay when they read a family that the kernel byte swaps, as in
+      // hex (bswap32 (sha1_bin (pass))), directly or through xor with a string.
+
+      bool order = false;
+
+      for (u32 i = 0; i < step->xops_cnt; i++)
+      {
+        if ((step->xops[i].op == RECIPE_XOP_REV) || (step->xops[i].op == RECIPE_XOP_BSWAP32)) order = true;
+      }
+
+      const recipe_step_t *hash = &prog->steps[recipe_step_under_xor (prog, root - 1)];
+
+      const bool swapped = ((hash->kind == RECIPE_KIND_HASH) || (hash->kind == RECIPE_KIND_HMAC)) && (recipe_algo_swaps (hash->algo) == true);
+
+      if ((order == true) && (swapped == true)) break;
+
+      for (u32 i = step->xops_cnt; i > 0; i--)
+      {
+        ops[ops_cnt] = step->xops[i - 1];
+
+        ops_cnt++;
+      }
+    }
+    else
+    {
+      // xor repeats a string shorter than the step's output.
+
+      const u32 s = (step->parts[0].kind == RECIPE_PART_LIT) ? 1 : 0;
+
+      const recipe_part_t *part = &step->parts[s];
+      const recipe_part_t *lit  = &step->parts[1 - s];
+
+      if ((step->aop != RECIPE_BOP_XOR) || (step->parts_cnt != 2) || (ops_cnt == RECIPE_MAX_ROOT_XOPS)) break;
+
+      if ((part->kind != RECIPE_PART_STEP) || (part->idx != (root - 1)) || (part->wide == 1) || (step->part_lens[s] != len)) break;
+
+      if ((lit->kind != RECIPE_PART_LIT) || (lit->wide == 1) || (prog->lit_lens[lit->idx] == 0) || (prog->lit_lens[lit->idx] > len)) break;
+
+      memset (&ops[ops_cnt], 0, sizeof (recipe_xop_entry_t));
+
+      ops[ops_cnt].op = RECIPE_XOP_XOR;
+      ops[ops_cnt].a  = lit->idx;
+
+      ops_cnt++;
+    }
+
+    xlen = len;
+
+    root--;
+  }
+
+  if (ops_cnt == 0) return;
+
+  const u32 steps_cnt = prog->steps_cnt;
+
+  const recipe_step_t *src = &prog->steps[root];
+
+  prog->root_off  = src->cut_start / 4;
+  prog->root_len  = MIN (xlen, 16);
+  prog->root_step = root;
+  prog->steps_cnt = root + 1;
+
+  memset (&prog->steps[root + 1], 0, (steps_cnt - (root + 1)) * sizeof (recipe_step_t));
+
+  for (u32 i = 0; i < ops_cnt; i++) prog->root_xops[i] = ops[ops_cnt - 1 - i];
+
+  prog->root_xops_cnt = ops_cnt;
+  prog->root_xlen     = xlen;
+}
+
 static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_native);
 
-bool recipe_compile (recipe_prog_t *prog, const char *src)
+// Compile a recipe. Only with peel are the transforms around the result left to the hash line
+// parser, see recipe_root_peel ().
+
+static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const bool peel)
 {
   memset (prog, 0, sizeof (recipe_prog_t));
 
@@ -5575,6 +5836,8 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
     }
   }
 
+  if ((rc == true) && (peel == true)) recipe_root_peel (prog);
+
   // Assigning a pbkdf2 call to an unread variable would leave a slow recipe without
   // a pbkdf2 call to run.
 
@@ -5668,6 +5931,13 @@ bool recipe_compile (recipe_prog_t *prog, const char *src)
 
     rc = false;
   }
+
+  return rc;
+}
+
+bool recipe_compile (recipe_prog_t *prog, const char *src)
+{
+  const bool rc = recipe_compile_prog (prog, src, true);
 
   return rc;
 }
@@ -5940,7 +6210,10 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 {
   recipe_prog_t prog;
 
-  if (recipe_compile (&prog, src) == false) return NULL;
+  // A hash-mode with a stored recipe parses its hash lines in its own module, which undoes no
+  // transforms, so its kernel keeps them.
+
+  if (recipe_compile_prog (&prog, src, root_native == false) == false) return NULL;
 
   char *jit_build_options = recipe_jit_prog (&prog, root_native);
 
@@ -8887,6 +9160,23 @@ u32 recipe_eval (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, cons
     u32 text[RECIPE_MAX_TEXT / 4];
 
     *out_len = recipe_format (prog->root_fmt, dig, dig_len, text);
+
+    memcpy (out, text, *out_len);
+  }
+  else if (prog->root_xops_cnt > 0)
+  {
+    // The transforms around the result that the hash line parser undoes, see recipe_root_peel ().
+
+    u32 x[RECIPE_MAX_XBYTES / 4];
+
+    memset (x, 0, sizeof (x));
+    memcpy (x, env->outs[prog->root_step], prog->root_xlen);
+
+    for (u32 i = 0; i < prog->root_xops_cnt; i++) recipe_root_xop (prog, &prog->root_xops[i], false, (u8 *) x);
+
+    u32 text[32];
+
+    *out_len = recipe_format (prog->root_fmt, x, prog->root_xlen, text);
 
     memcpy (out, text, *out_len);
   }

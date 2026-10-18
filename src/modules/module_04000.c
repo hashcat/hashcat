@@ -389,6 +389,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 root_len = (prog != NULL) ? prog->root_len : 16;
 
+  // Transforms around the result, as in hex (rev (sha1_bin (pass))), are undone here rather than
+  // applied to every candidate. Undoing them needs all of their output, see recipe_root_undo ().
+
+  const u32 xlen = (prog != NULL) ? prog->root_xlen : 0;
+  const u32 need = MAX (root_len, xlen);
+
   // A string before the result, as in "*" . upper (sha1 (sha1_bin (pass))), starts every line. The
   // rest of the line is parsed without it, since the string can contain a star.
 
@@ -508,7 +514,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = (bare == true) ? 1 : 2;
 
   token.sep[0]     = '*';
-  token.len_min[0] = ((cmp == true) ? 0 : ((b64 == true) ? (((root_len * 4) + 2) / 3) : (root_len * 2))) + suf_len;
+  token.len_min[0] = ((cmp == true) ? 0 : ((b64 == true) ? (((need * 4) + 2) / 3) : (need * 2))) + suf_len;
   token.len_max[0] = ((prog != NULL) ? (int) prog->root_text : 128) + suf_len;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
@@ -556,9 +562,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     const size_t tmp_len = base64_decode (base64_to_int, hash_pos, (size_t) hash_len, tmp);
 
-    if (tmp_len < root_len) return (PARSER_HASH_LENGTH);
+    if (tmp_len < need) return (PARSER_HASH_LENGTH);
 
     if (tmp_len < prog->root_tail) return (PARSER_HASH_LENGTH);
+
+    if (xlen > 0) recipe_root_undo (prog, tmp);
 
     memset (digest, 0, 16);
 
@@ -575,13 +583,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if ((hash_len % 2) != 0) return (PARSER_HASH_LENGTH);
 
-    u8 dig[16];
+    u8 dig[64];
 
     memset (dig, 0, sizeof (dig));
 
-    for (u32 i = 0; i < root_len; i++) dig[i] = hex_to_u8 (&hash_pos[i * 2]);
+    for (u32 i = 0; i < need; i++) dig[i] = hex_to_u8 (&hash_pos[i * 2]);
 
-    memcpy (digest, dig, 16);
+    if (xlen > 0) recipe_root_undo (prog, dig);
+
+    memset (digest, 0, 16);
+
+    memcpy (digest, dig, root_len);
   }
 
   memcpy (recipe_hash->hash_buf, hash_pos, hash_len);

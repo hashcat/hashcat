@@ -82,6 +82,17 @@ DECLSPEC void pcfg_pt_case (MAYBE_UNUSED PRIVATE_AS u32 *w, MAYBE_UNUSED const u
 
 // A kernel file can build either of its 2 kernels on its own using PCFG_SXX_ONLY or PCFG_MXX_ONLY,
 // so that only the kernel the session runs is built.
+//
+// PoCL always gets both. With one kernel, s_cells is the only array ever passed to pcfg_write_from (),
+// so the compiler drops the parameter and has the function read s_cells directly. PoCL then moves the
+// kernel's own uses of a __local array into work group memory but leaves the function reading the
+// original, which nothing writes. Every slot write is then skipped and each lane hashes the base word
+// instead of its own candidate. A second kernel passes a second array and keeps the parameter.
+
+#ifdef IS_POCL
+#undef PCFG_SXX_ONLY
+#undef PCFG_MXX_ONLY
+#endif
 
 #ifndef PCFG_SXX_ONLY
 
