@@ -3971,7 +3971,7 @@ typedef struct status_ctx
    * exit code refinement
    */
 
-  bool user_error;              // session aborted because the command is wrong, not the environment; refines exit -1 to -2
+  bool user_error;              // session aborted because the command is wrong, not the environment. Refines exit -1 to -2
 
 } status_ctx_t;
 
