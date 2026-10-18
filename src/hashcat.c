@@ -1175,6 +1175,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     outer_loop_destroy (hashcat_ctx);
 
+    // stage 1 only reads and parses the hashlist the user gave, so a failure here is a user error
+    // (empty or corrupt file, wrong format, unreadable path), reported as -2 like the count check
+    // below. Stage 2 is left alone because it builds in-memory structures and can fail on memory.
+
+    hashcat_ctx->status_ctx->user_error = true;
+
     return -1;
   }
 
