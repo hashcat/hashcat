@@ -11,7 +11,7 @@ Exit Status Codes:
  -4 = backend error: memory limit reached
  -3 = backend error: hash type skipped by module_unstable_warning
  -2 = user error: invalid command for the task (bad options, hashlist, mask or input files)
- -1 = error
+ -1 = general error (unclassified, not a user or backend error)
   0 = OK/cracked
   1 = exhausted
   2 = aborted
