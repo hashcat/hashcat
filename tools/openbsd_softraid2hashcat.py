@@ -180,26 +180,13 @@ def crypto_fields(s, block, body):
     return dict(alg=alg, kdf=kdf, rounds=rounds, salt=salt, keys=keys, chk=chk[:20])
 
 
-def read_metadata(file, offset):
+def candidates(file):
     """
-    Give back the CRYPTO metadata and where it was found, or raise ValueError. With no offset,
-    try a partition's offset first, then every sector of the file in turn.
+    The offsets where softraid metadata may start: a partition's offset first, then every sector
+    of the file that starts with the magic, in either byte order, in file order.
     """
 
-    if offset is not None:
-        file.seek(offset, SEEK_SET)
-
-        try:
-            return decode(file.read(SR_META_BYTES)), offset
-        except NotHere as e:
-            raise ValueError("no softraid metadata at offset %d: %s" % (offset, e))
-
-    file.seek(SR_META_OFFSET, SEEK_SET)
-
-    try:
-        return decode(file.read(SR_META_BYTES)), SR_META_OFFSET
-    except NotHere:
-        pass
+    yield SR_META_OFFSET
 
     # a disk image: the magic sits at a sector boundary, and a read of whole sectors never splits
     # it across two reads
@@ -212,23 +199,65 @@ def read_metadata(file, offset):
         data = file.read(1024 * 1024)
 
         if len(data) == 0:
-            break
+            return
+
+        hits = []
 
         for magic in (MAGIC_LE, MAGIC_BE):
             hit = data.find(magic)
 
             while hit != -1:
                 if (hit % SECTOR) == 0:
-                    file.seek(base + hit, SEEK_SET)
-
-                    try:
-                        return decode(file.read(SR_META_BYTES)), base + hit
-                    except NotHere:
-                        pass
+                    hits.append(base + hit)
 
                 hit = data.find(magic, hit + 1)
 
+        for hit in sorted(hits):
+            yield hit
+
         base += len(data)
+
+
+def read_metadata(file, offset):
+    """
+    Give back the CRYPTO metadata, where it was found and what was passed over on the way, or
+    raise ValueError. With no offset, try a partition's offset first, then every sector of the
+    file in turn.
+    """
+
+    if offset is not None:
+        file.seek(offset, SEEK_SET)
+
+        try:
+            return decode(file.read(SR_META_BYTES)), offset, []
+        except NotHere as e:
+            raise ValueError("no softraid metadata at offset %d: %s" % (offset, e))
+
+    # A whole disk can hold other softraid metadata ahead of the volume, such as a RAID 1 chunk,
+    # a key disk, or a CRYPTO volume that opens with a key disk. Each is a reason to look further,
+    # and the reasons are reported only when no volume a passphrase opens turns up.
+
+    skipped = []
+    tried = set()
+
+    for at in candidates(file):
+        if at in tried:
+            continue
+
+        tried.add(at)
+
+        file.seek(at, SEEK_SET)
+
+        try:
+            return decode(file.read(SR_META_BYTES)), at, skipped
+        except NotHere:
+            continue
+        except ValueError as e:
+            skipped.append("offset %d: %s" % (at, e))
+
+    if skipped:
+        raise ValueError("no CRYPTO volume that opens with a passphrase, only softraid metadata "
+                         "it cannot use, at %s" % ", ".join(skipped))
 
     raise ValueError("no softraid metadata in the file")
 
@@ -246,13 +275,16 @@ def main():
 
     try:
         with open(args.path, "rb") as file:
-            metadata, offset = read_metadata(file, args.offset)
+            metadata, offset, skipped = read_metadata(file, args.offset)
     except IOError as e:
         parser.error(e.strerror.lower() if e.strerror else str(e))
     except ValueError as e:
         parser.error(str(e))
 
     if args.verbose:
+        for reason in skipped:
+            print("# skipped %s" % reason)
+
         print("# metadata at offset %d, version %d, %s endian, AES-XTS-%d, %s, %d rounds"
               % (offset, metadata["version"], metadata["order"],
                  128 if metadata["alg"] == 1 else 256, KDF_NAMES[metadata["kdf"]],
