@@ -1592,7 +1592,12 @@ int hash_encode (const user_options_t *user_options, const hashconfig_t *hashcon
 
   int line_len = 0;
 
-  if (user_options->hash_copy == true)
+  // --stdout and -b run on a placeholder entry that was never read from a line, so it has no
+  // original to copy and is encoded like any other
+
+  const bool has_orighash = (hash_info_ptr != NULL) && (hash_info_ptr->orighash != NULL);
+
+  if ((user_options->hash_copy == true) && (has_orighash == true))
   {
     line_len = snprintf (out_buf, out_size, "%s", hash_info_ptr->orighash);
   }
@@ -2347,6 +2352,10 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true) return 0;
 
+  // --stdout and --keyspace take no hash argument
+
+  const bool hash_is_file = (user_options_extra->hc_hash != NULL) && (hc_path_exist (user_options_extra->hc_hash) == true);
+
   /**
    * load hashes, part I: find input mode, count hashes
    */
@@ -2357,7 +2366,7 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
     {
       if ((user_options->benchmark == false) && (user_options->keyspace == false))
       {
-        hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+        hashes->hashlist_mode = (hash_is_file == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
 
         if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
         {
@@ -2384,7 +2393,7 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    hashes->hashlist_mode = (hc_path_exist (user_options_extra->hc_hash) == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
+    hashes->hashlist_mode = (hash_is_file == true) ? HL_MODE_FILE_PLAIN : HL_MODE_ARG;
 
     if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
     {

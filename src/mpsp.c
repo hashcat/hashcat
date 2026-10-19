@@ -1736,6 +1736,11 @@ static u32 hybrid_append (u8 *out_buf, const u32 out_len, const u8 *src, const u
 
   const u32 copy_len = MIN (src_len, PW_MAX - out_len);
 
+  // an absent piece is passed as NULL with a length of 0, and memcpy () must not be handed NULL even
+  // for 0 bytes
+
+  if (copy_len == 0) return 0;
+
   memcpy (out_buf + out_len, src, copy_len);
 
   return copy_len;

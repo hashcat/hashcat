@@ -849,6 +849,10 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
+    // a pipe is one source, and it is not in the dictionary list
+
+    if (user_options_extra->wordlist_mode == WL_MODE_STDIN) return 1;
+
     return straight_ctx->dicts_cnt;
   }
 
@@ -2130,6 +2134,10 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
+  // cpt_ctx_init () leaves the buffer out in identify mode and in the other modes that crack nothing
+
+  if (cpt_ctx->enabled == false) return 0;
+
   const time_t now = time (NULL);
 
   int cpt_cur_min = 0;
@@ -2155,6 +2163,8 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
+  if (cpt_ctx->enabled == false) return 0;
+
   const time_t now = time (NULL);
 
   int cpt_cur_hour = 0;
@@ -2179,6 +2189,8 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   if (status_ctx->accessible == false) return 0;
+
+  if (cpt_ctx->enabled == false) return 0;
 
   const time_t now = time (NULL);
 

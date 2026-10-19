@@ -978,6 +978,23 @@ bool is_stdout_terminal (void)
   #endif
 }
 
+// _isatty () answers yes for any character device on Windows, so there the console mode is asked
+
+bool is_stdin_terminal (void)
+{
+  #ifdef _WIN
+  const HANDLE h = GetStdHandle (STD_INPUT_HANDLE);
+
+  DWORD mode = 0;
+
+  const bool is_terminal = (GetConsoleMode (h, &mode) != 0);
+  #else
+  const bool is_terminal = (isatty (fileno (stdin)) == 1);
+  #endif
+
+  return is_terminal;
+}
+
 void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginning, const size_t keep_from_end)
 {
   const size_t target_len = TERMINAL_LINE_LENGTH - keep_from_beginning;

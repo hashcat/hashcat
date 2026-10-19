@@ -775,6 +775,30 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    // --show prints the potfile as it is, and a potfile can hold plains from unprotected runs in the
+    // clear. The entries a protected run wrote are already encrypted, and --show without this option
+    // prints them.
+
+    if (user_options->show == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --show is not allowed.");
+
+      event_log_warning (hashcat_ctx, "The potfile can hold plains in the clear from unprotected runs. Entries from a protected run are already encrypted, so use --show without this option.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    if (user_options->stdout_flag == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --stdout is not allowed.");
+
+      event_log_warning (hashcat_ctx, "--stdout prints every candidate in the clear, and a protected run hides its candidates.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -1845,6 +1869,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->hash_mode_chgd == true)
     {
       event_log_error (hashcat_ctx, "Can't change --hash-type (-m) in identify mode.");
+
+      return -1;
+    }
+
+    // --stdout and --benchmark take no hash, so there is nothing to identify
+
+    if (user_options->stdout_flag == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --identify with --stdout is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->benchmark == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --identify with --benchmark is not allowed.");
 
       return -1;
     }
@@ -3605,8 +3645,13 @@ static u32 user_options_extra_base_scope (hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->loopback      == true) return BASE_SCOPE_PER_ROUND;
-  if (user_options->induction_dir != NULL) return BASE_SCOPE_PER_ROUND;
+  // Only the attacks induct_ctx_init () inducts for. Any other attack ignores --induction-dir, and
+  // asking it for rounds left it with no dictionary for the first one.
+
+  const bool inducts = (user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
+  if ((inducts == true) && (user_options->loopback      == true)) return BASE_SCOPE_PER_ROUND;
+  if ((inducts == true) && (user_options->induction_dir != NULL)) return BASE_SCOPE_PER_ROUND;
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {

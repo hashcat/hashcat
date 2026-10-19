@@ -646,7 +646,11 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx->outfile_format  = user_options->outfile_format;
   outfile_ctx->outfile_autohex = user_options->outfile_autohex;
   outfile_ctx->outfile_json    = user_options->outfile_json;
-  outfile_ctx->is_fifo         = hc_path_is_fifo (outfile_ctx->filename);
+  outfile_ctx->is_fifo         = false;
+
+  // without -o the results go to stdout and there is no path to look at
+
+  if (outfile_ctx->filename != NULL) outfile_ctx->is_fifo = hc_path_is_fifo (outfile_ctx->filename);
 
   hc_thread_mutex_init (outfile_ctx->mux_outfile);
 

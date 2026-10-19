@@ -341,6 +341,11 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   if (user_options->speed_only   == true) return;
   if (user_options->identify     == true) return;
 
+  // Key presses come from a terminal. Anything else on stdin is data the attack does not read, and a
+  // 'c' or a 'q' in a redirected wordlist would stop the run.
+
+  if (is_stdin_terminal () == false) return;
+
   if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     // see thread_keypress() how to access status information

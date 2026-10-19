@@ -629,7 +629,16 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_RUNNING;
 
+  // A status snapshot taken between rounds borrows its strings from hashcat_status_final, and
+  // status_status_destroy () reads this flag to decide whether to free them. The keypress and monitor
+  // threads hold mux_display from taking a snapshot until they free it, so the flag only changes
+  // under that lock. Otherwise a borrowed snapshot could be freed as if it were its own.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
   status_ctx->accessible = true;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
   // A seek stops every device and starts it again from the position it moved to. Everything set up
   // above survives that, the autotune and the backend session the devices are holding included, so
@@ -798,6 +807,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   // put there has to go first or it is lost rather than freed. It adds up twice over: once per
   // round of an attack, and once per hash mode under -b. accessible is still true here, so the call
   // does its work rather than returning at the flag the way it does everywhere else.
+  //
+  // Under mux_display, for the reason given where accessible is raised. A snapshot borrowed from
+  // the previous round must not be read while its strings are freed here.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
 
   status_status_destroy (hashcat_ctx, status_ctx->hashcat_status_final);
 
@@ -807,6 +821,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   status_ctx->accessible = false;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
   // update newly cracked hashes per session
 
@@ -964,9 +980,18 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 // status_progress_destroy () free a zeroed one. Being called a second time is a different question,
 // and this does not answer it: module_unload () closes the module handle without clearing it. No
 // caller asks, because every return in outer_loop () calls this and returns.
+//
+// The keypress thread can display the status while this runs, and part of what status_display () reads
+// is live context rather than the snapshot. It holds mux_display for the whole display, so taking the
+// lock here lets a display finish before anything is freed and keeps the next one waiting until every
+// context is back to zero.
 
 static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
   #ifdef WITH_BRAIN
   brain_ctx_destroy       (hashcat_ctx);
   #endif
@@ -982,6 +1007,8 @@ static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
   status_progress_destroy (hashcat_ctx);
   generic_ctx_destroy     (hashcat_ctx);
   straight_ctx_destroy    (hashcat_ctx);
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 }
 
 // The monitor and outfile-check threads read the contexts outer_loop_destroy () gives back, so they
