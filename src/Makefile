@@ -742,11 +742,18 @@ CFLAGS_NATIVE           += -DSSE2NEON_SUPPRESS_WARNINGS
 CFLAGS_NATIVE           += -I$(DEPS_SSE2NEON)
 endif
 
+## Windows gives every thread the stack size the executable header asks for, 2 MiB by default, where
+## Linux gives 8 MiB. hiprtc compiles a kernel on the calling thread, and the Whirlpool and Streebog
+## kernels need more than 2 MiB there, so they died with a stack overflow under HIP on Windows only.
+
+LFLAGS_WIN_STACK        := -Wl,--stack,0x800000
+
 ifeq ($(UNAME),CYGWIN)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
+LFLAGS_NATIVE           += $(LFLAGS_WIN_STACK)
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
@@ -757,6 +764,7 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
+LFLAGS_NATIVE           += $(LFLAGS_WIN_STACK)
 
 # Every library that is not part of Windows goes INTO the binary that needs it, because no runtime
 # DLL is shipped beside these binaries and the working directory is no longer searched for one. A
@@ -886,11 +894,11 @@ ifeq ($(CC_WIN_CLANG),0)
 LFLAGS_WIN              += -static-libstdc++
 endif
 LFLAGS_WIN              += -lole32 -loleaut32 -lwbemuuid
+LFLAGS_WIN              += $(LFLAGS_WIN_STACK)
 
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(CC_WIN_CLANG),1)
 LFLAGS_WIN              += -fuse-ld=lld
-LFLAGS_WIN              += -Wl,--stack,0x200000
 endif
 endif
 

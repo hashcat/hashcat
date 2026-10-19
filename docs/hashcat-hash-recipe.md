@@ -14,6 +14,20 @@ language. Mode 4000 supports the subset listed below and follows hx's evaluation
 
 In a Unix shell, quote the recipe with single quotes and write strings inside it with double quotes.
 
+On Windows it is the other way round. Quote the recipe with double quotes and write strings inside
+it with single quotes, which works in cmd and in PowerShell:
+
+```
+hashcat -m 4000 --hash-recipe "md5('abc' . pass)" hashes.txt wordlist.txt
+```
+
+Windows PowerShell 5.1 removes double quotes inside an argument before hashcat receives it, so the
+Unix form `'md5("abc" . pass)'` arrives without its string quotes and is rejected.
+
+Both shells still act on a few characters inside double quotes. PowerShell expands `$name` and
+backtick escapes, and cmd expands `%NAME%`. A recipe holding a `$` needs it written as `` `$ `` in
+PowerShell, as in `` "md5('`$1' . pass)" ``.
+
 ## Hash line
 
 Each hash line contains the recipe's output, followed by `*` and the salt. The output uses hex

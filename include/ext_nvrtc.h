@@ -67,6 +67,7 @@ typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCVERSION)            (int *, int
 typedef struct hc_nvrtc_lib
 {
   hc_dynlib_t lib;
+  hc_dynlib_t lib_builtins;
 
   NVRTC_NVRTCADDNAMEEXPRESSION  nvrtcAddNameExpression;
   NVRTC_NVRTCCOMPILEPROGRAM     nvrtcCompileProgram;
