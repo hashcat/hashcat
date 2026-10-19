@@ -14093,6 +14093,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
+      // The module sizes its launch from device_available_mem in the hook below, scrypt and argon2
+      // among them, so the share has to be taken before it runs. Taken only after it, as it is for
+      // every other mode further down, the hook sizes for the whole card and the share then refuses
+      // the buffer that sizing asked for.
+
+      const u64 mem_limit = device_mem_limit ();
+
+      if (mem_limit != 0) device_param->device_available_mem = MIN (device_param->device_available_mem, mem_limit);
+
       u32 _kernel_accel = 0;
 
       if (user_options->kernel_accel_chgd == true)

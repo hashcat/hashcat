@@ -3443,15 +3443,28 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
 
     if (eof == false)
     {
-      const size_t line_len = in_superchop (line_buf);
+      size_t line_len = in_superchop (line_buf);
 
       read_cnt++;
 
+      // --stdout writes a candidate it cannot print as $HEX[...], and the wordlist reader decodes that
+      // form before a client hashes the candidate. Stored as spelled, it is an entry no client asks
+      // about, and the candidate is tested again on every run. --wordlist-autohex-disable keeps the
+      // spelling here, as it does in the reader.
+
+      if (user_options->wordlist_autohex == true)
+      {
+        if (is_hexify ((const u8 *) line_buf, line_len) == true)
+        {
+          line_len = exec_unhexify ((const u8 *) line_buf, line_len, (u8 *) line_buf, line_len);
+        }
+      }
+
       // Mirror what the wordlist reader accepts, so that feeding a list and then cracking that same
-      // list feed the brain and query it with the identical set of candidates. src/wordlist.c drops a
-      // word longer than PW_MAX and keeps everything shorter, an empty line included, so this does the
-      // same. Storing an over-length word would only add an entry no cracking client can ever ask
-      // about, and skipping the empty one would leave a candidate that a client does ask about
+      // list feed the brain and query it with the identical set of candidates. The reader drops a word
+      // longer than PW_MAX once it is decoded and keeps everything shorter, an empty line included, so
+      // this does the same. Storing an over-length word would only add an entry no cracking client can
+      // ever ask about, and skipping the empty one would leave a candidate that a client does ask about
       // un-deduplicated.
 
       if (line_len > PW_MAX)
