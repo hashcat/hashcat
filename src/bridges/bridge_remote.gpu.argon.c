@@ -36,6 +36,9 @@ typedef struct unit
   char    unit_info_buf[1024];
   int     unit_info_len;
 
+  char    unit_class_buf[1024];
+  int     unit_class_len;
+
   u64     workitem_count;
   int     chunk_size;
   size_t  workitem_size;
@@ -153,6 +156,20 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     units_cnt++;
 
+    uint16_t info_class_len_no = 0;
+    if (recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), MSG_WAITALL) != sizeof (info_class_len_no)) return false;
+
+    uint16_t unit_class_len = ntohs (info_class_len_no);
+
+    if (unit_class_len >= sizeof (unit->unit_info_buf)) return false;
+
+    unit->unit_class_buf[unit_class_len] = 0;
+    unit->unit_class_len = unit_class_len;
+
+    if (recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, MSG_WAITALL) != unit_class_len) return false;
+
+    if (strlen (unit->unit_class_buf) != unit_class_len) return false;
+
     address = strtok_r (NULL, ",", &server_list_saveptr);
 
     if (address == NULL) break;
@@ -254,6 +271,15 @@ char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_con
   unit_t *unit_buf = &remote->units[unit_idx];
 
   return unit_buf->unit_info_buf;
+}
+
+char *get_unit_class (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
+{
+  remote_t *remote = platform_context;
+
+  unit_t *unit_buf = &remote->units[unit_idx];
+
+  return unit_buf->unit_class_buf;
 }
 
 static bool is_same_argon2_options (const argon2id_hybrid_t *options1, const argon2id_hybrid_t *options2)
@@ -384,6 +410,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_info         = get_unit_info;
   bridge_ctx->get_workitem_count    = get_workitem_count;
   bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->get_unit_class        = get_unit_class;
   bridge_ctx->thread_init           = BRIDGE_DEFAULT;
   bridge_ctx->thread_term           = BRIDGE_DEFAULT;
   bridge_ctx->salt_prepare          = salt_prepare;
