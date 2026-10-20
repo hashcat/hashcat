@@ -211,6 +211,35 @@ u32 bridge_workitem_count (hashcat_ctx_t *hashcat_ctx, const int bridge_link_dev
   return (u32) count;
 }
 
+// A fixed tuning for one unit, when the bridge has one. False means autotune as before, and that is
+// also the answer for a bridge without the hook. The tuning is for the real run, so it is given the
+// real hashes rather than the self test's copy.
+
+bool bridge_unit_tuning (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device, const double target_msec, u32 *kernel_accel, u32 *kernel_loops)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  bridge_ctx_t       *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (hashconfig->bridge_type == 0) return false;
+  if (bridge_ctx->enabled == false) return false;
+  if (bridge_ctx->get_unit_tuning == NULL) return false;
+  if (bridge_ctx->get_unit_tuning == BRIDGE_DEFAULT) return false;
+
+  u32 accel = 0;
+  u32 loops = 0;
+
+  if (bridge_ctx->get_unit_tuning (hashcat_ctx, bridge_ctx->platform_context, bridge_link_device, hashconfig, hashes, target_msec, &accel, &loops) == false) return false;
+
+  if (accel == 0) return false;
+  if (loops == 0) return false;
+
+  *kernel_accel = accel;
+  *kernel_loops = loops;
+
+  return true;
+}
+
 // Bring up the bridge this hash mode selects. hashconfig has to be live, so bridges_init () quick
 // loads one and a caller that already has one calls this directly.
 //

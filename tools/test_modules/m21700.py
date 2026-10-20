@@ -7,13 +7,12 @@
 
 import hashlib
 import hmac
-import random
 import zlib
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_string
+from lib.test_helpers import random_hex_string, random_number, random_string
 
 # Electrum wallet v4. The key is the sha512 of the ECDH shared point between a PBKDF2 derived private
 # scalar and the stored ephemeral public key on secp256k1. It splits into an AES-128-CBC iv and key
@@ -106,7 +105,7 @@ def module_generate_hash(word, salt=None, iterations=None):
   ephemeral_pubkey = b""
 
   while key is None:
-    sign_of_curve_point = random.randrange(2)
+    sign_of_curve_point = random_number(0, 1)
 
     ephemeral_pubkey = bytes.fromhex("0%d%s" % (sign_of_curve_point + 2, random_hex_string(64)))
 
@@ -117,13 +116,13 @@ def module_generate_hash(word, salt=None, iterations=None):
   while True:
     data_buf = "{\r\n    \""
 
-    if random.randrange(2) == 1:
+    if random_number(0, 1) == 1:
       data_buf = "{\n    \""
 
     # a 30 percent compression rate is assumed, so the plaintext is oversized to land the ciphertext
     # in the tokenizer's window
 
-    data_length = 64 + random.randrange(int(MAX_DATA_LEN * 1.30 + 1))
+    data_length = 64 + random_number(0, int(MAX_DATA_LEN * 1.30))
 
     random_length = data_length - len(data_buf)
 

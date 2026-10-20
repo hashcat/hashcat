@@ -17,6 +17,7 @@
 #include "mpsp.h"
 #include "terminal.h"
 #include "shared.h"
+#include "user_options.h"
 #include "status.h"
 
 static const char *const  ST_0000 = "Initializing";
@@ -848,6 +849,10 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
+    // a pipe is one source, and it is not in the dictionary list
+
+    if (user_options_extra->wordlist_mode == WL_MODE_STDIN) return 1;
+
     return straight_ctx->dicts_cnt;
   }
 
@@ -1387,14 +1392,76 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
   return display_run;
 }
 
+// --stdin-count counts lines, and a line is a base word, so it is amplified the way every other base
+// word count is. Both multiplications are checked because the count is whatever the user typed, and
+// a wrapped total would read as a percentage rather than as no hint at all.
+
+static u64 status_get_stdin_count_words (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->wordlist_mode != WL_MODE_STDIN) return 0;
+
+  if (user_options->stdin_count_chgd == false) return 0;
+
+  const u64 amplifier = user_options_extra_amplifier ((hashcat_ctx_t *) hashcat_ctx);
+
+  if (overflow_check_u64_mul (user_options->stdin_count, amplifier) == true) return 0;
+
+  const u64 stdin_count_words = user_options->stdin_count * amplifier;
+
+  return stdin_count_words;
+}
+
+static u64 status_get_stdin_count_end (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  const u64 stdin_count_words = status_get_stdin_count_words (hashcat_ctx);
+
+  if (stdin_count_words == 0) return 0;
+
+  if (overflow_check_u64_mul (stdin_count_words, hashes->salts_cnt) == true) return 0;
+
+  const u64 stdin_count_end = stdin_count_words * hashes->salts_cnt;
+
+  // A --skip at or past the hint leaves nothing to measure against, and the figures relative to the
+  // skip would wrap.
+
+  if (stdin_count_end <= status_get_progress_skip (hashcat_ctx)) return 0;
+
+  return stdin_count_end;
+}
+
+bool status_get_stdin_count_exceeded (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u64 stdin_count_end = status_get_stdin_count_end (hashcat_ctx);
+
+  if (stdin_count_end == 0) return false;
+
+  // Strictly greater, so that a stream of exactly --stdin-count lines can reach 100%.
+
+  const bool exceeded = (status_get_progress_cur (hashcat_ctx) > stdin_count_end);
+
+  return exceeded;
+}
+
 time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   time_t sec_etc = 0;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  // A pipe is estimated only against --stdin-count. --limit gives it a denominator as well, but never
+  // gave it an estimate, and that stays as it was. A pipe that ran dry short of the hint is finished,
+  // and a finished run has no time left.
+
+  const bool stdin_count = ((user_options_extra->wordlist_mode == WL_MODE_STDIN) && (user_options->stdin_count_chgd == true) && (status_ctx->devices_status != STATUS_EXHAUSTED));
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC) || (stdin_count == true))
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
@@ -1408,6 +1475,12 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
       if ((progress_end_relative_skip) > 0 && (hashes_msec_all > 0))
       {
         const u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
+
+        // Salts are worked one after another, so a live salt can pass --stdin-count before a cracked
+        // salt later in the order is credited with the words it skipped. The work ignored is then more
+        // than the work left, and there is no estimate to give.
+
+        if (progress_ignore > progress_left_relative_skip) return 0;
 
         u64 msec_left = (u64) ((progress_left_relative_skip - progress_ignore) / hashes_msec_all);
 
@@ -1518,9 +1591,13 @@ u64 status_get_restore_point (const hashcat_ctx_t *hashcat_ctx)
 
 u64 status_get_restore_total (const hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
-  const u64 restore_total = status_ctx->words_base;
+  // A pipe's words_base is the unknown keyspace. The hint counts the same base words the restore
+  // point does, so under --stdin-count it is the total.
+
+  const u64 restore_total = (status_get_stdin_count_end (hashcat_ctx) > 0) ? user_options->stdin_count : status_ctx->words_base;
 
   return restore_total;
 }
@@ -1676,6 +1753,11 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
 
   if (words_cnt == -1ULL) words_cnt = 0;
 
+  // A pipe has no words_cnt, so what is left of a cracked salt would be counted down from zero and
+  // wrap. The hint stands in for it.
+
+  if (status_get_stdin_count_end (hashcat_ctx) > 0) words_cnt = status_get_stdin_count_words (hashcat_ctx);
+
   if (status_ctx->words_limit)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
@@ -1793,6 +1875,17 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
         progress_end = (overflow_check_u64_mul (progress_end, amplifier) == true) ? UINT64_MAX : (progress_end * amplifier);
       }
     }
+  }
+
+  // A pipe cannot say how long it is, so --stdin-count says it instead. The hint is only shown, never
+  // handed to dispatch, which reads the pipe to its end whatever it says. Once the pipe has given more
+  // than that, the hint was wrong and the progress is the count on its own, as it is without one.
+
+  const u64 stdin_count_end = status_get_stdin_count_end (hashcat_ctx);
+
+  if (stdin_count_end > 0)
+  {
+    progress_end = (status_get_stdin_count_exceeded (hashcat_ctx) == true) ? 0 : stdin_count_end;
   }
 
   // -a 9 splitting its own hash file runs its phases as one attack, so the progress it counts is the
@@ -2041,6 +2134,10 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
+  // cpt_ctx_init () leaves the buffer out in identify mode and in the other modes that crack nothing
+
+  if (cpt_ctx->enabled == false) return 0;
+
   const time_t now = time (NULL);
 
   int cpt_cur_min = 0;
@@ -2066,6 +2163,8 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
+  if (cpt_ctx->enabled == false) return 0;
+
   const time_t now = time (NULL);
 
   int cpt_cur_hour = 0;
@@ -2090,6 +2189,8 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   if (status_ctx->accessible == false) return 0;
+
+  if (cpt_ctx->enabled == false) return 0;
 
   const time_t now = time (NULL);
 

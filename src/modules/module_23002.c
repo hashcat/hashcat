@@ -186,12 +186,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake salt:
 
+  // make salt sorter happy: the kernel checks the ct of the first hash of a salt only, so two
+  // entries that share an IV must not share a salt. The ct goes into the salt after the IV.
+
   salt->salt_buf[0] = iv[0];
   salt->salt_buf[1] = iv[1];
   salt->salt_buf[2] = iv[2];
   salt->salt_buf[3] = iv[3];
+  salt->salt_buf[4] = data[0];
+  salt->salt_buf[5] = data[1];
+  salt->salt_buf[6] = data[2];
+  salt->salt_buf[7] = data[3];
 
-  salt->salt_len  = 16;
+  salt->salt_len  = 32;
 
   // fake digest:
 
@@ -279,6 +286,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

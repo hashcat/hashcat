@@ -85,7 +85,7 @@ is much faster if you only want UBSan.
 compiler-flag changes, so without it the existing objects are reused and you
 get the old sanitizer set with none of the new one, silently, and the sweep
 then reports a clean run that proves nothing. `build.sh` warns if the core
-lacks the symbols for what you asked for; `nm -D ./libhashcat.so.7 | grep
+lacks the symbols for what you asked for; `nm -D ./libhashcat.so.* | grep
 ubsan` is the direct check.
 
 `-fno-sanitize-recover=undefined` is deliberately **not** set. Making UBSan
@@ -129,11 +129,11 @@ uninstrumented core reports real bugs as `rc=0`.
 
 ```
 ldd ./hashcat | grep -i asan       # libasan.so.6 => ... when shared-linked
-nm -D ./libhashcat.so.7 | grep -c asan
+nm -D ./libhashcat.so.* | grep -c asan
 nm -a ./your_harness | grep -o '__asan_[a-z_]*' | sort -u | head
 ```
 
-Check all three of `hashcat`, `libhashcat.so.7` and `modules/module_*.so`:
+Check all three of `hashcat`, `libhashcat.so.*` and `modules/module_*.so`:
 they are separate link steps and can disagree, which is the whole reason the
 `DEBUG=2` link bug mattered.
 
@@ -181,7 +181,7 @@ disappear once the shadow gap is unprotected.
 
 ### Instrument the whole tree, not just the module
 
-`build.sh` links the ASan-built `libhashcat.so.7` and `dlopen`s the ASan-built
+`build.sh` links the ASan-built `libhashcat.so.*` and `dlopen`s the ASan-built
 plugins, so core *and* modules are checked.
 
 This is not a nicety. Several real bugs have their bad access inside a core
@@ -204,7 +204,7 @@ If you see this, every run dies before reaching any hashcat code:
 Your application is linked against incompatible ASan runtimes.
 ```
 
-The usual cause is not the compiler. It is that the `libhashcat.so.7` resolved
+The usual cause is not the compiler. It is that the `libhashcat.so.*` resolved
 at **run** time is not the one linked at **build** time, typically an
 ASan-instrumented copy getting pulled into a harness built against a plain
 `DEBUG=1` core, or the reverse. ASan cannot have its runtime initialised twice
@@ -240,8 +240,8 @@ a hash on the command line is parsed out of `argv`
 (`user_options_extra->hc_hash`, `src/hashes.c:1298`) and a hash from a file is
 parsed out of a 16 MB zero-filled buffer (`hcmalloc (HCBUFSIZ_LARGE)`,
 `src/hashes.c:1557`; `hcmalloc` is `calloc`). Measured against an ASan build of
-plain hashcat, that slack absorbs every forward overread here: m7100, m19600,
-m28800, m8500, m8501, m7900, m11600, m29100 and `is_hexify` all run the
+plain hashcat, that slack absorbs every forward overread here: m40018, m19600,
+m28800, m8500, m8501, m40020, m11600, m40056 and `is_hexify` all run the
 defective code and report **nothing**.
 
 Three kinds of finding survive into plain hashcat, and they are worth knowing

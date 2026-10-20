@@ -2,7 +2,7 @@
 #
 # Build the fully-instrumented host-parser harness.
 #
-# Everything is instrumented: the harness, libhashcat.so.7 and the 594 module
+# Everything is instrumented: the harness, the libhashcat core and the module
 # plugins. That matters: several real bugs live in core helpers
 # (convert.c, parser.c) rather than in the module that calls them, and a
 # harness linked against an uninstrumented core reports those runs as clean.
@@ -35,13 +35,26 @@ if [ "${1:-}" = "--with-make" ]; then
   make DEBUG=2 SANITIZE="$SANITIZE" -j"$(nproc)"
 fi
 
-if [ ! -f ./libhashcat.so.7 ]; then
-  echo "error: ./libhashcat.so.7 not found, run 'make DEBUG=2 -j\$(nproc)' first" >&2
+# The core is named after the major version the Makefile reports, so the name follows the release
+# rather than being written out here. tools/package_bin.sh reads it the same way.
+VERSION_TAG=$(make -s version 2>/dev/null | tail -1)
+MAJOR=${VERSION_TAG#v}
+MAJOR=${MAJOR%%.*}
+
+if [ -z "$MAJOR" ]; then
+  echo "error: the Makefile reported no version, so the core's name is unknown" >&2
   exit 2
 fi
 
-if ! nm -D ./libhashcat.so.7 | grep -q asan; then
-  echo "warning: ./libhashcat.so.7 is not ASan-instrumented." >&2
+CORE=./libhashcat.so.$MAJOR
+
+if [ ! -f "$CORE" ]; then
+  echo "error: $CORE not found, run 'make DEBUG=2 -j\$(nproc)' first" >&2
+  exit 2
+fi
+
+if ! nm -D "$CORE" | grep -q asan; then
+  echo "warning: $CORE is not ASan-instrumented." >&2
   echo "         Bugs inside core helpers will not be reported. Rebuild with DEBUG=2." >&2
 fi
 
@@ -58,8 +71,8 @@ fi
 
 case "$SANITIZE" in
   *undefined*)
-    if ! nm -D ./libhashcat.so.7 | grep -q ubsan; then
-      echo "warning: SANITIZE=$SANITIZE but ./libhashcat.so.7 has no UBSan symbols." >&2
+    if ! nm -D "$CORE" | grep -q ubsan; then
+      echo "warning: SANITIZE=$SANITIZE but $CORE has no UBSan symbols." >&2
       echo "         make does not track flag changes, so switching SANITIZE needs a" >&2
       echo "         clean rebuild:  make clean && make DEBUG=2 SANITIZE=$SANITIZE" >&2
     fi ;;
@@ -74,7 +87,7 @@ $CC -std=gnu99 -DDEBUG -Og -ggdb -fsanitize=$SANITIZE -fno-omit-frame-pointer \
     -Iinclude/ -IOpenCL/ -Itools/asan -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
     -Ideps/OpenCL-Headers -Ideps/xxHash -Ideps/unrar \
     -DWITH_BRAIN -DWITH_HWMON -DHC_PLUGIN_ABI_VERSION="$ABI" \
-    tools/asan/parse_harness.c tools/asan/hashconfig.c ./libhashcat.so.7 -ldl \
+    tools/asan/parse_harness.c tools/asan/hashconfig.c "$CORE" -ldl \
     -o "$OUT" -Wl,-rpath,'$ORIGIN'
 
 echo "built $OUT (-fsanitize=$SANITIZE)"

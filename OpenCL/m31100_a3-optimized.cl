@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sm3.cl)
 #endif
 
-DECLSPEC HC_INLINE_ALWAYS void m31100m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m31100m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -145,7 +145,7 @@ DECLSPEC HC_INLINE_ALWAYS void m31100m (PRIVATE_AS u32 *w, const u32 pw_len, KER
   }
 }
 
-DECLSPEC HC_INLINE_ALWAYS void m31100s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m31100s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -363,7 +363,7 @@ DECLSPEC HC_INLINE_ALWAYS void m31100s (PRIVATE_AS u32 *w, const u32 pw_len, KER
 
 /* expansion phase optimization, for some reason slower than current implementation - probably compiler optimizer
 
-DECLSPEC HC_INLINE_ALWAYS void m31100s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m31100s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   const u32 search[4] =
   {

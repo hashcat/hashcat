@@ -35,8 +35,13 @@ fn find_windres() -> Option<String> {
 }
 
 fn read_hashcat_version() -> String {
-    let makefile =
-        std::fs::read_to_string("../../../src/Makefile").expect("Cannot read src/Makefile");
+    // A crate built from a release package has no src/Makefile three levels up. The version only
+    // labels the DLL's Windows properties, so a missing Makefile gets the same fallback as a
+    // Makefile without the line, rather than stopping the build.
+    let makefile = match std::fs::read_to_string("../../../src/Makefile") {
+        Ok(makefile) => makefile,
+        Err(_) => return "0.0.0".to_string(),
+    };
     for line in makefile.lines() {
         if line.starts_with("PRODUCTION_VERSION") {
             if let Some(v) = line.split(":=").nth(1) {

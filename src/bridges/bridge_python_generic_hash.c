@@ -329,6 +329,16 @@ static bool worker_start (worker_t *worker, const char *python, const char *work
 {
   #if defined (__APPLE__)
   char **envp = *_NSGetEnviron ();
+  #elif defined (__FreeBSD__) || defined (__DragonFly__)
+  // environ lives in the program, not in libc, on FreeBSD and DragonflyBSD, so a plugin linked with
+  // -z defs has no definition to resolve and the link fails with "undefined symbol: environ".
+  // Marking the reference weak lets the link succeed; the runtime loader still binds it to the
+  // program's environ, the same one posix_spawnp would inherit on every other platform. The weak
+  // marking stays off the other systems: there environ resolves from libc, and on NetBSD marking it
+  // weak makes the linker publish environ in the plugin's own dynamic symbol table.
+  extern char **environ __attribute__ ((weak));
+
+  char **envp = environ;
   #else
   extern char **environ;
 
@@ -1325,6 +1335,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_info              = get_unit_info;
   bridge_ctx->get_workitem_count         = get_workitem_count;
   bridge_ctx->get_workitem_multiple      = get_workitem_multiple;
+  bridge_ctx->get_unit_tuning            = BRIDGE_DEFAULT;
   bridge_ctx->thread_init                = thread_init;
   bridge_ctx->thread_term                = thread_term;
   bridge_ctx->salt_prepare               = BRIDGE_DEFAULT;

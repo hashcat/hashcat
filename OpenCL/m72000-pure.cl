@@ -8,11 +8,14 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #endif
 
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
+
+// The bridge hands the crate a full record with room for 32 outputs, but only the MD4 of each output
+// is ever compared, so the bridge hashes them on the host and only the digests come back here. Sync
+// with src/modules/module_74000.c and src/bridges/bridge_rust_generic_hash.c.
 
 typedef struct
 {
@@ -23,13 +26,12 @@ typedef struct
 
   // output
 
-  u32 out_buf[32][64];
-  u32 out_len[32];
   u32 out_cnt;
+  u32 out_dgst[32][4];
 
-} generic_io_tmp_t;
+} generic_io_dgst_tmp_t;
 
-KERNEL_FQ KERNEL_FA void m72000_init (KERN_ATTR_TMPS (generic_io_tmp_t))
+KERNEL_FQ KERNEL_FA void m72000_init (KERN_ATTR_TMPS (generic_io_dgst_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -45,11 +47,11 @@ KERNEL_FQ KERNEL_FA void m72000_init (KERN_ATTR_TMPS (generic_io_tmp_t))
   tmps[gid].pw_len = pw_len;
 }
 
-KERNEL_FQ KERNEL_FA void m72000_loop (KERN_ATTR_TMPS (generic_io_tmp_t))
+KERNEL_FQ KERNEL_FA void m72000_loop (KERN_ATTR_TMPS (generic_io_dgst_tmp_t))
 {
 }
 
-KERNEL_FQ KERNEL_FA void m72000_comp (KERN_ATTR_TMPS (generic_io_tmp_t))
+KERNEL_FQ KERNEL_FA void m72000_comp (KERN_ATTR_TMPS (generic_io_dgst_tmp_t))
 {
   /**
    * base
@@ -59,22 +61,14 @@ KERNEL_FQ KERNEL_FA void m72000_comp (KERN_ATTR_TMPS (generic_io_tmp_t))
 
   if (gid >= GID_CNT) return;
 
-  int out_cnt = tmps[gid].out_cnt;
+  const u32 out_cnt = tmps[gid].out_cnt;
 
-  for (int i = 0; i < out_cnt; i++)
+  for (u32 i = 0; i < out_cnt; i++)
   {
-    md4_ctx_t ctx0;
-
-    md4_init (&ctx0);
-
-    md4_update_global (&ctx0, tmps[gid].out_buf[i], tmps[gid].out_len[i]);
-
-    md4_final (&ctx0);
-
-    const u32 r0 = ctx0.h[0];
-    const u32 r1 = ctx0.h[1];
-    const u32 r2 = ctx0.h[2];
-    const u32 r3 = ctx0.h[3];
+    const u32 r0 = tmps[gid].out_dgst[i][0];
+    const u32 r1 = tmps[gid].out_dgst[i][1];
+    const u32 r2 = tmps[gid].out_dgst[i][2];
+    const u32 r3 = tmps[gid].out_dgst[i][3];
 
     #define il_pos 0
 

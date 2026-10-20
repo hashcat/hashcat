@@ -55,6 +55,8 @@ static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVM
   return (deviceCount);
 }
 
+static bool hm_bridge_has_sensors (const bridge_ctx_t *bridge_ctx);
+
 // Do two backend devices sit on the same piece of physical hardware?
 //
 // They often do. --backend-devices-virtmulti clones one device into several, and a bridge clones the
@@ -68,29 +70,25 @@ static bool hm_same_hardware (hashcat_ctx_t *hashcat_ctx, const hc_device_param_
 {
   bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
 
-  // With a bridge the device that does the work is the bridge unit, not the feeder, so the unit is
-  // what identifies the hardware. The startup listing already tells units apart by comparing the
-  // strings from get_unit_info, so use the same rule here and the two displays cannot disagree.
+  // A bridge that reports sensors reports them per unit, so the unit identifies the hardware, and two
+  // units are two pieces of it. Equal get_unit_info strings prove nothing here: they describe the
+  // model, so several identical units return the same one. Treating that as one unit kept every unit
+  // after the first off the watchdog banner and out of the throttle check.
+  //
+  // A device that is not linked to a unit, and every device of a bridge without sensors, is measured
+  // through the backend device feeding it, which the handle comparison below identifies.
 
-  if (bridge_ctx->enabled == true)
+  if ((bridge_ctx->enabled == true) && (hm_bridge_has_sensors (bridge_ctx) == true))
   {
-    // Not knowing has to answer no, for the reason the header of this function gives: a wrong yes
-    // hides a device. These three said yes, so a bridge that does not implement get_unit_info, or
-    // one that returns no string for a unit, collapsed every one of its units onto the first one's
-    // row. hm_is_hwmon_group_leader then kept only that first unit, and the watchdog walks the same
-    // answer, so the rest went unwatched as well.
+    const int unit_a = device_param_a->bridge_link_device;
+    const int unit_b = device_param_b->bridge_link_device;
 
-    if (bridge_ctx->get_unit_info == NULL) return false;
+    if ((unit_a >= 0) || (unit_b >= 0))
+    {
+      const bool same = (unit_a == unit_b);
 
-    const char *info_a = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_a->bridge_link_device);
-    const char *info_b = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_b->bridge_link_device);
-
-    if (info_a == NULL) return false;
-    if (info_b == NULL) return false;
-
-    const bool same = (strcmp (info_a, info_b) == 0);
-
-    return same;
+      return same;
+    }
   }
 
   // One piece of hardware can also be reached through two different runtimes, for instance a GPU

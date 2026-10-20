@@ -236,7 +236,7 @@ DECLSPEC void sha256_transform_s (PRIVATE_AS u32x *digest, LOCAL_AS u32 *w)
   digest[7] += h;
 }
 
-DECLSPEC HC_INLINE_ALWAYS void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -354,7 +354,7 @@ DECLSPEC HC_INLINE_ALWAYS void m08000m (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, 
   }
 }
 
-DECLSPEC HC_INLINE_ALWAYS void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m08000s (LOCAL_AS u32 *w_s1, LOCAL_AS u32 *w_s2, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args

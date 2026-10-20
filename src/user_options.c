@@ -23,6 +23,7 @@
 #include "feed_ctx.h"
 #include "feed.h"
 #include "mpsp.h"
+#include "recipe.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -54,6 +55,7 @@ static const struct option long_options[] =
   {"bypass-delay",              required_argument, NULL, IDX_BYPASS_DELAY},
   {"bypass-threshold",          required_argument, NULL, IDX_BYPASS_THRESHOLD},
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
+  {"benchmark-json",            no_argument,       NULL, IDX_BENCHMARK_JSON},
   {"benchmark-max",             required_argument, NULL, IDX_BENCHMARK_MAX},
   {"benchmark-min",             required_argument, NULL, IDX_BENCHMARK_MIN},
   {"benchmark-pure",            no_argument,       NULL, IDX_BENCHMARK_PURE},
@@ -92,6 +94,7 @@ static const struct option long_options[] =
   {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
   {"hash-copy",                 no_argument,       NULL, IDX_HASH_COPY},
   {"hash-info",                 no_argument,       NULL, IDX_HASH_INFO},
+  {"hash-recipe",               required_argument, NULL, IDX_HASH_RECIPE},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR}, // alias of eapol-message-pair
   {"help",                      no_argument,       NULL, IDX_HELP},
@@ -105,6 +108,7 @@ static const struct option long_options[] =
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
   {"increment-inverse",         no_argument,       NULL, IDX_INCREMENT_INVERSE},
   {"induction-dir",             required_argument, NULL, IDX_INDUCTION_DIR},
+  {"json",                      no_argument,       NULL, IDX_JSON},
   {"keep-guessing",             no_argument,       NULL, IDX_KEEP_GUESSING},
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, NULL, IDX_KERNEL_LOOPS},
@@ -166,6 +170,7 @@ static const struct option long_options[] =
   {"task-time-breakdown",       no_argument,       NULL, IDX_TASK_TIME_BREAKDOWN},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
+  {"stdin-count",               required_argument, NULL, IDX_STDIN_COUNT},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
@@ -221,6 +226,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->backend_info               = BACKEND_INFO;
   user_options->backend_vector_width       = BACKEND_VECTOR_WIDTH;
   user_options->benchmark_all              = BENCHMARK_ALL;
+  user_options->benchmark_json             = BENCHMARK_JSON;
   user_options->benchmark_max              = BENCHMARK_MAX;
   user_options->benchmark_min              = BENCHMARK_MIN;
   user_options->benchmark_pure             = BENCHMARK_PURE;
@@ -267,6 +273,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hwmon_temp_abort           = HWMON_TEMP_ABORT;
   user_options->hash_info                  = HASH_INFO;
   user_options->hash_mode                  = HASH_MODE;
+  user_options->hash_recipe                = NULL;
   user_options->hccapx_message_pair        = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset                = HEX_CHARSET;
   user_options->hex_salt                   = HEX_SALT;
@@ -277,6 +284,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->increment_max              = INCREMENT_MAX;
   user_options->increment_min              = INCREMENT_MIN;
   user_options->induction_dir              = NULL;
+  user_options->json                       = JSON;
   user_options->keep_guessing              = KEEP_GUESSING;
   user_options->kernel_accel               = KERNEL_ACCEL;
   user_options->kernel_loops               = KERNEL_LOOPS;
@@ -342,6 +350,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->pipeline_stats             = PIPELINE_STATS;
   user_options->task_time_breakdown        = TASK_TIME_BREAKDOWN;
   user_options->status_timer               = STATUS_TIMER;
+  user_options->stdin_count                = STDIN_COUNT;
   user_options->stdin_timeout_abort        = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag                = STDOUT_FLAG;
   user_options->truecrypt_keyfiles         = NULL;
@@ -412,6 +421,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_DEBUG_MODE:
       case IDX_SKIP:
       case IDX_LIMIT:
+      case IDX_STDIN_COUNT:
       case IDX_STATUS_TIMER:
       case IDX_HASH_MODE:
       case IDX_RUNTIME:
@@ -497,6 +507,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ENCODING_FROM:             user_options->encoding_from             = optarg;                          break;
       case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;                          break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
+      case IDX_JSON:                      user_options->json                      = true;                            break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
       case IDX_HASH_INFO:                 user_options->hash_info++;                                                 break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
@@ -510,11 +521,14 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_TOTAL_CANDIDATES:          user_options->total_candidates          = true;                            break;
       case IDX_BENCHMARK:                 user_options->benchmark                 = true;                            break;
       case IDX_BENCHMARK_ALL:             user_options->benchmark_all             = true;                            break;
+      case IDX_BENCHMARK_JSON:            user_options->benchmark_json            = true;                            break;
       case IDX_BENCHMARK_MAX:             user_options->benchmark_max             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BENCHMARK_MIN:             user_options->benchmark_min             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BENCHMARK_PURE:            user_options->benchmark                 = true;
                                           user_options->benchmark_pure            = true;                            break;
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;                            break;
+      case IDX_STDIN_COUNT:               user_options->stdin_count               = hc_strtoull (optarg, NULL, 10);
+                                          user_options->stdin_count_chgd          = true;                            break;
       case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
@@ -531,6 +545,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
       case IDX_LOOKUP:                    user_options->lookup                    = optarg;                          break;
+      case IDX_HASH_RECIPE:               user_options->hash_recipe               = optarg;                          break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
       case IDX_SESSION:                   user_options->session                   = optarg;
                                           user_options->session_chgd              = true;                            break;
@@ -760,6 +775,30 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    // --show prints the potfile as it is, and a potfile can hold plains from unprotected runs in the
+    // clear. The entries a protected run wrote are already encrypted, and --show without this option
+    // prints them.
+
+    if (user_options->show == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --show is not allowed.");
+
+      event_log_warning (hashcat_ctx, "The potfile can hold plains in the clear from unprotected runs. Entries from a protected run are already encrypted, so use --show without this option.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    if (user_options->stdout_flag == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --stdout is not allowed.");
+
+      event_log_warning (hashcat_ctx, "--stdout prints every candidate in the clear, and a protected run hides its candidates.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -984,6 +1023,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->stdin_count_chgd == true) && (user_options->stdin_count == 0))
+  {
+    event_log_error (hashcat_ctx, "Invalid --stdin-count value specified.");
+
+    return -1;
+  }
+
   if (user_options->runtime_chgd == true && user_options->runtime == 0)
   {
     event_log_error (hashcat_ctx, "Invalid --runtime value specified.");
@@ -1003,6 +1049,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->limit_chgd == true && user_options->loopback == true)
   {
     event_log_error (hashcat_ctx, "Combining --limit with --loopback is not allowed.");
+
+    return -1;
+  }
+
+  // --limit already gives a pipe its denominator, and the two would disagree about which one the
+  // progress is measured against.
+
+  if ((user_options->stdin_count_chgd == true) && (user_options->limit_chgd == true))
+  {
+    event_log_error (hashcat_ctx, "Combining --stdin-count with --limit is not allowed.");
 
     return -1;
   }
@@ -1672,6 +1728,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    if (user_options->json == true)
+    {
+      event_log_error (hashcat_ctx, "The --json flag can not be used with --machine-readable.");
+
+      return -1;
+    }
+
+    if (user_options->benchmark_json == true)
+    {
+      event_log_error (hashcat_ctx, "The --benchmark-json flag can not be used with --machine-readable.");
+
+      return -1;
+    }
   }
 
   if (user_options->remove_timer_chgd == true)
@@ -1802,9 +1872,76 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    // --stdout and --benchmark take no hash, so there is nothing to identify
+
+    if (user_options->stdout_flag == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --identify with --stdout is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->benchmark == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --identify with --benchmark is not allowed.");
+
+      return -1;
+    }
+  }
+
+  // Mode 4000 uses --hash-recipe to define its hash. Validate it to report parser errors before
+  // building a kernel. Other modes do not accept this option. With --dynamic-x, the recipe can also
+  // come from the $dynamic_N$ format of the hashes.
+
+  if (user_options->hash_recipe != NULL)
+  {
+    if ((user_options->hash_mode_chgd == false) || (user_options->hash_mode != 4000))
+    {
+      event_log_error (hashcat_ctx, "Use of --hash-recipe requires --hash-type 4000.");
+
+      return -1;
+    }
+
+    recipe_prog_t recipe_prog;
+
+    if (recipe_compile (&recipe_prog, user_options->hash_recipe) == false)
+    {
+      // Recipes can span several lines. Show the line containing the error.
+
+      const char *recipe = user_options->hash_recipe;
+
+      u32 line_start = recipe_prog.error_pos;
+
+      while ((line_start > 0) && (recipe[line_start - 1] != '\n')) line_start--;
+
+      u32 line_end = recipe_prog.error_pos;
+
+      while ((recipe[line_end] != 0) && (recipe[line_end] != '\n')) line_end++;
+
+      event_log_error (hashcat_ctx, "Invalid --hash-recipe, %s:", recipe_prog.error);
+      event_log_error (hashcat_ctx, "  %.*s", (int) (line_end - line_start), recipe + line_start);
+      event_log_error (hashcat_ctx, "  %*s^", (int) (recipe_prog.error_pos - line_start), "");
+
+      return -1;
+    }
+  }
+  else if ((user_options->hash_mode_chgd == true) && (user_options->hash_mode == 4000) && (user_options->hash_info == 0) && (user_options->dynamic_x == false))
+  {
+    event_log_error (hashcat_ctx, "Hash-mode 4000 needs --hash-recipe, for example --hash-recipe 'md5(md5(salt) . pass)'.");
+
+    return -1;
   }
 
   if (user_options->benchmark_all == true)
+  {
+    user_options->benchmark = true;
+  }
+
+  // --benchmark-json on its own turns benchmark mode on, the way --benchmark-all does, so it does
+  // something without -b. This runs before the --json implication in user_options_postprocess, so
+  // only an explicit --benchmark-json reaches here; the --json umbrella does not force benchmark.
+  if (user_options->benchmark_json == true)
   {
     user_options->benchmark = true;
   }
@@ -3272,6 +3409,19 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  // --json is the umbrella switch: it turns on the per-surface JSON flags so every
+  // output goes out as JSON. The surfaces that key off machine_readable (hash-info,
+  // backend-info) and the ones with no dedicated flag (keyspace, identify) read
+  // user_options->json directly. --show is reached before this runs, so its explicit
+  // --outfile-json guard still rejects that pairing while allowing --json.
+
+  if (user_options->json == true)
+  {
+    user_options->status_json    = true;
+    user_options->outfile_json   = true;
+    user_options->benchmark_json = true;
+  }
+
   // automatic status
 
   if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
@@ -3495,8 +3645,13 @@ static u32 user_options_extra_base_scope (hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->loopback      == true) return BASE_SCOPE_PER_ROUND;
-  if (user_options->induction_dir != NULL) return BASE_SCOPE_PER_ROUND;
+  // Only the attacks induct_ctx_init () inducts for. Any other attack ignores --induction-dir, and
+  // asking it for rounds left it with no dictionary for the first one.
+
+  const bool inducts = (user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+
+  if ((inducts == true) && (user_options->loopback      == true)) return BASE_SCOPE_PER_ROUND;
+  if ((inducts == true) && (user_options->induction_dir != NULL)) return BASE_SCOPE_PER_ROUND;
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
@@ -3702,7 +3857,8 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 
   // --dynamic-x
 
-  user_options_extra->dynamicx_num = -1;
+  user_options_extra->dynamicx_num    = -1;
+  user_options_extra->dynamicx_layout = 0;
 
   // hc_hash and hc_work*
 
@@ -3950,6 +4106,19 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   potfile_ctx_t        *potfile_ctx        = hashcat_ctx->potfile_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  // Whether the candidates come from a pipe is settled by user_options_extra_init (), which runs
+  // after user_options_sanity (), so --stdin-count is checked against it here.
+
+  if (user_options->stdin_count_chgd == true)
+  {
+    if (user_options_extra->wordlist_mode != WL_MODE_STDIN)
+    {
+      event_log_error (hashcat_ctx, "Use of --stdin-count is only allowed in stdin mode (pipe).");
+
+      return -1;
+    }
+  }
 
   // public key
 
@@ -4756,7 +4925,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 400, 0, folder_config->shared_dir, kernelfile);
+  generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 4000, 0, folder_config->shared_dir, kernelfile);
 
   if (hc_path_read (kernelfile) == false)
   {
@@ -4952,6 +5121,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->bridge_parameter2);
   logfile_top_string (user_options->bridge_parameter3);
   logfile_top_string (user_options->bridge_parameter4);
+  logfile_top_string (user_options->hash_recipe);
   logfile_top_string (user_options->cache_path);
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);
@@ -4987,11 +5157,13 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   #endif
   logfile_top_uint64 (user_options->limit);
   logfile_top_uint64 (user_options->skip);
+  logfile_top_uint64 (user_options->stdin_count);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);
   logfile_top_uint   (user_options->backend_devices_virthost);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
+  logfile_top_uint   (user_options->benchmark_json);
   logfile_top_uint   (user_options->benchmark_max);
   logfile_top_uint   (user_options->benchmark_min);
   logfile_top_uint   (user_options->benchmark_pure);
@@ -5060,6 +5232,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->speed_only);
   logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->json);
   logfile_top_uint   (user_options->status_json);
   logfile_top_uint   (user_options->status_timer);
   logfile_top_uint   (user_options->stdout_flag);

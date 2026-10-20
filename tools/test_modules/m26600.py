@@ -7,16 +7,14 @@
 
 import base64
 import hashlib
-import random
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, random_number
 
 # MetaMask: PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The line is the
 # salt, the 16 byte nonce and the ciphertext with its 16 byte tag, each base64 encoded. When there
-# is no ciphertext to decrypt the plaintext is a random length run of 0xff, so a generated hash is
-# not reproducible from a seed and only the cross verification is meaningful here. The length is
+# is no ciphertext to decrypt the plaintext is a random length run of 0xff. The length is
 # capped 16 bytes below CT_MAX_LEN so the ciphertext plus its tag still fits what verify accepts;
 # the perl oracle does not cap and can emit a hash its own verify then rejects.
 
@@ -50,9 +48,9 @@ def module_generate_hash(word, salt, iv=None, ct=None):
     try:
       aes.verify(tag_bin)
     except ValueError:
-      pt = b"\xff" * (CT_MIN_LEN + int(random.random() * (CT_MAX_LEN - 16 - CT_MIN_LEN)) + 1)
+      pt = b"\xff" * random_number(CT_MIN_LEN + 1, CT_MAX_LEN - 16)
   else:
-    pt = b"\xff" * (CT_MIN_LEN + int(random.random() * (CT_MAX_LEN - 16 - CT_MIN_LEN)) + 1)
+    pt = b"\xff" * random_number(CT_MIN_LEN + 1, CT_MAX_LEN - 16)
 
   aes = AES.new(key, AES.MODE_GCM, nonce=iv_bin)
 

@@ -18,7 +18,11 @@
 #include "core.c"
 #include "blake2/blake2b.c"
 
-#if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86) || defined (__aarch64__) || defined (__arm64__)
+// opt.c is written in SSE2 intrinsics (mapped to NEON by sse2neon on ARM). 64-bit x86 always has SSE2,
+// but a 32-bit x86 target such as i586 does not unless the build enables it, so there it takes the
+// portable ref.c instead.
+
+#if defined (__x86_64__) || defined (_M_X64) || defined (__SSE2__) || defined (__aarch64__) || defined (__arm64__)
 #include "opt.c"
 #else
 #include "ref.c"
@@ -319,6 +323,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_info         = get_unit_info;
   bridge_ctx->get_workitem_count    = get_workitem_count;
   bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->get_unit_tuning       = BRIDGE_DEFAULT;
   bridge_ctx->thread_init           = BRIDGE_DEFAULT;
   bridge_ctx->thread_term           = BRIDGE_DEFAULT;
   bridge_ctx->salt_prepare          = salt_prepare;

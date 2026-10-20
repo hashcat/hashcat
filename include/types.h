@@ -149,12 +149,14 @@ typedef enum event_identifier
   EVENT_MONITOR_STATUS_REFRESH     = 0x00000091,
   EVENT_MONITOR_TEMP_ABORT         = 0x00000092,
   EVENT_MONITOR_TEMP_ABORT_FEEDER  = 0x00000099,
+  EVENT_MONITOR_TEMP_ABORT_BRIDGE  = 0x0000009a,
   EVENT_MONITOR_THROTTLE1          = 0x00000093,
   EVENT_MONITOR_THROTTLE2          = 0x00000094,
   EVENT_MONITOR_THROTTLE3          = 0x00000095,
   EVENT_MONITOR_PERFORMANCE_HINT   = 0x00000096,
   EVENT_MONITOR_NOINPUT_HINT       = 0x00000097,
   EVENT_MONITOR_NOINPUT_ABORT      = 0x00000098,
+  EVENT_MONITOR_STDIN_OVERRUN      = 0x0000009b,
   EVENT_BACKEND_SESSION_POST       = 0x000000a0,
   EVENT_BACKEND_SESSION_PRE        = 0x000000a1,
   EVENT_BACKEND_SESSION_HOSTMEM    = 0x000000a2,
@@ -230,7 +232,7 @@ typedef enum vendor_id
 typedef enum mem_source
 {
   MEM_SOURCE_UNKNOWN   = 0,   // nothing asked; derived from the physical size
-  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo ()
+  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo (), the system's free memory on unified Apple devices
   MEM_SOURCE_ALIAS     = 2,   // copied from the CUDA or HIP view of the same device
   MEM_SOURCE_EXTENSION = 3,   // CL_DEVICE_GLOBAL_FREE_MEMORY_AMD
   MEM_SOURCE_HWMON     = 4,   // the hardware monitor's used-memory reading
@@ -993,6 +995,7 @@ typedef enum user_options_defaults
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST  = 1,
   BENCHMARK_ALL             = false,
+  BENCHMARK_JSON            = false,
   BENCHMARK_MAX             = 99999,
   BENCHMARK_MIN             = 0,
   BENCHMARK_PURE            = false,
@@ -1035,6 +1038,7 @@ typedef enum user_options_defaults
   INCREMENT_INVERSE        = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
+  JSON                     = false,
   KEEP_GUESSING            = false,
   KERNEL_ACCEL             = 0,
   KERNEL_LOOPS             = 0,
@@ -1051,7 +1055,7 @@ typedef enum user_options_defaults
   MARKOV                   = true,
   MARKOV_INVERSE           = false,
   MARKOV_THRESHOLD         = 0,
-  METAL_COMPILER_RUNTIME   = 120,
+  METAL_COMPILER_RUNTIME   = 180,
   NONCE_ERROR_CORRECTIONS  = 8,
   BACKEND_IGNORE_CUDA      = false,
   BACKEND_IGNORE_HIP       = false,
@@ -1093,6 +1097,7 @@ typedef enum user_options_defaults
   PIPELINE_STATS           = false,
   TASK_TIME_BREAKDOWN      = false,
   STATUS_TIMER             = 10,
+  STDIN_COUNT              = 0,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
   USAGE                    = 0,
@@ -1118,6 +1123,7 @@ typedef enum user_options_map
   IDX_BACKEND_INFO              = 'I',
   IDX_BACKEND_VECTOR_WIDTH      = 0xff05,
   IDX_BENCHMARK_ALL             = 0xff06,
+  IDX_BENCHMARK_JSON            = 0xff8e,
   IDX_BENCHMARK_MAX             = 0xff56,
   IDX_BENCHMARK_MIN             = 0xff57,
   IDX_BENCHMARK_PURE            = 'B',
@@ -1164,6 +1170,7 @@ typedef enum user_options_map
   IDX_HWMON_DISABLE             = 0xff19,
   IDX_HWMON_TEMP_ABORT          = 0xff1a,
   IDX_HASH_MODE                 = 'm',
+  IDX_HASH_RECIPE               = 0xff8d,
   IDX_HCCAPX_MESSAGE_PAIR       = 0xff1b,
   IDX_HELP                      = 'h',
   IDX_HEX_CHARSET               = 0xff1c,
@@ -1176,6 +1183,7 @@ typedef enum user_options_map
   IDX_INCREMENT_MAX             = 0xff21,
   IDX_INCREMENT_MIN             = 0xff22,
   IDX_INDUCTION_DIR             = 0xff23,
+  IDX_JSON                      = 0xff86,
   IDX_KEEP_GUESSING             = 0xff24,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
@@ -1241,6 +1249,7 @@ typedef enum user_options_map
   IDX_STATUS_JSON               = 0xff4b,
   IDX_STATUS_TIMER              = 0xff4c,
   IDX_STDOUT_FLAG               = 0xff4d,
+  IDX_STDIN_COUNT               = 0xff8f,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff4e,
   IDX_TOTAL_CANDIDATES          = 0xff58,
   IDX_TRUECRYPT_KEYFILES        = 0xff4f,
@@ -1313,6 +1322,11 @@ typedef struct dynamicx
 {
   char *dynamicx_buf;
   u32   dynamicx_len;
+
+  // John's text after the tag, as it was read, which --show, --left and --remove write back
+
+  char *dynamicx_rest;
+  u32   dynamicx_rest_len;
 
 } dynamicx_t;
 
@@ -1499,6 +1513,15 @@ typedef struct hashconfig
 
   const char *st_hash;
   const char *st_pass;
+
+  // Optional recipe for a mode's pure kernels. See hashconfig_init ().
+
+  const char *hash_recipe;
+
+  // The recipe supplied through --hash-recipe, used by a module to determine how its
+  // hash lines are parsed.
+
+  const char *hash_recipe_option;
 
   u32         hash_category;
   const char *hash_name;
@@ -1773,6 +1796,7 @@ typedef struct hc_device_param
 
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
+  bool    skipped_autotune;     // session
 
   // Why this device is not being used, for the summary printed once enumeration is over. A device
   // the user excluded is not a loss and leaves this empty, so what remains here is a device that was
@@ -2167,6 +2191,12 @@ typedef struct hc_device_param
 
   bool              is_metal;
 
+  // The Metal family level, 1 to 4 and 0 for none, and whether the Metal 4 path was taken. Outside
+  // the Apple guard because the kernel cache key carries both on every platform.
+
+  int               metal_version;
+  bool              use_metal4;
+
   #if defined (__APPLE__)
 
   //int               mtl_major;
@@ -2185,13 +2215,41 @@ typedef struct hc_device_param
   mtl_device_id     metal_device;
   mtl_command_queue metal_command_queue;
 
+  // Bound in place of every kernel argument the mode leaves NULL, because Metal takes no nil buffer.
+
+  mtl_mem_t         metal_fake_buf;
+
+  // Metal 4, when the device takes that path: the queue above is then an MTL4CommandQueue and these
+  // are what a launch or a copy needs around it. All nil on the Metal 3 path.
+
+  mtl_command_allocator metal_command_allocator;
+  mtl_command_buffer    metal_command_buffer;
+  mtl_argument_table    metal_argument_table;
+  mtl_residency_set     metal_residency_set;
+  mtl_compiler          metal_compiler;
+  id                    metal_scratch_buf;
+  size_t                metal_scratch_offset;
+  dispatch_semaphore_t  metal_sema;
+
   mtl_library       metal_library[HC_DEV_PROGRAM_CNT];
+
+  // The archive the compiled pipelines of a program are cached in, see hc_mtlArchiveOpen.
+
+  mtl_archive       metal_archive[HC_DEV_PROGRAM_CNT];
+  mtl_serializer    metal_serializer[HC_DEV_PROGRAM_CNT];
+  mtl_compiler      metal_program_compiler[HC_DEV_PROGRAM_CNT];
+  char             *metal_archive_file[HC_DEV_PROGRAM_CNT];
+  bool              metal_archive_write[HC_DEV_PROGRAM_CNT];
 
   mtl_function      metal_function[HC_DEV_KERN_CNT];
 
   mtl_pipeline      metal_pipeline[HC_DEV_KERN_CNT];
 
+  // The program each kernel slot was built from, and whether its pipeline is in the archive that
+  // will be written: a pipeline taken from an archive that turns out stale is added at the flush.
 
+  int               metal_function_program[HC_DEV_KERN_CNT];
+  bool              metal_function_archived[HC_DEV_KERN_CNT];
 
   #endif // __APPLE__
 
@@ -2216,6 +2274,12 @@ typedef struct hc_device_param
   bool              has_amd_device_attribute_query;
 
   mem_source_t      device_available_mem_source;
+
+  // device_available_mem and its source as enumeration found them. A session adjusts both for itself,
+  // and the next session starts again from these.
+
+  u64               device_available_mem_init;
+  mem_source_t      device_available_mem_source_init;
 
   cl_device_id      opencl_device;
   cl_context        opencl_context;
@@ -2290,7 +2354,6 @@ typedef struct backend_ctx
   bool                runtime_skip_warning;
   bool                kernel_build_warning;
   bool                kernel_create_warning;
-  bool                kernel_accel_warnings;
   bool                extra_size_warning;
   bool                mixed_warnings;
   bool                self_test_warnings;
@@ -2388,7 +2451,9 @@ typedef struct backend_ctx
 
   int                 rc_metal_init;
 
-  unsigned int        metal_runtimeVersion;
+  // The kernel cache key carries the whole string, 368.53 rather than 368, since the runtime moves
+  // with every macOS update and an archive from another OS build only falls back to a compile.
+
   char               *metal_runtimeVersionStr;
 
   // opencl
@@ -2816,6 +2881,7 @@ typedef struct user_options
   bool         advice;
   bool         benchmark;
   bool         benchmark_all;
+  bool         benchmark_json;
   bool         benchmark_pure;
   #ifdef WITH_BRAIN
   bool         brain_client;
@@ -2831,6 +2897,7 @@ typedef struct user_options
   bool         hex_salt;
   bool         hex_wordlist;
   increment_t  increment;
+  bool         json;
   bool         keep_guessing;
   bool         keyspace;
   bool         total_candidates;
@@ -2867,6 +2934,7 @@ typedef struct user_options
   bool         pipeline_stats;
   bool         task_time_breakdown;
   bool         stdout_flag;
+  bool         stdin_count_chgd;
   bool         stdin_timeout_abort_chgd;
   bool         username;
   bool         veracrypt_pim_start_chgd;
@@ -2884,6 +2952,7 @@ typedef struct user_options
   char        *bridge_parameter4;
   char        *cpu_affinity;
   char        *debug_file;
+  char        *hash_recipe;
   char        *induction_dir;
   char        *keyboard_layout_mapping;
   char        *lookup;
@@ -2978,6 +3047,7 @@ typedef struct user_options
   u32          veracrypt_pim_stop;
   u64          limit;
   u64          skip;
+  u64          stdin_count;
   bool         hash_copy;
 
 } user_options_t;
@@ -3022,6 +3092,10 @@ typedef struct user_options_extra
   // every other line has to carry the same number, and this is what they are compared against.
 
   int    dynamicx_num;
+
+  // how the lines are laid out once they are hashcat's, DYNAMICX_LINE_* and DYNAMICX_SPLIT_*
+
+  u32    dynamicx_layout;
 
   int    hc_workc;  // can be 0 in bf-mode = default mask
   char **hc_workv;
@@ -4032,6 +4106,19 @@ typedef struct bridge_ctx
   int       (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
   char     *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
 
+  // A fixed tuning for one unit, for a bridge that knows what its hardware costs per launch. It is the
+  // bridge's counterpart to a module's extra tuning db block.
+  //
+  // OPTIONAL. A bridge that leaves it unset, or returns false for a unit, has that unit autotuned as
+  // before. A unit that gets an answer is not autotuned at all: nothing is launched to measure it, and
+  // the warm up launches are skipped as well. -n and -u still win over it.
+  //
+  // target_msec is the time budget autotune would have sized the launch against. kernel_accel counts
+  // the unit's own waves, as it does everywhere for a bridge unit, and the answer is clamped into the
+  // bounds the device was allocated for. hashes is passed explicitly for the reason given below.
+
+  bool      (*get_unit_tuning)       (hashcat_ctx_t *, void *, const int, const hashconfig_t *, const hashes_t *, const double, u32 *, u32 *);
+
   // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
   //
   // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
@@ -4140,6 +4227,7 @@ typedef struct module_ctx
   const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_charset)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  int         (*module_benchmark_cost)          (const hashconfig_t *, const salt_t *, const void *, char *, const int);
   const char *(*module_deprecated_notice)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_usage_notice)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_advice_notice)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -4154,6 +4242,7 @@ typedef struct module_ctx
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   int         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_hash_recipe)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hashes_count_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hashes_count_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

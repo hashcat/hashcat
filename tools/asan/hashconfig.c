@@ -27,6 +27,13 @@ void harness_build_hashconfig (hashconfig_t *hashconfig, module_ctx_t *m,
 
   hashconfig->hash_mode = (u32) hash_mode;
 
+  // A parser whose format is driven by --hash-recipe (mode 4000) reads the
+  // recipe from here, the way hashconfig_init() copies it from user_options.
+  // Without this the recipe path is unreachable and only a bare digest line
+  // parses.
+
+  hashconfig->hash_recipe_option = uo->hash_recipe;
+
   // Mirrors the subset of hashconfig_init() that a parser can actually
   // observe. Anything a parser reads that is not set here would be read as
   // zero, which is why the harness reports a parser that depends on

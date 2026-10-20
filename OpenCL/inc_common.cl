@@ -2090,6 +2090,10 @@ DECLSPEC int hash_comp (PRIVATE_AS const u32 *d1, GLOBAL_AS const u32 *d2)
   return (0);
 }
 
+// This comparison omits the early returns used by hash_comp (). COMPARE_M_SIMD inlines the search
+// once per vector lane. At the native vector width on CPU runtimes, the 16 copies of those returns
+// made a kernel for multiple hashes 30 times slower to build.
+
 DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
@@ -2098,16 +2102,29 @@ DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLO
 
     const u32 c = l + m;
 
-    const int cmp = hash_comp (digest, digests_buf[c].digest_buf);
+    GLOBAL_AS const u32 *d = digests_buf[c].digest_buf;
 
-    if (cmp > 0)
+    const u32 gt3 = (digest[3] > d[DGST_R3]) ? 1 : 0;
+    const u32 gt2 = (digest[2] > d[DGST_R2]) ? 1 : 0;
+    const u32 gt1 = (digest[1] > d[DGST_R1]) ? 1 : 0;
+    const u32 gt0 = (digest[0] > d[DGST_R0]) ? 1 : 0;
+
+    const u32 eq3 = (digest[3] == d[DGST_R3]) ? 1 : 0;
+    const u32 eq2 = (digest[2] == d[DGST_R2]) ? 1 : 0;
+    const u32 eq1 = (digest[1] == d[DGST_R1]) ? 1 : 0;
+    const u32 eq0 = (digest[0] == d[DGST_R0]) ? 1 : 0;
+
+    const u32 gt = gt3 | (eq3 & (gt2 | (eq2 & (gt1 | (eq1 & gt0)))));
+    const u32 eq = eq3 & eq2 & eq1 & eq0;
+
+    if (eq == 1) return (c);
+
+    if (gt == 1)
     {
       l += m + 1;
 
       r--;
     }
-
-    if (cmp == 0) return (c);
   }
 
   return (-1);
@@ -3738,6 +3755,62 @@ DECLSPEC void append_0x80_1x16 (PRIVATE_AS u32x *w, const u32 offset)
   FORM (61, N, ALIGN)                  \
   FORM (62, N, ALIGN)                  \
   FORM (63, N, ALIGN)
+
+// A CPU reads a private array at an index only known at runtime as cheaply as at a constant one, so
+// there the shift is written once as a loop rather than once per case. Generating the cases costs it
+// nothing at runtime but a great deal of compile time: at 16 vector lanes every case is a block of
+// 512 bit operations, and the update functions inline several of these switches each. A GPU keeps
+// the cases, because a runtime index moves the array out of registers into scratch memory.
+//
+// The loops run from the top word down, so every word is read before it is overwritten. The same
+// switch statement stays around them, with the one default case below.
+
+#ifdef IS_CPU
+
+#define SBBO_CASE_PLAIN_LOOP(n, N, ALIGN)                                                        \
+  for (int i = (N) - 1; i >= 0; i--)                                                             \
+  {                                                                                              \
+    if (i > (n))                                                                                 \
+    {                                                                                            \
+      w[i] = ALIGN (w[i - (n) - 1], w[i - (n)], offset);                                         \
+    }                                                                                            \
+    else if (i == (n))                                                                           \
+    {                                                                                            \
+      w[i] = ALIGN (0, w[0], offset);                                                            \
+    }                                                                                            \
+    else                                                                                         \
+    {                                                                                            \
+      w[i] = 0;                                                                                  \
+    }                                                                                            \
+  }
+
+#define SBBO_CASE_CARRY_LOOP(n, N, ALIGN)                                                        \
+  w[(n) + (N)] = ALIGN (w[(N) - 1], 0, offset);                                                  \
+  for (int i = (n) + (N) - 1; i >= 0; i--)                                                       \
+  {                                                                                              \
+    if (i > (n))                                                                                 \
+    {                                                                                            \
+      w[i] = ALIGN (w[i - (n) - 1], w[i - (n)], offset);                                         \
+    }                                                                                            \
+    else if (i == (n))                                                                           \
+    {                                                                                            \
+      w[i] = ALIGN (0, w[0], offset);                                                            \
+    }                                                                                            \
+    else                                                                                         \
+    {                                                                                            \
+      w[i] = 0;                                                                                  \
+    }                                                                                            \
+  }
+
+#undef  SBBO_CASES_16
+#undef  SBBO_CASES_32
+#undef  SBBO_CASES_64
+
+#define SBBO_CASES_16(FORM, N, ALIGN) default: FORM##_LOOP (offset_switch, N, ALIGN) break;
+#define SBBO_CASES_32(FORM, N, ALIGN) default: FORM##_LOOP (offset_switch, N, ALIGN) break;
+#define SBBO_CASES_64(FORM, N, ALIGN) default: FORM##_LOOP (offset_switch, N, ALIGN) break;
+
+#endif
 
 #define TRUNC_CASES_16(MASK, N)  \
   TRUNC_CASE ( 0, N, MASK)       \

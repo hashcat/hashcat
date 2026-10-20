@@ -6,7 +6,7 @@
 ##
 
 # The crypt base64 that yescrypt ($y$, $gy$) and scrypt ($7$) settings are written in, for the modes
-# whose hash comes from libc crypt () through crypt_r.
+# whose hash comes from libc crypt () through lib/libcrypt.py.
 
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 

@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-import crypt_r
+from lib import libcrypt
 
 # Tripcode: DES crypt of the Shift JIS password, with a salt made from its second and third
 # character, and the last ten characters of the result.
@@ -27,7 +27,7 @@ def module_generate_hash(word, salt=None, iterations=None):
 
   salt = salt.translate(str.maketrans(SALT_FROM, SALT_TO))
 
-  return crypt_r.crypt(word.decode("latin-1"), salt)[-10:]
+  return libcrypt.crypt(word.decode("latin-1"), salt)[-10:]
 
 
 def module_verify_hash(line):

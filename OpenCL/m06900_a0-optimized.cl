@@ -130,17 +130,27 @@ KERNEL_FQ KERNEL_FA void m06900_m04 (KERN_ATTR_RULES ())
 
     u32x tmp[8];
 
-    //if (pw_len > 0) // not really SIMD compatible
-    {
-      PASS0 (state, tmp, state_m, data_m, s_tables);
-      PASS2 (state, tmp, state_m, data_m, s_tables);
-      PASS4 (state, tmp, state_m, data_m, s_tables);
-      PASS6 (state, tmp, state_m, data_m, s_tables);
+    PASS0 (state, tmp, state_m, data_m, s_tables);
+    PASS2 (state, tmp, state_m, data_m, s_tables);
+    PASS4 (state, tmp, state_m, data_m, s_tables);
+    PASS6 (state, tmp, state_m, data_m, s_tables);
 
-      SHIFT12 (state_m, data, tmp);
-      SHIFT16 (state, data_m, state_m);
-      SHIFT61 (state, data_m);
-    }
+    SHIFT12 (state_m, data, tmp);
+    SHIFT16 (state, data_m, state_m);
+    SHIFT61 (state, data_m);
+
+    // an empty password has no message block, so its lanes keep the zero state
+
+    const u32x mask = ((out_len | (out_len * 0xffffffff)) >> 31) * 0xffffffff;
+
+    state[0] &= mask;
+    state[1] &= mask;
+    state[2] &= mask;
+    state[3] &= mask;
+    state[4] &= mask;
+    state[5] &= mask;
+    state[6] &= mask;
+    state[7] &= mask;
 
     data[0] = out_len * 8;
     data[1] = 0;
@@ -362,17 +372,27 @@ KERNEL_FQ KERNEL_FA void m06900_s04 (KERN_ATTR_RULES ())
 
     u32x tmp[8];
 
-    //if (pw_len > 0) // not really SIMD compatible
-    {
-      PASS0 (state, tmp, state_m, data_m, s_tables);
-      PASS2 (state, tmp, state_m, data_m, s_tables);
-      PASS4 (state, tmp, state_m, data_m, s_tables);
-      PASS6 (state, tmp, state_m, data_m, s_tables);
+    PASS0 (state, tmp, state_m, data_m, s_tables);
+    PASS2 (state, tmp, state_m, data_m, s_tables);
+    PASS4 (state, tmp, state_m, data_m, s_tables);
+    PASS6 (state, tmp, state_m, data_m, s_tables);
 
-      SHIFT12 (state_m, data, tmp);
-      SHIFT16 (state, data_m, state_m);
-      SHIFT61 (state, data_m);
-    }
+    SHIFT12 (state_m, data, tmp);
+    SHIFT16 (state, data_m, state_m);
+    SHIFT61 (state, data_m);
+
+    // an empty password has no message block, so its lanes keep the zero state
+
+    const u32x mask = ((out_len | (out_len * 0xffffffff)) >> 31) * 0xffffffff;
+
+    state[0] &= mask;
+    state[1] &= mask;
+    state[2] &= mask;
+    state[3] &= mask;
+    state[4] &= mask;
+    state[5] &= mask;
+    state[6] &= mask;
+    state[7] &= mask;
 
     data[0] = out_len * 8;
     data[1] = 0;

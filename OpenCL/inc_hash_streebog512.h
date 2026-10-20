@@ -6,6 +6,23 @@
 #ifndef INC_HASH_STREEBOG512_H
 #define INC_HASH_STREEBOG512_H
 
+// Under HIP, AMD GPUs read the tables directly from constant memory. Copying the tables to shared
+// memory first, as other devices with shared memory do, made most Streebog kernels slower on those
+// GPUs. AMD's own OpenCL runs at the same speed with either approach and retains the shared memory
+// copy. A kernel that defines SBOG_SHARED_TABLES before including this file also retains that copy.
+
+#if defined IS_HIP && !defined SBOG_SHARED_TABLES
+#define SBOG_CONSTANT_TABLES
+#endif
+
+#ifdef SBOG_CONSTANT_TABLES
+#define SBOG_SHM_TYPE   CONSTANT_AS
+#define SBOG_LOCAL_TYPE CONSTANT_AS
+#else
+#define SBOG_SHM_TYPE   SHM_TYPE
+#define SBOG_LOCAL_TYPE LOCAL_AS
+#endif
+
 #define BOX_S(S,n,i)      ((S)[(n)][(i)])
 
 #if   VECT_SIZE == 1
@@ -61,7 +78,7 @@ typedef struct streebog512_ctx
 
   int len;
 
-  SHM_TYPE u64a (*s_sbob_sl64)[256];
+  SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256];
 
 } streebog512_ctx_t;
 
@@ -87,7 +104,7 @@ typedef struct streebog512_ctx_vector
 
   int len;
 
-  SHM_TYPE u64a (*s_sbob_sl64)[256];
+  SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256];
 
 } streebog512_ctx_vector_t;
 
@@ -98,34 +115,34 @@ typedef struct streebog512_hmac_ctx_vector
 
 } streebog512_hmac_ctx_vector_t;
 
-DECLSPEC void streebog512_init (PRIVATE_AS streebog512_ctx_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_init (PRIVATE_AS streebog512_ctx_t *ctx, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog512_add (PRIVATE_AS u64 *x, PRIVATE_AS const u64 *y);
-DECLSPEC void streebog512_g (PRIVATE_AS u64 *h, PRIVATE_AS const u64 *n, PRIVATE_AS const u64 *m, SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_g (PRIVATE_AS u64 *h, PRIVATE_AS const u64 *n, PRIVATE_AS const u64 *m, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog512_transform (PRIVATE_AS streebog512_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3);
 DECLSPEC void streebog512_update_64 (PRIVATE_AS streebog512_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
 DECLSPEC void streebog512_update (PRIVATE_AS streebog512_ctx_t *ctx, PRIVATE_AS const u32 *w, int len);
 DECLSPEC void streebog512_update_swap (PRIVATE_AS streebog512_ctx_t *ctx, PRIVATE_AS const u32 *w, int len);
 DECLSPEC void streebog512_update_global_swap (PRIVATE_AS streebog512_ctx_t *ctx, GLOBAL_AS const u32 *w, int len);
 DECLSPEC void streebog512_final (PRIVATE_AS streebog512_ctx_t *ctx);
-DECLSPEC void streebog512_hmac_init_64 (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, SHM_TYPE u64a (*s_sbob_sl64)[256]);
-DECLSPEC void streebog512_hmac_init (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
-DECLSPEC void streebog512_hmac_init_swap (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_hmac_init_64 (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_hmac_init (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_hmac_init_swap (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog512_hmac_update_64 (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
 DECLSPEC void streebog512_hmac_update (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void streebog512_hmac_update_swap (PRIVATE_AS streebog512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void streebog512_hmac_update_global_swap (PRIVATE_AS streebog512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void streebog512_hmac_final (PRIVATE_AS streebog512_hmac_ctx_t *ctx);
-DECLSPEC void streebog512_init_vector (PRIVATE_AS streebog512_ctx_vector_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_init_vector (PRIVATE_AS streebog512_ctx_vector_t *ctx, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog512_add_vector (PRIVATE_AS u64x *x, PRIVATE_AS const u64x *y);
-DECLSPEC void streebog512_g_vector (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *n, PRIVATE_AS const u64x *m, SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_g_vector (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *n, PRIVATE_AS const u64x *m, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog512_transform_vector (PRIVATE_AS streebog512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3);
 DECLSPEC void streebog512_update_vector_64 (PRIVATE_AS streebog512_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len);
 DECLSPEC void streebog512_update_vector (PRIVATE_AS streebog512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, int len);
 DECLSPEC void streebog512_update_vector_swap (PRIVATE_AS streebog512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, int len);
 DECLSPEC void streebog512_final_vector (PRIVATE_AS streebog512_ctx_vector_t *ctx);
-DECLSPEC void streebog512_hmac_init_vector_64 (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, SHM_TYPE u64a (*s_sbob_sl64)[256]);
-DECLSPEC void streebog512_hmac_init_vector (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
-DECLSPEC void streebog512_hmac_init_vector_swap (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_hmac_init_vector_64 (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_hmac_init_vector (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
+DECLSPEC void streebog512_hmac_init_vector_swap (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog512_hmac_update_vector (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void streebog512_hmac_update_vector_swap (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void streebog512_hmac_final_vector (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx);

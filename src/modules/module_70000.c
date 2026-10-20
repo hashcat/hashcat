@@ -277,6 +277,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return out_len;
 }
 
+int module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // The bridge keeps the argon2 cost parameters in the argon2_t esalt rather than in the salt_iter
+  // the Iterations readout prints, so read m, t and p from there and show them the way the hash
+  // spells them.
+
+  const argon2_t *argon2 = (const argon2_t *) esalt_buf;
+
+  return snprintf (line_buf, line_size, "m=%u, t=%u, p=%u", argon2->m, argon2->t, argon2->p);
+}
+
 void module_init (module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
@@ -284,6 +295,7 @@ void module_init (module_ctx_t *module_ctx)
 
   module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
+  module_ctx->module_benchmark_cost           = module_benchmark_cost;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
@@ -319,6 +331,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

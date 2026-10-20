@@ -34,7 +34,10 @@ CONSTANT_VK u32a k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-DECLSPEC void sha256_transform_z (PRIVATE_AS u32 *digest)
+// Called 6 times per candidate. Inlined, those 6 unrolled copies made NVRTC 12.0 build this kernel for
+// hours when the grammar has no OMEN part, and one shared copy also runs faster on every backend.
+
+DECLSPEC HC_NOINLINE_ALWAYS void sha256_transform_z (PRIVATE_AS u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];

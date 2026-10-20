@@ -59,10 +59,31 @@
 #include "ext_zstd.h"
 #include "ext_iconv.h"
 #include "usage.h"
+#include "json.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
 #endif
+
+// A round ends with -1 on an error, and with -10 when autotune failed on every device, which
+// inner2_autotune () has already announced. A benchmark over every hash mode skips that mode, as
+// outer_loop () skips one whose backend session does not start. Anywhere else -10 stops the session
+// and is passed back up so that it reaches the exit code.
+
+static int round_failed (hashcat_ctx_t *hashcat_ctx, const int rc)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (rc == -1) myabort (hashcat_ctx);
+
+  if (rc != -10) return 0;
+
+  if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false)) return 0;
+
+  myabort (hashcat_ctx);
+
+  return -10;
+}
 
 // Measure how every device should be launched for this round.
 //
@@ -146,12 +167,16 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
       {
         event_log_warning (hashcat_ctx, "* Device #%u: skipped, due to kernel autotune failure (%d).", device_param->device_id + 1, device_param->at_rc);
 
-        device_param->skipped = true;
+        // for the rest of this session only, see backend_session_destroy ()
+
+        device_param->skipped          = true;
+        device_param->skipped_autotune = true;
 
         // update counters
 
         if (device_param->is_hip == true)    backend_ctx->hip_devices_active--;
         if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active--;
+        if (device_param->is_metal == true)  backend_ctx->metal_devices_active--;
         if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
 
         backend_ctx->backend_devices_active--;
@@ -169,10 +194,18 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
 
     if (user_options->force == false)
     {
-      // if all enabled devices fail, abort session
+      // if all enabled devices fail, abort session, or in a benchmark over every hash mode skip
+      // this one (see round_failed ())
       if (backend_ctx->backend_devices_active <= 0)
       {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+        if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+        {
+          event_log_error (hashcat_ctx, "Skipping hash-mode %u due to kernel autotune failures, for all active devices.", user_options->hash_mode);
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+        }
 
         event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
@@ -596,7 +629,16 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_RUNNING;
 
+  // A status snapshot taken between rounds borrows its strings from hashcat_status_final, and
+  // status_status_destroy () reads this flag to decide whether to free them. The keypress and monitor
+  // threads hold mux_display from taking a snapshot until they free it, so the flag only changes
+  // under that lock. Otherwise a borrowed snapshot could be freed as if it were its own.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
   status_ctx->accessible = true;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
   // A seek stops every device and starts it again from the position it moved to. Everything set up
   // above survives that, the autotune and the backend session the devices are holding included, so
@@ -765,6 +807,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   // put there has to go first or it is lost rather than freed. It adds up twice over: once per
   // round of an attack, and once per hash mode under -b. accessible is still true here, so the call
   // does its work rather than returning at the flag the way it does everywhere else.
+  //
+  // Under mux_display, for the reason given where accessible is raised. A snapshot borrowed from
+  // the previous round must not be read while its strings are freed here.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
 
   status_status_destroy (hashcat_ctx, status_ctx->hashcat_status_final);
 
@@ -774,6 +821,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   status_ctx->accessible = false;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
   // update newly cracked hashes per session
 
@@ -810,6 +859,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // New induction folder check, which is a controlled recursion
 
+  int rc_induction = 0;
+
   if (induct_ctx->induction_dictionaries_cnt == 0)
   {
     induct_ctx_scan (hashcat_ctx);
@@ -822,7 +873,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       {
         if (status_ctx->devices_status == STATUS_EXHAUSTED)
         {
-          if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+          if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_induction = -10;
 
           if (status_ctx->run_main_level3 == false) break;
         }
@@ -857,7 +908,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  return 0;
+  return rc_induction;
 }
 
 // inner1_loop iterates through masks, then calls inner2_loop
@@ -873,6 +924,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
+
+  int rc_inner1 = 0;
 
   /**
    * loop through wordlists
@@ -898,7 +951,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     {
       straight_ctx->dicts_pos = dicts_pos;
 
-      if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+      if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_inner1 = -10;
 
       if (status_ctx->run_main_level3 == false) break;
     }
@@ -910,12 +963,12 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+    if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_inner1 = -10;
   }
 
   EVENT (EVENT_INNERLOOP2_FINISHED);
 
-  return 0;
+  return rc_inner1;
 }
 
 // outer_loop iterates through hash_modes (in benchmark mode)
@@ -927,9 +980,18 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 // status_progress_destroy () free a zeroed one. Being called a second time is a different question,
 // and this does not answer it: module_unload () closes the module handle without clearing it. No
 // caller asks, because every return in outer_loop () calls this and returns.
+//
+// The keypress thread can display the status while this runs, and part of what status_display () reads
+// is live context rather than the snapshot. It holds mux_display for the whole display, so taking the
+// lock here lets a display finish before anything is freed and keeps the next one waiting until every
+// context is back to zero.
 
 static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
   #ifdef WITH_BRAIN
   brain_ctx_destroy       (hashcat_ctx);
   #endif
@@ -945,6 +1007,8 @@ static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
   status_progress_destroy (hashcat_ctx);
   generic_ctx_destroy     (hashcat_ctx);
   straight_ctx_destroy    (hashcat_ctx);
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 }
 
 // The monitor and outfile-check threads read the contexts outer_loop_destroy () gives back, so they
@@ -1011,6 +1075,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   user_options_extra_init_late (hashcat_ctx);
 
   EVENT (EVENT_HASHCONFIG_POST);
+
+  // Modes without a self-test hash need a module-supplied benchmark salt. Mode 4000 without
+  // --hash-recipe has neither, so --benchmark-all skips it instead of stopping the whole run. See
+  // hashes_init_benchmark ().
+
+  if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+  {
+    if ((hashconfig->st_hash == NULL) && (module_ctx->module_benchmark_salt == MODULE_DEFAULT))
+    {
+      outer_loop_destroy (hashcat_ctx);
+
+      return 0;
+    }
+  }
 
   /**
    * deprecated notice
@@ -1600,6 +1678,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
+      // STATUS_INIT would end the sweep as an error when this is its last mode, see the feed that
+      // describes its attack further up
+
+      status_ctx->devices_status = STATUS_RUNNING;
+
       outer_loop_destroy (hashcat_ctx);
 
       return 0;
@@ -1639,7 +1722,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     if (user_options->benchmark == true)
     {
-      if (user_options->hash_mode_chgd == false)
+      // with no device left no later hash mode can run either, so that one ends the sweep
+
+      if ((user_options->hash_mode_chgd == false) && (backend_ctx->backend_devices_active > 0))
       {
         // finalize backend session
 
@@ -1648,6 +1733,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
         // clean up
 
         outer_loop_destroy (hashcat_ctx);
+
+        // as for a bridge that does not come up, above
+
+        status_ctx->devices_status = STATUS_RUNNING;
 
         return 0;
       }
@@ -1844,13 +1933,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_ctx->words_walk_base = 0;
   status_ctx->words_walk_cnt  = 0;
 
+  int rc_outer = 0;
+
   if (mask_ctx->masks_cnt)
   {
     for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
       mask_ctx->masks_pos = masks_pos;
 
-      if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+      if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
 
       if (status_ctx->run_main_level2 == false) break;
     }
@@ -1862,7 +1953,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
   else
   {
-    if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+    if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
   }
 
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
@@ -1917,7 +2008,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   outer_loop_destroy (hashcat_ctx);
 
-  return 0;
+  return rc_outer;
 }
 
 static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -2539,6 +2630,11 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
     if (hc_path_exist (modulefile) == false) continue;
 
+    // an old number loads the module of its new number, so a module file left under it by an
+    // earlier build or install would detect the hash-mode twice
+
+    if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
     // we know it exists, so load the plugin
 
     const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
@@ -2657,6 +2753,42 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (modes_cnt > 1)
     {
+      // --json prints the matches as one object. Hash-mode names are fixed module
+      // strings without quote or backslash bytes, so they need no JSON escaping.
+
+      if ((user_options->json == true) && (user_options->identify == true))
+      {
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+
+        for (int i = 0; i < modes_cnt; i++)
+        {
+          json_object_begin (&js);
+          json_kv_uint   (&js, "hash_mode", usage_sort_buf[i].hash_mode);
+          json_kv_string (&js, "name", usage_sort_buf[i].hash_name);
+          json_kv_string (&js, "category", strhashcategory (usage_sort_buf[i].hash_category));
+          json_object_end (&js);
+
+          hcfree (usage_sort_buf[i].hash_name);
+        }
+
+        json_array_end (&js);
+        json_object_end (&js);
+
+        fwrite (EOL, strlen (EOL), 1, stdout);
+
+        fflush (stdout);
+
+        hcfree (usage_sort_buf);
+
+        return 0;
+      }
+
       if (user_options->machine_readable == false)
       {
         event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
@@ -2703,7 +2835,28 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->identify == true)
     {
-      if (user_options->machine_readable == true)
+      if (user_options->json == true)
+      {
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+        json_object_begin (&js);
+        json_kv_uint   (&js, "hash_mode", usage_sort_buf[0].hash_mode);
+        json_kv_string (&js, "name", usage_sort_buf[0].hash_name);
+        json_kv_string (&js, "category", strhashcategory (usage_sort_buf[0].hash_category));
+        json_object_end (&js);
+        json_array_end (&js);
+        json_object_end (&js);
+
+        fwrite (EOL, strlen (EOL), 1, stdout);
+
+        fflush (stdout);
+      }
+      else if (user_options->machine_readable == true)
       {
         event_log_info (hashcat_ctx, "%u", usage_sort_buf[0].hash_mode);
       }
@@ -2829,12 +2982,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 is marked as used in status_codes.txt
+    // -2 and -7 are reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;
     if (backend_ctx->kernel_create_warning == true)               rc_final = -6;
-    if (backend_ctx->kernel_accel_warnings == true)               rc_final = -7;
     if (backend_ctx->extra_size_warning    == true)               rc_final = -8;
     if (backend_ctx->mixed_warnings        == true)               rc_final = -9;
     if (backend_ctx->self_test_warnings    == true)               rc_final = -11;

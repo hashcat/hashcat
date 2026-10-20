@@ -5,12 +5,12 @@ Exit Status Codes:
 -10 = autotune failure
  -9 = mixed backend errors (a combination of error types -3 through -8)
  -8 = backend error: invalid module_extra_buffer_size
- -7 = backend error: too many compute units to keep the minimum kernel accel limit
+ -7 = reserved, not produced
  -6 = backend error: kernel creation failed
  -5 = backend error: main kernel build failed
  -4 = backend error: memory limit reached
  -3 = backend error: hash type skipped by module_unstable_warning
- -2 = GPU watchdog alarm
+ -2 = reserved, not produced
  -1 = error
   0 = OK/cracked
   1 = exhausted

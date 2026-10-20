@@ -281,6 +281,12 @@ CONSTANT_VK u32a te3[256] =
   0xb0b0cb7b, 0x5454fca8, 0xbbbbd66d, 0x16163a2c,
 };
 
+// A kernel that reads only te0 to te3, as the ECHO and SHAvite hashes of mode 4000 do, defines
+// AES_TE0_TE3_ONLY to leave out the other tables. CUDA keeps every table of a kernel in its
+// constant bank, whether it is read or not.
+
+#ifndef AES_TE0_TE3_ONLY
+
 CONSTANT_VK u32a te4[256] =
 {
   0x63636363, 0x7c7c7c7c, 0x77777777, 0x7b7b7b7b,
@@ -689,6 +695,8 @@ CONSTANT_VK u32a td4[256] =
   0x55555555, 0x21212121, 0x0c0c0c0c, 0x7d7d7d7d,
 };
 
+#endif
+
 // 128 bit key
 
 DECLSPEC void aes128_ExpandKey (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey, SHM_TYPE const u32 *s_te0, SHM_TYPE const u32 *s_te1, SHM_TYPE const u32 *s_te2, SHM_TYPE const u32 *s_te3)
@@ -782,6 +790,8 @@ DECLSPEC void aes128_ExpandKey (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey, 
 // The decrypt key schedule inverts every round key, and a second set of tables folds the two
 // lookups that takes into one. The plain entry points above keep the two lookup form, because
 // only a hash mode whose inner loop is the key schedule itself gains anything from the fold.
+
+#ifndef AES_TE0_TE3_ONLY
 
 CONSTANT_VK u32a td_inv0[256] =
 {
@@ -1054,6 +1064,8 @@ CONSTANT_VK u32a td_inv3[256] =
   0x79b492a7, 0x70b999a9, 0x6bae84bb, 0x62a38fb5,
   0x5d80be9f, 0x548db591, 0x4f9aa883, 0x4697a38d,
 };
+
+#endif
 
 DECLSPEC void aes128_InvertKey (PRIVATE_AS u32 *ks, SHM_TYPE const u32 *s_te1, SHM_TYPE const u32 *s_td0, SHM_TYPE const u32 *s_td1, SHM_TYPE const u32 *s_td2, SHM_TYPE const u32 *s_td3)
 {

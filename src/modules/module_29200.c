@@ -15,7 +15,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "parser.h"
-#include "emu_inc_bignum_operations.h"
+#include "emu_inc_bignum_2048.h"
 #include "emu_inc_radmin3_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -179,16 +179,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hex_decode (token.buf[3], token.len[3], v);
 
-  // change the order (byte_swap () and v[63] <-> v[0], v[62] <-> u[1] etc):
+  // the verifier is a big-endian number, the bignum code works on limbs
 
-  for (u32 i = 0, j = 63; i < 32; i++, j--)
-  {
-    u32 t1 = salt->salt_buf_pc[i];
-    u32 t2 = salt->salt_buf_pc[j];
-
-    salt->salt_buf_pc[j] = byte_swap_32 (t1);
-    salt->salt_buf_pc[i] = byte_swap_32 (t2);
-  }
+  bn2048_from_be (salt->salt_buf_pc, salt->salt_buf_pc);
 
   // digest
 
@@ -196,7 +189,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 dgst[64] = { 0 };
 
-  to_montgomery (dgst, salt->salt_buf_pc, RADMIN3_M);
+  bn2048_to_mont (dgst, salt->salt_buf_pc, RADMIN3_M, RADMIN3_N0, RADMIN3_R);
 
   digest[0] = dgst[0];
   digest[1] = dgst[1];
@@ -256,14 +249,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 verifier[64];
 
-  for (u32 i = 0, j = 63; i < 32; i++, j--) // fix the order
-  {
-    u32 t1 = salt->salt_buf_pc[i];
-    u32 t2 = salt->salt_buf_pc[j];
-
-    verifier[j] = byte_swap_32 (t1);
-    verifier[i] = byte_swap_32 (t2);
-  }
+  bn2048_to_be (verifier, salt->salt_buf_pc);
 
   out_len += generic_salt_encode (hashconfig, (const u8 *) verifier, 256, out_buf + out_len);
 
@@ -312,6 +298,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

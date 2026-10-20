@@ -144,6 +144,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   mozilla_3des->ct_buf[2] = hex_to_u32 (ct_pos + 16);
   mozilla_3des->ct_buf[3] = hex_to_u32 (ct_pos + 24);
 
+  // make salt sorter happy: the kernel checks the ct of the first hash of a salt only, so entries
+  // with the same two salts must not share one. The ct goes after the words the kernel reads.
+
+  salt->salt_buf[16] = mozilla_3des->ct_buf[0];
+  salt->salt_buf[17] = mozilla_3des->ct_buf[1];
+  salt->salt_buf[18] = mozilla_3des->ct_buf[2];
+  salt->salt_buf[19] = mozilla_3des->ct_buf[3];
+
+  salt->salt_len += 16;
+
   // hash
 
   digest[0] = mozilla_3des->ct_buf[0];
@@ -223,6 +233,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
