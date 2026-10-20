@@ -94,11 +94,10 @@ static bool module_salt_sweep (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (hashes->salts_cnt <= 1) return false;
 
-  if (device_param->vector_width != 1) return false;
-
   const bool fuse_attack = (user_options_extra->attack_kern == ATTACK_KERN_BF) || (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT);
   const bool fuse_device = ((device_param->is_cuda == true) && (device_param->sm_major >= 5)) || (device_param->is_opencl == true) || (device_param->is_hip == true);
-  const bool fuse_salts = (fuse_attack == true) && (fuse_device == true);
+  const bool fuse_vector = (device_param->vector_width == 1) || ((device_param->is_opencl == true) && ((device_param->vector_width == 2) || (device_param->vector_width == 4) || (device_param->vector_width == 8) || (device_param->vector_width == 16)));
+  const bool fuse_salts = (fuse_attack == true) && (fuse_device == true) && (fuse_vector == true);
 
   return fuse_salts;
 }
