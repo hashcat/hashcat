@@ -3521,6 +3521,50 @@ static int pcfg_carveout (void)
 static u64 pcfg_launch_items  (const hc_device_param_t *device_param, const u64 num_base);
 static u64 pcfg_launch_stride (const hc_device_param_t *device_param, const u64 num_base);
 
+// The salt_dimy a launch of a DIMY kernel has to serve, taken from the salt the kernel reads. The
+// self-test binds a salt buffer of its own, which holds the one self-test salt. Every other launch
+// reads the salt in salt_pos_host.
+//
+// -a 9 reads one salt per work item, see SALT_POS_HOST in inc_types.h, so one launch serves the salts
+// from pws_pos on. A salt of parallelism p takes ceil (p / height) rounds of 1 / p of a slice, so the
+// launch cannot finish before the salt with the smallest parallelism has run one round, whatever the
+// height. The height is the smallest one at which every other salt is done by then as well, because a
+// taller one leaves rows without a lane, and on a full device these rows hold it without doing work.
+
+static u32 launch_salt_dimy (const hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 num)
+{
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool is_selftest = (device_param->kernel_params[17] == hc_dev_kern_arg (device_param, HC_DEV_BUF_ST_SALTS_BUF));
+
+  if (is_selftest == true) return hashes->st_salts_buf[0].salt_dimy;
+
+  if (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) return hashes->salts_buf[device_param->kernel_param.salt_pos_host].salt_dimy;
+
+  u32 salt_dimy_min = hashes->salts_buf[pws_pos].salt_dimy;
+
+  for (u64 salt_pos = pws_pos + 1; salt_pos < pws_pos + num; salt_pos++)
+  {
+    salt_dimy_min = MIN (salt_dimy_min, hashes->salts_buf[salt_pos].salt_dimy);
+  }
+
+  if (salt_dimy_min <= 1) return salt_dimy_min;
+
+  // A salt of parallelism p keeps up with the smallest one in floor (p / salt_dimy_min) rounds.
+
+  u32 salt_dimy = salt_dimy_min;
+
+  for (u64 salt_pos = pws_pos; salt_pos < pws_pos + num; salt_pos++)
+  {
+    const u32 p = hashes->salts_buf[salt_pos].salt_dimy;
+
+    salt_dimy = MAX (salt_dimy, CEILDIV (p, p / salt_dimy_min));
+  }
+
+  return salt_dimy;
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num_base, const u32 event_update, const u32 iteration, const bool is_autotune)
 {
   // The device engine spreads one cell across several waves, as many as its rectangle needs at a fixed
@@ -3574,6 +3618,29 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   //}
 
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
+
+  // A DIMY kernel runs salt_dimy rows of kernel_threads work items in one block, but the compiled
+  // kernel can allow fewer threads per block than that, and the launch then fails. The kernels step
+  // through their lanes by the row count, so fewer rows cost rounds. Take the fewest rounds the
+  // kernel allows and spread the rows evenly over them.
+
+  u32 dimy = 1;
+
+  if (hashconfig->opti_type & (OPTI_TYPE_SLOW_HASH_DIMY_INIT | OPTI_TYPE_SLOW_HASH_DIMY_LOOP | OPTI_TYPE_SLOW_HASH_DIMY_COMP))
+  {
+    const u32 salt_dimy = launch_salt_dimy (hashcat_ctx, device_param, pws_pos, num);
+
+    dimy = salt_dimy;
+
+    const u32 dimy_max = MAX (device_param->kernel_wgs[slot] / MAX (kernel_threads, 1), 1);
+
+    if (dimy > dimy_max)
+    {
+      const u32 dimy_rounds = CEILDIV (salt_dimy, dimy_max);
+
+      dimy = CEILDIV (salt_dimy, dimy_rounds);
+    }
+  }
 
   device_param->kernel_param.pws_pos = pws_pos;
   device_param->kernel_param.gid_max = num;
@@ -3664,11 +3731,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     u32 blockDimZ = 1;
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
 
     if (is_autotune == true)
     {
@@ -3764,11 +3831,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     u32 blockDimZ = 1;
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
 
     //printf ("%d %d %d %d %d %d %d\n", kern_run, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ);
 
@@ -3895,19 +3962,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
@@ -4049,19 +4116,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 

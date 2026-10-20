@@ -676,9 +676,13 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   #elif defined IS_AMD_USE_OPENCL && defined IS_GPU
 
-  // ds_bpermute addresses lanes in bytes, so the lane number shifts up by four
+  // ds_bpermute addresses lanes in bytes. On GCN and CDNA it reaches across the whole wave64,
+  // which then holds more than one group of lsz threads, so the source lane is taken within the
+  // caller's own group, as HIP's __shfl does.
 
-  const u32 idx = src_lane << 2;
+  const u32 self = __builtin_amdgcn_mbcnt_hi (~0u, __builtin_amdgcn_mbcnt_lo (~0u, 0u));
+
+  const u32 idx = ((self & ~(lsz - 1)) | (src_lane & (lsz - 1))) << 2;
 
   const u32 l32r = __builtin_amdgcn_ds_bpermute (idx, l32_from_64_S (var));
   const u32 h32r = __builtin_amdgcn_ds_bpermute (idx, h32_from_64_S (var));
@@ -702,7 +706,7 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   return out;
 
-  #else
+  #elif defined HC_SHFL_BARRIER
 
   // nothing to reach, so the exchange goes through local memory
 
@@ -716,6 +720,8 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   return out;
 
+  #else
+  #error "hc_shfl_u64_impl () goes through local memory here, but HC_SHFL_BARRIER in inc_platform.h is not set"
   #endif
 }
 

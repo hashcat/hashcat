@@ -173,6 +173,14 @@ char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
     build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D THREADS_PER_LANE=1 ");
   }
 
+  // A work item keeps its blocks at its index times ARGON2_TMP_ELEM, see get_argon2_block (). In -a 9 the
+  // work items of one launch are different hashes, and a stride of each hash's own block count puts a
+  // hash with fewer blocks inside the blocks of the hash before it in the same sub-buffer. The largest
+  // block count is the slot the extra buffer is sized for, see argon2_module_extra_buffer_size (). The
+  // self-test runs a single work item at index 0, which needs no stride.
+
+  build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D ARGON2_TMP_ELEM=%" PRIu64 " ", get_largest_memory_block_count (hashconfig, hashes));
+
   // We can apply some optimization logic under certain conditions
 
   merged_options_t *merged_options    = (merged_options_t *) hashes->esalts_buf;
@@ -181,35 +189,24 @@ char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   argon2_options_t *argon2_options    = &merged_options->argon2_options;
   argon2_options_t *argon2_options_st = &merged_options_st->argon2_options;
 
-  u64 memory_block_count = 0;
   u64 parallelism = 0;
 
   if (((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0) && (argon2_options_st != NULL))
   {
-    memory_block_count = argon2_options_st->memory_block_count;
-    parallelism        = argon2_options_st->parallelism;
+    parallelism = argon2_options_st->parallelism;
   }
   else
   {
-    memory_block_count = argon2_options->memory_block_count;
-    parallelism        = argon2_options->parallelism;
+    parallelism = argon2_options->parallelism;
   }
 
-  bool all_same_memory_block_count = true;
-  bool all_same_parallelism        = true;
+  bool all_same_parallelism = true;
 
   for (u32 i = 0; i < hashes->salts_cnt; i++)
   {
     argon2_options = &merged_options[i].argon2_options;
 
-    if (memory_block_count != argon2_options->memory_block_count) all_same_memory_block_count = false;
-
     if (parallelism != argon2_options->parallelism) all_same_parallelism = false;
-  }
-
-  if (all_same_memory_block_count == true)
-  {
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D ARGON2_TMP_ELEM=%" PRIu64 " ", memory_block_count);
   }
 
   if (all_same_parallelism == true)
