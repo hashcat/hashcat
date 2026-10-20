@@ -28,7 +28,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
                                   | OPTS_TYPE_PT_UTF16LE
-                                  | OPTS_TYPE_ST_HEX;
+                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_MULTI_SALT_FUSED;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "::5V4T:ada06359242920a500000000000000000000000000000000:0556d5297b5daa70eaffde82ef99293a3f3bb59b7c9704ea:9c23f6c094853920";
@@ -81,6 +82,23 @@ static void transform_netntlmv1_key (const u8 *nthash, u8 *key)
   key[7] |= 0x01;
 }
 
+// Build before any decoder runs. Parser threads only read this module-owned table.
+
+static u32 nn_tail_sched[0x10000][32];
+
+static void __attribute__ ((constructor)) nn_tail_sched_init (void)
+{
+  for (u32 i = 0; i < 0x10000; i++)
+  {
+    const u32 key_md4[2] = { i, 0 };
+    u32 key_des[2] = { 0 };
+
+    transform_netntlmv1_key ((const u8 *) key_md4, (u8 *) key_des);
+
+    _des_crypt_keysetup (key_des[0], key_des[1], &nn_tail_sched[i][0], &nn_tail_sched[i][16], (u32 (*)[64]) c_skb);
+  }
+}
+
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
@@ -91,10 +109,38 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     return jit_build_options;
   }
 
+  const bool fuse_attack = ((user_options_extra->attack_kern == ATTACK_KERN_BF) || (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION);
+  const bool fuse_device = ((device_param->is_cuda == true) && (device_param->sm_major >= 5)) || (device_param->is_opencl == true) || (device_param->is_hip == true);
+  const bool fuse_salts = ((hashconfig->opts_type & OPTS_TYPE_MULTI_SALT_FUSED) != 0) && (fuse_attack == true) && (hashes->salts_cnt > 1) && (device_param->vector_width == 1) && (fuse_device == true);
+
+  char fuse_str[64] = "";
+
+  if (fuse_salts == true)
+  {
+    const u32 cuda_max = (device_param->sm_major >= 8) ? 4096 : 512;
+    const u32 window_max = (device_param->is_cuda == true) ? cuda_max : 1536;
+
+    u32 window = 2;
+
+    while ((window < hashes->salts_cnt) && (window < window_max)) window *= 2;
+
+    if (window > window_max) window = window_max;
+
+    // Capacity buckets reuse kernels across files with different counts.
+    // OpenCL/HIP use at most 28 KiB without the CUDA survivor queue.
+    // TODO: Autotune larger windows from runtime local-memory capacity.
+
+    snprintf (fuse_str, sizeof (fuse_str), " -D MULTI_SALT_WINDOW=%u", window);
+  }
+
   // Intel CPU
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
   {
-    hc_asprintf (&jit_build_options, "-D _unroll");
+    hc_asprintf (&jit_build_options, "-D _unroll%s", fuse_str);
+  }
+  else if (fuse_str[0] != 0)
+  {
+    hc_asprintf (&jit_build_options, "%s", fuse_str + 1);
   }
 
   return jit_build_options;
@@ -289,17 +335,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < 0x10000; i++)
   {
-    u32 key_md4[2] = { 0 };
-    u32 key_des[2] = { 0 };
-
-    key_md4[0] = i;
-
-    transform_netntlmv1_key ((const u8 *) key_md4, (u8 *) key_des);
-
-    u32 Kc[16] = { 0 };
-    u32 Kd[16] = { 0 };
-
-    _des_crypt_keysetup (key_des[0], key_des[1], Kc, Kd, (u32 (*)[64]) c_skb);
+    const u32 *Kc = &nn_tail_sched[i][0];
+    const u32 *Kd = &nn_tail_sched[i][16];
 
     u32 data3[2] = { salt->salt_buf[0], salt->salt_buf[1] };
 
@@ -418,6 +455,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return out_len;
 }
 
+int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
+{
+  // Synthetic self-test and benchmark salts bypass the hash sorter. The
+  // fused verifier needs the same one-digest range that the sorter supplies.
+
+  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
+
+  hash->salt->digests_cnt    = 1;
+  hash->salt->digests_offset = 0;
+
+  return parser_status;
+}
+
 void module_init (module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
@@ -456,7 +506,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_hints               = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+  module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;

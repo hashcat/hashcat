@@ -2103,6 +2103,10 @@ typedef struct kernel_param
   u32 pcfg_pool_at2;        // 41
   u32 pcfg_pool_at3;        // 42
 
+  // Number of salt records bound to this launch, including the self-test.
+
+  u32 salts_cnt;            // 43
+
 } kernel_param_t;
 
 typedef struct salt
