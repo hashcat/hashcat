@@ -132,7 +132,7 @@ ALIAS_AMD                                       3       4800    4       A       
 ALIAS_AMD                                       3       4900    2       A       A
 ALIAS_AMD                                       3       5300    2       A       A
 ALIAS_AMD                                       3       5400    2       A       A
-ALIAS_AMD                                       3       5500    4       A       A
+ALIAS_AMD                                       3       5500    1       A       A
 ALIAS_AMD                                       3       9900    4       A       A
 ALIAS_AMD                                       3       11100   2       A       A
 ALIAS_AMD                                       3       13200   2       A       A
@@ -175,7 +175,7 @@ ALIAS_INTEL                                     3       4800    4       A       
 ALIAS_INTEL                                     3       4900    2       A       A
 ALIAS_INTEL                                     3       5300    2       A       A
 ALIAS_INTEL                                     3       5400    2       A       A
-ALIAS_INTEL                                     3       5500    4       A       A
+ALIAS_INTEL                                     3       5500    1       A       A
 ALIAS_INTEL                                     3       9900    4       A       A
 ALIAS_INTEL                                     3       11100   2       A       A
 ALIAS_INTEL                                     3       13200   2       A       A
