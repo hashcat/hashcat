@@ -1690,6 +1690,23 @@ static u64 kernel_shared_chksum (const char *kernel_dir)
 // We write to a name of our own and rename it into place instead. A rename is atomic, so a reader
 // sees either the whole previous file or the whole new one, and no lock is needed on either side.
 
+// A cache that cannot be written costs a rebuild on the next start and nothing else, because the
+// kernel built here is used either way. So the run goes on and the reason is reported once. Stopping
+// was the old behaviour, and it reported the build as failed when only the cache write had.
+
+static void write_kernel_binary_warn (hashcat_ctx_t *hashcat_ctx, const char *file, const char *reason)
+{
+  static bool warned = false;
+
+  if (warned == true) return;
+
+  warned = true;
+
+  event_log_warning (hashcat_ctx, "Cannot write the kernel cache file %s: %s", file, reason);
+  event_log_warning (hashcat_ctx, "Kernels are built again on every start until the cache directory is writable. See --cache-path.");
+  event_log_warning (hashcat_ctx, NULL);
+}
+
 static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
@@ -1707,9 +1724,37 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 
     if (hc_fopen (&fp, tmp_file, "wb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", tmp_file, hc_fopen_strerror ());
+      const int   open_errno  = errno;
+      const char *open_reason = hc_fopen_strerror ();
 
-      return false;
+      // The kernels directory is created at startup without a check, so on a cache path that does
+      // not allow it the open fails with "No such file or directory". Name the directory instead.
+
+      char dir[256 + 32];
+
+      snprintf (dir, sizeof (dir), "%s", tmp_file);
+
+      const size_t dir_len = strlen (dir);
+
+      for (size_t i = dir_len; i > 0; i--)
+      {
+        if ((dir[i - 1] != '/') && (dir[i - 1] != '\\')) continue;
+
+        dir[i - 1] = 0;
+
+        break;
+      }
+
+      if ((open_errno == ENOENT) && (hc_path_is_directory (dir) == false))
+      {
+        write_kernel_binary_warn (hashcat_ctx, kernel_file, "its directory does not exist and could not be created");
+      }
+      else
+      {
+        write_kernel_binary_warn (hashcat_ctx, kernel_file, open_reason);
+      }
+
+      return true;
     }
 
     const size_t put = hc_fwrite (binary, sizeof (char), binary_size, &fp);
@@ -1720,11 +1765,11 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 
     if (put != binary_size)
     {
+      write_kernel_binary_warn (hashcat_ctx, kernel_file, strerror (errno));
+
       remove (tmp_file);
 
-      event_log_error (hashcat_ctx, "%s: %s", tmp_file, strerror (errno));
-
-      return false;
+      return true;
     }
 
     // rename () refuses an existing target on Windows, where POSIX replaces it silently. The gap
@@ -1736,11 +1781,11 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 
     if (rename (tmp_file, kernel_file) != 0)
     {
+      write_kernel_binary_warn (hashcat_ctx, kernel_file, strerror (errno));
+
       remove (tmp_file);
 
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
-
-      return false;
+      return true;
     }
   }
 

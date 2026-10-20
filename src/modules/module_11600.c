@@ -801,7 +801,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
 
-    for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
+    for (u32 i = 0; i < seven_zip->coder_attributes_len; i++)
     {
       bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "%02x", ptr[i]);
 

@@ -381,13 +381,20 @@ ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
 RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
+LIBRARY_RESOURCE_NATIVE := obj/hashcat_lib.res.NATIVE.o
+PLUGIN_RESOURCE_NATIVE  := obj/hashcat_plugin.res.NATIVE.o
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
 RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
+LIBRARY_RESOURCE_NATIVE := obj/hashcat_lib.res.NATIVE.o
+PLUGIN_RESOURCE_NATIVE  := obj/hashcat_plugin.res.NATIVE.o
 endif # MSYS2
+
+LIBRARY_RESOURCE_WIN    := obj/hashcat_lib.res.WIN.o
+PLUGIN_RESOURCE_WIN     := obj/hashcat_plugin.res.WIN.o
 
 # make install and make uninstall run on this machine and touch nothing a cross build wrote
 
@@ -1550,8 +1557,8 @@ LIBRARY_LFLAGS_WIN      += $(TARGET_WIN)
 
 define LIBRARY_RULES
 
-$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) obj/arrangement
-	$$(CC_$(1)) $$(CORE_OBJS_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
+$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) $$(LIBRARY_RESOURCE_$(1)) obj/arrangement
+	$$(CC_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_RESOURCE_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 
@@ -1591,6 +1598,17 @@ obj/hashcat.res.WIN.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
 obj/hashcat.res.NATIVE.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
 	$(call resource_compile,NATIVE)
 
+## src/hashcat_dll.rc is the same version block for hashcat.dll and for every plugin DLL. One object
+## serves all the plugins, so it names no file.
+
+resource_dll_compile = $(WINDRES_$(1)) -I src -DHC_VERSION_NUM=$(VERSION_NUM) -DHC_VERSION_STR='\"$(VERSION_TAG)\"' $(2) src/hashcat_dll.rc -o $@
+
+obj/hashcat_lib.res.%.o: src/hashcat_dll.rc obj/arrangement
+	$(call resource_dll_compile,$*,-DHC_RC_LIBRARY)
+
+obj/hashcat_plugin.res.%.o: src/hashcat_dll.rc obj/arrangement
+	$(call resource_dll_compile,$*,)
+
 # A native build is a Windows one on MSYS2 and CYGWIN, and those get the resource section too. On
 # every other platform RESOURCE_NATIVE is empty and the link is unchanged.
 
@@ -1614,17 +1632,17 @@ $(HASHCAT_FRONTEND): src/main.c $(CORE_NATIVE) $(RESOURCE_NATIVE) obj/arrangemen
 ## $(call) cuts its arguments at every comma and a flag is allowed to contain one. Those flags come
 ## last, so a plugin cannot put its own include path in front of the tree's.
 
-plugin_link = $(CC_$(1)) $(CCFLAGS) $(CFLAGS_PLUGIN_$(1)) $(CFLAGS_ABI) $(if $(3),$(DEPFLAGS) -MF $(3)) $(2) $(CORE_$(1)) -o $@ $(LFLAGS_$(1)) $(if $(filter $(1),$(SHARED_PLATFORMS)),$(LFLAGS_PLUGIN_$(1))) -shared -fPIC -D $(4) $($(5))
+plugin_link = $(CC_$(1)) $(CCFLAGS) $(CFLAGS_PLUGIN_$(1)) $(CFLAGS_ABI) $(if $(3),$(DEPFLAGS) -MF $(3)) $(2) $(PLUGIN_RESOURCE_$(1)) $(CORE_$(1)) -o $@ $(LFLAGS_$(1)) $(if $(filter $(1),$(SHARED_PLATFORMS)),$(LFLAGS_PLUGIN_$(1))) -shared -fPIC -D $(4) $($(5))
 
 define PLUGIN_RULES
 
-modules/module_%.$(PLUGIN_SUFFIX_$(1)): src/modules/module_%.c $$(CORE_$(1)) obj/arrangement
+modules/module_%.$(PLUGIN_SUFFIX_$(1)): src/modules/module_%.c $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement
 	$$(call plugin_link,$(1),$$<,obj/module_$$*.$(1).d,MODULE_INTERFACE_VERSION_CURRENT=$$(MODULE_INTERFACE_VERSION),)
 
-feeds/feed_%.$(PLUGIN_SUFFIX_$(1)): src/feeds/feed_%.c $$(CORE_$(1)) obj/arrangement
+feeds/feed_%.$(PLUGIN_SUFFIX_$(1)): src/feeds/feed_%.c $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement
 	$$(call plugin_link,$(1),$$<,obj/feed_$$*.$(1).d,FEEDS_INTERFACE_VERSION_CURRENT=$$(FEEDS_INTERFACE_VERSION),)
 
-bridges/bridge_%.$(PLUGIN_SUFFIX_$(1)): src/bridges/bridge_%.c $$(CORE_$(1)) obj/arrangement
+bridges/bridge_%.$(PLUGIN_SUFFIX_$(1)): src/bridges/bridge_%.c $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement
 	$$(call plugin_link,$(1),$$<,,BRIDGE_INTERFACE_VERSION_CURRENT=$$(BRIDGE_INTERFACE_VERSION),)
 
 MODULES_LIB_$(1)        := $$(patsubst src/modules/module_%.c,modules/module_%.$(PLUGIN_SUFFIX_$(1)),$$(MODULES_SRC))
@@ -1648,7 +1666,7 @@ define BRIDGE_RULES
 
 BRIDGE_FLAGS_$(2)_$(1)  := $(BRIDGE_CFLAGS_$(2)) $(BRIDGE_CFLAGS_$(2)_$(1))
 
-bridges/$(2).$(PLUGIN_SUFFIX_$(1)): $$(BRIDGE_SRC_$(2)) $$(CORE_$(1)) obj/arrangement $(BRIDGE_DEPS_$(2)_$(1))
+bridges/$(2).$(PLUGIN_SUFFIX_$(1)): $$(BRIDGE_SRC_$(2)) $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement $(BRIDGE_DEPS_$(2)_$(1))
 	$$(call plugin_link,$(1),$$(BRIDGE_SRC_$(2)),,BRIDGE_INTERFACE_VERSION_CURRENT=$$(BRIDGE_INTERFACE_VERSION),BRIDGE_FLAGS_$(2)_$(1))
 
 endef

@@ -118,7 +118,7 @@ int nvrtc_init (void *hashcat_ctx)
       dirs[1] = cuda_bin;
     }
 
-    nvrtc->lib = hc_dynlib_open_newest_dll ("nvrtc64_", dirs, 2, NULL, 0);
+    nvrtc->lib = hc_dynlib_open_newest_dll_tie ("nvrtc64_", "nvrtc-builtins64_", dirs, 2, NULL, 0);
   }
   #elif defined (__APPLE__)
   nvrtc->lib = hc_dlopen ("nvrtc.dylib");

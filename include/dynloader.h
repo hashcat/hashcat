@@ -108,6 +108,11 @@ HC_PLUGIN_API hc_dynlib_t hc_dynlib_open_newest (const char *stem, char *err, co
 // searched after those, so a driver's older copy is found but never preferred.
 
 HC_PLUGIN_API hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size);
+
+// The same, with ties between equal names broken by the highest version among the files named
+// tie_prefix<digits>.dll in each candidate's directory.
+
+HC_PLUGIN_API hc_dynlib_t hc_dynlib_open_newest_dll_tie (const char *prefix, const char *tie_prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size);
 #endif
 
 HC_PLUGIN_API bool        hc_dynlib_syms (hc_dynlib_t lib, void *dst, const hc_dynlib_sym_t *syms, char *err, const size_t err_size);

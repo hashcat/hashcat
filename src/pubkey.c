@@ -116,7 +116,12 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Cannot find the OpenSSL 3 crypto library, which --encrypt-with-pubkey requires.");
 
+    #if defined (_WIN)
+    event_log_warning (hashcat_ctx, "Put libcrypto-3-x64.dll from an OpenSSL 3 build for Windows next to hashcat.exe or on PATH,");
+    event_log_warning (hashcat_ctx, "and try again.");
+    #else
     event_log_warning (hashcat_ctx, "Install OpenSSL 3 (for instance the libssl3 or openssl package) and try again.");
+    #endif
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;

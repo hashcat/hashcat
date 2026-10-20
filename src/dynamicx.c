@@ -487,9 +487,14 @@ static bool dynamicx_field_ok (const char *field, const int field_len, const boo
 
 static char *dynamicx_keep (const char *rest, const int rest_len)
 {
-  char *kept = (char *) hcmalloc (rest_len + 1);
+  // rest_len is the line length less the tag, which the tag parser keeps inside the line. A negative
+  // value would reach memcpy () as a size close to SIZE_MAX, so it is kept as nothing instead.
 
-  memcpy (kept, rest, rest_len);
+  const size_t len = (rest_len > 0) ? (size_t) rest_len : 0;
+
+  char *kept = (char *) hcmalloc (len + 1);
+
+  memcpy (kept, rest, len);
 
   return kept;
 }

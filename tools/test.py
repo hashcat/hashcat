@@ -15,7 +15,10 @@ import ast
 import atexit
 import base64
 import contextlib
-import fcntl
+try:
+  import fcntl
+except ImportError:
+  fcntl = None
 import glob
 import importlib.util
 import json
@@ -32,10 +35,38 @@ import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+# On Windows hashcat writes CRLF to a text mode stdout, and every parser below matches LF terminated
+# lines, so CRLF is folded to LF in whatever a run captures.
+if os.name == "nt":
+  _subprocess_run = subprocess.run
+
+  def _run_lf(*a, **kw):
+    proc = _subprocess_run(*a, **kw)
+
+    for name in ("stdout", "stderr"):
+      v = getattr(proc, name, None)
+
+      if isinstance(v, bytes):
+        setattr(proc, name, v.replace(b"\r\n", b"\n"))
+      elif isinstance(v, str):
+        setattr(proc, name, v.replace("\r\n", "\n"))
+
+    # A negative exit code arrives as its unsigned 32 bit value, -10 as 4294967286, where every
+    # check below expects the POSIX byte, 246. A crash is an NTSTATUS such as 0xC00000FD, and its
+    # low byte would read as a memory skip, so only the small negative codes are folded.
+    rc = getattr(proc, "returncode", None)
+
+    if isinstance(rc, int) and (rc >= 0xFFFFFF00):
+      proc.returncode = rc & 0xff
+
+    return proc
+
+  subprocess.run = _run_lf
+
 TDIR   = os.path.dirname(os.path.abspath(__file__))
 ROOT   = os.path.dirname(TDIR)
 RUNNER = os.path.join(TDIR, "test_module_runner.py")
-BIN    = os.path.join(ROOT, "hashcat")
+BIN    = os.path.join(ROOT, "hashcat.exe" if os.name == "nt" else "hashcat")
 
 # Per-process isolation of hashcat's mutable per-run state, so any number of test.py processes (and
 # -j workers) run without stepping on each other. Every hashcat call gets these:
@@ -165,17 +196,30 @@ def logfull_append(text):
   if not text.endswith("\n"):
     text += "\n"
 
+  # Windows has no fcntl, and a failed lock must not skip the write, so the lock is only taken where
+  # it exists.
+  locked = False
+
   try:
-    fcntl.flock(LOGFULL, fcntl.LOCK_EX)
+    if fcntl is None:
+      pass
+    else:
+      fcntl.flock(LOGFULL, fcntl.LOCK_EX)
+      locked = True
+  except Exception:
+    pass
+
+  try:
     LOGFULL.write(text)
     LOGFULL.flush()
   except Exception:
     pass
   finally:
-    try:
-      fcntl.flock(LOGFULL, fcntl.LOCK_UN)
-    except Exception:
-      pass
+    if locked == True:
+      try:
+        fcntl.flock(LOGFULL, fcntl.LOCK_UN)
+      except Exception:
+        pass
 
 
 def log_output(cmd, output):
