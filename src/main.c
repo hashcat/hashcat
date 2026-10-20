@@ -317,6 +317,42 @@ static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
 }
 
+// One line that says who has to act, under the error that says what went wrong. It is for a person at
+// a terminal. A wrapper reads the exit code, and to one reading stderr the line would be a second
+// error, or a write to a pipe it has already closed after the first.
+
+static void main_error_banner (hashcat_ctx_t *hashcat_ctx, const int rc_final, const bool quiet)
+{
+  if (quiet == true) return;
+
+  if (is_stderr_terminal () == false) return;
+
+  const char *what = NULL;
+
+  switch (rc_final)
+  {
+    case RC_FINAL_ERROR_COMMAND: what = "attack command (flags)"; break;
+    case RC_FINAL_ERROR_TASK:    what = "task";                   break;
+
+    // the backend errors of docs/exit_status_code.txt, but -5: a kernel that does not build is as
+    // often a bug in the kernel source, so like -10 and -11 it is not put on anyone
+
+    case -3:
+    case -4:
+    case -6:
+    case -8:
+    case -9:                     what = "backend";                break;
+  }
+
+  if (what == NULL) return;
+
+  // what was written to stdout before belongs above this line
+
+  fflush (stdout);
+
+  event_log_error (hashcat_ctx, "The cause is in the %s.", what);
+}
+
 static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -2105,6 +2141,8 @@ int main (int argc, char **argv)
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
+    main_error_banner (hashcat_ctx, RC_FINAL_ERROR_COMMAND, hashcat_ctx->user_options->quiet);
+
     user_options_destroy (hashcat_ctx);
 
     hashcat_destroy (hashcat_ctx);
@@ -2116,6 +2154,8 @@ int main (int argc, char **argv)
 
   if (user_options_sanity (hashcat_ctx) == -1)
   {
+    main_error_banner (hashcat_ctx, RC_FINAL_ERROR_COMMAND, hashcat_ctx->user_options->quiet);
+
     user_options_destroy (hashcat_ctx);
 
     hashcat_destroy (hashcat_ctx);
@@ -2244,6 +2284,11 @@ int main (int argc, char **argv)
 
   if (((rc_final == RC_FINAL_ERROR) || (rc_final == RC_FINAL_ABORT)) && (rc_error != RC_FINAL_OK)) rc_final = rc_error;
 
+  // the session teardown below can still log an error, which belongs above the banner, and it takes
+  // user_options with it
+
+  const bool quiet = user_options->quiet;
+
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
   main_timing_start (MAIN_TIMING_SESSION_DESTROY);
@@ -2251,6 +2296,8 @@ int main (int argc, char **argv)
   hashcat_session_destroy (hashcat_ctx);
 
   main_timing_stop (MAIN_TIMING_SESSION_DESTROY);
+
+  main_error_banner (hashcat_ctx, rc_final, quiet);
 
   // finished with hashcat, clean up
 
