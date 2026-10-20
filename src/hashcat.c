@@ -48,6 +48,7 @@
 #include "restore.h"
 #include "selftest.h"
 #include "status.h"
+#include "status_rc.h"
 #include "feed_ctx.h"
 #include "straight.h"
 #include "tuningdb.h"
@@ -314,6 +315,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
 
+  // A mask that failed only skips its round, so its error code must not outlive the next round that
+  // does run. It is still set at the end when no round ran after it.
+
+  status_clear_rc_error (hashcat_ctx);
+
   /**
    * Update attack-mode specific stuff based on wordlist
    */
@@ -440,7 +446,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
 
-    status_ctx->user_error = true;
+    // --skip past the end is the command's. A position read back from a restore file is past the end
+    // because the files it was saved against changed since, which is the task's.
+
+    status_set_rc_error (hashcat_ctx, (restored == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -1070,8 +1079,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     outer_loop_destroy (hashcat_ctx);
 
-    hashcat_ctx->status_ctx->user_error = true;
-
     return -1;
   }
 
@@ -1080,6 +1087,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (option_table_check_module (hashcat_ctx, OPTION_MODULE_SAY | OPTION_MODULE_RANGE) == -1)
   {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1145,6 +1154,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
         outer_loop_destroy (hashcat_ctx);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return 0;
       }
     }
@@ -1173,13 +1184,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (hashes_stage1_rc == -1)
   {
+    // A stage 1 failure that is an option's, such as --remove on a native hashfile format, was named
+    // where it happened. What is left is the hashlist itself, the task's when it came from a file and
+    // the attack command's when the hash was typed, like the count checks below. Stage 2 is left alone
+    // because it builds in-memory structures and can fail on memory. Classified before
+    // outer_loop_destroy (), which takes the hashlist mode with it.
+
+    if (status_get_rc_error (hashcat_ctx) == RC_FINAL_OK) status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
     outer_loop_destroy (hashcat_ctx);
-
-    // stage 1 only reads and parses the hashlist the user gave, so a failure here is a user error
-    // (empty or corrupt file, wrong format, unreadable path), reported as -2 like the count check
-    // below. Stage 2 is left alone because it builds in-memory structures and can fail on memory.
-
-    hashcat_ctx->status_ctx->user_error = true;
 
     return -1;
   }
@@ -1190,9 +1203,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     {
       event_log_error (hashcat_ctx, "No hashes loaded.");
 
-      outer_loop_destroy (hashcat_ctx);
+      status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
-      hashcat_ctx->status_ctx->user_error = true;
+      outer_loop_destroy (hashcat_ctx);
 
       return -1;
     }
@@ -1308,9 +1321,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     event_log_error (hashcat_ctx, "Not enough hashes loaded - minimum is %u for this hash-mode.", hashconfig->hashes_count_min);
 
-    outer_loop_destroy (hashcat_ctx);
+    status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
-    hashcat_ctx->status_ctx->user_error = true;
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -1319,9 +1332,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     event_log_error (hashcat_ctx, "Too many hashes loaded - maximum is %u for this hash-mode.", hashconfig->hashes_count_max);
 
-    outer_loop_destroy (hashcat_ctx);
+    status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
-    hashcat_ctx->status_ctx->user_error = true;
+    outer_loop_destroy (hashcat_ctx);
 
     return -1;
   }
@@ -2306,12 +2319,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * Try to detect if all the files we're going to use are accessible in the mode we want them
    */
 
-  if (user_options_check_files (hashcat_ctx) == -1)
-  {
-    hashcat_ctx->status_ctx->user_error = true;
-
-    return -1;
-  }
+  if (user_options_check_files (hashcat_ctx) == -1) return -1;
 
   /**
    * Load bridge a bit too early actually, but we need to know the unit count so we can automatically configure virtualization for the user
@@ -3015,6 +3023,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
@@ -3178,7 +3188,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 is a user error, set in main (), and -7 is reserved in docs/exit_status_code.txt
+    // -2 and -12 are set in main (), and -7 is reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;

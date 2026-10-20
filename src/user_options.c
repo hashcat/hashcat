@@ -27,6 +27,7 @@
 #include "recipe.h"
 #include "module_options.h"
 #include "user_options_table.h"
+#include "status_rc.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -2272,6 +2273,49 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
   return 1;
 }
 
+// A path that is not there is the attack command's, unless the directory it is in is there and may
+// not be searched, or for a file to be created written. Then the command named the right place and the
+// place will not have it, which is the task's. This asks the directory rather than errno, because the
+// message for the path has been printed by the time it is asked.
+
+static rc_final_t path_missing_rc (const char *path, const bool create)
+{
+  char *dir = hcstrdup (path);
+
+  char *sep = strrchr (dir, '/');
+
+  #if defined (_WIN)
+  char *sep_win = strrchr (dir, '\\');
+
+  if ((sep_win != NULL) && ((sep == NULL) || (sep_win > sep))) sep = sep_win;
+  #endif
+
+  if (sep == NULL)
+  {
+    hcfree (dir);
+
+    dir = hcstrdup (".");
+  }
+  else if (sep == dir)
+  {
+    sep[1] = 0;
+  }
+  else
+  {
+    sep[0] = 0;
+  }
+
+  const int mode = (create == true) ? (W_OK | X_OK) : X_OK;
+
+  rc_final_t rc_error = RC_FINAL_ERROR_COMMAND;
+
+  if ((hc_path_is_directory (dir) == true) && (access (dir, mode) == -1)) rc_error = RC_FINAL_ERROR_TASK;
+
+  hcfree (dir);
+
+  return rc_error;
+}
+
 int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t      *folder_config      = hashcat_ctx->folder_config;
@@ -2290,6 +2334,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     if (hc_path_read (user_options->encrypt_with_pubkey) == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", user_options->encrypt_with_pubkey, strerror (errno));
+
+      status_set_rc_error (hashcat_ctx, (hc_path_exist (user_options->encrypt_with_pubkey) == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
       return -1;
     }
@@ -2385,12 +2431,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a hashfile argument.", user_options_extra->hc_hash);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_read (user_options_extra->hc_hash) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2442,6 +2492,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (wlfile, false));
+
         return -1;
       }
     }
@@ -2454,6 +2506,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (rp_file, false));
+
         return -1;
       }
 
@@ -2461,12 +2515,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a rulefile argument.", rp_file);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_read (rp_file) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2492,6 +2550,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (dictfile1, false));
+
         return -1;
       }
 
@@ -2499,12 +2559,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a wordlist argument.", dictfile1);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_read (dictfile1) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2520,6 +2584,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (dictfile2, false));
+
         return -1;
       }
 
@@ -2527,12 +2593,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a wordlist argument.", dictfile2);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_read (dictfile2) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2559,12 +2629,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: A directory cannot be used as a maskfile argument.", maskfile);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2586,6 +2660,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
          || (user_options->custom_charset_8))
         {
           event_log_error (hashcat_ctx, "Using --custom-charsetX with mask files is misleading. Put custom charsets in the mask file instead.");
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
           return -1;
         }
@@ -2610,6 +2686,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (dictfile2, false));
+
         return -1;
       }
 
@@ -2617,12 +2695,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a wordlist argument.", dictfile2);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_read (dictfile2) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2645,6 +2727,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (wlfile, false));
+
         return -1;
       }
 
@@ -2656,12 +2740,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: A directory cannot be used as a maskfile argument.", maskfile);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2683,6 +2771,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
          || (user_options->custom_charset_8))
         {
           event_log_error (hashcat_ctx, "Using --custom-charsetX with mask files is misleading. Put custom charsets in the mask file instead.");
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
           return -1;
         }
@@ -2703,6 +2793,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (wlfile, false));
+
         return -1;
       }
 
@@ -2714,12 +2806,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: A directory cannot be used as a maskfile argument.", maskfile);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2741,6 +2837,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
          || (user_options->custom_charset_8))
         {
           event_log_error (hashcat_ctx, "Using --custom-charsetX with mask files is misleading. Put custom charsets in the mask file instead.");
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
           return -1;
         }
@@ -2774,6 +2872,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
+          status_set_rc_error (hashcat_ctx, path_missing_rc (plugin_name, false));
+
           return -1;
         }
 
@@ -2781,12 +2881,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
         if (hc_path_read (plugin_name) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2801,6 +2905,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
+        status_set_rc_error (hashcat_ctx, path_missing_rc (rp_file, false));
+
         return -1;
       }
 
@@ -2808,12 +2914,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a rulefile argument.", rp_file);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_read (rp_file) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2868,6 +2978,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory.", outcheck_ctx->root_directory);
 
+        if (user_options->outfile_check_dir != NULL) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
     }
@@ -2883,12 +2995,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as an outfile.", outfile_ctx->filename);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_write (outfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2898,6 +3014,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_create (outfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (outfile_ctx->filename, true));
 
         return -1;
       }
@@ -2909,6 +3027,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   if (hc_same_files (outfile_ctx->filename, user_options_extra->hc_hash) == true)
   {
     event_log_error (hashcat_ctx, "Outfile and hashfile cannot point to the same file.");
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -2925,6 +3045,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
     }
@@ -2940,12 +3062,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_same_files (outfile_ctx->filename, dictfile2) == true)
       {
         event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }
@@ -2960,6 +3086,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_same_files (outfile_ctx->filename, wlfile) == true)
       {
         event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }
@@ -2978,6 +3106,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
     }
@@ -2992,6 +3122,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
     }
@@ -3005,6 +3137,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_same_files (outfile_ctx->filename, plugin) == true)
       {
         event_log_error (hashcat_ctx, "Outfile and plugin cannot point to the same file.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }
@@ -3048,12 +3182,16 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as a potfile argument.", potfile_ctx->filename);
 
+        if (user_options->potfile_path != NULL) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
       if (hc_path_write (potfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+
+        if (user_options->potfile_path != NULL) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -3063,6 +3201,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_create (potfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+
+        if (user_options->potfile_path != NULL) status_set_rc_error (hashcat_ctx, path_missing_rc (potfile_ctx->filename, true));
 
         return -1;
       }
@@ -3108,7 +3248,21 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
     user_options->quiet = quiet_save;
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+    {
+      // The module of hash-mode 0 was found above, so the modules are installed and a missing one means
+      // that -m names a hash-mode that does not exist.
+
+      char *mode_modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      module_filename (folder_config, module_hash_mode_resolve (user_options->hash_mode), mode_modulefile, HCBUFSIZ_TINY);
+
+      if (hc_path_exist (mode_modulefile) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+      hcfree (mode_modulefile);
+
+      return -1;
+    }
 
     // The module is loaded, so the options that only some modules read can be held against it. Under
     // autodetect the mode is not known yet: the detection skips the modes that do not take them, and
@@ -3118,6 +3272,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (option_table_check_module (hashcat_ctx, OPTION_MODULE_SAY | OPTION_MODULE_RANGE) == -1)
       {
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         hashconfig_destroy (hashcat_ctx);
 
         return -1;

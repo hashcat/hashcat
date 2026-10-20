@@ -19,6 +19,7 @@
 #include "shared.h"
 #include "user_options.h"
 #include "status.h"
+#include "status_rc.h"
 
 static const char *const  ST_0000 = "Initializing";
 static const char *const  ST_0001 = "Autotuning";
@@ -3029,7 +3030,7 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  status_ctx->user_error = false;
+  status_clear_rc_error (hashcat_ctx);
 
   status_ctx->run_main_level1     = true;
   status_ctx->run_main_level2     = true;

@@ -37,6 +37,7 @@
 #include "autotune.h"
 #include "user_options.h"
 #include "json.h"
+#include "status_rc.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -6931,7 +6932,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Backend device selection
    */
 
-  if (setup_backend_devices_filter (hashcat_ctx, user_options->backend_devices, backend_ctx->backend_devices_filter) == false) return -1;
+  if (setup_backend_devices_filter (hashcat_ctx, user_options->backend_devices, backend_ctx->backend_devices_filter) == false)
+  {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    return -1;
+  }
 
   /**
    * OpenCL device type selection
@@ -6939,7 +6945,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cl_device_type opencl_device_types_filter;
 
-  if (setup_opencl_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &opencl_device_types_filter) == false) return -1;
+  if (setup_opencl_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &opencl_device_types_filter) == false)
+  {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    return -1;
+  }
 
   backend_ctx->opencl_device_types_filter = opencl_device_types_filter;
 

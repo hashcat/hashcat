@@ -17,6 +17,8 @@
 #include "module_options.h"
 #include "module_options_cache.h"
 #include "user_options_table.h"
+#include "path.h"
+#include "status_rc.h"
 
 #include <inttypes.h>
 
@@ -845,6 +847,24 @@ int module_option_set (hashcat_ctx_t *hashcat_ctx, const char *name, const char 
 // once the module has passed its interface checks, so under autodetect a mode whose check fails is
 // skipped silently, the same as a mode that cannot parse the hash.
 
+static bool module_option_files_exist (const char *value)
+{
+  char *list = hcstrdup (value);
+
+  char *saveptr = NULL;
+
+  bool all = true;
+
+  for (char *name = strtok_r (list, ",", &saveptr); name != NULL; name = strtok_r (NULL, ",", &saveptr))
+  {
+    if (hc_path_exist (name) == false) all = false;
+  }
+
+  hcfree (list);
+
+  return all;
+}
+
 int module_options_check (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -902,6 +922,12 @@ int module_options_check (hashcat_ctx_t *hashcat_ctx)
     if (err[0] == 0) snprintf (err, sizeof (err), "--%s %s cannot be used with hash-type %u.", row->name, value, hashconfig->hash_mode);
 
     if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s", err);
+
+    // A value that names files that exist, such as a keyboard mapping or keyfiles the module cannot
+    // use, is the task's. Anything else the module refused is the command's. A comma separates the
+    // files of a keyfile list.
+
+    if (user_options->autodetect == false) status_set_rc_error (hashcat_ctx, (module_option_files_exist (value) == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }

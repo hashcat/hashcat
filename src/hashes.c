@@ -24,6 +24,7 @@
 #include "path.h"
 #include "parser.h"
 #include "status.h"
+#include "status_rc.h"
 #include "memchr.h"
 #include "system.h"
 #include "thread.h"
@@ -3854,6 +3855,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           event_log_warning (hashcat_ctx, "wordlist as a second argument.");
           event_log_warning (hashcat_ctx, NULL);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
       }
@@ -3927,6 +3930,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           hc_fclose (&fp);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
       }
@@ -3938,6 +3943,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {
         event_log_error (hashcat_ctx, "Use of --remove is not supported in native hashfile-format mode.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }

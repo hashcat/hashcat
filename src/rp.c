@@ -13,6 +13,7 @@
 #include "filehandling.h"
 #include "rp.h"
 #include "rp_cpu.h"
+#include "status_rc.h"
 
 static const char grp_op_nop[] =
 {
@@ -1123,6 +1124,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     {
       event_log_error (hashcat_ctx, "%s: %s", rp_file, hc_fopen_strerror ());
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
       for (u32 j = 0; j < i; j++)
       {
         hcfree (all_kernel_rules_buf[j]);
@@ -1143,6 +1146,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       if (rule_line == (u32) -1)
       {
         event_log_error (hashcat_ctx, "Unsupported number of lines in rule file %s.", rp_file);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         hc_fclose (&fp);
 
@@ -1180,6 +1185,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
         if (kernel_rules_avail < kernel_rules_avail_old) // u32 overflow
         {
           event_log_error (hashcat_ctx, "Unsupported number of rules in rule file %s.", rp_file);
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           hc_fclose (&fp);
 
@@ -1233,6 +1240,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         event_log_error (hashcat_ctx, "Unsupported number of rules in rule file %s.", rp_file);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
         hc_fclose (&fp);
 
         hcfree (kernel_rules_buf);
@@ -1279,6 +1288,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     {
       event_log_error (hashcat_ctx, "No valid rules left.");
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
       hcfree (kernel_rules_buf);
 
       return -1;
@@ -1304,6 +1315,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         event_log_error (hashcat_ctx, "Unsupported number of rules used in rule concatenation.");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         for (u32 j = 0; j < user_options->rp_files_cnt; j++)
         {
           hcfree (all_kernel_rules_buf[j]);
@@ -1321,6 +1334,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     if (kernel_rules_cnt == 0)
     {
       event_log_error (hashcat_ctx, "No valid rules left.");
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
       for (u32 j = 0; j < user_options->rp_files_cnt; j++)
       {
@@ -1373,6 +1388,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     if (overflow_check_u32_mul (kernel_rules_cnt, all_kernel_rules_cnt[i]) == true)
     {
       event_log_error (hashcat_ctx, "Unsupported number of rules used in rule chaining.");
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
       for (u32 j = 0; j < user_options->rp_files_cnt; j++)
       {
@@ -1489,6 +1506,10 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   if (kernel_rules_cnt == 0)
   {
     event_log_error (hashcat_ctx, "No valid rules left.");
+
+    // Chaining that pushed every rule over the function limit is the choice of files, not one of them.
+
+    status_set_rc_error (hashcat_ctx, (invalid_cnt > 0) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
     hcfree (kernel_rules_buf);
 

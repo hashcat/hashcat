@@ -17,6 +17,7 @@
 #include "feed_ctx.h"
 #include "ext_lzma.h"
 #include "mpsp.h"
+#include "status_rc.h"
 
 static const char *const DEF_MASK = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
@@ -785,7 +786,10 @@ static void mp_setup_sys (cs_t *mp_sys)
                                                    mp_sys[7].cs_len = pos; }
 }
 
-static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex)
+// A charset given as text belongs to whoever gave it: the command line for -1 to -8, the mask file
+// for a charset field on one of its lines. rc_error says which, and a charset file is always the task.
+
+static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex, const rc_final_t rc_error)
 {
   HCFILE fp;
 
@@ -793,7 +797,12 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   {
     const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, userindex, 1);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+    {
+      status_set_rc_error (hashcat_ctx, rc_error);
+
+      return -1;
+    }
   }
   else
   {
@@ -811,6 +820,11 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
       hc_fclose (&fp);
 
+      // A directory opens, and then reads as an error or as no end, so this is where one given as a
+      // charset ends up. It is the command's, as a directory is everywhere else.
+
+      status_set_rc_error (hashcat_ctx, (hc_path_is_directory (buf) == true) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
       return -1;
     }
 
@@ -820,6 +834,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
       hc_fclose (&fp);
 
+      status_set_rc_error (hashcat_ctx, (hc_path_is_directory (buf) == true) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
       return -1;
     }
 
@@ -828,6 +844,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     if (nread == 0)
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is empty.", buf);
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
       return -1;
     }
@@ -840,12 +858,19 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is corrupted.", buf);
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
       return -1;
     }
 
     const int rc = mp_expand (hashcat_ctx, mp_file, len, mp_sys, mp_usr, userindex, 0);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+    {
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
+      return -1;
+    }
   }
 
   return 0;
@@ -911,14 +936,14 @@ HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, 
 
   mp_setup_sys (mp_sys);
 
-  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_1, 0) == -1) rc = -1; }
-  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_2, 1) == -1) rc = -1; }
-  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_3, 2) == -1) rc = -1; }
-  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_4, 3) == -1) rc = -1; }
-  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_5, 4) == -1) rc = -1; }
-  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_6, 5) == -1) rc = -1; }
-  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_7, 6) == -1) rc = -1; }
-  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_8, 7) == -1) rc = -1; }
+  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_1, 0, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_2, 1, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_3, 2, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_4, 3, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_5, 4, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_6, 5, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_7, 6, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_8, 7, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
 
   // A copy because mp_gen_css () takes it non const, which it does for its callers rather than because it
   // writes to it.
@@ -2236,6 +2261,11 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
+  // A mask typed on the command line is part of the attack command. One read from a mask file is
+  // part of the task.
+
+  const rc_final_t mask_error = (mask_ctx->mask_from_file == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND;
+
   // The two feeds are asked about first, because their attack_kern is ATTACK_KERN_STRAIGHT and they
   // would answer neither of the two tests below.
 
@@ -2243,12 +2273,22 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     // This is where the markers are found, so has_w, has_q, pre_len and mid_len are settled by it,
     // and those are what say where the words go in the candidate.
 
-    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     // No length check on the mask here, unlike the other three arms. The mask is one piece of the
     // candidate and the words are the rest, so a three character mask under a hash mode with an
@@ -2274,7 +2314,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-      hashcat_ctx->status_ctx->user_error = true;
+      status_set_rc_error (hashcat_ctx, mask_error);
 
       return -1;
     }
@@ -2288,9 +2328,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
 
-    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+      return -1;
+    }
+
+    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     // A mask the hash mode cannot take is passed over rather than run, exactly as it is for -a 3.
     // The rules do not change which lengths the mode accepts: they are applied to this candidate on
@@ -2342,7 +2392,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-      hashcat_ctx->status_ctx->user_error = true;
+      status_set_rc_error (hashcat_ctx, mask_error);
 
       return -1;
     }
@@ -2357,9 +2407,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
 
-      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+        return -1;
+      }
+
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
+
+        return -1;
+      }
 
       u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
 
@@ -2377,7 +2437,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-        hashcat_ctx->status_ctx->user_error = true;
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -2388,9 +2448,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
 
-      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+        return -1;
+      }
+
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
+
+        return -1;
+      }
 
       u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
 
@@ -2408,7 +2478,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-        hashcat_ctx->status_ctx->user_error = true;
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -2426,6 +2496,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "?q: feed cannot report a keyspace.");
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
@@ -2436,6 +2508,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: has a ?q, but no wordlist was given for it.", mask_ctx->mask);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
@@ -2443,7 +2517,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-          hashcat_ctx->status_ctx->user_error = true;
+          status_set_rc_error (hashcat_ctx, mask_error);
 
           return -1;
         }
@@ -2523,11 +2597,21 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {
-      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
+
+        return -1;
+      }
 
       // special case for benchmark
 
@@ -2612,7 +2696,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-        hashcat_ctx->status_ctx->user_error = true;
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -2627,7 +2711,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-        hashcat_ctx->status_ctx->user_error = true;
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -3314,20 +3398,20 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mp_setup_sys (mask_ctx->mp_sys);
 
-  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0) == -1) return -1; }
-  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1) == -1) return -1; }
-  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2) == -1) return -1; }
-  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3) == -1) return -1; }
-  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4) == -1) return -1; }
-  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5) == -1) return -1; }
-  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6) == -1) return -1; }
-  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7) == -1) return -1; }
+  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
 
   if (user_options->benchmark == true)
   {
     if (hashconfig->benchmark_charset != NULL)
     {
-      if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, hashconfig->benchmark_charset, 0) == -1) return -1;
+      if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, hashconfig->benchmark_charset, 0, RC_FINAL_ERROR_COMMAND) == -1) return -1;
     }
   }
 
@@ -3347,7 +3431,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_path_exist (arg) == false)
         {
-          if (mask_append (hashcat_ctx, arg, NULL) == -1) return -1;
+          if (mask_append (hashcat_ctx, arg, NULL) == -1)
+          {
+            status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+            return -1;
+          }
         }
         else
         {
@@ -3364,6 +3453,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
               if (hc_fopen (&mask_fp, arg, "r") == false)
               {
                 event_log_error (hashcat_ctx, "%s: %s", arg, hc_fopen_strerror ());
+
+                status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
                 return -1;
               }
@@ -3395,6 +3486,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
                 {
                   hc_fclose (&mask_fp);
 
+                  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
                   return -1;
                 }
               }
@@ -3406,6 +3499,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
             else
             {
               event_log_error (hashcat_ctx, "%s: unsupported file type.", arg);
+
+              status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
               return -1;
             }
@@ -3443,7 +3538,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_path_exist (arg) == false)
     {
-      if (mask_append (hashcat_ctx, arg, NULL) == -1) return -1;
+      if (mask_append (hashcat_ctx, arg, NULL) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+        return -1;
+      }
     }
     else
     {
@@ -3456,6 +3556,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
         if (hc_fopen (&mask_fp, arg, "r") == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", arg, hc_fopen_strerror ());
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -3487,6 +3589,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             hc_fclose (&mask_fp);
 
+            status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
             return -1;
           }
         }
@@ -3499,6 +3603,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: unsupported file type.", arg);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
     }
@@ -3506,6 +3612,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (mask_ctx->masks_cnt == 0)
   {
     event_log_error (hashcat_ctx, "Invalid mask.");
+
+    status_set_rc_error (hashcat_ctx, (mask_ctx->mask_from_file == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -3565,6 +3673,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (has_q == false)
     {
       event_log_error (hashcat_ctx, "%s: given as the wordlist a ?q names, but no mask has a ?q.", user_options_extra->hc_workv[user_options_extra->hc_workc - 1]);
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
       return -1;
     }
@@ -3773,42 +3883,42 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
     {
       case 0:
         user_options->custom_charset_1 = mfs_buf[0].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, RC_FINAL_ERROR_TASK);
         break;
 
       case 1:
         user_options->custom_charset_2 = mfs_buf[1].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, RC_FINAL_ERROR_TASK);
         break;
 
       case 2:
         user_options->custom_charset_3 = mfs_buf[2].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, RC_FINAL_ERROR_TASK);
         break;
 
       case 3:
         user_options->custom_charset_4 = mfs_buf[3].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, RC_FINAL_ERROR_TASK);
         break;
 
       case 4:
         user_options->custom_charset_5 = mfs_buf[4].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4, RC_FINAL_ERROR_TASK);
         break;
 
       case 5:
         user_options->custom_charset_6 = mfs_buf[5].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5, RC_FINAL_ERROR_TASK);
         break;
 
       case 6:
         user_options->custom_charset_7 = mfs_buf[6].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6, RC_FINAL_ERROR_TASK);
         break;
 
       case 7:
         user_options->custom_charset_8 = mfs_buf[7].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7, RC_FINAL_ERROR_TASK);
         break;
     }
   }

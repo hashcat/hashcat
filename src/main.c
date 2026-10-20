@@ -19,6 +19,7 @@
 #include "timer.h"
 #include "thread.h"
 #include "status.h"
+#include "status_rc.h"
 #include "shared.h"
 #include "mpsp.h"
 #include "system.h"
@@ -2064,7 +2065,7 @@ int main (int argc, char **argv)
 
   // parse commandline parameters and check them
 
-  // getopt and sanity reject a wrong command line, which is a user error, so they exit with -2
+  // getopt and sanity reject a wrong command line, so they exit with -2
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
@@ -2074,7 +2075,7 @@ int main (int argc, char **argv)
 
     hcfree (hashcat_ctx);
 
-    return -2;
+    return RC_FINAL_ERROR_COMMAND;
   }
 
   if (user_options_sanity (hashcat_ctx) == -1)
@@ -2085,7 +2086,7 @@ int main (int argc, char **argv)
 
     hcfree (hashcat_ctx);
 
-    return -2;
+    return RC_FINAL_ERROR_COMMAND;
   }
 
   // some early exits
@@ -2198,12 +2199,14 @@ int main (int argc, char **argv)
     }
   }
 
-  // a wrong command for the task is a user error, reported as -2 so a caller can tell it apart from
-  // the generic -1. Most sites surface as -1, but the restore-value check aborts through myabort,
-  // which reports 2, so that code is refined here too. Read before hashcat_session_destroy, while
-  // status_ctx is still valid.
+  // A wrong attack command exits -2 and an unusable task exits -12, so a caller can tell them apart
+  // from the generic -1. Most sites surface as -1, but the restore-value check aborts through
+  // myabort, which reports 2, so that code is refined here too. Read before hashcat_session_destroy,
+  // while status_ctx is still valid.
 
-  if ((rc_final == -1 || rc_final == RC_FINAL_ABORT) && hashcat_ctx->status_ctx->user_error == true) rc_final = -2;
+  const rc_final_t rc_error = status_get_rc_error (hashcat_ctx);
+
+  if (((rc_final == RC_FINAL_ERROR) || (rc_final == RC_FINAL_ABORT)) && (rc_error != RC_FINAL_OK)) rc_final = rc_error;
 
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 

@@ -10,6 +10,7 @@
 #include "mpsp.h"
 #include "feed_ctx.h"
 #include "combinator.h"
+#include "status_rc.h"
 
 // The two dictionary counts of a -a 1, as the two feed instances already counted them. Neither
 // dictionary can be chosen as the base until both are counted, which is why generic_ctx_init brings
@@ -32,7 +33,7 @@ static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictf
   {
     event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile1);
 
-    hashcat_ctx->status_ctx->user_error = true;
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -41,7 +42,7 @@ static int combinator_count_dicts (hashcat_ctx_t *hashcat_ctx, const char *dictf
   {
     event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile2);
 
-    hashcat_ctx->status_ctx->user_error = true;
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -141,7 +142,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile);
 
-      hashcat_ctx->status_ctx->user_error = true;
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
       return -1;
     }

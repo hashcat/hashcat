@@ -20,6 +20,7 @@
 #include "feed_ctx.h"
 #include "feed.h"
 #include "straight.h"
+#include "status_rc.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
@@ -289,6 +290,8 @@ static int straight_ctx_add_workv (hashcat_ctx_t *hashcat_ctx, const int from, c
   if (straight_ctx->dicts_cnt == 0)
   {
     event_log_error (hashcat_ctx, "No usable dictionary file found.");
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
     return -1;
   }
