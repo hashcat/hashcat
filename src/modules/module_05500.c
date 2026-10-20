@@ -111,7 +111,8 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   const bool fuse_attack = ((user_options_extra->attack_kern == ATTACK_KERN_BF) || (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION);
   const bool fuse_device = ((device_param->is_cuda == true) && (device_param->sm_major >= 5)) || (device_param->is_opencl == true) || (device_param->is_hip == true);
-  const bool fuse_salts = ((hashconfig->opts_type & OPTS_TYPE_MULTI_SALT_FUSED) != 0) && (fuse_attack == true) && (hashes->salts_cnt > 1) && (device_param->vector_width == 1) && (fuse_device == true);
+  const bool fuse_vector = (device_param->vector_width == 1) || ((device_param->is_opencl == true) && ((device_param->vector_width == 2) || (device_param->vector_width == 4) || (device_param->vector_width == 8) || (device_param->vector_width == 16)));
+  const bool fuse_salts = ((hashconfig->opts_type & OPTS_TYPE_MULTI_SALT_FUSED) != 0) && (fuse_attack == true) && (hashes->salts_cnt > 1) && (fuse_vector == true) && (fuse_device == true);
 
   char fuse_str[64] = "";
 

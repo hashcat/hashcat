@@ -14,6 +14,11 @@
 #include M2S(INCLUDE_PATH/inc_rp_optimized.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
+// PoCL 6.0 needs this DES call chain inlined for correct fused digest checks.
+#if defined(MULTI_SALT_WINDOW) && defined(IS_POCL) && defined(IS_CPU)
+DECLSPEC HC_INLINE_ALWAYS void _des_crypt_keysetup_lm (u32 c, u32 d, PRIVATE_AS u32 *Kc, PRIVATE_AS u32 *Kd, SHM_TYPE u32 (*s_skb)[64]);
+DECLSPEC HC_INLINE_ALWAYS void _des_crypt_encrypt_lm (PRIVATE_AS u32 *iv, PRIVATE_AS const u32 *data, PRIVATE_AS const u32 *Kc, PRIVATE_AS const u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
+#endif
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif
 
@@ -71,9 +76,8 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, PRIVATE_AS 
 #define NN_FUSE_LS(n)   ((n) - nn_base)
 #define NN_FUSE_WINS    ((kernel_param->salts_cnt / MULTI_SALT_WINDOW) + ((kernel_param->salts_cnt % MULTI_SALT_WINDOW) != 0))
 
-// Staged indices and tail16 filters require scalar candidates.
-#if defined(MULTI_SALT_WINDOW) && (VECT_SIZE) > 1
-#error fused 5500 kernels are compiled for VEC=1 only
+#if defined(MULTI_SALT_WINDOW) && (VECT_SIZE != 1) && (VECT_SIZE != 2) && (VECT_SIZE != 4) && (VECT_SIZE != 8) && (VECT_SIZE != 16)
+#error unsupported fused 5500 vector width
 #endif
 
 // Fusion requires shared memory for the filter bitmap and bucket index.
@@ -112,7 +116,7 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, PRIVATE_AS 
 // avoid concurrent half-word updates. Window indices fit in 16 bits.
 
 // Default to packed links when the module enables the survivor queue.
-#if defined(IS_CUDA) && defined(MULTI_SALT_WINDOW) && (MULTI_SALT_WINDOW >= 256)
+#if (defined(IS_CUDA) || defined(IS_HIP)) && (VECT_SIZE == 1) && defined(MULTI_SALT_WINDOW) && (MULTI_SALT_WINDOW >= 256)
 #define NN_FUSE_DENSEQ 1
 #else
 #define NN_FUSE_DENSEQ 0
@@ -196,8 +200,19 @@ typedef struct nn_fuse_des_result
 
 } nn_fuse_des_result_t;
 
+#if defined(IS_POCL) && defined(IS_CPU)
+#define NN_FUSE_DES_ATTR HC_INLINE_ALWAYS
+#else
+#define NN_FUSE_DES_ATTR HC_NOINLINE_ALWAYS
+#endif
+
+#if VECT_SIZE > 1
+#define NN_FUSE_HEAD(i) (s_ti_head[i])
+#define NN_FUSE_NEXT(i) NN_FUSE_TI_NEXT (i)
+#include M2S(INCLUDE_PATH/inc_netntlmv1_fused.cl)
+#else
 // Keep the DES schedules out of the candidate loop's register budget.
-DECLSPEC HC_NOINLINE_ALWAYS nn_fuse_des_result_t nn_fuse_des (const u32 a, const u32 b, const u32 c, const u32 d, const u32 s0, const u32 s1, SHM_TYPE u32 (*s_skb)[64], SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC NN_FUSE_DES_ATTR nn_fuse_des_result_t nn_fuse_des (const u32 a, const u32 b, const u32 c, const u32 d, const u32 s0, const u32 s1, SHM_TYPE u32 (*s_skb)[64], SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32 key[2];
   u32 Kc[16];
@@ -229,6 +244,8 @@ DECLSPEC HC_NOINLINE_ALWAYS nn_fuse_des_result_t nn_fuse_des (const u32 a, const
 
   return result;
 }
+
+#endif
 
 #define NN_FUSE_WALK_BODY(nn_s)                                                                     \
 {                                                                                                   \
@@ -342,8 +359,11 @@ DECLSPEC void nn_fuse_ti_stage (SHM_TYPE u32 *s_nn_filt, SHM_TYPE u32 *s_ti_head
 
 #endif
 
+// Budget HIP registers for at least two waves per execution unit.
 KERNEL_FQ KERNEL_FA
-#if defined(MULTI_SALT_WINDOW) && (defined(IS_CUDA) || defined(IS_HIP))
+#if defined(MULTI_SALT_WINDOW) && defined(IS_HIP)
+  __launch_bounds__(256, 2)
+#elif defined(MULTI_SALT_WINDOW) && defined(IS_CUDA)
   __launch_bounds__(256)
 #endif
   void m05500_m04 (KERN_ATTR_RULES ())
@@ -571,7 +591,15 @@ KERNEL_FQ KERNEL_FA
     const u32x nn_dd = (d + make_u32x (MD4M_D)) >> 16;
 
     // Reject tails absent from this window before finishing MD4.
+#if VECT_SIZE > 1
+    u32 nn_mask = 0;
+
+    NN_FUSE_LANES (NN_FUSE_CHECK_LANE)
+
+    if (nn_mask == 0) continue;
+#else
     if (NN_FUSE_REJECT (nn_dd & 0xffff)) continue;
+#endif
 #else
     // upstream: abandon the candidate as soon as the 16-bit filter misses
     if (MATCHES_NONE_VS (((d + make_u32x (MD4M_D)) >> 16), s2)) continue;
@@ -593,6 +621,15 @@ KERNEL_FQ KERNEL_FA
 
     // A bitmap miss skips this candidate, not the remaining rule loop.
 
+#if VECT_SIZE > 1
+    const u32x nn_a = a;
+    const u32x nn_b = b;
+    const u32x nn_c = c;
+    const u32x nn_d = d;
+    const u32 nn_il_pos = il_pos;
+
+    NN_FUSE_LANES (NN_FUSE_VERIFY_LANE)
+#else
 #if defined(NN_FUSE_DENSEQ_ON)
 
     // Enqueue exact tail16 matches. If the segment queue is full, verify
@@ -638,6 +675,8 @@ KERNEL_FQ KERNEL_FA
     {
       NN_FUSE_WALK_ONE (NN_FUSE_GS (nn_sl))
     }
+
+#endif
 
 #endif
 
