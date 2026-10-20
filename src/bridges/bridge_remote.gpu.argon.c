@@ -361,7 +361,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   md5_final (&md5_ctx);
 
-  uint8_t expected_md5[16];
+  uint8_t expected_md5[16] = { 0 };
   if (recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), MSG_WAITALL) != sizeof (expected_md5)) return false;
 
   if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
