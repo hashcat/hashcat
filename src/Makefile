@@ -1256,7 +1256,7 @@ EMU_OBJS_ALL            += emu_inc_hash_base58
 # the escape's walk over the packed pool, so the host reports what the device matched from one source
 EMU_OBJS_ALL            += emu_inc_pcfg emu_inc_pcfg_omen
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface json keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe recipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface json keyboard_layout locking logfile loopback memchr memory module_options module_options_cache module_options_value monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe recipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options user_options_table wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1678,8 +1678,13 @@ $(foreach P,$(PLUGIN_PLATFORMS),$(foreach B,$(BRIDGES_ALL), \
 ## Targets: native compilation
 ##
 
+# The rows every module registers are kept in cache/module_options.<suffix>.cache, which a start reads
+# instead of loading every module. The binary just built writes it as the last step, and rewrites it
+# by itself whenever a module changes after that.
+
 .PHONY: default
 default: $(HASHCAT_FRONTEND) modules bridges feeds
+	./$(HASHCAT_FRONTEND) --module-cache-rebuild
 
 # The version this build stamps into the binary. tools/package_bin.sh asks for it so an archive is
 # named after what it holds, rather than the release number being written out a second time where it
@@ -1755,6 +1760,11 @@ distclean: clean
 
 ifneq (,$(filter LINUX,$(PLATFORMS)))
 
+# hashcat.exe can only write its module option cache where it runs. Under wine that is here, and
+# otherwise it writes the file on its first start.
+
+WIN_MODULE_CACHE        := if command -v wine > /dev/null 2>&1; then wine ./hashcat.exe --module-cache-rebuild || true; else echo "wine is not installed, so hashcat.exe writes its module option cache on its first start"; fi
+
 ifeq ($(UNAME),Darwin)
 .PHONY: binaries
 binaries: win
@@ -1764,6 +1774,7 @@ host_win:   hashcat.exe
 
 .PHONY: win
 win:   host_win   modules_win   bridges_win   feeds_win
+	@$(WIN_MODULE_CACHE)
 else
 .PHONY: binaries
 binaries: linux win
@@ -1775,6 +1786,7 @@ host_win:   hashcat.exe
 .PHONY: linux win
 linux: host_linux modules_linux bridges_linux feeds_linux
 win:   host_win   modules_win   bridges_win   feeds_win
+	@$(WIN_MODULE_CACHE)
 endif
 
 hashcat.bin: src/main.c $(CORE_LINUX) obj/arrangement
@@ -1805,9 +1817,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
+install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_module_cache install_bridges install_python install_feeds install_hashcat
 else
-install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
+install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_module_cache install_bridges install_python install_feeds install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -1895,11 +1907,19 @@ install_kernels: install_shared
 	$(FIND) OpenCL/   -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 	$(FIND) OpenCL/   -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 
+## The modules keep their modification times, which the module option cache installed beside them
+## identifies them by. Installed with new times, the cache is only rebuilt per user on the first start.
+
 .PHONY: install_modules
 install_modules: install_shared modules
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/modules
 	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
-	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -p -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+
+.PHONY: install_module_cache
+install_module_cache: install_shared $(HASHCAT_FRONTEND) modules
+	./$(HASHCAT_FRONTEND) --module-cache-rebuild
+	$(INSTALL) -m 644 cache/module_options.$(PLUGIN_SUFFIX_NATIVE).cache   $(DESTDIR)$(SHARED_FOLDER)/
 
 ## The Python bridge starts Python/hcworker.py from the shared folder, and Python/generic_hash.py is the
 ## plugin it loads when --bridge-parameter1 names none.

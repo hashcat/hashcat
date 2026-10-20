@@ -52,6 +52,8 @@
 #include "straight.h"
 #include "tuningdb.h"
 #include "user_options.h"
+#include "module_options.h"
+#include "user_options_table.h"
 #include "wordlist.h"
 #include "hashcat.h"
 #include "ext_zlib.h"
@@ -1069,6 +1071,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     return -1;
   }
 
+  // A mode taken from autodetect or from --dynamic-x was not known when user_options_check_files ()
+  // held the options against the module, so it is asked here. A mode that was known has answered.
+
+  if (option_table_check_module (hashcat_ctx, OPTION_MODULE_SAY | OPTION_MODULE_RANGE) == -1)
+  {
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
   // -a 7 cannot say where its base words come from until the kernel type is settled, and
   // hashconfig_init is what settles it.
 
@@ -1467,45 +1479,28 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   // Whether the device engine runs is settled by the feed, not by the attack mode: -a 4, -a 5 and a
   // feed on -a 8 or -a 9 all reach it, and any of them falls back to the host engine when the feed
-  // has no base word for it. So a loop count can only be judged here, once generic_ctx_init () has
-  // answered. On the device engine a base word becomes its whole cell of candidates in one launch,
-  // the kernel takes that bound from the cell it was handed, and kernel_loops reaches nothing. A
-  // value set there would travel to the status display and to no launch at all, so --force does not
-  // open this one either.
-
-  // Unless the rules are applied inside the engine. Then the inner loop is the rule chunk, exactly as
-  // it is for the straight kernel, and kernel_loops is what sizes it, so -u reaches a launch again.
-
-  if ((user_options->kernel_loops_chgd == true) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == false))
-  {
-    event_log_error (hashcat_ctx, "The -u option (or --kernel-loops) does not apply to this attack.");
-
-    event_log_warning (hashcat_ctx, "The device engine turns a base word into its whole cell of candidates in one launch, so there is no loop count to set.");
-    event_log_warning (hashcat_ctx, NULL);
-
-    outer_loop_destroy (hashcat_ctx);
-
-    return -1;
-  }
-
-  // -j and -k are refused on the device engine for the same reason, and whether it runs is settled in
-  // the same place: generic_ctx_init () above, so this asks the feed rather than the attack mode.
+  // has no base word for it. So the options the engine has no use for can only be judged here, once
+  // generic_ctx_init () has answered.
   //
-  // Both name a rule for one side of a candidate, and the device engine's candidate has no sides: a
-  // base word becomes a cell of candidates whose bytes come from the grammar's terminals, and only the
-  // runs a structure copies out of the base word ever read what the host handed over. So -j reaches
-  // some candidates and not others, and -k reaches none at all, because a feed's cell is not an
-  // amplifier the host fills and no producer reads rule_buf_amp on this path.
+  // On the device engine a base word becomes its whole cell of candidates in one launch, the kernel
+  // takes that bound from the cell it was handed, and kernel_loops reaches nothing, unless the rules
+  // are applied inside the engine. Then the inner loop is the rule chunk, exactly as it is for the
+  // straight kernel, and kernel_loops is what sizes it.
+  //
+  // -j and -k both name a rule for one side of a candidate, and the device engine's candidate has no
+  // sides: a base word becomes a cell of candidates whose bytes come from the grammar's terminals, and
+  // only the runs a structure copies out of the base word ever read what the host handed over.
 
-  if (((user_options->rule_buf_l_chgd == true) || (user_options->rule_buf_r_chgd == true)) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_enable == true))
+  const generic_global_ctx_t *base_global = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx;
+
+  u32 feed_failed = 0;
+
+  if (base_global->dev_enable == true) feed_failed |= LATE_FEED_ENGINE;
+
+  if ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (base_global->dev_rules == false)) feed_failed |= LATE_FEED_ENGINE_LOOPS;
+
+  if (option_table_check_feed (hashcat_ctx, feed_failed) == -1)
   {
-    event_log_error (hashcat_ctx, "The -j and -k options (or --rule-left/--rule-right) do not apply while the device engine makes the candidates.");
-
-    event_log_warning (hashcat_ctx, "The engine builds a candidate out of the grammar rather than out of the base word, so a rule on the base word reaches only part of what it generates.");
-    event_log_warning (hashcat_ctx, "Use -r instead, which the engine applies to every candidate it makes.");
-    event_log_warning (hashcat_ctx, "The same attack keeps -j and -k wherever the host makes the candidates, which is any slow hash, --stdout and --slow-candidates.");
-    event_log_warning (hashcat_ctx, NULL);
-
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1587,7 +1582,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     if (straight_ctx->dicts_cnt > 1)
     {
-      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with multiple dictionaries or --stdout.");
+      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with multiple dictionaries.");
 
       outer_loop_destroy (hashcat_ctx);
 
@@ -1623,19 +1618,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
       return -1;
     }
-  }
-
-  /**
-   * prevent the user from using -m/--hash-type together with --stdout
-   */
-
-  if (user_options->hash_mode_chgd == true && user_options->stdout_flag == true)
-  {
-    event_log_error (hashcat_ctx, "Use of -m/--hash-type is not supported with --stdout.");
-
-    outer_loop_destroy (hashcat_ctx);
-
-    return -1;
   }
 
   /**
@@ -2129,6 +2111,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * make it a bit more comfortable to use some of the special modes in hashcat
    */
 
+  user_options_benchmark_imply (hashcat_ctx);
+
   user_options_session_auto (hashcat_ctx);
 
   /**
@@ -2141,6 +2125,26 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    */
 
   if (status_ctx_init (hashcat_ctx) == -1) return -1;
+
+  /**
+   * options
+   */
+
+  // A program that fills user_options itself and calls this without the command line functions gets
+  // the same option rules as the frontend. The frontend has had its options checked already, and the
+  // table records that, so nothing is checked twice. This comes after status_ctx_init (), because a
+  // failed session is still handed to hashcat_session_destroy (), which needs it.
+
+  if (module_options_init (hashcat_ctx, install_folder, shared_folder, NULL, 0) == -1) return -1;
+
+  if (option_table_check (hashcat_ctx) == -1) return -1;
+
+  // The restore file records how far the run got, which is the same thing the status display
+  // withholds under --encrypt-with-pubkey, so it is turned off the same way --restore-disable does
+  // it. This has to happen before restore_ctx_init () and not in user_options_preprocess (), which
+  // runs after it, when the file would already have been set up.
+
+  if (user_options->encrypt_with_pubkey != NULL) user_options->restore_enable = false;
 
   /**
    * folder
@@ -2635,11 +2639,17 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
     if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
 
+    // a module that could not be loaded was reported when the options were collected
+
+    if (module_options_broken (user_options, (u32) i) == true) continue;
+
     // we know it exists, so load the plugin
 
     const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
 
-    if (hashconfig_init_rc == 0)
+    // a mode that would refuse one of the options given is not a match
+
+    if ((hashconfig_init_rc == 0) && (option_table_check_module (hashcat_ctx, 0) == 0))
     {
       user_options->username = username_sav;
 

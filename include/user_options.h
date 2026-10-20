@@ -12,11 +12,15 @@ HC_API int user_options_init (hashcat_ctx_t *hashcat_ctx);
 
 HC_API void user_options_destroy (hashcat_ctx_t *hashcat_ctx);
 
+HC_API void user_options_prescan (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
+
 HC_API int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
 
 HC_API int user_options_sanity (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_session_auto (hashcat_ctx_t *hashcat_ctx);
+
+void user_options_benchmark_imply (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_preprocess (hashcat_ctx_t *hashcat_ctx);
 

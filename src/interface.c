@@ -14,8 +14,8 @@
 #include "dynloader.h"
 #include "interface.h"
 #include "hlfmt.h"
-#include "keyboard_layout.h"
 #include "recipe.h"
+#include "module_options.h"
 
 // The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
 // is the first thing a plugin has to get past, and the checks below are what catch a plugin that
@@ -380,6 +380,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_pw_max);
   CHECK_DEFINED (module_ctx, module_pw_min);
   CHECK_DEFINED (module_ctx, module_pwdump_column);
+  CHECK_DEFINED (module_ctx, module_register_options);
   CHECK_DEFINED (module_ctx, module_salt_max);
   CHECK_DEFINED (module_ctx, module_salt_min);
   CHECK_DEFINED (module_ctx, module_salt_type);
@@ -526,57 +527,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  if (user_options->keyboard_layout_mapping)
-  {
-    if ((hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING) == 0)
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
+  // Whether this mode takes a module option at all is decided by the option table, see
+  // option_table_check_module (). The checks a module attaches to a value, such as a file it cannot
+  // read, run here, because this is the first point with the module loaded.
 
-      return -1;
-    }
-
-    // The file is read here as well as in the module that uses it, because this is the only place
-    // with somewhere to report it. A module loads the mapping into its own esalt from a hook whose
-    // result nothing looks at, so a file it could not use converted nothing and said nothing, which
-    // is the failure this check exists to prevent. Reading it twice costs one pass over a file of at
-    // most 256 lines, once per run.
-
-    keyboard_layout_mapping_t probe[256];
-
-    int probe_cnt = 0;
-
-    if (hc_path_read (user_options->keyboard_layout_mapping) == false)
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: %s", user_options->keyboard_layout_mapping, strerror (errno));
-
-      return -1;
-    }
-
-    if (initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, probe, &probe_cnt) == false)
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: no keyboard mappings in this file. A mapping is one source and one replacement separated by a single tab.", user_options->keyboard_layout_mapping);
-
-      return -1;
-    }
-
-    // A mapping converts each token to one other token, so a file that gives a token two replacements
-    // is not one. The table attack takes such a file and offers both, and the reverse layout tables
-    // are exactly that where two keys of one layout produce the same character on the other. Here the
-    // lookup would find whichever came first and convert the other away silently.
-
-    for (int i = 0; i < probe_cnt; i++)
-    {
-      for (int j = i + 1; j < probe_cnt; j++)
-      {
-        if (probe[i].src_len != probe[j].src_len) continue;
-        if (probe[i].src_char != probe[j].src_char) continue;
-
-        if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: one source is given two replacements, so this is a table rather than a keyboard mapping. A mapping converts each token to exactly one other token.", user_options->keyboard_layout_mapping);
-
-        return -1;
-      }
-    }
-  }
+  if (module_options_check (hashcat_ctx) == -1) return -1;
 
   if (user_options->multiply_accel == false)
   {
@@ -598,19 +553,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type |= OPTS_TYPE_PT_HEX;
   }
 
-  if (user_options->hex_salt)
-  {
-    if (hashconfig->salt_type == SALT_TYPE_GENERIC)
-    {
-      hashconfig->opts_type |= OPTS_TYPE_ST_HEX;
-    }
-    else
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
-
-      return -1;
-    }
-  }
+  if ((user_options->hex_salt == true) && (hashconfig->salt_type == SALT_TYPE_GENERIC)) hashconfig->opts_type |= OPTS_TYPE_ST_HEX;
 
   if (user_options->keep_guessing)
   {

@@ -100,4 +100,6 @@ bool        module_unstable_warning         (MAYBE_UNUSED const hashconfig_t *ha
 
 bool        module_potfile_custom_check     (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hash_t *db, MAYBE_UNUSED const hash_t *entry_hash, MAYBE_UNUSED const void *entry_tmps);
 
+const module_option_t *module_register_options (void);
+
 #endif // HC_MODULES_H

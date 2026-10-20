@@ -14456,15 +14456,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 _kernel_accel = user_options->kernel_accel;
 
-      // Second half of the -n ceiling check. user_options_sanity could only apply the looser bridge
-      // limit, because the mode is not known that early, so the tighter one lands here where it is.
-      // A bridge keeps the higher limit, since there kernel_accel is a candidate count rather than a
-      // per-multiprocessor multiplier, and the bridge block further down clamps it into what the
-      // device has actually allocated for.
-      //
-      // This is the only place a user option is rejected this late, which is worth knowing when
-      // reading the startup order: the message is identical to the parse-time one, but by the time
-      // it prints, devices have already been enumerated.
+      // A run on one mode had -n and -T held against that mode's range before the devices came up,
+      // see option_table_check_module (). What reaches here outside the range is a benchmark over
+      // every mode, where a value applies to the modes that allow it and the speed line shows what
+      // each one ran with. The tighter ceiling of a non-bridge mode still holds there, because a
+      // bridge counts candidates where every other mode multiplies a multiprocessor load, and the
+      // bridge block further down clamps it into what the device has allocated for.
 
       if ((hashconfig->bridge_type == 0) && (_kernel_accel > KERNEL_ACCEL_MAX))
       {

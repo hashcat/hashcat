@@ -13,6 +13,7 @@
 #include "dynloader.h"
 #include "bridges.h"
 #include "interface.h"
+#include "module_options.h"
 
 /**
  * parsing
@@ -367,6 +368,12 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->left         == true) return true;
   if (user_options->show         == true) return true;
   if (user_options->version      == true) return true;
+
+  // Under autodetect the mode below is only the default one, not the mode that will run. A module
+  // that could not be loaded when the options were collected, which was reported then, is not the
+  // reason for such a run to stop.
+
+  if ((user_options->autodetect == true) && (module_options_broken (user_options, user_options->hash_mode) == true)) return true;
 
   // There is a problem here. At this point, hashconfig is not yet initialized.
   // This is because initializing hashconfig requires the module to be loaded,

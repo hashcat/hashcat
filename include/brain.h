@@ -56,6 +56,11 @@ static const int BRAIN_HASH_SIZE                  = 2 * sizeof (u32);
 #define BRAIN_AUTH_ITERATIONS 100000
 #define BRAIN_AUTH_BUFSZ      256
 
+// What a slot of the attack identity holds when the hash-mode in use registered no option for it,
+// see brain_compute_attack (). BRAIN_SLOTS_MAX is in types.h, beside the rows that name a slot.
+
+#define BRAIN_SLOT_UNUSED 0xffffffff
+
 static const int BRAIN_LINK_VERSION_CUR           = 2;
 static const int BRAIN_LINK_VERSION_MIN           = 2;
 static const int BRAIN_LINK_CHUNK_SIZE            = 4 * 1024;

@@ -9,6 +9,7 @@
 #include "shared.h"
 #include "path.h"
 #include "interface.h"
+#include "module_options.h"
 #include "usage.h"
 
 static const char *const USAGE_MINI[] =
@@ -18,6 +19,13 @@ static const char *const USAGE_MINI[] =
   "Try --help for more help.",
   NULL
 };
+
+// Where --help lists the options the modules registered, see module_options_usage (). The table has no
+// rows of its own for them, because which hash-modes read them is up to the modules. The marker is
+// found by its text, not by its address: a toolchain that folds identical constants, as clang with
+// LTO does, can give an empty marker the address of every blank line in the table.
+
+static const char USAGE_MODULE_OPTIONS[] = "<module options>";
 
 static const char *const USAGE_BIG_PRE_HASHMODES[] =
 {
@@ -86,13 +94,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x",
   "     --cache-path               | Dir  | Specify the directory hashcat caches everything in   | --cache-path=/mnt/hccache",
   "     --logfile-disable          |      | Disable the logfile                                  |",
-  "     --eapol-message-pair       | Num  | Load only EAPOL message pairs matching X             | --eapol-message-pair=2",
-  "     --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16",
-  "     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table",
-  "     --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png",
-  "     --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt",
-  "     --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450",
-  "     --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500",
+  USAGE_MODULE_OPTIONS,
   " -b, --benchmark                |      | Run benchmark of selected hash-modes                 |",
   " -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |",
   "     --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |",
@@ -130,7 +132,6 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --spin-damp                | Num  | Use CPU for device synchronization, in percent       | --spin-damp=10",
   "     --hwmon-disable            |      | Disable temperature and fanspeed reads and triggers  |",
   "     --hwmon-temp-abort         | Num  | Abort if temperature reaches X degrees Celsius       | --hwmon-temp-abort=100",
-  "     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
   " -s, --skip                     | Num  | Skip X words from the start                          | -s 1000000",
   " -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000",
   "     --keyspace                 |      | Show keyspace base:mod values and quit               |",
@@ -393,6 +394,10 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
       if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
 
+      // a module that could not be loaded was reported when the options were collected
+
+      if (module_options_broken (user_options, (u32) i) == true) continue;
+
       const int rc = hashconfig_init (hashcat_ctx);
 
       if (rc == 0)
@@ -414,6 +419,13 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; USAGE_BIG_PRE_HASHMODES[i] != NULL; i++)
   {
+    if (strcmp (USAGE_BIG_PRE_HASHMODES[i], USAGE_MODULE_OPTIONS) == 0)
+    {
+      module_options_usage (user_options);
+
+      continue;
+    }
+
     printf ("%s", USAGE_BIG_PRE_HASHMODES[i]);
 
     fwrite (EOL, strlen (EOL), 1, stdout);

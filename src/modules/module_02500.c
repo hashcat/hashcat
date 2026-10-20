@@ -19,6 +19,7 @@
 #include "emu_inc_cipher_aes.h"
 #include "emu_inc_hash_md5.h"
 #include "m02500-pure.cl"
+#include "wpa_common.c"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -401,10 +402,10 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes_buf[hashes_cnt].esalt;
 
-    if (user_options->hccapx_message_pair_chgd == true)
+    if (module_option_given (user_options, OPTION_EAPOL_MESSAGE_PAIR) == true)
     {
-      wpa_eapol->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
-      wpa_eapol->message_pair      = (u8)  user_options->hccapx_message_pair;
+      wpa_eapol->message_pair_chgd = (int) module_option_given (user_options, OPTION_EAPOL_MESSAGE_PAIR);
+      wpa_eapol->message_pair      = (u8)  module_option_u32 (user_options, OPTION_EAPOL_MESSAGE_PAIR);
     }
 
     if (wpa_eapol->message_pair & (1 << 4))
@@ -419,15 +420,20 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
       {
         // replaycount not checked, nc needed
 
-        wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
+        wpa_eapol->nonce_error_corrections = NONCE_ERROR_CORRECTIONS;
+
+        if (module_option_given (user_options, OPTION_NONCE_ERROR_CORRECTIONS) == true)
+        {
+          wpa_eapol->nonce_error_corrections = module_option_u32 (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
+        }
       }
       else
       {
         // replaycount checked, nc not needed, but we allow user overwrites
 
-        if (user_options->nonce_error_corrections_chgd == true)
+        if (module_option_given (user_options, OPTION_NONCE_ERROR_CORRECTIONS) == true)
         {
-          wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
+          wpa_eapol->nonce_error_corrections = module_option_u32 (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
         }
         else
         {
@@ -1011,6 +1017,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = module_pw_min;
+  module_ctx->module_register_options         = wpa_module_register_options;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

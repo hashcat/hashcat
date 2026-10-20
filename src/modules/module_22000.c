@@ -20,6 +20,7 @@
 #include "emu_inc_cipher_aes.h"
 #include "emu_inc_hash_md5.h"
 #include "m22000-pure.cl"
+#include "wpa_common.c"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -203,11 +204,11 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
       /* moved to module_hash_decode_postprocess()
       wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
 
-      wpa->message_pair_chgd = user_options->hccapx_message_pair_chgd;
-      wpa->message_pair      = user_options->hccapx_message_pair;
+      wpa->message_pair_chgd = module_option_given (user_options, OPTION_EAPOL_MESSAGE_PAIR);
+      wpa->message_pair      = module_option_u32 (user_options, OPTION_EAPOL_MESSAGE_PAIR);
 
-      wpa->nonce_error_corrections_chgd = user_options->nonce_error_corrections_chgd;
-      wpa->nonce_error_corrections      = user_options->nonce_error_corrections;
+      wpa->nonce_error_corrections_chgd = module_option_given (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
+      wpa->nonce_error_corrections      = module_option_u32 (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
       */
 
       hash_t *hash = &hashes_buf[hashes_cnt];
@@ -238,11 +239,11 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
       /* moved to module_hash_decode_postprocess()
       wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
 
-      wpa->message_pair_chgd = user_options->hccapx_message_pair_chgd;
-      wpa->message_pair      = user_options->hccapx_message_pair;
+      wpa->message_pair_chgd = module_option_given (user_options, OPTION_EAPOL_MESSAGE_PAIR);
+      wpa->message_pair      = module_option_u32 (user_options, OPTION_EAPOL_MESSAGE_PAIR);
 
-      wpa->nonce_error_corrections_chgd = user_options->nonce_error_corrections_chgd;
-      wpa->nonce_error_corrections      = user_options->nonce_error_corrections;
+      wpa->nonce_error_corrections_chgd = module_option_given (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
+      wpa->nonce_error_corrections      = module_option_u32 (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
       */
 
       hash_t *hash = &hashes_buf[hashes_cnt];
@@ -1607,22 +1608,22 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 {
   wpa_t *wpa = (wpa_t *) esalt_buf;
 
-  wpa->message_pair_chgd = user_options->hccapx_message_pair_chgd;
-  //wpa->message_pair      = user_options->hccapx_message_pair;
+  wpa->message_pair_chgd = module_option_given (user_options, OPTION_EAPOL_MESSAGE_PAIR);
+  //wpa->message_pair      = module_option_u32 (user_options, OPTION_EAPOL_MESSAGE_PAIR);
 
-  wpa->nonce_error_corrections_chgd = user_options->nonce_error_corrections_chgd;
-  //wpa->nonce_error_corrections      = user_options->nonce_error_corrections;
+  wpa->nonce_error_corrections_chgd = module_option_given (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
+  //wpa->nonce_error_corrections      = module_option_u32 (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
 
   if (wpa->message_pair_chgd == true)
   {
     // we can filter some message types here
 
-    if (user_options->hccapx_message_pair != (wpa->message_pair & 0x7f)) return (PARSER_HCCAPX_MESSAGE_PAIR);
+    if (module_option_u32 (user_options, OPTION_EAPOL_MESSAGE_PAIR) != (wpa->message_pair & 0x7f)) return (PARSER_HCCAPX_MESSAGE_PAIR);
   }
 
   if (wpa->nonce_error_corrections_chgd == true)
   {
-    wpa->nonce_error_corrections = user_options->nonce_error_corrections;
+    wpa->nonce_error_corrections = module_option_u32 (user_options, OPTION_NONCE_ERROR_CORRECTIONS);
   }
   else
   {
@@ -1724,6 +1725,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = module_pw_min;
+  module_ctx->module_register_options         = wpa_module_register_options;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

@@ -1028,7 +1028,6 @@ typedef enum user_options_defaults
   HASH_COPY                = false,
   HASH_INFO                = 0,
   HASH_MODE                = 0,
-  HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
   HEX_SALT                 = false,
   HEX_WORDLIST             = false,
@@ -1056,7 +1055,7 @@ typedef enum user_options_defaults
   MARKOV_INVERSE           = false,
   MARKOV_THRESHOLD         = 0,
   METAL_COMPILER_RUNTIME   = 180,
-  NONCE_ERROR_CORRECTIONS  = 8,
+  MODULE_CACHE_REBUILD     = false,
   BACKEND_IGNORE_CUDA      = false,
   BACKEND_IGNORE_HIP       = false,
   #if defined (__APPLE__)
@@ -1085,7 +1084,6 @@ typedef enum user_options_defaults
   RP_GEN_FUNC_MIN          = 1,
   RP_GEN_SEED              = 0,
   RUNTIME                  = 0,
-  SCRYPT_TMTO              = 0,
   SELF_TEST                = true,
   SHOW                     = false,
   SKIP                     = 0,
@@ -1103,8 +1101,6 @@ typedef enum user_options_defaults
   USAGE                    = 0,
   USERNAME                 = false,
   VERSION                  = false,
-  VERACRYPT_PIM_START      = 485,
-  VERACRYPT_PIM_STOP       = 485,
   WORDLIST_AUTOHEX         = true,
 
 } user_options_defaults_t;
@@ -1171,7 +1167,6 @@ typedef enum user_options_map
   IDX_HWMON_TEMP_ABORT          = 0xff1a,
   IDX_HASH_MODE                 = 'm',
   IDX_HASH_RECIPE               = 0xff8d,
-  IDX_HCCAPX_MESSAGE_PAIR       = 0xff1b,
   IDX_HELP                      = 'h',
   IDX_HEX_CHARSET               = 0xff1c,
   IDX_HEX_SALT                  = 0xff1d,
@@ -1188,7 +1183,6 @@ typedef enum user_options_map
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
   IDX_KERNEL_THREADS            = 'T',
-  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff25,
   IDX_KEYSPACE                  = 0xff26,
   IDX_LEFT                      = 0xff27,
   IDX_LENGTH_SORT_DISABLE       = 0xff5a,
@@ -1205,7 +1199,7 @@ typedef enum user_options_map
   IDX_MARKOV_INVERSE            = 0xff2e,
   IDX_MARKOV_THRESHOLD          = 't',
   IDX_METAL_COMPILER_RUNTIME    = 0xff2f,
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff30,
+  IDX_MODULE_CACHE_REBUILD      = 0xff90,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_MULTIPLY_ACCEL_DISABLE    = 'M',
@@ -1235,7 +1229,6 @@ typedef enum user_options_map
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
   IDX_RUNTIME                   = 0xff43,
-  IDX_SCRYPT_TMTO               = 0xff44,
   IDX_CACHE_PATH                = 0xff88,
   IDX_SELF_TEST_DISABLE         = 0xff45,
   IDX_SEPARATOR                 = 'p',
@@ -1252,16 +1245,15 @@ typedef enum user_options_map
   IDX_STDIN_COUNT               = 0xff8f,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff4e,
   IDX_TOTAL_CANDIDATES          = 0xff58,
-  IDX_TRUECRYPT_KEYFILES        = 0xff4f,
   IDX_USERNAME                  = 0xff50,
-  IDX_VERACRYPT_KEYFILES        = 0xff51,
-  IDX_VERACRYPT_PIM_START       = 0xff52,
-  IDX_VERACRYPT_PIM_STOP        = 0xff53,
-  IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
   IDX_ENCRYPT_WITH_PUBKEY       = 0xff70,
+
+  // the options modules register take the getopt values from here up, one each
+
+  IDX_MODULE_OPTION             = 0xfe00,
 
 } user_options_map_t;
 
@@ -2854,14 +2846,12 @@ typedef struct user_options
   bool         bypass_delay_chgd;
   bool         bypass_threshold_chgd;
   bool         hash_mode_chgd;
-  bool         hccapx_message_pair_chgd;
   bool         identify;
   bool         increment_max_chgd;
   bool         increment_min_chgd;
   bool         kernel_accel_chgd;
   bool         kernel_loops_chgd;
   bool         kernel_threads_chgd;
-  bool         nonce_error_corrections_chgd;
   bool         spin_damp_chgd;
   bool         backend_vector_width_chgd;
   bool         outfile_chgd;
@@ -2872,7 +2862,6 @@ typedef struct user_options
   bool         metal_compiler_runtime_chgd;
   bool         skip_chgd;
   bool         limit_chgd;
-  bool         scrypt_tmto_chgd;
   bool         separator_chgd;
   bool         rule_buf_l_chgd;
   bool         rule_buf_r_chgd;
@@ -2905,6 +2894,7 @@ typedef struct user_options
   bool         logfile;
   bool         loopback;
   bool         machine_readable;
+  bool         module_cache_rebuild;
   bool         markov_classic;
   bool         markov;
   bool         markov_inverse;
@@ -2937,8 +2927,6 @@ typedef struct user_options
   bool         stdin_count_chgd;
   bool         stdin_timeout_abort_chgd;
   bool         username;
-  bool         veracrypt_pim_start_chgd;
-  bool         veracrypt_pim_stop_chgd;
   bool         version;
   bool         wordlist_autohex;
   #ifdef WITH_BRAIN
@@ -2954,7 +2942,6 @@ typedef struct user_options
   char        *debug_file;
   char        *hash_recipe;
   char        *induction_dir;
-  char        *keyboard_layout_mapping;
   char        *lookup;
   char        *lookup_alias;    // "lookup=" plus the above, when -a 4 is handed the question
   char        *markov_hcstat2;
@@ -2968,8 +2955,6 @@ typedef struct user_options
   char        *rp_gen_func_sel;
   char        *cache_path;
   char        *separator;
-  char        *truecrypt_keyfiles;
-  char        *veracrypt_keyfiles;
   const char  *custom_charset_1;
   const char  *custom_charset_2;
   const char  *custom_charset_3;
@@ -3017,7 +3002,6 @@ typedef struct user_options
   u32          hwmon_temp_abort;
   u32          hash_info;
   int          hash_mode;
-  u32          hccapx_message_pair;
   u32          hook_threads;
   u32          increment_max;
   u32          increment_min;
@@ -3025,7 +3009,6 @@ typedef struct user_options
   u32          kernel_loops;
   u32          kernel_threads;
   u32          markov_threshold;
-  u32          nonce_error_corrections;
   u32          spin_damp;
   u32          backend_vector_width;
   u32          outfile_check_timer;
@@ -3039,16 +3022,21 @@ typedef struct user_options
   u32          rp_gen_seed;
   u32          runtime;
   u32          metal_compiler_runtime;
-  u32          scrypt_tmto;
   u32          status_timer;
   u32          stdin_timeout_abort;
   u32          usage;
-  u32          veracrypt_pim_start;
-  u32          veracrypt_pim_stop;
   u64          limit;
   u64          skip;
   u64          stdin_count;
   bool         hash_copy;
+
+  // what the option table validator read off the command line, see src/user_options_table.c
+
+  struct option_table *option_table;
+
+  // the options the modules registered and the values given for them, see src/module_options.c
+
+  struct module_options *module_options;
 
 } user_options_t;
 
@@ -4210,6 +4198,63 @@ typedef struct hlfmt_word
 
 } hlfmt_word_t;
 
+// An option a module adds to the command line, see module_register_options () in
+// docs/hashcat-plugin-development-guide.md. It holds what a row of include/options.def and its rule
+// hold for a core option, and a module returns a list of them ended by a row whose name is NULL.
+
+typedef enum module_option_type
+{
+  MODULE_OPTION_TYPE_FLAG = 1,
+  MODULE_OPTION_TYPE_U32  = 2,
+  MODULE_OPTION_TYPE_STR  = 3,
+
+} module_option_type_t;
+
+typedef enum module_option_flag
+{
+  MODULE_OPTION_FLAG_MIN    = (1 << 0),
+  MODULE_OPTION_FLAG_MAX    = (1 << 1),
+  MODULE_OPTION_FLAG_HIDDEN = (1 << 2),
+
+} module_option_flag_t;
+
+// Called once the module is loaded, with the value given as text, for an option that takes a value.
+// It fills the buffer with the reason and returns false when the value cannot be used.
+
+typedef bool (*MODULE_OPTION_CHECK) (const char *, char *, const size_t);
+
+// the highest brain_slot a row can name, see brain_compute_attack ()
+
+#define BRAIN_SLOTS_MAX 16
+
+typedef struct module_option
+{
+  const char           *name;
+  module_option_type_t  type;
+  u32                   flags;
+  u64                   min;
+  u64                   max;
+  u64                   def;
+
+  // a position in the brain attack identity, 1 to BRAIN_SLOTS_MAX, for a number or flag option that
+  // has to keep two runs apart there, or 0. Only the hash-mode in use fills slots, so families can
+  // number from 1 each.
+
+  u32                   brain_slot;
+
+  const char           *alias;
+  const char           *le;
+  const char           *requires;
+  const char           *excludes;
+
+  MODULE_OPTION_CHECK   check;
+
+  const char           *help_type;
+  const char           *help;
+  const char           *help_example;
+
+} module_option_t;
+
 typedef struct module_ctx
 {
   size_t      module_context_size;
@@ -4311,6 +4356,8 @@ typedef struct module_ctx
 
   u64         (*module_bridge_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_bridge_name)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+
+  const module_option_t *(*module_register_options) (void);
 
 } module_ctx_t;
 

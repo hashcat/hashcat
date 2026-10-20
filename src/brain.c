@@ -19,6 +19,8 @@
 #include "hashes.h"
 #include "event.h"
 #include "memory.h"
+#include "interface.h"
+#include "module_options.h"
 #include "brain.h"
 
 static bool keep_running = true;
@@ -281,21 +283,38 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   paw64_update (&state, &opts_type, sizeof (opts_type));
 
-  const int hccapx_message_pair = user_options->hccapx_message_pair;
+  // The module options that have to keep two runs apart name a brain slot, and only the ones the
+  // hash-mode in use registered fill one, so a module that is missing or only registers options of
+  // its own cannot change the identity. Every slot goes in, an unfilled one as BRAIN_SLOT_UNUSED.
 
-  paw64_update (&state, &hccapx_message_pair, sizeof (hccapx_message_pair));
+  u32 brain_slots[BRAIN_SLOTS_MAX];
 
-  const int nonce_error_corrections = user_options->nonce_error_corrections;
+  for (u32 i = 0; i < BRAIN_SLOTS_MAX; i++) brain_slots[i] = BRAIN_SLOT_UNUSED;
 
-  paw64_update (&state, &nonce_error_corrections, sizeof (nonce_error_corrections));
+  const module_options_t *module_options = user_options->module_options;
 
-  const int veracrypt_pim_start = user_options->veracrypt_pim_start;
+  const u32 module_options_cnt = (module_options == NULL) ? 0 : module_options->entries_cnt;
 
-  paw64_update (&state, &veracrypt_pim_start, sizeof (veracrypt_pim_start));
+  // an old hash-mode number loads the module of its new number, which is the one that registered
 
-  const int veracrypt_pim_stop = user_options->veracrypt_pim_stop;
+  const u32 module_hash_mode = module_hash_mode_resolve (hashconfig->hash_mode);
 
-  paw64_update (&state, &veracrypt_pim_stop, sizeof (veracrypt_pim_stop));
+  for (u32 i = 0; i < module_options_cnt; i++)
+  {
+    const module_option_entry_t *entry = &module_options->entries[i];
+
+    const u32 slot = entry->row.brain_slot;
+
+    if (slot == 0) continue;
+
+    if (slot > BRAIN_SLOTS_MAX) continue;
+
+    if (module_option_registered (entry, module_hash_mode) == false) continue;
+
+    brain_slots[slot - 1] = (u32) entry->value;
+  }
+
+  paw64_update (&state, brain_slots, sizeof (brain_slots));
 
   if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {

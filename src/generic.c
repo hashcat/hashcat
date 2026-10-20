@@ -18,6 +18,7 @@
 #include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
+#include "user_options_table.h"
 #include "backend.h"
 #include "terminal.h"
 #include "timer.h"
@@ -334,26 +335,6 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->dev_rules_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE_RULES) ? true : false;
 
-  // A charset belongs to a mask, and only some feeds read one. Refused here rather than in
-  // user_options_sanity (), which runs before the feed is known and so cannot tell them apart.
-  //
-  // Only -a 8 hands its command line to the feed. The other modes open the wordlist feed for their
-  // dictionaries alone, and in -a 6, -a 7 and -a 12 hashcat reads the mask beside them itself.
-
-  if ((*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_MASK) == 0)
-  {
-    const user_options_t *user_options = hashcat_ctx->user_options;
-
-    const bool any = (user_options->custom_charset_1 != NULL) || (user_options->custom_charset_2 != NULL) || (user_options->custom_charset_3 != NULL) || (user_options->custom_charset_4 != NULL) || (user_options->custom_charset_5 != NULL) || (user_options->custom_charset_6 != NULL) || (user_options->custom_charset_7 != NULL) || (user_options->custom_charset_8 != NULL);
-
-    if ((user_options->attack_mode == ATTACK_MODE_GENERIC) && (any == true))
-    {
-      event_log_error (hashcat_ctx, "%s: this feed reads no mask, so a custom charset has nothing to apply to.", generic_ctx->dynlib_filename);
-
-      return -1;
-    }
-  }
-
   const bool dev_offered = generic_ctx->dev_enable;
 
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_init,     GENERIC_GLOBAL_INIT);
@@ -535,7 +516,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // known, and the hashes were parsed under it on the way: a raw md5 digest has had the initial state
   // subtracted out of it for a kernel that is now not going to run. Clearing the flag here leaves
   // those digests wrong, which shows up as a self-test failure and, with the self-test disabled, as
-  // an attack that cracks nothing.
+  // an attack that cracks nothing. -b turns -O on by itself, but it never runs a feed.
 
   if (generic_ctx->dev_enable == true)
   {
@@ -547,12 +528,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
     if (hc_path_read (source_file) == false)
     {
-      if (hashcat_ctx->user_options->optimized_kernel == true)
-      {
-        event_log_error (hashcat_ctx, "The device engine has no optimized kernel for this hash mode. Run this without -O.");
-
-        return -1;
-      }
+      if (option_table_check_feed (hashcat_ctx, LATE_FEED_ENGINE_KERNEL) == -1) return -1;
 
       generic_ctx->dev_enable = false;
     }
