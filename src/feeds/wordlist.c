@@ -709,11 +709,17 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
 
     source->seek_db = seekdb_build (feed_thread, seekdb_file, source->path, &source->seek_count, &source->line_count, &source->size, &source->seek_step, &source->frame_db, &source->frame_count, source_ident, hashcat_ctx);
 
+    hcfree (seekdb_file);
+
+    // The error is what stops the run. The return value alone reads as a feed that cannot count itself.
+
     if (source->seek_db == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: could not build the seek index for this wordlist.", source->path);
+      error_set (global_ctx, "%s: could not build the seek index for this wordlist.", source->path);
 
-      return -1;
+      wordlist_thread_term (feed_thread);
+
+      return GENERIC_KEYSPACE_UNKNOWN;
     }
 
     cache_generate_t cache_generate;
@@ -725,8 +731,6 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
     cache_generate.runtime     = hc_timer_get (start);
 
     EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
-
-    hcfree (seekdb_file);
 
     feed_global->line_count += source->line_count;
   }
