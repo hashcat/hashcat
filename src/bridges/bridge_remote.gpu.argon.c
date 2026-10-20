@@ -195,9 +195,9 @@ static void units_term (remote_t *remote)
       int pws_cnt_no = 0;
       send (unit->client_fd, (void *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
 #ifdef WIN32
-      close (unit->client_fd);
-#else
       closesocket (unit->client_fd);
+#else
+      close (unit->client_fd);
 #endif
     }
 
