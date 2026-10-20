@@ -127,19 +127,23 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
       return false;
     }
 
-    int client_fd = socket (AF_INET, SOCK_STREAM, 0);
-    if (client_fd < 0)
+    unit->client_fd = socket (AF_INET, SOCK_STREAM, 0);
+
+#ifdef WIN32
+    if (unit->client_fd == INVALID_SOCKET )
+#else
+    if (unit->client_fd < 0)
+#endif
     {
       event_log_error (hashcat_ctx, "[bridge-client]: Unable to create socket.");
       return false;
     }
-    if (connect (client_fd, (struct sockaddr *) &server_address,  sizeof (server_address)) < 0)
+    if (connect (unit->client_fd, (struct sockaddr *) &server_address,  sizeof (server_address)) < 0)
     {
       event_log_error (hashcat_ctx, "[bridge-client]: Failed to create connection.");
       return false;
     }
 
-    unit->client_fd = client_fd;
     unit->workitem_count = MAX_BLOCK_SIZE;
 
     unit->unit_info_len = snprintf (unit->unit_info_buf, sizeof (unit->unit_info_buf) - 1, "Remote Argon @ %s", address);
@@ -173,7 +177,11 @@ static void units_term (remote_t *remote)
       unit_t *unit = &remote->units[i];
       int pws_cnt_no = 0;
       send (unit->client_fd, (void *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
+#ifdef WIN32
       close (unit->client_fd);
+#else
+      closesocket (unit->client_fd);
+#endif
     }
 
     hcfree (remote->units);
