@@ -70,8 +70,9 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --logfile-disable          |      | Disable the logfile                                  |
      --eapol-message-pair       | Num  | Load only EAPOL message pairs matching X             | --eapol-message-pair=2
      --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
-     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table
      --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png
+     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=tables/layouts/de.table
+     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3
      --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt
      --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450
      --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500
@@ -112,7 +113,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --spin-damp                | Num  | Use CPU for device synchronization, in percent       | --spin-damp=10
      --hwmon-disable            |      | Disable temperature and fanspeed reads and triggers  |
      --hwmon-temp-abort         | Num  | Abort if temperature reaches X degrees Celsius       | --hwmon-temp-abort=100
-     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3
  -s, --skip                     | Num  | Skip X words from the start                          | -s 1000000
  -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000
      --keyspace                 |      | Show keyspace base:mod values and quit               |
