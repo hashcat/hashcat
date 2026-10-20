@@ -179,6 +179,28 @@ fi
 # writes, so the cross build shows them on all 593. That is a difference between two linkers about
 # their own bookkeeping and not one about what a plugin offers, so it is read out here.
 
+# The two plugin checks below read a binary's tables with the platform's own tool. A machine that
+# lacks it, such as Git Bash on Windows with no objdump, cannot run them, which is reported as a check
+# left out rather than as a plugin that failed it.
+
+inspect_tools ()
+{
+  case "$(uname -s)" in
+    CYGWIN*|MINGW*|MSYS*) echo "objdump" ;;
+    Darwin)               echo "nm otool" ;;
+    *)                    echo "nm objdump" ;;
+  esac
+}
+
+inspect_missing ()
+{
+  for TOOL in $(inspect_tools); do
+    command -v "$TOOL" >/dev/null 2>&1 || { echo "$TOOL"; return 0; }
+  done
+
+  return 1
+}
+
 plugin_exports ()
 {
   case "$(uname -s)" in
@@ -265,7 +287,13 @@ check_exports ()
 # the optional names rather than every combination of them keeps the next one from doubling the list,
 # and a feed that exports a name from neither list is still caught.
 
-if [ -n "$LIBRARY" ]; then
+MISSING_TOOL="$(inspect_missing)"
+
+if [ -n "$LIBRARY" ] && [ -n "$MISSING_TOOL" ]; then
+  printf '      plugin exports and core links not checked, %s is not installed\n' "$MISSING_TOOL"
+fi
+
+if [ -n "$LIBRARY" ] && [ -z "$MISSING_TOOL" ]; then
   check_exports modules module_ "module_init"
   check_exports bridges bridge_ "bridge_init"
   check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term" \
@@ -327,7 +355,7 @@ check_core_link ()
   fi
 }
 
-if [ -n "$LIBRARY" ]; then
+if [ -n "$LIBRARY" ] && [ -z "$MISSING_TOOL" ]; then
   check_core_link modules
   check_core_link bridges
   check_core_link feeds

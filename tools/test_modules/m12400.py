@@ -5,11 +5,10 @@
 ## License.....: MIT
 ##
 
-import crypt_r
-
+from lib import libcrypt
 from lib.test_helpers import random_number
 
-# BSDi Crypt / extended DES ("_" scheme). crypt_r builds the whole "_<iter><salt><hash>" string; the
+# BSDi Crypt / extended DES ("_" scheme). libcrypt builds the whole "_<iter><salt><hash>" string; the
 # iteration count is 4 crypt64 characters, the salt 4.
 
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -26,7 +25,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   iterations = random_number(1, 5000) if iterations is None else int(iterations)
 
-  return crypt_r.crypt(word.decode("utf-8"), "_" + _int24(iterations) + salt)
+  return libcrypt.crypt(word.decode("utf-8"), "_" + _int24(iterations) + salt)
 
 
 def module_verify_hash(line):

@@ -5,6 +5,8 @@
 ## License.....: MIT
 ##
 
+import base64
+import binascii
 import hashlib
 import hmac
 import re
@@ -47,6 +49,41 @@ def module_verify_hash(line):
   if parts is None:
     return None
 
-  _, salt, word = parts
+  token, salt, word = parts
+
+  target = "%s:%s" % (token, salt)
+
+  # The token is '% 1000000', so many secrets map to the same six digits: hashcat reports whichever
+  # it reaches first, not necessarily the generated one. It also prints the recovered secret base32
+  # encoded, while the generator round-trips the raw secret bytes. Try the base32 decoding first and
+  # fall back to the raw bytes, accepting whichever reproduces the token. The word is handed back
+  # unchanged so hash:word still reconstructs.
+  for key in _secret_candidates(word):
+    if module_generate_hash(key, salt) == target:
+      return (target, word)
 
   return (module_generate_hash(word, salt), word)
+
+
+def _secret_candidates(word):
+  decoded = _b32decode(word)
+
+  if decoded is not None:
+    return [decoded, word]
+
+  return [word]
+
+
+def _b32decode(word):
+  try:
+    text = word.decode("ascii")
+  except UnicodeDecodeError:
+    return None
+
+  if len(text) == 0 or len(text) % 8 != 0 or re.fullmatch(r"[A-Z2-7]+=*", text) is None:
+    return None
+
+  try:
+    return base64.b32decode(text)
+  except (ValueError, binascii.Error):
+    return None

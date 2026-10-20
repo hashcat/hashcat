@@ -70,19 +70,22 @@ DECLSPEC bool pcfg_gost94 (PRIVATE_AS const u32 *data_in, const u32 len, PRIVATE
   u32 data_m[8];
   u32 tmp[8];
 
-  /* gost1 */
+  /* gost1, the message block, which an empty password does not have */
 
   for (u32 i = 0; i < 8; i++) state_m[i] = state[i];
   for (u32 i = 0; i < 8; i++) data_m[i]  = data[i];
 
-  PASS0 (state, tmp, state_m, data_m, s_tables);
-  PASS2 (state, tmp, state_m, data_m, s_tables);
-  PASS4 (state, tmp, state_m, data_m, s_tables);
-  PASS6 (state, tmp, state_m, data_m, s_tables);
+  if (len > 0)
+  {
+    PASS0 (state, tmp, state_m, data_m, s_tables);
+    PASS2 (state, tmp, state_m, data_m, s_tables);
+    PASS4 (state, tmp, state_m, data_m, s_tables);
+    PASS6 (state, tmp, state_m, data_m, s_tables);
 
-  SHIFT12 (state_m, data, tmp);
-  SHIFT16 (state, data_m, state_m);
-  SHIFT61 (state, data_m);
+    SHIFT12 (state_m, data, tmp);
+    SHIFT16 (state, data_m, state_m);
+    SHIFT61 (state, data_m);
+  }
 
   /* gost2, the length in bits */
 

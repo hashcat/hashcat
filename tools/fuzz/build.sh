@@ -56,6 +56,7 @@ CORE="src/rp.c
       src/bitops.c
       src/cpu_crc32.c
       src/keyboard_layout.c
+      src/recipe.c
       src/ext_lzma.c
       src/ext_zlib.c
       src/ext_zstd.c
@@ -120,15 +121,29 @@ for src in $CORE; do
   objs="$objs $obj"
 done
 
-for target in rule tokenizer; do
+for target in rule tokenizer recipe mask; do
   obj="${WORK}/fuzz_${target}.o"
 
   # shellcheck disable=SC2086
   $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -c "tools/fuzz/fuzz_${target}.c" -o "$obj"
 
+  # The mask parser lives in a core build file: src/mpsp.c includes feed_ctx.h, which needs
+  # HC_CORE_BUILD. The rest of that file drives the feed and the backend, which the harness never
+  # calls but the linker still resolves, so tools/fuzz/stubs.c carries the handful of core functions
+  # that code reaches for. A run only ever calls mask_css_parse, so none of the stubbed code runs.
+
+  extra=""
+
+  if [ "$target" = "mask" ]; then
+    # shellcheck disable=SC2086
+    $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DHC_CORE_BUILD -c src/mpsp.c -o "${WORK}/mpsp.o"
+
+    extra="${WORK}/mpsp.o"
+  fi
+
   # the C++ driver links every target, C project or not
   # shellcheck disable=SC2086
-  $CXX $CXXFLAGS "$obj" $objs $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_${target}"
+  $CXX $CXXFLAGS "$obj" $extra $objs $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_${target}"
 
   cp "tools/fuzz/fuzz_${target}.dict" "${OUT}/"
 
@@ -145,7 +160,7 @@ done
 # needed a memory safety fix before, one that carries a rounds field, and one
 # whose format is a long chain of star separated fields.
 
-FUZZ_MODES=${FUZZ_MODES:-"07400 17225 22000 29100"}
+FUZZ_MODES=${FUZZ_MODES:-"07400 17225 22000 40056"}
 
 for mode in $FUZZ_MODES; do
   module="src/modules/module_${mode}.c"
@@ -195,6 +210,35 @@ for mode in $FUZZ_MODES; do
   cp "tools/fuzz/fuzz_parse.dict" "${OUT}/"
 
   echo "built ${OUT}/fuzz_parse_${hash_mode}"
+
+  # A second mode 4000 target with a base64 recipe, so the base64 decode of the digest on the hash
+  # line is fuzzed as well as the hex form the default recipe uses. It reuses the module object just
+  # built and recompiles only the harness with FUZZ_RECIPE_B64. fuzz.yml finds it by the
+  # fuzz_parse_* glob, so nothing else needs to know about it.
+
+  if [ "$mode" = "04000" ]; then
+    b64log="${OUT}/build_4000_b64.log"
+
+    # shellcheck disable=SC2086
+    if { $CC $CFLAGS -std=gnu99 $INCLUDES $DEFINES -DFUZZ_HASH_MODE=${hash_mode} -DFUZZ_RECIPE_B64 \
+             -c tools/fuzz/fuzz_parse.c -o "${WORK}/fuzz_parse_4000_b64.o" &&
+         $CXX $CXXFLAGS "${WORK}/fuzz_parse_4000_b64.o" "${WORK}/module_${mode}.o" $objs \
+             $LIB_FUZZING_ENGINE -o "${OUT}/fuzz_parse_4000_b64"; } > "$b64log" 2>&1; then
+      rm -f "$b64log"
+      echo "built ${OUT}/fuzz_parse_4000_b64"
+    else
+      cat "$b64log" >&2
+      echo "error: fuzz_parse_4000_b64 did not build" >&2
+
+      if [ "${FUZZ_KEEP_GOING:-0}" = "1" ]; then
+        # The suffix matches the b64log name, so the caller finds build_4000_b64.log and names the
+        # failing target fuzz_parse_4000_b64, not the hex target that built fine beside it.
+        echo "${hash_mode}_b64" >> "${OUT}/build_failures.txt"
+      else
+        exit 1
+      fi
+    fi
+  fi
 done
 
 # Seed corpora, one directory per target under ${WORK}/seeds. fuzz.yml and a

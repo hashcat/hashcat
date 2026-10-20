@@ -341,6 +341,11 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   if (user_options->speed_only   == true) return;
   if (user_options->identify     == true) return;
 
+  // Key presses come from a terminal. Anything else on stdin is data the attack does not read, and a
+  // 'c' or a 'q' in a redirected wordlist would stop the run.
+
+  if (is_stdin_terminal () == false) return;
+
   if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     // see thread_keypress() how to access status information
@@ -540,7 +545,14 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->lookup != NULL) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  if (user_options->json == true)
+  {
+    event_log_info (hashcat_ctx, "{ \"keyspace\": %" PRIu64 " }", status_ctx->words_base);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  }
 }
 
 static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -551,7 +563,14 @@ static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->keyspace == false) return;
   if (user_options->total_candidates == false) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
+  if (user_options->json == true)
+  {
+    event_log_info (hashcat_ctx, "{ \"total_candidates\": %" PRIu64 " }", status_ctx->words_cnt);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
+  }
 }
 
 static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -656,6 +675,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -667,7 +687,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->benchmark == true)
   {
-    if (user_options->machine_readable == false)
+    if ((user_options->machine_readable == false) && (user_options->benchmark_json == false))
     {
       char buf[HCBUFSIZ_TINY] = { 0 };
 
@@ -680,7 +700,18 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
       size_t len = 0;
 
-      if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
+      if (module_ctx->module_benchmark_cost != MODULE_DEFAULT)
+      {
+        // A mode whose cost is not one iteration count, such as argon2 with its m, t and p, spells
+        // out its own parameters here in place of the Iterations readout.
+
+        char cost[HCBUFSIZ_TINY] = { 0 };
+
+        module_ctx->module_benchmark_cost (hashconfig, &hashes[0].salts_buf[0], hashes[0].esalts_buf, cost, sizeof (cost));
+
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [%s] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, cost, kernel_name);
+      }
+      else if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
       {
         len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter, kernel_name);
       }
@@ -1066,6 +1097,15 @@ static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting");
 }
 
+static void main_monitor_stdin_overrun (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_warning (hashcat_ctx, "Input on stdin exceeded --stdin-count. Progress and time estimate are no longer shown.");
+}
+
 // The candidate generator, not the unit. Worth its own message because the device number in the
 // payload is a VIRTUAL one belonging to a bridge unit, so reporting it the usual way would name the
 // unit, which is running perfectly well, while the GPU beside it is the thing overheating.
@@ -1081,6 +1121,24 @@ static void main_monitor_temp_abort_feeder (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   }
 
   event_log_error (hashcat_ctx, "Temperature limit on the candidate generator reached, aborting");
+}
+
+// A bridge unit, named the way the watchdog banner names it. The watchdog only checks a device that is
+// not a bridge unit when it is a GPU, so the other message can keep calling it one.
+
+static void main_monitor_temp_abort_bridge (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_error (hashcat_ctx, "Temperature limit on Bridge unit #%u reached, aborting", *device_id + 1);
 }
 
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1909,12 +1967,14 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_STATUS_REFRESH:    main_monitor_status_refresh    (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT:        main_monitor_temp_abort        (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT_FEEDER: main_monitor_temp_abort_feeder (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_TEMP_ABORT_BRIDGE: main_monitor_temp_abort_bridge (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE1:         main_monitor_throttle1         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_PERFORMANCE_HINT:  main_monitor_performance_hint  (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_HINT:      main_monitor_noinput_hint      (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_ABORT:     main_monitor_noinput_abort     (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_STDIN_OVERRUN:     main_monitor_stdin_overrun     (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_POST:      main_backend_session_post      (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_PRE:       main_backend_session_pre       (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_HOSTMEM:   main_backend_session_hostmem   (hashcat_ctx, buf, len); break;

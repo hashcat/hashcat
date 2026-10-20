@@ -49,7 +49,7 @@ def main():
         with open(args.output_file, 'w') as f:
             for hashcat_hash in all_hashes:
                 f.write(f"{hashcat_hash}\n")
-        print(f"Extracted hashes have been saved to {args.output_file}!\nTotal hashes: {len(all_hashes)}\nRun hashcat with mode 12150!")
+        print(f"Extracted hashes have been saved to {args.output_file}!\nTotal hashes: {len(all_hashes)}\nRun hashcat with mode 40035!")
     else:
         print("No hashes were extracted.")
 

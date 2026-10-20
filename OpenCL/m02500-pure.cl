@@ -872,26 +872,18 @@ KERNEL_FQ KERNEL_FA void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
   z[2] = 0;
   z[3] = 0;
 
-  u32 to;
+  // The KDF-SHA256 input opens with a 2 byte counter, so both nonces sit 1 byte later than in the
+  // keyver 1 and 2 layout, and the last 4 bytes of the ANonce fill a whole word.
 
-  u32 m0;
-  u32 m1;
+  u32 to;
 
   if (wpa_eapol->nonce_compare < 0)
   {
-    m0 = pke[15] & ~0x000000ff;
-    m1 = pke[16] & ~0xffffff00;
-
-    to = pke[15] << 24
-       | pke[16] >>  8;
+    to = pke[16];
   }
   else
   {
-    m0 = pke[23] & ~0x000000ff;
-    m1 = pke[24] & ~0xffffff00;
-
-    to = pke[23] << 24
-       | pke[24] >>  8;
+    to = pke[24];
   }
 
   u32 bo_loops = wpa_eapol->detected_le + wpa_eapol->detected_be;
@@ -943,13 +935,11 @@ KERNEL_FQ KERNEL_FA void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
 
       if (wpa_eapol->nonce_compare < 0)
       {
-        pke[15] = m0 | (t >> 24);
-        pke[16] = m1 | (t <<  8);
+        pke[16] = t;
       }
       else
       {
-        pke[23] = m0 | (t >> 24);
-        pke[24] = m1 | (t <<  8);
+        pke[24] = t;
       }
 
       sha256_hmac_ctx_t ctx1;

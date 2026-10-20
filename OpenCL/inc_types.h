@@ -2157,6 +2157,11 @@ typedef struct pw
 
   u32 pw_len;
 
+  // Apple's Intel GPU drivers misread a 260 byte pw_t on every odd lane
+  #if defined (__APPLE__) || defined (IS_APPLE)
+  u32 pad;
+  #endif
+
 } pw_t;
 
 typedef struct pw_idx

@@ -103,9 +103,13 @@ DECLSPEC u32 hc_funnelshift_r (const u32 lo, const u32 hi, const int shift)
 // them. PCFG also reads from global, but the host borrows this symbol by name when the device
 // engine applies the rules itself, and that lookup is a hard failure if the symbol is absent, so
 // PCFG keeps the full declaration.
+//
+// The host clears the slice with gpu_bzero, which stores 16 bytes at a time. The compiler places it
+// after the kernel's own constant tables, at a 4 byte boundary unless told otherwise, so it is aligned
+// explicitly.
 
 #if   ATTACK_KERN == 0
-CONSTANT_VK u32 generic_constant[8192]; // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   ((const kernel_rule_t *) generic_constant)
 #define words_buf_s g_words_buf_s
@@ -116,13 +120,13 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 4
-CONSTANT_VK u32 generic_constant[8192]; // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
-CONSTANT_VK u32 generic_constant[1024]; // 4k
+CONSTANT_VK u32 generic_constant[1024] __attribute__((aligned (16))); // 4k
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)
@@ -349,9 +353,13 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 // them. PCFG also reads from global, but the host borrows this symbol by name when the device
 // engine applies the rules itself, and that lookup is a hard failure if the symbol is absent, so
 // PCFG keeps the full declaration.
+//
+// The host clears the slice with gpu_bzero, which stores 16 bytes at a time. The compiler places it
+// after the kernel's own constant tables, at a 4 byte boundary unless told otherwise, so it is aligned
+// explicitly.
 
 #if   ATTACK_KERN == 0
-CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used, aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   ((const kernel_rule_t *) generic_constant)
 #define words_buf_s g_words_buf_s
@@ -362,13 +370,13 @@ CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 4
-CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used, aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
-CONSTANT_VK u32 generic_constant[1024] __attribute__((used)); // 4k
+CONSTANT_VK u32 generic_constant[1024] __attribute__((used, aligned (16))); // 4k
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)

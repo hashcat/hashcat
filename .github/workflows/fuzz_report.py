@@ -70,7 +70,11 @@ def main():
     data = open(crashes[0], "rb").read() if crashes else None
 
     if target.startswith("parse_"):
-        build = f"FUZZ_MODES={int(target[6:]):05d} tools/fuzz/build.sh"
+        # The mode is the leading digits of the target name. A variant target carries a suffix
+        # after it, as fuzz_parse_4000_b64 does, which build.sh builds from the same mode, so take
+        # the digits before the first underscore.
+        mode = target[len("parse_"):].split("_")[0]
+        build = f"FUZZ_MODES={int(mode):05d} tools/fuzz/build.sh"
     else:
         build = "tools/fuzz/build.sh"
 

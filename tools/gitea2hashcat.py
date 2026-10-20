@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Converts gitea PBKDF2-HMAC-SHA256 hashes into a format hashcat can use with hashcat mode 10900
+# Converts gitea PBKDF2-HMAC-SHA256 hashes into a format hashcat can use with hashcat mode 40024
 # written by unix-ninja
 
 import argparse
@@ -52,7 +52,7 @@ def main():
     args = parser.parse_args()
 
     # ... (rest of the main function remains the same)
-    print("[+] Run the output hashes through hashcat mode 10900 (PBKDF2-HMAC-SHA256)")
+    print("[+] Run the output hashes through hashcat mode 40024 (PBKDF2-HMAC-SHA256)")
     print()
 
     if args.hashes:

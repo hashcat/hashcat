@@ -89,12 +89,19 @@ def calc_hash(password: bytes, salt: dict) -> str:
 
   oracle_hash = base64.b64decode(encoded)
 
-  got = _oracle(int(mode), family.decode("ascii")).module_verify_hash(oracle_hash + b":" + password)
+  # The bridge hands the oracle every candidate hashcat generates, not just the real password. An
+  # oracle's module_verify_hash is written for the kernel test path, where only the correct plain is
+  # ever verified, so a wrong guess can take it down a branch it does not expect and raise. Treat any
+  # such failure as a non match, so one brittle oracle cannot abort the whole bridged session.
+  try:
+    got = _oracle(int(mode), family.decode("ascii")).module_verify_hash(oracle_hash + b":" + password)
 
-  if got is None:
+    if got is None:
+      return "invalid-password"
+
+    return hashlib.sha256(got[0].encode("utf-8")).hexdigest()
+  except Exception:
     return "invalid-password"
-
-  return hashlib.sha256(got[0].encode("utf-8")).hexdigest()
 
 
 def extract_esalts(esalts_buf):

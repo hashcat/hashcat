@@ -396,8 +396,13 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // An attack that is really a queue of attacks reads one dictionary per round, and this is the
     // round that says which. The instance is opened here rather than at init because an induction
     // dictionary does not exist until the round before it is read.
+    //
+    // A pipe has no dictionary list. Its first round reads the stdin instance generic_ctx_init ()
+    // opened, and only the induction rounds after it open their own.
 
-    if (user_options_extra->base_scope == BASE_SCOPE_PER_ROUND)
+    const bool stdin_round = (user_options_extra->wordlist_mode == WL_MODE_STDIN) && (induct_ctx->induction_dictionaries_cnt == 0);
+
+    if ((user_options_extra->base_scope == BASE_SCOPE_PER_ROUND) && (stdin_round == false))
     {
       if (induct_ctx->induction_dictionaries_cnt)
       {

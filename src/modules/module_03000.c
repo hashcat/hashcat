@@ -76,11 +76,23 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // Extra treatment for Apple systems
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
+    // Metal
+    if (device_param->is_metal == true)
+    {
+      hc_asprintf (&jit_build_options, "-D _unroll");
+    }
+
     return jit_build_options;
   }
 
   // Intel CPU
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  // Intel GPU
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
     hc_asprintf (&jit_build_options, "-D _unroll");
   }
@@ -265,6 +277,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;

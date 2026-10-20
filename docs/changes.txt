@@ -118,6 +118,37 @@ show a traceback. On 28 i7-14700K threads, a SHA-256 plugin reached 611 kH/s, up
 16 kH/s. See "docs/hashcat-python-plugin-development-guide.md"
 for the upgrade steps.
 
+10. Hash recipes in hash-mode 4000
+
+Hash-mode 4000 cracks hashes described by a recipe on the command line, such as
+"md5(md5(salt) . pass)" or "hmac_sha256(salt, upper(pass))". Hashcat compiles the recipe into a
+kernel at startup, so most recipes run close to the speed of a matching built-in pure kernel.
+
+Recipes use the syntax of hx, the hash expression language. They combine MD2, MD4, MD5, SHA-0,
+SHA-1, SHA-2, SHA-3, Keccak, RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL,
+Tiger, Snefru and MySQL323 with HMAC, PBKDF2 and AES. The SHA-3 candidates BLAKE, BMW, CubeHash,
+ECHO, Fugue, Groestl, Hamsi, JH, Luffa, Shabal, SHAvite-3, SIMD and Skein are available as well, and
+so are HAS-160, EDON-R, MD6, RadioGatun, PANAMA, DES and LM. Functions such as upper, rev and pad
+transform passwords and salts, salts stored as hex or base64 are decoded with fromhex and
+frombase64, and digests can be sliced or re-encoded. A recipe can also span several statements that
+assign variables, as in "h = md5(salt); md5(h . pass)". Recipes can loop, as in
+"for i = 1 to iter { h = md5_bin(h . pass) }", derive keys with pbkdf2, decrypt or unwrap with AES
+and end in a comparison, so slow formats such as phpass, PBKDF2 hashes and 1Password agilekeychain
+run as recipes too. The iteration count can come from each hash line, and results can be base64 as
+well as hex. Recipes can read a second salt, a pepper and the user name from the hash line, combine
+values with xor, and and or, encode with utf16be, and apply rev(), pad(), cut() and the other
+transforms to hash outputs, loop variables and derived keys as well. The last statement can compare
+two computed values as well as a value and a constant. Many custom schemes can now use a recipe in
+place of a dedicated mode or the slower dynamic plugin of mode 74000. See
+"docs/hashcat-hash-recipe.md".
+
+The same engine now replaces the pure kernels of 182 fast hash modes, including MD5, NTLM and the
+HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes. It also runs 47 slow modes, such as
+PBKDF2-HMAC-SHA256, macOS, phpass and Drupal7. Each module keeps its hash parser, self-test and
+optimized kernels. This removes 567 kernel files and about 110,000 lines. A new fast hash mode built
+from these families needs only a module that parses the hash line and names its recipe. See
+"Kernel: fast hash type (recipe)" in "docs/hashcat-plugin-development-guide.md".
+
 ##
 ## Migration and Compatibility
 ##
@@ -195,6 +226,90 @@ changes that may require action.
 - Mode 22001 now uses 1240 bytes of salt data per hash, up from 956, matching mode 22000, to hold
   802.11r fields. Large hash lists will need more host and device memory
 
+## Hash mode numbers
+
+- Hash modes that are defined only by a stored hash recipe and have no optimized kernels moved to
+  the range from 40000 to 44000, which is reserved for them. Hash formats and results are unchanged.
+  See "docs/hashcat-hash-recipe.md"
+- The old numbers still work with "-m", and a run shows the number it was given. The "-hh",
+  "--identify", "--example-hashes" and "--benchmark-all" output lists only the new numbers, and the
+  default "--benchmark" list uses them
+- A hash detected without "-m" runs under its new number, which the status screen then shows
+- Tuning rows that name an old number apply to the new one. Scripts that open module or test module
+  files by number need the new number, as in "src/modules/module_40032.c" for mode 12000
+- The moved hash modes, old number to new:
+  Old    New    Name
+  1310   40009  sha224($pass.$salt)
+  1320   40010  sha224($salt.$pass)
+  5200   40011  Password Safe v3
+  5720   40012  Cisco-ISE Hashed Password (SHA256)
+  6050   40013  HMAC-RIPEMD160 (key = $pass)
+  6060   40014  HMAC-RIPEMD160 (key = $salt)
+  6400   40015  AIX {ssha256}
+  6500   40016  AIX {ssha512}
+  6700   40017  AIX {ssha1}
+  7100   40018  macOS v10.8+ (PBKDF2-SHA512)
+  7200   40019  GRUB 2
+  7900   40020  Drupal7
+  9200   40021  Cisco-IOS $8$ (PBKDF2-SHA256)
+  10000  40022  Django (PBKDF2-SHA256)
+  10300  40023  SAP CODVN H (PWDSALTEDHASH) iSSHA-1
+  10900  40024  PBKDF2-HMAC-SHA256
+  10901  40025  RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)
+  11000  40026  PrestaShop
+  11750  40027  HMAC-Streebog-256 (key = $pass), big-endian
+  11760  40028  HMAC-Streebog-256 (key = $salt), big-endian
+  11850  40029  HMAC-Streebog-512 (key = $pass), big-endian
+  11860  40030  HMAC-Streebog-512 (key = $salt), big-endian
+  11900  40031  PBKDF2-HMAC-MD5
+  12000  40032  PBKDF2-HMAC-SHA1
+  12001  40033  Atlassian (PBKDF2-HMAC-SHA1)
+  12100  40034  PBKDF2-HMAC-SHA512
+  12150  40035  Apache Shiro 1 SHA-512
+  12300  40036  Oracle T: Type (Oracle 12+)
+  12800  40037  MS-AzureSync PBKDF2-HMAC-SHA256
+  15100  40038  Juniper/NetBSD sha1crypt
+  18500  40039  sha1(md5(md5($pass)))
+  18800  40040  Blockchain, My Wallet, Second Password (SHA256)
+  19210  40041  QNX 7 /etc/shadow (SHA512)
+  20200  40042  Python passlib pbkdf2-sha512
+  20300  40043  Python passlib pbkdf2-sha256
+  20400  40044  Python passlib pbkdf2-sha1
+  20600  40045  Oracle Transportation Management (SHA256)
+  20720  40046  sha256($salt.sha256($pass))
+  20730  40047  sha256(sha256($pass.$salt))
+  21300  40048  md5($salt.sha1($salt.$pass))
+  21420  40049  sha256($salt.sha256_bin($pass))
+  21600  40050  Web2py pbkdf2-sha512
+  22800  40051  Simpla CMS - md5($salt.$pass.md5($pass))
+  23200  40052  XMPP SCRAM PBKDF2-SHA1
+  24200  40053  MongoDB ServerKey SCRAM-SHA-256
+  26300  40054  FortiGate256 (FortiOS256)
+  28600  40055  PostgreSQL SCRAM-SHA-256
+  29100  40056  Flask Session Cookie ($salt.$salt.$pass)
+  32000  40057  NetIQ SSPR (MD5)
+  32010  40058  NetIQ SSPR (SHA1)
+  32020  40059  NetIQ SSPR (SHA-1 with Salt)
+  32030  40060  NetIQ SSPR (SHA-256 with Salt)
+  32031  40061  Adobe AEM (SSPR, SHA-256 with Salt)
+  32040  40062  NetIQ SSPR (SHA-512 with Salt)
+  32041  40063  Adobe AEM (SSPR, SHA-512 with Salt)
+  32050  40064  NetIQ SSPR (PBKDF2WithHmacSHA1)
+  32060  40065  NetIQ SSPR (PBKDF2WithHmacSHA256)
+  32070  40066  NetIQ SSPR (PBKDF2WithHmacSHA512)
+  32410  40067  sha512(sha512($pass).$salt)
+  32420  40068  sha512(sha512_bin($pass).$salt)
+  32600  40069  CubeCart (whirlpool($salt.$pass.$salt))
+  32900  40070  PBKDF1-SHA1
+  33100  40071  md5($salt.md5($pass).$salt)
+  33300  40072  HMAC-BLAKE2S (key = $pass)
+  33650  40073  HMAC-RIPEMD320 (key = $pass)
+  33660  40074  HMAC-RIPEMD320 (key = $salt)
+  33900  40075  Citrix NetScaler (PBKDF2-HMAC-SHA256)
+  34400  40076  sha224(sha224($pass))
+  34500  40077  sha224(sha1($pass))
+  35000  40078  SAP CODVN H (PWDSALTEDHASH) isSHA512
+
 ## Brain protocol and stored sessions
 
 - Brain clients now default to value 3, enabling range and candidate deduplication. In-kernel
@@ -209,6 +324,9 @@ changes that may require action.
   downgrades cannot undo it
 - Attack identity now includes whether "-S" is active because host and device positions count
   different units. Old coverage records are not loaded. Candidate identity databases are unchanged
+- The computed brain session identity and the attack identity include the hash mode number as it
+  was given. Clients that give a moved hash mode by its old and by its new number therefore do not
+  share them. A hash detected without "-m" counts as the new number
 
 ## Python bridge and plugins
 
@@ -262,6 +380,10 @@ changes that may require action.
   "KERN_BIT_*" constants in place of the 16 removed kernel "OPTS_TYPE" flags: INIT, LOOP, COMP,
   LOOP_PREPARE, LOOP_EXTENDED, HOOK12, HOOK23, INIT2, LOOP2_PREPARE, LOOP2, TM_KERNEL and AUX1 to
   AUX5. There are now 6 auxiliary kernel slots instead of 5
+- Modules have a new "module_hash_recipe()" hook, with which a module runs its pure kernels as a
+  hash recipe instead of kernels of its own. Every module sets it in "module_init()", and
+  "MODULE_DEFAULT" if it has no recipe. See "Kernel: fast hash type (recipe)" and the porting
+  section in the plugin guide
 - Native builds now target the build CPU. Use "MAINTAINER_MODE=1" for release builds or
   "MCPU=<core>" for a chosen target. Mixed native and cross targets are rejected
 - Rust plugins now require Cargo 1.85
@@ -289,9 +411,9 @@ changes that may require action.
 - Added mode 36000: BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)
 - Added mode 36400: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
 - Added mode 36410: KDE KWallet < 4.13 (SHA-1, Blowfish)
-- Added mode 36500: NTLM(NTLM_bin($pass))
+- Added mode 40080: NTLM(NTLM_bin($pass))
 - Added mode 35500: WordPress bcrypt(hmac-sha384($pass))
-- Added mode 35700: phpass(md5($pass))
+- Added mode 40079: phpass(md5($pass))
 - Added mode 35800: Symfony Legacy SHA256
 - Added mode 38000: Mikrotik RouterOS EC-SRP5 (Curve25519)
 - Added mode 37700: Cardano Eternl Wallet (PBKDF2-HMAC-SHA512 + ChaCha20-Poly1305)
@@ -301,8 +423,8 @@ changes that may require action.
 - Added mode 36900: iClass Standard (DES + hash0 + iClass Cipher, dual-MAC)
 - Added mode 36901: iClass Legacy Brute-Force (partial div_key + iClass Cipher, dual-MAC)
 - Added mode 37000: MIFARE Ultralight C 3DES Key Recovery
-- Added mode 37300: SAP CODVN H (PWDSALTEDHASH) iSSHA-256
-- Added mode 37301: SAP CODVN H (PWDSALTEDHASH) iSSHA-384
+- Added mode 40081: SAP CODVN H (PWDSALTEDHASH) iSSHA-256
+- Added mode 40082: SAP CODVN H (PWDSALTEDHASH) iSSHA-384
 - Added mode 37400: RACF DES Passphrase
 - Added mode 37500: RACF KDFAES Passphrase
 - Added mode 37600: SASL DIGEST-MD5
@@ -312,6 +434,25 @@ changes that may require action.
 - Added mode 29493: VeraCrypt BLAKE2s-256 + XTS 1536 bit
 - Added mode 24430: PKCS#12 (.pfx, .p12) (SHA1 + HMAC-SHA1)
 - Added mode 24440: PKCS#12 (.pfx, .p12) (SHA256 + HMAC-SHA256)
+- Added mode 38200: Cisco-IOS $14$ (convoluted Type 9)
+- Added mode 4000: Hash Recipe, a recipe of MD2, MD4, MD5, SHA-0, SHA-1, SHA-2, SHA-3, Keccak,
+  RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL, Tiger, Snefru, MySQL323, the
+  SHA-3 candidates, Skein, PANAMA, HAS-160, EDON-R, MD6, RadioGatun, DES, HMAC, PBKDF2 and AES calls
+  over the password, the salt and further hash line fields, with loops, xor, comparisons and
+  transforms such as upper(), rev() and pad(), given with "--hash-recipe"
+- Added mode 38300: Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + AES-192 key blob)
+- Added mode 38400: Kerberos 5, etype 1/2/3, DB
+- Added mode 38500: Kerberos 5, etype 3, TGS-REP
+- Added mode 38600: Kerberos 5, etype 3, AS-REP
+- Added mode 38700: FreeBSD GELI
+- Added mode 40000: XCA database password
+- Added mode 40001: OSPFv2/RIPv2 MD5 authentication
+- Added mode 40002: Huawei / H3C / HPE Comware $h$6$
+- Added mode 40004: UUID v3 (RFC 4122 name-based, MD5)
+- Added mode 40005: UUID v5 (RFC 4122 name-based, SHA-1)
+- Added mode 40006: MySQL caching_sha2_password challenge-response (fast authentication)
+- Added mode 40007: MODX Evolution (uncrypt)
+- Added mode 40083: Fernet (key = SHA256($pass))
 
 ##
 ## New Features and Options
@@ -328,10 +469,14 @@ changes that may require action.
 - GPG (CAST5 (SHA-1($pass))) accepts nonzero IVs and "s2ktype" 3
 - Mode 74000 adds a dynamic hash plugin. The "--bridge-parameter2" option describes combinations of
   12 digests, HMAC, PBKDF2-HMAC, bcrypt, slicing, UTF-16LE, case changes and hex/base64 encoding
+- Option "--hash-recipe" gives mode 4000 its hash as a recipe in hx expression syntax, such as
+  "md5(md5(salt) . pass)". The recipe is compiled into the kernel, so it runs close to the speed of
+  the matching built-in pure kernel. See "docs/hashcat-hash-recipe.md"
 - Wordlists, hash lists and rules accept zstd files as well as gzip and xz. Hashcat can seek
   directly in multi-frame files created by "pzstd"
-- John's dynamic format covers 56 built-in formats. The "--show", "--left" and "--remove" options
-  keep John's original hash spelling
+- John's dynamic format covers 407 of John's built-in formats and the 58 in its "dynamic.conf".
+  Formats without a hash mode of their own run as hash recipes. The "--show", "--left" and
+  "--remove" options keep John's original hash spelling
 - Use "--hash-copy" to keep the input spelling of cracked hashes in outfiles, potfiles and status
   output
 - Encrypt recovered plaintext with "--encrypt-with-pubkey" and an RSA key of at least 3344 bits. It
@@ -367,7 +512,7 @@ changes that may require action.
 
 ## Runtime control and reporting
 
-- Rewind or advance a running attack with "r", "a", the arrow keys, "<" or ">".
+- Rewind or advance a running attack with "r", "a", the left and right arrow keys, "<" or ">".
   Holding a key moves faster
 - Press "e" to change a running attack's "--runtime" limit
 - Pure-kernel benchmarks use "--benchmark-pure" ("-B"). Optimized-kernel benchmarks still use "-b",
@@ -378,6 +523,10 @@ changes that may require action.
   transfers, loops and comparisons. It includes effective hash rate and machine-readable JSON
 - All caches can now move to shared storage through "--cache-path". Feed caches fall back to memory
   on read-only storage, while kernel-cache writes still require permission
+- Option "--json" emits every structured output surface as JSON, including the benchmark, which had
+  no JSON form before. "--benchmark-json" emits only the benchmark and turns "-b" on
+- Option "--stdin-count" takes the expected number of lines on stdin, so a piped attack shows its
+  progress and an estimated finish time
 
 ## Extraction tools
 
@@ -387,6 +536,8 @@ changes that may require action.
 - Added "tools/routeros2hashcat.py" for mode 38000 RouterOS backups, unpacked directories
   and monolithic config stores
 - Added "tools/pkcs12_to_hashcat.py" for modes 24430 and 24440 ".pfx" and ".p12" stores
+- Added "tools/geli2hashcat.py" for mode 38700 FreeBSD GELI providers, disk images and "geli backup"
+  files
 - The "tools/metamask2hashcat.py" tool now reads vaults from both "persist-root" and
   "persist-KeyringController" browser storage
 - The "tools/bitwarden2hashcat.py" tool now reads mode 23400 key hashes and KDF iterations stored
@@ -398,11 +549,15 @@ changes that may require action.
 
 Results depend on the device, runtime and workload.
 
+- Mode 29200 (Radmin3) runs about 8x faster, 14.0 MH/s against 1.70 MH/s on an RX 7900 XTX
 - Brain sharding cuts commit, lookup and insertion time by 92-99% and resident memory overhead by
   95%
 - Modes 73000 and 74000 handle up to 1k candidates per bridge launch, up from 8. On 28 i7-14700K
   threads, a SHA-256 Python plugin rises from 16 to 611 kH/s and the mode 74000 Rust crate from 16
   to 74 kH/s, and the shipped Python plugin gains 10%
+- Mode 74000 copies only output digests between host and device and lets autotune size launches of
+  up to 16k candidates. With 32 Ryzen 9 7950X threads and an RX 7900 XTX, the dynamic plugin runs
+  md5(md5($p)) 12x faster, and a bcrypt cost 10 launch falls from 29 to 0.4 seconds
 - PKZIP mode 17200 runs 12.8x faster on an RTX 4090 and 87% faster on an RX 7900 XTX
 - DPAPI mode 15910 gains 19% on NVIDIA and 97% on AMD
 - Raw private key modes 30901, 30902, 30905 and 30906 gain 35-45x on an RTX 4090 with "-a 3" and
@@ -432,6 +587,9 @@ Results depend on the device, runtime and workload.
 - Omitting an integrated GPU cuts cold mode 0 startup by 26% at a 1% throughput cost
 - Removing an unused OpenCL helper cuts cold builds by 42% and backend-info startup by 70% under
   ROCm 7.0.1
+- CPU kernels shift a buffer by a byte offset with one loop instead of a switch over every word
+  offset. On the Intel CPU runtime a first run of mode 2600 falls from 12 minutes to 44 seconds and
+  of mode 1410 from 10 to 3 minutes, almost all of it kernel compile, at the same cracking speed
 - Sizing register-spill reserves for resident work items cuts the mode 0 reserve by 99% on a
   GeForce RTX 4090
 - Unified-memory devices reserve only needed host buffers instead of half their pool
@@ -476,7 +634,7 @@ Results depend on the device, runtime and workload.
   with counts of at least 2 reaches up to 2.3x in pure kernels
 - A SHA-1-order shared hex table speeds mode 18500 by less than 1% on an RX 7900 XTX
 - Avoiding width conversion through a union improves mode 6100 under Mesa rusticl
-- Removing unneeded register limits improves compiler allocation for modes 01800, 08300, 10700 and
+- Removing unneeded register limits improves compiler allocation for modes 1800, 8300, 10700 and
   16600
 - The built-in RAR3 decoder uses less device memory than UnRAR
 - Plain wordlist attacks no longer reserve unused mask buffers on the device
@@ -497,6 +655,16 @@ Results depend on the device, runtime and workload.
   Maxwell and newer compute only the needed S-box outputs at each of three stages
 - Unrolled bitsliced DES rounds on NVIDIA GPUs give mode 3000 ~10% more speed with "-a 3" on an
   RTX 4090
+- An early test after DES round 15 speeds mode 14000 with "-a 3" by 17-24% on an RTX 4090, 2-13% on
+  an RX 7900 XTX, 53-78% on an Arc A770 and 2.9-3.8x under Metal, the most with several hashes on
+  one plaintext as in NetNTLMv1
+- Mode 3000 with "-a 3" tests each digest after DES round 15 in its multi-hash kernel, speeding 2
+  hashes, one LM hash, by 10-17% on an RTX 4090, an RX 7900 XTX and an i7-14700K
+- Unrolled DES rounds under Metal and on Intel GPUs speed mode 3000 with "-a 3" by 2.4-2.6x on a
+  Radeon Pro W5700X and 2.4-4.7x on an Arc A770
+- Unrolled DES rounds with several salts and in every attack mode speed mode 1500 by 1.8-4x with
+  "-a 3" against 64 salts on an RTX 4090, an RX 7900 XTX and an Arc A770, and wordlist attacks by up
+  to 6%
 - Optimized mode 12500 cuts its private buffer from 3264 to 264 bytes per work item by storing
   four records and a prefix instead of 64 expanded records
 - Mode 17400 simplifies the first Keccak round and unrolls later rounds in pairs, speeding "-a 3"
@@ -507,6 +675,11 @@ Results depend on the device, runtime and workload.
 - Mode 31100 moves fixed schedule words outside the mask loop and rejects candidates one round
   earlier, speeding "-a 3" with "-O"
 - Modes 31100 and 35100 use an NVIDIA byte permute for the second SM3 P0/P1 rotate
+- Modes 16600, 22500, 22951 and 23003 fold the AES-256 decrypt key schedule into the decrypt rounds
+  instead of building a 60-word array first, for +8% to +36% on a GeForce RTX 4090 and +22% to +45%
+  on a Radeon RX 7900 XTX
+- Reading the Streebog lookup tables from constant memory under HIP speeds the Streebog modes by
+  7-42% on an RX 7900 XTX and 15-58% on a Radeon iGPU, and the VeraCrypt Streebog modes by 16-85%
 
 ##
 ## Improvements
@@ -535,6 +708,15 @@ Results depend on the device, runtime and workload.
   no benefit for host CPU use or cracking speed
 - Removed obsolete "OCL_CODE_CACHE_ENABLE" and "CL_CONFIG_USE_VECTORIZER" settings.
   Debug builds still use "CUDA_CACHE_DISABLE" and "POCL_KERNEL_CACHE"
+- Mask attacks no longer allocate the device and host buffers for host-built candidates, which they
+  never use
+- The 8 krb5 modes that derive a key with PBKDF2-HMAC-SHA1 declare their tmp buffers at the size
+  their kernels write, which lowers device memory per work item: modes 19600, 19700, 19800, 19900,
+  28800, 28900, 32100 and 32200
+- Metal devices that report the Metal4 GPU family and unified memory, Apple Silicon on macOS 26, use
+  a Metal 4 command, resource and compiler path. Other Metal devices keep the Metal 3 path. Compiled
+  pipelines are cached under "cache/kernels" as binary archives, and "-I" reports each device's
+  Metal version
 
 ## Autotune and tuning database
 
@@ -551,6 +733,17 @@ Results depend on the device, runtime and workload.
   compile slowly
 - Fast kernels reserve constant memory only for data the attack reads. Mask attacks regain
   28 KB and combinator attacks 32 KB of the 64 KB budget
+- The pure kernels of 145 fast hash modes (MD4, MD5, SHA-1, SHA-2, RIPEMD-160, BLAKE2 and SM3
+  compositions, the HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes, and Radmin2) now run as
+  hash recipes through the mode 4000 kernels, and their 428 pure kernel files are removed. Optimized
+  kernels and hash formats are unchanged. Some of these modes have new numbers, see Migration
+- The slow kernels of 18 PBKDF2 modes (PBKDF2-HMAC-MD5, -SHA1, -SHA256 and -SHA512 and formats built
+  on them, such as macOS, GRUB 2, Django and Cisco-IOS $8$) now run as hash recipes through the slow
+  kernel of mode 4000, and the 4 pure kernel files they shared are removed. Hash formats are
+  unchanged. Some of these modes have new numbers, see Migration
+- The pure kernels of 37 more fast hash modes and 29 slow ones, such as Whirlpool, Streebog, SHA-3,
+  phpass, Drupal7 and the SCRAM modes, now run as hash recipes and their 135 pure kernel files are
+  removed. Optimized kernels and hash formats are unchanged
 
 ## Attack modes and candidate input
 
@@ -616,6 +809,8 @@ Results depend on the device, runtime and workload.
   Kerberos 5 etype 23 AS-REP. MyBB replaces vBulletin
 - Redundant "md5($pass.$salt)" benchmark modes were removed. The differing
   "md5($salt.$pass)" forms remain
+- The benchmark header shows the cost parameters of Argon2, scrypt, yescrypt and bcrypt modes, such
+  as "m=65536, t=3, p=1", instead of an iteration count
 
 ## Plugins and bridges
 
@@ -631,6 +826,9 @@ Results depend on the device, runtime and workload.
 - The "hc_fopen_mem()" function reads an existing memory buffer through the normal file interface
 - Rust bridges share "hashcat-sys" and build crates under "Rust/bridges" into
   "bridges/subs". CI builds and tests both plugin families
+- Modules can set "module_benchmark_hint" to show their own cost parameters in the benchmark header
+- Bridges can return a fixed "kernel_accel" and "kernel_loops" for a unit through
+  "get_unit_tuning", which skips autotune for that unit
 
 ## Modules
 
@@ -638,7 +836,8 @@ Results depend on the device, runtime and workload.
   option reports this, and other plaintext is displayed as "$HEX[...]"
 - Mode 34300 is now called "KeePass Argon2 (KDBX v4)", distinguishing it from
   mode 34301, the KDBX v4 AESKDF mode
-- Usage notices now cover 45 modes. Mode 1000 can display an additional advice notice
+- Usage notices now cover 124 modes and name the tool that extracts the hash. Mode 1000 can display
+  an additional advice notice
 - Modes 22000 and 22001 now accept hcxpcapngtool's 802.11r FT record types 03 and 04
   alongside PMKID and EAPOL types 01 and 02. Both crack under the existing modes
 
@@ -681,6 +880,22 @@ Results depend on the device, runtime and workload.
   pygost. DiskCryptor XTS now uses pycryptodome instead of pycryptoplus
 - Added "tools/README.md", "tools/install_dependencies.sh" and
   "tools/requirements.txt" for test setup. Failed installs name each package
+- The 14000 oracle keys DES with the first 8 bytes of the password, and the 33501
+  hybrid run skips a slot whose mask would be empty, so both pass the pure/opt suite
+- The "--bridge" option cracks each selected mode's own test oracle through the Python
+  bridge (mode 73000) with no mode kernel, so the parser and candidate handling are checked
+  against the reference implementation
+- The weekly CI run now tests the pure kernels, the bridge pass, and a container pass that
+  cracks the TrueCrypt, VeraCrypt, CryptoLoop and LUKS container files, beside the optimized
+  kernels, as parallel jobs
+- Added VeraCrypt BLAKE2s-256 test containers so modes 29491, 29492 and 29493 are cracked by the
+  suite instead of being silently skipped
+- Multi-hash test runs now give two pairs of hashes a shared salt where the mode allows it, and
+  "tools/test.py -d" selects devices for every test path
+- The test suite needs Python 3.10 or newer and calls libc crypt directly, without the "crypt-r"
+  package
+- A failing test run keeps its hash file and dictionaries in the log folder, so it can be
+  reproduced from the uploaded log
 
 ## Documentation and licensing
 
@@ -695,6 +910,8 @@ Results depend on the device, runtime and workload.
   candidates matching a hash in the same kernel call, with separate fast- and slow-hash cases
 - Added "docs/plugin-development-workshop/" with a syllabus, starter templates,
   a finished plugin and exercises for building a hash mode and pure kernel
+- The example-hashes table links the 145 hash modes whose pure kernels run as hash recipes to
+  "docs/hashcat-hash-recipe.md"
 
 ##
 ## Bug Fixes
@@ -702,14 +919,14 @@ Results depend on the device, runtime and workload.
 
 ## Memory safety: hash parsing and encoding
 
-- Fixed short or malformed hashes causing out-of-bounds reads in modules 07100, 07900, 08500,
-  08501, 11600, 19600, 19700, 28800, 28900, 29100, 32100 and 32200
+- Fixed short or malformed hashes causing out-of-bounds reads in modules 7100, 7900, 8500,
+  8501, 11600, 19600, 19700, 28800, 28900, 29100, 32100 and 32200
 - Fixed a hash that specifies zero iterations underflowing the salt iteration count, which could
   hang the device
-- Fixed modules 00400, 03200, 06400, 06500, 06700, 07900, 11600, 13000, 25600, 25800, 28400, 30600,
+- Fixed modules 400, 3200, 6400, 6500, 6700, 7900, 11600, 13000, 25600, 25800, 28400, 30600,
   30601, 33800, 35500 and 35700 not rejecting an iteration-count shift of 32 or more, which exceeded
   the type's width and gave the wrong iteration count
-- Fixed modules 08900, 15700, 27700, 28200 and 29800 underflowing "salt_repeats"
+- Fixed modules 8900, 15700, 27700, 28200 and 29800 underflowing "salt_repeats"
 - Fixed scrypt kernels hanging when a hash specifies zero parallelism
 - Fixed a salt buffer sized for the longest "generic_salt_encode()" output leaving no room for the
   terminator, which was then written just past it. This was a one byte stack buffer overflow in 39
@@ -717,8 +934,8 @@ Results depend on the device, runtime and workload.
 - Fixed pure kernels overflowing "salt_buf" when decoding base64 salts
 - Fixed encoders not capping reported hash lengths to their output buffers. Potfile and status paths
   that bypass "hash_encode()" now also enforce bounds
-- Fixed modules 00111, 01411, 01711, 05300, 05400, 11400, 13100, 13600 and 18200 writing a "0x80"
-  padding byte beyond a full buffer. The pure kernels of modes 00111, 01411 and 01711 also accept
+- Fixed modules 111, 1411, 1711, 5300, 5400, 11400, 13100, 13600 and 18200 writing a "0x80"
+  padding byte beyond a full buffer. The pure kernels of modes 111, 1411 and 1711 also accept
   their advertised 256-byte salts
 - Fixed encoding at maximum data length overflowing buffers under "--show" or "--left" in modules
   13100, 16900, 18200, 19600, 19700, 32100 and 32200
@@ -729,7 +946,7 @@ Results depend on the device, runtime and workload.
 - Fixed decode errors in damaged gzip, xz or zip files becoming byte counts that overrun hash-list,
   brain or charset buffers
 - Fixed line reading in "fgetl()" writing beyond a buffer filled exactly by one line
-- Fixed hccapx modules 02500, 02501, 22000 and 22001 sizing decompressed data incorrectly, not
+- Fixed hccapx modules 2500, 2501, 22000 and 22001 sizing decompressed data incorrectly, not
   validating ESSID and EAPOL lengths, and accepting short potfile lines
 - Fixed modules 16800 and 16801 not checking potfile line length before reading a 64-character PMKID
 - Fixed KeePass modules 13400, 29700 and 34300 accepting invalid content lengths and leaving encoded
@@ -744,7 +961,7 @@ Results depend on the device, runtime and workload.
   their destination fields
 - Fixed LM hash-file growth writing past the hash list when one line adds 2 entries
 - Fixed split-hash display not bounding both plaintext halves copied from the potfile under "--show"
-- Fixed modules 08900, 10200, 21500, 21501, 28200, 70100 and 70200 accepting oversized unpadded
+- Fixed modules 8900, 10200, 21500, 21501, 28200, 70100 and 70200 accepting oversized unpadded
   base64 fields
 - Fixed SAP CODVN F/G modes 7800 and 7801 not bounding the combined password and salt buffer
 - Fixed module 10000 accepting salts beyond its buffer and reserving no space for the encoded
@@ -766,6 +983,8 @@ Results depend on the device, runtime and workload.
 - Fixed odd-length hex tokens being accepted, which "input_tokenizer()" now rejects centrally
 - Fixed modes 34000, 34100 and 34300 not reserving enough self-test buffer space for hashes with an
   Argon2 memory cost below the built-in test vector
+- Fixed module 32500 printing bytes from uninitialized stack memory into every hash it encoded, so
+  cracked hashes in the outfile and potfile could not be loaded or matched again
 
 ## Memory safety: candidates, rules and masks
 
@@ -784,6 +1003,8 @@ Results depend on the device, runtime and workload.
   overflow their 256-byte buffers
 - Fixed random rule generation selecting past a rule group in 17 paths, and empty
   "--generate-rules-func-sel" values dividing by zero instead of returning an error
+- Fixed modes 26900 and 27300 ending the session with an illegal memory access when a rule shortened
+  a candidate to zero length, which their loop kernels divided by
 
 ## Memory safety: services and interface
 
@@ -800,9 +1021,15 @@ Results depend on the device, runtime and workload.
 - Fixed early failures in "outer_loop()" and "--identify" not releasing their allocations
 - Fixed running from the install directory leaking "profile_dir", "session_dir" or "shared_dir"
 - Fixed libhashcat sessions not freeing argument vectors read from restore files
+- Fixed the JSON output writing one byte past its buffer for a string made only of characters that
+  need escaping, which a session name or hash file name can be
 
 ## Hash modes and kernels
 
+- Fixed modes 23001, 23002 and 23003 (SecureZIP) recovering only one of several hashes that share
+  an IV
+- Fixed modes 34200, 34201 and 34211 missing cracks in -a 1 and -a 7 with pure kernels when a
+  candidate followed a longer one
 - Fixed modes 22000 and 22001 not accepting EAPOL frames longer than 256 bytes, including M2 frames
   with vendor RSN extensions
 - Fixed modes 22000 and 22001 failing to parse older PMKID lines separated with ":" instead of "*"
@@ -811,7 +1038,7 @@ Results depend on the device, runtime and workload.
   principal salts and kept hash lines that carry that field from loading
 - Fixed the 41 UTF-8-to-UTF-16 kernel modes not recognizing valid 3 and 4 byte UTF-8 characters,
   including the euro sign and Japanese kana
-- Fixed modules 00130, 00140, 00170, 01430, 01440, 01470, 01730, 01740, 01770, 10830, 10840, 10870,
+- Fixed modules 130, 140, 170, 1430, 1440, 1470, 1730, 1740, 1770, 10830, 10840, 10870,
   13500, 13800, 29000 and 29200 widening non-ASCII UTF-8 with "-a 3" instead of decoding it, which
   kept valid passwords from cracking
 - The non-ASCII "-a 3" fix requires "--backend-vector-width 1" on CPU devices
@@ -821,7 +1048,7 @@ Results depend on the device, runtime and workload.
   6241-6243, 13721-13723, 13741-13743, 13761-13763 and 13781-13783
 - Fixed VeraCrypt modes 13723, 13733, 13751, 13753, 13761 and 13763 failing self-tests and hanging
   after a crack with "--self-test-disable"
-- Fixed mode 01500 not cracking "-a 3" lists with several hashes sharing one salt
+- Fixed mode 1500 not cracking "-a 3" lists with several hashes sharing one salt
 - Fixed PKZIP modes 17200, 17220 and 17225 not decoding stored DEFLATE blocks on AMD HIP and
   OpenCL. The fix also covers mode 17230 under attack-modes 1, 3, 6, 7 and 12
 - Fixed mode 10500 rejecting PDF hashes with an empty ID
@@ -836,23 +1063,23 @@ Results depend on the device, runtime and workload.
   kept a shorter ID from cracking during password localization
 - Fixed 8 scrypt modules reporting a misleading self-test or configuration error instead of
   rejecting hashes whose large "r" and "p" values require too much memory
-- Fixed optimized modes 03710, 04010 and 04110 accepting salts beyond their kernel limits
+- Fixed optimized modes 3710, 4010 and 4110 accepting salts beyond their kernel limits
 - Fixed mode 35100 rejecting passwords longer than 15 characters, which its new pure kernel now
   accepts
 - Fixed association workgroups not using each hash's salt, keyboard map and page table, and not
-  passing the correct salt to host hooks in modules 01100, 05300, 05400, 05600, 06211-06233, 07300,
-  08000, 11600, 13711-13773, 13800, 17200-17230, 22100 and 23800
+  passing the correct salt to host hooks in modules 1100, 5300, 5400, 5600, 6211-6233, 7300,
+  8000, 11600, 13711-13773, 13800, 17200-17230, 22100 and 23800
 - Fixed PKZIP modes 17220 and 17225 exceeding the AMD private-memory aperture, which could prevent
   HIP launches or severely reduce throughput
 - Fixed mode 31100 hanging at vector width 16 in its optimized "-a 3" kernel on AMD, and returning
   into its own SM3 schedule function
 - Fixed secp256k1 "inv_mod()" looping forever for zero input on CPU devices
-- Fixed pure kernels in modes 01500, 03000, 08500, 14000, 14100 and 16000 assuming CPU devices have
+- Fixed pure kernels in modes 1500, 3000, 8500, 14000, 14100 and 16000 assuming CPU devices have
   dedicated shared memory
 - Fixed modes 8500, 8501, 12400 and 14100 failing to build when OpenCL reports local memory as
   global memory
 - Fixed mode 17220 failing to build with "-a 3" after the CRC32 include rename
-- Fixed modes 03730, 18100, 19300, 19500, 21310, 21900, 29000, 30700, 31700, 32300 and 33000 not
+- Fixed modes 3730, 18100, 19300, 19500, 21310, 21900, 29000, 30700, 31700, 32300 and 33000 not
   using fixed separators for internal hash fields. Module 30700 now uses the colon its parser
   expects, leaving "--separator" for the plaintext boundary
 - Fixed Mega.nz password-protected links having the wrong hash category
@@ -876,10 +1103,50 @@ Results depend on the device, runtime and workload.
 - Fixed mode 31900 rejecting MetaMask Mobile vaults with 44-character base64 salts, which encode 32
   bytes instead of the previously assumed 16
 - Fixed mode 22001 not reading its own potfile entries or recognizing previously cracked hashes
+- Fixed modes 17200, 17220, 17225 and 21800 refusing to run on Apple Metal. The PKZIP decoder was
+  miniz's coroutine form, which resumed at a case label inside the loop it had stopped in, and no
+  Metal compiler would build that
+- Fixed modes 17200, 17220 and 17225 aborting on Apple OpenCL over an AMD GPU, a device no guard
+  covered, so the run died with no output instead of declining
+- Fixed modes 7700 and 7701 never cracking under a rule that changes the candidate length. The two
+  attack mode 0 kernels handed the walldorf transform the length the word had before the rule
+  engine ran, so the digest covered the wrong number of bytes
+- Fixed modes 7800, 7801, 11700, 11800 and 28000 never cracking under a rule that changes the
+  candidate length, in the optimized kernels. The attack mode 0 kernel used the length the word had
+  before the rule ran, the same fault fixed for modes 7700 and 7701
+- Fixed modes 34000, 34100 and 34300 rejecting a hash list in which 2 hashes share a salt string but
+  differ only in the Argon2 memory cost or parallelism
+- Fixed pure mask attacks on 22 UTF-16 modes, such as NTLM and DCC, missing passwords with non-ASCII
+  characters on devices running at a vector width above 1, which includes most CPUs
+- Fixed mode 14500 reading the key size of every hash after the first from the wrong place, so a
+  list of several 128 or 192 bit hashes could miss all but the first
+- Fixed mode 8300 never cracking a domain written with uppercase letters, which RFC 4034 hashes in
+  lowercase, and accepting owner names, salts and iteration counts outside what the RFCs and its
+  kernels allow
+- Fixed the SNMPv3 modules rejecting engine IDs of 18 to 32 bytes, which RFC 3411 allows, and
+  accepting the all zero and all 0xff IDs it forbids
+- Fixed the optimized mask attack of mode 8000 never returning on AMD GPUs at a vector width of 4
+  or 8
+- Fixed modes 22000 and 22001 never cracking PMKIDs from AKM 6 (PSK-SHA256) networks, which
+  hcxpcapngtool marks with message pair 03
+- Fixed nonce error correction never correcting a key version 3 handshake in modes 2500, 2501, 22000
+  and 22001
+- Fixed the pure mask attack of modes 4410 and 4420 failing its self-test or not building on CPU
+  devices, which hashed the wrong salt bytes at vector widths above 1
+- Fixed mode 32500 hashing only 1 in 4 candidates on CPU devices at vector width 4
+- Changed mode 29700 to take its keyfile hash as 64 hex characters that the kernel decodes, so every
+  attack mode can supply it. Older potfile entries still count as cracked and show as $HEX[...]
+- Fixed 13 hash modes missing a hash when two hashes in the list share a salt: 17010, 17020, 17030,
+  19500, 22911, 22921, 22931, 22941, 22951, 23200, 26000, 29000 and 74000
+- Fixed mode 200 never cracking passwords that contain a space or a tab. MySQL323 skips both
+  characters when it hashes a password, but the kernels hashed them like any other byte
+- Fixed mode 6900 never cracking the empty password
 
 ## Backends: OpenCL, tuning and memory
 
 - Fixed Windows HIP comparing runtime versions on the wrong scale
+- Fixed "-b" lowering the free memory estimate of a device again for every hash mode with its own
+  tuning rows, so later hash modes could be refused for memory
 - Fixed OpenCL 1.2 devices needing obsolete atomic and byte-store extension strings, and Beignet
   and Mesa version strings triggering an old-driver rejection
 - Fixed OpenCL C standard selection and too-old diagnostics using the platform version instead of
@@ -914,6 +1181,11 @@ Results depend on the device, runtime and workload.
 - Fixed explicit device selection under "--stdout" not keeping the requested device when an
   OpenCL CPU is also present
 - Fixed device listing with "-I" ignoring the type filter set by "-D"
+- Fixed autotune running some kernels over an empty password buffer when it had nothing to tune,
+  which kept mode 10700 with -O in autotune indefinitely and crashed modes 26900 and 27300 under an
+  association attack on a single salt
+- Fixed HIP kernels failing to build when the path of the hashcat directory holds the word "linux"
+  or "unix", which a GNU C++ dialect predefines as macros
 
 ## Backends: Metal and resource lifecycle
 
@@ -931,6 +1203,11 @@ Results depend on the device, runtime and workload.
   selecting each one
 - Fixed backend sessions not closing after startup failures outside benchmarks
 - Fixed CUDA context creation and cleanup not using the correct threads and device contexts
+- Fixed Apple's drivers for Intel GPUs on macOS losing every candidate at an odd work item position
+  in the "-a 0" pure kernels, and cracking the optimized "-a 3" kernels only some of the time
+  (issue 2507)
+- Fixed the Metal backend never releasing the command buffer and encoder of each kernel launch and
+  copy, which grew memory for as long as a run lasted
 
 ## Backends: bridges and hardware monitoring
 
@@ -966,6 +1243,13 @@ Results depend on the device, runtime and workload.
 - Fixed Intel xe GPU temperature monitoring not reading "temp2_input" when needed
 - Fixed one throttling GPU producing unstable warnings across its virtual devices
 - Fixed failed Apple power readings showing 0 watts instead of no value
+- Fixed the macOS GPU utilization sensor reporting a failed read as 0 percent. Its return type is
+  int and its caller tests for -1, but it returned true or false, so a registry it could not read
+  came back as a valid reading and the sensor stayed enabled to repeat it
+- Fixed the macOS GPU power sensor printing a wattage it had not measured. The first sample divided
+  the energy counter by the machine's uptime, giving an average since boot, a counter that reset or
+  read as zero wrapped the unsigned subtraction into an enormous figure, and a GPU with no energy
+  counter showed a flat 0 mW
 
 ## Attack modes and candidates
 
@@ -995,6 +1279,9 @@ Results depend on the device, runtime and workload.
   file as a wordlist
 - Fixed candidate output under "--stdout" not preserving order. It now uses one device, while
   cracking runs still use all selected devices
+- Fixed attack mode 9 reading past the end of the salt or esalt array in modes 6231, 6232, 6233,
+  8000, 22100 and 33400, which could make the run fail at autotune or self-test
+- Fixed the 51 VeraCrypt modes not building their kernels under attack mode 9
 
 ## Hash lists, potfile and outfile
 
@@ -1014,6 +1301,12 @@ Results depend on the device, runtime and workload.
 - Fixed hash-list format detection not needing more than half of the scanned lines to match before
   interpreting a file as pwdump, passwd or shadow
 - Fixed hash-list format detection picking a format other than the one matching the most lines
+- Fixed "--left" output of modes 9710, 9810, 10410 and 29700 ending each hash with a separator,
+  which hashcat could not load again. These modes also ignored "--outfile-format"
+- Fixed module 26900 dropping trailing zero bytes of the engine ID from every hash it printed, so
+  cracked hashes in the outfile and potfile did not match the hash that was loaded
+- Fixed loading a large potfile taking hours for modes with a large esalt or hook salt, such as
+  BitLocker, 7-Zip, KeePass and WinZip, which cleared it for every line of the potfile
 
 ## Brain
 
@@ -1056,6 +1349,15 @@ Results depend on the device, runtime and workload.
 - Fixed idle devices showing stale speed, ETA or candidates instead of 0 H/s and "[Idle]"
 - Fixed status and hash-list progress rounding to 100.00% before completion or 0.00% after work has
   started
+- Fixed "--status-json" writing invalid JSON for bridged hash modes, because their device entry was
+  never closed
+- Fixed the dictionary cache summary reporting its read speed 2.4 percent too high
+- Fixed hashcat exiting with 0 when autotune failed on every device, where it now exits with -10,
+  and a benchmark losing that device for every later hash-mode
+- Fixed the machine-readable benchmark reporting speed in place of execution time for bridged modes
+- Fixed "-I" and "-II" with "--machine-readable" emitting invalid JSON when a path contained a
+  double quote or a backslash. "--outfile-json" lines now use the same spaced style,
+  { "hash_hex": ... }, which parsers do not notice but byte-exact matching does
 
 ## Windows
 
@@ -1094,6 +1396,10 @@ Results depend on the device, runtime and workload.
   root rather than the invoking user when it reruns itself under "sudo"
 - Fixed the "qsort_r()" conflict and a "cpuset" warning in NetBSD builds
 - Fixed an install with a different "PREFIX" not rebuilding paths tied to the build prefix
+- Fixed cross compiling for Windows on older Ubuntu LTS releases, whose mingw headers default to a
+  Windows version older than Vista. Both Windows builds now target Windows 7
+- Fixed the build on 32-bit x86 without SSE2, such as i586, in the CPU feature detection and in
+  the Argon2 reference bridge
 
 ## Tools and tests
 

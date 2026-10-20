@@ -157,6 +157,16 @@ Paste the tail of the run, down to and including the line that reports how many 
 
 If a mode you touched cannot be tested on your hardware, say so. Leaving the output out without saying why is what a reviewer will ask about first.
 
+## Leave docs/changes.txt to us
+
+Do not edit `docs/changes.txt`. Most pull requests would add their entry at the end of the same section, so two of them that are open at the same time conflict as soon as one is merged. The other one then needs a rebase for nothing but that line. We write the changelog entry ourselves when we merge.
+
+You can suggest one. Put it on a line of its own that starts with `Changelog:`, either in the pull request description or as the last line of a commit message:
+
+    Changelog: Fixed mode 17010 missing the second of two keys that share an S2K salt
+
+One line per entry. Write it the way the entries in `docs/changes.txt` read: one sentence about what a user notices, plain ASCII, and for a fix a sentence that starts with "Fixed". We read these lines when we merge, but we may reword an entry, combine it with others, file it under a different section, or leave it out.
+
 ## A new hash mode should come with a test module
 
 A mode is only covered by the test suites once a test module exists at `tools/test_modules/mXXXXX.py`. That is what lets them generate fresh hashes and check that hashcat cracks them, instead of the mode resting on one self-test vector forever. See [tools/test_modules/README.md](tools/test_modules/README.md) for the functions it has to provide, and the [plugin development guide](docs/hashcat-plugin-development-guide.md) for how it fits into the rest of a plugin.

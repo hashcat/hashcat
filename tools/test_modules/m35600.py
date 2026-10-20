@@ -17,6 +17,13 @@ from lib import shacrypt
 
 DEFAULT_ROUNDS = 5000
 
+# The round count the generated test vectors use. It is kept well below the format default because
+# the KDF runs in pure Python here and is the whole cost of the test: a bridged run, which runs it
+# once per candidate, is minutes at 5000. The count travels in the hash's "rounds=" field, so the
+# kernel agrees and the crack is unaffected; the test exercises the format and the kernel, not a real
+# work factor. DEFAULT_ROUNDS stays the format marker, the count a hash with no field is read as.
+TEST_ROUNDS = 1000
+
 C_DIGEST_OFFSETS = (
   (0, 3), (5, 1), (5, 3), (1, 2), (5, 1), (5, 3), (1, 3),
   (4, 1), (5, 3), (1, 3), (5, 0), (5, 3), (1, 3), (5, 1),
@@ -103,7 +110,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  rounds = DEFAULT_ROUNDS if iterations is None else int(iterations)
+  rounds = TEST_ROUNDS if iterations is None else int(iterations)
 
   digest = gost12_512_crypt(word, salt.encode(), rounds)
 

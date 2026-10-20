@@ -10,6 +10,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  Options Short / Long           | Type | Description                                          | Example
 ================================+======+======================================================+=======================
  -m, --hash-type                | Num  | Hash-type, references below (otherwise autodetect)   | -m 1000
+     --hash-recipe              | Str  | Hash recipe for hash-mode 4000                       | --hash-recipe 'md5(md5(salt) . pass)'
  -a, --attack-mode              | Num  | Attack-mode, see references below                    | -a 3
  -V, --version                  |      | Print version                                        |
  -h, --help                     |      | Print help. Use -hh to show all supported hash-modes | -h or -hh
@@ -23,7 +24,9 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --task-time-breakdown     |      | Show where the run's wall clock went, by stage       |
      --status                   |      | Enable automatic update of the status screen         |
      --status-json              |      | Enable JSON format for status output                 |
+     --json                     |      | Enable JSON format for all output                    |
      --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1
+     --stdin-count              | Num  | Expected number of lines on stdin, for the ETA       | --stdin-count=1000000
      --stdin-timeout-abort      | Num  | Abort if there is no input from stdin for X seconds  | --stdin-timeout-abort=300
      --machine-readable         |      | Display the status view in a machine-readable format |
      --keep-guessing            |      | Keep guessing the hash after it has been cracked     |
@@ -75,6 +78,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -b, --benchmark                |      | Run benchmark of selected hash-modes                 |
  -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |
      --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |
+     --benchmark-json           |      | Enable JSON format for benchmark output              |
      --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100
      --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000
      --speed-only               |      | Return expected speed of the attack, then quit       |

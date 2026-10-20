@@ -49,6 +49,21 @@ def _rand(n=1.0):
   return (_STATE / 2147483648) * n
 
 
+def rand_state():
+  # Where _rand () stands, so that set_rand_state () can draw the same values a second time.
+
+  return random.getstate() if _STATE is None else _STATE
+
+
+def set_rand_state(state):
+  global _STATE
+
+  if _STATE is None:
+    random.setstate(state)
+  else:
+    _STATE = state
+
+
 def _pick(chars, count):
   return "".join(chars[int(_rand(len(chars)))] for _ in range(count))
 

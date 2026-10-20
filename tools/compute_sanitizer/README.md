@@ -92,6 +92,7 @@ tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|syncc
   plus no `--error-exitcode` means the sanitizer's own process exit code
   reflects nothing about what it found, so hashcat's real `$?` is what gets
   captured, and the sanitizer verdict comes purely from parsing the log).
+- An information query (`-I`, `-II`, `--backend-info`, `-H`, `-HH`, `--hash-info`, `--example-hashes`) runs no kernel, so it goes straight to hashcat, still CUDA-only, without the sanitizer, the build-sanity check or a results directory.
 - Every run gets its own timestamped
   `tools/compute_sanitizer/results/<timestamp>-<test-name>/` directory
   (never overwritten) with `command.txt`, `environment.txt`,

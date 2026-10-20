@@ -63,7 +63,7 @@ typedef struct pcfg_hash_ctx
 
 } pcfg_hash_ctx_t;
 
-DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const salt_t *salt_bufs, const u32 salt_pos, GLOBAL_AS const devise_hash_t *esalt_bufs, MAYBE_UNUSED GLOBAL_AS const digest_t *digests_buf, const u32 digest_pos)
+DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED GLOBAL_AS const salt_t *salt_bufs, MAYBE_UNUSED const u32 salt_pos, GLOBAL_AS const devise_hash_t *esalt_bufs, MAYBE_UNUSED GLOBAL_AS const digest_t *digests_buf, const u32 digest_pos)
 {
   hc->salt_len = esalt_bufs[digest_pos].salt_len;
 
@@ -92,12 +92,12 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const sa
 
   for (u32 i = 0, idx = 0; i < hc->salt_len; i += 4, idx += 1)
   {
-    hc->s[idx] = hc_swap32_S (esalt_bufs[salt_pos].salt_buf[idx]);
+    hc->s[idx] = hc_swap32_S (esalt_bufs[digest_pos].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < hc->site_key_len; i += 4, idx += 1)
   {
-    hc->k[idx] = hc_swap32_S (esalt_bufs[salt_pos].site_key_buf[idx]);
+    hc->k[idx] = hc_swap32_S (esalt_bufs[digest_pos].site_key_buf[idx]);
   }
 
   sha1_init (&hc->ctx0);

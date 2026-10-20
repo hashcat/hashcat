@@ -414,7 +414,7 @@ KERNEL_FQ KERNEL_FA void m31800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t,
 
   u32 pt[8] = { 0 };
 
-  AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES_GCM_decrypt (key, key_len, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   const int correct = is_valid_printable_32 (pt[0])
                     + is_valid_printable_32 (pt[1])

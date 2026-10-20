@@ -5,18 +5,21 @@ hashcat is a highly optimized password recovery platform for GPUs, CPUs, and lar
 ### Features ###
 
 * World's fastest password cracker
-* World's first and only in-kernel rule engine
+* World's first and only in-kernel rule engine, usable in every attack mode
 * Free and open source, under the MIT license
-* Multi-OS: Linux, Windows and macOS
+* Multi-OS: Linux, Windows and macOS, and builds from source on FreeBSD, OpenBSD, NetBSD and DragonflyBSD
 * Multi-backend: CUDA, HIP, Metal and OpenCL
 * Multi-device: several devices, and mixed device types, in one system
 * Multi-hash: cracks large numbers of hashes at once
-* Over 590 hash modes, each written with performance in mind
+* Over 630 hash modes, each written with performance in mind
+* Hash recipes: write a hash as an expression, such as `md5(md5(salt) . pass)`, and crack it at close to the speed of a built-in mode
 * 10 attack modes: wordlist, combination, brute-force, PCFG, table, two hybrids, a mask that says where the word goes, generic plugin feeds and association
 * Assimilation bridge: add a hash mode in C, Python or Rust, without writing a kernel
 * Brain: skips candidates an earlier session already tried
 * Distributed cracking networks, using an overlay
 * Reads candidates from a wordlist, from stdin, or from another program
+* Reads wordlists compressed with gzip, xz or zstd
+* Seekable wordlists: each device starts reading at its own range instead of skipping every earlier line
 * Markov chain keyspace ordering, so the likely candidates come first
 * Automatic performance tuning per device
 * Interactive pause and resume
@@ -35,7 +38,7 @@ hashcat is a highly optimized password recovery platform for GPUs, CPUs, and lar
 
 Download the [latest release](https://hashcat.net/hashcat/) and unpack it where you want it. Use `7z x` when unpacking from the command line, so the full file paths stay intact.
 
-Your platform may also provide [packages](docs/packages.md).
+Your platform may also provide [packages](docs/packages.md). The drivers and runtimes hashcat needs are listed in [docs/hashcat-requirements.md](docs/hashcat-requirements.md).
 
 ### Building ###
 
@@ -45,9 +48,9 @@ See [BUILD.md](BUILD.md) for how.
 
 Tests:
 
-Build | BSD | Rust
------ | --- | ----
-[![Build](https://github.com/hashcat/hashcat/actions/workflows/build.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/build.yml) | [![BSD](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml) | [![Rust tests](https://github.com/hashcat/hashcat/actions/workflows/rust.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/rust.yml)
+Build | BSD | Rust | Test | Fuzz
+----- | --- | ---- | ---- | ----
+[![Build](https://github.com/hashcat/hashcat/actions/workflows/build.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/build.yml) | [![BSD](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml) | [![Rust tests](https://github.com/hashcat/hashcat/actions/workflows/rust.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/rust.yml) | [![test](https://github.com/hashcat/hashcat/actions/workflows/test.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/test.yml) | [![fuzz](https://github.com/hashcat/hashcat/actions/workflows/fuzz.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/fuzz.yml)
 
 ### Usage and help ###
 
@@ -59,12 +62,13 @@ The [wiki](https://hashcat.net/wiki/) and the [FAQ](https://hashcat.net/wiki/dok
 
 The [docs](docs/) directory covers each feature. The ones people ask about most:
 
+* [Hash recipes](docs/hashcat-hash-recipe.md), for cracking a custom hash scheme without writing a hash mode
 * [Plugin development guide](docs/hashcat-plugin-development-guide.md), for adding a hash mode
 * [Assimilation bridge](docs/hashcat-assimilation-bridge.md), and its [Python](docs/hashcat-python-plugin-quickstart.md) and [Rust](docs/hashcat-rust-plugin-quickstart.md) quickstarts
-* [Generic attack mode](docs/hashcat-generic-attack-mode.md) and [PCFG](docs/hashcat-pcfg.md)
+* [Generic attack mode](docs/hashcat-generic-attack-mode.md), [PCFG](docs/hashcat-pcfg.md), [table](docs/hashcat-table.md) and [association](docs/hashcat-association.md) attacks
 * [Brain](docs/hashcat-brain.md), [slow candidates](docs/slow-candidates-mode.md), [encrypted plains](docs/hashcat-encrypted-plains.md)
 * [Keyboard layout mapping](docs/keyboard-layout-mapping.md)
-* [Compression libraries](docs/hashcat-compression-libraries.md), for reading gzip, xz and zstd files
+* [Compression libraries](docs/hashcat-compression-libraries.md), for reading gzip, xz and zstd wordlists
 * [Release notes for v7.1.0](docs/releases_notes_v7.1.0.md), and the full [changelog](docs/changes.txt)
 
 ### Contributing ###

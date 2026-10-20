@@ -22,7 +22,7 @@ hashcat.dll
 cache/**
 
 # the layout before everything rebuildable moved under cache/, left here so an older checkout
-# does not report them as untracked. Removable once nobody is upgrading across that change.
+# does not report them as untracked. Removable once no one is upgrading across that change.
 kernels/**
 seekdbs/**
 pcfgdbs/**

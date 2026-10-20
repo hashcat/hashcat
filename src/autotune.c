@@ -28,10 +28,10 @@
 #define BRIDGE_TARGET_MSEC_SCALE 4
 
 // How many of a wide unit's own waves a launch should hold, and how far past the time budget the
-// floor may push to get them. See the measured curve where these are used.
+// floor may push to get them. See autotune_wide_accel, where they are used.
 
-#define BRIDGE_WAVES_MIN        32
-#define BRIDGE_WAVES_MSEC_SCALE 16
+#define BRIDGE_WAVES_MIN        8
+#define BRIDGE_WAVES_MSEC_SCALE 4
 
 int find_tuning_function (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_param_t *device_param)
 {
@@ -179,6 +179,125 @@ static double try_run_times (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   return exec_msec_best;
 }
 
+// Does one bridge unit have width inside it?
+//
+// A wide unit computes in waves of one candidate per lane and pays a start and finish cost on every
+// call. A unit that is one CPU thread reports a multiple of 1 and pays almost nothing to be called
+// more often. The two want opposite things from kernel_loops, so they are told apart here rather than
+// treated alike as "a bridge". Handing the CPU bridges the whole iteration space measured 4 percent
+// slower on 70100.
+
+static bool autotune_wide_unit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  if (bridge_active (hashcat_ctx, device_param->bridge_link_device) == false) return false;
+
+  if ((hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) == 0) return false;
+
+  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) return false;
+
+  const u32 workitem_multiple = bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
+
+  const bool wide = (workitem_multiple > 1);
+
+  return wide;
+}
+
+// A wide unit takes the whole iteration space in one call.
+//
+// Every call pays the start and finish cost, so a chunked iteration space pays it once per chunk. A
+// bridge that cannot resume a candidate part way through has to split the candidates instead, and
+// below the unit's own width the unit then runs partly idle.
+//
+// The largest iteration count of any salt is taken, not the first salt's. A salt with fewer
+// iterations simply finishes in its first call, while one with more would otherwise be chunked.
+
+static u32 autotune_wide_loops (hashcat_ctx_t *hashcat_ctx, const u32 loops_min, const u32 loops_max)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  u32 salt_iter_max = 0;
+
+  if ((hashes != NULL) && (hashes->salts_buf != NULL))
+  {
+    for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+    {
+      salt_iter_max = MAX (salt_iter_max, hashes->salts_buf[salt_pos].salt_iter);
+    }
+  }
+
+  u32 loops = loops_max;
+
+  if (salt_iter_max > 0) loops = MIN (loops, salt_iter_max);
+
+  loops = MAX (loops, loops_min);
+
+  return loops;
+}
+
+// A wide unit's launch is sized in waves, not in milliseconds.
+//
+// kernel_accel counts waves here, because a bridged device's hardware_power is the unit's own width.
+// Efficiency depends on the number of waves in a launch, because each launch pays the start and finish
+// cost once.
+//
+// A launch sized by time alone loses waves as the iteration count rises, which collapses it exactly
+// where the hash is slowest. So the target is BRIDGE_WAVES_MIN waves, and the time budget only caps
+// how far the floor may stretch to reach it. That cap is what a user waits for: the status line, a
+// pause, an abort and --runtime all wait for the launch in flight. At a higher iteration count the
+// waves shrink to stay under the cap, down to one, which cannot be split.
+//
+// Two launches give the cost of a wave and of the start and finish. Every probe on a bridge is a real
+// launch of the whole iteration space, so the size is computed from them rather than searched.
+
+static u32 autotune_wide_accel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_loops, const u32 kernel_threads, const u32 kernel_accel_min, const u32 kernel_accel_max, const double target_msec)
+{
+  const u32 accel_1 = kernel_accel_min;
+  const u32 accel_2 = MIN (accel_1 * 2, kernel_accel_max);
+
+  // The first launch at the full iteration count can carry a one-off cost of its own, so the low point
+  // is the better of two. Taken from a single launch, that cost reads as a much cheaper wave and sizes
+  // the launch several times too long.
+
+  const double msec_1 = try_run_times (hashcat_ctx, device_param, accel_1, kernel_loops, kernel_threads, 2);
+
+  double per_wave = msec_1 / (double) accel_1;
+
+  if (accel_2 > accel_1)
+  {
+    const double msec_2 = try_run_times (hashcat_ctx, device_param, accel_2, kernel_loops, kernel_threads, 1);
+
+    const double slope = (msec_2 - msec_1) / (double) (accel_2 - accel_1);
+
+    if (slope > 0) per_wave = slope;
+  }
+
+  if (per_wave <= 0) return kernel_accel_min;
+
+  // whatever the line does not explain is the start and finish, and it is paid once per launch
+
+  const double fixed_msec = MAX (0, msec_1 - (per_wave * (double) accel_1));
+
+  const double waves_budget  = (target_msec - fixed_msec) / per_wave;
+  const double waves_stretch = ((target_msec * BRIDGE_WAVES_MSEC_SCALE) - fixed_msec) / per_wave;
+
+  double waves = MAX (waves_budget, MIN ((double) BRIDGE_WAVES_MIN, waves_stretch));
+
+  waves = MAX (waves, 1);
+  waves = MAX (waves, (double) kernel_accel_min);
+  waves = MIN (waves, (double) kernel_accel_max);
+
+  const u32 accel = (u32) waves;
+
+  if (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL)
+  {
+    event_log_info (hashcat_ctx, "AT2 wide #%02u loops=%u wave=%.3f fixed=%.3f budget=%.1f stretch=%.1f -> accel=%u", device_param->device_id + 1, kernel_loops, per_wave, fixed_msec, waves_budget, waves_stretch, accel);
+  }
+
+  return accel;
+}
+
 // The workgroup size, taken from what the runtime already knows and without launching anything.
 //
 // kernel_wgs is the register limit the runtime has already resolved for this kernel, so register
@@ -248,6 +367,11 @@ static u32 autotune2_threads_max (const hc_device_param_t *device_param, const u
 
 static u32 autotune2_threads_walk (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 threads_hi, const u32 kernel_threads_min, const u32 accel_hi, const u32 accel_min, const u32 accel_max, const u32 loops)
 {
+  // The thread count does not reach a wide bridge unit, so a walk would spend whole bridge launches
+  // comparing equal settings.
+
+  if (autotune_wide_unit (hashcat_ctx, device_param) == true) return threads_hi;
+
   const u32 wave = (device_param->device_preferred_wgs_multiple > 0) ? device_param->device_preferred_wgs_multiple : 32;
 
   const u32 threads_lo = MAX (kernel_threads_min, wave);
@@ -563,6 +687,18 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   *out_loops = loops_min;
 
   if ((accel_min == accel_max) && (loops_min == loops_max)) return;
+
+  // A wide bridge unit is not fitted by the model below. It scores every accel and loop pair with
+  // the same product alike and takes the larger accel, which on such a unit is the shortest chunk
+  // and the most start and finish costs.
+
+  if (autotune_wide_unit (hashcat_ctx, device_param) == true)
+  {
+    *out_loops = autotune_wide_loops (hashcat_ctx, loops_min, loops_max);
+    *out_accel = autotune_wide_accel (hashcat_ctx, device_param, *out_loops, threads, accel_min, accel_max, target_msec);
+
+    return;
+  }
 
   // Cost of one launch, as three numbers rather than two.
   //
@@ -904,6 +1040,49 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   }
 }
 
+// A bridge that knows what its hardware costs per launch sizes a unit itself, the way a module sizes a
+// device from its tuning db block, and nothing is then launched to measure the unit.
+//
+// What the user gives with -n or -u wins, so the bridge is only asked when neither was given. Its
+// answer is clamped into the bounds the device was sized for: the buffers behind a launch were
+// allocated for kernel_accel_max, and a larger launch writes past them. The thread count is pinned to
+// the one a wide unit gets from autotune anyway, which needs no launch either, so that every bound is
+// fixed and the fixed path below is the one taken.
+
+static bool autotune_bridge_fixed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const double target_msec, u32 *accel_min, u32 *accel_max, u32 *loops_min, u32 *loops_max, u32 *threads_min, u32 *threads_max)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->kernel_accel_chgd == true) return false;
+  if (user_options->kernel_loops_chgd == true) return false;
+
+  if (bridge_active (hashcat_ctx, device_param->bridge_link_device) == false) return false;
+
+  u32 accel = 0;
+  u32 loops = 0;
+
+  if (bridge_unit_tuning (hashcat_ctx, device_param->bridge_link_device, target_msec, &accel, &loops) == false) return false;
+
+  accel = MIN (MAX (accel, *accel_min), *accel_max);
+  loops = MIN (MAX (loops, *loops_min), *loops_max);
+
+  const u32 threads = autotune2_threads_max (device_param, *threads_min, *threads_max);
+
+  *accel_min   = accel;
+  *accel_max   = accel;
+  *loops_min   = loops;
+  *loops_max   = loops;
+  *threads_min = threads;
+  *threads_max = threads;
+
+  if (getenv ("HASHCAT_AUTOTUNE2_VERBOSE") != NULL)
+  {
+    event_log_info (hashcat_ctx, "AT2 bridge #%02u accel=%u loops=%u threads=%u, fixed by the bridge", device_param->device_id + 1, accel, loops, threads);
+  }
+
+  return true;
+}
+
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -916,11 +1095,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
                            ? backend_ctx->target_msec * BRIDGE_TARGET_MSEC_SCALE
                            : backend_ctx->target_msec;
 
-  const u32 kernel_accel_min = device_param->kernel_accel_min;
-  const u32 kernel_accel_max = device_param->kernel_accel_max;
+  u32 kernel_accel_min = device_param->kernel_accel_min;
+  u32 kernel_accel_max = device_param->kernel_accel_max;
 
-  const u32 kernel_loops_min = device_param->kernel_loops_min;
-  const u32 kernel_loops_max = device_param->kernel_loops_max;
+  u32 kernel_loops_min = device_param->kernel_loops_min;
+  u32 kernel_loops_max = device_param->kernel_loops_max;
 
   u32 kernel_threads_max = device_param->kernel_threads_max;
 
@@ -967,6 +1146,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   kernel_threads_min,
   kernel_threads_max);
   */
+
+  const bool bridge_fixed = autotune_bridge_fixed (hashcat_ctx, device_param, target_msec, &kernel_accel_min, &kernel_accel_max, &kernel_loops_min, &kernel_loops_max, &kernel_threads_min, &kernel_threads_max);
 
   // stores the minimum values
   // they could be used if the autotune fails and user specify --force
@@ -1052,7 +1233,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     #else
 
-    if (hashconfig->warmup_disable == false)
+    // A unit the bridge sized is not warmed up either. Its launches go to the bridge's hardware, which
+    // has no kernel cache to fill, and at a high iteration count each of the four is a full launch.
+
+    if ((hashconfig->warmup_disable == false) && (bridge_fixed == false))
     {
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
@@ -1090,7 +1274,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           #if defined (__APPLE__)
           if (device_param->is_metal == true)
           {
-            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->d_buf[HC_DEV_BUF_RULES_C].metal, 0, device_param->d_buf[HC_DEV_BUF_RULES].metal, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t)) == -1) return -1;
+            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param, device_param->metal_command_queue, device_param->d_buf[HC_DEV_BUF_RULES_C].metal, 0, device_param->d_buf[HC_DEV_BUF_RULES].metal, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t)) == -1) return -1;
           }
           #endif
 
@@ -1281,6 +1465,21 @@ HC_THREAD_FUNC thread_autotune (void *p)
   device_param->at_status = AT_STATUS_FAILED;
   device_param->at_rc = -1; // generic error
 
+  // A bridge that replaced the loop kernel is what autotune times, and a bridge that keeps its state
+  // per thread has to be set up on the thread that calls it. The self test and the cracking threads
+  // do the same around their own work.
+
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
+  const bool bridge_thread = (bridge_ctx->enabled == true) && ((hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) != 0) && (bridge_ctx->thread_init != BRIDGE_DEFAULT);
+
+  if (bridge_thread == true)
+  {
+    if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+  }
+
   if (device_param->is_cuda == true)
   {
     if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return 0;
@@ -1304,6 +1503,14 @@ HC_THREAD_FUNC thread_autotune (void *p)
     CUcontext cuda_context_popped;
 
     if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
+  }
+
+  if (bridge_thread == true)
+  {
+    if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
+    {
+      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
+    }
   }
 
   return 0;

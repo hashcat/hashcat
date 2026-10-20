@@ -336,6 +336,9 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   // A charset belongs to a mask, and only some feeds read one. Refused here rather than in
   // user_options_sanity (), which runs before the feed is known and so cannot tell them apart.
+  //
+  // Only -a 8 hands its command line to the feed. The other modes open the wordlist feed for their
+  // dictionaries alone, and in -a 6, -a 7 and -a 12 hashcat reads the mask beside them itself.
 
   if ((*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_MASK) == 0)
   {
@@ -343,7 +346,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
     const bool any = (user_options->custom_charset_1 != NULL) || (user_options->custom_charset_2 != NULL) || (user_options->custom_charset_3 != NULL) || (user_options->custom_charset_4 != NULL) || (user_options->custom_charset_5 != NULL) || (user_options->custom_charset_6 != NULL) || (user_options->custom_charset_7 != NULL) || (user_options->custom_charset_8 != NULL);
 
-    if (any == true)
+    if ((user_options->attack_mode == ATTACK_MODE_GENERIC) && (any == true))
     {
       event_log_error (hashcat_ctx, "%s: this feed reads no mask, so a custom charset has nothing to apply to.", generic_ctx->dynlib_filename);
 
@@ -430,7 +433,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   //
   // That headroom is not a property of every outside-kernel mode and must not be read as one. All 294
   // of them were measured on that card, and the fastest which takes a password rather than a key is
-  // 12700 at 355 MH/s, then 10500, 25400 and 06700 between 108 and 165. One core cannot feed those.
+  // 12700 at 355 MH/s, then 10500, 25400 and 40017 between 108 and 165. One core cannot feed those.
   // They land here anyway, because a mode with no attack kernel has nowhere else to go, and what
   // limits them is the feed rather than the card.
   //

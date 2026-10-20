@@ -47,7 +47,8 @@ Slow kernels are usually easier to implement because they use one candidate-gene
 Choose a hash-mode number before creating the files:
 
 * For a private plugin, choose a number from 90000 through 99998. Upstream reserves this range for private use except for the stock Plaintext mode 99999, preventing collisions with future public modes.
-* For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22800 is a suitable temporary number. Maintainers assign the final number during pull-request review.
+* For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22900 is a suitable temporary number. Maintainers assign the final number during pull-request review.
+* Leave out the range 40000 to 44000 both when you look for the highest assigned mode and when you choose a number. It is reserved for hash-modes defined only by a stored recipe, see `docs/hashcat-hash-recipe.md`. The old numbers listed there are not free either, because hashcat still loads the moved hash-mode for each of them.
 
 ## Development environment ##
 
@@ -111,7 +112,7 @@ Every Python test module implements three functions used by all runner modes:
 
 The second argument is the hash-mode number. Verify mode takes additional arguments. Run `tools/test_module_runner.py` without arguments to display the complete syntax.
 
-The Python dependencies are listed in `tools/requirements.txt` and installed by `tools/install_modules.sh`. Review the script before running it.
+The test suite needs Python 3.10 or newer, the version Ubuntu 22.04 ships. The Python dependencies are listed in `tools/requirements.txt` and installed by `tools/install_modules.sh`. Review the script before running it.
 
 #### Single mode ####
 
@@ -168,7 +169,7 @@ Function `module_verify_hash()` parses the hash line into every component needed
 
 What makes this work is that module_verify_hash() rebuilds the hash out of the hash. Everything the derivation needs is carried in the string, so the salt, the iteration count and anything else random are read back from it rather than drawn again. A hook that generated a fresh salt here could never reproduce its own output, and tools/test_module_runner.py refuses to print a vector whose module_verify_hash() does not round trip it.
 
-The following example comes from the Password Safe v3 test module (tools/test_modules/m05200.py)
+The following example comes from the Password Safe v3 test module (tools/test_modules/m40011.py)
 
 ```
 def module_verify_hash (line):
@@ -198,7 +199,7 @@ def module_verify_hash (line):
 The script is called with the following command line parameters:
 
 ```
-python3 tools/test_module_runner.py verify 5200 hash_list.txt cracked_list.txt verified_list.txt
+python3 tools/test_module_runner.py verify 40011 hash_list.txt cracked_list.txt verified_list.txt
 ```
 
 After `verify`, specify the mode number, the original hash list, the file containing hash-and-password pairs, and the output file. The cracked input uses hashcat's `hash[:salt]:password` format and may contain several lines. The output contains only correctly regenerated hashes also present in the original list.
@@ -380,14 +381,14 @@ static const char *HASH_NAME = "MD5";
 
 ### module_kern_type() ###
 
-Callback `module_kern_type()` selects the kernel number loaded by the module. A fast hash using `ATTACK_EXEC_INSIDE_KERNEL` loads `OpenCL/mXXXXX_a[0|1|3|4]-[optimized|pure].cl`: `a0` for straight, `a1` for combinator, `a3` for brute force, and optional `a4` for the PCFG device engine. A slow hash using `ATTACK_EXEC_OUTSIDE_KERNEL` loads `OpenCL/mXXXXX-[optimized|pure].cl` without an attack-mode suffix. For example, kernel type 7100 loads `OpenCL/m07100-pure.cl`. Multiple modules may select the same kernel, as the GRUB2 and macOS 10.8 modes do for PBKDF2-HMAC-SHA512.
+Callback `module_kern_type()` selects the kernel number loaded by the module. A fast hash using `ATTACK_EXEC_INSIDE_KERNEL` loads `OpenCL/mXXXXX_a[0|1|3|4]-[optimized|pure].cl`: `a0` for straight, `a1` for combinator, `a3` for brute force, and optional `a4` for the PCFG device engine. A slow hash using `ATTACK_EXEC_OUTSIDE_KERNEL` loads `OpenCL/mXXXXX-[optimized|pure].cl` without an attack-mode suffix. For example, kernel type 8900 loads `OpenCL/m08900-pure.cl`. Multiple modules may select the same kernel, as the scrypt and Cisco-IOS $9$ modes do.
 
 Several modules can share one kernel implementation, but combining unrelated modes creates branches that reduce performance and maintainability. Performance-sensitive modes therefore usually have dedicated kernels, as the `OpenCL/` directory demonstrates.
 
 Example:
 
 ```
-static const u64 KERN_TYPE = 7100;
+static const u64 KERN_TYPE = 8900;
 ```
 
 ### module_opti_type() ###
@@ -513,7 +514,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_HASH_COPY`: Preserves the original input line in `hash_info->orighash` for formats that contain unused data not stored in `salt_t` or the esalt. Use it only when reconstruction is impractical. Reconstructing a line normally verifies that the decoder retained every required field, while copying every original line consumes additional host memory.
 * `OPTS_TYPE_HASH_SPLIT`: Marks a line that contains multiple independent hashes, such as an LM value stored as one 128-bit string but composed of two 64-bit hashes.
 * `module_kern_bits()`: Not an `OPTS_TYPE` flag. Returns the `KERN_BIT_*` constants, ored together, naming the optional kernels this mode provides, and a mode with none leaves the hook alone. Each one replaces the `OPTS_TYPE` flag of the same name: `KERN_BIT_LOOP_PREPARE` a `_loop_prepare` kernel run before each `_loop`, `KERN_BIT_LOOP_EXTENDED` a `_loop_extended` run after each one, `KERN_BIT_HOOK12` and `KERN_BIT_HOOK23` the `_hook12` and `_hook23` device hooks, `KERN_BIT_INIT2`, `KERN_BIT_LOOP2_PREPARE` and `KERN_BIT_LOOP2` a second derivation stage, `KERN_BIT_TM` the mask table kernel, and `KERN_BIT_AUX1` to `KERN_BIT_AUX6` auxiliary verification kernels for formats that share a KDF but use its result differently by version. hashcat decides the rest itself, so a module never names `KERN_BIT_INIT`, `KERN_BIT_LOOP` or `KERN_BIT_COMP`, nor the `KERN_BIT_04`, `KERN_BIT_08`, `KERN_BIT_16` and `KERN_BIT_XX` cracking kernels that share those first three bits. A plugin outside the tree that still sets one of the 16 removed flags will no longer compile.
-* `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_05200.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
+* `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_40011.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
 * `OPTS_TYPE_BINARY_HASHFILE_OPTIONAL`: Allows a mode with `OPTS_TYPE_BINARY_HASHFILE` to accept either binary files or text hashes, including hashes on the command line. The binary path converts its records into the form consumed by the text decoder. Mode 22000 is an example.
 * `OPTS_TYPE_PT_ADD06`: Same as OPTS_TYPE_PT_ADD01 but use 0x06 byte instead, which is the SHA-3 domain separation byte. See `src/modules/module_17300.c` for an example.
 * `OPTS_TYPE_KEYBOARD_MAPPING`: Enables kernel-side character remapping from a table loaded by the host. See `docs/keyboard-layout-mapping.md`.
@@ -572,6 +573,10 @@ Callback `module_benchmark_charset()` supplies custom character set 1 for `--ben
 ### module_benchmark_salt() ###
 
 Callback `module_benchmark_salt()` fills a mode-specific `salt_t` for benchmarks that require particular iteration counts or salt lengths.
+
+### module_benchmark_cost() ###
+
+Callback `module_benchmark_cost()` formats the cost parameters shown in the benchmark header for a mode whose cost is not a single iteration count. The header normally prints `[Iterations: N]` from `salt_iter`, which misleads a mode that packs several parameters (argon2's `m`, `t` and `p`, scrypt's `N`, `r` and `p`, bcrypt's cost factor). The callback receives the decoded `salt_t` and esalt and writes the parameters the hash actually carries into `line_buf`, returning the length as `snprintf()` does; the header prints that in place of the Iterations readout. It is optional: a mode that leaves it at `MODULE_DEFAULT` keeps the Iterations readout, so only a mode with extra cost parameters to show needs to set it.
 
 ## Kernel ##
 
@@ -743,7 +748,35 @@ You do not write the kernel. You write four hooks and include the engine, which 
 * `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
 * `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
 
-File `OpenCL/inc_pcfg_kernel.cl` documents all four hooks and is worth reading before writing one. Files `OpenCL/m00100_a4-pure.cl` and `OpenCL/m00200_a4-optimized.cl` are the smallest complete examples of the two variants. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
+File `OpenCL/inc_pcfg_kernel.cl` documents all four hooks and is worth reading before writing one. Files `OpenCL/m11500_a4-pure.cl` and `OpenCL/m00200_a4-optimized.cl` are the smallest complete examples of the two variants. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
+
+#### Kernel: fast hash type (recipe) ####
+
+A fast hash built from the families supported by hash-mode 4000 can use a recipe for its pure kernels. Define the recipe using the syntax in `docs/hashcat-hash-recipe.md`. hashcat then runs mode 4000's pure kernels with that recipe. The module keeps its optimized kernels, parser, digest layout and self-test hash. Add the recipe, its accessor and its registration in `module_init ()`. Modules without a recipe set this hook to `MODULE_DEFAULT`:
+
+```
+static const char *HASH_RECIPE    = "md5(pass . salt)";
+
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
+
+  module_ctx->module_hash_recipe              = module_hash_recipe;
+```
+
+When `-O` is omitted, or the mode has no optimized kernels, hashcat uses kernel type 4000. It compiles the recipe with any options returned by `module_jit_build_options ()`. An invalid recipe is rejected at startup with the parser's error message.
+
+The kernel stores the complete final digest in the word layout used by the family's own kernels: little endian words for MD4, MD5, RIPEMD-160 and BLAKE2, big endian words for SHA-1, SHA-2 and SM3, and each 64-bit SHA-512 word as its low half followed by its high half. The hooks `module_dgst_pos0 ()` through `module_dgst_pos3 ()` select the comparison words as they would for the mode's own pure kernel.
+
+hashcat generates the candidate little endian for the recipe kernels. The recipe hashes each candidate as generated and the salt as stored by `module_hash_decode ()`.
+
+Apply salt and digest preparation for optimized kernels only when `OPTI_TYPE_OPTIMIZED_KERNEL` is set. This includes byte swapping salt words or subtracting a precomputed state from the digest. Recipe kernels read the salt as bytes and compare the complete digest. See the examples in `src/modules/module_08100.c` and `src/modules/module_12600.c`.
+
+Migrate all modes that share a kernel type together, because the recipe replaces their shared pure kernel files.
+
+#### Kernel: slow hash type (recipe) ####
+
+A slow hash that applies PBKDF2 to the password and salt can also use a recipe, such as `pbkdf2_sha256(pass, salt, iter, 32)`. For this recipe, hashcat runs mode 4000's slow kernel, `OpenCL/m04000-pure.cl`. It sizes the tmps for that kernel regardless of the value returned by `module_tmp_size ()`. The loop kernel processes `VECT_SIZE` candidates per work item, so hashcat sets `OPTI_TYPE_SLOW_HASH_SIMD_LOOP`. The module keeps its parser, digest layout and self-test hash. It registers the recipe using the same 3 lines shown for a fast hash.
+
+The recipe reads the complete salt from `salt->salt_buf`, using `salt->salt_len` bytes. Store the complete salt there, including any words beyond the first ones. The value `iter` in the recipe represents the iteration count. Store that count minus 1 in `salt->salt_iter`, as the modes' own PBKDF2 kernels already expect. The kernel compares the first 4 words of the derived key in the family's word layout, as described above for a hash call. A slow mode requires a slow recipe, and a fast mode requires a fast recipe. If they do not match, hashcat rejects the recipe at startup.
 
 ### Kernel: slow hash type ###
 
@@ -1046,14 +1079,15 @@ A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only 
 
 `feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
-Remove the `module_dictstat_disable` registration from `module_init()`. Four hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, and `module_kern_bits` names the optional kernels the mode provides. Assigning all four to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
+Remove the `module_dictstat_disable` registration from `module_init()`. Five hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Assigning all five to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
 
-The following command applies all five changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+The following command applies all six changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
 
 ```
 sed -i -e '/module_ctx->module_dictstat_disable/d' \
        -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_hashes_count_min/i\  module_ctx->module_hash_recipe              = MODULE_DEFAULT;' \
        -e '/module_ctx->module_kern_type /i\  module_ctx->module_kern_bits                = MODULE_DEFAULT;' \
        -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
        src/modules/module_*.c

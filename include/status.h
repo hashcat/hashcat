@@ -82,6 +82,7 @@ u64         status_get_progress_ignore                (const hashcat_ctx_t *hash
 u64         status_get_progress_skip                  (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_cur_relative_skip     (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_end_relative_skip     (const hashcat_ctx_t *hashcat_ctx);
+bool        status_get_stdin_count_exceeded           (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_hashes_msec_all                (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_hashes_msec_dev                (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 double      status_get_hashes_msec_dev_benchmark      (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);

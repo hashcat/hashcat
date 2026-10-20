@@ -60,6 +60,7 @@ int tty_getchar (void);
 int tty_fix (void);
 
 HC_API bool is_stdout_terminal (void);
+HC_API bool is_stdin_terminal  (void);
 
 void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginning, const size_t keep_from_end);
 
