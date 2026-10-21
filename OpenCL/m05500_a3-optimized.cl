@@ -82,6 +82,11 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, PRIVATE_AS 
 #define NN_FUSE_LS(n)   ((n) - nn_base)
 #define NN_FUSE_WINS    ((kernel_param->salts_cnt / MULTI_SALT_WINDOW) + ((kernel_param->salts_cnt % MULTI_SALT_WINDOW) != 0))
 
+#if defined(MULTI_SALT_WINDOW) && defined(IS_CUDA)
+// Older targets and large shared-memory windows need more registers per thread.
+#define NN_FUSE_MIN_BLOCKS (((CUDA_ARCH < 700) || (MULTI_SALT_WINDOW > 2048)) ? 2 : 3)
+#endif
+
 #if defined(MULTI_SALT_WINDOW) && (VECT_SIZE != 1) && (VECT_SIZE != 2) && (VECT_SIZE != 4) && (VECT_SIZE != 8) && (VECT_SIZE != 16)
 #error unsupported fused 5500 vector width
 #endif
@@ -660,7 +665,7 @@ KERNEL_FQ KERNEL_FA
 #if defined(MULTI_SALT_WINDOW) && defined(IS_HIP)
   __launch_bounds__(256, 2)
 #elif defined(MULTI_SALT_WINDOW) && defined(IS_CUDA)
-  __launch_bounds__(256)
+  __launch_bounds__(256, NN_FUSE_MIN_BLOCKS)
 #endif
   void m05500_m04 (KERN_ATTR_VECTOR ())
 {
@@ -772,7 +777,7 @@ KERNEL_FQ KERNEL_FA
 #if defined(MULTI_SALT_WINDOW) && defined(IS_HIP)
   __launch_bounds__(256, 2)
 #elif defined(MULTI_SALT_WINDOW) && defined(IS_CUDA)
-  __launch_bounds__(256)
+  __launch_bounds__(256, NN_FUSE_MIN_BLOCKS)
 #endif
   void m05500_m08 (KERN_ATTR_VECTOR ())
 {
@@ -879,7 +884,7 @@ KERNEL_FQ KERNEL_FA
 #if defined(MULTI_SALT_WINDOW) && defined(IS_HIP)
   __launch_bounds__(256, 2)
 #elif defined(MULTI_SALT_WINDOW) && defined(IS_CUDA)
-  __launch_bounds__(256)
+  __launch_bounds__(256, NN_FUSE_MIN_BLOCKS)
 #endif
   void m05500_m16 (KERN_ATTR_VECTOR ())
 {
