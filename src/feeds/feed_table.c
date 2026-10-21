@@ -3370,7 +3370,7 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
   const u64 lines = wordlist_keyspace (global_ctx, thread_ctx[0], hashcat_ctx, &tg->wl);
 
-  if (lines == GENERIC_KEYSPACE_ERROR) return GENERIC_KEYSPACE_ERROR;
+  if ((lines == GENERIC_KEYSPACE_ERROR) || (global_ctx->error == true)) return GENERIC_KEYSPACE_ERROR;
 
   // The reader publishes where each wordlist starts as a line number, which is what a position means
   // to the wordlist feed. It is not what one means here: this feed counts base words or candidates,
