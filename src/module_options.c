@@ -712,7 +712,7 @@ int module_options_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder,
 }
 
 // What --module-cache-rebuild reports once module_options_init () has scanned every module and
-// written the cache for it.
+// written the cache for it. Success is silent, because make runs it as a build step.
 
 int module_options_cache_report (hashcat_ctx_t *hashcat_ctx)
 {
@@ -746,8 +746,6 @@ int module_options_cache_report (hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
-
-  event_log_info (hashcat_ctx, "%s", module_options->cache_file);
 
   return 0;
 }

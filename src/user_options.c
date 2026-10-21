@@ -19,6 +19,7 @@
 #include "outfile.h"
 #include "rp.h"
 #include "rp_cpu.h"
+#include "terminal.h"
 
 #include "feed_ctx.h"
 #include "feed.h"
@@ -2401,6 +2402,24 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         //return -1;
       }
     }
+  }
+
+  // -a 0 with no wordlist reads its candidates from stdin. A terminal there means nothing is piped in,
+  // and the usual cause is a wordlist named where the hash file belongs. Stopping here comes before
+  // that wordlist is counted and parsed as a hash file, which takes minutes for a large one.
+
+  const bool reads_candidates_from_stdin = (user_options_extra->hc_hash != NULL) && (user_options_extra->wordlist_mode == WL_MODE_STDIN) && (user_options->show == false) && (user_options->left == false) && (user_options->identify == false);
+
+  if ((reads_candidates_from_stdin == true) && (is_stdin_terminal () == true))
+  {
+    event_log_error (hashcat_ctx, "No wordlist was given, and stdin is a terminal.");
+
+    event_log_warning (hashcat_ctx, "'%s' was taken as the hash or hash file.", user_options_extra->hc_hash);
+    event_log_warning (hashcat_ctx, "Attack mode 0 without a wordlist reads its candidates from stdin. Name the hash");
+    event_log_warning (hashcat_ctx, "file first and the wordlist after it, or pipe the candidates in.");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return -1;
   }
 
   // arguments - checks must depend on attack_mode

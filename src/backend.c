@@ -14227,9 +14227,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
       }
 
-      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes, device_id, _kernel_accel);
+      // The module builds the block on the heap for this device and hands it over, so it is parsed in
+      // place and freed here.
 
-      char *lines_buf = hcstrdup (extra_tuningdb_block);
+      char *lines_buf = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes, device_id, _kernel_accel);
 
       char *saveptr = NULL;
 

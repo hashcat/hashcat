@@ -527,7 +527,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_MP_MULTI_DISABLE`: Prevents hashcat from multiplying kernel acceleration by the device multiprocessor count, allowing finer workload control.
 * `OPTS_TYPE_NATIVE_THREADS`: Selects the native thread count: one on a CPU or the preferred workgroup-size multiple reported by a GPU backend. It does not override a user-defined `-u` value.
 * `OPTS_TYPE_POST_AMP_UTF16LE`: Runs a complete UTF-8-to-UTF-16LE conversion after amplifier processing. This flag applies only to slow-hash kernels.
-* `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection.
+* `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection. A mode whose example hash is 16 characters or shorter needs no flag just because ordinary words pass for its hashes: autodetect counts its matches only when it parses at least half of the sampled lines, and the check for a swapped hash file and wordlist leaves it out.
 
 ### module_salt_type() ###
 
@@ -1109,6 +1109,8 @@ sed -i -e '/module_ctx->module_dictstat_disable/d' \
 ```
 
 The options that only some hash-modes read are no longer fields of `user_options_t`: `--eapol-message-pair` with its alias `--hccapx-message-pair`, `--nonce-error-corrections`, `--keyboard-layout-mapping`, `--truecrypt-keyfiles`, `--veracrypt-keyfiles`, `--veracrypt-pim-start`, `--veracrypt-pim-stop` and `--scrypt-tmto`. A plugin that read one of those fields no longer compiles. It registers the option with `module_register_options()`, through the shared helper where it belongs to one of those families, and reads it with `module_option_given()`, `module_option_u32()` or `module_option_str()`.
+
+`module_extra_tuningdb_block()` now returns `char *` instead of `const char *`. The block is built with `hcmalloc()` and handed over, and hashcat frees it after reading it. A plugin that returned a string literal or a static buffer has to return a heap copy instead.
 
 The 16 `OPTS_TYPE` flags that said which kernels a mode runs are removed, so a plugin that set one of them no longer compiles: `OPTS_TYPE_INIT`, `OPTS_TYPE_LOOP`, `OPTS_TYPE_COMP`, `OPTS_TYPE_LOOP_PREPARE`, `OPTS_TYPE_LOOP_EXTENDED`, `OPTS_TYPE_HOOK12`, `OPTS_TYPE_HOOK23`, `OPTS_TYPE_INIT2`, `OPTS_TYPE_LOOP2_PREPARE`, `OPTS_TYPE_LOOP2`, `OPTS_TYPE_TM_KERNEL` and `OPTS_TYPE_AUX1` to `OPTS_TYPE_AUX5`. The sed above only registers the hook, so a mode that set any of the optional ones has to name them: drop the flags from its `OPTS_TYPE`, add a `KERN_BITS` constant oring the `KERN_BIT_*` of the same name, and return it from a `module_kern_bits()` callback in place of the `MODULE_DEFAULT` the sed wrote. `KERN_BIT_INIT`, `KERN_BIT_LOOP` and `KERN_BIT_COMP` are not among them, because hashcat turns those on itself for a mode that hashes outside the cracking kernel.
 
