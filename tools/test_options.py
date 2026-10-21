@@ -1360,7 +1360,7 @@ def basic_class(r: dict) -> str:
   if r.get("timeout") == True: return "hang"
   if len(r.get("reports", [])) > 0: return "crash"
   if r["rc"] in REFUSED_RC: return "rejected"
-  if (r["rc"] >= 245) and (r["rc"] <= 253): return "failed"
+  if ((r["rc"] >= 245) and (r["rc"] <= 253)) or (r["rc"] == 243): return "failed"
 
   return None
 

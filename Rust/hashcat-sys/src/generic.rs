@@ -4,7 +4,8 @@
  */
 use std::{
     ffi::{CStr, c_char, c_int, c_void},
-    mem, slice,
+    mem, panic, ptr, slice,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 pub use crate::bindings::{bridge_context_t, generic_io_t, generic_io_tmp_t, salt_t};
@@ -73,9 +74,90 @@ pub unsafe fn string_from_ptr(ptr: *const c_char) -> String {
     }
 }
 
-/// Build a `ThreadContext` and hand the core a void* to it.
+static POISONED: AtomicBool = AtomicBool::new(false);
+
+/// Run `f` and turn a panic into `false`. The default hook has already printed the panic on stderr,
+/// and a false return reaches hashcat as a bridge error, where a panic leaving an extern "C" fn
+/// aborts hashcat before it can say anything. After one panic every later call returns false.
+pub fn no_panic<F: FnOnce() -> bool>(f: F) -> bool {
+    if POISONED.load(Ordering::Relaxed) {
+        return false;
+    }
+    match panic::catch_unwind(panic::AssertUnwindSafe(f)) {
+        Ok(ok) => ok,
+        Err(_) => {
+            POISONED.store(true, Ordering::Relaxed);
+            false
+        }
+    }
+}
+
+/// The same for an entry point that returns nothing, such as thread_init. A panic there makes the
+/// next call that can return false do so.
+pub fn no_panic_void<F: FnOnce()>(f: F) {
+    no_panic(|| {
+        f();
+        true
+    });
+}
+
+/// Build a `ThreadContext` and hand the core a void* to it, or NULL after a panic, which the core
+/// reports as a failed thread init.
 #[unsafe(no_mangle)]
 pub extern "C" fn new_context(
+    module_name: *const c_char,
+
+    salts_cnt: c_int,
+    salts_size: c_int,
+    salts_buf: *const c_char,
+
+    esalts_cnt: c_int,
+    esalts_size: c_int,
+    esalts_buf: *const c_char,
+
+    st_salts_cnt: c_int,
+    st_salts_size: c_int,
+    st_salts_buf: *const c_char,
+
+    st_esalts_cnt: c_int,
+    st_esalts_size: c_int,
+    st_esalts_buf: *const c_char,
+
+    bridge_parameter1: *const c_char,
+    bridge_parameter2: *const c_char,
+    bridge_parameter3: *const c_char,
+    bridge_parameter4: *const c_char,
+    salt_per_pw: bool,
+) -> *mut c_void {
+    let mut out: *mut c_void = ptr::null_mut();
+    no_panic(|| {
+        out = new_context_inner(
+            module_name,
+            salts_cnt,
+            salts_size,
+            salts_buf,
+            esalts_cnt,
+            esalts_size,
+            esalts_buf,
+            st_salts_cnt,
+            st_salts_size,
+            st_salts_buf,
+            st_esalts_cnt,
+            st_esalts_size,
+            st_esalts_buf,
+            bridge_parameter1,
+            bridge_parameter2,
+            bridge_parameter3,
+            bridge_parameter4,
+            salt_per_pw,
+        );
+        true
+    });
+    out
+}
+
+#[allow(clippy::too_many_arguments)]
+fn new_context_inner(
     module_name: *const c_char,
 
     salts_cnt: c_int,
@@ -139,8 +221,10 @@ pub extern "C" fn new_context(
 /// Free a `ThreadContext` the core is done with.
 #[unsafe(no_mangle)]
 pub extern "C" fn drop_context(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    unsafe {
-        drop(Box::from_raw(ctx as *mut ThreadContext));
-    }
+    no_panic_void(|| {
+        assert!(!ctx.is_null());
+        unsafe {
+            drop(Box::from_raw(ctx as *mut ThreadContext));
+        }
+    });
 }

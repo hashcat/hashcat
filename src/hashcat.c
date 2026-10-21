@@ -316,9 +316,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
 
   // A mask that failed only skips its round, so its error code must not outlive the next round that
-  // does run. It is still set at the end when no round ran after it.
+  // does run. It is still set at the end when no round ran after it. A bridge unit that failed before
+  // this round is not the round's to forget.
 
-  status_clear_rc_error (hashcat_ctx);
+  if (status_get_rc_error (hashcat_ctx) != RC_FINAL_ERROR_BRIDGE) status_clear_rc_error (hashcat_ctx);
 
   /**
    * Update attack-mode specific stuff based on wordlist
@@ -1693,6 +1694,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
 
+    bridges_failed (hashcat_ctx);
+
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1805,10 +1808,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
       if (device_param->st_status == ST_STATUS_FAILED)
       {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+        // A bridge that failed during the self-test said why on its own, and --self-test-disable would
+        // only move the same failure into the attack.
 
-        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
-        event_log_warning (hashcat_ctx, NULL);
+        if (status_get_rc_error (hashcat_ctx) == RC_FINAL_ERROR_BRIDGE)
+        {
+          event_log_error (hashcat_ctx, "Aborting session because the bridge failed during the self-test.");
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+
+          event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
+          event_log_warning (hashcat_ctx, NULL);
+        }
 
         backend_ctx->self_test_warnings = true;
 
@@ -2322,6 +2335,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   if (bridges_init (hashcat_ctx) == false)
   {
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
+
+    bridges_failed (hashcat_ctx);
 
     return -1;
   }
@@ -3184,7 +3199,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 and -12 are set in main (), and -7 is reserved in docs/exit_status_code.txt
+    // -2, -12 and -13 are set in main (), and -7 is reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;

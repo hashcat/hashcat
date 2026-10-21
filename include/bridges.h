@@ -64,6 +64,7 @@ bool  bridges_init_late (hashcat_ctx_t *hashcat_ctx);
 void  bridges_destroy   (hashcat_ctx_t *hashcat_ctx);
 
 bool  bridges_salt_prepare (hashcat_ctx_t *hashcat_ctx);
+void  bridges_failed       (hashcat_ctx_t *hashcat_ctx);
 void  bridges_salt_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // HC_BRIDGE_H

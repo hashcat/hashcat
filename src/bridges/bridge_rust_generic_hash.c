@@ -12,6 +12,7 @@
 #include "path.h"
 #include "cpu_features.h"
 #include "dynloader.h"
+#include "status_rc.h"
 #include "emu_inc_hash_md4.h"
 
 #if defined (_WIN)
@@ -281,7 +282,44 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
 
   if (!bridge_context->lib)
   {
-    event_log_error (hashcat_ctx, "ERROR: %s: %s", bridge_context->dynlib_filename, strerror (errno));
+    // errno says nothing about a library that is there and does not load, a dependency of it that is
+    // missing being the usual reason, so the loader's own words are what is printed for that. A name
+    // without a directory is looked up by the loader on its own path, not here, so only the loader can
+    // say whether it is there.
+
+    const char *dynlib = bridge_context->dynlib_filename;
+
+    const bool has_dir = (strchr (dynlib, '/') != NULL) || (strchr (dynlib, '\\') != NULL);
+
+    if ((has_dir == true) && (hc_path_exist (dynlib) == false))
+    {
+      event_log_error (hashcat_ctx, "%s: no such file.", bridge_context->dynlib_filename);
+
+      if (user_options->bridge_parameter1 != NULL)
+      {
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      }
+      else
+      {
+        event_log_warning (hashcat_ctx, "The Rust plugin is not built. Run make with cargo installed, which builds it into bridges/subs, or name a built one with --bridge-parameter1.");
+        event_log_warning (hashcat_ctx, NULL);
+      }
+    }
+    else
+    {
+      // the POSIX loader names the library only when it is the library itself that failed
+
+      const char *reason = hc_dlerror ();
+
+      if (strncmp (reason, dynlib, strlen (dynlib)) == 0)
+      {
+        event_log_error (hashcat_ctx, "%s", reason);
+      }
+      else
+      {
+        event_log_error (hashcat_ctx, "Cannot load %s: %s", dynlib, reason);
+      }
+    }
 
     hcfree (bridge_context->dynlib_filename);
     hcfree (bridge_context);

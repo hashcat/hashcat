@@ -12,6 +12,8 @@
 #include "thread.h"
 #include "cpu_features.h"
 #include "system.h"
+#include "path.h"
+#include "status_rc.h"
 
 #if defined (_WIN)
 #include <windows.h>
@@ -998,6 +1000,44 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
   bridge_context->bridge_parameter[1] = user_options->bridge_parameter2;
   bridge_context->bridge_parameter[2] = user_options->bridge_parameter3;
   bridge_context->bridge_parameter[3] = user_options->bridge_parameter4;
+
+  // A plugin or an interpreter named on the command line that is not there is the attack command's,
+  // and said here in one line rather than by the worker's traceback or the spawn error.
+
+  if ((user_options->bridge_parameter1 != NULL) && (hc_path_is_directory (bridge_context->plugin_path) == true))
+  {
+    event_log_error (hashcat_ctx, "%s: A directory cannot be used as a Python plugin.", bridge_context->plugin_path);
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    context_free (bridge_context);
+
+    return NULL;
+  }
+
+  if ((user_options->bridge_parameter1 != NULL) && (hc_path_exist (bridge_context->plugin_path) == false))
+  {
+    event_log_error (hashcat_ctx, "%s: %s", bridge_context->plugin_path, strerror (errno));
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    context_free (bridge_context);
+
+    return NULL;
+  }
+
+  const bool python_has_dir = (strchr (bridge_context->python, '/') != NULL) || (strchr (bridge_context->python, '\\') != NULL);
+
+  if ((user_options->bridge_parameter2 != NULL) && (python_has_dir == true) && (hc_path_exist (bridge_context->python) == false))
+  {
+    event_log_error (hashcat_ctx, "%s: %s", bridge_context->python, strerror (errno));
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    context_free (bridge_context);
+
+    return NULL;
+  }
 
   // One worker started here and stopped again proves the interpreter and the plugin load, and brings
   // back the self-test pair, before hashcat sets up anything that depends on them.
