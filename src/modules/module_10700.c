@@ -194,6 +194,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     }
     else
     {
+      // local memory alone allows more threads than some devices run in one work group, for example
+      // 384 against 256 on AMD OpenCL
+
+      fixed_local_size = MIN (fixed_local_size, (u32) device_param->device_maxworkgroup_size);
+
       if (fixed_local_size > device_param->device_preferred_wgs_multiple) fixed_local_size -= fixed_local_size % device_param->device_preferred_wgs_multiple;
     }
 

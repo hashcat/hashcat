@@ -662,6 +662,21 @@ static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
   return msec;
 }
 
+// The walk over accel grows by half a step at a time. On its own it steps over the largest accel the
+// device allows, from 711 straight past 1024, so that one was never tried. The last step is shortened
+// to land on it.
+
+static u32 autotune2_next_accel (const u32 accel, const u32 accel_max)
+{
+  const u32 step = (accel < 4) ? 1 : (accel / 2);
+
+  if (accel >= accel_max) return accel + step;
+
+  const u32 next = MIN (accel + step, accel_max);
+
+  return next;
+}
+
 // Choose accel and loops from a model rather than by walking towards the answer.
 //
 //   msec_loop  = A + accel * (F + loops * P)
@@ -940,7 +955,7 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   u32    best_accel = accel_min;
   u32    best_loops = loops_min;
 
-  for (u32 accel = MAX (accel_min, 1); accel <= accel_max; accel = (accel < 4) ? accel + 1 : accel + (accel / 2))
+  for (u32 accel = MAX (accel_min, 1); accel <= accel_max; accel = autotune2_next_accel (accel, accel_max))
   {
     u32 loops = loops_max;
 
