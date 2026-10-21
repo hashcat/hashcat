@@ -16,7 +16,12 @@ KERNEL_FQ KERNEL_FA void amp (KERN_ATTR_AMP)
 
   if (gid >= gid_max) return;
 
-  const u32 w0r = bfs_buf[0].i;
+  const u32 pw_pos = (u32) gid % pws_cnt;
+  const u32 il_pos = (u32) gid / pws_cnt;
 
-  pws[gid].i[0] |= w0r;
+  pw_t pw = pws_amp[pw_pos];
+
+  pw.i[0] |= bfs_buf[il_pos].i;
+
+  pws[gid] = pw;
 }

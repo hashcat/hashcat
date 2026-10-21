@@ -2037,6 +2037,12 @@ typedef struct hc_device_param
   u64     innerloop_pos;
   u64     innerloop_left;
 
+  // The base words of a slow hash launch. The launch holds innerloop_left amplifier items over all of
+  // them, item after item, so its work item gid is word (gid % amp_base_cnt) under item (gid /
+  // amp_base_cnt). Zero where a launch is just its base words.
+
+  u64     amp_base_cnt;
+
   u32     exec_pos;
   double  exec_msec[EXEC_CACHE];
 

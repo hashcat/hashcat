@@ -2219,6 +2219,23 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
   }
 
+  // A slow hash launch can hold several amplifier items over the same base words, so its work item
+  // names the word and the item together. build_plain () and everything after it take them apart, the
+  // way a fast hash reports them. A slow hash kernel reports il_pos as zero, so the item is all of it.
+
+  const u64 amp_base_cnt = device_param->amp_base_cnt;
+
+  if (amp_base_cnt > 0)
+  {
+    for (u32 i = 0; i < num_cracked; i++)
+    {
+      const u64 gid = cracked[i].gidvid;
+
+      cracked[i].gidvid = gid % amp_base_cnt;
+      cracked[i].il_pos = cracked[i].il_pos + (gid / amp_base_cnt);
+    }
+  }
+
   u32 cpt_cracked = 0;
 
   hc_thread_mutex_lock (status_ctx->mux_display);
