@@ -3787,6 +3787,8 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to load them as given.");
       event_log_warning (hashcat_ctx, NULL);
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
       return -1;
     }
   }
@@ -3808,6 +3810,8 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
   event_log_warning (hashcat_ctx, "Check that the hash file is named first, that the hash-mode is right, and that --username is given");
   event_log_warning (hashcat_ctx, "if every line starts with a username. Use --force to load it anyway.");
   event_log_warning (hashcat_ctx, NULL);
+
+  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
   return -1;
 }
@@ -3869,6 +3873,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, hc_fopen_strerror ());
 
+        // A hash file that may not be read is the task's. One that does not open for another reason,
+        // such as a missing library for a compressed file, is the machine's and stays -1.
+
+        if (hc_path_read (hashfile) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
         return -1;
       }
 
@@ -3886,6 +3895,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hashes_avail == 0)
       {
         event_log_error (hashcat_ctx, "hashfile is empty or corrupt.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         hc_fclose (&fp);
 
@@ -3971,6 +3982,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         else if (binary_count == 0)
         {
           event_log_error (hashcat_ctx, "No hashes loaded.");
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -4459,6 +4472,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hc_fopen (&fp, hashfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, hc_fopen_strerror ());
+
+        if (hc_path_read (hashfile) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }

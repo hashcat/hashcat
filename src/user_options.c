@@ -2469,6 +2469,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "file first and the wordlist after it, or pipe the candidates in.");
     event_log_warning (hashcat_ctx, NULL);
 
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
     return -1;
   }
 

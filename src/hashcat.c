@@ -1184,14 +1184,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (hashes_stage1_rc == -1)
   {
-    // A stage 1 failure that is an option's, such as --remove on a native hashfile format, was named
-    // where it happened. What is left is the hashlist itself, the task's when it came from a file and
-    // the attack command's when the hash was typed, like the count checks below. Stage 2 is left alone
-    // because it builds in-memory structures and can fail on memory. Classified before
-    // outer_loop_destroy (), which takes the hashlist mode with it.
-
-    if (status_get_rc_error (hashcat_ctx) == RC_FINAL_OK) status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
-
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -2920,6 +2912,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
         event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to auto-detect from them as given.");
         event_log_warning (hashcat_ctx, NULL);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
       }
       else if ((john == false) && (probe.refused == true))
       {
@@ -2934,6 +2928,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
         event_log_warning (hashcat_ctx, "If it is a wordlist, name the hash file first. If it is a hash file, give its hash-mode with -m.");
         event_log_warning (hashcat_ctx, NULL);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
       }
       else if (user_options->show == false)
       {

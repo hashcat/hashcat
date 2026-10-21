@@ -13,6 +13,7 @@
 #include "filehandling.h"
 #include "rp.h"
 #include "rp_cpu.h"
+#include "path.h"
 #include "status_rc.h"
 
 static const char grp_op_nop[] =
@@ -1124,7 +1125,10 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     {
       event_log_error (hashcat_ctx, "%s: %s", rp_file, hc_fopen_strerror ());
 
-      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+      // A file that is there and may not be read is the task's. One that does not open for another reason,
+      // such as a missing library for a compressed file, is the machine's and stays -1.
+
+      if (hc_path_read (rp_file) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
       for (u32 j = 0; j < i; j++)
       {

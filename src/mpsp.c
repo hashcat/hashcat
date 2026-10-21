@@ -3454,7 +3454,9 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
               {
                 event_log_error (hashcat_ctx, "%s: %s", arg, hc_fopen_strerror ());
 
-                status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+                // as for a rule file in kernel_rules_load ()
+
+                if (hc_path_read (arg) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
                 return -1;
               }
@@ -3557,7 +3559,9 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: %s", arg, hc_fopen_strerror ());
 
-          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+          // as for a rule file in kernel_rules_load ()
+
+          if (hc_path_read (arg) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
