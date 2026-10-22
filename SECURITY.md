@@ -62,7 +62,7 @@ We may therefore agree that a finding is a vulnerability while disagreeing with 
 
 ## The brain
 
-The brain is the one part of hashcat that can receive input directly from another machine. It is disabled by default, enabled only by options such as `--brain-server` or `--brain-client`, and does not require elevated privileges.
+The brain is one part of hashcat that can receive input directly from another machine, the other is the remote bridge for Argon2id. The brain is disabled by default, enabled only by options such as `--brain-server` or `--brain-client`, and does not require elevated privileges.
 
 The protocol is intentionally simple. The server sends a 32 bit challenge. The client responds with an iterated `SHA-256` of the challenge followed by the brain password. The brain password is the shared secret set with `--brain-password`. If none is given, the server generates one and prints it at startup. This is a stretched challenge response, not a cryptographic message authentication code. After authentication, the protocol exchanges 64 bit candidate hashes, keyspace positions and an identifier derived from the hash list. Plaintext candidates and the hashes being cracked are not transmitted.
 
