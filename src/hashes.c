@@ -1811,11 +1811,16 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
+    // check_cracked () splits the packed work item into a base word and amplifier item.
+    // The temporary buffer still uses the packed index.
+
+    const u64 tmps_offset = (plain->gidvid + (device_param->amp_base_cnt * plain->il_pos)) * hashconfig->tmp_size;
+
     tmps = hcmalloc (hashconfig->tmp_size);
 
     if (device_param->is_cuda == true)
     {
-      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], tmps_offset, hashconfig->tmp_size);
 
       if (rc == 0)
       {
@@ -1832,7 +1837,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
     if (device_param->is_hip == true)
     {
-      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], tmps_offset, hashconfig->tmp_size);
 
       if (rc == 0)
       {
@@ -1850,7 +1855,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     #if defined (__APPLE__)
     if (device_param->is_metal == true)
     {
-      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], tmps_offset, hashconfig->tmp_size);
 
       if (rc == -1)
       {
@@ -1863,7 +1868,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
     if (device_param->is_opencl == true)
     {
-      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_TMPS].opencl, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
+      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_TMPS].opencl, CL_TRUE, tmps_offset, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
 
       if (rc == 0)
       {
