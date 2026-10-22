@@ -324,10 +324,10 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
     if (send (unit->client_fd, (void *) &parallelism_no, sizeof (parallelism_no), 0) != sizeof (parallelism_no)) return false;
     if (send (unit->client_fd, (void *) &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0) != sizeof (memory_usage_in_kib_no)) return false;
 
-    uint32_t chunk_size_no = 0;
+    u32 chunk_size_no = 0;
     if (recv (unit->client_fd, (void *) &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL) != sizeof (chunk_size_no)) return false;
 
-    uint32_t chunk_size = ntohl (chunk_size_no);
+    u32 chunk_size = ntohl (chunk_size_no);
     unit->chunk_size = MIN (chunk_size, unit->workitem_count);
 
     event_log_info (hashcat_ctx, "[bridge-client]: Chunk size for unit %d will be %d", unit_idx, unit->chunk_size);
