@@ -1093,16 +1093,18 @@ A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only 
 
 `feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
-Remove the `module_dictstat_disable` registration from `module_init()`. Six hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Hook `module_register_options` adds the command line options that only the mode reads, see `module_register_options()` above. Assigning all six to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
+Remove the `module_dictstat_disable` registration from `module_init()`. Eight hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Hook `module_register_options` adds the command line options that only the mode reads, see `module_register_options()` above. Hook `module_length_sort` lets a mode have its candidates sorted by length, and `module_benchmark_cost` shows its cost parameters in the benchmark header, see `module_benchmark_cost()` above. Every hook has to be assigned, as every other one is. Assigning all eight to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
 
-The following command applies all seven changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+The following command applies all nine changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
 
 ```
 sed -i -e '/module_ctx->module_dictstat_disable/d' \
        -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_benchmark_salt/a\  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hashes_count_min/i\  module_ctx->module_hash_recipe              = MODULE_DEFAULT;' \
        -e '/module_ctx->module_kern_type /i\  module_ctx->module_kern_bits                = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_kern_type_dynamic/a\  module_ctx->module_length_sort              = MODULE_DEFAULT;' \
        -e '/module_ctx->module_salt_max/i\  module_ctx->module_register_options         = MODULE_DEFAULT;' \
        -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
        src/modules/module_*.c

@@ -3570,6 +3570,66 @@ static u32 launch_salt_dimy (const hashcat_ctx_t *hashcat_ctx, hc_device_param_t
   return salt_dimy;
 }
 
+// The vector width that one work item of kern_run covers, as the launch below applies it.
+
+static u32 launch_vector_width (const hashconfig_t *hashconfig, const hc_device_param_t *device_param, const u32 kern_run)
+{
+  u64 simd = 0;
+
+  if (kern_run == KERN_RUN_1)     simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT;
+  if (kern_run == KERN_RUN_2)     simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+  if (kern_run == KERN_RUN_3)     simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP;
+  if (kern_run == KERN_RUN_INIT2) simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT2;
+  if (kern_run == KERN_RUN_LOOP2) simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP2;
+
+  const u32 vector_width = (simd != 0) ? device_param->vector_width : 1;
+
+  return vector_width;
+}
+
+// A batch shorter than one full launch, a small wordlist or the end of any wordlist, used to run in
+// work groups of the tuned thread count. 1000 candidates at 1024 threads are one work group, so one
+// compute unit does all the work while the others idle, and for a slow hash that costs seconds.
+// Narrower groups spread the batch over every compute unit. At equal work per launch the thread
+// count costs next to nothing, so full launches keep the tuned value.
+//
+// The group size is rounded up to whole waves, so the batch never makes more groups than there are
+// compute units. Rounding down left one unit with a second group, which then took twice as long as
+// the others. The native width is the floor, because a narrower group still occupies a whole wave.
+// A thread count the module fixed is kept, since an OpenCL kernel built for it launches with nothing
+// else, and so is a DIMY launch, whose rows are fitted to the thread count.
+
+static u64 launch_threads_short_batch (const hashconfig_t *hashconfig, const hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u64 kernel_threads)
+{
+  if (hashconfig->attack_exec != ATTACK_EXEC_OUTSIDE_KERNEL) return kernel_threads;
+
+  if (hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) return kernel_threads;
+
+  if (hashconfig->opti_type & (OPTI_TYPE_SLOW_HASH_DIMY_INIT | OPTI_TYPE_SLOW_HASH_DIMY_LOOP | OPTI_TYPE_SLOW_HASH_DIMY_COMP)) return kernel_threads;
+
+  if (device_param->kernel_threads_fixed == true) return kernel_threads;
+
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) return kernel_threads;
+
+  const u64 native = device_param->device_preferred_wgs_multiple;
+
+  if (native == 0) return kernel_threads;
+
+  if (kernel_threads <= native) return kernel_threads;
+
+  const u64 work_items = CEILDIV (num, launch_vector_width (hashconfig, device_param, kern_run));
+
+  const u64 processors = device_param->device_processors;
+
+  if (CEILDIV (work_items, kernel_threads) >= processors) return kernel_threads;
+
+  const u64 spread = CEILDIV (CEILDIV (work_items, processors), native) * native;
+
+  const u64 threads = MIN (MAX (spread, native), kernel_threads);
+
+  return threads;
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num_base, const u32 event_update, const u32 iteration, const bool is_autotune)
 {
   // The device engine spreads one cell across several waves, as many as its rectangle needs at a fixed
@@ -3623,6 +3683,10 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   //}
 
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
+
+  // autotune measures full launches at the tuned thread count, which is what it fits its model to
+
+  if (is_autotune == false) kernel_threads = launch_threads_short_batch (hashconfig, device_param, kern_run, num, kernel_threads);
 
   // A DIMY kernel runs salt_dimy rows of kernel_threads work items in one block, but the compiled
   // kernel can allow fewer threads per block than that, and the launch then fails. The kernels step
@@ -14536,6 +14600,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_threads_min = hashconfig->kernel_threads_min;
     device_param->kernel_threads_max = hashconfig->kernel_threads_max;
 
+    device_param->kernel_threads_fixed = false;
+
     tuning_db_entry_t *tuningdb_entry = NULL;
 
     if (user_options->slow_candidates == true)
@@ -15440,6 +15506,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->kernel_threads_min = fixed_local_size;
             device_param->kernel_threads_max = fixed_local_size;
+
+            device_param->kernel_threads_fixed = true;
           }
           else if (sscanf (jit_build_options, "-D FORCED_THREAD_COUNT=%u", &fixed_local_size) == 1)
           {
@@ -15447,6 +15515,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             device_param->kernel_threads_min = fixed_local_size;
             device_param->kernel_threads_max = fixed_local_size;
+
+            device_param->kernel_threads_fixed = true;
           }
           else
           {
@@ -16472,7 +16542,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     //    u32 kernel_threads = get_kernel_threads (device_param);
 
-    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    // A thread count the module fixed is left alone. An OpenCL kernel built with a fixed local size
+    // only launches with exactly that size, so capping it fails every launch with
+    // CL_INVALID_WORK_GROUP_SIZE.
+
+    if ((user_options->attack_mode == ATTACK_MODE_ASSOCIATION) && (device_param->kernel_threads_fixed == false))
     {
       // the smaller the kernel_threads the more accurate we can set kernel_accel
       // in autotune. in this attack mode kernel_power is limited by salts_cnt so we

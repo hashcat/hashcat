@@ -1,0 +1,32 @@
+name: Feature request
+description: A new option, attack, output format or other change to how hashcat works.
+labels: ["new feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a new hash mode, use the "New hash mode" form instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and why hashcat does not do it well today.
+    validations:
+      required: true
+  - type: textarea
+    id: feature
+    attributes:
+      label: The feature
+      description: What hashcat should do. An example command and the output you would expect help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways you considered, or how you work around it now.
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Ideas for the implementation, links or other context.

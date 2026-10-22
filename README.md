@@ -7,28 +7,25 @@ hashcat is a highly optimized password recovery platform for GPUs, CPUs, and lar
 * World's fastest password cracker
 * World's first and only in-kernel rule engine, usable in every attack mode
 * Free and open source, under the MIT license
-* Multi-OS: Linux, Windows and macOS, and builds from source on FreeBSD, OpenBSD, NetBSD and DragonflyBSD
+* Multi-OS: Linux, Windows and macOS, and builds from source on BSD and Android
 * Multi-backend: CUDA, HIP, Metal and OpenCL
 * Multi-device: several devices, and mixed device types, in one system
 * Multi-hash: cracks large numbers of hashes at once
 * Over 630 hash modes, each written with performance in mind
-* Hash recipes: write a hash as an expression, such as `md5(md5(salt) . pass)`, and crack it at close to the speed of a built-in mode
-* 10 attack modes: wordlist, combination, brute-force, PCFG, table, two hybrids, a mask that says where the word goes, generic plugin feeds and association
+* Hash recipes: write a hash as an expression, such as `pbkdf2_sha256(md5(pass), salt, iter, 32)`, fully GPU accelerated
+* 10 attack modes for password candidate generation
 * Assimilation bridge: add a hash mode in C, Python or Rust, without writing a kernel
 * Brain: skips candidates an earlier session already tried
 * Distributed cracking networks, using an overlay
 * Reads candidates from a wordlist, from stdin, or from another program
 * Reads wordlists compressed with gzip, xz or zstd
-* Seekable wordlists: each device starts reading at its own range instead of skipping every earlier line
+* Seekable wordlists
 * Markov chain keyspace ordering, so the likely candidates come first
 * Automatic performance tuning per device
-* Interactive pause and resume
+* Interactive pause, resume, rewind and advance
 * Named sessions, and restore after an interruption
 * Built-in benchmark
 * Integrated thermal watchdog
-* Hex salt and hex charset, for hashes and character sets that are not text
-* Encrypted plains: crack a hash for someone else without being able to read the password
-* Keyboard layout mapping, for full disk encryption passwords typed on a non-US keyboard
 
 ### License ###
 
@@ -66,9 +63,7 @@ The [docs](docs/) directory covers each feature. The ones people ask about most:
 * [Plugin development guide](docs/hashcat-plugin-development-guide.md), for adding a hash mode
 * [Assimilation bridge](docs/hashcat-assimilation-bridge.md), and its [Python](docs/hashcat-python-plugin-quickstart.md) and [Rust](docs/hashcat-rust-plugin-quickstart.md) quickstarts
 * [Generic attack mode](docs/hashcat-generic-attack-mode.md), [PCFG](docs/hashcat-pcfg.md), [table](docs/hashcat-table.md) and [association](docs/hashcat-association.md) attacks
-* [Brain](docs/hashcat-brain.md), [slow candidates](docs/slow-candidates-mode.md), [encrypted plains](docs/hashcat-encrypted-plains.md)
-* [Keyboard layout mapping](docs/keyboard-layout-mapping.md)
-* [Compression libraries](docs/hashcat-compression-libraries.md), for reading gzip, xz and zstd wordlists
+* [Brain](docs/hashcat-brain.md), for skipping candidates an earlier session already tried
 * [Release notes for v7.1.0](docs/releases_notes_v7.1.0.md), and the full [changelog](docs/changes.txt)
 
 ### Contributing ###

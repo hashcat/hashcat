@@ -124,23 +124,14 @@ Hash-mode 4000 cracks hashes described by a recipe on the command line, such as
 "md5(md5(salt) . pass)" or "hmac_sha256(salt, upper(pass))". Hashcat compiles the recipe into a
 kernel at startup, so most recipes run close to the speed of a matching built-in pure kernel.
 
-Recipes use the syntax of hx, the hash expression language. They combine MD2, MD4, MD5, SHA-0,
-SHA-1, SHA-2, SHA-3, Keccak, RIPEMD, BLAKE2, SM3, Whirlpool, Streebog, GOST R 34.11-94, HAVAL,
-Tiger, Snefru and MySQL323 with HMAC, PBKDF2 and AES. The SHA-3 candidates BLAKE, BMW, CubeHash,
-ECHO, Fugue, Groestl, Hamsi, JH, Luffa, Shabal, SHAvite-3, SIMD and Skein are available as well, and
-so are HAS-160, EDON-R, MD6, RadioGatun, PANAMA, DES and LM. Functions such as upper, rev and pad
-transform passwords and salts, salts stored as hex or base64 are decoded with fromhex and
-frombase64, and digests can be sliced or re-encoded. A recipe can also span several statements that
-assign variables, as in "h = md5(salt); md5(h . pass)". Recipes can loop, as in
-"for i = 1 to iter { h = md5_bin(h . pass) }", derive keys with pbkdf2, decrypt or unwrap with AES
-and end in a comparison, so slow formats such as phpass, PBKDF2 hashes and 1Password agilekeychain
-run as recipes too. The iteration count can come from each hash line, and results can be base64 as
-well as hex. Recipes can read a second salt, a pepper and the user name from the hash line, combine
-values with xor, and and or, encode with utf16be, and apply rev(), pad(), cut() and the other
-transforms to hash outputs, loop variables and derived keys as well. The last statement can compare
-two computed values as well as a value and a constant. Many custom schemes can now use a recipe in
-place of a dedicated mode or the slower dynamic plugin of mode 74000. See
-"docs/hashcat-hash-recipe.md".
+Recipes use the syntax of hx, the hash expression language. They combine the MD, SHA, SHA-3, RIPEMD,
+BLAKE and Skein families, Whirlpool, Streebog, GOST R 34.11-94, HAVAL, Tiger, Snefru, MD6, MDC-2,
+LM, MySQL323 and the SHA-3 candidates, among others, with HMAC, PBKDF2, AES and DES. Transforms
+change case, encoding, byte order and length, decode hex and base64, and combine values with xor,
+and and or. Recipes can assign variables, loop, read the iteration count, a second salt, a pepper or
+the user name from each hash line, and end in a comparison. This covers slow formats such as phpass
+and PBKDF2 hashes, and with "--dynamic-x" hashcat runs John the Ripper's dynamic formats as recipes.
+See "docs/hashcat-hash-recipe.md".
 
 The same engine now replaces the pure kernels of 182 fast hash modes, including MD5, NTLM and the
 HMAC-MD5, HMAC-SHA1, HMAC-SHA256 and HMAC-SHA512 modes. It also runs 47 slow modes, such as
@@ -217,6 +208,14 @@ changes that may require action.
   Attack-modes 1, 6, 7 and 12 share one row. Custom mode 9 rows must use kernel 0
 - The PCFG device engine now rejects "-j" and "-k". These options still work with host generation,
   including slow hashes, "--stdout" and "--slow-candidates"
+- Options that have no effect in the current action or attack mode are now ignored, where many of
+  them were refused before. Combining 2 action options, or a pair that contradicts each other such
+  as "--potfile-disable" with "--potfile-path", is now refused
+- Options that only some hash modes read, such as "--truecrypt-keyfiles", "--eapol-message-pair"
+  and "--scrypt-tmto", now belong to their modules. They are refused instead of ignored when given
+  with a hash mode that does not read them
+- Key presses are read only when stdin is a terminal. Wrappers that sent "s", "c" or "q" through a
+  pipe lose those controls. The "--status" option with "--status-json" still reports the status
 
 ## Hash mode output formats
 
@@ -368,8 +367,8 @@ changes that may require action.
 - The core exports a defined plugin API. Host hash and cipher functions remain available even
   when no bundled plugin uses them
 - Module ports must remove "module_dictstat_disable", set defaults for "module_hash_hints",
-  "module_length_sort", "module_usage_notice" and "module_advice_notice", and pass
-  "hashcat_ctx" to extra-parameter init and term hooks
+  "module_length_sort", "module_benchmark_cost", "module_usage_notice" and "module_advice_notice",
+  and pass "hashcat_ctx" to extra-parameter init and term hooks. Every hook is checked at load time
 - The "hc_device_param_t" structure now stores kernels, programs and buffers in arrays indexed by
   "hc_dev_kern_t", "hc_dev_program_t" and "hc_dev_buf_t". Update old numbered member accesses
 - Bridge entry points now receive "hashcat_ctx". Bridges must set work-item granularity and
@@ -384,6 +383,13 @@ changes that may require action.
   hash recipe instead of kernels of its own. Every module sets it in "module_init()", and
   "MODULE_DEFAULT" if it has no recipe. See "Kernel: fast hash type (recipe)" and the porting
   section in the plugin guide
+- Modules have a new "module_register_options()" hook for options of their own, read back with
+  "module_option_given()", "module_option_u32()" and "module_option_str()". Every module sets it in
+  "module_init()", and "MODULE_DEFAULT" if it has no options
+- The "module_extra_tuningdb_block()" hook returns "char *" and hands the buffer to hashcat, which
+  frees it. A plugin has to return a heap copy, not a static string
+- Programs that fill "user_options_t" themselves and call "hashcat_session_init()" now get the same
+  option checks as the hashcat binary
 - Native builds now target the build CPU. Use "MAINTAINER_MODE=1" for release builds or
   "MCPU=<core>" for a chosen target. Mixed native and cross targets are rejected
 - Rust plugins now require Cargo 1.85
@@ -445,6 +451,9 @@ changes that may require action.
 - Added mode 38500: Kerberos 5, etype 3, TGS-REP
 - Added mode 38600: Kerberos 5, etype 3, AS-REP
 - Added mode 38700: FreeBSD GELI
+- Added mode 38800: OpenBSD softraid FDE (PBKDF2-HMAC-SHA1)
+- Added mode 38810: OpenBSD softraid FDE (bcrypt-pbkdf)
+- Added mode 38900: Google fscrypt (Argon2id)
 - Added mode 40000: XCA database password
 - Added mode 40001: OSPFv2/RIPv2 MD5 authentication
 - Added mode 40002: Huawei / H3C / HPE Comware $h$6$
@@ -536,8 +545,14 @@ changes that may require action.
 - Added "tools/routeros2hashcat.py" for mode 38000 RouterOS backups, unpacked directories
   and monolithic config stores
 - Added "tools/pkcs12_to_hashcat.py" for modes 24430 and 24440 ".pfx" and ".p12" stores
+- Added "tools/krb5db2hashcat.py" for Kerberos keys from mimikatz, secretsdump, DSInternals and
+  ntdissector output (modes 28800, 28900 and 38400)
 - Added "tools/geli2hashcat.py" for mode 38700 FreeBSD GELI providers, disk images and "geli backup"
   files
+- Added "tools/openbsd_softraid2hashcat.py" to extract mode 38800 and 38810 hashes from OpenBSD
+  softraid CRYPTO volumes
+- Added "tools/fscrypt2hashcat.py" to extract mode 38900 hashes from fscrypt login and custom
+  protectors
 - The "tools/metamask2hashcat.py" tool now reads vaults from both "persist-root" and
   "persist-KeyringController" browser storage
 - The "tools/bitwarden2hashcat.py" tool now reads mode 23400 key hashes and KDF iterations stored
@@ -680,6 +695,10 @@ Results depend on the device, runtime and workload.
   on a Radeon RX 7900 XTX
 - Reading the Streebog lookup tables from constant memory under HIP speeds the Streebog modes by
   7-42% on an RX 7900 XTX and 15-58% on a Radeon iGPU, and the VeraCrypt Streebog modes by 16-85%
+- Slow hash modes fill each launch with several rules, combinator words or mask positions when a
+  batch has fewer base words than the launch holds
+- Slow hash modes spread a batch smaller than one full launch over every compute unit, which speeds
+  up small wordlists and the end of every wordlist
 
 ##
 ## Improvements
@@ -744,6 +763,8 @@ Results depend on the device, runtime and workload.
 - The pure kernels of 37 more fast hash modes and 29 slow ones, such as Whirlpool, Streebog, SHA-3,
   phpass, Drupal7 and the SCRAM modes, now run as hash recipes and their 135 pure kernel files are
   removed. Optimized kernels and hash formats are unchanged
+- GOST R 34.11-94, SHA-3, Keccak and vBulletin >= v3.8.5 had optimized kernels only. Without "-O"
+  they now run hash recipes and accept passwords of up to 256 bytes
 
 ## Attack modes and candidate input
 
@@ -757,6 +778,9 @@ Results depend on the device, runtime and workload.
   early candidates when a run stops
 - Feeds can find shared data and skip keyspace positions without candidates through
   "GENERIC_RC_SKIP". The "rust_random" feed builds when Rust is available
+- Attack-mode 0 without a wordlist now stops at once when stdin is a terminal and names the file it
+  took as the hash file, instead of loading a wordlist given in its place as hashes. Typing
+  candidates by hand now needs a pipe, such as "cat | hashcat"
 
 ## Hash lists and potfile
 
@@ -787,6 +811,10 @@ Results depend on the device, runtime and workload.
 - Parse errors name hashes passed on the command line. Separator and token-length errors
   show the failing text and expected format
 - Initial wordlist scans now display throughput in MiB/s
+- Autodetect and hash loading refuse a wordlist given in place of the hash file, and report when the
+  hash file and the wordlist look swapped
+- Options that modules register are collected at startup and cached in one file, which rebuilds
+  itself when a module changes. The "HASHCAT_MODULE_CACHE_DISABLE=1" setting turns the cache off
 
 ## Interface and status
 
@@ -826,7 +854,7 @@ Results depend on the device, runtime and workload.
 - The "hc_fopen_mem()" function reads an existing memory buffer through the normal file interface
 - Rust bridges share "hashcat-sys" and build crates under "Rust/bridges" into
   "bridges/subs". CI builds and tests both plugin families
-- Modules can set "module_benchmark_hint" to show their own cost parameters in the benchmark header
+- Modules can set "module_benchmark_cost" to show their own cost parameters in the benchmark header
 - Bridges can return a fixed "kernel_accel" and "kernel_loops" for a unit through
   "get_unit_tuning", which skips autotune for that unit
 
@@ -1141,6 +1169,18 @@ Results depend on the device, runtime and workload.
 - Fixed mode 200 never cracking passwords that contain a space or a tab. MySQL323 skips both
   characters when it hashes a password, but the kernels hashed them like any other byte
 - Fixed mode 6900 never cracking the empty password
+- Fixed mode 5500 accepting a NetNTLMv1 hash whose last ciphertext block does not fit its
+  challenge, which could never crack
+- Fixed mode 10700 failing with CL_INVALID_WORK_GROUP_SIZE on AMD GPUs under OpenCL
+- Fixed "-a 9" failing with CL_INVALID_WORK_GROUP_SIZE under OpenCL for hash modes that fix their
+  thread count, such as mode 10700
+- Fixed Argon2 modes failing the self-test on a hash with a high parallelism, such as 12 or 16,
+  which needs more rows than the kernel can launch
+- Fixed Argon2 modes missing hashes in a hash list with mixed parallelism, or in "-a 9", on OpenCL
+  platforms other than AMD and NVIDIA
+- Fixed "-a 9" missing Argon2 hashes in a hash list with mixed memory cost
+- Fixed Argon2 modes under AMD OpenCL on GCN and CDNA GPUs, where the cross-lane shuffle read lanes
+  of another row
 
 ## Backends: OpenCL, tuning and memory
 
@@ -1186,6 +1226,8 @@ Results depend on the device, runtime and workload.
   association attack on a single salt
 - Fixed HIP kernels failing to build when the path of the hashcat directory holds the word "linux"
   or "unix", which a GNU C++ dialect predefines as macros
+- Fixed devices left idle when fewer base words remained than one launch on every device, which
+  with a small wordlist and many rules could idle a device for the whole run
 
 ## Backends: Metal and resource lifecycle
 
@@ -1208,6 +1250,7 @@ Results depend on the device, runtime and workload.
   (issue 2507)
 - Fixed the Metal backend never releasing the command buffer and encoder of each kernel launch and
   copy, which grew memory for as long as a run lasted
+- Fixed a memory leak of the tuning block in the scrypt and Argon2 modes
 
 ## Backends: bridges and hardware monitoring
 
@@ -1307,6 +1350,7 @@ Results depend on the device, runtime and workload.
   cracked hashes in the outfile and potfile did not match the hash that was loaded
 - Fixed loading a large potfile taking hours for modes with a large esalt or hook salt, such as
   BitLocker, 7-Zip, KeePass and WinZip, which cleared it for every line of the potfile
+- Fixed "--keep-guessing" changing what "--show" and "--left" print
 
 ## Brain
 
@@ -1358,6 +1402,14 @@ Results depend on the device, runtime and workload.
 - Fixed "-I" and "-II" with "--machine-readable" emitting invalid JSON when a path contained a
   double quote or a backslash. "--outfile-json" lines now use the same spaced style,
   { "hash_hex": ... }, which parsers do not notice but byte-exact matching does
+- Fixed a crash when "--identify" was combined with "--stdout" or "--benchmark", which are now
+  refused
+- Fixed key presses being read from stdin when it is not a terminal, where a wordlist redirected
+  into a mask attack could pause, checkpoint or quit the run
+- Fixed "-d" and "-D" crashing on a device list made only of commas, and more than 256 "-r" options
+  overflowing the rules file list
+- Fixed "-n" and "-T" values outside the range of the hash mode being dropped silently instead of
+  refused
 
 ## Windows
 
@@ -1381,6 +1433,8 @@ Results depend on the device, runtime and workload.
   install path inside a "-D" value
 - Fixed CUDA not receiving "OpenCL/inc_*" headers in memory, which broke kernel builds when the
   install path contains non-ASCII characters
+- Fixed the TrueCrypt and VeraCrypt Whirlpool modes crashing with a stack overflow under HIP on
+  Windows
 
 ## Build and packaging
 
