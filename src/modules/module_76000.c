@@ -202,7 +202,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, tmp_buf);
 
-  if (tmp_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
+  if (tmp_len != (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, tmp_len);
 
