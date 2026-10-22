@@ -63,7 +63,10 @@ typedef struct vc64_sbog_tmp
 
 } vc64_sbog_tmp_t;
 
-DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS const kernel_param_t *kernel_param, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+// The digest index is a parameter because DIGESTS_OFFSET_HOST is a function of the global id in
+// attack mode 9, and a function body has no id. The callers are kernels and have one.
+
+DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, const u64 digests_offset, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -85,16 +88,16 @@ DECLSPEC int check_header_0512 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS cons
   key2[6] = hc_swap32_S (h32_from_64_S (key[0]));
   key2[7] = hc_swap32_S (l32_from_64_S (key[0]));
 
-  if (verify_header_serpent    (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2) == 1) return 0;
-  if (verify_header_twofish    (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2) == 1) return 0;
-  if (verify_header_camellia   (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2) == 1) return 0;
-  if (verify_header_kuznyechik (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2) == 1) return 0;
-  if (verify_header_aes        (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
+  if (verify_header_serpent    (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2) == 1) return 0;
+  if (verify_header_twofish    (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2) == 1) return 0;
+  if (verify_header_camellia   (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2) == 1) return 0;
+  if (verify_header_kuznyechik (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2) == 1) return 0;
+  if (verify_header_aes        (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
 
-DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS const kernel_param_t *kernel_param, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, const u64 digests_offset, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -134,18 +137,18 @@ DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS cons
   key4[6] = hc_swap32_S (h32_from_64_S (key[ 8]));
   key4[7] = hc_swap32_S (l32_from_64_S (key[ 8]));
 
-  if (verify_header_serpent_aes         (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
-  if (verify_header_twofish_serpent     (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4) == 1) return 0;
-  if (verify_header_aes_twofish         (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
-  if (verify_header_camellia_kuznyechik (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4) == 1) return 0;
-  if (verify_header_camellia_serpent    (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4) == 1) return 0;
-  if (verify_header_kuznyechik_twofish  (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4) == 1) return 0;
-  if (verify_header_kuznyechik_aes      (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
+  if (verify_header_serpent_aes         (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
+  if (verify_header_twofish_serpent     (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_aes_twofish         (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
+  if (verify_header_camellia_kuznyechik (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_camellia_serpent    (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_kuznyechik_twofish  (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4) == 1) return 0;
+  if (verify_header_kuznyechik_aes      (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
 
-DECLSPEC int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS const kernel_param_t *kernel_param, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, const u64 digests_offset, GLOBAL_AS u64 *key, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 key1[8];
   u32 key2[8];
@@ -203,14 +206,14 @@ DECLSPEC int check_header_1536 (GLOBAL_AS const vc_t *esalt_bufs, GLOBAL_AS cons
   key6[6] = hc_swap32_S (h32_from_64_S (key[16]));
   key6[7] = hc_swap32_S (l32_from_64_S (key[16]));
 
-  if (verify_header_serpent_twofish_aes         (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
-  if (verify_header_kuznyechik_serpent_camellia (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4, key5, key6) == 1) return 0;
-  if (verify_header_aes_twofish_serpent         (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
+  if (verify_header_serpent_twofish_aes         (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
+  if (verify_header_kuznyechik_serpent_camellia (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4, key5, key6) == 1) return 0;
+  if (verify_header_aes_twofish_serpent         (esalt_bufs[digests_offset].data_buf, esalt_bufs[digests_offset].signature, key1, key2, key3, key4, key5, key6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1) return 0;
 
   return -1;
 }
 
-DECLSPEC void hmac_streebog512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u64x *ipad_hash, PRIVATE_AS u64x *opad_hash, PRIVATE_AS u64x *ipad_raw, PRIVATE_AS u64x *opad_raw, PRIVATE_AS u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
+DECLSPEC void hmac_streebog512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u64x *ipad_hash, PRIVATE_AS u64x *opad_hash, PRIVATE_AS u64x *ipad_raw, PRIVATE_AS u64x *opad_raw, PRIVATE_AS u64x *digest, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   const u64x nullbuf[8] = { 0 };
   u64x counterbuf[8]    = { 0 };
@@ -303,6 +306,17 @@ KERNEL_FQ KERNEL_FA void m13773_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_cnt;
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its hash from the global id, so a copy shared by the whole
+  // workgroup would hold a different hash's keyboard layout map in every slot. The map is read
+  // out of global memory instead, which is what KEYBOARD_MAP_AS carries into the function that
+  // walks it.
+
+  GLOBAL_AS const keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_buf;
+
+  #else
+
   LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -312,7 +326,9 @@ KERNEL_FQ KERNEL_FA void m13773_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
 
   SYNC_THREADS ();
 
-  #ifdef REAL_SHM
+  #endif
+
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 
@@ -573,7 +589,7 @@ KERNEL_FQ KERNEL_FA void m13773_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
    * shared lookup table
    */
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 
@@ -832,17 +848,17 @@ KERNEL_FQ KERNEL_FA void m13773_loop_extended (KERN_ATTR_TMPS_ESALT (vc64_sbog_t
 
   if (pim_check)
   {
-    if (check_header_0512 (esalt_bufs, kernel_param, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    if (check_header_0512 (esalt_bufs, DIGESTS_OFFSET_HOST, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
       tmps[gid].pim = pim_check;
     }
 
-    if (check_header_1024 (esalt_bufs, kernel_param, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    if (check_header_1024 (esalt_bufs, DIGESTS_OFFSET_HOST, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
       tmps[gid].pim = pim_check;
     }
 
-    if (check_header_1536 (esalt_bufs, kernel_param, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    if (check_header_1536 (esalt_bufs, DIGESTS_OFFSET_HOST, tmps[gid].pim_key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
       tmps[gid].pim = pim_check;
     }
@@ -919,7 +935,7 @@ KERNEL_FQ KERNEL_FA void m13773_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
   }
   else
   {
-    if (check_header_0512 (esalt_bufs, kernel_param, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    if (check_header_0512 (esalt_bufs, DIGESTS_OFFSET_HOST, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
@@ -927,7 +943,7 @@ KERNEL_FQ KERNEL_FA void m13773_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
       }
     }
 
-    if (check_header_1024 (esalt_bufs, kernel_param, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    if (check_header_1024 (esalt_bufs, DIGESTS_OFFSET_HOST, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
@@ -935,7 +951,7 @@ KERNEL_FQ KERNEL_FA void m13773_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
       }
     }
 
-    if (check_header_1536 (esalt_bufs, kernel_param, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
+    if (check_header_1536 (esalt_bufs, DIGESTS_OFFSET_HOST, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {

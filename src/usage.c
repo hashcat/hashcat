@@ -7,7 +7,9 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
 #include "interface.h"
+#include "module_options.h"
 #include "usage.h"
 
 static const char *const USAGE_MINI[] =
@@ -18,6 +20,13 @@ static const char *const USAGE_MINI[] =
   NULL
 };
 
+// Where --help lists the options the modules registered, see module_options_usage (). The table has no
+// rows of its own for them, because which hash-modes read them is up to the modules. The marker is
+// found by its text, not by its address: a toolchain that folds identical constants, as clang with
+// LTO does, can give an empty marker the address of every blank line in the table.
+
+static const char USAGE_MODULE_OPTIONS[] = "<module options>";
+
 static const char *const USAGE_BIG_PRE_HASHMODES[] =
 {
   "Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]...",
@@ -27,6 +36,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " Options Short / Long           | Type | Description                                          | Example",
   "================================+======+======================================================+=======================",
   " -m, --hash-type                | Num  | Hash-type, references below (otherwise autodetect)   | -m 1000",
+  "     --hash-recipe              | Str  | Hash recipe for hash-mode 4000                       | --hash-recipe 'md5(md5(salt) . pass)'",
   " -a, --attack-mode              | Num  | Attack-mode, see references below                    | -a 3",
   " -V, --version                  |      | Print version                                        |",
   " -h, --help                     |      | Print help. Use -hh to show all supported hash-modes | -h or -hh",
@@ -36,9 +46,13 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --hex-wordlist             |      | Assume words in wordlist are given in hex            |",
   "     --force                    |      | Ignore warnings                                      |",
   "     --deprecated-check-disable |      | Enable deprecated plugins                            |",
+  "     --pipeline-stats          |      | Show where each launch's time goes, per device       |",
+  "     --task-time-breakdown     |      | Show where the run's wall clock went, by stage       |",
   "     --status                   |      | Enable automatic update of the status screen         |",
   "     --status-json              |      | Enable JSON format for status output                 |",
+  "     --json                     |      | Enable JSON format for all output                    |",
   "     --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1",
+  "     --stdin-count              | Num  | Expected number of lines on stdin, for the ETA       | --stdin-count=1000000",
   "     --stdin-timeout-abort      | Num  | Abort if there is no input from stdin for X seconds  | --stdin-timeout-abort=300",
   "     --machine-readable         |      | Display the status view in a machine-readable format |",
   "     --keep-guessing            |      | Keep guessing the hash after it has been cracked     |",
@@ -52,9 +66,10 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --metal-compiler-runtime   | Num  | Abort Metal kernel build after X seconds of runtime  | --metal-compiler-runtime=180",
   "     --runtime                  | Num  | Abort session after X seconds of runtime             | --runtime=10",
   "     --session                  | Str  | Define specific session name                         | --session=mysession",
-  "     --restore                  |      | Restore session from --session                       |",
+  "     --restore                  |      | Show the command line to resume --session, then stop  |",
   "     --restore-disable          |      | Do not write restore file                            |",
   "     --restore-file-path        | File | Specific path to restore file                        | --restore-file-path=x.restore",
+  "     --restore-position         |      | Take only the position from the restore file         |",
   " -o, --outfile                  | File | Define outfile for recovered hash                    | -o outfile.txt",
   "     --outfile-format           | Str  | Outfile format to use, separated with commas         | --outfile-format=1,3",
   "     --outfile-json             |      | Force JSON format in outfile format                  |",
@@ -66,32 +81,28 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --show                     |      | Compare hashlist with potfile; show cracked hashes   |",
   "     --left                     |      | Compare hashlist with potfile; show uncracked hashes |",
   "     --username                 |      | Enable ignoring of usernames in hashfile             |",
-  "     --dynamic-x                |      | Ignore $dynamic_X$ prefix in hashes                  |",
+  "     --dynamic-x                |      | Load hashes written in John's $dynamic_X$ format     |",
   "     --remove                   |      | Enable removal of hashes once they are cracked       |",
   "     --remove-timer             | Num  | Update input hash file each X seconds                | --remove-timer=30",
   "     --potfile-disable          |      | Do not write potfile                                 |",
   "     --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot",
   "     --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15",
   "     --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le",
-  "     --debug-mode               | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4",
+  "     --debug-mode               | Num  | Defines the debug mode, needs rules or a feed        | --debug-mode=4",
   "     --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log",
   "     --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",
   "     --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x",
+  "     --cache-path               | Dir  | Specify the directory hashcat caches everything in   | --cache-path=/mnt/hccache",
   "     --logfile-disable          |      | Disable the logfile                                  |",
-  "     --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2",
-  "     --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16",
-  "     --keyboard-layout-mapping  | File | Keyboard layout mapping table for special hash-modes | --keyb=german.hckmap",
-  "     --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-keyf=x.png",
-  "     --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt",
-  "     --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450",
-  "     --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500",
+  USAGE_MODULE_OPTIONS,
   " -b, --benchmark                |      | Run benchmark of selected hash-modes                 |",
+  " -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |",
   "     --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |",
-  "     --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100",
-  "     --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
+  "     --benchmark-json           |      | Enable JSON format for benchmark output              |",
+  "     --benchmark-min            | Num  | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100",
+  "     --benchmark-max            | Num  | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
-  " -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
   "     --bridge-parameter1        | Str  | Sets the generic parameter 1 for a Bridge            |",
@@ -109,27 +120,27 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -I, --backend-info             |      | Show system/environment/backend API info             | -I or -II",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
   " -Y, --backend-devices-virtmulti| Num  | Spawn X virtual instances on a real device           | -Y 8",
-  " -R, --backend-devices-virthost | Num  | Sets the real device to create virtual instances     | -R 1",
-  "     --backend-devices-keepfree | Num  | Keep specified percentage of device memory free      | --backend-devices-keepfree=5",
+  " -R, --backend-devices-virthost | Num  | Sets the real device that runs the virtual instances | -R 2",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
   " -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |",
   " -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |",
-  " -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3",
   " -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
   " -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
   " -T, --kernel-threads           | Num  | Manual workload tuning, set thread count to X        | -T 64",
   "     --backend-vector-width     | Num  | Manually override backend vector-width to X          | --backend-vector-width=4",
+  "     --length-sort-disable      |      | Disable ordering candidates by password length       |",
   "     --spin-damp                | Num  | Use CPU for device synchronization, in percent       | --spin-damp=10",
   "     --hwmon-disable            |      | Disable temperature and fanspeed reads and triggers  |",
   "     --hwmon-temp-abort         | Num  | Abort if temperature reaches X degrees Celsius       | --hwmon-temp-abort=100",
-  "     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
   " -s, --skip                     | Num  | Skip X words from the start                          | -s 1000000",
   " -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000",
   "     --keyspace                 |      | Show keyspace base:mod values and quit               |",
   "     --total-candidates         |      | Show total candidate count (base*mod) and quit       |",
+  "     --lookup                   | Str  | Show where this attack reaches candidate X and quit  | --lookup=hashcat",
   " -j, --rule-left                | Rule | Single rule applied to each word from left wordlist  | -j 'c'",
   " -k, --rule-right               | Rule | Single rule applied to each word from right wordlist | -k '^-'",
   " -r, --rules-file               | File | Multiple rules applied to each word from wordlists   | -r rules/best66.rule",
+  "     --rules-concat             |      | Use the -r files as one list instead of chaining them |",
   " -g, --generate-rules           | Num  | Generate X random rules                              | -g 10000",
   "     --generate-rules-func-min  | Num  | Force min X functions per rule                       |",
   "     --generate-rules-func-max  | Num  | Force max X functions per rule                       |",
@@ -154,16 +165,18 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   #ifdef WITH_BRAIN
   "     --brain-server             |      | Enable brain server                                  |",
   "     --brain-server-timer       | Num  | Update the brain server dump each X seconds (min:60) | --brain-server-timer=300",
-  " -z, --brain-client             |      | Enable brain client, activates -S                    |",
+  " -z, --brain-client             |      | Enable brain client, activates -S unless features=2  |",
+  "     --brain-feed               |      | Hash stdin into a running brain, needs --brain-session|",
   "     --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3",
   "     --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1",
-  "     --brain-port               | Port | Brain server port                                    | --brain-port=13743",
+  "     --brain-port               | Port | Brain server port (default 6863)                     | --brain-port=6863",
   "     --brain-password           | Str  | Brain server authentication password                 | --brain-password=bZfhCvGUSjRq",
   "     --brain-session            | Hex  | Overrides automatically calculated brain session     | --brain-session=0x2ae611db",
   "     --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db",
   #endif
   "     --color-cracked            |      | Enables color output for cracked hashes              |",
   "     --hash-copy                |      | Output hashes identically to the input hash          |",
+  "     --encrypt-with-pubkey      | File | Encrypt recovered plains with an RSA public key      | --encrypt-with-pubkey=public.pem",
   "",
   NULL
 };
@@ -198,6 +211,10 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  2 | Send attack positions",
   "  3 | Send hashed passwords and attack positions",
   "",
+  "Feature 1 needs every candidate on the host and therefore activates -S. Feature 2 works from",
+  "keyspace positions alone, so --brain-client-features=2 leaves candidate generation on the",
+  "device. That is the one to use for a fast hash.",
+  "",
   #endif
   "- [ Outfile Formats ] -",
   "",
@@ -210,7 +227,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  5 | timestamp absolute",
   "  6 | timestamp relative",
   "",
-  "- [ Rule Debugging Modes ] -",
+  "- [ Debugging Modes ] -",
   "",
   "  # | Format",
   " ===+========",
@@ -219,6 +236,9 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  3 | Original-Word:Finding-Rule",
   "  4 | Original-Word:Finding-Rule:Processed-Word",
   "  5 | Original-Word:Finding-Rule:Processed-Word:Wordlist",
+  "  6 | Original-Word:What-The-Feed-Did:Processed-Word",
+  "",
+  "  Finding-Rule needs -r or -g, except in attack modes 4, 5 and 8, where the feed fills it in.",
   "",
   "- [ Attack Modes ] -",
   "",
@@ -227,10 +247,13 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  0 | Straight",
   "  1 | Combination",
   "  3 | Brute-force",
+  "  4 | PCFG, a trained grammar makes the candidates",
+  "  5 | Table, tables say what each token may become",
   "  6 | Hybrid Wordlist + Mask",
   "  7 | Hybrid Mask + Wordlist",
   "  8 | Generic",
   "  9 | Association",
+  " 12 | Hybrid, mask says where the word goes",
   "",
   "- [ Built-in Charsets ] -",
   "",
@@ -245,22 +268,21 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  a | ?l?u?d?s",
   "  b | 0x00 - 0xff",
   "",
+  "- [ Attack-Mode 12 Markers ] -",
+  "",
+  "  ? | Marker",
+  " ===+========",
+  "  w | the word from the wordlist, required, once",
+  "  q | a word from a second wordlist, optional, after ?w",
+  "",
   "- [ OpenCL Device Types ] -",
   "",
   "  # | Device Type",
   " ===+=============",
   "  1 | CPU",
   "  2 | GPU",
-  "  3 | FPGA, DSP, Co-Processor",
   "",
-  "- [ Workload Profiles ] -",
-  "",
-  "  # | Performance | Runtime | Power Consumption | Desktop Impact",
-  " ===+=============+=========+===================+=================",
-  "  1 | Low         |   2 ms  | Low               | Minimal",
-  "  2 | Default     |  12 ms  | Economic          | Noticeable",
-  "  3 | High        |  96 ms  | High              | Unresponsive",
-  "  4 | Nightmare   | 480 ms  | Insane            | Headless",
+  "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.",
   "",
   "- [ License ] -",
   "",
@@ -275,9 +297,15 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  Wordlist         | $P$   | hashcat -a 0 -m 400 example400.hash example.dict",
   "  Wordlist + Rules | MD5   | hashcat -a 0 -m 0 example0.hash example.dict -r rules/best66.rule",
   "  Brute-Force      | MD5   | hashcat -a 3 -m 0 example0.hash ?a?a?a?a?a?a",
+  "  PCFG             | MD5   | hashcat -a 4 -m 0 example0.hash",
+  "  PCFG + ruleset   | MD5   | hashcat -a 4 -m 0 example0.hash /path/to/ruleset",
+  "  Table            | MD5   | hashcat -a 5 -m 0 example0.hash example.dict tables/leetspeak-common.table tables/toggle.table",
   "  Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict",
   "  Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule",
   "  Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule",
+  "  Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule",
+  "  Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash ?d?w?d?d example.dict",
+  "  Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash ?w-?q! example.dict example.dict",
   "",
   "If you still have no idea what just happened, try the following pages:",
   "",
@@ -361,6 +389,15 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
+      // an old number loads the module of its new number, so a module file left under it by an
+      // earlier build or install would list the hash-mode twice
+
+      if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
+      // a module that could not be loaded was reported when the options were collected
+
+      if (module_options_broken (user_options, (u32) i) == true) continue;
+
       const int rc = hashconfig_init (hashcat_ctx);
 
       if (rc == 0)
@@ -382,6 +419,13 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; USAGE_BIG_PRE_HASHMODES[i] != NULL; i++)
   {
+    if (strcmp (USAGE_BIG_PRE_HASHMODES[i], USAGE_MODULE_OPTIONS) == 0)
+    {
+      module_options_usage (user_options);
+
+      continue;
+    }
+
     printf ("%s", USAGE_BIG_PRE_HASHMODES[i]);
 
     fwrite (EOL, strlen (EOL), 1, stdout);

@@ -90,8 +90,8 @@ int cuda_init (void *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoD,             cuMemcpyDtoD_v2,           CUDA_CUMEMCPYDTOD,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoH,             cuMemcpyDtoH_v2,           CUDA_CUMEMCPYDTOH,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoD,             cuMemcpyHtoD_v2,           CUDA_CUMEMCPYHTOD,              CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32,              cuMemsetD32,               CUDA_CUMEMSETD32,               CUDA, 1);
-  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8,               cuMemsetD8,                CUDA_CUMEMSETD8,                CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD32,              cuMemsetD32_v2,            CUDA_CUMEMSETD32,               CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuMemsetD8,               cuMemsetD8_v2,             CUDA_CUMEMSETD8,                CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoDAsync,        cuMemcpyDtoDAsync_v2,      CUDA_CUMEMCPYDTODASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyDtoHAsync,        cuMemcpyDtoHAsync_v2,      CUDA_CUMEMCPYDTOHASYNC,         CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuMemcpyHtoDAsync,        cuMemcpyHtoDAsync_v2,      CUDA_CUMEMCPYHTODASYNC,         CUDA, 1);
@@ -209,6 +209,13 @@ int hc_cuInit (void *hashcat_ctx, unsigned int Flags)
 
   if (CU_err != CUDA_SUCCESS)
   {
+    // A machine carrying the CUDA runtime with no NVIDIA GPU in it reports this on every run, and
+    // an AMD or Intel machine with the toolkit installed is the ordinary case for it. The caller
+    // closes the runtime and moves on to the next backend, so nothing is wrong and nothing needs
+    // saying. Every other failure still gets named.
+
+    if (CU_err == CUDA_ERROR_NO_DEVICE) return -1;
+
     const char *pStr = NULL;
 
     if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
@@ -569,6 +576,52 @@ int hc_cuMemAlloc (void *hashcat_ctx, CUdeviceptr *dptr, size_t bytesize)
     else
     {
       event_log_error (hashcat_ctx, "cuMemAlloc(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuMemAllocHost (void *hashcat_ctx, void **pp, size_t bytesize)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemAllocHost (pp, bytesize);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    // Deliberately quiet. The one caller falls back to ordinary memory when this fails, and page
+    // locking a large buffer is exactly the allocation a loaded machine is entitled to refuse.
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_cuMemFreeHost (void *hashcat_ctx, void *p)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuMemFreeHost (p);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuMemFreeHost(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuMemFreeHost(): %d", CU_err);
     }
 
     return -1;

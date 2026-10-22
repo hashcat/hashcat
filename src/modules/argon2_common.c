@@ -13,36 +13,51 @@
 #include "memory.h"
 #include "argon2_common.h"
 
+// The blocks one hash of the attack needs, taken over the hashes actually loaded. The self-test hash
+// is deliberately not part of this: it is charged separately, because it costs a fixed amount rather
+// than an amount per accel. See get_selftest_memory_block_count ().
+
 u64 get_largest_memory_block_count (MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
-  merged_options_t *merged_options    = (merged_options_t *) hashes->esalts_buf;
-  merged_options_t *merged_options_st = (merged_options_t *) hashes->st_esalts_buf;
-
-  argon2_options_t *argon2_options    = &merged_options->argon2_options;
-  argon2_options_t *argon2_options_st = &merged_options_st->argon2_options;
+  merged_options_t *merged_options = (merged_options_t *) hashes->esalts_buf;
 
   u64 largest_memory_block_count = 0;
 
-  if (((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0) && (argon2_options_st != NULL))
-  {
-    largest_memory_block_count = argon2_options_st->memory_block_count;
-  }
-  else
-  {
-    largest_memory_block_count = argon2_options->memory_block_count;
-  }
-
   for (u32 i = 0; i < hashes->salts_cnt; i++)
   {
-    argon2_options = &merged_options[i].argon2_options;
+    argon2_options_t *argon2_options = &merged_options[i].argon2_options;
 
     largest_memory_block_count = MAX (largest_memory_block_count, argon2_options->memory_block_count);
   }
 
+  // Nothing loaded yet, which happens when the tuning block is consulted before the hashes are.
+  // Falling back to the self-test hash keeps the old behaviour for that case rather than dividing
+  // by zero further down.
+
+  if (largest_memory_block_count == 0) largest_memory_block_count = get_selftest_memory_block_count (hashconfig, hashes);
+
   return largest_memory_block_count;
 }
 
-const char *argon2_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
+// The self-test runs a single work item - selftest.c calls run_kernel () with num_elements 1 - so it
+// needs one hash worth of the extra buffer and no more. It used to be folded into the figure above,
+// which then multiplied it by kernel_accel: attacking a 16 MiB argon2 reserved as though every lane
+// were the self-test's 64 MiB, taking accel 355 where 1024 was affordable and 22.7 GB where 16.4 GB
+// was needed. On a card too small to hold accel lanes of the self-test's size, that is the difference
+// between running and not.
+
+u64 get_selftest_memory_block_count (MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
+{
+  if (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) return 0;
+
+  if (hashes->st_esalts_buf == NULL) return 0;
+
+  const merged_options_t *merged_options_st = (const merged_options_t *) hashes->st_esalts_buf;
+
+  return merged_options_st->argon2_options.memory_block_count;
+}
+
+char *argon2_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
 {
   hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
@@ -62,7 +77,12 @@ const char *argon2_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u64 spill_mem = 2048 * device_processors * device_maxworkgroup_size; // 1600 according to ptxas
 
-  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (fixed_mem + spill_mem);
+  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+
+  // a device that reports less than the reserve would underflow this on a u64, and the accel
+  // computed from the wrapped value asks for far more memory than the device has
+
+  const u64 available_mem = (usable_mem > (fixed_mem + spill_mem)) ? usable_mem - (fixed_mem + spill_mem) : 0;
 
   const u32 kernel_accel_max = (device_param->device_host_unified_memory == true) ? (available_mem / 2) / size_per_accel : available_mem / size_per_accel;
 
@@ -108,7 +128,29 @@ u64 argon2_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
 
   const u64 size_argon2 = device_param->kernel_accel_max * size_per_accel;
 
-  return size_argon2;
+  // Room for the self-test, which runs a single work item. backend.c splits the extra buffer into
+  // four equal sub-buffers (d_extra0 to d_extra3), so that one work item lands in a sub-buffer of
+  // about a quarter of the total. Reserve four self-test hashes' worth, so its sub-buffer holds the
+  // whole self-test hash however large it is, rather than a crack sized slice of it. Without this
+  // the self-test of a hash whose memory is larger than the loaded hashes' reads past its sub-buffer.
+
+  const u64 size_selftest = 4 * ARGON2_BLOCK_SIZE * get_selftest_memory_block_count (hashconfig, hashes);
+
+  return MAX (size_argon2, size_selftest);
+}
+
+int argon2_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // Every argon2 mode packs the cost parameters into the salt the same way: t (time) goes into
+  // salt_iter scaled by ARGON2_SYNC_POINTS, and m (memory in KiB) and p (parallelism) go into
+  // salt_buf_pc. Printed as plain Iterations, salt_iter reads as t * ARGON2_SYNC_POINTS rather than
+  // the t from the hash, so show the three parameters the way the hash spells them instead.
+
+  const u32 m = salt->salt_buf_pc[0];
+  const u32 t = salt->salt_iter / ARGON2_SYNC_POINTS;
+  const u32 p = salt->salt_buf_pc[1];
+
+  return snprintf (line_buf, line_size, "m=%u, t=%u, p=%u", m, t, p);
 }
 
 char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -131,6 +173,14 @@ char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
     build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D THREADS_PER_LANE=1 ");
   }
 
+  // A work item keeps its blocks at its index times ARGON2_TMP_ELEM, see get_argon2_block (). In -a 9 the
+  // work items of one launch are different hashes, and a stride of each hash's own block count puts a
+  // hash with fewer blocks inside the blocks of the hash before it in the same sub-buffer. The largest
+  // block count is the slot the extra buffer is sized for, see argon2_module_extra_buffer_size (). The
+  // self-test runs a single work item at index 0, which needs no stride.
+
+  build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D ARGON2_TMP_ELEM=%" PRIu64 " ", get_largest_memory_block_count (hashconfig, hashes));
+
   // We can apply some optimization logic under certain conditions
 
   merged_options_t *merged_options    = (merged_options_t *) hashes->esalts_buf;
@@ -139,35 +189,24 @@ char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   argon2_options_t *argon2_options    = &merged_options->argon2_options;
   argon2_options_t *argon2_options_st = &merged_options_st->argon2_options;
 
-  u64 memory_block_count = 0;
   u64 parallelism = 0;
 
   if (((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0) && (argon2_options_st != NULL))
   {
-    memory_block_count = argon2_options_st->memory_block_count;
-    parallelism        = argon2_options_st->parallelism;
+    parallelism = argon2_options_st->parallelism;
   }
   else
   {
-    memory_block_count = argon2_options->memory_block_count;
-    parallelism        = argon2_options->parallelism;
+    parallelism = argon2_options->parallelism;
   }
 
-  bool all_same_memory_block_count = true;
-  bool all_same_parallelism        = true;
+  bool all_same_parallelism = true;
 
   for (u32 i = 0; i < hashes->salts_cnt; i++)
   {
     argon2_options = &merged_options[i].argon2_options;
 
-    if (memory_block_count != argon2_options->memory_block_count) all_same_memory_block_count = false;
-
     if (parallelism != argon2_options->parallelism) all_same_parallelism = false;
-  }
-
-  if (all_same_memory_block_count == true)
-  {
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D ARGON2_TMP_ELEM=%" PRIu64 " ", memory_block_count);
   }
 
   if (all_same_parallelism == true)

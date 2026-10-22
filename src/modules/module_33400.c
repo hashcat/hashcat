@@ -57,8 +57,8 @@ typedef struct mega_tmp
   u64 ipad[8];
   u64 opad[8];
 
-  u64 dgst[24];
-  u64 out [24];
+  u64 dgst[8];
+  u64 out [8];
 } mega_tmp_t;
 
 typedef struct mega
@@ -89,13 +89,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   mega_t *mega = (mega_t *) esalt_buf;
 
-  if (line_buf[0] != 'P' || line_buf[1] != '!') return (PARSER_SIGNATURE_UNMATCHED);
+  // the two signature bytes are read before the line is known to hold two
+
+  if (line_len < 2) return (PARSER_SALT_LENGTH);
+
+  if ((line_buf[0] != 'P') || (line_buf[1] != '!')) return (PARSER_SIGNATURE_UNMATCHED);
 
   // the base64-decoded data after the P! is either 88 or 104 bytes, depending on whether it is a folder or a file link
   u8 decoded_buf[0x100];
 
   if (line_len > 142) return (PARSER_GLOBAL_LENGTH);
-  const size_t base64_decode_len = base64_decode (base64url_to_int, (u8 *)line_buf + 2, line_len - 2, decoded_buf);
+  const size_t base64_decode_len = base64_decode (base64url_to_int, (u8 *) line_buf + 2, line_len - 2, decoded_buf);
   /*
    * An extract from the mega.nz source code:
    *
@@ -118,7 +122,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (decoded_buf[0] != 2) return (PARSER_SALT_VALUE);
 
   // this is the "file/folder" field
-  if (decoded_buf[1] != 0 && decoded_buf[1] != 1) return (PARSER_SALT_VALUE);
+  if ((decoded_buf[1] != 0) && (decoded_buf[1] != 1)) return (PARSER_SALT_VALUE);
 
   const size_t expected_len = 1 + 1 + 6 + 32 + (decoded_buf[1] == 0 ? 16 : 32) + 32;
   if (base64_decode_len != expected_len) return (PARSER_GLOBAL_LENGTH);
@@ -128,7 +132,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // salt
 
   const u8 *salt_pos = decoded_buf + 8;
-  memcpy(salt->salt_buf, salt_pos, 32);
+  memcpy (salt->salt_buf, salt_pos, 32);
   salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
   salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
   salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
@@ -142,7 +146,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // digest (mac tag)
 
   const u8 *mac_pos = decoded_buf + 8 + 32 + (decoded_buf[1] == 0 ? 16 : 32);
-  memcpy(digest, mac_pos, 32);
+  memcpy (digest, mac_pos, 32);
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = byte_swap_32 (digest[2]);
@@ -158,8 +162,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // this is how we determine that the password is correct
   const u32 hmacced_len = 1 + 1 + 6 + 32 + (decoded_buf[1] == 0 ? 16 : 32);
   // hmacced data, padded with zeroes to the next 16-byte boundary
-  memset(mega->data, 0, sizeof(mega->data));
-  memcpy(mega->data, decoded_buf, hmacced_len);
+  memset (mega->data, 0, sizeof (mega->data));
+  memcpy (mega->data, decoded_buf, hmacced_len);
   mega->hmacced_len = hmacced_len;
   for (size_t i = 0; i < hmacced_len / 4; i++)
   {
@@ -176,25 +180,26 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const size_t hmacced_len = mega->hmacced_len;
   const size_t data_len = hmacced_len + 32;
 
-  u32 unswap_buffer [104];
+  u32 unswap_buffer[104];
   for (size_t i = 0; i < hmacced_len / 4; i++)
   {
     unswap_buffer[i] = mega->data[i];
   }
   // the "data" does not include the HMAC tag, it is stored in the digest
   // copy it over
-  memcpy(unswap_buffer + hmacced_len / 4, digest_buf, 32);
+  memcpy (unswap_buffer + hmacced_len / 4, digest_buf, 32);
   // swap the bytes back
   for (size_t i = 0; i < data_len / 4; i++)
   {
     unswap_buffer[i] = byte_swap_32 (unswap_buffer[i]);
   }
 
-  char base64_buf [0x100];
-  size_t base64_len = base64_encode(int_to_base64url, (const u8 *) unswap_buffer, data_len, (u8 *)base64_buf);
+  char base64_buf[0x100];
+  size_t base64_len = base64_encode (int_to_base64url, (const u8 *) unswap_buffer, data_len, (u8 *) base64_buf);
 
   // trim the base64 padding
-  while (base64_len > 0 && base64_buf[base64_len - 1] == '=') {
+  while ((base64_len > 0) && (base64_buf[base64_len - 1] == '='))
+  {
     base64_buf[base64_len - 1] = '\0';
     base64_len--;
   }
@@ -208,12 +213,14 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
@@ -224,7 +231,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -240,10 +246,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
@@ -262,8 +270,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -274,6 +284,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
@@ -282,5 +293,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

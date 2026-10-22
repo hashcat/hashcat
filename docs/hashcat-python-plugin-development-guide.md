@@ -1,252 +1,310 @@
-# Hashcat Python Plugin Development Guide
+# hashcat Python Plugin Development Guide
 
-This document is a comprehensive guide for writing custom hash modes in Python via Hashcat's Assimilation Bridge plugin.
+This guide covers writing a hash mode in Python through hashcat's assimilation bridge. Start with
+`hashcat-python-plugin-quickstart.md` for a working example, and
+`hashcat-python-plugin-requirements.md` for what the machine needs.
 
-## 1. Introduction
+If you are moving a plugin from hashcat 7, read section 8 first. It is a short list and the changes
+are all simplifications.
 
-The Assimilation Bridge enables developers to implement complete hash mode logic in languages other than C, most notably Python. Traditionally, customizing Hashcat required writing a module in C and a kernel in OpenCL/CUDA. With the bridge, you can now implement a complete hash mode in Python.
+## 1. How the bridge runs your plugin
 
-The bridge supports two hash modes to run python code:
+hashcat starts one Python process per CPU thread. Each one loads your plugin and then answers batches
+of candidates over a pipe until the run ends. hashcat itself links no Python library and is built
+without Python headers.
 
-- `-m 72000`: Uses single-threaded Python interpreter and hashcat controlling the multi-threading.
-- `-m 73000`: Uses classic multiprocessing module controlling multi-threaded support.
+Each process is an ordinary interpreter started from `PATH`, so your plugin runs under the environment
+you activated, imports whatever an ordinary script could import, and needs no locking of its own. The
+processes share nothing, which is what lets them use every core whatever your plugin imports.
 
-Having two hash modes is currently a workaround; future Python developments toward a fully GIL-free mode should eventually resolve this. The single-threaded Python route is the way to go, and when Python will be totally GIL-free, we will remove the multiprocessing support completely. For now, we must work around platform-specific behavior (see `hashcat-python-plugin-requirements.md`).
-
-## 2. Requirements
-
-Ideally, start by walking through `hashcat-python-plugin-quickstart.md`, or read `hashcat-python-plugin-requirements.md`.
-
-## 3. Python Bridge basics
-
-Hashcat implements the CPython interface, loading the embedded interpreter via dynamic loading mechanisms (`dlopen()`, `LoadLibrary()`, etc). This enables runtime flexibility, allowing Hashcat to use whatever Python version is installed on the system. Users of the precompiled Hashcat binaries don’t need Python headers and just a working Python interpreter. Compatibility is checked at runtime, not compile time. If hashcat detect an invalid python version it will stop and print informative instructions on what to do next.
-
-In general, when using any assimilation bridge "application" (such as the Python bridge), the hash mode determines which bridge plugin is loaded (this is a 1:1 relationship). From there, the bridge decides how to proceed. In the case of the Python bridge, it loads the Python library, sets up the interpreter, and finally selects which Python script to execute. Understanding this flow is essential, especially if you plan to contribute to upstream Hashcat on GitHub or want to register a dedicated hash mode number.
-
-You can decide to use the generic hash mode and only contribute the .py file itself with your implementation, or you copy the bridge code and hardcode the path to you .py implementation in there. The advantage in the generic mode is that it's super simple, but it will run a little slower and you have less control about workload tuning. Also having a dedicated mode allows you to implement a unit test, because you have a dedicated hash mode that you can refer to.
-
-Hashcat includes a top-level `Python/` directory with standard helpers and bridge modules:
-
-The following three files are relevant regardless of whether you plan to create a generic or a dedicated hash mode. These modules do the heavy lifting to interact with Hashcat internals from Python. Basically you should not need to change them, and instead you import them from your implementation:
-
-```text
-- hcsp.py: Helper for single-threaded mode. Manages queue handling, function invocation, and context propagation.
-- hcmp.py: Extends `hcsp.py` to support multiprocessing. It spawns worker processes and routes password batches via queues.
-- hcshared.py: Shared utility functions between SP and MP, for instance some getter function for salt data retrieval.
+```
+hashcat                           Python/hcworker.py x N
+  |                                 |
+  | INIT   salts and esalts, once   |  loads your plugin, calls init()
+  | BATCH  candidates               |  calls calc_hash() for each one
+  | RESULT the hashes               |
 ```
 
-There are two additional files, and they are mainly relevant in case you plan to make use of the generic hash mode. But even if you plan to make a dedicated hash mode have a look into them, most likely they will be a very good template for your non-generic mode
+The salts travel once, at startup. A batch after that carries nothing but candidates, and its size is
+chosen by autotune.
 
-```text
-- generic_hash_mp.py
-- generic_hash_sp.py
-```
+## 2. What your plugin must define
 
-We will discuss these two in more detail in the `generic hash mode` section.
-
-## 4. Required Functions in a Python Module
-
-Both `-m 72000` and `-m 73000` follow the same requirements, with the idea that your python code will run in both hash-modes, whatever your user decides to use.
-
-The requirements are to implement the following three functions:
-
-```python
-def init(ctx):
-def term(ctx):
-def kernel_loop(ctx,passwords,salt_id,is_selftest):
-```
-
-- `init(ctx)`: Called once during plugin startup. All salts and esalts are copied at this stage. You use it to wire up callbacks to helper modules.
-- `term(ctx)`: Called once at shutdown. Use it to clean up resources like file handles or sockets if you use them.
-- `kernel_loop(...)`: Main function for processing password batches. This is called many times during cracking.
-
-A typical `init()` might look like this:
-
-```python
-def init(ctx):
-  hcsp.init(ctx, calc_hash, extract_esalts)
-```
-
-Here:
-- `calc_hash()` is your main implementation that processes one password (with one specific salt). You return the result in the format that hashcat requires. In generic hash mode that would be just the same format as in your hashlist. Instead, if you write your own decoder and encoder in the module, this can also be in binary for better performance.
-- `extract_esalts()` is an optional function to deserialize binary esalt blobs. Depends on your hash, if esalts (such as binary blobs for decryption) are required.
-- `hcsp.init()` stores these so that `handle_queue()` (described later) can call `calc_hash()` for each password in a batch.
-
-Note the the ctx will hold your salt data from all hashes. Whenever calc_hash() is called, this context is given. If you have multiple hashes with multiple salts, the context will have all of them. The helper module hcsp.init() will deserialize the static salt and the dynamic salt and store the data in your context.
-
-A typical `term()` might look like this:
-
-```python
-def term(ctx):
-  hcsp.term(ctx)
-```
-
-This should be used in case you had open files, open networking connection, or similar. We are good citizens!
-
-Here's our main function `kernel_loop()` where we spend almost all our time:
-
-```python
-def kernel_loop(ctx,passwords,salt_id,is_selftest):
-  return hcsp.handle_queue(ctx,passwords,salt_id,is_selftest)
-```
-
-Hashcat optimizes performance by sending password candidates in batches. The `passwords` parameter in `kernel_loop()` is a list. Instead of manually looping over them, the helper module will queue them, and call your callback function which you had specified in the `init()` function before. The idea is that whenever your calc_hash() is called, it will always be only about one password and one salt (and optional some binary blobs), and you do not have to deal with queuing, whether it is threaded or not.
-
-Of course, you can also fully control this yourself:
-
-```python
-def calc_hash(ctx, password, salt_id, is_selftest):
-    # Your custom logic here
-    return encoded_guess
-```
-
-If you want to control all by youself, here's what's important to know:
-
-- salt_id: Basically a index number which tells you about which salt your calculation is about. When you initially receive the context, it will hold all salts at once, and you need to store them in the context. The helper scripts do that for your, but just for you to know, its the salt_id which tells the handle_queue() which salt data to pick before it calls your hash_calc() function.
-- is_selftest: Historically hashcat keeps two parallel structures for the selftest hash and real hash. As such they arrive in the context buffer, and you need to make a decision on that `is_selftest` flag which salt buffer to pick.
-
-## 5. Esalts and Structured Binary Blobs, and fixed Salts
-
-One of the most confusing parts for developers new to hashcat is salt handling. While simple hash modes may work out-of-the-box with default helpers, dealing with salts in real-world formats requires deeper understanding.
-
-For complex formats, you may need a structured binary blob ("esalt") passed from the C plugin to Python. Since only you as the developer know the structures of your hash mode, structures vary. For that reason you can optionally write Python code to unpack it.
-
-### Some C Structure
-
-Let's say you need to transfer a salt value to python. You can specify an exact structure in the module to do so. Or, as in this example, this is how we had designed a generic hash mode:
-
-```c
-typedef struct {
-  u32 hash_buf[16384];
-  u32 hash_len;
-  u32 salt_buf[16384];
-  u32 salt_len;
-} generic_io_t;
-```
-
-### Unpacking esalts
-
-To access the data, we typically want to unpack it so it's easier to access from python:
-
-```python
-def extract_esalts(esalts_buf):
-  esalts = []
-  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("65536s I 65536s I", esalts_buf):
-    hash_buf = hash_buf[0:hash_len]
-    salt_buf = salt_buf[0:salt_len]
-    esalts.append({ "hash_buf": hash_buf, "salt_buf": salt_buf })
-  return esalts
-```
-
-Remember, the extract_esalts() was given as function pointer to hcsp.init(). That's how the helper can include your code from outside the helper code. The esalt format is based on what is defined in the module struct.
-
-### Salts Appear as Binary Blobs using 32 bit datatypes
-
-Hashcat is optimized for performance, especially on GPUs. To improve performance, it mostly works on 32 bit datatypes instead of 8 bit datatypes. In python the helper scripts convert these binary blobs into byte[] objects that are easier to work with. As you can see from the above example: `16384 * 4 = 65536`
-
-### Fixed salt datatypes
-
-In general, in all hashcat hash modes:
-
-- The `salt_t` structure is **fixed and consistent**.
-- The esalt (extra salt) is **custom and plugin-specific**.
-
-Since `salt_t` is a fixed structure, the helper mode come with a salt unpacker code and in addition, it provides getter functions:
-
-```python
-def get_salt_buf(salt: dict) -> bytes:
-def get_salt_buf_pc(salt: dict) -> bytes:
-def get_salt_iter(salt: dict) -> int:
-def get_salt_iter2(salt: dict) -> int:
-def get_salt_sign(salt: dict) -> bytes:
-def get_salt_repeats(salt: dict) -> int:
-def get_orig_pos(salt: dict) -> int:
-def get_digests_cnt(salt: dict) -> int:
-def get_digests_done(salt: dict) -> int:
-def get_digests_offset(salt: dict) -> int:
-def get_scrypt_N(salt: dict) -> int:
-def get_scrypt_r(salt: dict) -> int:
-```
-
-These go back to the `salt_t` fixed structure you can find in `OpenCL/inc_types.h`. As an example on how to use these, here's a snippet from the `yescrypt`:
-
-```python
-settings=hcshared.get_salt_buf(salt)
-```
-
-The `salt` variable is one of the parameters from the calc_hash():
+One function and two constants:
 
 ```python
 def calc_hash(password: bytes, salt: dict) -> str:
 ```
 
-Note that if you fully exhaust the Hashcat keyspace, your function has been called X times Y.. X is the number of candidates, and Y is all the salts (except if a salt has been cracked). What's important to realize that within your function, you implement hashing logic only for precisely that situation where you have one password and one salt.
+```python
+ST_HASH = "<a hash line>"
+ST_PASS = "<the password that produces it>"
+```
 
+`calc_hash()` computes one password against one salt and returns the part of the hash line before the
+`*`, as hashcat will compare it. Returning a list of up to 32 values instead is allowed, for a
+password that can match in more than one form.
 
-### Merging Salts and Esalts into a Single Object
+`ST_HASH` and `ST_PASS` are the self-test pair. hashcat runs it on every unit before the run and
+refuses to start without them, because a plugin that computes the wrong thing otherwise looks like a
+run that cracks nothing.
 
-Finally, after unpacking both salts and esalts from their binary blob form, they are explicitly combined into a single dictionary object to simplify access:
+## 3. What your plugin may define
 
 ```python
-for salt, esalt in zip(salts, esalts):
-  salt["esalt"] = esalt
+def extract_esalts(esalts_buf: bytes) -> list:
 ```
 
-Initially, salts and esalts are unpacked separately from their respective binary structures. Each salt entry contains standardized fields defined by the fixed `salt_t` structure and each esalt is dynamically structured and plugin-specific. Merging the esalt dictionary into the salt dictionary makes accessing all related data straightforward and intuitive within Python.
+Converts the mode's esalt buffer into one Python object per hash. The generic modes keep the hash line
+and its salt there, and the shipped plugin has the unpacking for it. A mode with no esalt can leave
+this out.
 
-## 6. Python generic hash mode `-m 72000` and `-m 73000`
-
-The "generic hash" support in hashcat is using python. The main idea behind "generic" is to write freely. Ideal for rapid prototyping and achieving your goal.
-
-The most straight-forward way is to edit the following files directly:
-
-- `generic_hash_sp.py` for single-threaded (SP), typically when the user is using `-m 72000`.
-- `generic_hash_mp.py` for multiprocessing (MP), typically when the user is using `-m 73000`.
-
-Notes:
-
-- Even though `-m 72000` uses single-threaded Python, the bridge plugin above it manages multiple Python interpreters (one per thread) making it effectively multi-threaded.
-- On Windows/macOS, if `-m 73000` is selected, it silently falls back to `generic_hash_sp.py` due to limitations with multiprocessing. This behavior is important to understand and you might otherwise wonder why your code changes have no effect.
-
-If you modify one of these plugin files, there's a trade-off: you won’t be able to contribute that code directly to the upstream Hashcat repository, since those files are meant to remain clean for demonstration purposes.
-
-To address this, the assimilation bridge provides a generic parameter that users can specify via the command line. In the case of the Python bridge, only the first parameter is used. Using `--bridge-parameter1` allows you to override the Python script to be loaded:
-
-```
-$ ./hashcat -m 73000 --bridge-parameter1 ./Python/myimplementation.py hash.txt wordlist.txt ...
+```python
+def init(ctx: dict) -> None:
+def term(ctx: dict) -> None:
 ```
 
-This tells the Python bridge plugin to load `myimplementation.py` located in the local `Python` subdirectory instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream Hashcat repository. If you choose to stay within the generic mode, your Python code won’t have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
+Called once per worker, after the salts arrive and before it exits. Use them for a file, a socket or a
+connection your `calc_hash()` needs. Both are optional, and `ctx` carries:
 
-### Design Tradeoffs and Format Considerations
+```python
+ctx["salts"]              # the run's salts, each with its esalt merged in
+ctx["st_salts"]           # the self-test salt
+ctx["salt_per_pw"]        # True under an association attack
+ctx["bridge_parameter1"]  # --bridge-parameter1 .. 4, or None
+```
 
-In the generic hash mode, we are using a generic binary esalt to avoid writing complex C encode/decode logic. However, guesses returned from Python must match the **original encoded format** exactly. This can be inefficient if encoding is complex. The hash lines are intentionally not decoded and re-encoded in a structured way. Instead, a simple trick such as appending the salt after an asterisk (`*`) is used:
+An exception from any of these, or from `calc_hash()`, reaches the terminal as a traceback and stops
+the run.
+
+## 4. Salts
+
+### The fixed fields
+
+Every hash mode has the `salt_t` structure from `OpenCL/inc_types.h`. `hcshared.extract_salts()`
+unpacks it and the fields sit at the top level of the dictionary your `calc_hash()` receives:
+
+```python
+salt["salt_buf"]      salt["salt_buf_pc"]   salt["salt_iter"]    salt["salt_iter2"]
+salt["salt_sign"]     salt["salt_repeats"]  salt["orig_pos"]     salt["digests_cnt"]
+salt["scrypt_N"]      salt["scrypt_r"]      salt["scrypt_p"]
+```
+
+`hcshared` has a reader for each, for example `hcshared.get_salt_iter(salt)`.
+
+### The esalt
+
+Anything the fixed fields cannot hold goes in the mode's own esalt, whose layout the mode's C module
+defines. `extract_esalts()` turns it into Python objects, and the result lands under `salt["esalt"]`.
+Fixed fields stay at the top level, so the two namespaces do not collide.
+
+The generic modes are the case worth knowing. Their C module stores the real salt in the esalt and
+keeps only a 16 byte surrogate in `salt_buf` for grouping hashes. For them the salt you want is the
+esalt's, which is what `hcshared.get_salt_buf()` returns:
+
+```python
+def calc_hash(password: bytes, salt: dict) -> str:
+  real_salt = hcshared.get_salt_buf(salt)     # the esalt's, for a generic mode
+  grouping  = salt["salt_buf"]                # the surrogate, almost never what you want
+```
+
+A mode of your own defines its own esalt and should read the fixed fields directly.
+
+### Which salt a candidate gets
+
+Normally every candidate in a batch uses one salt, and hashcat works through the salts in turn. An
+association attack (`-a 9`) is the exception: it pairs candidate `i` with salt `i`. The worker already
+does that arithmetic, so `calc_hash()` receives the right salt either way. `ctx["salt_per_pw"]` says
+which layout is in force, for a plugin that needs to know.
+
+### A worked esalt
+
+The generic modes pass this structure from C:
+
+```c
+typedef struct {
+  u32 hash_buf[256];
+  u32 hash_len;
+  u32 salt_buf[256];
+  u32 salt_len;
+} generic_io_t;
+```
+
+Each `u32` array is 1024 bytes, so the format string is:
+
+```python
+def extract_esalts(esalts_buf: bytes) -> list:
+  esalts = []
+
+  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 1024s I", esalts_buf):
+    esalts.append({ "hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len] })
+
+  return esalts
+```
+
+The format has to match the C structure exactly. `iter_unpack` refuses a buffer that is not a whole
+number of records, which catches most mistakes on the first run.
+
+## 5. Choosing the plugin
+
+Mode 73000 loads `Python/generic_hash.py` unless `--bridge-parameter1` names another file:
 
 ```
-hash-with-embedded-salt*salt
+hashcat -m 73000 --bridge-parameter1 ./myplugin.py hash.txt wordlist.txt
 ```
 
-This technique makes each hash appear unique, especially when multiple salts are involved, and simplifies initial parsing and processing.
+The path can be anywhere. The worker puts the plugin's own directory on `sys.path`, so a plugin split
+over several files works, and `Python/` is on `sys.path` too, so `import hcshared` resolves from
+either place.
 
-However, it is crucial to highlight:
+Keep your work in a file of your own. `Python/generic_hash.py` is a template that an upgrade replaces.
 
-- You are **not obligated to follow this generic approach**. In fact, it's generally preferable to implement proper hash line decoding and encoding logic.
-- For instance, a proper Yescrypt implementation (unlike the quickstart document) would ideally decode hash lines into clear, separate components (digest, salt, parameters) and encode them accordingly upon successful cracking.
+## 6. A generic mode or a mode of your own
 
-The reason the generic hash mode provided by Hashcat employs a simplified approach is to:
+A generic mode is for prototyping. It avoids writing any C, at the cost of a hash line that carries
+the original encoded format on both sides of a `*`, and of having no mode number of its own.
 
-- Demonstrate a flexible, format-agnostic solution suitable for initial prototyping or unfamiliar hash formats.
-- Avoid complexity and make it easy for plugin developers to get started quickly without deep understanding of specific hash format parsing logic.
+A dedicated mode is a C module plus this bridge. It decodes the hash line into fields, reassembles the
+correct format after a crack, gets a mode number that tests can name, and can tune its own workload.
+That is what a contributed mode should become, and the generic route is how it starts.
 
-In summary, while the generic mode is quick and easy, robust real-world plugins **should implement proper hash decoding and encoding logic** to ensure accuracy, efficiency, and maintainability.
+## 7. Running a plugin outside hashcat
 
-## 7. Debugging Without Hashcat
+A plugin is a plain module whose only hashcat import is `hcshared`, so you can call it directly. The
+salt is a dictionary, and for a generic mode `get_salt_buf()` reads one key of it:
 
-You can run your plugin as a standalone script:
+```python
+import sys
+
+sys.path.insert(0, "Python")
+
+import myplugin
+
+salt = {"esalt": {"salt_buf": b"9348746780603343"}}
+
+print(myplugin.calc_hash(b"hashcat", salt))
 ```
-echo "password" | python3 generic_hash_mp.py
+
+That is the whole harness. For a mode with a real esalt, build the same dictionary your
+`extract_esalts()` would have produced.
+
+Inside hashcat there is nothing to turn on: an exception prints its traceback and stops the run, and
+anything your plugin prints goes to standard error rather than into the protocol.
+
+## 8. Upgrading from hashcat 7
+
+hashcat 7 had two Python modes with different parallel designs, and a plugin had to be written against
+one of them. There is one bridge now, which starts an ordinary interpreter per CPU thread. The
+following is what that changes.
+
+### Your command line
+
 ```
-It reads passwords from stdin and prints the result of `calc_hash()`.
+hashcat -m 72000 ...      becomes      hashcat -m 73000 ...
+```
 
-Note to allow use of the correct salt value, you need to dump hashcat's ctx: only hashcat knows of the hashlist containing the salt. Python doesn't have the hashlist, nor do we want to duplicate decoding the hashes. See the `main` section of `generic_hash_mp.py` how to dump the ctx (containing salts) for your hashlist.
+Mode 72000 is removed, so `-m 72000` reports an unknown hash-mode. The hash line format and the plugin
+interface are 73000's, which were always the same, so the mode number is the only thing to change.
 
+There is no longer a choice to make. 73000 uses every CPU thread on Linux, macOS and Windows, with a
+standard or a free-threaded interpreter, so the old advice to pick a mode per platform is gone. A
+free-threaded build is now the slower of the two, which is the reason 72000 had nothing left to offer.
+
+### Your plugin file
+
+`kernel_loop()`, `init()` and `term()` were all required, and `kernel_loop()` existed to hand the batch
+to `hcsp` or `hcmp`. The worker now loops over the batch itself, so:
+
+- `kernel_loop()` is **removed**. Delete it.
+- `init()` and `term()` are **optional**. Delete them unless they do something of yours.
+- `hcsp` and `hcmp` are **gone**. Nothing imports them.
+- `calc_hash()` and `extract_esalts()` are **unchanged**.
+
+A hashcat 7 plugin therefore becomes a current one by deleting code:
+
+```python
+# hashcat 7
+import hcsp
+
+def kernel_loop(ctx, passwords, salt_id, is_selftest):
+  return hcsp.handle_queue(ctx, passwords, salt_id, is_selftest)
+
+def init(ctx):
+  hcsp.init(ctx, extract_esalts)
+
+def term(ctx):
+  hcsp.term(ctx)
+```
+
+```python
+# now: none of it is needed
+```
+
+`ST_HASH` and `ST_PASS` are now required rather than merely expected. A plugin without them is refused
+at startup. In hashcat 7 a missing `ST_HASH` left the self-test hash empty, which ended in a segfault.
+
+### What `calc_hash()` does when it fails
+
+In hashcat 7 an exception from `calc_hash()` was printed and the candidate was recorded as
+`invalid-password`. The run then continued at full speed and exited 0, which looks exactly like a
+wordlist that did not contain the password.
+
+It now stops the run and reports the traceback. If your plugin has candidates it legitimately cannot
+hash, such as a password longer than the algorithm accepts, catch that in `calc_hash()` and return a
+value that cannot match.
+
+### Your environment
+
+The old bridge loaded a Python shared library into hashcat, so the library had to be found and had to
+match the headers hashcat was built against. That is what made a virtual environment or a pyenv
+selection need `PYTHONPATH`, `DYLD_LIBRARY_PATH` or `PYENV_VERSION` to be set by hand.
+
+An interpreter started from `PATH` needs none of that. Activate the environment, or name the
+interpreter with `--bridge-parameter2`, and that is the whole of it.
+
+An extension module no longer needs free-threaded support. Mode 72000 ran the plugin on a
+free-threaded interpreter inside hashcat, where a module without free-threaded support would not load,
+and one that did load often held a lock that serialized the units. A worker is an ordinary process, so
+an ordinary wheel is all that is needed.
+
+### Building hashcat
+
+`make` no longer looks for Python. The `WIN_PYTHON` variable is gone, the MSYS2 Python package is not
+needed to cross compile for Windows, and no `python3-dev` is needed on Linux.
+
+### What it is worth
+
+Measured with the shipped plugin, which is `sha256(salt + password)` and then 10000 rounds of sha256.
+Each figure is the range over three runs, and the interpreter is the same on both sides of a row.
+
+```
+                                                    hashcat 7         now
+i7-14700K, 28 threads, Python 3.14.7                4750-4770   6210-6390   H/s
+i7-14700K, 28 threads, Python 3.14.7t                 600-609   6060-6070   H/s
+i9-13900K, 32 threads, Python 3.14.7, Windows         270-279   4285-4390   H/s
+Xeon W-3223, 16 threads, Python 3.14.0b2t, macOS        284-294   1015-1021   H/s
+Xeon W-3223, 16 threads, the system Python 3.9.6      not built   1019-1021   H/s
+```
+
+The two free-threaded rows are 72000 against 73000, because 72000 was the only hashcat 7 mode that
+would load a free-threaded interpreter. On such an interpreter hashcat 7's 73000 did not run at all, and
+72000's figure was not hashcat's fault: hashlib's OpenSSL bindings hold a lock, so free threads inside
+one interpreter ran barely faster than one. Every other row is 73000 against 73000.
+
+Windows moved most. Mode 73000's `multiprocessing` pool could not be used there, so it reported
+"falling back to single-threaded mode" and ran on one core. macOS had the same fallback, which is why
+its only hashcat 7 figure comes from 72000.
+
+The last row has no before figure because there was nothing to run. With only the system Python present,
+hashcat 7's build skipped both Python bridges and said "Python headers not found", so the mode did not
+exist on that machine. It runs there now, and as fast as it does on the pyenv interpreter above it.
+
+A plugin whose candidates are cheap gains more again, from the batch size rather than from the process
+model. Mode 72000 handed a unit 8 candidates per launch, and one launch is one round trip, so a plugin
+computing a single sha256 spent its time in the protocol. The limit is 1024 now. On the same 28 threads
+that is 611 kH/s against 16 kH/s under a limit of 8, and mode 74000's Rust bridge had the same limit and
+gains the same way.
+
+Worth knowing if you are tuning: autotune settles at about seven tenths of that limit, and it gets there
+by timing the mode's loop kernel, which for a bridged mode is empty. So the figure does not depend on
+what your plugin costs, and `-n` with `--force` is what overrides it.

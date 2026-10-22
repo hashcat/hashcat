@@ -17,7 +17,7 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
-#include M2S(INCLUDE_PATH/inc_bignum_operations.cl)
+#include M2S(INCLUDE_PATH/inc_bignum_2048.cl)
 #include M2S(INCLUDE_PATH/inc_radmin3_constants.h)
 #endif
 
@@ -72,7 +72,7 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
   sha1_update_global (&ctx1, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-  PRIVATE_AS const u32 m[128] =
+  PRIVATE_AS const u32 m[64] =
   {
     RADMIN3_M[  0], RADMIN3_M[  1], RADMIN3_M[  2], RADMIN3_M[  3],
     RADMIN3_M[  4], RADMIN3_M[  5], RADMIN3_M[  6], RADMIN3_M[  7],
@@ -90,42 +90,6 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
     RADMIN3_M[ 52], RADMIN3_M[ 53], RADMIN3_M[ 54], RADMIN3_M[ 55],
     RADMIN3_M[ 56], RADMIN3_M[ 57], RADMIN3_M[ 58], RADMIN3_M[ 59],
     RADMIN3_M[ 60], RADMIN3_M[ 61], RADMIN3_M[ 62], RADMIN3_M[ 63],
-    RADMIN3_M[ 64], RADMIN3_M[ 65], RADMIN3_M[ 66], RADMIN3_M[ 67],
-    RADMIN3_M[ 68], RADMIN3_M[ 69], RADMIN3_M[ 70], RADMIN3_M[ 71],
-    RADMIN3_M[ 72], RADMIN3_M[ 73], RADMIN3_M[ 74], RADMIN3_M[ 75],
-    RADMIN3_M[ 76], RADMIN3_M[ 77], RADMIN3_M[ 78], RADMIN3_M[ 79],
-    RADMIN3_M[ 80], RADMIN3_M[ 81], RADMIN3_M[ 82], RADMIN3_M[ 83],
-    RADMIN3_M[ 84], RADMIN3_M[ 85], RADMIN3_M[ 86], RADMIN3_M[ 87],
-    RADMIN3_M[ 88], RADMIN3_M[ 89], RADMIN3_M[ 90], RADMIN3_M[ 91],
-    RADMIN3_M[ 92], RADMIN3_M[ 93], RADMIN3_M[ 94], RADMIN3_M[ 95],
-    RADMIN3_M[ 96], RADMIN3_M[ 97], RADMIN3_M[ 98], RADMIN3_M[ 99],
-    RADMIN3_M[100], RADMIN3_M[101], RADMIN3_M[102], RADMIN3_M[103],
-    RADMIN3_M[104], RADMIN3_M[105], RADMIN3_M[106], RADMIN3_M[107],
-    RADMIN3_M[108], RADMIN3_M[109], RADMIN3_M[110], RADMIN3_M[111],
-    RADMIN3_M[112], RADMIN3_M[113], RADMIN3_M[114], RADMIN3_M[115],
-    RADMIN3_M[116], RADMIN3_M[117], RADMIN3_M[118], RADMIN3_M[119],
-    RADMIN3_M[120], RADMIN3_M[121], RADMIN3_M[122], RADMIN3_M[123],
-    RADMIN3_M[124], RADMIN3_M[125], RADMIN3_M[126], RADMIN3_M[127],
-  };
-
-  PRIVATE_AS const u32 fact[64] =
-  {
-    RADMIN3_FACT[ 0], RADMIN3_FACT[ 1], RADMIN3_FACT[ 2], RADMIN3_FACT[ 3],
-    RADMIN3_FACT[ 4], RADMIN3_FACT[ 5], RADMIN3_FACT[ 6], RADMIN3_FACT[ 7],
-    RADMIN3_FACT[ 8], RADMIN3_FACT[ 9], RADMIN3_FACT[10], RADMIN3_FACT[11],
-    RADMIN3_FACT[12], RADMIN3_FACT[13], RADMIN3_FACT[14], RADMIN3_FACT[15],
-    RADMIN3_FACT[16], RADMIN3_FACT[17], RADMIN3_FACT[18], RADMIN3_FACT[19],
-    RADMIN3_FACT[20], RADMIN3_FACT[21], RADMIN3_FACT[22], RADMIN3_FACT[23],
-    RADMIN3_FACT[24], RADMIN3_FACT[25], RADMIN3_FACT[26], RADMIN3_FACT[27],
-    RADMIN3_FACT[28], RADMIN3_FACT[29], RADMIN3_FACT[30], RADMIN3_FACT[31],
-    RADMIN3_FACT[32], RADMIN3_FACT[33], RADMIN3_FACT[34], RADMIN3_FACT[35],
-    RADMIN3_FACT[36], RADMIN3_FACT[37], RADMIN3_FACT[38], RADMIN3_FACT[39],
-    RADMIN3_FACT[40], RADMIN3_FACT[41], RADMIN3_FACT[42], RADMIN3_FACT[43],
-    RADMIN3_FACT[44], RADMIN3_FACT[45], RADMIN3_FACT[46], RADMIN3_FACT[47],
-    RADMIN3_FACT[48], RADMIN3_FACT[49], RADMIN3_FACT[50], RADMIN3_FACT[51],
-    RADMIN3_FACT[52], RADMIN3_FACT[53], RADMIN3_FACT[54], RADMIN3_FACT[55],
-    RADMIN3_FACT[56], RADMIN3_FACT[57], RADMIN3_FACT[58], RADMIN3_FACT[59],
-    RADMIN3_FACT[60], RADMIN3_FACT[61], RADMIN3_FACT[62], RADMIN3_FACT[63],
   };
 
 
@@ -135,20 +99,30 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
   u32x w0l = w[0];
 
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
 
-    w[0] = w0;
-
+    w[0] = hc_swap32_S (w0);
 
     // add password to the user name (and colon, included):
 
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_utf16beN (&c0, w, pw_len);
+    sha1_update_utf16le_swap (&c0, w, pw_len);
 
     sha1_final (&c0);
 
@@ -286,7 +260,7 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
         esalt_bufs[DIGESTS_OFFSET_HOST].pre[pre_idx + 63],
       };
 
-      mul_mod128 (r_t, pre, m, fact); // r_t = (r_t * RADMIN3_PRE[n]) % m
+      bn2048_mont_mul (r_t, r_t, pre, m, RADMIN3_N0); // r_t = (r_t * RADMIN3_PRE[n]) % m
     }
 
     const u32 r0 = r_t[0];
@@ -353,7 +327,7 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  PRIVATE_AS const u32 m[128] =
+  PRIVATE_AS const u32 m[64] =
   {
     RADMIN3_M[  0], RADMIN3_M[  1], RADMIN3_M[  2], RADMIN3_M[  3],
     RADMIN3_M[  4], RADMIN3_M[  5], RADMIN3_M[  6], RADMIN3_M[  7],
@@ -371,42 +345,6 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
     RADMIN3_M[ 52], RADMIN3_M[ 53], RADMIN3_M[ 54], RADMIN3_M[ 55],
     RADMIN3_M[ 56], RADMIN3_M[ 57], RADMIN3_M[ 58], RADMIN3_M[ 59],
     RADMIN3_M[ 60], RADMIN3_M[ 61], RADMIN3_M[ 62], RADMIN3_M[ 63],
-    RADMIN3_M[ 64], RADMIN3_M[ 65], RADMIN3_M[ 66], RADMIN3_M[ 67],
-    RADMIN3_M[ 68], RADMIN3_M[ 69], RADMIN3_M[ 70], RADMIN3_M[ 71],
-    RADMIN3_M[ 72], RADMIN3_M[ 73], RADMIN3_M[ 74], RADMIN3_M[ 75],
-    RADMIN3_M[ 76], RADMIN3_M[ 77], RADMIN3_M[ 78], RADMIN3_M[ 79],
-    RADMIN3_M[ 80], RADMIN3_M[ 81], RADMIN3_M[ 82], RADMIN3_M[ 83],
-    RADMIN3_M[ 84], RADMIN3_M[ 85], RADMIN3_M[ 86], RADMIN3_M[ 87],
-    RADMIN3_M[ 88], RADMIN3_M[ 89], RADMIN3_M[ 90], RADMIN3_M[ 91],
-    RADMIN3_M[ 92], RADMIN3_M[ 93], RADMIN3_M[ 94], RADMIN3_M[ 95],
-    RADMIN3_M[ 96], RADMIN3_M[ 97], RADMIN3_M[ 98], RADMIN3_M[ 99],
-    RADMIN3_M[100], RADMIN3_M[101], RADMIN3_M[102], RADMIN3_M[103],
-    RADMIN3_M[104], RADMIN3_M[105], RADMIN3_M[106], RADMIN3_M[107],
-    RADMIN3_M[108], RADMIN3_M[109], RADMIN3_M[110], RADMIN3_M[111],
-    RADMIN3_M[112], RADMIN3_M[113], RADMIN3_M[114], RADMIN3_M[115],
-    RADMIN3_M[116], RADMIN3_M[117], RADMIN3_M[118], RADMIN3_M[119],
-    RADMIN3_M[120], RADMIN3_M[121], RADMIN3_M[122], RADMIN3_M[123],
-    RADMIN3_M[124], RADMIN3_M[125], RADMIN3_M[126], RADMIN3_M[127],
-  };
-
-  PRIVATE_AS const u32 fact[64] =
-  {
-    RADMIN3_FACT[ 0], RADMIN3_FACT[ 1], RADMIN3_FACT[ 2], RADMIN3_FACT[ 3],
-    RADMIN3_FACT[ 4], RADMIN3_FACT[ 5], RADMIN3_FACT[ 6], RADMIN3_FACT[ 7],
-    RADMIN3_FACT[ 8], RADMIN3_FACT[ 9], RADMIN3_FACT[10], RADMIN3_FACT[11],
-    RADMIN3_FACT[12], RADMIN3_FACT[13], RADMIN3_FACT[14], RADMIN3_FACT[15],
-    RADMIN3_FACT[16], RADMIN3_FACT[17], RADMIN3_FACT[18], RADMIN3_FACT[19],
-    RADMIN3_FACT[20], RADMIN3_FACT[21], RADMIN3_FACT[22], RADMIN3_FACT[23],
-    RADMIN3_FACT[24], RADMIN3_FACT[25], RADMIN3_FACT[26], RADMIN3_FACT[27],
-    RADMIN3_FACT[28], RADMIN3_FACT[29], RADMIN3_FACT[30], RADMIN3_FACT[31],
-    RADMIN3_FACT[32], RADMIN3_FACT[33], RADMIN3_FACT[34], RADMIN3_FACT[35],
-    RADMIN3_FACT[36], RADMIN3_FACT[37], RADMIN3_FACT[38], RADMIN3_FACT[39],
-    RADMIN3_FACT[40], RADMIN3_FACT[41], RADMIN3_FACT[42], RADMIN3_FACT[43],
-    RADMIN3_FACT[44], RADMIN3_FACT[45], RADMIN3_FACT[46], RADMIN3_FACT[47],
-    RADMIN3_FACT[48], RADMIN3_FACT[49], RADMIN3_FACT[50], RADMIN3_FACT[51],
-    RADMIN3_FACT[52], RADMIN3_FACT[53], RADMIN3_FACT[54], RADMIN3_FACT[55],
-    RADMIN3_FACT[56], RADMIN3_FACT[57], RADMIN3_FACT[58], RADMIN3_FACT[59],
-    RADMIN3_FACT[60], RADMIN3_FACT[61], RADMIN3_FACT[62], RADMIN3_FACT[63],
   };
 
 
@@ -416,20 +354,30 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
   u32x w0l = w[0];
 
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
 
-    w[0] = w0;
-
+    w[0] = hc_swap32_S (w0);
 
     // add password to the user name (and colon, included):
 
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_utf16beN (&c0, w, pw_len);
+    sha1_update_utf16le_swap (&c0, w, pw_len);
 
     sha1_final (&c0);
 
@@ -567,7 +515,7 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
         esalt_bufs[DIGESTS_OFFSET_HOST].pre[pre_idx + 63],
       };
 
-      mul_mod128 (r_t, pre, m, fact); // r_t = (r_t * RADMIN3_PRE[n]) % m
+      bn2048_mont_mul (r_t, r_t, pre, m, RADMIN3_N0); // r_t = (r_t * RADMIN3_PRE[n]) % m
     }
 
     const u32 r0 = r_t[0];

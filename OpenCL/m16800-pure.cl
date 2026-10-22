@@ -21,6 +21,18 @@
 #include "inc_hash_sha1.h"
 #endif
 
+// The host compiles this file into the module that wants its helpers. There DECLSPEC says the
+// function is part of what the core offers a plugin, and these are not: they are the module's own
+// copy of a kernel and they stay inside it. inc_rp_common.cl says the same thing the same way.
+//
+// A module takes the helpers it wants and leaves the rest, so the ones it left have to be allowed to
+// go unused.
+
+#ifdef IS_NATIVE
+#undef DECLSPEC
+#define DECLSPEC static MAYBE_UNUSED
+#endif
+
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 

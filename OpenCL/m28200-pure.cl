@@ -172,7 +172,7 @@ KERNEL_FQ KERNEL_FA void m28200_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, exodus
 
   AES_GCM_GHASH_GLOBAL (subKey, aad_buf, aad_len, esalt_bufs[DIGESTS_OFFSET_HOST].data, 32, S);
 
-  AES_GCM_GCTR (key, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES_GCM_GCTR (key, 256, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   const u32 r0 = T[0];
   const u32 r1 = T[1];

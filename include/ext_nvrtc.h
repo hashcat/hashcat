@@ -6,6 +6,8 @@
 #ifndef HC_EXT_NVRTC_H
 #define HC_EXT_NVRTC_H
 
+#include "export.h"
+
 /**
  * from cuda.h (/usr/local/cuda-10.1/targets/x86_64-linux/include/nvrtc.h)
  */
@@ -65,6 +67,7 @@ typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCVERSION)            (int *, int
 typedef struct hc_nvrtc_lib
 {
   hc_dynlib_t lib;
+  hc_dynlib_t lib_builtins;
 
   NVRTC_NVRTCADDNAMEEXPRESSION  nvrtcAddNameExpression;
   NVRTC_NVRTCCOMPILEPROGRAM     nvrtcCompileProgram;
@@ -87,13 +90,13 @@ int nvrtc_make_options_array_from_string (char *string, char **options);
 int  nvrtc_init                (void *hashcat_ctx);
 void nvrtc_close               (void *hashcat_ctx);
 
-int hc_nvrtcCreateProgram      (void *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
-int hc_nvrtcDestroyProgram     (void *hashcat_ctx, nvrtcProgram *prog);
-int hc_nvrtcCompileProgram     (void *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options);
-int hc_nvrtcGetProgramLogSize  (void *hashcat_ctx, nvrtcProgram prog, size_t *logSizeRet);
-int hc_nvrtcGetProgramLog      (void *hashcat_ctx, nvrtcProgram prog, char *log);
-int hc_nvrtcGetPTXSize         (void *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet);
-int hc_nvrtcGetPTX             (void *hashcat_ctx, nvrtcProgram prog, char *ptx);
+HC_PLUGIN_API int hc_nvrtcCreateProgram      (void *hashcat_ctx, nvrtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
+HC_PLUGIN_API int hc_nvrtcDestroyProgram     (void *hashcat_ctx, nvrtcProgram *prog);
+HC_PLUGIN_API int hc_nvrtcCompileProgram     (void *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options);
+HC_PLUGIN_API int hc_nvrtcGetProgramLogSize  (void *hashcat_ctx, nvrtcProgram prog, size_t *logSizeRet);
+HC_PLUGIN_API int hc_nvrtcGetProgramLog      (void *hashcat_ctx, nvrtcProgram prog, char *log);
+HC_PLUGIN_API int hc_nvrtcGetPTXSize         (void *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet);
+HC_PLUGIN_API int hc_nvrtcGetPTX             (void *hashcat_ctx, nvrtcProgram prog, char *ptx);
 int hc_nvrtcVersion            (void *hashcat_ctx, int *major, int *minor);
 
 #endif // HC_EXT_NVRTC_H

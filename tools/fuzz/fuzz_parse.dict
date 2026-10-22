@@ -1,0 +1,36 @@
+# Shared by every parser target. Signatures, separators and the field shapes
+# the formats in the tree are built out of, so a mutation that has to get past
+# a signature check does not have to rediscover it one byte at a time.
+
+":"
+"$"
+"*"
+"#"
+","
+"."
+"="
+"|"
+"@"
+"$HEX["
+"]"
+
+"$1$"
+"$2a$"
+"$6$"
+"rounds="
+"$pkzip2$"
+"$zip2$"
+"$keepass$*"
+"$argon2id$"
+"m=65536,t=3,p=1"
+"WPA"
+"$krb5tgs$"
+"$krb5pa$"
+"$office$"
+"$RAR3$"
+"$7z$"
+
+"0123456789abcdef"
+"deadbeef"
+"AAAAAAAAAAAAAAAA"
+"=="

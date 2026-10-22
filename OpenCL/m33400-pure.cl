@@ -24,8 +24,8 @@ typedef struct mega_tmp
   u64 ipad[8];
   u64 opad[8];
 
-  u64 dgst[16];
-  u64 out [16];
+  u64 dgst[8];
+  u64 out [8];
 
 } mega_tmp_t;
 
@@ -33,6 +33,7 @@ typedef struct mega
 {
   u32 hmacced_len;
   u32 data[80];
+
 } mega_t;
 
 DECLSPEC void hmac_sha512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, PRIVATE_AS u64x *ipad, PRIVATE_AS u64x *opad, PRIVATE_AS u64x *digest)
@@ -105,7 +106,6 @@ KERNEL_FQ KERNEL_FA void m33400_init (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-//   printf("pwd  %08x%08x\n", pws[gid].i[0], pws[gid].i[1]);
   sha512_hmac_init_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad[0] = sha512_hmac_ctx.ipad.h[0];
@@ -126,14 +126,7 @@ KERNEL_FQ KERNEL_FA void m33400_init (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-//   printf("ipad %016lx\n", tmps[gid].ipad[0]);
-//   printf("opad %016lx\n", tmps[gid].opad[0]);
-//
-//   printf("salt %08x%08x %08x%08x %08x%08x %08x%08x\n",
-//          salt_bufs[SALT_POS_HOST].salt_buf[0], salt_bufs[SALT_POS_HOST].salt_buf[1], salt_bufs[SALT_POS_HOST].salt_buf[2], salt_bufs[SALT_POS_HOST].salt_buf[3],
-//          salt_bufs[SALT_POS_HOST].salt_buf[4], salt_bufs[SALT_POS_HOST].salt_buf[5], salt_bufs[SALT_POS_HOST].salt_buf[6], salt_bufs[SALT_POS_HOST].salt_buf[7]
-//   );
-  sha512_hmac_update_global(&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  sha512_hmac_update_global (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -203,15 +196,6 @@ KERNEL_FQ KERNEL_FA void m33400_init (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
     tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
     tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
   }
-
-//   printf("out  %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n",
-//          tmps[gid].out[0], tmps[gid].out[1], tmps[gid].out[2], tmps[gid].out[3],
-//          tmps[gid].out[4], tmps[gid].out[5], tmps[gid].out[6], tmps[gid].out[7]
-//   );
-//   printf("dgst %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n",
-//          tmps[gid].dgst[0], tmps[gid].dgst[1], tmps[gid].dgst[2], tmps[gid].dgst[3],
-//          tmps[gid].dgst[4], tmps[gid].dgst[5], tmps[gid].dgst[6], tmps[gid].dgst[7]
-//   );
 }
 
 KERNEL_FQ KERNEL_FA void m33400_loop (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
@@ -346,14 +330,7 @@ KERNEL_FQ KERNEL_FA void m33400_comp (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-//   printf("out  %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n",
-//          tmps[gid].out[0], tmps[gid].out[1], tmps[gid].out[2], tmps[gid].out[3],
-//          tmps[gid].out[4], tmps[gid].out[5], tmps[gid].out[6], tmps[gid].out[7]
-//   );
-//   printf("dgst %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n",
-//          tmps[gid].dgst[0], tmps[gid].dgst[1], tmps[gid].dgst[2], tmps[gid].dgst[3],
-//          tmps[gid].dgst[4], tmps[gid].dgst[5], tmps[gid].dgst[6], tmps[gid].dgst[7]
-//   );
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
   u32 w1[4];
@@ -379,29 +356,13 @@ KERNEL_FQ KERNEL_FA void m33400_comp (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
   w3[2] = 0;
   w3[3] = 0;
 
-//   printf("hkey %08x%08x %08x%08x %08x%08x %08x%08x\n",
-//          w0[0], w0[1], w0[2], w0[3],
-//          w1[0], w1[1], w1[2], w1[3]
-//   );
-
-
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
   sha256_hmac_init_64 (&sha256_hmac_ctx, w0, w1, w2, w3);
 
-//   printf("data ");
-//   for (int i = 0, j = 0; i < esalt_bufs[DIGESTS_OFFSET_HOST].hmacced_len; i += 8, j += 2) {
-//     printf("%08x%08x ", esalt_bufs[DIGESTS_OFFSET_HOST].data[j], esalt_bufs[DIGESTS_OFFSET_HOST].data[j + 1]);
-//   }
-//   printf("\n");
-  sha256_hmac_update_global(&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].data, esalt_bufs[DIGESTS_OFFSET_HOST].hmacced_len);
+  sha256_hmac_update_global (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].data, esalt_bufs[DIGESTS_OFFSET_HOST].hmacced_len);
 
   sha256_hmac_final (&sha256_hmac_ctx);
-
-//   printf("hmac %08x%08x %08x%08x %08x%08x %08x%08x\n",
-//          sha256_hmac_ctx.opad.h[0], sha256_hmac_ctx.opad.h[1], sha256_hmac_ctx.opad.h[2], sha256_hmac_ctx.opad.h[3],
-//          sha256_hmac_ctx.opad.h[4], sha256_hmac_ctx.opad.h[5], sha256_hmac_ctx.opad.h[6], sha256_hmac_ctx.opad.h[7]
-//   );
 
   /* compare tag */
 
@@ -409,8 +370,6 @@ KERNEL_FQ KERNEL_FA void m33400_comp (KERN_ATTR_TMPS_ESALT (mega_tmp_t, mega_t))
   const u32 r1 = sha256_hmac_ctx.opad.h[1];
   const u32 r2 = sha256_hmac_ctx.opad.h[2];
   const u32 r3 = sha256_hmac_ctx.opad.h[3];
-
-  // verify:
 
   #define il_pos 0
 

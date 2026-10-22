@@ -32,6 +32,53 @@ int nvrtc_make_options_array_from_string (char *string, char **options)
 
 // NVRTC
 
+#if defined (_WIN)
+
+// nvrtc loads nvrtc-builtins64_XYZ.dll by name when it first compiles, so Windows looks for it only
+// along the DLL search order, and nvrtc's own directory is not on it. A toolkit found through
+// CUDA_PATH rather than PATH then fails every build. Loading the builtins here by their full path
+// settles it, because a DLL that is already loaded is reused by name. XYZ is the toolkit version,
+// 133 for 13.3, so the name is built from the version of the nvrtc that was loaded, and a
+// directory holding builtins of another toolkit as well cannot hand over the wrong one.
+
+static hc_dynlib_t nvrtc_open_builtins (const hc_dynlib_t lib, const int major, const int minor)
+{
+  char dir[MAX_PATH];
+
+  const DWORD len = GetModuleFileNameA (lib, dir, sizeof (dir));
+
+  if (len == 0) return NULL;
+  if (len >= sizeof (dir)) return NULL;
+
+  bool cut = false;
+
+  for (DWORD i = len; i > 0; i--)
+  {
+    if (dir[i - 1] != '\\') continue;
+
+    dir[i - 1] = 0;
+
+    cut = true;
+
+    break;
+  }
+
+  if (cut == false) return NULL;
+
+  char path[MAX_PATH];
+
+  const int path_len = snprintf (path, sizeof (path), "%s\\nvrtc-builtins64_%d%d.dll", dir, major, minor);
+
+  if (path_len < 0) return NULL;
+  if ((size_t) path_len >= sizeof (path)) return NULL;
+
+  const hc_dynlib_t builtins = hc_dlopen (path);
+
+  return builtins;
+}
+
+#endif
+
 int nvrtc_init (void *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
@@ -45,44 +92,44 @@ int nvrtc_init (void *hashcat_ctx)
 
   if (nvrtc->lib == NULL)
   {
-    // super annoying: nvidia is using the CUDA version in nvrtc???.dll filename!
-    // however, the cuda version string comes from nvcuda.dll which is from nvidia driver, but
-    // the driver version and the installed CUDA toolkit version can be different, so it cannot be used as a reference.
-    // brute force to the rescue
+    // NVIDIA puts the CUDA version in the file name, nvrtc64_130_0.dll for 13.0, and the version is
+    // the toolkit's rather than the driver's, so nvcuda.dll cannot be asked what it is. The name used
+    // to be guessed from two nested ranges, a few hundred LoadLibrary calls to arrive at a name that
+    // was on disk all along. The toolkit directory is read instead, then whatever is on PATH.
+    // CUDA 13 moved its DLLs from bin to bin\x64, so both are read.
 
-    char dllname[100];
+    char cuda_bin_x64[MAX_PATH];
+    char cuda_bin[MAX_PATH];
 
-    for (int major = 20; major >= 9; major--) // older than 3.x do not ship _v2 functions anyway
-                                              // older than 7.x does not support sm 5.x
-                                              // older than 8.x does not have documentation archive online, no way to check if nvrtc support whatever we need
-                                              // older than 9.x is just a theoretical limit since we define 9.0 as the minimum required version
+    const char *cuda_path = getenv ("CUDA_PATH");
+
+    const char *dirs[2] = { NULL, NULL };
+
+    if (cuda_path)
     {
-      for (int minor = 20; minor >= 0; minor--)
-      {
-        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d.dll", major, minor);
+      const size_t len = strlen (cuda_path);
 
-        nvrtc->lib = hc_dlopen (dllname);
+      const char *sep = ((len > 0) && (cuda_path[len - 1] == '\\')) ? "" : "\\";
 
-        if (nvrtc->lib) break;
+      snprintf (cuda_bin_x64, sizeof (cuda_bin_x64), "%s%sbin\\x64", cuda_path, sep);
+      snprintf (cuda_bin,     sizeof (cuda_bin),     "%s%sbin",      cuda_path, sep);
 
-        snprintf (dllname, sizeof (dllname), "nvrtc64_%d%d_0.dll", major, minor);
-
-        nvrtc->lib = hc_dlopen (dllname);
-
-        if (nvrtc->lib) break;
-      }
-
-      if (nvrtc->lib) break;
+      dirs[0] = cuda_bin_x64;
+      dirs[1] = cuda_bin;
     }
+
+    nvrtc->lib = hc_dynlib_open_newest_dll_tie ("nvrtc64_", "nvrtc-builtins64_", dirs, 2, NULL, 0);
   }
   #elif defined (__APPLE__)
   nvrtc->lib = hc_dlopen ("nvrtc.dylib");
   #elif defined (__CYGWIN__)
   nvrtc->lib = hc_dlopen ("nvrtc.dll");
   #else
-  nvrtc->lib = hc_dlopen ("libnvrtc.so");
+  // libnvrtc.so is a link the development package ships and libnvrtc.so.1 has never existed, so a
+  // machine carrying the runtime alone had neither. The versioned names are read off the disk
+  // instead, and the newest CUDA present wins.
 
-  if (nvrtc->lib == NULL) nvrtc->lib = hc_dlopen ("libnvrtc.so.1");
+  nvrtc->lib = hc_dynlib_open_newest ("libnvrtc", NULL, 0);
   #endif
 
   if (nvrtc->lib == NULL) return -1;
@@ -99,6 +146,13 @@ int nvrtc_init (void *hashcat_ctx)
   HC_LOAD_FUNC (nvrtc, nvrtcGetErrorString,     NVRTC_NVRTCGETERRORSTRING,    NVRTC, 1);
   HC_LOAD_FUNC (nvrtc, nvrtcVersion,            NVRTC_NVRTCVERSION,           NVRTC, 1);
 
+  #if defined (_WIN)
+  int major = 0;
+  int minor = 0;
+
+  if (nvrtc->nvrtcVersion (&major, &minor) == NVRTC_SUCCESS) nvrtc->lib_builtins = nvrtc_open_builtins (nvrtc->lib, major, minor);
+  #endif
+
   return 0;
 }
 
@@ -113,6 +167,11 @@ void nvrtc_close (void *hashcat_ctx)
     if (nvrtc->lib)
     {
       hc_dlclose (nvrtc->lib);
+    }
+
+    if (nvrtc->lib_builtins)
+    {
+      hc_dlclose (nvrtc->lib_builtins);
     }
 
     hcfree (backend_ctx->nvrtc);

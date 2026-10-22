@@ -1,0 +1,14 @@
+{
+  "oob_write": {
+    "tool": "memcheck",
+    "kind": "InvalidGlobalWrite"
+  },
+  "oob_read": {
+    "tool": "memcheck",
+    "kind": "InvalidGlobalRead"
+  },
+  "uninit_global": {
+    "tool": "initcheck",
+    "kind": "UninitializedDeviceMemory"
+  }
+}

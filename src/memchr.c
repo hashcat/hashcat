@@ -1,0 +1,386 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+// Finding one byte in a buffer, in the widest form the processor running the binary supports.
+//
+// This is the only host side SIMD in the tree, so it is also the only place that has to ask what the
+// processor can do. The answer is settled once at load time and read back through a function
+// pointer, which keeps the question out of the loop and, more importantly, out of everything that
+// merely wants to scan a buffer. A plugin that decodes a hash line has no business linking a
+// dispatch over AVX-512.
+
+#include "common.h"
+#include "types.h"
+#include "cpu_features.h"
+#include "memchr.h"
+
+#if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86)
+#include <immintrin.h>
+#elif defined (__aarch64__)
+#include <sse2neon.h>
+#endif
+
+size_t hc_memchr_generic (const u8 *ptr, int ch, size_t max_len)
+{
+  const u8 *found = memchr (ptr, ch, max_len);
+
+  return found ? (size_t)(found - ptr) : max_len;
+}
+
+// How many times a byte occurs in a buffer, which is a different question from where the first one is.
+//
+// Counting the lines of a file used to ask the first question once per line, and that walks a chain the
+// processor cannot get ahead of: the address the next scan starts at is the answer to the one before it.
+// Counting has no such chain, so the whole buffer goes through at load width and the per line cost
+// disappears.
+
+size_t hc_memcount_generic (const u8 *ptr, int ch, size_t max_len)
+{
+  size_t cnt = 0;
+
+  while (max_len > 0)
+  {
+    const u8 *found = memchr (ptr, ch, max_len);
+
+    if (found == NULL) break;
+
+    const size_t step = (size_t) (found - ptr) + 1;
+
+    cnt++;
+
+    ptr     += step;
+    max_len -= step;
+  }
+
+  return cnt;
+}
+
+// How far past the nth occurrence of a byte a buffer runs.
+//
+// Walking to every nth occurrence with hc_memchr means one call per occurrence, and each of those
+// restarts the scan and pays a call to travel a handful of bytes. Counting the lines of a wordlist
+// asks this question over and over, once per checkpoint, and the occurrences in between are of no
+// interest at all: only how many there were.
+//
+// The answer is the offset just past the nth occurrence, or max_len when the buffer holds fewer than
+// n of them, which is what lets a caller walk a buffer with repeated calls and know when it is done.
+// found is how many there were either way, so a caller that ran out still learns what it passed.
+
+size_t hc_memnth_generic (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found)
+{
+  size_t cnt = 0;
+  size_t off = 0;
+
+  while (off < max_len)
+  {
+    const u8 *hit = memchr (ptr + off, ch, max_len - off);
+
+    if (hit == NULL) break;
+
+    off = (size_t) (hit - ptr) + 1;
+
+    cnt++;
+
+    if (cnt == nth)
+    {
+      *found = cnt;
+
+      return off;
+    }
+  }
+
+  *found = cnt;
+
+  return max_len;
+}
+
+#if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86) || defined (__aarch64__)
+#if !defined (__aarch64__)
+__attribute__((target("avx2")))
+#endif
+size_t hc_memchr_avx2 (const u8 *ptr, int ch, size_t max_len)
+{
+  size_t offset = 0;
+
+  while (max_len >= 32)
+  {
+    #if defined (__aarch64__)
+
+    __m128i block1 = _mm_loadu_si128      ((const __m128i *)(ptr));
+    __m128i block2 = _mm_loadu_si128      ((const __m128i *)(ptr + 16));
+
+    __m128i nl     = _mm_set1_epi8        (ch);
+
+    __m128i cmp1   = _mm_cmpeq_epi8       (block1, nl);
+    __m128i cmp2   = _mm_cmpeq_epi8       (block2, nl);
+
+    int mask1      = _mm_movemask_epi8    (cmp1);
+    int mask2      = _mm_movemask_epi8    (cmp2);
+
+    if (mask1) return offset + __builtin_ctz (mask1);
+    if (mask2) return offset + 16 + __builtin_ctz  (mask2);
+
+    #else
+
+    __m256i block  = _mm256_loadu_si256   ((const __m256i *)ptr);
+    __m256i nl     = _mm256_set1_epi8     (ch);
+    __m256i cmp    = _mm256_cmpeq_epi8    (block, nl);
+
+    int mask       = _mm256_movemask_epi8 (cmp);
+
+    if (mask != 0) return offset + __builtin_ctz (mask);
+
+    #endif
+
+    ptr     += 32;
+    max_len -= 32;
+    offset  += 32;
+  }
+
+  size_t tail = hc_memchr_generic (ptr, ch, max_len);
+
+  return offset + tail;
+}
+
+#if !defined (__aarch64__)
+__attribute__((target("avx512f,avx512bw")))
+#endif
+size_t hc_memchr_avx512 (const u8 *ptr, int ch, size_t max_len)
+{
+  size_t offset = 0;
+
+  while (max_len >= 64)
+  {
+    #if defined (__aarch64__)
+
+    // Map 64-byte scan using two 32-byte NEON blocks
+
+    __m128i block1 = _mm_loadu_si128        ((const __m128i *)(ptr));
+    __m128i block2 = _mm_loadu_si128        ((const __m128i *)(ptr + 16));
+    __m128i block3 = _mm_loadu_si128        ((const __m128i *)(ptr + 32));
+    __m128i block4 = _mm_loadu_si128        ((const __m128i *)(ptr + 48));
+
+    __m128i nl     = _mm_set1_epi8          (ch);
+
+    int mask1      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block1, nl));
+    int mask2      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block2, nl));
+    int mask3      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block3, nl));
+    int mask4      = _mm_movemask_epi8      (_mm_cmpeq_epi8 (block4, nl));
+
+    if (mask1) return offset + __builtin_ctz      (mask1);
+    if (mask2) return offset + 16 + __builtin_ctz (mask2);
+    if (mask3) return offset + 32 + __builtin_ctz (mask3);
+    if (mask4) return offset + 48 + __builtin_ctz (mask4);
+
+    #else
+
+    __m512i block  = _mm512_loadu_si512     ((const __m512i *)ptr);
+    __m512i nl     = _mm512_set1_epi8       (ch);
+    __mmask64 mask = _mm512_cmpeq_epi8_mask (block, nl);
+
+    if (mask != 0) return offset + __builtin_ctzll (mask);
+
+    #endif
+
+    ptr     += 64;
+    max_len -= 64;
+    offset  += 64;
+  }
+
+  size_t tail = hc_memchr_generic (ptr, ch, max_len);
+
+  return offset + tail;
+}
+
+#if !defined (__aarch64__)
+__attribute__((target("avx2")))
+#endif
+size_t hc_memcount_avx2 (const u8 *ptr, int ch, size_t max_len)
+{
+  size_t cnt = 0;
+
+  while (max_len >= 32)
+  {
+    #if defined (__aarch64__)
+
+    __m128i block1 = _mm_loadu_si128      ((const __m128i *)(ptr));
+    __m128i block2 = _mm_loadu_si128      ((const __m128i *)(ptr + 16));
+
+    __m128i nl     = _mm_set1_epi8        (ch);
+
+    int mask1      = _mm_movemask_epi8    (_mm_cmpeq_epi8 (block1, nl));
+    int mask2      = _mm_movemask_epi8    (_mm_cmpeq_epi8 (block2, nl));
+
+    cnt += (size_t) __builtin_popcount ((u32) mask1);
+    cnt += (size_t) __builtin_popcount ((u32) mask2);
+
+    #else
+
+    __m256i block  = _mm256_loadu_si256   ((const __m256i *) ptr);
+    __m256i nl     = _mm256_set1_epi8     (ch);
+    __m256i cmp    = _mm256_cmpeq_epi8    (block, nl);
+
+    int mask       = _mm256_movemask_epi8 (cmp);
+
+    cnt += (size_t) __builtin_popcount ((u32) mask);
+
+    #endif
+
+    ptr     += 32;
+    max_len -= 32;
+  }
+
+  cnt += hc_memcount_generic (ptr, ch, max_len);
+
+  return cnt;
+}
+
+
+#if !defined (__aarch64__)
+__attribute__((target("avx2")))
+#endif
+size_t hc_memnth_avx2 (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found)
+{
+  size_t cnt = 0;
+  size_t off = 0;
+
+  while ((max_len - off) >= 32)
+  {
+    #if defined (__aarch64__)
+
+    __m128i block1 = _mm_loadu_si128      ((const __m128i *)(ptr + off));
+    __m128i block2 = _mm_loadu_si128      ((const __m128i *)(ptr + off + 16));
+
+    __m128i nl     = _mm_set1_epi8        (ch);
+
+    u32 mask       = (u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (block1, nl))
+                   | ((u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (block2, nl)) << 16);
+
+    #else
+
+    __m256i block  = _mm256_loadu_si256   ((const __m256i *) (ptr + off));
+    __m256i nl     = _mm256_set1_epi8     (ch);
+    __m256i cmp    = _mm256_cmpeq_epi8    (block, nl);
+
+    u32 mask       = (u32) _mm256_movemask_epi8 (cmp);
+
+    #endif
+
+    const size_t hits = (size_t) __builtin_popcount (mask);
+
+    // The load carries none of what is being looked for, or all of it and still not enough. Either way
+    // nothing in it has to be located, which is the case for every load but one in a whole step.
+
+    if ((cnt + hits) < nth)
+    {
+      cnt += hits;
+      off += 32;
+
+      continue;
+    }
+
+    while (mask != 0)
+    {
+      const u32 bit = (u32) __builtin_ctz (mask);
+
+      mask &= mask - 1;
+
+      cnt++;
+
+      if (cnt == nth)
+      {
+        *found = cnt;
+
+        return off + bit + 1;
+      }
+    }
+
+    off += 32;
+  }
+
+  size_t tail_cnt = 0;
+
+  const size_t tail_off = hc_memnth_generic (ptr + off, ch, max_len - off, nth - cnt, &tail_cnt);
+
+  *found = cnt + tail_cnt;
+
+  return off + tail_off;
+}
+
+#endif // __x86_64__ || _M_X64 || __i386__ || _M_IX86 || __aarch64__
+
+static hc_memchr_t   hc_memchr_cached   = hc_memchr_generic;
+static hc_memcount_t hc_memcount_cached = hc_memcount_generic;
+static hc_memnth_t   hc_memnth_cached   = hc_memnth_generic;
+
+__attribute__((constructor))
+static void hc_mem_init (void)
+{
+  #if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86)
+
+  // AVX-512 is not used even where it is available, because it loses. What this scans for is the end of
+  // a password, so it stops after about ten bytes, and a 64 byte load to travel ten bytes costs more
+  // than it saves. Measured on a Zen 5, over a real wordlist of twelve million lines:
+  //
+  //   libc 279 M lines/s, AVX2 276 M/s, AVX-512 238 M/s
+  //
+  // and over fixed length lines it holds at every length from 6 bytes to 200. AVX-512 was never once
+  // the fastest, and it was the one being chosen on every CPU new enough to have it.
+  //
+  // The library's own memchr is as fast as AVX2 here, and on glibc it would do. It is not used because
+  // it is not the same routine everywhere: hashcat ships for Windows and macOS as well, and this is the
+  // one place where a weak libc would cost the whole feed. AVX2 is the same speed on the C library that
+  // is good and faster than the ones that are not.
+
+  // Counting takes the same answer. It reads whole buffers rather than the first ten bytes of a
+  // password, so the argument against AVX-512 above is not the argument here, but at 32 bytes a load
+  // this already runs at memory speed and a wider load has nothing left to win.
+
+  if (cpu_supports_avx2 ())
+  {
+    hc_memchr_cached   = hc_memchr_avx2;
+    hc_memcount_cached = hc_memcount_avx2;
+    hc_memnth_cached   = hc_memnth_avx2;
+  }
+  else
+  {
+    hc_memchr_cached   = hc_memchr_generic;
+    hc_memcount_cached = hc_memcount_generic;
+    hc_memnth_cached   = hc_memnth_generic;
+  }
+
+  #elif defined (__aarch64__)
+
+  // Use 64-byte NEON-mapped function for Apple Silicon
+  // hc_memchr_cached = hc_memchr_avx512;
+
+  // Use 32-byte NEON-mapped function for Apple Silicon by default
+  hc_memchr_cached     = hc_memchr_avx2;
+  hc_memcount_cached   = hc_memcount_avx2;
+  hc_memnth_cached     = hc_memnth_avx2;
+
+  #else
+
+  hc_memchr_cached     = hc_memchr_generic;
+  hc_memcount_cached   = hc_memcount_generic;
+  hc_memnth_cached     = hc_memnth_generic;
+
+  #endif
+}
+
+hc_memchr_t hc_memchr_get (void)
+{
+  return hc_memchr_cached;
+}
+
+hc_memcount_t hc_memcount_get (void)
+{
+  return hc_memcount_cached;
+}
+
+hc_memnth_t hc_memnth_get (void)
+{
+  return hc_memnth_cached;
+}

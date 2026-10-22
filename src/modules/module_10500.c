@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -42,6 +43,11 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return USAGE_NOTICE_PDF;
+}
 
 typedef struct pdf
 {
@@ -190,12 +196,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[6]     = '*';
-  token.len[6]     = 2;
-  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[6] = 1;
+  token.len_max[6] = 2;
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[7]     = '*';
-  token.len_min[7] = 32;
+  token.len_min[7] = 0;
   token.len_max[7] = 64;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -257,7 +264,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int u_len  = strtol ((const char *) u_len_pos,  NULL, 10);
   const int o_len  = strtol ((const char *) o_len_pos,  NULL, 10);
 
-  if ((id_len != 16) && (id_len != 32)) return (PARSER_SALT_VALUE);
+  if ((id_len != 0) && (id_len != 16) && (id_len != 32)) return (PARSER_SALT_VALUE);
 
   if (u_len != 32) return (PARSER_SALT_VALUE);
   if (o_len != 32) return (PARSER_SALT_VALUE);
@@ -281,10 +288,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pdf->enc_md = enc_md;
 
-  pdf->id_buf[0] = hex_to_u32 (id_buf_pos +  0);
-  pdf->id_buf[1] = hex_to_u32 (id_buf_pos +  8);
-  pdf->id_buf[2] = hex_to_u32 (id_buf_pos + 16);
-  pdf->id_buf[3] = hex_to_u32 (id_buf_pos + 24);
+  if (id_len == 0)
+  {
+    // do nothing
+  }
+
+  if (id_len >= 16)
+  {
+    pdf->id_buf[0] = hex_to_u32 (id_buf_pos +  0);
+    pdf->id_buf[1] = hex_to_u32 (id_buf_pos +  8);
+    pdf->id_buf[2] = hex_to_u32 (id_buf_pos + 16);
+    pdf->id_buf[3] = hex_to_u32 (id_buf_pos + 24);
+  }
 
   if (id_len == 32)
   {
@@ -348,16 +363,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // we use ID for salt, maybe needs to change, we will see...
 
-  salt->salt_buf[0] = pdf->id_buf[0];
-  salt->salt_buf[1] = pdf->id_buf[1];
-  salt->salt_buf[2] = pdf->id_buf[2];
-  salt->salt_buf[3] = pdf->id_buf[3];
-  salt->salt_buf[4] = pdf->u_buf[0];
-  salt->salt_buf[5] = pdf->u_buf[1];
-  salt->salt_buf[6] = pdf->o_buf[0];
-  salt->salt_buf[7] = pdf->o_buf[1];
-  salt->salt_len    = pdf->id_len + 16;
-
+  if (pdf->id_len == 0)
+  {
+    salt->salt_buf[0] = pdf->u_buf[0];
+    salt->salt_buf[1] = pdf->u_buf[1];
+    salt->salt_buf[2] = pdf->o_buf[0];
+    salt->salt_buf[3] = pdf->o_buf[1];
+    salt->salt_len    = 16;
+  }
+  else {
+    salt->salt_buf[0] = pdf->id_buf[0];
+    salt->salt_buf[1] = pdf->id_buf[1];
+    salt->salt_buf[2] = pdf->id_buf[2];
+    salt->salt_buf[3] = pdf->id_buf[3];
+    salt->salt_buf[4] = pdf->u_buf[0];
+    salt->salt_buf[5] = pdf->u_buf[1];
+    salt->salt_buf[6] = pdf->o_buf[0];
+    salt->salt_buf[7] = pdf->o_buf[1];
+    salt->salt_len    = pdf->id_len + 16;
+  }
   salt->salt_iter   = (50 + 20);
 
   digest[0] = pdf->u_buf[0];
@@ -395,6 +419,39 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       byte_swap_32 (pdf->id_buf[5]),
       byte_swap_32 (pdf->id_buf[6]),
       byte_swap_32 (pdf->id_buf[7]),
+      pdf->u_len,
+      byte_swap_32 (pdf->u_buf[0]),
+      byte_swap_32 (pdf->u_buf[1]),
+      byte_swap_32 (pdf->u_buf[2]),
+      byte_swap_32 (pdf->u_buf[3]),
+      byte_swap_32 (pdf->u_buf[4]),
+      byte_swap_32 (pdf->u_buf[5]),
+      byte_swap_32 (pdf->u_buf[6]),
+      byte_swap_32 (pdf->u_buf[7]),
+      pdf->o_len,
+      byte_swap_32 (pdf->o_buf[0]),
+      byte_swap_32 (pdf->o_buf[1]),
+      byte_swap_32 (pdf->o_buf[2]),
+      byte_swap_32 (pdf->o_buf[3]),
+      byte_swap_32 (pdf->o_buf[4]),
+      byte_swap_32 (pdf->o_buf[5]),
+      byte_swap_32 (pdf->o_buf[6]),
+      byte_swap_32 (pdf->o_buf[7])
+    );
+  }
+  else if (pdf->id_len == 0)
+  {
+    const char *line_format = "$pdf$%d*%d*%d*%u*%d*%d**%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x";
+
+    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d**%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x";
+
+    line_len = snprintf (line_buf, line_size, line_format,
+      pdf->V,
+      pdf->R,
+      128,
+      pdf->P,
+      pdf->enc_md,
+      pdf->id_len,
       pdf->u_len,
       byte_swap_32 (pdf->u_buf[0]),
       byte_swap_32 (pdf->u_buf[1]),
@@ -461,12 +518,14 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
@@ -477,7 +536,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -493,10 +551,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
@@ -515,8 +575,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -527,6 +589,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
@@ -535,5 +598,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = module_usage_notice;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

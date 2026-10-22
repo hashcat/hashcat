@@ -41,6 +41,23 @@ DECLSPEC void scrypt_shuffle (PRIVATE_AS u32 *TI)
     for (int j = 0; j < SALSA_CNT4; j++) TI[dst_off + j] = TT[src_off + j];
   }
 }
+
+DECLSPEC void scrypt_shuffle_inv (PRIVATE_AS u32 *TI)
+{
+  u32 TT[STATE_CNT4];
+
+  for (int j = 0; j < STATE_CNT4; j++) TT[j] = TI[j];
+
+  for (int dst_off = SALSA_CNT4 * 2, src_off = SALSA_CNT4; dst_off < STATE_CNT4; dst_off += SALSA_CNT4 * 2, src_off += SALSA_CNT4)
+  {
+    for (int j = 0; j < SALSA_CNT4; j++) TI[dst_off + j] = TT[src_off + j];
+  }
+
+  for (int dst_off = SALSA_CNT4, src_off = STATE_CNT4 / 2; dst_off < STATE_CNT4; dst_off += SALSA_CNT4 * 2, src_off += SALSA_CNT4)
+  {
+    for (int j = 0; j < SALSA_CNT4; j++) TI[dst_off + j] = TT[src_off + j];
+  }
+}
 #endif
 
 DECLSPEC void salsa_r (PRIVATE_AS u32 *TI)
@@ -172,6 +189,10 @@ DECLSPEC void scrypt_smix_init (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, GLOBAL_AS v
 
   for (u32 i = 0; i < STATE_CNT4; i++) X[i] = P[i];
 
+  #if SCRYPT_R > 1
+  scrypt_shuffle_inv (X);
+  #endif
+
   for (u32 y = 0; y < ySIZE; y++)
   {
     GLOBAL_AS hc_uint4_t *Vxx = Vx + (y * zSIZE);
@@ -180,13 +201,17 @@ DECLSPEC void scrypt_smix_init (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, GLOBAL_AS v
 
     for (u32 i = 0; i < (1 << SCRYPT_TMTO); i++)
     {
-      salsa_r (X);
-
       #if SCRYPT_R > 1
       scrypt_shuffle (X);
       #endif
+
+      salsa_r (X);
     }
   }
+
+  #if SCRYPT_R > 1
+  scrypt_shuffle (X);
+  #endif
 
   for (u32 i = 0; i < STATE_CNT4; i++) P[i] = X[i];
 }
@@ -216,6 +241,10 @@ DECLSPEC void scrypt_smix_loop (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, PRIVATE_AS 
 
   for (u32 i = 0; i < STATE_CNT4; i++) X[i] = P[i];
 
+  #if SCRYPT_R > 1
+  scrypt_shuffle_inv (X);
+  #endif
+
   // note: max 1024 iterations = forced -u 2048
 
   const u32 N_max = (SCRYPT_N < 2048) ? SCRYPT_N : 2048;
@@ -234,21 +263,25 @@ DECLSPEC void scrypt_smix_loop (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, PRIVATE_AS 
 
     for (u32 i = 0; i < km; i++)
     {
-      salsa_r (T);
-
       #if SCRYPT_R > 1
       scrypt_shuffle (T);
       #endif
+
+      salsa_r (T);
     }
 
     for (u32 z = 0; z < zSIZE; z++) X4[z] = xor_uint4 (X4[z], T4[z]);
 
-    salsa_r (X);
-
     #if SCRYPT_R > 1
     scrypt_shuffle (X);
     #endif
+
+    salsa_r (X);
   }
+
+  #if SCRYPT_R > 1
+  scrypt_shuffle (X);
+  #endif
 
   for (u32 i = 0; i < STATE_CNT4; i++) P[i] = X[i];
 }

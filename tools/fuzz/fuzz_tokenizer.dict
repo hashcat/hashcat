@@ -1,0 +1,32 @@
+# Separators, signatures and field shapes the hash line formats in the tree are
+# built out of. The token spec is part of the input, so the separators matter
+# twice: once in the header that tells the tokenizer what to split on, and once
+# in the line that carries them.
+
+":"
+"$"
+"*"
+"#"
+","
+"."
+"="
+"|"
+"@"
+
+"$1$"
+"$2a$"
+"$6$"
+"$pkzip2$"
+"$gpg$"
+"$krb5tgs$"
+"$office$"
+"$argon2id$"
+"SCRYPT:"
+"rounds="
+"m=65536,t=3,p=1"
+
+"0123456789abcdef"
+"deadbeef"
+"AAAAAAAAAAAAAAAA"
+"=="
+"$HEX[41]"

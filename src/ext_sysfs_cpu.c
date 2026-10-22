@@ -7,9 +7,13 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "event.h"
 #include "folder.h"
 #include "ext_sysfs_cpu.h"
+
+#include <limits.h>
 
 bool sysfs_cpu_init (void *hashcat_ctx)
 {
@@ -27,7 +31,13 @@ bool sysfs_cpu_init (void *hashcat_ctx)
 
   hcfree (path);
 
-  return r;
+  if (r == false) return false;
+
+  sysfs_cpu->syspath = hm_SYSFS_CPU_get_syspath_hwmon ();
+
+  if (sysfs_cpu->syspath == NULL) return false;
+
+  return true;
 }
 
 void sysfs_cpu_close (void *hashcat_ctx)
@@ -38,6 +48,7 @@ void sysfs_cpu_close (void *hashcat_ctx)
 
   if (sysfs_cpu)
   {
+    hcfree (sysfs_cpu->syspath);
     hcfree (sysfs_cpu);
   }
 }
@@ -99,23 +110,23 @@ char *hm_SYSFS_CPU_get_syspath_hwmon (void)
 
 int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val)
 {
-  char *syspath = hm_SYSFS_CPU_get_syspath_hwmon ();
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
 
-  if (syspath == NULL) return -1;
+  SYSFS_CPU_PTR *sysfs_cpu = (SYSFS_CPU_PTR *) hwmon_ctx->hm_sysfs_cpu;
 
-  char *path = NULL;
+  if (sysfs_cpu->syspath == NULL) return -1;
 
-  hc_asprintf (&path, "%s/temp1_input", syspath);
+  char path[PATH_MAX + 1];
 
-  hcfree (syspath);
+  const int path_len = snprintf (path, sizeof (path), "%s/temp1_input", sysfs_cpu->syspath);
+
+  if ((path_len < 0) || ((size_t) path_len >= sizeof (path))) return -1;
 
   HCFILE fp;
 
   if (hc_fopen_raw (&fp, path, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
-
-    hcfree (path);
 
     return -1;
   }
@@ -128,16 +139,12 @@ int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val)
 
     event_log_error (hashcat_ctx, "%s: unexpected data.", path);
 
-    hcfree (path);
-
     return -1;
   }
 
   hc_fclose (&fp);
 
   *val = temperature / 1000;
-
-  hcfree (path);
 
   return 0;
 }
@@ -178,7 +185,14 @@ int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val)
 
   proc_stat_t cur;
 
-  if (read_proc_stat (hashcat_ctx, &cur) == false) return false;
+  // -1 and 0, the convention hm_SYSFS_CPU_get_temperature_current above uses and the one the caller
+  // in src/hwmon.c tests. This returned true and false, which are 1 and 0, so neither exit was ever
+  // -1: a /proc/stat that could not be read came back as a successful reading of whatever the
+  // caller had initialised, which is 0, and the sensor was never marked unsupported.
+  //
+  // A /proc/stat that cannot be read will not start working, so that one is worth reporting.
+
+  if (read_proc_stat (hashcat_ctx, &cur) == false) return -1;
 
   unsigned long prev_idle = prev.idle
                           + prev.iowait;
@@ -214,8 +228,14 @@ int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val)
 
     *val = (int) cpu_percentage;
 
-    return true;
+    return 0;
   }
 
-  return false;
+  // No time passed between this sample and the last, which happens when two refreshes land inside
+  // one jiffy. There is nothing to report and nothing wrong with the sensor, so it says zero for
+  // this tick rather than disabling itself for the run.
+
+  *val = 0;
+
+  return 0;
 }

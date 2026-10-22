@@ -16,6 +16,16 @@
 // Declarations from:
 // https://github.com/GPUOpen-LibrariesAndSDKs/display-library/blob/209538e1dc7273f7459411a3a5044ffe2437ed95/include/adl_defines.h
 // https://github.com/GPUOpen-LibrariesAndSDKs/display-library/blob/209538e1dc7273f7459411a3a5044ffe2437ed95/include/adl_structures.h
+//
+// That pin is from January 2021 and upstream has shipped SDK 16.0, 17.0, 17.1 and 18.0 since, so it
+// looks stale. It is not, for what is used here. Every one of the 18 structures below was compared
+// field by field against upstream master and all 18 are unchanged, ADL_PMLOG_MAX_SENSORS is still
+// 256, and every sensor named in ADLSensorType still has the index it had. AMD appended 32 sensor
+// types after the ones here rather than renumbering, which moved only the terminator, and nothing
+// reads that.
+//
+// Worth repeating before taking a newer pin rather than assuming either way, because a structure
+// that grew would be written past the end of the copy declared here and no compiler would see it.
 
 
 /// Defines ADL_TRUE

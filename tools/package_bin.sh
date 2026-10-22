@@ -5,8 +5,56 @@
 ## License.....: MIT
 ##
 
+# The archive is named after the binary inside it. VERSION_TAG is what the build stamped into that
+# binary, so it is asked of the Makefile instead of being written out again here, where it said 7.1.2
+# whatever commit was actually built and an archive from any other commit carried the release name.
+# The leading v is dropped because the archive has never had one.
+
+VERSION_TAG=$(make -s version 2>/dev/null | tail -1)
+
+case "$VERSION_TAG" in
+  v[0-9]*) ;;
+  *)
+    echo "! the Makefile reported no version, so the archive cannot be named after the binary. It said: $VERSION_TAG"
+    exit 1
+    ;;
+esac
+
+export VERSION=${VERSION_TAG#v}
+export MAJOR=${VERSION%%.*}
+
 export IN=.
-export OUT=$HOME/xy/hashcat-7.1.2
+export OUT=$HOME/xy/hashcat-$VERSION
+
+# what the archive is laid out around: a frontend per platform and the core each one shares with its
+# plugins. A make that stopped early leaves some of them behind, and packing what is there produces
+# an archive that looks ordinary and cannot run, so the name of the missing one is said here instead
+
+for artifact in hashcat.bin hashcat.exe libhashcat.so.$MAJOR hashcat.dll; do
+
+  if [ -f "$IN/$artifact" ]; then
+    continue
+  fi
+
+  echo "! $artifact was not built. The archive is laid out around it, so nothing is packed."
+  exit 1
+
+done
+
+# and the folders it lays beside them. cp writes its complaint to stderr and carries on, so a folder
+# that was renamed in the tree left an archive missing it and said nothing that stopped the build.
+# layouts became tables/layouts and that is exactly what happened.
+
+for folder in docs charsets tables masks bridges feeds modules rules extra tunings pcfg OpenCL; do
+
+  if [ -d "$IN/$folder" ]; then
+    continue
+  fi
+
+  echo "! $folder is not in the tree, so it cannot be packed. Either it moved and this script has not been told, or the build is incomplete."
+  exit 1
+
+done
 
 rm -rf $OUT
 rm -rf $OUT.7z
@@ -23,9 +71,42 @@ cp    $IN/hashcat.exe                   $OUT/
 cp    $IN/hashcat.bin                   $OUT/
 cp    $IN/hashcat.hcstat2               $OUT/
 
+# the core each binary and its plugins share. On Linux it is found beside hashcat.bin and one
+# directory above every plugin, on Windows it is found beside hashcat.exe, so the archive is
+# unpacked and run with nothing set in the environment
+
+cp    $IN/libhashcat.so.$MAJOR          $OUT/
+cp    $IN/hashcat.dll                   $OUT/
+
+# The compressors, for the Windows package only. hashcat loads these at runtime, and a Linux or macOS
+# box gets them from the system, but Windows provides none of them. Without liblzma the package
+# cannot read its own hashcat.hcstat2 and every mask attack fails, so it is not optional there.
+#
+# WIN_DLL_DIR is set by the build image, which compiles them from pinned upstream tags. A build
+# outside that image simply has nothing to copy, which is the case on a developer's machine. Where
+# the image did set it, a missing compressor is treated the way a missing binary is above: an archive
+# that packed without one would look ordinary and fail on the first mask attack.
+
+if [ -n "$WIN_DLL_DIR" ]; then
+
+  for compressor in liblzma.dll zlib1.dll libzstd.dll; do
+
+    if [ -f "$WIN_DLL_DIR/$compressor" ]; then
+      continue
+    fi
+
+    echo "! $compressor was not built. The Windows package cannot read its own hashcat.hcstat2 without it, so nothing is packed."
+    exit 1
+
+  done
+
+  cp $WIN_DLL_DIR/*.dll $OUT/
+
+fi
+
 cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
-cp -r $IN/layouts                       $OUT/
+cp -r $IN/tables                        $OUT/
 cp -r $IN/masks                         $OUT/
 cp -r $IN/bridges                       $OUT/
 cp -r $IN/feeds                         $OUT/
@@ -33,6 +114,12 @@ cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
 cp -r $IN/tunings                       $OUT/
+
+# The PCFG rulesets, which are what -a 4 runs with no ruleset named. Not in the line ending passes
+# below: a ruleset is one .tar.xz and converting it is corrupting it.
+
+cp -r $IN/pcfg                          $OUT/
+
 cp    $IN/example.dict                  $OUT/
 cp    $IN/example[0123456789]*.hash     $OUT/
 cp    $IN/example[0123456789]*.cmd      $OUT/
@@ -42,8 +129,10 @@ cp    $IN/Rust/hashcat-sys/Cargo.*              $OUT/Rust/hashcat-sys/
 cp    $IN/Rust/hashcat-sys/build.rs             $OUT/Rust/hashcat-sys/
 cp -r $IN/Rust/bridges/generic_hash/src         $OUT/Rust/bridges/generic_hash/
 cp    $IN/Rust/bridges/generic_hash/Cargo.*     $OUT/Rust/bridges/generic_hash/
+cp    $IN/Rust/bridges/generic_hash/build.rs    $OUT/Rust/bridges/generic_hash/
 cp -r $IN/Rust/bridges/dynamic_hash/src         $OUT/Rust/bridges/dynamic_hash/
 cp    $IN/Rust/bridges/dynamic_hash/Cargo.*     $OUT/Rust/bridges/dynamic_hash/
+cp    $IN/Rust/bridges/dynamic_hash/build.rs    $OUT/Rust/bridges/dynamic_hash/
 cp -r $IN/OpenCL                        $OUT/
 cp    $IN/tools/*hashcat.pl             $OUT/tools/
 cp    $IN/tools/*hashcat.py             $OUT/tools/
@@ -57,22 +146,26 @@ for example in example[0123456789]*.sh; do
 
 done
 
-dos2unix $OUT/layouts/*.hckmap
+dos2unix $OUT/tables/*.table
+dos2unix $OUT/tables/layouts/*.table
 dos2unix $OUT/masks/*.hcmask
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
 dos2unix $OUT/docs/*
 dos2unix $OUT/docs/license_libs/*
+dos2unix $OUT/docs/plugin-development-workshop/*
 dos2unix $OUT/example*
 dos2unix $OUT/tools/*
 dos2unix $OUT/tunings/*
 
-unix2dos $OUT/layouts/*.hckmap
+unix2dos $OUT/tables/*.table
+unix2dos $OUT/tables/layouts/*.table
 unix2dos $OUT/masks/*.hcmask
 unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
 unix2dos $OUT/docs/*
 unix2dos $OUT/docs/license_libs/*
+unix2dos $OUT/docs/plugin-development-workshop/*
 unix2dos $OUT/example*.cmd
 unix2dos $OUT/Python/*
 unix2dos $OUT/OpenCL/*
@@ -88,10 +181,14 @@ chmod 755 $OUT/docs
 chmod 644 $OUT/docs/*
 chmod 755 $OUT/docs/license_libs
 chmod 644 $OUT/docs/license_libs/*
+chmod 755 $OUT/docs/plugin-development-workshop
+chmod 644 $OUT/docs/plugin-development-workshop/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
-chmod 755 $OUT/layouts
-chmod 644 $OUT/layouts/*
+chmod 755 $OUT/tables
+chmod 644 $OUT/tables/*
+chmod 755 $OUT/tables/layouts
+chmod 644 $OUT/tables/layouts/*
 chmod 755 $OUT/masks
 chmod 644 $OUT/masks/*
 chmod 755 $OUT/bridges
@@ -115,8 +212,12 @@ chmod 755 $OUT/OpenCL
 chmod 644 $OUT/OpenCL/*
 chmod 755 $OUT/tunings
 chmod 644 $OUT/tunings/*
+chmod 755 $OUT/pcfg
+chmod 644 $OUT/pcfg/*
 chmod 644 $OUT/*.exe
+chmod 644 $OUT/*.dll
 chmod 755 $OUT/*.bin
+chmod 755 $OUT/libhashcat.so.$MAJOR
 chmod 644 $OUT/hashcat.hcstat2
 chmod 755 $OUT/tools/*hashcat.pl
 chmod 755 $OUT/tools/*hashcat.py

@@ -81,11 +81,39 @@ KERNEL_FQ KERNEL_FA void m13500_mxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
     w[idx] = pws[gid].i[idx];
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
 
   u32x w0l = w[0];
+
+  #if VECT_SIZE == 1
+
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
+  #endif
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -93,15 +121,54 @@ KERNEL_FQ KERNEL_FA void m13500_mxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
 
     const u32x w0 = w0l | w0r;
 
+    #if VECT_SIZE == 1
+
+    w[0] = hc_swap32_S (w0);
+
+    sha1_ctx_t ctx = ctx0;
+
+    sha1_update_utf16le_swap (&ctx, w, pw_len);
+
+    sha1_final (&ctx);
+
+    #else
+
     w[0] = w0;
 
     sha1_ctx_vector_t ctx;
 
-    sha1_init_vector_from_scalar (&ctx, &ctx0);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      sha1_init_vector_from_scalar (&ctx, &ctx0);
 
-    sha1_update_vector_utf16beN (&ctx, w, pw_len);
+      sha1_update_vector_utf16beN (&ctx, w, pw_len);
 
-    sha1_final_vector (&ctx);
+      sha1_final_vector (&ctx);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) t[idx] = hc_swap32_S (t[idx]);
+
+        sha1_ctx_t lctx = ctx0;
+
+        sha1_update_utf16le_swap (&lctx, t, pw_len);
+
+        sha1_final (&lctx);
+
+        hc_vector_set_lane (ctx.h, lctx.h, 5, lane);
+      }
+    }
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
@@ -181,11 +248,39 @@ KERNEL_FQ KERNEL_FA void m13500_sxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
     w[idx] = pws[gid].i[idx];
   }
 
+  #if VECT_SIZE > 1
+
+  // Only the generated part of w[0] changes inside the loop, so the rest of the password is tested
+  // for bytes above 0x7f once, here.
+
+  u32 base_hi = 0;
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) base_hi |= pws[gid].i[idx];
+
+  const bool base_ascii = ((base_hi & 0x80808080) == 0);
+
+  #endif
+
   /**
    * loop
    */
 
   u32x w0l = w[0];
+
+  #if VECT_SIZE == 1
+
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
+  #endif
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -193,15 +288,54 @@ KERNEL_FQ KERNEL_FA void m13500_sxx (KERN_ATTR_VECTOR_ESALT (pstoken_t))
 
     const u32x w0 = w0l | w0r;
 
+    #if VECT_SIZE == 1
+
+    w[0] = hc_swap32_S (w0);
+
+    sha1_ctx_t ctx = ctx0;
+
+    sha1_update_utf16le_swap (&ctx, w, pw_len);
+
+    sha1_final (&ctx);
+
+    #else
+
     w[0] = w0;
 
     sha1_ctx_vector_t ctx;
 
-    sha1_init_vector_from_scalar (&ctx, &ctx0);
+    if ((base_ascii == true) && (hc_vector_is_zero (w0r & 0x80808080) == true))
+    {
+      sha1_init_vector_from_scalar (&ctx, &ctx0);
 
-    sha1_update_vector_utf16beN (&ctx, w, pw_len);
+      sha1_update_vector_utf16beN (&ctx, w, pw_len);
 
-    sha1_final_vector (&ctx);
+      sha1_final_vector (&ctx);
+    }
+    else
+    {
+      // Decoding gives each lane its own length, which a vector context cannot carry, so each lane
+      // goes through the scalar code the VECT_SIZE 1 path uses.
+
+      for (int lane = 0; lane < VECT_SIZE; lane++)
+      {
+        u32 t[64] = { 0 };
+
+        hc_vector_get_lane (t, w, pw_len, lane);
+
+        for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1) t[idx] = hc_swap32_S (t[idx]);
+
+        sha1_ctx_t lctx = ctx0;
+
+        sha1_update_utf16le_swap (&lctx, t, pw_len);
+
+        sha1_final (&lctx);
+
+        hc_vector_set_lane (ctx.h, lctx.h, 5, lane);
+      }
+    }
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];

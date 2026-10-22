@@ -13,13 +13,13 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #endif
 
-DECLSPEC u32 MurmurHash64A_truncated (PRIVATE_AS const u32 *data, const u32 len)
+DECLSPEC u32x MurmurHash64A_truncated (PRIVATE_AS const u32x *data, const u32 len)
 {
-#define M 0xc6a4a7935bd1e995
-#define R 47
+  #define M 0xc6a4a7935bd1e995
+  #define R 47
 
   // Initialize hash
-  u64 hash = len * M;
+  u64x hash = len * M;
 
   // Twice the number of u64 blocks
   const u32 num_u32_blocks = (len / 8) * 2;
@@ -29,7 +29,7 @@ DECLSPEC u32 MurmurHash64A_truncated (PRIVATE_AS const u32 *data, const u32 len)
   while (i < num_u32_blocks)
   {
     // Reconstruct u64 from two u32s
-    u64 k = hl32_to_64 (data[i + 1], data[i]);
+    u64x k = hl32_to_64 (data[i + 1], data[i]);
 
     k *= M;
     k ^= k >> R;
@@ -59,11 +59,11 @@ DECLSPEC u32 MurmurHash64A_truncated (PRIVATE_AS const u32 *data, const u32 len)
   hash *= M;
   hash ^= hash >> R;
 
-#undef M
-#undef R
+  #undef M
+  #undef R
 
   // Truncate to high 4 bytes
-  return (u32) (hash >> 32);
+  return h32_from_64 (hash);
 }
 
 KERNEL_FQ KERNEL_FA void m34211_mxx (KERN_ATTR_VECTOR ())

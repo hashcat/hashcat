@@ -331,18 +331,18 @@ KERNEL_FQ KERNEL_FA void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t
 
   u32 ukey[8];
 
-  ukey[0] = hc_swap32_S (tmps[gid].out[0]);
-  ukey[1] = hc_swap32_S (tmps[gid].out[1]);
-  ukey[2] = hc_swap32_S (tmps[gid].out[2]);
-  ukey[3] = hc_swap32_S (tmps[gid].out[3]);
-  ukey[4] = hc_swap32_S (tmps[gid].out[4]);
-  ukey[5] = hc_swap32_S (tmps[gid].out[5]);
-  ukey[6] = hc_swap32_S (tmps[gid].out[6]);
-  ukey[7] = hc_swap32_S (tmps[gid].out[7]);
+  ukey[0] = tmps[gid].out[0];
+  ukey[1] = tmps[gid].out[1];
+  ukey[2] = tmps[gid].out[2];
+  ukey[3] = tmps[gid].out[3];
+  ukey[4] = tmps[gid].out[4];
+  ukey[5] = tmps[gid].out[5];
+  ukey[6] = tmps[gid].out[6];
+  ukey[7] = tmps[gid].out[7];
 
   u32 ks[60];
 
-  aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   GLOBAL_AS const odf12_t *es = &esalt_bufs[DIGESTS_OFFSET_HOST];
 

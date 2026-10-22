@@ -289,3 +289,815 @@ CONSTANT_VK u32a c_tables[4][256] =
   }
 };
 
+// The same table layout for the S-box of the CryptoPro parameter set, identified as
+// id-GostR3411-94-CryptoProParamSet in RFC 4357.
+
+CONSTANT_VK u32a c_tables_cryptopro[4][256] =
+{
+  {
+    0x0002d000, 0x0002a000, 0x0002a800, 0x0002b000,
+    0x0002c000, 0x00028800, 0x00029800, 0x0002b800,
+    0x0002e800, 0x0002e000, 0x0002f000, 0x00028000,
+    0x0002c800, 0x00029000, 0x0002d800, 0x0002f800,
+    0x0007d000, 0x0007a000, 0x0007a800, 0x0007b000,
+    0x0007c000, 0x00078800, 0x00079800, 0x0007b800,
+    0x0007e800, 0x0007e000, 0x0007f000, 0x00078000,
+    0x0007c800, 0x00079000, 0x0007d800, 0x0007f800,
+    0x00025000, 0x00022000, 0x00022800, 0x00023000,
+    0x00024000, 0x00020800, 0x00021800, 0x00023800,
+    0x00026800, 0x00026000, 0x00027000, 0x00020000,
+    0x00024800, 0x00021000, 0x00025800, 0x00027800,
+    0x00005000, 0x00002000, 0x00002800, 0x00003000,
+    0x00004000, 0x00000800, 0x00001800, 0x00003800,
+    0x00006800, 0x00006000, 0x00007000, 0x00000000,
+    0x00004800, 0x00001000, 0x00005800, 0x00007800,
+    0x00015000, 0x00012000, 0x00012800, 0x00013000,
+    0x00014000, 0x00010800, 0x00011800, 0x00013800,
+    0x00016800, 0x00016000, 0x00017000, 0x00010000,
+    0x00014800, 0x00011000, 0x00015800, 0x00017800,
+    0x0006d000, 0x0006a000, 0x0006a800, 0x0006b000,
+    0x0006c000, 0x00068800, 0x00069800, 0x0006b800,
+    0x0006e800, 0x0006e000, 0x0006f000, 0x00068000,
+    0x0006c800, 0x00069000, 0x0006d800, 0x0006f800,
+    0x0005d000, 0x0005a000, 0x0005a800, 0x0005b000,
+    0x0005c000, 0x00058800, 0x00059800, 0x0005b800,
+    0x0005e800, 0x0005e000, 0x0005f000, 0x00058000,
+    0x0005c800, 0x00059000, 0x0005d800, 0x0005f800,
+    0x0004d000, 0x0004a000, 0x0004a800, 0x0004b000,
+    0x0004c000, 0x00048800, 0x00049800, 0x0004b800,
+    0x0004e800, 0x0004e000, 0x0004f000, 0x00048000,
+    0x0004c800, 0x00049000, 0x0004d800, 0x0004f800,
+    0x0000d000, 0x0000a000, 0x0000a800, 0x0000b000,
+    0x0000c000, 0x00008800, 0x00009800, 0x0000b800,
+    0x0000e800, 0x0000e000, 0x0000f000, 0x00008000,
+    0x0000c800, 0x00009000, 0x0000d800, 0x0000f800,
+    0x0003d000, 0x0003a000, 0x0003a800, 0x0003b000,
+    0x0003c000, 0x00038800, 0x00039800, 0x0003b800,
+    0x0003e800, 0x0003e000, 0x0003f000, 0x00038000,
+    0x0003c800, 0x00039000, 0x0003d800, 0x0003f800,
+    0x00035000, 0x00032000, 0x00032800, 0x00033000,
+    0x00034000, 0x00030800, 0x00031800, 0x00033800,
+    0x00036800, 0x00036000, 0x00037000, 0x00030000,
+    0x00034800, 0x00031000, 0x00035800, 0x00037800,
+    0x0001d000, 0x0001a000, 0x0001a800, 0x0001b000,
+    0x0001c000, 0x00018800, 0x00019800, 0x0001b800,
+    0x0001e800, 0x0001e000, 0x0001f000, 0x00018000,
+    0x0001c800, 0x00019000, 0x0001d800, 0x0001f800,
+    0x00065000, 0x00062000, 0x00062800, 0x00063000,
+    0x00064000, 0x00060800, 0x00061800, 0x00063800,
+    0x00066800, 0x00066000, 0x00067000, 0x00060000,
+    0x00064800, 0x00061000, 0x00065800, 0x00067800,
+    0x00075000, 0x00072000, 0x00072800, 0x00073000,
+    0x00074000, 0x00070800, 0x00071800, 0x00073800,
+    0x00076800, 0x00076000, 0x00077000, 0x00070000,
+    0x00074800, 0x00071000, 0x00075800, 0x00077800,
+    0x00055000, 0x00052000, 0x00052800, 0x00053000,
+    0x00054000, 0x00050800, 0x00051800, 0x00053800,
+    0x00056800, 0x00056000, 0x00057000, 0x00050000,
+    0x00054800, 0x00051000, 0x00055800, 0x00057800,
+    0x00045000, 0x00042000, 0x00042800, 0x00043000,
+    0x00044000, 0x00040800, 0x00041800, 0x00043800,
+    0x00046800, 0x00046000, 0x00047000, 0x00040000,
+    0x00044800, 0x00041000, 0x00045800, 0x00047800,
+  },
+  {
+    0x02380000, 0x02780000, 0x02600000, 0x02700000,
+    0x02480000, 0x02200000, 0x02080000, 0x02000000,
+    0x02180000, 0x02580000, 0x02280000, 0x02100000,
+    0x02300000, 0x02500000, 0x02400000, 0x02680000,
+    0x05380000, 0x05780000, 0x05600000, 0x05700000,
+    0x05480000, 0x05200000, 0x05080000, 0x05000000,
+    0x05180000, 0x05580000, 0x05280000, 0x05100000,
+    0x05300000, 0x05500000, 0x05400000, 0x05680000,
+    0x03b80000, 0x03f80000, 0x03e00000, 0x03f00000,
+    0x03c80000, 0x03a00000, 0x03880000, 0x03800000,
+    0x03980000, 0x03d80000, 0x03a80000, 0x03900000,
+    0x03b00000, 0x03d00000, 0x03c00000, 0x03e80000,
+    0x06380000, 0x06780000, 0x06600000, 0x06700000,
+    0x06480000, 0x06200000, 0x06080000, 0x06000000,
+    0x06180000, 0x06580000, 0x06280000, 0x06100000,
+    0x06300000, 0x06500000, 0x06400000, 0x06680000,
+    0x00380000, 0x00780000, 0x00600000, 0x00700000,
+    0x00480000, 0x00200000, 0x00080000, 0x00000000,
+    0x00180000, 0x00580000, 0x00280000, 0x00100000,
+    0x00300000, 0x00500000, 0x00400000, 0x00680000,
+    0x07b80000, 0x07f80000, 0x07e00000, 0x07f00000,
+    0x07c80000, 0x07a00000, 0x07880000, 0x07800000,
+    0x07980000, 0x07d80000, 0x07a80000, 0x07900000,
+    0x07b00000, 0x07d00000, 0x07c00000, 0x07e80000,
+    0x01380000, 0x01780000, 0x01600000, 0x01700000,
+    0x01480000, 0x01200000, 0x01080000, 0x01000000,
+    0x01180000, 0x01580000, 0x01280000, 0x01100000,
+    0x01300000, 0x01500000, 0x01400000, 0x01680000,
+    0x04380000, 0x04780000, 0x04600000, 0x04700000,
+    0x04480000, 0x04200000, 0x04080000, 0x04000000,
+    0x04180000, 0x04580000, 0x04280000, 0x04100000,
+    0x04300000, 0x04500000, 0x04400000, 0x04680000,
+    0x07380000, 0x07780000, 0x07600000, 0x07700000,
+    0x07480000, 0x07200000, 0x07080000, 0x07000000,
+    0x07180000, 0x07580000, 0x07280000, 0x07100000,
+    0x07300000, 0x07500000, 0x07400000, 0x07680000,
+    0x00b80000, 0x00f80000, 0x00e00000, 0x00f00000,
+    0x00c80000, 0x00a00000, 0x00880000, 0x00800000,
+    0x00980000, 0x00d80000, 0x00a80000, 0x00900000,
+    0x00b00000, 0x00d00000, 0x00c00000, 0x00e80000,
+    0x03380000, 0x03780000, 0x03600000, 0x03700000,
+    0x03480000, 0x03200000, 0x03080000, 0x03000000,
+    0x03180000, 0x03580000, 0x03280000, 0x03100000,
+    0x03300000, 0x03500000, 0x03400000, 0x03680000,
+    0x02b80000, 0x02f80000, 0x02e00000, 0x02f00000,
+    0x02c80000, 0x02a00000, 0x02880000, 0x02800000,
+    0x02980000, 0x02d80000, 0x02a80000, 0x02900000,
+    0x02b00000, 0x02d00000, 0x02c00000, 0x02e80000,
+    0x06b80000, 0x06f80000, 0x06e00000, 0x06f00000,
+    0x06c80000, 0x06a00000, 0x06880000, 0x06800000,
+    0x06980000, 0x06d80000, 0x06a80000, 0x06900000,
+    0x06b00000, 0x06d00000, 0x06c00000, 0x06e80000,
+    0x05b80000, 0x05f80000, 0x05e00000, 0x05f00000,
+    0x05c80000, 0x05a00000, 0x05880000, 0x05800000,
+    0x05980000, 0x05d80000, 0x05a80000, 0x05900000,
+    0x05b00000, 0x05d00000, 0x05c00000, 0x05e80000,
+    0x04b80000, 0x04f80000, 0x04e00000, 0x04f00000,
+    0x04c80000, 0x04a00000, 0x04880000, 0x04800000,
+    0x04980000, 0x04d80000, 0x04a80000, 0x04900000,
+    0x04b00000, 0x04d00000, 0x04c00000, 0x04e80000,
+    0x01b80000, 0x01f80000, 0x01e00000, 0x01f00000,
+    0x01c80000, 0x01a00000, 0x01880000, 0x01800000,
+    0x01980000, 0x01d80000, 0x01a80000, 0x01900000,
+    0x01b00000, 0x01d00000, 0x01c00000, 0x01e80000,
+  },
+  {
+    0xb8000003, 0xb0000003, 0xa0000003, 0xd8000003,
+    0xc8000003, 0xe0000003, 0x90000003, 0xd0000003,
+    0x88000003, 0xc0000003, 0x80000003, 0xf0000003,
+    0xf8000003, 0xe8000003, 0x98000003, 0xa8000003,
+    0x38000003, 0x30000003, 0x20000003, 0x58000003,
+    0x48000003, 0x60000003, 0x10000003, 0x50000003,
+    0x08000003, 0x40000003, 0x00000003, 0x70000003,
+    0x78000003, 0x68000003, 0x18000003, 0x28000003,
+    0x38000001, 0x30000001, 0x20000001, 0x58000001,
+    0x48000001, 0x60000001, 0x10000001, 0x50000001,
+    0x08000001, 0x40000001, 0x00000001, 0x70000001,
+    0x78000001, 0x68000001, 0x18000001, 0x28000001,
+    0x38000002, 0x30000002, 0x20000002, 0x58000002,
+    0x48000002, 0x60000002, 0x10000002, 0x50000002,
+    0x08000002, 0x40000002, 0x00000002, 0x70000002,
+    0x78000002, 0x68000002, 0x18000002, 0x28000002,
+    0xb8000006, 0xb0000006, 0xa0000006, 0xd8000006,
+    0xc8000006, 0xe0000006, 0x90000006, 0xd0000006,
+    0x88000006, 0xc0000006, 0x80000006, 0xf0000006,
+    0xf8000006, 0xe8000006, 0x98000006, 0xa8000006,
+    0xb8000004, 0xb0000004, 0xa0000004, 0xd8000004,
+    0xc8000004, 0xe0000004, 0x90000004, 0xd0000004,
+    0x88000004, 0xc0000004, 0x80000004, 0xf0000004,
+    0xf8000004, 0xe8000004, 0x98000004, 0xa8000004,
+    0xb8000007, 0xb0000007, 0xa0000007, 0xd8000007,
+    0xc8000007, 0xe0000007, 0x90000007, 0xd0000007,
+    0x88000007, 0xc0000007, 0x80000007, 0xf0000007,
+    0xf8000007, 0xe8000007, 0x98000007, 0xa8000007,
+    0x38000000, 0x30000000, 0x20000000, 0x58000000,
+    0x48000000, 0x60000000, 0x10000000, 0x50000000,
+    0x08000000, 0x40000000, 0x00000000, 0x70000000,
+    0x78000000, 0x68000000, 0x18000000, 0x28000000,
+    0x38000005, 0x30000005, 0x20000005, 0x58000005,
+    0x48000005, 0x60000005, 0x10000005, 0x50000005,
+    0x08000005, 0x40000005, 0x00000005, 0x70000005,
+    0x78000005, 0x68000005, 0x18000005, 0x28000005,
+    0xb8000000, 0xb0000000, 0xa0000000, 0xd8000000,
+    0xc8000000, 0xe0000000, 0x90000000, 0xd0000000,
+    0x88000000, 0xc0000000, 0x80000000, 0xf0000000,
+    0xf8000000, 0xe8000000, 0x98000000, 0xa8000000,
+    0xb8000002, 0xb0000002, 0xa0000002, 0xd8000002,
+    0xc8000002, 0xe0000002, 0x90000002, 0xd0000002,
+    0x88000002, 0xc0000002, 0x80000002, 0xf0000002,
+    0xf8000002, 0xe8000002, 0x98000002, 0xa8000002,
+    0xb8000005, 0xb0000005, 0xa0000005, 0xd8000005,
+    0xc8000005, 0xe0000005, 0x90000005, 0xd0000005,
+    0x88000005, 0xc0000005, 0x80000005, 0xf0000005,
+    0xf8000005, 0xe8000005, 0x98000005, 0xa8000005,
+    0x38000004, 0x30000004, 0x20000004, 0x58000004,
+    0x48000004, 0x60000004, 0x10000004, 0x50000004,
+    0x08000004, 0x40000004, 0x00000004, 0x70000004,
+    0x78000004, 0x68000004, 0x18000004, 0x28000004,
+    0x38000007, 0x30000007, 0x20000007, 0x58000007,
+    0x48000007, 0x60000007, 0x10000007, 0x50000007,
+    0x08000007, 0x40000007, 0x00000007, 0x70000007,
+    0x78000007, 0x68000007, 0x18000007, 0x28000007,
+    0x38000006, 0x30000006, 0x20000006, 0x58000006,
+    0x48000006, 0x60000006, 0x10000006, 0x50000006,
+    0x08000006, 0x40000006, 0x00000006, 0x70000006,
+    0x78000006, 0x68000006, 0x18000006, 0x28000006,
+    0xb8000001, 0xb0000001, 0xa0000001, 0xd8000001,
+    0xc8000001, 0xe0000001, 0x90000001, 0xd0000001,
+    0x88000001, 0xc0000001, 0x80000001, 0xf0000001,
+    0xf8000001, 0xe8000001, 0x98000001, 0xa8000001,
+  },
+  {
+    0x000000e8, 0x000000f0, 0x000000a0, 0x00000088,
+    0x000000b8, 0x00000080, 0x000000a8, 0x000000d0,
+    0x00000098, 0x000000e0, 0x000000c0, 0x000000f8,
+    0x000000b0, 0x00000090, 0x000000c8, 0x000000d8,
+    0x000001e8, 0x000001f0, 0x000001a0, 0x00000188,
+    0x000001b8, 0x00000180, 0x000001a8, 0x000001d0,
+    0x00000198, 0x000001e0, 0x000001c0, 0x000001f8,
+    0x000001b0, 0x00000190, 0x000001c8, 0x000001d8,
+    0x00000568, 0x00000570, 0x00000520, 0x00000508,
+    0x00000538, 0x00000500, 0x00000528, 0x00000550,
+    0x00000518, 0x00000560, 0x00000540, 0x00000578,
+    0x00000530, 0x00000510, 0x00000548, 0x00000558,
+    0x000004e8, 0x000004f0, 0x000004a0, 0x00000488,
+    0x000004b8, 0x00000480, 0x000004a8, 0x000004d0,
+    0x00000498, 0x000004e0, 0x000004c0, 0x000004f8,
+    0x000004b0, 0x00000490, 0x000004c8, 0x000004d8,
+    0x000002e8, 0x000002f0, 0x000002a0, 0x00000288,
+    0x000002b8, 0x00000280, 0x000002a8, 0x000002d0,
+    0x00000298, 0x000002e0, 0x000002c0, 0x000002f8,
+    0x000002b0, 0x00000290, 0x000002c8, 0x000002d8,
+    0x000005e8, 0x000005f0, 0x000005a0, 0x00000588,
+    0x000005b8, 0x00000580, 0x000005a8, 0x000005d0,
+    0x00000598, 0x000005e0, 0x000005c0, 0x000005f8,
+    0x000005b0, 0x00000590, 0x000005c8, 0x000005d8,
+    0x00000268, 0x00000270, 0x00000220, 0x00000208,
+    0x00000238, 0x00000200, 0x00000228, 0x00000250,
+    0x00000218, 0x00000260, 0x00000240, 0x00000278,
+    0x00000230, 0x00000210, 0x00000248, 0x00000258,
+    0x000007e8, 0x000007f0, 0x000007a0, 0x00000788,
+    0x000007b8, 0x00000780, 0x000007a8, 0x000007d0,
+    0x00000798, 0x000007e0, 0x000007c0, 0x000007f8,
+    0x000007b0, 0x00000790, 0x000007c8, 0x000007d8,
+    0x00000468, 0x00000470, 0x00000420, 0x00000408,
+    0x00000438, 0x00000400, 0x00000428, 0x00000450,
+    0x00000418, 0x00000460, 0x00000440, 0x00000478,
+    0x00000430, 0x00000410, 0x00000448, 0x00000458,
+    0x00000368, 0x00000370, 0x00000320, 0x00000308,
+    0x00000338, 0x00000300, 0x00000328, 0x00000350,
+    0x00000318, 0x00000360, 0x00000340, 0x00000378,
+    0x00000330, 0x00000310, 0x00000348, 0x00000358,
+    0x000003e8, 0x000003f0, 0x000003a0, 0x00000388,
+    0x000003b8, 0x00000380, 0x000003a8, 0x000003d0,
+    0x00000398, 0x000003e0, 0x000003c0, 0x000003f8,
+    0x000003b0, 0x00000390, 0x000003c8, 0x000003d8,
+    0x00000768, 0x00000770, 0x00000720, 0x00000708,
+    0x00000738, 0x00000700, 0x00000728, 0x00000750,
+    0x00000718, 0x00000760, 0x00000740, 0x00000778,
+    0x00000730, 0x00000710, 0x00000748, 0x00000758,
+    0x000006e8, 0x000006f0, 0x000006a0, 0x00000688,
+    0x000006b8, 0x00000680, 0x000006a8, 0x000006d0,
+    0x00000698, 0x000006e0, 0x000006c0, 0x000006f8,
+    0x000006b0, 0x00000690, 0x000006c8, 0x000006d8,
+    0x00000068, 0x00000070, 0x00000020, 0x00000008,
+    0x00000038, 0x00000000, 0x00000028, 0x00000050,
+    0x00000018, 0x00000060, 0x00000040, 0x00000078,
+    0x00000030, 0x00000010, 0x00000048, 0x00000058,
+    0x00000168, 0x00000170, 0x00000120, 0x00000108,
+    0x00000138, 0x00000100, 0x00000128, 0x00000150,
+    0x00000118, 0x00000160, 0x00000140, 0x00000178,
+    0x00000130, 0x00000110, 0x00000148, 0x00000158,
+    0x00000668, 0x00000670, 0x00000620, 0x00000608,
+    0x00000638, 0x00000600, 0x00000628, 0x00000650,
+    0x00000618, 0x00000660, 0x00000640, 0x00000678,
+    0x00000630, 0x00000610, 0x00000648, 0x00000658,
+  }
+};
+
+// A and AA of inc_hash_gost94.h, for scalar and vector words alike
+
+#define GOST94_A(T,x)       \
+{                           \
+  const T l = x[0] ^ x[2];  \
+  const T r = x[1] ^ x[3];  \
+                            \
+  x[0] = x[2];              \
+  x[1] = x[3];              \
+  x[2] = x[4];              \
+  x[3] = x[5];              \
+  x[4] = x[6];              \
+  x[5] = x[7];              \
+  x[6] = l;                 \
+  x[7] = r;                 \
+}
+
+#define GOST94_AA(T,x)      \
+{                           \
+  T l;                      \
+  T r;                      \
+                            \
+  l    = x[0];              \
+  r    = x[2];              \
+  x[0] = x[4];              \
+  x[2] = x[6];              \
+  x[4] = l ^ r;             \
+  x[6] = x[0] ^ r;          \
+  l    = x[1];              \
+  r    = x[3];              \
+  x[1] = x[5];              \
+  x[3] = x[7];              \
+  x[5] = l ^ r;             \
+  x[7] = x[1] ^ r;          \
+}
+
+DECLSPEC u32 gost94_sbox (const u32 t, SHM_TYPE u32a (*s_tables)[256])
+{
+  const u32 r = s_tables[0][(t >>  0) & 0xff]
+              ^ s_tables[1][(t >>  8) & 0xff]
+              ^ s_tables[2][(t >> 16) & 0xff]
+              ^ s_tables[3][(t >> 24) & 0xff];
+
+  return r;
+}
+
+// GOST 28147-89 encryption of the 64-bit block h[i], h[i + 1] with key k, producing the output
+// words s[i], s[i + 1], as R () in inc_hash_gost94.h does.
+
+DECLSPEC void gost94_encrypt (PRIVATE_AS const u32 *k, PRIVATE_AS const u32 *h, PRIVATE_AS u32 *s, const int i, SHM_TYPE u32a (*s_tables)[256])
+{
+  u32 r = h[i + 0];
+  u32 l = h[i + 1];
+
+  for (int j = 0; j < 3; j++)
+  {
+    for (int n = 0; n < 8; n += 2)
+    {
+      l ^= gost94_sbox (k[n + 0] + r, s_tables);
+      r ^= gost94_sbox (k[n + 1] + l, s_tables);
+    }
+  }
+
+  for (int n = 7; n > 0; n -= 2)
+  {
+    l ^= gost94_sbox (k[n - 0] + r, s_tables);
+    r ^= gost94_sbox (k[n - 1] + l, s_tables);
+  }
+
+  s[i + 0] = l;
+  s[i + 1] = r;
+}
+
+// The step function, h = f (h, m), as PASS0 () to PASS6 () and the shifts after them in mode 6900
+
+DECLSPEC void gost94_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, SHM_TYPE u32a (*s_tables)[256])
+{
+  u32 u[8];
+  u32 v[8];
+  u32 s[8];
+
+  for (int i = 0; i < 8; i++)
+  {
+    u[i] = h[i];
+    v[i] = m[i];
+  }
+
+  for (int i = 0; i < 8; i += 2)
+  {
+    u32 w[8];
+    u32 k[8];
+
+    X (w, u, v);
+    P (k, w);
+
+    gost94_encrypt (k, h, s, i, s_tables);
+
+    if (i == 6) break;
+
+    GOST94_A (u32, u);
+
+    if (i == 2)
+    {
+      C (u);
+    }
+
+    GOST94_AA (u32, v);
+  }
+
+  SHIFT12 (u, m, s);
+  SHIFT16 (h, v, u);
+  SHIFT61 (h, v);
+}
+
+DECLSPEC void gost94_init (PRIVATE_AS gost94_ctx_t *ctx, SHM_TYPE u32a (*s_tables)[256])
+{
+  for (int i = 0; i < 8; i++)
+  {
+    ctx->h[i] = 0;
+    ctx->s[i] = 0;
+    ctx->m[i] = 0;
+  }
+
+  ctx->pos = 0;
+  ctx->len = 0;
+
+  ctx->s_tables = s_tables;
+}
+
+// Add the block to the checksum, a 256-bit little endian sum of all blocks, and hash it. The carry
+// out of a word is the majority of the top bits of its 2 inputs and of the carry into bit 31.
+
+DECLSPEC void gost94_block (PRIVATE_AS gost94_ctx_t *ctx)
+{
+  u32 c = 0;
+
+  for (int i = 0; i < 8; i++)
+  {
+    const u32 a = ctx->s[i];
+    const u32 b = ctx->m[i];
+
+    const u32 t = a + b + c;
+
+    c = ((a & b) | ((a | b) & ~t)) >> 31;
+
+    ctx->s[i] = t;
+  }
+
+  gost94_transform (ctx->h, ctx->m, ctx->s_tables);
+
+  for (int i = 0; i < 8; i++) ctx->m[i] = 0;
+
+  ctx->pos = 0;
+}
+
+// Add the n bytes of v to the block at the current position, starting with its low bytes. The
+// bytes of v beyond n are zero. When these bytes fill the block, hash it and use any remaining
+// bytes to start the next block.
+
+DECLSPEC void gost94_absorb (PRIVATE_AS gost94_ctx_t *ctx, const u32 v, const int n)
+{
+  const int pos = ctx->pos;
+
+  const int room = 32 - pos;
+
+  const int fit = (n > room) ? room : n;
+
+  const u32 mask = (fit >= 4) ? 0xffffffff : ((1u << (fit * 8)) - 1);
+
+  const u32 x = v & mask;
+
+  const int idx = pos / 4;
+  const int off = pos & 3;
+
+  ctx->m[idx] |= x << (off * 8);
+
+  if ((off + fit) > 4) ctx->m[idx + 1] |= x >> ((4 - off) * 8);
+
+  if (fit == room)
+  {
+    gost94_block (ctx);
+
+    if (n > fit)
+    {
+      ctx->m[0] = v >> (fit * 8);
+
+      ctx->pos = n - fit;
+    }
+  }
+  else
+  {
+    ctx->pos = pos + fit;
+  }
+}
+
+DECLSPEC void gost94_update (PRIVATE_AS gost94_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  if (ctx->len >= 0) ctx->len += len;
+
+  for (int i = 0; i < len; i += 4)
+  {
+    const int n = ((len - i) > 4) ? 4 : (len - i);
+
+    gost94_absorb (ctx, hc_bounded_word_le_S (w, i / 4, len - i), n);
+  }
+}
+
+// Widen ASCII to UTF-16LE by placing a zero byte after each input byte, in 2 absorbs of up to 4
+// bytes per word.
+
+DECLSPEC void gost94_absorb_utf16le (PRIVATE_AS gost94_ctx_t *ctx, const u32 v, const int n)
+{
+  const u32 lo = ((v >>  0) & 0xff) | (((v >>  8) & 0xff) << 16);
+  const u32 hi = ((v >> 16) & 0xff) | (((v >> 24) & 0xff) << 16);
+
+  gost94_absorb (ctx, lo, ((n > 2) ? 2 : n) * 2);
+
+  if (n > 2) gost94_absorb (ctx, hi, (n - 2) * 2);
+}
+
+DECLSPEC void gost94_update_utf16le (PRIVATE_AS gost94_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  if (hc_enc_scan (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
+
+      gost94_update (ctx, enc_buf, enc_len);
+    }
+
+    return;
+  }
+
+  if (ctx->len >= 0) ctx->len += len * 2;
+
+  for (int i = 0; i < len; i += 4)
+  {
+    const int n = ((len - i) > 4) ? 4 : (len - i);
+
+    gost94_absorb_utf16le (ctx, hc_bounded_word_le_S (w, i / 4, len - i), n);
+  }
+}
+
+DECLSPEC void gost94_update_global (PRIVATE_AS gost94_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  if (ctx->len >= 0) ctx->len += len;
+
+  for (int i = 0; i < len; i += 4)
+  {
+    const int n = ((len - i) > 4) ? 4 : (len - i);
+
+    gost94_absorb (ctx, hc_bounded_word_global_le_S (w, i / 4, len - i), n);
+  }
+}
+
+DECLSPEC void gost94_update_global_utf16le (PRIVATE_AS gost94_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
+
+      gost94_update (ctx, enc_buf, enc_len);
+    }
+
+    return;
+  }
+
+  if (ctx->len >= 0) ctx->len += len * 2;
+
+  for (int i = 0; i < len; i += 4)
+  {
+    const int n = ((len - i) > 4) ? 4 : (len - i);
+
+    gost94_absorb_utf16le (ctx, hc_bounded_word_global_le_S (w, i / 4, len - i), n);
+  }
+}
+
+// Hash the zero padded last block, if the message has one, then the length in bits and the
+// checksum. An empty message hashes no block of its own. A context with invalid UTF-8 input
+// produces a digest with every bit flipped, so that no candidate matches it by chance.
+
+DECLSPEC void gost94_final (PRIVATE_AS gost94_ctx_t *ctx)
+{
+  if (ctx->pos > 0) gost94_block (ctx);
+
+  const u32 len = (u32) ctx->len;
+
+  u32 l[8];
+
+  l[0] = len << 3;
+  l[1] = len >> 29;
+  l[2] = 0;
+  l[3] = 0;
+  l[4] = 0;
+  l[5] = 0;
+  l[6] = 0;
+  l[7] = 0;
+
+  gost94_transform (ctx->h, l,      ctx->s_tables);
+  gost94_transform (ctx->h, ctx->s, ctx->s_tables);
+
+  if (ctx->len < 0)
+  {
+    for (int i = 0; i < 8; i++) ctx->h[i] = ~ctx->h[i];
+  }
+}
+
+// The vector flavor, for VECT_SIZE candidates whose parts have the same lengths. Its UTF-16LE
+// update widens ASCII only, as the vector updates of the other families do.
+
+DECLSPEC u32x gost94_sbox_vector (const u32x t, SHM_TYPE u32a (*s_tables)[256])
+{
+  const u32x r = BOX (((t >>  0) & 0xff), 0, s_tables)
+               ^ BOX (((t >>  8) & 0xff), 1, s_tables)
+               ^ BOX (((t >> 16) & 0xff), 2, s_tables)
+               ^ BOX (((t >> 24) & 0xff), 3, s_tables);
+
+  return r;
+}
+
+DECLSPEC void gost94_encrypt_vector (PRIVATE_AS const u32x *k, PRIVATE_AS const u32x *h, PRIVATE_AS u32x *s, const int i, SHM_TYPE u32a (*s_tables)[256])
+{
+  u32x r = h[i + 0];
+  u32x l = h[i + 1];
+
+  for (int j = 0; j < 3; j++)
+  {
+    for (int n = 0; n < 8; n += 2)
+    {
+      l ^= gost94_sbox_vector (k[n + 0] + r, s_tables);
+      r ^= gost94_sbox_vector (k[n + 1] + l, s_tables);
+    }
+  }
+
+  for (int n = 7; n > 0; n -= 2)
+  {
+    l ^= gost94_sbox_vector (k[n - 0] + r, s_tables);
+    r ^= gost94_sbox_vector (k[n - 1] + l, s_tables);
+  }
+
+  s[i + 0] = l;
+  s[i + 1] = r;
+}
+
+DECLSPEC void gost94_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32x *m, SHM_TYPE u32a (*s_tables)[256])
+{
+  u32x u[8];
+  u32x v[8];
+  u32x s[8];
+
+  for (int i = 0; i < 8; i++)
+  {
+    u[i] = h[i];
+    v[i] = m[i];
+  }
+
+  for (int i = 0; i < 8; i += 2)
+  {
+    u32x w[8];
+    u32x k[8];
+
+    X (w, u, v);
+    P (k, w);
+
+    gost94_encrypt_vector (k, h, s, i, s_tables);
+
+    if (i == 6) break;
+
+    GOST94_A (u32x, u);
+
+    if (i == 2)
+    {
+      C (u);
+    }
+
+    GOST94_AA (u32x, v);
+  }
+
+  SHIFT12 (u, m, s);
+  SHIFT16 (h, v, u);
+  SHIFT61 (h, v);
+}
+
+DECLSPEC void gost94_init_vector (PRIVATE_AS gost94_ctx_vector_t *ctx, SHM_TYPE u32a (*s_tables)[256])
+{
+  for (int i = 0; i < 8; i++)
+  {
+    ctx->h[i] = 0;
+    ctx->s[i] = 0;
+    ctx->m[i] = 0;
+  }
+
+  ctx->pos = 0;
+  ctx->len = 0;
+
+  ctx->s_tables = s_tables;
+}
+
+DECLSPEC void gost94_block_vector (PRIVATE_AS gost94_ctx_vector_t *ctx)
+{
+  u32x c = 0;
+
+  for (int i = 0; i < 8; i++)
+  {
+    const u32x a = ctx->s[i];
+    const u32x b = ctx->m[i];
+
+    const u32x t = a + b + c;
+
+    c = ((a & b) | ((a | b) & ~t)) >> 31;
+
+    ctx->s[i] = t;
+  }
+
+  gost94_transform_vector (ctx->h, ctx->m, ctx->s_tables);
+
+  for (int i = 0; i < 8; i++) ctx->m[i] = 0;
+
+  ctx->pos = 0;
+}
+
+DECLSPEC void gost94_absorb_vector (PRIVATE_AS gost94_ctx_vector_t *ctx, const u32x v, const int n)
+{
+  const int pos = ctx->pos;
+
+  const int room = 32 - pos;
+
+  const int fit = (n > room) ? room : n;
+
+  const u32 mask = (fit >= 4) ? 0xffffffff : ((1u << (fit * 8)) - 1);
+
+  const u32x x = v & mask;
+
+  const int idx = pos / 4;
+  const int off = pos & 3;
+
+  ctx->m[idx] |= x << (off * 8);
+
+  if ((off + fit) > 4) ctx->m[idx + 1] |= x >> ((4 - off) * 8);
+
+  if (fit == room)
+  {
+    gost94_block_vector (ctx);
+
+    if (n > fit)
+    {
+      ctx->m[0] = v >> (fit * 8);
+
+      ctx->pos = n - fit;
+    }
+  }
+  else
+  {
+    ctx->pos = pos + fit;
+  }
+}
+
+DECLSPEC void gost94_update_vector (PRIVATE_AS gost94_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
+{
+  if (ctx->len >= 0) ctx->len += len;
+
+  for (int i = 0; i < len; i += 4)
+  {
+    const int n = ((len - i) > 4) ? 4 : (len - i);
+
+    const u32 mask = (n >= 4) ? 0xffffffff : ((1u << (n * 8)) - 1);
+
+    gost94_absorb_vector (ctx, w[i / 4] & mask, n);
+  }
+}
+
+DECLSPEC void gost94_update_vector_utf16le (PRIVATE_AS gost94_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
+{
+  if (ctx->len >= 0) ctx->len += len * 2;
+
+  for (int i = 0; i < len; i += 4)
+  {
+    const int n = ((len - i) > 4) ? 4 : (len - i);
+
+    const u32 mask = (n >= 4) ? 0xffffffff : ((1u << (n * 8)) - 1);
+
+    const u32x v = w[i / 4] & mask;
+
+    const u32x lo = ((v >>  0) & 0xff) | (((v >>  8) & 0xff) << 16);
+    const u32x hi = ((v >> 16) & 0xff) | (((v >> 24) & 0xff) << 16);
+
+    gost94_absorb_vector (ctx, lo, ((n > 2) ? 2 : n) * 2);
+
+    if (n > 2) gost94_absorb_vector (ctx, hi, (n - 2) * 2);
+  }
+}
+
+DECLSPEC void gost94_final_vector (PRIVATE_AS gost94_ctx_vector_t *ctx)
+{
+  if (ctx->pos > 0) gost94_block_vector (ctx);
+
+  const u32 len = (u32) ctx->len;
+
+  u32x l[8];
+
+  l[0] = len << 3;
+  l[1] = len >> 29;
+  l[2] = 0;
+  l[3] = 0;
+  l[4] = 0;
+  l[5] = 0;
+  l[6] = 0;
+  l[7] = 0;
+
+  gost94_transform_vector (ctx->h, l,      ctx->s_tables);
+  gost94_transform_vector (ctx->h, ctx->s, ctx->s_tables);
+}

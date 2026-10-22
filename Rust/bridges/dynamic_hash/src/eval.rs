@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use crate::{DataDecoder, Expr, ExtraParams, OutputFormat};
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use hmac::{Hmac, Mac};
 use md2::Md2;
 use md4::Md4;

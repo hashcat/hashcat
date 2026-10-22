@@ -27,6 +27,18 @@
 #include "inc_cipher_aes.h"
 #endif
 
+// The host compiles this file into the module that wants its helpers. There DECLSPEC says the
+// function is part of what the core offers a plugin, and these are not: they are the module's own
+// copy of a kernel and they stay inside it. inc_rp_common.cl says the same thing the same way.
+//
+// A module takes the helpers it wants and leaves the rest, so the ones it left have to be allowed to
+// go unused.
+
+#ifdef IS_NATIVE
+#undef DECLSPEC
+#define DECLSPEC static MAYBE_UNUSED
+#endif
+
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
@@ -860,26 +872,18 @@ KERNEL_FQ KERNEL_FA void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
   z[2] = 0;
   z[3] = 0;
 
-  u32 to;
+  // The KDF-SHA256 input opens with a 2 byte counter, so both nonces sit 1 byte later than in the
+  // keyver 1 and 2 layout, and the last 4 bytes of the ANonce fill a whole word.
 
-  u32 m0;
-  u32 m1;
+  u32 to;
 
   if (wpa_eapol->nonce_compare < 0)
   {
-    m0 = pke[15] & ~0x000000ff;
-    m1 = pke[16] & ~0xffffff00;
-
-    to = pke[15] << 24
-       | pke[16] >>  8;
+    to = pke[16];
   }
   else
   {
-    m0 = pke[23] & ~0x000000ff;
-    m1 = pke[24] & ~0xffffff00;
-
-    to = pke[23] << 24
-       | pke[24] >>  8;
+    to = pke[24];
   }
 
   u32 bo_loops = wpa_eapol->detected_le + wpa_eapol->detected_be;
@@ -931,13 +935,11 @@ KERNEL_FQ KERNEL_FA void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
 
       if (wpa_eapol->nonce_compare < 0)
       {
-        pke[15] = m0 | (t >> 24);
-        pke[16] = m1 | (t <<  8);
+        pke[16] = t;
       }
       else
       {
-        pke[23] = m0 | (t >> 24);
-        pke[24] = m1 | (t <<  8);
+        pke[24] = t;
       }
 
       sha256_hmac_ctx_t ctx1;
@@ -948,16 +950,11 @@ KERNEL_FQ KERNEL_FA void m02500_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
 
       sha256_hmac_final (&ctx1);
 
-      ctx1.opad.h[0] = hc_swap32_S (ctx1.opad.h[0]);
-      ctx1.opad.h[1] = hc_swap32_S (ctx1.opad.h[1]);
-      ctx1.opad.h[2] = hc_swap32_S (ctx1.opad.h[2]);
-      ctx1.opad.h[3] = hc_swap32_S (ctx1.opad.h[3]);
-
       // AES CMAC
 
       u32 ks[44];
 
-      aes128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
+      AES128_set_encrypt_key (ks, ctx1.opad.h, s_te0, s_te1, s_te2, s_te3);
 
       u32 m[4];
 

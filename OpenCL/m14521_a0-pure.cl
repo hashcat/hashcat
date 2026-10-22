@@ -21,6 +21,8 @@ typedef struct cryptoapi
 {
   u32 kern_type;
   u32 key_size;
+  u32 iv_buf[4];
+  u32 pt_buf[4];
 
 } cryptoapi_t;
 

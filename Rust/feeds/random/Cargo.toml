@@ -1,0 +1,18 @@
+[package]
+name = "random"
+version = "7.1.2"
+edition = "2024"
+
+[dependencies]
+
+[lib]
+crate-type = ["cdylib"]
+
+[build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

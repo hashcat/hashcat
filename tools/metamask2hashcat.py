@@ -11,45 +11,57 @@
 # From version 2.0 works also for Metamask Mobile
 # reference: https://github.com/3rdIteration/btcrecover/pull/346
 
+# Update: b8vr
+# Version: 2.3
+# Date: Mon 15 Dec 2025 09:50
+# The vault extraction routine has been updated to accomodate both persist-root and persist-KeyringController
+
 import json
 import argparse
 import base64
 
 def metamask_parser(file, shortdata):
   try:
-    f = open(file)
-
-    j = json.load(f)
-
     isMobile = False
+    wallet_data = open(file, "rb").read().decode("utf-8","ignore").replace("\\","")
+    walletStartText = '"vault"'
+    wallet_data_start = wallet_data.lower().find(walletStartText)
 
-    if 'engine' not in j:
-      if 'salt' not in j or 'iv' not in j or 'data' not in j:
-        print("! Invalid vault format ...")
-        parser.print_help()
-        exit(1)
+    # find () answers -1 when the text is absent, and 0 when the vault opens the file, so the
+    # test has to name -1 rather than ask whether the offset is falsy
+    if wallet_data_start == -1:
+      print("! Invalid vault format ...")
+      parser.print_help()
+      exit(1)
     else:
-      f.close()
-      wallet_data = open(file, "rb").read().decode("utf-8","ignore").replace("\\","")
 
-      # taken from https://github.com/3rdIteration/btcrecover/blob/master/btcrecover/btcrpass.py#L3096-L3103
-      walletStartText = "vault"
-      wallet_data_start = wallet_data.lower().find(walletStartText)
-      wallet_data_trimmed = wallet_data[wallet_data_start:]
-      wallet_data_start = wallet_data_trimmed.find("cipher")
-      wallet_data_trimmed = wallet_data_trimmed[wallet_data_start - 2:]
-      wallet_data_end = wallet_data_trimmed.find("}")
-      wallet_data = wallet_data_trimmed[:wallet_data_end + 1]
-      wallet_json = json.loads(wallet_data)
+      wallet_data_vault_start = wallet_data.lower().find('{', wallet_data_start)
 
-      j = json.loads(wallet_data)
-
-      if 'lib' in j and 'original' in j['lib']:
-        isMobile = True
-      else:
+      if wallet_data_vault_start == -1:
         print("! Invalid vault format ...")
         parser.print_help()
         exit(1)
+
+      # j is left None when the braces never balance, which the ValueError below reports rather
+      # than raising UnboundLocalError on the first use of j
+      j = None
+
+      bracket_count = 0
+      for i in range(wallet_data_vault_start, len(wallet_data)):
+        if wallet_data[i] == '{':
+          bracket_count += 1
+        elif wallet_data[i] == '}':
+          bracket_count -= 1
+          if bracket_count == 0:
+            j = json.loads(wallet_data[wallet_data_vault_start:i+1])
+            break
+
+      if j is None:
+        raise ValueError("vault braces never balance, so no object could be read")
+
+      # a mobile vault carries lib.original. A desktop vault has neither key and is handled by
+      # the branch below, which is the $metamask$ and $metamask-short$ output
+      isMobile = 'lib' in j and 'original' in j['lib']
 
 
     if isMobile is False:
@@ -78,12 +90,19 @@ def metamask_parser(file, shortdata):
 
     else:
 
-      # extract first 32 bytes of ciphertext for enhanced resistance to false-positives
+      try:
+        iter_count = j['keyMetadata']['params']['iterations']
+      except KeyError:
+        iter_count = 5_000
 
+      # extract first 32 bytes of ciphertext for enhanced resistance to false-positives
       cipher_bin = base64.b64decode(j['cipher'])
       j['cipher'] = base64.b64encode(cipher_bin[:32]).decode("ascii")
 
-      print('$metamaskMobile$' + j['salt'] + '$' + j['iv'] + '$' + j['cipher'])
+      if iter_count != 5000:
+        print('$metamaskMobile$rounds=' + str(iter_count) + '$' + j['salt'] + '$' + j['iv'] + '$' + j['cipher'])
+      else:
+        print('$metamaskMobile$' + j['salt'] + '$' + j['iv'] + '$' + j['cipher'])
 
   except ValueError as e:
     parser.print_help()
