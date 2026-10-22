@@ -62,13 +62,23 @@ We may therefore agree that a finding is a vulnerability while disagreeing with 
 
 ## The brain
 
-The brain is the one part of hashcat that can receive input directly from another machine. It is disabled by default, enabled only by options such as `--brain-server` or `--brain-client`, and does not require elevated privileges.
+The brain is one part of hashcat that can receive input directly from another machine, the other is the remote bridge for Argon2id. The brain is disabled by default, enabled only by options such as `--brain-server` or `--brain-client`, and does not require elevated privileges.
 
 The protocol is intentionally simple. The server sends a 32 bit challenge. The client responds with an iterated `SHA-256` of the challenge followed by the brain password. The brain password is the shared secret set with `--brain-password`. If none is given, the server generates one and prints it at startup. This is a stretched challenge response, not a cryptographic message authentication code. After authentication, the protocol exchanges 64 bit candidate hashes, keyspace positions and an identifier derived from the hash list. Plaintext candidates and the hashes being cracked are not transmitted.
 
 The protocol provides no encryption or transport integrity. A party able to observe or modify the connection can read or change the traffic. Modified traffic can interfere with deduplication and cause candidates to be skipped. If `--brain-host` is not given, the server listens on all interfaces. This may be appropriate on an isolated cracking network. Do not expose it directly to an untrusted network. **If brain traffic must cross a network you do not control, use a VPN, SSH tunnel or another trusted encrypted transport.**
 
 These protocol properties are part of the design and are not themselves vulnerabilities. That includes the authentication. A party that observed a handshake can attack the brain password offline. The response is stretched by a fixed iteration count, but there is no memory hardness and the only salt is the observed challenge, so this is far weaker than a password hashing function. Recovering it that way and connecting later is a consequence of the design, not an authentication bypass. The transport advice above is the mitigation. Memory safety issues, real authentication bypasses and similar implementation defects are different, in the server and in the client alike. In particular, an issue reachable by a remote peer before authentication completes is within hashcat's security boundary.
+
+## Remote bridge for Argon2id
+
+The remote bridge extends hashcat's cracking abilities to a remote system over a network connection. The remote bridge is an optional feature and is only used when explicitly configured by the user.
+
+The remote bridge transmits intermediate values required to perform the middle computational heavy of argon2id, see also docs/hashcat-remote-bridge.md.
+
+The remote bridge must nevertheless be treated as a network trust boundary. The connection does not, by itself, provide confidentiality, authentication, or protection against a malicious remote endpoint unless these properties are provided by an external trusted transport. Users should therefore only connect to remote bridge endpoints they trust and should use an encrypted and authenticated transport when communication crosses an untrusted network.
+
+A malicious or compromised remote bridge endpoint may observe intermediate computation data and may interfere with or manipulate the computation. Users should not expose a remote bridge service directly to untrusted networks.
 
 ## CVE identifiers
 
