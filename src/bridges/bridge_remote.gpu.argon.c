@@ -81,7 +81,7 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
   unit_t *units = (unit_t *) hccalloc (max_num_devices, sizeof (unit_t));
 
-  char *server_list = strdup (servers);
+  char *server_list = hcstrdup (servers);
   char *server_list_saveptr = NULL;
 
   char *address = strtok_r (server_list, ",", &server_list_saveptr);
@@ -178,7 +178,7 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
   remote->units = units;
   remote->units_cnt = units_cnt;
 
-  free (server_list);
+  hcfree (server_list);
 
   return true;
 }
@@ -299,7 +299,7 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
 
   for (u32 salt_idx = 1; salt_idx < hashes->salts_cnt; salt_idx++)
   {
-    if (!is_same_argon2_options (&esalts_buf[0], &esalts_buf[salt_idx]))
+    if (is_same_argon2_options (&esalts_buf[0], &esalts_buf[salt_idx]) == false)
     {
       event_log_error (hashcat_ctx, "Remote bridge does not support multi-hash with different argon2id parameters."); 
       return false;
