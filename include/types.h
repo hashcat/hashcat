@@ -296,15 +296,23 @@ typedef enum status_rc
 
 typedef enum rc_final
 {
-  RC_FINAL_ERROR_TASK       = -12,
-  RC_FINAL_ERROR_COMMAND    = -2,
-  RC_FINAL_ERROR            = -1,
-  RC_FINAL_OK               = 0,
-  RC_FINAL_EXHAUSTED        = 1,
-  RC_FINAL_ABORT            = 2,
-  RC_FINAL_ABORT_CHECKPOINT = 3,
-  RC_FINAL_ABORT_RUNTIME    = 4,
-  RC_FINAL_ABORT_FINISH     = 5,
+  RC_FINAL_ERROR_TASK         = -12,
+  RC_FINAL_ERROR_SELFTEST     = -11,
+  RC_FINAL_ERROR_AUTOTUNE     = -10,
+  RC_FINAL_ERROR_MIXED        = -9,
+  RC_FINAL_ERROR_EXTRA_SIZE   = -8,
+  RC_FINAL_ERROR_KERNELCREATE = -6,
+  RC_FINAL_ERROR_KERNELBUILD  = -5,
+  RC_FINAL_ERROR_MEMORY_HIT   = -4,
+  RC_FINAL_ERROR_RUNTIME_SKIP = -3,
+  RC_FINAL_ERROR_COMMAND      = -2,
+  RC_FINAL_ERROR              = -1,
+  RC_FINAL_OK                 = 0,
+  RC_FINAL_EXHAUSTED          = 1,
+  RC_FINAL_ABORT              = 2,
+  RC_FINAL_ABORT_CHECKPOINT   = 3,
+  RC_FINAL_ABORT_RUNTIME      = 4,
+  RC_FINAL_ABORT_FINISH       = 5,
 
 } rc_final_t;
 

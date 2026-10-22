@@ -331,17 +331,16 @@ static void main_error_banner (hashcat_ctx_t *hashcat_ctx, const int rc_final, c
 
   switch (rc_final)
   {
-    case RC_FINAL_ERROR_COMMAND: what = "attack command (flags)"; break;
-    case RC_FINAL_ERROR_TASK:    what = "task";                   break;
-
-    // the backend errors of docs/exit_status_code.txt, but -5: a kernel that does not build is as
-    // often a bug in the kernel source, so like -10 and -11 it is not put on anyone
-
-    case -3:
-    case -4:
-    case -6:
-    case -8:
-    case -9:                     what = "backend";                break;
+    case RC_FINAL_ERROR_COMMAND:      what = "attack command (flags)"; break;
+    case RC_FINAL_ERROR_TASK:         what = "task";                   break;
+    case RC_FINAL_ERROR_RUNTIME_SKIP:
+    case RC_FINAL_ERROR_MEMORY_HIT:
+    case RC_FINAL_ERROR_KERNELCREATE:
+    case RC_FINAL_ERROR_EXTRA_SIZE:
+    case RC_FINAL_ERROR_MIXED:        what = "backend";                break;
+    // case RC_FINAL_ERROR_KERNELBUILD: // a kernel that does not build is as often a bug in the kernel source, so don't label as backend problem
+    // case RC_FINAL_ERROR_AUTOTUNE:    // autotune that fails on every device is as often a bug in the kernel or the module, so don't label as backend problem
+    // case RC_FINAL_ERROR_SELFTEST:    // a self-test that fails is as often a bug in the kernel or the module, so don't label as backend problem
   }
 
   if (what == NULL) return;
