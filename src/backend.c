@@ -14068,6 +14068,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   const folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   const hashes_t             *hashes              = hashcat_ctx->hashes;
+  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   const module_ctx_t         *module_ctx          = hashcat_ctx->module_ctx;
         backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
@@ -14892,23 +14893,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // all, a few hundred lines below. A straight wordlist run allocates neither, so sizing them for
     // that case reserved 64 MiB per device against something that is never made.
     //
-    // The position count itself has to stay SP_PW_MAX. Bounding it by the mode's pw_max looks safe,
-    // because mask_ctx_update_loop skips a mask longer than pw_max, but that check runs before two
-    // steps that grow the position count past it:
+    // The markov half is sized by mask_ctx->sp_pw_max_used, which is the same bound the host
+    // allocation and sp_setup_tbl () use. The mode's pw_max would not do: mask_ctx_update_loop ()
+    // skips a mask longer than pw_max, but that check runs before two steps that grow the position
+    // count past it:
     //
     //   mp_css_utf16le_expand() / mp_css_utf16be_expand()   doubles css_cnt   (src/mpsp.c)
     //   mp_css_append_salt()                                adds salt_len     (src/mpsp.c)
     //
-    // Both bound themselves by 256 rather than by pw_max, and the host-side buffers they fill are
-    // SP_PW_MAX entries for exactly that reason. A 2 character mask against a UTF16LE mode with a
-    // 25 byte appended salt reaches position 28, whatever pw_max happens to be. hashconfig->pw_max
-    // is also reassigned per mask in mask_ctx_update_loop, long after these buffers are allocated,
-    // so it is not a fixed quantity to size against in the first place.
+    // sp_pw_max_used allows for both, and it is settled in mask_ctx_init () which runs well before
+    // this, whereas hashconfig->pw_max is reassigned per mask in mask_ctx_update_loop () and so is
+    // not a fixed quantity to size against in the first place.
+    //
+    // The root half stays at SP_PW_MAX. It is 256 entries against 65536, and sp_tbl_to_css () fills
+    // all of it whatever the mask reaches.
+    //
+    // Two cases leave the position count at zero: a mask queue that spells no position at all, which
+    // is what -a 1 arrives as, and an attack_kern that wants the buffers while the mask processor is
+    // not what produces its candidates, which is -a 8 under a pcfg feed. Neither reads the buffer,
+    // and a zero byte allocation is not a thing to ask a device for, so both keep the placeholder.
 
     const bool css_in_use = (user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) ? true : false;
 
-    u64 size_root_css   = (css_in_use == true) ? SP_PW_MAX *           sizeof (cs_t) : 4;
-    u64 size_markov_css = (css_in_use == true) ? SP_PW_MAX * CHARSIZ * sizeof (cs_t) : 4;
+    const u32 markov_css_cnt = (mask_ctx->enabled == true) ? mask_ctx->sp_pw_max_used * CHARSIZ : 0;
+
+    u64 size_root_css   = (css_in_use == true) ? SP_PW_MAX * sizeof (cs_t) : 4;
+    u64 size_markov_css = ((css_in_use == true) && (markov_css_cnt > 0)) ? markov_css_cnt * sizeof (cs_t) : 4;
 
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
@@ -17847,17 +17857,18 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-// How much of the markov table a mask can actually address. The table is allocated for the longest
-// mask hashcat accepts, one cs_t per (position, previous character), and generate_pw () in
+// How much of the markov table a mask can actually address. generate_pw () in
 // OpenCL/markov_le.cl only ever indexes markov_css_buf[(j * CHARSIZ) + key] for j below the mask
-// length. Everything past that is for positions the mask does not have, so copying it is 64 MB of
-// bus time per round to no end: a four character mask reaches 1 MB of the 64.
+// length, so the rows past that are for positions the mask does not have and copying them is bus
+// time per round to no end.
 //
 // The row at css_cnt - 1 is included because the kernel does read it. It loads the charset for the
 // position after the one it just wrote, and on the last position that charset is never used.
 //
-// The allocation stays at its full size. Rows past the mask keep whatever an earlier round left in
-// them, which is safe precisely because no work item can address them.
+// The allocation is sp_pw_max_used rows, which sp_tbl_to_css () has already checked css_cnt against,
+// so the MIN is there only to keep a transfer inside the buffer whatever a caller passes. A mask
+// that spells no position at all, which is what -a 1 arrives as, wants nothing: the host buffer for
+// it was never allocated, so the copy has to be skipped rather than issued for zero bytes.
 
 static u64 markov_css_copy_size (const hc_device_param_t *device_param, const u32 css_cnt)
 {
@@ -17896,7 +17907,11 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+
+    if (copy_markov_css > 0)
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+    }
 
     if (rc == 0)
     {
@@ -17950,7 +17965,11 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+
+    if (copy_markov_css > 0)
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+    }
 
     if (rc == 0)
     {
