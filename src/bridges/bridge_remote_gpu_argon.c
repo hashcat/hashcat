@@ -75,6 +75,18 @@ typedef struct argon2id_tmp
 
 } argon2id_hybrid_tmp_t;
 
+static bool is_ascii_printable (const char *src, size_t src_len)
+{
+  for (size_t i = 0; i < src_len; i++)
+  {
+    const u8 c = (u8) src[i];
+
+    if ((c < 0x20) || (c > 0x7e)) return false;
+  }
+
+  return true;
+}
+
 static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char *servers)
 {
   const int max_num_devices = DEVICES_MAX;
@@ -168,7 +180,7 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     if (recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, MSG_WAITALL) != unit_class_len) return false;
 
-    if (strlen (unit->unit_class_buf) != unit_class_len) return false;
+    if (is_ascii_printable (unit->unit_class_buf, unit_class_len) == false) return false;
 
     address = strtok_r (NULL, ",", &server_list_saveptr);
 
