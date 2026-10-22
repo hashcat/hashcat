@@ -15,19 +15,20 @@
 ##                  modes test.py -M covers, each on the normal per-mode path.
 ##
 ##   weekly         every mode, in shards, every attack mode, single and multi
-##                  hash, and four kinds: the optimized kernels, the pure
+##                  hash, and five kinds: the optimized kernels, the pure
 ##                  kernels, a bridge pass that cracks each mode's own test
 ##                  oracle through the Python bridge (test.py --bridge, no mode
 ##                  kernel), and a container pass that cracks the shipped or
-##                  fetched TrueCrypt/VeraCrypt/CryptoLoop/LUKS container files.
+##                  fetched TrueCrypt/VeraCrypt/CryptoLoop/LUKS container files,
+##                  and edge tests of password/salt boundaries and vector widths.
 ##                  Only if master has had a commit in the last seven days.
 ##
 ##   manual         the weekly run, or the modes given as input, with the kinds
-##                  picked by four checkboxes (optimized, pure, bridge,
-##                  container). All are on by default; clear one to skip it.
+##                  picked by five checkboxes (optimized, pure, bridge,
+##                  container, edge). Edge is off by default. The others are on.
 ##
 ## .github/workflows/ci_matrix.py decides which modes, shard and kind. Each
-## matrix entry carries a kind (opt, pure, bridge or container); the test step
+## matrix entry carries a kind (opt, pure, bridge, container or edge). The test step
 ## below runs the one pass for its kind, so the kinds are parallel jobs rather
 ## than passes in one. The kernel kinds share the on-disk mode pool; container
 ## has its own and runs once. A pull request is optimized only, for latency.
@@ -41,11 +42,12 @@ name: test
 # (all)" rather than a column of identical "test". A schedule or pull request keeps the event name.
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
-      && format('test: {0}{1}{2}{3}({4})',
+      && format('test: {0}{1}{2}{3}{4}({5})',
                 inputs.optimized && 'opt ' || '',
                 inputs.pure && 'pure ' || '',
                 inputs.bridge && 'bridge ' || '',
                 inputs.container && 'container ' || '',
+                inputs.edge && 'edge ' || '',
                 inputs.modes)
       || format('test ({0})', github.event_name) }}
 
@@ -73,6 +75,10 @@ on:
         description: 'Test container files (TrueCrypt/VeraCrypt/LUKS/..)'
         type: boolean
         default: true
+      edge:
+        description: 'Test edge cases (both kernel types and all vector widths)'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -86,6 +92,7 @@ on:
       - 'tools/requirements.txt'
       - '.github/workflows/test.yml'
       - '.github/workflows/ci_matrix.py'
+      - '.github/workflows/ci_matrix_test.py'
 
 permissions:
   contents: read
@@ -103,6 +110,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check test matrix
+        run: python3 .github/workflows/ci_matrix_test.py
+
       - name: Plan
         id: plan
         env:
@@ -113,16 +123,19 @@ jobs:
           PURE: ${{ inputs.pure }}
           BRIDGE: ${{ inputs.bridge }}
           CONTAINER: ${{ inputs.container }}
+          EDGE: ${{ inputs.edge }}
         run: |
-          # A manual dispatch chooses the kinds with four checkboxes; pass the chosen ones to
-          # ci_matrix.py as --kinds so it emits only those matrix jobs. A schedule has no inputs, so
-          # the four are empty and the run covers all of them. If a dispatch clears every box, fall
-          # back to all four rather than plan an empty run.
+          # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
+          # An empty manual selection keeps the four ordinary kinds.
           kinds=""
           [ "$OPTIMIZED" = "true" ] && kinds="$kinds opt"
           [ "$PURE" = "true" ]      && kinds="$kinds pure"
           [ "$BRIDGE" = "true" ]    && kinds="$kinds bridge"
           [ "$CONTAINER" = "true" ] && kinds="$kinds container"
+          [ "$EDGE" = "true" ]      && kinds="$kinds edge"
+          if [ "$EVENT" = "schedule" ]; then
+            kinds="opt pure bridge container edge"
+          fi
           [ -z "$kinds" ] && kinds="opt pure bridge container"
           kinds_arg="--kinds $(echo $kinds | tr ' ' ',')"
 
@@ -146,6 +159,7 @@ jobs:
 
     strategy:
       fail-fast: false
+      max-parallel: 20
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     name: test.py ${{ matrix.name }}
@@ -249,7 +263,8 @@ jobs:
           # Python bridge with no mode kernel), and container cracks the container files for the
           # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
           # the family's own fixed attack, so the container kind passes neither. A pull request is
-          # optimized only and a single hash, to keep its latency.
+          # optimized only and a single hash, to keep its latency. Edge tests cover both kernel
+          # families and every vector width in one pass.
           if [ "$EVENT" = "pull_request" ]; then
             OPTS="-a all -t single"
           elif [ "$KIND" = "pure" ]; then
@@ -258,6 +273,8 @@ jobs:
             OPTS="--bridge"
           elif [ "$KIND" = "container" ]; then
             OPTS=""
+          elif [ "$KIND" = "edge" ]; then
+            OPTS="--edge"
           else
             OPTS="-a all -t all"
           fi
@@ -289,14 +306,22 @@ jobs:
               # A red run should name the failure, not just its exit code. Pull the worker's own
               # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
               # into an annotation and the job summary.
-              reason=$(grep -m1 -E '> (Error|Fault|Compare Error) :|oracle failed|did not round trip' "${log}" | sed 's/^[[:space:]]*//' || true)
-              echo "::error title=test.py failed on mode ${mode} (${KIND})::${reason:-see the job summary}"
+              reason=$(grep -m1 -F -e '> Error :' -e '> Fault :' -e '> Compare Error :' \
+                -e 'oracle failed' -e 'did not round trip' -e '[ test.py edge ] !>' \
+                "${log}" | sed 's/^[[:space:]]*//' || true)
+              reason=${reason:-see the job summary}
+              reason=${reason//%/%25}
+              reason=${reason//$'\r'/%0D}
+              echo "::error title=test.py failed on mode ${mode} (${KIND})::${reason}"
 
               if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
                 {
                   echo "### mode ${mode} (${KIND}) failed: test.py -m ${mode} ${OPTS} (exit ${rc})"
                   echo '```'
-                  grep -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback' "${log}" | head -n 40 || true
+                  grep -m40 -F -e '> Error :' -e '> Fault :' -e '> Compare Error :' \
+                    -e 'oracle failed' -e 'did not round trip' \
+                    -e '[ test.py edge ] !>' "${log}" || true
+                  tail -n 20 "${log}"
                   echo '```'
                 } >> "${GITHUB_STEP_SUMMARY}"
               fi
@@ -316,4 +341,5 @@ jobs:
           name: test-logs-${{ matrix.name }}
           path: |
             test_*/
+            testpy_*.log
           if-no-files-found: ignore
