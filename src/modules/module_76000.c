@@ -18,7 +18,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
-static const char *HASH_NAME      = "remote gpu argon2id";
+static const char *HASH_NAME      = "Argon2id [Bridged: Remote GPU Argon2id]";
 static const u64   KERN_TYPE      = 76000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
@@ -28,7 +28,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_REPLACE_LOOP;
-static const char *BRIDGE_NAME    = "remote.gpu.argon";
+static const char *BRIDGE_NAME    = "remote_gpu_argon";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$argon2id$v=19$m=65536,t=3,p=1$FBMjI4RJBhIykCgol1KEJA$2ky5GAdhT1kH4kIgPN/oERE3Taiy43vNN70a3HpiKQU";
 
