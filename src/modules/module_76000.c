@@ -176,12 +176,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_iter = 1;
 
   // Hashes are grouped by salt, and sort_by_salt () compares only the salt string, salt_iter and
-  // salt_buf_pc. salt_iter carries t, and the memory cost and the parallelism go into salt_buf_pc,
-  // which the kernel does not read, so 2 hashes that share a salt string but differ in m or p stay
+  // salt_buf_pc. the memory cost, the iterations and the parallelism go into salt_buf_pc,
+  // which the kernel does not read, so 2 hashes that share a salt string but differ in m, t or p stay
   // separate salts.
 
   salt->salt_buf_pc[0] = argon2id->memory_usage_in_kib;
-  salt->salt_buf_pc[1] = argon2id->parallelism;
+  salt->salt_buf_pc[1] = argon2id->iterations;
+  salt->salt_buf_pc[2] = argon2id->parallelism;
 
   u8 tmp_buf[512] = { 0 };
 
