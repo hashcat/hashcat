@@ -53,6 +53,7 @@ def main():
       outfile = work / (str(attack) + ".out")
       command = [str(args.hashcat.resolve()), "-m", "25400", "-a", str(attack),
                  "-D", args.device, "--quiet", "--potfile-disable", "--restore-disable", "--logfile-disable",
+                 "--session", work.name,
                  "--cache-path", str(work / "cache"), "--outfile", str(outfile),
                  "--outfile-format", "2"]
 
