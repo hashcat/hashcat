@@ -24,7 +24,7 @@ typedef struct argon2id
   u32 iterations;
   u32 parallelism;
   u32 memory_usage_in_kib;
-  
+
   u32 digest_len;
 
 } argon2id_t;

@@ -111,8 +111,8 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
     unit_t *unit = &units[i];
 
     char *address_saveptr = NULL;
-    char *ip = strtok_r(address, ":", &address_saveptr);
-    char *port =strtok_r(NULL, ":", &address_saveptr);
+    char *ip = strtok_r (address, ":", &address_saveptr);
+    char *port =strtok_r (NULL, ":", &address_saveptr);
 
     if (ip == NULL || port == NULL)
     {
@@ -122,7 +122,7 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port   = htons (atoi(port));
+    server_address.sin_port   = htons (atoi (port));
 
     if (inet_pton (AF_INET, ip, &server_address.sin_addr) <= 0)
     {
@@ -249,7 +249,7 @@ int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
 int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   remote_t *remote = platform_context;
-  
+
   unit_t *unit = &remote->units[unit_idx];
 
   return unit->workitem_count;
@@ -258,7 +258,7 @@ int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_
 int get_workitem_multiple (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
 {
   remote_t *remote = platform_context;
-  
+
   unit_t *unit = &remote->units[unit_idx];
 
   return unit->chunk_size;
@@ -301,9 +301,9 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   {
     if (is_same_argon2_options (&esalts_buf[0], &esalts_buf[salt_idx]) == false)
     {
-      event_log_error (hashcat_ctx, "Remote bridge does not support multi-hash with different argon2id parameters."); 
+      event_log_error (hashcat_ctx, "Remote bridge does not support multi-hash with different argon2id parameters.");
       return false;
-    } 
+    }
   }
 
   argon2id_hybrid_t *argon2id_hybrid = &esalts_buf[0];
@@ -313,7 +313,7 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
   const int parallelism_no         = htonl (argon2id_hybrid->parallelism);
   const int memory_usage_in_kib_no = htonl (argon2id_hybrid->memory_usage_in_kib);
 
-  event_log_info (hashcat_ctx, "[bridge-client]: Sending hash parameters"); 
+  event_log_info (hashcat_ctx, "[bridge-client]: Sending hash parameters");
 
   for (int unit_idx = 0; unit_idx < remote ->units_cnt; unit_idx++)
   {
@@ -416,7 +416,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->salt_prepare          = salt_prepare;
   bridge_ctx->salt_destroy          = BRIDGE_DEFAULT;
   bridge_ctx->launch_loop           = launch_loop;
-  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;  
+  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
   bridge_ctx->st_update_hash        = BRIDGE_DEFAULT;
   bridge_ctx->st_update_pass        = BRIDGE_DEFAULT;
 

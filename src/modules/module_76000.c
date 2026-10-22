@@ -54,7 +54,7 @@ typedef struct argon2id
   u32 iterations;
   u32 parallelism;
   u32 memory_usage_in_kib;
-  
+
   u32 digest_len;
 
 } argon2id_t;
@@ -93,7 +93,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
-  
+
   token.token_cnt  = 7;
 
   token.signatures_cnt    = 1;
@@ -173,7 +173,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[5];
 
   // single (dummy) loop for this implementation!
-  salt->salt_iter = 1; 
+  salt->salt_iter = 1;
 
   // Hashes are grouped by salt, and sort_by_salt () compares only the salt string, salt_iter and
   // salt_buf_pc. salt_iter carries t, and the memory cost and the parallelism go into salt_buf_pc,
