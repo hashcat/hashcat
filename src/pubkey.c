@@ -135,7 +135,9 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: %s", user_options->encrypt_with_pubkey, strerror (errno));
 
-    status_set_rc_error (hashcat_ctx, (hc_path_exist (user_options->encrypt_with_pubkey) == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
+    // a key file that is there and does not open is the machine's, and stays -1
+
+    if (hc_path_exist (user_options->encrypt_with_pubkey) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }

@@ -2274,9 +2274,10 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
 }
 
 // A path that is not there is the attack command's, unless the directory it is in is there and may
-// not be searched, or for a file to be created written. Then the command named the right place and the
-// place will not have it, which is the task's. This asks the directory rather than errno, because the
-// message for the path has been printed by the time it is asked.
+// not be searched, or for a file to be created written. That is the machine's, as a hash file left
+// owned by root after a run with sudo is, and stays -1. This asks the directory rather than errno,
+// because the message for the path has been printed by the time it is asked. The Microsoft C runtime
+// refuses X_OK in access (), so there a directory that is there counts as usable.
 
 static rc_final_t path_missing_rc (const char *path, const bool create)
 {
@@ -2305,11 +2306,13 @@ static rc_final_t path_missing_rc (const char *path, const bool create)
     sep[0] = 0;
   }
 
-  const int mode = (create == true) ? (W_OK | X_OK) : X_OK;
-
   rc_final_t rc_error = RC_FINAL_ERROR_COMMAND;
 
-  if ((hc_path_is_directory (dir) == true) && (access (dir, mode) == -1)) rc_error = RC_FINAL_ERROR_TASK;
+  #if !defined (_WIN)
+  const int mode = (create == true) ? (W_OK | X_OK) : X_OK;
+
+  if ((hc_path_is_directory (dir) == true) && (access (dir, mode) == -1)) rc_error = RC_FINAL_ERROR;
+  #endif
 
   hcfree (dir);
 
@@ -2335,7 +2338,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "%s: %s", user_options->encrypt_with_pubkey, strerror (errno));
 
-      status_set_rc_error (hashcat_ctx, (hc_path_exist (user_options->encrypt_with_pubkey) == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
+      if (hc_path_exist (user_options->encrypt_with_pubkey) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
       return -1;
     }
@@ -2440,8 +2443,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
 
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
         return -1;
       }
 
@@ -2526,8 +2527,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
         return -1;
       }
 
@@ -2570,8 +2569,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
         return -1;
       }
 
@@ -2603,8 +2600,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_read (dictfile2) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
-
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -2639,8 +2634,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
-
-          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2706,8 +2699,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
         return -1;
       }
 
@@ -2750,8 +2741,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
-
-          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2816,8 +2805,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
-
-          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
@@ -2892,8 +2879,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
           return -1;
         }
       }
@@ -2924,8 +2909,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_read (rp_file) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
-
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -3005,8 +2988,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_write (outfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
-
-        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }
@@ -3192,8 +3173,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       if (hc_path_write (potfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
-
-        if (user_options->potfile_path != NULL) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }

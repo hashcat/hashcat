@@ -1,7 +1,7 @@
 Exit Status Codes:
 ==================
 
--12 = task error: a file the command names exists but cannot be used (empty or corrupt hashlist, wordlist, rule file, mask file or charset file)
+-12 = task error: a file the command names was read, but its content cannot be used (empty or corrupt hashlist, wordlist, rule file, mask file or charset file)
 -11 = self-test failed
 -10 = autotune failure
  -9 = mixed backend errors (a combination of error types -3 through -8)

@@ -3873,11 +3873,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, hc_fopen_strerror ());
 
-        // A hash file that may not be read is the task's. One that does not open for another reason,
-        // such as a missing library for a compressed file, is the machine's and stays -1.
-
-        if (hc_path_read (hashfile) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
         return -1;
       }
 
@@ -4472,8 +4467,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hc_fopen (&fp, hashfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, hc_fopen_strerror ());
-
-        if (hc_path_read (hashfile) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         return -1;
       }

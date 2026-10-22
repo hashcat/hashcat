@@ -562,7 +562,9 @@ static bool wordlist_init (generic_global_ctx_t *global_ctx, feed_global_t *feed
   {
     if (source_add_path (global_ctx, feed_global, global_ctx->workv[i]) == false)
     {
-      status_set_rc_error (hashcat_ctx, (hc_path_exist (global_ctx->workv[i]) == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
+      // a wordlist that is there and does not open is the machine's, and stays -1
+
+      if (hc_path_exist (global_ctx->workv[i]) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
       return false;
     }
@@ -648,12 +650,6 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
     {
       error_set (global_ctx, "%s: %s", source->path, strerror (errno));
 
-      // seekdb_path () fails only when it cannot open or stat the wordlist itself. A wordlist that may
-      // not be read is the task's. One that does not open for another reason, such as a missing
-      // library for a compressed file, is the machine's and stays -1.
-
-      if (hc_path_read (source->path) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
-
       wordlist_thread_term (feed_thread);
 
       return GENERIC_KEYSPACE_UNKNOWN;
@@ -711,10 +707,6 @@ static u64 wordlist_keyspace (generic_global_ctx_t *global_ctx, generic_thread_c
       error_set (global_ctx, "%s", thread_ctx->error_msg);
 
       thread_ctx->error = false;
-
-      // as for seekdb_path () above
-
-      if (hc_path_read (source->path) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
       hcfree (seekdb_file);
 
