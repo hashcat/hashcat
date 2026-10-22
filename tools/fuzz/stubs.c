@@ -201,3 +201,35 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   (void) hashcat_ctx;
   (void) fmt;
 }
+
+// A module reads its own options through these. They live with the option table in
+// src/module_options.c, which a parser target does not link, and a target never sets an option, so
+// none is ever given.
+
+bool        module_option_given (const user_options_t *user_options, const char *name);
+u32         module_option_u32   (const user_options_t *user_options, const char *name);
+const char *module_option_str   (const user_options_t *user_options, const char *name);
+
+bool module_option_given (const user_options_t *user_options, const char *name)
+{
+  (void) user_options;
+  (void) name;
+
+  return false;
+}
+
+u32 module_option_u32 (const user_options_t *user_options, const char *name)
+{
+  (void) user_options;
+  (void) name;
+
+  return 0;
+}
+
+const char *module_option_str (const user_options_t *user_options, const char *name)
+{
+  (void) user_options;
+  (void) name;
+
+  return NULL;
+}

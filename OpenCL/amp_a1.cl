@@ -17,9 +17,16 @@ KERNEL_FQ KERNEL_FA void amp (KERN_ATTR_AMP)
 
   if (gid >= gid_max) return;
 
-  pw_t pw = pws_amp[gid];
+  const u32 pw_pos = (u32) gid % pws_cnt;
+  const u32 il_pos = (u32) gid / pws_cnt;
 
-  pw_t comb = combs_buf[0];
+  // an item of a -a 12 mask with the base word inside it is four pieces, one after the other
+
+  const u32 comb_pos = (combs_mode == COMBINATOR_MODE_BASE_MIDDLE) ? (il_pos * COMBS_PIECE_CNT) : il_pos;
+
+  pw_t pw = pws_amp[pw_pos];
+
+  pw_t comb = combs_buf[comb_pos];
 
   const u32 pw_len = pw.pw_len;
 
@@ -51,10 +58,10 @@ KERNEL_FQ KERNEL_FA void amp (KERN_ATTR_AMP)
   if (combs_mode == COMBINATOR_MODE_BASE_MIDDLE)
   {
     pw_t pre  = comb;
-    pw_t mid  = combs_buf[1];
-    pw_t word = combs_buf[2];
+    pw_t mid  = combs_buf[comb_pos + 1];
+    pw_t word = combs_buf[comb_pos + 2];
 
-    comb = combs_buf[3];
+    comb = combs_buf[comb_pos + 3];
 
     const u32 mid_off  = pre.pw_len + pw_len;
     const u32 word_off = mid_off + mid.pw_len;

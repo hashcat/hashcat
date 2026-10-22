@@ -45,6 +45,8 @@ HC_PLUGIN_API char *first_file_in_directory (const char *path);
 
 HC_PLUGIN_API char **scan_directory (const char *path);
 
+int folder_early_dirs (MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder, const char *cache_path, char **shared_dir, char **cache_dir);
+
 int  folder_config_init    (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder);
 void folder_config_destroy (hashcat_ctx_t *hashcat_ctx);
 

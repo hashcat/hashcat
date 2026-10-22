@@ -14,8 +14,8 @@
 #include "dynloader.h"
 #include "interface.h"
 #include "hlfmt.h"
-#include "keyboard_layout.h"
 #include "recipe.h"
+#include "module_options.h"
 
 // The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
 // is the first thing a plugin has to get past, and the checks below are what catch a plugin that
@@ -258,21 +258,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_load == false) return -1;
 
-  module_ctx->module_usage_notice = MODULE_DEFAULT; // set all module to have usage_notice by empty default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
-  module_ctx->module_advice_notice = MODULE_DEFAULT; // set all module to have advice_notice empty by default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
-  module_ctx->module_length_sort = MODULE_DEFAULT; // same for length_sort, so a mode that does not want the length sort does not have to say so
-  module_ctx->module_benchmark_cost = MODULE_DEFAULT; // same for benchmark_cost, so a mode without extra benchmark cost parameters to show does not have to say so
   module_ctx->module_init (module_ctx);
-
-  // The four optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
-  // assigns NULL to one of them instead of leaving it alone gets past every guard: the readers test
-  // against MODULE_DEFAULT, not against NULL, and then call it. Seeding them before module_init ()
-  // only covers the module that says nothing. This covers the one that says NULL.
-
-  if (module_ctx->module_usage_notice   == NULL) module_ctx->module_usage_notice   = MODULE_DEFAULT;
-  if (module_ctx->module_advice_notice  == NULL) module_ctx->module_advice_notice  = MODULE_DEFAULT;
-  if (module_ctx->module_length_sort    == NULL) module_ctx->module_length_sort    = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_cost == NULL) module_ctx->module_benchmark_cost = MODULE_DEFAULT;
 
   // What a hash tells us about whoever chose the password. A module that says nothing gets the answer
   // that works for every mode, which is the account name in front of the hash cut into words, and a
@@ -314,15 +300,15 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_benchmark_mask);
   CHECK_DEFINED (module_ctx, module_benchmark_charset);
   CHECK_DEFINED (module_ctx, module_benchmark_salt);
-  // CHECK_DEFINED (module_ctx, module_benchmark_cost); // we don't check this here as it's an optional field
+  CHECK_DEFINED (module_ctx, module_benchmark_cost);
   CHECK_DEFINED (module_ctx, module_bridge_name);
   CHECK_DEFINED (module_ctx, module_bridge_type);
   CHECK_DEFINED (module_ctx, module_build_plain_postprocess);
   CHECK_DEFINED (module_ctx, module_deep_comp_kernel);
   CHECK_DEFINED (module_ctx, module_deprecated_notice);
-  // CHECK_DEFINED (module_ctx, module_usage_notice); // we don't check this here as it's an optional field
-  // CHECK_DEFINED (module_ctx, module_advice_notice); // we don't check this here as it's an optional field
-  // CHECK_DEFINED (module_ctx, module_length_sort); // we don't check this here as it's an optional field
+  CHECK_DEFINED (module_ctx, module_usage_notice);
+  CHECK_DEFINED (module_ctx, module_advice_notice);
+  CHECK_DEFINED (module_ctx, module_length_sort);
   CHECK_DEFINED (module_ctx, module_dgst_pos0);
   CHECK_DEFINED (module_ctx, module_dgst_pos1);
   CHECK_DEFINED (module_ctx, module_dgst_pos2);
@@ -380,6 +366,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_pw_max);
   CHECK_DEFINED (module_ctx, module_pw_min);
   CHECK_DEFINED (module_ctx, module_pwdump_column);
+  CHECK_DEFINED (module_ctx, module_register_options);
   CHECK_DEFINED (module_ctx, module_salt_max);
   CHECK_DEFINED (module_ctx, module_salt_min);
   CHECK_DEFINED (module_ctx, module_salt_type);
@@ -526,57 +513,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  if (user_options->keyboard_layout_mapping)
-  {
-    if ((hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING) == 0)
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
+  // Whether this mode takes a module option at all is decided by the option table, see
+  // option_table_check_module (). The checks a module attaches to a value, such as a file it cannot
+  // read, run here, because this is the first point with the module loaded.
 
-      return -1;
-    }
-
-    // The file is read here as well as in the module that uses it, because this is the only place
-    // with somewhere to report it. A module loads the mapping into its own esalt from a hook whose
-    // result nothing looks at, so a file it could not use converted nothing and said nothing, which
-    // is the failure this check exists to prevent. Reading it twice costs one pass over a file of at
-    // most 256 lines, once per run.
-
-    keyboard_layout_mapping_t probe[256];
-
-    int probe_cnt = 0;
-
-    if (hc_path_read (user_options->keyboard_layout_mapping) == false)
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: %s", user_options->keyboard_layout_mapping, strerror (errno));
-
-      return -1;
-    }
-
-    if (initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, probe, &probe_cnt) == false)
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: no keyboard mappings in this file. A mapping is one source and one replacement separated by a single tab.", user_options->keyboard_layout_mapping);
-
-      return -1;
-    }
-
-    // A mapping converts each token to one other token, so a file that gives a token two replacements
-    // is not one. The table attack takes such a file and offers both, and the reverse layout tables
-    // are exactly that where two keys of one layout produce the same character on the other. Here the
-    // lookup would find whichever came first and convert the other away silently.
-
-    for (int i = 0; i < probe_cnt; i++)
-    {
-      for (int j = i + 1; j < probe_cnt; j++)
-      {
-        if (probe[i].src_len != probe[j].src_len) continue;
-        if (probe[i].src_char != probe[j].src_char) continue;
-
-        if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: one source is given two replacements, so this is a table rather than a keyboard mapping. A mapping converts each token to exactly one other token.", user_options->keyboard_layout_mapping);
-
-        return -1;
-      }
-    }
-  }
+  if (module_options_check (hashcat_ctx) == -1) return -1;
 
   if (user_options->multiply_accel == false)
   {
@@ -598,19 +539,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type |= OPTS_TYPE_PT_HEX;
   }
 
-  if (user_options->hex_salt)
-  {
-    if (hashconfig->salt_type == SALT_TYPE_GENERIC)
-    {
-      hashconfig->opts_type |= OPTS_TYPE_ST_HEX;
-    }
-    else
-    {
-      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
-
-      return -1;
-    }
-  }
+  if ((user_options->hex_salt == true) && (hashconfig->salt_type == SALT_TYPE_GENERIC)) hashconfig->opts_type |= OPTS_TYPE_ST_HEX;
 
   if (user_options->keep_guessing)
   {

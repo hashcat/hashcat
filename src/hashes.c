@@ -28,6 +28,7 @@
 #include "system.h"
 #include "thread.h"
 #include "locking.h"
+#include "mpsp.h"
 #include "hashes.h"
 
 #ifdef WITH_BRAIN
@@ -2218,6 +2219,23 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
   }
 
+  // A slow hash launch can hold several amplifier items over the same base words, so its work item
+  // names the word and the item together. build_plain () and everything after it take them apart, the
+  // way a fast hash reports them. A slow hash kernel reports il_pos as zero, so the item is all of it.
+
+  const u64 amp_base_cnt = device_param->amp_base_cnt;
+
+  if (amp_base_cnt > 0)
+  {
+    for (u32 i = 0; i < num_cracked; i++)
+    {
+      const u64 gid = cracked[i].gidvid;
+
+      cracked[i].gidvid = gid % amp_base_cnt;
+      cracked[i].il_pos = cracked[i].il_pos + (gid / amp_base_cnt);
+    }
+  }
+
   u32 cpt_cracked = 0;
 
   hc_thread_mutex_lock (status_ctx->mux_display);
@@ -3397,6 +3415,402 @@ void hash_info_destroy (hashinfo_t *hash_info)
   hcfree (hash_info);
 }
 
+// A wordlist named where the hash file belongs is read as a hash list. Nearly every line of it is
+// rejected with a warning of its own, which takes a long time for a large wordlist, and the few lines
+// that happen to parse start a run that can only end exhausted. The probes below parse a little of a
+// file with the loaded hash-mode, so that autodetect and the loader can tell a hash file from a
+// wordlist before either is read in full.
+//
+// This is the room one hash of the loaded hash-mode is decoded into and thrown away.
+
+typedef struct hashes_probe_buf
+{
+  void       *digest;
+  salt_t     *salt;
+  void       *esalt;
+  void       *hook_salt;
+  hashinfo_t *hash_info;
+
+} hashes_probe_buf_t;
+
+static void hashes_probe_buf_init (const hashconfig_t *hashconfig, const user_options_t *user_options, hashes_probe_buf_t *buf)
+{
+  buf->digest    =            hcmalloc (hashconfig->dgst_size);
+  buf->salt      = (salt_t *) hcmalloc (sizeof (salt_t));
+  buf->esalt     = NULL;
+  buf->hook_salt = NULL;
+
+  if (hashconfig->esalt_size     > 0) buf->esalt     = hcmalloc (hashconfig->esalt_size);
+  if (hashconfig->hook_salt_size > 0) buf->hook_salt = hcmalloc (hashconfig->hook_salt_size);
+
+  hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
+
+  hash_info->dynamicx = (dynamicx_t *) hcmalloc (sizeof (dynamicx_t));
+  hash_info->orighash = (char *)       hcmalloc (256);
+  hash_info->split    = (split_t *)    hcmalloc (sizeof (split_t));
+
+  // only with --username, as the loader does, because a module can parse a line differently when a
+  // username comes with it
+
+  if (user_options->username == true)
+  {
+    hash_info->user = (user_t *) hcmalloc (sizeof (user_t));
+  }
+
+  buf->hash_info = hash_info;
+}
+
+static void hashes_probe_buf_destroy (hashes_probe_buf_t *buf)
+{
+  hash_info_destroy (buf->hash_info);
+
+  hcfree (buf->digest);
+  hcfree (buf->salt);
+  hcfree (buf->esalt);
+  hcfree (buf->hook_salt);
+}
+
+// The loader gives every hash a zeroed slot of its own, and a decoder may rely on that: -m 11400 appends
+// to its esalt with hc_strncat, and overruns it when it parses into the same room twice. So the room is
+// cleared before every decode. Only an esalt and hook salt over HASHES_PROBE_CLEAR_MAX together are
+// cleared just after a decode that succeeded: they run to 8 MB for KeePass and 7-Zip and to 200 MB for
+// BitLocker, clearing that for every line sampled would cost more than the loading it is meant to save,
+// and none of those decoders appends to what an earlier line left.
+
+#define HASHES_PROBE_CLEAR_MAX (64 * 1024)
+
+static bool hashes_probe_decode (hashcat_ctx_t *hashcat_ctx, hashes_probe_buf_t *buf, bool *dirty, const char *hash_buf, const u32 hash_len)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  const u64 extra_size = hashconfig->esalt_size + hashconfig->hook_salt_size;
+
+  memset (buf->salt, 0, sizeof (salt_t));
+
+  if ((extra_size <= HASHES_PROBE_CLEAR_MAX) || (*dirty == true))
+  {
+    if (buf->esalt     != NULL) memset (buf->esalt,     0, hashconfig->esalt_size);
+    if (buf->hook_salt != NULL) memset (buf->hook_salt, 0, hashconfig->hook_salt_size);
+
+    *dirty = false;
+  }
+
+  parser_error_reset ();
+
+  const int parser_status = module_ctx->module_hash_decode (hashconfig, buf->digest, buf->salt, buf->esalt, buf->hook_salt, buf->hash_info, hash_buf, (int) hash_len);
+
+  if (parser_status != PARSER_OK) return false;
+
+  *dirty = true;
+
+  return true;
+}
+
+// A field with no letter or digit in it is a placeholder, such as the '*' and '!' that /etc/shadow
+// holds for every account without a password. It is no hash and no word, so it is not counted at all.
+
+static bool hashes_probe_placeholder (const char *hash_buf, const u32 hash_len)
+{
+  for (u32 i = 0; i < hash_len; i++)
+  {
+    const u8 c = (u8) hash_buf[i];
+
+    if ((c >= '0') && (c <= '9')) return false;
+    if ((c >= 'a') && (c <= 'z')) return false;
+    if ((c >= 'A') && (c <= 'Z')) return false;
+  }
+
+  return true;
+}
+
+// How many of the first lines_max non-empty lines of a file parse as a hash, stopping early once hits_max
+// of them did, unless hits_max is 0. hit_map, when given, holds lines_max bytes and is set for each line
+// that parsed, so autodetect can tell which lines any mode took.
+//
+// HASHES_PROBE_REGULAR reads only a regular file. A wordlist can be a pipe, and whatever is read from it
+// here is lost to the attack.
+
+void hashes_probe_file (hashcat_ctx_t *hashcat_ctx, const char *path, const u32 lines_max, const u32 hits_max, const u32 probe_flags, u8 *hit_map, hashes_probe_t *probe)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  memset (probe, 0, sizeof (hashes_probe_t));
+
+  if (module_ctx->module_hash_decode == MODULE_DEFAULT) return;
+
+  if (probe_flags & HASHES_PROBE_REGULAR)
+  {
+    if (hc_path_is_file (path) == false) return;
+  }
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, path, "rb") == false) return;
+
+  const u32 hashlist_format = hlfmt_detect (hashcat_ctx, &fp, 100);
+
+  hc_rewind (&fp);
+
+  hashes_probe_buf_t buf;
+
+  hashes_probe_buf_init (hashconfig, hashcat_ctx->user_options, &buf);
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  bool dirty = false;
+
+  while ((probe->lines < lines_max) && (hc_feof (&fp) == 0))
+  {
+    const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+
+    if (line_len == 0) continue;
+
+    const u32 line_pos = probe->lines;
+
+    probe->lines++;
+
+    char *hash_buf = NULL;
+
+    int hash_len = 0;
+
+    hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, (int) line_len, &hash_buf, &hash_len);
+
+    const bool has_field = (hash_buf != NULL) && (hash_len > 0);
+
+    if ((has_field == true) && (hashes_probe_placeholder (hash_buf, (u32) hash_len) == true)) continue;
+
+    probe->tried++;
+
+    if (has_field == false) continue;
+
+    // the loader decodes the two halves of a split hash one at a time, and the first speaks for both.
+    // Autodetect hands the whole line over, and leaves the flag out for that.
+
+    if (probe_flags & HASHES_PROBE_SPLIT)
+    {
+      if ((hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT) && (hash_len == 32)) hash_len = 16;
+    }
+
+    if (hashes_probe_decode (hashcat_ctx, &buf, &dirty, hash_buf, (u32) hash_len) == false) continue;
+
+    probe->hit++;
+
+    if (hit_map != NULL) hit_map[line_pos] = 1;
+
+    if (probe->hit == hits_max) break;
+  }
+
+  hcfree (line_buf);
+
+  hashes_probe_buf_destroy (&buf);
+
+  hc_fclose (&fp);
+}
+
+// Whether ordinary words pass for hashes of the loaded hash-mode, which is what a short hash format
+// does: eight letters and digits make a Dahua hash, ten letters can make a Tripcode, and 16 digits
+// make a MySQL323 hash. The example hash of the mode gives its length. On 100 line windows of real
+// wordlists such a mode parsed up to a third of the lines, and a window of numbers almost all of them,
+// where every mode with a longer hash stayed under a tenth.
+
+bool hashes_probe_wordlike (const hashconfig_t *hashconfig)
+{
+  if (hashconfig->st_hash == NULL) return false;
+
+  const bool wordlike = (strlen (hashconfig->st_hash) <= 16);
+
+  return wordlike;
+}
+
+// Under 10 percent of the lines parse. That is what a wordlist gives, where only the odd word has the
+// shape of a hash, and a hash file stays above it until its junk lines outnumber its hashes nine to
+// one. A file of 10 lines or fewer never falls under it with a single hit, so a short hash file whose
+// one line also reads as a word is still taken as the hash file it is named as.
+//
+// A hash-mode that ordinary words pass for is held to half instead, see hashes_probe_wordlike ().
+
+bool hashes_probe_few (const u32 lines_hit, const u32 lines_tried, const bool wordlike)
+{
+  if (lines_tried == 0) return false;
+
+  const u64 scale = (wordlike == true) ? 2 : 10;
+
+  const bool few = ((u64) lines_hit * scale) < (u64) lines_tried;
+
+  return few;
+}
+
+// At least half the lines parse, which a wordlist only does when it is a list of hashes.
+
+bool hashes_probe_most (const u32 lines_hit, const u32 lines_tried)
+{
+  if (lines_tried == 0) return false;
+
+  const bool most = ((u64) lines_hit * 2) >= (u64) lines_tried;
+
+  return most;
+}
+
+// Where the wordlists the attack names sit among the positional arguments, from first up to last.
+//
+// -a 0 and -a 9 name nothing but wordlists. -a 1, -a 6 and -a 7 have been rewritten into -a 12 by now,
+// which puts the mask in front of the wordlists, and with rules into the hybrid feed, whose name comes
+// first of all. Every other attack has no wordlist to compare: -a 3 reads masks, and a feed reads
+// whatever its settings say. user_options_preprocess () sets no attack mode at all for --show and
+// --left, so they have none either.
+//
+// Only the first two are taken, which covers both wordlists of -a 1. A shell glob can name thousands,
+// and autodetect would open every one of them for every hash-mode it tries.
+
+static bool hashes_wordlist_slots (const hashcat_ctx_t *hashcat_ctx, u32 *first, u32 *last)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  const u32 attack_mode = user_options->attack_mode;
+
+  const bool hybrid_feed = (mask_feed_kind (user_options) == MASK_FEED_HYBRID);
+
+  if ((attack_mode != ATTACK_MODE_STRAIGHT) && (attack_mode != ATTACK_MODE_ASSOCIATION) && (attack_mode != ATTACK_MODE_HYBRID) && (hybrid_feed == false)) return false;
+
+  *first = 0;
+
+  if (attack_mode == ATTACK_MODE_HYBRID) *first = 1;
+  if (hybrid_feed == true)               *first = 2;
+
+  *last = MIN (*first + 2, (u32) user_options_extra->hc_workc);
+
+  return true;
+}
+
+// Whether one of those wordlists is a file that can be read, which needs no hash-mode loaded. A
+// directory of wordlists does not count, because a hash file is never a directory.
+
+bool hashes_probe_has_wordlist (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  u32 first = 0;
+  u32 last  = 0;
+
+  if (hashes_wordlist_slots (hashcat_ctx, &first, &last) == false) return false;
+
+  for (u32 i = first; i < last; i++)
+  {
+    if (hc_path_is_file (user_options_extra->hc_workv[i]) == true) return true;
+  }
+
+  return false;
+}
+
+// Those wordlists probed like the hash file, and the one that parses best given back in best, with
+// best_file naming it. best_file stays NULL when there is no wordlist to read.
+
+void hashes_probe_wordlists (hashcat_ctx_t *hashcat_ctx, const u32 lines_max, const u32 probe_flags, const char **best_file, hashes_probe_t *best)
+{
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  *best_file = NULL;
+
+  memset (best, 0, sizeof (hashes_probe_t));
+
+  u32 first = 0;
+  u32 last  = 0;
+
+  if (hashes_wordlist_slots (hashcat_ctx, &first, &last) == false) return;
+
+  for (u32 i = first; i < last; i++)
+  {
+    const char *wlfile = user_options_extra->hc_workv[i];
+
+    hashes_probe_t probe;
+
+    hashes_probe_file (hashcat_ctx, wlfile, lines_max, 0, probe_flags | HASHES_PROBE_REGULAR, NULL, &probe);
+
+    if (probe.tried == 0) continue;
+
+    if ((*best_file != NULL) && (((u64) probe.hit * best->tried) <= ((u64) best->hit * probe.tried))) continue;
+
+    *best_file = wlfile;
+
+    memcpy (best, &probe, sizeof (hashes_probe_t));
+  }
+}
+
+// Asked with -m, or with the hash-mode autodetect settled on, before the hash file is loaded.
+//
+// The swap is refused when the hash file hardly parses and the wordlist mostly does. Neither on its own
+// is enough: a hash file with a lot of junk in it is still a hash file, and a wordlist of hex strings
+// is a fair thing to run against MD5. A mode that takes almost any line as a hash, such as -m 99999,
+// never gets that far, because its hash file always parses. A mode that ordinary words pass for is
+// not asked at all, because a wordlist of numbers mostly parses as one even in its right place.
+//
+// A hash file that parses not once in the first HASHES_PROBE_LOAD lines is refused on its own, swapped
+// or not. Loading it would print a warning per line and end on "No hashes loaded".
+
+static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->force == true) return 0;
+
+  // --dynamic-x rewrites every line from John's spelling before it can be parsed
+
+  if (user_options->dynamic_x == true) return 0;
+
+  // a tenth of the sample parsing already settles it, which keeps a decoder that costs a lot per line,
+  // like the one of BitLocker, from running over the whole sample of a real hash file
+
+  hashes_probe_t hash;
+
+  hashes_probe_file (hashcat_ctx, hashes->hashfile, HASHES_PROBE_HASHFILE, HASHES_PROBE_HASHFILE / 10, HASHES_PROBE_SPLIT, NULL, &hash);
+
+  if (hashes_probe_few (hash.hit, hash.tried, false) == false) return 0;
+
+  if (hashes_probe_wordlike (hashconfig) == false)
+  {
+    const char *word_file = NULL;
+
+    hashes_probe_t word;
+
+    hashes_probe_wordlists (hashcat_ctx, HASHES_PROBE_WORDLIST, HASHES_PROBE_SPLIT, &word_file, &word);
+
+    if ((word_file != NULL) && (hashes_probe_most (word.hit, word.tried) == true))
+    {
+      event_log_error (hashcat_ctx, "The hash file and the wordlist look swapped: %u of %u lines of %s parse as %s, but %u of %u lines of %s do.", hash.hit, hash.tried, hashes->hashfile, hashconfig->hash_name, word.hit, word.tried, word_file);
+
+      event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to load them as given.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+  }
+
+  if (hash.hit > 0) return 0;
+
+  if (hash.lines < HASHES_PROBE_HASHFILE) return 0;
+
+  hashes_probe_file (hashcat_ctx, hashes->hashfile, HASHES_PROBE_LOAD, 1, HASHES_PROBE_SPLIT, NULL, &hash);
+
+  if (hash.hit > 0) return 0;
+
+  if (hash.lines < HASHES_PROBE_LOAD) return 0;
+
+  if (hash.tried == 0) return 0;
+
+  event_log_error (hashcat_ctx, "%s: none of the first %u lines parse as %s. This does not look like a hash file for -m %u.", hashes->hashfile, hash.lines, hashconfig->hash_name, hashconfig->hash_mode);
+
+  event_log_warning (hashcat_ctx, "Check that the hash file is named first, that the hash-mode is right, and that --username is given");
+  event_log_warning (hashcat_ctx, "if every line starts with a username. Use --force to load it anyway.");
+  event_log_warning (hashcat_ctx, NULL);
+
+  return -1;
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -3518,6 +3932,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       }
 
       hc_fclose (&fp);
+
+      if (hashes_check_hashfile (hashcat_ctx) == -1) return -1;
 
       if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {

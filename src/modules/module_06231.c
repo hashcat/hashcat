@@ -14,6 +14,7 @@
 #include "memory.h"
 #include "cpu_crc32.h"
 #include "keyboard_layout.h"
+#include "truecrypt_veracrypt_common.c"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -236,9 +237,11 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   // keyfiles
 
-  if (user_options->truecrypt_keyfiles)
+  const char *truecrypt_keyfiles = module_option_str (user_options, OPTION_TRUECRYPT_KEYFILES);
+
+  if (truecrypt_keyfiles)
   {
-    char *keyfiles = hcstrdup (user_options->truecrypt_keyfiles);
+    char *keyfiles = hcstrdup (truecrypt_keyfiles);
 
     char *saveptr = NULL;
 
@@ -262,11 +265,13 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   // keyboard layout mapping
 
-  if (user_options->keyboard_layout_mapping)
+  const char *keyboard_layout_mapping = module_option_str (user_options, OPTION_KEYBOARD_LAYOUT_MAPPING);
+
+  if (keyboard_layout_mapping)
   {
-    if (hc_path_read (user_options->keyboard_layout_mapping))
+    if (hc_path_read (keyboard_layout_mapping))
     {
-      initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, tc->keyboard_layout_mapping_buf, &tc->keyboard_layout_mapping_cnt);
+      initialize_keyboard_layout_mapping (keyboard_layout_mapping, tc->keyboard_layout_mapping_buf, &tc->keyboard_layout_mapping_cnt);
     }
   }
 
@@ -285,6 +290,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
@@ -337,6 +343,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = module_outfile_check_disable;
@@ -347,6 +354,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = truecrypt_module_register_options;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

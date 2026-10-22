@@ -2493,14 +2493,19 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (true)
     {
-      if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, device_param->d_buf[HC_DEV_BUF_PWS_AMP_BUF], 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
+      // The amp kernel writes every candidate of the launch from the base words in pws_amp, the copy of
+      // the base word included, so only slow candidates still need them copied across. With more than
+      // one amplifier item in the launch the copy would cover just the first.
 
       if (user_options->slow_candidates == true)
       {
+        if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, device_param->d_buf[HC_DEV_BUF_PWS_AMP_BUF], 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
       }
       else
       {
-        if (run_kernel_amp (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+        const u64 amp_base_cnt = (device_param->amp_base_cnt > 0) ? device_param->amp_base_cnt : pws_cnt;
+
+        if (run_kernel_amp (hashcat_ctx, device_param, amp_base_cnt, pws_cnt) == -1) return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_POST_AMP_UTF16LE)
@@ -3521,6 +3526,110 @@ static int pcfg_carveout (void)
 static u64 pcfg_launch_items  (const hc_device_param_t *device_param, const u64 num_base);
 static u64 pcfg_launch_stride (const hc_device_param_t *device_param, const u64 num_base);
 
+// The salt_dimy a launch of a DIMY kernel has to serve, taken from the salt the kernel reads. The
+// self-test binds a salt buffer of its own, which holds the one self-test salt. Every other launch
+// reads the salt in salt_pos_host.
+//
+// -a 9 reads one salt per work item, see SALT_POS_HOST in inc_types.h, so one launch serves the salts
+// from pws_pos on. A salt of parallelism p takes ceil (p / height) rounds of 1 / p of a slice, so the
+// launch cannot finish before the salt with the smallest parallelism has run one round, whatever the
+// height. The height is the smallest one at which every other salt is done by then as well, because a
+// taller one leaves rows without a lane, and on a full device these rows hold it without doing work.
+
+static u32 launch_salt_dimy (const hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 num)
+{
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool is_selftest = (device_param->kernel_params[17] == hc_dev_kern_arg (device_param, HC_DEV_BUF_ST_SALTS_BUF));
+
+  if (is_selftest == true) return hashes->st_salts_buf[0].salt_dimy;
+
+  if (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) return hashes->salts_buf[device_param->kernel_param.salt_pos_host].salt_dimy;
+
+  u32 salt_dimy_min = hashes->salts_buf[pws_pos].salt_dimy;
+
+  for (u64 salt_pos = pws_pos + 1; salt_pos < pws_pos + num; salt_pos++)
+  {
+    salt_dimy_min = MIN (salt_dimy_min, hashes->salts_buf[salt_pos].salt_dimy);
+  }
+
+  if (salt_dimy_min <= 1) return salt_dimy_min;
+
+  // A salt of parallelism p keeps up with the smallest one in floor (p / salt_dimy_min) rounds.
+
+  u32 salt_dimy = salt_dimy_min;
+
+  for (u64 salt_pos = pws_pos; salt_pos < pws_pos + num; salt_pos++)
+  {
+    const u32 p = hashes->salts_buf[salt_pos].salt_dimy;
+
+    salt_dimy = MAX (salt_dimy, CEILDIV (p, p / salt_dimy_min));
+  }
+
+  return salt_dimy;
+}
+
+// The vector width that one work item of kern_run covers, as the launch below applies it.
+
+static u32 launch_vector_width (const hashconfig_t *hashconfig, const hc_device_param_t *device_param, const u32 kern_run)
+{
+  u64 simd = 0;
+
+  if (kern_run == KERN_RUN_1)     simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT;
+  if (kern_run == KERN_RUN_2)     simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+  if (kern_run == KERN_RUN_3)     simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP;
+  if (kern_run == KERN_RUN_INIT2) simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT2;
+  if (kern_run == KERN_RUN_LOOP2) simd = hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP2;
+
+  const u32 vector_width = (simd != 0) ? device_param->vector_width : 1;
+
+  return vector_width;
+}
+
+// A batch shorter than one full launch, a small wordlist or the end of any wordlist, used to run in
+// work groups of the tuned thread count. 1000 candidates at 1024 threads are one work group, so one
+// compute unit does all the work while the others idle, and for a slow hash that costs seconds.
+// Narrower groups spread the batch over every compute unit. At equal work per launch the thread
+// count costs next to nothing, so full launches keep the tuned value.
+//
+// The group size is rounded up to whole waves, so the batch never makes more groups than there are
+// compute units. Rounding down left one unit with a second group, which then took twice as long as
+// the others. The native width is the floor, because a narrower group still occupies a whole wave.
+// A thread count the module fixed is kept, since an OpenCL kernel built for it launches with nothing
+// else, and so is a DIMY launch, whose rows are fitted to the thread count.
+
+static u64 launch_threads_short_batch (const hashconfig_t *hashconfig, const hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u64 kernel_threads)
+{
+  if (hashconfig->attack_exec != ATTACK_EXEC_OUTSIDE_KERNEL) return kernel_threads;
+
+  if (hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) return kernel_threads;
+
+  if (hashconfig->opti_type & (OPTI_TYPE_SLOW_HASH_DIMY_INIT | OPTI_TYPE_SLOW_HASH_DIMY_LOOP | OPTI_TYPE_SLOW_HASH_DIMY_COMP)) return kernel_threads;
+
+  if (device_param->kernel_threads_fixed == true) return kernel_threads;
+
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) return kernel_threads;
+
+  const u64 native = device_param->device_preferred_wgs_multiple;
+
+  if (native == 0) return kernel_threads;
+
+  if (kernel_threads <= native) return kernel_threads;
+
+  const u64 work_items = CEILDIV (num, launch_vector_width (hashconfig, device_param, kern_run));
+
+  const u64 processors = device_param->device_processors;
+
+  if (CEILDIV (work_items, kernel_threads) >= processors) return kernel_threads;
+
+  const u64 spread = CEILDIV (CEILDIV (work_items, processors), native) * native;
+
+  const u64 threads = MIN (MAX (spread, native), kernel_threads);
+
+  return threads;
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num_base, const u32 event_update, const u32 iteration, const bool is_autotune)
 {
   // The device engine spreads one cell across several waves, as many as its rectangle needs at a fixed
@@ -3574,6 +3683,33 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   //}
 
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
+
+  // autotune measures full launches at the tuned thread count, which is what it fits its model to
+
+  if (is_autotune == false) kernel_threads = launch_threads_short_batch (hashconfig, device_param, kern_run, num, kernel_threads);
+
+  // A DIMY kernel runs salt_dimy rows of kernel_threads work items in one block, but the compiled
+  // kernel can allow fewer threads per block than that, and the launch then fails. The kernels step
+  // through their lanes by the row count, so fewer rows cost rounds. Take the fewest rounds the
+  // kernel allows and spread the rows evenly over them.
+
+  u32 dimy = 1;
+
+  if (hashconfig->opti_type & (OPTI_TYPE_SLOW_HASH_DIMY_INIT | OPTI_TYPE_SLOW_HASH_DIMY_LOOP | OPTI_TYPE_SLOW_HASH_DIMY_COMP))
+  {
+    const u32 salt_dimy = launch_salt_dimy (hashcat_ctx, device_param, pws_pos, num);
+
+    dimy = salt_dimy;
+
+    const u32 dimy_max = MAX (device_param->kernel_wgs[slot] / MAX (kernel_threads, 1), 1);
+
+    if (dimy > dimy_max)
+    {
+      const u32 dimy_rounds = CEILDIV (salt_dimy, dimy_max);
+
+      dimy = CEILDIV (salt_dimy, dimy_rounds);
+    }
+  }
 
   device_param->kernel_param.pws_pos = pws_pos;
   device_param->kernel_param.gid_max = num;
@@ -3664,11 +3800,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     u32 blockDimZ = 1;
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
 
     if (is_autotune == true)
     {
@@ -3764,11 +3900,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     u32 blockDimZ = 1;
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
-      blockDimY = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      blockDimY = dimy;
 
     //printf ("%d %d %d %d %d %d %d\n", kern_run, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ);
 
@@ -3895,19 +4031,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
@@ -4049,19 +4185,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
     {
-      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      global_work_size[1] = local_work_size[1] = dimy;
       work_dim = 2;
     }
 
@@ -4420,9 +4556,10 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
+int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt, const u64 num)
 {
   device_param->kernel_params_amp_buf64[6] = num;
+  device_param->kernel_params_amp_buf32[7] = (u32) pws_cnt;
 
   u64 num_elements = num;
 
@@ -4475,6 +4612,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 5, NULL, device_param->kernel_params_amp[5], sizeof (u32)) == -1) return hc_mtlEncodeComputeCommand_abort (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer);
     if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 6, NULL, device_param->kernel_params_amp[6], sizeof (u64)) == -1) return hc_mtlEncodeComputeCommand_abort (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer);
+    if (hc_mtlSetCommandEncoderArg (hashcat_ctx, device_param, metal_command_encoder, 0, 7, NULL, device_param->kernel_params_amp[7], sizeof (u32)) == -1) return hc_mtlEncodeComputeCommand_abort (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer);
 
     double ms = 0;
 
@@ -4489,6 +4627,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     cl_kernel opencl_kernel = device_param->opencl_kernel[HC_DEV_KERN_AMP];
 
     if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, 6, sizeof (cl_ulong), device_param->kernel_params_amp[6]) == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, 7, sizeof (cl_uint),  device_param->kernel_params_amp[7]) == -1) return -1;
 
     const size_t global_work_size[3] = { num_elements,    1, 1 };
     const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
@@ -5649,6 +5788,71 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
   return 0;
 }
 
+// Whether a slow hash launch may hold several amplifier items over the same base words.
+//
+// A slow hash applies its amplifier in a kernel of its own, one item over every base word of the
+// batch, so a launch used to be exactly the batch. A short wordlist, or a wordlist shared out over
+// several devices, then launches a fraction of what autotune sized: 57344 words on an RTX 4090 tuned
+// for 5.4M ran mode 12700 at 123 MH/s, and at 238 MH/s with the launch filled. Several items over the
+// same words fill it. The candidates are the same ones, in the same base word chunk, in fewer launches.
+
+static bool slow_amp_pack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // a fast hash runs its amplifier inside the kernel, and slow candidates come without one
+
+  if (hashconfig->attack_exec != ATTACK_EXEC_OUTSIDE_KERNEL) return false;
+
+  if (user_options->slow_candidates == true) return false;
+
+  // -a 9 reads the salt index off the work item id
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
+
+  // the device engine's inner loop is a cell rather than a list of items
+
+  if ((user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) && (user_options_extra->attack_kern != ATTACK_KERN_COMBI) && (user_options_extra->attack_kern != ATTACK_KERN_BF)) return false;
+
+  // A hook or a bridge works on the launch from the host, one entry per work item, and both were
+  // written for a launch that holds one candidate per base word.
+
+  if (hashconfig->kern_bits & (KERN_BIT_HOOK12 | KERN_BIT_HOOK23)) return false;
+
+  if (hashconfig->bridge_type != 0) return false;
+
+  #ifdef WITH_BRAIN
+  if (user_options->brain_client == true) return false;
+  #endif
+
+  return true;
+}
+
+// How many amplifier items one slow hash launch takes: as many as fill kernel_power, which is what
+// autotune sized the launch for, and no more than the amplifier's staging buffer holds.
+
+static u64 slow_amp_step (const hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u64 pws_cnt)
+{
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (slow_amp_pack (hashcat_ctx) == false) return 1;
+
+  if (pws_cnt == 0) return 1;
+
+  u64 items_max = KERNEL_RULES;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI) items_max = KERNEL_COMBS;
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)    items_max = KERNEL_BFS;
+
+  const u64 items = device_param->kernel_power / pws_cnt;
+
+  const u64 step = MAX (MIN (items, items_max), 1);
+
+  return step;
+}
+
 // The salt loop outside the amplifier loop, which is the order hashcat has always used. Every attack
 // runs this unless the salt inner order below is switched on for a slow hash.
 
@@ -5736,7 +5940,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
       }
 
       if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
-      else                                                        innerloop_step = 1;
+      else                                                        innerloop_step = slow_amp_step (hashcat_ctx, device_param, pws_cnt);
 
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = combinator_ctx->combs_cnt;
@@ -5819,7 +6023,9 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
       if (innerloop_left == 0) continue;
 
-      if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, pws_cnt, fast_iteration, salt_pos, false) == -1) return -1;
+      const u64 launch_cnt = (device_param->amp_base_cnt > 0) ? pws_cnt * innerloop_left : pws_cnt;
+
+      if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, launch_cnt, fast_iteration, salt_pos, false) == -1) return -1;
 
       /**
        * benchmark was aborted because too long kernel runtime (slow hashes only)
@@ -6046,9 +6252,9 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
     }
   }
 
-  // one host iteration is one amplifier item, because this order only ever runs for a slow hash
+  // this order only ever runs for a slow hash
 
-  const u64 innerloop_step = 1;
+  const u64 innerloop_step = slow_amp_step (hashcat_ctx, device_param, pws_cnt);
 
   u64 innerloop_cnt = 0;
 
@@ -6153,7 +6359,9 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
       device_param->kernel_param.digests_cnt         = salt_buf->digests_cnt;
       device_param->kernel_param.digests_offset_host = salt_buf->digests_offset;
 
-      if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, pws_cnt, fast_iteration, salt_pos, false) == -1)
+      const u64 launch_cnt = (device_param->amp_base_cnt > 0) ? pws_cnt * innerloop_left : pws_cnt;
+
+      if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, launch_cnt, fast_iteration, salt_pos, false) == -1)
       {
         rc_final = -1;
 
@@ -6316,6 +6524,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   int rc_final = 0;
 
+  // choose_kernel () hands the amp kernel the base word count and check_cracked () takes a crack's work
+  // item apart with it, and both run inside the orders below
+
+  device_param->amp_base_cnt = (slow_amp_pack (hashcat_ctx) == true) ? pws_cnt : 0;
+
   if (salt_inner_enabled (hashcat_ctx) == true)
   {
     rc_final = run_cracker_amp_major (hashcat_ctx, device_param, pws_pos, pws_cnt, highest_pw_len, &transform);
@@ -6324,6 +6537,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   {
     rc_final = run_cracker_salt_major (hashcat_ctx, device_param, pws_pos, pws_cnt, highest_pw_len, &transform);
   }
+
+  device_param->amp_base_cnt = 0;
 
   pw_transform_term (&transform);
 
@@ -11833,7 +12048,13 @@ void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->enabled == false) return;
 
-  u32 kernel_power_all = 0;
+  // hardware_power_all is summed again here, from the same tuned hardware_power that get_power () puts
+  // over it. The sum backend_session_begin () made counts every device at kernel_threads_max, and once
+  // autotune picks fewer threads the shares of a short keyspace add up to less than the keyspace: at
+  // 448 of 896 threads, to half of it.
+
+  u32 kernel_power_all   = 0;
+  u32 hardware_power_all = 0;
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -11842,10 +12063,12 @@ void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped == true) continue;
     if (device_param->skipped_warning == true) continue;
 
-    kernel_power_all += device_param->kernel_power;
+    kernel_power_all   += device_param->kernel_power;
+    hardware_power_all += device_param->hardware_power;
   }
 
-  backend_ctx->kernel_power_all = kernel_power_all;
+  backend_ctx->kernel_power_all   = kernel_power_all;
+  backend_ctx->hardware_power_all = hardware_power_all;
 
   /*
    * Inform user about possible slow speeds
@@ -13473,6 +13696,11 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
         {
           if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel[HC_DEV_KERN_AMP], i, sizeof (cl_ulong), device_param->kernel_params_amp[i]) == -1) return -1;
         }
+
+        for (u32 i = 7; i < 8; i++)
+        {
+          if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel[HC_DEV_KERN_AMP], i, sizeof (cl_uint), device_param->kernel_params_amp[i]) == -1) return -1;
+        }
       }
     }
   }
@@ -14160,9 +14388,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
       }
 
-      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes, device_id, _kernel_accel);
+      // The module builds the block on the heap for this device and hands it over, so it is parsed in
+      // place and freed here.
 
-      char *lines_buf = hcstrdup (extra_tuningdb_block);
+      char *lines_buf = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes, device_id, _kernel_accel);
 
       char *saveptr = NULL;
 
@@ -14371,6 +14600,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_threads_min = hashconfig->kernel_threads_min;
     device_param->kernel_threads_max = hashconfig->kernel_threads_max;
 
+    device_param->kernel_threads_fixed = false;
+
     tuning_db_entry_t *tuningdb_entry = NULL;
 
     if (user_options->slow_candidates == true)
@@ -14389,15 +14620,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 _kernel_accel = user_options->kernel_accel;
 
-      // Second half of the -n ceiling check. user_options_sanity could only apply the looser bridge
-      // limit, because the mode is not known that early, so the tighter one lands here where it is.
-      // A bridge keeps the higher limit, since there kernel_accel is a candidate count rather than a
-      // per-multiprocessor multiplier, and the bridge block further down clamps it into what the
-      // device has actually allocated for.
-      //
-      // This is the only place a user option is rejected this late, which is worth knowing when
-      // reading the startup order: the message is identical to the parse-time one, but by the time
-      // it prints, devices have already been enumerated.
+      // A run on one mode had -n and -T held against that mode's range before the devices came up,
+      // see option_table_check_module (). What reaches here outside the range is a benchmark over
+      // every mode, where a value applies to the modes that allow it and the speed line shows what
+      // each one ran with. The tighter ceiling of a non-bridge mode still holds there, because a
+      // bridge counts candidates where every other mode multiplies a multiprocessor load, and the
+      // bridge block further down clamps it into what the device has allocated for.
 
       if ((hashconfig->bridge_type == 0) && (_kernel_accel > KERNEL_ACCEL_MAX))
       {
@@ -15278,6 +15506,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->kernel_threads_min = fixed_local_size;
             device_param->kernel_threads_max = fixed_local_size;
+
+            device_param->kernel_threads_fixed = true;
           }
           else if (sscanf (jit_build_options, "-D FORCED_THREAD_COUNT=%u", &fixed_local_size) == 1)
           {
@@ -15285,6 +15515,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
             device_param->kernel_threads_min = fixed_local_size;
             device_param->kernel_threads_max = fixed_local_size;
+
+            device_param->kernel_threads_fixed = true;
           }
           else
           {
@@ -15934,6 +16166,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->kernel_params_amp_buf32[5] = 0; // combs_mode
       device_param->kernel_params_amp_buf64[6] = 0; // gid_max
+      device_param->kernel_params_amp_buf32[7] = 0; // pws_cnt
 
       device_param->kernel_params_amp[0] = NULL; // hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_BUF);
       device_param->kernel_params_amp[1] = NULL; // hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_AMP_BUF);
@@ -15943,6 +16176,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->kernel_params_amp[5] = &device_param->kernel_params_amp_buf32[5];
       device_param->kernel_params_amp[6] = &device_param->kernel_params_amp_buf64[6];
+      device_param->kernel_params_amp[7] = &device_param->kernel_params_amp_buf32[7];
 
       device_param->kernel_params_tm[0] = hc_dev_kern_arg (device_param, HC_DEV_BUF_BFS_C);
       device_param->kernel_params_tm[1] = hc_dev_kern_arg (device_param, HC_DEV_BUF_TM_C);
@@ -16308,7 +16542,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     //    u32 kernel_threads = get_kernel_threads (device_param);
 
-    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    // A thread count the module fixed is left alone. An OpenCL kernel built with a fixed local size
+    // only launches with exactly that size, so capping it fails every launch with
+    // CL_INVALID_WORK_GROUP_SIZE.
+
+    if ((user_options->attack_mode == ATTACK_MODE_ASSOCIATION) && (device_param->kernel_threads_fixed == false))
     {
       // the smaller the kernel_threads the more accurate we can set kernel_accel
       // in autotune. in this attack mode kernel_power is limited by salts_cnt so we
@@ -16985,11 +17223,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_threads_max = kernel_threads_max;
 
     // The same rule as everywhere else, and it was the one place that did not follow it. This feeds
-    // hardware_power_all, which is the denominator of dispatch.c's device_factor, while the numerator
-    // is device_param->hardware_power and that one HAS the bridge branch. So the two halves of the
-    // ratio were computed by different rules. It did not show because every device in a bridged run is
-    // a clone and a uniform error cancels, and it would have started showing the moment the units
-    // stopped being the same width.
+    // hardware_power_all until autotune has run, and backend_ctx_devices_update_power () then sums it
+    // again from the tuned thread counts, so that it is the same quantity as the numerator of
+    // dispatch.c's device_factor.
 
     const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)

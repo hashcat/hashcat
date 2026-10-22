@@ -14,6 +14,7 @@
 #include "memory.h"
 #include "cpu_crc32.h"
 #include "keyboard_layout.h"
+#include "truecrypt_veracrypt_common.c"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -264,9 +265,11 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   // keyfiles
 
-  if (user_options->veracrypt_keyfiles)
+  const char *veracrypt_keyfiles = module_option_str (user_options, OPTION_VERACRYPT_KEYFILES);
+
+  if (veracrypt_keyfiles)
   {
-    char *keyfiles = hcstrdup (user_options->veracrypt_keyfiles);
+    char *keyfiles = hcstrdup (veracrypt_keyfiles);
 
     char *saveptr = NULL;
 
@@ -290,20 +293,22 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   // keyboard layout mapping
 
-  if (user_options->keyboard_layout_mapping)
+  const char *keyboard_layout_mapping = module_option_str (user_options, OPTION_KEYBOARD_LAYOUT_MAPPING);
+
+  if (keyboard_layout_mapping)
   {
-    if (hc_path_read (user_options->keyboard_layout_mapping))
+    if (hc_path_read (keyboard_layout_mapping))
     {
-      initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, vc->keyboard_layout_mapping_buf, &vc->keyboard_layout_mapping_cnt);
+      initialize_keyboard_layout_mapping (keyboard_layout_mapping, vc->keyboard_layout_mapping_buf, &vc->keyboard_layout_mapping_cnt);
     }
   }
 
   // veracrypt PIM
 
-  if ((user_options->veracrypt_pim_start_chgd == true) && (user_options->veracrypt_pim_stop_chgd == true))
+  if ((module_option_given (user_options, OPTION_VERACRYPT_PIM_START) == true) && (module_option_given (user_options, OPTION_VERACRYPT_PIM_STOP) == true))
   {
-    vc->pim_start = 15 + user_options->veracrypt_pim_start;
-    vc->pim_stop  = 15 + user_options->veracrypt_pim_stop;
+    vc->pim_start = 15 + module_option_u32 (user_options, OPTION_VERACRYPT_PIM_START);
+    vc->pim_stop  = 15 + module_option_u32 (user_options, OPTION_VERACRYPT_PIM_STOP);
 
     salt->salt_iter = vc->pim_stop * 1000 - 1;
   }
@@ -349,6 +354,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
@@ -401,6 +407,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -411,6 +418,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = veracrypt_module_register_options;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;

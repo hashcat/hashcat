@@ -114,10 +114,12 @@ DECLSPEC u64  rotr64_S (const u64  a, const int n);
  * cross lane exchange
  */
 
-// hc_shfl_u64 hands every thread the value src_lane holds in var. The workgroup has to be
-// one wave wide and every thread of it has to reach the call, which is what the callers
-// arrange through FIXED_LOCAL_SIZE. shfl_buf is only touched where there is no lane
-// crossbar to reach, and it needs room for one u64 per thread.
+// hc_shfl_u64 hands every thread the value src_lane holds in var within the thread's own group of
+// lsz threads, which has to lie within one wave (CUDA, HIP and NVIDIA OpenCL take 32 for lsz), and
+// every thread of the group has to reach the call. Where there is no lane crossbar, the exchange
+// goes through shfl_buf, which needs room for one u64 per thread, and every call is a barrier
+// across the workgroup. HC_SHFL_BARRIER marks that case: there every thread of the workgroup has
+// to make the calls.
 
 #if defined IS_CUDA
 #define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) __shfl_sync (0xffffffff, (var), (src_lane))
@@ -127,6 +129,9 @@ DECLSPEC u64  rotr64_S (const u64  a, const int n);
 #else
 #define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) hc_shfl_u64_impl ((shfl_buf), (var), (src_lane), (lid), (lsz))
 DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 var, const int src_lane, MAYBE_UNUSED const u32 lid, MAYBE_UNUSED const u32 lsz);
+#if !defined IS_METAL && !(defined IS_AMD_USE_OPENCL && defined IS_GPU) && !(defined IS_NV && defined IS_GPU)
+#define HC_SHFL_BARRIER
+#endif
 #endif
 
 #endif // INC_PLATFORM_H

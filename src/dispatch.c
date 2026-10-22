@@ -183,13 +183,13 @@ static u64 get_power (backend_ctx_t *backend_ctx, hc_device_param_t *device_para
 
     const u64 words_left_device = (u64) CEIL (kernel_power_final * device_factor);
 
-    // work should be at least the hardware power available without any accelerator
-
-    const u64 work = MAX (words_left_device, device_param->hardware_power);
+    // No floor of one hardware_power per device. With fewer words left than a wave on every device the
+    // floor gave the first devices a wave each and the last ones nothing, and under an amplifier each
+    // of those words carries the whole of it, so a device that got nothing stayed idle for the run.
 
     // we need to make sure the value is not larger than the regular kernel_power
 
-    const u64 work_final = MIN (work, device_param->kernel_power);
+    const u64 work_final = MIN (words_left_device, device_param->kernel_power);
 
     return work_final;
   }

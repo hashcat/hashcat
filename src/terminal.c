@@ -16,6 +16,7 @@
 #include "hwmon.h"
 #include "bridges.h"
 #include "interface.h"
+#include "module_options.h"
 #include "hashcat.h"
 #include "timer.h"
 #include "monitor.h"
@@ -210,15 +211,6 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
       event_log_advice (hashcat_ctx, "You can use it in your cracking session by setting the -O option.");
       event_log_advice (hashcat_ctx, "Note: Using optimized kernel code limits the maximum supported password length.");
       event_log_advice (hashcat_ctx, NULL);
-
-      if (user_options->benchmark_min != BENCHMARK_MIN || user_options->benchmark_max != BENCHMARK_MAX)
-      {
-        if (user_options->hash_mode_chgd == true)
-        {
-          event_log_advice (hashcat_ctx, "Benchmark min/max is ignored because --hash-type is set.");
-          event_log_advice (hashcat_ctx, NULL);
-        }
-      }
     }
     else
     {
@@ -1652,6 +1644,10 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
       // earlier build or install would list the hash-mode twice
 
       if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
+      // a module that could not be loaded was reported when the options were collected
+
+      if (module_options_broken (user_options, (u32) i) == true) continue;
 
       if (json_output == true)
       {

@@ -11,6 +11,7 @@
 
 #include "types.h"
 #include "user_options.h"
+#include "module_options.h"
 #include "usage.h"
 #include "memory.h"
 #include "hashcat.h"
@@ -1765,9 +1766,8 @@ static bool main_timing_report_enabled (const user_options_t *user_options)
   if (user_options->task_time_breakdown == false) return false;
 
   // anything that produces machine readable output, or that is not a run at all, keeps the output it
-  // has today
+  // has today. --quiet silences the human text, and the breakdown is what was asked for.
 
-  if (user_options->quiet            == true) return false;
   if (user_options->machine_readable == true) return false;
   if (user_options->keyspace         == true) return false;
   if (user_options->stdout_flag      == true) return false;
@@ -2046,6 +2046,22 @@ int main (int argc, char **argv)
     return -1;
   }
 
+  // the options the modules add are collected first, so that the command line below can use them. The
+  // two options that control how they are collected are read ahead of the parse.
+
+  user_options_prescan (hashcat_ctx, argc, argv);
+
+  if (module_options_init (hashcat_ctx, install_folder, shared_folder, VERSION_TAG, COMPTIME) == -1)
+  {
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
+
   // parse commandline parameters and check them
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
@@ -2105,6 +2121,21 @@ int main (int argc, char **argv)
     hcfree (hashcat_ctx);
 
     return 0;
+  }
+
+  // module_options_init () has collected the options from every module and written the cache already
+
+  if (user_options->module_cache_rebuild == true)
+  {
+    const int rc = module_options_cache_report (hashcat_ctx);
+
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return rc;
   }
 
   // the report is decided before the session runs, because a session that fails still ends here

@@ -527,7 +527,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_MP_MULTI_DISABLE`: Prevents hashcat from multiplying kernel acceleration by the device multiprocessor count, allowing finer workload control.
 * `OPTS_TYPE_NATIVE_THREADS`: Selects the native thread count: one on a CPU or the preferred workgroup-size multiple reported by a GPU backend. It does not override a user-defined `-u` value.
 * `OPTS_TYPE_POST_AMP_UTF16LE`: Runs a complete UTF-8-to-UTF-16LE conversion after amplifier processing. This flag applies only to slow-hash kernels.
-* `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection.
+* `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection. A mode whose example hash is 16 characters or shorter needs no flag just because ordinary words pass for its hashes: autodetect counts its matches only when it parses at least half of the sampled lines, and the check for a swapped hash file and wordlist leaves it out.
 
 ### module_salt_type() ###
 
@@ -577,6 +577,20 @@ Callback `module_benchmark_salt()` fills a mode-specific `salt_t` for benchmarks
 ### module_benchmark_cost() ###
 
 Callback `module_benchmark_cost()` formats the cost parameters shown in the benchmark header for a mode whose cost is not a single iteration count. The header normally prints `[Iterations: N]` from `salt_iter`, which misleads a mode that packs several parameters (argon2's `m`, `t` and `p`, scrypt's `N`, `r` and `p`, bcrypt's cost factor). The callback receives the decoded `salt_t` and esalt and writes the parameters the hash actually carries into `line_buf`, returning the length as `snprintf()` does; the header prints that in place of the Iterations readout. It is optional: a mode that leaves it at `MODULE_DEFAULT` keeps the Iterations readout, so only a mode with extra cost parameters to show needs to set it.
+
+### module_register_options() ###
+
+Callback `module_register_options()` adds the command line options that only this mode reads. It returns a list of `module_option_t` rows, ended by a row whose `name` is `NULL`. A row holds what a row of `include/options.def` and its rule hold for a core option: the long name, the type (`MODULE_OPTION_TYPE_FLAG`, `MODULE_OPTION_TYPE_U32` or `MODULE_OPTION_TYPE_STR`), a default, an optional range (`MODULE_OPTION_FLAG_MIN`, `MODULE_OPTION_FLAG_MAX`), the relations to other options, and the three columns `--help` prints. `MODULE_OPTION_FLAG_HIDDEN` keeps a row out of `--help`. Each relation (`alias`, `le`, `requires`, `excludes`) names one other option. An `alias` has to name another module option of the same type, or the row is dropped, and a relation that names no known option is ignored.
+
+hashcat calls the hook of every module at startup, before the command line is parsed, so `--help` lists the rows and they are parsed like any other option. An option is in scope only for the hash-modes whose module registered it. Given with a hash-mode whose module did not register it, it is refused, and without `-m` autodetect only considers the modes that registered every module option given. An action that does not read `-m`, such as `--stdout` or `-b` without `-m`, accepts it. Modes that share an option register the same row from one helper file they all include, as `src/modules/scrypt_common.c`, `src/modules/wpa_common.c` and `src/modules/truecrypt_veracrypt_common.c` do. The helpers are not part of a development install, so a module built outside the tree copies the row exactly.
+
+The module reads a value back with `module_option_given()`, `module_option_u32()` and `module_option_str()`, passing `user_options` and the option name. `module_option_u32()` returns the default of the row when the option was not given, and 0 for a name no module registered. `module_option_str()` returns `NULL` when the option was not given. A row of an option that takes a value may name a `check` callback, which is called with the value as text once the module is loaded. When it returns false, the run is refused with the message the callback wrote. A number or flag row with a `brain_slot`, from 1 to 16, puts its value into the brain attack identity, for an option whose value has to keep two runs apart there. Only the options registered by the hash-mode in use fill a slot, and every other slot enters the identity as the same neutral value, so the slots of one family do not collide with another's and each family numbers from 1.
+
+Every module that registers a name has to register the same row. When two modules register a name with different rows, neither row is used, whichever module was loaded first: hashcat prints an error at startup that names both module files, and the option is left out for every hash-mode that registered it under either row. A run of one of those hash-modes with the option is refused. A name that is already a core option, a check on a flag, or a brain slot outside 1 to 16, on a string option or used twice by one module, is refused at startup with the name of the module, and the option is left out for that module.
+
+A mode without options of its own sets the callback to `MODULE_DEFAULT`, like every other callback it does not use.
+
+hashcat keeps the rows every module registers in a cache file, `module_options.so.cache` (`module_options.dll.cache` on Windows) in the cache directory that `--cache-path` moves, so that a start reads one file instead of loading every module. The file records the name, size and modification time of each module file and the hashcat build that wrote it. A start that finds a module added, removed, rebuilt or touched since then loads all modules again and rewrites the file, so a module under development needs nothing extra. The rows a module returns therefore have to depend on nothing but the module itself. A `check` callback is not kept in the file: it runs from the loaded module of the hash-mode in use, and only for that hash-mode. `HASHCAT_MODULE_CACHE_DISABLE=1` makes every start load the modules instead, and `--module-cache-rebuild`, which `--help` does not list, writes the file and exits.
 
 ## Kernel ##
 
@@ -1079,19 +1093,26 @@ A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only 
 
 `feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
-Remove the `module_dictstat_disable` registration from `module_init()`. Five hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Assigning all five to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
+Remove the `module_dictstat_disable` registration from `module_init()`. Eight hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Hook `module_register_options` adds the command line options that only the mode reads, see `module_register_options()` above. Hook `module_length_sort` lets a mode have its candidates sorted by length, and `module_benchmark_cost` shows its cost parameters in the benchmark header, see `module_benchmark_cost()` above. Every hook has to be assigned, as every other one is. Assigning all eight to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
 
-The following command applies all six changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+The following command applies all nine changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
 
 ```
 sed -i -e '/module_ctx->module_dictstat_disable/d' \
        -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_benchmark_salt/a\  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
        -e '/module_ctx->module_hashes_count_min/i\  module_ctx->module_hash_recipe              = MODULE_DEFAULT;' \
        -e '/module_ctx->module_kern_type /i\  module_ctx->module_kern_bits                = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_kern_type_dynamic/a\  module_ctx->module_length_sort              = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_salt_max/i\  module_ctx->module_register_options         = MODULE_DEFAULT;' \
        -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
        src/modules/module_*.c
 ```
+
+The options that only some hash-modes read are no longer fields of `user_options_t`: `--eapol-message-pair` with its alias `--hccapx-message-pair`, `--nonce-error-corrections`, `--keyboard-layout-mapping`, `--truecrypt-keyfiles`, `--veracrypt-keyfiles`, `--veracrypt-pim-start`, `--veracrypt-pim-stop` and `--scrypt-tmto`. A plugin that read one of those fields no longer compiles. It registers the option with `module_register_options()`, through the shared helper where it belongs to one of those families, and reads it with `module_option_given()`, `module_option_u32()` or `module_option_str()`.
+
+`module_extra_tuningdb_block()` now returns `char *` instead of `const char *`. The block is built with `hcmalloc()` and handed over, and hashcat frees it after reading it. A plugin that returned a string literal or a static buffer has to return a heap copy instead.
 
 The 16 `OPTS_TYPE` flags that said which kernels a mode runs are removed, so a plugin that set one of them no longer compiles: `OPTS_TYPE_INIT`, `OPTS_TYPE_LOOP`, `OPTS_TYPE_COMP`, `OPTS_TYPE_LOOP_PREPARE`, `OPTS_TYPE_LOOP_EXTENDED`, `OPTS_TYPE_HOOK12`, `OPTS_TYPE_HOOK23`, `OPTS_TYPE_INIT2`, `OPTS_TYPE_LOOP2_PREPARE`, `OPTS_TYPE_LOOP2`, `OPTS_TYPE_TM_KERNEL` and `OPTS_TYPE_AUX1` to `OPTS_TYPE_AUX5`. The sed above only registers the hook, so a mode that set any of the optional ones has to name them: drop the flags from its `OPTS_TYPE`, add a `KERN_BITS` constant oring the `KERN_BIT_*` of the same name, and return it from a `module_kern_bits()` callback in place of the `MODULE_DEFAULT` the sed wrote. `KERN_BIT_INIT`, `KERN_BIT_LOOP` and `KERN_BIT_COMP` are not among them, because hashcat turns those on itself for a mode that hashes outside the cracking kernel.
 

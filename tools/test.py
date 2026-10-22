@@ -6435,6 +6435,13 @@ def main():
   if sys.version_info < (3, 10):
     die("! tools/test.py needs Python 3.10 or newer, and this is %s" % platform.python_version())
 
+  # Which attacks, kernels and hash file layouts a mode gets is read from its module source, see
+  # module_source (). Without src/modules every mode reads as fast, text-hashed and unbridged, so a
+  # run from a binary package with tools/ added tests the wrong things and does not say so.
+
+  if os.path.isdir(os.path.join(ROOT, "src", "modules")) == False:
+    die("! tools/test.py reads each hash-mode's properties from src/modules/, and %s has none. Run it from a source checkout." % ROOT)
+
   # Line-buffer stdout so the serial paths (-S, single mode) stream under CI, where stdout is a
   # pipe Python would otherwise block-buffer. The -j paths already flush by hand.
   try:
