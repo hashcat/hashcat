@@ -75,11 +75,23 @@ typedef struct argon2id_tmp
 
 } argon2id_hybrid_tmp_t;
 
-static bool is_ascii_printable (const char *src, size_t src_len)
+static bool receive_unit_class (unit_t *unit)
 {
-  for (size_t i = 0; i < src_len; i++)
+  uint16_t info_class_len_no = 0;
+  if (recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), MSG_WAITALL) != sizeof (info_class_len_no)) return false;
+
+  uint16_t unit_class_len = ntohs (info_class_len_no);
+
+  if (unit_class_len >= sizeof (unit->unit_info_buf)) return false;
+
+  unit->unit_class_buf[unit_class_len] = 0;
+  unit->unit_class_len = unit_class_len;
+
+  if (recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, MSG_WAITALL) != unit_class_len) return false;
+
+  for (size_t i = 0; i < unit_class_len; i++)
   {
-    const u8 c = (u8) src[i];
+    const u8 c = (u8) unit->unit_class_buf[i];
 
     if ((c < 0x20) || (c > 0x7e)) return false;
   }
@@ -168,19 +180,11 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     units_cnt++;
 
-    uint16_t info_class_len_no = 0;
-    if (recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), MSG_WAITALL) != sizeof (info_class_len_no)) return false;
-
-    uint16_t unit_class_len = ntohs (info_class_len_no);
-
-    if (unit_class_len >= sizeof (unit->unit_info_buf)) return false;
-
-    unit->unit_class_buf[unit_class_len] = 0;
-    unit->unit_class_len = unit_class_len;
-
-    if (recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, MSG_WAITALL) != unit_class_len) return false;
-
-    if (is_ascii_printable (unit->unit_class_buf, unit_class_len) == false) return false;
+    if (receive_unit_class (unit) == false)
+    {
+      event_log_error (hashcat_ctx, "[bridge-client]: Failed to receive valid unit class from remote.");
+      return false;
+    }
 
     address = strtok_r (NULL, ",", &server_list_saveptr);
 
