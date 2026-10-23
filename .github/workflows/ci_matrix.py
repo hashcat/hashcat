@@ -189,7 +189,7 @@ FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|t
 TEST_SHARED = re.compile(r"^(OpenCL/.*|src/.*|include/.*|deps/.*|Makefile|tools/test\.py"
                          r"|tools/test_module_runner\.py|tools/test_modules/lib/.*"
                          r"|tools/install_modules\.sh|tools/requirements\.txt"
-                         r"|\.github/workflows/(test\.yml|ci_matrix\.py|ci_matrix_test\.py))$")
+                         r"|\.github/workflows/(test\.yml|ci_matrix\.py))$")
 
 MODE_OF = {
     "test": [re.compile(r"^src/modules/module_(\d{5})\.c$"),

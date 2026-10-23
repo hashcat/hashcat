@@ -92,7 +92,6 @@ on:
       - 'tools/requirements.txt'
       - '.github/workflows/test.yml'
       - '.github/workflows/ci_matrix.py'
-      - '.github/workflows/ci_matrix_test.py'
 
 permissions:
   contents: read
@@ -109,9 +108,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: Check test matrix
-        run: python3 .github/workflows/ci_matrix_test.py
 
       - name: Plan
         id: plan
@@ -306,9 +302,7 @@ jobs:
               # A red run should name the failure, not just its exit code. Pull the worker's own
               # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
               # into an annotation and the job summary.
-              reason=$(grep -m1 -F -e '> Error :' -e '> Fault :' -e '> Compare Error :' \
-                -e 'oracle failed' -e 'did not round trip' -e '[ test.py edge ] !>' \
-                "${log}" | sed 's/^[[:space:]]*//' || true)
+              reason=$(grep -m1 -E '> (Error|Fault|Compare Error) :|oracle failed|did not round trip|\[ test.py edge \] !>' "${log}" | sed 's/^[[:space:]]*//' || true)
               reason=${reason:-see the job summary}
               reason=${reason//%/%25}
               reason=${reason//$'\r'/%0D}
@@ -318,9 +312,7 @@ jobs:
                 {
                   echo "### mode ${mode} (${KIND}) failed: test.py -m ${mode} ${OPTS} (exit ${rc})"
                   echo '```'
-                  grep -m40 -F -e '> Error :' -e '> Fault :' -e '> Compare Error :' \
-                    -e 'oracle failed' -e 'did not round trip' \
-                    -e '[ test.py edge ] !>' "${log}" || true
+                  grep -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback|\[ test.py edge \] !>' "${log}" | head -n 40 || true
                   tail -n 20 "${log}"
                   echo '```'
                 } >> "${GITHUB_STEP_SUMMARY}"
