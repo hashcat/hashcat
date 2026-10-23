@@ -669,9 +669,15 @@ char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *has
 
   const u32 device_processors = device_param->device_processors;
 
-  const u64 fixed_mem = (128 * 1024 * 1024); // some storage we need for pws[], tmps[], and others
+  // Unified memory must also leave room for the backend's per-device host reserve.
 
-  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+  const u64 host_mem = (device_param->device_host_unified_memory == 1) ? (512ULL * 1024 * 1024) / backend_ctx->backend_devices_active : 0;
+
+  const u64 device_mem = (device_param->device_available_mem > host_mem) ? device_param->device_available_mem - host_mem : 0;
+
+  const u64 fixed_mem = (128ULL * 1024 * 1024);
+
+  const u64 usable_mem = MIN (device_mem, (device_param->device_maxmem_alloc * 4));
 
   // a device that reports less than the reserve would underflow this on a u64, and the accel
   // computed from the wrapped value asks for far more memory than the device has
