@@ -7,7 +7,7 @@
 
 import hashlib
 
-from lib.test_helpers import kernel_charset, split_hash_word, utf16le
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le, runtime_iterations, iteration_override_enabled
 
 # PBKDF2-HMAC-SHA512 over a UTF-16LE password with a 4 byte salt, 100000 iterations:
 # 0x0300 <salt hex> <64 byte key hex>. The optimized kernels widen each password byte instead of
@@ -15,13 +15,19 @@ from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 
 CHARSET = kernel_charset()
 
+NORMAL_ITERATIONS = 100000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
+
 
 def module_constraints():
   return [[0, 256], [8, 8], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):
-  digest = hashlib.pbkdf2_hmac("sha512", utf16le(word, CHARSET), bytes.fromhex(salt), 100000, 64)
+  digest = hashlib.pbkdf2_hmac("sha512", utf16le(word, CHARSET), bytes.fromhex(salt), ITERATIONS, 64)
 
   return "0x0300%s%s" % (salt, digest.hex())
 

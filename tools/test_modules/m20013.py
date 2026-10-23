@@ -6,6 +6,7 @@
 ##
 
 from lib import diskcryptor
+from lib.test_helpers import iteration_override_enabled, runtime_iterations
 
 # DiskCryptor with a 1536 bit key: up to three ciphers, so six 256 bit keys.
 
@@ -21,14 +22,20 @@ CASCADES = (
 
 KEY_COUNT = 6
 
+NORMAL_ITERATIONS = diskcryptor.ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
+
 
 def module_constraints():
   return [[0, 256], [128, 128], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, data=None):
-  return diskcryptor.generate_hash(CASCADES, KEY_COUNT, word, salt, data)
+  return diskcryptor.generate_hash(CASCADES, KEY_COUNT, word, salt, data, iterations=ITERATIONS)
 
 
 def module_verify_hash(line):
-  return diskcryptor.verify_hash(CASCADES, KEY_COUNT, line)
+  return diskcryptor.verify_hash(CASCADES, KEY_COUNT, line, iterations=ITERATIONS)

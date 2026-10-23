@@ -10,7 +10,7 @@ import binascii
 import hashlib
 import re
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
 # Apache Shiro 1 SHA-512: SHA-512 of the salt and the password, then of the digest, iterations times
 # in all.
@@ -18,12 +18,19 @@ from lib.test_helpers import random_bytes, split_hash_word
 LINE = re.compile(r"^\$shiro1\$SHA-512\$(\d+)\$([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+)$")
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40035)
+
+NORMAL_ITERATIONS = 1024
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
+
+
 def module_constraints():
   return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 1024 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if salt else random_bytes(16)
 

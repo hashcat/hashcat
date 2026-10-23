@@ -13,12 +13,16 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_number, random_string, kernel_charset
+from lib.test_helpers import random_number, random_string, kernel_charset, test_iteration_parameters
 
 # 7-Zip. The AES-256 key is one SHA-256 over 2^num_cycle_power copies of the UTF-16LE password each
 # followed by an 8 byte little endian counter. The (zero padded) salt is the CBC IV. Generate
 # encrypts a random buffer with Crypt::CBC standard (PKCS7) padding and stores its CRC32; verify
 # decrypts, truncates to unpack_size and recomputes the CRC.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(11600)
 
 
 def module_constraints():
@@ -55,7 +59,7 @@ def module_generate_hash(word, salt, iterations=None, seven_zip_salt_len=None,
     data_len           = int(data_len)
     unpack_size        = int(unpack_size)
   else:
-    num_cycle_power    = 14
+    num_cycle_power    = 14 if iterations is None else int(iterations)
     seven_zip_salt_len = 0
     seven_zip_salt_buf = ""
     salt_len           = len(salt)

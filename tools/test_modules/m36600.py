@@ -6,7 +6,7 @@
 ##
 
 from lib import pbkdf2_b64
-from lib.test_helpers import kernel_charset, utf16le
+from lib.test_helpers import kernel_charset, utf16le, test_iteration_parameters
 
 # PBKDF2-HMAC-SHA512 over a UTF-16LE password: sha512utf16le:iterations:base64(salt):base64(key).
 # The optimized kernels widen each password byte instead of decoding UTF-8, so the oracle picks its
@@ -15,12 +15,19 @@ from lib.test_helpers import kernel_charset, utf16le
 CHARSET = kernel_charset()
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(36600)
+
+NORMAL_ITERATIONS = 1000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
+
+
 def module_constraints():
   return [[0, 256], [1, 15], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, out_len=64):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   return pbkdf2_b64.generate_hash("sha512utf16le", "sha512", utf16le(word, CHARSET), salt, iterations, out_len)
 

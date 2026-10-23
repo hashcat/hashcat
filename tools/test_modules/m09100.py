@@ -9,9 +9,15 @@ import hashlib
 
 from lib import lotus
 
+from lib.test_helpers import test_iteration_parameters
+
 # Lotus Notes/Domino 8.5.x (SEC_pwddigest_V3). The password runs through the Domino "big md" mix
 # twice to build the -m 8700 style tmp hash, which PBKDF2-HMAC-SHA1 then salts. The account file
 # stores salt, iteration count, a two char field and the 8 byte digest in a wider Domino base64.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(9100)
 
 
 def _b85x_encode(final):

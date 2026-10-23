@@ -10,12 +10,18 @@ import hashlib
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
 # bcrypt(sha256($pass)) with a $2b prefix. The word is hashed with SHA-256 and its 64 char hex
 # digest is the bcrypt password. pycryptodome emits a $2a crypt string; for passwords this short
 # $2a and $2b produce identical hash bytes, so only the version tag is rewritten.
 
 BCRYPT64 = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(30600)
 
 
 def module_constraints():

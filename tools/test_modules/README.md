@@ -73,3 +73,21 @@ The bridge runs each oracle in an ordinary Python process, so an oracle that imp
 works the same as a hashlib-only one, on Linux, macOS and Windows alike. It needs a `python3` on PATH
 and nothing else. See
 [docs/hashcat-python-plugin-requirements.md](/docs/hashcat-python-plugin-requirements.md).
+
+#### Reduced iteration counts ####
+
+Normal runs, including `-S`, retain their original iteration counts. Set `ARTIFICIALLY_LOW_ITERATION_COUNT=true` to enable the per-mode reduced settings in `tools/test.py`. Unset the variable or set it to `false` to keep normal behavior. The value is a boolean, not a numeric limit.
+
+For formats with a supported encoded count, the oracle generates a hash containing the reduced value and hashcat decodes it normally. Policies name each parameter explicitly, including secondary iteration stages, logarithmic costs and memory costs. The policy retains format and kernel minimums, such as GPG's 1024 input bytes and 7-Zip's 4096-round batches. Explicit iteration arguments to `passthrough` and `potthrough` take precedence over these encoded defaults.
+
+Each affected Python module declares its normal settings and selects overrides at the top of the file. Encoded defaults are exposed through `ITERATION_PARAMETERS` and passed as generator keyword arguments. Fixed-format KDFs select their effective compute count before their hashing functions are defined. A verifier uses counts decoded from the hash wherever the format supports them.
+
+For formats without a supported encoded count, the manager supplies that mode's numeric `HASHCAT_ITER_OVERRIDE` to hashcat and the matching Python oracle. Hashcat caps the loaded `salt_iter` and `salt_iter2` loop counters after decoding, without changing the input hash text or the startup self-test salt. A PBKDF2 oracle includes the additional first iteration performed by its init kernel. These artificial vectors require the same override during verification. Some SSPR decoders require an exact count in their signature, so their synthetic vectors retain that signature and use the runtime hook. Symfony retains 5001 loop iterations to exercise its salt-dependent branch.
+
+`OPTS_TYPE_ITER_OVERRIDE_UNSUPPORTED` tells hashcat to ignore the generic runtime override for a mode whose kernel needs its original schedule. These modes can still use a supported encoded-parameter policy. `OPTS_TYPE_TEST_ITERATIONS_SCRYPT` selects fixed-format scrypt handling: the override lowers N and the matching loop count before allocation and compilation, with a power-of-two N of at least 1024. The MD5crypt stage of the convoluted Cisco format remains unchanged.
+
+With reduced testing enabled, `-S` generates a matching vector where an oracle is available. Otherwise it retains the published self-test vector at its normal count and reports the reason. Missing oracle dependencies also fall back to the published vector with the runtime override cleared. Other oracle errors fail the test. Reduced generated vectors whose compiled cost differs from the startup self-test disable that incompatible startup check. Real archives and containers produced with `-g` retain their application's normal costs.
+
+The manager reports the selected parameters or the reason a mode retains its normal count. Crack commands in failure logs include the effective numeric runtime override, with zero meaning no override. The reduced setting also applies to the ordinary and edge suites.
+
+An oracle with variants that need different kernel schedules can define `module_association_parameters()`, returning generator keyword dictionaries. The edge runner tests each variant, and association multi tests keep variants in separate groups.

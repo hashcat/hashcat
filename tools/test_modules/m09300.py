@@ -8,12 +8,18 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_scrypt_n, iteration_override_enabled
 
 # Cisco-IOS $9$ (scrypt): N=16384, r=1, p=1, the 32 byte key in Cisco's base64 alphabet.
 
 CISCO = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
                       "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+NORMAL_SCRYPT_N = 16384
+SCRYPT_N = NORMAL_SCRYPT_N
+
+if iteration_override_enabled():
+  SCRYPT_N = runtime_scrypt_n(NORMAL_SCRYPT_N)
 
 
 def module_constraints():
@@ -21,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  key = hashlib.scrypt(word, salt=salt.encode(), n=16384, r=1, p=1, dklen=32, maxmem=(128 * 16384 * 2))
+  key = hashlib.scrypt(word, salt=salt.encode(), n=SCRYPT_N, r=1, p=1, dklen=32, maxmem=(128 * 16384 * 2))
 
   return "$9$%s$%s" % (salt, base64.b64encode(key).decode()[:43].translate(CISCO))
 

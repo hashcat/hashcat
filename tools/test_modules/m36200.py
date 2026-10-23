@@ -7,18 +7,25 @@
 
 from lib import libcrypt
 from lib import yescrypt
-from lib.test_helpers import random_string, split_hash_word
+from lib.test_helpers import random_string, split_hash_word, test_iteration_parameters
 
 # gost-yescrypt, through libc crypt (): $gy$params$salt_b64$hash.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(36200)
 
 
 def module_constraints():
   return [[0, 256], [1, 64], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None, params="j9T"):
+def module_generate_hash(word, salt, iterations=None, params="j9T", n_log2=None):
   if salt is None:
     salt = random_string(16)
+
+  if n_log2 is not None:
+    params = "j" + yescrypt.ITOA64[int(n_log2) - 1] + "T"
 
   setting = "$gy$%s$%s$" % (params, yescrypt.encode64(salt.encode("latin-1")))
 

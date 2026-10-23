@@ -9,9 +9,15 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
 # Atlassian (PBKDF2-HMAC-SHA1): {PKCS5S2} and base64 of the 16 byte salt and a 32 byte key.
+
+NORMAL_ITERATIONS = 10000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -21,7 +27,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   salt_bytes = salt.encode("latin-1")
 
-  raw = hashlib.pbkdf2_hmac("sha1", word, salt_bytes, 10000, 32)
+  raw = hashlib.pbkdf2_hmac("sha1", word, salt_bytes, ITERATIONS, 32)
 
   return "{PKCS5S2}" + base64.b64encode(salt_bytes + raw).decode()
 

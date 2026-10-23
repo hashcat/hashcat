@@ -11,7 +11,15 @@ import hashlib
 
 from lib import sspr
 
+from lib.test_helpers import iteration_override_enabled, runtime_iterations
+
 # NetIQ SSPR (Salted SHA1): 100000 rounds, a 24 byte salt in base64, see lib/sspr.py.
+
+NORMAL_ITERATIONS = 100000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -19,11 +27,11 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return sspr.generate_hash(2, hashlib.sha1, 100000, word, base64.b64encode(salt.encode("latin-1")).decode())
+  return sspr.generate_hash(2, hashlib.sha1, NORMAL_ITERATIONS, word, base64.b64encode(salt.encode("latin-1")).decode(), effective_iterations=ITERATIONS)
 
 
 def module_verify_hash(line):
-  parsed = sspr.parse(2, 100000, line)
+  parsed = sspr.parse(2, NORMAL_ITERATIONS, line)
 
   if parsed is None or len(parsed[0]) != 32:
     return None

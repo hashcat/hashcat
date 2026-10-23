@@ -14,8 +14,14 @@ from Crypto.Cipher import AES
 
 from lib.bcrypt_pbkdf import bcrypt_pbkdf
 
+from lib.test_helpers import test_iteration_parameters
+
 
 # AES through ECB blocks, so CTR and CBC share one shape and neither depends on a padding convention.
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(36800)
+
 
 def aes_ctr(key, iv, data):
   cipher = AES.new(key, AES.MODE_ECB)

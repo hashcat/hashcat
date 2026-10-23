@@ -7,17 +7,25 @@
 
 from lib import libcrypt
 from lib import yescrypt
-from lib.test_helpers import random_string, split_hash_word
+from lib.test_helpers import random_string, split_hash_word, test_iteration_parameters
 
 # scrypt through libc crypt (), the $7$ form: $7$<N><r><p><salt>$hash, N as one crypt64 digit and r
 # and p as five each. The self-test parameters are fixed at N=2^14, r=8, p=1.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(36300)
+
+
+NORMAL_N_LOG2 = 14
+DEFAULT_N_LOG2 = ITERATION_PARAMETERS.get('n_log2', NORMAL_N_LOG2)
 
 
 def module_constraints():
   return [[0, 256], [1, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None, n_log2=14, r=8, p=1):
+def module_generate_hash(word, salt, iterations=None, n_log2=DEFAULT_N_LOG2, r=8, p=1):
   if salt is None:
     salt = random_string(12)
 

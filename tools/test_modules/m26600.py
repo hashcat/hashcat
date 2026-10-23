@@ -10,7 +10,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string, random_number
+from lib.test_helpers import random_hex_string, random_number, runtime_iterations, iteration_override_enabled
 
 # MetaMask: PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The line is the
 # salt, the 16 byte nonce and the ciphertext with its 16 byte tag, each base64 encoded. When there
@@ -20,6 +20,12 @@ from lib.test_helpers import random_hex_string, random_number
 
 CT_MIN_LEN = 30
 CT_MAX_LEN = 3136
+
+NORMAL_ITERATIONS = 10000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -33,7 +39,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
   salt_bin = bytes.fromhex(salt)
   iv_bin = bytes.fromhex(iv)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, 10000, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, ITERATIONS, 32)
 
   if ct is not None:
     ct_bin = bytes.fromhex(ct)

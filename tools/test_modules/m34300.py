@@ -10,7 +10,7 @@ import hmac
 
 from argon2.low_level import Type, hash_secret_raw
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # KeePass 4 with the Argon2 KDF. What hashcat verifies is the HMAC-SHA256 over the database
 # header, and the chain to its key is
@@ -27,6 +27,10 @@ UUIDS = {"ef636ddf": Type.D, "9e298b19": Type.ID}
 ARGON2_VERSION = 19
 KEYFILE_LEN    = 32
 HEADER_LEN     = 253
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(34300)
 
 
 def module_constraints():
@@ -58,14 +62,14 @@ def _build(time_cost, uuid, memory_kib, parallelism, master_seed, transform_seed
   return out
 
 
-def module_generate_hash(word, salt, iterations=None):
+def module_generate_hash(word, salt, iterations=None, memory=None):
   keyfile = random_bytes(KEYFILE_LEN) if random_number(0, 1) else b""
 
   master_seed    = random_bytes(32)
   transform_seed = random_bytes(32)
 
-  time_cost   = random_number(1, 8)
-  memory_kib  = 1 << random_number(12, 18)
+  time_cost   = random_number(1, 8) if iterations is None else int(iterations)
+  memory_kib  = 1 << random_number(12, 18) if memory is None else int(memory)
   parallelism = random_number(1, 8)
 
   header = random_bytes(HEADER_LEN)

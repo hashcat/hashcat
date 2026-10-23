@@ -10,6 +10,12 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+from lib.test_helpers import test_iteration_parameters
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(15200)
+
 
 def module_constraints():
   return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]

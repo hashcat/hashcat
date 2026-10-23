@@ -9,13 +9,17 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_bytes
+from lib.test_helpers import random_number, random_bytes, test_iteration_parameters
 
 # Apple iWork. PBKDF2-HMAC-SHA1 makes a 16 byte AES-128 key, and the blob is AES-CBC with no padding.
 # The plaintext is 32 bytes of data followed by its SHA-256, so verify decrypts, checks that pair and
 # re-encrypts from the file's own fields.
 
 FORMAT = 1
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(23300)
 
 
 def module_constraints():

@@ -11,7 +11,7 @@ import struct
 
 from Crypto.Cipher import AES, DES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 # RACF KDFAES. The username and password are folded into EBCDIC and DES to seed a proprietary,
 # memory hard HMAC-SHA256 KDF, whose output keys an AES-256-ECB encryption of the username block.
@@ -29,6 +29,14 @@ EBCDIC = bytes.fromhex(
   "6465626663679e687471727378757677ac69edeeebefecbf80fdfefbfcadae59"
   "4445424643479c4854515253585556578c49cdcecbcfcce170dddedbdc8d8edf"
 )
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(14200)
+
+
+NORMAL_REP_FAC = 0x32
+DEFAULT_REP_FAC = ITERATION_PARAMETERS.get('rep_fac', NORMAL_REP_FAC)
 
 
 def module_constraints():
@@ -100,7 +108,7 @@ def prepare_aes_key(mem_fac_exp, rep_fac, hmac_key, data_hex):
   return hashlib.pbkdf2_hmac("sha256", hmac_key, msg, rep_fac * 100, 32)
 
 
-def module_generate_hash(word, username, iterations=None, mem_fac=0x08, rep_fac=0x32, salt_data=None):
+def module_generate_hash(word, username, iterations=None, mem_fac=0x08, rep_fac=DEFAULT_REP_FAC, salt_data=None):
   if salt_data is None:
     salt_data = random_hex_string(32).upper()
 

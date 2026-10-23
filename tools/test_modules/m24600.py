@@ -9,13 +9,17 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, test_iteration_parameters
 
 # SQLCipher: PBKDF2 derives a 32 byte AES key from the password and page salt, then a 16 byte block
 # of zeros is AES-CBC encrypted under that key. type selects the PBKDF2 hash, 1 is HMAC-SHA1 (the
 # only one the generator emits), 2 is HMAC-SHA256, 3 is HMAC-SHA512.
 
 _PRF = {1: "sha1", 2: "sha256", 3: "sha512"}
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(24600)
 
 
 def module_constraints():

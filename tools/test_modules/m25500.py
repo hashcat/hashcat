@@ -10,10 +10,16 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
 
 # Stellar wallet: PBKDF2-HMAC-SHA256 of the password over a 16 byte salt, then AES-GCM. The line is
 # the salt, the 12 byte nonce and the ciphertext with its 16 byte tag, each base64 encoded.
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -27,7 +33,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
   salt_bin = bytes.fromhex(salt)
   iv_bin = bytes.fromhex(iv)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, 4096, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, ITERATIONS, 32)
 
   if ct is not None:
     ct_bin = bytes.fromhex(ct)

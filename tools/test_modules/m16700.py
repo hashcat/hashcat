@@ -10,9 +10,18 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Util.strxor import strxor
 
+from lib.test_helpers import test_iteration_parameters
+
 # FileVault 2. PBKDF2-HMAC-SHA256 derives a 16 byte KEK that AES key wraps a two block key (N = 2),
 # the same wrap -m 16200 uses. Verify unwraps the stored blob and, when the RFC 3394 integrity
 # constant comes back, wraps it again so the printed hash is rebuilt from the file's own fields.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(16700)
+
+NORMAL_ITERATIONS = 20000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def _wrap(cipher, a, p1, p2):
@@ -50,7 +59,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, z_pk=None, wrapped_key=None):
-  iterations = int(iterations) if iterations else 20000
+  iterations = int(iterations) if iterations else DEFAULT_ITERATIONS
   z_pk       = int(z_pk) if z_pk else 1
 
   salt_bin = bytes.fromhex(salt)

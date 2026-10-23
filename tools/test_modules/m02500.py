@@ -13,13 +13,21 @@ import struct
 from Crypto.Hash import CMAC
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_bytes
+from lib.test_helpers import random_number, random_bytes, runtime_iterations, iteration_override_enabled
+
+HASHCAT_ARGS = ["--deprecated-check-disable"]
 
 # WPA-EAPOL-PBKDF2, HCCAPX output. The PMK is PBKDF2-HMAC-SHA1 (4096 iterations) of the passphrase
 # salted by the ESSID, the PTK is a PRF over the MACs and nonces, and the MIC follows the key
 # version (1/2/3 -> HMAC-MD5, HMAC-SHA1, AES-CMAC). The .pm leaves verify unimplemented because it
 # predates a stable output format; every field is present in the HCCAPX record, so verify here
 # parses it back and re-derives, which is what the python runner's round trip check needs.
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -155,7 +163,7 @@ def module_generate_hash(word, salt, iterations=None, bssid=None, stmac=None,
 
   eapol_len = len(eapol)
 
-  pmk = hashlib.pbkdf2_hmac("sha1", word, essid, 4096, 32)
+  pmk = hashlib.pbkdf2_hmac("sha1", word, essid, ITERATIONS, 32)
 
   ptk = _wpa_prf_512(keyver, pmk, stmac, bssid, snonce, anonce)
 

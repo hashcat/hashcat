@@ -29,6 +29,7 @@ static const u64   KERN_TYPE      = 11600;
 static const bool  LENGTH_SORT    = true;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_ITER_OVERRIDE_UNSUPPORTED
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_SUGGEST_KG;
 static const u64   KERN_BITS      = KERN_BIT_HOOK23;

@@ -8,10 +8,17 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # XMPP SCRAM PBKDF2-SHA1: SHA-1 of HMAC-SHA1("Client Key") keyed with PBKDF2-HMAC-SHA1 of the
 # password.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40052)
+
+NORMAL_ITERATIONS = 4096
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -19,7 +26,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 4096 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 

@@ -9,10 +9,17 @@ import hashlib
 
 from Crypto.Cipher import Blowfish
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 # OpenDocument Format 1.1 (SHA-1, Blowfish). PBKDF2-HMAC-SHA1 over sha1(password) makes a Blowfish
 # key, and the document body is Blowfish-CFB encrypted; the sha1 of the plaintext is the check.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(18600)
+
+NORMAL_ITERATIONS = 100000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -20,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, iv=None, plain=None):
-  iterations = 100000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
   iv = random_hex_string(2 * 8) if iv is None else iv
   plain = random_hex_string(2 * 1024) if plain is None else plain
 

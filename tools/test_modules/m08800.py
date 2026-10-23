@@ -10,7 +10,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_iterations, iteration_override_enabled
 
 # Android FDE <= 4.3. The stored string is
 #
@@ -40,6 +40,12 @@ SB_IV  = 16
 SB_LEN = 48
 
 EXT_MAGIC = 0xEF53
+
+NORMAL_ITERATIONS = ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():

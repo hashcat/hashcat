@@ -10,7 +10,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string, random_number
+from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
 
 # iPhone passcode (UID key + logical KEK). PBKDF2-HMAC-SHA1 of the passcode is run through an
 # iterated AES-ECB under the device UID key, and the result is the AES key-wrap key for the class
@@ -18,6 +18,13 @@ from lib.test_helpers import random_hex_string, random_number
 
 MASK64 = 0xffffffffffffffff
 UIDO_BACKUP_KEY = 0xa6a6a6a6a6a6a6a6
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(26500)
+
+NORMAL_ITERATIONS = 50000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def _xor(a, b):
@@ -69,7 +76,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, uidkey=None, *classkeys):
-  iterations = 50000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
   uidkey = random_hex_string(32) if uidkey is None else uidkey
 
   classkeys = list(classkeys)

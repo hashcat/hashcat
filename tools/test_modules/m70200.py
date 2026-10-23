@@ -9,14 +9,24 @@ import base64
 import binascii
 import hashlib
 
+from lib.test_helpers import test_iteration_parameters
+
 # scrypt: SCRYPT:N:r:p:base64(salt):base64(key).
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(70200)
+
+
+NORMAL_N = 16384
+DEFAULT_N = ITERATION_PARAMETERS.get('n', NORMAL_N)
 
 
 def module_constraints():
   return [[0, 256], [1, 15], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None, n=16384, r=8, p=1):
+def module_generate_hash(word, salt, iterations=None, n=DEFAULT_N, r=8, p=1):
   salt_bytes = salt.encode("latin-1")
 
   key = hashlib.scrypt(word, salt=salt_bytes, n=n, r=r, p=p, dklen=32, maxmem=(128 * n * r * 2))

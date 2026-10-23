@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, test_iteration_parameters
 
 # ENCsecurity Data Vault, PBKDF2-HMAC-SHA256. The derived key drives a counter mode built from
 # nb_keys parallel AES-ECB streams, whose nonces are the file IV xored with slices of the key
@@ -19,6 +19,10 @@ from lib.test_helpers import random_number, random_hex_string
 ENC_NONCE_SIZE = 8
 ENC_KEY_SIZE   = 16
 ENC_BLOCK_SIZE = 16
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(29910)
 
 
 def _xor_len(in1, in2, length):

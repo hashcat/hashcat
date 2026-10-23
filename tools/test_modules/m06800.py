@@ -9,10 +9,17 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
 # LastPass: PBKDF2-HMAC-SHA256 of the password over the e-mail salt, then AES-256-CBC of the first 16
 # salt bytes.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(6800)
+
+NORMAL_ITERATIONS = 100100
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -20,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, iv=None):
-  iterations = 100100 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   if iv is None:
     iv = random_bytes(16)

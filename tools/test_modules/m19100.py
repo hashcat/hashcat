@@ -9,7 +9,13 @@ import hashlib
 
 from lib import qnx
 
+from lib.test_helpers import test_iteration_parameters
+
 # QNX /etc/shadow (SHA256), see lib/qnx.py.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(19100)
 
 
 def module_constraints():

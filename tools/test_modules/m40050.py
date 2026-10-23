@@ -8,9 +8,18 @@
 import hashlib
 import re
 
+from lib.test_helpers import test_iteration_parameters
+
 # Web2py pbkdf2-sha512: pbkdf2(iterations,20,sha512)$salt$key, the key as long as the line says.
 
 LINE = re.compile(r"^pbkdf2\((\d+),(\d+),sha512\)\$([^$]*)\$([0-9a-fA-F]*)$")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40050)
+
+NORMAL_ITERATIONS = 1000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -18,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, out_len=20):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   key = hashlib.pbkdf2_hmac("sha512", word, salt.encode("latin-1"), iterations, out_len)
 

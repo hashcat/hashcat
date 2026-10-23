@@ -9,10 +9,17 @@ import hashlib
 
 from Crypto.Hash import keccak
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
 
 # Ethereum wallet, PBKDF2-HMAC-SHA256 variant. The derived key's second half is keccak-256 hashed
 # together with the ciphertext to form the MAC.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(15600)
+
+NORMAL_ITERATIONS = 1024
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -20,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, ciphertext=None):
-  iterations = 1024 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 

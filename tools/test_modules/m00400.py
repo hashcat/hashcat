@@ -7,13 +7,17 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # phpass, WordPress (MD5), Joomla (MD5), phpBB3 (MD5): 2^cost rounds of md5 over the last digest and
 # the password, starting from md5 of the salt and the password. A line being verified keeps its own
 # $P$ or $H$.
 
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(400)
 
 
 def encode64(raw):

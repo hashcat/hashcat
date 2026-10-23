@@ -9,11 +9,18 @@ import hashlib
 import hmac
 
 from lib import aix
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 # Juniper/NetBSD sha1crypt: HMAC-SHA1 keyed with the password, iterated over "salt$sha1$iterations",
 # written in the crypt alphabet. The 28th character is a random one the original tool adds; a line
 # being verified keeps its own.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40038)
+
+NORMAL_ITERATIONS = 20000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -21,7 +28,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, tail=None):
-  iterations = 20000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   tmp = hmac.new(word, ("%s$sha1$%d" % (salt, iterations)).encode(), hashlib.sha1).digest()
 

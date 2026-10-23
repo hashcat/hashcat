@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, runtime_iterations, iteration_override_enabled
 
 # ENCsecurity Data Vault, MD5 key derivation with no keychain. The key is a folded chain of 1000
 # MD5 rounds, expanded against eight fixed salts, and drives the same nb_keys parallel AES-ECB
@@ -33,6 +33,12 @@ DEFAULT_SALTS = [
   bytes.fromhex("eae3f44eaf4a8f84f1fab3088569bef8"),
 ]
 
+NORMAL_ITERATIONS = ENC_DEFAULT_MD5_ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
+
 
 def _xor_len(in1, in2, length):
   return bytes(in1[i] ^ in2[i] for i in range(length))
@@ -43,7 +49,7 @@ def _md5_key(word):
 
   tmp = hashlib.md5(word).digest()
 
-  for _ in range(1, ENC_DEFAULT_MD5_ITERATIONS):
+  for _ in range(1, ITERATIONS):
     tmp = hashlib.md5(tmp).digest()
 
     key = _xor_len(key, tmp, 16)

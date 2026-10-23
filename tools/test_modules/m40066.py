@@ -7,9 +7,15 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
 # PBKDF2-HMAC-SHA512, 100000 rounds: $pbkdf2-hmac-sha512$100000.<salt hex>.<key hex>, dot separated.
+
+NORMAL_ITERATIONS = 100000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -19,7 +25,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   salt_bin = bytes.fromhex(salt)
 
-  key = hashlib.pbkdf2_hmac("sha512", word, salt_bin, 100000, 64)
+  key = hashlib.pbkdf2_hmac("sha512", word, salt_bin, ITERATIONS, 64)
 
   return "$pbkdf2-hmac-sha512$100000.%s.%s" % (salt_bin.hex(), key.hex())
 

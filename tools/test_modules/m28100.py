@@ -7,13 +7,17 @@
 
 import hashlib
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 # Windows Hello PIN (NGC): the PIN is widened to its uppercase hex spelling, run through
 # PBKDF2-HMAC-SHA256, widened and hashed again, then folded into a two stage HMAC-SHA512 over the
 # DPAPI-NG masterkey, the stored hmac, a magic value and the verify blob.
 
 MAGIC_DEFAULT = "785435725a573571565662727670754100"
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(28100)
 
 
 def module_constraints():
@@ -66,7 +70,7 @@ def module_generate_hash(word, salt, iter=None, mk=None, hmac=None, blob=None, m
 
   main_digest = hashlib.sha512(main_digest_seed + sub_digest).digest()
 
-  return "$WINHELLO$*SHA512*%i*%s*%s*%s*%s*%s*%s" % (
+  return "$WINHELLO$*SHA512*%05i*%s*%s*%s*%s*%s*%s" % (
     iter, salt_bin.hex(), main_digest.hex(), mk_bin.hex(),
     hmac_bin.hex(), blob_bin.hex(), magicv_bin.hex())
 

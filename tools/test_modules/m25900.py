@@ -11,16 +11,22 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, runtime_iterations, iteration_override_enabled
 
 # KNX IP secure device authentication code. PBKDF2-HMAC-SHA256 turns the password into a 16 byte key
 # that authenticates a Session_Response frame with AES-CCM. Only the MAC is reproduced here, as a
 # CBC-MAC over the formatted associated data xored with the ECB encrypted nonce (the CCM S_0 block).
 
+NORMAL_ITERATIONS = 65536
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
+
 
 def device_authentication_code(password):
   return hashlib.pbkdf2_hmac("sha256", password,
-                             b"device-authentication-code.1.secure.ip.knx.org", 65536, 16)
+                             b"device-authentication-code.1.secure.ip.knx.org", ITERATIONS, 16)
 
 
 def block_formatting(b0, associated_data):

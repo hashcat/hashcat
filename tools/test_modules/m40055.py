@@ -10,8 +10,17 @@ import binascii
 import hashlib
 import hmac
 
+from lib.test_helpers import test_iteration_parameters
+
 # PostgreSQL SCRAM-SHA-256: PBKDF2-HMAC-SHA256 of the password, then the stored key
 # sha256(HMAC("Client Key")) and the server key HMAC("Server Key").
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40055)
+
+NORMAL_ITERATIONS = 4096
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -19,7 +28,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 4096 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1")
 

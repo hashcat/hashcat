@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import DES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, runtime_iterations, iteration_override_enabled
 
 # Apple Keychain. 3DES-EDE in outer CBC over 48 bytes, keyed by PBKDF2-HMAC-SHA1. The three DES
 # stages run with a zero IV (single block ECB), the CBC chaining is done here by hand. The last
@@ -17,6 +17,12 @@ from lib.test_helpers import random_bytes
 
 ITERATIONS    = 1000
 FIXED_PADDING = b"\x04\x04\x04\x04"
+
+NORMAL_ITERATIONS = ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def _xor(a, b):

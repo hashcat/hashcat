@@ -11,7 +11,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
 # RACF KDFAES Passphrase. A memory-hard construction over a custom PBKDF2-HMAC-SHA256 (each pass also
 # returns a 16 byte carry salt): 2^(rfactor-5) passes fill an accumulator, a second pass mixes it, and
@@ -26,6 +26,10 @@ A2E = bytes.fromhex(
   "4142434445464748495152535455565758596263646566676869707172737475"
   "767778808a8b8c8d8e8f909a9b9c9d9e9fa0aaabacadaeafb0b1b2b3b4b5b6b7"
   "b8b9babbbcbdbebfcacbcccdcecfdadbdcdddedfeaebecedeeeffafbfcfdfeff")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(37500)
 
 
 def module_constraints():
@@ -60,6 +64,9 @@ def module_generate_hash(word, salt, iterations=None):
     random_salt = bytes.fromhex(salt_hex)
     rfactor = int(header_hex[18:20], 16)
     rounds = int(header_hex[20:24], 16)
+
+  if iterations is not None:
+    rounds = int(iterations)
 
   loops = 2 ** (rfactor - 5)
   iters = rounds * 100

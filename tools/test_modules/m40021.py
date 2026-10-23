@@ -8,10 +8,18 @@
 import base64
 import hashlib
 
+from lib.test_helpers import runtime_iterations, iteration_override_enabled
+
 # Cisco-IOS $8$: PBKDF2-HMAC-SHA256, base64 encoded, then moved into Cisco's own alphabet.
 
 CISCO = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
                       "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+NORMAL_ITERATIONS = 20000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -19,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 20000 if iterations is None else int(iterations)
+  iterations = ITERATIONS if iterations is None else int(iterations)
 
   raw = hashlib.pbkdf2_hmac("sha256", word, salt.encode(), iterations)
 

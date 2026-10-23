@@ -10,10 +10,14 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_number
+from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
 
 # Bitcoin/Litecoin wallet.dat: SHA512 of the password plus salt, iterated, then AES-256-CBC over the
 # master key. key is digest[0:32], iv is digest[32:48].
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(11300)
 
 
 def module_constraints():

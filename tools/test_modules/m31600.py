@@ -9,10 +9,17 @@ import hashlib
 
 from Crypto.Hash import MD4
 
-from lib.test_helpers import pack_hex, split_hash_word
+from lib.test_helpers import pack_hex, split_hash_word, test_iteration_parameters
 
 # Domain Cached Credentials 2 (DCC2), MS Cache 2 (NT): as 2100, from the NT hash in hex rather than
 # the password. MD4 is pycryptodome's, because hashlib often has none.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(31600)
+
+NORMAL_ITERATIONS = 10240
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -26,7 +33,7 @@ def module_get_random_password(word):
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 10240 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bin = salt.lower().encode("utf-16-le")
 

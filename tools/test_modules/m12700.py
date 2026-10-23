@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
 # Blockchain, My Wallet: PBKDF2-HMAC-SHA1 (10 rounds) of the password over the 16 byte salt, then
 # AES-256-CBC of a fixed JSON header, the salt as IV.
@@ -18,6 +18,12 @@ DATA = (b'{\n"guid" : "00000000-0000-0000-0000-000000000000",\n'
         b'"sharedKey" : "00000000-0000-0000-0000-000000000000",\n'
         b'"options" : {"pbkdf2_iterations":10,"fee_policy":0,"html5_notifications":false,'
         b'"logout_time":600000,"tx_display":0,"always_keep_local_backup":false}')
+
+NORMAL_ITERATIONS = 10
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -28,7 +34,7 @@ def module_generate_hash(word, salt, iterations=None, encrypted=None):
   salt_bin = bytes.fromhex(salt)
 
   if encrypted is None:
-    key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, 10, 32)
+    key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, ITERATIONS, 32)
 
     from Crypto.Util.Padding import pad
 

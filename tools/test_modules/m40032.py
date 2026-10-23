@@ -6,10 +6,14 @@
 ##
 
 from lib import pbkdf2_b64
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
 
 # PBKDF2-HMAC-SHA1: sha1:iterations:base64(salt):base64(key), a 16 byte key and a random iteration
 # count, see lib/pbkdf2_b64.py.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40032)
 
 
 def module_constraints():

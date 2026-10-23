@@ -9,7 +9,7 @@ import base64
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_iterations, iteration_override_enabled
 
 # mega.nz password protected link. The link body is base64url of
 #
@@ -29,6 +29,12 @@ ITERATIONS = 100000
 ALGORITHM = 2
 TAG_LEN   = 32
 HEAD_LEN  = 1 + 1 + 6 + 32
+
+NORMAL_ITERATIONS = ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():

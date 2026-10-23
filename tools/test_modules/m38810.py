@@ -7,7 +7,13 @@
 
 from lib import openbsd_softraid
 
+from lib.test_helpers import test_iteration_parameters
+
 # OpenBSD softraid CRYPTO, created with OpenBSD 6.1 or later: the mask key is bcrypt_pbkdf.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(38810)
 
 
 def module_constraints():

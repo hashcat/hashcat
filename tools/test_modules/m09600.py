@@ -6,11 +6,12 @@
 ##
 
 import hashlib
+from functools import partial
 
 from Crypto.Cipher import AES
 
 from lib import office
-from lib.test_helpers import kernel_charset, split_hash_word, utf16le
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le, iteration_override_enabled, runtime_iteration_limit
 
 # MS Office 2013: 100000 rounds of SHA512, two block keys, AES-256-CBC with the salt as IV.
 
@@ -20,16 +21,23 @@ IN_KEY = b"\xfe\xa7\xd2\x76\x3b\x4b\x9e\x79"
 VAL_KEY = b"\xd7\xaa\x0f\x6d\x30\x61\x34\x4e"
 
 
+NORMAL_ITERATIONS = 100000
+COMPUTE_ITERATIONS = int
+
+if iteration_override_enabled():
+  COMPUTE_ITERATIONS = partial(min, runtime_iteration_limit())
+
+
 def module_constraints():
   return [[0, 15], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, param=None):
-  iterations = 100000 if iterations is None else int(iterations)
+  iterations = NORMAL_ITERATIONS if iterations is None else int(iterations)
 
   salt_bin = bytes.fromhex(salt)
 
-  tmp = office.iterated_key(hashlib.sha512, salt_bin, utf16le(word, CHARSET), iterations)
+  tmp = office.iterated_key(hashlib.sha512, salt_bin, utf16le(word, CHARSET), COMPUTE_ITERATIONS(iterations))
 
   key1 = hashlib.sha512(tmp + IN_KEY).digest()[:32]
   key2 = hashlib.sha512(tmp + VAL_KEY).digest()[:32]

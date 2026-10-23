@@ -9,11 +9,17 @@ import hashlib
 
 from Crypto.Cipher import Blowfish
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, runtime_iterations, iteration_override_enabled
 
 # KWallet 4, the old scheme with no salt and no PBKDF2. The key comes from password2hash and the
 # 64 byte header is Blowfish ECB. KDE byte swaps every 32 bit word of the file before it reaches
 # Blowfish, a bug the on disk format is stuck with.
+
+NORMAL_ITERATIONS = 2000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def kwallet_alter_endianity(data):
@@ -41,7 +47,7 @@ def kwallet_password2hash(password):
 
     buf = hashlib.sha1(password[i:i + n]).digest()
 
-    for _ in range(1, 2000):
+    for _ in range(1, ITERATIONS):
       buf = hashlib.sha1(buf).digest()
 
     out += buf

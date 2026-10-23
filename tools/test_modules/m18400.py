@@ -9,11 +9,15 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 # Open Document Format (ODF) 1.2. The password is SHA-256 hashed, that digest is the PBKDF2-HMAC-SHA1
 # input for a 32 byte AES key, and the file blob is AES-CBC. The stored checksum is SHA-256 of the
 # plaintext, so verify decrypts and re-encrypts from the file's own fields.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(18400)
 
 
 def module_constraints():

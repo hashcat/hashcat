@@ -11,6 +11,8 @@ import hmac
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
 # WordPress bcrypt (>= 6.8). The password is HMAC-SHA384'd under a fixed key, base64 encoded and fed
 # to bcrypt, which keeps the input under the 72 byte cap. The stored hash is bcrypt's own $2a$/$2y$
 # string with a leading $wp.
@@ -20,6 +22,10 @@ from Crypto.Protocol.KDF import bcrypt
 
 BCRYPT64 = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(35500)
 
 
 def module_constraints():

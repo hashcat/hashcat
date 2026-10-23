@@ -7,7 +7,13 @@
 
 from lib import aix
 
+from lib.test_helpers import test_iteration_parameters
+
 # AIX {ssha512}: PBKDF2-HMAC-SHA512, see lib/aix.py.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40016)
 
 
 def module_constraints():

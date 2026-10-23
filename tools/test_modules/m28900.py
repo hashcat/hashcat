@@ -9,12 +9,18 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
 # Kerberos 5 etype 18 (AES256-CTS key from the DB): PBKDF2-HMAC-SHA1 of the password
 # over uppercase(realm)+user, then AES-CBC of the n-fold constant to derive the key.
 
 NFOLD = bytes.fromhex("6b65726265726f737b9b5b2b93132b93")
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -24,7 +30,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None, user="user", realm="realm"):
   mysalt = (realm.upper() + user).encode()
 
-  seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, 4096, 32)
+  seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, ITERATIONS, 32)
 
   iv = b"\x00" * 16
 

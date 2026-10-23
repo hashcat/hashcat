@@ -11,7 +11,7 @@ import json
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
 
 # Dogechain.info wallet. The stored string is
 #
@@ -33,6 +33,10 @@ from lib.test_helpers import random_bytes
 ITERATIONS_DEFAULT = 5000
 BODY_LEN           = 208
 PAD_LEN            = 16
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(32500)
 
 
 def module_constraints():

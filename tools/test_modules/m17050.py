@@ -8,7 +8,7 @@
 from Crypto.Cipher import AES
 
 from lib import gpg
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 # GPG symmetric secret key protection with AES-128 in OCB, which carries no trailing SHA-1: the
 # kernel decides on the first decrypted block instead, which has to read "(((1:" then the name of
@@ -30,12 +30,16 @@ MARKERS  = (("d", "32"), ("d", "256"), ("d", "57"), ("x", "33"))
 BODY_LEN = 51
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(17050)
+
+
 def module_constraints():
   return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):
-  count    = random_number(200000000, 300000000)
+  count    = random_number(200000000, 300000000) if iterations is None else int(iterations)
   salt_raw = random_bytes(8)
   nonce    = random_bytes(NONCE_LEN)
 

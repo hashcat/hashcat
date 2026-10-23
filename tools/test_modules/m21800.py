@@ -13,7 +13,7 @@ import hmac
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_number, random_string
+from lib.test_helpers import random_hex_string, random_number, random_string, runtime_iterations, iteration_override_enabled
 
 # Electrum wallet v5. The key derivation and AES-128-CBC layer are the same as -m 21700; version 5
 # stores only the first 1024 bytes of the ciphertext, so the mode is recognised by the deflate
@@ -23,6 +23,12 @@ MAX_DATA_LEN = 16384
 TRUNCATE_DATA_LEN = 1024
 
 P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
+
+NORMAL_ITERATIONS = 1024
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -86,7 +92,7 @@ def _decompress_point(prefix, x):
 
 
 def generate_key(word, ephemeral_pubkey):
-  private_key = hashlib.pbkdf2_hmac("sha512", word, b"", 1024, 64)
+  private_key = hashlib.pbkdf2_hmac("sha512", word, b"", ITERATIONS, 64)
 
   m = int.from_bytes(private_key, "big")
 

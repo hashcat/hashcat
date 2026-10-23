@@ -8,10 +8,16 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import runtime_iterations, random_bytes, split_hash_word, iteration_override_enabled
 
 # AES Crypt (SHA256): 8192 rounds of SHA-256 over the key and the password widened to UTF-16LE byte
 # by byte, starting from the salt and 16 zero bytes, then HMAC-SHA256 of the IV and the file key.
+
+NORMAL_ITERATIONS = 8192
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -31,7 +37,7 @@ def module_generate_hash(word, salt, iterations=None, iv=None, key_aes=None):
 
   key = salt_bytes + b"\x00" * 16
 
-  for _ in range(8192):
+  for _ in range(ITERATIONS):
     key = hashlib.sha256(key + wide).digest()
 
   digest = hmac.new(key, iv + key_aes, hashlib.sha256).hexdigest()

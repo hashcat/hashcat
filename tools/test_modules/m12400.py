@@ -6,12 +6,16 @@
 ##
 
 from lib import libcrypt
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
 
 # BSDi Crypt / extended DES ("_" scheme). libcrypt builds the whole "_<iter><salt><hash>" string; the
 # iteration count is 4 crypt64 characters, the salt 4.
 
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(12400)
 
 
 def _int24(v):

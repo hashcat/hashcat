@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import ChaCha20_Poly1305
 
-from lib.test_helpers import random_bytes, random_hex_string
+from lib.test_helpers import random_bytes, random_hex_string, runtime_iterations, iteration_override_enabled
 
 # Cardano Eternl wallet: PBKDF2-HMAC-SHA512 of the password over the 32 byte salt gives a 32 byte
 # ChaCha20-Poly1305 key. The line is ETERNL: then salt, 12 byte nonce, 16 byte tag and the 165 byte
@@ -17,6 +17,12 @@ from lib.test_helpers import random_bytes, random_hex_string
 # random, so a generated hash is only reproducible through the cross verification, not from a seed.
 
 ITERATIONS = 210012
+
+NORMAL_ITERATIONS = ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():

@@ -9,8 +9,17 @@ import base64
 import binascii
 import hashlib
 
+from lib.test_helpers import test_iteration_parameters
+
 # PBKDF1-SHA1: iterations of sha1 over the running digest, starting from pass.salt. Written
 # PBKDF1:sha1:iter:base64(salt):base64(digest).
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40070)
+
+NORMAL_ITERATIONS = 1000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -18,7 +27,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, salt_is_b64=False):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_dec = base64.b64decode(salt) if salt_is_b64 else salt.encode("latin-1")
 

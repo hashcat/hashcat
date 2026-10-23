@@ -9,7 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
 
 # iTunes backup 9.x. PBKDF2-HMAC-SHA1 turns the password into a 32 byte KEK, and the 40 byte WPKY is
 # that KEK wrapping a known constant with the RFC 3394 AES key wrap. Verify unwraps the stored WPKY
@@ -19,6 +19,10 @@ from lib.test_helpers import random_number
 ITUNES_BACKUP_KEY = 12008468691120727718
 
 MASK64 = 0xffffffffffffffff
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(14700)
 
 
 def _aes_wrap(key, a, r):
