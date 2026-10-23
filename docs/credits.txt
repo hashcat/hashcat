@@ -82,6 +82,34 @@ Other contributors to hashcat
 
 * hx, the hash expression language, by Cynosure Prime (https://github.com/Cynosureprime/hx). Waffle of Cynosure Prime developed its specification. Hash-mode 4000 reads its recipes in the expression syntax of hx and gives each recipe the meaning hx defines. hashcat implements a subset of the language from its specification. Its parser and kernels are hashcat's own and contain no code from the hx reference implementation.
 
+# hashcat's FPGA transports and boards use the following work:
+
+EnjoyDigital
+
+* LiteX and LitePCIe
+
+ZTEX GmbH
+
+* FX2 firmware framework
+* ezusb_io and ezusb_lsi FX2 interface modules
+
+blurbdust (@blurbdust)
+
+* The idea, and the first bcrypt FPGA implementation for hashcat (PR 4626), which guided the work at the start
+* YPCB-00338-1P1 support in openFPGALoader and litex-boards
+
+# hashcat's FPGA bcrypt core uses the following work:
+
+Denis Burykin
+
+* bcrypt compute core
+* ZTEX 1.15y bcrypt bitstream and inouttraffic firmware
+* John the Ripper's ZTEX host code and packet protocol
+
+Alexander "Solar Designer" Peslyak and the John the Ripper project at Openwall
+
+* John the Ripper's FPGA support
+
 # The following people also helped the project:
 
 Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)

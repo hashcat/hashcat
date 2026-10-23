@@ -4,121 +4,28 @@
 ## Release Highlights
 ##
 
-Hashcat generates candidates in new ways, and several longstanding bottlenecks in distributed work,
-device setup and hash management are gone.
+Hashcat generates candidates in new ways, cracks hashes that have no hash-mode, runs on FPGA boards,
+and several longstanding bottlenecks in distributed work, device setup and hash management are gone.
 
-1. Feed plugins and attack-mode 8
-
-Attack-mode 8 runs candidate generators as feed plugins, with one instance per device. Unlike a
-generator connected through stdin, a feed participates in keyspace calculation, work distribution,
-restore, status and debug output. Plugins can be written in C or Rust and selected by name.
-
-The included feeds cover wordlists, stdin, random generation, association, PCFG, tables, hybrids
-and masks. Wordlist and stdin processing now use this interface. The wordlist feed also supplies
-dictionaries to attack-modes 0, 1, 6, 7 and 12 and the wordlist form of attack-mode 9.
-
-Feeds can use the GPU to expand base words into candidates without sending each result over the
-host-to-device bus. The PCFG and table feeds use this for most fast hash modes and fall back to
-host generation where needed. See "docs/hashcat-generic-attack-mode.md" for usage and
-"docs/hashcat-generic-attack-mode-development-guide.md" for writing feeds.
-
-2. Probability-ordered PCFG and targeted hints in attack-mode 4
+1. Probability-ordered PCFG and targeted hints in attack-mode 4
 
 Attack-mode 4 draws candidates from a trained probabilistic grammar, trying more likely
 password shapes first. Hashcat can count candidates at each probability level without generating
 them, so keyspace ranges, restore, multiple devices and the brain all work with PCFG attacks.
-The included "default-passwords" ruleset runs when no other ruleset is selected.
+The grammar comes as a ruleset trained from a password list. The included "default-passwords"
+grammar ruleset runs when no other ruleset is selected.
 
 The "hints" ruleset keeps learned password patterns but fills word slots from facts supplied
 about a target, such as names, dates or previous passwords. This focuses all available devices
-on one target. The "tools/pcfg_hints.py" script can make a hint ruleset from a custom grammar.
+on one target. The "tools/pcfg_hints.py" script can make a "hints" ruleset from a custom grammar.
 
 When the password shape is partly known, a "mask" setting restricts the grammar before
-generation. For example, "mask=?u?l?l?l?l?l?d?d" keeps candidates with one uppercase letter,
-five lowercase letters and two digits. Excluded shapes do not consume keyspace. Attack-mode 9
-also uses the hint ruleset to work across many individually salted accounts.
-See "docs/hashcat-pcfg.md".
+generation. Settings follow the ruleset on the command line as key=value. For example,
+"mask=?u?l?l?l?l?l?d?d" keeps candidates with one uppercase letter, five lowercase letters and two
+digits. Excluded shapes do not consume keyspace. Attack-mode 9 also uses the "hints" ruleset to
+work across many individually salted accounts. See "docs/hashcat-pcfg.md".
 
-3. Device-accelerated table attacks in attack-mode 5
-
-The table attack returns under its original mode number. It replaces tokens in wordlist entries
-and combines the results on the device. Tables can change case, add leetspeak or emoji, expand
-sports templates, or map one keyboard layout to another.
-
-Replacements may be longer, shorter or empty. Multiple tables can be combined, while "single=1"
-tries one substitution at a time instead of every combination. The "maxperm" and "cap=N"
-settings bound the work. See "docs/hashcat-table.md".
-
-4. Wordlists inside masks with attack-mode 12
-
-Attack-mode 12 places wordlists anywhere within a mask. The required "?w" marker inserts the
-first wordlist, and optional "?q" inserts a second. For example, "?w?d?d" adds two digits after
-each word, while "?w?q" combines two wordlists. Literal text and mask tokens may appear on
-either side of a word.
-
-Attack-modes 1, 6 and 7 remain available and use this engine internally without changing their
-candidate order or keyspace. Mask files work when every mask contains "?w". Increment mode
-cannot be used because shortening a mask could remove the word marker.
-See the "Attack-Mode 12 Markers" table in "--help".
-
-5. Account-aware association in attack-mode 9
-
-Attack-mode 9 can now build candidates from usernames and other information tied to each hash.
-It splits account names at separators, case changes and letter-to-digit boundaries. Passwd
-records also provide real names and the final home-directory component. Modules can add
-mode-specific hints. For WPA captures, mode 22000 supplies the network name and MAC addresses.
-
-The default pipeline tries account words, the first 1k rules from "rules/rockyou-30000.rule",
-then the "hints" PCFG ruleset. The grammar phase has no fixed end, so the "phases" setting can
-limit a run. The existing one-word-per-hash input form keeps its previous behavior.
-Association still requires one salt per hash. See "docs/hashcat-association.md".
-
-6. Seekable wordlists and one cache location
-
-Seek databases store periodic offsets in wordlists. A device can start near its assigned range
-rather than read and discard every earlier line. Multiple wordlists and directories form one
-keyspace, as do mask files and increment lengths within their queue.
-
-Hashcat can seek directly in multi-block xz files from "xz -T0", multi-frame zstd files from
-"pzstd", and concatenated xz streams. Single-stream files still decode from the beginning,
-and gzip does not support direct seeking. Seek data lives in "cache/feeds/wordlist".
-The "--cache-path" option can relocate feed caches and compiled kernels for shared use.
-
-7. A brain server built for large sessions
-
-The brain server divides candidate storage into 1024 shards, so lookups and commits scale with
-active batches instead of the whole database. One reserved address range also reduces the
-processing time and resident memory used by large sessions. The server needs unrestricted
-virtual address space, though it does not reserve that amount of physical memory.
-
-The "--brain-feed" option adds candidates from stdin while the server keeps running.
-Brain protocol and session IDs have changed, so clients and servers must be upgraded together
-and old coverage files are not loaded automatically. See "docs/hashcat-brain.md".
-
-8. Rules in every attack-mode
-
-Rules now work in attack-modes 1, 3, 6, 7 and 12 as well as 0 and 9. These modes generate base
-candidates on the host when rules are enabled, then apply the rules on the device. The existing
-mask parser still handles mask files, increments, Markov settings and custom charsets.
-
-Host generation can reduce throughput for fast hashes. Hashcat reports that switch at startup.
-Larger rulesets can offset some of the cost by doing more work per base candidate. Attacks
-without rules continue to generate candidates on the device.
-
-9. A Python bridge that uses every CPU thread
-
-Mode 73000 now starts one ordinary Python worker process per CPU thread and sends it candidates.
-It works on Windows and macOS as well as Linux. The interpreter comes from PATH, so virtual
-environments work without a special build, and hashcat no longer needs Python headers to build.
-Mode 72000 is removed.
-
-A plugin is now a normal Python module with "calc_hash()" and a self-test pair. The old
-"kernel_loop()" hook and "hcsp" and "hcmp" helpers are gone. Worker exceptions stop the run and
-show a traceback. On 28 i7-14700K threads, a SHA-256 plugin reached 611 kH/s, up from
-16 kH/s. See "docs/hashcat-python-plugin-development-guide.md"
-for the upgrade steps.
-
-10. Hash recipes in hash-mode 4000
+2. Hash recipes in hash-mode 4000
 
 Hash-mode 4000 cracks hashes described by a recipe on the command line, such as
 "md5(md5(salt) . pass)" or "hmac_sha256(salt, upper(pass))". Hashcat compiles the recipe into a
@@ -139,6 +46,115 @@ PBKDF2-HMAC-SHA256, macOS, phpass and Drupal7. Each module keeps its hash parser
 optimized kernels. This removes 567 kernel files and about 110,000 lines. A new fast hash mode built
 from these families needs only a module that parses the hash line and names its recipe. See
 "Kernel: fast hash type (recipe)" in "docs/hashcat-plugin-development-guide.md".
+
+3. FPGA support in hash-mode 75000
+
+Hash-mode 75000 runs bcrypt on seven FPGA boards: ZC706, YPCB-00338-1P1, Enigma X1, Alveo U50,
+ZTEX 1.15y, ZTEX 2.13 and Arty Z7-20. The boards connect through the Assimilation Bridge and
+compute the hashes, while a regular backend device generates candidates. A CPU OpenCL runtime is
+enough, so a headless host needs no GPU. Board health is reported like a GPU's, including die
+temperature where available. FPGA support is available on Linux only.
+
+Bitstreams are distributed as binaries from https://hashcat.net/bitstreams/ and are not part of
+the source tree. The src/fpga/ directory contains the sources to rebuild them for five boards. The
+Alveo U50 uses a separate Vitis build flow, and the two ZTEX 1.15y files are redistributed
+unchanged from John the Ripper. The boards are reached over USB, Ethernet or PCIe. The LitePCIe
+driver ships with hashcat, builds through DKMS and supports Secure Boot signing.
+See "docs/hashcat-fpga-setup.md".
+
+4. Feed plugins and attack-mode 8
+
+Attack-mode 8 runs candidate generators as feed plugins, with one instance per device. Unlike a
+generator connected through stdin, a feed participates in keyspace calculation, work distribution,
+restore, status and debug output. Plugins can be written in C or Rust and selected by name.
+
+The included feeds cover wordlists, stdin, random generation, association, PCFG, tables, hybrids
+and masks. Wordlist and stdin processing now use this interface. The wordlist feed also supplies
+dictionaries to attack-modes 0, 1, 6, 7 and 12 and the wordlist form of attack-mode 9.
+
+Feeds can use the GPU to expand base words into candidates without sending each result over the
+host-to-device bus. The PCFG and table feeds use this for most fast hash modes and fall back to
+host generation where needed. See "docs/hashcat-generic-attack-mode.md" for usage and
+"docs/hashcat-generic-attack-mode-development-guide.md" for writing feeds.
+
+5. Device-accelerated table attacks in attack-mode 5
+
+The table attack returns under its original mode number. It replaces tokens in wordlist entries
+and combines the results on the device. Tables can change case, add leetspeak or emoji, expand
+sports templates, or map one keyboard layout to another.
+
+Replacements may be longer, shorter or empty. Multiple tables can be combined, while "single=1"
+tries one substitution at a time instead of every combination. The "maxperm" and "cap=N"
+settings bound the work. See "docs/hashcat-table.md".
+
+6. Wordlists inside masks with attack-mode 12
+
+Attack-mode 12 places wordlists anywhere within a mask. The required "?w" marker inserts the
+first wordlist, and optional "?q" inserts a second. For example, "?w?d?d" adds two digits after
+each word, while "?w?q" combines two wordlists. Literal text and mask tokens may appear on
+either side of a word.
+
+Attack-modes 1, 6 and 7 remain available and use this engine internally without changing their
+candidate order or keyspace. Mask files work when every mask contains "?w". Increment mode
+cannot be used because shortening a mask could remove the word marker.
+See the "Attack-Mode 12 Markers" table in "--help".
+
+7. Account-aware association in attack-mode 9
+
+Attack-mode 9 can now build candidates from usernames and other information tied to each hash.
+It splits account names at separators, case changes and letter-to-digit boundaries. Passwd
+records also provide real names and the final home-directory component. Modules can add
+mode-specific hints. For WPA captures, mode 22000 supplies the network name and MAC addresses.
+
+The default pipeline tries account words, the first 1k rules from "rules/rockyou-30000.rule",
+then the "hints" PCFG ruleset. The grammar phase has no fixed end, so the "phases" setting can
+limit a run. The existing one-word-per-hash input form keeps its previous behavior.
+Association still requires one salt per hash. See "docs/hashcat-association.md".
+
+8. Seekable wordlists and one cache location
+
+Seek databases store periodic offsets in wordlists. A device can start near its assigned range
+rather than read and discard every earlier line. Multiple wordlists and directories form one
+keyspace, as do mask files and increment lengths within their queue.
+
+Hashcat can seek directly in multi-block xz files from "xz -T0", multi-frame zstd files from
+"pzstd", and concatenated xz streams. Single-stream files still decode from the beginning,
+and gzip does not support direct seeking. Seek data lives in "cache/feeds/wordlist".
+The "--cache-path" option can relocate feed caches and compiled kernels for shared use.
+
+9. A brain server built for large sessions
+
+The brain server divides candidate storage into 1024 shards, so lookups and commits scale with
+active batches instead of the whole database. One reserved address range also reduces the
+processing time and resident memory used by large sessions. The server needs unrestricted
+virtual address space, though it does not reserve that amount of physical memory.
+
+The "--brain-feed" option adds candidates from stdin while the server keeps running.
+Brain protocol and session IDs have changed, so clients and servers must be upgraded together
+and old coverage files are not loaded automatically. See "docs/hashcat-brain.md".
+
+10. Rules in every attack-mode
+
+Rules now work in attack-modes 1, 3, 6, 7 and 12 as well as 0 and 9. These modes generate base
+candidates on the host when rules are enabled, then apply the rules on the device. The existing
+mask parser still handles mask files, increments, Markov settings and custom charsets.
+
+Host generation can reduce throughput for fast hashes. Hashcat reports that switch at startup.
+Larger rulesets can offset some of the cost by doing more work per base candidate. Attacks
+without rules continue to generate candidates on the device.
+
+11. A Python bridge that uses every CPU thread
+
+Mode 73000 now starts one ordinary Python worker process per CPU thread and sends it candidates.
+It works on Windows and macOS as well as Linux. The interpreter comes from PATH, so virtual
+environments work without a special build, and hashcat no longer needs Python headers to build.
+Mode 72000 is removed.
+
+A plugin is now a normal Python module with "calc_hash()" and a self-test pair. The old
+"kernel_loop()" hook and "hcsp" and "hcmp" helpers are gone. Worker exceptions stop the run and
+show a traceback. On 28 i7-14700K threads, a SHA-256 plugin reached 611 kH/s, up from
+16 kH/s. See "docs/hashcat-python-plugin-development-guide.md"
+for the upgrade steps.
 
 ##
 ## Migration and Compatibility
@@ -462,6 +478,7 @@ changes that may require action.
 - Added mode 40006: MySQL caching_sha2_password challenge-response (fast authentication)
 - Added mode 40007: MODX Evolution (uncrypt)
 - Added mode 40083: Fernet (key = SHA256($pass))
+- Added mode 75000: bcrypt $2*$, Blowfish (Unix) [Bridged: FPGA]
 
 ##
 ## New Features and Options

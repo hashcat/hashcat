@@ -777,11 +777,28 @@ def require_device_type(device, ids):
       % (device, "/".join(sorted(have))))
 
 
-def discover_modes():
+# Modes that need hardware to run at all. Without HCFPGA_TEST=1 they are left out of every run, so a
+# machine without an FPGA does not report them as a fault.
+HARDWARE_MODES = {75000}
+
+
+def hardware_ok():
+  return os.environ.get("HCFPGA_TEST") == "1"
+
+
+def hardware_refuse(ht):
+  if ht in HARDWARE_MODES and hardware_ok() == False:
+    die("! hash type %d needs an FPGA board. Attach one and set HCFPGA_TEST=1 to test it." % ht)
+
+
+def discover_modes(with_hardware=False):
   out = []
 
   for path in glob.glob(os.path.join(TDIR, "test_modules", "m[0-9][0-9][0-9][0-9][0-9].py")):
     out.append(int(re.search(r"m0*([0-9]+)\.py$", path).group(1)))
+
+  if with_hardware == False and hardware_ok() == False:
+    out = [m for m in out if m not in HARDWARE_MODES]
 
   return sorted(set(out))
 
@@ -802,6 +819,8 @@ def select_modes(spec, modes):
 
   if re.fullmatch(r"[0-9]+", spec):
     ht = int(spec)
+
+    hardware_refuse(ht)
 
     if ht not in modes:
       die("! hash type %d has no tools/test_modules/m%05d.py, so test.py cannot run it\n"
@@ -4461,6 +4480,7 @@ COVERAGE_UNTESTABLE = {
   9820:  "MS Office <= 2003 SHA1 + RC4 collider #2, not a wordlist or mask crack",
   10410: "PDF 1.1 - 1.3 collider #1, not a wordlist or mask crack",
   10420: "PDF 1.1 - 1.3 collider #2, not a wordlist or mask crack",
+  79000: "FPGA fleet simulator, computes no hashes and returns the self-test digest for every candidate",
 }
 
 
@@ -4481,7 +4501,7 @@ def run_test_coverage():
   # CONTAINER_MODES carries the cryptoloop kernel numbers (14511..14553) as labels; every one runs
   # hashcat with -m 14500, the only module that exists, so collapse them to it for this check.
   container = {14600, 34100} | set(LUKS1_HASH_CIPHER) | TC_MODES | set(VC_MODES) | {14500}
-  covered   = set(discover_modes()) | container | SELFTEST_MODES
+  covered   = set(discover_modes(with_hardware=True)) | container | SELFTEST_MODES
 
   missing = sorted(m for m in all_modes if m not in covered and m not in COVERAGE_UNTESTABLE)
   orphans = sorted(container - set(all_modes))
@@ -4717,6 +4737,8 @@ def sweep_range(spec):
   if re.fullmatch(r"[0-9]+", spec):
     v = int(spec)
 
+    hardware_refuse(v)
+
     return (v, v, False)
 
   m = re.fullmatch(r"([0-9]+)-([0-9]+)", spec)
@@ -4744,6 +4766,9 @@ def selftest_sweep_modes():
 
     if m is not None:
       modes.append(int(m.group(1)))
+
+  if hardware_ok() == False:
+    modes = [m for m in modes if m not in HARDWARE_MODES]
 
   return modes
 
@@ -5945,6 +5970,8 @@ def edge_select_modes(spec, modes):
 
   if re.fullmatch(r"[0-9]+", spec):
     ht = int(spec)
+
+    hardware_refuse(ht)
 
     if ht not in modes:
       die("! hash type %d has no tools/test_modules/m%05d.py, so test.py --edge cannot run it"

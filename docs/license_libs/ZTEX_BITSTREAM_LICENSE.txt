@@ -1,0 +1,104 @@
+Licence terms for the ZTEX USB-FPGA 1.15y device binaries.
+
+These files are not in this repository. They are published at
+https://hashcat.net/bitstreams/ztex/ and hashcat uploads them to the board at
+runtime. See deps/ztex-bitstreams/README.md.
+
+The two files are under different terms.
+
+
+================================================================================
+1. ztex115y_<algo>.bit
+================================================================================
+
+The FPGA designs, and the Verilog they were synthesised from, are by Denis
+Burykin. Their source files carry his copyright, with years from 2016 to 2019
+that differ from file to file, and these terms, quoted here from one of them:
+
+    This software is Copyright (c) 2016,2019 Denis Burykin
+    [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+    and it is hereby released to the general public under the following terms:
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted.
+
+A few files of the design carry no terms of their own: ztex_inouttraffic/cmt_prog.v,
+the constraint files and the ISE project files. John the Ripper's licence,
+doc/LICENSE, places a file without stated terms under the GNU GPL, version 2 or
+later. The bitstream is therefore redistributed under the GPL, version 2 or later,
+and its corresponding source is published beside it as
+
+    ztex115y_bcrypt-source.tar.xz
+
+That archive holds src/ztex/fpga-bcrypt/ from John the Ripper commit
+7e942ec431245bd7a42161625a6c1454552764ea, the commit that last changed
+run/ztex/ztex115y_bcrypt.bit, together with John the Ripper's doc/LICENSE and
+doc/COPYING, the full text of the GPL, version 2. The design's README describes
+the ISE 14.5 flow that builds it.
+
+The image is redistributed unchanged.
+
+
+================================================================================
+2. inouttraffic.ihx
+================================================================================
+
+The firmware for the board's Cypress FX2 microcontroller is
+
+    inouttraffic
+    Copyright (c) 2016-2017 Denis Burykin
+    [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+
+    based on
+
+    intraffic, an example from the ZTEX SDK
+    Copyright (C) 2009-2014 ZTEX GmbH
+    http://www.ztex.de
+
+and it is licensed under the GNU General Public License, version 3, as its own
+header states:
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 3 as
+    published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, see http://www.gnu.org/licenses/.
+
+Distributing this binary means distributing its source. John the Ripper ships
+both in one repository, the binary in run/ztex/ and the source in
+src/ztex/ez-usb/, so it was never distributed without source. The published
+directory does the same thing, carrying all three of these next to the .ihx:
+
+    inouttraffic.c          the firmware source
+    inouttraffic.README     how it is built, John the Ripper's README
+    COPYING                 the full text of the GNU General Public License v3
+
+The upstream source is John the Ripper, src/ztex/ez-usb/. Building it also needs
+the ZTEX SDK it was written against, ztex-140813b, and SDCC, as the README says.
+ZTEX publishes its SDK separately.
+
+
+================================================================================
+A note on the author's name
+================================================================================
+
+Both files, and every commit that touched them in the John the Ripper tree, are
+by one person. The commits are authored variously as "Denis Burykin" and as
+"Apingis", and John the Ripper's .mailmap records both identities as the same
+author. The copyright notices in the source say Denis Burykin, and that is the
+name used above.
+
+
+================================================================================
+Relationship to hashcat
+================================================================================
+
+Neither file is linked into hashcat, built into it, or derived from it. hashcat
+opens them at runtime and writes their bytes to a USB device, which is what any
+programming tool does. They are separate works that hashcat operates on, not
+part of it, so hashcat's own licence is unaffected by either set of terms above.

@@ -1871,6 +1871,15 @@ install_docs: install_make_shared_root
 install_shared: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)
 	$(INSTALL) -m 644 hashcat.hcstat2                                       $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/extra/fpga
+	$(INSTALL) -m 644 extra/fpga/99-digilent.rules                          $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/
+	$(INSTALL) -m 644 extra/fpga/99-litepcie.rules                          $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/
+	$(INSTALL) -m 644 extra/fpga/99-ztex.rules                              $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot
+	$(INSTALL) -m 644 extra/fpga/zc706-sdboot/README.md                     $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
+	$(INSTALL) -m 644 extra/fpga/zc706-sdboot/build_fsbl.tcl                $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
+	$(INSTALL) -m 644 extra/fpga/zc706-sdboot/fsbl.elf                      $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
+	$(INSTALL) -m 755 extra/fpga/zc706-sdboot/make_bootbin.py               $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
 
 .PHONY: install_tunings
 install_tunings: install_shared
