@@ -23,6 +23,7 @@ import re
 import sys
 
 import test_iterations
+
 # Load the manager policy before importing an oracle with module-level defaults.
 import test as test_policy
 
@@ -415,7 +416,7 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = test_iterations.generate(mod, word, salt, **(parameters or {}))
+    digest = test_iterations.generate_iteration_hash(mod, word, salt, **(parameters or {}))
 
     # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
     # again rather than passed on
@@ -722,7 +723,7 @@ def single(mod, mode, length, spare=False):
 
         test_helpers.set_rand_state(replay[group])
 
-    digest = test_iterations.generate(mod, word_bytes, salt_str)
+    digest = test_iterations.generate_iteration_hash(mod, word_bytes, salt_str)
 
     if resume is not None:
       test_helpers.set_rand_state(resume)
@@ -767,7 +768,7 @@ def passthrough(mod, iterations, with_plain):
       if not comb[0] <= len(word_bytes) + salt_len <= comb[1]:
         continue
 
-    digest = test_iterations.generate(mod, word_bytes, random_numeric_string(salt_len), iterations)
+    digest = test_iterations.generate_iteration_hash(mod, word_bytes, random_numeric_string(salt_len), iterations)
 
     if digest is None:
       continue
@@ -830,11 +831,16 @@ def main():
   mode = int(mode)
 
   try:
-    selected_env = test_iterations.oracle_environment(mode)
+    previous_seed = os.environ.get("HCTEST_SEED")
+    test_iterations.initialize_iteration_seed()
+    if not previous_seed and os.environ.get("HCTEST_SEED"):
+      from lib.test_helpers import seed
+      seed(int(os.environ["HCTEST_SEED"]))
+    selected_env = test_iterations.iteration_oracle_environment(mode)
   except ValueError as exc:
     sys.exit(str(exc))
 
-  for name in (test_iterations.RUNTIME_ENV, test_iterations.PARAMETER_ENV):
+  for name in (test_iterations.ITERATION_RUNTIME_ENV, test_iterations.ITERATION_PARAMETER_ENV):
     os.environ.pop(name, None)
     if name in selected_env:
       os.environ[name] = selected_env[name]
@@ -884,7 +890,7 @@ def main():
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = test_iterations.generate(mod, word, salt)
+    digest = test_iterations.generate_iteration_hash(mod, word, salt)
 
     if digest is None:
       sys.exit("could not generate a reduced-iteration vector")

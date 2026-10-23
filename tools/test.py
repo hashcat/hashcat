@@ -37,212 +37,220 @@ from concurrent.futures import ThreadPoolExecutor
 
 import test_iterations
 
-# Reduced test costs are selected per hash mode. Counts encoded in a hash are passed to its oracle.
-# Only formats without a suitable encoded parameter need the numeric hashcat runtime override.
+
+# Oracle parameters written into the generated hash. Hashcat decodes the selected costs normally.
+# Values are inclusive bounds, with an optional third item specifying a step or "power2".
 
 ARTIFICIAL_ITERATION_PARAMETERS = {
-  400: {'iterations': 7},
-  1800: {'iterations': 1000},
-  2100: {'iterations': 16},
-  3200: {'iterations': 4},
-  6300: {'iterations': 42},
-  6600: {'iterations': 16},
-  6800: {'iterations': 16},
-  7400: {'iterations': 1000},
-  7401: {'iterations': 1},
-  8200: {'iterations': 16},
-  8900: {'n': 1024},
-  9100: {'iterations': 16},
-  11300: {'salt_iter': 16},
-  11600: {'iterations': 12},
-  12400: {'iterations': 15},
-  13000: {'iterations': 4},
-  13200: {'iterations': 16},
-  13400: {'iterations': 16},
-  14200: {'rep_fac': 1},
-  14700: {'iterations': 16},
-  14800: {'iterations': 16, 'dpic': 16},
-  15200: {'iterations': 16},
-  15300: {'iterations': 16},
-  15310: {'iterations': 16},
-  15600: {'iterations': 16},
-  15700: {'scrypt_N': 1024},
-  15900: {'iterations': 16},
-  15910: {'iterations': 16},
-  16200: {'iterations': 16},
-  16700: {'iterations': 16},
-  17010: {'iterations': 1024},
-  17020: {'iterations': 1024},
-  17030: {'iterations': 1024},
-  17040: {'iterations': 1024},
-  17050: {'iterations': 1024},
-  18300: {'iterations': 16},
-  18400: {'iterations': 1000},
-  18600: {'iterations': 1000},
-  18900: {'iterations': 16},
-  19000: {'iterations': 16},
-  19100: {'iterations': 16},
-  19200: {'iterations': 16},
-  22600: {'iterations': 16},
-  23300: {'iterations': 1000},
-  23400: {'iterations': 16, 'iterations2': 2},
-  23500: {'iter_wrap': 16, 'iter_kdf': 16},
-  23600: {'iter_wrap': 16, 'iter_kdf': 16},
-  24100: {'iterations': 16},
-  24410: {'iterations': 16},
-  24420: {'iterations': 16},
-  24430: {'iterations': 16},
-  24440: {'iterations': 16},
-  24500: {'iterations': 16},
-  24600: {'iterations': 16},
-  25600: {'iterations': 4},
-  25800: {'iterations': 4},
-  26100: {'iterations': 16},
-  26150: {'iterations': 16},
-  26500: {'iterations': 16},
-  27500: {'iterations': 16, 'iterations2': 16},
-  27600: {'iterations': 16, 'iterations2': 16},
-  27700: {'n': 1024},
-  28100: {'iter': 16},
-  28200: {'scrypt_n': 16},
-  28400: {'iterations': 4},
-  29700: {'iterations': 16},
-  29800: {'n': 1024},
-  29910: {'iter': 16},
-  29920: {'iter': 16},
-  30600: {'iterations': 4},
-  30601: {'iterations': 4},
-  31200: {'iterations': 16},
-  31600: {'iterations': 16},
-  31800: {'iterations': 16},
-  32500: {'iterations': 16},
-  33700: {'iterations': 16},
-  33800: {'iterations': 4},
-  34000: {'t': 2},
-  34300: {'iterations': 2, 'memory': 4096},
-  34301: {'iterations': 16},
-  35100: {'iterations': 1000},
-  35500: {'iterations': 4},
-  35600: {'iterations': 1000},
-  36100: {'n_log2': 7},
-  36200: {'n_log2': 7},
-  36300: {'n_log2': 4},
-  36400: {'iterations': 16},
-  36600: {'iterations': 16},
-  36800: {'iterations': 4},
-  37500: {'iterations': 1},
-  38300: {'iterations': 16},
-  38700: {'iterations': 16},
-  38800: {'iterations': 16},
-  38810: {'iterations': 2},
-  38900: {'t': 2},
-  40011: {'iterations': 16},
-  40015: {'iterations': 4},
-  40016: {'iterations': 4},
-  40017: {'iterations': 16},
-  40018: {'iterations': 16},
-  40019: {'iterations': 16},
-  40020: {'iterations': 7},
-  40022: {'iterations': 16},
-  40023: {'iterations': 16},
-  40024: {'iterations': 16},
-  40025: {'iterations': 16},
-  40031: {'iterations': 16},
-  40032: {'iterations': 16},
-  40034: {'iterations': 16},
-  40035: {'iterations': 16},
-  40037: {'iterations': 16},
-  40038: {'iterations': 99},
-  40040: {'iterations': 16},
-  40041: {'iterations': 16},
-  40042: {'iterations': 16},
-  40043: {'iterations': 16},
-  40044: {'iterations': 16},
-  40045: {'iterations': 16},
-  40050: {'iterations': 16},
-  40052: {'iterations': 16},
-  40053: {'iterations': 16},
-  40055: {'iterations': 16},
-  40070: {'iterations': 16},
-  40078: {'iterations': 16},
-  40079: {'iterations': 7},
-  40081: {'iterations': 16},
-  40082: {'iterations': 16},
-  70000: {'t': 2},
-  70100: {'n': 1024},
-  70200: {'n': 1024},
+  400: {'iterations': (7, 8)},
+  1800: {'iterations': (1000, 2000)},
+  2100: {'iterations': (2, 16)},
+  3200: {'iterations': (4, 5)},
+  6300: {'iterations': (42, 84)},
+  6600: {'iterations': (2, 16)},
+  6800: {'iterations': (2, 16)},
+  7400: {'iterations': (1000, 2000)},
+  7401: {'iterations': (1, 2)},
+  8200: {'iterations': (2, 16)},
+  8900: {'n': (1024, 2048, 'power2')},
+  9100: {'iterations': (2, 16)},
+  11300: {'salt_iter': (2, 16)},
+  11600: {'iterations': (12, 13)},
+  12400: {'iterations': (3, 15, 2)},
+  13000: {'iterations': (0, 4)},
+  13200: {'iterations': (6, 16)},
+  13400: {'iterations': (2, 16)},
+  14200: {'rep_fac': (1, 2)},
+  14700: {'iterations': (2, 16)},
+  14800: {'iterations': (2, 16), 'dpic': (2, 16)},
+  15200: {'iterations': (2, 16)},
+  15300: {'iterations': (2, 16)},
+  15310: {'iterations': (2, 16)},
+  15600: {'iterations': (2, 16)},
+  15700: {'scrypt_N': (1024, 2048, 'power2')},
+  15900: {'iterations': (2, 16)},
+  15910: {'iterations': (2, 16)},
+  16200: {'iterations': (2, 16)},
+  16700: {'iterations': (2, 16)},
+  17010: {'iterations': (1024, 2048)},
+  17020: {'iterations': (1024, 2048)},
+  17030: {'iterations': (1024, 2048)},
+  17040: {'iterations': (1024, 2048)},
+  17050: {'iterations': (1024, 2048)},
+  18300: {'iterations': (2, 16)},
+  18400: {'iterations': (1000, 2000)},
+  18600: {'iterations': (1000, 2000)},
+  18900: {'iterations': (2, 16)},
+  19000: {'iterations': (2, 16)},
+  19100: {'iterations': (2, 16)},
+  19200: {'iterations': (2, 16)},
+  22600: {'iterations': (2, 16)},
+  23300: {'iterations': (1000, 2000)},
+  23400: {'iterations': (2, 16), 'iterations2': (2, 2)},
+  23500: {'iter_wrap': (2, 16), 'iter_kdf': (2, 16)},
+  23600: {'iter_wrap': (2, 16), 'iter_kdf': (2, 16)},
+  24100: {'iterations': (2, 16)},
+  24410: {'iterations': (2, 16)},
+  24420: {'iterations': (2, 16)},
+  24430: {'iterations': (2, 16)},
+  24440: {'iterations': (2, 16)},
+  24500: {'iterations': (2, 16)},
+  24600: {'iterations': (2, 16)},
+  25600: {'iterations': (4, 5)},
+  25800: {'iterations': (4, 5)},
+  26100: {'iterations': (2, 16)},
+  26150: {'iterations': (2, 16)},
+  26500: {'iterations': (2, 16)},
+  27500: {'iterations': (2, 16), 'iterations2': (2, 16)},
+  27600: {'iterations': (2, 16), 'iterations2': (2, 16)},
+  27700: {'n': (1024, 2048, 'power2')},
+  28100: {'iter': (2, 16)},
+  28200: {'scrypt_n': (16, 32, 'power2')},
+  28400: {'iterations': (4, 5)},
+  29700: {'iterations': (2, 16)},
+  29800: {'n': (1024, 2048, 'power2')},
+  29910: {'iter': (2, 16)},
+  29920: {'iter': (2, 16)},
+  30600: {'iterations': (4, 5)},
+  30601: {'iterations': (4, 5)},
+  31200: {'iterations': (2, 16)},
+  31600: {'iterations': (2, 16)},
+  31800: {'iterations': (2, 16)},
+  32500: {'iterations': (2, 16)},
+  33700: {'iterations': (2, 16)},
+  33800: {'iterations': (4, 5)},
+  34000: {'t': (2, 2)},
+  34300: {'iterations': (2, 2), 'memory': (4096, 4096)},
+  34301: {'iterations': (2, 16)},
+  35100: {'iterations': (1000, 2000)},
+  35500: {'iterations': (4, 5)},
+  35600: {'iterations': (1000, 2000)},
+  36100: {'n_log2': (7, 8)},
+  36200: {'n_log2': (7, 8)},
+  36300: {'n_log2': (4, 5)},
+  36400: {'iterations': (2, 16)},
+  36600: {'iterations': (2, 16)},
+  36800: {'iterations': (2, 4)},
+  37500: {'iterations': (1, 2)},
+  38300: {'iterations': (2, 16)},
+  38700: {'iterations': (2, 16)},
+  38800: {'iterations': (2, 16)},
+  38810: {'iterations': (2, 2)},
+  38900: {'t': (2, 2)},
+  40011: {'iterations': (2, 16)},
+  40015: {'iterations': (0, 4)},
+  40016: {'iterations': (0, 4)},
+  40017: {'iterations': (1, 16, 'power2')},
+  40018: {'iterations': (2, 16)},
+  40019: {'iterations': (2, 16)},
+  40020: {'iterations': (7, 8)},
+  40022: {'iterations': (2, 16)},
+  40023: {'iterations': (2, 16)},
+  40024: {'iterations': (2, 16)},
+  40025: {'iterations': (2, 16)},
+  40031: {'iterations': (2, 16)},
+  40032: {'iterations': (2, 16)},
+  40034: {'iterations': (2, 16)},
+  40035: {'iterations': (2, 16)},
+  40037: {'iterations': (2, 16)},
+  40038: {'iterations': (99, 198)},
+  40040: {'iterations': (2, 16)},
+  40041: {'iterations': (2, 16)},
+  40042: {'iterations': (2, 16)},
+  40043: {'iterations': (2, 16)},
+  40044: {'iterations': (2, 16)},
+  40045: {'iterations': (2, 16)},
+  40050: {'iterations': (2, 16)},
+  40052: {'iterations': (2, 16)},
+  40053: {'iterations': (2, 16)},
+  40055: {'iterations': (2, 16)},
+  40070: {'iterations': (2, 16)},
+  40078: {'iterations': (2, 16)},
+  40079: {'iterations': (7, 8)},
+  40081: {'iterations': (2, 16)},
+  40082: {'iterations': (2, 16)},
+  70000: {'t': (2, 2)},
+  70100: {'n': (1024, 2048, 'power2')},
+  70200: {'n': (1024, 2048, 'power2')},
 }
 
+# Internal limits sent through HASHCAT_ITER_OVERRIDE when a decoder cannot accept a lower cost.
+# The bounds have the same structure as above. "iterations" caps loop rounds. "scrypt_N" lowers N
+# and its matching loop count. The oracle and hashcat receive the same selected limits.
+
 RUNTIME_ITERATION_LIMITS = {
-  2500: 16,
-  5800: 16,
-  8800: 16,
-  9000: 16,
-  9300: 1024,
-  9400: 16,
-  9500: 16,
-  9600: 16,
-  12200: 16,
-  12700: 16,
-  12900: 16,
-  13600: 16,
-  15310: 16,
-  15910: 16,
-  16300: 16,
-  16800: 16,
-  16900: 16,
-  19600: 16,
-  19700: 16,
-  19800: 16,
-  19900: 16,
-  20011: 16,
-  20012: 16,
-  20013: 16,
-  21500: 16,
-  21501: 16,
-  21700: 16,
-  21800: 16,
-  22000: 16,
-  22400: 16,
-  22700: 1024,
-  23100: 16,
-  24000: 1024,
-  25300: 16,
-  25500: 16,
-  25900: 16,
-  26600: 16,
-  26610: 16,
-  27400: 16,
-  28800: 16,
-  28900: 16,
-  29600: 16,
-  29930: 16,
-  29940: 16,
-  31900: 16,
-  32100: 16,
-  32200: 16,
-  33400: 16,
-  35800: 5001,
-  36410: 16,
-  36601: 16,
-  37700: 16,
-  38200: 1024,
-  40000: 16,
-  40021: 16,
-  40033: 16,
-  40036: 16,
-  40057: 16,
-  40058: 16,
-  40059: 16,
-  40060: 16,
-  40061: 16,
-  40062: 16,
-  40063: 16,
-  40064: 16,
-  40065: 16,
-  40066: 16,
-  40075: 16,
+  2500: {'iterations': (1, 16)},
+  5800: {'iterations': (1, 16)},
+  8800: {'iterations': (1, 16)},
+  9000: {'iterations': (1, 16)},
+  9300: {'scrypt_N': (1024, 2048, 'power2')},
+  9400: {'iterations': (1, 16)},
+  9500: {'iterations': (1, 16)},
+  9600: {'iterations': (1, 16)},
+  12200: {'iterations': (1, 16)},
+  12700: {'iterations': (1, 16)},
+  12900: {'iterations': (1, 16)},
+  13600: {'iterations': (1, 16)},
+  15310: {'iterations': (1, 16)},
+  15910: {'iterations': (1, 16)},
+  16300: {'iterations': (1, 16)},
+  16800: {'iterations': (1, 16)},
+  16900: {'iterations': (1, 16)},
+  19600: {'iterations': (1, 16)},
+  19700: {'iterations': (1, 16)},
+  19800: {'iterations': (1, 16)},
+  19900: {'iterations': (1, 16)},
+  20011: {'iterations': (1, 16)},
+  20012: {'iterations': (1, 16)},
+  20013: {'iterations': (1, 16)},
+  21500: {'iterations': (1, 16)},
+  21501: {'iterations': (1, 16)},
+  21700: {'iterations': (1, 16)},
+  21800: {'iterations': (1, 16)},
+  22000: {'iterations': (1, 16)},
+  22400: {'iterations': (1, 16)},
+  22700: {'scrypt_N': (1024, 2048, 'power2')},
+  23100: {'iterations': (1, 16)},
+  24000: {'scrypt_N': (1024, 2048, 'power2')},
+  25300: {'iterations': (1, 16)},
+  25500: {'iterations': (1, 16)},
+  25900: {'iterations': (1, 16)},
+  26600: {'iterations': (1, 16)},
+  26610: {'iterations': (1, 16)},
+  27400: {'iterations': (1, 16)},
+  28800: {'iterations': (1, 16)},
+  28900: {'iterations': (1, 16)},
+  29600: {'iterations': (1, 16)},
+  29930: {'iterations': (1, 16)},
+  29940: {'iterations': (1, 16)},
+  31900: {'iterations': (1, 16)},
+  32100: {'iterations': (1, 16)},
+  32200: {'iterations': (1, 16)},
+  33400: {'iterations': (1, 16)},
+  35800: {'iterations': (5001, 5016)},
+  36410: {'iterations': (1, 16)},
+  36601: {'iterations': (1, 16)},
+  37700: {'iterations': (1, 16)},
+  38200: {'scrypt_N': (1024, 2048, 'power2')},
+  40000: {'iterations': (1, 16)},
+  40021: {'iterations': (1, 16)},
+  40033: {'iterations': (1, 16)},
+  40036: {'iterations': (1, 16)},
+  40057: {'iterations': (1, 16)},
+  40058: {'iterations': (1, 16)},
+  40059: {'iterations': (1, 16)},
+  40060: {'iterations': (1, 16)},
+  40061: {'iterations': (1, 16)},
+  40062: {'iterations': (1, 16)},
+  40063: {'iterations': (1, 16)},
+  40064: {'iterations': (1, 16)},
+  40065: {'iterations': (1, 16)},
+  40066: {'iterations': (1, 16)},
+  40075: {'iterations': (1, 16)},
 }
+
+# These modes compile cost parameters into their kernels. A reduced target can require a different
+# configuration from the published self-test, so skip that startup check for reduced tests.
 
 COMPILED_COST_MODES = {24000, 8900, 36100, 28200, 29800, 36200, 70200, 22700, 36300, 15700, 9300, 27700, 70100, 38200}
 
@@ -383,7 +391,7 @@ def _cmdline(cmd, env=None):
   args = list(cmd)
 
   if env is not None:
-    args.insert(0, "%s=%s" % (test_iterations.RUNTIME_ENV, env.get(test_iterations.RUNTIME_ENV, "0")))
+    args.insert(0, "%s=%s" % (test_iterations.ITERATION_RUNTIME_ENV, env.get(test_iterations.ITERATION_RUNTIME_ENV, "0")))
 
   return " ".join(shlex.quote(a.decode("utf-8", "backslashreplace") if isinstance(a, bytes) else str(a))
                   for a in args)
@@ -1231,22 +1239,22 @@ ITERATION_REPORTED = set()
 
 
 def report_iterations(mode, full_reason=None):
-  if not test_iterations.requested() or mode in ITERATION_REPORTED or not is_slow(mode):
+  if not test_iterations.iteration_reduction_requested() or mode in ITERATION_REPORTED or not is_slow(mode):
     return
 
   ITERATION_REPORTED.add(mode)
-  kwargs = test_iterations.parameters(mode) if full_reason is None else {}
+  kwargs = test_iterations.iteration_parameters(mode) if full_reason is None else {}
 
-  if full_reason is None and test_iterations.enabled(mode):
+  if full_reason is None and test_iterations.iteration_reduction_enabled(mode):
     detail = ", ".join("%s=%d" % item for item in kwargs.items())
-    if mode in test_iterations.RUNTIME_MODES:
-      label = "scrypt N limit" if mode in test_iterations.RUNTIME_SCRYPT else "loop iterations"
-      runtime = "%s=%d (runtime override)" % (label, test_iterations.runtime_limit(mode))
+    if mode in test_iterations.RUNTIME_ITERATION_MODES:
+      label = "scrypt N limit" if mode in test_iterations.RUNTIME_SCRYPT_MODES else "loop iterations"
+      runtime = "%s=%d (runtime override)" % (label, test_iterations.iteration_runtime_limit(mode))
       detail = ", ".join(item for item in (detail, runtime) if item)
 
     print("[ test.py ] [ Type %d ] > Reduced generated-vector iterations: %s" % (mode, detail))
   else:
-    reason = full_reason or test_iterations.reason(mode)
+    reason = full_reason or test_iterations.iteration_full_cost_reason(mode)
 
     if not os.path.isfile(os.path.join(TDIR, "test_modules", "m%05d.py" % mode)):
       reason = "no Python test module"
@@ -1262,7 +1270,7 @@ def oracle_env(mode, optimized):
 
   report_iterations(mode)
 
-  env = test_iterations.oracle_environment(mode)
+  env = test_iterations.iteration_oracle_environment(mode)
   env["IS_OPTIMIZED"] = "1" if optimized else "0"
 
   # The runner reads the two flags by name alone, so one left in the caller's environment must not
@@ -1450,13 +1458,13 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), iteration_o
   # there rather than in whatever directory the manager was invoked from.
 
   iteration_mode = mode if iteration_mode is None else iteration_mode
-  env = test_iterations.environment(iteration_mode, generated=iteration_override)
+  env = test_iterations.iteration_environment(iteration_mode, generated=iteration_override)
   LAST_ENV = env
 
-  if iteration_override and test_iterations.copy_hash(iteration_mode) and "--hash-copy" not in cmd:
+  if iteration_override and test_iterations.iteration_copy_hash(iteration_mode) and "--hash-copy" not in cmd:
     cmd.append("--hash-copy")
 
-  if iteration_override and test_iterations.disable_selftest(iteration_mode) and "--self-test-disable" not in cmd:
+  if iteration_override and test_iterations.iteration_disable_selftest(iteration_mode) and "--self-test-disable" not in cmd:
     cmd.append("--self-test-disable")
 
   proc = subprocess.run(cmd, input=stdin_bytes, cwd=ROOT, env=env,
@@ -2110,7 +2118,7 @@ def run_verify(mode, digest, crack_lines, tmp):
   open(out_file, "wb").close()
 
   subprocess.run([sys.executable, RUNNER, "verify", str(mode), hashes_file, cracks_file, out_file],
-                 env=test_iterations.oracle_environment(mode), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                 env=test_iterations.iteration_oracle_environment(mode), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
   return os.path.getsize(out_file) > 0
 
@@ -4906,8 +4914,8 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
 
   vhash, vpass, vfmt, deprecated = vector
 
-  if test_iterations.enabled(mode):
-    env = test_iterations.oracle_environment(mode)
+  if test_iterations.iteration_reduction_enabled(mode):
+    env = test_iterations.iteration_oracle_environment(mode)
     env["IS_OPTIMIZED"] = "0"
     proc = subprocess.run([sys.executable, RUNNER, "vector", str(mode)], env=env,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -5381,10 +5389,10 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   LAST_CMD = argv
   LAST_STDIN = stdin_bytes
 
-  env = test_iterations.environment(mode)
+  env = test_iterations.iteration_environment(mode)
   LAST_ENV = env
 
-  if test_iterations.copy_hash(mode) and b"--hash-copy" not in argv:
+  if test_iterations.iteration_copy_hash(mode) and b"--hash-copy" not in argv:
     argv.append(b"--hash-copy")
 
   proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT,
@@ -5520,7 +5528,7 @@ def edge_oracle(mode, attack, optimized):
   if attack == 9:
     cmd.append("--association-groups")
 
-  proc = subprocess.run(cmd, env=test_iterations.oracle_environment(mode),
+  proc = subprocess.run(cmd, env=test_iterations.iteration_oracle_environment(mode),
                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
   vectors = []
@@ -6599,7 +6607,7 @@ def run_parallel_depth(args):
 
     # An -I that lists nothing leaves the -d ids as they are, each once.
 
-    ids = backend_ids_for(args.device, devices=[d for d in listed if d["id"] in picked]) if listed \
+    ids = backend_ids_for(args.device, devices=[d for d in listed if d["id"] in picked]) if listed\
           else list(dict.fromkeys(picked))
   else:
     ids = backend_ids_for(args.device)
@@ -6709,7 +6717,7 @@ def bridge_vectors(mode, family, hash_path, word_path):
   if family == "p":
     cmd.append("-P")
 
-  proc = subprocess.run(cmd, cwd=ROOT, env=test_iterations.oracle_environment(mode),
+  proc = subprocess.run(cmd, cwd=ROOT, env=test_iterations.iteration_oracle_environment(mode),
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
   if proc.returncode != 0 or not os.path.isfile(hash_path):
@@ -6922,9 +6930,13 @@ def main():
     args.attack = "all" if args.edge else "0"
 
   try:
-    test_iterations.requested()
+    test_iterations.iteration_reduction_requested()
+    test_iterations.initialize_iteration_seed()
   except ValueError as exc:
     die("! %s" % exc)
+
+  if test_iterations.iteration_reduction_requested():
+    print("[ test.py ] > Reduced-iteration seed: %s" % os.environ["HCTEST_SEED"])
 
   setup_isolation()
 
@@ -7070,7 +7082,7 @@ def main():
       # -g adds a real-archive test (GPG/PKZIP/RAR/7-Zip/PDF/OpenSSH) on top of the mode's oracle,
       # which still runs below (test.sh: -g is in addition to the oracle, not in place of it).
       if args.generate and mode in ARCHIVE_GEN_MODES:
-        if test_iterations.requested():
+        if test_iterations.iteration_reduction_requested():
           print("[ test.py ] [ Type %d ] > External archive: full application counts" % mode)
 
         run_generate_archive(args, mode, tmp)
