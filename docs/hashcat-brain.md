@@ -199,7 +199,35 @@ A session is divided into 1024 shards selected by the high bits of the hash. Eac
 
 Each shard has its own lock, sorted main array and small overflow area. Lookups search only one shard. A commit adds to the overflow and merges it into the main array after a size-dependent threshold, so a normal commit no longer scales with the entire session. Dumps write shards in sort order and remain compatible with the earlier unsharded database files.
 
+Shards with at least 32,768 committed entries also keep a Bloom filter of their fingerprints. This corresponds to roughly 33.6 million entries in an evenly populated session. A negative result skips the main and overflow searches. A positive result still requires an exact database match before a candidate is rejected. Checks against pending candidates and duplicates within a batch are unchanged. Small batches and batches whose samples suggest many known candidates bypass the filter.
+
+The filter targets at least 10 bits per stored entry and grows in powers of two, so its allocation ranges from about 1.25 to 2.5 bytes per entry in an eligible shard. A uniformly distributed session with 300 million entries uses another 512 MiB for the filters. The exact database remains in memory. Each check places seven bit probes in one 64-bit word, trading a higher false-positive rate for fewer memory accesses. False positives cost an exact search and do not skip untested candidates.
+
+Filters are built from both arrays when a shard becomes eligible, maintained on commits and rebuilt as the database grows. Construction and rebuilding hold only that shard's lock, and a rebuild temporarily retains its old filter. Loading a saved session rebuilds eligible filters without changing the dump format. If a filter allocation fails, the shard continues with exact searches and waits for its entry count to double before retrying.
+
 The brain is most useful when the client produces candidates slowly enough for lookup, network and storage costs to be worthwhile. Slow hashes and fast hashes spread across many salts are the usual cases. An unsalted fast hash is not.
+
+### Testing candidate lookup performance
+
+After building hashcat, run `python3 tools/test_brain.py` on Linux for filter correctness, allocation failures, concurrent clients and dump compatibility. No compute backend is required.
+
+`python3 tools/test_brain.py --bench` also benchmarks 10 million, 100 million and 300 million stored fingerprints with several activation thresholds. It needs several GiB of available RAM and temporary storage. The isolated benchmark includes overflow entries. The protocol benchmark checks every response and reports median server `L` time and client round-trip time after a warm-up, along with filter construction, memory, commit and concurrent-client measurements.
+
+Use `--entries`, `--thresholds`, `--batches` and `--duplicates` to narrow protocol measurements. `--protocol-only` skips the isolated benchmark, `--paired` alternates filtering within one loaded server to reduce timing drift, and `--cpu` pins the run and its servers to one CPU. An optional `--baseline-library` supplies an original libhashcat for comparison. Protocol benchmark commits are discarded so each server variant starts from the same saved database.
+
+For 300 million synthetic fingerprints and batches of 65,536, 31 paired samples after a warm-up measured these median server `L` times on one pinned CPU:
+
+| Already committed | Filtering disabled | Automatic filtering |
+| --- | --- | --- |
+| 0% | 32.25 ms | 12.00 ms |
+| 50% | 31.97 ms | 31.46 ms |
+| 100% | 31.38 ms | 31.74 ms |
+
+The same run measured a 4.96 ms commit for 65,536 new fingerprints. Filter construction at 300 million entries took 1.78 to 2.62 seconds in the isolated threshold sweep, and allocated 512 MiB. These are server lookup and maintenance measurements, not cracking speeds. Reproduce the paired run with:
+
+```
+python3 tools/test_brain.py --bench --protocol-only --paired --entries 300000000 --thresholds 32768 --batches 65536 --repeats 31 --cpu 0
+```
 
 ## Technical details on the hashcat brain server
 

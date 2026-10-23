@@ -1489,9 +1489,101 @@ i64 brain_server_shard_overflow_max (const brain_server_db_shard_t *shard)
   return over_max;
 }
 
+static u64 brain_server_bloom_mix (u64 value)
+{
+  value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
+  value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
+  value = value ^ (value >> 31);
+
+  return value;
+}
+
+static u64 brain_server_bloom_mask (const u64 key)
+{
+  const u64 value = brain_server_bloom_mix (key + 0x9e3779b97f4a7c15ULL);
+
+  const u64 mask = (1ULL << ((value >>  0) & 63))
+                 | (1ULL << ((value >>  6) & 63))
+                 | (1ULL << ((value >> 12) & 63))
+                 | (1ULL << ((value >> 18) & 63))
+                 | (1ULL << ((value >> 24) & 63))
+                 | (1ULL << ((value >> 30) & 63))
+                 | (1ULL << ((value >> 36) & 63));
+
+  return mask;
+}
+
+// Keep all seven probes in one word so a positive check costs one memory access.
+
+static void brain_server_bloom_insert (u64 *buf, const u64 mask, const u32 *hash)
+{
+  const u64 key = ((u64) hash[1] << 32) | hash[0];
+  const u64 pos = brain_server_bloom_mix (key) & (mask >> 6);
+
+  buf[pos] |= brain_server_bloom_mask (key);
+}
+
+static bool brain_server_bloom_contains (const brain_server_db_shard_t *shard, const u32 *hash)
+{
+  const u64 key = ((u64) hash[1] << 32) | hash[0];
+  const u64 pos = brain_server_bloom_mix (key) & ((shard->bloom_bits - 1) >> 6);
+  const u64 mask = brain_server_bloom_mask (key);
+
+  const bool found = (shard->bloom_buf[pos] & mask) == mask;
+
+  return found;
+}
+
+// The caller holds the shard mutex, or is loading it before accepting clients.
+
+static void brain_server_bloom_update (brain_server_db_shard_t *shard, const brain_server_hash_long_t *src, const i64 src_cnt)
+{
+  if (BRAIN_SERVER_BLOOM_MIN == 0) return;
+
+  const i64 cnt = shard->long_cnt + shard->over_cnt;
+
+  if (shard->bloom_buf)
+  {
+    if ((u64) cnt <= shard->bloom_bits / 10)
+    {
+      for (i64 idx = 0; idx < src_cnt; idx++) brain_server_bloom_insert (shard->bloom_buf, shard->bloom_bits - 1, src[idx].hash);
+
+      return;
+    }
+  }
+
+  if (cnt < BRAIN_SERVER_BLOOM_MIN) return;
+  if (cnt < shard->bloom_retry) return;
+
+  u64 bits = 64;
+
+  while (bits / 10 < (u64) cnt) bits *= 2;
+
+  u64 *buf = (u64 *) hccalloc (bits / 64, sizeof (u64));
+
+  if (buf == NULL)
+  {
+    hcfree (shard->bloom_buf);
+
+    shard->bloom_buf   = NULL;
+    shard->bloom_bits  = 0;
+    shard->bloom_retry = cnt * 2;
+
+    return;
+  }
+
+  for (i64 idx = 0; idx < shard->long_cnt; idx++) brain_server_bloom_insert (buf, bits - 1, shard->long_buf[idx].hash);
+  for (i64 idx = 0; idx < shard->over_cnt; idx++) brain_server_bloom_insert (buf, bits - 1, shard->over_buf[idx].hash);
+
+  hcfree (shard->bloom_buf);
+
+  shard->bloom_buf  = buf;
+  shard->bloom_bits = bits;
+}
+
 // Adds a sorted run of hashes, all belonging to one shard, to that shard's overflow.
 
-bool brain_server_shard_add (brain_server_db_shard_t *shard, const brain_server_hash_long_t *src, const i64 src_cnt)
+static bool brain_server_shard_merge (brain_server_db_shard_t *shard, const brain_server_hash_long_t *src, const i64 src_cnt)
 {
   // A run at least as large as the overflow goes straight into the main array. Sending it through
   // the overflow would only merge it twice, and it is what would otherwise decide how large the
@@ -1521,14 +1613,64 @@ bool brain_server_shard_add (brain_server_db_shard_t *shard, const brain_server_
   return rc;
 }
 
-// Whether a hash is already known to the shard. The caller holds the shard mutex.
+bool brain_server_shard_add (brain_server_db_shard_t *shard, const brain_server_hash_long_t *src, const i64 src_cnt)
+{
+  const bool rc = brain_server_shard_merge (shard, src, src_cnt);
 
-bool brain_server_shard_find (const brain_server_db_shard_t *shard, const u32 *hash)
+  if (rc == false)
+  {
+    // A failed compaction can leave the incoming run in the overflow.
+
+    hcfree (shard->bloom_buf);
+
+    shard->bloom_buf   = NULL;
+    shard->bloom_bits  = 0;
+    shard->bloom_retry = (shard->long_cnt + shard->over_cnt) * 2;
+
+    return false;
+  }
+
+  brain_server_bloom_update (shard, src, src_cnt);
+
+  return true;
+}
+
+static bool brain_server_shard_find_exact (const brain_server_db_shard_t *shard, const u32 *hash)
 {
   if (brain_server_find_hash_long (hash, shard->long_buf, shard->long_cnt) != -1) return true;
   if (brain_server_find_hash_long (hash, shard->over_buf, shard->over_cnt) != -1) return true;
 
   return false;
+}
+
+// Whether a hash is already known to the shard. The caller holds the shard mutex.
+
+bool brain_server_shard_find (const brain_server_db_shard_t *shard, const u32 *hash)
+{
+  if (shard->bloom_buf)
+  {
+    if (brain_server_bloom_contains (shard, hash) == false) return false;
+  }
+
+  const bool found = brain_server_shard_find_exact (shard, hash);
+
+  return found;
+}
+
+// Known-heavy batches pay for both checks. Sample each run before using the filter.
+
+static bool brain_server_bloom_use (const brain_server_db_shard_t *shard, const brain_server_hash_unique_t *buf, const i64 cnt)
+{
+  if (BRAIN_SERVER_BLOOM_MIN == 0) return false;
+  if (shard->bloom_buf == NULL) return false;
+  if (cnt < 8) return false;
+
+  for (i64 idx = 0; idx < 4; idx++)
+  {
+    if (brain_server_bloom_contains (shard, buf[cnt * idx / 4].hash) == true) return false;
+  }
+
+  return true;
 }
 
 void brain_server_db_hash_init (brain_server_db_hash_t *brain_server_db_hash, const u32 brain_session)
@@ -1594,6 +1736,8 @@ void brain_server_db_hash_free (brain_server_db_hash_t *brain_server_db_hash)
   {
     for (int shard_idx = 0; shard_idx < BRAIN_SERVER_SHARD_CNT; shard_idx++)
     {
+      hcfree (brain_server_db_hash->shard_buf[shard_idx].bloom_buf);
+
       hc_thread_mutex_delete (brain_server_db_hash->shard_buf[shard_idx].mux);
     }
 
@@ -2074,6 +2218,11 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
   brain_server_db_hash->write_hashes = false;
 
   hc_fclose (&fp);
+
+  for (u32 shard_idx = 0; shard_idx < BRAIN_SERVER_SHARD_CNT; shard_idx++)
+  {
+    brain_server_bloom_update (&brain_server_db_hash->shard_buf[shard_idx], NULL, 0);
+  }
 
   const double ms = hc_timer_get (timer_dump);
 
@@ -3158,11 +3307,15 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
           hc_thread_mutex_lock (shard->mux);
 
+          const bool use_bloom = brain_server_bloom_use (shard, &temp_buf[pos], end - pos);
+
           for (i64 temp_idx = pos; temp_idx < end; temp_idx++)
           {
             brain_server_hash_unique_t *cur = &temp_buf[temp_idx];
 
-            if (brain_server_shard_find (shard, cur->hash) == true)
+            const bool found = (use_bloom == true) ? brain_server_shard_find (shard, cur->hash) : brain_server_shard_find_exact (shard, cur->hash);
+
+            if (found == true)
             {
               send_buf[cur->hash_idx] = 1;
 
