@@ -329,6 +329,8 @@ static void main_error_banner (hashcat_ctx_t *hashcat_ctx, const int rc_final, c
 
   const char *what = NULL;
 
+  // -5, -10 and -11 can come from kernel or module bugs, so they get no label.
+
   switch (rc_final)
   {
     case RC_FINAL_ERROR_COMMAND:      what = "attack command (flags)"; break;
@@ -338,9 +340,6 @@ static void main_error_banner (hashcat_ctx_t *hashcat_ctx, const int rc_final, c
     case RC_FINAL_ERROR_KERNELCREATE:
     case RC_FINAL_ERROR_EXTRA_SIZE:
     case RC_FINAL_ERROR_MIXED:        what = "backend";                break;
-    // case RC_FINAL_ERROR_KERNELBUILD: // a kernel that does not build is as often a bug in the kernel source, so don't label as backend problem
-    // case RC_FINAL_ERROR_AUTOTUNE:    // autotune that fails on every device is as often a bug in the kernel or the module, so don't label as backend problem
-    // case RC_FINAL_ERROR_SELFTEST:    // a self-test that fails is as often a bug in the kernel or the module, so don't label as backend problem
   }
 
   if (what == NULL) return;
