@@ -2288,9 +2288,9 @@ int main (int argc, char **argv)
 
   if (((rc_final == RC_FINAL_ERROR) || (refine_abort == true)) && (rc_error != RC_FINAL_OK)) rc_final = rc_error;
 
-  // A bridge that failed during the self-test fails the self-test too, which says nothing about why.
+  // A bridge failure during autotune or the self-test says nothing about the kernel.
 
-  if ((rc_final == RC_FINAL_ERROR_SELFTEST) && (rc_error == RC_FINAL_ERROR_BRIDGE)) rc_final = RC_FINAL_ERROR_BRIDGE;
+  if (((rc_final == RC_FINAL_ERROR_AUTOTUNE) || (rc_final == RC_FINAL_ERROR_SELFTEST)) && (rc_error == RC_FINAL_ERROR_BRIDGE)) rc_final = RC_FINAL_ERROR_BRIDGE;
 
   // the session teardown below can still log an error, which belongs above the banner, and it takes
   // user_options with it

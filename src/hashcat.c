@@ -146,6 +146,30 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
 
   hc_thread_wait (autotune_cnt, c_threads);
 
+  // A bridge that lost its group leader still needs one surviving unit tuned before the others
+  // can copy its tuning and take the work.
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    const hc_device_param_t *leader_param = &backend_ctx->devices_param[device_param->group_id];
+
+    if (leader_param->skipped_warning == false) continue;
+
+    backend_ctx_devices_group (hashcat_ctx);
+
+    thread_param_t *thread_param = &threads_param[backend_devices_idx];
+
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = backend_devices_idx;
+
+    thread_autotune (thread_param);
+  }
+
   // check for any autotune failures
   // by default, skipping device on error
   // using --force, accel/loops/threads min values are used instead of skipping

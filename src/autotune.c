@@ -1492,7 +1492,14 @@ HC_THREAD_FUNC thread_autotune (void *p)
 
   if (bridge_thread == true)
   {
-    if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+    if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
+    {
+      bridges_failed (hashcat_ctx);
+
+      device_param->skipped_warning = true;
+
+      return 0;
+    }
   }
 
   if (device_param->is_cuda == true)
