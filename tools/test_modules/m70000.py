@@ -11,11 +11,18 @@ from argon2.low_level import Type, hash_secret_raw
 
 from lib.test_helpers import random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'t': (2, 2)},
+  }
+
+
 # Argon2id in the PHC string form. The memory cost m is in KiB, the same unit the perl passes to
 # Crypt::Argon2 as "<m>k", and the digest length defaults to 16 or 32 bytes.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(70000)
 
 

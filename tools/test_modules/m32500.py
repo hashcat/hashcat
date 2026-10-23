@@ -13,6 +13,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Dogechain.info wallet. The stored string is
 #
 #   $dogechain$0*<iterations>*<base64 payload>*<base64 salt>
@@ -35,7 +42,7 @@ BODY_LEN           = 208
 PAD_LEN            = 16
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(32500)
 
 

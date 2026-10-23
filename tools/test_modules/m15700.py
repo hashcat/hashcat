@@ -11,10 +11,18 @@ from Crypto.Hash import keccak
 
 from lib.test_helpers import random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # Ethereum wallet, scrypt variant. Same MAC as mode 15600, the derived key just comes from scrypt.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(15700)
 
 NORMAL_SCRYPT_N = 262144

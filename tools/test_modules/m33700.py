@@ -13,6 +13,13 @@ from Crypto.Util.Padding import pad, unpad
 
 from lib.test_helpers import utf16le, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Microsoft Online Account. The key is PBKDF2-HMAC-SHA256 over an empty salt, the password widened
 # from its UTF-8 decoding to UTF-16LE. A fixed cleartext blob is AES-256-CBC encrypted with PKCS7
 # padding and a zero IV. Verification decrypts the stored ciphertext, and when the recovered blob
@@ -25,7 +32,7 @@ DEFAULT_BLOB = bytes.fromhex("00000000010000000000000060000000600000000000000020
 MAGIC = "\x00\x00\x00\x00\x01\x00\x00\x00".encode("latin-1").hex()
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(33700)
 
 

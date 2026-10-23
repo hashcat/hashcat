@@ -15,6 +15,14 @@ from lib.pyserpent import Serpent
 from lib.pytwofish import Twofish
 from lib.test_helpers import random_bytes, random_number, runtime_scrypt_n, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # BestCrypt v4 volume. The key is scrypt (N=32768, r=16, p=1) of the password
 # salted, and the 64 byte plaintext plus its SHA-256 is encrypted in CBC (zero IV,
 # no padding) under one of four ciphers: 0x08 AES, 0x09 Twofish, 0x0a Serpent,

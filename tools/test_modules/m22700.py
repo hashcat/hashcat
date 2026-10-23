@@ -11,6 +11,14 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_number, kernel_charset, utf16be, runtime_scrypt_n, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # MultiBit HD v2. The key is scrypt over the UTF-16BE password and a fixed salt. Two AES-256-CBC
 # blocks may carry the wallet marker; the real one decrypts to a bitcoinj header that starts with
 # "\norg." followed by lowercase package characters. Verify tries block 1 with the file IV, then

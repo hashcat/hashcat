@@ -11,6 +11,13 @@ from Crypto.Cipher import Blowfish
 
 from lib.test_helpers import random_bytes, split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # KWallet 4, the old scheme with no salt and no PBKDF2. The key comes from password2hash and the
 # 64 byte header is Blowfish ECB. KDE byte swaps every 32 bit word of the file before it reaches
 # Blowfish, a bug the on disk format is stuck with.

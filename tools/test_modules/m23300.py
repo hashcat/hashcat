@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_number, random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1000, 2000)},
+  }
+
+
 # Apple iWork. PBKDF2-HMAC-SHA1 makes a 16 byte AES-128 key, and the blob is AES-CBC with no padding.
 # The plaintext is 32 bytes of data followed by its SHA-256, so verify decrypts, checks that pair and
 # re-encrypts from the file's own fields.
@@ -18,7 +25,7 @@ from lib.test_helpers import random_number, random_bytes, test_iteration_paramet
 FORMAT = 1
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(23300)
 
 

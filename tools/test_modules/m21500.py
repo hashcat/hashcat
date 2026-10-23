@@ -10,6 +10,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # SolarWinds Orion: SHA-512 of a 1024 byte PBKDF2-HMAC-SHA1 key, salted with the first 8 characters
 # of the salt, padded out with a fixed string when it is shorter.
 

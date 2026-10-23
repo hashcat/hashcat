@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # MetaMask mobile vault. The base64 of the salt is the PBKDF2-HMAC-SHA512 salt, the key it derives
 # does AES-256-CBC with no padding, and only the first 32 bytes of the ciphertext are stored. On
 # verify a decrypt that is not printable ASCII is treated as a wrong password and a blank plaintext

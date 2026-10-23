@@ -11,6 +11,13 @@ from functools import partial
 
 from lib.test_helpers import kernel_charset, split_hash_word, utf16le, iteration_override_enabled, runtime_iteration_limit
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # MS Office 2016 SheetProtection: SHA-512 of the salt and the UTF-16LE password, then of the digest
 # and the round number as 4 little endian bytes, iterations times. The two kernel families convert
 # the password to UTF-16 differently, see kernel_charset ().

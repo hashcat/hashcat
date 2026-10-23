@@ -12,11 +12,18 @@ import hmac
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PostgreSQL SCRAM-SHA-256: PBKDF2-HMAC-SHA256 of the password, then the stored key
 # sha256(HMAC("Client Key")) and the server key HMAC("Server Key").
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40055)
 
 NORMAL_ITERATIONS = 4096

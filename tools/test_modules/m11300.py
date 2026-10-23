@@ -12,11 +12,18 @@ from Crypto.Util.Padding import pad
 
 from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'salt_iter': (2, 16)},
+  }
+
+
 # Bitcoin/Litecoin wallet.dat: SHA512 of the password plus salt, iterated, then AES-256-CBC over the
 # master key. key is digest[0:32], iv is digest[32:48].
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(11300)
 
 

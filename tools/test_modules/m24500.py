@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Telegram Desktop >= 2.1.14. PBKDF2-HMAC-SHA512 over the salt derives a 136 byte auth key. From it
 # and the message key a per message AES-256 key and IV are built, and the message is AES-IGE
 # en/decrypted. AES-IGE is not in a stdlib, so it is done on top of ECB.
@@ -18,7 +25,7 @@ from lib.test_helpers import random_bytes, test_iteration_parameters
 BLOCK = 16
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(24500)
 
 NORMAL_ITERATIONS = 100000

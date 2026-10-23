@@ -8,6 +8,13 @@
 from lib import diskcryptor
 from lib.test_helpers import iteration_override_enabled, runtime_iterations
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # DiskCryptor with a 1536 bit key: up to three ciphers, so six 256 bit keys.
 
 CASCADES = (

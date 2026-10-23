@@ -11,6 +11,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # PBKDF2-HMAC-SHA256, 100000 rounds, passlib style: base64 with . for + and no padding.
 
 NORMAL_ITERATIONS = 100000

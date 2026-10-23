@@ -13,6 +13,13 @@ from Crypto.Util.Padding import pad, unpad
 
 from lib.test_helpers import random_bytes, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Ethereum pre-sale wallet. PBKDF2-HMAC-SHA256 of the password (its own salt) makes an AES-128 key
 # that CBC encrypts the seed; the keccak-256 of the seed with a trailing 0x02 is the stored check.
 

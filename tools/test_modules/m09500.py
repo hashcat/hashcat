@@ -13,6 +13,13 @@ from Crypto.Cipher import AES
 from lib import office
 from lib.test_helpers import kernel_charset, split_hash_word, utf16le, iteration_override_enabled, runtime_iteration_limit
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # MS Office 2010: 100000 rounds of SHA1, two block keys, AES-128-CBC with the salt as IV.
 
 CHARSET = kernel_charset()

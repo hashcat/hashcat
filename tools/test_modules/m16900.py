@@ -10,6 +10,13 @@ import hmac
 
 from lib.test_helpers import random_hex_string, split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Ansible Vault: PBKDF2-HMAC-SHA256 of the password (80 bytes, of which the last 16 are the IV and not
 # needed here), then HMAC-SHA256 over the ciphertext keyed with bytes 32 to 64.
 

@@ -11,11 +11,18 @@ import hashlib
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PBKDF1-SHA1: iterations of sha1 over the running digest, starting from pass.salt. Written
 # PBKDF1:sha1:iter:base64(salt):base64(digest).
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40070)
 
 NORMAL_ITERATIONS = 1000

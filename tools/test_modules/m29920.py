@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_number, random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iter': (2, 16)},
+  }
+
+
 # ENCsecurity Data Vault, PBKDF2-HMAC-SHA256 with a keychain. The derived key first decrypts a 128
 # byte keychain in the same nb_keys parallel AES-ECB counter mode, and the keychain in turn supplies
 # the key that decrypts the data. The known-plaintext marker "\xd2\xc3\xb4\xa1\x00\x00\x00" is
@@ -23,7 +30,7 @@ ENC_BLOCK_SIZE    = 16
 ENC_KEYCHAIN_SIZE = 128
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(29920)
 
 

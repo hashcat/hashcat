@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import pack_hex, random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # KeePass 1 and 2, keyfile only: the word is a 64 char hex string standing for the 32 raw keyfile
 # bytes, which are hashed to a 32 byte key, transformed through many rounds of AES-256-ECB under a
 # random seed and combined with the final seed. This differs from m13400 in two ways: the word is
@@ -35,7 +42,7 @@ _Q1_T = [
 ]
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(29700)
 
 

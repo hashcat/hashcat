@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # KeePass 4 with the AES key derivation function, which is the same database and the same header
 # HMAC as m34300 with a different way of getting to the key:
 #
@@ -27,7 +34,7 @@ KEYFILE_LEN = 32
 HEADER_LEN  = 250
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(34301)
 
 

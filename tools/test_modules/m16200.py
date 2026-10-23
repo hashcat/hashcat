@@ -12,12 +12,19 @@ from Crypto.Util.strxor import strxor
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Apple Secure Notes. PBKDF2-HMAC-SHA256 derives a 16 byte KEK that AES key wraps a two block key
 # (N = 2). Verify unwraps the stored blob and, when the RFC 3394 integrity constant comes back,
 # wraps it again so the printed hash is rebuilt from the file's own fields.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(16200)
 
 NORMAL_ITERATIONS = 20000

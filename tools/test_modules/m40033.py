@@ -11,6 +11,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Atlassian (PBKDF2-HMAC-SHA1): {PKCS5S2} and base64 of the 16 byte salt and a 32 byte key.
 
 NORMAL_ITERATIONS = 10000

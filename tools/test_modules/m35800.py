@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import runtime_iterations, split_hash_salt_word, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (5001, 5016)},
+  }
+
+
 # Salesforce sha512+sha256: 10000 rounds of sha512 over the running hex digest, the salt appended
 # once the loop passes 5000, then a final sha256.
 

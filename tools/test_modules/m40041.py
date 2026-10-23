@@ -12,11 +12,18 @@ import re
 
 from lib.test_helpers import random_numeric_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # QNX 7 /etc/shadow (SHA512): PBKDF2-HMAC-SHA512, 4096 rounds by default, @S@base64(key)@base64(salt),
 # with "S,rounds" as the tag for any other count.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40041)
 
 NORMAL_ITERATIONS = 4096

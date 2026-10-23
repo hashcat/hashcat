@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # PBKDF2-HMAC-SHA1, 100000 rounds: $pbkdf2-hmac-sha1$100000$<salt hex>$<key hex>, the 32 byte salt.
 
 NORMAL_ITERATIONS = 100000

@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Oracle T: PBKDF2-HMAC-SHA512 salted with the 16 byte salt and AUTH_PBKDF2_SPEEDY_KEY, then SHA-512
 # of the key and the salt, all in upper case hex.
 

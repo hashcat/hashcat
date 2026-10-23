@@ -10,6 +10,13 @@ import hmac
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Android FDE (Samsung DEK): PBKDF2-HMAC-SHA256 of the password, then HMAC-SHA256 with that key over
 # a second 32 byte salt, which defaults to the first one twice.
 

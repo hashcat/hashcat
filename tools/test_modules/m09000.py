@@ -13,6 +13,13 @@ from Crypto.Cipher import Blowfish
 
 from lib.test_helpers import runtime_iterations, random_bytes, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Password Safe v2. Like m40011 this is OPTS_TYPE_BINARY_HASHFILE, so the oracle prints the file
 # in base64 and test.sh decodes it back before handing it to hashcat.
 #

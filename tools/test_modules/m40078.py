@@ -11,11 +11,18 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # SAP CODVN H isSHA512: iterations of sha512 over the password and the running digest, starting from
 # the salt, then base64 of the digest and the salt.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40078)
 
 NORMAL_ITERATIONS = 15000

@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (7, 8)},
+  }
+
+
 # KWallet uses the phpass scheme, but over the md5 hex digest of the password rather than the
 # password itself. Authen::Passphrase::PHPass runs 2^cost rounds of md5 over the last digest and
 # that passphrase, starting from md5 of the salt and the passphrase, and prints a standard $P$ line.
@@ -16,7 +23,7 @@ from lib.test_helpers import split_hash_word, test_iteration_parameters
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40079)
 
 

@@ -13,6 +13,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # KNX IP secure device authentication code. PBKDF2-HMAC-SHA256 turns the password into a 16 byte key
 # that authenticates a Session_Response frame with AES-CCM. Only the MAC is reproduced here, as a
 # CBC-MAC over the formatted associated data xored with the ECB encrypted nonce (the CCM S_0 block).

@@ -12,6 +12,13 @@ from Crypto.Cipher import CAST
 from lib import gpg
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1024, 2048)},
+  }
+
+
 # GPG symmetric secret key protection with CAST5 in CFB. The S2K is SHA-1 either way, but the
 # mode has two shapes and a run covers both: iterated and salted, which carries a count, and
 # plain salted, which is one SHA-1 over salt and password.
@@ -25,7 +32,7 @@ MODULUS_SIZE = 4096
 BODY_LEN     = 648
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(17040)
 
 

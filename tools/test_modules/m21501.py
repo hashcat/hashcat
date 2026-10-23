@@ -11,6 +11,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # SolarWinds Serv-U: SHA-512 of a 1024 byte PBKDF2-HMAC-SHA1 key, the 16 byte salt in base64.
 
 NORMAL_ITERATIONS = 1000

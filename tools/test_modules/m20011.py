@@ -8,6 +8,13 @@
 from lib import diskcryptor
 from lib.test_helpers import iteration_override_enabled, runtime_iterations
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # DiskCryptor with a 512 bit key: one cipher, so two 256 bit keys, one for the data and one for
 # the tweak.
 

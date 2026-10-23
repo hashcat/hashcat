@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, random_number, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # MetaMask: PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The line is the
 # salt, the 16 byte nonce and the ciphertext with its 16 byte tag, each base64 encoded. When there
 # is no ciphertext to decrypt the plaintext is a random length run of 0xff. The length is

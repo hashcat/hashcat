@@ -12,11 +12,18 @@ import re
 
 from lib.test_helpers import split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16), 'iterations2': (2, 2)},
+  }
+
+
 # Bitwarden: PBKDF2-HMAC-SHA256 of the password salted with the e-mail, then a second PBKDF2 with the
 # roles swapped, the password as salt.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(23400)
 
 NORMAL_ITERATIONS = 10000

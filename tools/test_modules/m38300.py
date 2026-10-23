@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Apple DMG (encrcdsa v2, $dmg$3). PBKDF2-HMAC-SHA1 derives a 24-byte KEK; the 64-byte key blob is
 # the AES-192-CBC wrap of the volume keys. A password is accepted when CBC-decrypting the LAST blob
 # block (AES_decrypt(block[3]) XOR block[2]) yields "CKIE" at bytes 4..7, 0x00 at byte 8 and PKCS#7
@@ -22,7 +29,7 @@ KEY_LEN      = 24   # AES-192 KEK
 ITER_DEFAULT = 2048
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(38300)
 
 NORMAL_ITERATIONS = ITER_DEFAULT

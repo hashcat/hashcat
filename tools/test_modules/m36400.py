@@ -11,12 +11,19 @@ from Crypto.Cipher import Blowfish
 
 from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # KWallet 5, PBKDF2-HMAC-SHA512 into a 56 byte Blowfish key, CBC over the 64 byte header. KDE byte
 # swaps every 32 bit word of the file before it reaches Blowfish, a bug the on disk format is stuck
 # with, so the swap is undone before decrypting and redone after encrypting.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(36400)
 
 NORMAL_ITERATIONS = 50000

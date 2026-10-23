@@ -10,6 +10,13 @@ import hmac
 
 from lib.test_helpers import random_number, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # WinZip AES. PBKDF2-HMAC-SHA1 over the salt yields, in one run, the encryption key, the
 # authentication key and the two password verification bytes. The stored auth code is the first ten
 # bytes of HMAC-SHA1 over the (here empty) data, keyed with the authentication half.

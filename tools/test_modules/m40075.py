@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Draytek/OpenLDAP-style: 5, the 32 byte salt in hex, then PBKDF2-HMAC-SHA256 (2500 rounds).
 
 NORMAL_ITERATIONS = 2500

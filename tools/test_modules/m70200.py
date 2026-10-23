@@ -11,10 +11,18 @@ import hashlib
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # scrypt: SCRYPT:N:r:p:base64(salt):base64(key).
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(70200)
 
 

@@ -12,6 +12,13 @@ from argon2.low_level import Type, hash_secret_raw
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 2), 'memory': (4096, 4096)},
+  }
+
+
 # KeePass 4 with the Argon2 KDF. What hashcat verifies is the HMAC-SHA256 over the database
 # header, and the chain to its key is
 #
@@ -29,7 +36,7 @@ KEYFILE_LEN    = 32
 HEADER_LEN     = 253
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(34300)
 
 

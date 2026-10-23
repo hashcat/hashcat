@@ -16,6 +16,14 @@ from Crypto.Hash import MD4
 
 from lib.test_helpers import runtime_iteration_limit, random_bytes, random_number, runtime_iterations, test_iteration_parameters, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # DPAPI masterkey v1 with a domain backup key (context 3). The password becomes an MD4 NT hash, two
 # PBKDF2-HMAC-SHA256 rounds derive the user hash, HMAC-SHA1 with the SID derives a key, and a
 # Microsoft variant of PBKDF2 stretches it before the 3DES-EDE-CBC masterkey blob. The optimized
@@ -28,7 +36,7 @@ if os.environ.get("IS_OPTIMIZED") == "0":
   PW_CHARSET = "utf-8"
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(15310)
 
 NORMAL_USER_HASH_ITERATIONS = 10000

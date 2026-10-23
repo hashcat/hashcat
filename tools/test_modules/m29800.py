@@ -11,6 +11,14 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, kernel_charset, utf16be, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # Bisq wallet. The key is scrypt over the UTF-16BE password and the stored salt. A single
 # AES-256-CBC block holds a fixed marker (16 bytes of 0x10); the real password decrypts it back to
 # that marker. Verify keeps the block only when it decrypts to the marker.
@@ -22,7 +30,7 @@ SCRYPT_P = 6
 DATA_FIXED = b"\x10" * 16
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(29800)
 
 

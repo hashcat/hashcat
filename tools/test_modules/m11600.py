@@ -15,13 +15,20 @@ from Crypto.Util.Padding import pad
 
 from lib.test_helpers import random_number, random_string, kernel_charset, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (12, 13)},
+  }
+
+
 # 7-Zip. The AES-256 key is one SHA-256 over 2^num_cycle_power copies of the UTF-16LE password each
 # followed by an 8 byte little endian counter. The (zero padded) salt is the CBC IV. Generate
 # encrypts a random buffer with Crypt::CBC standard (PKCS7) padding and stores its CRC32; verify
 # decrypts, truncates to unpack_size and recomputes the CRC.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(11600)
 
 

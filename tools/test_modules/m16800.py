@@ -10,6 +10,13 @@ import hmac
 
 from lib.test_helpers import random_bytes, random_number, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 HASHCAT_ARGS = ["--deprecated-check-disable"]
 
 # WPA-PMKID-PBKDF2: the PMK is PBKDF2-HMAC-SHA1 of the passphrase over the ESSID, and the PMKID is

@@ -24,9 +24,6 @@ import sys
 
 import test_iterations
 
-# Load the manager policy before importing an oracle with module-level defaults.
-import test as test_policy
-
 # Checked before any test module is imported, since an older python fails inside one with an error
 # that does not name the interpreter.
 

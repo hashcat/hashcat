@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_hex_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Terra Station wallet. PBKDF2-HMAC-SHA1 (100 rounds) of the password makes an AES-256 key that CBC
 # encrypts 64 bytes followed by a full 0x10 padding block; the salt and iv are stored in front of the
 # base64 ciphertext.

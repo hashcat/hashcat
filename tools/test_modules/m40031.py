@@ -9,10 +9,17 @@ from lib import pbkdf2_b64
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PBKDF2-HMAC-MD5: md5:iterations:base64(salt):base64(key), see lib/pbkdf2_b64.py.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40031)
 
 NORMAL_ITERATIONS = 1000

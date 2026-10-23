@@ -11,11 +11,18 @@ from lib import shacrypt
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1000, 2000)},
+  }
+
+
 # sha512crypt $6$, SHA512 (Unix), see lib/shacrypt.py. A rounds field is clamped to what the format
 # allows, 1000 to 999999999, and printed; without one the count is the default 5000.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(1800)
 
 

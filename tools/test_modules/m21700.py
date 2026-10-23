@@ -14,6 +14,13 @@ from Crypto.Util.Padding import pad
 
 from lib.test_helpers import random_hex_string, random_number, random_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Electrum wallet v4. The key is the sha512 of the ECDH shared point between a PBKDF2 derived private
 # scalar and the stored ephemeral public key on secp256k1. It splits into an AES-128-CBC iv and key
 # for the deflated wallet JSON and an HMAC-SHA256 key over the ciphertext.

@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_number, random_hex_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # ENCsecurity Data Vault, MD5 key derivation with no keychain. The key is a folded chain of 1000
 # MD5 rounds, expanded against eight fixed salts, and drives the same nb_keys parallel AES-ECB
 # counter mode as the PBKDF2 variants. The known-plaintext marker is checked over 56 bits only,

@@ -15,6 +15,13 @@ from Crypto.Hash import MD4
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # DPAPI masterkey v1. The password becomes an NT hash (SHA1 for context 1, MD4 for context 2),
 # HMAC-SHA1 with the SID derives a key, a Microsoft variant of PBKDF2 stretches it, and the
 # masterkey blob is 3DES-EDE-CBC. The optimized kernels widen the password byte by byte instead of
@@ -26,7 +33,7 @@ if os.environ.get("IS_OPTIMIZED") == "0":
   PW_CHARSET = "utf-8"
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(15300)
 
 

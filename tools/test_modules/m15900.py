@@ -15,6 +15,13 @@ from Crypto.Hash import MD4
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # DPAPI masterkey v2. Same construction as v1 (mode 15300) but the default salt version is 2, so the
 # masterkey blob is SHA512 based and AES-256-CBC encrypted. The password becomes an NT hash (SHA1 for
 # context 1, MD4 for context 2), HMAC-SHA1 with the SID derives a key, and a Microsoft variant of
@@ -27,7 +34,7 @@ if os.environ.get("IS_OPTIMIZED") == "0":
   PW_CHARSET = "utf-8"
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(15900)
 
 

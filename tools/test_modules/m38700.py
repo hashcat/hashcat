@@ -19,6 +19,13 @@ from cryptography.hazmat.primitives.ciphers import Cipher, modes
 
 from lib.test_helpers import random_bytes, random_number, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # FreeBSD GELI. The passphrase goes through PBKDF2-HMAC-SHA512 over the provider's salt, and the
 # result through an HMAC-SHA512 under an empty key, which is the user key. That key gives two more:
 # HMAC-SHA512(user key, 0x01) decrypts a master key slot and HMAC-SHA512(user key, 0x00) keys the
@@ -55,7 +62,7 @@ COMBOS = [
 ]
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(38700)
 
 

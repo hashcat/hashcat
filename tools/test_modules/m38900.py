@@ -13,13 +13,20 @@ from argon2.low_level import Type, hash_secret_raw
 
 from lib.test_helpers import random_number, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'t': (2, 2)},
+  }
+
+
 # Google fscrypt login/custom protector (google/fscrypt, crypto/crypto.go). The password is run
 # through Argon2id to a 32-byte wrapping key, HKDF-SHA256 splits that into an encryption key and an
 # auth key, and the stored hmac is HMAC-SHA256(auth_key, iv || encrypted_key). Cracking checks only
 # that mac, so the iv and encrypted_key here are random: hashcat never decrypts them.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(38900)
 
 

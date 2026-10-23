@@ -9,10 +9,17 @@ from lib import aix
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1, 16, 'power2')},
+  }
+
+
 # AIX {ssha1}: PBKDF2-HMAC-SHA1, see lib/aix.py.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40017)
 
 NORMAL_ITERATIONS = 64

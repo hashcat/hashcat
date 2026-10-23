@@ -8,11 +8,18 @@
 from lib import pbkdf2_b64
 from lib.test_helpers import random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PBKDF2-HMAC-SHA1: sha1:iterations:base64(salt):base64(key), a 16 byte key and a random iteration
 # count, see lib/pbkdf2_b64.py.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40032)
 
 

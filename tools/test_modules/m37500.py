@@ -13,6 +13,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1, 2)},
+  }
+
+
 # RACF KDFAES Passphrase. A memory-hard construction over a custom PBKDF2-HMAC-SHA256 (each pass also
 # returns a 16 byte carry salt): 2^(rfactor-5) passes fill an accumulator, a second pass mixes it, and
 # the final key AES-256-ECB encrypts the EBCDIC username. a2e maps ASCII to EBCDIC.
@@ -28,7 +35,7 @@ A2E = bytes.fromhex(
   "b8b9babbbcbdbebfcacbcccdcecfdadbdcdddedfeaebecedeeeffafbfcfdfeff")
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(37500)
 
 

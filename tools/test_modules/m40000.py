@@ -10,6 +10,13 @@ import re
 
 from lib.test_helpers import runtime_iterations, random_hex_string, split_hash_word, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # XCA database password, sha512passwT () in lib/pki_evp.cpp: the salt is "T" and 16 hex
 # characters, SHA-512 runs 8000 times over the salt and the password, and the stored value is the
 # salt followed by the digest in uppercase hex.

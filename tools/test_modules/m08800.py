@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_number, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Android FDE <= 4.3. The stored string is
 #
 #   $fde$16$<salt>$16$<encrypted master key>$<1536 bytes of the encrypted disk>

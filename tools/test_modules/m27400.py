@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC). The key encrypts a fixed 16 byte marker; only the
 # first cipher block is stored, so the padding of the rest does not matter.
 

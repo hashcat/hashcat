@@ -12,13 +12,20 @@ import re
 
 from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Apache Shiro 1 SHA-512: SHA-512 of the salt and the password, then of the digest, iterations times
 # in all.
 
 LINE = re.compile(r"^\$shiro1\$SHA-512\$(\d+)\$([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+)$")
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40035)
 
 NORMAL_ITERATIONS = 1024

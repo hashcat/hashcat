@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # KeePass 1 and 2: the password (and optional keyfile) is hashed to a 32 byte key, transformed
 # through many rounds of AES-256-ECB under a random seed, hashed once more and combined with the
 # final seed. Version 1 then encrypts the contents with AES or Twofish in CBC; version 2 decrypts a
@@ -34,7 +41,7 @@ _Q1_T = [
 ]
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(13400)
 
 

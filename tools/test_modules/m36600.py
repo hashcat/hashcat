@@ -8,6 +8,13 @@
 from lib import pbkdf2_b64
 from lib.test_helpers import kernel_charset, utf16le, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PBKDF2-HMAC-SHA512 over a UTF-16LE password: sha512utf16le:iterations:base64(salt):base64(key).
 # The optimized kernels widen each password byte instead of decoding UTF-8, so the oracle picks its
 # charset from IS_OPTIMIZED the way the runner sets it, then encodes UTF-16LE, matching module_01000.
@@ -15,7 +22,7 @@ from lib.test_helpers import kernel_charset, utf16le, test_iteration_parameters
 CHARSET = kernel_charset()
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(36600)
 
 NORMAL_ITERATIONS = 1000

@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # MetaMask (short). PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The
 # ciphertext is fixed at 64 bytes and carries no tag: the oracle only checks that the plaintext is
 # printable ASCII, so generation encrypts a fixed 64 byte prefix of the wallet vault JSON.

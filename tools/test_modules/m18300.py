@@ -11,12 +11,19 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # APFS / FileVault (fvde). PBKDF2-HMAC-SHA256 derives a 256 bit KEK, which AES key wraps (RFC 3394)
 # the 40 byte volume key blob. Verify unwraps the stored blob and, when the IV constant 0xa6..a6
 # comes back, wraps it again, so the printed hash is rebuilt from the file's own fields.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(18300)
 
 

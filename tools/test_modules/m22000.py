@@ -14,6 +14,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_number, random_bytes, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # WPA-PBKDF2-PMKID+EAPOL. The PMK is PBKDF2-HMAC-SHA1 (4096 iterations) of the
 # passphrase salted by the ESSID. Four record kinds share the format: type 1 is a
 # PMKID (HMAC-SHA1 over "PMK Name" || AP MAC || STA MAC, or HMAC-SHA256 on an AKM 6

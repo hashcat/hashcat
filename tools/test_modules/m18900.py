@@ -11,12 +11,19 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Android FDE (Samsung DEK). PBKDF2-HMAC-SHA1 over the user salt derives an AES-256 key that CBC
 # encrypts the 83 byte master key blob. Crypt::CBC "standard" padding is PKCS#7 whose decrypt strips
 # the last byte's count without validating it, so the padding is done by hand to match.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(18900)
 
 NORMAL_ITERATIONS = 10000

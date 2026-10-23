@@ -12,11 +12,18 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_hex_string, random_number, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (6, 16)},
+  }
+
+
 # AxCrypt 1.x. The word's SHA1 xored with the salt gives a 16 byte AES key. The DEK is wrapped with
 # an iterated AES key wrap. Byte slicing and the truncating string xor follow the perl one for one.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(13200)
 
 

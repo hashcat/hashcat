@@ -13,11 +13,18 @@ import re
 
 from lib.test_helpers import random_number, random_string, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # MongoDB ServerKey SCRAM-SHA-256: HMAC-SHA256 of "Server Key" keyed with PBKDF2-HMAC-SHA256
 # of the password, the user name drawn at random.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40053)
 
 NORMAL_ITERATIONS = 15000

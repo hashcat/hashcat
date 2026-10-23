@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iter': (2, 16)},
+  }
+
+
 # Windows Hello PIN (NGC): the PIN is widened to its uppercase hex spelling, run through
 # PBKDF2-HMAC-SHA256, widened and hashed again, then folded into a two stage HMAC-SHA512 over the
 # DPAPI-NG masterkey, the stored hmac, a magic value and the verify blob.
@@ -16,7 +23,7 @@ from lib.test_helpers import random_hex_string, test_iteration_parameters
 MAGIC_DEFAULT = "785435725a573571565662727670754100"
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(28100)
 
 

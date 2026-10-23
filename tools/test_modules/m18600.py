@@ -11,11 +11,18 @@ from Crypto.Cipher import Blowfish
 
 from lib.test_helpers import random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1000, 2000)},
+  }
+
+
 # OpenDocument Format 1.1 (SHA-1, Blowfish). PBKDF2-HMAC-SHA1 over sha1(password) makes a Blowfish
 # key, and the document body is Blowfish-CFB encrypted; the sha1 of the plaintext is the check.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(18600)
 
 NORMAL_ITERATIONS = 100000

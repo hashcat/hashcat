@@ -7,29 +7,57 @@
 
 # Part of tools/test.py. Shared iteration selection and child-process settings for its oracle runner.
 
+import ast
 import hashlib
 import json
 import os
 
-# Encoded-parameter ranges supplied by test.py.
-ARTIFICIAL_ITERATION_PARAMETERS = {}
 
-# Numeric runtime-limit ranges supplied by test.py.
-RUNTIME_ITERATION_LIMITS = {}
-COMPILED_COST_MODES = set()
+def load_iteration_policies():
+  parameters = {}
+  runtime_limits = {}
+  compiled_cost_modes = set()
+  directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_modules")
+  hook = "module_reduced_iteration_constraints"
+
+  # Read literal declarations without importing optional oracle dependencies or evaluating defaults.
+  for filename in sorted(os.listdir(directory)):
+    if not filename.startswith("m") or not filename.endswith(".py") or not filename[1:-3].isdigit():
+      continue
+
+    with open(os.path.join(directory, filename), encoding="utf-8") as source:
+      text = source.read()
+
+    if hook not in text:
+      continue
+
+    mode = int(filename[1:-3])
+
+    for node in ast.parse(text, filename=filename).body:
+      if not isinstance(node, ast.FunctionDef) or node.name != hook:
+        continue
+
+      if len(node.body) != 1 or not isinstance(node.body[0], ast.Return):
+        raise ValueError("%s: %s must return a literal dictionary" % (filename, hook))
+
+      policy = ast.literal_eval(node.body[0].value)
+
+      if not isinstance(policy, dict) or set(policy) - {"parameters", "runtime_limits", "compiled_cost"}:
+        raise ValueError("%s: invalid reduced-iteration policy" % filename)
+
+      if "parameters" in policy:
+        parameters[mode] = policy["parameters"]
+      if "runtime_limits" in policy:
+        runtime_limits[mode] = policy["runtime_limits"]
+      if policy.get("compiled_cost", False):
+        compiled_cost_modes.add(mode)
+
+  return parameters, runtime_limits, compiled_cost_modes
 
 
-def configure(parameters, runtime_limits, compiled_cost_modes):
-  global ARTIFICIAL_ITERATION_PARAMETERS, RUNTIME_ITERATION_LIMITS, COMPILED_COST_MODES, RUNTIME_ITERATION_MODES
-
-  ARTIFICIAL_ITERATION_PARAMETERS = parameters
-  RUNTIME_ITERATION_LIMITS = runtime_limits
-  COMPILED_COST_MODES = compiled_cost_modes
-  RUNTIME_ITERATION_MODES = set(runtime_limits)
-
-
+ARTIFICIAL_ITERATION_PARAMETERS, RUNTIME_ITERATION_LIMITS, COMPILED_COST_MODES = load_iteration_policies()
 RUNTIME_ITERATION_MODES = set(RUNTIME_ITERATION_LIMITS)
-RUNTIME_SCRYPT_MODES = {9300, 22700, 24000, 38200}
+RUNTIME_SCRYPT_MODES = {mode for mode, limits in RUNTIME_ITERATION_LIMITS.items() if "scrypt_N" in limits}
 ITERATION_ENV = "ARTIFICIALLY_LOW_ITERATION_COUNT"
 ITERATION_RUNTIME_ENV = "HASHCAT_ITER_OVERRIDE"
 ITERATION_PARAMETER_ENV = "HASHCAT_TEST_ITERATION_PARAMETERS"

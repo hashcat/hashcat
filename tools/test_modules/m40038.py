@@ -11,12 +11,19 @@ import hmac
 from lib import aix
 from lib.test_helpers import split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (99, 198)},
+  }
+
+
 # Juniper/NetBSD sha1crypt: HMAC-SHA1 keyed with the password, iterated over "salt$sha1$iterations",
 # written in the crypt alphabet. The 28th character is a random one the original tool adds; a line
 # being verified keeps its own.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40038)
 
 NORMAL_ITERATIONS = 20000

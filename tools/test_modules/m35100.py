@@ -11,11 +11,18 @@ from lib import shacrypt
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1000, 2000)},
+  }
+
+
 # sm3crypt: the sha256crypt construction over ShangMi 3, which OpenSSL provides to hashlib by name.
 # The optimized kernel takes a password of at most 15 bytes, see module_pw_max ().
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(35100)
 
 

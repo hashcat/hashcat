@@ -8,10 +8,17 @@
 from lib import md5crypt
 from lib.test_helpers import split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (42, 84)},
+  }
+
+
 # AIX {smd5}: md5crypt with an empty magic and an optional encoded round count.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(6300)
 
 NORMAL_ITERATIONS = 1000

@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iter_wrap': (2, 16), 'iter_kdf': (2, 16)},
+  }
+
+
 # AxCrypt 2 AES-256. PBKDF2-HMAC-SHA512 gives a 64 byte key that is folded to 32 bytes and xored
 # with the wrap salt, then an AxCrypt variant of RFC 3394 key wrap (idx xored into bytes 4:8 after
 # each encrypt) protects the 144 byte blob. Verify unwraps and checks for the 0xa6 magic at offset 0.
@@ -21,7 +28,7 @@ AXCRYPT_MAGIC = bytes.fromhex("a6a6a6a6a6a6a6a6")
 BLOCKS = 6
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(23600)
 
 

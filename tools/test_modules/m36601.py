@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import kernel_charset, split_hash_word, utf16le, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # PBKDF2-HMAC-SHA512 over a UTF-16LE password with a 4 byte salt, 100000 iterations:
 # 0x0300 <salt hex> <64 byte key hex>. The optimized kernels widen each password byte instead of
 # decoding UTF-8, so the oracle picks its charset from IS_OPTIMIZED, matching module_01000.

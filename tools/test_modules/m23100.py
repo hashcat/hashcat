@@ -11,6 +11,13 @@ from Crypto.Cipher import DES
 
 from lib.test_helpers import random_bytes, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Apple Keychain. 3DES-EDE in outer CBC over 48 bytes, keyed by PBKDF2-HMAC-SHA1. The three DES
 # stages run with a zero IV (single block ECB), the CBC chaining is done here by hand. The last
 # plaintext block ends in a fixed 04 04 04 04 padding, which is what verification looks for.

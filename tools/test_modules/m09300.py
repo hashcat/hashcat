@@ -10,6 +10,14 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, runtime_scrypt_n, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # Cisco-IOS $9$ (scrypt): N=16384, r=1, p=1, the 32 byte key in Cisco's base64 alphabet.
 
 CISCO = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",

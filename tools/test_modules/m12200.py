@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import runtime_iterations, split_hash_word, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # eCryptfs: SHA-512 of the 8 byte salt and the password, then 65536 more rounds, 8 bytes of it. A
 # line without the salt field means the default salt.
 

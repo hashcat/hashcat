@@ -11,6 +11,14 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, kernel_charset, utf16be, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # MultiBit Classic (.key). The key is scrypt over the UTF-16BE password and an 8 byte salt. A
 # single AES-256-CBC block carries a fixed 16 byte marker of 0x10 octets, which is what the pure
 # and optimized kernels disagree on for a multi byte password: latin-1 widens each byte, utf-8
@@ -23,7 +31,7 @@ SCRYPT_P = 1
 DATA_FIXED = b"\x10" * 16
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(27700)
 
 

@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Kerberos 5 AS-REP with AES128-CTS-HMAC-SHA1-96 (etype 17). The key is derived with
 # PBKDF2-HMAC-SHA1 then the RFC 3961 DK function, encryption is AES in CBC-CS3 ciphertext
 # stealing form and the checksum is HMAC-SHA1 truncated to 12 bytes over a confounder plus

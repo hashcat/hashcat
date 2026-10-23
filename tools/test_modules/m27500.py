@@ -9,6 +9,13 @@ from lib import virtualbox
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16), 'iterations2': (2, 16)},
+  }
+
+
 # VirtualBox, PBKDF2-HMAC-SHA256 and AES-128-XTS, see lib/virtualbox.py.
 
 KEY_LEN = 32
@@ -16,7 +23,7 @@ KEY_LEN = 32
 ITER1 = 260000
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(27500)
 
 

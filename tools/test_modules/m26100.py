@@ -11,13 +11,20 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Mozilla key4.db (AES). sha1 of the global salt and password is stretched by PBKDF2-HMAC-SHA256 with
 # the entry salt into an AES-256 key that CBC encrypts the fixed check string "password-check\x02\x02".
 
 CHECK = b"password-check\x02\x02"
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(26100)
 
 NORMAL_ITERATIONS = 10000

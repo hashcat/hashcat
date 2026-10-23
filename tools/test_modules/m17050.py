@@ -10,6 +10,13 @@ from Crypto.Cipher import AES
 from lib import gpg
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1024, 2048)},
+  }
+
+
 # GPG symmetric secret key protection with AES-128 in OCB, which carries no trailing SHA-1: the
 # kernel decides on the first decrypted block instead, which has to read "(((1:" then the name of
 # the secret MPI and its length. RSA and ECC use d, DSA and ElGamal use x, and the length is two
@@ -30,7 +37,7 @@ MARKERS  = (("d", "32"), ("d", "256"), ("d", "57"), ("x", "33"))
 BODY_LEN = 51
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(17050)
 
 

@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Blockchain, My Wallet: PBKDF2-HMAC-SHA1 (10 rounds) of the password over the 16 byte salt, then
 # AES-256-CBC of a fixed JSON header, the salt as IV.
 

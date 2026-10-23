@@ -11,6 +11,13 @@ from Crypto.Hash import MD4
 
 from lib.test_helpers import kernel_charset, split_hash_word, utf16le, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Domain Cached Credentials 2: PBKDF2-HMAC-SHA1 over DCC1, salted with the lower cased user name in
 # UTF-16LE. The two kernel families convert the password to UTF-16 differently, see
 # kernel_charset (); MD4 is pycryptodome's, because hashlib often has none.
@@ -18,7 +25,7 @@ from lib.test_helpers import kernel_charset, split_hash_word, utf16le, test_iter
 CHARSET = kernel_charset()
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(2100)
 
 NORMAL_ITERATIONS = 10240

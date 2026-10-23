@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # 1Password style mobile keychain. PBKDF2-HMAC-SHA256 over the password gives a key that is XORed
 # with the stored hkdf key to form the AES-GCM master unlock key. On verify the stored ct is
 # decrypted and kept only when its tag checks out, so a wrong password re-encrypts a fixed
@@ -23,7 +30,7 @@ FAKE_PT = (
 )
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(31800)
 
 

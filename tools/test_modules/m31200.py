@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Veeam VBK. PBKDF2-HMAC-SHA1 of the UTF-16LE password gives an AES-256 key and iv that CBC encrypt a
 # marker whose tail is twelve 0x0c bytes. The kernel decodes the UTF-8 password rather than widening
 # it, and there is no optimized kernel, so the charset is always UTF-8.
@@ -18,7 +25,7 @@ from lib.test_helpers import test_iteration_parameters
 PLAIN = b"\x30\x30\x30\x30" + b"\x0c" * 12
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(31200)
 
 NORMAL_ITERATIONS = 10000

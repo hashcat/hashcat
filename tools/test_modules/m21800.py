@@ -15,6 +15,13 @@ from Crypto.Util.Padding import pad
 
 from lib.test_helpers import random_hex_string, random_number, random_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Electrum wallet v5. The key derivation and AES-128-CBC layer are the same as -m 21700; version 5
 # stores only the first 1024 bytes of the ciphertext, so the mode is recognised by the deflate
 # header of the decrypted prefix rather than by an HMAC over the whole ciphertext.

@@ -13,12 +13,19 @@ from base64 import b64decode, b64encode
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Blockchain, My Wallet, Second Password (SHA256). The 16 byte salt is printed as a UUID, hashed
 # with the word and iterated, then packed with the salt, the iteration count and a crc32 tail and
 # base64 encoded.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40040)
 
 NORMAL_ITERATIONS = 10000

@@ -11,6 +11,13 @@ import hmac
 
 from lib.test_helpers import random_bytes, random_number, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # mega.nz password protected link. The link body is base64url of
 #
 #   algorithm(1) || file/folder(1) || public handle(6) || salt(32) ||

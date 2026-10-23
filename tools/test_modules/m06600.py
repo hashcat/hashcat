@@ -9,11 +9,18 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # 1Password agilekeychain: PBKDF2-HMAC-SHA1 of the password over the 8 byte salt, then AES-128-CBC of
 # a fixed block. The line packs the salt hex, a 1008 byte prefix and the IV together.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(6600)
 
 NORMAL_ITERATIONS = 1000

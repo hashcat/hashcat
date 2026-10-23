@@ -9,10 +9,17 @@ import hashlib
 
 from lib.test_helpers import split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (0, 4)},
+  }
+
+
 # RAR5: PBKDF2-HMAC-SHA256 with 2^n + 32 rounds, the 32 byte key folded to 8 by XOR.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(13000)
 
 NORMAL_ITERATIONS = 15

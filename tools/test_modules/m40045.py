@@ -10,11 +10,18 @@ import hashlib
 
 from lib.test_helpers import test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Oracle Transportation Management (SHA256): SHA-256 of the salt and the password, then of the
 # digest, iterations times in all.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(40045)
 
 NORMAL_ITERATIONS = 1000

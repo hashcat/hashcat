@@ -12,6 +12,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # iPhone passcode (UID key + logical KEK). PBKDF2-HMAC-SHA1 of the passcode is run through an
 # iterated AES-ECB under the device UID key, and the result is the AES key-wrap key for the class
 # key. A class key that unwraps to the backup magic 0xa6a6a6a6a6a6a6a6 confirms the passcode.
@@ -20,7 +27,7 @@ MASK64 = 0xffffffffffffffff
 UIDO_BACKUP_KEY = 0xa6a6a6a6a6a6a6a6
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(26500)
 
 NORMAL_ITERATIONS = 50000

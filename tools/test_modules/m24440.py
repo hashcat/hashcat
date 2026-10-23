@@ -10,6 +10,13 @@ import hmac
 
 from lib.test_helpers import pack_hex, random_bytes, split_hash_word, utf16be, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PKCS#12 MAC, SHA-256 ($pkcs12$256). The HMAC key comes from the RFC 7292 Appendix B KDF with the
 # diversifier id set to 3. SHA-256 already produces the 32 bytes that key needs, so one block covers
 # it and the I/B expansion the KDF describes for longer keys never runs. The kernel widens each
@@ -22,7 +29,7 @@ KEY_LEN  = 32
 V = 64
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(24440)
 
 NORMAL_ITERATIONS = 2048

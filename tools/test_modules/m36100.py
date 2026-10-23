@@ -9,11 +9,19 @@ from lib import libcrypt
 from lib import yescrypt
 from lib.test_helpers import random_string, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n_log2': (7, 8)},
+    'compiled_cost': True,
+  }
+
+
 # yescrypt, through libc crypt (): $y$params$salt_b64$hash. libcrypt calls the same crypt_r () the
 # perl reached, so the result matches where libxcrypt is present.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(36100)
 
 

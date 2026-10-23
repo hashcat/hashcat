@@ -13,6 +13,13 @@ from Crypto.Cipher import AES, DES
 
 from lib.test_helpers import random_hex_string, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'rep_fac': (1, 2)},
+  }
+
+
 # RACF KDFAES. The username and password are folded into EBCDIC and DES to seed a proprietary,
 # memory hard HMAC-SHA256 KDF, whose output keys an AES-256-ECB encryption of the username block.
 #
@@ -31,7 +38,7 @@ EBCDIC = bytes.fromhex(
 )
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(14200)
 
 

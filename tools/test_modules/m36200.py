@@ -9,10 +9,18 @@ from lib import libcrypt
 from lib import yescrypt
 from lib.test_helpers import random_string, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n_log2': (7, 8)},
+    'compiled_cost': True,
+  }
+
+
 # gost-yescrypt, through libc crypt (): $gy$params$salt_b64$hash.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(36200)
 
 

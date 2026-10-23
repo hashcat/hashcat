@@ -11,6 +11,14 @@ import hashlib
 from lib.md5crypt import md5_crypt
 from lib.test_helpers import random_mixedcase_string, split_hash_word, runtime_scrypt_n, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
+
 # Cisco IOS XE "convoluted Type 9": $14$<type5 salt>$<type9 salt>$<digest>.
 # scrypt(md5_crypt(password, type5_salt), type9_salt, N=16384, r=1, p=1). IOS XE
 # auto-converts a Type 5 (MD5-crypt) secret to this on upgrade to Gibraltar 16.12.x+,

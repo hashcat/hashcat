@@ -9,11 +9,19 @@ from lib import libcrypt
 from lib import yescrypt
 from lib.test_helpers import random_string, split_hash_word, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n_log2': (4, 5)},
+    'compiled_cost': True,
+  }
+
+
 # scrypt through libc crypt (), the $7$ form: $7$<N><r><p><salt>$hash, N as one crypt64 digit and r
 # and p as five each. The self-test parameters are fixed at N=2^14, r=8, p=1.
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(36300)
 
 

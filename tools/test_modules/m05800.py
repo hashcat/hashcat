@@ -9,6 +9,13 @@ import hashlib
 
 from lib.test_helpers import runtime_iterations, split_hash_salt_word, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Samsung Android password/PIN: 1024 rounds of SHA-1, each over the last digest, the round number in
 # decimal, the password and the salt.
 

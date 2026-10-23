@@ -11,6 +11,13 @@ from Crypto.Cipher import ChaCha20_Poly1305
 
 from lib.test_helpers import random_bytes, random_hex_string, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Cardano Eternl wallet: PBKDF2-HMAC-SHA512 of the password over the 32 byte salt gives a 32 byte
 # ChaCha20-Poly1305 key. The line is ETERNL: then salt, 12 byte nonce, 16 byte tag and the 165 byte
 # ciphertext, each in hex with no separators. Without a ciphertext to decrypt the plaintext is

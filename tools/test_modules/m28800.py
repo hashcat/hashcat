@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Kerberos 5 etype 17 (AES128-CTS key from the DB): PBKDF2-HMAC-SHA1 of the password
 # over uppercase(realm)+user, then AES-CBC of the n-fold constant to derive the key.
 

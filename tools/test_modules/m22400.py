@@ -10,6 +10,13 @@ import hmac
 
 from lib.test_helpers import runtime_iterations, random_bytes, split_hash_word, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # AES Crypt (SHA256): 8192 rounds of SHA-256 over the key and the password widened to UTF-16LE byte
 # by byte, starting from the salt and 16 zero bytes, then HMAC-SHA256 of the IV and the file key.
 

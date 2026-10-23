@@ -10,6 +10,13 @@ import hashlib
 
 from lib.test_helpers import runtime_iterations, iteration_override_enabled
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # Cisco-IOS $8$: PBKDF2-HMAC-SHA256, base64 encoded, then moved into Cisco's own alphabet.
 
 CISCO = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",

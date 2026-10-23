@@ -11,6 +11,13 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16), 'dpic': (2, 16)},
+  }
+
+
 # iTunes backup 10.x. Same RFC 3394 AES key wrap as -m 14700, with an extra PBKDF2-HMAC-SHA256 pass
 # over a second salt (DPSL) feeding the SHA1 pass that derives the KEK.
 
@@ -19,7 +26,7 @@ ITUNES_BACKUP_KEY = 12008468691120727718
 MASK64 = 0xffffffffffffffff
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(14800)
 
 

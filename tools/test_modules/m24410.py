@@ -12,6 +12,13 @@ from Crypto.Util.Padding import pad, unpad
 
 from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # PKCS8 private key, PBKDF2-HMAC-SHA1 key derivation ($PEM$1). cid selects the CBC cipher and key
 # length: 1 is 3DES-EDE (8 byte IV), 2/3/4 are AES-128/192/256 (16 byte IV), all with PKCS7
 # padding. Since perl has no ASN.1 parser, a decrypt is accepted when the plaintext shrank (padding
@@ -57,7 +64,7 @@ HID       = "1"
 KEY_LEN   = {1: 24, 2: 16, 3: 24, 4: 32}
 
 
-# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects test.py's per-mode parameters.
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
 ITERATION_PARAMETERS = test_iteration_parameters(24410)
 
 NORMAL_ITERATIONS = 2048
