@@ -246,7 +246,7 @@ def preserve_inputs(cmd, stdin_bytes=None):
 
   def is_scratch_file(a):
     try:
-      return os.path.isfile(a) and os.path.realpath(a).startswith(tmp_root)
+      return os.path.isfile(a) and os.path.realpath(os.fsdecode(a)).startswith(tmp_root)
     except (TypeError, ValueError):
       return False
 
@@ -5539,6 +5539,8 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
 
       errors += 1
 
+      log_result(rc)
+
       print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
             % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i))
 
@@ -5564,6 +5566,8 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
         continue
 
       errors += 1
+
+      log_result(10)
 
       print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
             % (ctx.mode, ctx.attack, ctx.ktype, width, i))
@@ -5770,6 +5774,8 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
     if attack == 9 and b"Mixed iteration counts are not supported" in out:
       return 0, 1, False
 
+    log_result(rc)
+
     print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi"
           % (rc, mode, attack, ctx.ktype, width))
 
@@ -5790,6 +5796,8 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   if got != want:
     if edge_out_verifies(mode, raw, [dig for _, _, _, dig in selected], tmp) == True:
       return 0, 1, False
+
+    log_result(10)
 
     print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, multi"
           % (mode, attack, ctx.ktype, width))
