@@ -636,6 +636,8 @@ All manual changes will be overwritten!
 | [`70200`](/src/modules/module_70200.c) | `scrypt [Bridged: Scrypt-Yescrypt]` | <sup>  [p](/OpenCL/m70100-pure.cl) </sup> | [:white_check_mark:](/tools/test_modules/m70200.py) | `SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c=` |
 | [`73000`](/src/modules/module_73000.c) | `Generic Hash [Bridged: Python]` | <sup>  [p](/OpenCL/m73000-pure.cl) </sup> | [:white_check_mark:](/tools/test_modules/m73000.py) | `33522b0fd9812aa68586f66dba7c17a8ce64344137f9c7d8b11f32a6921c22de*9348746780603343` |
 | [`74000`](/src/modules/module_74000.c) | `Generic Hash [Bridged: Rust]` | <sup>  [p](/OpenCL/m72000-pure.cl) </sup> | [:white_check_mark:](/tools/test_modules/m74000.py) | `33522b0fd9812aa68586f66dba7c17a8ce64344137f9c7d8b11f32a6921c22de*9348746780603343` |
+| [`75000`](/src/modules/module_75000.c) | `bcrypt $2*$, Blowfish (Unix) [Bridged: FPGA]` | <sup>  [p](/OpenCL/m75000-pure.cl) </sup> | [:white_check_mark:](/tools/test_modules/m75000.py) | `$2a$05$MBCzKhG1KhezLh.0LRa0Kuw12nLJtpHy6DIaU.JAnqJUDYspHC.Ou` |
+| [`79000`](/src/modules/module_79000.c) | `bcrypt $2*$, Blowfish (Unix) [Bridged: FPGA fleet simulator]` | <sup>  [p](/OpenCL/m79000-pure.cl) </sup> | :x: | `$2a$05$MBCzKhG1KhezLh.0LRa0Kuw12nLJtpHy6DIaU.JAnqJUDYspHC.Ou` |
 | [`99999`](/src/modules/module_99999.c) | `Plaintext` | <sup>  [a0o](/OpenCL/m00900_a0-optimized.cl),&nbsp;[a1o](/OpenCL/m00900_a1-optimized.cl),&nbsp;[a3o](/OpenCL/m00900_a3-optimized.cl),&nbsp;[recipe](/docs/hashcat-hash-recipe.md) </sup> | [:white_check_mark:](/tools/test_modules/m99999.py) | `hashcat` |
 
 [^1]: Example password: `HASHCAT`
