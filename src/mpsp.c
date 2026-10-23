@@ -1345,30 +1345,31 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
 }
 
 // css_cnt bounds the markov half of the work. The table has one cs_t per (position, previous
-// character) for the longest mask hashcat accepts, and a round only ever reads the rows belonging to
-// its own positions: sp_exec () and generate_pw () index markov_css_buf[(i * CHARSIZ) + k] for i
-// below css_cnt. Clearing and filling all 256 positions for a four character mask is 64 MB of memset
-// and 16.7 million loop iterations to produce rows nothing can address.
+// character), and a round only ever reads the rows belonging to its own positions: sp_exec () and
+// generate_pw () index markov_css_buf[(i * CHARSIZ) + k] for i below css_cnt.
 //
-// Rows past css_cnt keep whatever an earlier round left in them. That is safe for the same reason,
-// and it is why the bound has to be the mask length after mp_css_utf16le_expand () and
-// mp_css_append_salt () have had their say rather than before.
+// markov_max is how many positions mask_ctx_init () allocated markov_css_buf for, on the host and on
+// each device. It is a maximum over the whole mask queue, taken with mp_css_utf16le_expand () and
+// mp_css_append_salt () allowed for, so no round can exceed it. Clamping css_cnt to it would hide a
+// round that did, because the readers above have no bound of their own, so this checks instead.
 //
 // The root half stays whole. It is 256 entries against 65536, so there is nothing to win and one
 // less thing to reason about.
 
-static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt, const u32 markov_max)
+static int sp_tbl_to_css (hashcat_ctx_t *hashcat_ctx, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt, const u32 markov_max)
 {
-  // Also bounded by what sp_setup_tbl () actually built. The init time bound is the maximum over the
-  // whole queue so no round can exceed it, and this is here so that a future caller cannot turn that
-  // into a read of a slice that was never filled.
+  if (css_cnt > markov_max)
+  {
+    event_log_error (hashcat_ctx, "Mask reaches %u character positions, but only %u were prepared.", css_cnt, markov_max);
 
-  const u32 markov_pos_cnt = MIN (css_cnt, markov_max);
+    return -1;
+  }
 
-  const u32 markov_cnt = markov_pos_cnt * CHARSIZ * CHARSIZ;
+  const u32 markov_cnt = css_cnt * CHARSIZ * CHARSIZ;
 
-  memset (root_css_buf,   0, SP_PW_MAX      *           sizeof (cs_t));
-  memset (markov_css_buf, 0, markov_pos_cnt * CHARSIZ * sizeof (cs_t));
+  memset (root_css_buf, 0, SP_PW_MAX * sizeof (cs_t));
+
+  if (css_cnt > 0) memset (markov_css_buf, 0, (size_t) css_cnt * CHARSIZ * sizeof (cs_t));
 
   /**
    * Convert tables to css
@@ -1430,6 +1431,8 @@ static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *marko
     }
   }
   */
+
+  return 0;
 }
 
 void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
@@ -2260,11 +2263,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+    const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
     hcfree (uniq_tbls);
+
+    if (rc_tbl_to_css == -1) return -1;
 
     // How many values this mask holds, and nothing else. The ?q wordlist is not multiplied in here
     // the way the combinator arm multiplies it, because the feed owns both wordlists and counts them
@@ -2326,11 +2331,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+    const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
     hcfree (uniq_tbls);
+
+    if (rc_tbl_to_css == -1) return -1;
 
     // The whole mask, because the feed produces the whole candidate. status_ctx->words_cnt is not
     // set here: the feed reports this as its keyspace and straight_ctx_update_loop multiplies it by
@@ -2363,11 +2370,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+      const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
       hcfree (uniq_tbls);
+
+      if (rc_tbl_to_css == -1) return -1;
 
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
@@ -2392,11 +2401,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+      const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
       hcfree (uniq_tbls);
+
+      if (rc_tbl_to_css == -1) return -1;
 
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
       {
@@ -2592,11 +2603,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+      const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
       hcfree (uniq_tbls);
+
+      if (rc_tbl_to_css == -1) return -1;
 
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &status_ctx->words_cnt) == -1)
       {
@@ -3277,12 +3290,13 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mask_ctx->root_table_buf   = (hcstat_table_t *) hccalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
 
-  // markov_table_buf and sp_setup_tbl () are at the end of this function rather than here, because how
-  // much of them a run needs is a property of the mask queue and the queue does not exist yet. Nothing
-  // between here and there reads either one: sp_tbl_to_css () is the only reader and it runs per round.
+  // markov_table_buf, markov_css_buf and sp_setup_tbl () are at the end of this function rather than
+  // here, because how much of them a run needs is a property of the mask queue and the queue does not
+  // exist yet. Nothing between here and there reads any of them: sp_tbl_to_css () is the only reader
+  // of the tables, sp_exec () and sp_rank () are the only readers of the css, and all three run per
+  // round.
 
-  mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX,           sizeof (cs_t));
-  mask_ctx->markov_css_buf = (cs_t *) hccalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
+  mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX, sizeof (cs_t));
 
   mask_ctx->mask_from_file = false;
 
@@ -3615,6 +3629,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (mask_ctx->sp_pw_max_used > 0)
   {
     mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc ((size_t) mask_ctx->sp_pw_max_used * CHARSIZ * CHARSIZ, sizeof (hcstat_table_t));
+
+    // One cs_t per (position, previous character), same as the table it is built from, so the same
+    // bound sizes it. At the full 256 positions this is 67 MB that an eight character mask uses two
+    // of, and it was carried on the host and again on every device.
+
+    mask_ctx->markov_css_buf = (cs_t *) hccalloc ((size_t) mask_ctx->sp_pw_max_used * CHARSIZ, sizeof (cs_t));
 
     if (sp_setup_tbl (hashcat_ctx) == -1) return -1;
   }
