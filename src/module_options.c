@@ -859,7 +859,9 @@ static rc_final_t module_option_files_rc (const char *value)
   {
     if (hc_path_exist (name) == false)
     {
-      rc_error = RC_FINAL_ERROR_COMMAND;
+      const int path_errno = errno;
+
+      rc_error = path_missing_rc (path_errno);
 
       break;
     }

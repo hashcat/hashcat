@@ -564,7 +564,12 @@ static bool wordlist_init (generic_global_ctx_t *global_ctx, feed_global_t *feed
     {
       // a wordlist that is there and does not open is the machine's, and stays -1
 
-      if (hc_path_exist (global_ctx->workv[i]) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      if (hc_path_exist (global_ctx->workv[i]) == false)
+      {
+        const int path_errno = errno;
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
+      }
 
       return false;
     }

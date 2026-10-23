@@ -2273,52 +2273,6 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
   return 1;
 }
 
-// A path that is not there is the attack command's, unless the directory it is in is there and may
-// not be searched, or for a file to be created written. That is the machine's, as a hash file left
-// owned by root after a run with sudo is, and stays -1. This asks the directory rather than errno,
-// because the message for the path has been printed by the time it is asked. The Microsoft C runtime
-// refuses X_OK in access (), so there a directory that is there counts as usable.
-
-static rc_final_t path_missing_rc (const char *path, const bool create)
-{
-  char *dir = hcstrdup (path);
-
-  char *sep = strrchr (dir, '/');
-
-  #if defined (_WIN)
-  char *sep_win = strrchr (dir, '\\');
-
-  if ((sep_win != NULL) && ((sep == NULL) || (sep_win > sep))) sep = sep_win;
-  #endif
-
-  if (sep == NULL)
-  {
-    hcfree (dir);
-
-    dir = hcstrdup (".");
-  }
-  else if (sep == dir)
-  {
-    sep[1] = 0;
-  }
-  else
-  {
-    sep[0] = 0;
-  }
-
-  rc_final_t rc_error = RC_FINAL_ERROR_COMMAND;
-
-  #if !defined (_WIN)
-  const int mode = (create == true) ? (W_OK | X_OK) : X_OK;
-
-  if ((hc_path_is_directory (dir) == true) && (access (dir, mode) == -1)) rc_error = RC_FINAL_ERROR;
-  #endif
-
-  hcfree (dir);
-
-  return rc_error;
-}
-
 int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t      *folder_config      = hashcat_ctx->folder_config;
@@ -2338,7 +2292,12 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "%s: %s", user_options->encrypt_with_pubkey, strerror (errno));
 
-      if (hc_path_exist (user_options->encrypt_with_pubkey) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      if (hc_path_exist (user_options->encrypt_with_pubkey) == false)
+      {
+        const int path_errno = errno;
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
+      }
 
       return -1;
     }
@@ -2453,6 +2412,17 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         //return -1;
       }
     }
+    else
+    {
+      const int path_errno = errno;
+
+      if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+      {
+        event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (path_errno));
+
+        return -1;
+      }
+    }
   }
 
   // -a 0 with no wordlist reads its candidates from stdin. A terminal there means nothing is piped in,
@@ -2493,9 +2463,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (wlfile, false));
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2507,9 +2479,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (rp_file) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (rp_file, false));
+        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2549,9 +2523,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (dictfile1) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (dictfile1, false));
+        event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2581,9 +2557,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (dictfile2) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (dictfile2, false));
+        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2661,6 +2639,17 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
       }
+      else
+      {
+        const int path_errno = errno;
+
+        if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+        {
+          event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (path_errno));
+
+          return -1;
+        }
+      }
     }
   }
   else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID))
@@ -2679,9 +2668,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (dictfile2) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (dictfile2, false));
+        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2718,9 +2709,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (wlfile, false));
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2764,6 +2757,17 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
           event_log_error (hashcat_ctx, "Using --custom-charsetX with mask files is misleading. Put custom charsets in the mask file instead.");
 
           status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+          return -1;
+        }
+      }
+      else
+      {
+        const int path_errno = errno;
+
+        if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+        {
+          event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (path_errno));
 
           return -1;
         }
@@ -2782,9 +2786,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (wlfile, false));
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2828,6 +2834,17 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
           event_log_error (hashcat_ctx, "Using --custom-charsetX with mask files is misleading. Put custom charsets in the mask file instead.");
 
           status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+          return -1;
+        }
+      }
+      else
+      {
+        const int path_errno = errno;
+
+        if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+        {
+          event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (path_errno));
 
           return -1;
         }
@@ -2859,9 +2876,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_exist (plugin_name) == false)
         {
-          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+          const int path_errno = errno;
 
-          status_set_rc_error (hashcat_ctx, path_missing_rc (plugin_name, false));
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (path_errno));
+
+          status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
           return -1;
         }
@@ -2890,9 +2909,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (rp_file) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (rp_file, false));
+        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -2996,9 +3017,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_create (outfile_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+        const int path_errno = errno;
 
-        status_set_rc_error (hashcat_ctx, path_missing_rc (outfile_ctx->filename, true));
+        event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (path_errno));
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -3181,9 +3204,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_create (potfile_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+        const int path_errno = errno;
 
-        if (user_options->potfile_path != NULL) status_set_rc_error (hashcat_ctx, path_missing_rc (potfile_ctx->filename, true));
+        event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (path_errno));
+
+        if (user_options->potfile_path != NULL) status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
 
         return -1;
       }
@@ -3238,7 +3263,12 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       module_filename (folder_config, module_hash_mode_resolve (user_options->hash_mode), mode_modulefile, HCBUFSIZ_TINY);
 
-      if (hc_path_exist (mode_modulefile) == false) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      if (hc_path_exist (mode_modulefile) == false)
+      {
+        const int path_errno = errno;
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
+      }
 
       hcfree (mode_modulefile);
 

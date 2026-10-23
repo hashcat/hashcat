@@ -2373,7 +2373,21 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 
   // --stdout and --keyspace take no hash argument
 
-  const bool hash_is_file = (user_options_extra->hc_hash != NULL) && (hc_path_exist (user_options_extra->hc_hash) == true);
+  bool hash_is_file = false;
+
+  if (user_options_extra->hc_hash != NULL)
+  {
+    hash_is_file = hc_path_exist (user_options_extra->hc_hash);
+
+    const int path_errno = errno;
+
+    if ((hash_is_file == false) && (path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+    {
+      event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (path_errno));
+
+      return -1;
+    }
+  }
 
   /**
    * load hashes, part I: find input mode, count hashes
