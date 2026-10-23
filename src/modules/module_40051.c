@@ -5,12 +5,12 @@
  * License: MIT
  */
 
- #include "common.h"
- #include "types.h"
- #include "modules.h"
- #include "bitops.h"
- #include "convert.h"
- #include "shared.h"
+#include "common.h"
+#include "types.h"
+#include "modules.h"
+#include "bitops.h"
+#include "convert.h"
+#include "shared.h"
 #include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;

@@ -74,6 +74,7 @@ void pipe_acc                               (hc_device_param_t *device_param, co
 void pipe_launch_done                       (hc_device_param_t *device_param, const u64 cands);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+int gidd_to_pw_t_host                       (const hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
 u64 gidvid_to_feed_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
 

@@ -2072,6 +2072,44 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   return rc;
 }
 
+// The same candidate from the host copy of the batch being launched. The device copy above waits for
+// the kernel that is running, so the status display, which asks from its own thread, was held back for
+// up to a whole launch. The host copy is what was uploaded, and build_plain () only reads it where the
+// device did not build the base words itself.
+
+int gidd_to_pw_t_host (const hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
+{
+  const pw_idx_t *pws_idx  = device_param->pws_idx;
+  const u32      *pws_comp = device_param->pws_comp;
+
+  if (pws_idx  == NULL) return -1;
+  if (pws_comp == NULL) return -1;
+
+  // Bounded by the size of the buffer, as the device copy is, and not by the batch count, which the
+  // slow candidates path leaves at zero while its batch runs. The checks below keep a read of a batch
+  // that is being swapped inside the buffers.
+
+  if (gidd >= (device_param->size_pws_idx / sizeof (pw_idx_t))) return -1;
+
+  const pw_idx_t pw_idx = pws_idx[gidd];
+
+  const u32 cnt_max  = (u32) (sizeof (pw->i) / sizeof (u32));
+  const u64 comp_max = device_param->size_pws_comp / sizeof (u32);
+
+  if (pw_idx.cnt > cnt_max) return -1;
+  if (pw_idx.len > PW_MAX)  return -1;
+
+  if (((u64) pw_idx.off + (u64) pw_idx.cnt) > comp_max) return -1;
+
+  for (u32 i = 0; i < pw_idx.cnt; i++) pw->i[i] = pws_comp[pw_idx.off + i];
+
+  for (u32 i = pw_idx.cnt; i < 64; i++) pw->i[i] = 0;
+
+  pw->pw_len = pw_idx.len;
+
+  return 0;
+}
+
 // A launch is a chain of host steps around one device step and the steps are spread over several
 // files, so the split can only be seen by accumulating them in one place. The numbers are read as
 // proportions of a whole launch, which is why they are summed rather than sampled.

@@ -1896,7 +1896,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   int plain_len = 0;
 
-  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len);
+  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len, false);
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
