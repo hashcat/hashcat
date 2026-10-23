@@ -162,6 +162,8 @@ typedef enum event_identifier
   EVENT_BACKEND_SESSION_HOSTMEM    = 0x000000a2,
   EVENT_BACKEND_DEVICE_INIT_POST   = 0x000000a3,
   EVENT_BACKEND_DEVICE_INIT_PRE    = 0x000000a4,
+  EVENT_OUTCHECK_PREFLIGHT_POST    = 0x00000150,
+  EVENT_OUTCHECK_PREFLIGHT_PRE     = 0x00000151,
   EVENT_OUTERLOOP_FINISHED         = 0x000000b0,
   EVENT_OUTERLOOP_MAINSCREEN       = 0x000000b1,
   EVENT_OUTERLOOP_STARTING         = 0x000000b2,
@@ -1412,6 +1414,7 @@ typedef struct hashes
   u32          digests_done;
   u32          digests_done_pot;
   u32          digests_done_zero;
+  u32          digests_done_outcheck;
   u32          digests_done_new;
   u32          digests_saved;
 

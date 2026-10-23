@@ -592,6 +592,24 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries");
 }
 
+static void main_outcheck_preflight_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Comparing hashes with outfile check directory. Please be patient...");
+}
+
+static void main_outcheck_preflight_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Compared hashes with outfile check directory");
+}
+
 static void main_rulesfiles_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -655,6 +673,17 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   else if (hashes->digests_done_pot > 1)
   {
     event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries.", hashes->digests_done_pot);
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  if (hashes->digests_done_outcheck == 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed hash found in the outfile check directory.");
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (hashes->digests_done_outcheck > 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in the outfile check directory.", hashes->digests_done_outcheck);
     event_log_info (hashcat_ctx, NULL);
   }
 }
@@ -1580,6 +1609,7 @@ typedef enum main_timing_stage
   MAIN_TIMING_SALT_SORT,
   MAIN_TIMING_HASH_UNIQUE,
   MAIN_TIMING_POTFILE,
+  MAIN_TIMING_OUTCHECK,
   MAIN_TIMING_CANDIDATE_SOURCE,
   MAIN_TIMING_RULES,
   MAIN_TIMING_BITMAP,
@@ -1676,6 +1706,8 @@ static void main_timing_event (const u32 id)
     case EVENT_HASHLIST_UNIQUE_HASH_POST:  main_timing_stop  (MAIN_TIMING_HASH_UNIQUE);      break;
     case EVENT_POTFILE_REMOVE_PARSE_PRE:   main_timing_start (MAIN_TIMING_POTFILE);          break;
     case EVENT_POTFILE_REMOVE_PARSE_POST:  main_timing_stop  (MAIN_TIMING_POTFILE);          break;
+    case EVENT_OUTCHECK_PREFLIGHT_PRE:     main_timing_start (MAIN_TIMING_OUTCHECK);         break;
+    case EVENT_OUTCHECK_PREFLIGHT_POST:    main_timing_stop  (MAIN_TIMING_OUTCHECK);         break;
     case EVENT_CANDIDATE_SOURCE_PRE:       main_timing_start (MAIN_TIMING_CANDIDATE_SOURCE); break;
     case EVENT_CANDIDATE_SOURCE_POST:      main_timing_stop  (MAIN_TIMING_CANDIDATE_SOURCE); break;
     case EVENT_RULESFILES_PARSE_PRE:       main_timing_start (MAIN_TIMING_RULES);            break;
@@ -1812,6 +1844,7 @@ static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled, 
                            + main_timing_msec (MAIN_TIMING_SALT_SORT)
                            + main_timing_msec (MAIN_TIMING_HASH_UNIQUE)
                            + main_timing_msec (MAIN_TIMING_POTFILE)
+                           + main_timing_msec (MAIN_TIMING_OUTCHECK)
                            + main_timing_msec (MAIN_TIMING_CANDIDATE_SOURCE)
                            + main_timing_msec (MAIN_TIMING_BITMAP)
                            + main_timing_msec (MAIN_TIMING_BRIDGE_SALTS)
@@ -1862,6 +1895,7 @@ static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled, 
   main_timing_detail_line (hashcat_ctx, "Sort salts", MAIN_TIMING_SALT_SORT, total, 4);
   main_timing_detail_line (hashcat_ctx, "Remove duplicate hashes", MAIN_TIMING_HASH_UNIQUE, total, 4);
   main_timing_detail_line (hashcat_ctx, "Check potfile", MAIN_TIMING_POTFILE, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Check outfile check directory", MAIN_TIMING_OUTCHECK, total, 4);
 
   if (main_timing_profile.entries[MAIN_TIMING_CANDIDATE_SOURCE].calls > 0)
   {
@@ -1980,6 +2014,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_BACKEND_SESSION_HOSTMEM:   main_backend_session_hostmem   (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICE_INIT_POST:  main_backend_device_init_post  (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICE_INIT_PRE:   main_backend_device_init_pre   (hashcat_ctx, buf, len); break;
+    case EVENT_OUTCHECK_PREFLIGHT_POST:   main_outcheck_preflight_post   (hashcat_ctx, buf, len); break;
+    case EVENT_OUTCHECK_PREFLIGHT_PRE:    main_outcheck_preflight_pre    (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
