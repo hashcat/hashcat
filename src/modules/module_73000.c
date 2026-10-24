@@ -74,7 +74,7 @@ typedef struct
   u32 hash_buf[256];
   u32 hash_len;
 
-  u32 salt_buf[256];
+  u32 salt_buf[32768];
   u32 salt_len;
 
 } generic_io_t;
@@ -111,7 +111,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[1] = 0;
-  token.len_max[1] = 1024;
+  token.len_max[1] = 131072;
   token.sep[1]     = '*';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
@@ -171,7 +171,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const generic_io_t *generic_io = (const generic_io_t *) esalt_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%s", (char *) generic_io->hash_buf, (char *) generic_io->salt_buf);
+  const int line_len = snprintf (line_buf, line_size, "%s*%.*s", (char *) generic_io->hash_buf, (int) generic_io->salt_len, (char *) generic_io->salt_buf);
 
   return line_len;
 }

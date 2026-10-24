@@ -289,6 +289,22 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     return NULL;
   }
 
+  typedef u64 (*RS_GENERIC_IO_SIZE) (void);
+
+  const RS_GENERIC_IO_SIZE generic_io_size = (RS_GENERIC_IO_SIZE) hc_dlsym (bridge_context->lib, "generic_io_size");
+
+  if ((generic_io_size == NULL) || (generic_io_size () != hashcat_ctx->hashconfig->esalt_size))
+  {
+    event_log_error (hashcat_ctx, "Rust plugin salt layout is incompatible. Rebuild %s with the current hashcat-sys.", bridge_context->dynlib_filename);
+
+    hc_dlclose (bridge_context->lib);
+
+    hcfree (bridge_context->dynlib_filename);
+    hcfree (bridge_context);
+
+    return NULL;
+  }
+
   #define HC_LOAD_FUNC_RUST(ptr, name, type)                                                    \
   do                                                                                            \
   {                                                                                             \

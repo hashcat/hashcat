@@ -71,7 +71,7 @@ typedef struct
     u32 hash_buf[256];
     u32 hash_len;
 
-    u32 salt_buf[256];
+    u32 salt_buf[32768];
     u32 salt_len;
 
 } generic_io_t;

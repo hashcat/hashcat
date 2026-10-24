@@ -9,6 +9,11 @@ use std::{
 
 pub use crate::bindings::{bridge_context_t, generic_io_t, generic_io_tmp_t, salt_t};
 
+#[unsafe(no_mangle)]
+pub extern "C" fn generic_io_size() -> u64 {
+    mem::size_of::<generic_io_t>() as u64
+}
+
 /// What one bridge thread is handed for the whole run. The 2 generic bridges keep the same shape,
 /// because 1 C bridge loads either of them through 1 fixed new_context () signature.
 #[repr(C)]
