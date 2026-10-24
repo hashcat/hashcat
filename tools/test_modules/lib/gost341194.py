@@ -16,6 +16,11 @@
 # RFC 5831 test vectors, e.g. the empty string is
 # ce85b99cc46752fffee35cab9a7b0278abb4c2d2055cff685af4912c49490f8d and "abc" is
 # f3134348c44fb1b2a277729e2285ebb5cb5e0f29c975bc753b70497c06a4d51d.
+#
+# gost_crypto () is the same hash with the CryptoPro S-box
+# (id-GostR3411-94-CryptoProParamSet), which hashlib and pycryptodome lack as
+# well. Its empty string is
+# 981e5f3ca30c841487830f84fb433e13ac1101569b9c13584ac483234cd656c0.
 
 MASK32 = 0xFFFFFFFF
 
@@ -31,6 +36,18 @@ SBOX = (
     (1, 15, 13, 0, 5, 7, 10, 4, 9, 2, 3, 14, 6, 11, 8, 12),
 )
 
+# id-GostR3411-94-CryptoProParamSet S-box (RFC 4357).
+CRYPTOPRO_SBOX = (
+    (10, 4, 5, 6, 8, 1, 3, 7, 13, 12, 14, 0, 9, 2, 11, 15),
+    (5, 15, 4, 0, 2, 13, 11, 9, 1, 7, 6, 3, 12, 14, 10, 8),
+    (7, 15, 12, 14, 9, 4, 1, 0, 3, 11, 5, 2, 6, 10, 8, 13),
+    (4, 10, 7, 12, 0, 15, 2, 8, 14, 1, 6, 5, 13, 11, 9, 3),
+    (7, 6, 4, 11, 9, 12, 2, 10, 1, 8, 0, 14, 15, 13, 3, 5),
+    (7, 6, 2, 4, 13, 9, 15, 0, 10, 1, 5, 11, 8, 14, 12, 3),
+    (13, 14, 4, 1, 7, 0, 5, 10, 3, 12, 8, 15, 6, 2, 9, 11),
+    (1, 3, 10, 9, 5, 11, 4, 15, 8, 6, 7, 14, 13, 0, 2, 12),
+)
+
 # GOST 28147-89 round key order: K0..K7 three times, then K7..K0.
 SEQ = tuple(range(8)) * 3 + tuple(range(7, -1, -1))
 
@@ -38,23 +55,23 @@ SEQ = tuple(range(8)) * 3 + tuple(range(7, -1, -1))
 C3 = bytes.fromhex("ff00ffff000000ffff0000ff00ffff0000ff00ff00ff00ffff00ff00ff00ff00")
 
 
-def _t(word):
+def _t(word, sbox=SBOX):
     # The 8 by 4-bit S-box substitution of a 32-bit word.
     out = 0
 
     for i in range(8):
-        out |= SBOX[i][(word >> (4 * i)) & 0xF] << (4 * i)
+        out |= sbox[i][(word >> (4 * i)) & 0xF] << (4 * i)
 
     return out
 
 
-def _round(n, subkey):
-    n = _t((n + subkey) & MASK32)
+def _round(n, subkey, sbox=SBOX):
+    n = _t((n + subkey) & MASK32, sbox)
 
     return ((n << 11) | (n >> 21)) & MASK32
 
 
-def _gost_encrypt(block8, key32):
+def _gost_encrypt(block8, key32, sbox=SBOX):
     # GOST 28147-89 on one 64-bit block under a 256-bit key.
     subkeys = [int.from_bytes(key32[i * 4:i * 4 + 4], "little") for i in range(8)]
 
@@ -62,7 +79,7 @@ def _gost_encrypt(block8, key32):
     n2 = int.from_bytes(block8[4:8], "little")
 
     for i in SEQ:
-        n1, n2 = _round(n1, subkeys[i]) ^ n2, n1
+        n1, n2 = _round(n1, subkeys[i], sbox) ^ n2, n1
 
     return n2.to_bytes(4, "little") + n1.to_bytes(4, "little")
 
@@ -99,7 +116,7 @@ def _psi_n(y, n):
     return y
 
 
-def _step(h, m):
+def _step(h, m, sbox=SBOX):
     # The step (compression) function, H_out = f(H_in, m).
     u, v = h, m
     keys = []
@@ -116,7 +133,7 @@ def _step(h, m):
 
     for j in range(4):
         hj = h[24 - 8 * j:32 - 8 * j][::-1]
-        s = _gost_encrypt(hj, keys[j][::-1])[::-1] + s
+        s = _gost_encrypt(hj, keys[j][::-1], sbox)[::-1] + s
 
     # H_out = psi^61(H xor psi(m xor psi^12(S))).
     x = _psi_n(s, 12)
@@ -127,7 +144,7 @@ def _step(h, m):
     return _psi_n(x, 61)
 
 
-def _digest(data):
+def _digest(data, sbox=SBOX):
     h = bytes(32)
     checksum = 0
     bits = 0
@@ -140,13 +157,17 @@ def _digest(data):
         if len(part) < 32:
             part = bytes(32 - len(part)) + part
 
-        h = _step(h, part)
+        h = _step(h, part, sbox)
 
-    h = _step(h, bits.to_bytes(32, "big"))
-    h = _step(h, checksum.to_bytes(32, "big"))
+    h = _step(h, bits.to_bytes(32, "big"), sbox)
+    h = _step(h, checksum.to_bytes(32, "big"), sbox)
 
     return h[::-1]
 
 
 def hexdigest(data):
     return _digest(data).hex()
+
+
+def gost_crypto(data):
+    return _digest(data, CRYPTOPRO_SBOX)
