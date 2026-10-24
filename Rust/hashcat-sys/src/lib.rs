@@ -22,7 +22,7 @@ mod test {
         let ctx = bindings::generic_io_t {
             hash_buf: [0; 256],
             hash_len: 0,
-            salt_buf: [0; 256],
+            salt_buf: [0; 32768],
             salt_len: 0,
         };
         assert_eq!(ctx.hash_len, 0);

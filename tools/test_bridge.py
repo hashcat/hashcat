@@ -13,8 +13,8 @@
 #   ./hashcat -m 73000 --bridge-parameter1 tools/test_bridge.py /tmp/b.hash /tmp/b.words
 #
 # A bridge line is "sha256(H)*MODE:FAMILY:base64(H)", H being the oracle's own hash line. Mode
-# 73000 splits a line at its first '*' and keeps at most 1024 bytes a side, and many oracle formats
-# carry '*' of their own, so H travels base64 encoded in the salt half and the hash half is a fixed
+# 73000 splits a line at its first '*' and keeps up to 1024 hash bytes and 131072 salt bytes. Oracles
+# can carry '*' of their own, so H travels base64 encoded in the salt half and the hash half is a fixed
 # length digest of it. calc_hash hands H and the candidate to the oracle's module_verify_hash, which
 # regenerates H from the line's own parameters, and returns the digest of that: it equals the hash
 # half only when the candidate is the password. FAMILY is o or p, the IS_OPTIMIZED the vectors were
@@ -43,7 +43,7 @@ for p in (TESTS, os.path.join(ROOT, "Python")):
 
 import hcshared  # noqa: E402
 
-SALT_MAX = 1024
+SALT_MAX = 131072
 
 ST_PASS = "hashcat"
 ST_HASH = "74ee1fae245edd6f27bf36efc3604942479fceefbadab5dc5c0b538c196eb0f1*0:o:ODc0M2I1MjA2M2NkODQwOTdhNjVkMTYzM2Y1Yzc0ZjU="
@@ -74,7 +74,7 @@ def _oracle(mode, family):
 
 def bridge_line(mode, family, oracle_hash):
   # oracle_hash is the oracle's hash line as bytes. Returns the bridge line, or None when it does
-  # not fit the 1024 byte salt half.
+  # not fit the 131072 byte salt half.
 
   salt = b"%d:%s:%s" % (mode, family.encode("ascii"), base64.b64encode(oracle_hash))
 
@@ -107,7 +107,7 @@ def calc_hash(password: bytes, salt: dict) -> str:
 def extract_esalts(esalts_buf):
   esalts = []
 
-  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 1024s I", esalts_buf):
+  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 131072s I", esalts_buf):
     esalts.append({"hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len]})
 
   return esalts
@@ -150,7 +150,7 @@ def vectors(mode, pure, hash_path, word_path):
 
       written += 1
 
-  sys.stderr.write("%d vector(s) written, %d too long for the bridge's 1024 byte salt\n" % (written, skipped))
+  sys.stderr.write("%d vector(s) written, %d too long for the bridge's %d byte salt\n" % (written, skipped, SALT_MAX))
 
 
 if __name__ == "__main__":

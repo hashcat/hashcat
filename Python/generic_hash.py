@@ -37,7 +37,7 @@ def calc_hash(password: bytes, salt: dict) -> str:
 def extract_esalts(esalts_buf: bytes) -> list:
   esalts = []
 
-  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 1024s I", esalts_buf):
+  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 131072s I", esalts_buf):
     esalts.append({ "hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len] })
 
   return esalts

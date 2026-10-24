@@ -125,18 +125,22 @@ The generic modes pass this structure from C:
 typedef struct {
   u32 hash_buf[256];
   u32 hash_len;
-  u32 salt_buf[256];
+  u32 salt_buf[32768];
   u32 salt_len;
 } generic_io_t;
 ```
 
-Each `u32` array is 1024 bytes, so the format string is:
+The fixed record occupies 132104 bytes per hash, about 24.6 GiB for 200000 hashes before plugin worker copies.
+
+Plugins must use the matching record layout. Rebuild Rust plugins against the current `hashcat-sys` when this layout changes. The Rust bridge rejects incompatible layouts before initializing the plugin.
+
+The hash buffer is 1024 bytes and the salt buffer is 131072 bytes (128 KiB), so the format string is:
 
 ```python
 def extract_esalts(esalts_buf: bytes) -> list:
   esalts = []
 
-  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 1024s I", esalts_buf):
+  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 131072s I", esalts_buf):
     esalts.append({ "hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len] })
 
   return esalts

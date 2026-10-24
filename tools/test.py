@@ -6422,7 +6422,7 @@ def bridge_family(mode):
 def bridge_vectors(mode, family, hash_path, word_path):
   # Build bridge-format vectors for a mode from its own oracle, through tools/test_bridge.py, under
   # the given family ("p" or "o"; see bridge_family). Returns the vector count, or -1 when none could
-  # be made: oracle error, or every hash too long for the bridge's 1024 byte salt.
+  # be made: oracle error, or every hash too long for the bridge's salt buffer.
   cmd = [sys.executable, os.path.join(TDIR, "test_bridge.py"), "vectors", str(mode), hash_path, word_path]
 
   if family == "p":
