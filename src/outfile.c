@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "convert.h"
+#include "debugfile.h"
 #include "mpsp.h"
 #include "rp.h"
 #include "emu_inc_rp.h"
@@ -543,15 +544,9 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   const u32 cell_pos = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) ? plain->extra1 : il_pos;
 
-  // The straight kernel is the one that applies a rule, so it is the one that has a rule to report.
-  // That is attack mode 0, 8 and 9 as it always was, and now also the mask attacks, which reach it
-  // through a feed once they are given rules.
-
-  if ((user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) && (user_options_extra->attack_kern != ATTACK_KERN_PCFG)) return 0;
+  if (debugfile_wants_base (hashcat_ctx) == false) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
-
-  if (debug_mode == 0) return 0;
 
   if (user_options->slow_candidates == true)
   {

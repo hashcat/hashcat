@@ -14,6 +14,7 @@
 #include "rp_cpu.h"
 #include "mpsp.h"
 #include "convert.h"
+#include "debugfile.h"
 #include "stdout.h"
 #include "filehandling.h"
 #include "wordlist.h"
@@ -16750,6 +16751,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const bool pws_staging_in_use = (user_options->slow_candidates == true) || (user_options_extra->base_source != BASE_SOURCE_MASK);
 
+    // pws_base is the third staging buffer, and the only one nothing in a normal run reads. It keeps
+    // the base word each slow candidate came from so --debug-mode can report it, and it is charged to
+    // the host budget twice, once per pipeline slot, which is budget kernel_accel is sized against.
+
+    const bool pws_base_in_use = (user_options->slow_candidates == true) && (debugfile_wants_base (hashcat_ctx) == true);
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -16902,11 +16909,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         // size_pws_pre
 
         size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
-
-        // size_pws_base
-
-        size_pws_base = kernel_power_max * sizeof (pw_pre_t);
       }
+
+      // size_pws_base
+
+      if (pws_base_in_use == true) size_pws_base = kernel_power_max * sizeof (pw_pre_t);
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
       // if not, decrease amplifier and try again

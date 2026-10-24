@@ -17,6 +17,7 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
+#include "debugfile.h"
 #include "dispatch.h"
 #include "feed_ctx.h"
 #include "convert.h"
@@ -1182,6 +1183,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_kern = user_options_extra->attack_kern;
   const u32 base_source = user_options_extra->base_source;
 
+  // pw_base_add () copies a whole pw_pre_t per candidate to keep the base word a candidate came from,
+  // and --debug-mode is the only thing that reads one back.
+
+  const bool keep_base = debugfile_wants_base (hashcat_ctx);
+
   // only read inside a WITH_BRAIN block, so a build without the brain has no use for it
 
   MAYBE_UNUSED hashes_t *hashes = hashcat_ctx->hashes;
@@ -1277,7 +1283,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.reject     = &extra_info_combi.reject;
       sc.seek       = true;
       sc.reject_len = true;
-      sc.keep_base  = true;
+      sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
       bool pipe_serial = false;
@@ -1324,7 +1330,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.reject     = &extra_info_generic.reject;
       sc.seek       = true;
       sc.reject_len = true;
-      sc.keep_base  = true;
+      sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
       bool pipe_serial = false;
