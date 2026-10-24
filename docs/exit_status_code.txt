@@ -1,6 +1,7 @@
 Exit Status Codes:
 ==================
 
+-13 = bridge error: a bridge or the plugin it runs could not be loaded or failed (Python, Rust or another assimilation bridge)
 -12 = task error: a file the command names was read, but its content cannot be used (empty or corrupt hashlist, wordlist, rule file, mask file or charset file)
 -11 = self-test failed
 -10 = autotune failure

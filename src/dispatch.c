@@ -22,6 +22,7 @@
 #include "feed_ctx.h"
 #include "convert.h"
 #include "user_options.h"
+#include "bridges.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -1639,6 +1640,13 @@ HC_THREAD_FUNC thread_calc (void *p)
     {
       if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
       {
+        // as in the self-test, the unit drops out, so a run with no unit left ends as an error rather
+        // than as Exhausted with nothing tried
+
+        bridges_failed (hashcat_ctx);
+
+        device_param->skipped_warning = true;
+
         device_param->calc_done = true;
 
         return 0;

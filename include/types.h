@@ -296,6 +296,7 @@ typedef enum status_rc
 
 typedef enum rc_final
 {
+  RC_FINAL_ERROR_BRIDGE       = -13,
   RC_FINAL_ERROR_TASK         = -12,
   RC_FINAL_ERROR_SELFTEST     = -11,
   RC_FINAL_ERROR_AUTOTUNE     = -10,

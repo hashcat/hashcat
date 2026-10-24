@@ -335,6 +335,7 @@ static void main_error_banner (hashcat_ctx_t *hashcat_ctx, const int rc_final, c
   {
     case RC_FINAL_ERROR_COMMAND:      what = "attack command (flags)"; break;
     case RC_FINAL_ERROR_TASK:         what = "task";                   break;
+    case RC_FINAL_ERROR_BRIDGE:       what = "bridge (plugin)";        break;
     case RC_FINAL_ERROR_RUNTIME_SKIP:
     case RC_FINAL_ERROR_MEMORY_HIT:
     case RC_FINAL_ERROR_KERNELCREATE:
@@ -2273,14 +2274,23 @@ int main (int argc, char **argv)
     }
   }
 
-  // A wrong attack command exits -2 and an unusable task exits -12, so a caller can tell them apart
+  // A wrong attack command exits -2, an unusable task -12 and a failed bridge -13, so a caller can tell them apart
   // from the generic -1. Most sites surface as -1, but the restore-value check aborts through
   // myabort, which reports 2, so that code is refined here too. Read before hashcat_session_destroy,
   // while status_ctx is still valid.
 
   const rc_final_t rc_error = status_get_rc_error (hashcat_ctx);
 
-  if (((rc_final == RC_FINAL_ERROR) || (rc_final == RC_FINAL_ABORT)) && (rc_error != RC_FINAL_OK)) rc_final = rc_error;
+  // A bridge failure that did not end the run, such as one only autotune saw, does not turn a later
+  // quit into an error.
+
+  const bool refine_abort = (rc_final == RC_FINAL_ABORT) && (rc_error != RC_FINAL_ERROR_BRIDGE);
+
+  if (((rc_final == RC_FINAL_ERROR) || (refine_abort == true)) && (rc_error != RC_FINAL_OK)) rc_final = rc_error;
+
+  // A bridge failure during autotune or the self-test says nothing about the kernel.
+
+  if (((rc_final == RC_FINAL_ERROR_AUTOTUNE) || (rc_final == RC_FINAL_ERROR_SELFTEST)) && (rc_error == RC_FINAL_ERROR_BRIDGE)) rc_final = RC_FINAL_ERROR_BRIDGE;
 
   // the session teardown below can still log an error, which belongs above the banner, and it takes
   // user_options with it
