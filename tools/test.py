@@ -1076,19 +1076,25 @@ def a4_vectors(mode, pairs, optimized):
   if mode in LUKS_MODES or mode == 40023:
     return None
 
-  if not any(word == b"" for word, _ in pairs):
+  # Mode 20510 removes a six-byte prefix before feeding a candidate to the grammar.
+  min_length = 7 if mode == 20510 else 1
+
+  if not any(len(word) < min_length for word, _ in pairs):
     return None
 
-  spare = oracle_spare(mode, optimized, 1)
+  spare = oracle_spare(mode, optimized, min_length)
 
-  if spare is None or spare[0] == b"":
+  if spare is None or len(spare[0]) < min_length:
     return None
 
-  return [spare if word == b"" else (word, digest) for word, digest in pairs]
+  return [spare if len(word) < min_length else (word, digest) for word, digest in pairs]
 
 
 def attacks_for(spec, mode):
   wanted = ATTACK_ORDER if spec == "all" else [int(spec)]
+
+  if spec == "all" and mode in A12_SKIP:
+    wanted = [a for a in wanted if a != 12]
 
   if mode in MASK_ONLY_MODES:
     return [a for a in wanted if a == 3]
@@ -1111,7 +1117,7 @@ def decode_hashfile(mode, digest):
 
 def oracle_vectors(mode, optimized):
   # Generate this mode's vectors with the same engine test.sh's run_oracle uses. Exit code 2 means
-  # the mode has no kernel for the requested family, which is a Skip and not a failure.
+  # the mode has no kernel for the requested family.
 
   env = oracle_env(mode, optimized)
 
@@ -6422,13 +6428,19 @@ def bridge_vectors(mode, family, hash_path, word_path):
   if family == "p":
     cmd.append("-P")
 
-  proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+  proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
-  if proc.returncode != 0 or not os.path.isfile(hash_path):
-    return -1
+  count = -1
 
-  with open(hash_path, "rb") as fh:
-    return sum(1 for line in fh if line.strip())
+  if proc.returncode == 0 and os.path.isfile(hash_path):
+    with open(hash_path, "rb") as fh:
+      count = sum(1 for line in fh if line.strip())
+
+  if count <= 0 and proc.stderr:
+    sys.stderr.buffer.write(proc.stderr)
+    sys.stderr.buffer.flush()
+
+  return count
 
 
 # A cracked bridge line is "<sha256 hex>*<mode>:<family>:<base64>:<password>", so a line that opens
