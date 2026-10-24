@@ -25,7 +25,6 @@ import hashlib
 import importlib.util
 import os
 import re
-import struct
 import subprocess
 import sys
 
@@ -105,12 +104,7 @@ def calc_hash(password: bytes, salt: dict) -> str:
 
 
 def extract_esalts(esalts_buf):
-  esalts = []
-
-  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 131072s I", esalts_buf):
-    esalts.append({"hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len]})
-
-  return esalts
+  return hcshared.extract_generic_esalts(esalts_buf)
 
 
 # The oracle's test vectors, as test.py reads them: echo <word> | ./hashcat ${OPTS} -a 0 -m N '<h>'.
