@@ -11,12 +11,12 @@ import struct
 from Crypto.Cipher import AES
 
 from lib import office
-from lib.test_helpers import kernel_charset, split_hash_word, utf16le
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le, runtime_iterations
+
 
 # MS Office 2007: 50000 rounds of SHA1, an 0x36/0x5c derivation to the AES key, then AES-ECB.
 
 CHARSET = kernel_charset()
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -29,7 +29,13 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 50000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'])
 
 
 def module_generate_hash(word, salt, iterations=None, param=None, aes_key_size=128):
@@ -37,7 +43,7 @@ def module_generate_hash(word, salt, iterations=None, param=None, aes_key_size=1
 
   salt_bin = bytes.fromhex(salt)
 
-  tmp = office.iterated_key(hashlib.sha1, salt_bin, utf16le(word, CHARSET), 50000)
+  tmp = office.iterated_key(hashlib.sha1, salt_bin, utf16le(word, CHARSET), ITERATIONS)
 
   tmp = hashlib.sha1(tmp + struct.pack("<I", 0)).digest()
 

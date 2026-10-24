@@ -11,11 +11,11 @@ from Crypto.Cipher import AES
 from Crypto.Hash import keccak
 from Crypto.Util.Padding import pad, unpad
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, runtime_iterations
+
 
 # Ethereum pre-sale wallet. PBKDF2-HMAC-SHA256 of the password (its own salt) makes an AES-128 key
 # that CBC encrypts the seed; the keccak-256 of the seed with a trailing 0x02 is the stored check.
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -28,11 +28,17 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 2000}},
   }
 
 
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
+
+
 def module_generate_hash(word, ethaddr, iterations=None, encseed=None):
-  key = hashlib.pbkdf2_hmac("sha256", word, word, 2000, 16)
+  key = hashlib.pbkdf2_hmac("sha256", word, word, ITERATIONS, 16)
 
   if encseed is not None:
     iv = encseed[:16]

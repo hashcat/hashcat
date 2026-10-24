@@ -11,16 +11,36 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, runtime_iterations
+
 
 # KNX IP secure device authentication code. PBKDF2-HMAC-SHA256 turns the password into a 16 byte key
 # that authenticates a Session_Response frame with AES-CCM. Only the MAC is reproduced here, as a
 # CBC-MAC over the formatted associated data xored with the ECB encrypted nonce (the CCM S_0 block).
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 20],
+        'salt_length': [2, 2],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 65536}},
+  }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
+
 
 def device_authentication_code(password):
   return hashlib.pbkdf2_hmac("sha256", password,
-                             b"device-authentication-code.1.secure.ip.knx.org", 65536, 16)
+                             b"device-authentication-code.1.secure.ip.knx.org", ITERATIONS, 16)
 
 
 def block_formatting(b0, associated_data):
@@ -53,20 +73,6 @@ def generate_session_response_mac(secure_session_identifier, public_value_xor, k
   blocks = block_formatting(b0, associated_data)
 
   return encrypt(blocks, nonce, key)
-
-
-def module_test_properties():
-  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
-  return {
-    'constraints': {
-      'pure': {
-        'password_length': [0, 20],
-        'salt_length': [2, 2],
-      },
-      'optimized': None,
-      'combined_length': None,
-    },
-  }
 
 
 def module_generate_hash(word, salt, public_value_xor=None):

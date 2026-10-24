@@ -12,7 +12,8 @@ import struct
 from Crypto.Hash import CMAC
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_bytes
+from lib.test_helpers import random_number, random_bytes, runtime_iterations
+
 
 # WPA-PBKDF2-PMKID+EAPOL. The PMK is PBKDF2-HMAC-SHA1 (4096 iterations) of the
 # passphrase salted by the ESSID. Four record kinds share the format: type 1 is a
@@ -26,7 +27,6 @@ from lib.test_helpers import random_number, random_bytes
 # PMK-R1-Name and type 4 an EAPOL MIC taken over an AES-CMAC key from that
 # hierarchy, so FT is defined for key version 3 only.
 
-
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
   return {
@@ -38,7 +38,13 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 4096}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def _gen_random_wpa_eapol(keyver, snonce):
@@ -146,7 +152,7 @@ def _wpa_prf_512(keyver, pmk, macsta, macap, snonce, anonce):
 
 
 def _pmk(word, essid_bin):
-  return hashlib.pbkdf2_hmac("sha1", word, essid_bin, 4096, 32)
+  return hashlib.pbkdf2_hmac("sha1", word, essid_bin, ITERATIONS, 32)
 
 
 def _ft_kdf_block(key, counter, label, context, size):

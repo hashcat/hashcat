@@ -8,14 +8,14 @@
 import hashlib
 import re
 
-from lib.test_helpers import random_hex_string, split_hash_word
+from lib.test_helpers import runtime_iterations, random_hex_string, split_hash_word
+
 
 # XCA database password, sha512passwT () in lib/pki_evp.cpp: the salt is "T" and 16 hex
 # characters, SHA-512 runs 8000 times over the salt and the password, and the stored value is the
 # salt followed by the digest in uppercase hex.
 
 LINE = re.compile(r"^T([0-9a-fA-F]{16})([0-9a-fA-F]{128})$")
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -28,7 +28,13 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 8000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
@@ -39,7 +45,7 @@ def module_generate_hash(word, salt, iterations=None):
 
   digest = hashlib.sha512(salt_text.encode() + word).digest()
 
-  for _ in range(1, 8000):
+  for _ in range(1, ITERATIONS):
     digest = hashlib.sha512(digest).digest()
 
   return salt_text + digest.hex().upper()

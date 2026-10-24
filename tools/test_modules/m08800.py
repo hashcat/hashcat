@@ -10,7 +10,8 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_iterations
+
 
 # Android FDE <= 4.3. The stored string is
 #
@@ -32,16 +33,6 @@ from lib.test_helpers import random_bytes, random_number
 # bytes of the sector never decrypt correctly and the kernel simply does not look at them).
 # Encrypting the same way is what makes the fields land where the kernel expects.
 
-ITERATIONS = 2000
-DATA_LEN   = 1536
-
-SB_OFF = 1024  # where the superblock starts, and with it the IV of its own tail
-SB_IV  = 16
-SB_LEN = 48
-
-EXT_MAGIC = 0xEF53
-
-
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
   return {
@@ -53,7 +44,20 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 2000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
+DATA_LEN   = 1536
+
+SB_OFF = 1024  # where the superblock starts, and with it the IV of its own tail
+SB_IV  = 16
+SB_LEN = 48
+
+EXT_MAGIC = 0xEF53
 
 
 def _master_key(word, salt_raw, encrypted):

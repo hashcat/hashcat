@@ -9,7 +9,8 @@ import base64
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_iterations
+
 
 # mega.nz password protected link. The link body is base64url of
 #
@@ -24,13 +25,6 @@ from lib.test_helpers import random_bytes, random_number
 # since it decides whether the encrypted key is 16 or 32 bytes and therefore how much data the MAC
 # covers.
 
-ITERATIONS = 100000
-
-ALGORITHM = 2
-TAG_LEN   = 32
-HEAD_LEN  = 1 + 1 + 6 + 32
-
-
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
   return {
@@ -42,7 +36,17 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 100000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
+
+ALGORITHM = 2
+TAG_LEN   = 32
+HEAD_LEN  = 1 + 1 + 6 + 32
 
 
 def _mac(word, salt_raw, data):

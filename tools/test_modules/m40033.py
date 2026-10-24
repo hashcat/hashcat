@@ -9,10 +9,10 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # Atlassian (PBKDF2-HMAC-SHA1): {PKCS5S2} and base64 of the 16 byte salt and a 32 byte key.
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -25,13 +25,19 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 10000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
   salt_bytes = salt.encode("latin-1")
 
-  raw = hashlib.pbkdf2_hmac("sha1", word, salt_bytes, 10000, 32)
+  raw = hashlib.pbkdf2_hmac("sha1", word, salt_bytes, ITERATIONS, 32)
 
   return "{PKCS5S2}" + base64.b64encode(salt_bytes + raw).decode()
 

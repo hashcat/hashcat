@@ -9,7 +9,8 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, runtime_iterations
+
 
 # ENCsecurity Data Vault, MD5 key derivation with a keychain. The MD5 derived key decrypts a 128
 # byte keychain in the parallel AES-ECB counter mode, and the keychain supplies the key that
@@ -21,7 +22,24 @@ ENC_NONCE_SIZE             = 8
 ENC_KEY_SIZE               = 16
 ENC_BLOCK_SIZE             = 16
 ENC_KEYCHAIN_SIZE          = 128
-ENC_DEFAULT_MD5_ITERATIONS = 1000
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 1000}},
+  }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 DEFAULT_SALTS = [
   bytes.fromhex("0fc9e7d08be424f6569d4e72edbc2c5c"),
@@ -44,7 +62,7 @@ def _md5_key(word):
 
   tmp = hashlib.md5(word).digest()
 
-  for _ in range(1, ENC_DEFAULT_MD5_ITERATIONS):
+  for _ in range(1, ITERATIONS):
     tmp = hashlib.md5(tmp).digest()
 
     key = _xor_len(key, tmp, 16)
@@ -77,20 +95,6 @@ def _ctr_stream(aes, ivs, num_keys, counter_start, nblocks):
     counter += 1
 
   return out_all
-
-
-def module_test_properties():
-  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
-  return {
-    'constraints': {
-      'pure': {
-        'password_length': [0, 256],
-        'salt_length': None,
-      },
-      'optimized': None,
-      'combined_length': None,
-    },
-  }
 
 
 def module_generate_hash(word, salt=None, algo=None, iv=None, ct=None, keychain=None):

@@ -813,9 +813,14 @@ def main():
   mode = int(mode)
 
   try:
-    test_iterations.iteration_reduction_requested()
+    selected_env = test_iterations.iteration_environment(mode)
   except ValueError as exc:
     sys.exit(str(exc))
+
+  for name in (test_iterations.ITERATION_RUNTIME_ENV,):
+    os.environ.pop(name, None)
+    if name in selected_env:
+      os.environ[name] = selected_env[name]
 
   # tools/test.sh exports IS_OPTIMIZED, but tools/test_edge.sh hands the same flag to the edge
   # subcommand as an argument instead. A module reads the variable when it is imported, so the

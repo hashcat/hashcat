@@ -9,14 +9,32 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, kernel_charset, utf16be
+from lib.test_helpers import random_number, kernel_charset, utf16be, runtime_scrypt_n
+
 
 # MultiBit HD v2. The key is scrypt over the UTF-16BE password and a fixed salt. Two AES-256-CBC
 # blocks may carry the wallet marker; the real one decrypts to a bitcoinj header that starts with
 # "\norg." followed by lowercase package characters. Verify tries block 1 with the file IV, then
 # block 2 with a fixed IV, and keeps the fields when either decrypts to that marker.
 
-SCRYPT_N = 16384
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'compiled_cost': True, 'limit': 1024, 'scrypt': True},
+    'normal': {'parameters': {'scrypt_n': 16384}},
+  }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+SCRYPT_N = runtime_scrypt_n(ITERATION_DEFAULTS['scrypt_n'])
 SCRYPT_R = 8
 SCRYPT_P = 1
 
@@ -48,20 +66,6 @@ def _derive_key(word):
 
   return hashlib.scrypt(word_utf16be, salt=FIXED_SALT, n=SCRYPT_N, r=SCRYPT_R,
                         p=SCRYPT_P, dklen=32, maxmem=128 * 1024 * 1024)
-
-
-def module_test_properties():
-  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
-  return {
-    'constraints': {
-      'pure': {
-        'password_length': [0, 256],
-        'salt_length': [16, 16],
-      },
-      'optimized': None,
-      'combined_length': None,
-    },
-  }
 
 
 def module_generate_hash(word, iv, block1=None, block2=None):

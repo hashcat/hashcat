@@ -9,15 +9,13 @@ import hashlib
 
 from Crypto.Cipher import ChaCha20_Poly1305
 
-from lib.test_helpers import random_bytes, random_hex_string
+from lib.test_helpers import random_bytes, random_hex_string, runtime_iterations
+
 
 # Cardano Eternl wallet: PBKDF2-HMAC-SHA512 of the password over the 32 byte salt gives a 32 byte
 # ChaCha20-Poly1305 key. The line is ETERNL: then salt, 12 byte nonce, 16 byte tag and the 165 byte
 # ciphertext, each in hex with no separators. Without a ciphertext to decrypt the plaintext is
 # random, so a generated hash is only reproducible through the cross verification, not from a seed.
-
-ITERATIONS = 210012
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -30,7 +28,13 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 210012}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, nonce=None, ciphertext=None, tag=None):

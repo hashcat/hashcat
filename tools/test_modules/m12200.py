@@ -7,13 +7,13 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import runtime_iterations, split_hash_word
+
 
 # eCryptfs: SHA-512 of the 8 byte salt and the password, then 65536 more rounds, 8 bytes of it. A
 # line without the salt field means the default salt.
 
 DEFAULT_SALT = "0011223344556677"
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -26,7 +26,13 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 65536}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'])
 
 
 def module_generate_hash(word, salt, iterations=None, default_salt=False):
@@ -35,7 +41,7 @@ def module_generate_hash(word, salt, iterations=None, default_salt=False):
 
   digest = hashlib.sha512(bytes.fromhex(salt) + word).digest()
 
-  for _ in range(65536):
+  for _ in range(ITERATIONS):
     digest = hashlib.sha512(digest).digest()
 
   if default_salt:

@@ -9,11 +9,31 @@ import hashlib
 
 from Crypto.Cipher import Blowfish
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, runtime_iterations
+
 
 # KWallet 4, the old scheme with no salt and no PBKDF2. The key comes from password2hash and the
 # 64 byte header is Blowfish ECB. KDE byte swaps every 32 bit word of the file before it reaches
 # Blowfish, a bug the on disk format is stuck with.
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 2000}},
+  }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def kwallet_alter_endianity(data):
@@ -41,7 +61,7 @@ def kwallet_password2hash(password):
 
     buf = hashlib.sha1(password[i:i + n]).digest()
 
-    for _ in range(1, 2000):
+    for _ in range(1, ITERATIONS):
       buf = hashlib.sha1(buf).digest()
 
     out += buf
@@ -75,20 +95,6 @@ def kwallet_random_plain(ct_len):
   size = (ct_len - 12).to_bytes(4, "big")[::-1]
 
   return (head + size + bytes(payload)).hex()
-
-
-def module_test_properties():
-  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
-  return {
-    'constraints': {
-      'pure': {
-        'password_length': [0, 256],
-        'salt_length': None,
-      },
-      'optimized': None,
-      'combined_length': None,
-    },
-  }
 
 
 def module_generate_hash(word, salt=None, plain=None, ct_len=88):

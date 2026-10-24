@@ -8,11 +8,11 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # SolarWinds Orion: SHA-512 of a 1024 byte PBKDF2-HMAC-SHA1 key, salted with the first 8 characters
 # of the salt, padded out with a fixed string when it is shorter.
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -25,13 +25,19 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 1000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
   custom = (salt[:8] + "1244352345234")[:8]
 
-  key = hashlib.pbkdf2_hmac("sha1", word, custom.encode("latin-1"), 1000, 1024)
+  key = hashlib.pbkdf2_hmac("sha1", word, custom.encode("latin-1"), ITERATIONS, 1024)
 
   return "$solarwinds$0$%s$%s" % (salt, base64.b64encode(hashlib.sha512(key).digest()).decode())
 

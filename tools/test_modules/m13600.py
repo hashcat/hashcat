@@ -8,12 +8,12 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, runtime_iterations
+
 
 # WinZip AES. PBKDF2-HMAC-SHA1 over the salt yields, in one run, the encryption key, the
 # authentication key and the two password verification bytes. The stored auth code is the first ten
 # bytes of HMAC-SHA1 over the (here empty) data, keyed with the authentication half.
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -26,13 +26,17 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 1000}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, param=None, param2=None, param3=None,
                          param4=None, param5=None, param6=None):
-  iterations = 1000
-
   hash_type = 0 if param is None else int(param)
 
   # mode picks the AES strength (1, 2, 3 for 128, 192, 256)
@@ -59,7 +63,7 @@ def module_generate_hash(word, salt, param=None, param2=None, param3=None,
 
   salt_bin = bytes.fromhex(salt)
 
-  key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, iterations, out_len).hex()
+  key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, ITERATIONS, out_len).hex()
 
   verify_bytes = key[-4:]
 

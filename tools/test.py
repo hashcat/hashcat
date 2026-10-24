@@ -102,6 +102,7 @@ LAST_CMD = None
 # The stdin bytes of that same run, set alongside LAST_CMD. The -a 0 runs feed their candidate words
 # on stdin rather than as a wordlist file, so this is the only copy of them to save on a failure.
 LAST_STDIN = None
+LAST_ENV = None
 
 # test.sh kept a test_<ts>/ folder per run. OUTDIR is its path or None, LOGFULL the open logfull.txt
 # handle. OWN_OUTDIR is True only in the process that made the folder, so a -j child does not
@@ -163,11 +164,15 @@ def reason_for(ret):
   return "hashcat error (return code %d)" % ret
 
 
-def _cmdline(cmd):
+def _cmdline(cmd, env=None):
   # One command line for the log. An edge run's argv is bytes, which str() would write as b'...' reprs,
   # and backslashreplace keeps a byte that is not valid UTF-8 writable to a text file.
+  args = list(cmd)
+  if env is not None and test_iterations.ITERATION_RUNTIME_ENV in env:
+    args.insert(0, "%s=%s" % (test_iterations.ITERATION_RUNTIME_ENV, env[test_iterations.ITERATION_RUNTIME_ENV]))
+
   return " ".join(shlex.quote(a.decode("utf-8", "backslashreplace") if isinstance(a, bytes) else str(a))
-                  for a in cmd)
+                  for a in args)
 
 
 @contextlib.contextmanager
@@ -225,11 +230,11 @@ def logfull_append(text):
         pass
 
 
-def log_output(cmd, output):
+def log_output(cmd, output, env=None):
   # test.sh wrote every run's whole hashcat output to logfull.txt under a header naming the run, so the
   # folder held the entire transcript. Match it: the cmdline as the header, then the output.
   text = output.decode("utf-8", "replace") if isinstance(output, bytes) else output
-  logfull_append("> cmdline : %s\n%s" % (_cmdline(cmd), text.rstrip("\n")))
+  logfull_append("> cmdline : %s\n%s" % (_cmdline(cmd, env), text.rstrip("\n")))
 
 
 def preserve_inputs(cmd, stdin_bytes=None):
@@ -293,7 +298,7 @@ def log_result(ret):
 
   extra = (" (inputs: %s)" % saved) if saved else ""
 
-  logfull_append("%s, cmdline : %s%s" % (reason_for(ret), _cmdline(LAST_CMD), extra))
+  logfull_append("%s, cmdline : %s%s" % (reason_for(ret), _cmdline(LAST_CMD, LAST_ENV), extra))
 
 
 def record(v):
@@ -1017,14 +1022,19 @@ def report_iterations(mode, full_reason=None):
     return
 
   ITERATION_REPORTED.add(mode)
-  kwargs = test_iterations.reduced_iteration_parameters(mode) if full_reason is None else {}
+  kwargs = test_iterations.iteration_parameters(mode) if full_reason is None else {}
 
   if full_reason is None and test_iterations.iteration_reduction_enabled(mode):
     detail = ", ".join("%s=%d" % item for item in kwargs.items())
+    policy = test_iterations.runtime_iteration_policy(mode)
+    if policy:
+      unit = "scrypt N" if policy.get("scrypt") else "loop limit"
+      runtime = "%s=%d (runtime override)" % (unit, policy["limit"])
+      detail = ", ".join(part for part in (detail, runtime) if part)
 
     print("[ test.py ] [ Type %d ] > Reduced generated-vector iterations: %s" % (mode, detail))
   else:
-    reason = full_reason or "no supported 2-iteration encoded-count generator"
+    reason = full_reason or "no supported encoded-count generator or runtime policy"
 
     if not os.path.isfile(os.path.join(TDIR, "test_modules", "m%05d.py" % mode)):
       reason = "no Python test module"
@@ -1217,8 +1227,8 @@ def verdict(c):
   return "OK"
 
 
-def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), allow_hash_copy=True, hash_copy_mode=None):
-  global LAST_CMD, LAST_STDIN
+def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_hash=True, hash_copy_mode=None):
+  global LAST_CMD, LAST_STDIN, LAST_ENV
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
@@ -1228,15 +1238,20 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), allow_hash_
   # there rather than in whatever directory the manager was invoked from.
 
   hash_copy_mode = mode if hash_copy_mode is None else hash_copy_mode
+  env = test_iterations.iteration_environment(mode, generated=generated_hash)
+  LAST_ENV = env
 
-  if allow_hash_copy and test_iterations.iteration_copy_hash(hash_copy_mode) and "--hash-copy" not in cmd:
+  if generated_hash and test_iterations.iteration_copy_hash(hash_copy_mode) and "--hash-copy" not in cmd:
     cmd.append("--hash-copy")
 
-  proc = subprocess.run(cmd, input=stdin_bytes, cwd=ROOT,
+  if generated_hash and test_iterations.iteration_disable_selftest(mode) and "--self-test-disable" not in cmd:
+    cmd.append("--self-test-disable")
+
+  proc = subprocess.run(cmd, input=stdin_bytes, cwd=ROOT, env=env,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   out = proc.stdout + proc.stderr
-  log_output(cmd, out)
+  log_output(cmd, out, env)
 
   return proc.returncode, out
 
@@ -3256,7 +3271,7 @@ def container_crack(args, opts, mode, attack, hash_file, width, label, extra, cr
     return None
 
   rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], crack_mode or mode, hash_file,
-                      None, attack=attack, extra=list(extra), allow_hash_copy=False)
+                      None, attack=attack, extra=list(extra), generated_hash=False)
   log_result(rc)
 
   e = selftest_status(rc)
@@ -4739,7 +4754,7 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
   extra = extra + ["--self-test-disable"]
 
   rc, _ = run_hashcat(opts, mode, hash_file, None, attack=attack, extra=extra,
-                      allow_hash_copy=generated_vector)
+                      generated_hash=generated_vector)
 
   log_result(rc)
 
@@ -5146,7 +5161,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   # Like run_hashcat, but every argument is bytes, because an edge hash, salt or mask can carry a
   # byte that is not valid ASCII and subprocess will not mix str and bytes in one argv.
 
-  global LAST_CMD, LAST_STDIN
+  global LAST_CMD, LAST_STDIN, LAST_ENV
 
   argv = [os.fsencode(BIN)]
   argv += [edge_as_bytes(o) for o in with_bridge_opts(opts, mode)]
@@ -5158,15 +5173,18 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   LAST_CMD = argv
   LAST_STDIN = stdin_bytes
 
+  env = test_iterations.iteration_environment(mode)
+  LAST_ENV = env
+
   if test_iterations.iteration_copy_hash(mode) and b"--hash-copy" not in argv:
     argv.append(b"--hash-copy")
 
-  proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT,
+  proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT, env=env,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   out = proc.stdout + proc.stderr
 
-  log_output(argv, out)
+  log_output(argv, out, env)
 
   return proc.returncode, out
 
@@ -6587,7 +6605,7 @@ def main():
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
   ap.add_argument("--artificially-low-iteration-count", action="store_true",
-                  help="generate supported test hashes with 2 iterations")
+                  help="generate supported test hashes with reduced encoded or runtime iteration counts")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack selftest hash of each mode (generated with reduced counts where supported)")
   ap.add_argument("-M", dest="minimal", action="store_true",

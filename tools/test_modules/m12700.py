@@ -9,7 +9,8 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # Blockchain, My Wallet: PBKDF2-HMAC-SHA1 (10 rounds) of the password over the 16 byte salt, then
 # AES-256-CBC of a fixed JSON header, the salt as IV.
@@ -18,7 +19,6 @@ DATA = (b'{\n"guid" : "00000000-0000-0000-0000-000000000000",\n'
         b'"sharedKey" : "00000000-0000-0000-0000-000000000000",\n'
         b'"options" : {"pbkdf2_iterations":10,"fee_policy":0,"html5_notifications":false,'
         b'"logout_time":600000,"tx_display":0,"always_keep_local_backup":false}')
-
 
 def module_test_properties():
   # Declare input bounds and optional iteration defaults and CI timings for the test tools.
@@ -31,14 +31,20 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 10}},
   }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None, encrypted=None):
   salt_bin = bytes.fromhex(salt)
 
   if encrypted is None:
-    key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, 10, 32)
+    key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, ITERATIONS, 32)
 
     from Crypto.Util.Padding import pad
 
