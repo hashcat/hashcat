@@ -16,6 +16,8 @@
 ## fuzz corpus, when modes are added or removed elsewhere. Not mode % SHARDS,
 ## because most modes are a multiple of 100 and four shards would get them all.
 
+import ast
+import functools
 import json
 import os
 import re
@@ -130,18 +132,55 @@ def balance_shards(modes, n):
     return [sorted(b) for b in bins if b]
 
 
-def test_matrix(groups, kinds):
-    # One matrix entry per shard and kind: optimized, pure, Python bridge or edge tests.
-    # The kinds are separate parallel jobs rather than passes in one,
-    # so running several does not add their times in a single shard. The shard number is only a label
-    # here (unlike fuzz, which keys its corpus off it); the kind is appended to the name so the jobs
-    # of a shard are told apart in the run list.
-    return [{"name": "shard-%d-%s" % (i, kind), "shard": i, "kind": kind,
-             "modes": " ".join(str(m) for m in group)}
-            for kind in kinds
-            for i, group in enumerate(groups)]
+@functools.lru_cache(maxsize=None)
+def kernel_families(mode):
+    # Read the oracle's word constraints without importing its optional crypto dependencies.
+    path = "tools/test_modules/m%05d.py" % mode
+
+    with open(path) as fh:
+        tree = ast.parse(fh.read(), filename=path)
+
+    constraints = next(node for node in tree.body
+                       if isinstance(node, ast.FunctionDef) and node.name == "module_constraints")
+    result = next(node.value for node in constraints.body if isinstance(node, ast.Return))
+
+    return {kind for kind, slot in (("pure", 0), ("opt", 2))
+            if ast.literal_eval(result.elts[slot]) != [-1, -1]}
 
 
+def test_matrix(groups, kinds, fallback=False):
+    # PR checks prefer optimized kernels, falling back to pure for pure-only modes.
+    # Full runs select each supported family once. Bridge runs do not use the mode's kernels.
+    matrix = []
+
+    for i, group in enumerate(groups):
+        selected = {}
+
+        for kind in kinds:
+            for mode in group:
+                if mode in test_modes("--list-container-modes"):
+                    selected.setdefault("container", []).append(mode)
+                    continue
+
+                families = kernel_families(mode)
+                actual = kind
+
+                if kind in ("opt", "pure") and kind not in families:
+                    if fallback and kind == "opt" and "pure" in families:
+                        actual = "pure"
+                    else:
+                        continue
+
+                selected.setdefault(actual, []).append(mode)
+
+        for kind, modes in selected.items():
+            matrix.append({"name": "shard-%d-%s" % (i, kind), "shard": i, "kind": kind,
+                           "modes": " ".join(str(m) for m in modes)})
+
+    return matrix
+
+
+@functools.lru_cache(maxsize=None)
 def test_modes(option):
     # Ask test.py for mode lists that cannot be inferred from the files on disk.
     out = subprocess.run([sys.executable, "tools/test.py", option],
@@ -281,8 +320,8 @@ def main():
     # from the on-disk mode pool. Edge uses that pool with more shards and covers both kernel families
     # in one pass. Container has its own pool and runs once, not per kernel kind.
     # --kinds picks the subset to emit, which is how a manual dispatch selects kinds with
-    # its checkboxes. It defaults to all five. A fuzz run has no kinds, and a pull request stays
-    # optimized only whatever is passed.
+    # its checkboxes. It defaults to all five. A fuzz run has no kinds. A pull request prefers
+    # optimized kernels and falls back to pure kernels where needed.
     ALL_KINDS  = ("opt", "pure", "bridge", "container", "edge")
     test_kinds = list(ALL_KINDS)
 
@@ -379,14 +418,17 @@ def main():
 
             matrix = entries(kind, impacted, shared)
         else:
-            # A pull request stays optimized only, to keep its latency unchanged; the pure and
-            # bridge kinds are left to the weekly and manual runs.
-            matrix = test_matrix(pr_test_shards(impacted), ["opt"])
+            # A PR tests one supported kernel family per mode, preferring optimized.
+            matrix = test_matrix(pr_test_shards(impacted), ["opt"], fallback=True)
 
             if shared:
-                for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
-                    matrix.append({"name": f"minimal-{i}-opt", "shard": -1, "kind": "opt",
-                                   "modes": " ".join(str(m) for m in shard)})
+                minimal = test_matrix(minimal_shards(MINIMAL_SHARDS), ["opt"], fallback=True)
+
+                for entry in minimal:
+                    entry["name"] = entry["name"].replace("shard-", "minimal-", 1)
+                    entry["shard"] = -1
+
+                matrix.extend(minimal)
 
         note = f"{len(impacted)} impacted modes"
 
