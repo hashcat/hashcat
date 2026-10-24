@@ -26,6 +26,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
+                                  | OPTS_TYPE_TEST_ITERATIONS_SCRYPT
                                   | OPTS_TYPE_NATIVE_THREADS;
 static const u64   KERN_BITS      = KERN_BIT_INIT2
                                   | KERN_BIT_LOOP2_PREPARE

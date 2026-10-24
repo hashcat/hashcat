@@ -9,7 +9,14 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
+from lib.test_helpers import random_number, random_hex_string, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # ENCsecurity Data Vault, MD5 key derivation with a keychain. The MD5 derived key decrypts a 128
 # byte keychain in the parallel AES-ECB counter mode, and the keychain supplies the key that
@@ -34,6 +41,12 @@ DEFAULT_SALTS = [
   bytes.fromhex("eae3f44eaf4a8f84f1fab3088569bef8"),
 ]
 
+NORMAL_ITERATIONS = ENC_DEFAULT_MD5_ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
+
 
 def _xor_len(in1, in2, length):
   return bytes(in1[i] ^ in2[i] for i in range(length))
@@ -44,7 +57,7 @@ def _md5_key(word):
 
   tmp = hashlib.md5(word).digest()
 
-  for _ in range(1, ENC_DEFAULT_MD5_ITERATIONS):
+  for _ in range(1, ITERATIONS):
     tmp = hashlib.md5(tmp).digest()
 
     key = _xor_len(key, tmp, 16)

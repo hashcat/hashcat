@@ -11,7 +11,14 @@ import struct
 
 from Crypto.Cipher import Blowfish
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import runtime_iterations, random_bytes, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # Password Safe v2. Like m40011 this is OPTS_TYPE_BINARY_HASHFILE, so the oracle prints the file
 # in base64 and test.sh decodes it back before handing it to hashcat.
@@ -36,6 +43,12 @@ from lib.test_helpers import random_bytes
 
 HEADER_LEN = 56
 TAIL_LEN   = 112
+
+NORMAL_ITERATIONS = 1000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -87,7 +100,7 @@ def _rand_hash(word, rand_stuff):
   bf    = Blowfish.new(key, Blowfish.MODE_ECB)
   block = struct.pack(">II", *struct.unpack("<II", rand_stuff))
 
-  for _ in range(1000):
+  for _ in range(ITERATIONS):
     block = bf.encrypt(block)
 
   return _sha1_zero_state(struct.pack("<II", *struct.unpack(">II", block)) + b"\x00\x00")

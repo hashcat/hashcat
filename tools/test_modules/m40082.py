@@ -8,10 +8,21 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # SAP CODVN H (PWDSALTEDHASH) iSSHA-384: like 40081 but SHA-384, so the stored blob is the final
 # 48 byte digest followed by the salt, and the default iteration count is 5000.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40082)
 
 
 def module_constraints():

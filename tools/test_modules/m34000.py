@@ -9,12 +9,23 @@ import base64
 
 from argon2.low_level import Type, hash_secret_raw
 
-from lib.test_helpers import random_number, split_hash_word
+from lib.test_helpers import random_number, split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'t': (2, 2)},
+  }
+
 
 # Argon2 (argon2d, argon2i, argon2id). The hash keeps the variant, the m/t/p cost parameters and
 # the salt, all of which the verify path reads back so the same raw digest is recomputed.
 
 TYPES = {"argon2d": Type.D, "argon2i": Type.I, "argon2id": Type.ID}
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(34000)
 
 
 def module_constraints():

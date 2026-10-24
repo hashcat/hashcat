@@ -23,6 +23,7 @@ static const char *HASH_NAME      = "Juniper IVE";
 static const u64   KERN_TYPE      = 500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_ITER_OVERRIDE_UNSUPPORTED
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_HASH_COPY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;

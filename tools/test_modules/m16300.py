@@ -11,10 +11,23 @@ from Crypto.Cipher import AES
 from Crypto.Hash import keccak
 from Crypto.Util.Padding import pad, unpad
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # Ethereum pre-sale wallet. PBKDF2-HMAC-SHA256 of the password (its own salt) makes an AES-128 key
 # that CBC encrypts the seed; the keccak-256 of the seed with a trailing 0x02 is the stored check.
+
+NORMAL_ITERATIONS = 2000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -22,7 +35,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, ethaddr, iterations=None, encseed=None):
-  key = hashlib.pbkdf2_hmac("sha256", word, word, 2000, 16)
+  key = hashlib.pbkdf2_hmac("sha256", word, word, ITERATIONS, 16)
 
   if encseed is not None:
     iv = encseed[:16]

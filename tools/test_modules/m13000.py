@@ -7,9 +7,23 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (0, 4)},
+  }
+
 
 # RAR5: PBKDF2-HMAC-SHA256 with 2^n + 32 rounds, the 32 byte key folded to 8 by XOR.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(13000)
+
+NORMAL_ITERATIONS = 15
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -17,13 +31,13 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, iv="0" * 32):
-  iterations = 15 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   key = hashlib.pbkdf2_hmac("sha256", word, bytes.fromhex(salt), (1 << iterations) + 32, 32)
 
   check = bytes(key[i] ^ key[i + 8] ^ key[i + 16] ^ key[i + 24] for i in range(8))
 
-  return "$rar5$16$%s$%d$%s$8$%s" % (salt, iterations, iv, check.hex())
+  return "$rar5$16$%s$%02d$%s$8$%s" % (salt, iterations, iv, check.hex())
 
 
 def module_verify_hash(line):

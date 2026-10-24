@@ -9,7 +9,14 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # KeePass 1 and 2: the password (and optional keyfile) is hashed to a 32 byte key, transformed
 # through many rounds of AES-256-ECB under a random seed, hashed once more and combined with the
@@ -32,6 +39,10 @@ _Q1_T = [
   [0x4, 0xC, 0x7, 0x5, 0x1, 0x6, 0x9, 0xA, 0x0, 0xE, 0xD, 0x8, 0x2, 0xB, 0x3, 0xF],
   [0xB, 0x9, 0x5, 0x1, 0xC, 0x3, 0xD, 0xE, 0x6, 0x4, 0x7, 0xF, 0x2, 0x0, 0x8, 0xA],
 ]
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(13400)
 
 
 def _ror4(x, n):
@@ -311,14 +322,14 @@ def get_random_keepass_salt():
                    transf_random_seed, enc_iv, contents_hash, contents, keyfile_attributes])
 
 
-def module_generate_hash(word, salt, param=None):
+def module_generate_hash(word, salt, param=None, iterations=None):
   if len(salt) == 0:
     salt = get_random_keepass_salt()
 
   salt_arr = _split_star(salt)
 
   version = int(salt_arr[0])
-  iteration = int(salt_arr[1])
+  iteration = int(salt_arr[1]) if iterations is None else int(iterations)
   algorithm = int(salt_arr[2])
 
   final_random_seed = bytes.fromhex(salt_arr[3])

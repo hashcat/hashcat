@@ -9,6 +9,15 @@ import gostcrypto
 
 from lib import shacrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1000, 2000)},
+  }
+
+
 # gost12512crypt: the SHA-crypt shape over Streebog-512, with its own round schedule and output
 # transposition. The digests are used in gostcrypto's byte order, not reversed.
 #
@@ -38,6 +47,10 @@ TRANSPOSE_512 = (
 )
 
 HASH64 = b"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(35600)
 
 
 def H(data):

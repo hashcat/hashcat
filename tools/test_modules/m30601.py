@@ -11,6 +11,15 @@ import hmac
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (4, 5)},
+  }
+
+
 # bcrypt-sha256 v2 (passlib): the bcrypt password is the standard base64 of
 # HMAC-SHA256(key=bcrypt_base64(salt), msg=word). pycryptodome emits a full $2a crypt string; its
 # last 31 chars are the bcrypt-base64 of the 23 byte hash, which is what the format wants.
@@ -19,6 +28,10 @@ _STD2BC = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
                         "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 _BC2STD = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(30601)
 
 
 def _en_base64(data):

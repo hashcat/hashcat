@@ -10,7 +10,14 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # MetaMask (short). PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The
 # ciphertext is fixed at 64 bytes and carries no tag: the oracle only checks that the plaintext is
@@ -24,6 +31,12 @@ FIXED_PT = ("[{\"type\":\"HD Key Tree\",\"data\":{\"mnemonic\":"
             "\"hdPath\":\"m/44'/60'/0'/0\"}}]").encode("ascii")
 
 CT_LEN = 64
+
+NORMAL_ITERATIONS = 10000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -41,7 +54,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
   salt_bin = bytes.fromhex(salt)
   iv_bin   = bytes.fromhex(iv)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, 10000, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, ITERATIONS, 32)
 
   if ct is None:
     pt = FIXED_PT

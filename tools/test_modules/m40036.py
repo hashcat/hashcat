@@ -7,10 +7,23 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # Oracle T: PBKDF2-HMAC-SHA512 salted with the 16 byte salt and AUTH_PBKDF2_SPEEDY_KEY, then SHA-512
 # of the key and the salt, all in upper case hex.
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -20,7 +33,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   salt_bin = bytes.fromhex(salt)
 
-  key = hashlib.pbkdf2_hmac("sha512", word, salt_bin + b"AUTH_PBKDF2_SPEEDY_KEY", 4096, 64)
+  key = hashlib.pbkdf2_hmac("sha512", word, salt_bin + b"AUTH_PBKDF2_SPEEDY_KEY", ITERATIONS, 64)
 
   return (hashlib.sha512(key + salt_bin).hexdigest() + salt).upper()
 

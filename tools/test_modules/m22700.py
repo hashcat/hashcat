@@ -9,7 +9,15 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, kernel_charset, utf16be
+from lib.test_helpers import random_number, kernel_charset, utf16be, runtime_scrypt_n, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
 
 # MultiBit HD v2. The key is scrypt over the UTF-16BE password and a fixed salt. Two AES-256-CBC
 # blocks may carry the wallet marker; the real one decrypts to a bitcoinj header that starts with
@@ -24,6 +32,12 @@ FIXED_SALT = bytes.fromhex("3551038075a3b0c5")
 FIXED_IV   = bytes.fromhex("a344391f538311b329548616c489723e")
 
 BITCOINJ_CHARS = ".abcdefghijklmnopqrstuvwxyz"
+
+NORMAL_SCRYPT_N = SCRYPT_N
+SCRYPT_N = NORMAL_SCRYPT_N
+
+if iteration_override_enabled():
+  SCRYPT_N = runtime_scrypt_n(NORMAL_SCRYPT_N)
 
 
 def _verify_bitcoinj(data):

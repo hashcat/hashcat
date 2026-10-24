@@ -9,11 +9,20 @@ import hashlib
 import hmac
 import os
 import struct
+from functools import partial
 
 from Crypto.Cipher import AES, DES
 from Crypto.Hash import MD4
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import runtime_iteration_limit, random_bytes, random_number, runtime_iterations, test_iteration_parameters, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # DPAPI masterkey v1 with a domain backup key (context 3). The password becomes an MD4 NT hash, two
 # PBKDF2-HMAC-SHA256 rounds derive the user hash, HMAC-SHA1 with the SID derives a key, and a
@@ -25,6 +34,18 @@ PW_CHARSET = "latin1"
 
 if os.environ.get("IS_OPTIMIZED") == "0":
   PW_CHARSET = "utf-8"
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(15310)
+
+NORMAL_USER_HASH_ITERATIONS = 10000
+USER_HASH_ITERATIONS = NORMAL_USER_HASH_ITERATIONS
+COMPUTE_ITERATIONS = int
+
+if iteration_override_enabled():
+  USER_HASH_ITERATIONS = runtime_iterations(NORMAL_USER_HASH_ITERATIONS, initial=1)
+  COMPUTE_ITERATIONS = partial(min, runtime_iteration_limit(initial=1))
 
 
 def module_constraints():
@@ -86,7 +107,7 @@ def dpapi_pbkdf2(password, salt, iterations, keylen, prf):
   while len(t) < keylen:
     u = ui = prf(salt + struct.pack(">I", k), password)
 
-    for _ in range(1, iterations):
+    for _ in range(1, COMPUTE_ITERATIONS(iterations)):
       ui = prf(u, password)
       u = _xor(u, ui)
 
@@ -96,7 +117,7 @@ def dpapi_pbkdf2(password, salt, iterations, keylen, prf):
   return t[:keylen]
 
 
-def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None):
+def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None, iterations=None):
   if dpapimk_salt is None:
     dpapimk_salt = get_random_dpapimk_salt(1)
 
@@ -107,7 +128,7 @@ def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None):
   SID              = salt_arr[2]
   cipher_algorithm = salt_arr[3]
   hash_algorithm   = salt_arr[4]
-  iterations       = int(salt_arr[5])
+  iterations       = int(salt_arr[5]) if iterations is None else int(iterations)
   salt             = bytes.fromhex(salt_arr[6])
   cipher_len       = int(salt_arr[7])
 
@@ -118,7 +139,7 @@ def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None):
 
   ntlm_hash = MD4.new(word.decode(PW_CHARSET).encode("utf-16-le")).digest()
 
-  user_hash = hashlib.pbkdf2_hmac("sha256", ntlm_hash, sid_enc, 10000, 32)
+  user_hash = hashlib.pbkdf2_hmac("sha256", ntlm_hash, sid_enc, USER_HASH_ITERATIONS, 32)
   user_hash = hashlib.pbkdf2_hmac("sha256", user_hash, sid_enc, 1, 16)
 
   user_derivation_key = _hmac_sha1((SID + "\x00").encode("utf-16-le"), user_hash)

@@ -9,7 +9,22 @@ import hashlib
 
 from lib import sspr
 
+from lib.test_helpers import iteration_override_enabled, runtime_iterations
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
 # NetIQ SSPR (SHA1): 100000 rounds, no salt, see lib/sspr.py.
+
+NORMAL_ITERATIONS = 100000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -17,11 +32,11 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return sspr.generate_hash(1, hashlib.sha1, 100000, word, "NONE")
+  return sspr.generate_hash(1, hashlib.sha1, NORMAL_ITERATIONS, word, "NONE", effective_iterations=ITERATIONS)
 
 
 def module_verify_hash(line):
-  parsed = sspr.parse(1, 100000, line)
+  parsed = sspr.parse(1, NORMAL_ITERATIONS, line)
 
   if parsed is None or parsed[0] != "NONE":
     return None

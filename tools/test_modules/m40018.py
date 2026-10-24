@@ -7,9 +7,23 @@
 
 import hashlib
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # macOS v10.8+: PBKDF2-HMAC-SHA512 with a 32 byte salt, all in hex.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40018)
+
+NORMAL_ITERATIONS = 1024
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -17,7 +31,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 1024 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   if not salt:
     salt = random_hex_string(64)

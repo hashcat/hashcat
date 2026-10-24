@@ -9,7 +9,15 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, kernel_charset, utf16be
+from lib.test_helpers import random_bytes, kernel_charset, utf16be, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'n': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
 
 # MultiBit Classic (.key). The key is scrypt over the UTF-16BE password and an 8 byte salt. A
 # single AES-256-CBC block carries a fixed 16 byte marker of 0x10 octets, which is what the pure
@@ -23,25 +31,29 @@ SCRYPT_P = 1
 DATA_FIXED = b"\x10" * 16
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(27700)
+
+
 def module_constraints():
   return [[0, 256], [8, 8], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def _derive_key(word, salt):
+def _derive_key(word, salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P):
   word_utf16be = utf16be(word, kernel_charset())
 
-  return hashlib.scrypt(word_utf16be, salt=salt, n=SCRYPT_N, r=SCRYPT_R,
-                        p=SCRYPT_P, dklen=32, maxmem=128 * 1024 * 1024)
+  return hashlib.scrypt(word_utf16be, salt=salt, n=n, r=r,
+                        p=p, dklen=32, maxmem=128 * 1024 * 1024)
 
 
-def module_generate_hash(word, salt, iv=None, data=None):
+def module_generate_hash(word, salt, iv=None, data=None, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
   if iv is None:
     iv = random_bytes(16)
 
-  key = _derive_key(word, salt)
+  key = _derive_key(word, salt, n, r, p)
 
   data_block = b""
 
@@ -53,7 +65,7 @@ def module_generate_hash(word, salt, iv=None, data=None):
   else:
     data_block = AES.new(key, AES.MODE_CBC, iv).encrypt(DATA_FIXED)
 
-  return "$multibit$3*%d*%d*%d*%s*%s" % (SCRYPT_N, SCRYPT_R, SCRYPT_P,
+  return "$multibit$3*%d*%d*%d*%s*%s" % (n, r, p,
                                          salt.hex(), (iv + data_block).hex())
 
 
@@ -90,6 +102,6 @@ def module_verify_hash(line):
   if len(data) != 32 or any(c not in hexset for c in data):
     return None
 
-  new_hash = module_generate_hash(word, bytes.fromhex(salt), bytes.fromhex(iv), bytes.fromhex(data))
+  new_hash = module_generate_hash(word, bytes.fromhex(salt), bytes.fromhex(iv), bytes.fromhex(data), int(fields[1]), int(fields[2]), int(fields[3]))
 
   return (new_hash, word)

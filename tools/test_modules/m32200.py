@@ -10,7 +10,14 @@ import hmac
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # Kerberos 5 AS-REP with AES256-CTS-HMAC-SHA1-96 (etype 18). The key is derived with
 # PBKDF2-HMAC-SHA1 then the RFC 3961 DK function, encryption is AES in CBC-CS3 ciphertext
@@ -35,6 +42,12 @@ CLEARTEXT_TICKET = (
   "32315aa811180f32303233303331373135353732315aa90d1b0b4558414d504c452e434f4"
   "daa20301ea003020101a11730151b066b72627467741b0b4558414d504c452e434f4d"
 )
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def _cbc_enc(data, key):
@@ -73,7 +86,7 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="e
                          checksum=None, edata2=None):
   mysalt = (realm.upper() + user).encode()
 
-  b_seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, 4096, KEYSIZE)
+  b_seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, ITERATIONS, KEYSIZE)
 
   b_key_bytes = _dk(KERBEROS_NFOLDED, b_seed)
 

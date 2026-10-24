@@ -11,11 +11,24 @@ import struct
 from Crypto.Cipher import AES
 
 from lib import office
-from lib.test_helpers import kernel_charset, split_hash_word, utf16le
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # MS Office 2007: 50000 rounds of SHA1, an 0x36/0x5c derivation to the AES key, then AES-ECB.
 
 CHARSET = kernel_charset()
+
+NORMAL_ITERATIONS = 50000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -27,7 +40,7 @@ def module_generate_hash(word, salt, iterations=None, param=None, aes_key_size=1
 
   salt_bin = bytes.fromhex(salt)
 
-  tmp = office.iterated_key(hashlib.sha1, salt_bin, utf16le(word, CHARSET), 50000)
+  tmp = office.iterated_key(hashlib.sha1, salt_bin, utf16le(word, CHARSET), ITERATIONS)
 
   tmp = hashlib.sha1(tmp + struct.pack("<I", 0)).digest()
 

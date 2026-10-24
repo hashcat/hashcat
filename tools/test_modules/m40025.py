@@ -9,10 +9,24 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256): base64 of the iteration count as 4 big endian bytes, the
 # 64 byte salt and a 256 byte key.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40025)
+
+NORMAL_ITERATIONS = 8192
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -20,7 +34,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 8192 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if salt else random_bytes(16)
 

@@ -8,7 +8,16 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
+
+HASHCAT_ARGS = ["--deprecated-check-disable"]
 
 # WPA-PMKID-PBKDF2: the PMK is PBKDF2-HMAC-SHA1 of the passphrase over the ESSID, and the PMKID is
 # the first half of HMAC-SHA1 of "PMK Name", the AP MAC and the station MAC.
@@ -16,6 +25,12 @@ from lib.test_helpers import random_bytes, random_number
 # The perl module refused to verify, because hashcat prints a cracked PMKID with * rather than :
 # between the fields. This one takes either, which is also what the python engine's round trip
 # check needs.
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -32,7 +47,7 @@ def module_generate_hash(word, salt, iterations=None, macap=None, macsta=None, e
   if essid is None:
     essid = random_bytes(random_number(0, 32) & 0x1e).hex()
 
-  pmk = hashlib.pbkdf2_hmac("sha1", word, bytes.fromhex(essid), 4096, 32)
+  pmk = hashlib.pbkdf2_hmac("sha1", word, bytes.fromhex(essid), ITERATIONS, 32)
 
   pmkid = hmac.new(pmk, b"PMK Name" + bytes.fromhex(macap) + bytes.fromhex(macsta), hashlib.sha1).hexdigest()
 

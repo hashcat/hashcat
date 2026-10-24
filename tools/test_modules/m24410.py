@@ -10,7 +10,14 @@ import hashlib
 from Crypto.Cipher import AES, DES3
 from Crypto.Util.Padding import pad, unpad
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # PKCS8 private key, PBKDF2-HMAC-SHA1 key derivation ($PEM$1). cid selects the CBC cipher and key
 # length: 1 is 3DES-EDE (8 byte IV), 2/3/4 are AES-128/192/256 (16 byte IV), all with PKCS7
@@ -57,6 +64,13 @@ HID       = "1"
 KEY_LEN   = {1: 24, 2: 16, 3: 24, 4: 32}
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(24410)
+
+NORMAL_ITERATIONS = 2048
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
+
+
 def module_constraints():
   return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
@@ -74,7 +88,7 @@ def _pbkdf2(word, salt_bin, iterations, key_len):
 
 def module_generate_hash(word, salt, cid=None, iterations=None, iv=None, data=None):
   cid = random_number(1, 4) if cid is None else int(cid)
-  iterations = 2048 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   key_len = KEY_LEN[cid]
 

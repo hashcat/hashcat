@@ -11,10 +11,24 @@ import hashlib
 import hmac
 import re
 
-from lib.test_helpers import random_number, random_string, split_hash_word
+from lib.test_helpers import random_number, random_string, split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # MongoDB ServerKey SCRAM-SHA-1: HMAC-SHA1 of "Server Key" keyed with PBKDF2-HMAC-SHA1
 # of md5(user:mongo:pass) in hex, the user name drawn at random.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(24100)
+
+NORMAL_ITERATIONS = 10000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -22,7 +36,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, user=None):
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   if user is None:
     user = random_string(random_number(0, 57)).encode()

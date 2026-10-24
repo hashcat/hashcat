@@ -11,9 +11,25 @@ import zlib
 
 from base64 import b64decode, b64encode
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Blockchain, My Wallet, Second Password (SHA256). The 16 byte salt is printed as a UUID, hashed
 # with the word and iterated, then packed with the salt, the iteration count and a crc32 tail and
 # base64 encoded.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40040)
+
+NORMAL_ITERATIONS = 10000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -24,7 +40,7 @@ def module_generate_hash(word, salt, iterations=None):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   uuid = "%s-%s-%s-%s-%s" % (salt[0:4].hex(), salt[4:6].hex(), salt[6:8].hex(),
                              salt[8:10].hex(), salt[10:16].hex())

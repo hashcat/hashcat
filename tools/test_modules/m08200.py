@@ -8,11 +8,25 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # 1Password, cloudkeychain: PBKDF2-HMAC-SHA512 of the password, and HMAC-SHA256 over the data with
 # the second half of the key. The salt argument carries the 16 byte salt and the 304 data bytes, in
 # hex, one after the other.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(8200)
+
+NORMAL_ITERATIONS = 40000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -20,7 +34,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 40000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   if not salt:
     salt = random_bytes(16 + 304).hex()

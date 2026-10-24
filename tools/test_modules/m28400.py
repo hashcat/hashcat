@@ -10,11 +10,24 @@ import hashlib
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (4, 5)},
+  }
+
+
 # bcrypt(sha512) $2a$: the word is hashed with SHA-512, and its hex digest is the bcrypt password.
 # Eksblowfish uses only the first 72 key bytes, so the 128 char digest is truncated to match.
 
 BCRYPT64 = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(28400)
 
 
 def module_constraints():

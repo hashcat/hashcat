@@ -12,7 +12,14 @@ import struct
 from Crypto.Hash import CMAC
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_bytes
+from lib.test_helpers import random_number, random_bytes, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # WPA-PBKDF2-PMKID+EAPOL. The PMK is PBKDF2-HMAC-SHA1 (4096 iterations) of the
 # passphrase salted by the ESSID. Four record kinds share the format: type 1 is a
@@ -25,6 +32,12 @@ from lib.test_helpers import random_number, random_bytes
 # PMK feeds the FT key hierarchy instead of the PTK directly. Type 3 holds a
 # PMK-R1-Name and type 4 an EAPOL MIC taken over an AES-CMAC key from that
 # hierarchy, so FT is defined for key version 3 only.
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -136,7 +149,7 @@ def _wpa_prf_512(keyver, pmk, macsta, macap, snonce, anonce):
 
 
 def _pmk(word, essid_bin):
-  return hashlib.pbkdf2_hmac("sha1", word, essid_bin, 4096, 32)
+  return hashlib.pbkdf2_hmac("sha1", word, essid_bin, ITERATIONS, 32)
 
 
 def _ft_kdf_block(key, counter, label, context, size):

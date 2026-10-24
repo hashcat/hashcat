@@ -27,6 +27,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_THREAD_MULTI_DISABLE
+                                  | OPTS_TYPE_ITER_OVERRIDE_UNSUPPORTED
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";

@@ -9,10 +9,23 @@ import hashlib
 
 from lib import shacrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1, 2)},
+  }
+
+
 # MySQL $A$ (sha256crypt): the SHA-crypt construction with cost * 1000 rounds, the salt and the
 # crypt text both written out in hex, upper case unless the line had it lower.
 
 ITERATION_MULTIPLIER = 1000
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(7401)
 
 
 def sha256(data):

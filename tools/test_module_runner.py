@@ -16,10 +16,13 @@
 
 import glob
 import importlib
+import json
 import os
 import random
 import re
 import sys
+
+import test_iterations
 
 # Checked before any test module is imported, since an older python fails inside one with an error
 # that does not name the interpreter.
@@ -268,23 +271,28 @@ def usage_exit():
 
   sys.stderr.write(
     "\nUsage:\n"
-    " {0} edge        <mode> [attack-type] [optimized]\n"
+    " {0} edge        <mode> [attack-type] [optimized] [--association-groups]\n"
     " {0} single      <mode> [length]\n"
     " {0} spare       <mode> [length]\n"
     " {0} password    <mode> [length]\n"
     " {0} passthrough <mode> [iter]\n"
     " {0} potthrough  <mode> [iter]\n"
     " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
+    " {0} vector      <mode>\n"
     "\n".format(name))
 
   sys.exit(1)
 
 
-def load_module(mode):
+def load_module(mode, missing_dependency_rc=1):
   name = "m%05d" % mode
 
   try:
     return importlib.import_module(name)
+  except ImportError as exc:
+    sys.stderr.write("Could not load test module: %s.py\n%s\n" % (name, exc))
+
+    sys.exit(missing_dependency_rc)
   except Exception as exc:
     sys.exit("Could not load test module: %s.py\n%s" % (name, exc))
 
@@ -397,7 +405,7 @@ def edge_constraints(mod, optimized):
   return word, salt, comb
 
 
-def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok):
+def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters=None, group=None):
   while True:
     word = random_non_ascii_string(word_len, non_ascii_ok)
     salt = random_numeric_string(salt_len)
@@ -405,7 +413,7 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = mod.module_generate_hash(word, salt)
+    digest = test_iterations.generate_iteration_hash(mod, word, salt, **(parameters or {}))
 
     # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
     # again rather than passed on
@@ -423,12 +431,17 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
   # unbalance the quoting around it. Hex contains neither, so a field stays separable whatever the
   # module puts in it, and the consumer decodes rather than parses.
 
-  sys.stdout.write("%d,%d,%d,%d,%d,%s,%s,%s\n" % (
+  line = "%d,%d,%d,%d,%d,%s,%s,%s" % (
     mode, attack_type, 1 if optimized else 0, word_len, salt_len,
-    word.hex(), salt.encode("ascii").hex(), digest.encode("utf-8").hex()))
+    word.hex(), salt.encode("ascii").hex(), digest.encode("utf-8").hex())
+
+  if group is not None:
+    line += ",%d" % group
+
+  sys.stdout.write(line + "\n")
 
 
-def edge(mod, mode, attack_type, optimized):
+def edge(mod, mode, attack_type, optimized, association_groups=False):
   if attack_type not in (0, 1, 3, 4, 6, 7, 8, 9, 12):
     return -1
 
@@ -457,8 +470,17 @@ def edge(mod, mode, attack_type, optimized):
   if attack_type == 4 and word_min == 0:
     word_min = 1
 
+  groups = None
+
+  if association_groups and attack_type == 9 and hasattr(mod, "module_association_parameters"):
+    groups = mod.module_association_parameters()
+
   def emit(word_len, salt_len):
-    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+    if groups is None:
+      edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+    else:
+      for group, parameters in enumerate(groups):
+        edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters, group)
 
   # word_min, salt_min / word_min, salt_max / word_max, salt_min / word_max, salt_max
 
@@ -698,7 +720,7 @@ def single(mod, mode, length, spare=False):
 
         test_helpers.set_rand_state(replay[group])
 
-    digest = mod.module_generate_hash(word_bytes, salt_str, None)
+    digest = test_iterations.generate_iteration_hash(mod, word_bytes, salt_str)
 
     if resume is not None:
       test_helpers.set_rand_state(resume)
@@ -743,7 +765,7 @@ def passthrough(mod, iterations, with_plain):
       if not comb[0] <= len(word_bytes) + salt_len <= comb[1]:
         continue
 
-    digest = mod.module_generate_hash(word_bytes, random_numeric_string(salt_len), iterations)
+    digest = test_iterations.generate_iteration_hash(mod, word_bytes, random_numeric_string(salt_len), iterations)
 
     if digest is None:
       continue
@@ -797,13 +819,28 @@ def main():
 
   kind, mode = argv[0], argv[1]
 
-  if kind not in ("edge", "single", "spare", "password", "passthrough", "potthrough", "verify"):
+  if kind not in ("edge", "single", "spare", "password", "passthrough", "potthrough", "verify", "vector"):
     usage_exit()
 
   if not mode.isdigit():
     sys.exit("Mode must be a number\n")
 
   mode = int(mode)
+
+  try:
+    previous_seed = os.environ.get("HCTEST_SEED")
+    test_iterations.initialize_iteration_seed()
+    if not previous_seed and os.environ.get("HCTEST_SEED"):
+      from lib.test_helpers import seed
+      seed(int(os.environ["HCTEST_SEED"]))
+    selected_env = test_iterations.iteration_oracle_environment(mode)
+  except ValueError as exc:
+    sys.exit(str(exc))
+
+  for name in (test_iterations.ITERATION_RUNTIME_ENV, test_iterations.ITERATION_PARAMETER_ENV):
+    os.environ.pop(name, None)
+    if name in selected_env:
+      os.environ[name] = selected_env[name]
 
   # tools/test.sh exports IS_OPTIMIZED, but tools/test_edge.sh hands the same flag to the edge
   # subcommand as an argument instead. A module reads the variable when it is imported, so the
@@ -816,7 +853,7 @@ def main():
 
     IS_OPTIMIZED = argv[3] != "0"
 
-  mod = load_module(mode)
+  mod = load_module(mode, missing_dependency_rc=3 if kind == "vector" else 1)
 
   for hook in ("module_constraints", "module_generate_hash", "module_verify_hash"):
     if not hasattr(mod, hook):
@@ -840,6 +877,30 @@ def main():
 
   NON_ASCII_OK = non_ascii_supported(mode, mod)
 
+  if kind == "vector":
+    word_range, salt_range, comb = constraints(mod)
+    length = max(word_range[0], min(7, word_range[1]))
+    salt_length = max(0, max(salt_range[0], min(8, salt_range[1])))
+    word = b"A" * length
+    salt = "1" * salt_length
+
+    if hasattr(mod, "module_get_random_password"):
+      word = mod.module_get_random_password(word)
+
+    digest = test_iterations.generate_iteration_hash(mod, word, salt)
+
+    if digest is None:
+      sys.exit("could not generate a reduced-iteration vector")
+
+    checked = mod.module_verify_hash(digest.encode("utf-8") + b":" + word)
+
+    if checked != (digest, word):
+      sys.exit("reduced-iteration vector did not round trip")
+
+    print(json.dumps({"hash": digest, "password_hex": word.hex()}))
+
+    return
+
   if kind == "verify":
     if len(argv) != 5:
       usage_exit()
@@ -855,7 +916,9 @@ def main():
     if not attack_type.isdigit() or optimized not in ("0", "1"):
       usage_exit()
 
-    sys.exit(0 if edge(mod, mode, int(attack_type), optimized == "1") == 0 else 1)
+    grouped = "--association-groups" in argv[4:]
+
+    sys.exit(0 if edge(mod, mode, int(attack_type), optimized == "1", grouped) == 0 else 1)
 
   extra = argv[2] if len(argv) > 2 else None
 

@@ -9,12 +9,26 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # Mozilla key4.db, SHA-384 variant. sha384 of the global salt and password is stretched by
 # PBKDF2-HMAC-SHA256 with the entry salt into the AES-256 key that CBC encrypts "password-check".
 
 CHECK = b"password-check\x02\x02"
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(26150)
+
+NORMAL_ITERATIONS = 10000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -23,7 +37,7 @@ def module_constraints():
 
 def module_generate_hash(word, global_salt, entry_salt=None, iterations=None, iv=None, ct=None):
   entry_salt = random_hex_string(64) if entry_salt is None else entry_salt
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
   iv = random_hex_string(32) if iv is None else iv
 
   global_salt_bin = bytes.fromhex(global_salt)

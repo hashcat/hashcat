@@ -9,8 +9,21 @@ import hashlib
 
 from lib import shacrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1000, 2000)},
+  }
+
+
 # sha256crypt $5$, SHA256 (Unix), see lib/shacrypt.py. The perl module used a salt up to 20 bytes and
 # did not truncate it, unlike libc crypt which stops at 16, so this hashes the whole salt.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(7400)
 
 
 def sha256(data):

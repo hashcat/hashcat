@@ -7,7 +7,23 @@
 
 from lib import aix
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1, 16, 'power2')},
+  }
+
+
 # AIX {ssha1}: PBKDF2-HMAC-SHA1, see lib/aix.py.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40017)
+
+NORMAL_ITERATIONS = 64
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -15,7 +31,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 64 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   return aix.generate_hash("ssha1", "sha1", word, salt, iterations)
 

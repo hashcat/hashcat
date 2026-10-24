@@ -9,11 +9,25 @@ import hashlib
 
 from Crypto.Cipher import Blowfish
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # KWallet 5, PBKDF2-HMAC-SHA512 into a 56 byte Blowfish key, CBC over the 64 byte header. KDE byte
 # swaps every 32 bit word of the file before it reaches Blowfish, a bug the on disk format is stuck
 # with, so the swap is undone before decrypting and redone after encrypting.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(36400)
+
+NORMAL_ITERATIONS = 50000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def kwallet_alter_endianity(data):
@@ -41,7 +55,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, ct_len=88, plain=None):
-  iterations = 50000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
   ct_len     = int(ct_len)
 
   if plain is None:

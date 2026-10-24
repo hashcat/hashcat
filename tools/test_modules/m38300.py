@@ -9,7 +9,14 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # Apple DMG (encrcdsa v2, $dmg$3). PBKDF2-HMAC-SHA1 derives a 24-byte KEK; the 64-byte key blob is
 # the AES-192-CBC wrap of the volume keys. A password is accepted when CBC-decrypting the LAST blob
@@ -20,6 +27,13 @@ from lib.test_helpers import random_bytes
 SIGNATURE    = "$dmg$3"
 KEY_LEN      = 24   # AES-192 KEK
 ITER_DEFAULT = 2048
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(38300)
+
+NORMAL_ITERATIONS = ITER_DEFAULT
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -56,7 +70,7 @@ def _build_blob(word, salt_bin, iterations):
 
 
 def module_generate_hash(word, salt, iterations=None, keyblob=None):
-  iterations = ITER_DEFAULT if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bin = bytes.fromhex(salt)
 

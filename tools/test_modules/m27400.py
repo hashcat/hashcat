@@ -9,7 +9,14 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC). The key encrypts a fixed 16 byte marker; only the
 # first cipher block is stored, so the padding of the rest does not matter.
@@ -17,6 +24,12 @@ from lib.test_helpers import random_hex_string
 DATA = b"type=key:cipher="
 
 ITERATIONS = 10000
+
+NORMAL_ITERATIONS = ITERATIONS
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -33,7 +46,7 @@ def module_generate_hash(word, salt_str, ct_str=None):
 
   encrypted = AES.new(key, AES.MODE_CBC, iv).encrypt(DATA).hex()
 
-  return "$vmx$0$%s$%s$%s%s" % (ITERATIONS, salt.hex(), iv.hex(), encrypted[:32])
+  return "$vmx$0$%s$%s$%s%s" % (NORMAL_ITERATIONS, salt.hex(), iv.hex(), encrypted[:32])
 
 
 def module_verify_hash(line):

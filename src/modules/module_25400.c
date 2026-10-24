@@ -29,6 +29,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
+                                  | OPTS_TYPE_ITER_OVERRIDE_UNSUPPORTED
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";

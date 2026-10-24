@@ -9,7 +9,14 @@ import base64
 import hashlib
 import struct
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # Password Safe v3. The mode is OPTS_TYPE_BINARY_HASHFILE: hashcat is handed a
 # .psafe3 file rather than a hash string, and test.sh rebuilds that file by
@@ -35,6 +42,10 @@ from lib.test_helpers import random_bytes
 
 ITERATIONS_DEFAULT = 2048
 TAIL_LEN           = 288
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40011)
 
 
 def module_constraints():

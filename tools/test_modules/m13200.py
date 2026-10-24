@@ -10,10 +10,21 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_hex_string, random_number, split_hash_word
+from lib.test_helpers import random_bytes, random_hex_string, random_number, split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (6, 16)},
+  }
+
 
 # AxCrypt 1.x. The word's SHA1 xored with the salt gives a 16 byte AES key. The DEK is wrapped with
 # an iterated AES key wrap. Byte slicing and the truncating string xor follow the perl one for one.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(13200)
 
 
 def _xor(a, b):
@@ -38,13 +49,13 @@ def module_constraints():
   return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, param=None):
+def module_generate_hash(word, salt=None, param=None, iterations=None):
   if salt is None or len(salt) == 0:
     salt = get_random_axcrypt_salt()
 
   salt_arr = salt.split("*")
 
-  iteration = int(salt_arr[0])
+  iteration = int(salt_arr[0]) if iterations is None else int(iterations)
   mysalt = bytes.fromhex(salt_arr[1])
 
   iv = "a6a6a6a6a6a6a6a6"

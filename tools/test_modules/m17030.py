@@ -7,6 +7,15 @@
 
 from lib import gpg
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1024, 2048)},
+  }
+
+
 # GPG symmetric secret key protection, S2K iterated and salted, AES-128 or AES-256 in CFB.
 # Integrity is the trailing SHA-1 over the decrypted data, secret key usage 254, which is what
 # module_17030.c check_decoded_data () verifies.
@@ -18,12 +27,20 @@ S2K_HASH    = "sha256"
 S2K_HASH_ID = 8
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(17030)
+
+
 def module_constraints():
   return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None):
-  return gpg.aes_cfb_generate(word, S2K_HASH, S2K_HASH_ID)
+def module_association_parameters():
+  return [{"cipher_algo": 7}, {"cipher_algo": 9}]
+
+
+def module_generate_hash(word, salt, iterations=None, cipher_algo=None):
+  return gpg.aes_cfb_generate(word, S2K_HASH, S2K_HASH_ID, iterations, cipher_algo)
 
 
 def module_verify_hash(line):

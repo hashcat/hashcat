@@ -13,7 +13,15 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from lib.pyserpent import Serpent
 from lib.pytwofish import Twofish
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_scrypt_n, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'scrypt_N': (1024, 2048, 'power2')},
+    'compiled_cost': True,
+  }
+
 
 # BestCrypt v4 volume. The key is scrypt (N=32768, r=16, p=1) of the password
 # salted, and the 64 byte plaintext plus its SHA-256 is encrypted in CBC (zero IV,
@@ -26,6 +34,12 @@ SCRYPT_R = 16
 SCRYPT_P = 1
 
 CRYPTO_TYPE_CONV = (8, 9, 10, 15)
+
+NORMAL_SCRYPT_N = SCRYPT_N
+SCRYPT_N = NORMAL_SCRYPT_N
+
+if iteration_override_enabled():
+  SCRYPT_N = runtime_scrypt_n(NORMAL_SCRYPT_N)
 
 
 def module_constraints():
@@ -89,7 +103,7 @@ def module_generate_hash(word, salt, data=None, type=None):
     salt = salt.encode("latin-1")
 
   # most heavy part of the algorithm
-  maxmem = 128 * SCRYPT_N * SCRYPT_R * 2
+  maxmem = 128 * NORMAL_SCRYPT_N * SCRYPT_R * 2
   key = hashlib.scrypt(word, salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P,
                        dklen=32, maxmem=maxmem)
 

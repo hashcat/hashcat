@@ -10,7 +10,14 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # MetaMask mobile vault. The base64 of the salt is the PBKDF2-HMAC-SHA512 salt, the key it derives
 # does AES-256-CBC with no padding, and only the first 32 bytes of the ciphertext are stored. On
@@ -22,6 +29,12 @@ FAKE_PT = (
   b"rich season gloom husband spring convince attitude boy\",\"numberOfAccounts\":1,"
   b"\"hdPath\":\"m/44'/60'/0'/0\"}}]"
 )
+
+NORMAL_ITERATIONS = 5000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -40,7 +53,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
 
   salt_b64 = base64.b64encode(salt_bytes).decode("ascii")
 
-  key = hashlib.pbkdf2_hmac("sha512", word, salt_b64.encode("ascii"), 5000, 32)
+  key = hashlib.pbkdf2_hmac("sha512", word, salt_b64.encode("ascii"), ITERATIONS, 32)
 
   iv_bin = bytes.fromhex(iv)
 

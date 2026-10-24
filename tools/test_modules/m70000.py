@@ -9,10 +9,25 @@ import base64
 
 from argon2.low_level import Type, hash_secret_raw
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'t': (2, 2)},
+  }
+
 
 # Argon2id in the PHC string form. The memory cost m is in KiB, the same unit the perl passes to
 # Crypt::Argon2 as "<m>k", and the digest length defaults to 16 or 32 bytes.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(70000)
+
+
+NORMAL_T = 3
+DEFAULT_T = ITERATION_PARAMETERS.get('t', NORMAL_T)
 
 
 def b64_nopad(raw):
@@ -31,7 +46,7 @@ def module_constraints():
 
 def module_generate_hash(word, salt, m=None, t=None, p=None, length=None):
   m = 65536 if m is None else int(m)
-  t = 3 if t is None else int(t)
+  t = DEFAULT_T if t is None else int(t)
   p = 1 if p is None else int(p)
   length = random_number(1, 2) * 16 if length is None else int(length)
 

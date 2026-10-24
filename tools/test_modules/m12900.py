@@ -8,10 +8,23 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # Android FDE (Samsung DEK): PBKDF2-HMAC-SHA256 of the password, then HMAC-SHA256 with that key over
 # a second 32 byte salt, which defaults to the first one twice.
+
+NORMAL_ITERATIONS = 4096
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -22,7 +35,7 @@ def module_generate_hash(word, salt, iterations=None, salt2=None):
   if salt2 is None:
     salt2 = salt + salt
 
-  key = hashlib.pbkdf2_hmac("sha256", word, bytes.fromhex(salt), 4096, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, bytes.fromhex(salt), ITERATIONS, 32)
 
   return salt2 + hmac.new(key, bytes.fromhex(salt2), hashlib.sha256).hexdigest() + salt
 

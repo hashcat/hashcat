@@ -9,9 +9,22 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # PBKDF2-HMAC-SHA256, 100000 rounds, passlib style: base64 with . for + and no padding.
+
+NORMAL_ITERATIONS = 100000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def _ab64(data):
@@ -29,7 +42,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   salt_bytes = salt.encode("latin-1")
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bytes, 100000)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bytes, ITERATIONS)
 
   return "$pbkdf2-sha256$100000$%s$%s" % (_ab64(salt_bytes), _ab64(key))
 

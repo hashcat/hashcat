@@ -10,18 +10,33 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_hex_string
+from lib.test_helpers import random_bytes, random_hex_string, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'scrypt_n': (16, 32, 'power2')},
+    'compiled_cost': True,
+  }
+
 
 # Exodus wallet: scrypt(word, salt) gives the AES-256-GCM key that unwraps a 32 byte secret. When a
 # stored ciphertext and tag are present the tag is checked; a mismatch or a fresh generate wraps
 # random bytes instead, so the emitted line is self consistent either way.
 
 
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(28200)
+
+NORMAL_SCRYPT_N = 16384
+DEFAULT_SCRYPT_N = ITERATION_PARAMETERS.get('scrypt_n', NORMAL_SCRYPT_N)
+
+
 def module_constraints():
   return [[4, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None, scrypt_n=16384, scrypt_r=8, scrypt_p=1, iv=None, data=None, tag=None):
+def module_generate_hash(word, salt, iterations=None, scrypt_n=DEFAULT_SCRYPT_N, scrypt_r=8, scrypt_p=1, iv=None, data=None, tag=None):
   if iv is None:
     iv = random_hex_string(24)
 

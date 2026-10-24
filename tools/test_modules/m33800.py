@@ -9,12 +9,25 @@ import base64
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (4, 5)},
+  }
+
+
 # bcrypt(bcrypt) $2a$: the word is bcrypt hashed once, and that 60 char hash string is the password
 # for a second bcrypt with the same cost and salt. pycryptodome's bcrypt writes the $2a$ string
 # itself from a 16 byte salt and a cost of 5 unless the line says otherwise.
 
 BCRYPT64 = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(33800)
 
 
 def module_constraints():

@@ -7,7 +7,20 @@
 
 from lib import passlib_pbkdf2
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Python passlib pbkdf2-sha512, see lib/passlib_pbkdf2.py.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40042)
 
 
 def module_constraints():

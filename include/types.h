@@ -752,8 +752,7 @@ typedef enum opts_type
   OPTS_TYPE_PT_UPPER                 = (1ULL <<  2),
   OPTS_TYPE_PT_LOWER                 = (1ULL <<  3),
   OPTS_TYPE_PT_ADD01                 = (1ULL <<  4),
-  // Bit 5 held OPTS_TYPE_PT_ADD02, which no module ever set and nothing ever read, and then
-  // OPTS_TYPE_AUX5. Both are gone and the bit is free.
+  OPTS_TYPE_ITER_OVERRIDE_UNSUPPORTED = (1ULL <<  5),
   OPTS_TYPE_PT_ADD80                 = (1ULL <<  6),
   OPTS_TYPE_PT_ADDBITS14             = (1ULL <<  7),
   OPTS_TYPE_PT_ADDBITS15             = (1ULL <<  8),
@@ -779,6 +778,7 @@ typedef enum opts_type
   OPTS_TYPE_MT_HEX                   = (1ULL << 28), // mask is always in hex
   OPTS_TYPE_HASH_COPY                = (1ULL << 29),
   OPTS_TYPE_HASH_SPLIT               = (1ULL << 30),
+  OPTS_TYPE_TEST_ITERATIONS_SCRYPT    = (1ULL << 31),
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
@@ -788,7 +788,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
-  // Bits 31 to 44 and bit 50 are free. They held the 16 flags that said which kernels a session
+  // Bits 32 to 44 and bit 50 are free. They held the flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.

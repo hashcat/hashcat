@@ -35,6 +35,9 @@ import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+import test_iterations
+
+
 # On Windows hashcat writes CRLF to a text mode stdout, and every parser below matches LF terminated
 # lines, so CRLF is folded to LF in whatever a run captures.
 if os.name == "nt":
@@ -100,6 +103,9 @@ LAST_CMD = None
 # on stdin rather than as a wordlist file, so this is the only copy of them to save on a failure.
 LAST_STDIN = None
 
+# The effective environment of that run, including whether the test iteration hook was cleared.
+LAST_ENV = None
+
 # test.sh kept a test_<ts>/ folder per run. OUTDIR is its path or None, LOGFULL the open logfull.txt
 # handle. OWN_OUTDIR is True only in the process that made the folder, so a -j child does not
 # regenerate the parent's derived files. PROGRESS is the running tally the interrupt handler prints.
@@ -160,11 +166,16 @@ def reason_for(ret):
   return "hashcat error (return code %d)" % ret
 
 
-def _cmdline(cmd):
+def _cmdline(cmd, env=None):
   # One command line for the log. An edge run's argv is bytes, which str() would write as b'...' reprs,
   # and backslashreplace keeps a byte that is not valid UTF-8 writable to a text file.
+  args = list(cmd)
+
+  if env is not None:
+    args.insert(0, "%s=%s" % (test_iterations.ITERATION_RUNTIME_ENV, env.get(test_iterations.ITERATION_RUNTIME_ENV, "0")))
+
   return " ".join(shlex.quote(a.decode("utf-8", "backslashreplace") if isinstance(a, bytes) else str(a))
-                  for a in cmd)
+                  for a in args)
 
 
 @contextlib.contextmanager
@@ -222,11 +233,11 @@ def logfull_append(text):
         pass
 
 
-def log_output(cmd, output):
+def log_output(cmd, output, env=None):
   # test.sh wrote every run's whole hashcat output to logfull.txt under a header naming the run, so the
   # folder held the entire transcript. Match it: the cmdline as the header, then the output.
   text = output.decode("utf-8", "replace") if isinstance(output, bytes) else output
-  logfull_append("> cmdline : %s\n%s" % (_cmdline(cmd), text.rstrip("\n")))
+  logfull_append("> cmdline : %s\n%s" % (_cmdline(cmd, env), text.rstrip("\n")))
 
 
 def preserve_inputs(cmd, stdin_bytes=None):
@@ -290,7 +301,7 @@ def log_result(ret):
 
   extra = (" (inputs: %s)" % saved) if saved else ""
 
-  logfull_append("%s, cmdline : %s%s" % (reason_for(ret), _cmdline(LAST_CMD), extra))
+  logfull_append("%s, cmdline : %s%s" % (reason_for(ret), _cmdline(LAST_CMD, LAST_ENV), extra))
 
 
 def record(v):
@@ -1005,13 +1016,42 @@ def has_multi_hash(mode):
   return edge_hh(mode)["cnt_max"] == 1
 
 
+ITERATION_REPORTED = set()
+
+
+def report_iterations(mode, full_reason=None):
+  if not test_iterations.iteration_reduction_requested() or mode in ITERATION_REPORTED or not is_slow(mode):
+    return
+
+  ITERATION_REPORTED.add(mode)
+  kwargs = test_iterations.iteration_parameters(mode) if full_reason is None else {}
+
+  if full_reason is None and test_iterations.iteration_reduction_enabled(mode):
+    detail = ", ".join("%s=%d" % item for item in kwargs.items())
+    if mode in test_iterations.RUNTIME_ITERATION_MODES:
+      label = "scrypt N limit" if mode in test_iterations.RUNTIME_SCRYPT_MODES else "loop iterations"
+      runtime = "%s=%d (runtime override)" % (label, test_iterations.iteration_runtime_limit(mode))
+      detail = ", ".join(item for item in (detail, runtime) if item)
+
+    print("[ test.py ] [ Type %d ] > Reduced generated-vector iterations: %s" % (mode, detail))
+  else:
+    reason = full_reason or test_iterations.iteration_full_cost_reason(mode)
+
+    if not os.path.isfile(os.path.join(TDIR, "test_modules", "m%05d.py" % mode)):
+      reason = "no Python test module"
+
+    print("[ test.py ] [ Type %d ] > Full iterations: %s" % (mode, reason))
+
+
 def oracle_env(mode, optimized):
   # The environment of an oracle run. A multi run loads its vectors together, so the runner is told
   # what -HH says about hashes that share a salt: where they are not allowed, UNIQUE_SALT keeps it from
   # drawing one salt twice, and where they are, SHARED_SALT has some of the vectors share a salt, so
   # that the run tests it.
 
-  env = dict(os.environ)
+  report_iterations(mode)
+
+  env = test_iterations.iteration_oracle_environment(mode)
   env["IS_OPTIMIZED"] = "1" if optimized else "0"
 
   # The runner reads the two flags by name alone, so one left in the caller's environment must not
@@ -1188,8 +1228,8 @@ def verdict(c):
   return "OK"
 
 
-def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
-  global LAST_CMD, LAST_STDIN
+def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), iteration_override=True, iteration_mode=None):
+  global LAST_CMD, LAST_STDIN, LAST_ENV
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
   LAST_CMD = cmd
@@ -1198,11 +1238,21 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=()):
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
   # there rather than in whatever directory the manager was invoked from.
 
-  proc = subprocess.run(cmd, input=stdin_bytes, cwd=ROOT,
+  iteration_mode = mode if iteration_mode is None else iteration_mode
+  env = test_iterations.iteration_environment(iteration_mode, generated=iteration_override)
+  LAST_ENV = env
+
+  if iteration_override and test_iterations.iteration_copy_hash(iteration_mode) and "--hash-copy" not in cmd:
+    cmd.append("--hash-copy")
+
+  if iteration_override and test_iterations.iteration_disable_selftest(iteration_mode) and "--self-test-disable" not in cmd:
+    cmd.append("--self-test-disable")
+
+  proc = subprocess.run(cmd, input=stdin_bytes, cwd=ROOT, env=env,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   out = proc.stdout + proc.stderr
-  log_output(cmd, out)
+  log_output(cmd, out, env)
 
   return proc.returncode, out
 
@@ -1849,7 +1899,7 @@ def run_verify(mode, digest, crack_lines, tmp):
   open(out_file, "wb").close()
 
   subprocess.run([sys.executable, RUNNER, "verify", str(mode), hashes_file, cracks_file, out_file],
-                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                 env=test_iterations.iteration_oracle_environment(mode), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
   return os.path.getsize(out_file) > 0
 
@@ -3222,7 +3272,7 @@ def container_crack(args, opts, mode, attack, hash_file, width, label, extra, cr
     return None
 
   rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], crack_mode or mode, hash_file,
-                      None, attack=attack, extra=list(extra))
+                      None, attack=attack, extra=list(extra), iteration_override=False)
   log_result(rc)
 
   e = selftest_status(rc)
@@ -4606,23 +4656,22 @@ def selftest_line(ctx, v, e):
   return line
 
 
-def selftest_context(args, mode, attack, width_label):
-  # Like context() but for the self-test line: it always says single, carries the width as a label so
-  # the sweep can pass "default", and ends with the ", self-test vector" tag container_run_and_report
-  # adds (test.sh).
+def selftest_context(args, mode, attack, width_label, generated=False):
+  # Distinguish generated vectors from the published startup self-test vector.
 
   dev = device_for(args, mode)
 
+  vector_label = "generated test vector" if generated else "self-test vector"
+
   return ("[ test.py ] [ Type %d, Attack %d, Mode single, Device-Type %s, Kernel-Type %s, "
-          "Vector-Width %s, self-test vector ]"
+          "Vector-Width %s, %s ]"
           % (mode, attack, DEVICE_LABEL.get(dev, dev),
-             "Pure" if args.pure else "Optimized", width_label))
+             "Pure" if args.pure else "Optimized", width_label, vector_label))
 
 
 def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
-  # test.sh selftest_vector_test (test.sh): crack a mode's own example hash. Returns the output
-  # lines (a Skip, an Error, or the one report line) so the caller can print them and, for the sweep,
-  # read the verdict back. attack 65535 means -a all, which this path runs as a single -a 0 run.
+  # Crack one generated or published vector. Return verdict lines for the sweep to count.
+  # Attack 65535 means -a all, which this path runs as a single -a 0 run.
 
   if attack == 65535:
     attack = 0
@@ -4634,6 +4683,8 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
 
   lines = []
 
+  generated_vector = False
+  full_reason = None
   vector = selftest_vector_read(mode)
 
   if vector is None:
@@ -4643,6 +4694,32 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
     return lines
 
   vhash, vpass, vfmt, deprecated = vector
+
+  if test_iterations.iteration_reduction_enabled(mode):
+    env = test_iterations.iteration_oracle_environment(mode)
+    env["IS_OPTIMIZED"] = "0"
+    proc = subprocess.run([sys.executable, RUNNER, "vector", str(mode)], env=env,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if proc.returncode not in (0, 3):
+      lines.append("[ test.py ] [ Type %d ] > Error : reduced-iteration oracle failed: %s"
+                   % (mode, proc.stderr.decode("utf-8", "replace").strip()))
+      note_verdict("Error")
+
+      return lines
+
+    if proc.returncode == 3:
+      full_reason = "Python oracle dependency unavailable: %s" % proc.stderr.decode("utf-8", "replace").strip().replace("\n", " ")
+    else:
+      generated = json.loads(proc.stdout)
+      generated_vector = True
+      vhash = generated["hash"].encode("utf-8")
+      vpass = bytes.fromhex(generated["password_hex"])
+
+      if "binary file only" in vfmt:
+        vhash = decode_hashfile(mode, generated["hash"]).hex().encode("ascii")
+
+  report_iterations(mode, full_reason)
 
   hash_file = os.path.join(tmp, "%d_selftest.hash" % mode)
 
@@ -4674,14 +4751,15 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
 
   extra = extra + ["--self-test-disable"]
 
-  rc, _ = run_hashcat(opts, mode, hash_file, None, attack=attack, extra=extra)
+  rc, _ = run_hashcat(opts, mode, hash_file, None, attack=attack, extra=extra,
+                      iteration_override=generated_vector)
 
   log_result(rc)
 
   e   = selftest_status(rc)
   msg = selftest_verdict(e)
 
-  lines.append(selftest_line(selftest_context(args, mode, attack, width_label), msg, e))
+  lines.append(selftest_line(selftest_context(args, mode, attack, width_label, generated_vector), msg, e))
   note_verdict(msg)
 
   return lines
@@ -4803,7 +4881,7 @@ def selftest_vector_sweep(args):
   sweep_na    = ""
 
   if not args.selftest_child:
-    print("[ test.py ] > Cracking every hash-mode's own self-test vector")
+    print("[ test.py ] > Cracking one test vector per hash-mode")
 
   with work_dir("test_py_") as tmp:
     for sweep_mode in sweep_modes:
@@ -4847,7 +4925,7 @@ def selftest_vector_sweep(args):
 
 def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault):
   print("")
-  print("[ test.py ] > %d/%d hash-modes cracked their own self-test vector"
+  print("[ test.py ] > %d/%d hash-modes cracked their test vector"
         % (sweep_ok, sweep_total))
 
   if sweep_slow:
@@ -4903,7 +4981,7 @@ def run_parallel_selftest(args):
   sweep_bad   = ""
   sweep_fault = ""
 
-  print("[ test.py ] > Cracking every hash-mode's own self-test vector")
+  print("[ test.py ] > Cracking one test vector per hash-mode")
 
   with ThreadPoolExecutor(max_workers=args.jobs) as pool:
     for mode, out in zip(selected, pool.map(run_one, selected)):
@@ -5038,7 +5116,7 @@ EDGE_WIDTHS     = [1, 2, 4, 8, 16]
 EDGE_RUNTIME    = 270
 
 # 2000 (STDOUT) has an empty kernel and never cracks, so edge-cracking it only makes errors
-# (test_edge.sh SKIP_HASH_TYPES). The deprecated WPA modes are dropped by the -HH check instead.
+# (test_edge.sh SKIP_HASH_TYPES). Deprecated modes require an explicit module option to run.
 
 EDGE_SKIP_MODES = {2000}
 
@@ -5081,7 +5159,7 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   # Like run_hashcat, but every argument is bytes, because an edge hash, salt or mask can carry a
   # byte that is not valid ASCII and subprocess will not mix str and bytes in one argv.
 
-  global LAST_CMD, LAST_STDIN
+  global LAST_CMD, LAST_STDIN, LAST_ENV
 
   argv = [os.fsencode(BIN)]
   argv += [edge_as_bytes(o) for o in with_bridge_opts(opts, mode)]
@@ -5093,12 +5171,18 @@ def edge_run(opts, mode, target, stdin_bytes, attack, extra):
   LAST_CMD = argv
   LAST_STDIN = stdin_bytes
 
+  env = test_iterations.iteration_environment(mode)
+  LAST_ENV = env
+
+  if test_iterations.iteration_copy_hash(mode) and b"--hash-copy" not in argv:
+    argv.append(b"--hash-copy")
+
   proc = subprocess.run(argv, input=stdin_bytes, cwd=ROOT,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   out = proc.stdout + proc.stderr
 
-  log_output(argv, out)
+  log_output(argv, out, env)
 
   return proc.returncode, out
 
@@ -5217,9 +5301,16 @@ def edge_oracle(mode, attack, optimized):
   # The edge vectors for one mode, attack and kernel family, from the same engine test_edge.sh's
   # run_oracle uses. Each line is mode,attack,optimized,word_len,salt_len,word_hex,salt_hex,hash_hex;
   # the fields are hex so a comma or quote in the value never splits the line.
+  # Association vectors can append a group for variants with different kernel schedules.
 
-  proc = subprocess.run([sys.executable, RUNNER, "edge", str(mode), str(attack),
-                         "1" if optimized else "0"],
+  report_iterations(mode)
+
+  cmd = [sys.executable, RUNNER, "edge", str(mode), str(attack), "1" if optimized else "0"]
+
+  if attack == 9:
+    cmd.append("--association-groups")
+
+  proc = subprocess.run(cmd, env=test_iterations.iteration_oracle_environment(mode),
                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
   vectors = []
@@ -5228,14 +5319,15 @@ def edge_oracle(mode, attack, optimized):
     if not line:
       continue
 
-    fields = line.split(b",", 7)
+    fields = line.split(b",")
 
-    if len(fields) < 8:
+    if len(fields) not in (8, 9):
       continue
 
     try:
       word_len = int(fields[3])
       salt_len = int(fields[4])
+      group = int(fields[8]) if len(fields) == 9 else 0
     except ValueError:
       continue
 
@@ -5247,7 +5339,7 @@ def edge_oracle(mode, attack, optimized):
     dig  = bytes.fromhex(fields[7].decode("ascii")).rstrip(b"\n") if fields[7] else b""
 
     vectors.append({"word_len": word_len, "salt_len": salt_len,
-                    "word": word, "salt": salt, "hash": dig})
+                    "word": word, "salt": salt, "hash": dig, "association_group": group})
 
   return vectors, proc.returncode
 
@@ -5689,6 +5781,28 @@ def edge_multi_cmd(ctx, selected, width, tmp):
 
 
 def edge_multi(ctx, width, opts, outfile, vectors, tmp):
+  groups = {}
+
+  for vector in vectors:
+    group = vector.get("association_group", 0) if ctx.attack == 9 else 0
+    groups.setdefault(group, []).append(vector)
+
+  errors = 0
+  cells = 0
+  stop = False
+
+  for group in groups.values():
+    e, c, stop = edge_multi_group(ctx, width, opts, outfile, group, tmp)
+    errors += e
+    cells += c
+
+    if stop:
+      break
+
+  return errors, cells, stop
+
+
+def edge_multi_group(ctx, width, opts, outfile, vectors, tmp):
   mode   = ctx.mode
   attack = ctx.attack
   hh     = ctx.hh
@@ -5836,7 +5950,7 @@ def edge_process_mode(args, mode, cfg, tmp):
 
   hh = edge_hh(mode)
 
-  if hh["deprecated"]:
+  if hh["deprecated"] and "--deprecated-check-disable" not in module_opts(mode):
     print("[ test.py edge ] > Skip Type %d (is deprecated)" % mode)
 
     return 0, 0
@@ -6275,7 +6389,7 @@ def run_parallel_depth(args):
 
     # An -I that lists nothing leaves the -d ids as they are, each once.
 
-    ids = backend_ids_for(args.device, devices=[d for d in listed if d["id"] in picked]) if listed \
+    ids = backend_ids_for(args.device, devices=[d for d in listed if d["id"] in picked]) if listed\
           else list(dict.fromkeys(picked))
   else:
     ids = backend_ids_for(args.device)
@@ -6385,7 +6499,8 @@ def bridge_vectors(mode, family, hash_path, word_path):
   if family == "p":
     cmd.append("-P")
 
-  proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+  proc = subprocess.run(cmd, cwd=ROOT, env=test_iterations.iteration_oracle_environment(mode),
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
   if proc.returncode != 0 or not os.path.isfile(hash_path):
     return -1
@@ -6437,7 +6552,7 @@ def run_bridge(args):
         continue
 
       rc, out = run_hashcat(opts, 73000, hpath, None, attack=0,
-                            extra=["--bridge-parameter1", bridge_py, wpath])
+                            extra=["--bridge-parameter1", bridge_py, wpath], iteration_mode=mode)
 
       cracked = len(BRIDGE_CRACK.findall(out))
 
@@ -6509,7 +6624,7 @@ def main():
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
-                  help="crack every mode's own self-test vector (the -m range, or all modes)")
+                  help="crack one test vector per mode (generated with reduced counts where supported)")
   ap.add_argument("-M", dest="minimal", action="store_true",
                   help="minimal mode: full-test the 24 hash types covering all distinct code paths")
   ap.add_argument("-g", dest="generate", action="store_true",
@@ -6595,6 +6710,15 @@ def main():
 
   if args.attack is None:
     args.attack = "all" if args.edge else "0"
+
+  try:
+    test_iterations.iteration_reduction_requested()
+    test_iterations.initialize_iteration_seed()
+  except ValueError as exc:
+    die("! %s" % exc)
+
+  if test_iterations.iteration_reduction_requested():
+    print("[ test.py ] > Reduced-iteration seed: %s" % os.environ["HCTEST_SEED"])
 
   setup_isolation()
 
@@ -6719,6 +6843,8 @@ def main():
       LUKS_TESTS_DIR  = os.path.join(tmp, "luks_tests_gen")
       LUKS2_TESTS_DIR = os.path.join(tmp, "luks2_tests_gen")
     for mode in selected:
+      report_iterations(mode)
+
       # STDOUT (2000) is not a crack: its kernel is empty, so it is tested by a --stdout round trip
       # (test.sh does the same). Handled before the kernel/oracle checks, which do not apply to it.
       if mode == STDOUT_MODE:
@@ -6738,6 +6864,9 @@ def main():
       # -g adds a real-archive test (GPG/PKZIP/RAR/7-Zip/PDF/OpenSSH) on top of the mode's oracle,
       # which still runs below (test.sh: -g is in addition to the oracle, not in place of it).
       if args.generate and mode in ARCHIVE_GEN_MODES:
+        if test_iterations.iteration_reduction_requested():
+          print("[ test.py ] [ Type %d ] > External archive: full application counts" % mode)
+
         run_generate_archive(args, mode, tmp)
 
       # A SELFTEST_MODES member with no .py oracle takes the self-test vector path. test.sh runs it

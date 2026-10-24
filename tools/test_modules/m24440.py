@@ -8,7 +8,14 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import pack_hex, random_bytes, split_hash_word, utf16be
+from lib.test_helpers import pack_hex, random_bytes, split_hash_word, utf16be, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # PKCS#12 MAC, SHA-256 ($pkcs12$256). The HMAC key comes from the RFC 7292 Appendix B KDF with the
 # diversifier id set to 3. SHA-256 already produces the 32 bytes that key needs, so one block covers
@@ -20,6 +27,13 @@ MAC_ALGO = "256"
 KEY_LEN  = 32
 
 V = 64
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(24440)
+
+NORMAL_ITERATIONS = 2048
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -53,7 +67,7 @@ def _mac_key(word, salt_bin, iterations):
 
 
 def module_generate_hash(word, salt, iterations=None, data=None):
-  iterations = 2048 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   salt_bin = pack_hex(salt)
 

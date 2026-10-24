@@ -10,7 +10,14 @@ import hmac
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # KeePass 4 with the AES key derivation function, which is the same database and the same header
 # HMAC as m34300 with a different way of getting to the key:
@@ -25,6 +32,10 @@ UUID = "c9d9f39a"
 
 KEYFILE_LEN = 32
 HEADER_LEN  = 250
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(34301)
 
 
 def module_constraints():
@@ -65,7 +76,7 @@ def module_generate_hash(word, salt, iterations=None):
   master_seed    = random_bytes(32)
   transform_seed = random_bytes(32)
 
-  rounds = random_number(20000, 60000)
+  rounds = random_number(20000, 60000) if iterations is None else int(iterations)
 
   header = random_bytes(HEADER_LEN)
 

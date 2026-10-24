@@ -10,10 +10,27 @@ import binascii
 import hashlib
 import re
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16), 'iterations2': (2, 2)},
+  }
+
 
 # Bitwarden: PBKDF2-HMAC-SHA256 of the password salted with the e-mail, then a second PBKDF2 with the
 # roles swapped, the password as salt.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(23400)
+
+NORMAL_ITERATIONS = 10000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
+
+NORMAL_ITERATIONS2 = 2
+DEFAULT_ITERATIONS2 = ITERATION_PARAMETERS.get('iterations2', NORMAL_ITERATIONS2)
 
 
 def module_constraints():
@@ -21,8 +38,8 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None, iterations2=None):
-  iterations = 10000 if iterations is None else int(iterations)
-  iterations2 = 2 if iterations2 is None else int(iterations2)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
+  iterations2 = DEFAULT_ITERATIONS2 if iterations2 is None else int(iterations2)
 
   email = salt.encode("latin-1") if isinstance(salt, str) else salt
 

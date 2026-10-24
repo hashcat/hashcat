@@ -8,10 +8,23 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # SolarWinds Orion: SHA-512 of a 1024 byte PBKDF2-HMAC-SHA1 key, salted with the first 8 characters
 # of the salt, padded out with a fixed string when it is shorter.
+
+NORMAL_ITERATIONS = 1000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -21,7 +34,7 @@ def module_constraints():
 def module_generate_hash(word, salt, iterations=None):
   custom = (salt[:8] + "1244352345234")[:8]
 
-  key = hashlib.pbkdf2_hmac("sha1", word, custom.encode("latin-1"), 1000, 1024)
+  key = hashlib.pbkdf2_hmac("sha1", word, custom.encode("latin-1"), ITERATIONS, 1024)
 
   return "$solarwinds$0$%s$%s" % (salt, base64.b64encode(hashlib.sha512(key).digest()).decode())
 

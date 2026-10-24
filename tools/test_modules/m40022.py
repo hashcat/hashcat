@@ -8,7 +8,23 @@
 import base64
 import hashlib
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # Django (PBKDF2-SHA256): pbkdf2_sha256$iterations$salt$base64.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(40022)
+
+NORMAL_ITERATIONS = 10000
+DEFAULT_ITERATIONS = ITERATION_PARAMETERS.get('iterations', NORMAL_ITERATIONS)
 
 
 def module_constraints():
@@ -16,7 +32,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = DEFAULT_ITERATIONS if iterations is None else int(iterations)
 
   raw = hashlib.pbkdf2_hmac("sha256", word, salt.encode(), iterations)
 

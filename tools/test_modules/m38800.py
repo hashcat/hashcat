@@ -7,7 +7,20 @@
 
 from lib import openbsd_softraid
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
+
 # OpenBSD softraid CRYPTO, created before OpenBSD 6.1: the mask key is PBKDF2-HMAC-SHA1.
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(38800)
 
 
 def module_constraints():

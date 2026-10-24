@@ -10,7 +10,14 @@ import hashlib
 from Crypto.Cipher import CAST
 
 from lib import gpg
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (1024, 2048)},
+  }
+
 
 # GPG symmetric secret key protection with CAST5 in CFB. The S2K is SHA-1 either way, but the
 # mode has two shapes and a run covers both: iterated and salted, which carries a count, and
@@ -23,6 +30,10 @@ KEY_LEN      = 16
 IV_LEN       = 8
 MODULUS_SIZE = 4096
 BODY_LEN     = 648
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(17040)
 
 
 def module_constraints():
@@ -45,6 +56,9 @@ def module_generate_hash(word, salt, iterations=None):
 
   s2k_type = gpg.S2K_ITERATED if iterated else gpg.S2K_SALTED
   count    = random_number(50000, 60000) if iterated else 0
+
+  if iterated and iterations is not None:
+    count = int(iterations)
 
   salt_raw = random_bytes(8)
   iv       = random_bytes(IV_LEN)

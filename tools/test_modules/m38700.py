@@ -17,7 +17,14 @@ except ImportError:
 
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 
-from lib.test_helpers import random_bytes, random_number, split_hash_word
+from lib.test_helpers import random_bytes, random_number, split_hash_word, test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (2, 16)},
+  }
+
 
 # FreeBSD GELI. The passphrase goes through PBKDF2-HMAC-SHA512 over the provider's salt, and the
 # result through an HMAC-SHA512 under an empty key, which is the user key. That key gives two more:
@@ -53,6 +60,10 @@ COMBOS = [
   (CAMELLIA_CBC, 256),
   (NULL_CBC,     512),
 ]
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(38700)
 
 
 def _hmac(key, msg):

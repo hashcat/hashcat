@@ -9,11 +9,24 @@ import base64
 
 from Crypto.Protocol.KDF import bcrypt
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'parameters': {'iterations': (4, 5)},
+  }
+
+
 # bcrypt $2a$, Blowfish (Unix): pycryptodome's bcrypt writes the $2a$ string itself, from a 16 byte
 # salt and a cost of 5 unless the line says otherwise.
 
 BCRYPT64 = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+
+# ARTIFICIALLY_LOW_ITERATION_COUNT=true selects this module's reduced parameters.
+ITERATION_PARAMETERS = test_iteration_parameters(3200)
 
 
 def module_constraints():

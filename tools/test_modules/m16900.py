@@ -8,10 +8,23 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_hex_string, split_hash_word
+from lib.test_helpers import random_hex_string, split_hash_word, runtime_iterations, iteration_override_enabled
+
+
+def module_reduced_iteration_constraints():
+  return {
+    'runtime_limits': {'iterations': (1, 16)},
+  }
+
 
 # Ansible Vault: PBKDF2-HMAC-SHA256 of the password (80 bytes, of which the last 16 are the IV and not
 # needed here), then HMAC-SHA256 over the ciphertext keyed with bytes 32 to 64.
+
+NORMAL_ITERATIONS = 10000
+ITERATIONS = NORMAL_ITERATIONS
+
+if iteration_override_enabled():
+  ITERATIONS = runtime_iterations(NORMAL_ITERATIONS, initial=1)
 
 
 def module_constraints():
@@ -25,7 +38,7 @@ def module_generate_hash(word, salt, iterations=None, ciphertext=None):
   if not salt:
     salt = random_hex_string(64)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, bytes.fromhex(salt), 10000, 64)
+  key = hashlib.pbkdf2_hmac("sha256", word, bytes.fromhex(salt), ITERATIONS, 64)
 
   digest = hmac.new(key[32:64], bytes.fromhex(ciphertext), hashlib.sha256).hexdigest()
 
