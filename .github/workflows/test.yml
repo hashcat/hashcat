@@ -188,13 +188,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2
 
       - name: Fetch the luks1 test containers
         if: (contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks_tests
-          cd tools/luks_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z
           7z x -y hashcat_luks_testfiles.7z >/dev/null
           rm -f hashcat_luks_testfiles.7z
@@ -204,7 +203,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2
 
       - name: Restore the luks2 test containers
         id: luks2
@@ -212,13 +211,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks2_tests
-          key: luks2-tests-v1
+          key: luks2-tests-v2
 
       - name: Fetch the luks2 test containers
         if: (contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks2_tests
-          cd tools/luks2_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/luks2_tests.7z
           7z x -y luks2_tests.7z >/dev/null
           rm -f luks2_tests.7z
@@ -228,7 +226,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks2_tests
-          key: luks2-tests-v1
+          key: luks2-tests-v2
 
       - name: Install the Rust toolchain
         # Mode 74000 is a Rust bridge: its plugin only builds when cargo is present, and the mode
