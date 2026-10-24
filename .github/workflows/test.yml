@@ -311,7 +311,7 @@ jobs:
                 {
                   echo "### mode ${mode} (${KIND}) failed: test.py -m ${mode} ${OPTS} (exit ${rc})"
                   echo '```'
-                  grep -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback|\[ test.py edge \] !>' "${log}" | head -n 40 || true
+                  grep -m 40 -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback|\[ test.py edge \] !>' "${log}" || true
                   tail -n 20 "${log}"
                   echo '```'
                 } >> "${GITHUB_STEP_SUMMARY}"
