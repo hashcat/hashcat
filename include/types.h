@@ -296,6 +296,8 @@ typedef enum status_rc
 
 typedef enum rc_final
 {
+  RC_FINAL_ERROR_TASK       = -12,
+  RC_FINAL_ERROR_COMMAND    = -2,
   RC_FINAL_ERROR            = -1,
   RC_FINAL_OK               = 0,
   RC_FINAL_EXHAUSTED        = 1,
@@ -3972,6 +3974,14 @@ typedef struct status_ctx
    */
 
   u32  stdin_read_timeout_cnt;
+
+  /**
+   * exit code refinement
+   */
+
+  // What an exit -1 becomes, see status_rc.c. 0 until an error names who has to act.
+
+  rc_final_t rc_error;
 
 } status_ctx_t;
 

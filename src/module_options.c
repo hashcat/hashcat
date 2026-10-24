@@ -17,6 +17,8 @@
 #include "module_options.h"
 #include "module_options_cache.h"
 #include "user_options_table.h"
+#include "path.h"
+#include "status_rc.h"
 
 #include <inttypes.h>
 
@@ -845,6 +847,33 @@ int module_option_set (hashcat_ctx_t *hashcat_ctx, const char *name, const char 
 // once the module has passed its interface checks, so under autodetect a mode whose check fails is
 // skipped silently, the same as a mode that cannot parse the hash.
 
+static rc_final_t module_option_files_rc (const char *value)
+{
+  char *list = hcstrdup (value);
+
+  char *saveptr = NULL;
+
+  rc_final_t rc_error = RC_FINAL_ERROR_TASK;
+
+  for (char *name = strtok_r (list, ",", &saveptr); name != NULL; name = strtok_r (NULL, ",", &saveptr))
+  {
+    if (hc_path_exist (name) == false)
+    {
+      const int path_errno = errno;
+
+      rc_error = path_missing_rc (path_errno);
+
+      break;
+    }
+
+    if (hc_path_read (name) == false) rc_error = RC_FINAL_ERROR;
+  }
+
+  hcfree (list);
+
+  return rc_error;
+}
+
 int module_options_check (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -902,6 +931,13 @@ int module_options_check (hashcat_ctx_t *hashcat_ctx)
     if (err[0] == 0) snprintf (err, sizeof (err), "--%s %s cannot be used with hash-type %u.", row->name, value, hashconfig->hash_mode);
 
     if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s", err);
+
+    // A value that names files that exist and can be read, such as a keyboard mapping or keyfiles the
+    // module cannot use, is the task's. A file that is not there, or anything else the module refused,
+    // is the command's. One that is there and may not be read is the machine's and stays -1. A comma
+    // separates the files of a keyfile list.
+
+    if (user_options->autodetect == false) status_set_rc_error (hashcat_ctx, module_option_files_rc (value));
 
     return -1;
   }

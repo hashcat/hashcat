@@ -259,11 +259,11 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
-  if (wordlist_init (global_ctx, &hybrid_global->base, 2, base_to) == false) return false;
+  if (wordlist_init (global_ctx, &hybrid_global->base, hashcat_ctx, 2, base_to) == false) return false;
 
   if (hybrid_global->has_q == true)
   {
-    if (wordlist_init (global_ctx, &hybrid_global->amp, base_to, global_ctx->workc) == false) return false;
+    if (wordlist_init (global_ctx, &hybrid_global->amp, hashcat_ctx, base_to, global_ctx->workc) == false) return false;
   }
 
   // What the status line calls this attack. The mask says more than the feed's name does, and the

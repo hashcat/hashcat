@@ -179,7 +179,7 @@ FUZZ_DEFAULT_MODES = fuzz_default_modes()
 
 FUZZ_SHARED = re.compile(r"^(src/(rp|rp_cpu|parser|memory|convert|shared|paw64|timer|bitops|cpu_crc32|"
                          r"recipe|mpsp|"
-                         r"keyboard_layout|ext_lzma|ext_zlib|dynloader|folder|path|plugin_abi|emu_[a-z0-9_]+)\.c"
+                         r"keyboard_layout|ext_lzma|ext_zlib|dynloader|folder|path|plugin_abi|status_rc|emu_[a-z0-9_]+)\.c"
                          r"|include/.*|tools/fuzz/.*|tools/asan/hashconfig\.[ch]"
                          r"|\.github/workflows/(fuzz\.yml|fuzz_report\.py|ci_matrix\.py))$")
 

@@ -24,6 +24,7 @@
 #include "path.h"
 #include "parser.h"
 #include "status.h"
+#include "status_rc.h"
 #include "memchr.h"
 #include "system.h"
 #include "thread.h"
@@ -2377,7 +2378,21 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 
   // --stdout and --keyspace take no hash argument
 
-  const bool hash_is_file = (user_options_extra->hc_hash != NULL) && (hc_path_exist (user_options_extra->hc_hash) == true);
+  bool hash_is_file = false;
+
+  if (user_options_extra->hc_hash != NULL)
+  {
+    hash_is_file = hc_path_exist (user_options_extra->hc_hash);
+
+    const int path_errno = errno;
+
+    if ((hash_is_file == false) && (path_access_denied (path_errno) == true))
+    {
+      event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (path_errno));
+
+      return -1;
+    }
+  }
 
   /**
    * load hashes, part I: find input mode, count hashes
@@ -3791,6 +3806,8 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to load them as given.");
       event_log_warning (hashcat_ctx, NULL);
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
       return -1;
     }
   }
@@ -3812,6 +3829,8 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
   event_log_warning (hashcat_ctx, "Check that the hash file is named first, that the hash-mode is right, and that --username is given");
   event_log_warning (hashcat_ctx, "if every line starts with a username. Use --force to load it anyway.");
   event_log_warning (hashcat_ctx, NULL);
+
+  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
   return -1;
 }
@@ -3859,6 +3878,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           event_log_warning (hashcat_ctx, "wordlist as a second argument.");
           event_log_warning (hashcat_ctx, NULL);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
       }
@@ -3888,6 +3909,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hashes_avail == 0)
       {
         event_log_error (hashcat_ctx, "hashfile is empty or corrupt.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         hc_fclose (&fp);
 
@@ -3932,6 +3955,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           hc_fclose (&fp);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
       }
@@ -3943,6 +3968,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {
         event_log_error (hashcat_ctx, "Use of --remove is not supported in native hashfile-format mode.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }
@@ -3969,6 +3996,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         else if (binary_count == 0)
         {
           event_log_error (hashcat_ctx, "No hashes loaded.");
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }
