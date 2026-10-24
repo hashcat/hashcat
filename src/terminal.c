@@ -970,6 +970,15 @@ bool is_stdout_terminal (void)
   #endif
 }
 
+bool is_stderr_terminal (void)
+{
+  #if defined (_WIN)
+  return _isatty (_fileno (stderr));
+  #else
+  return isatty (fileno (stderr));
+  #endif
+}
+
 // _isatty () answers yes for any character device on Windows, so there the console mode is asked
 
 bool is_stdin_terminal (void)
