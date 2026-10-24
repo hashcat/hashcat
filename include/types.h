@@ -781,6 +781,7 @@ typedef enum opts_type
   OPTS_TYPE_HASH_SPLIT               = (1ULL << 30),
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
+  OPTS_TYPE_MULTI_SALT_FUSED         = (1ULL << 44), // optimized kernels can process several salts per launch
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
   OPTS_TYPE_BINARY_HASHFILE_OPTIONAL = (1ULL << 46), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
   OPTS_TYPE_PT_ADD06                 = (1ULL << 47),
@@ -788,7 +789,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
-  // Bits 31 to 44 and bit 50 are free. They held the 16 flags that said which kernels a session
+  // Bits 31 to 43 and bit 50 are free. They held the 16 flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.
@@ -1859,6 +1860,8 @@ typedef struct hc_device_param
   int     at_rc;                // autotune rc
 
   int     vector_width;
+
+  u32     kernel_salt_window;
 
   u32     kernel_wgs[HC_DEV_KERN_CNT];
 

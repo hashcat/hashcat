@@ -39,6 +39,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
   device_param->kernel_params[17] = hc_dev_kern_arg (device_param, HC_DEV_BUF_ST_SALTS_BUF);
   device_param->kernel_params[18] = hc_dev_kern_arg (device_param, HC_DEV_BUF_ST_ESALTS_BUF);
 
+  device_param->kernel_param.salts_cnt = 1;
   device_param->kernel_param.digests_cnt = 1;
   device_param->kernel_param.digests_offset_host = 0;
 
@@ -765,6 +766,7 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   device_param->kernel_param.loop_pos             = 0;
   device_param->kernel_param.loop_cnt             = 0;
   device_param->kernel_param.il_cnt               = 0;
+  device_param->kernel_param.salts_cnt            = hashcat_ctx->hashes->salts_cnt;
   device_param->kernel_param.digests_cnt          = 0;
   device_param->kernel_param.digests_offset_host  = 0;
   device_param->kernel_param.combs_mode           = 0;

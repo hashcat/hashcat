@@ -5241,7 +5241,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 // shared by every salt. Whoever read it knows how many lines it dropped, and only the caller knows
 // which salts that chunk is about to be tested against.
 
-static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, const u64 pws_cnt, const u64 rejects)
+static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, const u64 pws_cnt, const u64 rejects, const bool fused)
 {
   if (rejects == 0) return;
 
@@ -5253,6 +5253,20 @@ static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, co
     for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
     {
       status_ctx->words_progress_rejected[association_salt_pos] += rejects;
+    }
+
+    return;
+  }
+
+  // A fused launch rejects the same amplifier items for every salt.
+
+  if (fused == true)
+  {
+    const hashes_t *hashes = hashcat_ctx->hashes;
+
+    for (u32 salt_pos_credit = 0; salt_pos_credit < hashes->salts_cnt; salt_pos_credit++)
+    {
+      status_ctx->words_progress_rejected[salt_pos_credit] += pws_cnt * rejects;
     }
 
     return;
@@ -5941,14 +5955,21 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
     salts_cnt = 1;
   }
 
+  const bool fused = (device_param->kernel_salt_window != 0);
+
   for (u32 salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
   {
+    // Salt 0 launches the fused search. All session-specific inputs are
+    // read from salt_bufs by the kernel, so later salt iterations are redundant.
+
+    if ((fused == true) && (salt_pos != 0)) continue;
+
     wait_while_paused (status_ctx);
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
     device_param->kernel_param.salt_pos_host       = salt_pos;
-    device_param->kernel_param.digests_cnt         = salt_buf->digests_cnt;
+    device_param->kernel_param.digests_cnt         = (fused == true) ? hashes->digests_cnt : salt_buf->digests_cnt;
     device_param->kernel_param.digests_offset_host = salt_buf->digests_offset;
 
     if (user_options->slow_candidates == true)
@@ -6049,7 +6070,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
       }
       else
       {
-        if (hashes->salts_shown[salt_pos] == 1)
+        if ((fused == false) && (hashes->salts_shown[salt_pos] == 1))
         {
           status_ctx->words_progress_done[salt_pos] += progress_step (hashcat_ctx, device_param, pws_cnt, innerloop_left);
 
@@ -6064,7 +6085,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
         if (amp_prepare (hashcat_ctx, device_param, innerloop_pos, &innerloop_left, transform, &amp_rejects) == -1) return -1;
 
-        combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt, amp_rejects);
+        combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt, amp_rejects, fused);
       }
 
       // Every amplifier item in the chunk was rejected, so there is nothing to launch. The amplifier
@@ -6095,9 +6116,12 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
         {
           const u64 perf_sum_all = progress_step (hashcat_ctx, device_param, pws_cnt, innerloop_left);
 
-          // The base words this launch got through, which --progress-only answers in. A launch covers
-          // part of the inner loop for every base word in the chunk, so it is that fraction of the
-          // chunk, and the fractions of one full pass add up to the chunk itself.
+          // Count every candidate/session pair processed by a fused launch.
+          // Credit progress separately to each salt below.
+
+          const u64 perf_booked = (fused == true) ? (perf_sum_all * hashes->salts_cnt) : perf_sum_all;
+
+          // Record the base-word fraction covered by this amplifier chunk.
 
           device_param->outerloop_words += (double) pws_cnt * (double) innerloop_left / (double) innerloop_cnt;
 
@@ -6107,7 +6131,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
           u32 speed_pos = device_param->speed_pos;
 
-          device_param->speed_cnt[speed_pos] = perf_sum_all;
+          device_param->speed_cnt[speed_pos] = perf_booked;
 
           device_param->speed_msec[speed_pos] = speed_msec;
 
@@ -6135,7 +6159,17 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
           }
           else
           {
-            status_ctx->words_progress_done[salt_pos] += perf_sum_all;
+            if (fused == true)
+            {
+              for (u32 salt_pos_credit = 0; salt_pos_credit < hashes->salts_cnt; salt_pos_credit++)
+              {
+                status_ctx->words_progress_done[salt_pos_credit] += perf_sum_all;
+              }
+            }
+            else
+            {
+              status_ctx->words_progress_done[salt_pos] += perf_booked;
+            }
           }
 
           hc_thread_mutex_unlock (status_ctx->mux_counter);
@@ -6378,7 +6412,8 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
 
     for (u32 live_pos = 0; live_pos < live_cnt; live_pos++)
     {
-      combs_buf_reject (hashcat_ctx, live_salts[live_pos], pws_cnt, amp_rejects);
+      // The outside-kernel salt-inner loop never uses fusion.
+      combs_buf_reject (hashcat_ctx, live_salts[live_pos], pws_cnt, amp_rejects, false);
     }
 
     // Every amplifier item in the chunk was rejected, so there is nothing to launch. The amplifier
@@ -14241,6 +14276,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
+    device_param->kernel_salt_window    = 0;
+
     device_param->kernel_accel_prev     = 0;
     device_param->kernel_loops_prev     = 0;
     device_param->kernel_threads_prev   = 0;
@@ -15548,6 +15585,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // the length it wanted, so each append gets the room that is actually left, and a set of
       // options that does not fit is refused below instead of building a kernel from part of it.
 
+      u32 kernel_salt_window = 0;
+
       char build_options_module_buf[16384];
 
       const size_t build_options_module_sz = sizeof (build_options_module_buf);
@@ -15566,6 +15605,28 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (jit_build_options != NULL)
         {
           build_options_module_len += snprintf (BUILD_OPTIONS_MODULE_POS, BUILD_OPTIONS_MODULE_ROOM, "%s", jit_build_options);
+
+          const char *window_option = strstr (jit_build_options, "-D MULTI_SALT_WINDOW=");
+
+          if (window_option != NULL)
+          {
+            const char *window_value = &window_option[strlen ("-D MULTI_SALT_WINDOW=")];
+
+            char *window_end = NULL;
+
+            const u64 window = strtoull (window_value, &window_end, 10);
+
+            if (((window_option != jit_build_options) && (window_option[-1] != ' ')) || (window_value[0] < '0') || (window_value[0] > '9') || (window == 0) || (window > 0xffffffffu) || ((*window_end != 0) && (*window_end != ' ')))
+            {
+              event_log_error (hashcat_ctx, "* Device #%u: Invalid multi-salt window build option.", device_id + 1);
+
+              hcfree (jit_build_options);
+
+              return -1;
+            }
+
+            kernel_salt_window = (u32) window;
+          }
 
           // this is a bit ugly
           // would be better to have the module return the value as value
@@ -15771,6 +15832,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->skipped_warning = true;
         continue;
       }
+
+      device_param->kernel_salt_window = kernel_salt_window;
     }
 
     /**
@@ -16113,6 +16176,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.pcfg_pool_at2       = (device_param->pcfg_pool_parts > 2) ? (u32) (pool_at * 2) : 0xffffffff;
     device_param->kernel_param.pcfg_pool_at3       = (device_param->pcfg_pool_parts > 3) ? (u32) (pool_at * 3) : 0xffffffff;
     device_param->kernel_param.salt_pos_host       = 0;
+    device_param->kernel_param.salts_cnt           = hashes->salts_cnt;
     device_param->kernel_param.loop_pos            = 0;
     device_param->kernel_param.loop_cnt            = 0;
     device_param->kernel_param.il_cnt              = 0;
