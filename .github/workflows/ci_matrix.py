@@ -26,7 +26,9 @@ import zlib
 # test.py takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
 # runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
 
-SHARDS = {"test": 48, "fuzz": 16, "container": 16}
+# Edge checks cover both kernel families and five vector widths. The 96 edge shards plus
+# 48 shards for each ordinary kind and 16 container shards fit GitHub's 256-job matrix limit.
+SHARDS = {"test": 48, "edge": 96, "fuzz": 16, "container": 16}
 
 # A pull request is bounded by this many modes. Past it the rest is left to the
 # weekly run, and the summary says which were left out.
@@ -129,9 +131,8 @@ def balance_shards(modes, n):
 
 
 def test_matrix(groups, kinds):
-    # One matrix entry per shard of modes and kernel kind. kinds is a subset of ("opt", "pure",
-    # "bridge"): the test job runs the optimized kernels for "opt", the pure kernels for "pure", and
-    # the Python bridge for "bridge". The kinds are separate parallel jobs rather than passes in one,
+    # One matrix entry per shard and kind: optimized, pure, Python bridge or edge tests.
+    # The kinds are separate parallel jobs rather than passes in one,
     # so running several does not add their times in a single shard. The shard number is only a label
     # here (unlike fuzz, which keys its corpus off it); the kind is appended to the name so the jobs
     # of a shard are told apart in the run list.
@@ -273,15 +274,16 @@ def main():
     cpool = test_modes("--list-container-modes") if kind == "test" else set()
     pool -= cpool
 
-    # A test all/list run covers up to four kinds, as parallel jobs: "opt" and "pure" run the mode's
+    # A test all/list run covers up to five kinds, as parallel jobs: "opt" and "pure" run the mode's
     # optimized and pure kernels, "bridge" cracks the mode's own test oracle through the Python bridge
     # (tools/test_bridge.py) with no mode kernel, and "container" cracks the shipped or fetched
     # container files for the TrueCrypt, VeraCrypt, CryptoLoop and LUKS modes. The first three draw
-    # from the on-disk mode pool and run per shard; container has its own pool and runs once, not per
-    # kernel kind. --kinds picks the subset to emit, which is how a manual dispatch selects kinds with
-    # its checkboxes; it defaults to all four. A fuzz run has no kinds, and a pull request stays
+    # from the on-disk mode pool. Edge uses that pool with more shards and covers both kernel families
+    # in one pass. Container has its own pool and runs once, not per kernel kind.
+    # --kinds picks the subset to emit, which is how a manual dispatch selects kinds with
+    # its checkboxes. It defaults to all five. A fuzz run has no kinds, and a pull request stays
     # optimized only whatever is passed.
-    ALL_KINDS  = ("opt", "pure", "bridge", "container")
+    ALL_KINDS  = ("opt", "pure", "bridge", "container", "edge")
     test_kinds = list(ALL_KINDS)
 
     if "--kinds" in sys.argv:
@@ -289,8 +291,9 @@ def main():
         chosen = set(sys.argv[i + 1].split(",")) if i + 1 < len(sys.argv) else set()
         test_kinds = [k for k in ALL_KINDS if k in chosen] or test_kinds
 
-    kernel_kinds   = [k for k in test_kinds if k != "container"]
+    kernel_kinds   = [k for k in test_kinds if k not in ("container", "edge")]
     want_container = "container" in test_kinds
+    want_edge      = "edge" in test_kinds
 
     matrix = []
     notes = []
@@ -298,6 +301,9 @@ def main():
     if scope == "all":
         if kind == "test":
             matrix = test_matrix(balance_shards(pool, SHARDS["test"]), kernel_kinds)
+
+            if want_edge:
+                matrix += test_matrix(balance_shards(pool, SHARDS["edge"]), ["edge"])
 
             if want_container:
                 matrix += container_matrix(balance_shards(cpool, SHARDS["container"]))
@@ -320,6 +326,9 @@ def main():
 
         if kind == "test":
             matrix = test_matrix(balance_shards(asked_kernel, SHARDS["test"]), kernel_kinds)
+
+            if want_edge:
+                matrix += test_matrix(balance_shards(asked_kernel, SHARDS["edge"]), ["edge"])
 
             if asked_cont:
                 matrix += container_matrix(balance_shards(asked_cont, SHARDS["container"]))
@@ -386,6 +395,9 @@ def main():
                      if kind == "test" else ", shared code changed")
 
         notes.append(note)
+
+    if len(matrix) > 256:
+        sys.exit(f"ci_matrix.py: {len(matrix)} jobs exceed GitHub's 256-job matrix limit. Reduce shard counts or selected kinds.")
 
     print(f"run={'true' if matrix else 'false'}")
     print("matrix=" + json.dumps({"include": matrix}, separators=(",", ":")))
