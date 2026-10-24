@@ -4,6 +4,8 @@ hashcat can offload supported slow hashes to an FPGA through the Assimilation Br
 
 FPGA support is available **only on Linux**. The bridge compiles on other platforms but reports `FPGA bridge: this build has no FPGA transport (Linux only)` there.
 
+The reasons differ by board type. The PCIe boards need a kernel driver, and the LitePCIe driver hashcat uses exists for Linux only. Windows also loads only kernel drivers that Microsoft has signed, unless test signing is turned on. The Alveo U50 runs through AMD's XRT, which AMD ships for Linux. The ZTEX boards and the Arty Z7 use USB. They need no driver of their own, but hashcat talks to the Linux USB interface directly. WSL2 cannot pass a PCIe card through to Linux, so it does not help with the PCIe boards.
+
 The driver procedure targets **Debian-based distributions** such as Debian, Ubuntu, and Mint. It uses DKMS to rebuild the module after kernel upgrades and sign it for Secure Boot. Manual installation on other distributions is not currently documented.
 
 ## Quick start
@@ -712,6 +714,8 @@ Observe the following constraints:
 The driver combines the unmodified LitePCIe 2026.08 source in `deps/litepcie-2026.08/` with five patches from `src/fpga/driver/patches/`. The patches add one-shot DMA mode, fix an interrupt-acknowledgment race, disable an unsafe probe-time reset, raise `DMA_BUFFER_SIZE` from 8192 to 32768 so that a batch can be four times as big, and refuse raw register writes outside the algorithm block. They are applied in a build directory, so the vendored source is left unchanged.
 
 The DMA buffer patch is required. hashcat checks the driver's buffer size and count and refuses a device if either differs from the expected geometry.
+
+The binary release does not include the driver source. Run this step from a checkout of the hashcat source that matches the version of your hashcat binary.
 
 Build the module on the target host against its running kernel. First install DKMS and the matching kernel headers:
 

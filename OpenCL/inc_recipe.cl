@@ -6104,6 +6104,10 @@ typedef struct recipe_state_scalar
 #define RECIPE_NAT_sha384(HS)     RECIPE_NAT_BE64 (12, HS)
 #define RECIPE_NAT_sha512(HS)     RECIPE_NAT_BE64 (16, HS)
 
+// MD6-256 is hash-mode 34600, whose optimized kernels keep the digest as 64-bit big endian words.
+
+#define RECIPE_NAT_md6256(HS)     RECIPE_NAT_BE64 ( 8, HS)
+
 // SHA-3, Keccak, Streebog, GOST R 34.11-94 and RIPEMD-320 modes keep their digest in memory order.
 // The 224-bit SHA-3 and Keccak modes compare word 7, which their digest holds as zero.
 
@@ -6210,7 +6214,6 @@ typedef struct recipe_state_scalar
 #define RECIPE_NAT_edon256(HS)         RECIPE_NAT_LE    ( 8, HS)
 #define RECIPE_NAT_edon512(HS)         RECIPE_NAT_LE    (16, HS)
 #define RECIPE_NAT_md6(HS)             RECIPE_NAT_LE    ( 4, HS)
-#define RECIPE_NAT_md6256(HS)          RECIPE_NAT_LE    ( 8, HS)
 #define RECIPE_NAT_md6512(HS)          RECIPE_NAT_LE    (16, HS)
 #define RECIPE_NAT_radiogatun32(HS)    RECIPE_NAT_LE    ( 4, HS)
 #define RECIPE_NAT_radiogatun64(HS)    RECIPE_NAT_LE    ( 8, HS)

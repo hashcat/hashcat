@@ -18,7 +18,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
-static const char *HASH_NAME      = "Cardano Eternl Wallet (PBKDF2-HMAC-SHA512-ChaCha20Poly1305)";
+static const char *HASH_NAME      = "Cardano Eternl Wallet (PBKDF2-HMAC-SHA512, ChaCha20)";
 static const u64   KERN_TYPE      = 37700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64

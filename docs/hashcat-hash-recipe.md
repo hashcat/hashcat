@@ -526,6 +526,8 @@ new number.
 Every hash function of the recipe language that has no hash-mode of its own also has a raw hash-mode,
 which hashes the password alone and takes the hex digest as its hash line. These are hash-modes 40084
 to 40175, so they appear in `-hh` and `--example-hashes` like any other hash-mode.
+MD6-256 is not among them, because hash-mode 34600 already covers it and uses `md6256(pass)` for its
+pure kernels.
 
 | Mode | Name | Recipe |
 |---|---|---|
@@ -614,7 +616,6 @@ to 40175, so they appear in `-hh` and `--example-hashes` like any other hash-mod
 | 40166 | `EDON-R-256` | `edon256(pass)` |
 | 40167 | `EDON-R-512` | `edon512(pass)` |
 | 40168 | `MD6-128` | `md6(pass)` |
-| 40169 | `MD6-256` | `md6256(pass)` |
 | 40170 | `MD6-512` | `md6512(pass)` |
 | 40171 | `RadioGatun[32] (first 128 bits)` | `radiogatun32(pass)` |
 | 40172 | `RadioGatun[64]` | `radiogatun64(pass)` |

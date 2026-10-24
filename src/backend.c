@@ -2545,6 +2545,16 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         const u64 amp_base_cnt = (device_param->amp_base_cnt > 0) ? device_param->amp_base_cnt : pws_cnt;
 
+        // The exception is a mask launch with one amplifier item. Its base words go across in one
+        // coalesced copy and amp_a3 sets the first word in place, because building those candidates
+        // in the kernel copies a whole pw_t per work item, which a slow hash with few iterations pays
+        // for in full.
+
+        if ((user_options->attack_mode == ATTACK_MODE_BF) && (amp_base_cnt == pws_cnt))
+        {
+          if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, device_param->d_buf[HC_DEV_BUF_PWS_AMP_BUF], 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
+        }
+
         if (run_kernel_amp (hashcat_ctx, device_param, amp_base_cnt, pws_cnt) == -1) return -1;
       }
 

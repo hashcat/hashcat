@@ -4489,7 +4489,9 @@ typedef struct hc_token
 } hc_token_t;
 
 /**
- * hash category is relevant in usage.c (--help screen)
+ * hash category is relevant in usage.c (--help screen). The numeric order of the
+ * categories is the order in which --help groups the hash-modes, so related
+ * categories are kept next to each other.
  */
 
 typedef enum hash_category
@@ -4500,25 +4502,34 @@ typedef enum hash_category
   HASH_CATEGORY_RAW_CHECKSUM            = 4,
   HASH_CATEGORY_RAW_CIPHER_KPA          = 5,
   HASH_CATEGORY_GENERIC_KDF             = 6,
-  HASH_CATEGORY_NETWORK_PROTOCOL        = 7,
-  HASH_CATEGORY_OS                      = 8,
-  HASH_CATEGORY_DATABASE_SERVER         = 9,
-  HASH_CATEGORY_NETWORK_SERVER          = 10,
-  HASH_CATEGORY_EAS                     = 11,
-  HASH_CATEGORY_FDE                     = 12,
-  HASH_CATEGORY_DOCUMENTS               = 13,
-  HASH_CATEGORY_PASSWORD_MANAGER        = 14,
-  HASH_CATEGORY_ARCHIVE                 = 15,
-  HASH_CATEGORY_FORUM_SOFTWARE          = 16,
-  HASH_CATEGORY_OTP                     = 17,
-  HASH_CATEGORY_PLAIN                   = 18,
-  HASH_CATEGORY_FRAMEWORK               = 19,
-  HASH_CATEGORY_PRIVATE_KEY             = 20,
-  HASH_CATEGORY_IMS                     = 21,
-  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 22,
-  HASH_CATEGORY_FBE                     = 23,
-  HASH_CATEGORY_APPLICATION_DATABASE    = 24,
+  HASH_CATEGORY_USER_DEFINED            = 7,
+
+  HASH_CATEGORY_NETWORK_PROTOCOL        = 8,
+  HASH_CATEGORY_NETWORK_SERVER          = 9,
+  HASH_CATEGORY_DATABASE_SERVER         = 10,
+
+  HASH_CATEGORY_OS                      = 11,
+  HASH_CATEGORY_EAS                     = 12,
+  HASH_CATEGORY_FRAMEWORK               = 13,
+  HASH_CATEGORY_FORUM_SOFTWARE          = 14,
+  HASH_CATEGORY_MESSAGING               = 15,
+  HASH_CATEGORY_APPLICATION_DATABASE    = 16,
+
+  HASH_CATEGORY_FDE                     = 17,
+  HASH_CATEGORY_FBE                     = 18,
+  HASH_CATEGORY_ARCHIVE                 = 19,
+  HASH_CATEGORY_DOCUMENTS               = 20,
+
+  HASH_CATEGORY_PASSWORD_MANAGER        = 21,
+  HASH_CATEGORY_PRIVATE_KEY             = 22,
+  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 23,
+  HASH_CATEGORY_OTP                     = 24,
+  HASH_CATEGORY_RFID                    = 25,
+
+  HASH_CATEGORY_PLAIN                   = 26,
+
   HASH_CATEGORY_UNDEFINED               = -1,
+
 } hash_category_t;
 
 // hash specific

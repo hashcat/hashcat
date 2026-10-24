@@ -475,9 +475,9 @@ This is also why `-O` is refused where the engine has no kernel to run under it:
 The device engine has no optimized kernel for this hash mode. Run this without -O.
 ```
 
-A mode with an `_a4-optimized.cl` device kernel can take `-O`. A mode whose only device kernel is `_a4-pure.cl` cannot. If the mode has no optimized straight kernel either, hashcat drops `-O` before the PCFG engine selects its file and reports that change.
+A mode with an `_a4-optimized.cl` device kernel can take `-O`. A mode whose only device kernel is `_a4-pure.cl` cannot, unless rules are given: `-O` with `-r` or `-g` moves the run to the host engine instead, as described below. If the mode has no optimized straight kernel either, hashcat drops `-O` before the PCFG engine selects its file and reports that change.
 
-**Options `-r` and `-g` keep the device engine.** The rules are applied inside the same kernel that walks the cell. `il_pos` names the rule, exactly as it does for a word list, and the step inside the cell travels in the spare word of the crack record, which is how a crack is reported as the candidate that produced it rather than as the base word. The candidate array is widened to hold what a rule can write, which costs registers, so the kernel carrying the rule engine is a separate build of the same file and a run without `-r` receives the one it always had.
+**Options `-r` and `-g` keep the device engine** unless `-O` sends the run to the host engine. The rules are applied inside the same kernel that walks the cell. `il_pos` names the rule, exactly as it does for a word list, and the step inside the cell travels in the spare word of the crack record, which is how a crack is reported as the candidate that produced it rather than as the base word. The candidate array is widened to hold what a rule can write, which costs registers, so the kernel carrying the rule engine is a separate build of the same file and a run without `-r` receives the one it always had.
 
 The brain treats runs with and without rules as different attacks, so they do not reuse each other's covered keyspace.
 
@@ -494,6 +494,20 @@ the cell, and best66.rule over it, 66 rules                 6.6 GH/s
 ```
 
 The rate per candidate falls because the work per candidate rises, and what the run receives in exchange is 66 candidates where it had one. Rules used to move the run to the host engine, where the same ruleset on the same card ran at 2.3 GH/s.
+
+**A large ruleset runs faster with `-O`.** The device engine applies the rules with the pure rule engine, on the candidate as a byte array. The optimized straight kernel applies them in registers. With 66 rules the host engine cannot build base words fast enough to keep the card busy, which is the 2.3 GH/s above. With thousands of rules it can, and then the optimized kernel is the faster of the two. On a mode whose only device kernel is `_a4-pure.cl`, `-O` with `-r` or `-g` therefore runs the host engine, which applies the rules exactly as `-a 0 -O -r` does for a word list.
+
+Measured on an RTX 4090 against `-m 100`, with a ruleset trained on `rockyou.txt`, sixty seconds each:
+
+```text
+what is in front of the card                      candidates a second
+--------------------------------------------------------------------
+the cell                                                   20.3 GH/s
+the cell, and rockyou-30000.rule over it                    8.1 GH/s
+rockyou-30000.rule with -O, host engine                    30.2 GH/s
+```
+
+Leave `-O` off with a small ruleset and add it with a large one. The `Guess.Base` status field names the engine, `host` or `device`.
 
 The `Candidate.Engine` status field identifies the active path: `Device Generator` when something is amplifying on the card, whether that is a cell, a rule set or both, and `Host Generator + PCIe` when the host is building whole candidates and paying for the copy.
 
@@ -579,11 +593,11 @@ Only the slots the card expanded are named. The ones in front of them are alread
 ## 9. Common points of confusion
 
 * **Option `--stdout` shows the host engine.** It never starts a kernel, so it gets the host generator, escape and all. Fast-path candidates exist only on the device and are therefore unavailable to `--stdout`.
-* **`-O` is refused rather than ignored** on a fast hash whose only PCFG device kernel is the pure one. Modes that ship an `_a4-optimized.cl` kernel take it.
+* **`-O` is refused rather than ignored** on a fast hash whose only PCFG device kernel is the pure one, unless rules are given. With `-r` or `-g` it moves the run to the host engine, which is faster with a large ruleset. Modes that ship an `_a4-optimized.cl` kernel take it.
 * **Options `-i` and `--increment` are rejected.** They belong to a mask, and `-a 4` takes a ruleset. What decides the lengths here is the grammar, `costmax`, and `pwmin` and `pwmax` where a run names them. Custom character sets `-1` through `-8` are accepted, because the `mask` setting of section 4.1 is a mask for them to sit in. Naming one without `mask=` is refused rather than ignored.
 
 * **Options `-S`, `--slow-candidates` and `--brain-client` select the host engine** as well, and the startup line reports the selected engine. Both ask for every candidate to be built on the host, which is the one thing the device engine does not do.
-* **Options `-r` and `-g` keep the device engine.** The rules run in the same kernel that walks the cell, so a base word is worth its cell once per rule. The line after the ruleset summary reports the selected engine.
+* **Options `-r` and `-g` keep the device engine** unless `-O` is given on a mode without an `_a4-optimized.cl` kernel. The rules run in the same kernel that walks the cell, so a base word is worth its cell once per rule. The line after the ruleset summary reports the selected engine.
 * **Options `-j` and `-k` are rejected** while the device engine builds the candidates. Each names a rule for one side of a candidate, and a candidate assembled from the grammar's terminals has no sides. Option `-r` is the one that reaches every candidate. Both still apply wherever the host engine builds the candidates, which is any slow hash, `--stdout` and `--slow-candidates`.
 * **The same ruleset against `-m 0` and against `-m 3200` is not the same attack.** Different candidates, a different keyspace and a different number in `--keyspace`. Section 7.3 explains the difference. Both are correct. Neither one's restore point or brain session carries over to the other, and hashcat knows that and will not let them.
 * **The keyspace is not the grammar's keyspace.** It is however much of it `costmax` reaches. The real keyspace of a trained grammar is astronomically larger and there is no point enumerating all of it.
