@@ -7,7 +7,6 @@
 # no locking and anything it imports only has to work in an ordinary Python process.
 
 import hashlib
-import struct
 
 import hcshared
 
@@ -35,9 +34,4 @@ def calc_hash(password: bytes, salt: dict) -> str:
 # the hash line and its salt there, which is what hcshared.get_salt_buf() reads back.
 
 def extract_esalts(esalts_buf: bytes) -> list:
-  esalts = []
-
-  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 131072s I", esalts_buf):
-    esalts.append({ "hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len] })
-
-  return esalts
+  return hcshared.extract_generic_esalts(esalts_buf)

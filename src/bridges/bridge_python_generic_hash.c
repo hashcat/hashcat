@@ -8,6 +8,7 @@
 #include "event.h"
 #include "bridges.h"
 #include "memory.h"
+#include "bridge_generic.h"
 #include "shared.h"
 #include "thread.h"
 #include "cpu_features.h"
@@ -1078,6 +1079,28 @@ static bool init_build (hashcat_ctx_t *hashcat_ctx, bridge_context_t *bridge_con
     return true;
   }
 
+  u8 *packed_esalts = NULL;
+  u8 *packed_st_esalts = NULL;
+  u32 packed_len = 0;
+  u32 packed_st_len = 0;
+
+  const bool packed = (hashconfig->hash_mode == 73000);
+
+  if (packed == true)
+  {
+    if ((generic_hash_pack (hashconfig, hashes, false, &packed_esalts, &packed_len) == false) || (generic_hash_pack (hashconfig, hashes, true, &packed_st_esalts, &packed_st_len) == false))
+    {
+      hcfree (packed_esalts);
+      hcfree (packed_st_esalts);
+
+      hc_thread_mutex_unlock (bridge_context->spawn_mutex);
+
+      event_log_error (hashcat_ctx, "Cannot pack the generic bridge hash records.");
+
+      return false;
+    }
+  }
+
   const u32 salt_per_pw = (hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? 1 : 0;
 
   u32 pos = 0;
@@ -1085,16 +1108,18 @@ static bool init_build (hashcat_ctx_t *hashcat_ctx, bridge_context_t *bridge_con
   bool ok = u32_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, salt_per_pw);
 
   // The sizes the two sides have to agree on. hcshared.py refuses a salt_t it unpacks differently, and
-  // esalt_size is the record length a plugin's extract_esalts () has to step by, which it cannot work
-  // out from the blob alone.
+  // esalt_size describes the core records. Generic bridge payloads carry their own field lengths.
 
   ok = ok && u32_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, (u32) sizeof (salt_t));
   ok = ok && u32_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, (u32) hashconfig->esalt_size);
 
   ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, hashes->salts_buf,     (size_t) hashes->salts_cnt   * sizeof (salt_t));
-  ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, hashes->esalts_buf,    (size_t) hashes->digests_cnt * hashconfig->esalt_size);
-  ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, hashes->st_salts_buf,  sizeof (salt_t));
-  ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, hashes->st_esalts_buf, hashconfig->esalt_size);
+  ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, packed ? packed_esalts : hashes->esalts_buf, packed ? packed_len : (size_t) hashes->digests_cnt * hashconfig->esalt_size);
+  ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, hashes->st_salts_buf,  (hashes->st_salts_buf == NULL) ? 0 : sizeof (salt_t));
+  ok = ok && blob_put (&bridge_context->init_buf, &bridge_context->init_size, &pos, packed ? packed_st_esalts : hashes->st_esalts_buf, packed ? packed_st_len : ((hashes->st_esalts_buf == NULL) ? 0 : hashconfig->esalt_size));
+
+  hcfree (packed_esalts);
+  hcfree (packed_st_esalts);
 
   for (int i = 0; i < 4; i++)
   {

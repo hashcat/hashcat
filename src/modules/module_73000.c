@@ -13,6 +13,7 @@
 #include "parser.h"
 #include "memory.h"
 #include "emu_inc_hash_md4.h"
+#include "bridge_generic.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -28,6 +29,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_AUTODETECT_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_MULTIHASH_DESPITE_ESALT
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -68,16 +70,6 @@ typedef struct
   u32 out_cnt;
 
 } generic_io_tmp_t;
-
-typedef struct
-{
-  u32 hash_buf[256];
-  u32 hash_len;
-
-  u32 salt_buf[32768];
-  u32 salt_len;
-
-} generic_io_t;
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -126,20 +118,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_buf = token.buf[1];
   const int salt_len = token.len[1];
 
-  memcpy (generic_io->salt_buf, salt_buf, salt_len);
-
   generic_io->salt_len = salt_len;
 
-  md4_ctx_t ctx1;
-
-  md4_init (&ctx1);
-  md4_update (&ctx1, (const u32 *) generic_io->salt_buf, generic_io->salt_len);
-  md4_final (&ctx1);
-
-  salt->salt_buf[0] = ctx1.h[0];
-  salt->salt_buf[1] = ctx1.h[1];
-  salt->salt_buf[2] = ctx1.h[2];
-  salt->salt_buf[3] = ctx1.h[3];
+  generic_hash_digest (salt_buf, salt_len, salt->salt_buf);
 
   salt->salt_len  = 16;
   salt->salt_iter = 1;
@@ -149,20 +130,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *hash_buf = token.buf[0];
   const int hash_len = token.len[0];
 
-  memcpy (generic_io->hash_buf, hash_buf, hash_len);
-
   generic_io->hash_len = hash_len;
 
-  md4_ctx_t ctx2;
-
-  md4_init (&ctx2);
-  md4_update (&ctx2, (const u32 *) generic_io->hash_buf, generic_io->hash_len);
-  md4_final (&ctx2);
-
-  digest[0] = ctx2.h[0];
-  digest[1] = ctx2.h[1];
-  digest[2] = ctx2.h[2];
-  digest[3] = ctx2.h[3];
+  generic_hash_digest (hash_buf, hash_len, digest);
 
   return (PARSER_OK);
 }
@@ -171,7 +141,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const generic_io_t *generic_io = (const generic_io_t *) esalt_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%.*s", (char *) generic_io->hash_buf, (int) generic_io->salt_len, (char *) generic_io->salt_buf);
+  const char *line = generic_hash_original (hashconfig, hash_info, generic_io);
+
+  if (line == NULL) return 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s", line);
 
   return line_len;
 }
