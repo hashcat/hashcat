@@ -6522,6 +6522,8 @@ def main():
                   help="print the container test modes (TrueCrypt, VeraCrypt, CryptoLoop, LUKS) and exit; "
                        "these crack a shipped or fetched container file and have no oracle, so a mode "
                        "list builder cannot find them from the test modules on disk")
+  ap.add_argument("--list-hardware-modes", dest="list_hardware_modes", action="store_true",
+                  help="print hardware-only hash modes and exit, regardless of HCFPGA_TEST")
   ap.add_argument("--compute-sanitizer", dest="compute_sanitizer", nargs="?", const="memcheck",
                   default=None, metavar="TOOL",
                   help="run the CUDA kernels under NVIDIA Compute Sanitizer (memcheck|racecheck|"
@@ -6560,6 +6562,11 @@ def main():
   # on disk (they have no test module).
   if args.list_container_modes:
     print(" ".join(str(m) for m in sorted(CONTAINER_MODES)))
+    sys.exit(0)
+
+  # CI needs the hardware exclusions even when local hardware testing is enabled.
+  if args.list_hardware_modes:
+    print(" ".join(str(m) for m in sorted(HARDWARE_MODES)))
     sys.exit(0)
 
   # --compute-sanitizer points hashcat at the sweep shim, which wraps every run in

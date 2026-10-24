@@ -141,10 +141,9 @@ def test_matrix(groups, kinds):
             for i, group in enumerate(groups)]
 
 
-def container_modes():
-    # The container test modes crack a shipped or fetched container file and have no test module, so
-    # modes_on_disk cannot find them. Ask test.py, which owns the list, rather than duplicate it here.
-    out = subprocess.run([sys.executable, "tools/test.py", "--list-container-modes"],
+def test_modes(option):
+    # Ask test.py for mode lists that cannot be inferred from the files on disk.
+    out = subprocess.run([sys.executable, "tools/test.py", option],
                          stdout=subprocess.PIPE, check=True).stdout.decode()
 
     return {int(m) for m in out.split()}
@@ -208,6 +207,9 @@ def modes_on_disk(kind):
             modes.add(int(m.group(1)))
 
     if kind == "test":
+        modes -= test_modes("--list-hardware-modes")
+
+    if kind == "test":
         tested = set()
 
         for name in os.listdir("tools/test_modules"):
@@ -268,7 +270,7 @@ def main():
     # The container modes crack a container file through the container kind, not a kernel, so take them
     # out of the kernel pool: a couple of them (14600, 34100) have a test module and would otherwise
     # also be drawn into the opt/pure/bridge shards and cracked twice.
-    cpool = container_modes() if kind == "test" else set()
+    cpool = test_modes("--list-container-modes") if kind == "test" else set()
     pool -= cpool
 
     # A test all/list run covers up to four kinds, as parallel jobs: "opt" and "pure" run the mode's
