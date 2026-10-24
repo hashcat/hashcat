@@ -5053,7 +5053,8 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
 # of the generated one with the same hash. Its outfile is checked through the module's own verify
 # rather than compared literally.
 
-EDGE_VERIFY_OUT = {1500}
+# 36901 prints the diversified key rather than the five-byte candidate index.
+EDGE_VERIFY_OUT = {1500, 36901}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
