@@ -62,6 +62,11 @@ u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
 
+// Which way the rules can move a length. The values are in types.h, beside the field that carries the
+// answer, because a feed reads it too and a feed has no business with the rest of this header.
+
+u32 kernel_rule_length_effect (const kernel_rule_t *rule);
+
 bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt);
 
 int kernel_rules_load     (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt);
