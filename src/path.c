@@ -99,6 +99,13 @@ rc_final_t path_missing_rc (const int path_errno)
   return RC_FINAL_ERROR;
 }
 
+bool path_access_denied (const int path_errno)
+{
+  if (path_errno == EACCES) return true;
+
+  return false;
+}
+
 bool hc_path_exist (const char *path)
 {
   if (access (path, F_OK) == -1) return false;

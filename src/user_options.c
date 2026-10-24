@@ -2416,7 +2416,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       const int path_errno = errno;
 
-      if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+      if (path_access_denied (path_errno) == true)
       {
         event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (path_errno));
 
@@ -2643,7 +2643,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         const int path_errno = errno;
 
-        if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+        if (path_access_denied (path_errno) == true)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (path_errno));
 
@@ -2765,7 +2765,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         const int path_errno = errno;
 
-        if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+        if (path_access_denied (path_errno) == true)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (path_errno));
 
@@ -2842,7 +2842,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         const int path_errno = errno;
 
-        if ((path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+        if (path_access_denied (path_errno) == true)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (path_errno));
 

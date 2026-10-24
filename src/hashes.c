@@ -2381,7 +2381,7 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 
     const int path_errno = errno;
 
-    if ((hash_is_file == false) && (path_missing_rc (path_errno) != RC_FINAL_ERROR_COMMAND) && (path_errno != ENAMETOOLONG))
+    if ((hash_is_file == false) && (path_access_denied (path_errno) == true))
     {
       event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (path_errno));
 
