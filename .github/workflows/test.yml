@@ -13,6 +13,7 @@
 ##                  attack mode and a single hash. A change to code the modes
 ##                  share runs the minimal representative set instead, the 24
 ##                  modes test.py -M covers, each on the normal per-mode path.
+##                  Kernel tests prefer optimized and use pure where needed.
 ##
 ##   weekly         every mode, in shards, every attack mode, single and multi
 ##                  hash, and five kinds: the optimized kernels, the pure
@@ -31,7 +32,7 @@
 ## matrix entry carries a kind (opt, pure, bridge, container or edge). The test step
 ## below runs the one pass for its kind, so the kinds are parallel jobs rather
 ## than passes in one. The kernel kinds share the on-disk mode pool; container
-## has its own and runs once. A pull request is optimized only, for latency.
+## has its own and runs once. A pull request tests one supported family per mode.
 ##
 ## test.py exits non-zero when a mode fails, so a job here reads its exit code:
 ## the per-mode runs are OR'd into one status and a nonzero one fails the job.
@@ -187,13 +188,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2
 
       - name: Fetch the luks1 test containers
         if: (contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks_tests
-          cd tools/luks_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z
           7z x -y hashcat_luks_testfiles.7z >/dev/null
           rm -f hashcat_luks_testfiles.7z
@@ -203,7 +203,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2
 
       - name: Restore the luks2 test containers
         id: luks2
@@ -211,13 +211,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks2_tests
-          key: luks2-tests-v1
+          key: luks2-tests-v2
 
       - name: Fetch the luks2 test containers
         if: (contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks2_tests
-          cd tools/luks2_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/luks2_tests.7z
           7z x -y luks2_tests.7z >/dev/null
           rm -f luks2_tests.7z
@@ -227,7 +226,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks2_tests
-          key: luks2-tests-v1
+          key: luks2-tests-v2
 
       - name: Install the Rust toolchain
         # Mode 74000 is a Rust bridge: its plugin only builds when cargo is present, and the mode
@@ -257,11 +256,14 @@ jobs:
           # the pure kernels, bridge runs --bridge (cracks each mode's own test oracle through the
           # Python bridge with no mode kernel), and container cracks the container files for the
           # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
-          # the family's own fixed attack, so the container kind passes neither. A pull request is
-          # optimized only and a single hash, to keep its latency. Edge tests cover both kernel
-          # families and every vector width in one pass.
+          # the family's own fixed attack, so the container kind passes neither. A pull request tests
+          # a single hash with optimized kernels where available and pure kernels otherwise.
+          # Edge tests cover both kernel families and every vector width in one pass.
           if [ "$EVENT" = "pull_request" ]; then
             OPTS="-a all -t single"
+            if [ "$KIND" = "pure" ]; then
+              OPTS="$OPTS -P"
+            fi
           elif [ "$KIND" = "pure" ]; then
             OPTS="-a all -t all -P"
           elif [ "$KIND" = "bridge" ]; then
