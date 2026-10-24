@@ -394,6 +394,9 @@ def main():
 
         notes.append(note)
 
+    if len(matrix) > 256:
+        sys.exit(f"ci_matrix.py: {len(matrix)} jobs exceed GitHub's 256-job matrix limit. Reduce shard counts or selected kinds.")
+
     print(f"run={'true' if matrix else 'false'}")
     print("matrix=" + json.dumps({"include": matrix}, separators=(",", ":")))
     print("summary=" + "; ".join(notes))

@@ -155,7 +155,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 20
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     name: test.py ${{ matrix.name }}
