@@ -112,6 +112,12 @@ static const i64 BRAIN_SERVER_OVER_ENTRIES = 2 * 32768;
 
 static const i64 BRAIN_SERVER_COMMIT_STEP = 4096;
 
+// Small shards keep exact searches. Zero disables filters.
+
+#ifndef BRAIN_SERVER_BLOOM_MIN
+#define BRAIN_SERVER_BLOOM_MIN 32768
+#endif
+
 // How many candidates --brain-feed hashes before handing them over. It is also what the feeder
 // declares as its passwords_max at connect, because the server refuses a lookup larger than that,
 // so the two cannot drift apart.
@@ -222,6 +228,11 @@ typedef struct brain_server_db_shard
 
   i64 over_alloc;
   i64 over_cnt;
+
+  u64 *bloom_buf;
+
+  u64 bloom_bits;
+  i64 bloom_retry;
 
   hc_thread_mutex_t mux;
 
