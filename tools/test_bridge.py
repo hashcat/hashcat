@@ -37,11 +37,12 @@ def _root():
 ROOT  = _root()
 TESTS = os.path.join(ROOT, "tools", "test_modules")
 
-for p in (TESTS, os.path.join(ROOT, "Python")):
+for p in (TESTS, os.path.join(ROOT, "Python"), os.path.join(ROOT, "tools")):
   if p not in sys.path:
     sys.path.insert(0, p)
 
 import hcshared  # noqa: E402
+import test_iterations
 
 SALT_MAX = 1024
 
@@ -52,13 +53,12 @@ _ORACLES = {}
 
 
 def _oracle(mode, family):
-  # One module object per (mode, family): an oracle may fix its charset at import from IS_OPTIMIZED,
-  # so the two families cannot share a copy. The variable is set on every call as well, for the
-  # oracles that read it at call time.
+  # Oracles can fix their charset and runtime cost at import, so cache each combination separately.
+  # Set the family on every call for oracles that read it at call time.
 
   os.environ["IS_OPTIMIZED"] = "1" if family == "o" else "0"
 
-  key = (mode, family)
+  key = (mode, family, os.environ.get(test_iterations.ITERATION_RUNTIME_ENV))
 
   if key not in _ORACLES:
     path = os.path.join(TESTS, "m%05d.py" % mode)
@@ -89,6 +89,15 @@ def calc_hash(password: bytes, salt: dict) -> str:
 
   oracle_hash = base64.b64decode(encoded)
 
+  # Select costs for the wrapped oracle without overriding hashcat's bridge mode.
+  name = test_iterations.ITERATION_RUNTIME_ENV
+  previous = os.environ.get(name)
+  env = test_iterations.iteration_environment(int(mode))
+  if name in env:
+    os.environ[name] = env[name]
+  else:
+    os.environ.pop(name, None)
+
   # The bridge hands the oracle every candidate hashcat generates, not just the real password. An
   # oracle's module_verify_hash is written for the kernel test path, where only the correct plain is
   # ever verified, so a wrong guess can take it down a branch it does not expect and raise. Treat any
@@ -102,6 +111,11 @@ def calc_hash(password: bytes, salt: dict) -> str:
     return hashlib.sha256(got[0].encode("utf-8")).hexdigest()
   except Exception:
     return "invalid-password"
+  finally:
+    if previous is None:
+      os.environ.pop(name, None)
+    else:
+      os.environ[name] = previous
 
 
 def extract_esalts(esalts_buf):

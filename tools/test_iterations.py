@@ -6,13 +6,14 @@
 ##
 
 # Shared by test.py and test_module_runner.py to select reduced-count hash generators.
-# Hashcat reads the generated counts without a runtime override.
+# Read declared policies without importing crypto libraries and select matching oracle and hashcat costs.
 
 import ast
 import os
 from functools import lru_cache
 
 ITERATION_ENV = "ARTIFICIALLY_LOW_ITERATION_COUNT"
+ITERATION_RUNTIME_ENV = "HASHCAT_ITER_OVERRIDE"
 
 
 @lru_cache(maxsize=None)
@@ -41,22 +42,31 @@ def load_test_properties(mode):
 
     properties = node.body[0].value
     keys = [ast.literal_eval(key) for key in properties.keys]
-    if "constraints" not in keys or set(keys) - {"constraints", "normal", "reduced"}:
-      raise ValueError("%s: test properties require constraints and allow normal and reduced entries" % filename)
+    if "constraints" not in keys or set(keys) - {"constraints", "normal", "reduced", "runtime"}:
+      raise ValueError("%s: test properties require constraints and allow normal, reduced and runtime entries" % filename)
     settings = {
       key: ast.literal_eval(value) for key, value in zip(keys, properties.values) if key != "constraints"
     }
 
-  if not isinstance(settings, dict) or set(settings) - {"normal", "reduced"}:
-    raise ValueError("m%05d.py: test settings allow normal and reduced entries" % mode)
+  if not isinstance(settings, dict) or set(settings) - {"normal", "reduced", "runtime"}:
+    raise ValueError("m%05d.py: test settings allow normal, reduced and runtime entries" % mode)
+  if "reduced" in settings and "runtime" in settings:
+    raise ValueError("m%05d.py: choose encoded or runtime reduction, not both" % mode)
   for name, section in settings.items():
-    allowed = {"parameters"}
+    allowed = {"limit", "compiled_cost", "scrypt", "parameters"} if name == "runtime" else {"parameters"}
     if not isinstance(section, dict) or set(section) - allowed:
       raise ValueError("m%05d.py: invalid %s test settings" % (mode, name))
+    if name == "runtime":
+      limit = section.get("limit")
+      if type(limit) is not int or not 1 <= limit <= 4294967295:
+        raise ValueError("m%05d.py: runtime limit must be a positive uint32" % mode)
+      if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt") if key in section):
+        raise ValueError("m%05d.py: runtime flags must be booleans" % mode)
     if name == "reduced" and section.get("parameters") != {"iterations": 2}:
       raise ValueError("m%05d.py: reduced testing requires 2 encoded iterations" % mode)
     parameters = section.get("parameters", {})
-    if not isinstance(parameters, dict) or set(parameters) - {"iterations"}:
+    allowed_parameters = {"iterations", "scrypt_n", "user_hash_iterations"} if name == "normal" else {"iterations"}
+    if not isinstance(parameters, dict) or set(parameters) - allowed_parameters:
       raise ValueError("m%05d.py: invalid iteration parameters" % mode)
     if any(type(value) is not int or value < 1 for value in parameters.values()):
       raise ValueError("m%05d.py: iteration counts must be positive integers" % mode)
@@ -68,8 +78,9 @@ def reduced_iteration_parameters(mode):
   return load_test_properties(mode).get("reduced", {}).get("parameters", {})
 
 
-def iteration_reduction_requested():
-  value = os.environ.get(ITERATION_ENV, "false").lower()
+def iteration_reduction_requested(source=None):
+  env = os.environ if source is None else source
+  value = env.get(ITERATION_ENV, "false").lower()
 
   if value not in ("true", "false"):
     raise ValueError("%s must be true or false" % ITERATION_ENV)
@@ -78,7 +89,12 @@ def iteration_reduction_requested():
 
 
 def iteration_reduction_enabled(mode):
-  return iteration_reduction_requested() and bool(reduced_iteration_parameters(mode))
+  return iteration_reduction_requested() and (bool(reduced_iteration_parameters(mode)) or bool(runtime_iteration_policy(mode)))
+
+
+def iteration_copy_hash(mode):
+  # Preserve the custom count that this mode's hash encoder omits from its output.
+  return iteration_reduction_enabled(mode) and bool(runtime_iteration_policy(mode))
 
 
 def generate_iteration_hash(mod, word, salt, iterations=None, **extra):
@@ -87,3 +103,31 @@ def generate_iteration_hash(mod, word, salt, iterations=None, **extra):
   kwargs.update(extra)
 
   return mod.module_generate_hash(word, salt, **kwargs)
+
+
+def runtime_iteration_policy(mode):
+  # A runtime declaration explicitly opts this mode into nonstandard test costs.
+  return load_test_properties(mode).get("runtime", {})
+
+
+def iteration_parameters(mode):
+  # Read encoded defaults or runtime-specific generator parameters in the oracle process.
+  if not iteration_reduction_requested():
+    return {}
+  policy = runtime_iteration_policy(mode)
+  return dict(reduced_iteration_parameters(mode) or policy.get("parameters", {}))
+
+
+def iteration_disable_selftest(mode):
+  return iteration_reduction_enabled(mode) and runtime_iteration_policy(mode).get("compiled_cost", False)
+
+
+def iteration_environment(mode, source=None, generated=True):
+  # Remove inherited overrides and enable only the selected generated hash policy.
+  env = dict(os.environ if source is None else source)
+  env.pop(ITERATION_RUNTIME_ENV, None)
+
+  if generated and iteration_reduction_requested(env) and bool(runtime_iteration_policy(mode)):
+    env[ITERATION_RUNTIME_ENV] = str(runtime_iteration_policy(mode)["limit"])
+
+  return env
