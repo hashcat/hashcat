@@ -206,7 +206,8 @@ def modes_on_disk(kind):
         if m:
             modes.add(int(m.group(1)))
 
-    modes -= test_modes("--list-hardware-modes")
+    if kind == "test":
+        modes -= test_modes("--list-hardware-modes")
 
     if kind == "test":
         tested = set()
