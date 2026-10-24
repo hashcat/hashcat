@@ -31,8 +31,12 @@ def module_test_properties():
   }
 
 
-def module_generate_hash(word, salt, iterations=None):
-  return gpg.aes_cfb_generate(word, S2K_HASH, S2K_HASH_ID)
+def module_association_parameters():
+  return [{"cipher_algo": 7, "iterations": 65536}, {"cipher_algo": 9, "iterations": 65536}]
+
+
+def module_generate_hash(word, salt, iterations=None, cipher_algo=None):
+  return gpg.aes_cfb_generate(word, S2K_HASH, S2K_HASH_ID, iterations, cipher_algo)
 
 
 def module_verify_hash(line):
