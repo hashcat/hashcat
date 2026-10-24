@@ -486,7 +486,7 @@ DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const a
   blake2b_init (&ctx);
 
   // Override default (0x40) value in BLAKE2b
-  ctx.h[0] ^= 0x40 ^ options->digest_len;
+  ctx.h[0] ^= 0x40 ^ MIN (options->digest_len, 64);
 
   u32 rem = options->digest_len;
 
@@ -520,10 +520,41 @@ DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const a
 
   blake2b_transform (ctx.h, ctx.m, 1028, (u64) BLAKE2B_FINAL);
 
-  for (uint i = 0, idx = 0; i < (options->digest_len / 4); i += 2, idx += 1)
+  u32 remaining = options->digest_len;
+  u32 output_offset = 0;
+
+  while (remaining > 64)
   {
-    out [i + 0] = l32_from_64_S (ctx.h[idx]);
-    out [i + 1] = h32_from_64_S (ctx.h[idx]);
+    for (u32 idx = 0; idx < 4; idx++)
+    {
+      out[output_offset + idx * 2 + 0] = l32_from_64_S (ctx.h[idx]);
+      out[output_offset + idx * 2 + 1] = h32_from_64_S (ctx.h[idx]);
+    }
+
+    remaining -= 32;
+    output_offset += 8;
+
+    for (u32 idx = 0; idx < 8; idx++) ctx.m[idx] = ctx.h[idx];
+    for (u32 idx = 8; idx < 16; idx++) ctx.m[idx] = 0;
+
+    blake2b_ctx_t next;
+    blake2b_init (&next);
+
+    next.h[0] ^= 0x40 ^ MIN (remaining, 64);
+
+    blake2b_transform (next.h, ctx.m, 64, (u64) BLAKE2B_FINAL);
+
+    for (u32 idx = 0; idx < 8; idx++) ctx.h[idx] = next.h[idx];
+  }
+
+  for (u32 offset = 0; offset < remaining; offset += 4)
+  {
+    const u64 value = ctx.h[offset / 8];
+    u32 word = (offset & 4) ? h32_from_64_S (value) : l32_from_64_S (value);
+
+    if (remaining - offset < 4) word &= 0xffffffff >> ((4 - (remaining - offset)) * 8);
+
+    out[output_offset + offset / 4] = word;
   }
 }
 
