@@ -5586,10 +5586,8 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
       errors += 1
       log_result(rc)
 
-      log_result(rc)
-
-      print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
-            % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i))
+      print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single: %s"
+            % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i, reason_for(rc)))
 
       if rc in (250, 252):
         break
@@ -5814,10 +5812,8 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   if rc != 0:
     log_result(rc)
 
-    log_result(rc)
-
-    print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi"
-          % (rc, mode, attack, ctx.ktype, width))
+    print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi: %s"
+          % (rc, mode, attack, ctx.ktype, width, reason_for(rc)))
 
     return 1, 1, rc in (250, 252)
 
