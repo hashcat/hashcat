@@ -1,4 +1,4 @@
-# Assimilation Bridge in hashcat v7
+# Assimilation Bridge
 
 ## Overview
 

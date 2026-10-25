@@ -65,7 +65,7 @@ The [docs](docs/) directory covers each feature. The ones people ask about most:
 * [FPGA setup](docs/hashcat-fpga-setup.md), for running bcrypt on FPGA boards with mode 75000
 * [Generic attack mode](docs/hashcat-generic-attack-mode.md), [PCFG](docs/hashcat-pcfg.md), [table](docs/hashcat-table.md) and [association](docs/hashcat-association.md) attacks
 * [Brain](docs/hashcat-brain.md), for skipping candidates an earlier session already tried
-* [Release notes for v7.1.0](docs/releases_notes_v7.1.0.md), and the full [changelog](docs/changes.txt)
+* [Release notes for v8.0.0](docs/releases_notes_v8.0.0.md), and the full [changelog](docs/changes.txt)
 
 ### Contributing ###
 

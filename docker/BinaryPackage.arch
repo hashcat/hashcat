@@ -55,13 +55,6 @@ RUN wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
     make -j$(nproc) && make install && \
     cd /root && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
 
-# Download and extract MSYS2 Python headers
-RUN mkdir /opt/win-python
-WORKDIR /opt/win-python
-RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst && \
-    zstd -d mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst && \
-    tar -xf mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar
-
 # Init rust
 RUN rustup default stable
 RUN rustup target add x86_64-pc-windows-gnu
@@ -75,12 +68,20 @@ COPY docker/patches/arch/ /root/patches/
 # the tree the package is built from. A clone of master names no particular commit, so what a past
 # release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
 # is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
-# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+# bumped with every release.
 
-ARG HASHCAT_REF=v7.1.2
+ARG HASHCAT_REF=v8.0.0
 
 WORKDIR /root
 RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
+
+# The Python bridge used to be built against Windows Python headers from an MSYS2 package, which this
+# file installed under /opt/win-python. It starts an interpreter as a separate process now and needs no
+# headers at all, so the package is gone from here. A tree that still wants it would build without its
+# Python plugin and say so only in a warning, which is a release package quietly missing a hash mode,
+# so it is refused here instead.
+
+RUN if grep -q 'WIN_PYTHON' /root/hashcat/src/Makefile; then echo "HASHCAT_REF=${HASHCAT_REF} builds its Python bridge from Windows Python headers, which this file no longer installs"; exit 1; fi
 
 ## Compile
 WORKDIR /root/hashcat

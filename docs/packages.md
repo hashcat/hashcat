@@ -13,7 +13,7 @@ Many operating system repositories provide a package named `hashcat`. Packaged v
 
 ### The shared core ###
 
-Setting `SHARED=1` is the default on Linux and macOS. The frontend and every module, bridge and feed link against a single core library, which the package must install alongside the frontend: `libhashcat.so.7` on Linux and `libhashcat.7.dylib` on macOS. A plugin looks for the library one directory above its own location. Building with `SHARED=0` produces self-contained plugins at the cost of a much larger installation.
+Setting `SHARED=1` is the default on Linux and macOS. The frontend and every module, bridge and feed link against a single core library, which the package must install alongside the frontend: `libhashcat.so.8` on Linux and `libhashcat.8.dylib` on macOS. A plugin looks for the library one directory above its own location. Building with `SHARED=0` produces self-contained plugins at the cost of a much larger installation.
 
 A development package should include the public plugin headers and the unversioned `libhashcat.so` symlink resolved by `-lhashcat`. Every third-party plugin must be rebuilt for plugin interface 800.
 

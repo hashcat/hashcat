@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "random"
-version = "7.1.2"
+version = "8.0.0"
 dependencies = [
  "winresource",
 ]

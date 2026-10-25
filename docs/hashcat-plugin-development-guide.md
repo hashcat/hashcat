@@ -957,7 +957,7 @@ This section describes how plugins are built and loaded. It is most relevant whe
 
 A module does not carry its own copy of the hashcat core. The core is built once as a library, and the frontend, modules, bridges, and feeds link against it. This substantially reduces plugin and package size without changing module source or the normal `make` workflow.
 
-The library is `libhashcat.so.7` on Linux, `libhashcat.7.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
+The library is `libhashcat.so.8` on Linux, `libhashcat.8.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
 
 The library does not export everything it defines. Most names are internal machinery that plugins must not call. An exported name is part of an interface a plugin can bind to, so its visibility is declared explicitly rather than inferred from whether a current module happens to use it.
 
