@@ -2129,16 +2129,33 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    // run_kernel () copied the count back behind the launch. A zero, which is nearly every launch,
+    // needs no read of its own, and anything else is read again below with the plains.
 
-    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+    const bool none = (device_param->launch_result_valid == true) && (device_param->launch_result_host[0] == 0);
+
+    device_param->launch_result_valid = false;
+
+    if (none == false)
+    {
+      if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+
+      if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+    }
   }
 
   if (device_param->is_hip == true)
   {
-    if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    const bool none = (device_param->launch_result_valid == true) && (device_param->launch_result_host[0] == 0);
 
-    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+    device_param->launch_result_valid = false;
+
+    if (none == false)
+    {
+      if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+
+      if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+    }
   }
 
   #if defined (__APPLE__)
@@ -2150,8 +2167,15 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (device_param->is_opencl == true)
   {
+    const bool none = (device_param->launch_result_valid == true) && (device_param->launch_result_host[0] == 0);
+
+    device_param->launch_result_valid = false;
+
     /* blocking */
-    if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    if (none == false)
+    {
+      if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    }
   }
 
   if (num_cracked == 0 || user_options->speed_only == true)

@@ -801,7 +801,7 @@ typedef enum opts_type
   OPTS_TYPE_MP_MULTI_DISABLE         = (1ULL << 56), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
   OPTS_TYPE_THREAD_MULTI_DISABLE     = (1ULL << 57), // do not multiply the kernel-power with the thread count per device for super slow algos
   OPTS_TYPE_NATIVE_THREADS           = (1ULL << 58), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
-  OPTS_TYPE_MAXIMUM_THREADS          = (1ULL << 59), // disable else branch in pre-compilation thread count optimization setting
+  OPTS_TYPE_MAXIMUM_THREADS          = (1ULL << 59), // autotune takes the largest workgroup that still reaches the most resident threads
   OPTS_TYPE_POST_AMP_UTF16LE         = (1ULL << 60), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
   OPTS_TYPE_AUTODETECT_DISABLE       = (1ULL << 61), // skip autodetect engine
   OPTS_TYPE_STOCK_MODULE             = (1ULL << 62), // module included with hashcat default distribution
@@ -2106,6 +2106,15 @@ typedef struct hc_device_param
 
   double  spin_damp;
 
+  // How early the launch wait wakes up before a launch is expected to end, and the pinned host
+  // memory a cracking launch uploads its parameters from and copies the crack count back into.
+
+  double  launch_margin_us;
+
+  void   *launch_param_host;
+  u32    *launch_result_host;
+  bool    launch_result_valid;
+
   void   *kernel_params[PARAMCNT];
   void   *kernel_params_mp[PARAMCNT];
   void   *kernel_params_mp_r[PARAMCNT];
@@ -2171,6 +2180,7 @@ typedef struct hc_device_param
   CUevent           cuda_event1;
   CUevent           cuda_event2;
   CUevent           cuda_event3;
+  CUevent           cuda_event_done;
 
   CUmodule          cuda_module[HC_DEV_PROGRAM_CNT];
 
@@ -2189,6 +2199,7 @@ typedef struct hc_device_param
   hipEvent_t        hip_event1;
   hipEvent_t        hip_event2;
   hipEvent_t        hip_event3;
+  hipEvent_t        hip_event_done;
 
   hipModule_t       hip_module[HC_DEV_PROGRAM_CNT];
 
@@ -2297,6 +2308,7 @@ typedef struct hc_device_param
   cl_device_id      opencl_device;
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;
+  cl_mem            opencl_launch_buf;
 
   cl_program        opencl_program[HC_DEV_PROGRAM_CNT];
 

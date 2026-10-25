@@ -140,7 +140,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   ctx.len = 32;
 
-  md5_update (&ctx, hc->salt1_buf, hc->salt1_len);
+  md5_update_padded (&ctx, hc->salt1_buf, hc->salt1_len);
 
   md5_final (&ctx);
 
@@ -151,7 +151,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   md5_init (&ctx);
 
-  md5_update (&ctx, hc->salt2_buf, hc->salt2_len);
+  md5_update_padded (&ctx, hc->salt2_buf, hc->salt2_len);
 
   u32 ww0[4];
   u32 ww1[4];
@@ -186,7 +186,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   md5_update_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-  md5_update (&ctx, hc->salt3_buf, hc->salt3_len);
+  md5_update_padded (&ctx, hc->salt3_buf, hc->salt3_len);
 
   md5_final (&ctx);
 
@@ -238,7 +238,7 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
   ctx.len = 32;
 
-  md5_update (&ctx, hc->salt1_buf, hc->salt1_len);
+  md5_update_padded (&ctx, hc->salt1_buf, hc->salt1_len);
 
   md5_final (&ctx);
 
@@ -249,7 +249,7 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
   md5_init (&ctx);
 
-  md5_update (&ctx, hc->salt2_buf, hc->salt2_len);
+  md5_update_padded (&ctx, hc->salt2_buf, hc->salt2_len);
 
   u32 ww0[4];
   u32 ww1[4];
@@ -284,7 +284,7 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
   md5_update_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-  md5_update (&ctx, hc->salt3_buf, hc->salt3_len);
+  md5_update_padded (&ctx, hc->salt3_buf, hc->salt3_len);
 
   md5_final (&ctx);
 
