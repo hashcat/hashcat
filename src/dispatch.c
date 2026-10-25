@@ -337,7 +337,10 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     u64 brain_rejects_hashes  = 0;
     #endif
 
-    memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+    // Nothing is cleared here. pw_pre_add () writes every field a reader of an entry consumes, and
+    // every reader stops at pws_pre_cnt, so an entry left over from the round before is below the
+    // bound of all of them. Clearing it was size_pws_pre of memset for each round of a batch, which
+    // is hundreds of megabytes on a large launch, for the reason pw_batch_reset () already gives.
 
     device_param->pws_pre_cnt = 0;
 
