@@ -11765,6 +11765,11 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->opencl_command_queue)
       {
+        // Setup can leave queued buffer fills behind when a device is refused.
+        // Finish them before releasing the context and unloading the runtime.
+
+        hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+
         hc_clReleaseCommandQueue (hashcat_ctx, device_param->opencl_command_queue);
 
         device_param->opencl_command_queue = NULL;
