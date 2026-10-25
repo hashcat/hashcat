@@ -3158,7 +3158,13 @@ def build_container_extra(mode, attack, vpass, tmp):
     return [dict1, dict2]
 
   if attack == 3:
-    return [container_mask_from_password(vpass, "last")]
+    # A literal mask such as "hashcat" is also a filename in the working directory.
+    mask_file = os.path.join(tmp, "%d_cont.hcmask" % mode)
+
+    with open(mask_file, "wb") as fh:
+      fh.write(container_mask_from_password(vpass, "last") + b"\n")
+
+    return [mask_file]
 
   if attack == 6:
     split = utf8_split_point(vpass, plen - 1)

@@ -281,10 +281,14 @@ jobs:
 
           for mode in $MODES; do
             tuning=""
+            unset HASHCAT_MEMORY
 
             # These memory-hard modes need only a few candidates, not a throughput-sized batch.
             case "$mode" in
-              34100|36100|36200) tuning="--kernel-accel 1" ;;
+              34100|36100|36200)
+                tuning="--kernel-accel 1 --verbose"
+                export HASHCAT_MEMORY=1
+                ;;
             esac
 
             echo "::group::test.py -m ${mode} ${OPTS}"
