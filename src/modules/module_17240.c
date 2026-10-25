@@ -46,25 +46,27 @@ typedef struct pkzip_stream_extra
 
 static FILE *stream_open (const char *path)
 {
+  FILE *file = NULL;
+
   #if defined (_WIN32)
   wchar_t wide[STREAM_PATH];
 
   if (MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wide, STREAM_PATH) == 0) return NULL;
 
-  FILE *file = _wfopen (wide, L"rb");
+  file = _wfopen (wide, L"rb");
   #else
-  FILE *file = fopen (path, "rb");
+  file = fopen (path, "rb");
   #endif
 
   return file;
 }
 
-static int stream_seek (FILE *file, const u64 offset, const int origin)
+static i32 stream_seek (FILE *file, const u64 offset, const i32 origin)
 {
   #if defined (_WIN32)
-  const int rc = _fseeki64 (file, offset, origin);
+  const i32 rc = _fseeki64 (file, offset, origin);
   #else
-  const int rc = fseeko (file, (off_t) offset, origin);
+  const i32 rc = fseeko (file, (off_t) offset, origin);
   #endif
 
   return rc;
@@ -87,7 +89,7 @@ static u64 stream_number (const u8 *text, const u32 len)
 
   for (u32 i = 0; i < len; i++)
   {
-    const u8 c = text[i];
+    const u8 c      = text[i];
     const u32 digit = (c >= 'a') ? c - 'a' + 10 : (c >= 'A') ? c - 'A' + 10 : c - '0';
 
     value = value * 16 + digit;
@@ -107,7 +109,7 @@ static void stream_decrypt (u8 *buf, const u32 len, u32 *key, const u32 *table)
 {
   for (u32 i = 0; i < len; i++)
   {
-    const u32 t = (key[2] & 65535) | 3;
+    const u32 t     = (key[2] & 65535) | 3;
     const u32 value = buf[i] ^ (((t * (t ^ 1)) >> 8) & 255);
 
     buf[i] = value;
@@ -119,7 +121,9 @@ static void stream_decrypt (u8 *buf, const u32 len, u32 *key, const u32 *table)
 
 bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
-  pkzip_stream_extra_t *extra = (pkzip_stream_extra_t *) hook_extra_param;
+  pkzip_stream_extra_t *extra = NULL;
+
+  extra = (pkzip_stream_extra_t *) hook_extra_param;
 
   hc_z_stream stream = { 0 };
 
@@ -136,7 +140,7 @@ bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
   {
     u32 value = i;
 
-    for (u32 bit = 0; bit < 8; bit++) value = (value >> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+    for (u32 bit = 0; bit < 8; bit++) value = (value >> 1) ^ (((value & 1) != 0) ? 0xedb88320 : 0);
 
     extra->table[i] = value;
   }
@@ -146,7 +150,9 @@ bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
 
 bool module_hook_extra_param_term (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
-  pkzip_stream_extra_t *extra = (pkzip_stream_extra_t *) hook_extra_param;
+  const pkzip_stream_extra_t *extra = NULL;
+
+  extra = (const pkzip_stream_extra_t *) hook_extra_param;
 
   if (extra->file != NULL) fclose (extra->file);
   if (extra->io_errors > 0) event_log_warning (hashcat_ctx, "PKZIP streaming could not read the source for %" PRIu64 " candidate(s).", extra->io_errors);
@@ -156,16 +162,29 @@ bool module_hook_extra_param_term (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
 
 void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pw_pos)
 {
-  pkzip_stream_hook_t *hooks = (pkzip_stream_hook_t *) device_param->hooks_buf;
-  pkzip_stream_hook_t *hook = &hooks[pw_pos];
+  pkzip_stream_hook_t *hooks = NULL;
+
+  hooks = (pkzip_stream_hook_t *) device_param->hooks_buf;
+
+  pkzip_stream_hook_t *hook = NULL;
+
+  hook = &hooks[pw_pos];
 
   hook->success = 0;
 
   if (hook->valid == 0) return;
 
-  const pkzip_stream_salt_t *salts = (const pkzip_stream_salt_t *) hook_salts_buf;
-  const pkzip_stream_salt_t *salt = &salts[salt_pos];
-  pkzip_stream_extra_t *extra = (pkzip_stream_extra_t *) hook_extra_param;
+  const pkzip_stream_salt_t *salts = NULL;
+
+  salts = (const pkzip_stream_salt_t *) hook_salts_buf;
+
+  const pkzip_stream_salt_t *salt = NULL;
+
+  salt = &salts[salt_pos];
+
+  pkzip_stream_extra_t *extra = NULL;
+
+  extra = (pkzip_stream_extra_t *) hook_extra_param;
 
   if (salt->path[0] != 0)
   {
@@ -173,7 +192,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
     {
       if (extra->file != NULL) fclose (extra->file);
 
-      extra->file = stream_open (salt->path);
+      extra->file    = stream_open (salt->path);
       extra->current = salt;
     }
 
@@ -206,12 +225,12 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
     }
   }
 
-  u32 key[3] = { hook->key[0], hook->key[1], hook->key[2] };
+  u32 key[3]    = { hook->key[0], hook->key[1], hook->key[2] };
   u64 remaining = salt->packed - 12;
-  u64 written = 0;
-  u64 position = 12;
-  u32 crc = 0xffffffff;
-  bool success = false;
+  u64 written   = 0;
+  u64 position  = 12;
+  u32 crc       = 0xffffffff;
+  bool success  = false;
 
   hc_z_stream stream = { 0 };
 
@@ -243,7 +262,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
       stream_decrypt (extra->input, count, key, extra->table);
 
-      stream.next_in = extra->input;
+      stream.next_in  = extra->input;
       stream.avail_in = count;
       remaining -= count;
       position += count;
@@ -263,12 +282,12 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
       break;
     }
 
-    stream.next_out = extra->output;
+    stream.next_out  = extra->output;
     stream.avail_out = STREAM_CHUNK;
 
     const u32 before = stream.avail_in;
-    const int rc = hc_inflate_step (&stream);
-    const u32 count = STREAM_CHUNK - stream.avail_out;
+    const i32 rc     = hc_inflate_step (&stream);
+    const u32 count  = STREAM_CHUNK - stream.avail_out;
 
     if (count > salt->unpacked - written) break;
 
@@ -298,11 +317,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
   memset (&token, 0, sizeof (token));
 
-  token.token_cnt = 9;
-  token.signatures_cnt = 1;
+  token.token_cnt         = 9;
+  token.signatures_cnt    = 1;
   token.signatures_buf[0] = "$pkzip-stream$";
-  token.len[0] = 14;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_SIGNATURE;
+  token.len[0]            = 14;
+  token.attr[0]           = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   for (u32 i = 0; i < 8; i++) token.sep[i] = '*';
 
@@ -310,7 +329,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   {
     token.len_min[i] = 1;
     token.len_max[i] = 16;
-    token.attr[i] = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_BASE16;
+    token.attr[i]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_BASE16;
   }
 
   token.len_max[1] = 1;
@@ -320,23 +339,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   token.len_max[6] = 2;
   token.len_min[7] = 24;
   token.len_max[7] = PKZIP_STREAM_SAMPLE * 2;
-  token.attr[7] = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
   token.len_max[8] = (STREAM_PATH - 1) * 2;
-  token.attr[8] = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  const int rc = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  const i32 rc = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc != PARSER_OK) return rc;
   if ((token.len[7] & 1) != 0) return PARSER_TOKEN_LENGTH;
 
-  pkzip_stream_t *zip = (pkzip_stream_t *) esalt_buf;
-  pkzip_stream_salt_t *data = (pkzip_stream_salt_t *) hook_salt_buf;
+  pkzip_stream_t *zip = NULL;
 
-  data->method = stream_number (token.buf[1], token.len[1]);
-  data->offset = stream_number (token.buf[2], token.len[2]);
-  data->packed = stream_number (token.buf[3], token.len[3]);
-  data->unpacked = stream_number (token.buf[4], token.len[4]);
-  data->crc = stream_number (token.buf[5], token.len[5]);
+  zip = (pkzip_stream_t *) esalt_buf;
+
+  pkzip_stream_salt_t *data = NULL;
+
+  data = (pkzip_stream_salt_t *) hook_salt_buf;
+
+  data->method     = stream_number (token.buf[1], token.len[1]);
+  data->offset     = stream_number (token.buf[2], token.len[2]);
+  data->packed     = stream_number (token.buf[3], token.len[3]);
+  data->unpacked   = stream_number (token.buf[4], token.len[4]);
+  data->crc        = stream_number (token.buf[5], token.len[5]);
   data->sample_len = token.len[7] / 2;
 
   if ((data->method != 0) && (data->method != 8)) return PARSER_PKZIP_CT_UNMATCHED;
@@ -376,7 +400,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
     data->path[length] = 0;
 
-    FILE *file = stream_open (data->path);
+    FILE *file = NULL;
+
+    file = stream_open (data->path);
 
     if (file == NULL) return PARSER_HAVE_ERRNO;
 
@@ -403,23 +429,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   memcpy (zip->data, data->sample, data->sample_len);
 
   zip->sample_len = data->sample_len;
-  zip->method = data->method;
-  zip->check = stream_number (token.buf[6], token.len[6]);
+  zip->method     = data->method;
+  zip->check      = stream_number (token.buf[6], token.len[6]);
 
   // The reference and its metadata distinguish files with identical CRCs.
   for (u32 n = 0; n < 8; n++)
   {
     u32 value = 2166136261 ^ n;
 
-    for (int i = 0; i < line_len; i++) value = (value ^ (u8) line_buf[i]) * 16777619;
+    for (i32 i = 0; i < line_len; i++) value = (value ^ (u8) line_buf[i]) * 16777619;
 
     salt->salt_buf[n] = value;
   }
 
-  salt->salt_len = 32;
+  salt->salt_len  = 32;
   salt->salt_iter = 0;
 
-  u32 *digest = (u32 *) digest_buf;
+  u32 *digest = NULL;
+
+  digest = (u32 *) digest_buf;
 
   for (u32 i = 0; i < 4; i++) digest[i] = salt->salt_buf[i];
 
@@ -428,17 +456,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
 {
-  const pkzip_stream_t *zip = (const pkzip_stream_t *) esalt_buf;
-  const pkzip_stream_salt_t *data = (const pkzip_stream_salt_t *) hook_salt_buf;
-  const char *format = "$pkzip-stream$*%u*%" PRIx64 "*%" PRIx64 "*%" PRIx64 "*%08x*%02x*";
-  const u32 path_len = strlen (data->path);
-  const int header = snprintf (NULL, 0, format, data->method, data->offset, data->packed, data->unpacked, data->crc, zip->check);
-  const u32 path_hex = (path_len > 0) ? path_len * 2 : 1;
-  const u32 needed = header + data->sample_len * 2 + 1 + path_hex;
+  const pkzip_stream_t *zip = NULL;
+
+  zip = (const pkzip_stream_t *) esalt_buf;
+
+  const pkzip_stream_salt_t *data = NULL;
+
+  data = (const pkzip_stream_salt_t *) hook_salt_buf;
+
+  static const char format[] = "$pkzip-stream$*%u*%" PRIx64 "*%" PRIx64 "*%" PRIx64 "*%08x*%02x*";
+  const u32 path_len         = strlen (data->path);
+  const i32 header           = snprintf (NULL, 0, format, data->method, data->offset, data->packed, data->unpacked, data->crc, zip->check);
+  const u32 path_hex         = (path_len > 0) ? path_len * 2 : 1;
+  const u32 needed           = header + data->sample_len * 2 + 1 + path_hex;
 
   if (needed >= (u32) line_size) return 0;
 
-  int count = snprintf (line_buf, line_size, format, data->method, data->offset, data->packed, data->unpacked, data->crc, zip->check);
+  i32 count = snprintf (line_buf, line_size, format, data->method, data->offset, data->packed, data->unpacked, data->crc, zip->check);
 
   for (u32 i = 0; i < data->sample_len; i++) count += snprintf (&line_buf[count], line_size - count, "%02x", data->sample[i]);
 
@@ -507,9 +541,9 @@ u32 module_hash_category (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNU
   return value;
 }
 
-const char * module_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+const char *module_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *const  value = "PKZIP (Streaming)";
+  static const char value[] = "PKZIP (Streaming)";
 
   return value;
 }
@@ -549,16 +583,16 @@ u32 module_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
   return value;
 }
 
-const char * module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *const  value = "$pkzip-stream$*8*0*2b*4e*c7da6c5b*c7*963adfae487332dce29a5702679be336f81fc296efa7b7b6d1e63b9108ae9457699b6df33b1d6fd67d44f6*-";
+  static const char value[] = "$pkzip-stream$*8*0*2b*4e*c7da6c5b*c7*963adfae487332dce29a5702679be336f81fc296efa7b7b6d1e63b9108ae9457699b6df33b1d6fd67d44f6*-";
 
   return value;
 }
 
-const char * module_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+const char *module_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *const  value = "hashcat";
+  static const char value[] = "hashcat";
 
   return value;
 }
@@ -621,89 +655,89 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 void module_init (module_ctx_t *module_ctx)
 {
-  module_ctx->module_context_size = MODULE_CONTEXT_SIZE_CURRENT;
+  module_ctx->module_context_size      = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version = MODULE_INTERFACE_VERSION_CURRENT;
 
-  module_ctx->module_advice_notice = MODULE_DEFAULT;
-  module_ctx->module_attack_exec = module_attack_exec;
-  module_ctx->module_benchmark_esalt = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hook_salt = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask = MODULE_DEFAULT;
-  module_ctx->module_benchmark_charset = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt = MODULE_DEFAULT;
-  module_ctx->module_benchmark_cost = MODULE_DEFAULT;
-  module_ctx->module_bridge_name = MODULE_DEFAULT;
-  module_ctx->module_bridge_type = MODULE_DEFAULT;
+  module_ctx->module_advice_notice           = MODULE_DEFAULT;
+  module_ctx->module_attack_exec             = module_attack_exec;
+  module_ctx->module_benchmark_esalt         = MODULE_DEFAULT;
+  module_ctx->module_benchmark_hook_salt     = MODULE_DEFAULT;
+  module_ctx->module_benchmark_mask          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_charset       = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost          = MODULE_DEFAULT;
+  module_ctx->module_bridge_name             = MODULE_DEFAULT;
+  module_ctx->module_bridge_type             = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel = MODULE_DEFAULT;
-  module_ctx->module_deprecated_notice = MODULE_DEFAULT;
-  module_ctx->module_dgst_pos0 = module_dgst_pos0;
-  module_ctx->module_dgst_pos1 = module_dgst_pos1;
-  module_ctx->module_dgst_pos2 = module_dgst_pos2;
-  module_ctx->module_dgst_pos3 = module_dgst_pos3;
-  module_ctx->module_dgst_size = module_dgst_size;
-  module_ctx->module_esalt_size = module_esalt_size;
-  module_ctx->module_extra_buffer_size = MODULE_DEFAULT;
-  module_ctx->module_extra_tmp_size = MODULE_DEFAULT;
-  module_ctx->module_extra_tuningdb_block = MODULE_DEFAULT;
-  module_ctx->module_forced_outfile_format = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_save = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel        = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice       = MODULE_DEFAULT;
+  module_ctx->module_dgst_pos0               = module_dgst_pos0;
+  module_ctx->module_dgst_pos1               = module_dgst_pos1;
+  module_ctx->module_dgst_pos2               = module_dgst_pos2;
+  module_ctx->module_dgst_pos3               = module_dgst_pos3;
+  module_ctx->module_dgst_size               = module_dgst_size;
+  module_ctx->module_esalt_size              = module_esalt_size;
+  module_ctx->module_extra_buffer_size       = MODULE_DEFAULT;
+  module_ctx->module_extra_tmp_size          = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block    = MODULE_DEFAULT;
+  module_ctx->module_forced_outfile_format   = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count       = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_parse       = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_save        = MODULE_DEFAULT;
   module_ctx->module_hash_decode_postprocess = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_potfile = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_zero_hash = MODULE_DEFAULT;
-  module_ctx->module_hash_decode = module_hash_decode;
-  module_ctx->module_hash_encode_status = MODULE_DEFAULT;
-  module_ctx->module_hash_encode_potfile = MODULE_DEFAULT;
-  module_ctx->module_hash_encode = module_hash_encode;
-  module_ctx->module_hash_hints = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest = MODULE_DEFAULT;
-  module_ctx->module_hash_mode = MODULE_DEFAULT;
-  module_ctx->module_hash_category = module_hash_category;
-  module_ctx->module_hash_name = module_hash_name;
-  module_ctx->module_hash_recipe = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_min = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_max = MODULE_DEFAULT;
-  module_ctx->module_hlfmt_disable = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_size = module_hook_extra_param_size;
-  module_ctx->module_hook_extra_param_init = module_hook_extra_param_init;
-  module_ctx->module_hook_extra_param_term = module_hook_extra_param_term;
-  module_ctx->module_hook12 = MODULE_DEFAULT;
-  module_ctx->module_hook23 = module_hook23;
-  module_ctx->module_hook_salt_size = module_hook_salt_size;
-  module_ctx->module_hook_size = module_hook_size;
-  module_ctx->module_jit_build_options = MODULE_DEFAULT;
-  module_ctx->module_jit_cache_disable = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_min = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max = module_kernel_loops_max;
-  module_ctx->module_kernel_loops_min = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_min = MODULE_DEFAULT;
-  module_ctx->module_kern_bits = module_kern_bits;
-  module_ctx->module_kern_type = module_kern_type;
-  module_ctx->module_kern_type_dynamic = MODULE_DEFAULT;
-  module_ctx->module_length_sort = MODULE_DEFAULT;
-  module_ctx->module_opti_type = module_opti_type;
-  module_ctx->module_opts_type = module_opts_type;
-  module_ctx->module_outfile_check_disable = MODULE_DEFAULT;
-  module_ctx->module_outfile_check_nocomp = MODULE_DEFAULT;
-  module_ctx->module_potfile_custom_check = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile     = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_zero_hash   = MODULE_DEFAULT;
+  module_ctx->module_hash_decode             = module_hash_decode;
+  module_ctx->module_hash_encode_status      = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile     = MODULE_DEFAULT;
+  module_ctx->module_hash_encode             = module_hash_encode;
+  module_ctx->module_hash_hints              = MODULE_DEFAULT;
+  module_ctx->module_hash_init_selftest      = MODULE_DEFAULT;
+  module_ctx->module_hash_mode               = MODULE_DEFAULT;
+  module_ctx->module_hash_category           = module_hash_category;
+  module_ctx->module_hash_name               = module_hash_name;
+  module_ctx->module_hash_recipe             = MODULE_DEFAULT;
+  module_ctx->module_hashes_count_min        = MODULE_DEFAULT;
+  module_ctx->module_hashes_count_max        = MODULE_DEFAULT;
+  module_ctx->module_hlfmt_disable           = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size   = module_hook_extra_param_size;
+  module_ctx->module_hook_extra_param_init   = module_hook_extra_param_init;
+  module_ctx->module_hook_extra_param_term   = module_hook_extra_param_term;
+  module_ctx->module_hook12                  = MODULE_DEFAULT;
+  module_ctx->module_hook23                  = module_hook23;
+  module_ctx->module_hook_salt_size          = module_hook_salt_size;
+  module_ctx->module_hook_size               = module_hook_size;
+  module_ctx->module_jit_build_options       = MODULE_DEFAULT;
+  module_ctx->module_jit_cache_disable       = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max        = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_min        = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max        = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min        = module_kernel_loops_min;
+  module_ctx->module_kernel_threads_max      = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_min      = MODULE_DEFAULT;
+  module_ctx->module_kern_bits               = module_kern_bits;
+  module_ctx->module_kern_type               = module_kern_type;
+  module_ctx->module_kern_type_dynamic       = MODULE_DEFAULT;
+  module_ctx->module_length_sort             = MODULE_DEFAULT;
+  module_ctx->module_opti_type               = module_opti_type;
+  module_ctx->module_opts_type               = module_opts_type;
+  module_ctx->module_outfile_check_disable   = MODULE_DEFAULT;
+  module_ctx->module_outfile_check_nocomp    = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check    = MODULE_DEFAULT;
+  module_ctx->module_potfile_disable         = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
-  module_ctx->module_pwdump_column = MODULE_DEFAULT;
-  module_ctx->module_pw_max = module_pw_max;
-  module_ctx->module_pw_min = MODULE_DEFAULT;
-  module_ctx->module_register_options = MODULE_DEFAULT;
-  module_ctx->module_salt_max = MODULE_DEFAULT;
-  module_ctx->module_salt_min = MODULE_DEFAULT;
-  module_ctx->module_salt_type = module_salt_type;
-  module_ctx->module_separator = MODULE_DEFAULT;
-  module_ctx->module_st_hash = module_st_hash;
-  module_ctx->module_st_pass = module_st_pass;
-  module_ctx->module_tmp_size = module_tmp_size;
-  module_ctx->module_unstable_warning = MODULE_DEFAULT;
-  module_ctx->module_usage_notice = MODULE_DEFAULT;
-  module_ctx->module_warmup_disable = MODULE_DEFAULT;
+  module_ctx->module_pwdump_column           = MODULE_DEFAULT;
+  module_ctx->module_pw_max                  = module_pw_max;
+  module_ctx->module_pw_min                  = MODULE_DEFAULT;
+  module_ctx->module_register_options        = MODULE_DEFAULT;
+  module_ctx->module_salt_max                = MODULE_DEFAULT;
+  module_ctx->module_salt_min                = MODULE_DEFAULT;
+  module_ctx->module_salt_type               = module_salt_type;
+  module_ctx->module_separator               = MODULE_DEFAULT;
+  module_ctx->module_st_hash                 = module_st_hash;
+  module_ctx->module_st_pass                 = module_st_pass;
+  module_ctx->module_tmp_size                = module_tmp_size;
+  module_ctx->module_unstable_warning        = MODULE_DEFAULT;
+  module_ctx->module_usage_notice            = MODULE_DEFAULT;
+  module_ctx->module_warmup_disable          = MODULE_DEFAULT;
 }

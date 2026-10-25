@@ -175,31 +175,37 @@ const char *hc_zlib_hint (void)
 
 // Streaming callers retain the inflater's window across bounded input and output buffers.
 
-int hc_inflate_init (hc_z_stream *stream)
+i32 hc_inflate_init (hc_z_stream *stream)
 {
-  const hc_zlib_lib_t *z = hc_zlib ();
+  const hc_zlib_lib_t *z = NULL;
+
+  z = hc_zlib ();
 
   if (z == NULL) return HC_Z_VERSION_ERROR;
 
-  const int rc = z->inflateInit2_ (stream, -HC_Z_MAX_WBITS, HC_ZLIB_VERSION, (int) sizeof (hc_z_stream));
+  const i32 rc = z->inflateInit2_ (stream, -HC_Z_MAX_WBITS, HC_ZLIB_VERSION, (int) sizeof (hc_z_stream));
 
   return rc;
 }
 
-int hc_inflate_step (hc_z_stream *stream)
+i32 hc_inflate_step (hc_z_stream *stream)
 {
-  const hc_zlib_lib_t *z = hc_zlib ();
+  const hc_zlib_lib_t *z = NULL;
+
+  z = hc_zlib ();
 
   if (z == NULL) return HC_Z_VERSION_ERROR;
 
-  const int rc = z->inflate (stream, HC_Z_NO_FLUSH);
+  const i32 rc = z->inflate (stream, HC_Z_NO_FLUSH);
 
   return rc;
 }
 
 void hc_inflate_end (hc_z_stream *stream)
 {
-  const hc_zlib_lib_t *z = hc_zlib ();
+  const hc_zlib_lib_t *z = NULL;
+
+  z = hc_zlib ();
 
   if (z != NULL) z->inflateEnd (stream);
 }

@@ -107,8 +107,8 @@ const char          *hc_zlib_hint  (void);
 
 HC_PLUGIN_API bool hc_inflate_raw (const unsigned char *in, const size_t in_len, unsigned char *out, const size_t out_len);
 
-HC_PLUGIN_API int  hc_inflate_init (hc_z_stream *stream);
-HC_PLUGIN_API int  hc_inflate_step (hc_z_stream *stream);
+HC_PLUGIN_API i32  hc_inflate_init (hc_z_stream *stream);
+HC_PLUGIN_API i32  hc_inflate_step (hc_z_stream *stream);
 HC_PLUGIN_API void hc_inflate_end  (hc_z_stream *stream);
 
 #endif // HC_EXT_ZLIB_H

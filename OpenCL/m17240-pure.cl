@@ -104,18 +104,20 @@ KERNEL_FQ KERNEL_FA void m17240_init (KERN_ATTR_TMPS_HOOKS_ESALT (pkzip_stream_t
       for (u32 i = 0; i < count; i++)
       {
         const u32 pos = 17 + i * 3;
-        const u32 value = (head[pos / 8] | (head[pos / 8 + 1] << 8)) >> (pos & 7);
+        const u32 value = (head[pos / 8 + 0] | (head[pos / 8 + 1] << 8)) >> (pos & 7);
 
         counts[value & 7]++;
       }
 
-      int left = 1;
+      u32 left = 1;
 
       for (u32 i = 1; i < 8; i++)
       {
-        left = left * 2 - counts[i];
+        left *= 2;
 
-        if (left < 0) return;
+        if (counts[i] > left) return;
+
+        left -= counts[i];
       }
 
       if (left != 0) return;
