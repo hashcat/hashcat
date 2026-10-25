@@ -397,7 +397,7 @@ def edge_constraints(mod, optimized):
   return word, salt, comb
 
 
-def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok):
+def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters):
   while True:
     word = random_non_ascii_string(word_len, non_ascii_ok)
     salt = random_numeric_string(salt_len)
@@ -405,7 +405,8 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = mod.module_generate_hash(word, salt)
+    with test_helpers.fixed_random_numbers(parameters):
+      digest = mod.module_generate_hash(word, salt)
 
     # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
     # again rather than passed on
@@ -457,8 +458,10 @@ def edge(mod, mode, attack_type, optimized):
   if attack_type == 4 and word_min == 0:
     word_min = 1
 
+  parameters = {} if attack_type == 9 else None
+
   def emit(word_len, salt_len):
-    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters)
 
   # word_min, salt_min / word_min, salt_max / word_max, salt_min / word_max, salt_max
 

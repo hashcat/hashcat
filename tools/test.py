@@ -669,6 +669,9 @@ def child_flags(args, devices=True):
   if args.runtime:
     flags += ["--runtime", str(args.runtime)]
 
+  if args.kernel_accel:
+    flags += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.keep_tmp:
     flags.append("--keep-tmp")
 
@@ -692,6 +695,7 @@ def apply_run_options(args):
   KEEP_TMP = args.keep_tmp
 
   for name, seconds in (("--runtime", args.runtime),
+                        ("--kernel-accel", args.kernel_accel),
                         ("--metal-compiler-runtime", args.metal_compiler_runtime)):
     if seconds is not None and seconds <= 0:
       die("! %s must be greater than 0" % name)
@@ -1068,12 +1072,12 @@ def a4_vectors(mode, pairs, optimized):
   # least one character, so the zero length word the -a 0 vectors carry for a min-zero mode cannot be
   # written into a ruleset. Where one is present it is swapped for a spare word of length 1 and the
   # hash that goes with it. Returns the substituted pairs, or None to fall back to the -a 0 vectors,
-  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS or 40023 list, or no spare).
+  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS list, or no spare).
 
   if not pairs:
     return None
 
-  if mode in LUKS_MODES or mode == 40023:
+  if mode in LUKS_MODES:
     return None
 
   # Mode 20510 removes a six-byte prefix before feeding a candidate to the grammar.
@@ -2389,7 +2393,9 @@ def attack_6_single(r):
 
       write_dict(dict1_a6, dict1_lines + [pass_b[:a6_split]])
 
-      mask = mask_literalize(b"?d" * (len(pass_b) - a6_split), pass_b[a6_split:])
+      # Keep the full mask length, but bound the search to four variable digits per word.
+      tail = pass_b[a6_split:]
+      mask = tail[:-4].replace(b"?", b"??") + mask_literalize(b"?d" * len(tail[-4:]), tail[-4:])
 
       rc, out = run_hashcat(r.opts, r.mode, target, None, attack=6,
                             extra=hybrid_extra([dict1_a6, mask]))
@@ -4741,6 +4747,9 @@ def selftest_opts(args):
 
   opts += ["--runtime", str(SELFTEST_RUNTIME), "-D", args.device]
 
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
 
@@ -4996,6 +5005,9 @@ def base_opts(args):
     opts.append("-O")
 
   opts += ["--runtime", str(RUNTIME), "-D", args.device]
+
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
 
   # -d pins the run to those backend devices: the ones the user named, or the single card the depth -j
   # split gives each worker. -D stays as the type, which a pinned device already is.
@@ -5974,6 +5986,9 @@ def edge_opts(args, optimized, width, pt_hex, outfile):
   opts += ISOLATION
   opts += ["-D", args.device, "--runtime", str(EDGE_RUNTIME), "--self-test-disable"]
 
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
 
@@ -6547,6 +6562,8 @@ def main():
   ap.add_argument("--runtime", dest="runtime", type=int, default=None,
                   help="hashcat --runtime in seconds for whichever path runs "
                        "(defaults: %d self-test, %d full, %d edge)" % (SELFTEST_RUNTIME, RUNTIME, EDGE_RUNTIME))
+  ap.add_argument("--kernel-accel", dest="kernel_accel", type=int, default=None,
+                  help="hashcat --kernel-accel, to bound concurrent candidates and memory use")
   ap.add_argument("-d", dest="backend_devices", default=None,
                   help="hashcat --backend-devices: 1 | 1,2 | ... (default: every device of the -D type)")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is

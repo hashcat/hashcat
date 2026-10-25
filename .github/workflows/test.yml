@@ -280,6 +280,13 @@ jobs:
           failed_modes=""
 
           for mode in $MODES; do
+            tuning=""
+
+            # These memory-hard modes need only a few candidates, not a throughput-sized batch.
+            case "$mode" in
+              34100|36100|36200) tuning="--kernel-accel 1" ;;
+            esac
+
             echo "::group::test.py -m ${mode} ${OPTS}"
             log="testpy_${mode}_${KIND}.log"
 
@@ -287,7 +294,7 @@ jobs:
             # summary below. bash -e does not abort on a command that is an if condition, so the
             # loop still runs every mode.
             # shellcheck disable=SC2086
-            if python3 tools/test.py -m "${mode}" ${OPTS} -D 1 -f > "${log}" 2>&1; then
+            if python3 tools/test.py -m "${mode}" ${OPTS} ${tuning} -D 1 -f > "${log}" 2>&1; then
               rc=0
             else
               rc=$?

@@ -158,6 +158,9 @@ def test_matrix(groups, kinds, fallback=False):
 
         for kind in kinds:
             for mode in group:
+                if kind == "edge" and not edge_supported(mode):
+                    continue
+
                 if mode in test_modes("--list-container-modes"):
                     selected.setdefault("container", []).append(mode)
                     continue
@@ -178,6 +181,16 @@ def test_matrix(groups, kinds, fallback=False):
                            "modes": " ".join(str(m) for m in modes)})
 
     return matrix
+
+
+@functools.lru_cache(maxsize=None)
+def edge_supported(mode):
+    # STDOUT has no cracking kernel. Deprecated modes are covered by the ordinary suite.
+    if mode == 2000:
+        return False
+
+    with open("src/modules/module_%05d.c" % mode) as fh:
+        return "const char *module_deprecated_notice (" not in fh.read()
 
 
 @functools.lru_cache(maxsize=None)
