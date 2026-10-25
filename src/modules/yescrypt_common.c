@@ -27,11 +27,10 @@
 
 #define YESCRYPT_HASH_B64_LEN 43
 
-// The loop kernel is cooperative: one workgroup owns one hash and threads 0 to PWXgather-1 are the
-// four pwxform lanes. A workgroup narrower than that leaves lanes unprocessed and silently computes
-// a wrong digest, so this is a hard floor and not a tuning preference.
+// The register-based cooperative kernel exchanges eight u64 words across eight threads.
+// Smaller workgroups wrap the shuffle indices and silently compute a wrong digest.
 
-#define YESCRYPT_MIN_THREADS 4
+#define YESCRYPT_MIN_THREADS 8
 
 // the only flag bit that changes the shape of the computation, see YESCRYPT_FLAG_RW in the kernel
 
@@ -626,7 +625,7 @@ u32 yescrypt_module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashcon
 
 u32 yescrypt_module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : YESCRYPT_THREADS;
+  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? MAX (user_options->kernel_threads, YESCRYPT_MIN_THREADS) : YESCRYPT_THREADS;
 
   return kernel_threads_max;
 }
