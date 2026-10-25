@@ -218,8 +218,13 @@ ENV PATH=/root/.cargo/bin:$PATH
 # the host, picks the host linker and stops on the first link flag that only means something to PE.
 # The default is master until the first release that contains the core library exists to name, and the
 # check below refuses an older tree in one line rather than letting it fail at the link.
+#
+# SOURCE_DATE_EPOCH pins the build time that src/Makefile compiles in, which is otherwise the moment
+# of the build. A release passes its own commit time, git log -1 --format=%ct, so a later build of
+# the tag gives the same bytes.
 
 ARG CACHE_BUST=1 \
+    SOURCE_DATE_EPOCH= \
     HASHCAT_REF=master \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
@@ -227,6 +232,7 @@ ARG CACHE_BUST=1 \
     USE_GCC=0
 
 ENV CACHE_BUST=${CACHE_BUST} \
+    SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
     HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \

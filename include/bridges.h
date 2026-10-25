@@ -17,7 +17,7 @@
 #error "a bridge names the plugin interface it is built against: -DHC_PLUGIN_ABI_VERSION=<n>, see docs/hashcat-plugin-development-guide.md"
 #endif
 
-static const int BRIDGE_INTERFACE_VERSION_MINIMUM = 720;
+static const int BRIDGE_INTERFACE_VERSION_MINIMUM = 800;
 
 static const size_t BRIDGE_CONTEXT_SIZE_CURRENT = sizeof (bridge_ctx_t);
 
