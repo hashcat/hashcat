@@ -154,7 +154,8 @@ using namespace metal;
 #define LOCAL_MEM_TYPE_LOCAL  1
 #define LOCAL_MEM_TYPE_GLOBAL 2
 
-#if LOCAL_MEM_TYPE == LOCAL_MEM_TYPE_LOCAL
+// Fused salt staging also needs local storage on CPU OpenCL.
+#if (LOCAL_MEM_TYPE == LOCAL_MEM_TYPE_LOCAL) || defined(MULTI_SALT_WINDOW)
 #define REAL_SHM
 #endif
 
