@@ -17100,6 +17100,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const bool pws_base_in_use = (user_options->slow_candidates == true) && (debugfile_wants_base (hashcat_ctx) == true);
 
+    // pws_pre is the staging buffer the slow candidate producer fills before it hands a batch over. It
+    // is there so the brain can reject candidates once the whole batch has been hashed, which is not
+    // known while the batch is being built. Without the brain the drain that follows is an
+    // unconditional copy, so fill_slow () adds the candidate to the batch itself and this is one
+    // pw_pre_t per work item of host budget, and one copy per candidate, that nothing needs.
+
+    #ifdef WITH_BRAIN
+    const bool pws_pre_in_use = (user_options->slow_candidates == true) && (user_options->brain_client == true);
+    #else
+    const bool pws_pre_in_use = false;
+    #endif
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -17247,12 +17259,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       size_brain_link_out = kernel_power_max * 8;
       #endif
 
-      if (user_options->slow_candidates == true)
-      {
-        // size_pws_pre
+      // size_pws_pre
 
-        size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
-      }
+      if (pws_pre_in_use == true) size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
 
       // size_pws_base
 
