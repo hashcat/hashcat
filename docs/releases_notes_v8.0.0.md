@@ -958,7 +958,8 @@ Below the CUDA or HIP minimum, hashcat disables that backend and falls back to O
 * Bridges can set the new optional `get_unit_tuning` callback to give a unit fixed tuning, which skips autotune for that unit
 * Bridge entry points now receive `hashcat_ctx`. Bridges must set their work-item granularity and all 7 monitoring hooks. Association bridges must use `bridge_salt_pos()` and `salt_per_pw` to choose each salt
 * Native builds now target the build CPU. Use `MAINTAINER_MODE=1` for release builds or `MCPU=<core>` for a chosen target
-* Source builds default to `PRODUCTION=0`, and release packages are built with `PRODUCTION=1`. `SOURCE_DATE_EPOCH` makes builds of one commit reproducible
+* Master builds default to `PRODUCTION=0`. Release commits, their tags and source archives set `PRODUCTION=1`, like the release packages
+* `SOURCE_DATE_EPOCH` makes builds of one commit reproducible
 * `USE_SYSTEM_ZLIB`, `USE_SYSTEM_LZMA`, `ENABLE_UNRAR`, `USE_SYSTEM_UNRAR`, `USE_SYSTEM_XXHASH` and `WIN_PYTHON` are no longer supported. Remove them from your build scripts
 * See `docs/packages.md` for the shipped files, runtime dependencies and build settings
 
