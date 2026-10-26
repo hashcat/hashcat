@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include "common.h"
 #include "types.h"
+#include "backend.h"
 #include "modules.h"
 #include "bitops.h"
 #include "convert.h"
@@ -670,7 +671,7 @@ char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *has
 
   // Unified memory must also leave room for the backend's per-device host reserve.
 
-  const u64 host_mem = (device_param->device_host_unified_memory == 1) ? (512ULL * 1024 * 1024) / backend_ctx->backend_devices_active : 0;
+  const u64 host_mem = (device_param->device_host_unified_memory == 1) ? BACKEND_HOST_MEM_RESERVE / backend_ctx->backend_devices_active : 0;
 
   const u64 device_mem = (device_param->device_available_mem > host_mem) ? device_param->device_available_mem - host_mem : 0;
 
@@ -837,13 +838,10 @@ char *yescrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
   const u32 expected_threads = yescrypt_expected_threads (hashconfig, user_options, user_options_extra, device_param);
 
-  // X can live in registers instead of local memory. Thread lid keeps every u64 of it whose
-  // index is lid modulo the thread count, which only works when 16r divides evenly by that
-  // count. Real hashes all have an even r, so this is the normal case and the block below is
-  // the fallback. It leaves local memory holding the Sbox and one u64 per thread for the lane
-  // exchange, instead of the Sbox and the whole 128r block.
+  // Register shuffles require a power-of-two workgroup within one 32-lane warp.
+  // The 16r words must also divide evenly across the threads.
 
-  const bool x_in_regs = (((16 * scrypt_r) % expected_threads) == 0);
+  const bool x_in_regs = (expected_threads >= 8) && (expected_threads <= 32) && ((expected_threads & (expected_threads - 1)) == 0) && (((16 * scrypt_r) % expected_threads) == 0);
 
   const u64 lds_x = (x_in_regs == true) ? (8ULL * expected_threads) : (128ULL * scrypt_r);
 

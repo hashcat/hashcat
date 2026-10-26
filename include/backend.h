@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <errno.h>
 
+#define BACKEND_HOST_MEM_RESERVE (512ULL * 1024 * 1024)
+
 static const char CL_VENDOR_AMD1[]              = "Advanced Micro Devices, Inc.";
 static const char CL_VENDOR_AMD2[]              = "AuthenticAMD";
 static const char CL_VENDOR_AMD_USE_INTEL[]     = "GenuineIntel";
