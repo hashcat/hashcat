@@ -49,7 +49,8 @@ typedef struct ikepsk
   u32 nr_len;
   u32 ni_len;
 
-  u32 msg_buf[128];
+  // Six fields of up to 512 bytes each, plus one block for padding.
+  u32 msg_buf[784];
   u32 msg_len[6];
 
 } ikepsk_t;
@@ -151,8 +152,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   ikepsk->ni_len     = token.len[6] / 2;
   ikepsk->nr_len     = (token.len[6] + token.len[7]) / 2;
 
-  // Keep one byte of headroom for the add80 marker written below.
-  if (ikepsk->msg_len[5] >= sizeof (ikepsk->msg_buf)) return PARSER_SALT_LENGTH;
+  if (ikepsk->msg_len[5] > (sizeof (ikepsk->msg_buf) - 64)) return PARSER_SALT_LENGTH;
   if (ikepsk->nr_len     >= sizeof (ikepsk->nr_buf))  return PARSER_SALT_LENGTH;
 
   memset (ikepsk->msg_buf, 0, sizeof (ikepsk->msg_buf));

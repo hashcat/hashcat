@@ -20,7 +20,7 @@ typedef struct ikepsk
   u32 nr_len;
   u32 ni_len;
 
-  u32 msg_buf[128];
+  u32 msg_buf[784];
   u32 msg_len[6];
 
 } ikepsk_t;
@@ -424,9 +424,9 @@ KERNEL_FQ KERNEL_FA void m38100_m04 (KERN_ATTR_ESALT (ikepsk_t))
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
-  LOCAL_VK u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[784];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < (sizeof (s_msg_buf) / sizeof (u32)); i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
@@ -483,9 +483,9 @@ KERNEL_FQ KERNEL_FA void m38100_m08 (KERN_ATTR_ESALT (ikepsk_t))
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
-  LOCAL_VK u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[784];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < (sizeof (s_msg_buf) / sizeof (u32)); i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
@@ -542,9 +542,9 @@ KERNEL_FQ KERNEL_FA void m38100_m16 (KERN_ATTR_ESALT (ikepsk_t))
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
-  LOCAL_VK u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[784];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < (sizeof (s_msg_buf) / sizeof (u32)); i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
@@ -601,9 +601,9 @@ KERNEL_FQ KERNEL_FA void m38100_s04 (KERN_ATTR_ESALT (ikepsk_t))
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
-  LOCAL_VK u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[784];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < (sizeof (s_msg_buf) / sizeof (u32)); i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
@@ -660,9 +660,9 @@ KERNEL_FQ KERNEL_FA void m38100_s08 (KERN_ATTR_ESALT (ikepsk_t))
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
-  LOCAL_VK u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[784];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < (sizeof (s_msg_buf) / sizeof (u32)); i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
@@ -719,9 +719,9 @@ KERNEL_FQ KERNEL_FA void m38100_s16 (KERN_ATTR_ESALT (ikepsk_t))
     s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
   }
 
-  LOCAL_VK u32 s_msg_buf[128];
+  LOCAL_VK u32 s_msg_buf[784];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (u32 i = lid; i < (sizeof (s_msg_buf) / sizeof (u32)); i += lsz)
   {
     s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
   }
