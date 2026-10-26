@@ -208,7 +208,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, tmp_buf);
 
-  if (tmp_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
+  // The tag length is bounded by what the kernel can compute and compare, not by the digest buffer.
+  //
+  // argon2_final () builds the tag from the 64 byte blake2b state, so 64 bytes is the longest tag it
+  // can produce, and it writes digest_len / 4 words into the kernel's array. A longer tag used to be
+  // accepted here and then written past the end of that array on the device.
+  //
+  // The lower bound is the comparison: the kernel hands 4 words to COMPARE, so a tag under 16 bytes
+  // left words it never wrote to decide whether a candidate matched.
+
+  if (tmp_len < 16) return (PARSER_HASH_LENGTH);
+  if (tmp_len > 64) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, tmp_len);
 

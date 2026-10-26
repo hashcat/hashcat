@@ -2499,6 +2499,32 @@ HC_THREAD_FUNC brain_server_handle_dumps (void *p)
   return 0;
 }
 
+// A receive deadline on one client socket. Seconds of 0 removes it, which is what both platforms
+// read as "block until something arrives".
+//
+// brain_recv_all () treats any recv () that does not return bytes as a failed read, so a socket that
+// times out takes the client's error path, and that path already frees the slot and closes the fd.
+
+static bool brain_server_set_recv_timeout (int client_fd, const int seconds)
+{
+  #if defined (_WIN)
+
+  DWORD timeout = (DWORD) seconds * 1000;
+
+  #else
+
+  struct timeval timeout;
+
+  timeout.tv_sec  = seconds;
+  timeout.tv_usec = 0;
+
+  #endif
+
+  if (setsockopt (client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &timeout, sizeof (timeout)) == -1) return false;
+
+  return true;
+}
+
 HC_THREAD_FUNC brain_server_handle_client (void *p)
 {
   brain_server_client_options_t *brain_server_client_options = (brain_server_client_options_t *) p;
@@ -2531,6 +2557,21 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
   #else
 
   #endif
+
+  // The handshake is on the clock from here. The slot this connection holds was taken before any of
+  // it ran, so a peer that never finishes authenticating used to keep the slot indefinitely, and 255
+  // such peers filled the server without ever supplying a password.
+
+  if (brain_server_set_recv_timeout (client_fd, BRAIN_SERVER_HANDSHAKE_TIMEOUT) == false)
+  {
+    brain_logging (stderr, client_idx, "setsockopt: %s\n", strerror (errno));
+
+    brain_server_dbs->client_slots[client_idx] = 0;
+
+    close (client_fd);
+
+    return 0;
+  }
 
   u32 brain_link_version = 0;
 
@@ -2613,6 +2654,21 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
   if (password_ok == 0)
   {
     brain_logging (stderr, client_idx, "Invalid password\n");
+
+    brain_server_dbs->client_slots[client_idx] = 0;
+
+    close (client_fd);
+
+    return 0;
+  }
+
+  // Authenticated, so the deadline comes off. A cracking client waits on its own run between
+  // requests, which on a slow hash is minutes, and cutting it off there would be a worse bug than
+  // the one the deadline is for.
+
+  if (brain_server_set_recv_timeout (client_fd, 0) == false)
+  {
+    brain_logging (stderr, client_idx, "setsockopt: %s\n", strerror (errno));
 
     brain_server_dbs->client_slots[client_idx] = 0;
 
