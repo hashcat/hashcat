@@ -269,12 +269,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   ppk->mac[3] = hex_to_u32 (mac_pos + 24);
   ppk->mac[4] = hex_to_u32 (mac_pos + 32);
 
-  // Use parts of the data as salt for hashcat deduplication
-  salt->salt_buf[0] = ppk->private_buf[0];
-  salt->salt_buf[1] = ppk->private_buf[1];
-  salt->salt_buf[2] = ppk->private_buf[2];
-  salt->salt_buf[3] = ppk->private_buf[3];
-  salt->salt_len    = 16;
+  salt->salt_buf[0] = ppk->mac[0];
+  salt->salt_buf[1] = ppk->mac[1];
+  salt->salt_buf[2] = ppk->mac[2];
+  salt->salt_buf[3] = ppk->mac[3];
+  salt->salt_buf[4] = ppk->mac[4];
+  salt->salt_len    = 20;
 
   // Store expected MAC as digest
   // hex_to_u32 returns LE byte order, but SHA1 h[] stores values in BE format

@@ -2,7 +2,7 @@
  * Author......: Deutsche Telekom Security GmbH
  * License.....: MIT
  *
- * PuTTY Private Key (PPK) version 3, AES-256-CBC with Argon2id
+ * PuTTY Private Key (PPK) version 3, AES-256-CBC with Argon2
  */
 
 #include "common.h"
@@ -16,7 +16,6 @@
 #include "argon2_common.h"
 
 #define ARGON2_VERSION_13   0x13
-#define ARGON2_TYPE_ID      2
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -25,7 +24,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;  // SHA-256 output (32 bytes)
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PRIVATE_KEY;
-static const char *HASH_NAME      = "PuTTY Private Key (PPK) v3, Argon2id + AES-256-CBC";
+static const char *HASH_NAME      = "PuTTY Private Key (PPK) v3, Argon2 + AES-256-CBC";
 static const u64   KERN_TYPE      = 37801;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_DIMY_LOOP;
@@ -57,7 +56,7 @@ static const char *ST_HASH        = "$ppk$3*7373682d727361*6165733235362d636263*
                                     "a7006d7695b1c29a3f8b68c34c0695b47ca94b0ef601cc4e3ced893880cb61b6d68cabcb7386f5a155f22b53a3852b277a79"
                                     "4016d7085d8eaf2a4a69a37b2bc95e03446feeb0c405ff660c17ef9fd9be52f8cc6d8e5fb0c384e91b9ac36b50831d1afc17"
                                     "733b7faafa45b5d9d70583848c28586e9b1ebd0a03559c9fb149f05303aaa4e80427a4492d920800f38652e9b029ad08ae36"
-                                    "4786a84195fc61abb51df*2d4ae0f2609f6900dbefb4a2d8760da6dc37d37de63e97fdd4f1677050de7ad9";
+                                    "4786a84195fc61abb51df*2d4ae0f2609f6900dbefb4a2d8760da6dc37d37de63e97fdd4f1677050de7ad9*2";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -157,9 +156,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  // Format: $ppk$3*algorithm*encryption*comment*argon2_memory*argon2_passes*argon2_parallelism*argon2_salt*pub_len*pub*priv_len*priv*mac
+  // Format: $ppk$3*algorithm*encryption*comment*argon2_memory*argon2_passes*argon2_parallelism*argon2_salt*pub_len*pub*priv_len*priv*mac*argon2_type
 
-  token.token_cnt  = 13;
+  token.token_cnt  = 14;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_PPK3;
@@ -252,9 +251,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[12]   = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
+  token.sep[13]    = '*';
+  token.len[13]    = 1;
+  token.attr[13]   = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  const u32 type = hc_strtoul ((const char *) token.buf[13], NULL, 10);
+
+  if (type > 2) return (PARSER_HASH_VALUE);
 
   // algorithm
   const u8 *algorithm_pos = token.buf[1];
@@ -306,7 +314,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_len = hex_decode (salt_pos, 32, (u8 *) salt->salt_buf);
 
   // argon2 options
-  argon2_options->type                = ARGON2_TYPE_ID;  // Argon2id
+  argon2_options->type                = type;
   argon2_options->version             = ARGON2_VERSION_13;
   argon2_options->iterations          = iter;
   argon2_options->parallelism         = par;
@@ -405,7 +413,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (ppk3->mac[6]), byte_swap_32 (ppk3->mac[7]));
 
   int line_len = snprintf (line_buf, line_size,
-    "%s*%s*%s*%s*%u*%u*%u*%s*%d*%s*%d*%s*%s",
+    "%s*%s*%s*%s*%u*%u*%u*%s*%d*%s*%d*%s*%s*%u",
     SIGNATURE_PPK3,
     algorithm_hex,
     encryption_hex,
@@ -418,7 +426,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     public_hex,
     ppk3->private_len,
     private_hex,
-    mac_hex);
+    mac_hex,
+    argon2_options->type);
 
   hcfree (algorithm_hex);
   hcfree (encryption_hex);

@@ -127,84 +127,36 @@ DECLSPEC void hmac_sha1_update_ssh_string_global_swap (PRIVATE_AS sha1_hmac_ctx_
   }
 }
 
-// Helper for private (decrypted) data - byte-swap for SHA1
-DECLSPEC void hmac_sha1_update_ssh_string_swap (PRIVATE_AS sha1_hmac_ctx_t *ctx, PRIVATE_AS const u32 *buf, const int len)
+DECLSPEC void hmac_sha1_update_ssh_string_aes256 (PRIVATE_AS sha1_hmac_ctx_t *ctx, GLOBAL_AS const u32 *buf, const int len, PRIVATE_AS const u32 *ks, SHM_TYPE const u32 *s_td0, SHM_TYPE const u32 *s_td1, SHM_TYPE const u32 *s_td2, SHM_TYPE const u32 *s_td3, SHM_TYPE const u32 *s_td4)
 {
-  u32 w[16];
-
+  u32 w[16] = { 0 };
   w[ 0] = (u32) len;
-  w[ 1] = 0;
-  w[ 2] = 0;
-  w[ 3] = 0;
-  w[ 4] = 0;
-  w[ 5] = 0;
-  w[ 6] = 0;
-  w[ 7] = 0;
-  w[ 8] = 0;
-  w[ 9] = 0;
-  w[10] = 0;
-  w[11] = 0;
-  w[12] = 0;
-  w[13] = 0;
-  w[14] = 0;
-  w[15] = 0;
 
   sha1_hmac_update (ctx, w, 4);
 
-  int pos = 0;
+  u32 iv[4] = { 0, 0, 0, 0 };
 
-  while ((pos + 16) * 4 <= len)
+  for (int offset = 0; offset < len / 4; offset += 4)
   {
-    w[ 0] = buf[pos +  0];
-    w[ 1] = buf[pos +  1];
-    w[ 2] = buf[pos +  2];
-    w[ 3] = buf[pos +  3];
-    w[ 4] = buf[pos +  4];
-    w[ 5] = buf[pos +  5];
-    w[ 6] = buf[pos +  6];
-    w[ 7] = buf[pos +  7];
-    w[ 8] = buf[pos +  8];
-    w[ 9] = buf[pos +  9];
-    w[10] = buf[pos + 10];
-    w[11] = buf[pos + 11];
-    w[12] = buf[pos + 12];
-    w[13] = buf[pos + 13];
-    w[14] = buf[pos + 14];
-    w[15] = buf[pos + 15];
+    u32 encrypted[4];
+    encrypted[0] = buf[offset + 0];
+    encrypted[1] = buf[offset + 1];
+    encrypted[2] = buf[offset + 2];
+    encrypted[3] = buf[offset + 3];
 
-    sha1_hmac_update_swap (ctx, w, 64);
-    pos += 16;
-  }
+    aes256_decrypt (ks, encrypted, w, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  const int remaining_bytes = len - (pos * 4);
+    w[0] ^= iv[0];
+    w[1] ^= iv[1];
+    w[2] ^= iv[2];
+    w[3] ^= iv[3];
 
-  if (remaining_bytes > 0)
-  {
-    w[ 0] = 0;
-    w[ 1] = 0;
-    w[ 2] = 0;
-    w[ 3] = 0;
-    w[ 4] = 0;
-    w[ 5] = 0;
-    w[ 6] = 0;
-    w[ 7] = 0;
-    w[ 8] = 0;
-    w[ 9] = 0;
-    w[10] = 0;
-    w[11] = 0;
-    w[12] = 0;
-    w[13] = 0;
-    w[14] = 0;
-    w[15] = 0;
+    sha1_hmac_update_swap (ctx, w, 16);
 
-    const int remaining_u32 = (remaining_bytes + 3) / 4;
-
-    for (int i = 0; i < remaining_u32; i++)
-    {
-      w[i] = buf[pos + i];
-    }
-
-    sha1_hmac_update_swap (ctx, w, remaining_bytes);
+    iv[0] = encrypted[0];
+    iv[1] = encrypted[1];
+    iv[2] = encrypted[2];
+    iv[3] = encrypted[3];
   }
 }
 
@@ -408,35 +360,6 @@ KERNEL_FQ KERNEL_FA void m37800_mxx (KERN_ATTR_RULES_ESALT (ppk_t))
 
     aes256_set_decrypt_key (ks, aes_key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-    // Decrypt private key in CBC mode with zero IV
-    u32 iv[4] = { 0, 0, 0, 0 };
-
-    u32 decrypted[512];  // Max 2048 bytes decrypted data
-    const int num_blocks = private_len / 16;
-
-    for (int b = 0; b < num_blocks && b < 512/4; b++)
-    {
-      u32 enc_block[4];
-      enc_block[0] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 0];
-      enc_block[1] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 1];
-      enc_block[2] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 2];
-      enc_block[3] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 3];
-
-      u32 dec_block[4];
-      aes256_decrypt (ks, enc_block, dec_block, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-      decrypted[b * 4 + 0] = dec_block[0] ^ iv[0];
-      decrypted[b * 4 + 1] = dec_block[1] ^ iv[1];
-      decrypted[b * 4 + 2] = dec_block[2] ^ iv[2];
-      decrypted[b * 4 + 3] = dec_block[3] ^ iv[3];
-
-      // Update IV for CBC mode
-      iv[0] = enc_block[0];
-      iv[1] = enc_block[1];
-      iv[2] = enc_block[2];
-      iv[3] = enc_block[3];
-    }
-
     /**
      * Compute HMAC-SHA1 for MAC verification
      * Input: ssh_string(algorithm) || ssh_string(encryption) || ssh_string(comment) || ssh_string(public) || ssh_string(decrypted_private)
@@ -477,8 +400,7 @@ KERNEL_FQ KERNEL_FA void m37800_mxx (KERN_ATTR_RULES_ESALT (ppk_t))
     // Add public key as SSH string
     hmac_sha1_update_ssh_string_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].public_buf, public_len);
 
-    // Add decrypted private key as SSH string
-    hmac_sha1_update_ssh_string_swap (&hmac_ctx, decrypted, private_len);
+    hmac_sha1_update_ssh_string_aes256 (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].private_buf, private_len, ks, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     sha1_hmac_final (&hmac_ctx);
 
@@ -689,33 +611,6 @@ KERNEL_FQ KERNEL_FA void m37800_sxx (KERN_ATTR_RULES_ESALT (ppk_t))
 
     aes256_set_decrypt_key (ks, aes_key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
-    u32 iv[4] = { 0, 0, 0, 0 };
-
-    u32 decrypted[512];
-    const int num_blocks = private_len / 16;
-
-    for (int b = 0; b < num_blocks && b < 512/4; b++)
-    {
-      u32 enc_block[4];
-      enc_block[0] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 0];
-      enc_block[1] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 1];
-      enc_block[2] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 2];
-      enc_block[3] = esalt_bufs[DIGESTS_OFFSET_HOST].private_buf[b * 4 + 3];
-
-      u32 dec_block[4];
-      aes256_decrypt (ks, enc_block, dec_block, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-      decrypted[b * 4 + 0] = dec_block[0] ^ iv[0];
-      decrypted[b * 4 + 1] = dec_block[1] ^ iv[1];
-      decrypted[b * 4 + 2] = dec_block[2] ^ iv[2];
-      decrypted[b * 4 + 3] = dec_block[3] ^ iv[3];
-
-      iv[0] = enc_block[0];
-      iv[1] = enc_block[1];
-      iv[2] = enc_block[2];
-      iv[3] = enc_block[3];
-    }
-
 
     /**
      * Compute HMAC-SHA1
@@ -747,7 +642,7 @@ KERNEL_FQ KERNEL_FA void m37800_sxx (KERN_ATTR_RULES_ESALT (ppk_t))
     hmac_sha1_update_ssh_string_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].encryption_buf, encryption_len);
     hmac_sha1_update_ssh_string_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].comment_buf, comment_len);
     hmac_sha1_update_ssh_string_global_swap (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].public_buf, public_len);
-    hmac_sha1_update_ssh_string_swap (&hmac_ctx, decrypted, private_len);
+    hmac_sha1_update_ssh_string_aes256 (&hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].private_buf, private_len, ks, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     sha1_hmac_final (&hmac_ctx);
 
