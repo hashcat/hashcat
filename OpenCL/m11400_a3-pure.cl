@@ -143,7 +143,7 @@ KERNEL_FQ KERNEL_FA void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, esalt_buf, esalt_len);
+    md5_update_vector_padded (&ctx, esalt_buf, esalt_len);
 
     md5_final_vector (&ctx);
 
@@ -275,7 +275,7 @@ KERNEL_FQ KERNEL_FA void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, esalt_buf, esalt_len);
+    md5_update_vector_padded (&ctx, esalt_buf, esalt_len);
 
     md5_final_vector (&ctx);
 

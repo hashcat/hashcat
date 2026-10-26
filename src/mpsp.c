@@ -17,6 +17,7 @@
 #include "feed_ctx.h"
 #include "ext_lzma.h"
 #include "mpsp.h"
+#include "status_rc.h"
 
 static const char *const DEF_MASK = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
@@ -785,7 +786,10 @@ static void mp_setup_sys (cs_t *mp_sys)
                                                    mp_sys[7].cs_len = pos; }
 }
 
-static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex)
+// A charset given as text belongs to whoever gave it: the command line for -1 to -8, the mask file
+// for a charset field on one of its lines. rc_error says which, and a charset file is always the task.
+
+static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex, const rc_final_t rc_error)
 {
   HCFILE fp;
 
@@ -793,7 +797,12 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   {
     const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, userindex, 1);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+    {
+      status_set_rc_error (hashcat_ctx, rc_error);
+
+      return -1;
+    }
   }
   else
   {
@@ -811,6 +820,11 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
       hc_fclose (&fp);
 
+      // A directory opens, and then reads as an error or as no end, so this is where one given as a
+      // charset ends up. It is the command's, as a directory is everywhere else.
+
+      status_set_rc_error (hashcat_ctx, (hc_path_is_directory (buf) == true) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
       return -1;
     }
 
@@ -820,6 +834,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
       hc_fclose (&fp);
 
+      status_set_rc_error (hashcat_ctx, (hc_path_is_directory (buf) == true) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
       return -1;
     }
 
@@ -828,6 +844,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     if (nread == 0)
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is empty.", buf);
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
       return -1;
     }
@@ -840,12 +858,19 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is corrupted.", buf);
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
       return -1;
     }
 
     const int rc = mp_expand (hashcat_ctx, mp_file, len, mp_sys, mp_usr, userindex, 0);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+    {
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
+      return -1;
+    }
   }
 
   return 0;
@@ -911,14 +936,14 @@ HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, 
 
   mp_setup_sys (mp_sys);
 
-  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_1, 0) == -1) rc = -1; }
-  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_2, 1) == -1) rc = -1; }
-  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_3, 2) == -1) rc = -1; }
-  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_4, 3) == -1) rc = -1; }
-  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_5, 4) == -1) rc = -1; }
-  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_6, 5) == -1) rc = -1; }
-  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_7, 6) == -1) rc = -1; }
-  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_8, 7) == -1) rc = -1; }
+  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_1, 0, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_2, 1, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_3, 2, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_4, 3, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_5, 4, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_6, 5, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_7, 6, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
+  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mp_sys, mp_usr, user_options->custom_charset_8, 7, RC_FINAL_ERROR_COMMAND) == -1) rc = -1; }
 
   // A copy because mp_gen_css () takes it non const, which it does for its callers rather than because it
   // writes to it.
@@ -1345,30 +1370,31 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
 }
 
 // css_cnt bounds the markov half of the work. The table has one cs_t per (position, previous
-// character) for the longest mask hashcat accepts, and a round only ever reads the rows belonging to
-// its own positions: sp_exec () and generate_pw () index markov_css_buf[(i * CHARSIZ) + k] for i
-// below css_cnt. Clearing and filling all 256 positions for a four character mask is 64 MB of memset
-// and 16.7 million loop iterations to produce rows nothing can address.
+// character), and a round only ever reads the rows belonging to its own positions: sp_exec () and
+// generate_pw () index markov_css_buf[(i * CHARSIZ) + k] for i below css_cnt.
 //
-// Rows past css_cnt keep whatever an earlier round left in them. That is safe for the same reason,
-// and it is why the bound has to be the mask length after mp_css_utf16le_expand () and
-// mp_css_append_salt () have had their say rather than before.
+// markov_max is how many positions mask_ctx_init () allocated markov_css_buf for, on the host and on
+// each device. It is a maximum over the whole mask queue, taken with mp_css_utf16le_expand () and
+// mp_css_append_salt () allowed for, so no round can exceed it. Clamping css_cnt to it would hide a
+// round that did, because the readers above have no bound of their own, so this checks instead.
 //
 // The root half stays whole. It is 256 entries against 65536, so there is nothing to win and one
 // less thing to reason about.
 
-static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt, const u32 markov_max)
+static int sp_tbl_to_css (hashcat_ctx_t *hashcat_ctx, hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls, const u32 css_cnt, const u32 markov_max)
 {
-  // Also bounded by what sp_setup_tbl () actually built. The init time bound is the maximum over the
-  // whole queue so no round can exceed it, and this is here so that a future caller cannot turn that
-  // into a read of a slice that was never filled.
+  if (css_cnt > markov_max)
+  {
+    event_log_error (hashcat_ctx, "Mask reaches %u character positions, but only %u were prepared.", css_cnt, markov_max);
 
-  const u32 markov_pos_cnt = MIN (css_cnt, markov_max);
+    return -1;
+  }
 
-  const u32 markov_cnt = markov_pos_cnt * CHARSIZ * CHARSIZ;
+  const u32 markov_cnt = css_cnt * CHARSIZ * CHARSIZ;
 
-  memset (root_css_buf,   0, SP_PW_MAX      *           sizeof (cs_t));
-  memset (markov_css_buf, 0, markov_pos_cnt * CHARSIZ * sizeof (cs_t));
+  memset (root_css_buf, 0, SP_PW_MAX * sizeof (cs_t));
+
+  if (css_cnt > 0) memset (markov_css_buf, 0, (size_t) css_cnt * CHARSIZ * sizeof (cs_t));
 
   /**
    * Convert tables to css
@@ -1430,6 +1456,8 @@ static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *marko
     }
   }
   */
+
+  return 0;
 }
 
 void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop)
@@ -2236,6 +2264,11 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
+  // A mask typed on the command line is part of the attack command. One read from a mask file is
+  // part of the task.
+
+  const rc_final_t mask_error = (mask_ctx->mask_from_file == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND;
+
   // The two feeds are asked about first, because their attack_kern is ATTACK_KERN_STRAIGHT and they
   // would answer neither of the two tests below.
 
@@ -2243,12 +2276,22 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     // This is where the markers are found, so has_w, has_q, pre_len and mid_len are settled by it,
     // and those are what say where the words go in the candidate.
 
-    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     // No length check on the mask here, unlike the other three arms. The mask is one piece of the
     // candidate and the words are the rest, so a three character mask under a hash mode with an
@@ -2260,11 +2303,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+    const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
     hcfree (uniq_tbls);
+
+    if (rc_tbl_to_css == -1) return -1;
 
     // How many values this mask holds, and nothing else. The ?q wordlist is not multiplied in here
     // the way the combinator arm multiplies it, because the feed owns both wordlists and counts them
@@ -2273,6 +2318,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+      status_set_rc_error (hashcat_ctx, mask_error);
 
       return -1;
     }
@@ -2286,9 +2333,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
 
-    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+      return -1;
+    }
+
+    if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     // A mask the hash mode cannot take is passed over rather than run, exactly as it is for -a 3.
     // The rules do not change which lengths the mode accepts: they are applied to this candidate on
@@ -2326,11 +2383,13 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-    sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+    const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
     for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
     hcfree (uniq_tbls);
+
+    if (rc_tbl_to_css == -1) return -1;
 
     // The whole mask, because the feed produces the whole candidate. status_ctx->words_cnt is not
     // set here: the feed reports this as its keyspace and straight_ctx_update_loop multiplies it by
@@ -2339,6 +2398,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->feed_keyspace) == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+      status_set_rc_error (hashcat_ctx, mask_error);
 
       return -1;
     }
@@ -2353,9 +2414,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
 
-      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+        return -1;
+      }
+
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
+
+        return -1;
+      }
 
       u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
 
@@ -2363,15 +2434,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+      const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
       hcfree (uniq_tbls);
 
+      if (rc_tbl_to_css == -1) return -1;
+
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -2382,9 +2457,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
 
-      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+        return -1;
+      }
+
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
+
+        return -1;
+      }
 
       u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
 
@@ -2392,15 +2477,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+      const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
       hcfree (uniq_tbls);
 
+      if (rc_tbl_to_css == -1) return -1;
+
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -2418,6 +2507,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "?q: feed cannot report a keyspace.");
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
@@ -2428,12 +2519,16 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_error (hashcat_ctx, "%s: has a ?q, but no wordlist was given for it.", mask_ctx->mask);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
 
         if (overflow_check_u64_mul (combinator_ctx->combs_cnt, words_cnt) == true)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+          status_set_rc_error (hashcat_ctx, mask_error);
 
           return -1;
         }
@@ -2513,11 +2608,21 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   {
     mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+    if (mask_ctx_parse_maskfile (hashcat_ctx) == -1)
+    {
+      status_set_rc_error (hashcat_ctx, mask_error);
+
+      return -1;
+    }
 
     if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {
-      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, mask_error);
+
+        return -1;
+      }
 
       // special case for benchmark
 
@@ -2592,15 +2697,19 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
+      const int rc_tbl_to_css = sp_tbl_to_css (hashcat_ctx, mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls, mask_ctx->css_cnt, mask_ctx->sp_pw_max_used);
 
       for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
 
       hcfree (uniq_tbls);
 
+      if (rc_tbl_to_css == -1) return -1;
+
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &status_ctx->words_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -2614,6 +2723,8 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       if (sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        status_set_rc_error (hashcat_ctx, mask_error);
 
         return -1;
       }
@@ -3277,12 +3388,13 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mask_ctx->root_table_buf   = (hcstat_table_t *) hccalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
 
-  // markov_table_buf and sp_setup_tbl () are at the end of this function rather than here, because how
-  // much of them a run needs is a property of the mask queue and the queue does not exist yet. Nothing
-  // between here and there reads either one: sp_tbl_to_css () is the only reader and it runs per round.
+  // markov_table_buf, markov_css_buf and sp_setup_tbl () are at the end of this function rather than
+  // here, because how much of them a run needs is a property of the mask queue and the queue does not
+  // exist yet. Nothing between here and there reads any of them: sp_tbl_to_css () is the only reader
+  // of the tables, sp_exec () and sp_rank () are the only readers of the css, and all three run per
+  // round.
 
-  mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX,           sizeof (cs_t));
-  mask_ctx->markov_css_buf = (cs_t *) hccalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
+  mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX, sizeof (cs_t));
 
   mask_ctx->mask_from_file = false;
 
@@ -3300,20 +3412,20 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mp_setup_sys (mask_ctx->mp_sys);
 
-  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0) == -1) return -1; }
-  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1) == -1) return -1; }
-  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2) == -1) return -1; }
-  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3) == -1) return -1; }
-  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4) == -1) return -1; }
-  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5) == -1) return -1; }
-  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6) == -1) return -1; }
-  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7) == -1) return -1; }
+  if (user_options->custom_charset_1) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
+  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7, RC_FINAL_ERROR_COMMAND) == -1) return -1; }
 
   if (user_options->benchmark == true)
   {
     if (hashconfig->benchmark_charset != NULL)
     {
-      if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, hashconfig->benchmark_charset, 0) == -1) return -1;
+      if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, hashconfig->benchmark_charset, 0, RC_FINAL_ERROR_COMMAND) == -1) return -1;
     }
   }
 
@@ -3333,7 +3445,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_path_exist (arg) == false)
         {
-          if (mask_append (hashcat_ctx, arg, NULL) == -1) return -1;
+          if (mask_append (hashcat_ctx, arg, NULL) == -1)
+          {
+            status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+            return -1;
+          }
         }
         else
         {
@@ -3381,6 +3498,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
                 {
                   hc_fclose (&mask_fp);
 
+                  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
                   return -1;
                 }
               }
@@ -3392,6 +3511,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
             else
             {
               event_log_error (hashcat_ctx, "%s: unsupported file type.", arg);
+
+              status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
               return -1;
             }
@@ -3429,7 +3550,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_path_exist (arg) == false)
     {
-      if (mask_append (hashcat_ctx, arg, NULL) == -1) return -1;
+      if (mask_append (hashcat_ctx, arg, NULL) == -1)
+      {
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+        return -1;
+      }
     }
     else
     {
@@ -3473,6 +3599,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             hc_fclose (&mask_fp);
 
+            status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
             return -1;
           }
         }
@@ -3485,6 +3613,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "%s: unsupported file type.", arg);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
     }
@@ -3492,6 +3622,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (mask_ctx->masks_cnt == 0)
   {
     event_log_error (hashcat_ctx, "Invalid mask.");
+
+    status_set_rc_error (hashcat_ctx, (mask_ctx->mask_from_file == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -3551,6 +3683,8 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (has_q == false)
     {
       event_log_error (hashcat_ctx, "%s: given as the wordlist a ?q names, but no mask has a ?q.", user_options_extra->hc_workv[user_options_extra->hc_workc - 1]);
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
       return -1;
     }
@@ -3615,6 +3749,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (mask_ctx->sp_pw_max_used > 0)
   {
     mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc ((size_t) mask_ctx->sp_pw_max_used * CHARSIZ * CHARSIZ, sizeof (hcstat_table_t));
+
+    // One cs_t per (position, previous character), same as the table it is built from, so the same
+    // bound sizes it. At the full 256 positions this is 67 MB that an eight character mask uses two
+    // of, and it was carried on the host and again on every device.
+
+    mask_ctx->markov_css_buf = (cs_t *) hccalloc ((size_t) mask_ctx->sp_pw_max_used * CHARSIZ, sizeof (cs_t));
 
     if (sp_setup_tbl (hashcat_ctx) == -1) return -1;
   }
@@ -3759,42 +3899,42 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
     {
       case 0:
         user_options->custom_charset_1 = mfs_buf[0].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0, RC_FINAL_ERROR_TASK);
         break;
 
       case 1:
         user_options->custom_charset_2 = mfs_buf[1].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1, RC_FINAL_ERROR_TASK);
         break;
 
       case 2:
         user_options->custom_charset_3 = mfs_buf[2].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2, RC_FINAL_ERROR_TASK);
         break;
 
       case 3:
         user_options->custom_charset_4 = mfs_buf[3].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3, RC_FINAL_ERROR_TASK);
         break;
 
       case 4:
         user_options->custom_charset_5 = mfs_buf[4].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4, RC_FINAL_ERROR_TASK);
         break;
 
       case 5:
         user_options->custom_charset_6 = mfs_buf[5].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5, RC_FINAL_ERROR_TASK);
         break;
 
       case 6:
         user_options->custom_charset_7 = mfs_buf[6].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6, RC_FINAL_ERROR_TASK);
         break;
 
       case 7:
         user_options->custom_charset_8 = mfs_buf[7].mf_buf;
-        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7);
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7, RC_FINAL_ERROR_TASK);
         break;
     }
   }

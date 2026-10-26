@@ -1,0 +1,6 @@
+#
+# Author......: See docs/credits.txt
+# License.....: MIT
+#
+
+SUBSYSTEM=="usb", ATTR{idVendor}=="221a", MODE="0660", GROUP="plugdev"

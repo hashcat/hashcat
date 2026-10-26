@@ -16,6 +16,15 @@ KERNEL_FQ KERNEL_FA void amp (KERN_ATTR_AMP)
 
   if (gid >= gid_max) return;
 
+  // one amplifier item over all base words: the host has already copied them into pws
+
+  if (pws_cnt == gid_max)
+  {
+    pws[gid].i[0] |= bfs_buf[0].i;
+
+    return;
+  }
+
   const u32 pw_pos = (u32) gid % pws_cnt;
   const u32 il_pos = (u32) gid / pws_cnt;
 

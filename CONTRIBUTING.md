@@ -14,7 +14,7 @@ Whatever the size of the patch, describe what prompted the change. A one line di
 
 ## Requirements
 
-1. Licensed under the MIT license, or dedicated to the public domain. BSD and GPL code is incompatible.
+1. Licensed under the MIT license, or dedicated to the public domain. This applies to code written for hashcat. Third-party code keeps its own license, which must allow redistribution with hashcat and is recorded in `docs/license_libs/`. GPL code is never linked into hashcat.
 2. Adheres to the gnu99 standard.
 3. Compiles cleanly with no warnings under `-W -Wall -std=gnu99`.
 

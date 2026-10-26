@@ -957,7 +957,7 @@ This section describes how plugins are built and loaded. It is most relevant whe
 
 A module does not carry its own copy of the hashcat core. The core is built once as a library, and the frontend, modules, bridges, and feeds link against it. This substantially reduces plugin and package size without changing module source or the normal `make` workflow.
 
-The library is `libhashcat.so.7` on Linux, `libhashcat.7.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
+The library is `libhashcat.so.8` on Linux, `libhashcat.8.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
 
 The library does not export everything it defines. Most names are internal machinery that plugins must not call. An exported name is part of an interface a plugin can bind to, so its visibility is declared explicitly rather than inferred from whether a current module happens to use it.
 
@@ -985,7 +985,7 @@ An external plugin can use the following compile command. The interface version 
 
 ```
 gcc -O2 -fPIC -shared -fvisibility=hidden \
-    -DHC_PLUGIN_ABI_VERSION=720 -DMODULE_INTERFACE_VERSION_CURRENT=720 \
+    -DHC_PLUGIN_ABI_VERSION=800 -DMODULE_INTERFACE_VERSION_CURRENT=800 \
     -I/usr/local/include/hashcat -I/usr/local/share/hashcat/OpenCL \
     module_80000.c -o module_80000.so \
     -L/usr/local/lib -lhashcat -Wl,-rpath,'$ORIGIN/..' -Wl,-z,defs
@@ -995,7 +995,7 @@ Keep `-Wl,-z,defs` so the link fails when the core does not export a referenced 
 
 A source-distributed plugin is compiled against the user's installed core and needs no separate compatibility build. A binary-distributed plugin must be rebuilt for each plugin interface version. hashcat rejects an incompatible binary before running any plugin code.
 
-Compatibility is enforced through a versioned exported symbol such as `HASHCAT_PLUGIN_720`. Every C plugin holds a pointer to that symbol through `include/export.h`, although the function is never called. Raising `MODULE_INTERFACE_VERSION` changes the symbol name, so an older plugin cannot resolve it. This check works before `module_init()` on Linux, macOS, and Windows.
+Compatibility is enforced through a versioned exported symbol such as `HASHCAT_PLUGIN_800`. Every C plugin holds a pointer to that symbol through `include/export.h`, although the function is never called. Raising `MODULE_INTERFACE_VERSION` changes the symbol name, so an older plugin cannot resolve it. This check works before `module_init()` on Linux, macOS, and Windows.
 
 Compile-time definition `HC_PLUGIN_ABI_VERSION` supplies the version number. Headers `include/modules.h`, `include/bridges.h`, and `include/feed.h` require it so that no C plugin can be built without the compatibility reference.
 
@@ -1004,7 +1004,7 @@ The Rust feed is the one plugin here that is not built this way. It calls no cor
 An incompatible plugin produces the same diagnostic on every platform:
 
 ```
-Module modules/module_12345.so was built for plugin interface 719, this hashcat provides 720
+Module modules/module_12345.so was built for plugin interface 720, this hashcat provides 800
 ```
 
 hashcat then stops. Native loader errors differ by platform, so hashcat reads the version from the plugin and reports a consistent message. Rebuild the named plugin against the current hashcat version.

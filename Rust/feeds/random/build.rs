@@ -11,6 +11,12 @@ fn main() {
             .set("LegalCopyright", "MIT License")
             .set("FileVersion", &version)
             .set("ProductVersion", &version);
+
+        // The numeric version, which Explorer shows as the file version, would otherwise come from
+        // the crate's own version in Cargo.toml.
+        let packed = pack_version(&version);
+        res.set_version_info(winresource::VersionInfo::FILEVERSION, packed)
+            .set_version_info(winresource::VersionInfo::PRODUCTVERSION, packed);
         if let Err(e) = res.compile() {
             println!("cargo:warning=Failed to embed VERSIONINFO: {e}");
         }
@@ -32,6 +38,16 @@ fn find_windres() -> Option<String> {
                 None
             }
         })
+}
+
+fn pack_version(version: &str) -> u64 {
+    // Four 16 bit fields, major first, so "8.0.0" becomes 8.0.0.0.
+    let mut packed: u64 = 0;
+    for (i, part) in version.split('.').take(4).enumerate() {
+        let field: u64 = part.parse().unwrap_or(0);
+        packed |= (field & 0xffff) << (48 - (i * 16));
+    }
+    packed
 }
 
 fn read_hashcat_version() -> String {

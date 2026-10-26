@@ -1,0 +1,37 @@
+Subject: [PATCH 5/5] LOCAL ONLY: refuse raw register writes outside the algorithm block
+
+NOT for upstream as written, because it assumes the hcfpga register layout. LITEPCIE_IOCTL_REG checks
+only that an address lies inside BAR0, and BAR0 also holds the SoC reset and the DMA descriptor
+tables. Any account that can open /dev/litepcie* could write a descriptor with an arbitrary bus
+address and have the DMA engine read or write any physical memory, which is a kernel read and write
+primitive on a host without a translating IOMMU. A write to the SoC reset kills the PCIe endpoint,
+and on an AMD host the next read resets the machine, as described in patch 3.
+
+hashcat writes only the algorithm block through this ioctl, below CSR_CTRL_BASE. Writes at or above
+it are now refused with EPERM, and the DMA engine is programmed only through the driver's own ioctls
+and buffers. Reads stay allowed, because the bridge reads the link status and the temperature there.
+
+Signed-off-by: See docs/credits.txt
+
+--- a/main.c
++++ b/main.c
+@@ -1081,6 +1081,19 @@
+ 			break;
+ 		}
+ 
++#ifdef CSR_CTRL_BASE
++		/* LOCAL: raw writes are limited to the algorithm block, which is
++		 * all hashcat writes through this ioctl. From CSR_CTRL_BASE up are
++		 * the SoC reset and the DMA descriptor tables. A raw write there
++		 * lets any account that can open the node reset the host or point
++		 * the DMA engine at arbitrary physical memory. Reads stay allowed.
++		 */
++		if (m.is_write && m.addr >= CSR_CTRL_BASE) {
++			ret = -EPERM;
++			break;
++		}
++#endif
++
+ 		if (m.is_write)
+ 			litepcie_writel(dev, m.addr, m.val);
+ 		else

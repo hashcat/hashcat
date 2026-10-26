@@ -17,10 +17,12 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
+#include "debugfile.h"
 #include "dispatch.h"
 #include "feed_ctx.h"
 #include "convert.h"
 #include "user_options.h"
+#include "bridges.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -335,7 +337,10 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     u64 brain_rejects_hashes  = 0;
     #endif
 
-    memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+    // Nothing is cleared here. pw_pre_add () writes every field a reader of an entry consumes, and
+    // every reader stops at pws_pre_cnt, so an entry left over from the round before is below the
+    // bound of all of them. Clearing it was size_pws_pre of memset for each round of a batch, which
+    // is hundreds of megabytes on a large launch, for the reason pw_batch_reset () already gives.
 
     device_param->pws_pre_cnt = 0;
 
@@ -1182,6 +1187,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_kern = user_options_extra->attack_kern;
   const u32 base_source = user_options_extra->base_source;
 
+  // pw_base_add () copies a whole pw_pre_t per candidate to keep the base word a candidate came from,
+  // and --debug-mode is the only thing that reads one back.
+
+  const bool keep_base = debugfile_wants_base (hashcat_ctx);
+
   // only read inside a WITH_BRAIN block, so a build without the brain has no use for it
 
   MAYBE_UNUSED hashes_t *hashes = hashcat_ctx->hashes;
@@ -1277,7 +1287,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.reject     = &extra_info_combi.reject;
       sc.seek       = true;
       sc.reject_len = true;
-      sc.keep_base  = true;
+      sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
       bool pipe_serial = false;
@@ -1324,7 +1334,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.reject     = &extra_info_generic.reject;
       sc.seek       = true;
       sc.reject_len = true;
-      sc.keep_base  = true;
+      sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
       bool pipe_serial = false;
@@ -1633,6 +1643,13 @@ HC_THREAD_FUNC thread_calc (void *p)
     {
       if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
       {
+        // as in the self-test, the unit drops out, so a run with no unit left ends as an error rather
+        // than as Exhausted with nothing tried
+
+        bridges_failed (hashcat_ctx);
+
+        device_param->skipped_warning = true;
+
         device_param->calc_done = true;
 
         return 0;

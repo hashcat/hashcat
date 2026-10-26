@@ -17,7 +17,7 @@ static const u32   DGST_POS1      = 7;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_SERVER;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FORUM_SOFTWARE;
 static const char *HASH_NAME      = "Episerver 6.x >= .NET 4";
 static const char *HASH_RECIPE    = "sha256(salt . utf16le(pass))";
 static const u64   KERN_TYPE      = 1440;

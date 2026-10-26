@@ -64,6 +64,7 @@ CORE="src/rp.c
       src/folder.c
       src/path.c
       src/plugin_abi.c
+      src/status_rc.c
       tools/asan/hashconfig.c
       tools/fuzz/stubs.c"
 

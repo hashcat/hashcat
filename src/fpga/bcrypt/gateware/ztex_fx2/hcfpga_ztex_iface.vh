@@ -1,0 +1,64 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+`ifndef HCFPGA_ZTEX_IFACE_VH
+`define HCFPGA_ZTEX_IFACE_VH
+
+`define HCFPGA_ZTEX_REG_CTRL        8'h00
+`define HCFPGA_ZTEX_REG_SALT0       8'h01
+`define HCFPGA_ZTEX_REG_SALT1       8'h02
+`define HCFPGA_ZTEX_REG_SALT2       8'h03
+`define HCFPGA_ZTEX_REG_SALT3       8'h04
+`define HCFPGA_ZTEX_REG_ITER_COUNT  8'h05
+`define HCFPGA_ZTEX_REG_STATUS      8'h06
+`define HCFPGA_ZTEX_REG_CORE_COUNT  8'h07
+
+`define HCFPGA_ZTEX_REG_CMP_BM0     8'h08
+`define HCFPGA_ZTEX_REG_CMP_BM1     8'h09
+`define HCFPGA_ZTEX_REG_CMP_BM2     8'h0a
+`define HCFPGA_ZTEX_REG_CMP_BM3     8'h0b
+
+`define HCFPGA_ZTEX_REG_BATCH_TARGET 8'h0c
+
+`define HCFPGA_ZTEX_REG_PAD_RECS    8'h0d
+
+`define HCFPGA_ZTEX_REG_RETIRED     8'h0e
+
+`define HCFPGA_ZTEX_REG_MAGIC       8'h10
+`define HCFPGA_ZTEX_REG_ABI         8'h11
+`define HCFPGA_ZTEX_REG_ALGO_LO     8'h12
+`define HCFPGA_ZTEX_REG_ALGO_HI     8'h13
+`define HCFPGA_ZTEX_REG_CLK_MHZ     8'h14
+`define HCFPGA_ZTEX_REG_BUILD       8'h15
+
+`define HCFPGA_ZTEX_REG_TEMP        8'h16
+
+`define HCFPGA_ZTEX_REG_IN_WORDS    8'h18
+`define HCFPGA_ZTEX_REG_OUT_WORDS   8'h19
+
+`define HCFPGA_ZTEX_REG_IN_HALVES   8'h21
+
+`define HCFPGA_ZTEX_REG_FLAGB_LOW   8'h1a
+`define HCFPGA_ZTEX_REG_FLAGB_FALL  8'h1b
+`define HCFPGA_ZTEX_REG_RESEND      8'h1c
+
+`define HCFPGA_ZTEX_REG_IF_OUT_LOW  8'h1d
+`define HCFPGA_ZTEX_REG_ARM         8'h1e
+`define HCFPGA_ZTEX_REG_PKTEND      8'h1f
+`define HCFPGA_ZTEX_REG_ARM_WAIT    8'h20
+
+`define HCFPGA_ZTEX_MAGIC           32'h68636667
+
+`define HCFPGA_ZTEX_ALGO_LO         32'h79726362
+`define HCFPGA_ZTEX_ALGO_HI         32'h00007470
+
+`define HCFPGA_ZTEX_CTRL_FRAMING_RESET  0
+`define HCFPGA_ZTEX_CTRL_MODE_DUMP      1
+
+`define HCFPGA_ZTEX_KIND_PLAIN      2'd0
+`define HCFPGA_ZTEX_KIND_CMP_LOAD   2'd1
+`define HCFPGA_ZTEX_KIND_BATCH_ARM  2'd2
+
+`endif

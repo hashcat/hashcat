@@ -14,6 +14,7 @@
 #include "rp_cpu.h"
 #include "mpsp.h"
 #include "convert.h"
+#include "debugfile.h"
 #include "stdout.h"
 #include "filehandling.h"
 #include "wordlist.h"
@@ -37,6 +38,7 @@
 #include "autotune.h"
 #include "user_options.h"
 #include "json.h"
+#include "status_rc.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -346,6 +348,16 @@ static const char *hc_dev_queue_create (hashcat_ctx_t *hashcat_ctx, hc_device_pa
     if (hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event1, CU_EVENT_BLOCKING_SYNC)  == -1) return "cuEventCreate() failed";
     if (hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event2, CU_EVENT_BLOCKING_SYNC)  == -1) return "cuEventCreate() failed";
     if (hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event3, CU_EVENT_DISABLE_TIMING) == -1) return "cuEventCreate() failed";
+
+    if (hc_cuEventCreate (hashcat_ctx, &device_param->cuda_event_done, CU_EVENT_DISABLE_TIMING) == -1) return "cuEventCreate() failed";
+
+    // Without pinned memory the launches take the synchronous path, so a failure here is not fatal.
+
+    void *param  = NULL;
+    void *result = NULL;
+
+    if (hc_cuMemAllocHost (hashcat_ctx, &param,  sizeof (kernel_param_t)) == 0) device_param->launch_param_host  = param;
+    if (hc_cuMemAllocHost (hashcat_ctx, &result, sizeof (u32))            == 0) device_param->launch_result_host = (u32 *) result;
   }
 
   if (device_param->is_hip == true)
@@ -357,6 +369,48 @@ static const char *hc_dev_queue_create (hashcat_ctx_t *hashcat_ctx, hc_device_pa
     if (hc_hipEventCreateWithFlags (hashcat_ctx, &device_param->hip_event1, hipEventBlockingSync)  == -1) return "hipEventCreateWithFlags() failed";
     if (hc_hipEventCreateWithFlags (hashcat_ctx, &device_param->hip_event2, hipEventBlockingSync)  == -1) return "hipEventCreateWithFlags() failed";
     if (hc_hipEventCreateWithFlags (hashcat_ctx, &device_param->hip_event3, hipEventDisableTiming) == -1) return "hipEventCreateWithFlags() failed";
+
+    if (hc_hipEventCreateWithFlags (hashcat_ctx, &device_param->hip_event_done, hipEventDisableTiming) == -1) return "hipEventCreateWithFlags() failed";
+
+    void *param  = NULL;
+    void *result = NULL;
+
+    if (hc_hipHostMalloc (hashcat_ctx, &param,  sizeof (kernel_param_t)) == 0) device_param->launch_param_host  = param;
+    if (hc_hipHostMalloc (hashcat_ctx, &result, sizeof (u32))            == 0) device_param->launch_result_host = (u32 *) result;
+  }
+
+  // OpenCL has no call for pinned memory, but a buffer the runtime places in host memory and that
+  // stays mapped serves as such. Copies into ordinary memory went through a staging step that let the
+  // read finish as late as the blocking one had. The count sits at the start, the parameters at an
+  // aligned offset behind it.
+  //
+  // Intel devices keep the blocking readback. On an Arc A770, a hashcat killed in the middle of a
+  // launch by a pipe closing on it made the xe driver report "Engine memory CAT error" while an
+  // asynchronous copy still targeted this buffer, and the next process could hang.
+
+  const bool intel = (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET);
+
+  if ((device_param->is_opencl == true) && ((device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) == 0) && (intel == false))
+  {
+    const size_t size = 64 + sizeof (kernel_param_t);
+
+    cl_mem buf = NULL;
+
+    if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, size, NULL, &buf) == 0)
+    {
+      void *ptr = NULL;
+
+      if (hc_clEnqueueMapBuffer (hashcat_ctx, device_param->opencl_command_queue, buf, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, size, 0, NULL, NULL, &ptr) == 0)
+      {
+        device_param->opencl_launch_buf  = buf;
+        device_param->launch_result_host = (u32 *) ptr;
+        device_param->launch_param_host  = (u8 *) ptr + 64;
+      }
+      else
+      {
+        hc_clReleaseMemObject (hashcat_ctx, buf);
+      }
+    }
   }
 
   return NULL;
@@ -2072,6 +2126,44 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   return rc;
 }
 
+// The same candidate from the host copy of the batch being launched. The device copy above waits for
+// the kernel that is running, so the status display, which asks from its own thread, was held back for
+// up to a whole launch. The host copy is what was uploaded, and build_plain () only reads it where the
+// device did not build the base words itself.
+
+int gidd_to_pw_t_host (const hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
+{
+  const pw_idx_t *pws_idx  = device_param->pws_idx;
+  const u32      *pws_comp = device_param->pws_comp;
+
+  if (pws_idx  == NULL) return -1;
+  if (pws_comp == NULL) return -1;
+
+  // Bounded by the size of the buffer, as the device copy is, and not by the batch count, which the
+  // slow candidates path leaves at zero while its batch runs. The checks below keep a read of a batch
+  // that is being swapped inside the buffers.
+
+  if (gidd >= (device_param->size_pws_idx / sizeof (pw_idx_t))) return -1;
+
+  const pw_idx_t pw_idx = pws_idx[gidd];
+
+  const u32 cnt_max  = (u32) (sizeof (pw->i) / sizeof (u32));
+  const u64 comp_max = device_param->size_pws_comp / sizeof (u32);
+
+  if (pw_idx.cnt > cnt_max) return -1;
+  if (pw_idx.len > PW_MAX)  return -1;
+
+  if (((u64) pw_idx.off + (u64) pw_idx.cnt) > comp_max) return -1;
+
+  for (u32 i = 0; i < pw_idx.cnt; i++) pw->i[i] = pws_comp[pw_idx.off + i];
+
+  for (u32 i = pw_idx.cnt; i < 64; i++) pw->i[i] = 0;
+
+  pw->pw_len = pw_idx.len;
+
+  return 0;
+}
+
 // A launch is a chain of host steps around one device step and the steps are spread over several
 // files, so the split can only be seen by accumulating them in one place. The numbers are read as
 // proportions of a whole launch, which is why they are summed rather than sampled.
@@ -2505,6 +2597,16 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       {
         const u64 amp_base_cnt = (device_param->amp_base_cnt > 0) ? device_param->amp_base_cnt : pws_cnt;
 
+        // The exception is a mask launch with one amplifier item. Its base words go across in one
+        // coalesced copy and amp_a3 sets the first word in place, because building those candidates
+        // in the kernel copies a whole pw_t per work item, which a slow hash with few iterations pays
+        // for in full.
+
+        if ((user_options->attack_mode == ATTACK_MODE_BF) && (amp_base_cnt == pws_cnt))
+        {
+          if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, device_param->d_buf[HC_DEV_BUF_PWS_AMP_BUF], 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
+        }
+
         if (run_kernel_amp (hashcat_ctx, device_param, amp_base_cnt, pws_cnt) == -1) return -1;
       }
 
@@ -2814,7 +2916,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) return -1;
 
-            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false)
+            {
+              bridges_failed (hashcat_ctx);
+
+              return -1;
+            }
 
             if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TMPS], 0, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
 
@@ -3630,6 +3737,84 @@ static u64 launch_threads_short_batch (const hashconfig_t *hashconfig, const hc_
   return threads;
 }
 
+// A synchronous wait sleeps in the driver, and the thread wakes up well after the launch has ended:
+// 0.4 ms on an RTX 4090, plus as long again for the crack count copied back after it. The device sat
+// idle for all of it, 0.6 to 0.8 ms between launches. A cracking launch therefore uploads its
+// parameters and copies the count back asynchronously through pinned memory, and its wait sleeps
+// through the time the same kernel took last time and polls for the rest.
+//
+// The margin is how early the sleep ends. It doubles when the launch was already done at the first
+// poll, because then the thread may have woken late, and it shrinks when the poll took more than half
+// of it. It settles near the time this host needs to wake up, so the poll costs little CPU.
+
+#define LAUNCH_MARGIN_START_US 1000
+#define LAUNCH_MARGIN_MIN_US     50
+#define LAUNCH_MARGIN_MAX_US   2000
+#define LAUNCH_POLL_MIN_US      400
+
+// CUDA and HIP record an event behind the crack count, OpenCL gets one back from reading it.
+
+static bool launch_done (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_event opencl_event)
+{
+  bool done = true;
+
+  if (device_param->is_cuda == true)
+  {
+    CUDA_PTR *cuda = (CUDA_PTR *) hashcat_ctx->backend_ctx->cuda;
+
+    done = (cuda->cuEventQuery (device_param->cuda_event_done) != CUDA_ERROR_NOT_READY);
+  }
+
+  if (device_param->is_hip == true)
+  {
+    HIP_PTR *hip = (HIP_PTR *) hashcat_ctx->backend_ctx->hip;
+
+    done = (hip->hipEventQuery (device_param->hip_event_done) != hipErrorNotReady);
+  }
+
+  if (device_param->is_opencl == true)
+  {
+    cl_int status = CL_COMPLETE;
+
+    if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (status), &status, NULL) == 0) done = (status <= CL_COMPLETE);
+  }
+
+  return done;
+}
+
+static void launch_wait (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const double expected_us, cl_event opencl_event)
+{
+  if (expected_us < LAUNCH_POLL_MIN_US) return;
+
+  double margin_us = (device_param->launch_margin_us > 0) ? device_param->launch_margin_us : LAUNCH_MARGIN_START_US;
+
+  margin_us = MIN (margin_us, MIN (LAUNCH_MARGIN_MAX_US, expected_us / 4));
+  margin_us = MAX (margin_us, LAUNCH_MARGIN_MIN_US);
+
+  usleep ((useconds_t) (expected_us - margin_us));
+
+  hc_timer_t timer;
+
+  hc_timer_set (&timer);
+
+  u32 polls = 0;
+
+  while (launch_done (hashcat_ctx, device_param, opencl_event) == false) polls++;
+
+  const double poll_us = hc_timer_get (timer) * 1000;
+
+  if (polls == 0)
+  {
+    margin_us = MIN (margin_us * 2, LAUNCH_MARGIN_MAX_US);
+  }
+  else if (poll_us > (margin_us / 2))
+  {
+    margin_us = MAX (margin_us * 0.75, LAUNCH_MARGIN_MIN_US);
+  }
+
+  device_param->launch_margin_us = margin_us;
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num_base, const u32 event_update, const u32 iteration, const bool is_autotune)
 {
   // The device engine spreads one cell across several waves, as many as its rectangle needs at a fixed
@@ -3720,7 +3905,20 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   {
     CUfunction cuda_function = device_param->cuda_function[slot];
 
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
+    // Autotune and the self test keep the synchronous path, they time and read things of their own.
+
+    const bool pinned = (is_autotune == false) && (status_ctx->devices_status == STATUS_RUNNING) && (device_param->launch_param_host != NULL) && (device_param->launch_result_host != NULL);
+
+    if (pinned == true)
+    {
+      memcpy (device_param->launch_param_host, &device_param->kernel_param, device_param->size_kernel_params);
+
+      if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM].cuda, device_param->launch_param_host, device_param->size_kernel_params, device_param->cuda_stream) == -1) return -1;
+    }
+    else
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
+    }
 
     if (hc_cuFuncSetAttribute (hashcat_ctx, cuda_function, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
 
@@ -3817,11 +4015,38 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream) == -1) return -1;
 
-    if (hc_cuEventSynchronize (hashcat_ctx, device_param->cuda_event2) == -1) return -1;
+    // The stream runs in order, so the count copied in behind the launch is complete once the launch
+    // is, and check_cracked () reads it from host memory.
+
+    CUevent done = device_param->cuda_event2;
+
+    const u32 iterationm = iteration % EXPECTED_ITERATIONS;
+
+    if (pinned == true)
+    {
+      device_param->launch_result_valid = false;
+
+      if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->launch_result_host, device_param->d_buf[HC_DEV_BUF_RESULT].cuda, sizeof (u32), device_param->cuda_stream) == -1) return -1;
+
+      if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event_done, device_param->cuda_stream) == -1) return -1;
+
+      done = device_param->cuda_event_done;
+
+      launch_wait (hashcat_ctx, device_param, device_param->exec_us_prev[slot][iterationm], NULL);
+    }
+
+    if (hc_cuEventSynchronize (hashcat_ctx, done) == -1) return -1;
 
     float exec_ms;
 
     if (hc_cuEventElapsedTime (hashcat_ctx, &exec_ms, device_param->cuda_event1, device_param->cuda_event2) == -1) return -1;
+
+    if (pinned == true)
+    {
+      device_param->launch_result_valid = true;
+
+      device_param->exec_us_prev[slot][iterationm] = exec_ms * 1000;
+    }
 
     if (event_update)
     {
@@ -3844,7 +4069,18 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   {
     hipFunction_t hip_function = device_param->hip_function[slot];
 
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
+    const bool pinned = (is_autotune == false) && (status_ctx->devices_status == STATUS_RUNNING) && (device_param->launch_param_host != NULL) && (device_param->launch_result_host != NULL);
+
+    if (pinned == true)
+    {
+      memcpy (device_param->launch_param_host, &device_param->kernel_param, device_param->size_kernel_params);
+
+      if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM].hip, device_param->launch_param_host, device_param->size_kernel_params, device_param->hip_stream) == -1) return -1;
+    }
+    else
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
+    }
 
     //if (hc_hipFuncSetAttribute (hashcat_ctx, hip_function, HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, dynamic_shared_mem) == -1) return -1;
 
@@ -3919,11 +4155,35 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event2, device_param->hip_stream) == -1) return -1;
 
-    if (hc_hipEventSynchronize (hashcat_ctx, device_param->hip_event2) == -1) return -1;
+    hipEvent_t done = device_param->hip_event2;
+
+    const u32 iterationm = iteration % EXPECTED_ITERATIONS;
+
+    if (pinned == true)
+    {
+      device_param->launch_result_valid = false;
+
+      if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->launch_result_host, device_param->d_buf[HC_DEV_BUF_RESULT].hip, sizeof (u32), device_param->hip_stream) == -1) return -1;
+
+      if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event_done, device_param->hip_stream) == -1) return -1;
+
+      done = device_param->hip_event_done;
+
+      launch_wait (hashcat_ctx, device_param, device_param->exec_us_prev[slot][iterationm], NULL);
+    }
+
+    if (hc_hipEventSynchronize (hashcat_ctx, done) == -1) return -1;
 
     float exec_ms;
 
     if (hc_hipEventElapsedTime (hashcat_ctx, &exec_ms, device_param->hip_event1, device_param->hip_event2) == -1) return -1;
+
+    if (pinned == true)
+    {
+      device_param->launch_result_valid = true;
+
+      device_param->exec_us_prev[slot][iterationm] = exec_ms * 1000;
+    }
 
     if (event_update)
     {
@@ -4112,7 +4372,20 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       if (hc_clSetKernelArg (hashcat_ctx, opencl_kernel, i, sizeof (cl_mem), device_param->kernel_params[i]) == -1) return -1;
     }
 
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
+    // --spin-damp keeps the wait it asked for, and a CPU device has no idle device to wait for.
+
+    const bool pinned = (is_autotune == false) && (status_ctx->devices_status == STATUS_RUNNING) && (device_param->spin_damp == 0) && ((device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) == 0) && (device_param->launch_param_host != NULL) && (device_param->launch_result_host != NULL);
+
+    if (pinned == true)
+    {
+      memcpy (device_param->launch_param_host, &device_param->kernel_param, device_param->size_kernel_params);
+
+      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM].opencl, CL_FALSE, 0, device_param->size_kernel_params, device_param->launch_param_host, 0, NULL, NULL) == -1) return -1;
+    }
+    else
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_KERNEL_PARAM], 0, &device_param->kernel_param, device_param->size_kernel_params) == -1) return -1;
+    }
 
     /*
     for (u32 i = 24; i <= 34; i++)
@@ -4212,9 +4485,31 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->opencl_command_queue, opencl_kernel, work_dim, NULL, global_work_size, local_work_size, 0, NULL, &opencl_event) == -1) return -1;
 
-    // spin damper section
-
     const u32 iterationm = iteration % EXPECTED_ITERATIONS;
+
+    // The queue runs in order, so the crack count read behind the launch is complete once the launch
+    // is, and check_cracked () reads it from host memory.
+
+    if (pinned == true)
+    {
+      device_param->launch_result_valid = false;
+
+      cl_event read_event = NULL;
+
+      if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_RESULT].opencl, CL_FALSE, 0, sizeof (u32), device_param->launch_result_host, 0, NULL, &read_event) == -1) return -1;
+
+      if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
+
+      launch_wait (hashcat_ctx, device_param, device_param->exec_us_prev[slot][iterationm], read_event);
+
+      if (hc_clWaitForEvents (hashcat_ctx, 1, &read_event) == -1) return -1;
+
+      if (hc_clReleaseEvent (hashcat_ctx, read_event) == -1) return -1;
+
+      device_param->launch_result_valid = true;
+    }
+
+    // spin damper section
 
     if (device_param->spin_damp > 0)
     {
@@ -4266,7 +4561,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     const double exec_us = (double) (time_end - time_start) / 1000;
 
-    if (device_param->spin_damp > 0)
+    if ((device_param->spin_damp > 0) || (pinned == true))
     {
       if (status_ctx->devices_status == STATUS_RUNNING)
       {
@@ -4319,7 +4614,12 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   pipe_acc (device_param, PIPE_XFER, &timer_stage);
 
-  if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+  if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false)
+  {
+    bridges_failed (hashcat_ctx);
+
+    return -1;
+  }
 
   pipe_acc (device_param, PIPE_LAUNCH, &timer_stage);
 
@@ -6995,7 +7295,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Backend device selection
    */
 
-  if (setup_backend_devices_filter (hashcat_ctx, user_options->backend_devices, backend_ctx->backend_devices_filter) == false) return -1;
+  if (setup_backend_devices_filter (hashcat_ctx, user_options->backend_devices, backend_ctx->backend_devices_filter) == false)
+  {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    return -1;
+  }
 
   /**
    * OpenCL device type selection
@@ -7003,7 +7308,12 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cl_device_type opencl_device_types_filter;
 
-  if (setup_opencl_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &opencl_device_types_filter) == false) return -1;
+  if (setup_opencl_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &opencl_device_types_filter) == false)
+  {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    return -1;
+  }
 
   backend_ctx->opencl_device_types_filter = opencl_device_types_filter;
 
@@ -11695,6 +12005,11 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->opencl_command_queue)
       {
+        // Setup can leave queued buffer fills behind when a device is refused.
+        // Finish them before releasing the context and unloading the runtime.
+
+        hc_clFinish (hashcat_ctx, device_param->opencl_command_queue);
+
         hc_clReleaseCommandQueue (hashcat_ctx, device_param->opencl_command_queue);
 
         device_param->opencl_command_queue = NULL;
@@ -14126,12 +14441,60 @@ static int pcfg_pool_split (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
   return 0;
 }
 
+// The memory a device reports in use, read again until a process that has just ended has given its
+// own back.
+//
+// The driver returns an ended process's memory in steps of several GiB over a few hundred
+// milliseconds, and a hashcat started right after another one gets here before the last step. Taken
+// at face value, that reading budgets around memory that is about to be free: back to back scrypt
+// runs on an RX 7900 XTX ran at 60 percent. So a reading above the warning threshold is repeated
+// every 50 ms while it keeps falling, and taken once it has held for 300 ms. A device whose memory
+// is really in use pays those 300 ms once.
+
+#define MEMORY_USED_HIGH        0.15
+#define MEMORY_USED_SETTLE_STEP 50000
+#define MEMORY_USED_SETTLE_HOLD 6
+#define MEMORY_USED_SETTLE_MAX  40
+
+static u64 memory_used_settled (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
+{
+  const u64 high = (u64) (device_param->device_global_mem * MEMORY_USED_HIGH);
+
+  u64 used = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_param->device_id);
+
+  u32 held = 0;
+
+  for (u32 i = 0; i < MEMORY_USED_SETTLE_MAX; i++)
+  {
+    if (used <= high) break;
+
+    if (held >= MEMORY_USED_SETTLE_HOLD) break;
+
+    usleep (MEMORY_USED_SETTLE_STEP);
+
+    const u64 again = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_param->device_id);
+
+    if (again >= used)
+    {
+      held++;
+
+      continue;
+    }
+
+    used = again;
+    held = 0;
+  }
+
+  return used;
+}
+
 int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
   const folder_config_t      *folder_config       = hashcat_ctx->folder_config;
   const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   const hashes_t             *hashes              = hashcat_ctx->hashes;
+  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   const module_ctx_t         *module_ctx          = hashcat_ctx->module_ctx;
         backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
@@ -14246,7 +14609,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * If there's no low-level API available we will silently ignore
      */
 
-    u64 used_bytes = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_id);
+    u64 used_bytes = memory_used_settled (hashcat_ctx, device_param);
 
     #if defined (__APPLE__)
     if ((used_bytes == 0) && (device_param->is_metal == true))
@@ -14314,7 +14677,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         const u64 new_left = device_param->device_global_mem - used_bytes;
 
-        if (used_bytes > (device_param->device_global_mem * 0.15))
+        if (used_bytes > (device_param->device_global_mem * MEMORY_USED_HIGH))
         {
           event_log_warning (hashcat_ctx, "* Device #%u: High memory usage by desktop or other apps detected: %" PRIu64 "/%" PRIu64, device_id + 1, used_bytes, device_param->device_global_mem);
           event_log_warning (hashcat_ctx, "             Performance is capped at %.2f%%", ((double) new_left / device_param->device_global_mem) * 100);
@@ -14958,23 +15321,32 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // all, a few hundred lines below. A straight wordlist run allocates neither, so sizing them for
     // that case reserved 64 MiB per device against something that is never made.
     //
-    // The position count itself has to stay SP_PW_MAX. Bounding it by the mode's pw_max looks safe,
-    // because mask_ctx_update_loop skips a mask longer than pw_max, but that check runs before two
-    // steps that grow the position count past it:
+    // The markov half is sized by mask_ctx->sp_pw_max_used, which is the same bound the host
+    // allocation and sp_setup_tbl () use. The mode's pw_max would not do: mask_ctx_update_loop ()
+    // skips a mask longer than pw_max, but that check runs before two steps that grow the position
+    // count past it:
     //
     //   mp_css_utf16le_expand() / mp_css_utf16be_expand()   doubles css_cnt   (src/mpsp.c)
     //   mp_css_append_salt()                                adds salt_len     (src/mpsp.c)
     //
-    // Both bound themselves by 256 rather than by pw_max, and the host-side buffers they fill are
-    // SP_PW_MAX entries for exactly that reason. A 2 character mask against a UTF16LE mode with a
-    // 25 byte appended salt reaches position 28, whatever pw_max happens to be. hashconfig->pw_max
-    // is also reassigned per mask in mask_ctx_update_loop, long after these buffers are allocated,
-    // so it is not a fixed quantity to size against in the first place.
+    // sp_pw_max_used allows for both, and it is settled in mask_ctx_init () which runs well before
+    // this, whereas hashconfig->pw_max is reassigned per mask in mask_ctx_update_loop () and so is
+    // not a fixed quantity to size against in the first place.
+    //
+    // The root half stays at SP_PW_MAX. It is 256 entries against 65536, and sp_tbl_to_css () fills
+    // all of it whatever the mask reaches.
+    //
+    // Two cases leave the position count at zero: a mask queue that spells no position at all, which
+    // is what -a 1 arrives as, and an attack_kern that wants the buffers while the mask processor is
+    // not what produces its candidates, which is -a 8 under a pcfg feed. Neither reads the buffer,
+    // and a zero byte allocation is not a thing to ask a device for, so both keep the placeholder.
 
     const bool css_in_use = (user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) ? true : false;
 
-    u64 size_root_css   = (css_in_use == true) ? SP_PW_MAX *           sizeof (cs_t) : 4;
-    u64 size_markov_css = (css_in_use == true) ? SP_PW_MAX * CHARSIZ * sizeof (cs_t) : 4;
+    const u32 markov_css_cnt = (mask_ctx->enabled == true) ? mask_ctx->sp_pw_max_used * CHARSIZ : 0;
+
+    u64 size_root_css   = (css_in_use == true) ? SP_PW_MAX * sizeof (cs_t) : 4;
+    u64 size_markov_css = ((css_in_use == true) && (markov_css_cnt > 0)) ? markov_css_cnt * sizeof (cs_t) : 4;
 
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
@@ -15052,19 +15424,33 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       //
       // Take the work item count down to a multiple of four so the split is exact and every chunk is
       // the size the module sized it for. It costs at most three work items.
+      //
+      // Only do so when the remainder would push the largest chunk past one allocation. CUDA and HIP
+      // allow an allocation as large as the card, so there the remainder never does, and rounding down
+      // only gave up work items. LUKS2 keeps 1 GiB of Argon2 memory per work item, so on a 24 GB card
+      // it ran 20 instead of 22, and 9 percent slower.
 
       {
         const u64 mp_multi = (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors;
+
+        const u64 kernel_power_pre = mp_multi * device_param->kernel_accel_max;
+
+        const u64 extra_buffer_size_pre = module_ctx->module_extra_buffer_size (hashconfig, user_options, user_options_extra, hashes, device_param);
+
+        const u64 chunk_max_pre = CEILDIV (kernel_power_pre, 4) * (extra_buffer_size_pre / MAX (kernel_power_pre, 1));
 
         // Below four work items the split gives each chunk one and there is nothing to balance, so
         // leave those alone. The minimum comes down with the maximum when a tuning database entry
         // pinned the two together, which is the usual case for the modes that use extra buffers.
 
-        while ((device_param->kernel_accel_max > 1)
-            && ((mp_multi * device_param->kernel_accel_max) >= 4)
-            && (((mp_multi * device_param->kernel_accel_max) % 4) != 0))
+        if (chunk_max_pre > device_param->device_maxmem_alloc)
         {
-          device_param->kernel_accel_max--;
+          while ((device_param->kernel_accel_max > 1)
+              && ((mp_multi * device_param->kernel_accel_max) >= 4)
+              && (((mp_multi * device_param->kernel_accel_max) % 4) != 0))
+          {
+            device_param->kernel_accel_max--;
+          }
         }
 
         if (device_param->kernel_accel_min > device_param->kernel_accel_max)
@@ -16482,6 +16868,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // Both bounds are pinned, not just the maximum. Lowering only the maximum leaves the minimum at
     // whatever threads_per_block_p2f produced, which is 1 for a power-of-two width, and autotune then
     // walks below the native count: measured 1205 MH/s at 16 threads against 1779 at 32.
+    //
+    // The native count has to lie within the module's own bounds, the rule the OPTS_TYPE_NATIVE_THREADS
+    // setup follows as well. A module that fixes its thread count needs exactly that many: argon2 and
+    // yescrypt run one lane or one hash as a group of 32 cooperating threads. On an Intel Arc A770 the
+    // native count is 8, and pinning to it gave argon2 a quarter of its threads, which computes a wrong
+    // digest, and made every yescrypt launch fail with CL_INVALID_WORK_GROUP_SIZE.
 
     // GPUs only. A CPU runtime reports private memory on a different scale entirely - Intel's answers
     // 4864 bytes for MD5 and 10112 for argon2 where a GPU says 288 - so the threshold below means
@@ -16498,7 +16890,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 native_threads = device_param->device_preferred_wgs_multiple;
 
-      if ((native_threads < device_param->kernel_threads_max) && (native_threads > 0))
+      if ((native_threads >= device_param->kernel_threads_min) && (native_threads < device_param->kernel_threads_max) && (native_threads > 0))
       {
         if ((user_options->quiet == false) && (user_options->machine_readable == false))
         {
@@ -16702,6 +17094,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const bool pws_staging_in_use = (user_options->slow_candidates == true) || (user_options_extra->base_source != BASE_SOURCE_MASK);
 
+    // pws_base is the third staging buffer, and the only one nothing in a normal run reads. It keeps
+    // the base word each slow candidate came from so --debug-mode can report it, and it is charged to
+    // the host budget twice, once per pipeline slot, which is budget kernel_accel is sized against.
+
+    const bool pws_base_in_use = (user_options->slow_candidates == true) && (debugfile_wants_base (hashcat_ctx) == true);
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -16854,11 +17252,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         // size_pws_pre
 
         size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
-
-        // size_pws_base
-
-        size_pws_base = kernel_power_max * sizeof (pw_pre_t);
       }
+
+      // size_pws_base
+
+      if (pws_base_in_use == true) size_pws_base = kernel_power_max * sizeof (pw_pre_t);
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
       // if not, decrease amplifier and try again
@@ -17703,15 +18101,23 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
     memset (device_param->d_buf_borrowed, 0, sizeof (device_param->d_buf_borrowed));
 
-    // What is left is the runtime's own objects, and those have no shared shape: a stream and three
-    // events on CUDA and HIP, a library and a pipeline per kernel on Metal, a program and a kernel
-    // object on OpenCL.
+    // What is left is the runtime's own objects, and those have no shared shape: a stream, events and
+    // the pinned launch memory on CUDA and HIP, a library and a pipeline per kernel on Metal, a program
+    // and a kernel object and the mapped launch buffer on OpenCL.
 
     if (device_param->is_cuda == true)
     {
       hc_cuEventDestroyPtr  (hashcat_ctx, &device_param->cuda_event1);
       hc_cuEventDestroyPtr  (hashcat_ctx, &device_param->cuda_event2);
       hc_cuEventDestroyPtr  (hashcat_ctx, &device_param->cuda_event3);
+      hc_cuEventDestroyPtr  (hashcat_ctx, &device_param->cuda_event_done);
+
+      if (device_param->launch_param_host  != NULL) hc_cuMemFreeHost (hashcat_ctx, device_param->launch_param_host);
+      if (device_param->launch_result_host != NULL) hc_cuMemFreeHost (hashcat_ctx, device_param->launch_result_host);
+
+      device_param->launch_param_host   = NULL;
+      device_param->launch_result_host  = NULL;
+      device_param->launch_result_valid = false;
 
       hc_cuStreamDestroyPtr (hashcat_ctx, &device_param->cuda_stream);
 
@@ -17738,6 +18144,14 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hc_hipEventDestroyPtr  (hashcat_ctx, &device_param->hip_event1);
       hc_hipEventDestroyPtr  (hashcat_ctx, &device_param->hip_event2);
       hc_hipEventDestroyPtr  (hashcat_ctx, &device_param->hip_event3);
+      hc_hipEventDestroyPtr  (hashcat_ctx, &device_param->hip_event_done);
+
+      if (device_param->launch_param_host  != NULL) hc_hipHostFree (hashcat_ctx, device_param->launch_param_host);
+      if (device_param->launch_result_host != NULL) hc_hipHostFree (hashcat_ctx, device_param->launch_result_host);
+
+      device_param->launch_param_host   = NULL;
+      device_param->launch_result_host  = NULL;
+      device_param->launch_result_valid = false;
 
       hc_hipStreamDestroyPtr (hashcat_ctx, &device_param->hip_stream);
 
@@ -17769,6 +18183,17 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_opencl == true)
     {
+      if (device_param->opencl_launch_buf != NULL)
+      {
+        hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_launch_buf, device_param->launch_result_host, 0, NULL, NULL);
+
+        hc_clReleaseMemObjectPtr (hashcat_ctx, &device_param->opencl_launch_buf);
+      }
+
+      device_param->launch_param_host   = NULL;
+      device_param->launch_result_host  = NULL;
+      device_param->launch_result_valid = false;
+
       for (u32 i = 0; i < HC_DEV_KERN_CNT; i++)
       {
         hc_clReleaseKernelPtr (hashcat_ctx, &device_param->opencl_kernel[i]);
@@ -17921,17 +18346,18 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-// How much of the markov table a mask can actually address. The table is allocated for the longest
-// mask hashcat accepts, one cs_t per (position, previous character), and generate_pw () in
+// How much of the markov table a mask can actually address. generate_pw () in
 // OpenCL/markov_le.cl only ever indexes markov_css_buf[(j * CHARSIZ) + key] for j below the mask
-// length. Everything past that is for positions the mask does not have, so copying it is 64 MB of
-// bus time per round to no end: a four character mask reaches 1 MB of the 64.
+// length, so the rows past that are for positions the mask does not have and copying them is bus
+// time per round to no end.
 //
 // The row at css_cnt - 1 is included because the kernel does read it. It loads the charset for the
 // position after the one it just wrote, and on the last position that charset is never used.
 //
-// The allocation stays at its full size. Rows past the mask keep whatever an earlier round left in
-// them, which is safe precisely because no work item can address them.
+// The allocation is sp_pw_max_used rows, which sp_tbl_to_css () has already checked css_cnt against,
+// so the MIN is there only to keep a transfer inside the buffer whatever a caller passes. A mask
+// that spells no position at all, which is what -a 1 arrives as, wants nothing: the host buffer for
+// it was never allocated, so the copy has to be skipped rather than issued for zero bytes.
 
 static u64 markov_css_copy_size (const hc_device_param_t *device_param, const u32 css_cnt)
 {
@@ -17970,7 +18396,11 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+
+    if (copy_markov_css > 0)
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+    }
 
     if (rc == 0)
     {
@@ -18024,7 +18454,11 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
     int rc = 0;
 
     if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_ROOT_CSS_BUF],   0, mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) rc = -1;
-    if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+
+    if (copy_markov_css > 0)
+    {
+      if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_MARKOV_CSS_BUF], 0, mask_ctx->markov_css_buf, copy_markov_css) == -1) rc = -1;
+    }
 
     if (rc == 0)
     {

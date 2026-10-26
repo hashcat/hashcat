@@ -5,13 +5,15 @@
 use std::{
     cell::OnceCell,
     ffi::{c_char, c_int, c_void},
-    mem,
+    mem, panic,
     path::Path,
-    process, ptr, slice,
+    ptr, slice,
     sync::{Once, OnceLock},
 };
 
-use hashcat_sys::generic::{ThreadContext, bridge_context_t, generic_io_tmp_t, string_from_ptr};
+use hashcat_sys::generic::{
+    ThreadContext, bridge_context_t, generic_io_tmp_t, no_panic, no_panic_void, string_from_ptr,
+};
 
 use crate::{Expr, eval::EvalContext, parse};
 
@@ -36,6 +38,10 @@ pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn global_init(ctx: *mut bridge_context_t) -> bool {
+    no_panic(|| global_init_inner(ctx))
+}
+
+fn global_init_inner(ctx: *mut bridge_context_t) -> bool {
     assert!(!ctx.is_null());
     let ctx = unsafe { &mut *ctx };
     assert!(!ctx.dynlib_filename.is_null());
@@ -64,10 +70,12 @@ pub extern "C" fn global_term(_ctx: *mut bridge_context_t) {}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn thread_init(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    let ctx = unsafe { &mut *ctx.cast::<ThreadContext>() };
-    let ast = parse::parse(&ctx.bridge_parameter2).expect("invalid algorithm description");
-    AST.with(|c| c.set(ast).unwrap_or_default());
+    no_panic_void(|| {
+        assert!(!ctx.is_null());
+        let ctx = unsafe { &mut *ctx.cast::<ThreadContext>() };
+        let ast = parse::parse(&ctx.bridge_parameter2).expect("invalid algorithm description");
+        AST.with(|c| c.set(ast).unwrap_or_default());
+    });
 }
 
 #[unsafe(no_mangle)]
@@ -75,6 +83,16 @@ pub extern "C" fn thread_term(_ctx: *mut c_void) {}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_loop(
+    ctx: *const c_void,
+    io: *mut generic_io_tmp_t,
+    pws_cnt: u64,
+    salt_id: c_int,
+    is_self_test: bool,
+) -> bool {
+    no_panic(|| kernel_loop_inner(ctx, io, pws_cnt, salt_id, is_self_test))
+}
+
+fn kernel_loop_inner(
     ctx: *const c_void,
     io: *mut generic_io_tmp_t,
     pws_cnt: u64,
@@ -141,7 +159,8 @@ fn process_batch(
             })
             .unwrap_or_else(|e| {
                 LOG_ERROR_ONCE.call_once(|| eprintln!("ERROR: {}", e));
-                process::exit(-1);
+                // said above, so unwind without the panic hook printing it again
+                panic::resume_unwind(Box::new(()))
             });
         assert!(hash.len() <= mem::size_of_val(&in_out.out_buf[0]));
 

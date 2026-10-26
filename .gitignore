@@ -103,3 +103,11 @@ __pycache__/
 /fuzz_out/
 /corpus/
 /crashes/
+
+# The ZC706 SD boot image is build output, not a source file. make_bootbin.py writes it here by
+# default. It is a 13 MB bitstream in a padded container and belongs to one specific design, so it
+# cannot be shipped. Build your own image from the bitstream you intend to use.
+#
+# The *.bin pattern above does not match this file. .gitignore patterns are case-sensitive, and the
+# filename is BOOT.BIN.
+/extra/fpga/zc706-sdboot/BOOT.BIN

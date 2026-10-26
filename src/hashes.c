@@ -24,6 +24,7 @@
 #include "path.h"
 #include "parser.h"
 #include "status.h"
+#include "status_rc.h"
 #include "memchr.h"
 #include "system.h"
 #include "thread.h"
@@ -1811,11 +1812,16 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   if (hashconfig->opts_type & OPTS_TYPE_COPY_TMPS)
   {
+    // check_cracked () splits the packed work item into a base word and amplifier item.
+    // The temporary buffer still uses the packed index.
+
+    const u64 tmps_offset = (plain->gidvid + (device_param->amp_base_cnt * plain->il_pos)) * hashconfig->tmp_size;
+
     tmps = hcmalloc (hashconfig->tmp_size);
 
     if (device_param->is_cuda == true)
     {
-      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], tmps_offset, hashconfig->tmp_size);
 
       if (rc == 0)
       {
@@ -1832,7 +1838,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
     if (device_param->is_hip == true)
     {
-      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], tmps_offset, hashconfig->tmp_size);
 
       if (rc == 0)
       {
@@ -1850,7 +1856,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     #if defined (__APPLE__)
     if (device_param->is_metal == true)
     {
-      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+      rc = hc_dev_memcpy_d2h (hashcat_ctx, device_param, tmps, device_param->d_buf[HC_DEV_BUF_TMPS], tmps_offset, hashconfig->tmp_size);
 
       if (rc == -1)
       {
@@ -1863,7 +1869,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
     if (device_param->is_opencl == true)
     {
-      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_TMPS].opencl, CL_TRUE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
+      rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->d_buf[HC_DEV_BUF_TMPS].opencl, CL_TRUE, tmps_offset, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
 
       if (rc == 0)
       {
@@ -1896,7 +1902,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   int plain_len = 0;
 
-  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len);
+  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len, false);
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
@@ -2123,16 +2129,33 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    // run_kernel () copied the count back behind the launch. A zero, which is nearly every launch,
+    // needs no read of its own, and anything else is read again below with the plains.
 
-    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+    const bool none = (device_param->launch_result_valid == true) && (device_param->launch_result_host[0] == 0);
+
+    device_param->launch_result_valid = false;
+
+    if (none == false)
+    {
+      if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+
+      if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+    }
   }
 
   if (device_param->is_hip == true)
   {
-    if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    const bool none = (device_param->launch_result_valid == true) && (device_param->launch_result_host[0] == 0);
 
-    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+    device_param->launch_result_valid = false;
+
+    if (none == false)
+    {
+      if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+
+      if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+    }
   }
 
   #if defined (__APPLE__)
@@ -2144,8 +2167,15 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   if (device_param->is_opencl == true)
   {
+    const bool none = (device_param->launch_result_valid == true) && (device_param->launch_result_host[0] == 0);
+
+    device_param->launch_result_valid = false;
+
     /* blocking */
-    if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    if (none == false)
+    {
+      if (hc_dev_memcpy_d2h (hashcat_ctx, device_param, &num_cracked, device_param->d_buf[HC_DEV_BUF_RESULT], 0, sizeof (u32)) == -1) return -1;
+    }
   }
 
   if (num_cracked == 0 || user_options->speed_only == true)
@@ -2372,7 +2402,21 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 
   // --stdout and --keyspace take no hash argument
 
-  const bool hash_is_file = (user_options_extra->hc_hash != NULL) && (hc_path_exist (user_options_extra->hc_hash) == true);
+  bool hash_is_file = false;
+
+  if (user_options_extra->hc_hash != NULL)
+  {
+    hash_is_file = hc_path_exist (user_options_extra->hc_hash);
+
+    const int path_errno = errno;
+
+    if ((hash_is_file == false) && (path_access_denied (path_errno) == true))
+    {
+      event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (path_errno));
+
+      return -1;
+    }
+  }
 
   /**
    * load hashes, part I: find input mode, count hashes
@@ -3786,6 +3830,8 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to load them as given.");
       event_log_warning (hashcat_ctx, NULL);
 
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
       return -1;
     }
   }
@@ -3807,6 +3853,8 @@ static int hashes_check_hashfile (hashcat_ctx_t *hashcat_ctx)
   event_log_warning (hashcat_ctx, "Check that the hash file is named first, that the hash-mode is right, and that --username is given");
   event_log_warning (hashcat_ctx, "if every line starts with a username. Use --force to load it anyway.");
   event_log_warning (hashcat_ctx, NULL);
+
+  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
   return -1;
 }
@@ -3854,6 +3902,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           event_log_warning (hashcat_ctx, "wordlist as a second argument.");
           event_log_warning (hashcat_ctx, NULL);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
       }
@@ -3883,6 +3933,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hashes_avail == 0)
       {
         event_log_error (hashcat_ctx, "hashfile is empty or corrupt.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
         hc_fclose (&fp);
 
@@ -3927,6 +3979,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           hc_fclose (&fp);
 
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
           return -1;
         }
       }
@@ -3938,6 +3992,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {
         event_log_error (hashcat_ctx, "Use of --remove is not supported in native hashfile-format mode.");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }
@@ -3964,6 +4020,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         else if (binary_count == 0)
         {
           event_log_error (hashcat_ctx, "No hashes loaded.");
+
+          status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
           return -1;
         }

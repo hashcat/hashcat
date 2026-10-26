@@ -246,7 +246,7 @@ def preserve_inputs(cmd, stdin_bytes=None):
 
   def is_scratch_file(a):
     try:
-      return os.path.isfile(a) and os.path.realpath(a).startswith(tmp_root)
+      return os.path.isfile(a) and os.path.realpath(os.fsdecode(a)).startswith(tmp_root)
     except (TypeError, ValueError):
       return False
 
@@ -777,11 +777,28 @@ def require_device_type(device, ids):
       % (device, "/".join(sorted(have))))
 
 
-def discover_modes():
+# Modes that need hardware to run at all. Without HCFPGA_TEST=1 they are left out of every run, so a
+# machine without an FPGA does not report them as a fault.
+HARDWARE_MODES = {75000}
+
+
+def hardware_ok():
+  return os.environ.get("HCFPGA_TEST") == "1"
+
+
+def hardware_refuse(ht):
+  if ht in HARDWARE_MODES and hardware_ok() == False:
+    die("! hash type %d needs an FPGA board. Attach one and set HCFPGA_TEST=1 to test it." % ht)
+
+
+def discover_modes(with_hardware=False):
   out = []
 
   for path in glob.glob(os.path.join(TDIR, "test_modules", "m[0-9][0-9][0-9][0-9][0-9].py")):
     out.append(int(re.search(r"m0*([0-9]+)\.py$", path).group(1)))
+
+  if with_hardware == False and hardware_ok() == False:
+    out = [m for m in out if m not in HARDWARE_MODES]
 
   return sorted(set(out))
 
@@ -802,6 +819,8 @@ def select_modes(spec, modes):
 
   if re.fullmatch(r"[0-9]+", spec):
     ht = int(spec)
+
+    hardware_refuse(ht)
 
     if ht not in modes:
       die("! hash type %d has no tools/test_modules/m%05d.py, so test.py cannot run it\n"
@@ -4461,6 +4480,7 @@ COVERAGE_UNTESTABLE = {
   9820:  "MS Office <= 2003 SHA1 + RC4 collider #2, not a wordlist or mask crack",
   10410: "PDF 1.1 - 1.3 collider #1, not a wordlist or mask crack",
   10420: "PDF 1.1 - 1.3 collider #2, not a wordlist or mask crack",
+  79000: "FPGA fleet simulator, computes no hashes and returns the self-test digest for every candidate",
 }
 
 
@@ -4481,7 +4501,7 @@ def run_test_coverage():
   # CONTAINER_MODES carries the cryptoloop kernel numbers (14511..14553) as labels; every one runs
   # hashcat with -m 14500, the only module that exists, so collapse them to it for this check.
   container = {14600, 34100} | set(LUKS1_HASH_CIPHER) | TC_MODES | set(VC_MODES) | {14500}
-  covered   = set(discover_modes()) | container | SELFTEST_MODES
+  covered   = set(discover_modes(with_hardware=True)) | container | SELFTEST_MODES
 
   missing = sorted(m for m in all_modes if m not in covered and m not in COVERAGE_UNTESTABLE)
   orphans = sorted(container - set(all_modes))
@@ -4717,6 +4737,8 @@ def sweep_range(spec):
   if re.fullmatch(r"[0-9]+", spec):
     v = int(spec)
 
+    hardware_refuse(v)
+
     return (v, v, False)
 
   m = re.fullmatch(r"([0-9]+)-([0-9]+)", spec)
@@ -4744,6 +4766,9 @@ def selftest_sweep_modes():
 
     if m is not None:
       modes.append(int(m.group(1)))
+
+  if hardware_ok() == False:
+    modes = [m for m in modes if m not in HARDWARE_MODES]
 
   return modes
 
@@ -5028,7 +5053,8 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
 # of the generated one with the same hash. Its outfile is checked through the module's own verify
 # rather than compared literally.
 
-EDGE_VERIFY_OUT = {1500}
+# 36901 prints the diversified key rather than the five-byte candidate index.
+EDGE_VERIFY_OUT = {1500, 36901}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
@@ -5539,6 +5565,8 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
 
       errors += 1
 
+      log_result(rc)
+
       print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
             % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i))
 
@@ -5564,6 +5592,8 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
         continue
 
       errors += 1
+
+      log_result(10)
 
       print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
             % (ctx.mode, ctx.attack, ctx.ktype, width, i))
@@ -5770,6 +5800,8 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
     if attack == 9 and b"Mixed iteration counts are not supported" in out:
       return 0, 1, False
 
+    log_result(rc)
+
     print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi"
           % (rc, mode, attack, ctx.ktype, width))
 
@@ -5790,6 +5822,8 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   if got != want:
     if edge_out_verifies(mode, raw, [dig for _, _, _, dig in selected], tmp) == True:
       return 0, 1, False
+
+    log_result(10)
 
     print("[ test.py edge ] !> mismatch Type %d, Attack %d, Kernel %s, Vector %d, multi"
           % (mode, attack, ctx.ktype, width))
@@ -5945,6 +5979,8 @@ def edge_select_modes(spec, modes):
 
   if re.fullmatch(r"[0-9]+", spec):
     ht = int(spec)
+
+    hardware_refuse(ht)
 
     if ht not in modes:
       die("! hash type %d has no tools/test_modules/m%05d.py, so test.py --edge cannot run it"
@@ -6494,6 +6530,8 @@ def main():
                   help="print the container test modes (TrueCrypt, VeraCrypt, CryptoLoop, LUKS) and exit; "
                        "these crack a shipped or fetched container file and have no oracle, so a mode "
                        "list builder cannot find them from the test modules on disk")
+  ap.add_argument("--list-hardware-modes", dest="list_hardware_modes", action="store_true",
+                  help="print hardware-only hash modes and exit, regardless of HCFPGA_TEST")
   ap.add_argument("--compute-sanitizer", dest="compute_sanitizer", nargs="?", const="memcheck",
                   default=None, metavar="TOOL",
                   help="run the CUDA kernels under NVIDIA Compute Sanitizer (memcheck|racecheck|"
@@ -6532,6 +6570,11 @@ def main():
   # on disk (they have no test module).
   if args.list_container_modes:
     print(" ".join(str(m) for m in sorted(CONTAINER_MODES)))
+    sys.exit(0)
+
+  # CI needs the hardware exclusions even when local hardware testing is enabled.
+  if args.list_hardware_modes:
+    print(" ".join(str(m) for m in sorted(HARDWARE_MODES)))
     sys.exit(0)
 
   # --compute-sanitizer points hashcat at the sweep shim, which wraps every run in

@@ -14,6 +14,7 @@
 #include "bridges.h"
 #include "interface.h"
 #include "module_options.h"
+#include "status_rc.h"
 
 /**
  * parsing
@@ -27,6 +28,22 @@ int bridge_filename (const folder_config_t *folder_config, const char *bridge_na
   #else
   return snprintf (out_buf, out_size, "%s/bridges/bridge_%s.so", folder_config->shared_dir, bridge_name);
   #endif
+}
+
+// A bridge, or the plugin it runs, failed. The exit code says so unless a site that knew more already
+// named the cause, such as a plugin path on the command line that does not exist.
+
+void bridges_failed (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  // bridges_init () also fails for a hash-mode without a bridge, on a module that does not load
+
+  if (bridge_ctx->enabled == false) return;
+
+  if (status_get_rc_error (hashcat_ctx) != RC_FINAL_OK) return;
+
+  status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_BRIDGE);
 }
 
 bool bridge_load (hashcat_ctx_t *hashcat_ctx, bridge_ctx_t *bridge_ctx, const char *bridge_name)

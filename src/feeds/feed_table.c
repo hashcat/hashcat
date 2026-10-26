@@ -2623,7 +2623,7 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
   tg->template = template;
   tg->single   = single;
 
-  if (wordlist_init (global_ctx, &tg->wl, 1, 2) == false) return false;
+  if (wordlist_init (global_ctx, &tg->wl, hashcat_ctx, 1, 2) == false) return false;
 
   char err[256];
 

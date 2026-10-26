@@ -1348,13 +1348,19 @@ def harness_options(base_rec: dict) -> set:
   return names
 
 
+# The exits that refuse a run: -1, and the two codes that refine it, -2 for the attack command and -12
+# for the task. They wrap to 255, 254 and 244.
+
+REFUSED_RC = (255, 254, 244)
+
+
 def basic_class(r: dict) -> str:
   if "harness_error" in r: return "harness-error"
   if r.get("class_hint") == "duplicate": return "duplicate"
   if r.get("timeout") == True: return "hang"
   if len(r.get("reports", [])) > 0: return "crash"
-  if r["rc"] == 255: return "rejected"
-  if (r["rc"] >= 245) and (r["rc"] <= 254): return "failed"
+  if r["rc"] in REFUSED_RC: return "rejected"
+  if ((r["rc"] >= 245) and (r["rc"] <= 253)) or (r["rc"] == 243): return "failed"
 
   return None
 
@@ -1903,7 +1909,7 @@ def run_verdict(r: dict) -> dict:
 
   if v.get("refuse") == "yes": return {"state": "refuse", "rule": v.get("rule", "-"), "opt": v.get("opt", "-"), "opt2": v.get("opt2", "-"), "msg": msg}
 
-  if r.get("rc") == 255: return {"state": "refuse", "rule": "code", "opt": "-", "opt2": "-", "msg": msg}
+  if r.get("rc") in REFUSED_RC: return {"state": "refuse", "rule": "code", "opt": "-", "opt2": "-", "msg": msg}
 
   return {"state": "accept", "rule": "-", "opt": "-", "opt2": "-", "msg": msg}
 

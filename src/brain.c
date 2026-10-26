@@ -969,6 +969,21 @@ static void sock_no_inherit (MAYBE_UNUSED const int fd)
   #endif
 }
 
+// A write to a socket whose peer has closed its end raises SIGPIPE, and the default action for that
+// signal ends the whole process. One conversation going away must not take hashcat with it, so every
+// send below passes SEND_FLAGS, which is MSG_NOSIGNAL where the platform has it. macOS and the BSDs
+// have no such send flag and carry SO_NOSIGPIPE instead. This sets it once per socket, so it also
+// covers a send site that forgets the flag.
+
+static void sock_no_sigpipe (MAYBE_UNUSED const int fd)
+{
+  #if defined (SO_NOSIGPIPE)
+  const int one = 1;
+
+  setsockopt (fd, SOL_SOCKET, SO_NOSIGPIPE, (const char *) &one, sizeof (one));
+  #endif
+}
+
 static void brain_client_report (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *format, ...)
 {
   if (device_param->brain_link_reported == true) return;
@@ -1009,6 +1024,7 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   }
 
   sock_no_inherit (brain_link_client_fd);
+  sock_no_sigpipe (brain_link_client_fd);
 
   #if defined (__linux__)
   const int one = 1;
@@ -1090,7 +1106,7 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   u32 brain_link_version = BRAIN_LINK_VERSION_CUR;
 
-  if (brain_send (brain_link_client_fd, &brain_link_version, sizeof (brain_link_version), 0, NULL, NULL) == false)
+  if (brain_send (brain_link_client_fd, &brain_link_version, sizeof (brain_link_version), SEND_FLAGS, NULL, NULL) == false)
   {
     brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
@@ -1132,7 +1148,7 @@ bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   u64 response = brain_auth_hash (challenge, password, strlen (password));
 
-  if (brain_send (brain_link_client_fd, &response, sizeof (response), 0, NULL, NULL) == false)
+  if (brain_send (brain_link_client_fd, &response, sizeof (response), SEND_FLAGS, NULL, NULL) == false)
   {
     brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
@@ -1216,6 +1232,11 @@ void brain_client_disconnect (hc_device_param_t *device_param)
 
 bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap)
 {
+  // Nothing is reserved until the reply has been read and checked, so a caller that carries on after
+  // a failure skips nothing. A partial read would otherwise leave whatever arrived in there.
+
+  *overlap = 0;
+
   const int brain_link_client_fd = device_param->brain_link_client_fd;
 
   if (brain_link_client_fd == -1) return false;
@@ -1223,10 +1244,22 @@ bool brain_client_reserve (hc_device_param_t *device_param, const status_ctx_t *
   u8 operation = BRAIN_OPERATION_ATTACK_RESERVE;
 
   if (brain_send (brain_link_client_fd, &operation, sizeof (operation), SEND_FLAGS, device_param, status_ctx) == false) return false;
-  if (brain_send (brain_link_client_fd, &words_off, sizeof (words_off),          0, device_param, status_ctx) == false) return false;
-  if (brain_send (brain_link_client_fd, &work,           sizeof (work),          0, device_param, status_ctx) == false) return false;
+  if (brain_send (brain_link_client_fd, &words_off, sizeof (words_off), SEND_FLAGS, device_param, status_ctx) == false) return false;
+  if (brain_send (brain_link_client_fd, &work,           sizeof (work), SEND_FLAGS, device_param, status_ctx) == false) return false;
 
-  if (brain_recv (brain_link_client_fd, overlap,          sizeof (u64),          0, device_param, status_ctx) == false) return false;
+  u64 reply = 0;
+
+  if (brain_recv (brain_link_client_fd, &reply, sizeof (reply), 0, device_param, status_ctx) == false) return false;
+
+  // The overlap is the leading part of the range we asked for that the server has already covered,
+  // so it can never be longer than the range. A larger one wraps the work count in every caller: the
+  // mask dispatcher hands that count to the device as its work item count and the launch reads far
+  // outside the buffers it was given. The reply is refused like any other dead link, and the chunk
+  // is then tested with no dedup rather than not at all.
+
+  if (reply > work) return false;
+
+  *overlap = reply;
 
   return true;
 }
@@ -2480,6 +2513,8 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   // client configuration
 
+  sock_no_sigpipe (client_fd);
+
   #if defined (__linux__)
   const int one = 1;
 
@@ -2512,7 +2547,7 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   u32 brain_link_version_ok = (brain_link_version >= (u32) BRAIN_LINK_VERSION_MIN) ? 1 : 0;
 
-  if (brain_send (client_fd, &brain_link_version_ok, sizeof (brain_link_version_ok), 0, NULL, NULL) == false)
+  if (brain_send (client_fd, &brain_link_version_ok, sizeof (brain_link_version_ok), SEND_FLAGS, NULL, NULL) == false)
   {
     brain_logging (stderr, client_idx, "brain_send: %s\n", strerror (errno));
 
@@ -2536,7 +2571,7 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   u32 challenge = brain_auth_challenge ();
 
-  if (brain_send (client_fd, &challenge, sizeof (challenge), 0, NULL, NULL) == false)
+  if (brain_send (client_fd, &challenge, sizeof (challenge), SEND_FLAGS, NULL, NULL) == false)
   {
     brain_logging (stderr, client_idx, "brain_send: %s\n", strerror (errno));
 
@@ -2564,7 +2599,7 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   u32 password_ok = (auth_hash == response) ? 1 : 0;
 
-  if (brain_send (client_fd, &password_ok, sizeof (password_ok), 0, NULL, NULL) == false)
+  if (brain_send (client_fd, &password_ok, sizeof (password_ok), SEND_FLAGS, NULL, NULL) == false)
   {
     brain_logging (stderr, client_idx, "brain_send: %s\n", strerror (errno));
 
@@ -2749,7 +2784,7 @@ HC_THREAD_FUNC brain_server_handle_client (void *p)
 
   u64 highest = brain_server_highest_attack (brain_server_db_attack);
 
-  if (brain_send (client_fd, &highest, sizeof (highest), 0, NULL, NULL) == false)
+  if (brain_send (client_fd, &highest, sizeof (highest), SEND_FLAGS, NULL, NULL) == false)
   {
     brain_logging (stderr, client_idx, "brain_send: %s\n", strerror (errno));
 

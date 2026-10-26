@@ -18,8 +18,8 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_PRIVATE_KEY;
-static const char *HASH_NAME      = "Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + AES-192 key blob)";
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
+static const char *HASH_NAME      = "Apple DMG (encrcdsa v2, PBKDF2-HMAC-SHA1 + AES-192 key)";
 static const u64   KERN_TYPE      = 38300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;

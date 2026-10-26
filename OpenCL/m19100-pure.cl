@@ -89,7 +89,7 @@ KERNEL_FQ KERNEL_FA void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   for (u32 i = 0; i < LOOP_CNT; i++)
   {
-    sha256_update (&sha256_ctx, w, pw_len);
+    sha256_update_padded (&sha256_ctx, w, pw_len);
   }
 
   tmps[gid].sha256_ctx = sha256_ctx;

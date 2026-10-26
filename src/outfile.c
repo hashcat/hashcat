@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "convert.h"
+#include "debugfile.h"
 #include "mpsp.h"
 #include "rp.h"
 #include "emu_inc_rp.h"
@@ -118,7 +119,34 @@ u32 outfile_format_parse (const char *format_string)
   return outfile_format;
 }
 
-int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
+// The status display asks for candidates from its own thread while the batch runs, and a read of the
+// device copy waits for the running kernel to finish. It reads the host copy wherever that is what the
+// device holds. Under a pure kernel with the mask as base words the mask processor writes them on the
+// device, so only the device has them.
+
+static int plain_pw (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidvid, pw_t *pw, const bool from_host)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  bool host = from_host;
+
+  if ((user_options->slow_candidates == false) && (user_options_extra->attack_kern == ATTACK_KERN_COMBI) && ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options_extra->base_source == BASE_SOURCE_MASK)) host = false;
+
+  if (host == true)
+  {
+    const int rc = gidd_to_pw_t_host (device_param, gidvid, pw);
+
+    return rc;
+  }
+
+  const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, pw);
+
+  return rc;
+}
+
+int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len, const bool from_host)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const hashes_t             *hashes             = hashcat_ctx->hashes;
@@ -144,7 +172,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     pw_t pw;
 
-    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw, from_host);
 
     if (rc == -1) return -1;
 
@@ -158,7 +186,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       pw_t pw;
 
-      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw, from_host);
 
       if (rc == -1) return -1;
 
@@ -320,7 +348,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       pw_t pw;
 
-      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw, from_host);
 
       if (rc == -1) return -1;
 
@@ -516,15 +544,9 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   const u32 cell_pos = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) ? plain->extra1 : il_pos;
 
-  // The straight kernel is the one that applies a rule, so it is the one that has a rule to report.
-  // That is attack mode 0, 8 and 9 as it always was, and now also the mask attacks, which reach it
-  // through a feed once they are given rules.
-
-  if ((user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) && (user_options_extra->attack_kern != ATTACK_KERN_PCFG)) return 0;
+  if (debugfile_wants_base (hashcat_ctx) == false) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
-
-  if (debug_mode == 0) return 0;
 
   if (user_options->slow_candidates == true)
   {

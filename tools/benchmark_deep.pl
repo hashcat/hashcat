@@ -640,8 +640,10 @@ sub get_module
   my $hash_type = shift;
 
   my $st_hash         = undef;
+  my $st_pass         = undef;
   my $is_binary       = 0;
   my $pw_min          = -1;
+  my $pw_min_function = 0;
   my $pw_max          = -1;
   my $benchmark_mask  = undef;
 
@@ -652,6 +654,8 @@ sub get_module
   while (my $line = <IN>)
   {
     chomp $line;
+
+    next if ($line =~ /^\s*\/\//);
 
     if ($line =~ /OPTS_TYPE_BINARY_HASHFILE/)
     {
@@ -665,9 +669,42 @@ sub get_module
       }
     }
 
-    if ($line =~ /ST_HASH *= \"(.*)\"/)
+    if ($line =~ /ST_HASH *= \"(.*?)\"\s*(;|$)/)
     {
       $st_hash = $1;
+
+      my $end = $2;
+
+      # a hash split over several string literals, joined the way the compiler joins them
+
+      while ($end eq "")
+      {
+        my $next = <IN>;
+
+        last if (defined ($next) == 0);
+
+        chomp $next;
+
+        last if ($next =~ /^\s*\"(.*?)\"\s*(;|$)/) == 0;
+
+        $st_hash .= $1;
+
+        $end = $2;
+      }
+
+      # undo the C escapes, such as the \" around the field name in 31400's hash
+
+      $st_hash =~ s/\\(["\\])/$1/g;
+    }
+
+    if ($line =~ /ST_PASS *= \"(.*)\"/)
+    {
+      $st_pass = $1;
+    }
+
+    if ($line =~ /^u32 module_pw_min \(/)
+    {
+      $pw_min_function = 1;
     }
 
     if ($line =~ /const u32 pw_min = (\d+);/)
@@ -687,6 +724,14 @@ sub get_module
   }
 
   close (IN);
+
+  # A minimum given as an expression, such as the RC4 modes' PW_LEN, or returned on the function's
+  # own line cannot be read here, but the self-test password always satisfies it
+
+  if (($pw_min == -1) && ($pw_min_function == 1) && (defined $st_pass))
+  {
+    $pw_min = length ($st_pass);
+  }
 
   my $mask = $default_mask;
 

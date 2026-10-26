@@ -112,7 +112,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   ctx.len = 32;
 
-  md5_update_global (&ctx, hc->esalt_bufs[hc->digest_pos].esalt_buf, hc->esalt_bufs[hc->digest_pos].esalt_len);
+  md5_update_global_padded (&ctx, hc->esalt_bufs[hc->digest_pos].esalt_buf, hc->esalt_bufs[hc->digest_pos].esalt_len);
 
   md5_final (&ctx);
 
@@ -162,7 +162,7 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
   ctx.len = 32;
 
-  md5_update_global (&ctx, hc->esalt_bufs[hc->digest_pos].esalt_buf, hc->esalt_bufs[hc->digest_pos].esalt_len);
+  md5_update_global_padded (&ctx, hc->esalt_bufs[hc->digest_pos].esalt_buf, hc->esalt_bufs[hc->digest_pos].esalt_len);
 
   md5_final (&ctx);
 

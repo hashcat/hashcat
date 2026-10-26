@@ -31,6 +31,7 @@
 #include "feed.h"
 #include "feed_error.h"
 #include "wordlist.h"
+#include "status_rc.h"
 
 #if defined (_WIN)
 #include "mmap_windows.c"
@@ -551,7 +552,7 @@ static u64 source_of_offset (const feed_global_t *feed_global, const u64 offset)
 // a feed that takes something else on the command line as well, as the table feed takes its table,
 // still wants every wordlist argument laid end to end the same way.
 
-static bool wordlist_init (generic_global_ctx_t *global_ctx, feed_global_t *feed_global, const int from, const int to)
+static bool wordlist_init (generic_global_ctx_t *global_ctx, feed_global_t *feed_global, hashcat_ctx_t *hashcat_ctx, const int from, const int to)
 {
   // Every argument after the plugin name is a wordlist or a directory of them, and they are laid end
   // to end into one keyspace. -a 0 runs several dictionaries as several attacks instead, which is why
@@ -559,12 +560,28 @@ static bool wordlist_init (generic_global_ctx_t *global_ctx, feed_global_t *feed
 
   for (int i = from; i < to; i++)
   {
-    if (source_add_path (global_ctx, feed_global, global_ctx->workv[i]) == false) return false;
+    if (source_add_path (global_ctx, feed_global, global_ctx->workv[i]) == false)
+    {
+      // a wordlist that is there and does not open is the machine's, and stays -1
+
+      if (hc_path_exist (global_ctx->workv[i]) == false)
+      {
+        const int path_errno = errno;
+
+        status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
+      }
+
+      return false;
+    }
   }
 
   if (feed_global->sources_cnt == 0)
   {
     error_set (global_ctx, "No usable dictionary file found.");
+
+    // The wordlists exist, because the command line was checked for that. What is wrong is their content.
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
     return false;
   }

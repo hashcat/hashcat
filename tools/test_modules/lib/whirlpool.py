@@ -9,6 +9,7 @@
 # the legacy provider, which is rare now, and pycryptodome dropped it, so this is a small self
 # contained implementation. The 256 byte S box is the one the specification fixes; the eight round
 # tables and the round constants are derived from it, so those large tables are not carried here.
+# wrl0 and wrl1 are the two earlier versions, Whirlpool-0 and Whirlpool-T.
 
 SBOX = bytes.fromhex(
   "1823c6e887b8014f36a6d2f5796f9152"
@@ -50,29 +51,61 @@ def _mul(a, b):
   return p
 
 
-# the eight circulant multiplication tables and ten round constants
+# Whirlpool-0 used a random S box. Whirlpool-T took the final S box, and both used the circulant
+# row (1, 1, 3, 1, 5, 8, 9, 5) that the final version replaced
 
-_C = [[0] * 256 for _ in range(8)]
+SBOX0 = bytes.fromhex(
+  "68d0eb2b489d6ae4e3a356817df1859e"
+  "2c8e78ca17a961d55d0b8c3c77512242"
+  "3f544180cc86b3182e570662f436d16b"
+  "1b657510da4926f9cb66e7baae5052ab"
+  "05f00d733b0420feddf5b45f0ab5c0a0"
+  "71a52d607293390883215c87b1e000c3"
+  "12918a021ce645c2c4fdbf44a14c33c5"
+  "84237cb025153569ff944d70a2afcdd6"
+  "6cb7f809f367a4eaecb6d4d2141ee124"
+  "38c6db4b7a3ade5edf95fcaad7ce070f"
+  "3d589a989cf2a7117e8b4303e2dce5b2"
+  "4ec76de92740d837928f011d533e59c1"
+  "4f3216fa74fb639f341a2a5a8dc9cff6"
+  "9028889b310ebd4ae896a60cc879bcbe"
+  "ef6e46975bed19d9ac99a829641fad55"
+  "13bbf76fb9472feeb87b8930d37f7682"
+)
 
-for x in range(256):
-  s = SBOX[x]
 
-  v = [_mul(s, c) for c in (1, 1, 4, 1, 8, 5, 2, 9)]
+def _tables(sbox, row):
+  # the eight circulant multiplication tables and ten round constants
 
-  for t in range(8):
-    _C[t][x] = int.from_bytes(bytes(v[(i - t) % 8] for i in range(8)), "big")
+  c = [[0] * 256 for _ in range(8)]
 
-_RC = []
+  for x in range(256):
+    s = sbox[x]
 
-for r in range(1, 11):
-  _RC.append(int.from_bytes(bytes(SBOX[8 * (r - 1) + i] if i < 8 else 0 for i in range(8)), "big"))
+    v = [_mul(s, m) for m in row]
+
+    for t in range(8):
+      c[t][x] = int.from_bytes(bytes(v[(i - t) % 8] for i in range(8)), "big")
+
+  rc = []
+
+  for r in range(1, 11):
+    rc.append(int.from_bytes(bytes(sbox[8 * (r - 1) + i] for i in range(8)), "big"))
+
+  return c, rc
+
+
+_C, _RC = _tables(SBOX, (1, 1, 4, 1, 8, 5, 2, 9))
+
+_C0, _RC0 = _tables(SBOX0, (1, 1, 3, 1, 5, 8, 9, 5))
+_C1, _RC1 = _tables(SBOX, (1, 1, 3, 1, 5, 8, 9, 5))
 
 
 def _w(x):
   return x & 0xffffffffffffffff
 
 
-def _transform(state_block, key_block):
+def _transform(state_block, key_block, c=_C, rc=_RC):
   # one Miyaguchi-Preneel step: block cipher W on the message block, keyed by the state, XOR the
   # state and the message back in
 
@@ -80,18 +113,18 @@ def _transform(state_block, key_block):
   b = [int.from_bytes(key_block[i * 8:i * 8 + 8], "big") ^ k[i] for i in range(8)]
 
   for r in range(10):
-    k = [_w(_C[0][(k[i] >> 56) & 0xff] ^ _C[1][(k[(i - 1) % 8] >> 48) & 0xff] ^
-            _C[2][(k[(i - 2) % 8] >> 40) & 0xff] ^ _C[3][(k[(i - 3) % 8] >> 32) & 0xff] ^
-            _C[4][(k[(i - 4) % 8] >> 24) & 0xff] ^ _C[5][(k[(i - 5) % 8] >> 16) & 0xff] ^
-            _C[6][(k[(i - 6) % 8] >> 8) & 0xff] ^ _C[7][k[(i - 7) % 8] & 0xff])
+    k = [_w(c[0][(k[i] >> 56) & 0xff] ^ c[1][(k[(i - 1) % 8] >> 48) & 0xff] ^
+            c[2][(k[(i - 2) % 8] >> 40) & 0xff] ^ c[3][(k[(i - 3) % 8] >> 32) & 0xff] ^
+            c[4][(k[(i - 4) % 8] >> 24) & 0xff] ^ c[5][(k[(i - 5) % 8] >> 16) & 0xff] ^
+            c[6][(k[(i - 6) % 8] >> 8) & 0xff] ^ c[7][k[(i - 7) % 8] & 0xff])
        for i in range(8)]
 
-    k[0] ^= _RC[r]
+    k[0] ^= rc[r]
 
-    b = [_w(_C[0][(b[i] >> 56) & 0xff] ^ _C[1][(b[(i - 1) % 8] >> 48) & 0xff] ^
-            _C[2][(b[(i - 2) % 8] >> 40) & 0xff] ^ _C[3][(b[(i - 3) % 8] >> 32) & 0xff] ^
-            _C[4][(b[(i - 4) % 8] >> 24) & 0xff] ^ _C[5][(b[(i - 5) % 8] >> 16) & 0xff] ^
-            _C[6][(b[(i - 6) % 8] >> 8) & 0xff] ^ _C[7][b[(i - 7) % 8] & 0xff] ^ k[i])
+    b = [_w(c[0][(b[i] >> 56) & 0xff] ^ c[1][(b[(i - 1) % 8] >> 48) & 0xff] ^
+            c[2][(b[(i - 2) % 8] >> 40) & 0xff] ^ c[3][(b[(i - 3) % 8] >> 32) & 0xff] ^
+            c[4][(b[(i - 4) % 8] >> 24) & 0xff] ^ c[5][(b[(i - 5) % 8] >> 16) & 0xff] ^
+            c[6][(b[(i - 6) % 8] >> 8) & 0xff] ^ c[7][b[(i - 7) % 8] & 0xff] ^ k[i])
        for i in range(8)]
 
   return b"".join(
@@ -99,7 +132,7 @@ def _transform(state_block, key_block):
      int.from_bytes(key_block[i * 8:i * 8 + 8], "big")).to_bytes(8, "big") for i in range(8))
 
 
-def whirlpool(data):
+def _hash(data, c, rc):
   bit_len = (len(data) * 8).to_bytes(32, "big")
 
   msg = data + b"\x80" + b"\x00" * ((32 - (len(data) + 1) % 64) % 64) + bit_len
@@ -107,10 +140,26 @@ def whirlpool(data):
   state = b"\x00" * 64
 
   for i in range(0, len(msg), 64):
-    state = _transform(state, msg[i:i + 64])
+    state = _transform(state, msg[i:i + 64], c, rc)
 
   return state
 
 
+def whirlpool(data):
+  return _hash(data, _C, _RC)
+
+
 def whirlpool_hex(data):
   return whirlpool(data).hex()
+
+
+def wrl0(data: bytes) -> bytes:
+  digest = _hash(data, _C0, _RC0)
+
+  return digest
+
+
+def wrl1(data: bytes) -> bytes:
+  digest = _hash(data, _C1, _RC1)
+
+  return digest

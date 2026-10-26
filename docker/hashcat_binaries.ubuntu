@@ -210,23 +210,29 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # HASHCAT_REF is the tree the package is built from, and it is named rather than left to whatever
 # master happens to be, so that a release can be rebuilt later from the same source. Another one is
-# asked for with --build-arg HASHCAT_REF=<ref>, and it is bumped with the version in
-# tools/package_bin.sh, which is edited for the same release anyway.
+# asked for with --build-arg HASHCAT_REF=<ref>, such as master for a beta, and it is bumped with
+# every release.
 #
 # It cannot be bumped to just anything. This file passes CC_WIN=clang, and a Makefile from before the
 # core library has no way to tell clang which target a Windows artifact is for, so clang builds it for
 # the host, picks the host linker and stops on the first link flag that only means something to PE.
-# The default is master until the first release that contains the core library exists to name, and the
-# check below refuses an older tree in one line rather than letting it fail at the link.
+# v8.0.0 is the first release that contains the core library, and the check below refuses an older
+# tree in one line rather than letting it fail at the link.
+#
+# SOURCE_DATE_EPOCH pins the build time that src/Makefile compiles in, which is otherwise the moment
+# of the build. A release passes its own commit time, git log -1 --format=%ct, so a later build of
+# the tag gives the same bytes.
 
 ARG CACHE_BUST=1 \
-    HASHCAT_REF=master \
+    SOURCE_DATE_EPOCH= \
+    HASHCAT_REF=v8.0.0 \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
     USE_CLANG=1 \
     USE_GCC=0
 
 ENV CACHE_BUST=${CACHE_BUST} \
+    SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
     HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \

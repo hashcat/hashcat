@@ -162,6 +162,8 @@ typedef enum event_identifier
   EVENT_BACKEND_SESSION_HOSTMEM    = 0x000000a2,
   EVENT_BACKEND_DEVICE_INIT_POST   = 0x000000a3,
   EVENT_BACKEND_DEVICE_INIT_PRE    = 0x000000a4,
+  EVENT_OUTCHECK_PREFLIGHT_POST    = 0x00000150,
+  EVENT_OUTCHECK_PREFLIGHT_PRE     = 0x00000151,
   EVENT_OUTERLOOP_FINISHED         = 0x000000b0,
   EVENT_OUTERLOOP_MAINSCREEN       = 0x000000b1,
   EVENT_OUTERLOOP_STARTING         = 0x000000b2,
@@ -294,13 +296,24 @@ typedef enum status_rc
 
 typedef enum rc_final
 {
-  RC_FINAL_ERROR            = -1,
-  RC_FINAL_OK               = 0,
-  RC_FINAL_EXHAUSTED        = 1,
-  RC_FINAL_ABORT            = 2,
-  RC_FINAL_ABORT_CHECKPOINT = 3,
-  RC_FINAL_ABORT_RUNTIME    = 4,
-  RC_FINAL_ABORT_FINISH     = 5,
+  RC_FINAL_ERROR_BRIDGE       = -13,
+  RC_FINAL_ERROR_TASK         = -12,
+  RC_FINAL_ERROR_SELFTEST     = -11,
+  RC_FINAL_ERROR_AUTOTUNE     = -10,
+  RC_FINAL_ERROR_MIXED        = -9,
+  RC_FINAL_ERROR_EXTRA_SIZE   = -8,
+  RC_FINAL_ERROR_KERNELCREATE = -6,
+  RC_FINAL_ERROR_KERNELBUILD  = -5,
+  RC_FINAL_ERROR_MEMORY_HIT   = -4,
+  RC_FINAL_ERROR_RUNTIME_SKIP = -3,
+  RC_FINAL_ERROR_COMMAND      = -2,
+  RC_FINAL_ERROR              = -1,
+  RC_FINAL_OK                 = 0,
+  RC_FINAL_EXHAUSTED          = 1,
+  RC_FINAL_ABORT              = 2,
+  RC_FINAL_ABORT_CHECKPOINT   = 3,
+  RC_FINAL_ABORT_RUNTIME      = 4,
+  RC_FINAL_ABORT_FINISH       = 5,
 
 } rc_final_t;
 
@@ -788,7 +801,7 @@ typedef enum opts_type
   OPTS_TYPE_MP_MULTI_DISABLE         = (1ULL << 56), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
   OPTS_TYPE_THREAD_MULTI_DISABLE     = (1ULL << 57), // do not multiply the kernel-power with the thread count per device for super slow algos
   OPTS_TYPE_NATIVE_THREADS           = (1ULL << 58), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
-  OPTS_TYPE_MAXIMUM_THREADS          = (1ULL << 59), // disable else branch in pre-compilation thread count optimization setting
+  OPTS_TYPE_MAXIMUM_THREADS          = (1ULL << 59), // autotune takes the largest workgroup that still reaches the most resident threads
   OPTS_TYPE_POST_AMP_UTF16LE         = (1ULL << 60), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
   OPTS_TYPE_AUTODETECT_DISABLE       = (1ULL << 61), // skip autodetect engine
   OPTS_TYPE_STOCK_MODULE             = (1ULL << 62), // module included with hashcat default distribution
@@ -1412,6 +1425,7 @@ typedef struct hashes
   u32          digests_done;
   u32          digests_done_pot;
   u32          digests_done_zero;
+  u32          digests_done_outcheck;
   u32          digests_done_new;
   u32          digests_saved;
 
@@ -2092,6 +2106,15 @@ typedef struct hc_device_param
 
   double  spin_damp;
 
+  // How early the launch wait wakes up before a launch is expected to end, and the pinned host
+  // memory a cracking launch uploads its parameters from and copies the crack count back into.
+
+  double  launch_margin_us;
+
+  void   *launch_param_host;
+  u32    *launch_result_host;
+  bool    launch_result_valid;
+
   void   *kernel_params[PARAMCNT];
   void   *kernel_params_mp[PARAMCNT];
   void   *kernel_params_mp_r[PARAMCNT];
@@ -2157,6 +2180,7 @@ typedef struct hc_device_param
   CUevent           cuda_event1;
   CUevent           cuda_event2;
   CUevent           cuda_event3;
+  CUevent           cuda_event_done;
 
   CUmodule          cuda_module[HC_DEV_PROGRAM_CNT];
 
@@ -2175,6 +2199,7 @@ typedef struct hc_device_param
   hipEvent_t        hip_event1;
   hipEvent_t        hip_event2;
   hipEvent_t        hip_event3;
+  hipEvent_t        hip_event_done;
 
   hipModule_t       hip_module[HC_DEV_PROGRAM_CNT];
 
@@ -2283,6 +2308,7 @@ typedef struct hc_device_param
   cl_device_id      opencl_device;
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;
+  cl_mem            opencl_launch_buf;
 
   cl_program        opencl_program[HC_DEV_PROGRAM_CNT];
 
@@ -3339,16 +3365,18 @@ typedef struct mask_ctx
   hcstat_table_t *root_table_buf;
   hcstat_table_t *markov_table_buf;
 
-  // How many character positions of the markov statistics this run can reach. The tables hold one
-  // slice per position of the longest mask hashcat accepts, and the index puts the position outermost,
-  // so a run only ever reads the first sp_pw_max_used slices: an eight character mask reaches eight of
-  // 256. Everything sp_setup_tbl () does is bounded by this, which is what keeps a four character mask
-  // from decompressing, byte swapping, filling and sorting 256 MB it cannot address.
+  // How many character positions of the markov statistics this run can reach, and the size of every
+  // buffer that is indexed by position. The index puts the position outermost, so a run only ever
+  // reads the first sp_pw_max_used slices: an eight character mask reaches eight of 256. markov_table_buf
+  // and markov_css_buf are allocated for exactly this many, on the host and on each device, and
+  // everything sp_setup_tbl () does is bounded by it, which is what keeps a four character mask from
+  // decompressing, byte swapping, filling and sorting 256 MB it cannot address.
   //
   // It is an upper bound taken over the whole mask queue rather than any one round's css_cnt, and it is
   // deliberately loose: a mask string is at least as long as the number of positions it produces, so
-  // strlen bounds it without parsing the mask. Too large only wastes work, while too small would
-  // silently change which candidate a position maps to.
+  // strlen bounds it without parsing the mask. Too large only wastes memory. Too small would be a read
+  // past the end of markov_css_buf, which is why sp_tbl_to_css () checks the round's css_cnt against it
+  // rather than trusting it.
 
   u32    sp_pw_max_used;
 
@@ -3968,6 +3996,14 @@ typedef struct status_ctx
 
   u32  stdin_read_timeout_cnt;
 
+  /**
+   * exit code refinement
+   */
+
+  // What an exit -1 becomes, see status_rc.c. 0 until an error names who has to act.
+
+  rc_final_t rc_error;
+
 } status_ctx_t;
 
 typedef struct hashcat_user
@@ -4466,7 +4502,9 @@ typedef struct hc_token
 } hc_token_t;
 
 /**
- * hash category is relevant in usage.c (--help screen)
+ * hash category is relevant in usage.c (--help screen). The numeric order of the
+ * categories is the order in which --help groups the hash-modes, so related
+ * categories are kept next to each other.
  */
 
 typedef enum hash_category
@@ -4477,25 +4515,34 @@ typedef enum hash_category
   HASH_CATEGORY_RAW_CHECKSUM            = 4,
   HASH_CATEGORY_RAW_CIPHER_KPA          = 5,
   HASH_CATEGORY_GENERIC_KDF             = 6,
-  HASH_CATEGORY_NETWORK_PROTOCOL        = 7,
-  HASH_CATEGORY_OS                      = 8,
-  HASH_CATEGORY_DATABASE_SERVER         = 9,
-  HASH_CATEGORY_NETWORK_SERVER          = 10,
-  HASH_CATEGORY_EAS                     = 11,
-  HASH_CATEGORY_FDE                     = 12,
-  HASH_CATEGORY_DOCUMENTS               = 13,
-  HASH_CATEGORY_PASSWORD_MANAGER        = 14,
-  HASH_CATEGORY_ARCHIVE                 = 15,
-  HASH_CATEGORY_FORUM_SOFTWARE          = 16,
-  HASH_CATEGORY_OTP                     = 17,
-  HASH_CATEGORY_PLAIN                   = 18,
-  HASH_CATEGORY_FRAMEWORK               = 19,
-  HASH_CATEGORY_PRIVATE_KEY             = 20,
-  HASH_CATEGORY_IMS                     = 21,
-  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 22,
-  HASH_CATEGORY_FBE                     = 23,
-  HASH_CATEGORY_APPLICATION_DATABASE    = 24,
+  HASH_CATEGORY_USER_DEFINED            = 7,
+
+  HASH_CATEGORY_NETWORK_PROTOCOL        = 8,
+  HASH_CATEGORY_NETWORK_SERVER          = 9,
+  HASH_CATEGORY_DATABASE_SERVER         = 10,
+
+  HASH_CATEGORY_OS                      = 11,
+  HASH_CATEGORY_EAS                     = 12,
+  HASH_CATEGORY_FRAMEWORK               = 13,
+  HASH_CATEGORY_FORUM_SOFTWARE          = 14,
+  HASH_CATEGORY_MESSAGING               = 15,
+  HASH_CATEGORY_APPLICATION_DATABASE    = 16,
+
+  HASH_CATEGORY_FDE                     = 17,
+  HASH_CATEGORY_FBE                     = 18,
+  HASH_CATEGORY_ARCHIVE                 = 19,
+  HASH_CATEGORY_DOCUMENTS               = 20,
+
+  HASH_CATEGORY_PASSWORD_MANAGER        = 21,
+  HASH_CATEGORY_PRIVATE_KEY             = 22,
+  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 23,
+  HASH_CATEGORY_OTP                     = 24,
+  HASH_CATEGORY_RFID                    = 25,
+
+  HASH_CATEGORY_PLAIN                   = 26,
+
   HASH_CATEGORY_UNDEFINED               = -1,
+
 } hash_category_t;
 
 // hash specific

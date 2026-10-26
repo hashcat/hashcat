@@ -48,6 +48,7 @@
 #include "restore.h"
 #include "selftest.h"
 #include "status.h"
+#include "status_rc.h"
 #include "feed_ctx.h"
 #include "straight.h"
 #include "tuningdb.h"
@@ -144,6 +145,30 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
   }
 
   hc_thread_wait (autotune_cnt, c_threads);
+
+  // A bridge that lost its group leader still needs one surviving unit tuned before the others
+  // can copy its tuning and take the work.
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    const hc_device_param_t *leader_param = &backend_ctx->devices_param[device_param->group_id];
+
+    if (leader_param->skipped_warning == false) continue;
+
+    backend_ctx_devices_group (hashcat_ctx);
+
+    thread_param_t *thread_param = &threads_param[backend_devices_idx];
+
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = backend_devices_idx;
+
+    thread_autotune (thread_param);
+  }
 
   // check for any autotune failures
   // by default, skipping device on error
@@ -314,6 +339,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
 
+  // A mask that failed only skips its round, so its error code must not outlive the next round that
+  // does run. It is still set at the end when no round ran after it. A bridge unit that failed before
+  // this round is not the round's to forget.
+
+  if (status_get_rc_error (hashcat_ctx) != RC_FINAL_ERROR_BRIDGE) status_clear_rc_error (hashcat_ctx);
+
   /**
    * Update attack-mode specific stuff based on wordlist
    */
@@ -439,6 +470,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   if (status_ctx->words_off > status_ctx->words_base)
   {
     event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
+
+    // --skip past the end is the command's. A position read back from a restore file is past the end
+    // because the files it was saved against changed since, which is the task's.
+
+    status_set_rc_error (hashcat_ctx, (restored == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -1076,6 +1112,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (option_table_check_module (hashcat_ctx, OPTION_MODULE_SAY | OPTION_MODULE_RANGE) == -1)
   {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1141,6 +1179,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
         outer_loop_destroy (hashcat_ctx);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return 0;
       }
     }
@@ -1179,6 +1219,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     if (hashes->hashes_cnt == 0)
     {
       event_log_error (hashcat_ctx, "No hashes loaded.");
+
+      status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
       outer_loop_destroy (hashcat_ctx);
 
@@ -1296,6 +1338,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     event_log_error (hashcat_ctx, "Not enough hashes loaded - minimum is %u for this hash-mode.", hashconfig->hashes_count_min);
 
+    status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1304,6 +1348,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (hashes->digests_cnt > hashconfig->hashes_count_max)
   {
     event_log_error (hashcat_ctx, "Too many hashes loaded - maximum is %u for this hash-mode.", hashconfig->hashes_count_max);
+
+    status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
     outer_loop_destroy (hashcat_ctx);
 
@@ -1672,6 +1718,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
 
+    bridges_failed (hashcat_ctx);
+
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1784,10 +1832,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
       if (device_param->st_status == ST_STATUS_FAILED)
       {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+        // A bridge that failed during the self-test said why on its own, and --self-test-disable would
+        // only move the same failure into the attack.
 
-        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
-        event_log_warning (hashcat_ctx, NULL);
+        if (status_get_rc_error (hashcat_ctx) == RC_FINAL_ERROR_BRIDGE)
+        {
+          event_log_error (hashcat_ctx, "Aborting session because the bridge failed during the self-test.");
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+
+          event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
+          event_log_warning (hashcat_ctx, NULL);
+        }
 
         backend_ctx->self_test_warnings = true;
 
@@ -2301,6 +2359,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   if (bridges_init (hashcat_ctx) == false)
   {
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
+
+    bridges_failed (hashcat_ctx);
 
     return -1;
   }
@@ -2891,6 +2951,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
         event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to auto-detect from them as given.");
         event_log_warning (hashcat_ctx, NULL);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
       }
       else if ((john == false) && (probe.refused == true))
       {
@@ -2905,6 +2967,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
         event_log_warning (hashcat_ctx, "If it is a wordlist, name the hash file first. If it is a hash file, give its hash-mode with -m.");
         event_log_warning (hashcat_ctx, NULL);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
       }
       else if (user_options->show == false)
       {
@@ -2993,6 +3057,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       if (user_options->identify == false)
       {
         event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
         return -1;
       }
@@ -3157,7 +3223,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 and -7 are reserved in docs/exit_status_code.txt
+    // -2, -12 and -13 are set in main (), and -7 is reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;
