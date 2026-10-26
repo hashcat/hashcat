@@ -247,6 +247,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
           KIND: ${{ matrix.kind }}
+          VECTOR_WIDTH: ${{ matrix.vector_width }}
         run: |
           # A shared-code change with no mode of its own runs test.py -M's 24
           # representative modes, sharded by ci_matrix.py into per-mode lists that
@@ -258,7 +259,7 @@ jobs:
           # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
           # the family's own fixed attack, so the container kind passes neither. A pull request tests
           # a single hash with optimized kernels where available and pure kernels otherwise.
-          # Edge tests cover both kernel families and every vector width in one pass.
+          # Edge tests cover both kernel families. Heavy modes run each vector width in its own job.
           if [ "$EVENT" = "pull_request" ]; then
             OPTS="-a all -t single"
             if [ "$KIND" = "pure" ]; then
@@ -272,6 +273,9 @@ jobs:
             OPTS=""
           elif [ "$KIND" = "edge" ]; then
             OPTS="--edge"
+            if [ -n "$VECTOR_WIDTH" ]; then
+              OPTS="$OPTS -V $VECTOR_WIDTH"
+            fi
           else
             OPTS="-a all -t all"
           fi

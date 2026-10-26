@@ -28,9 +28,12 @@ import zlib
 # test.py takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
 # runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
 
-# Edge checks cover both kernel families and five vector widths. The 96 edge shards plus
+# Edge checks cover both kernel families and five vector widths. The 96 edge jobs plus
 # 48 shards for each ordinary kind and 16 container shards fit GitHub's 256-job matrix limit.
 SHARDS = {"test": 48, "edge": 96, "fuzz": 16, "container": 16}
+
+EDGE_SPLIT_MODES = {34000, 36100, 36200}
+EDGE_VECTOR_WIDTHS = (1, 2, 4, 8, 16)
 
 # A pull request is bounded by this many modes. Past it the rest is left to the
 # weekly run, and the summary says which were left out.
@@ -179,6 +182,21 @@ def test_matrix(groups, kinds, fallback=False):
         for kind, modes in selected.items():
             matrix.append({"name": "shard-%d-%s" % (i, kind), "shard": i, "kind": kind,
                            "modes": " ".join(str(m) for m in modes)})
+
+    return matrix
+
+
+def edge_matrix(modes):
+    # Memory-hard modes can exceed a job's wall time across all five vector widths.
+    # Split those widths into separate jobs without changing the tested combinations.
+    split = modes & EDGE_SPLIT_MODES
+    shards = SHARDS["edge"] - len(split) * len(EDGE_VECTOR_WIDTHS)
+    matrix = test_matrix(balance_shards(modes - split, shards), ["edge"])
+
+    for mode in sorted(split):
+        for width in EDGE_VECTOR_WIDTHS:
+            matrix.append({"name": f"edge-{mode}-v{width}", "shard": -1, "kind": "edge",
+                           "modes": str(mode), "vector_width": width})
 
     return matrix
 
@@ -355,7 +373,7 @@ def main():
             matrix = test_matrix(balance_shards(pool, SHARDS["test"]), kernel_kinds)
 
             if want_edge:
-                matrix += test_matrix(balance_shards(pool, SHARDS["edge"]), ["edge"])
+                matrix += edge_matrix(pool)
 
             if want_container:
                 matrix += container_matrix(balance_shards(cpool, SHARDS["container"]))
@@ -380,7 +398,7 @@ def main():
             matrix = test_matrix(balance_shards(asked_kernel, SHARDS["test"]), kernel_kinds)
 
             if want_edge:
-                matrix += test_matrix(balance_shards(asked_kernel, SHARDS["edge"]), ["edge"])
+                matrix += edge_matrix(asked_kernel)
 
             if asked_cont:
                 matrix += container_matrix(balance_shards(asked_cont, SHARDS["container"]))
