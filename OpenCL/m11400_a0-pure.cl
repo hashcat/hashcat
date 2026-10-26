@@ -123,7 +123,7 @@ KERNEL_FQ KERNEL_FA void m11400_mxx (KERN_ATTR_RULES_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
+    md5_update_global_padded (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
 
     md5_final (&ctx);
 
@@ -233,7 +233,7 @@ KERNEL_FQ KERNEL_FA void m11400_sxx (KERN_ATTR_RULES_ESALT (sip_t))
 
     ctx.len = 32;
 
-    md5_update_global (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
+    md5_update_global_padded (&ctx, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].esalt_len);
 
     md5_final (&ctx);
 

@@ -225,7 +225,7 @@ DECLSPEC void m32300m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt1_buf, salt1_len);
+    md5_update_vector_padded (&ctx, salt1_buf, salt1_len);
 
     md5_final_vector (&ctx);
 
@@ -236,7 +236,7 @@ DECLSPEC void m32300m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     md5_init_vector (&ctx);
 
-    md5_update_vector (&ctx, salt2_buf, salt2_len);
+    md5_update_vector_padded (&ctx, salt2_buf, salt2_len);
 
     u32x ww0[4];
     u32x ww1[4];
@@ -271,7 +271,7 @@ DECLSPEC void m32300m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     md5_update_vector_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-    md5_update_vector (&ctx, salt3_buf, salt3_len);
+    md5_update_vector_padded (&ctx, salt3_buf, salt3_len);
 
     // md5_final_vector
 
@@ -584,7 +584,7 @@ DECLSPEC void m32300s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt1_buf, salt1_len);
+    md5_update_vector_padded (&ctx, salt1_buf, salt1_len);
 
     md5_final_vector (&ctx);
 
@@ -595,7 +595,7 @@ DECLSPEC void m32300s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     md5_init_vector (&ctx);
 
-    md5_update_vector (&ctx, salt2_buf, salt2_len);
+    md5_update_vector_padded (&ctx, salt2_buf, salt2_len);
 
     u32x ww0[4];
     u32x ww1[4];
@@ -630,7 +630,7 @@ DECLSPEC void m32300s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     md5_update_vector_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-    md5_update_vector (&ctx, salt3_buf, salt3_len);
+    md5_update_vector_padded (&ctx, salt3_buf, salt3_len);
 
     // md5_final_vector
 

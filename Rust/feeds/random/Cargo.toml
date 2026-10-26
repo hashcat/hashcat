@@ -1,6 +1,6 @@
 [package]
 name = "random"
-version = "7.1.2"
+version = "8.0.0"
 edition = "2024"
 
 [dependencies]

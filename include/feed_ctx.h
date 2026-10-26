@@ -23,7 +23,7 @@
 // The oldest plugin interface hashcat still accepts, checked against the GENERIC_PLUGIN_VERSION a
 // feed exports. It is the core's number and a feed neither reads it nor declares it.
 
-#define GENERIC_PLUGIN_VERSION_REQ 720
+#define GENERIC_PLUGIN_VERSION_REQ 800
 
 #define HC_LOAD_FUNC_GENERIC(ptr, name, type)                                                \
 do                                                                                           \

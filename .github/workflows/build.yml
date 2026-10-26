@@ -211,6 +211,7 @@ jobs:
         if: matrix.os_name_lowercase == 'linux' && matrix.shared == 0
         env:
           SHARED: ${{ matrix.shared }}
+          DOCS_BOT: ${{ vars.DOCS_BOT }}
         run: |
           # https://github.com/actions/checkout?tab=readme-ov-file#push-a-commit-using-the-built-in-token
           git config user.name "github-actions[bot]"
@@ -218,7 +219,12 @@ jobs:
           git add docs/hashcat-help.md
           git add docs/hashcat-example-hashes.md
           if ! git diff --staged --quiet; then
-            if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            # The repository variable DOCS_BOT=manual holds the commit back, for a release that
+            # carries its generated docs itself. The diff is still printed below.
+            if [ "$DOCS_BOT" = "manual" ]; then
+              echo "DOCS_BOT is manual: not committing docs/hashcat-help.md or docs/hashcat-example-hashes.md"
+              git diff --staged | cat
+            elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
               if [ "$GITHUB_REF_NAME" = "master" ]; then
                 git commit -m "Automatically updated docs/hashcat-help.md or docs/hashcat-example-hashes.md (by Github Action)"
 

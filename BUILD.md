@@ -38,7 +38,7 @@ $ cd hashcat
 $ make clean && make
 ```
 
-The build produces `libhashcat.so.7` next to the `hashcat` binary. It holds the core, and the binary,
+The build produces `libhashcat.so.8` next to the `hashcat` binary. It holds the core, and the binary,
 the modules, the bridges and the feeds all link against it. It has to travel with them when the tree
 is copied somewhere else, and it is found beside the binary without anything set in the environment.
 `make SHARED=0` builds the older arrangement instead, where every plugin carries its own copy of the

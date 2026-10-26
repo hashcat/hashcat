@@ -221,4 +221,7 @@ ALIAS_AMD                                       3       17200   N       32      
 ALIAS_NV                                        3       17200   N       1024    A
 ALIAS_INTEL                                     0       18100   N       1024    A
 ALIAS_INTEL                                     1       18100   N       128     A
+ALIAS_NV                                        *       23700   N       6       A
 ALIAS_INTEL                                     3       29421   N       1024    A
+ALIAS_AMD                                       *       34600   N       4       A
+ALIAS_NV                                        *       34600   N       1       A

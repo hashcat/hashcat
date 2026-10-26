@@ -89,7 +89,7 @@ KERNEL_FQ KERNEL_FA void m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 
   for (u32 i = 0; i < LOOP_CNT; i++)
   {
-    md5_update (&md5_ctx, w, pw_len);
+    md5_update_padded (&md5_ctx, w, pw_len);
   }
 
   tmps[gid].md5_ctx = md5_ctx;

@@ -27,8 +27,8 @@
 ##
 
 DEBUG                   := 0
-PRODUCTION              := 0
-PRODUCTION_VERSION      := v7.1.2
+PRODUCTION              := 1
+PRODUCTION_VERSION      := v8.0.0
 MACOS_UNIVERSAL_BINARY  ?= 0
 ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
@@ -188,9 +188,9 @@ endif
 ## Do not modify
 ##
 
-MODULE_INTERFACE_VERSION := 720
-BRIDGE_INTERFACE_VERSION := 720
-FEEDS_INTERFACE_VERSION  := 720
+MODULE_INTERFACE_VERSION := 800
+BRIDGE_INTERFACE_VERSION := 800
+FEEDS_INTERFACE_VERSION  := 800
 
 ##
 ## Toolchains
@@ -614,7 +614,7 @@ CFLAGS                  += -fsanitize=$(SANITIZE) -fno-omit-frame-pointer
 # UBSAN_OPTIONS=halt_on_error=1 when that is what you actually want.
 # The sanitizer must reach the link too, otherwise every target that links the
 # C++ deps (deps/unrar) fails with undefined __asan_* references. CFLAGS is not
-# enough for the shared-library layout: libhashcat.so.7, the module plugins and
+# enough for the shared-library layout: libhashcat.so.8, the module plugins and
 # the feed plugins are all separate link steps.
 LFLAGS                  += -fsanitize=$(SANITIZE)
 endif

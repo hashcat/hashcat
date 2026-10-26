@@ -172,7 +172,7 @@ KERNEL_FQ KERNEL_FA void m32300_mxx (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     ctx.len = 32;
 
-    md5_update (&ctx, salt1_buf, salt1_len);
+    md5_update_padded (&ctx, salt1_buf, salt1_len);
 
     md5_final (&ctx);
 
@@ -183,7 +183,7 @@ KERNEL_FQ KERNEL_FA void m32300_mxx (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_init (&ctx);
 
-    md5_update (&ctx, salt2_buf, salt2_len);
+    md5_update_padded (&ctx, salt2_buf, salt2_len);
 
     u32 ww0[4];
     u32 ww1[4];
@@ -218,7 +218,7 @@ KERNEL_FQ KERNEL_FA void m32300_mxx (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_update_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-    md5_update (&ctx, salt3_buf, salt3_len);
+    md5_update_padded (&ctx, salt3_buf, salt3_len);
 
     md5_final (&ctx);
 
@@ -376,7 +376,7 @@ KERNEL_FQ KERNEL_FA void m32300_sxx (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     ctx.len = 32;
 
-    md5_update (&ctx, salt1_buf, salt1_len);
+    md5_update_padded (&ctx, salt1_buf, salt1_len);
 
     md5_final (&ctx);
 
@@ -387,7 +387,7 @@ KERNEL_FQ KERNEL_FA void m32300_sxx (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_init (&ctx);
 
-    md5_update (&ctx, salt2_buf, salt2_len);
+    md5_update_padded (&ctx, salt2_buf, salt2_len);
 
     u32 ww0[4];
     u32 ww1[4];
@@ -422,7 +422,7 @@ KERNEL_FQ KERNEL_FA void m32300_sxx (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_update_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-    md5_update (&ctx, salt3_buf, salt3_len);
+    md5_update_padded (&ctx, salt3_buf, salt3_len);
 
     md5_final (&ctx);
 
