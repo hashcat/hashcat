@@ -17,6 +17,7 @@
 #define _WIN32_WINNT 0x0A00
 #include <ws2tcpip.h>
 #else
+#include <signal.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -53,6 +54,10 @@ typedef struct remote
 {
   unit_t *units;
   int     units_cnt;
+
+  #if !defined (_WIN)
+  void  (*sigpipe_saved) (int);
+  #endif
 
 } remote_t;
 
@@ -233,8 +238,16 @@ void *platform_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   const char *servers  = user_options->bridge_parameter1 ? user_options->bridge_parameter1 : "";
 
+  #if !defined (_WIN)
+  remote->sigpipe_saved = signal (SIGPIPE, SIG_IGN);
+  #endif
+
   if (units_init (hashcat_ctx, remote, servers) == false)
   {
+    #if !defined (_WIN)
+    if (remote->sigpipe_saved != SIG_ERR) signal (SIGPIPE, remote->sigpipe_saved);
+    #endif
+
     hcfree (remote);
 
     return NULL;
@@ -250,6 +263,10 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
   if (remote)
   {
     units_term (remote);
+
+    #if !defined (_WIN)
+    if (remote->sigpipe_saved != SIG_ERR) signal (SIGPIPE, remote->sigpipe_saved);
+    #endif
 
     hcfree (remote);
   }
