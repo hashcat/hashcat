@@ -14,15 +14,59 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
-DECLSPEC void _totp_calculate (PRIVATE_AS u32x *code, PRIVATE_AS const u32x *w, const u32 pw_len, PRIVATE_AS const u32x *s, const u32 salt_len)
+// The message is always the 8 byte counter in s[0] and s[1], so the final blocks of the inner and
+// the outer hash are fixed apart from a few words, and both are written out here. Handing s to
+// sha1_hmac_update_vector () and sha1_hmac_final_vector () computes the same blocks, but Intel's
+// compiler then spills this kernel heavily, which cost it most of its speed on an Arc A770.
+
+DECLSPEC void _totp_calculate (PRIVATE_AS u32x *code, PRIVATE_AS const u32x *w, const u32 pw_len, PRIVATE_AS const u32x *s)
 {
   sha1_hmac_ctx_vector_t ctx;
 
   sha1_hmac_init_vector (&ctx, w, pw_len);
 
-  sha1_hmac_update_vector (&ctx, s, salt_len);
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
 
-  sha1_hmac_final_vector (&ctx);
+  w0[0] = s[0];
+  w0[1] = s[1];
+  w0[2] = 0x80000000;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = (64 + 8) * 8;
+
+  sha1_transform_vector (w0, w1, w2, w3, ctx.ipad.h);
+
+  w0[0] = ctx.ipad.h[0];
+  w0[1] = ctx.ipad.h[1];
+  w0[2] = ctx.ipad.h[2];
+  w0[3] = ctx.ipad.h[3];
+  w1[0] = ctx.ipad.h[4];
+  w1[1] = 0x80000000;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = (64 + 20) * 8;
+
+  sha1_transform_vector (w0, w1, w2, w3, ctx.opad.h);
 
   // initialize a buffer for the otp code
   u32x otp_code = 0;
@@ -107,7 +151,7 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0;
 
-      _totp_calculate (&otp_code0, w, pw_len, s, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s);
 
       COMPARE_M_SIMD (otp_code0, 0, 0, 0);
     }
@@ -124,8 +168,8 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0, otp_code1;
 
-      _totp_calculate (&otp_code0, w, pw_len, s +  0, 8);
-      _totp_calculate (&otp_code1, w, pw_len, s + 16, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s +  0);
+      _totp_calculate (&otp_code1, w, pw_len, s + 16);
 
       COMPARE_M_SIMD (otp_code0, otp_code1, 0, 0);
     }
@@ -142,9 +186,9 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0, otp_code1, otp_code2;
 
-      _totp_calculate (&otp_code0, w, pw_len, s +  0, 8);
-      _totp_calculate (&otp_code1, w, pw_len, s + 16, 8);
-      _totp_calculate (&otp_code2, w, pw_len, s + 32, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s +  0);
+      _totp_calculate (&otp_code1, w, pw_len, s + 16);
+      _totp_calculate (&otp_code2, w, pw_len, s + 32);
 
       COMPARE_M_SIMD (otp_code0, otp_code1, otp_code2, 0);
     }
@@ -161,10 +205,10 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0, otp_code1, otp_code2, otp_code3;
 
-      _totp_calculate (&otp_code0, w, pw_len, s +  0, 8);
-      _totp_calculate (&otp_code1, w, pw_len, s + 16, 8);
-      _totp_calculate (&otp_code2, w, pw_len, s + 32, 8);
-      _totp_calculate (&otp_code3, w, pw_len, s + 48, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s +  0);
+      _totp_calculate (&otp_code1, w, pw_len, s + 16);
+      _totp_calculate (&otp_code2, w, pw_len, s + 32);
+      _totp_calculate (&otp_code3, w, pw_len, s + 48);
 
       COMPARE_M_SIMD (otp_code0, otp_code1, otp_code2, otp_code3);
     }
@@ -235,7 +279,7 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0;
 
-      _totp_calculate (&otp_code0, w, pw_len, s, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s);
 
       COMPARE_S_SIMD (otp_code0, 0, 0, 0);
     }
@@ -252,11 +296,11 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0, otp_code1;
 
-      _totp_calculate (&otp_code0, w, pw_len, s, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s);
 
       if (MATCHES_ONE_VS(otp_code0, search[0]))
       {
-        _totp_calculate (&otp_code1, w, pw_len, s + 16, 8);
+        _totp_calculate (&otp_code1, w, pw_len, s + 16);
 
         COMPARE_S_SIMD (otp_code0, otp_code1, 0, 0);
       }
@@ -274,15 +318,15 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0, otp_code1, otp_code2;
 
-      _totp_calculate (&otp_code0, w, pw_len, s, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s);
 
       if (MATCHES_ONE_VS(otp_code0, search[0]))
       {
-        _totp_calculate (&otp_code1, w, pw_len, s + 16, 8);
+        _totp_calculate (&otp_code1, w, pw_len, s + 16);
 
         if (MATCHES_ONE_VS(otp_code1, search[1]))
         {
-          _totp_calculate (&otp_code2, w, pw_len, s + 32, 8);
+          _totp_calculate (&otp_code2, w, pw_len, s + 32);
 
           COMPARE_S_SIMD (otp_code0, otp_code1, otp_code2, 0);
         }
@@ -301,19 +345,19 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_VECTOR ())
 
       u32x otp_code0, otp_code1, otp_code2, otp_code3;
 
-      _totp_calculate (&otp_code0, w, pw_len, s, 8);
+      _totp_calculate (&otp_code0, w, pw_len, s);
 
       if (MATCHES_ONE_VS(otp_code0, search[0]))
       {
-        _totp_calculate (&otp_code1, w, pw_len, s + 16, 8);
+        _totp_calculate (&otp_code1, w, pw_len, s + 16);
 
         if (MATCHES_ONE_VS(otp_code1, search[1]))
         {
-          _totp_calculate (&otp_code2, w, pw_len, s + 32, 8);
+          _totp_calculate (&otp_code2, w, pw_len, s + 32);
 
           if (MATCHES_ONE_VS(otp_code2, search[2]))
           {
-            _totp_calculate (&otp_code3, w, pw_len, s + 48, 8);
+            _totp_calculate (&otp_code3, w, pw_len, s + 48);
 
             COMPARE_S_SIMD (otp_code0, otp_code1, otp_code2, otp_code3);
           }

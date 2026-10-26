@@ -16878,8 +16878,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // GPUs only. A CPU runtime reports private memory on a different scale entirely - Intel's answers
     // 4864 bytes for MD5 and 10112 for argon2 where a GPU says 288 - so the threshold below means
     // nothing there, and a CPU device is running one work item per core regardless.
+    //
+    // Not on Intel's GPU runtime either. It answers CL_KERNEL_PRIVATE_MEM_SIZE for a whole hardware
+    // thread, which runs as many work items as the kernel's SIMD width, and its native count is
+    // CL_DEVICE_NUM_THREADS_PER_EU_INTEL, which is not a group width. A narrow group does not win
+    // there even for a kernel that is spill-heavy per work item. On an Arc A770, MD6 (256) at 16,392
+    // bytes per work item runs the same from 8 to 128 threads, and NetNTLMv1, read as 8448 bytes
+    // where a work item holds 528, runs 2.2x faster at 64 than at 8.
 
-    const bool spill_guard_applies = (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0;
+    const bool intel_runtime = (device_param->is_opencl == true) && (device_param->opencl_platform_vendor_id == VENDOR_ID_INTEL_SDK);
+
+    const bool spill_guard_applies = ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0) && (intel_runtime == false);
 
     if ((local_size_bytes >= SPILL_HEAVY_PRIVATE_BYTES)
      && (spill_guard_applies == true)
