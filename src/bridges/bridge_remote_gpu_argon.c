@@ -43,11 +43,11 @@ typedef struct unit
   u64     workitem_count;
   int     chunk_size;
   size_t  workitem_size;
-#ifdef WIN32
+  #ifdef WIN32
   SOCKET  client_fd;
-#else
+  #else
   int     client_fd;
-#endif
+  #endif
 } unit_t;
 
 typedef struct remote
@@ -161,11 +161,11 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     unit->client_fd = socket (AF_INET, SOCK_STREAM, 0);
 
-#ifdef WIN32
+    #ifdef WIN32
     if (unit->client_fd == INVALID_SOCKET )
-#else
+    #else
     if (unit->client_fd < 0)
-#endif
+    #endif
     {
       event_log_error (hashcat_ctx, "[bridge-client]: Unable to create socket.");
       return false;
@@ -215,18 +215,18 @@ static void units_term (remote_t *remote)
       unit_t *unit = &remote->units[i];
       int pws_cnt_no = 0;
       send (unit->client_fd, (void *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
-#ifdef WIN32
+      #ifdef WIN32
       closesocket (unit->client_fd);
-#else
+      #else
       close (unit->client_fd);
-#endif
+      #endif
     }
 
     hcfree (remote->units);
 
-  #if defined (WIN32)
-  WSACleanup ();
-  #endif
+    #if defined (WIN32)
+    WSACleanup ();
+    #endif
  }
 }
 
