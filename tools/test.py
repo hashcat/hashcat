@@ -109,12 +109,9 @@ LOGFULL    = None
 PROGRESS   = {}
 KEEP_TMP   = False
 
-# The count of results in the serial run that mean a test which should have cracked did not, or hit a
-# hard error. The -j and edge paths compute their own return code; the plain path had none and fell
-# off the end of main() as 0 even when every case faulted, so it is tracked here and main() exits on
-# it. A Warning (a --runtime timeout) and a Skip are not failures, so they are left out.
-ERRORS        = 0
-FAIL_VERDICTS = ("Fault", "Error", "Compare Error")
+# Requested tests must complete successfully. Skips and timeouts leave coverage incomplete.
+ERRORS = 0
+TESTS_PASSED = 0
 
 # The CPU's backend device number, cached: -1 before it is looked up, then the number or None. It
 # pins the virtual host for a bridged mode (see bridge_opts).
@@ -122,7 +119,7 @@ CPU_BACKEND_ID = -1
 
 # A -j worker that skips on 252 (memory hit limit) only because its share of the card was too small
 # exits with MEMSKIP_RC, so run_parallel re-runs that mode with the caps removed and the coverage
-# survives. A 252 with no cap in the environment is a genuine skip and does not set this.
+# survives. A 252 without a cap remains a failing result.
 CAPPED_MEM_SKIP = False
 MEMSKIP_RC = 90
 
@@ -298,11 +295,26 @@ def record(v):
 
 
 def note_verdict(v):
-  # Called wherever a result verdict is decided, so the serial path can exit non-zero on a real
-  # failure the way run_parallel and run_edge already return 1.
-  if v in FAIL_VERDICTS:
-    global ERRORS
+  global ERRORS, TESTS_PASSED
+
+  if v == "OK":
+    TESTS_PASSED += 1
+  else:
     ERRORS += 1
+
+
+def tests_status():
+  if ERRORS:
+    print("[ test.py ] > Error : %d requested test result(s) did not complete successfully" % ERRORS)
+
+    return 1
+
+  if TESTS_PASSED == 0:
+    print("[ test.py ] > Error : no tests completed successfully")
+
+    return 1
+
+  return 0
 
 
 def print_total():
@@ -657,6 +669,9 @@ def child_flags(args, devices=True):
   if args.runtime:
     flags += ["--runtime", str(args.runtime)]
 
+  if args.kernel_accel:
+    flags += ["--kernel-accel", str(args.kernel_accel)]
+
   if args.keep_tmp:
     flags.append("--keep-tmp")
 
@@ -680,6 +695,7 @@ def apply_run_options(args):
   KEEP_TMP = args.keep_tmp
 
   for name, seconds in (("--runtime", args.runtime),
+                        ("--kernel-accel", args.kernel_accel),
                         ("--metal-compiler-runtime", args.metal_compiler_runtime)):
     if seconds is not None and seconds <= 0:
       die("! %s must be greater than 0" % name)
@@ -1056,27 +1072,33 @@ def a4_vectors(mode, pairs, optimized):
   # least one character, so the zero length word the -a 0 vectors carry for a min-zero mode cannot be
   # written into a ruleset. Where one is present it is swapped for a spare word of length 1 and the
   # hash that goes with it. Returns the substituted pairs, or None to fall back to the -a 0 vectors,
-  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS or 40023 list, or no spare).
+  # which is what an empty _a4.sh means in test.sh (no empty word, a LUKS list, or no spare).
 
   if not pairs:
     return None
 
-  if mode in LUKS_MODES or mode == 40023:
+  if mode in LUKS_MODES:
     return None
 
-  if not any(word == b"" for word, _ in pairs):
+  # Mode 20510 removes a six-byte prefix before feeding a candidate to the grammar.
+  min_length = 7 if mode == 20510 else 1
+
+  if not any(len(word) < min_length for word, _ in pairs):
     return None
 
-  spare = oracle_spare(mode, optimized, 1)
+  spare = oracle_spare(mode, optimized, min_length)
 
-  if spare is None or spare[0] == b"":
+  if spare is None or len(spare[0]) < min_length:
     return None
 
-  return [spare if word == b"" else (word, digest) for word, digest in pairs]
+  return [spare if len(word) < min_length else (word, digest) for word, digest in pairs]
 
 
 def attacks_for(spec, mode):
   wanted = ATTACK_ORDER if spec == "all" else [int(spec)]
+
+  if spec == "all" and mode in A12_SKIP:
+    wanted = [a for a in wanted if a != 12]
 
   if mode in MASK_ONLY_MODES:
     return [a for a in wanted if a == 3]
@@ -1099,7 +1121,7 @@ def decode_hashfile(mode, digest):
 
 def oracle_vectors(mode, optimized):
   # Generate this mode's vectors with the same engine test.sh's run_oracle uses. Exit code 2 means
-  # the mode has no kernel for the requested family, which is a Skip and not a failure.
+  # the mode has no kernel for the requested family.
 
   env = oracle_env(mode, optimized)
 
@@ -1239,6 +1261,8 @@ def report(args, mode, target_name, width, c, attack=0):
 
 
 def report_skip(args, mode, target_name, width, reason, attack=0):
+  note_verdict("Skip")
+
   print("%s > Skip : %s" % (context(args, mode, target_name, width, attack), reason))
 
 
@@ -2369,7 +2393,9 @@ def attack_6_single(r):
 
       write_dict(dict1_a6, dict1_lines + [pass_b[:a6_split]])
 
-      mask = mask_literalize(b"?d" * (len(pass_b) - a6_split), pass_b[a6_split:])
+      # Keep the full mask length, but bound the search to four variable digits per word.
+      tail = pass_b[a6_split:]
+      mask = tail[:-4].replace(b"?", b"??") + mask_literalize(b"?d" * len(tail[-4:]), tail[-4:])
 
       rc, out = run_hashcat(r.opts, r.mode, target, None, attack=6,
                             extra=hybrid_extra([dict1_a6, mask]))
@@ -2788,6 +2814,8 @@ def a12_single_max(mode):
 
 
 def report_skip_counts(r, target_name):
+  note_verdict("Skip")
+
   # test.sh attack_12 forces the summary to Skip for an A12_SKIP mode while still printing the zeroed
   # counts line, not the reason form report_skip uses (test.sh). The loop breaks
   # before any candidate runs, so every count is zero.
@@ -3130,7 +3158,13 @@ def build_container_extra(mode, attack, vpass, tmp):
     return [dict1, dict2]
 
   if attack == 3:
-    return [container_mask_from_password(vpass, "last")]
+    # A literal mask such as "hashcat" is also a filename in the working directory.
+    mask_file = os.path.join(tmp, "%d_cont.hcmask" % mode)
+
+    with open(mask_file, "wb") as fh:
+      fh.write(container_mask_from_password(vpass, "last") + b"\n")
+
+    return [mask_file]
 
   if attack == 6:
     split = utf8_split_point(vpass, plen - 1)
@@ -3219,6 +3253,8 @@ def container_crack(args, opts, mode, attack, hash_file, width, label, extra, cr
   # the generic -m 14500 while the line still reports the mode selected; report_attack lets VeraCrypt
   # print "Attack 0" while running -a 3, the cosmetic label test.sh happens to use (test.sh).
   if extra is None:
+    report_skip(args, mode, "single", width, "no supported test inputs for %s" % label, attack)
+
     return None
 
   rc, _ = run_hashcat(opts + ["--backend-vector-width", str(width)], crack_mode or mode, hash_file,
@@ -3560,6 +3596,7 @@ def gen_record(mode, kind, reason):
 
 
 def gen_skip(mode, reason):
+  note_verdict("Skip")
   gen_record(mode, "Skip", reason)
 
 
@@ -3568,10 +3605,6 @@ def gen_note(mode, reason):
 
 
 def gen_error(mode, reason):
-  # An Error is a real failure, not a tool that is merely absent: an extractor that produced no hash
-  # for a container it was handed, say. Count it as a failing verdict here, not in gen_record, so a
-  # -g run that generated nothing exits non-zero while gen_skip and gen_note (a missing tool, a note)
-  # stay out of the tally.
   note_verdict("Error")
   gen_record(mode, "Error", reason)
 
@@ -4639,6 +4672,7 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
   if vector is None:
     lines.append("[ test.py ] [ Type %d ] > Skip : no self-test vector published by --hash-info"
                  % mode)
+    note_verdict("Skip")
 
     return lines
 
@@ -4648,6 +4682,7 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
 
   if vfmt == "N/A":
     lines.append("[ test.py ] [ Type %d ] > Skip : mode has no example hash to crack" % mode)
+    note_verdict("Skip")
 
     return lines
 
@@ -4663,6 +4698,9 @@ def selftest_vector_test(args, opts, mode, attack, width_label, tmp):
   extra = build_container_extra(mode, attack, vpass, tmp)
 
   if extra is None:
+    lines.append("[ test.py ] [ Type %d ] > Skip : no supported attack for the self-test vector" % mode)
+    note_verdict("Skip")
+
     return lines
 
   if deprecated:
@@ -4714,6 +4752,9 @@ def selftest_opts(args):
     opts.append("-O")
 
   opts += ["--runtime", str(SELFTEST_RUNTIME), "-D", args.device]
+
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
 
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
@@ -4842,7 +4883,7 @@ def selftest_vector_sweep(args):
   if not args.selftest_child:
     selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
-  return 1 if (sweep_bad or sweep_fault) else 0
+  return 1 if (sweep_bad or sweep_fault or sweep_slow or sweep_na or sweep_ok == 0) else 0
 
 
 def selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault):
@@ -4894,7 +4935,7 @@ def run_parallel_selftest(args):
     proc = subprocess.run(base + ["-m", str(mode)],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    return proc.stdout
+    return proc.returncode, proc.stdout
 
   sweep_total = 0
   sweep_ok    = 0
@@ -4906,7 +4947,7 @@ def run_parallel_selftest(args):
   print("[ test.py ] > Cracking every hash-mode's own self-test vector")
 
   with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for mode, out in zip(selected, pool.map(run_one, selected)):
+    for mode, (prc, out) in zip(selected, pool.map(run_one, selected)):
       sys.stdout.buffer.write(out)
       sys.stdout.buffer.flush()
 
@@ -4919,7 +4960,10 @@ def run_parallel_selftest(args):
 
       text = out.decode("utf-8", "replace")
 
-      if "> OK :" in text:
+      if prc != 0:
+        sweep_fault += "%d " % mode
+        record("Fault")
+      elif "> OK :" in text:
         sweep_ok += 1
         record("OK")
       elif "> Warning :" in text:
@@ -4934,7 +4978,7 @@ def run_parallel_selftest(args):
 
   selftest_print_summary(sweep_ok, sweep_total, sweep_slow, sweep_na, sweep_bad, sweep_fault)
 
-  return 1 if (sweep_bad or sweep_fault) else 0
+  return 1 if (sweep_bad or sweep_fault or sweep_slow or sweep_na or sweep_ok == 0) else 0
 
 
 def widths_for(spec):
@@ -4967,6 +5011,9 @@ def base_opts(args):
     opts.append("-O")
 
   opts += ["--runtime", str(RUNTIME), "-D", args.device]
+
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
 
   # -d pins the run to those backend devices: the ones the user named, or the single card the depth -j
   # split gives each worker. -D stays as the type, which a pinned device already is.
@@ -5011,13 +5058,13 @@ def run_stdout_roundtrip(args, tmp):
   if args.force:
     cmd.append("--force")
 
-  got = subprocess.run(cmd + [wfile], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
-  got_lines = got.splitlines()
+  proc = subprocess.run(cmd + [wfile], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+  got_lines = proc.stdout.splitlines()
 
   cnt = len(words)
   nf  = sum(1 for i, w in enumerate(words) if i >= len(got_lines) or got_lines[i] != w)
 
-  msg = "OK" if (nf == 0 and cnt > 0) else "Error"
+  msg = "OK" if (nf == 0 and cnt > 0 and proc.returncode == 0) else "Error"
 
   print("[ test.py ] [ Type %d, STDOUT round-trip ] > %s : %d/%d not found, 0/%d not matched, "
         "0/%d timeout, 0/%d skipped" % (STDOUT_MODE, msg, nf, cnt, cnt, cnt, cnt))
@@ -5054,7 +5101,9 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
 # rather than compared literally.
 
 # 36901 prints the diversified key rather than the five-byte candidate index.
-EDGE_VERIFY_OUT = {1500, 36901}
+# 37400 truncates its last DES block, so another candidate can have the same full hash.
+# 17230 checks archive headers, which can match a different password.
+EDGE_VERIFY_OUT = {1500, 17230, 36901, 37400}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
@@ -5560,17 +5609,13 @@ def edge_single(ctx, width, opts, outfile, vectors, tmp):
     cells += 1
 
     if rc != 0:
-      if rc == 252:
-        break
-
       errors += 1
-
       log_result(rc)
 
-      print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single"
-            % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i))
+      print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, Test %d, single: %s"
+            % (rc, ctx.mode, ctx.attack, ctx.ktype, width, i, reason_for(rc)))
 
-      if rc == 250:
+      if rc in (250, 252):
         break
 
       continue
@@ -5788,24 +5833,15 @@ def edge_multi(ctx, width, opts, outfile, vectors, tmp):
   except OSError:
     pass
 
-  rc, out = edge_run(opts, mode, hash_in, stdin, attack, extra)
+  rc, _ = edge_run(opts, mode, hash_in, stdin, attack, extra)
 
   if rc != 0:
-    if rc == 252:
-      return 0, 1, True
-
-    # -a 9 wants one iteration count across the whole set; a mixed set is the attack saying what it
-    # takes, not a defect (test_edge.sh).
-
-    if attack == 9 and b"Mixed iteration counts are not supported" in out:
-      return 0, 1, False
-
     log_result(rc)
 
-    print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi"
-          % (rc, mode, attack, ctx.ktype, width))
+    print("[ test.py edge ] !> error (%d) Type %d, Attack %d, Kernel %s, Vector %d, multi: %s"
+          % (rc, mode, attack, ctx.ktype, width, reason_for(rc)))
 
-    return 1, 1, rc == 250
+    return 1, 1, rc in (250, 252)
 
   if mode in EDGE_SKIP_OUT_MATCH or ctx.keep_guessing:
     return 0, 1, False
@@ -5838,16 +5874,16 @@ def edge_process_mode(args, mode, cfg, tmp):
   # options ask for. Returns (errors, cells).
 
   if mode in EDGE_SKIP_MODES:
-    print("[ test.py edge ] > Skip Type %d (common)" % mode)
+    print("[ test.py edge ] !> error Type %d: mode has no edge cracking test" % mode)
 
-    return 0, 0
+    return 1, 0
 
   hh = edge_hh(mode)
 
   if hh["deprecated"]:
-    print("[ test.py edge ] > Skip Type %d (is deprecated)" % mode)
+    print("[ test.py edge ] !> error Type %d: mode is deprecated and was not tested" % mode)
 
-    return 0, 0
+    return 1, 0
 
   slow         = hh["slow"]
   binary       = edge_binary_hashfile(mode)
@@ -5903,7 +5939,13 @@ def edge_process_mode(args, mode, cfg, tmp):
           if attack not in EDGE_WHOLE_WORD and cfg["all_scope"] and mode != 400:
             continue
 
-      vectors, _ = edge_oracle(mode, attack, optimized)
+      vectors, oracle_rc = edge_oracle(mode, attack, optimized)
+
+      if oracle_rc != 0:
+        print("[ test.py edge ] !> error Type %d: oracle failed (rc=%d)" % (mode, oracle_rc))
+        errors += 1
+
+        break
 
       if not vectors or not vectors[0]["hash"]:
         print("[ test.py edge ] !> error Type %d: empty test vectors" % mode)
@@ -5934,6 +5976,10 @@ def edge_process_mode(args, mode, cfg, tmp):
           if stop:
             break
 
+  if cells == 0 and errors == 0:
+    print("[ test.py edge ] !> error Type %d: no test cells ran" % mode)
+    errors += 1
+
   return errors, cells
 
 
@@ -5947,6 +5993,9 @@ def edge_opts(args, optimized, width, pt_hex, outfile):
 
   opts += ISOLATION
   opts += ["-D", args.device, "--runtime", str(EDGE_RUNTIME), "--self-test-disable"]
+
+  if args.kernel_accel:
+    opts += ["--kernel-accel", str(args.kernel_accel)]
 
   if args.backend_devices:
     opts += ["--backend-devices", args.backend_devices]
@@ -6100,25 +6149,34 @@ def run_parallel_edge(args, modes, all_scope):
     proc = subprocess.run(base + ["-m", str(mode)],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    return proc.stdout
+    return proc.returncode, proc.stdout
 
   total = 0
 
   with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-    for out in pool.map(run_one, modes):
+    for mode, (prc, out) in zip(modes, pool.map(run_one, modes)):
       sys.stdout.buffer.write(out)
       sys.stdout.buffer.flush()
 
       record("modes")
 
-      for m in re.finditer(rb"> (\d+) errors,", out):
-        total += int(m.group(1))
+      summaries = list(re.finditer(rb"> (\d+) errors, (\d+) cells", out))
+      worker_errors = sum(int(m.group(1)) for m in summaries)
+
+      worker_cells = sum(int(m.group(2)) for m in summaries)
+
+      if (not summaries or worker_cells == 0 or prc != 0) and worker_errors == 0:
+        print("[ test.py edge ] !> error Type %d: worker failed or completed no test cells (rc=%d)"
+              % (mode, prc))
+        worker_errors += 1
+
+      total += worker_errors
 
       PROGRESS["errors"] = total
 
   print("[ test.py edge ] > Errors detected: %d" % total)
 
-  return 1 if total else 0
+  return 1 if total or not modes else 0
 
 
 def run_edge(args):
@@ -6234,15 +6292,15 @@ def run_parallel(args):
       # The parent prints the children's lines but keeps its own tally by mode, so a Ctrl-C total is
       # meaningful here too. A child buckets by attack line; the parent by whole mode.
       record("modes")
-      record("OK" if prc == 0 else "not-OK")
+      record("OK" if prc == 0 and out else "not-OK")
 
-      if prc != 0:
+      if prc != 0 or not out:
         rc = 1
 
   if retry:
     # Re-run the memory-capped skips one at a time with the two caps removed, so the memory-heavy modes
     # are still covered. A mode that needs more than the whole card skips again, now a
-    # genuine skip with no cap set.
+    # failure with no cap set.
     nocap = {k: v for k, v in os.environ.items()
              if k not in ("HASHCAT_DEVICE_MEM_LIMIT", "HASHCAT_HOST_MEM_LIMIT")}
 
@@ -6258,12 +6316,12 @@ def run_parallel(args):
       sys.stdout.buffer.flush()
 
       record("modes")
-      record("OK" if proc.returncode == 0 else "not-OK")
+      record("OK" if proc.returncode == 0 and proc.stdout else "not-OK")
 
-      if proc.returncode != 0:
+      if proc.returncode != 0 or not proc.stdout:
         rc = 1
 
-  return rc
+  return rc if modes else 1
 
 
 def run_parallel_depth(args):
@@ -6340,12 +6398,12 @@ def run_parallel_depth(args):
       sys.stdout.buffer.flush()
 
       record("modes")
-      record("OK" if prc == 0 else "not-OK")
+      record("OK" if prc == 0 and out else "not-OK")
 
-      if prc != 0:
+      if prc != 0 or not out:
         rc = 1
 
-  return rc
+  return rc if modes else 1
 
 
 def bridge_family(mode):
@@ -6387,24 +6445,25 @@ def bridge_family(mode):
 def bridge_vectors(mode, family, hash_path, word_path):
   # Build bridge-format vectors for a mode from its own oracle, through tools/test_bridge.py, under
   # the given family ("p" or "o"; see bridge_family). Returns the vector count, or -1 when none could
-  # be made: oracle error, or every hash too long for the bridge's 1024 byte salt.
+  # be made: oracle error, or every hash exceeds the bridge's salt limit.
   cmd = [sys.executable, os.path.join(TDIR, "test_bridge.py"), "vectors", str(mode), hash_path, word_path]
 
   if family == "p":
     cmd.append("-P")
 
-  proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+  proc = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
-  if proc.returncode != 0 or not os.path.isfile(hash_path):
-    return -1
+  count = -1
 
-  with open(hash_path, "rb") as fh:
-    return sum(1 for line in fh if line.strip())
+  if proc.returncode == 0 and os.path.isfile(hash_path):
+    with open(hash_path, "rb") as fh:
+      count = sum(1 for line in fh if line.strip())
 
+  if count <= 0 and proc.stderr:
+    sys.stderr.buffer.write(proc.stderr)
+    sys.stderr.buffer.flush()
 
-# A cracked bridge line is "<sha256 hex>*<mode>:<family>:<base64>:<password>", so a line that opens
-# with the 64 hex digit digest and a star is one recovered hash.
-BRIDGE_CRACK = re.compile(rb"(?m)^[0-9a-f]{64}\*")
+  return count
 
 
 def run_bridge(args):
@@ -6424,6 +6483,7 @@ def run_bridge(args):
     for mode in modes:
       hpath = os.path.join(tmp, "m%05d.hash" % mode)
       wpath = os.path.join(tmp, "m%05d.words" % mode)
+      opath = os.path.join(tmp, "m%05d.out" % mode)
 
       label  = "[ test.py ] [ Type %d, Bridge, Device-Type Cpu ]" % mode
       family = bridge_family(mode)
@@ -6444,14 +6504,24 @@ def run_bridge(args):
 
         continue
 
-      rc, out = run_hashcat(opts, 73000, hpath, None, attack=0,
-                            extra=["--bridge-parameter1", bridge_py, wpath])
+      rc, _ = run_hashcat(opts, 73000, hpath, None, attack=0,
+                          extra=["--bridge-parameter1", bridge_py, "--outfile", opath,
+                                 "--outfile-format", "1", wpath])
 
-      cracked = len(BRIDGE_CRACK.findall(out))
+      with open(hpath, "rb") as fh:
+        expected = sorted(fh.read().splitlines())
+
+      try:
+        with open(opath, "rb") as fh:
+          recovered = sorted(fh.read().splitlines())
+      except OSError:
+        recovered = []
+
+      cracked = len(recovered)
 
       c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
-      classify(rc, cracked == n, c)
+      classify(rc, recovered == expected, c)
 
       v = verdict(c)
 
@@ -6462,7 +6532,7 @@ def run_bridge(args):
       record(v)
       note_verdict(v)
 
-  return 1 if ERRORS else 0
+  return tests_status()
 
 
 def main():
@@ -6506,6 +6576,8 @@ def main():
   ap.add_argument("--runtime", dest="runtime", type=int, default=None,
                   help="hashcat --runtime in seconds for whichever path runs "
                        "(defaults: %d self-test, %d full, %d edge)" % (SELFTEST_RUNTIME, RUNTIME, EDGE_RUNTIME))
+  ap.add_argument("--kernel-accel", dest="kernel_accel", type=int, default=None,
+                  help="hashcat --kernel-accel, to bound concurrent candidates and memory use")
   ap.add_argument("-d", dest="backend_devices", default=None,
                   help="hashcat --backend-devices: 1 | 1,2 | ... (default: every device of the -D type)")
   # -O is accepted and does nothing, as in test.sh where optimized is already the default; -P is
@@ -6762,6 +6834,9 @@ def main():
       if mode not in py_modes:
         if is_slow(mode):
           run_selftest_normal(args, mode, widths, tmp)
+        else:
+          print("[ test.py ] [ Type %d ] > Skip : no oracle or supported self-test path" % mode)
+          note_verdict("Skip")
 
         continue
 
@@ -6771,6 +6846,7 @@ def main():
         reason = "no %s kernel for this mode" % ("Pure" if args.pure else "Optimized")
 
         skips.append((mode, reason))
+        note_verdict("Skip")
 
         print("[ test.py ] [ Type %d ] > Skip : %s" % (mode, reason))
 
@@ -6786,6 +6862,8 @@ def main():
 
       if mode == 20510:
         if targets == ["multi"]:
+          report_skip(args, mode, "multi", widths[0], "mode supports only single-hash tests")
+
           continue
 
         mode_targets = ["single"]
@@ -6804,6 +6882,7 @@ def main():
           ATTACKS[attack](r)
 
   if missing:
+    note_verdict("Error")
     sys.stderr.write("! not implemented in test.py: -a %s\n"
                      % ", ".join(str(a) for a in sorted(missing)))
 
@@ -6823,8 +6902,7 @@ def main():
     # the retry's own exit code, not this capped run's, decides pass or fail.
     sys.exit(MEMSKIP_RC)
 
-  if ERRORS:
-    sys.exit(1)
+  sys.exit(tests_status())
 
 
 if __name__ == "__main__":

@@ -134,12 +134,7 @@ fn process_batch(
         .enumerate()
         .map(|(i, x)| {
             let esalt = ctx.get_raw_esalt(salt_id + (i * stride), is_selftest);
-            let salt = unsafe {
-                slice::from_raw_parts(
-                    esalt.salt_buf.as_ptr() as *const u8,
-                    esalt.salt_len as usize,
-                )
-            };
+            let salt = esalt.salt_buf.as_slice();
             let pw =
                 unsafe { slice::from_raw_parts(x.pw_buf.as_ptr() as *const u8, x.pw_len as usize) };
             generic_hash::calc_hash(pw, salt)

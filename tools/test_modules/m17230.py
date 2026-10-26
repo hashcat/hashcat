@@ -19,4 +19,4 @@ def module_generate_hash(word, salt, iterations=None):
 
 
 def module_verify_hash(line):
-  return pkzip.verify_hash(line)
+  return pkzip.verify_hash(line, checksum_only=True)

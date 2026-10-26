@@ -93,3 +93,29 @@ def get_scrypt_r(salt: dict) -> int:
 
 def get_scrypt_p(salt: dict) -> int:
   return salt["scrypt_p"]
+
+
+GENERIC_HEADER = struct.Struct("=II")
+
+
+def extract_generic_esalts(esalts_buf: bytes) -> list:
+  esalts = []
+  pos = 0
+
+  while pos < len(esalts_buf):
+    if len(esalts_buf) - pos < GENERIC_HEADER.size:
+      raise ValueError("truncated generic bridge record header")
+
+    hash_len, salt_len = GENERIC_HEADER.unpack_from(esalts_buf, pos)
+    pos += GENERIC_HEADER.size
+
+    end = pos + hash_len + salt_len
+
+    if end > len(esalts_buf):
+      raise ValueError("truncated generic bridge record data")
+
+    esalts.append({"hash_buf": esalts_buf[pos:pos + hash_len],
+                   "salt_buf": esalts_buf[pos + hash_len:end]})
+    pos = end
+
+  return esalts
