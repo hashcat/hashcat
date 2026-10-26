@@ -39,8 +39,18 @@ def _xor(a, b):
   return bytes(x ^ y for x, y in zip(a, b))
 
 
-def module_constraints():
-  return [[0, 256], [40, 40], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, global_salt, entry_salt=None, ct=None):

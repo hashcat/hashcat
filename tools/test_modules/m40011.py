@@ -9,7 +9,27 @@ import base64
 import hashlib
 import struct
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 56, 'bridge': 2, 'edge': 171}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 59, 'edge': 173},
+    },
+  }
+
 
 # Password Safe v3. The mode is OPTS_TYPE_BINARY_HASHFILE: hashcat is handed a
 # .psafe3 file rather than a hash string, and test.sh rebuilds that file by
@@ -37,8 +57,7 @@ ITERATIONS_DEFAULT = 2048
 TAIL_LEN           = 288
 
 
-def module_constraints():
-  return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _psafe3(word, salt_raw, iterations, tail):

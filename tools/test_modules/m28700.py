@@ -14,8 +14,21 @@ from lib.test_helpers import random_hex_string, split_hash_word
 # aws4_request keyed from "AWS4"+password, then over the string to sign.
 
 
-def module_constraints():
-  return [[0, 252], [8, 16], [0, 51], [8, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 252],
+        'salt_length': [8, 16],
+      },
+      'optimized': {
+        'password_length': [0, 51],
+        'salt_length': [8, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, region="us-east-1", service="s3", canonical=None):

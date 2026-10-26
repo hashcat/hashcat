@@ -55,8 +55,18 @@ def siphash(key, data):
   return state[0] ^ state[1] ^ state[2] ^ state[3]
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 55], [32, 32], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [32, 32],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

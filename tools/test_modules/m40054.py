@@ -15,8 +15,18 @@ SIGNATURE = "SH2"
 MAGIC = bytes.fromhex("a388ba2e424cb04a537930c13107cc3fa1329029a9815b70")
 
 
-def module_constraints():
-  return [[0, 256], [24, 24], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [24, 24],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

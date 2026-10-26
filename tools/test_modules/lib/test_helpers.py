@@ -29,6 +29,22 @@ STRING_CHARS    = UPPERCASE_CHARS + LOWERCASE_CHARS + NUMERIC_CHARS
 _STATE = None
 
 
+def test_iteration_parameters(properties):
+  # Select normal or reduced generator parameters from this oracle's declared properties.
+  parameters = dict(properties.get("normal", {}).get("parameters", {}))
+  value = os.environ.get("ARTIFICIALLY_LOW_ITERATION_COUNT", "false").lower()
+
+  if value not in ("true", "false"):
+    raise ValueError("ARTIFICIALLY_LOW_ITERATION_COUNT must be true or false")
+
+  if value == "false":
+    return parameters
+
+  parameters.update(properties.get("reduced", {}).get("parameters", {}))
+
+  return parameters
+
+
 def seed(value):
   # The mix is what the perl engine does with HCTEST_SEED, so that the same number means the same
   # stream on both sides.

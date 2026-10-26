@@ -22,8 +22,21 @@ def get_random_kerberos5_salt(custom_salt):
   return "user$realm$salt$%s$%s$" % (custom_salt.hex(), clear_data.hex())
 
 
-def module_constraints():
-  return [[0, 256], [16, 16], [0, 27], [16, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': {
+        'password_length': [0, 27],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

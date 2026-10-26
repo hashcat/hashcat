@@ -22,8 +22,18 @@ CT_MIN_LEN = 30
 CT_MAX_LEN = 3136
 
 
-def module_constraints():
-  return [[8, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iv=None, ct=None):

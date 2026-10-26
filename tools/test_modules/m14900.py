@@ -57,8 +57,18 @@ def skip32_encrypt(key, block):
   return bytes([(wr >> 8) & 0xff, wr & 0xff, (wl >> 8) & 0xff, wl & 0xff])
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [10, 10], [8, 8], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [10, 10],
+        'salt_length': [8, 8],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

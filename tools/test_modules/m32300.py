@@ -22,8 +22,21 @@ def _md5_hex(data):
   return hashlib.md5(data).hexdigest()
 
 
-def module_constraints():
-  return [[0, 256], [0, 246], [0, 31], [0, 41], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 246],
+      },
+      'optimized': {
+        'password_length': [0, 31],
+        'salt_length': [0, 41],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt1, salt2=None):

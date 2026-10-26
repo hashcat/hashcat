@@ -44,8 +44,18 @@ def random_netntlmv1_salt(len_user, len_domain):
   return user + "::" + domain + ":" + c_challenge.hex() + s_challenge.hex()
 
 
-def module_constraints():
-  return [[32, 32], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [32, 32],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None, ntlm_salt=None):

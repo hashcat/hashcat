@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_salt_word
 # sha1(CX): ten rounds of SHA-1 over --salt--, the last digest and --pass----.
 
 
-def module_constraints():
-  return [[0, 235], [20, 20], [0, 24], [20, 20], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 235],
+        'salt_length': [20, 20],
+      },
+      'optimized': {
+        'password_length': [0, 24],
+        'salt_length': [20, 20],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

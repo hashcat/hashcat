@@ -9,7 +9,30 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number
+from lib.test_helpers import random_number, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [40, 40],
+      },
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 40, 'pure': 40, 'bridge': 2, 'edge': 127}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 21, 'pure': 42, 'edge': 95},
+    },
+  }
+
 
 # iTunes backup 9.x. PBKDF2-HMAC-SHA1 turns the password into a 32 byte KEK, and the 40 byte WPKY is
 # that KEK wrapping a known constant with the RFC 3394 AES key wrap. Verify unwraps the stored WPKY
@@ -19,6 +42,9 @@ from lib.test_helpers import random_number
 ITUNES_BACKUP_KEY = 12008468691120727718
 
 MASK64 = 0xffffffffffffffff
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _aes_wrap(key, a, r):
@@ -66,10 +92,6 @@ def _aes_unwrap(key, wpky):
       r[idx] = int.from_bytes(t[8:16], "big")
 
   return a, r
-
-
-def module_constraints():
-  return [[0, 256], [40, 40], [0, 55], [40, 40], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, wpky_param=None):

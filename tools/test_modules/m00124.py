@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_word
 # Django (SHA-1): sha1$salt$digest.
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 55],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

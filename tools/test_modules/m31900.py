@@ -24,8 +24,18 @@ FAKE_PT = (
 )
 
 
-def module_constraints():
-  return [[8, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _is_printable(data):

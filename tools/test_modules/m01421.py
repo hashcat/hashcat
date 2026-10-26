@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_word
 # hMailServer: a 6 character salt, then the digest.
 
 
-def module_constraints():
-  return [[0, 256], [6, 6], [0, 55], [6, 6], [6, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [6, 6],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [6, 6],
+      },
+      'combined_length': [6, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

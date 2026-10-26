@@ -21,8 +21,21 @@ from lib.test_helpers import random_number, random_string, kernel_charset
 # decrypts, truncates to unpack_size and recomputes the CRC.
 
 
-def module_constraints():
-  return [[0, 256], [0, 16], [0, 20], [0, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 16],
+      },
+      'optimized': {
+        'password_length': [0, 20],
+        'salt_length': [0, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def _derive_key(word, num_cycle_power):

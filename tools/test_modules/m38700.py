@@ -17,7 +17,27 @@ except ImportError:
 
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 
-from lib.test_helpers import random_bytes, random_number, split_hash_word
+from lib.test_helpers import random_bytes, random_number, split_hash_word, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [SALT_LEN, SALT_LEN],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 235, 'bridge': 2, 'edge': 237}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 208, 'edge': 178},
+    },
+  }
+
 
 # FreeBSD GELI. The passphrase goes through PBKDF2-HMAC-SHA512 over the provider's salt, and the
 # result through an HMAC-SHA512 under an empty key, which is the user key. That key gives two more:
@@ -53,6 +73,9 @@ COMBOS = [
   (CAMELLIA_CBC, 256),
   (NULL_CBC,     512),
 ]
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _hmac(key, msg):
@@ -112,10 +135,6 @@ def _opens(word, ealgo, keylen, keys, iterations, salt, mkeys):
       return True
 
   return False
-
-
-def module_constraints():
-  return [[0, 256], [SALT_LEN, SALT_LEN], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, ealgo=None, keylen=None, keys=None,

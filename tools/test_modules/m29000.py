@@ -16,8 +16,18 @@ from lib.test_helpers import kernel_charset, random_mixedcase_string, random_num
 CHARSET = kernel_charset()
 
 
-def module_constraints():
-  return [[0, 256], [0, 128], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 128],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, user=None):

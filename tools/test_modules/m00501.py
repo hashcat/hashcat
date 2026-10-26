@@ -21,8 +21,21 @@ from lib.test_helpers import random_hex_string, split_hash_word
 KEY = bytes.fromhex("a6707a7e8df91059dea70ae52f9c2442")
 
 
-def module_constraints():
-  return [[0, 256], [24, 24], [0, 15], [24, 24], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [24, 24],
+      },
+      'optimized': {
+        'password_length': [0, 15],
+        'salt_length': [24, 24],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

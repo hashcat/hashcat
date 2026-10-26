@@ -10,16 +10,37 @@ import binascii
 import hashlib
 import hmac
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [28, 28],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 4096}, 'ci_seconds': {'opt': 1, 'pure': 44, 'bridge': 2, 'edge': 128}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 41, 'edge': 123},
+    },
+  }
+
+
 # PostgreSQL SCRAM-SHA-256: PBKDF2-HMAC-SHA256 of the password, then the stored key
 # sha256(HMAC("Client Key")) and the server key HMAC("Server Key").
 
 
-def module_constraints():
-  return [[0, 256], [28, 28], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 4096 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1")
 

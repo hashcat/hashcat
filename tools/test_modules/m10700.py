@@ -17,8 +17,21 @@ from Crypto.Cipher import AES
 DEFAULT_REST_TAIL = "*127*" + "0" * 254 + "*32*" + "0" * 64 + "*32*" + "0" * 64
 
 
-def module_constraints():
-  return [[1, 127], [32, 32], [1, 15], [32, 32], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [1, 127],
+        'salt_length': [32, 32],
+      },
+      'optimized': {
+        'password_length': [1, 15],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, id=None, rest=None):

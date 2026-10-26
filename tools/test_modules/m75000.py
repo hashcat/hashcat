@@ -12,8 +12,18 @@ from Crypto.Protocol.KDF import bcrypt
 BCRYPT64 = str.maketrans("./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
                          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
 
-def module_constraints():
-  return [[0, 72], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 72],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 def module_generate_hash(word, salt, iterations=None):
   cost = 5 if iterations is None or iterations == "" else int(iterations)

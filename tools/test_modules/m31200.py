@@ -9,6 +9,28 @@ import hashlib
 
 from Crypto.Cipher import AES
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [128, 128],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 10000}, 'ci_seconds': {'opt': 1, 'pure': 37, 'bridge': 2, 'edge': 112}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 39, 'edge': 88},
+    },
+  }
+
+
 # Veeam VBK. PBKDF2-HMAC-SHA1 of the UTF-16LE password gives an AES-256 key and iv that CBC encrypt a
 # marker whose tail is twelve 0x0c bytes. The kernel decodes the UTF-8 password rather than widening
 # it, and there is no optimized kernel, so the charset is always UTF-8.
@@ -16,12 +38,11 @@ from Crypto.Cipher import AES
 PLAIN = b"\x30\x30\x30\x30" + b"\x0c" * 12
 
 
-def module_constraints():
-  return [[0, 256], [128, 128], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, ct=None):
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bin = bytes.fromhex(salt)
 

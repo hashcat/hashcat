@@ -27,8 +27,18 @@ from lib.test_helpers import random_number, random_bytes
 # hierarchy, so FT is defined for key version 3 only.
 
 
-def module_constraints():
-  return [[8, 63], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 63],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _gen_random_wpa_eapol(keyver, snonce):

@@ -14,8 +14,18 @@ from lib.test_helpers import split_hash_word
 # of the salt, padded out with a fixed string when it is shorter.
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

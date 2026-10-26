@@ -56,8 +56,21 @@ KEY_LEN = (16, 24, 32)
 TYPE_DEFAULT = 0
 
 
-def module_constraints():
-  return [[0, 64], [-1, -1], [0, 31], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 64],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 31],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def _key(word, hash_type, key_size):

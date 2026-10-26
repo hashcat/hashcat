@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_salt_word
 # ColdFusion 10+: sha256($salt.strtoupper(sha1($pass))).
 
 
-def module_constraints():
-  return [[0, 256], [64, 64], [0, 55], [64, 64], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [64, 64],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

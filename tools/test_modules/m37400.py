@@ -34,8 +34,18 @@ A2E_UP = bytes.fromhex(
   "4445424643479c4854515253585556578c49cdcecbcfcce170dddedbdc8d8edf")
 
 
-def module_constraints():
-  return [[9, 100], [1, 8], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [9, 100],
+        'salt_length': [1, 8],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _ibm_des_crypt(plaintext, key_bytes):

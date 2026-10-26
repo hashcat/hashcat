@@ -17,8 +17,21 @@ def sha512(data):
   return hashlib.sha512(data).digest()
 
 
-def module_constraints():
-  return [[0, 256], [0, 16], [0, 15], [0, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 16],
+      },
+      'optimized': {
+        'password_length': [0, 15],
+        'salt_length': [0, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -11,18 +11,37 @@ import hashlib
 import hmac
 import re
 
-from lib.test_helpers import random_number, random_string, split_hash_word
+from lib.test_helpers import random_number, random_string, split_hash_word, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [28, 28],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 15000}, 'ci_seconds': {'opt': 1, 'pure': 49, 'bridge': 2, 'edge': 178}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 2, 'pure': 45, 'edge': 124},
+    },
+  }
+
 
 # MongoDB ServerKey SCRAM-SHA-256: HMAC-SHA256 of "Server Key" keyed with PBKDF2-HMAC-SHA256
 # of the password, the user name drawn at random.
 
 
-def module_constraints():
-  return [[0, 256], [28, 28], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, user=None):
-  iterations = 15000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   if user is None:
     user = random_string(random_number(0, 64)).encode()

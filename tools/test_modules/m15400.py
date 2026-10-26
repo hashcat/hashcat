@@ -71,8 +71,18 @@ def _keystream(key, counter_bin, iv_bin, length):
   return bytes(out[:length])
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [32, 32], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [32, 32],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, param=None, param2=None, param3=None):

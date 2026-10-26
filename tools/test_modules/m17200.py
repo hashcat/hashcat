@@ -10,8 +10,18 @@ from lib import pkzip
 # PKZIP ZipCrypto, the container shape for mode 17200, see lib/pkzip.py.
 
 
-def module_constraints():
-  return [[0, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 64],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

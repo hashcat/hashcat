@@ -9,7 +9,27 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string, random_number
+from lib.test_helpers import random_hex_string, random_number, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 54, 'bridge': 3, 'edge': 203}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 49, 'edge': 160},
+    },
+  }
+
 
 # 1Password style mobile keychain. PBKDF2-HMAC-SHA256 over the password gives a key that is XORed
 # with the stored hkdf key to form the AES-GCM master unlock key. On verify the stored ct is
@@ -23,8 +43,7 @@ FAKE_PT = (
 )
 
 
-def module_constraints():
-  return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, hkdf_salt, hkdf_key=None, iterations=None, iv=None,

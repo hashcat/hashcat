@@ -13,8 +13,18 @@ from lib.test_helpers import split_hash_word
 # PDF 1.1-1.3 (Acrobat 2-4), RC4 40 bit: the encryption key encrypts the padding to give U.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 32], [32, 32], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 32],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, u=None, o=None, p=None):

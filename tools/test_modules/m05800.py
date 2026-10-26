@@ -13,8 +13,21 @@ from lib.test_helpers import split_hash_salt_word
 # decimal, the password and the salt.
 
 
-def module_constraints():
-  return [[0, 256], [1, 16], [0, 13], [16, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [1, 16],
+      },
+      'optimized': {
+        'password_length': [0, 13],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

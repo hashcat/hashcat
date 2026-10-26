@@ -18,8 +18,18 @@ def _int24(v):
   return "".join(ITOA64[(v >> (6 * i)) & 0x3f] for i in range(4))
 
 
-def module_constraints():
-  return [[1, 31], [4, 4], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [1, 31],
+        'salt_length': [4, 4],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

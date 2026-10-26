@@ -6,7 +6,27 @@
 ##
 
 from lib import pbkdf2_b64
-from lib.test_helpers import kernel_charset, utf16le
+from lib.test_helpers import kernel_charset, utf16le, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [1, 15],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 1000}, 'ci_seconds': {'opt': 1, 'pure': 47, 'bridge': 2, 'edge': 298}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 50, 'edge': 268},
+    },
+  }
+
 
 # PBKDF2-HMAC-SHA512 over a UTF-16LE password: sha512utf16le:iterations:base64(salt):base64(key).
 # The optimized kernels widen each password byte instead of decoding UTF-8, so the oracle picks its
@@ -15,12 +35,11 @@ from lib.test_helpers import kernel_charset, utf16le
 CHARSET = kernel_charset()
 
 
-def module_constraints():
-  return [[0, 256], [1, 15], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, out_len=64):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   return pbkdf2_b64.generate_hash("sha512utf16le", "sha512", utf16le(word, CHARSET), salt, iterations, out_len)
 

@@ -17,8 +17,21 @@ from lib.test_helpers import kernel_charset, utf16le
 CHARSET = kernel_charset()
 
 
-def module_constraints():
-  return [[0, 127], [0, 55], [0, 27], [0, 27], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 127],
+        'salt_length': [0, 55],
+      },
+      'optimized': {
+        'password_length': [0, 27],
+        'salt_length': [0, 27],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, domain=None, srv_ch=None, cli_ch=None):
