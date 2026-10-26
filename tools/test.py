@@ -5102,7 +5102,8 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
 
 # 36901 prints the diversified key rather than the five-byte candidate index.
 # 37400 truncates its last DES block, so another candidate can have the same full hash.
-EDGE_VERIFY_OUT = {1500, 36901, 37400}
+# 17230 checks archive headers, which can match a different password.
+EDGE_VERIFY_OUT = {1500, 17230, 36901, 37400}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
@@ -6465,11 +6466,6 @@ def bridge_vectors(mode, family, hash_path, word_path):
   return count
 
 
-# A cracked bridge line is "<sha256 hex>*<mode>:<family>:<base64>:<password>", so a line that opens
-# with the 64 hex digit digest and a star is one recovered hash.
-BRIDGE_CRACK = re.compile(rb"(?m)^[0-9a-f]{64}\*")
-
-
 def run_bridge(args):
   # Crack every selected mode's own test oracle through the Python bridge (mode 73000), with -a 0 and
   # no mode kernel, so hashcat's parser and candidate handling are checked against the reference
@@ -6487,6 +6483,7 @@ def run_bridge(args):
     for mode in modes:
       hpath = os.path.join(tmp, "m%05d.hash" % mode)
       wpath = os.path.join(tmp, "m%05d.words" % mode)
+      opath = os.path.join(tmp, "m%05d.out" % mode)
 
       label  = "[ test.py ] [ Type %d, Bridge, Device-Type Cpu ]" % mode
       family = bridge_family(mode)
@@ -6507,14 +6504,24 @@ def run_bridge(args):
 
         continue
 
-      rc, out = run_hashcat(opts, 73000, hpath, None, attack=0,
-                            extra=["--bridge-parameter1", bridge_py, wpath])
+      rc, _ = run_hashcat(opts, 73000, hpath, None, attack=0,
+                          extra=["--bridge-parameter1", bridge_py, "--outfile", opath,
+                                 "--outfile-format", "1", wpath])
 
-      cracked = len(BRIDGE_CRACK.findall(out))
+      with open(hpath, "rb") as fh:
+        expected = sorted(fh.read().splitlines())
+
+      try:
+        with open(opath, "rb") as fh:
+          recovered = sorted(fh.read().splitlines())
+      except OSError:
+        recovered = []
+
+      cracked = len(recovered)
 
       c = {"cnt": 0, "nf": 0, "nm": 0, "to": 0, "rs": 0, "err": 0}
 
-      classify(rc, cracked == n, c)
+      classify(rc, recovered == expected, c)
 
       v = verdict(c)
 

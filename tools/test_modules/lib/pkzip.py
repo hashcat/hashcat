@@ -181,6 +181,7 @@ def _parse(line):
   t = core.split("*")
 
   count = int(t[0])
+  checksum_size = int(t[1])
 
   i = 2
 
@@ -197,17 +198,19 @@ def _parse(line):
       i += 5
 
     ctype = int(t[i])
+    checksum_crc = int(t[i + 2], 16)
+    checksum_time = int(t[i + 3], 16)
     i += 4
 
     data = bytes.fromhex(t[i])
     i += 1
 
-    files.append((ctype, crc, data))
+    files.append((ctype, crc, checksum_crc, checksum_time, data))
 
-  return files
+  return checksum_size, files
 
 
-def verify_hash(line):
+def verify_hash(line, checksum_only=False):
   idx = line.rfind(b":")
 
   if idx < 0:
@@ -216,11 +219,29 @@ def verify_hash(line):
   hash_in, word = line[:idx].decode(errors="replace"), line[idx + 1:]
 
   try:
-    files = _parse(hash_in)
+    checksum_size, files = _parse(hash_in)
   except (ValueError, IndexError):
     return None
 
-  for ctype, crc, enc in files:
+  for ctype, crc, checksum_crc, checksum_time, enc in files:
+    if checksum_only:
+      # Checksum-only kernels inspect the header and the first deflate block's type.
+      dec = ZipCrypto(word).decrypt(enc[:13])
+
+      if len(dec) < 13:
+        return None
+
+      if checksum_size == 2 and dec[10] not in (checksum_crc & 0xff, checksum_time & 0xff):
+        return None
+
+      if dec[11] not in (checksum_crc >> 8, checksum_time >> 8):
+        return None
+
+      if ctype == 8 and (dec[12] & 6) == 6:
+        return None
+
+      continue
+
     dec = ZipCrypto(word).decrypt(enc)
 
     if dec[11] != ((crc >> 24) & 0xff):
