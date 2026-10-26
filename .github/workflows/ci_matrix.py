@@ -32,7 +32,7 @@ import zlib
 # 48 shards for each ordinary kind and 16 container shards fit GitHub's 256-job matrix limit.
 SHARDS = {"test": 48, "edge": 96, "fuzz": 16, "container": 16}
 
-EDGE_SPLIT_MODES = {34000, 36100, 36200}
+EDGE_SPLIT_MODES = {21800, 34000, 36100, 36200}
 EDGE_VECTOR_WIDTHS = (1, 2, 4, 8, 16)
 
 # A pull request is bounded by this many modes. Past it the rest is left to the
@@ -187,7 +187,7 @@ def test_matrix(groups, kinds, fallback=False):
 
 
 def edge_matrix(modes):
-    # Memory-hard modes can exceed a job's wall time across all five vector widths.
+    # Slow modes can exceed a job's wall time across all five vector widths.
     # Split those widths into separate jobs without changing the tested combinations.
     split = modes & EDGE_SPLIT_MODES
     shards = SHARDS["edge"] - len(split) * len(EDGE_VECTOR_WIDTHS)
