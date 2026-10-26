@@ -25,20 +25,12 @@ typedef struct ikepsk
 
 } ikepsk_t;
 
-KERNEL_FQ KERNEL_FA void m05410_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -48,10 +40,6 @@ KERNEL_FQ KERNEL_FA void m05410_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
   {
     w[idx] = pws[gid].i[idx];
   }
-
-  /**
-   * loop
-   */
 
   u32x w0l = w[0];
 
@@ -110,20 +98,12 @@ KERNEL_FQ KERNEL_FA void m05410_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
   }
 }
 
-KERNEL_FQ KERNEL_FA void m05410_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * digest
-   */
 
   const u32 search[4] =
   {
@@ -133,10 +113,6 @@ KERNEL_FQ KERNEL_FA void m05410_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
-  /**
-   * base
-   */
-
   const u32 pw_len = pws[gid].pw_len;
 
   u32x w[64] = { 0 };
@@ -145,10 +121,6 @@ KERNEL_FQ KERNEL_FA void m05410_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
   {
     w[idx] = pws[gid].i[idx];
   }
-
-  /**
-   * loop
-   */
 
   u32x w0l = w[0];
 

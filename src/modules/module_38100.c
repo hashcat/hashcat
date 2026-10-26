@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -18,7 +19,7 @@ static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
 static const char *HASH_NAME      = "IKE-PSK SHA256";
-static const u64   KERN_TYPE      = 5410;
+static const u64   KERN_TYPE      = 38100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_BE
@@ -132,9 +133,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[8]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  const i32 rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+  if (rc_tokenizer != PARSER_OK) return rc_tokenizer;
+
+  for (u32 i = 0; i < 8; i++)
+  {
+    if ((token.len[i] & 1) != 0) return PARSER_TOKEN_LENGTH;
+  }
 
   ikepsk->msg_len[0] =                      token.len[0] / 2;
   ikepsk->msg_len[1] = ikepsk->msg_len[0] + token.len[1] / 2;
@@ -146,34 +152,50 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   ikepsk->nr_len     = (token.len[6] + token.len[7]) / 2;
 
   // Keep one byte of headroom for the add80 marker written below.
-  if (ikepsk->msg_len[5] >= sizeof (ikepsk->msg_buf)) return (PARSER_SALT_LENGTH);
-  if (ikepsk->nr_len     >= sizeof (ikepsk->nr_buf))  return (PARSER_SALT_LENGTH);
+  if (ikepsk->msg_len[5] >= sizeof (ikepsk->msg_buf)) return PARSER_SALT_LENGTH;
+  if (ikepsk->nr_len     >= sizeof (ikepsk->nr_buf))  return PARSER_SALT_LENGTH;
 
-  u8 *ptr1 = (u8 *) ikepsk->msg_buf;
-  u8 *ptr2 = (u8 *) ikepsk->nr_buf;
+  memset (ikepsk->msg_buf, 0, sizeof (ikepsk->msg_buf));
+  memset (ikepsk->nr_buf,  0, sizeof (ikepsk->nr_buf));
 
-  for (int i = 0; i < token.len[0]; i += 2) *ptr1++ = hex_to_u8 (token.buf[0] + i);
-  for (int i = 0; i < token.len[1]; i += 2) *ptr1++ = hex_to_u8 (token.buf[1] + i);
-  for (int i = 0; i < token.len[2]; i += 2) *ptr1++ = hex_to_u8 (token.buf[2] + i);
-  for (int i = 0; i < token.len[3]; i += 2) *ptr1++ = hex_to_u8 (token.buf[3] + i);
-  for (int i = 0; i < token.len[4]; i += 2) *ptr1++ = hex_to_u8 (token.buf[4] + i);
-  for (int i = 0; i < token.len[5]; i += 2) *ptr1++ = hex_to_u8 (token.buf[5] + i);
-  for (int i = 0; i < token.len[6]; i += 2) *ptr2++ = hex_to_u8 (token.buf[6] + i);
-  for (int i = 0; i < token.len[7]; i += 2) *ptr2++ = hex_to_u8 (token.buf[7] + i);
+  u8 *msg_buf = (u8 *) ikepsk->msg_buf;
 
-  *ptr1++ = 0x80;
-  *ptr2++ = 0x80;
+  u32 msg_pos = 0;
+
+  for (u32 field = 0; field < 6; field++)
+  {
+    for (i32 i = 0; i < token.len[field]; i += 2)
+    {
+      msg_buf[msg_pos++] = hex_to_u8 (&token.buf[field][i]);
+    }
+  }
+
+  msg_buf[msg_pos] = 0x80;
+
+  u8 *nr_buf = (u8 *) ikepsk->nr_buf;
+
+  u32 nr_pos = 0;
+
+  for (u32 field = 6; field < 8; field++)
+  {
+    for (i32 i = 0; i < token.len[field]; i += 2)
+    {
+      nr_buf[nr_pos++] = hex_to_u8 (&token.buf[field][i]);
+    }
+  }
+
+  nr_buf[nr_pos] = 0x80;
 
   const u8 *hash_pos = token.buf[8];
 
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
+  digest[0] = hex_to_u32 (&hash_pos[ 0]);
+  digest[1] = hex_to_u32 (&hash_pos[ 8]);
+  digest[2] = hex_to_u32 (&hash_pos[16]);
+  digest[3] = hex_to_u32 (&hash_pos[24]);
+  digest[4] = hex_to_u32 (&hash_pos[32]);
+  digest[5] = hex_to_u32 (&hash_pos[40]);
+  digest[6] = hex_to_u32 (&hash_pos[48]);
+  digest[7] = hex_to_u32 (&hash_pos[56]);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -195,7 +217,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[6] = ikepsk->nr_buf[6];
   salt->salt_buf[7] = ikepsk->nr_buf[7];
 
-  return (PARSER_OK);
+  return PARSER_OK;
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
@@ -204,7 +226,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const ikepsk_t *ikepsk = (const ikepsk_t *) esalt_buf;
 
-  int line_len = 0;
+  i32 line_len = 0;
 
   const u8 *msg_buf = (const u8 *) ikepsk->msg_buf;
 
@@ -212,16 +234,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < 6; i++)
   {
-    if (i > 0)
-    {
-      line_len += snprintf (line_buf + line_len, line_size - line_len, ":");
-    }
+    if (i > 0) line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
 
     const u32 msg_end = ikepsk->msg_len[i];
 
     for (u32 j = msg_start; j < msg_end; j++)
     {
-      line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", msg_buf[j]);
+      line_len += snprintf (&line_buf[line_len], line_size - line_len, "%02x", msg_buf[j]);
     }
 
     msg_start = msg_end;
@@ -229,25 +248,25 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *nr_buf = (const u8 *) ikepsk->nr_buf;
 
-  line_len += snprintf (line_buf + line_len, line_size - line_len, ":");
+  line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
 
   for (u32 i = 0; i < ikepsk->ni_len; i++)
   {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", nr_buf[i]);
+    line_len += snprintf (&line_buf[line_len], line_size - line_len, "%02x", nr_buf[i]);
   }
 
-  line_len += snprintf (line_buf + line_len, line_size - line_len, ":");
+  line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
 
   for (u32 i = ikepsk->ni_len; i < ikepsk->nr_len; i++)
   {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", nr_buf[i]);
+    line_len += snprintf (&line_buf[line_len], line_size - line_len, "%02x", nr_buf[i]);
   }
 
-  line_len += snprintf (line_buf + line_len, line_size - line_len, ":");
+  line_len += snprintf (&line_buf[line_len], line_size - line_len, ":");
 
   for (u32 i = 0; i < 8; i++)
   {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%08x", digest[i]);
+    line_len += snprintf (&line_buf[line_len], line_size - line_len, "%08x", digest[i]);
   }
 
   return line_len;
@@ -258,12 +277,14 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
@@ -274,7 +295,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -290,10 +310,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = module_hlfmt_disable;
@@ -312,8 +334,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -324,6 +348,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
@@ -332,5 +357,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

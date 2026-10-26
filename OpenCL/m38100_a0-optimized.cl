@@ -10,6 +10,8 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.h)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
 #endif
@@ -84,8 +86,25 @@ DECLSPEC void hmac_sha256_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha256_transform_vector (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
+DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32 len, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
+  // The final eight bytes hold the length, so the padding may need another block.
+  if ((len & 63) >= 56)
+  {
+    sha256_transform_vector (w0, w1, w2, w3, ipad);
+
+    for (u32 i = 0; i < 4; i++)
+    {
+      w0[i] = 0;
+      w1[i] = 0;
+      w2[i] = 0;
+      w3[i] = 0;
+    }
+  }
+
+  w3[2] = 0;
+  w3[3] = (64 + len) * 8;
+
   digest[0] = ipad[0];
   digest[1] = ipad[1];
   digest[2] = ipad[2];
@@ -126,19 +145,32 @@ DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
+  MAYBE_UNUSED const u64 lid = get_local_id (0);
+  MAYBE_UNUSED const u64 lsz = get_local_size (0);
 
-  /**
-   * s_msg
-   */
+  // Association attacks use a different exchange for each work item.
+  #if ATTACK_MODE == 9
+
+  if (gid >= GID_CNT) return;
+
+  u32 s_nr_buf[16];
+
+  for (u32 i = 0; i < 16; i++)
+  {
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
+  }
+
+  u32 s_msg_buf[128];
+
+  for (u32 i = 0; i < 128; i++)
+  {
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
+  }
+
+  #else
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -158,9 +190,7 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
 
   if (gid >= GID_CNT) return;
 
-  /**
-   * base
-   */
+  #endif
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -174,91 +204,19 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
-
-  /**
-   * salt
-   */
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET_HOST].nr_len;
   const u32 msg_len = esalt_bufs[DIGESTS_OFFSET_HOST].msg_len[5];
 
-  /**
-   * loop
-   */
-
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    const u32x pw_len = (pw_l_len + pw_r_len) & 63;
-
-    /**
-     * concat password candidate
-     */
-
-    u32x wordl0[4] = { 0 };
-    u32x wordl1[4] = { 0 };
-    u32x wordl2[4] = { 0 };
-    u32x wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf0[0];
-    wordl0[1] = pw_buf0[1];
-    wordl0[2] = pw_buf0[2];
-    wordl0[3] = pw_buf0[3];
-    wordl1[0] = pw_buf1[0];
-    wordl1[1] = pw_buf1[1];
-    wordl1[2] = pw_buf1[2];
-    wordl1[3] = pw_buf1[3];
-
-    u32x wordr0[4] = { 0 };
-    u32x wordr1[4] = { 0 };
-    u32x wordr2[4] = { 0 };
-    u32x wordr3[4] = { 0 };
-
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
-    {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-    }
-    else
-    {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-    }
-
-    u32x w0[4];
-    u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
-
-    w0[0] = wordl0[0] | wordr0[0];
-    w0[1] = wordl0[1] | wordr0[1];
-    w0[2] = wordl0[2] | wordr0[2];
-    w0[3] = wordl0[3] | wordr0[3];
-    w1[0] = wordl1[0] | wordr1[0];
-    w1[1] = wordl1[1] | wordr1[1];
-    w1[2] = wordl1[2] | wordr1[2];
-    w1[3] = wordl1[3] | wordr1[3];
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = wordl3[2] | wordr3[2];
-    w3[3] = wordl3[3] | wordr3[3];
-
-    /**
-     * pads
-     */
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     w0[0] = hc_swap32 (w0[0]);
     w0[1] = hc_swap32 (w0[1]);
@@ -268,14 +226,6 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
     w1[1] = hc_swap32 (w1[1]);
     w1[2] = hc_swap32 (w1[2]);
     w1[3] = hc_swap32 (w1[3]);
-    w2[0] = hc_swap32 (w2[0]);
-    w2[1] = hc_swap32 (w2[1]);
-    w2[2] = hc_swap32 (w2[2]);
-    w2[3] = hc_swap32 (w2[3]);
-    w3[0] = hc_swap32 (w3[0]);
-    w3[1] = hc_swap32 (w3[1]);
-    w3[2] = hc_swap32 (w3[2]);
-    w3[3] = hc_swap32 (w3[3]);
 
     u32x ipad[8];
     u32x opad[8];
@@ -296,12 +246,12 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
     w2[3] = s_nr_buf[11];
     w3[0] = s_nr_buf[12];
     w3[1] = s_nr_buf[13];
-    w3[2] = 0;
-    w3[3] = (64 + nr_len) * 8;
+    w3[2] = s_nr_buf[14];
+    w3[3] = s_nr_buf[15];
 
     u32x digest[8];
 
-    hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
+    hmac_sha256_run (w0, w1, w2, w3, nr_len, ipad, opad, digest);
 
     w0[0] = digest[0];
     w0[1] = digest[1];
@@ -322,10 +272,10 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
 
     hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
 
-    int left;
-    int off;
+    u32 left;
+    u32 off;
 
-    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 64; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];
@@ -361,36 +311,49 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
     w2[3] = s_msg_buf[off + 11];
     w3[0] = s_msg_buf[off + 12];
     w3[1] = s_msg_buf[off + 13];
-    w3[2] = 0;
-    w3[3] = (64 + msg_len) * 8;
+    w3[2] = s_msg_buf[off + 14];
+    w3[3] = s_msg_buf[off + 15];
 
-    hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
+    hmac_sha256_run (w0, w1, w2, w3, msg_len, ipad, opad, digest);
 
     COMPARE_M_SIMD (digest[3], digest[7], digest[2], digest[6]);
   }
 }
 
-KERNEL_FQ KERNEL_FA void m05410_m08 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_m08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-KERNEL_FQ KERNEL_FA void m05410_m16 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_m16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
+  MAYBE_UNUSED const u64 lid = get_local_id (0);
+  MAYBE_UNUSED const u64 lsz = get_local_size (0);
 
-  /**
-   * s_msg
-   */
+  // Association attacks use a different exchange for each work item.
+  #if ATTACK_MODE == 9
+
+  if (gid >= GID_CNT) return;
+
+  u32 s_nr_buf[16];
+
+  for (u32 i = 0; i < 16; i++)
+  {
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
+  }
+
+  u32 s_msg_buf[128];
+
+  for (u32 i = 0; i < 128; i++)
+  {
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
+  }
+
+  #else
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -410,9 +373,7 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
 
   if (gid >= GID_CNT) return;
 
-  /**
-   * base
-   */
+  #endif
 
   u32 pw_buf0[4];
   u32 pw_buf1[4];
@@ -426,18 +387,10 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
-
-  /**
-   * salt
-   */
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET_HOST].nr_len;
   const u32 msg_len = esalt_bufs[DIGESTS_OFFSET_HOST].msg_len[5];
-
-  /**
-   * digest
-   */
 
   const u32 search[4] =
   {
@@ -447,82 +400,14 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
-  /**
-   * loop
-   */
-
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
+    u32x w0[4] = { 0 };
+    u32x w1[4] = { 0 };
+    u32x w2[4] = { 0 };
+    u32x w3[4] = { 0 };
 
-    const u32x pw_len = (pw_l_len + pw_r_len) & 63;
-
-    /**
-     * concat password candidate
-     */
-
-    u32x wordl0[4] = { 0 };
-    u32x wordl1[4] = { 0 };
-    u32x wordl2[4] = { 0 };
-    u32x wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf0[0];
-    wordl0[1] = pw_buf0[1];
-    wordl0[2] = pw_buf0[2];
-    wordl0[3] = pw_buf0[3];
-    wordl1[0] = pw_buf1[0];
-    wordl1[1] = pw_buf1[1];
-    wordl1[2] = pw_buf1[2];
-    wordl1[3] = pw_buf1[3];
-
-    u32x wordr0[4] = { 0 };
-    u32x wordr1[4] = { 0 };
-    u32x wordr2[4] = { 0 };
-    u32x wordr3[4] = { 0 };
-
-    wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-    wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-    wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-    wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-    wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-    wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-    wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-    wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-
-    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
-    {
-      switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-    }
-    else
-    {
-      switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-    }
-
-    u32x w0[4];
-    u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
-
-    w0[0] = wordl0[0] | wordr0[0];
-    w0[1] = wordl0[1] | wordr0[1];
-    w0[2] = wordl0[2] | wordr0[2];
-    w0[3] = wordl0[3] | wordr0[3];
-    w1[0] = wordl1[0] | wordr1[0];
-    w1[1] = wordl1[1] | wordr1[1];
-    w1[2] = wordl1[2] | wordr1[2];
-    w1[3] = wordl1[3] | wordr1[3];
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = wordl3[2] | wordr3[2];
-    w3[3] = wordl3[3] | wordr3[3];
-
-    /**
-     * pads
-     */
+    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     w0[0] = hc_swap32 (w0[0]);
     w0[1] = hc_swap32 (w0[1]);
@@ -532,14 +417,6 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
     w1[1] = hc_swap32 (w1[1]);
     w1[2] = hc_swap32 (w1[2]);
     w1[3] = hc_swap32 (w1[3]);
-    w2[0] = hc_swap32 (w2[0]);
-    w2[1] = hc_swap32 (w2[1]);
-    w2[2] = hc_swap32 (w2[2]);
-    w2[3] = hc_swap32 (w2[3]);
-    w3[0] = hc_swap32 (w3[0]);
-    w3[1] = hc_swap32 (w3[1]);
-    w3[2] = hc_swap32 (w3[2]);
-    w3[3] = hc_swap32 (w3[3]);
 
     u32x ipad[8];
     u32x opad[8];
@@ -560,12 +437,12 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
     w2[3] = s_nr_buf[11];
     w3[0] = s_nr_buf[12];
     w3[1] = s_nr_buf[13];
-    w3[2] = 0;
-    w3[3] = (64 + nr_len) * 8;
+    w3[2] = s_nr_buf[14];
+    w3[3] = s_nr_buf[15];
 
     u32x digest[8];
 
-    hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
+    hmac_sha256_run (w0, w1, w2, w3, nr_len, ipad, opad, digest);
 
     w0[0] = digest[0];
     w0[1] = digest[1];
@@ -586,10 +463,10 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
 
     hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
 
-    int left;
-    int off;
+    u32 left;
+    u32 off;
 
-    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 64; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];
@@ -625,19 +502,19 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
     w2[3] = s_msg_buf[off + 11];
     w3[0] = s_msg_buf[off + 12];
     w3[1] = s_msg_buf[off + 13];
-    w3[2] = 0;
-    w3[3] = (64 + msg_len) * 8;
+    w3[2] = s_msg_buf[off + 14];
+    w3[3] = s_msg_buf[off + 15];
 
-    hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
+    hmac_sha256_run (w0, w1, w2, w3, msg_len, ipad, opad, digest);
 
     COMPARE_S_SIMD (digest[3], digest[7], digest[2], digest[6]);
   }
 }
 
-KERNEL_FQ KERNEL_FA void m05410_s08 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_s08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-KERNEL_FQ KERNEL_FA void m05410_s16 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_s16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }

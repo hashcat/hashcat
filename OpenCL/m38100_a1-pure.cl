@@ -25,20 +25,12 @@ typedef struct ikepsk
 
 } ikepsk_t;
 
-KERNEL_FQ KERNEL_FA void m05410_mxx (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_mxx (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -49,37 +41,17 @@ KERNEL_FQ KERNEL_FA void m05410_mxx (KERN_ATTR_ESALT (ikepsk_t))
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
-  /**
-   * loop
-   */
-
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-
     u32 c[64];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-    }
+    const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    if (c_len > 256) continue;
 
     sha256_hmac_ctx_t ctx0;
 
-    sha256_hmac_init (&ctx0, c, pw_len + comb_len);
+    sha256_hmac_init (&ctx0, c, c_len);
 
     sha256_hmac_update_global_swap (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf, esalt_bufs[DIGESTS_OFFSET_HOST].nr_len);
 
@@ -124,20 +96,12 @@ KERNEL_FQ KERNEL_FA void m05410_mxx (KERN_ATTR_ESALT (ikepsk_t))
   }
 }
 
-KERNEL_FQ KERNEL_FA void m05410_sxx (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_sxx (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * digest
-   */
 
   const u32 search[4] =
   {
@@ -146,10 +110,6 @@ KERNEL_FQ KERNEL_FA void m05410_sxx (KERN_ATTR_ESALT (ikepsk_t))
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
-
-  /**
-   * base
-   */
 
   const u32 pw_len = pws[gid].pw_len;
 
@@ -160,37 +120,17 @@ KERNEL_FQ KERNEL_FA void m05410_sxx (KERN_ATTR_ESALT (ikepsk_t))
     w[idx] = hc_swap32_S (pws[gid].i[idx]);
   }
 
-  /**
-   * loop
-   */
-
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
-
     u32 c[64];
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-    }
+    const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    if (c_len > 256) continue;
 
     sha256_hmac_ctx_t ctx0;
 
-    sha256_hmac_init (&ctx0, c, pw_len + comb_len);
+    sha256_hmac_init (&ctx0, c, c_len);
 
     sha256_hmac_update_global_swap (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf, esalt_bufs[DIGESTS_OFFSET_HOST].nr_len);
 

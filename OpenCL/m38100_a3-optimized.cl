@@ -84,8 +84,25 @@ DECLSPEC void hmac_sha256_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha256_transform_vector (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
+DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32 len, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
+  // The final eight bytes hold the length, so the padding may need another block.
+  if ((len & 63) >= 56)
+  {
+    sha256_transform_vector (w0, w1, w2, w3, ipad);
+
+    for (u32 i = 0; i < 4; i++)
+    {
+      w0[i] = 0;
+      w1[i] = 0;
+      w2[i] = 0;
+      w3[i] = 0;
+    }
+  }
+
+  w3[2] = 0;
+  w3[3] = (64 + len) * 8;
+
   digest[0] = ipad[0];
   digest[1] = ipad[1];
   digest[2] = ipad[2];
@@ -126,22 +143,12 @@ DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC void m05410m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (ikepsk_t), LOCAL_AS u32 *s_msg_buf, LOCAL_AS u32 *s_nr_buf)
+DECLSPEC void m38100m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (ikepsk_t), LOCAL_AS u32 *s_msg_buf, LOCAL_AS u32 *s_nr_buf)
 {
-  /**
-   * modifiers are taken from args
-   */
-
-  /**
-   * salt
-   */
+  // modifiers are taken from args
 
   const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET_HOST].nr_len;
   const u32 msg_len = esalt_bufs[DIGESTS_OFFSET_HOST].msg_len[5];
-
-  /**
-   * loop
-   */
 
   u32 w0l = w0[0];
 
@@ -173,10 +180,6 @@ DECLSPEC void m05410m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    /**
-     * pads
-     */
-
     u32x ipad[8];
     u32x opad[8];
 
@@ -196,12 +199,12 @@ DECLSPEC void m05410m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w2_t[3] = s_nr_buf[11];
     w3_t[0] = s_nr_buf[12];
     w3_t[1] = s_nr_buf[13];
-    w3_t[2] = 0;
-    w3_t[3] = (64 + nr_len) * 8;
+    w3_t[2] = s_nr_buf[14];
+    w3_t[3] = s_nr_buf[15];
 
     u32x digest[8];
 
-    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
+    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, nr_len, ipad, opad, digest);
 
     w0_t[0] = digest[0];
     w0_t[1] = digest[1];
@@ -222,10 +225,10 @@ DECLSPEC void m05410m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     hmac_sha256_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    int left;
-    int off;
+    u32 left;
+    u32 off;
 
-    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 64; left -= 64, off += 16)
     {
       w0_t[0] = s_msg_buf[off +  0];
       w0_t[1] = s_msg_buf[off +  1];
@@ -261,31 +264,21 @@ DECLSPEC void m05410m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w2_t[3] = s_msg_buf[off + 11];
     w3_t[0] = s_msg_buf[off + 12];
     w3_t[1] = s_msg_buf[off + 13];
-    w3_t[2] = 0;
-    w3_t[3] = (64 + msg_len) * 8;
+    w3_t[2] = s_msg_buf[off + 14];
+    w3_t[3] = s_msg_buf[off + 15];
 
-    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
+    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, msg_len, ipad, opad, digest);
 
     COMPARE_M_SIMD (digest[3], digest[7], digest[2], digest[6]);
   }
 }
 
-DECLSPEC void m05410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (ikepsk_t), LOCAL_AS u32 *s_msg_buf, LOCAL_AS u32 *s_nr_buf)
+DECLSPEC void m38100s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (ikepsk_t), LOCAL_AS u32 *s_msg_buf, LOCAL_AS u32 *s_nr_buf)
 {
-  /**
-   * modifiers are taken from args
-   */
-
-  /**
-   * salt
-   */
+  // modifiers are taken from args
 
   const u32 nr_len  = esalt_bufs[DIGESTS_OFFSET_HOST].nr_len;
   const u32 msg_len = esalt_bufs[DIGESTS_OFFSET_HOST].msg_len[5];
-
-  /**
-   * digest
-   */
 
   const u32 search[4] =
   {
@@ -295,10 +288,6 @@ DECLSPEC void m05410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
-  /**
-   * loop
-   */
-
   u32 w0l = w0[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
@@ -329,10 +318,6 @@ DECLSPEC void m05410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w3_t[2] = w3[2];
     w3_t[3] = w3[3];
 
-    /**
-     * pads
-     */
-
     u32x ipad[8];
     u32x opad[8];
 
@@ -352,12 +337,12 @@ DECLSPEC void m05410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w2_t[3] = s_nr_buf[11];
     w3_t[0] = s_nr_buf[12];
     w3_t[1] = s_nr_buf[13];
-    w3_t[2] = 0;
-    w3_t[3] = (64 + nr_len) * 8;
+    w3_t[2] = s_nr_buf[14];
+    w3_t[3] = s_nr_buf[15];
 
     u32x digest[8];
 
-    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
+    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, nr_len, ipad, opad, digest);
 
     w0_t[0] = digest[0];
     w0_t[1] = digest[1];
@@ -378,10 +363,10 @@ DECLSPEC void m05410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 
     hmac_sha256_pad (w0_t, w1_t, w2_t, w3_t, ipad, opad);
 
-    int left;
-    int off;
+    u32 left;
+    u32 off;
 
-    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 64; left -= 64, off += 16)
     {
       w0_t[0] = s_msg_buf[off +  0];
       w0_t[1] = s_msg_buf[off +  1];
@@ -417,28 +402,20 @@ DECLSPEC void m05410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w2_t[3] = s_msg_buf[off + 11];
     w3_t[0] = s_msg_buf[off + 12];
     w3_t[1] = s_msg_buf[off + 13];
-    w3_t[2] = 0;
-    w3_t[3] = (64 + msg_len) * 8;
+    w3_t[2] = s_msg_buf[off + 14];
+    w3_t[3] = s_msg_buf[off + 15];
 
-    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
+    hmac_sha256_run (w0_t, w1_t, w2_t, w3_t, msg_len, ipad, opad, digest);
 
     COMPARE_S_SIMD (digest[3], digest[7], digest[2], digest[6]);
   }
 }
 
-KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_m04 (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /**
-   * s_msg
-   */
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -457,10 +434,6 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   u32 w0[4];
 
@@ -492,26 +465,16 @@ KERNEL_FQ KERNEL_FA void m05410_m04 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  /**
-   * main
-   */
+  // main
 
-  m05410m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
+  m38100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
 }
 
-KERNEL_FQ KERNEL_FA void m05410_m08 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_m08 (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /**
-   * s_msg
-   */
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -530,10 +493,6 @@ KERNEL_FQ KERNEL_FA void m05410_m08 (KERN_ATTR_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   u32 w0[4];
 
@@ -565,26 +524,16 @@ KERNEL_FQ KERNEL_FA void m05410_m08 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  /**
-   * main
-   */
+  // main
 
-  m05410m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
+  m38100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
 }
 
-KERNEL_FQ KERNEL_FA void m05410_m16 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_m16 (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /**
-   * s_msg
-   */
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -603,10 +552,6 @@ KERNEL_FQ KERNEL_FA void m05410_m16 (KERN_ATTR_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   u32 w0[4];
 
@@ -638,26 +583,16 @@ KERNEL_FQ KERNEL_FA void m05410_m16 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  /**
-   * main
-   */
+  // main
 
-  m05410m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
+  m38100m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
 }
 
-KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_s04 (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /**
-   * s_msg
-   */
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -676,10 +611,6 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   u32 w0[4];
 
@@ -711,26 +642,16 @@ KERNEL_FQ KERNEL_FA void m05410_s04 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  /**
-   * main
-   */
+  // main
 
-  m05410s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
+  m38100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
 }
 
-KERNEL_FQ KERNEL_FA void m05410_s08 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_s08 (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /**
-   * s_msg
-   */
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -749,10 +670,6 @@ KERNEL_FQ KERNEL_FA void m05410_s08 (KERN_ATTR_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   u32 w0[4];
 
@@ -784,26 +701,16 @@ KERNEL_FQ KERNEL_FA void m05410_s08 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  /**
-   * main
-   */
+  // main
 
-  m05410s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
+  m38100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
 }
 
-KERNEL_FQ KERNEL_FA void m05410_s16 (KERN_ATTR_ESALT (ikepsk_t))
+KERNEL_FQ KERNEL_FA void m38100_s16 (KERN_ATTR_ESALT (ikepsk_t))
 {
-  /**
-   * modifier
-   */
-
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
-
-  /**
-   * s_msg
-   */
 
   LOCAL_VK u32 s_nr_buf[16];
 
@@ -822,10 +729,6 @@ KERNEL_FQ KERNEL_FA void m05410_s16 (KERN_ATTR_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
-
-  /**
-   * base
-   */
 
   u32 w0[4];
 
@@ -857,9 +760,7 @@ KERNEL_FQ KERNEL_FA void m05410_s16 (KERN_ATTR_ESALT (ikepsk_t))
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
-  /**
-   * main
-   */
+  // main
 
-  m05410s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
+  m38100s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz, s_msg_buf, s_nr_buf);
 }
