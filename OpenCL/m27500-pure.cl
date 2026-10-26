@@ -358,16 +358,6 @@ KERNEL_FQ KERNEL_FA void m27500_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t
   ukey2[2] = tmps[gid].out[6];
   ukey2[3] = tmps[gid].out[7];
 
-  ukey1[0] = hc_swap32_S (ukey1[0]);
-  ukey1[1] = hc_swap32_S (ukey1[1]);
-  ukey1[2] = hc_swap32_S (ukey1[2]);
-  ukey1[3] = hc_swap32_S (ukey1[3]);
-
-  ukey2[0] = hc_swap32_S (ukey2[0]);
-  ukey2[1] = hc_swap32_S (ukey2[1]);
-  ukey2[2] = hc_swap32_S (ukey2[2]);
-  ukey2[3] = hc_swap32_S (ukey2[3]);
-
   u32 ks[44];
 
   u32 aes_decrypt[8];
@@ -391,7 +381,7 @@ KERNEL_FQ KERNEL_FA void m27500_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t
   u32 S[4] = { 0 }; // tweak, 16 x 0x00
   u32 T[4] = { 0 };
 
-  aes128_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3);
+  AES128_set_encrypt_key (ks, ukey2, s_te0, s_te1, s_te2, s_te3);
   aes128_encrypt (ks, S, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   out[0] ^= T[0];
@@ -399,7 +389,7 @@ KERNEL_FQ KERNEL_FA void m27500_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t
   out[2] ^= T[2];
   out[3] ^= T[3];
 
-  aes128_set_decrypt_key (ks, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+  AES128_set_decrypt_key (ks, ukey1, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
   aes128_decrypt (ks, out, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   out[0] ^= T[0];

@@ -36,7 +36,16 @@ typedef struct bitlocker_tmp
 
 } bitlocker_tmp_t;
 
-#ifdef REAL_SHM
+// wb_ke_pc belongs to one hash, and an association attack takes its hash from the global id, so a
+// copy shared by the whole workgroup would hold a different hash's table in every slot. That attack
+// reads the table out of global memory instead, which is what this kernel already does on a device
+// with no shared memory to put it in.
+
+#if defined (REAL_SHM) && (ATTACK_MODE != 9)
+#define REAL_SHM_PC
+#endif
+
+#ifdef REAL_SHM_PC
 #define SHM_TYPE2 LOCAL_AS
 #else
 #define SHM_TYPE2 GLOBAL_AS const
@@ -211,6 +220,16 @@ KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bit
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
+  #if ATTACK_MODE == 9
+
+  // The salt and esalt positions are the work item id here, so a thread past the count reads past
+  // the end of both arrays. Only this arm can return: the others fill s_wb_ke_pc cooperatively and
+  // the barrier that orders the fill is compiled with them, under REAL_SHM_PC.
+
+  if (gid >= GID_CNT) return;
+
+  #endif
+
   // init
 
   u32x w0[4];
@@ -267,7 +286,7 @@ KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bit
   #define FIXED_ITER_TOTAL 1024
   #define FIXED_ITER_INCR  8    // seems to be a good trade-off between memory reads and available registers
 
-  #ifdef REAL_SHM
+  #ifdef REAL_SHM_PC
   LOCAL_VK u32 s_wb_ke_pc[FIXED_ITER_INCR][48];
   #else
   GLOBAL_AS const u32 (*s_wb_ke_pc)[48];
@@ -275,7 +294,7 @@ KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bit
 
   for (u32 t = 0; t < FIXED_ITER_TOTAL; t += FIXED_ITER_INCR)
   {
-    #ifdef REAL_SHM
+    #ifdef REAL_SHM_PC
 
     /**
      * On NVIDIA, the __sync_threads() is not working as expected if called from inside a loop.
@@ -355,6 +374,17 @@ KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bit
       w1[2] = digest[6];
       w1[3] = digest[7];
     }
+
+    #ifdef REAL_SHM_PC
+
+    // The next round refills s_wb_ke_pc, and every thread has just read all of it. The barrier above
+    // orders the fill against the reads that follow it, but not the reads against the fill that comes
+    // after them, so without this one a thread that is a round ahead overwrites the chunk a thread
+    // behind it is still reading.
+
+    SYNC_THREADS ();
+
+    #endif
   }
 
   unpackv (tmps, last_hash, gid, 0, w0[0]);

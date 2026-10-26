@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -43,6 +44,11 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/openwall/john/blob/bleeding-jumbo/run/pem2john.py to extract the hashes";
+}
 
 #define PKCS_MIN_SALT_LEN     ( 8)
 #define PKCS_MAX_SALT_LEN     (32)
@@ -105,6 +111,11 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
+// the compact layout hashcat writes and the verbose one pem2john.py emits:
+//
+//   $PEM$2$4$<salt>$<iter>$<iv>$<len>$<data>
+//   $PEM$2$pbkdf2$sha256$aes256_cbc$4$<salt>$<iter>$<iv>$<len>$<data>
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -115,7 +126,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 8;
+  // the field after the type is a digit in the compact layout, a name in the
+  // verbose one
+
+  bool is_verbose = false;
+
+  if ((line_len > 7) && (strncmp (line_buf, "$PEM$2$", 7) == 0))
+  {
+    if ((line_buf[7] < '0') || (line_buf[7] > '9')) is_verbose = true;
+  }
+
+  // the verbose layout puts everything from the cipher id on three fields later
+
+  const int o = (is_verbose == true) ? 3 : 0;
+
+  token.token_cnt  = 8 + o;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_PEM;
@@ -129,40 +154,61 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = '$';
-  token.len[2]     = 1;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+  if (is_verbose == true)
+  {
+    // kdf, prf and cipher name, bounded well past any real name so that an
+    // unsupported one is refused by the checks below rather than here
 
-  token.sep[3]     = '$';
-  token.len_min[3] = PKCS_MIN_SALT_HEX_LEN;
-  token.len_max[3] = PKCS_MAX_SALT_HEX_LEN;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    token.sep[2]     = '$';
+    token.len_min[2] = 1;
+    token.len_max[2] = 63;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[4]     = '$';
-  token.len_min[4] = 1;
-  token.len_max[4] = 8;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+    token.sep[3]     = '$';
+    token.len_min[3] = 1;
+    token.len_max[3] = 63;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[5]     = '$';
-  token.len_min[5] = PKCS_MIN_IV_HEX_LEN;  // can be either 16 or 32
-  token.len_max[5] = PKCS_MAX_IV_HEX_LEN;  // exact check deeper in decoder code
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    token.sep[4]     = '$';
+    token.len_min[4] = 1;
+    token.len_max[4] = 63;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
+  }
 
-  token.sep[6]     = '$';
-  token.len_min[6] = 1;
-  token.len_max[6] = 8;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
+  token.sep[2 + o]     = '$';
+  token.len[2 + o]     = 1;
+  token.attr[2 + o]    = TOKEN_ATTR_FIXED_LENGTH
+                       | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[7]     = '$';
-  token.len_min[7] = 64;    // 64 = minimum size (32 byte) to avoid out of boundary read in kernel
-  token.len_max[7] = 65536; // 65536 = maximum asn.1 size fitting into 2 byte length integer
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.sep[3 + o]     = '$';
+  token.len_min[3 + o] = PKCS_MIN_SALT_HEX_LEN;
+  token.len_max[3 + o] = PKCS_MAX_SALT_HEX_LEN;
+  token.attr[3 + o]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[4 + o]     = '$';
+  token.len_min[4 + o] = 1;
+  token.len_max[4 + o] = 8;
+  token.attr[4 + o]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[5 + o]     = '$';
+  token.len_min[5 + o] = PKCS_MIN_IV_HEX_LEN;  // can be either 16 or 32
+  token.len_max[5 + o] = PKCS_MAX_IV_HEX_LEN;  // exact check deeper in decoder code
+  token.attr[5 + o]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[6 + o]     = '$';
+  token.len_min[6 + o] = 1;
+  token.len_max[6 + o] = 8;
+  token.attr[6 + o]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[7 + o]     = '$';
+  token.len_min[7 + o] = 64;    // 64 = minimum size (32 byte) to avoid out of boundary read in kernel
+  token.len_max[7 + o] = 65536; // 65536 = maximum asn.1 size fitting into 2 byte length integer
+  token.attr[7 + o]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -174,9 +220,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (type_pos[0] != '2') return (PARSER_SIGNATURE_UNMATCHED);
 
+  // kdf and prf, the only pair this mode implements
+
+  if (is_verbose == true)
+  {
+    if ((token.len[2] != 6) || (memcmp (token.buf[2], "pbkdf2", 6) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
+    if ((token.len[3] != 6) || (memcmp (token.buf[3], "sha256", 6) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
+  }
+
   // cipher
 
-  const u8 *cipher_pos = token.buf[2];
+  const u8 *cipher_pos = token.buf[2 + o];
 
   int cipher = hc_strtoul ((const char *) cipher_pos, NULL, 10);
 
@@ -187,24 +241,51 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pkcs->cipher = cipher;
 
+  // the verbose layout names the cipher as well as numbering it. pem2john.py
+  // derives both from one variable and emits nothing for a cipher outside these
+  // four, so a line where the two disagree did not come from it
+
+  if (is_verbose == true)
+  {
+    const char *cipher_name = NULL;
+
+         if (cipher == PKCS_CIPHER_3DES)        { cipher_name = "tripledes_3key"; }
+    else if (cipher == PKCS_CIPHER_AES_128_CBC) { cipher_name = "aes128_cbc";     }
+    else if (cipher == PKCS_CIPHER_AES_192_CBC) { cipher_name = "aes192_cbc";     }
+    else if (cipher == PKCS_CIPHER_AES_256_CBC) { cipher_name = "aes256_cbc";     }
+
+    const int cipher_name_len = (const int) strlen (cipher_name);
+
+    if (token.len[4] != cipher_name_len) return (PARSER_CIPHER);
+
+    if (memcmp (token.buf[4], cipher_name, cipher_name_len) != 0) return (PARSER_CIPHER);
+  }
+
   // salt buffer
 
-  const u8 *salt_pos = token.buf[3];
+  const u8 *salt_pos = token.buf[3 + o];
 
-  salt->salt_len = hex_decode (salt_pos, token.len[3], (u8 *) salt->salt_buf);
+  // hex_decode () returns the whole pairs it could read and says nothing about the character it
+  // left behind, so an odd length is taken as a field one character shorter than it declared
+
+  if (token.len[3 + o] & 1) return (PARSER_TOKEN_LENGTH);
+
+  salt->salt_len = hex_decode (salt_pos, token.len[3 + o], (u8 *) salt->salt_buf);
 
   // iter
 
-  const u8 *iter_pos = token.buf[4];
+  const u8 *iter_pos = token.buf[4 + o];
 
   const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
+
+  if (iter < 1) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = iter - 1;
 
   // IV buffer
 
-  const u8 *iv_pos = token.buf[5];
-  const int iv_len = token.len[5];
+  const u8 *iv_pos = token.buf[5 + o];
+  const int iv_len = token.len[5 + o];
 
   if ((cipher == PKCS_CIPHER_3DES) && (iv_len != PKCS_MIN_IV_HEX_LEN)) return (PARSER_SALT_LENGTH);
   if ((cipher != PKCS_CIPHER_3DES) && (iv_len != PKCS_MAX_IV_HEX_LEN)) return (PARSER_SALT_LENGTH);
@@ -213,14 +294,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // data length
 
-  const u8 *data_len_verify_pos = token.buf[6];
+  const u8 *data_len_verify_pos = token.buf[6 + o];
 
   const int data_len_verify = hc_strtoul ((const char *) data_len_verify_pos, NULL, 10);
 
   // data
 
-  const u8 *data_pos = token.buf[7];
-  const int data_len = token.len[7];
+  const u8 *data_pos = token.buf[7 + o];
+  const int data_len = token.len[7 + o];
+
+  if (data_len & 1) return (PARSER_TOKEN_LENGTH);
 
   pkcs->data_len = hex_decode (data_pos, data_len, (u8 *) pkcs->data_buf);
 
@@ -296,12 +379,14 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
   module_ctx->module_bridge_name              = MODULE_DEFAULT;
   module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
@@ -312,7 +397,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -328,10 +412,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
@@ -350,8 +436,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -362,6 +450,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
@@ -370,5 +459,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = module_usage_notice;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

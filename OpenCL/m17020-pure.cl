@@ -222,12 +222,26 @@ KERNEL_FQ KERNEL_FA void m17020_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     memcat_le_S (salted_pw_block, idx * salted_pw_len, salted_pw_block, salted_pw_len);
   }
 
+  const u32 salted_pw_block_len = copies * salted_pw_len;
+
+  // memcat_le_S() copies whole u32 words, so the word that straddles the end of the last
+  // copy comes out holding the next bytes of the repeated salt||pw stream instead of zero.
+  // Everything from salted_pw_block_len on has to read as zero: sha512_update() always
+  // pulls a full 128 byte tail window and ORs it into the running context, and
+  // sha512_final() ORs its 0x80 padding byte into whatever is left sitting there. Leave the slack dirty and the
+  // S2K key comes out wrong whenever the truncated last repetition of salt||pw is shorter
+  // than it, which is why some (iteration count, password length) pairs never cracked.
+  if (salted_pw_block_len < sizeof (salted_pw_block))
+  {
+    memzero_le_S (salted_pw_block, salted_pw_block_len, sizeof (salted_pw_block));
+  }
+
   for (u32 idx = 0; idx < 96; idx++)
   {
     tmps[gid].salted_pw_block[idx] = hc_swap32_S (salted_pw_block[idx]);
   }
 
-  tmps[gid].salted_pw_block_len = (copies * salted_pw_len);
+  tmps[gid].salted_pw_block_len = salted_pw_block_len;
 
   tmps[gid].h[ 0] = SHA512M_A;
   tmps[gid].h[ 1] = SHA512M_B;
@@ -420,21 +434,25 @@ KERNEL_FQ KERNEL_FA void m17020_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   aes_key[2] = hc_swap32_S (h32_from_64 (tmps[gid].h[1]));
   aes_key[3] = hc_swap32_S (l32_from_64 (tmps[gid].h[1]));
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
+  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[digest_cur].iv[idx];
 
   u32 decoded_data[384];
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 
-  aes128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_decrypt_cfb (esalt_bufs[digest_cur].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }
@@ -497,21 +515,25 @@ KERNEL_FQ KERNEL_FA void m17020_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   aes_key[6] = hc_swap32_S (h32_from_64 (tmps[gid].h[3]));
   aes_key[7] = hc_swap32_S (l32_from_64 (tmps[gid].h[3]));
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
   u32 iv[4] = {0};
 
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
+  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[digest_cur].iv[idx];
 
   u32 decoded_data[384];
 
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
+  const u32 enc_data_size = esalt_bufs[digest_cur].encrypted_data_size;
 
-  aes256_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes256_decrypt_cfb (esalt_bufs[digest_cur].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

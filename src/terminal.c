@@ -11,18 +11,170 @@
 #include "thread.h"
 #include "status.h"
 #include "shared.h"
+#include "system.h"
+#include "path.h"
 #include "hwmon.h"
+#include "bridges.h"
 #include "interface.h"
+#include "module_options.h"
 #include "hashcat.h"
 #include "timer.h"
+#include "monitor.h"
 #include "terminal.h"
+#include "user_options.h"
+#include "json.h"
 
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+// Draw up to want of the active devices at random and leave them ordered by device id. Returns the
+// number of active devices, so the caller can say how many of them it is showing.
+//
+// Each device is taken with the probability that leaves every one equally likely, which gets an
+// unbiased sample in one pass and in id order, with no sort and no second pass.
+
+static int status_sample_devices (const hashcat_status_t *hashcat_status, int *shown, int *shown_cnt, const int want)
+{
+  int active[DEVICES_MAX];
+  int active_cnt = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+    if (device_info->idle_dev            == true) continue;
+
+    if (device_info->guess_candidates_dev == NULL) continue;
+
+    active[active_cnt] = device_id;
+
+    active_cnt++;
+  }
+
+  *shown_cnt = 0;
+
+  const int take = MIN (active_cnt, want);
+
+  for (int i = 0; i < active_cnt; i++)
+  {
+    const int left_to_take = take - *shown_cnt;
+    const int left_to_see  = active_cnt - i;
+
+    if (left_to_take == 0) break;
+
+    if ((int) get_random_num (0, (u32) (left_to_see - 1)) < left_to_take)
+    {
+      shown[*shown_cnt] = active[i];
+
+      (*shown_cnt)++;
+    }
+  }
+
+  return active_cnt;
+}
+
+// How many device windows to show for Candidates. A window is a pair of candidates and either can
+// be long, so one row is all that fits.
+
+#define CANDIDATES_DEVICES_MAX 1
+
+// How many devices fit on one Restore.Sub line, worst case an amplifier near 1 million and an
+// iteration near 10 million on a two digit device id.
+
+#define RESTORE_SUB_DEVICES_MAX 3
+
+static const char *const PROMPT_ACTIVE    = "[s]tatus [p]ause [r]ewind [a]dvance [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_PAUSED    = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+
+// The runtime keys are only offered when there is a deadline to move, so a run without --runtime
+// keeps the line it always had.
+
+static const char *const PROMPT_ACTIVE_RT = "[s]tatus [p]ause [r]ewind [a]dvance [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+static const char *const PROMPT_PAUSED_RT = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+
+static const char *terminal_prompt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool paused = (status_ctx->devices_status == STATUS_PAUSED) ? true : false;
+
+  if (user_options->runtime > 0)
+  {
+    if (paused == true) return PROMPT_PAUSED_RT;
+
+    return PROMPT_ACTIVE_RT;
+  }
+
+  if (paused == true) return PROMPT_PAUSED;
+
+  return PROMPT_ACTIVE;
+}
+
+// Ask for a line in the middle of a run. The key thread holds the terminal with ICANON off so that a
+// single keypress arrives without a newline, which is what every other key here wants. Reading a
+// whole line wants the opposite, so canonical mode goes back on for the duration and comes off again
+// afterwards.
+//
+// Returns false when the user typed nothing, which is how a caller tells a bare Enter from an answer.
+
+static bool prompt_line (const char *prompt, char *buf, const size_t buf_sz)
+{
+  tty_fix ();
+
+  fprintf (stdout, "%s", prompt);
+
+  fflush (stdout);
+
+  char *line = fgets (buf, (int) buf_sz, stdin);
+
+  bool complete = false;
+
+  if (line != NULL)
+  {
+    const size_t len = strlen (buf);
+
+    if ((len > 0) && (buf[len - 1] == '\n')) complete = true;
+  }
+
+  // an answer longer than the buffer would otherwise arrive as keypresses once raw mode is back
+
+  if ((line != NULL) && (complete == false))
+  {
+    int c = 0;
+
+    while ((c = getchar ()) != EOF)
+    {
+      if (c == '\n') break;
+    }
+  }
+
+  tty_break ();
+
+  if (line == NULL) return false;
+
+  size_t len = strlen (buf);
+
+  while ((len > 0) && ((buf[len - 1] == '\n') || (buf[len - 1] == '\r') || (buf[len - 1] == ' ') || (buf[len - 1] == '\t')))
+  {
+    buf[len - 1] = 0;
+
+    len--;
+  }
+
+  size_t start = 0;
+
+  while ((buf[start] == ' ') || (buf[start] == '\t')) start++;
+
+  if (start > 0) memmove (buf, buf + start, (len - start) + 1);
+
+  if (buf[0] == 0) return false;
+
+  return true;
+}
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -31,6 +183,12 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   if (user_options->quiet       == true)      return;
   if (user_options->keyspace    == true)      return;
   if (user_options->total_candidates == true) return;
+
+  // Both of these are tested on their own name because this runs before user_options_preprocess (),
+  // which is where they turn into --keyspace. By the time goodbye_screen () runs they have, so it
+  // needs neither.
+
+  if (user_options->lookup      != NULL)      return;
   if (user_options->stdout_flag == true)      return;
   if (user_options->show        == true)      return;
   if (user_options->left        == true)      return;
@@ -49,23 +207,10 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 
       event_log_info (hashcat_ctx, NULL);
 
-      if (user_options->workload_profile_chgd == false)
-      {
-        event_log_advice (hashcat_ctx, "Benchmarking uses hand-optimized kernel code by default.");
-        event_log_advice (hashcat_ctx, "You can use it in your cracking session by setting the -O option.");
-        event_log_advice (hashcat_ctx, "Note: Using optimized kernel code limits the maximum supported password length.");
-        event_log_advice (hashcat_ctx, "To disable the optimized kernel code in benchmark mode, use the -w option.");
-        event_log_advice (hashcat_ctx, NULL);
-      }
-
-      if (user_options->benchmark_min != BENCHMARK_MIN || user_options->benchmark_max != BENCHMARK_MAX)
-      {
-        if (user_options->hash_mode_chgd == true)
-        {
-          event_log_advice (hashcat_ctx, "Benchmark min/max is ignored because --hash-type is set.");
-          event_log_advice (hashcat_ctx, NULL);
-        }
-      }
+      event_log_advice (hashcat_ctx, "Benchmarking always uses hand-optimized kernel code.");
+      event_log_advice (hashcat_ctx, "You can use it in your cracking session by setting the -O option.");
+      event_log_advice (hashcat_ctx, "Note: Using optimized kernel code limits the maximum supported password length.");
+      event_log_advice (hashcat_ctx, NULL);
     }
     else
     {
@@ -175,34 +320,22 @@ int setup_console (void)
 
 void send_prompt (hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    fprintf (stdout, "%s", PROMPT_PAUSED);
-  }
-  else
-  {
-    fprintf (stdout, "%s", PROMPT_ACTIVE);
-  }
+  fprintf (stdout, "%s", terminal_prompt (hashcat_ctx));
 
   fflush (stdout);
 }
 
-void clear_prompt (hashcat_ctx_t *hashcat_ctx)
+void clear_prompt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  // The prompt on screen is not always the one this would build now. Pausing swaps a longer line for
+  // a shorter one, and clearing by the shorter length leaves the tail of the longer one behind, so
+  // what has to be blanked is the widest prompt there is rather than the current one.
 
-  size_t prompt_sz = 0;
+  size_t prompt_sz = strlen (PROMPT_ACTIVE);
 
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    prompt_sz = strlen (PROMPT_PAUSED);
-  }
-  else
-  {
-    prompt_sz = strlen (PROMPT_ACTIVE);
-  }
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_PAUSED));
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_ACTIVE_RT));
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_PAUSED_RT));
 
   fputc ('\r', stdout);
 
@@ -214,6 +347,56 @@ void clear_prompt (hashcat_ctx_t *hashcat_ctx)
   fputc ('\r', stdout);
 
   fflush (stdout);
+}
+
+// Rewind and advance, which are the same move in the two directions. Both are offered on a letter and
+// on the keys a user reaches for without reading a prompt: the left and right arrows, and the two
+// characters that point the same way.
+
+static void keypress_seek (hashcat_ctx_t *hashcat_ctx, const int direction, const bool quiet)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const bool was_paused = (status_ctx->devices_status == STATUS_PAUSED);
+
+  const double percent_from = seek_percent (hashcat_ctx, seek_position (hashcat_ctx));
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (bypass_seek_step (hashcat_ctx, direction) == -1)
+  {
+    event_log_info (hashcat_ctx, "Keyspace: %.2f%%, which is as far %s as this run goes.", percent_from, (direction >= 0) ? "forward" : "back");
+  }
+  else
+  {
+    const double percent_to = seek_percent (hashcat_ctx, status_ctx->seek_target);
+
+    // Enough decimals to show the move. The first press of a run moves an absolute number of words,
+    // which on a large keyspace is a very small fraction of it, and two decimals would print the same
+    // number twice and say nothing.
+
+    double delta = percent_to - percent_from;
+
+    if (delta < 0) delta = -delta;
+
+    int    decimals = 2;
+    double scale    = 100;
+
+    while ((decimals < 8) && ((delta * scale) < 1))
+    {
+      scale *= 10;
+
+      decimals++;
+    }
+
+    event_log_info (hashcat_ctx, "Keyspace: %.*f%% -> %.*f%%", decimals, percent_from, decimals, percent_to);
+
+    if (was_paused == true) event_log_info (hashcat_ctx, "The run was paused and has been resumed to move.");
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (quiet == false) send_prompt (hashcat_ctx);
 }
 
 static void keypress (hashcat_ctx_t *hashcat_ctx)
@@ -235,6 +418,11 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
     if (ch == -1) break;
 
     if (ch ==  0) continue;
+
+    // tmux and many terminal emulators turn a mouse wheel or touchpad scroll into the up and down
+    // arrows, so those two keys do nothing here, not even redraw the prompt.
+
+    if ((ch == TTY_KEY_UP) || (ch == TTY_KEY_DOWN)) continue;
 
     //https://github.com/hashcat/hashcat/issues/302
     //#if defined (_POSIX)
@@ -261,6 +449,22 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         break;
 
+      case 'a':
+      case '>':
+      case TTY_KEY_RIGHT:
+
+        keypress_seek (hashcat_ctx, 1, quiet);
+
+        break;
+
+      case '<':
+      case TTY_KEY_LEFT:
+
+        keypress_seek (hashcat_ctx, -1, quiet);
+
+        break;
+
+
       case 'b':
 
         event_log_info (hashcat_ctx, NULL);
@@ -274,6 +478,50 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
+
+      case 'e':
+      {
+        if (user_options->runtime == 0) break;
+
+        event_log_info (hashcat_ctx, NULL);
+
+        char answer[64];
+
+        const bool answered = prompt_line ("Seconds to add to the runtime limit, negative to shorten => ", answer, sizeof (answer));
+
+        if (answered == true)
+        {
+          char *end = NULL;
+
+          const long seconds = strtol (answer, &end, 10);
+
+          if ((end[0] == 0) && (seconds > INT_MIN) && (seconds < INT_MAX))
+          {
+            runtime_adjust (hashcat_ctx, (int) seconds);
+
+            const int runtime_left = get_runtime_left (hashcat_ctx);
+
+            if (runtime_left > 0)
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, %d seconds left.", (int) seconds, runtime_left);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, which is already past. The run will stop.", (int) seconds);
+            }
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "Not a number of seconds: %s", answer);
+          }
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+
+        if (quiet == false) send_prompt (hashcat_ctx);
+
+        break;
+      }
 
       case 'p':
 
@@ -310,7 +558,16 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'r':
 
-        if (status_ctx->devices_status == STATUS_PAUSED)
+        // The prompt offers this key as resume while the run is paused and as rewind while it runs.
+        // Only one of the two can apply at a time, so the letter carries both.
+
+        if (status_ctx->devices_status != STATUS_PAUSED)
+        {
+          keypress_seek (hashcat_ctx, -1, quiet);
+
+          break;
+        }
+
         {
           event_log_info (hashcat_ctx, NULL);
 
@@ -424,11 +681,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   tty_fix ();
 }
 
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_keypress (void *p)
-#else
-HC_API_CALL void *thread_keypress (void *p)
-#endif
+HC_THREAD_FUNC thread_keypress (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
@@ -463,6 +716,66 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
+// How long tty_getchar () waits for a keypress before giving up and returning empty handed. The
+// keypress loop rechecks shutdown_outer between calls, so this is also how long a quit takes to be
+// noticed, and the main thread joins this thread on its way out. A full second here put most of a
+// second into the end of every interactive run.
+
+#define TTY_GETCHAR_WAIT_MS 100
+
+#if !defined (_WIN)
+
+// Finish an escape sequence that has already had its ESC read. An arrow is ESC [ D or ESC [ C, and
+// ESC on its own is a key a user can press on purpose, so the two bytes that would complete the
+// sequence are only taken when they are already waiting. A zero timeout answers that without
+// blocking, and anything else that follows ESC is left alone rather than half consumed.
+
+static int tty_escape_key (void)
+{
+  for (int i = 0; i < 2; i++)
+  {
+    fd_set rfds;
+
+    FD_ZERO (&rfds);
+
+    FD_SET (fileno (stdin), &rfds);
+
+    struct timeval tv;
+
+    tv.tv_sec  = 0;
+    tv.tv_usec = 0;
+
+    if (select (1, &rfds, NULL, NULL, &tv) != 1) return 0;
+
+    // read () rather than getchar (), because select () answers for the descriptor and stdio answers
+    // for its own buffer. getchar () would pull the whole sequence into that buffer on the first
+    // call and leave select () reporting nothing to read while the bytes were already in hand.
+
+    unsigned char b = 0;
+
+    if (read (fileno (stdin), &b, 1) != 1) return 0;
+
+    const int c = b;
+
+    if (i == 0)
+    {
+      if (c != '[') return 0;
+    }
+    else
+    {
+      if (c == 'D') return TTY_KEY_LEFT;
+      if (c == 'C') return TTY_KEY_RIGHT;
+      if (c == 'A') return TTY_KEY_UP;
+      if (c == 'B') return TTY_KEY_DOWN;
+    }
+  }
+
+  return 0;
+}
+
+#endif
+
+
 #if defined (__OpenBSD__)   || (__FreeBSD__)       || defined (__NetBSD__) || \
     defined (__DragonFly__) || defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
@@ -494,15 +807,23 @@ int tty_getchar (void)
 
   struct timeval tv;
 
-  tv.tv_sec  = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec  = 0;
+  tv.tv_usec = TTY_GETCHAR_WAIT_MS * 1000;
 
   int retval = select (1, &rfds, NULL, NULL, &tv);
 
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar ();
+  unsigned char b = 0;
+
+  if (read (fileno (stdin), &b, 1) != 1) return -1;
+
+  const int c = b;
+
+  if (c == 27) return tty_escape_key ();
+
+  return c;
 }
 
 int tty_fix (void)
@@ -543,15 +864,23 @@ int tty_getchar (void)
 
   struct timeval tv;
 
-  tv.tv_sec  = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec  = 0;
+  tv.tv_usec = TTY_GETCHAR_WAIT_MS * 1000;
 
   int retval = select (1, &rfds, NULL, NULL, &tv);
 
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar ();
+  unsigned char b = 0;
+
+  if (read (fileno (stdin), &b, 1) != 1) return -1;
+
+  const int c = b;
+
+  if (c == 27) return tty_escape_key ();
+
+  return c;
 }
 
 int tty_fix ()
@@ -579,7 +908,7 @@ int tty_getchar (void)
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
-  DWORD rc = WaitForSingleObject (stdinHandle, 1000);
+  DWORD rc = WaitForSingleObject (stdinHandle, TTY_GETCHAR_WAIT_MS);
 
   if (rc == WAIT_TIMEOUT)   return  0;
   if (rc == WAIT_ABANDONED) return -1;
@@ -609,6 +938,13 @@ int tty_getchar (void)
 
     if (KeyEvent.bKeyDown != TRUE) continue;
 
+    // an arrow leaves AsciiChar at 0, which this function already uses for "nothing was pressed"
+
+    if (KeyEvent.wVirtualKeyCode == VK_LEFT)  return TTY_KEY_LEFT;
+    if (KeyEvent.wVirtualKeyCode == VK_RIGHT) return TTY_KEY_RIGHT;
+    if (KeyEvent.wVirtualKeyCode == VK_UP)    return TTY_KEY_UP;
+    if (KeyEvent.wVirtualKeyCode == VK_DOWN)  return TTY_KEY_DOWN;
+
     return KeyEvent.uChar.AsciiChar;
   }
 
@@ -634,6 +970,32 @@ bool is_stdout_terminal (void)
   #endif
 }
 
+bool is_stderr_terminal (void)
+{
+  #if defined (_WIN)
+  return _isatty (_fileno (stderr));
+  #else
+  return isatty (fileno (stderr));
+  #endif
+}
+
+// _isatty () answers yes for any character device on Windows, so there the console mode is asked
+
+bool is_stdin_terminal (void)
+{
+  #ifdef _WIN
+  const HANDLE h = GetStdHandle (STD_INPUT_HANDLE);
+
+  DWORD mode = 0;
+
+  const bool is_terminal = (GetConsoleMode (h, &mode) != 0);
+  #else
+  const bool is_terminal = (isatty (fileno (stdin)) == 1);
+  #endif
+
+  return is_terminal;
+}
+
 void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginning, const size_t keep_from_end)
 {
   const size_t target_len = TERMINAL_LINE_LENGTH - keep_from_beginning;
@@ -657,38 +1019,7 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
-void json_encode (const char *text, char *escaped)
-{
-  /*
-   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
-   * are getting escaped before being printed.
-   */
-
-  size_t len = strlen (text);
-  unsigned long i, j;
-
-  for (i = 0, j = 0; i < len; i++, j++)
-  {
-    char c = text[i];
-
-    switch (c)
-    {
-      case '\b': c =  'b'; escaped[j] = '\\'; j++; break;
-      case '\t': c =  't'; escaped[j] = '\\'; j++; break;
-      case '\n': c =  'n'; escaped[j] = '\\'; j++; break;
-      case '\f': c =  'f'; escaped[j] = '\\'; j++; break;
-      case '\r': c =  'r'; escaped[j] = '\\'; j++; break;
-      case '\\': c = '\\'; escaped[j] = '\\'; j++; break;
-      case  '"': c =  '"'; escaped[j] = '\\'; j++; break;
-    }
-
-    escaped[j] = c;
-  }
-
-  escaped[j] = 0;
-}
-
-void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
+void hash_info_single_json (json_ctx_t *js, hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -697,65 +1028,47 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
     module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
-    printf ("\"%u\": { ", hashconfig->hash_mode);
-    printf ("\"name\": \"%s\", ", hashconfig->hash_name);
-    printf ("\"category\": \"%s\", ", strhashcategory (hashconfig->hash_category));
-    printf ("\"slow_hash\": %s, ", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "false" : "true");
+    char mode_key[16];
 
-    printf ("\"is_deprecated\": %s, ", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? "true" : "false");
+    snprintf (mode_key, sizeof (mode_key), "%u", hashconfig->hash_mode);
+
+    json_key (js, mode_key);
+
+    json_object_begin (js);
+
+    json_kv_string (js, "name",          hashconfig->hash_name);
+    json_kv_string (js, "category",      strhashcategory (hashconfig->hash_category));
+    json_kv_bool   (js, "slow_hash",     (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? false : true);
+    json_kv_bool   (js, "is_deprecated", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? true : false);
 
     if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
     {
-      const char *t_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-
-      char *t_deprecated_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
-
-      json_encode (t_deprecated_notice, t_deprecated_notice_json_encoded);
-
-      printf ("\"deprecated_notice\": \"%s\", ", t_deprecated_notice_json_encoded);
-
-      hcfree (t_deprecated_notice_json_encoded);
+      json_kv_string (js, "deprecated_notice", module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra));
     }
     else
     {
-      printf ("\"deprecated_notice\": \"%s\", ", "N/A");
+      json_kv_string (js, "deprecated_notice", "N/A");
     }
 
     if (module_ctx->module_usage_notice != MODULE_DEFAULT)
     {
-      const char *t_deprecated_notice = module_ctx->module_usage_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-
-      char *t_usage_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
-
-      json_encode (t_deprecated_notice, t_usage_notice_json_encoded);
-
-      printf ("\"usage_notice\": \"%s\", ", t_usage_notice_json_encoded);
-
-      hcfree (t_usage_notice_json_encoded);
+      json_kv_string (js, "usage_notice", module_ctx->module_usage_notice (hashconfig, hashcat_ctx->user_options, user_options_extra));
     }
     else
     {
-      printf ("\"usage_notice\": \"%s\", ", "N/A");
+      json_kv_string (js, "usage_notice", "N/A");
     }
 
     if (module_ctx->module_advice_notice != MODULE_DEFAULT)
     {
-      const char *t_deprecated_notice = module_ctx->module_advice_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-
-      char *t_advice_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
-
-      json_encode (t_deprecated_notice, t_advice_notice_json_encoded);
-
-      printf ("\"advice_notice\": \"%s\", ", t_advice_notice_json_encoded);
-
-      hcfree (t_advice_notice_json_encoded);
+      json_kv_string (js, "advice_notice", module_ctx->module_advice_notice (hashconfig, hashcat_ctx->user_options, user_options_extra));
     }
     else
     {
-      printf ("\"advice_notice\": \"%s\", ", "N/A");
+      json_kv_string (js, "advice_notice", "N/A");
     }
 
-    char *t_pw_desc = "plain";
+    const char *t_pw_desc = "plain";
     if (hashconfig->opts_type & OPTS_TYPE_PT_HEX) t_pw_desc = "HEX";
     else if (hashconfig->opts_type & OPTS_TYPE_PT_BASE58) t_pw_desc = "BASE58";
 
@@ -771,11 +1084,10 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       }
     }
 
-    printf ("\"password_type\": \"%s\", ", t_pw_desc);
-    printf ("\"password_len_min\": %u, ", t_pw_min);
-    printf ("\"password_len_max\": %u, ", t_pw_max);
-
-    printf ("\"is_salted\": %s, ", (hashconfig->is_salted == true) ? "true" : "false");
+    json_kv_string (js, "password_type",    t_pw_desc);
+    json_kv_uint   (js, "password_len_min", t_pw_min);
+    json_kv_uint   (js, "password_len_max", t_pw_max);
+    json_kv_bool   (js, "is_salted",        (hashconfig->is_salted == true) ? true : false);
 
     if (hashconfig->is_salted == true)
     {
@@ -783,7 +1095,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
       const char *t_salt_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
 
-      printf ("\"salt_type\": \"%s\", ", t_salt_desc);
+      json_kv_string (js, "salt_type", t_salt_desc);
 
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {
@@ -799,54 +1111,71 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
           }
         }
 
-        printf ("\"salt_len_min\": %u, ", t_salt_min);
-        printf ("\"salt_len_max\": %u, ", t_salt_max);
+        json_kv_uint (js, "salt_len_min", t_salt_min);
+        json_kv_uint (js, "salt_len_max", t_salt_max);
       }
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
     {
-      printf ("\"kernel_type\": %s, ", "[ \"pure\", \"optimized\" ]");
+      json_key (js, "kernel_type");
+      json_array_begin (js);
+      json_string (js, "pure");
+      json_string (js, "optimized");
+      json_array_end (js);
     }
     else if (hashconfig->has_pure_kernel)
     {
-      printf ("\"kernel_type\": %s, ", "[ \"pure\" ]");
+      json_key (js, "kernel_type");
+      json_array_begin (js);
+      json_string (js, "pure");
+      json_array_end (js);
     }
     else if (hashconfig->has_optimized_kernel)
     {
-      printf ("\"kernel_type\": %s, ", "[ \"optimized\" ]");
+      json_key (js, "kernel_type");
+      json_array_begin (js);
+      json_string (js, "optimized");
+      json_array_end (js);
     }
 
     if (user_options->hash_info > 1)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        printf ("\"kernel_type_filter\": %s, ", "[ \"optimized\" ]");
-      }
-      else
-      {
-        printf ("\"kernel_type_filter\": %s, ", "[ \"pure\" ]");
-      }
+      json_key (js, "kernel_type_filter");
+      json_array_begin (js);
+      json_string (js, (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? "optimized" : "pure");
+      json_array_end (js);
 
-      printf ("\"attack_mode_filter\": %d, ", user_options->attack_mode);
+      json_kv_int (js, "attack_mode_filter", user_options->attack_mode);
 
       // almost always 1 and -1
-      printf ("\"hashes_count_min\": %d, ", hashconfig->hashes_count_min);
-      printf ("\"hashes_count_max\": %d, ", hashconfig->hashes_count_max);
+      json_kv_int (js, "hashes_count_min", hashconfig->hashes_count_min);
+      json_kv_int (js, "hashes_count_max", hashconfig->hashes_count_max);
 
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {
         bool multi_hash_same_salt = true;
 
+        // the loader accepts either flag for several hashes under one salt, so both have to be
+        // tested here or a mode that carries only the second one is reported as refusing what it
+        // in fact allows. The same goes for a slow mode without an esalt, which the loader never
+        // refuses. See the issue 3641 guard in hashes.c.
+
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
-          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          if ((hashconfig->opts_type & OPTS_TYPE_MULTIHASH_DESPITE_ESALT) == 0)
           {
-            multi_hash_same_salt = false;
+            if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+            {
+              if (hashconfig->esalt_size > 0)
+              {
+                multi_hash_same_salt = false;
+              }
+            }
           }
         }
 
-        printf ("\"hashes_with_same_salt\": %s, ", (multi_hash_same_salt == true) ? "true" : "false");
+        json_kv_bool (js, "hashes_with_same_salt", multi_hash_same_salt);
       }
     }
 
@@ -856,25 +1185,19 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       {
         if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
         {
-          printf ("\"example_hash_format\": \"%s\", ", "hex-encoded");
+          json_kv_string (js, "example_hash_format", "hex-encoded");
         }
         else
         {
-          printf ("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
+          json_kv_string (js, "example_hash_format", "hex-encoded (binary file only)");
         }
       }
       else
       {
-        printf ("\"example_hash_format\": \"%s\", ", "plain");
+        json_kv_string (js, "example_hash_format", "plain");
       }
 
-      char *example_hash_json_encoded = (char *) hcmalloc (strlen (hashconfig->st_hash) * 2);
-
-      json_encode (hashconfig->st_hash, example_hash_json_encoded);
-
-      printf ("\"example_hash\": \"%s\", ", example_hash_json_encoded);
-
-      hcfree (example_hash_json_encoded);
+      json_kv_string (js, "example_hash", hashconfig->st_hash);
 
       if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
       {
@@ -888,14 +1211,14 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         tmp_buf[tmp_len++] = 'X';
         tmp_buf[tmp_len++] = '[';
 
-        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+        const size_t hex_len = exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
 
-        tmp_len += strlen (hashconfig->st_pass) * 2;
+        tmp_len += (int) hex_len;
 
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
 
-        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+        json_kv_string (js, "example_pass", tmp_buf);
 
         hcfree (tmp_buf);
       }
@@ -909,61 +1232,81 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
 
-        printf ("\"example_pass\": \"%s\", ", tmp_buf);
+        json_kv_string (js, "example_pass", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        lowercase ((u8 *) tmp_buf, st_pass_len);
+
+        json_kv_string (js, "example_pass", tmp_buf);
 
         hcfree (tmp_buf);
       }
       else
       {
-        printf ("\"example_pass\": \"%s\", ", hashconfig->st_pass);
+        json_kv_string (js, "example_pass", hashconfig->st_pass);
       }
     }
     else
     {
-      printf ("\"example_hash_format\": \"%s\", ", "N/A");
-      printf ("\"example_hash\": \"%s\", ", "N/A");
-      printf ("\"example_pass\": \"%s\", ", "N/A");
+      json_kv_string (js, "example_hash_format", "N/A");
+      json_kv_string (js, "example_hash",        "N/A");
+      json_kv_string (js, "example_pass",        "N/A");
     }
 
     if (hashconfig->benchmark_mask != NULL)
     {
-      printf ("\"benchmark_mask\": \"%s\", ", hashconfig->benchmark_mask);
+      json_kv_string (js, "benchmark_mask", hashconfig->benchmark_mask);
     }
     else
     {
-      printf ("\"benchmark_mask\": \"%s\", ", "N/A");
+      json_kv_string (js, "benchmark_mask", "N/A");
     }
 
     if (hashconfig->benchmark_charset != NULL)
     {
-      printf ("\"benchmark_charset1\": \"%s\", ", hashconfig->benchmark_charset);
+      json_kv_string (js, "benchmark_charset1", hashconfig->benchmark_charset);
     }
     else
     {
-      printf ("\"benchmark_charset1\": \"%s\", ", "N/A");
+      json_kv_string (js, "benchmark_charset1", "N/A");
     }
 
-    printf ("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
-    printf ("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
-    printf ("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
-    printf ("\"keep_guessing\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG) ? "true" : "false");
-    printf ("\"custom_plugin\": %s, ", (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? "false" : "true");
+    json_kv_bool (js, "autodetect_enabled", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? false : true);
+    json_kv_bool (js, "self_test_enabled",  (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? false : true);
+    json_kv_bool (js, "potfile_enabled",    (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? false : true);
+    json_kv_bool (js, "keep_guessing",      (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG) ? true : false);
+    json_kv_bool (js, "custom_plugin",      (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? false : true);
+
+    json_key (js, "plaintext_encoding");
+    json_array_begin (js);
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
     {
-      printf ("\"plaintext_encoding\": %s", "[ \"ASCII\" ]");
+      json_string (js, "ASCII");
     }
     else if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
     {
-      printf ("\"plaintext_encoding\": %s", "[ \"HEX\" ]");
+      json_string (js, "HEX");
     }
     else
     {
-      printf ("\"plaintext_encoding\": %s", "[ \"ASCII\", \"HEX\" ]");
+      json_string (js, "ASCII");
+      json_string (js, "HEX");
     }
-  }
 
-  printf (" }");
+    json_array_end (js);
+
+    json_object_end (js);
+  }
 
   hashconfig_destroy (hashcat_ctx);
 }
@@ -1095,11 +1438,22 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
       {
         bool multi_hash_same_salt = true;
 
+        // the loader accepts either flag for several hashes under one salt, so both have to be
+        // tested here or a mode that carries only the second one is reported as refusing what it
+        // in fact allows. The same goes for a slow mode without an esalt, which the loader never
+        // refuses. See the issue 3641 guard in hashes.c.
+
         if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
         {
-          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          if ((hashconfig->opts_type & OPTS_TYPE_MULTIHASH_DESPITE_ESALT) == 0)
           {
-            multi_hash_same_salt = false;
+            if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+            {
+              if (hashconfig->esalt_size > 0)
+              {
+                multi_hash_same_salt = false;
+              }
+            }
           }
         }
 
@@ -1152,9 +1506,9 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         tmp_buf[tmp_len++] = 'X';
         tmp_buf[tmp_len++] = '[';
 
-        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+        const size_t hex_len = exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
 
-        tmp_len += strlen (hashconfig->st_pass) * 2;
+        tmp_len += (int) hex_len;
 
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
@@ -1172,6 +1526,20 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_LOWER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        lowercase ((u8 *) tmp_buf, st_pass_len);
 
         event_log_info (hashcat_ctx, "  Example.Pass........: %s", tmp_buf);
 
@@ -1238,20 +1606,29 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->machine_readable == false)
+  // JSON here is selected by --machine-readable (its historic meaning for hash-info)
+  // or by the --json umbrella flag.
+
+  const bool json_output = (user_options->machine_readable == true) || (user_options->json == true);
+
+  if (json_output == false)
   {
     event_log_info (hashcat_ctx, "Hash Info:");
     event_log_info (hashcat_ctx, "==========");
     event_log_info (hashcat_ctx, NULL);
   }
 
+  json_ctx_t js;
+
+  if (json_output == true) json_init (&js, stdout);
+
   if (user_options->hash_mode_chgd == true)
   {
-    if (user_options->machine_readable == true)
+    if (json_output == true)
     {
-      printf ("{ ");
-      hash_info_single_json (hashcat_ctx, user_options_extra);
-      printf (" }");
+      json_object_begin (&js);
+      hash_info_single_json (&js, hashcat_ctx, user_options_extra);
+      json_object_end (&js);
     }
     else
     {
@@ -1262,7 +1639,7 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   {
     char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    if (user_options->machine_readable == true) printf ("{ ");
+    if (json_output == true) json_object_begin (&js);
 
     for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
@@ -1272,14 +1649,20 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
-      if (user_options->machine_readable == true)
-      {
-        if (i != 0)
-        {
-          printf (", ");
-        }
+      // an old number loads the module of its new number, so a module file left under it by an
+      // earlier build or install would list the hash-mode twice
 
-        hash_info_single_json (hashcat_ctx, user_options_extra);
+      if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
+      // a module that could not be loaded was reported when the options were collected
+
+      if (module_options_broken (user_options, (u32) i) == true) continue;
+
+      if (json_output == true)
+      {
+        // the emitter places the comma between modes, so a mode whose module is missing cannot
+        // leave a stray one the way the old hand-placed ", " could.
+        hash_info_single_json (&js, hashcat_ctx, user_options_extra);
       }
       else
       {
@@ -1287,10 +1670,209 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (user_options->machine_readable == true) printf (" }");
+    if (json_output == true) json_object_end (&js);
 
     hcfree (modulefile);
   }
+}
+
+// The bridge's unit inventory, printed the same way whether it heads a run or answers -I. Units that
+// describe themselves identically are folded into one line, because a box of identical cards would
+// otherwise spend a screen saying the same thing.
+
+// What each unit is made of, when a unit is made of more than one thing.
+//
+// A bridge whose unit is one piece of hardware answers nothing here and nothing is printed. A unit
+// that groups hardware has to list it: the group is what shows up in the status line from then on, so
+// this is the only place the individual members are named, and the number each one is given here is
+// the number it is called by everywhere else.
+
+static bool bridge_has_members (const bridge_ctx_t *bridge_ctx)
+{
+  if (bridge_ctx->get_unit_member_count == NULL) return false;
+  if (bridge_ctx->get_unit_member_count == BRIDGE_DEFAULT) return false;
+  if (bridge_ctx->get_unit_member_info  == NULL) return false;
+  if (bridge_ctx->get_unit_member_info  == BRIDGE_DEFAULT) return false;
+
+  return true;
+}
+
+static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_has_members (bridge_ctx) == false) return;
+
+  const int member_count = bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, unit_idx);
+
+  if (member_count < 1) return;
+
+  // Indented, and directly under the heading they belong to.
+  //
+  // These lines are what the unit above them is MADE OF, so the layout has to say so. A blank line
+  // between the two and no indent under it made them read as a second listing of their own, which is
+  // how they were read: a heading, then a paragraph break, then an unattached line starting with a
+  // number that also appears in the heading.
+
+  for (int m = 0; m < member_count; m++)
+  {
+    const char *info = bridge_ctx->get_unit_member_info (hashcat_ctx, bridge_ctx->platform_context, unit_idx, m);
+
+    if (info == NULL) continue;
+
+    event_log_info (hashcat_ctx, "  %s", info);
+  }
+}
+
+static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->enabled == false) return;
+
+  const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
+
+  const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
+
+  char line[HCBUFSIZ_TINY] = { 0 };
+
+  memset (line, '=', len);
+
+  line[len] = 0;
+
+  event_log_info (hashcat_ctx, "%s", line);
+
+  // Folding is for a bridge whose units really are interchangeable, which is every bridge whose units
+  // are CPU threads. A bridge that lists what each unit is MADE OF is not one of those: the members
+  // are the point, folding would throw them away, and the unit line is what the member lines hang off.
+
+  bool all_same = (bridge_has_members (bridge_ctx) == false);
+
+  if (all_same == true)
+  {
+    char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
+
+    for (int i = 1; i < unit_count; i++)
+    {
+      if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
+      {
+        all_same = false;
+
+        break;
+      }
+    }
+
+    if (all_same == true) event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
+  }
+
+  if (all_same == false)
+  {
+    // Units of a kind get ONE block between them, with all of their boards listed under it.
+    //
+    // A unit is one board by default, so without this a rack of eight is eight headings each
+    // announcing "x 1 board" and each followed by a single line. The information is the same and the
+    // shape of it is not: what a fleet owner wants to see is what kinds of thing are present and what
+    // each kind is made of. It also matches the status view, which groups the same devices the same
+    // way for the same reason.
+
+    bool done[DEVICES_MAX];
+
+    memset (done, 0, sizeof (done));
+
+    bool first_block = true;
+
+    for (int i = 0; i < unit_count; i++)
+    {
+      if (done[i] == true) continue;
+
+      int members[DEVICES_MAX];
+      int members_cnt = 0;
+
+      int boards = 0;
+
+      for (int j = i; j < unit_count; j++)
+      {
+        if (done[j] == true) continue;
+        if ((j != i) && (bridge_same_unit_class (hashcat_ctx, i, j) == false)) continue;
+
+        done[j] = true;
+
+        members[members_cnt] = j;
+
+        members_cnt++;
+
+        boards += (bridge_has_members (bridge_ctx) == true)
+                ? bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, j)
+                : 1;
+      }
+
+      if (first_block == false) event_log_info (hashcat_ctx, NULL);
+
+      first_block = false;
+
+      // One unit keeps the singular heading it always had. Several are named by their range when they
+      // are contiguous, which they are whenever the bridge groups its own discovery by class, and by
+      // a count when they are not, because a range that skips a unit would be a lie.
+
+      if (members_cnt == 1)
+      {
+        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+      }
+      else
+      {
+        char *class_str = (bridge_ctx->get_unit_class != NULL) && (bridge_ctx->get_unit_class != BRIDGE_DEFAULT)
+                        ? bridge_ctx->get_unit_class (hashcat_ctx, bridge_ctx->platform_context, i)
+                        : bridge_ctx->get_unit_info  (hashcat_ctx, bridge_ctx->platform_context, i);
+
+        const bool contiguous = ((members[members_cnt - 1] - members[0]) == (members_cnt - 1)) ? true : false;
+
+        if (contiguous == true)
+        {
+          event_log_info (hashcat_ctx, "* Units #%02d-#%02d: %s x %d board%s", members[0] + 1, members[members_cnt - 1] + 1, class_str, boards, (boards == 1) ? "" : "s");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Units x%d: %s x %d board%s", members_cnt, class_str, boards, (boards == 1) ? "" : "s");
+        }
+      }
+
+      for (int m = 0; m < members_cnt; m++)
+      {
+        bridge_unit_members_info (hashcat_ctx, members[m]);
+      }
+    }
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+}
+
+// Whether the listing has a line for this device: one entry per physical device, because the other
+// copies of a virtualised one are the bridge units that the Assimilation Bridge section describes,
+// and then the device types -D asked for.
+
+static bool backend_info_shown (const backend_ctx_t *backend_ctx, const hc_device_param_t *device_param)
+{
+  if (device_param->is_virtual == true) return false;
+
+  if ((backend_ctx->opencl_device_types_filter & device_param->opencl_device_type) == 0) return false;
+
+  return true;
+}
+
+// How many of a backend's devices the listing has a line for. Asked before anything is printed,
+// because a section whose devices are all filtered away prints no header, and because the separator
+// between two sections of machine-readable output depends on whether a later one has anything to say.
+
+static u32 backend_info_shown_cnt (const backend_ctx_t *backend_ctx, const int *backend_device_from, const int devices_cnt)
+{
+  u32 shown = 0;
+
+  for (int devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
+  {
+    if (backend_info_shown (backend_ctx, backend_ctx->devices_param + backend_device_from[devices_idx]) == true) shown++;
+  }
+
+  return shown;
 }
 
 void backend_info (hashcat_ctx_t *hashcat_ctx)
@@ -1299,14 +1881,68 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
-  if (user_options->machine_readable == true)
+  // JSON here is selected by --machine-readable (its historic meaning for -I) or by
+  // the --json umbrella flag, so both drive the machine-readable layout below.
+
+  const bool machine_readable = (user_options->machine_readable == true) || (user_options->json == true);
+
+  json_ctx_t js;
+
+  json_init (&js, stdout);
+
+  if (machine_readable == true)
   {
-    printf ("{ ");
+    json_object_begin (&js);
+  }
+
+  // Bridge units, when the hash mode named one. A bridge is selected by the mode, so -I on its own
+  // has nothing to load and the backend devices below are the whole answer. For a mode that does use
+  // a bridge they are not: the units compute and the devices only feed them, so a list without them
+  // describes the machine rather than the work.
+  //
+  // Left out of --machine-readable, which emits JSON here and would be broken by plain lines.
+
+  if (machine_readable == false)
+  {
+    bridge_units_info (hashcat_ctx);
+
+    // Say why the section is absent rather than leaving someone with an FPGA to conclude their card
+    // was not found. Only when no mode was named: with one that simply has no bridge there are no
+    // units to talk about and the silence is the right answer.
+
+    if ((hashcat_ctx->bridge_ctx->enabled == false) && (user_options->hash_mode_chgd == false))
+    {
+      event_log_info (hashcat_ctx, "Bridge units are selected by the hash mode, so none are listed here.");
+      event_log_info (hashcat_ctx, "Add -m <hash mode> to list the units that mode would use.");
+      event_log_info (hashcat_ctx, NULL);
+    }
+  }
+
+  // What each backend will print, and for OpenCL what each of its platforms will. A section with
+  // nothing to show is left out whole, and what is left decides where a comma goes.
+
+  const u32 cuda_shown  = (backend_ctx->cuda) ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_cuda,  backend_ctx->cuda_devices_cnt)  : 0;
+  const u32 hip_shown   = (backend_ctx->hip)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_hip,   backend_ctx->hip_devices_cnt)   : 0;
+  MAYBE_UNUSED const u32 metal_shown = (backend_ctx->mtl)  ? backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_metal, backend_ctx->metal_devices_cnt) : 0;
+
+  u32 opencl_platform_shown[CL_PLATFORMS_MAX];
+  u32 opencl_shown = 0;
+
+  memset (opencl_platform_shown, 0, sizeof (opencl_platform_shown));
+
+  if (backend_ctx->ocl)
+  {
+    for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < backend_ctx->opencl_platforms_cnt; opencl_platforms_idx++)
+    {
+      opencl_platform_shown[opencl_platforms_idx] = backend_info_shown_cnt (backend_ctx, backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx], (int) backend_ctx->opencl_platforms_devices_cnt[opencl_platforms_idx]);
+
+      opencl_shown += opencl_platform_shown[opencl_platforms_idx];
+    }
   }
 
   if (user_options->backend_info > 1)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "System Info:");
       event_log_info (hashcat_ctx, "============");
@@ -1314,7 +1950,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"SystemInfo\": { ");
+      json_key (&js, "SystemInfo");
+      json_object_begin (&js);
     }
 
     #if defined (_WIN)
@@ -1358,7 +1995,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
                osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber);
     }
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "OS.Name......: Windows");
       event_log_info (hashcat_ctx, "OS.Release...: %s", release_buf);
@@ -1367,13 +2004,17 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"OS\": { ");
-      printf ("\"Name\": \"%s\", ", "Windows");
-      printf ("\"Release\": \"%s\" }, ", release_buf);
-      printf ("\"Hardware\": { ");
-      printf ("\"Platform\": \"%s\", ", platform_buf);
-      printf ("\"Model\": \"%s\" } ", "N/A");
-      printf ("}, ");
+      json_key (&js, "OS");
+      json_object_begin (&js);
+      json_kv_string (&js, "Name", "Windows");
+      json_kv_string (&js, "Release", release_buf);
+      json_object_end (&js);
+      json_key (&js, "Hardware");
+      json_object_begin (&js);
+      json_kv_string (&js, "Platform", platform_buf);
+      json_kv_string (&js, "Model", "N/A");
+      json_object_end (&js);
+      json_object_end (&js);
     }
 
     #else
@@ -1438,7 +2079,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       rc_uname = true;
     }
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
       event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
@@ -1447,13 +2088,17 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"OS\": { ");
-      printf ("\"Name\": \"%s\", ", (rc_uname  == true) ? utsbuf.sysname : "N/A");
-      printf ("\"Release\": \"%s\" }, ", (rc_uname  == true) ? utsbuf.release : "N/A");
-      printf ("\"Hardware\": { ");
-      printf ("\"Platform\": \"%s\", ", (rc_uname  == true) ? utsbuf.machine : "N/A");
-      printf ("\"Model\": \"%s\" } ", (rc_sysctl == true) ? hw_model_buf : "N/A");
-      printf ("}, ");
+      json_key (&js, "OS");
+      json_object_begin (&js);
+      json_kv_string (&js, "Name", (rc_uname == true) ? utsbuf.sysname : "N/A");
+      json_kv_string (&js, "Release", (rc_uname == true) ? utsbuf.release : "N/A");
+      json_object_end (&js);
+      json_key (&js, "Hardware");
+      json_object_begin (&js);
+      json_kv_string (&js, "Platform", (rc_uname == true) ? utsbuf.machine : "N/A");
+      json_kv_string (&js, "Model", (rc_sysctl == true) ? hw_model_buf : "N/A");
+      json_object_end (&js);
+      json_object_end (&js);
     }
 
     if (rc_sysctl == true)
@@ -1462,7 +2107,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     #endif // _WIN || __CYGWIN__ || __MSYS__
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, NULL);
 
@@ -1483,20 +2128,21 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"EnvironmentInfo\": { ");
-      printf ("\"CurrentWorkingDirectory\": \"%s\", ", folder_config->cwd);
-      printf ("\"InstallDirectory\": \"%s\", ", folder_config->install_dir);
-      printf ("\"ProfileDirectory\": \"%s\", ", folder_config->profile_dir);
-      printf ("\"CacheDirectory\": \"%s\", ", folder_config->cache_dir);
-      printf ("\"SharedDirectory\": \"%s\", ", folder_config->shared_dir);
-      printf ("\"CLIncludePath\": \"%s\" ", folder_config->cpath_real);
-      printf ("}, ");
+      json_key (&js, "EnvironmentInfo");
+      json_object_begin (&js);
+      json_kv_string (&js, "CurrentWorkingDirectory", folder_config->cwd);
+      json_kv_string (&js, "InstallDirectory", folder_config->install_dir);
+      json_kv_string (&js, "ProfileDirectory", folder_config->profile_dir);
+      json_kv_string (&js, "CacheDirectory", folder_config->cache_dir);
+      json_kv_string (&js, "SharedDirectory", folder_config->shared_dir);
+      json_kv_string (&js, "CLIncludePath", folder_config->cpath_real);
+      json_object_end (&js);
     }
   }
 
-  if (backend_ctx->cuda)
+  if (backend_ctx->cuda && cuda_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "CUDA Info:");
       event_log_info (hashcat_ctx, "==========");
@@ -1504,33 +2150,40 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"CUDAInfo\": { ");
+      json_key (&js, "CUDAInfo");
+      json_object_begin (&js);
     }
 
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
     int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "CUDA.Version.: %u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      printf ("\"Version\": \"%u.%u\", ", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
-      printf ("\"BackendDevices\": [ ");
+      json_kv_fmt (&js, "Version", "%u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+      json_key (&js, "BackendDevices");
+      json_array_begin (&js);
     }
 
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
     {
-      if (user_options->machine_readable == true)
-      {
-        printf ("{ ");
-      }
-
       const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      if (backend_info_shown (backend_ctx, device_param) == false) continue;
+
+      // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+      // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+      if (machine_readable == true)
+      {
+        json_object_begin (&js);
+      }
 
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
@@ -1540,7 +2193,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u64   device_available_mem          = device_param->device_available_mem;
       u64   device_global_mem             = device_param->device_global_mem;
       int   device_host_unified_memory    = device_param->device_host_unified_memory;
-      u32   kernel_preferred_wgs_multiple = device_param->kernel_preferred_wgs_multiple;
+      u32   device_preferred_wgs_multiple = device_param->device_preferred_wgs_multiple;
       u8    pcie_domain                   = device_param->pcie_domain;
       u8    pcie_bus                      = device_param->pcie_bus;
       u8    pcie_device                   = device_param->pcie_device;
@@ -1548,83 +2201,68 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
         else
         {
-          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
-          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
+          json_kv_fmt (&js, "Alias", "%02u", device_param->device_id_alias_buf[0] + 1);
         }
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
         }
         else
         {
-          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", device_preferred_wgs_multiple);
         event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
         event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
         event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
         event_log_info (hashcat_ctx, NULL);
       }
       else
       {
-        printf ("\"Name\": \"%s\", ", device_name);
-        printf ("\"Processors\": \"%u\", ", device_processors);
-        printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
-        printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
-        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
-        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
-        printf ("\"MemoryUnified\": \"%d\", ", device_host_unified_memory);
-        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
-        printf ("\"PCIAddrBDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+        json_kv_string (&js, "Name", device_name);
+        json_kv_fmt (&js, "Processors", "%u", device_processors);
+        json_kv_fmt (&js, "PreferredThreadSize", "%u", device_preferred_wgs_multiple);
+        json_kv_fmt (&js, "Clock", "%u", device_maxclock_frequency);
+        json_kv_fmt (&js, "MemoryTotal", "%" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryFree", "%" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryUnified", "%d", device_host_unified_memory);
+        json_kv_fmt (&js, "LocalMemory", "%" PRIu64 " MB", device_local_mem_size / 1024);
+        json_kv_fmt (&js, "PCIAddrBDFe", "%04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((cuda_devices_idx + 1) < cuda_devices_cnt)
-        {
-          printf ("}, ");
-        }
-        else
-        {
-          printf ("} ");
-        }
-      }
+      if (machine_readable == true) json_object_end (&js);
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
-      if (backend_ctx->hip || backend_ctx->mtl || backend_ctx->ocl)
-      {
-        printf ("] }, ");
-      }
-      else
-      {
-        printf ("] } ");
-      }
+      json_array_end (&js);
+      json_object_end (&js);
     }
   }
 
-  if (backend_ctx->hip)
+  if (backend_ctx->hip && hip_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "HIP Info:");
       event_log_info (hashcat_ctx, "=========");
@@ -1632,7 +2270,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"HIPInfo\": { ");
+      json_key (&js, "HIPInfo");
+      json_object_begin (&js);
     }
 
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
@@ -1644,44 +2283,50 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
       int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "HIP.Version.: %u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
         event_log_info (hashcat_ctx, NULL);
       }
       else
       {
-        printf ("\"Version\": \"%u.%u.%u\", ", hip_version_major, hip_version_minor, hip_version_patch);
+        json_kv_fmt (&js, "Version", "%u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
       }
     }
     else
     {
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "HIP.Version.: %u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
         event_log_info (hashcat_ctx, NULL);
       }
       else
       {
-        printf ("\"Version\": \"%u.%u\", ", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+        json_kv_fmt (&js, "Version", "%u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
       }
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
-      printf ("\"BackendDevices\": [ ");
+      json_key (&js, "BackendDevices");
+      json_array_begin (&js);
     }
 
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
     {
-      if (user_options->machine_readable == true)
-      {
-        printf ("{ ");
-      }
-
       const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      if (backend_info_shown (backend_ctx, device_param) == false) continue;
+
+      // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+      // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+      if (machine_readable == true)
+      {
+        json_object_begin (&js);
+      }
 
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
@@ -1691,7 +2336,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u64   device_available_mem          = device_param->device_available_mem;
       u64   device_global_mem             = device_param->device_global_mem;
       int   device_host_unified_memory    = device_param->device_host_unified_memory;
-      u32   kernel_preferred_wgs_multiple = device_param->kernel_preferred_wgs_multiple;
+      u32   device_preferred_wgs_multiple = device_param->device_preferred_wgs_multiple;
       u8    pcie_domain                   = device_param->pcie_domain;
       u8    pcie_bus                      = device_param->pcie_bus;
       u8    pcie_device                   = device_param->pcie_device;
@@ -1699,84 +2344,69 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
         else
         {
-          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
-          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
+          json_kv_fmt (&js, "Alias", "%02u", device_param->device_id_alias_buf[0] + 1);
         }
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
         }
         else
         {
-          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", device_preferred_wgs_multiple);
         event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
         event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
         event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
         event_log_info (hashcat_ctx, NULL);
       }
       else
       {
-        printf ("\"Name\": \"%s\", ", device_name);
-        printf ("\"Processors\": \"%u\", ", device_processors);
-        printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
-        printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
-        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
-        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
-        printf ("\"MemoryUnified\": \"%d\", ", device_host_unified_memory);
-        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
-        printf ("\"PCIAddrBDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+        json_kv_string (&js, "Name", device_name);
+        json_kv_fmt (&js, "Processors", "%u", device_processors);
+        json_kv_fmt (&js, "PreferredThreadSize", "%u", device_preferred_wgs_multiple);
+        json_kv_fmt (&js, "Clock", "%u", device_maxclock_frequency);
+        json_kv_fmt (&js, "MemoryTotal", "%" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryFree", "%" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryUnified", "%d", device_host_unified_memory);
+        json_kv_fmt (&js, "LocalMemory", "%" PRIu64 " MB", device_local_mem_size / 1024);
+        json_kv_fmt (&js, "PCIAddrBDFe", "%04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((hip_devices_idx + 1) < hip_devices_cnt)
-        {
-          printf ("}, ");
-        }
-        else
-        {
-          printf ("} ");
-        }
-      }
+      if (machine_readable == true) json_object_end (&js);
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
-      if (backend_ctx->mtl || backend_ctx->ocl)
-      {
-        printf ("] }, ");
-      }
-      else
-      {
-        printf ("] } ");
-      }
+      json_array_end (&js);
+      json_object_end (&js);
     }
   }
 
   #if defined (__APPLE__)
-  if (backend_ctx->mtl)
+  if (backend_ctx->mtl && metal_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "Metal Info:");
       event_log_info (hashcat_ctx, "===========");
@@ -1784,38 +2414,45 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"MetalInfo\": { ");
+      json_key (&js, "MetalInfo");
+      json_object_begin (&js);
     }
 
     int metal_devices_cnt = backend_ctx->metal_devices_cnt;
 
     char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
-      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
+      event_log_info (hashcat_ctx, "Metal.Runtime.Version.: %s", metal_runtimeVersionStr);
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      printf ("\"Version\": \"%s\", ", metal_runtimeVersionStr);
+      json_kv_string (&js, "RuntimeVersion", metal_runtimeVersionStr);
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
-      printf ("\"BackendDevices\": [ ");
+      json_key (&js, "BackendDevices");
+      json_array_begin (&js);
     }
 
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
     {
-      if (user_options->machine_readable == true)
-      {
-        printf ("{ ");
-      }
-
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      if (backend_info_shown (backend_ctx, device_param) == false) continue;
+
+      // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+      // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+      if (machine_readable == true)
+      {
+        json_object_begin (&js);
+      }
 
       int   device_id                        = device_param->device_id;
       int   device_max_transfer_rate         = device_param->device_max_transfer_rate;
@@ -1835,7 +2472,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       u64   device_available_mem             = device_param->device_available_mem;
       u64   device_local_mem_size            = device_param->device_local_mem_size;
       int   device_host_unified_memory       = device_param->device_host_unified_memory;
-      u32   kernel_preferred_wgs_multiple    = device_param->kernel_preferred_wgs_multiple;
+      u32   device_preferred_wgs_multiple    = device_param->device_preferred_wgs_multiple;
 
       cl_device_type opencl_device_type      = device_param->opencl_device_type;
       cl_uint        opencl_device_vendor_id = device_param->opencl_device_vendor_id;
@@ -1843,193 +2480,181 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
         }
         else
         {
-          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
-          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
+          json_kv_fmt (&js, "Alias", "%02u", device_param->device_id_alias_buf[0] + 1);
         }
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
         }
         else
         {
-          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
-        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
         event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
         event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
         event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+        event_log_info (hashcat_ctx, "  Preferred.Thrd.: %u", device_preferred_wgs_multiple);
         event_log_info (hashcat_ctx, "  Clock..........: N/A");
         event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Metal.Version..: %d", device_param->metal_version);
       }
       else
       {
-        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
-        printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
-        printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
-        printf ("\"Name\": \"%s\", ", device_name);
-        printf ("\"Processors\": \"%u\", ", device_processors);
-        printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
-        printf ("\"Clock\": \"%s\", ", "N/A");
-        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
-        printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
-        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
-        printf ("\"MemoryUnified\": \"%d\", ", device_host_unified_memory);
-        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        json_kv_fmt (&js, "Type", "%s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
+        json_kv_fmt (&js, "VendorID", "%u", opencl_device_vendor_id);
+        json_kv_string (&js, "Vendor", opencl_device_vendor);
+        json_kv_string (&js, "Name", device_name);
+        json_kv_fmt (&js, "Processors", "%u", device_processors);
+        json_kv_fmt (&js, "PreferredThreadSize", "%u", device_preferred_wgs_multiple);
+        json_kv_string (&js, "Clock", "N/A");
+        json_kv_fmt (&js, "MemoryTotal", "%" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryAllocPerBlock", "%" PRIu64 " MB", device_maxmem_alloc / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryFree", "%" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        json_kv_fmt (&js, "MemoryUnified", "%d", device_host_unified_memory);
+        json_kv_fmt (&js, "LocalMemory", "%" PRIu64 " MB", device_local_mem_size / 1024);
+        json_kv_fmt (&js, "MetalVersion", "%d", device_param->metal_version);
       }
 
       switch (device_physical_location)
       {
         case MTL_DEVICE_LOCATION_BUILTIN:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: built-in");
           }
           else
           {
-            printf ("\"PhysicalLocation\": \"built-in\", ");
+            json_kv_string (&js, "PhysicalLocation", "built-in");
           }
 
           break;
         case MTL_DEVICE_LOCATION_SLOT:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %u", device_location_number);
           }
           else
           {
-            printf ("\"PhysicalLocation\": \"connected to slot %u\", ", device_location_number);
+            json_kv_fmt (&js, "PhysicalLocation", "connected to slot %u", device_location_number);
           }
 
           break;
         case MTL_DEVICE_LOCATION_EXTERNAL:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %u)", device_location_number);
           }
           else
           {
-            printf ("\"PhysicalLocation\": \"connected via an external interface (port %u)\", ", device_location_number);
+            json_kv_fmt (&js, "PhysicalLocation", "connected via an external interface (port %u)", device_location_number);
           }
 
           break;
         case MTL_DEVICE_LOCATION_UNSPECIFIED:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: unspecified");
           }
           else
           {
-            printf ("\"PhysicalLocation\": \"unspecified\", ");
+            json_kv_string (&js, "PhysicalLocation", "unspecified");
           }
 
           break;
         default:
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Phys.Location..: N/A");
           }
           else
           {
-            printf ("\"PhysicalLocation\": \"%s\", ", "N/A");
+            json_kv_string (&js, "PhysicalLocation", "N/A");
           }
 
           break;
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
       }
       else
       {
-        printf ("\"RegistryID\": \"%u\", ", device_registryID);
+        json_kv_fmt (&js, "RegistryID", "%u", device_registryID);
       }
 
       if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "  Max.TX.Rate....: %u MB/sec", device_max_transfer_rate);
         }
         else
         {
-          printf ("\"MaxTXRate\": \"%u MB/sec\", ", device_max_transfer_rate);
+          json_kv_fmt (&js, "MaxTXRate", "%u MB/sec", device_max_transfer_rate);
         }
       }
       else
       {
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
         }
         else
         {
-          printf ("\"MaxTXRate\": \"%s\", ", "N/A");
+          json_kv_string (&js, "MaxTXRate", "N/A");
         }
       }
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "  GPU.Properties.: headless %u, low-power %u, removable %u", device_is_headless, device_is_low_power, device_is_removable);
         event_log_info (hashcat_ctx, NULL);
       }
       else
       {
-        printf ("\"GPUProperties\": { ");
-        printf ("\"headless\": \"%u\", ", device_is_headless);
-        printf ("\"low_power\": \"%u\", ", device_is_low_power);
-        printf ("\"removable\": \"%u\" ", device_is_removable);
-        printf ("} ");
+        json_key (&js, "GPUProperties");
+        json_object_begin (&js);
+        json_kv_fmt (&js, "headless", "%u", device_is_headless);
+        json_kv_fmt (&js, "low_power", "%u", device_is_low_power);
+        json_kv_fmt (&js, "removable", "%u", device_is_removable);
+        json_object_end (&js);
       }
 
-      if (user_options->machine_readable == true)
-      {
-        if ((metal_devices_idx + 1) < metal_devices_cnt)
-        {
-          printf ("}, ");
-        }
-        else
-        {
-          printf ("} ");
-        }
-      }
+      if (machine_readable == true) json_object_end (&js);
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
-      if (backend_ctx->ocl)
-      {
-        printf ("] }, ");
-      }
-      else
-      {
-        printf ("] } ");
-      }
+      json_array_end (&js);
+      json_object_end (&js);
     }
   }
   #endif
 
-  if (backend_ctx->ocl)
+  if (backend_ctx->ocl && opencl_shown)
   {
-    if (user_options->machine_readable == false)
+    if (machine_readable == false)
     {
       event_log_info (hashcat_ctx, "OpenCL Info:");
       event_log_info (hashcat_ctx, "============");
@@ -2037,8 +2662,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      printf ("\"OpenCLInfo\": { ");
-      printf ("\"Platforms\": [ ");
+      json_key (&js, "OpenCLInfo");
+      json_object_begin (&js);
+      json_key (&js, "Platforms");
+      json_array_begin (&js);
     }
 
     cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;
@@ -2049,9 +2676,14 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
     for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
-      if (user_options->machine_readable == true)
+      // A platform whose devices are all filtered away is left out whole, header and version with
+      // them, the way backend_info_compact () leaves out a platform that holds no device at all.
+
+      if (opencl_platform_shown[opencl_platforms_idx] == 0) continue;
+
+      if (machine_readable == true)
       {
-        printf ("{ ");
+        json_object_begin (&js);
       }
 
       char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
@@ -2059,7 +2691,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
       cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
 
-      if (user_options->machine_readable == false)
+      if (machine_readable == false)
       {
         event_log_info (hashcat_ctx, "OpenCL Platform ID #%u", opencl_platforms_idx + 1);
         event_log_info (hashcat_ctx, "  Vendor..: %s",  opencl_platform_vendor);
@@ -2069,27 +2701,33 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        printf ("\"PlatformID\": \"%u\", ", opencl_platforms_idx + 1);
-        printf ("\"Vendor\": \"%s\", ", opencl_platform_vendor);
-        printf ("\"Name\": \"%s\", ", opencl_platform_name);
-        printf ("\"Version\": \"%s\", ", opencl_platform_version);
+        json_kv_fmt (&js, "PlatformID", "%u", opencl_platforms_idx + 1);
+        json_kv_string (&js, "Vendor", opencl_platform_vendor);
+        json_kv_string (&js, "Name", opencl_platform_name);
+        json_kv_string (&js, "Version", opencl_platform_version);
       }
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
-        printf ("\"BackendDevices\": [ ");
+        json_key (&js, "BackendDevices");
+        json_array_begin (&js);
       }
 
       for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
       {
-        if (user_options->machine_readable == true)
-        {
-          printf ("{ ");
-        }
-
         const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        if (backend_info_shown (backend_ctx, device_param) == false) continue;
+
+        // Opened under the skip, so a device the listing leaves out writes nothing at all, and the comma
+        // goes in front of the next one rather than coming from an index that counts devices, not lines.
+
+        if (machine_readable == true)
+        {
+          json_object_begin (&js);
+        }
 
         int            device_id                      = device_param->device_id;
         char          *device_name                    = device_param->device_name;
@@ -2100,7 +2738,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         u64            device_available_mem           = device_param->device_available_mem;
         u64            device_global_mem              = device_param->device_global_mem;
         int            device_host_unified_memory     = device_param->device_host_unified_memory;
-        u32            kernel_preferred_wgs_multiple  = device_param->kernel_preferred_wgs_multiple;
+        u32            device_preferred_wgs_multiple  = device_param->device_preferred_wgs_multiple;
         cl_device_type opencl_device_type             = device_param->opencl_device_type;
         cl_uint        opencl_device_vendor_id        = device_param->opencl_device_vendor_id;
         char          *opencl_device_vendor           = device_param->opencl_device_vendor;
@@ -2110,37 +2748,37 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->device_id_alias_cnt)
         {
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
           }
           else
           {
-            printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
-            printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
+          json_kv_fmt (&js, "Alias", "%02u", device_param->device_id_alias_buf[0] + 1);
           }
         }
         else
         {
-          if (user_options->machine_readable == false)
+          if (machine_readable == false)
           {
             event_log_info (hashcat_ctx, "  Backend Device ID #%02u", device_id + 1);
           }
           else
           {
-            printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          json_kv_fmt (&js, "DeviceID", "%02u", device_id + 1);
           }
         }
 
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
-          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
           event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
           event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
           event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
           event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
           event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
-          event_log_info (hashcat_ctx, "    Preferred.Thrd.: %u", kernel_preferred_wgs_multiple);
+          event_log_info (hashcat_ctx, "    Preferred.Thrd.: %u", device_preferred_wgs_multiple);
           event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
           event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
           event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
@@ -2151,21 +2789,21 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
-          printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
-          printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
-          printf ("\"Name\": \"%s\", ", device_name);
-          printf ("\"Version\": \"%s\", ", opencl_device_version);
-          printf ("\"Processors\": \"%u\", ", device_processors);
-          printf ("\"PreferredThreadSize\": \"%u\", ", kernel_preferred_wgs_multiple);
-          printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
-          printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
-          printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
-          printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
-          printf ("\"MemoryUnified\": \"%d\", ", device_host_unified_memory);
-          printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
-          printf ("\"OpenCLVersion\": \"%s\", ", opencl_device_c_version);
-          printf ("\"DriverVersion\": \"%s\" ", opencl_driver_version);
+          json_kv_fmt (&js, "Type", "%s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
+          json_kv_fmt (&js, "VendorID", "%u", opencl_device_vendor_id);
+          json_kv_string (&js, "Vendor", opencl_device_vendor);
+          json_kv_string (&js, "Name", device_name);
+          json_kv_string (&js, "Version", opencl_device_version);
+          json_kv_fmt (&js, "Processors", "%u", device_processors);
+          json_kv_fmt (&js, "PreferredThreadSize", "%u", device_preferred_wgs_multiple);
+          json_kv_fmt (&js, "Clock", "%u", device_maxclock_frequency);
+          json_kv_fmt (&js, "MemoryTotal", "%" PRIu64 " MB", device_global_mem / 1024 / 1024);
+          json_kv_fmt (&js, "MemoryAllocPerBlock", "%" PRIu64 " MB", device_maxmem_alloc / 1024 / 1024);
+          json_kv_fmt (&js, "MemoryFree", "%" PRIu64 " MB", device_available_mem / 1024 / 1024);
+          json_kv_fmt (&js, "MemoryUnified", "%d", device_host_unified_memory);
+          json_kv_fmt (&js, "LocalMemory", "%" PRIu64 " MB", device_local_mem_size / 1024);
+          json_kv_string (&js, "OpenCLVersion", opencl_device_c_version);
+          json_kv_string (&js, "DriverVersion", opencl_driver_version);
         }
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
@@ -2176,68 +2814,56 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
-            if (user_options->machine_readable == false)
+            if (machine_readable == false)
             {
               event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
             }
             else
             {
-              printf (", \"PCI.Addr.BDF\": \"%02x:%02x.%u\" ", pcie_bus, pcie_device, pcie_function);
+              json_kv_fmt (&js, "PCI.Addr.BDF", "%02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
             }
           }
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
-            if (user_options->machine_readable == false)
+            if (machine_readable == false)
             {
               event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
             }
             else
             {
-              printf (", \"PCI.Addr.BDF\": \"%02x:%02x.%u\" ", pcie_bus, pcie_device, pcie_function);
+              json_kv_fmt (&js, "PCI.Addr.BDF", "%02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
             }
           }
         }
 
-        if (user_options->machine_readable == false)
+        if (machine_readable == false)
         {
           event_log_info (hashcat_ctx, NULL);
         }
         else
         {
-          if ((opencl_platform_devices_idx + 1) < opencl_platform_devices_cnt)
-          {
-            printf ("}, ");
-          }
-          else
-          {
-            printf ("} ");
-          }
+          json_object_end (&js);
         }
       }
 
-      if (user_options->machine_readable == true)
+      if (machine_readable == true)
       {
-        if ((opencl_platforms_idx + 1) < opencl_platforms_cnt)
-        {
-          printf ("] }, ");
-        }
-        else
-        {
-          printf ("] } ");
-        }
+        json_array_end (&js);
+        json_object_end (&js);
       }
     }
 
-    if (user_options->machine_readable == true)
+    if (machine_readable == true)
     {
-      printf ("] } ");
+      json_array_end (&js);
+      json_object_end (&js);
     }
   }
 
-  if (user_options->machine_readable == true)
+  if (machine_readable == true)
   {
-    printf ("}");
+    json_object_end (&js);
   }
 }
 
@@ -2251,52 +2877,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
-  /**
-   * Bridges
-   */
-
-  if (bridge_ctx->enabled == true)
-  {
-    const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
-
-    const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    bool all_same = true;
-
-    char *tmp = bridge_ctx->get_unit_info (bridge_ctx->platform_context, 0);
-
-    for (int i = 1; i < unit_count; i++)
-    {
-      if (strcmp (tmp, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i)))
-      {
-        all_same = false;
-
-        break;
-      }
-    }
-
-    if (all_same == true)
-    {
-      event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
-    }
-    else
-    {
-      for (int i = 0; i < unit_count; i++)
-      {
-        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i));
-      }
-    }
-
-    event_log_info (hashcat_ctx, NULL);
-  }
+  bridge_units_info (hashcat_ctx);
 
   /**
    * CUDA
@@ -2322,7 +2903,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_cuda[0];
 
@@ -2423,7 +3004,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_hip[0];
 
@@ -2513,7 +3094,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_metal[0];
 
@@ -2525,14 +3106,19 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
         u64   device_global_mem    = device_param->device_global_mem;
         u64   device_available_mem = device_param->device_available_mem;
 
+        char metal_version[16] = { 0 };
+
+        if (device_param->metal_version > 0) snprintf (metal_version, sizeof (metal_version), ", Metal %d", device_param->metal_version);
+
         if ((device_param->skipped == false) && (device_param->skipped_warning == false))
         {
-          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU%s",
                     device_id + 1, unit_count,
                     device_name,
                     device_available_mem / 1024 / 1024,
                     device_global_mem    / 1024 / 1024,
-                    device_processors);
+                    device_processors,
+                    metal_version);
         }
         else
         {
@@ -2556,14 +3142,19 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
           u64   device_global_mem    = device_param->device_global_mem;
           u64   device_available_mem = device_param->device_available_mem;
 
+          char metal_version[16] = { 0 };
+
+          if (device_param->metal_version > 0) snprintf (metal_version, sizeof (metal_version), ", Metal %d", device_param->metal_version);
+
           if ((device_param->skipped == false) && (device_param->skipped_warning == false))
           {
-            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU%s",
                       device_id + 1,
                       device_name,
                       device_available_mem / 1024 / 1024,
                       device_global_mem    / 1024 / 1024,
-                      device_processors);
+                      device_processors,
+                      metal_version);
           }
           else
           {
@@ -2611,7 +3202,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
@@ -2632,7 +3223,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             {
               cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
               event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1, unit_count,
@@ -2685,7 +3276,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             {
               cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
               event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1,
@@ -2725,6 +3316,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t  *bridge_ctx = hashcat_ctx->bridge_ctx;
   const hwmon_ctx_t   *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
+  const pubkey_ctx_t  *pubkey_ctx = hashcat_ctx->pubkey_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -2782,9 +3374,16 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  printf ("CURKU\t%" PRIu64 "\t", hashcat_status->restore_point);
+  // Under --encrypt-with-pubkey the position is withheld here too, or the machine readable output
+  // would hand over what the human one refuses to print. The keyspace total stays: the operator
+  // supplied the wordlist, so it is not news to them.
 
-  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  const u64 mr_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u64 mr_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+
+  printf ("CURKU\t%" PRIu64 "\t", mr_restore_point);
+
+  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", mr_progress_cur, hashcat_status->progress_end_relative_skip);
 
   printf ("RECHASH\t%u\t%u\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
@@ -2816,6 +3415,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   }
 
   printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
+
+  #ifdef WITH_BRAIN
+  printf ("BRAIN_REJECTED\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->brain_rejects_attacks, hashcat_status->brain_rejects_hashes);
+  #endif
 
   printf ("UTIL\t");
 
@@ -2878,6 +3481,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const pubkey_ctx_t *pubkey_ctx = hashcat_ctx->pubkey_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -2905,119 +3509,109 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  char *session_json_encoded = (char *) hcmalloc (strlen (hashcat_status->session) * 2);
+  // A few fields are inline fixed-shape tokens the emitter does not model: a percentage printed to
+  // two decimals, and the two element [done, total] arrays. They are built into numbuf and emitted
+  // raw so their exact spelling is kept, while the emitter owns the object, the commas and the
+  // string escaping around them.
+  char numbuf[64];
 
-  json_encode (hashcat_status->session, session_json_encoded);
+  json_ctx_t js;
 
-  printf ("{ \"session\": \"%s\",", session_json_encoded);
+  json_init (&js, stdout);
 
-  hcfree (session_json_encoded);
+  json_object_begin (&js);
 
-  printf (" \"guess\": {");
+  json_kv_string (&js, "session", hashcat_status->session);
 
-  if (hashcat_status->guess_base)
-  {
-    char *guess_base_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_base) * 2);
+  json_key (&js, "guess");
+  json_object_begin (&js);
 
-    json_encode (hashcat_status->guess_base, guess_base_json_encoded);
+  json_kv_string (&js, "guess_base", hashcat_status->guess_base);
+  json_kv_uint   (&js, "guess_base_count", hashcat_status->guess_base_count);
+  json_kv_uint   (&js, "guess_base_offset", hashcat_status->guess_base_offset);
 
-    printf (" \"guess_base\": \"%s\",", guess_base_json_encoded);
+  snprintf (numbuf, sizeof (numbuf), "%.02f", hashcat_status->guess_base_percent);
+  json_key (&js, "guess_base_percent");
+  json_raw (&js, numbuf);
 
-    hcfree (guess_base_json_encoded);
-  }
-  else
-  {
-    printf (" \"guess_base\": null,");
-  }
+  json_kv_uint   (&js, "guess_mask_length", hashcat_status->guess_mask_length);
+  json_kv_string (&js, "guess_mod", hashcat_status->guess_mod);
+  json_kv_uint   (&js, "guess_mod_count", hashcat_status->guess_mod_count);
+  json_kv_uint   (&js, "guess_mod_offset", hashcat_status->guess_mod_offset);
 
-  printf (" \"guess_base_count\": %u,", hashcat_status->guess_base_count);
-  printf (" \"guess_base_offset\": %u,", hashcat_status->guess_base_offset);
-  printf (" \"guess_base_percent\": %.02f,", hashcat_status->guess_base_percent);
-  printf (" \"guess_mask_length\": %u,", hashcat_status->guess_mask_length);
+  snprintf (numbuf, sizeof (numbuf), "%.02f", hashcat_status->guess_mod_percent);
+  json_key (&js, "guess_mod_percent");
+  json_raw (&js, numbuf);
 
-  if (hashcat_status->guess_mod)
-  {
-    char *guess_mod_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_mod) * 2);
+  json_kv_uint   (&js, "guess_mode", hashcat_status->guess_mode);
 
-    json_encode (hashcat_status->guess_mod, guess_mod_json_encoded);
+  json_object_end (&js);
 
-    printf (" \"guess_mod\": \"%s\",", guess_mod_json_encoded);
+  json_kv_int (&js, "status", hashcat_status->status_number);
 
-    hcfree (guess_mod_json_encoded);
-  }
-  else
-  {
-    printf (" \"guess_mod\": null,");
-  }
+  // As the hash target can contain the hash (in case of a single attacked hash), especially some
+  // salts can contain chars which need escaping; json_string escapes every one.
 
-  printf (" \"guess_mod_count\": %u,", hashcat_status->guess_mod_count);
-  printf (" \"guess_mod_offset\": %u,", hashcat_status->guess_mod_offset);
-  printf (" \"guess_mod_percent\": %.02f,", hashcat_status->guess_mod_percent);
-  printf (" \"guess_mode\": %u", hashcat_status->guess_mode);
-  printf (" },");
-  printf (" \"status\": %d,", hashcat_status->status_number);
+  json_kv_string (&js, "target", hashcat_status->hash_target);
 
-  /*
-   * As the hash target can contain the hash (in case of a single attacked hash), especially
-   * some salts can contain chars which need to be escaped to not break the JSON encoding.
-   */
+  // see the note in status_display_machine_readable
 
-  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+  const u64 json_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u64 json_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+  const u64 json_rejected      = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_rejected;
 
-  json_encode (hashcat_status->hash_target, target_json_encoded);
+  snprintf (numbuf, sizeof (numbuf), "[%" PRIu64 ", %" PRIu64 "]", json_progress_cur, hashcat_status->progress_end_relative_skip);
+  json_key (&js, "progress");
+  json_raw (&js, numbuf);
 
-  printf (" \"target\": \"%s\",", target_json_encoded);
+  json_kv_uint (&js, "restore_point", json_restore_point);
 
-  hcfree (target_json_encoded);
+  snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->digests_done, hashcat_status->digests_cnt);
+  json_key (&js, "recovered_hashes");
+  json_raw (&js, numbuf);
 
-  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
-  printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
-  printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
-  printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
-  printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
-  printf (" \"devices\": [");
+  snprintf (numbuf, sizeof (numbuf), "[%u, %u]", hashcat_status->salts_done, hashcat_status->salts_cnt);
+  json_key (&js, "recovered_salts");
+  json_raw (&js, numbuf);
+
+  json_kv_uint (&js, "rejected", json_rejected);
+
+  #ifdef WITH_BRAIN
+  json_kv_uint (&js, "brain_rejected_position", hashcat_status->brain_rejects_attacks);
+  json_kv_uint (&js, "brain_rejected_candidate", hashcat_status->brain_rejects_hashes);
+  #endif
+
+  json_key (&js, "devices");
+  json_array_begin (&js);
 
   if (bridge_ctx->enabled == true)
   {
-    printf (" { \"device_id\": %u,", 0);
-    printf (" \"device_name\": \"%s\",", "Assimilation Bridge");
-    printf (" \"device_type\": \"%s\",", "Assimilation Bridge");
-
-    printf (" \"speed\": %" PRIu64 ",", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_begin (&js);
+    json_kv_uint   (&js, "device_id", 0);
+    json_kv_string (&js, "device_name", "Assimilation Bridge");
+    json_kv_string (&js, "device_type", "Assimilation Bridge");
+    json_kv_uint   (&js, "speed", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_end (&js);
   }
   else
   {
-    for (int device_id = 0, first_dev = 1; device_id < hashcat_status->device_info_cnt; device_id++)
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (first_dev)
-      {
-        first_dev = 0;
-      }
-      else
-      {
-        printf (",");
-      }
+      json_object_begin (&js);
 
-      printf (" { \"device_id\": %u,", device_id + 1);
-
-      char *device_name_json_encoded = (char *) hcmalloc (strlen (device_info->device_name) * 2);
-
-      json_encode (device_info->device_name, device_name_json_encoded);
-
-      printf (" \"device_name\": \"%s\",", device_name_json_encoded);
-
-      hcfree (device_name_json_encoded);
+      json_kv_uint (&js, "device_id", device_id + 1);
+      json_kv_string (&js, "device_name", device_info->device_name);
 
       const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
-                                     ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
-      printf (" \"device_type\": \"%s\",", device_type_desc);
+                                     ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
-      printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
+      json_kv_string (&js, "device_type", device_type_desc);
+      json_kv_uint   (&js, "speed", (u64) (device_info->hashes_msec_dev * 1000));
 
       const int temp        = hm_get_temperature_with_devices_idx (hashcat_ctx, device_id);
       const int util        = hm_get_utilization_with_devices_idx (hashcat_ctx, device_id);
@@ -3027,19 +3621,24 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       const int buslanes    = hm_get_buslanes_with_devices_idx (hashcat_ctx, device_id);
       const int64_t power   = hm_get_power_with_devices_idx (hashcat_ctx, device_id);
 
-      printf (" \"temp\": %d,", temp);
-      printf (" \"util\": %d,", util);
-      printf (" \"fanspeed\": %d,", fanspeed);
-      printf (" \"corespeed\": %d,", corespeed);
-      printf (" \"memoryspeed\": %d,", memoryspeed);
-      printf (" \"buslanes\": %d,", buslanes);
-      printf (" \"power\": %" PRId64 " }", power);
+      json_kv_int (&js, "temp",        temp);
+      json_kv_int (&js, "util",        util);
+      json_kv_int (&js, "fanspeed",    fanspeed);
+      json_kv_int (&js, "corespeed",   corespeed);
+      json_kv_int (&js, "memoryspeed", memoryspeed);
+      json_kv_int (&js, "buslanes",    buslanes);
+      json_kv_int (&js, "power",       power);
+
+      json_object_end (&js);
     }
   }
 
-  printf (" ],");
-  printf (" \"time_start\": %" PRIu64 ",", (u64) status_ctx->runtime_start);
-  printf (" \"estimated_stop\": %" PRIu64 " }", (u64) end);
+  json_array_end (&js);
+
+  json_kv_uint (&js, "time_start", (u64) status_ctx->runtime_start);
+  json_kv_uint (&js, "estimated_stop", (u64) end);
+
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 
@@ -3050,12 +3649,124 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+// The per device speed lines for a run that is driven by a bridge.
+//
+// A bridge does the work, so the backend device's thread and vector geometry says nothing about it.
+// Report what the bridge is actually handed instead: the candidates in a launch, and the iteration
+// chunk that launch covers.
+//
+// Units are listed one per line when the bridge computes in waves, because that is an accelerator and
+// each unit is a separate piece of hardware whose own rate is worth seeing, the same way a multi-GPU
+// run lists its devices. A bridge that expresses its parallelism as many NARROW units instead, one
+// CPU thread each, reports a multiple of 1, and listing every one of those would be a wall of lines
+// that says nothing, so they stay folded into the total below.
+
+static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashcat_status_t *hashcat_status)
+{
+  const bool wide_units = (bridge_workitem_multiple (hashcat_ctx, 0) > 1);
+
+  // count the ACTIVE units, not every unit the platform has. -d can leave a single unit running out
+  // of many, and testing the total there would fold the one line away while the total line below is
+  // also suppressed, so the run would report no speed at all
+
+  if ((hashcat_status->device_info_active > 1) && (wide_units == false)) return;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    // One line per GROUP. A group of one prints exactly what it always printed, so a single device, a
+    // pair of different devices and many identical ones all read the same way.
+    //
+    // Devices of a kind are added together, because that is the question being asked: how fast is all
+    // of this. Which individual device is misbehaving is a different question and it has a different
+    // answer, the per member listing at startup and the temperature field.
+
+    if (device_info->group_id_dev != device_id) continue;
+
+    const int group_size = device_info->group_size_dev;
+
+    double hashes_msec_grp = 0;
+
+    for (int i = device_id; i < hashcat_status->device_info_cnt; i++)
+    {
+      const device_info_t *member_info = hashcat_status->device_info_buf + i;
+
+      if (member_info->skipped_dev == true) continue;
+      if (member_info->skipped_warning_dev == true) continue;
+      if (member_info->group_id_dev != device_id) continue;
+
+      hashes_msec_grp += member_info->hashes_msec_dev;
+    }
+
+    char speed_grp[HCBUFSIZ_TINY];
+
+    format_speed_display (hashes_msec_grp * 1000, speed_grp, sizeof (speed_grp));
+
+    // with a single group there is no total line underneath, so it carries the #* itself
+
+    if (hashcat_status->group_info_active == 1)
+    {
+      if (group_size > 1)
+      {
+        event_log_info (hashcat_ctx,
+          "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u (x%d)",
+          speed_grp,
+          device_info->exec_msec_dev,
+          device_info->kernel_accel_dev,
+          device_info->kernel_loops_dev,
+          group_size);
+
+        continue;
+      }
+
+      event_log_info (hashcat_ctx,
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u",
+        speed_grp,
+        device_info->exec_msec_dev,
+        device_info->kernel_accel_dev,
+        device_info->kernel_loops_dev);
+
+      continue;
+    }
+
+    // A group of several says how many devices it speaks for, because a speed with no idea how many
+    // things produced it cannot be judged.
+
+    if (group_size > 1)
+    {
+      event_log_info (hashcat_ctx,
+        "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u (x%d)", device_id + 1,
+        speed_grp,
+        device_info->exec_msec_dev,
+        device_info->kernel_accel_dev,
+        device_info->kernel_loops_dev,
+        group_size);
+
+      continue;
+    }
+
+    event_log_info (hashcat_ctx,
+      "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u", device_id + 1,
+      speed_grp,
+      device_info->exec_msec_dev,
+      device_info->kernel_accel_dev,
+      device_info->kernel_loops_dev);
+  }
+}
+
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const pubkey_ctx_t   *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (user_options->machine_readable == true)
   {
@@ -3295,6 +4006,68 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    case GUESS_MODE_HYBRID:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u]",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
+
+      break;
+
+    case GUESS_MODE_HYBRID_Q:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u], File (%s)",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length,
+        hashcat_status->guess_mod_q);
+
+      break;
+
+    case GUESS_MODE_HYBRID_CS:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u]",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Charset....: %s",
+        hashcat_status->guess_charset);
+
+      break;
+
+    case GUESS_MODE_HYBRID_Q_CS:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u], File (%s)",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length,
+        hashcat_status->guess_mod_q);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Charset....: %s",
+        hashcat_status->guess_charset);
+
+      break;
+
     case GUESS_MODE_HYBRID1_CS:
 
       event_log_info (hashcat_ctx,
@@ -3377,14 +4150,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       break;
 
     case GUESS_MODE_GENERIC_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (%s)",
@@ -3395,7 +4170,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (Generated)");
@@ -3435,6 +4211,41 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    // A feed scoped to one source per round has a queue of rounds and says which one it is on. -a 9 over
+    // several wordlists is one round per wordlist, and -a 9 splitting its own hash file is one round per
+    // word of the account name. A feed handed every source at once answers 1 of 1 here and says where it
+    // has reached inside Guess.Base instead.
+
+    case GUESS_MODE_GENERIC:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_FILE:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_GEN:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
     case GUESS_MODE_MASK:
 
       event_log_info (hashcat_ctx,
@@ -3455,6 +4266,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    case GUESS_MODE_HYBRID:
+    case GUESS_MODE_HYBRID_CS:
+    case GUESS_MODE_HYBRID_Q:
+    case GUESS_MODE_HYBRID_Q_CS:
     case GUESS_MODE_HYBRID1:
 
       event_log_info (hashcat_ctx,
@@ -3490,19 +4305,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
@@ -3524,7 +4327,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (hashcat_status->device_info_active > 1)
+  // Per GROUP, not per device. Many identical devices report as one line, and a total underneath a
+  // single line only repeats it. A bridge of many narrow units printed no line for them above, so
+  // there the total is the only speed line.
+
+  const bool bridge_folded = (bridge_ctx->enabled == true) && (hashcat_status->device_info_active > 1) && (bridge_workitem_multiple (hashcat_ctx, 0) == 1);
+
+  if ((hashcat_status->group_info_active > 1) || (bridge_folded == true))
   {
     event_log_info (hashcat_ctx,
       "Speed.#*.........: %9sH/s",
@@ -3537,13 +4346,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Recovered........: %u/%u (%.2f%%) Digests (total), %u/%u (%.2f%%) Digests (new), %u/%u (%.2f%%) Salts",
       hashcat_status->digests_done,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent,
+      hc_percent_display (hashcat_status->digests_percent),
       hashcat_status->digests_done_new,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent_new,
+      hc_percent_display (hashcat_status->digests_percent_new),
       hashcat_status->salts_done,
       hashcat_status->salts_cnt,
-      hashcat_status->salts_percent);
+      hc_percent_display (hashcat_status->salts_percent));
   }
   else
   {
@@ -3551,18 +4360,18 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Recovered........: %u/%u (%.2f%%) Digests (total), %u/%u (%.2f%%) Digests (new)",
       hashcat_status->digests_done,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent,
+      hc_percent_display (hashcat_status->digests_percent),
       hashcat_status->digests_done_new,
       hashcat_status->digests_cnt,
-      hashcat_status->digests_percent_new);
+      hc_percent_display (hashcat_status->digests_percent_new));
   }
 
   if (hashcat_status->digests_cnt > 1000)
   {
-    const int    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
+    const u32    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
     const double digests_remain_percent = (double) digests_remain / (double) hashcat_status->digests_cnt * 100;
 
-    const int    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
+    const u32    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
     const double salts_remain_percent   = (double) salts_remain / (double) hashcat_status->salts_cnt * 100;
 
     if (hashcat_status->salts_cnt > 1)
@@ -3570,47 +4379,60 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx,
         "Remaining........: %u (%.2f%%) Digests, %u (%.2f%%) Salts",
         digests_remain,
-        digests_remain_percent,
+        hc_percent_display (digests_remain_percent),
         salts_remain,
-        salts_remain_percent);
+        hc_percent_display (salts_remain_percent));
     }
     else
     {
-      event_log_info (hashcat_ctx, "Remaining........: %u (%.2f%%) Digests", digests_remain, digests_remain_percent);
+      event_log_info (hashcat_ctx, "Remaining........: %u (%.2f%%) Digests", digests_remain, hc_percent_display (digests_remain_percent));
     }
 
     event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
   }
 
-  switch (hashcat_status->progress_mode)
+  // How far a protected run has got is itself worth withholding. On a job that takes days, handing
+  // over the exact offset would let the operator restart without encryption and skip straight to
+  // where the answer is, instead of repeating the whole search. The Rejected line carries the same
+  // counter as its denominator, so it goes with it.
+
+  if (pubkey_ctx->enabled == true)
   {
-    case PROGRESS_MODE_KEYSPACE_KNOWN:
+    event_log_info (hashcat_ctx, "Progress.........: [Protected]");
+    event_log_info (hashcat_ctx, "Rejected.........: [Protected]");
+  }
+  else
+  {
+    switch (hashcat_status->progress_mode)
+    {
+      case PROGRESS_MODE_KEYSPACE_KNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->progress_cur_relative_skip,
-        hashcat_status->progress_end_relative_skip,
-        hashcat_status->progress_finished_percent);
+        event_log_info (hashcat_ctx,
+          "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->progress_cur_relative_skip,
+          hashcat_status->progress_end_relative_skip,
+          hc_percent_display (hashcat_status->progress_finished_percent));
 
-      event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->progress_rejected,
-        hashcat_status->progress_cur_relative_skip,
-        hashcat_status->progress_rejected_percent);
+        event_log_info (hashcat_ctx,
+          "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->progress_rejected,
+          hashcat_status->progress_cur_relative_skip,
+          hc_percent_display (hashcat_status->progress_rejected_percent));
 
-      break;
+        break;
 
-    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+      case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64,
-        hashcat_status->progress_cur_relative_skip);
+        event_log_info (hashcat_ctx,
+          "Progress.........: %" PRIu64,
+          hashcat_status->progress_cur_relative_skip);
 
-      event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64,
-        hashcat_status->progress_rejected);
+        event_log_info (hashcat_ctx,
+          "Rejected.........: %" PRIu64,
+          hashcat_status->progress_rejected);
 
-      break;
+        break;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -3620,6 +4442,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Brain.Link.All...: RX: %sB, TX: %sB",
       hashcat_status->brain_rx_all,
       hashcat_status->brain_tx_all);
+
+    // Rejected counts length and rule rejects as well, so it cannot be read as a brain saving. This
+    // line is the brain's own share of it, split the way the two client features work: position is
+    // feature 2 skipping a keyspace range, candidate is feature 1 dropping a word already seen.
+
+    event_log_info (hashcat_ctx,
+      "Brain.Rejects....: %" PRIu64 " (position %" PRIu64 ", candidate %" PRIu64 ")",
+      hashcat_status->brain_rejects_attacks + hashcat_status->brain_rejects_hashes,
+      hashcat_status->brain_rejects_attacks,
+      hashcat_status->brain_rejects_hashes);
 
     if (bridge_ctx->enabled == true)
     {
@@ -3731,92 +4563,185 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
-  switch (hashcat_status->progress_mode)
+  // Every device works the same salt, so it belongs on the line that is printed once rather than
+  // repeated on every per device row underneath.
+
+  int salt_pos = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
-    case PROGRESS_MODE_KEYSPACE_KNOWN:
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->restore_point,
-        hashcat_status->restore_total,
-        hashcat_status->restore_percent);
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
 
-      break;
+    salt_pos = device_info->salt_pos_dev;
 
-    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
-
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64,
-        hashcat_status->restore_point);
-
-      break;
+    break;
   }
 
-  if (bridge_ctx->enabled == true)
-  {
-    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
+  // What the per device positions on the Restore.Sub line below count towards. Each is left out when
+  // there is only one of it, the same way the salt counts are left off Recovered on a single salt
+  // run, so an ordinary fast hash prints the line it always printed.
 
-    event_log_info (hashcat_ctx,
-      "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
-      device_info->salt_pos_dev,
-      device_info->innerloop_pos_dev,
-      device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-      device_info->iteration_pos_dev,
-      device_info->iteration_pos_dev + device_info->iteration_left_dev);
+  char totals_buf[HCBUFSIZ_TINY];
+
+  int totals_len = 0;
+
+  totals_buf[0] = 0;
+
+  if (hashcat_status->salts_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Salt:%d/%d", salt_pos + 1, hashcat_status->salts_cnt);
+  }
+
+  const u64 amplifier_cnt = status_get_amplifier_cnt (hashcat_ctx);
+
+  if (amplifier_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Amplifier:%" PRIu64, amplifier_cnt);
+  }
+
+  const u32 iteration_cnt = status_get_iteration_cnt (hashcat_ctx, salt_pos);
+
+  if (iteration_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Iterations:%u", iteration_cnt);
+  }
+
+  if (pubkey_ctx->enabled == true)
+  {
+    event_log_info (hashcat_ctx, "Restore.Point....: [Protected]");
   }
   else
   {
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    switch (hashcat_status->progress_mode)
     {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      case PROGRESS_MODE_KEYSPACE_KNOWN:
 
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
+        event_log_info (hashcat_ctx,
+          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)%s",
+          hashcat_status->restore_point,
+          hashcat_status->restore_total,
+          hc_percent_display (hashcat_status->restore_percent),
+          totals_buf);
 
-      event_log_info (hashcat_ctx,
-        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", device_id + 1,
-        device_info->salt_pos_dev,
-        device_info->innerloop_pos_dev,
-        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-        device_info->iteration_pos_dev,
-        device_info->iteration_pos_dev + device_info->iteration_left_dev);
+        break;
+
+      case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+
+        event_log_info (hashcat_ctx,
+          "Restore.Point....: %" PRIu64 "%s",
+          hashcat_status->restore_point,
+          totals_buf);
+
+        break;
     }
   }
 
-  //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
-  if (user_options->slow_candidates == true)
+  // One row per device is one line per device on every status update, and on a twelve device box
+  // that buried everything under it. The salt moved up to Restore.Point because it is the same
+  // everywhere, and the amplifier and iteration ranges have the same width on every device, so only
+  // where each one starts differs. That fits several devices on one line.
+  //
+  // More devices than fit are not dropped, they are rotated: which ones are shown is drawn fresh on
+  // every status, so watching a few updates shows all of them. They stay ordered by device id, so
+  // the line reads the same way each time.
+
+  if (pubkey_ctx->enabled == true)
   {
-    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
+    event_log_info (hashcat_ctx, "Restore.Sub......: [Protected]");
   }
   else
+  {
+    int shown[RESTORE_SUB_DEVICES_MAX];
+    int shown_cnt = 0;
+
+    status_sample_devices (hashcat_status, shown, &shown_cnt, RESTORE_SUB_DEVICES_MAX);
+
+    if (shown_cnt > 0)
+    {
+      char sub_buf[HCBUFSIZ_TINY];
+
+      int sub_len = 0;
+
+      for (int i = 0; i < shown_cnt; i++)
+      {
+        const device_info_t *device_info = hashcat_status->device_info_buf + shown[i];
+
+        sub_len += snprintf (sub_buf + sub_len, sizeof (sub_buf) - sub_len, "%s#%02u:%" PRIu64 "/%d",
+          (i == 0) ? "" : " ",
+          shown[i] + 1,
+          device_info->innerloop_pos_dev,
+          device_info->iteration_pos_dev);
+
+        if (sub_len >= (int) sizeof (sub_buf)) break;
+      }
+
+      event_log_info (hashcat_ctx, "Restore.Sub......: %s", sub_buf);
+    }
+  }
+
+  // Which side of the bus the candidates are made on. --slow-candidates is one way to end up on the
+  // host and it was the only one this asked about, so every attack that hands the device one finished
+  // candidate per work item claimed to be generating on the device: -a 0 with no rules, -a 8 with a
+  // feed that does not amplify, and both of those on a slow hash as well.
+  //
+  // Two of the three attack kernels carry a generator whatever they were given. The mask processor
+  // and the combinator fill their buffer on the device, so -a 1, -a 3, -a 6 and -a 7 generate there
+  // even when the thing they expand with holds a single entry. The straight kernel has one only when
+  // there are rules to apply, and without them the host built the candidate and paid for the copy.
+
+  bool device_generator = (user_options_extra_amplifier (hashcat_ctx) > 1);
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)    device_generator = true;
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI) device_generator = true;
+
+  // --slow-candidates is what it is named after: every candidate is built on the host, whichever
+  // attack kernel would otherwise have had a generator.
+
+  if (user_options->slow_candidates == true) device_generator = false;
+
+  if (device_generator == true)
   {
     event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
   }
-
-  if (bridge_ctx->enabled == true)
-  {
-    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
-
-    if (device_info->guess_candidates_dev)
-    {
-      event_log_info (hashcat_ctx,
-        "Candidates.#%02u...: %s", 0 + 1,
-        device_info->guess_candidates_dev);
-    }
-  }
   else
   {
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
+  }
+
+  // One line per device again, and the devices are working one contiguous keyspace between them, so
+  // the interesting thing is where the run as a whole has reached: the first word the lowest device
+  // is on, through to the last word the highest device is on. Each device's own string is already a
+  // range, so the two halves come from the two ends.
+  //
+  // A device that is not producing a range says so instead, [Generating] or [Copying] and the like,
+  // and one of those cannot supply a half. Where that leaves nothing to join, the first device's
+  // string is printed as it is.
+
+  // One row per device again. These cannot be folded into a span the way the progress rows can: the
+  // devices do not take the keyspace in device id order, so the lowest numbered device is often not
+  // the one furthest behind, and joining the first device's start to the last device's end produces
+  // a range that runs backwards. One device's window is shown instead, drawn again on every status,
+  // so watching a few updates covers them all. Which device it is stays in the label, so the row
+  // still says whose window this is.
+
+  {
+    int shown[CANDIDATES_DEVICES_MAX];
+    int shown_cnt = 0;
+
+    status_sample_devices (hashcat_status, shown, &shown_cnt, CANDIDATES_DEVICES_MAX);
+
+    for (int i = 0; i < shown_cnt; i++)
     {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
-
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
-
-      if (device_info->guess_candidates_dev == NULL) continue;
+      const device_info_t *device_info = hashcat_status->device_info_buf + shown[i];
 
       event_log_info (hashcat_ctx,
-        "Candidates.#%02u...: %s", device_id + 1,
+        "Candidates.#%02u...: %s", shown[i] + 1,
         device_info->guess_candidates_dev);
     }
   }
@@ -3827,48 +4752,30 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     bool first_dev = true;
     #endif
 
-    if (bridge_ctx->enabled == true)
+    // Devices that share hardware with an earlier device have no hwmon_dev, so one line is printed
+    // per piece of hardware rather than per device. That is why there is no special case for a
+    // bridge here: a bridge is only one of the ways several devices end up on one card.
+
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-      if (device_info0->hwmon_dev)
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      if (device_info->hwmon_dev == NULL) continue;
+
+      #if defined (__APPLE__)
+      if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
       {
-        #if defined (__APPLE__)
-        if (first_dev && strlen (device_info0->hwmon_fan_dev) > 0)
-        {
-          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info0->hwmon_fan_dev);
-          first_dev = false;
-        }
-        #endif
-
-        event_log_info (hashcat_ctx,
-          "Hardware.Mon.#%02u.: %s", 0 + 1,
-          device_info0->hwmon_dev);
+        event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+        first_dev = false;
       }
-    }
-    else
-    {
-      for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
-      {
-        const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      #endif
 
-        if (device_info->skipped_dev == true) continue;
-        if (device_info->skipped_warning_dev == true) continue;
-
-        if (device_info->hwmon_dev == NULL) continue;
-
-        #if defined (__APPLE__)
-        if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
-        {
-          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
-          first_dev = false;
-        }
-        #endif
-
-        event_log_info (hashcat_ctx,
-          "Hardware.Mon.#%02u.: %s", device_id + 1,
-          device_info->hwmon_dev);
-      }
+      event_log_info (hashcat_ctx,
+        "Hardware.Mon.#%02u.: %s", device_id + 1,
+        device_info->hwmon_dev);
     }
   }
 
@@ -3895,7 +4802,7 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    event_log_info (hashcat_ctx, "%u:%u:%u:%u:%.2f:%" PRIu64, 0, hash_mode, 0, 0, hashcat_status->hashes_msec_all, (u64) (hashcat_status->hashes_msec_all * 1000));
+    event_log_info (hashcat_ctx, "%u:%u:%u:%u:%.2f:%" PRIu64, 0, hash_mode, 0, 0, hashcat_status->exec_msec_all, (u64) (hashcat_status->hashes_msec_all * 1000));
   }
   else
   {
@@ -3915,6 +4822,79 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void status_benchmark_json (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  const u32 hash_mode = hashconfig->hash_mode;
+
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
+
+  if (hashcat_get_status (hashcat_ctx, hashcat_status) == -1)
+  {
+    hcfree (hashcat_status);
+
+    return;
+  }
+
+  json_ctx_t js;
+
+  json_init (&js, stdout);
+
+  json_object_begin (&js);
+  json_key (&js, "devices");
+  json_array_begin (&js);
+
+  char exec_msec_buf[32];
+
+  if (bridge_ctx->enabled == true)
+  {
+    json_object_begin (&js);
+    json_kv_int  (&js, "device_id",   1);
+    json_kv_uint (&js, "hash_mode",   hash_mode);
+    json_kv_uint (&js, "corespeed",   0);
+    json_kv_uint (&js, "memoryspeed", 0);
+    snprintf (exec_msec_buf, sizeof (exec_msec_buf), "%.2f", hashcat_status->exec_msec_all);
+    json_key (&js, "exec_msec");
+    json_raw (&js, exec_msec_buf);
+    json_kv_uint (&js, "speed", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_end (&js);
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      json_object_begin (&js);
+      json_kv_int  (&js, "device_id",   device_id + 1);
+      json_kv_uint (&js, "hash_mode",   hash_mode);
+      json_kv_uint (&js, "corespeed",   (u32) device_info->corespeed_dev);
+      json_kv_uint (&js, "memoryspeed", (u32) device_info->memoryspeed_dev);
+      snprintf (exec_msec_buf, sizeof (exec_msec_buf), "%.2f", device_info->exec_msec_dev);
+      json_key (&js, "exec_msec");
+      json_raw (&js, exec_msec_buf);
+      json_kv_uint (&js, "speed", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+      json_object_end (&js);
+    }
+  }
+
+  json_array_end (&js);
+  json_object_end (&js);
+
+  fwrite (EOL, strlen (EOL), 1, stdout);
+
+  fflush (stdout);
+
+  status_status_destroy (hashcat_ctx, hashcat_status);
+
+  hcfree (hashcat_status);
+}
+
 void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -3923,6 +4903,17 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     status_benchmark_machine_readable (hashcat_ctx);
+
+    return;
+  }
+
+  // --benchmark-json is the dedicated switch; --json turns it on too (see
+  // user_options_postprocess). status_json is deliberately not consulted here, so plain
+  // --status-json keeps printing the human benchmark it always did.
+
+  if (user_options->benchmark_json == true)
+  {
+    status_benchmark_json (hashcat_ctx);
 
     return;
   }
@@ -3938,19 +4929,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
@@ -4032,15 +5011,20 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  printf ("{ \"devices\": [");
+  json_ctx_t js;
 
-  int device_num = 0;
+  json_init (&js, stdout);
+
+  json_object_begin (&js);
+  json_key (&js, "devices");
+  json_array_begin (&js);
 
   if (bridge_ctx->enabled == true)
   {
-    printf (" { \"device_id\": %d,", device_num + 1);
-    printf (" \"speed\": %" PRIu64 " }", (u64) (hashcat_status->hashes_msec_all * 1000));
-    device_num++;
+    json_object_begin (&js);
+    json_kv_int  (&js, "device_id", 1);
+    json_kv_uint (&js, "speed", (u64) (hashcat_status->hashes_msec_all * 1000));
+    json_object_end (&js);
   }
   else
   {
@@ -4051,18 +5035,15 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (device_num != 0)
-      {
-        printf (",");
-      }
-
-      printf (" { \"device_id\": %d,", device_id + 1);
-      printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
-      device_num++;
+      json_object_begin (&js);
+      json_kv_int  (&js, "device_id", device_id + 1);
+      json_kv_uint (&js, "speed", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+      json_object_end (&js);
     }
   }
 
-  printf (" ] }");
+  json_array_end (&js);
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 
@@ -4202,7 +5183,15 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  printf ("{ \"devices\": [");
+  json_ctx_t js;
+
+  json_init (&js, stdout);
+
+  json_object_begin (&js);
+  json_key (&js, "devices");
+  json_array_begin (&js);
+
+  char runtime_buf[32];
 
   if (bridge_ctx->enabled == true)
   {
@@ -4219,14 +5208,16 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
       runtime_msec_highest = MAX (runtime_msec_highest, device_info->runtime_msec_dev);
     }
 
-    printf (" { \"device_id\": %d,", 0);
-    printf (" \"progress\": %" PRIu64 ",", progress_all);
-    printf (" \"runtime\": %0.2f }", runtime_msec_highest);
+    json_object_begin (&js);
+    json_kv_int  (&js, "device_id", 0);
+    json_kv_uint (&js, "progress", progress_all);
+    snprintf (runtime_buf, sizeof (runtime_buf), "%0.2f", runtime_msec_highest);
+    json_key (&js, "runtime");
+    json_raw (&js, runtime_buf);
+    json_object_end (&js);
   }
   else
   {
-    int device_num = 0;
-
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -4234,20 +5225,18 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
 
-      if (device_num != 0)
-      {
-        printf (",");
-      }
-
-      printf (" { \"device_id\": %d,", device_id + 1);
-      printf (" \"progress\": %" PRIu64 ",", device_info->progress_dev);
-      printf (" \"runtime\": %0.2f }", device_info->runtime_msec_dev);
-
-      device_num++;
+      json_object_begin (&js);
+      json_kv_int  (&js, "device_id", device_id + 1);
+      json_kv_uint (&js, "progress", device_info->progress_dev);
+      snprintf (runtime_buf, sizeof (runtime_buf), "%0.2f", device_info->runtime_msec_dev);
+      json_key (&js, "runtime");
+      json_raw (&js, runtime_buf);
+      json_object_end (&js);
     }
   }
 
-  printf (" ] }");
+  json_array_end (&js);
+  json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
 

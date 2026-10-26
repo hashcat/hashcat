@@ -12,22 +12,30 @@
 
 typedef struct nvmlDevice_st* nvmlDevice_t;
 
+// The struct and the entry point that fills it are one decision, not two. NVML kept the old symbol
+// alongside the new one and the two write different lengths, 52 bytes for nvmlDeviceGetPciInfo and 68
+// for nvmlDeviceGetPciInfo_v3. Moving to the newer symbol without this layout writes 16 bytes past
+// the end of the struct, and no compiler can see it, because the name and the type are unchanged.
+//
+// Everything before busId sits at the same offset in both layouts, so the older symbol filling this
+// struct leaves busId untouched and is otherwise correct. That is what makes the fallback in
+// nvml_init () safe.
+
+#define NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE    32
+#define NVML_DEVICE_PCI_BUS_ID_BUFFER_V2_SIZE 16
+
 typedef struct nvmlPciInfo_st
 {
-    char busId[16];                  //!< The tuple domain:bus:device.function PCI identifier (&amp; NULL terminator)
-    unsigned int domain;             //!< The PCI domain on which the device's bus resides, 0 to 0xffff
-    unsigned int bus;                //!< The bus on which the device resides, 0 to 0xff
-    unsigned int device;             //!< The device's id on the bus, 0 to 31
-    unsigned int pciDeviceId;        //!< The combined 16-bit device id and 16-bit vendor id
+    char busIdLegacy[NVML_DEVICE_PCI_BUS_ID_BUFFER_V2_SIZE]; // domain:bus:device.function, legacy form
+    unsigned int domain;             // The PCI domain on which the device's bus resides
+    unsigned int bus;                // The bus on which the device resides, 0 to 0xff
+    unsigned int device;             // The device's id on the bus, 0 to 31
+    unsigned int pciDeviceId;        // The combined 16-bit device id and 16-bit vendor id
 
     // Added in NVML 2.285 API
-    unsigned int pciSubSystemId;     //!< The 32-bit Sub System Device ID
+    unsigned int pciSubSystemId;     // The 32-bit Sub System Device ID
 
-    // NVIDIA reserved for internal use only
-    unsigned int reserved0;
-    unsigned int reserved1;
-    unsigned int reserved2;
-    unsigned int reserved3;
+    char busId[NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE]; // domain:bus:device.function, current form
 } nvmlPciInfo_t;
 
 typedef struct nvmlUtilization_st {
@@ -106,6 +114,11 @@ typedef enum nvmlGom_enum
 } nvmlGpuOperationMode_t;
 
 /***************************************************************************************************/
+// NVML renamed the reasons that are not throttling to nvmlClocksEventReason and left the three that
+// are on nvmlClocksThrottleReason, which is why the names below are not all of one shape. The values
+// are unchanged, and hashcat asks for the current entry points with a fallback to the older ones, so
+// either naming reaches the same bits.
+
 /** @addtogroup nvmlClocksThrottleReasons
  *  @{
  */
@@ -151,6 +164,21 @@ typedef enum nvmlGom_enum
  * @see nvmlDeviceGetPowerUsage
  */
 #define nvmlClocksThrottleReasonHwSlowdown                0x0000000000000008LL
+
+/** Sync boost is holding the clocks down to keep a group of GPUs in step */
+#define nvmlClocksEventReasonSyncBoost                    0x0000000000000010LL
+
+/** The driver is reducing the clocks because the GPU is too hot */
+#define nvmlClocksEventReasonSwThermalSlowdown            0x0000000000000020LL
+
+/** The hardware is reducing the clocks because the GPU is too hot */
+#define nvmlClocksThrottleReasonHwThermalSlowdown         0x0000000000000040LL
+
+/** The hardware is reducing the clocks because the power supply says so */
+#define nvmlClocksThrottleReasonHwPowerBrakeSlowdown      0x0000000000000080LL
+
+/** A display mode is holding the clocks down */
+#define nvmlClocksEventReasonDisplayClockSetting          0x0000000000000100LL
 
 /** Some other unspecified factor is reducing the clocks */
 #define nvmlClocksThrottleReasonUnknown                   0x8000000000000000LL
@@ -243,6 +271,8 @@ int hm_NVML_nvmlDeviceGetTemperature (void *hashcat_ctx, nvmlDevice_t device, nv
 int hm_NVML_nvmlDeviceGetFanSpeed (void *hashcat_ctx, nvmlDevice_t device, unsigned int *speed);
 int hm_NVML_nvmlDeviceGetUtilizationRates (void *hashcat_ctx, nvmlDevice_t device, nvmlUtilization_t *utilization);
 int hm_NVML_nvmlDeviceGetClockInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clockfreq);
+int hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (void *hashcat_ctx, nvmlDevice_t device, unsigned long long *clocksThrottleReasons);
+int hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (void *hashcat_ctx, nvmlDevice_t device, unsigned long long *supportedClocksThrottleReasons);
 int hm_NVML_nvmlDeviceGetTemperatureThreshold (void *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
 int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth);
 int hm_NVML_nvmlDeviceGetPciInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci);

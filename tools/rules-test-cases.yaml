@@ -914,3 +914,43 @@ e-:
     A-Bc
     Ab-C
     Abc
+
+'~e?l':
+  input: |
+    p@ssW0rd
+
+  expected_cpu: |
+    P@sSW0rD
+
+  expected_opencl: |
+    P@sSW0rD
+
+'~e?u':
+  input: |
+    hAShcAt
+
+  expected_cpu: |
+    HaSHcaT
+
+  expected_opencl: |
+    HaSHcaT
+
+'~e?h':
+  input: |
+    aGbcD
+
+  expected_cpu: |
+    AGbCD
+
+  expected_opencl: |
+    AGbCD
+
+'~e?H':
+  input: |
+    abCDefGHij
+
+  expected_cpu: |
+    AbcDEfghij
+
+  expected_opencl: |
+    AbcDEfghij

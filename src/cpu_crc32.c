@@ -7,6 +7,8 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "cpu_crc32.h"
 
 static const u32 crc32tab[256] =
 {

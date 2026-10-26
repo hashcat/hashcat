@@ -1,0 +1,7 @@
+#
+# Author......: See docs/credits.txt
+# License.....: MIT
+#
+
+KERNEL=="litepcie[0-9]*", SUBSYSTEM=="litepcie", MODE="0660", GROUP="plugdev"
+KERNEL=="litepcie[0-9]*", MODE="0660", GROUP="plugdev"

@@ -8,6 +8,7 @@
 #include "interface.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
 #include "benchmark.h"
 
 static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
@@ -29,34 +30,33 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   18700,
   34000,
   8900,
-  400,
+  36100,
   1000,
   3000,
   22000,
   13100,
+  35400,
   5500,
   5600,
   15300,
   15900,
   33700,
   28100,
-  9200,
+  40021,
   9300,
   5700,
   1100,
   2100,
-  7100,
+  40018,
   3200,
   500,
   1500,
   7400,
   1800,
   35100,
-  14000,
-  14100,
-  26401,
-  26403,
-  12300,
+  36300,
+  36200,
+  40036,
   300,
   8300,
   1600,
@@ -79,6 +79,7 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   9700,
   9800,
   13400,
+  34300,
   6800,
   23400,
   26100,
@@ -95,6 +96,8 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   17010,
   17030,
   22921,
+  400,
+  2811,
   25500,
   16300,
   15600,
@@ -102,23 +105,20 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   22500,
   27700,
   22700,
-  2611,
-  2711,
   31900,
   26610,
   11300,
   16600,
   21700,
   21800,
-  10,
+  14000,
+  14100,
+  26401,
+  26403,
   20,
-  110,
   120,
-  1410,
   1420,
-  10810,
   10820,
-  1710,
   1720,
   -1,
 };
@@ -145,6 +145,11 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = cur; i < MODULE_HASH_MODES_MAXIMUM; i++)
   {
+    // an old number loads the module of its new number, so a module file left under it by an
+    // earlier build or install would benchmark the hash-mode twice
+
+    if (module_hash_mode_resolve ((u32) i) != (u32) i) continue;
+
     module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
 
     if (hc_path_exist (modulefile) == true)

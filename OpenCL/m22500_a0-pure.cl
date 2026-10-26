@@ -57,6 +57,11 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -70,6 +75,11 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -87,6 +97,11 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -190,12 +205,6 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
      * AES-256-CBC:
      */
 
-    #define KEYLEN 60
-
-    u32 ks[KEYLEN];
-
-    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
-
     u32 encrypted[4];
 
     encrypted[0] = data[0];
@@ -205,7 +214,7 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
 
     u32 out[4];
 
-    aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     out[0] ^= iv[0];
 
@@ -249,7 +258,7 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
       encrypted[2] = data[6];
       encrypted[3] = data[7];
 
-      aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -303,7 +312,7 @@ KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_RULES ())
       encrypted[2] = data[6];
       encrypted[3] = data[7];
 
-      aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -353,6 +362,11 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -366,6 +380,11 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -383,6 +402,11 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -486,12 +510,6 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
      * AES-256-CBC:
      */
 
-    #define KEYLEN 60
-
-    u32 ks[KEYLEN];
-
-    aes256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
-
     u32 encrypted[4];
 
     encrypted[0] = data[0];
@@ -501,7 +519,7 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
 
     u32 out[4];
 
-    aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+    aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     out[0] ^= iv[0];
 
@@ -545,7 +563,7 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
       encrypted[2] = data[6];
       encrypted[3] = data[7];
 
-      aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -599,7 +617,7 @@ KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_RULES ())
       encrypted[2] = data[6];
       encrypted[3] = data[7];
 
-      aes256_decrypt (ks, encrypted, out, s_td0, s_td1, s_td2, s_td3, s_td4);
+      aes256_decrypt_cs (ukey, encrypted, out, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];

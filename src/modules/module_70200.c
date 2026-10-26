@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -25,8 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - improves performance
-                                  | BRIDGE_TYPE_REPLACE_LOOP;
+static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_REPLACE_LOOP;
 static const char *BRIDGE_NAME    = "scrypt_yescrypt";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c=";
@@ -119,6 +119,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
   salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
+  // The per candidate scratch buffer is a fixed 128 * SCRYPT_R_MAX * SCRYPT_P_MAX bytes, and the
+  // bridge walks it as 128 * r * p using the numbers on the hash line. Neither was checked against
+  // that size, so a hash asking for a larger r or p ran the mixer off the end of the buffer. An N of
+  // 0 passes the modulo below and then underflows the block counter inside the mixer.
+
+  if (salt->scrypt_N < 1) return (PARSER_SALT_VALUE);
+  if (salt->scrypt_r < 1) return (PARSER_SALT_VALUE);
+  if (salt->scrypt_p < 1) return (PARSER_SALT_VALUE);
+
+  if (salt->scrypt_r > SCRYPT_R_MAX) return (PARSER_SALT_VALUE);
+  if (salt->scrypt_p > SCRYPT_P_MAX) return (PARSER_SALT_VALUE);
+
+  // salt_iter below is a u32 and is the product of these three, so refuse an N that cannot be
+  // multiplied out rather than storing a wrapped iteration count.
+
+  if (salt->scrypt_N > (0xffffffff / (2 * salt->scrypt_p))) return (PARSER_SALT_VALUE);
+
   salt->salt_iter = 1;
 
   if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
@@ -145,7 +162,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int digest_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
-  // digest_len should be safe because of 88 limit
+  // the token is allowed 88 base64 characters, and 88 of them without padding decode to 66 bytes,
+  // which is 2 more than the digest holds. The length the decode produced is what has to be checked.
+
+  if (digest_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, digest_len);
 
@@ -175,17 +195,27 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return line_len;
 }
 
+int module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // The bridge keeps scrypt's N, r and p in the salt the same way the native scrypt modes do, so
+  // show the three the hash spells rather than the salt_iter the Iterations readout prints.
+
+  return snprintf (line_buf, line_size, "N=%u, r=%u, p=%u", salt->scrypt_N, salt->scrypt_r, salt->scrypt_p);
+}
+
 void module_init (module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_cost           = module_benchmark_cost;
   module_ctx->module_bridge_name              = module_bridge_name;
   module_ctx->module_bridge_type              = module_bridge_type;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
@@ -196,7 +226,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -212,10 +241,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_hints               = MODULE_DEFAULT;
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
   module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
   module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
@@ -234,8 +265,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kern_bits                = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_length_sort              = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
@@ -246,6 +279,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_register_options         = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
@@ -254,5 +288,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

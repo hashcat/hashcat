@@ -26,4 +26,7 @@ typedef struct argon2_options
 
 } argon2_options_t;
 
+u64 get_largest_memory_block_count  (const hashconfig_t *hashconfig, const hashes_t *hashes);
+u64 get_selftest_memory_block_count (const hashconfig_t *hashconfig, const hashes_t *hashes);
+
 #endif //  HC_ARGON2_COMMON_H

@@ -19,6 +19,19 @@ u32 blowfish_module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   return pw_max;
 }
 
+int blowfish_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // bcrypt is parameterised by a cost factor, and salt_iter holds that cost already expanded to its
+  // 2 ^ cost round count. Recover the cost with a base 2 logarithm so the readout names the factor
+  // the hash carries rather than the expanded count.
+
+  u32 cost = 0;
+
+  for (u32 v = salt->salt_iter; v > 1; v >>= 1) cost++;
+
+  return snprintf (line_buf, line_size, "cost=%u", cost);
+}
+
 bool blowfish_module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   return true;
@@ -41,7 +54,7 @@ char *blowfish_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
   // this uses some nice feedback effect.
   // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
-  // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
+  // which is then is read from the opencl host in the device_preferred_wgs_multiple result.
   // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
@@ -72,11 +85,11 @@ char *blowfish_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
       if (use_dynamic == true)
       {
-        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET])
         {
           // otherwise out-of-bound reads
 
-          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
         }
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
@@ -97,11 +110,11 @@ char *blowfish_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
     {
       if (use_dynamic == true)
       {
-        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // using kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] is a bit hackish.
         // we had to brute-force this value out of an already loaded CUDA function.
         // there's no official way to query for this value.
 
-        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size[HC_DEV_KERN_MEMSET] / 4096;
 
         hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
       }

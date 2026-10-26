@@ -148,7 +148,19 @@ KERNEL_FQ KERNEL_FA void m07800_m04 (KERN_ATTR_RULES ())
      * sha1
      */
 
-    u32 final[32];
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
+    u32 final[64];
 
     final[ 0] = hc_swap32_S (w0[0] | s0[0]);
     final[ 1] = hc_swap32_S (w0[1] | s0[1]);
@@ -244,7 +256,18 @@ KERNEL_FQ KERNEL_FA void m07800_m04 (KERN_ATTR_RULES ())
     final[14] = 0;
     final[15] = 0;
 
-    u32 final_len = pw_len;
+    // final[] holds up to 4 SHA1 blocks. final[16] to final[31] are still zero from the first block
+    // above, and SETSHIFTEDINT () ORs into zero words, so only the third and fourth block need
+    // zeroing, and only when the data reaches them.
+
+    const u32 n_blocks = ((pw_len + lengthMagicArray + salt_len + 8) / 64) + 1;
+
+    if (n_blocks > 2)
+    {
+      for (u32 j = 32; j < 64; j++) final[j] = 0;
+    }
+
+    u32 final_len = out_len;
 
     u32 i;
 
@@ -277,8 +300,19 @@ KERNEL_FQ KERNEL_FA void m07800_m04 (KERN_ATTR_RULES ())
     final_len += salt_len;
 
     // calculate
+    //
+    // final_len reaches up to 188 bytes (pw_max 55, a magic array of up to 82 and salt_max 51),
+    // which is up to 4 SHA1 blocks. Each block count has its own branch, so every index into
+    // final[] stays constant.
 
-    if (final_len >= 56)
+    if (n_blocks == 1)
+    {
+      final[14] = 0;
+      final[15] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+    }
+    else if (n_blocks == 2)
     {
       final[30] = 0;
       final[31] = final_len * 8;
@@ -286,12 +320,24 @@ KERNEL_FQ KERNEL_FA void m07800_m04 (KERN_ATTR_RULES ())
       sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
       sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
     }
-    else
+    else if (n_blocks == 3)
     {
-      final[14] = 0;
-      final[15] = final_len * 8;
+      final[46] = 0;
+      final[47] = final_len * 8;
 
       sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+    }
+    else
+    {
+      final[62] = 0;
+      final[63] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+      sha1_transform (final + 48, final + 52, final + 56, final + 60, digest);
     }
 
     COMPARE_M_SIMD (digest[3], digest[4], digest[2], digest[1]);
@@ -412,7 +458,19 @@ KERNEL_FQ KERNEL_FA void m07800_s04 (KERN_ATTR_RULES ())
      * sha1
      */
 
-    u32 final[32];
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
+    u32 final[64];
 
     final[ 0] = hc_swap32_S (w0[0] | s0[0]);
     final[ 1] = hc_swap32_S (w0[1] | s0[1]);
@@ -508,7 +566,18 @@ KERNEL_FQ KERNEL_FA void m07800_s04 (KERN_ATTR_RULES ())
     final[14] = 0;
     final[15] = 0;
 
-    u32 final_len = pw_len;
+    // final[] holds up to 4 SHA1 blocks. final[16] to final[31] are still zero from the first block
+    // above, and SETSHIFTEDINT () ORs into zero words, so only the third and fourth block need
+    // zeroing, and only when the data reaches them.
+
+    const u32 n_blocks = ((pw_len + lengthMagicArray + salt_len + 8) / 64) + 1;
+
+    if (n_blocks > 2)
+    {
+      for (u32 j = 32; j < 64; j++) final[j] = 0;
+    }
+
+    u32 final_len = out_len;
 
     u32 i;
 
@@ -541,8 +610,19 @@ KERNEL_FQ KERNEL_FA void m07800_s04 (KERN_ATTR_RULES ())
     final_len += salt_len;
 
     // calculate
+    //
+    // final_len reaches up to 188 bytes (pw_max 55, a magic array of up to 82 and salt_max 51),
+    // which is up to 4 SHA1 blocks. Each block count has its own branch, so every index into
+    // final[] stays constant.
 
-    if (final_len >= 56)
+    if (n_blocks == 1)
+    {
+      final[14] = 0;
+      final[15] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+    }
+    else if (n_blocks == 2)
     {
       final[30] = 0;
       final[31] = final_len * 8;
@@ -550,12 +630,24 @@ KERNEL_FQ KERNEL_FA void m07800_s04 (KERN_ATTR_RULES ())
       sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
       sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
     }
-    else
+    else if (n_blocks == 3)
     {
-      final[14] = 0;
-      final[15] = final_len * 8;
+      final[46] = 0;
+      final[47] = final_len * 8;
 
       sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+    }
+    else
+    {
+      final[62] = 0;
+      final[63] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+      sha1_transform (final + 48, final + 52, final + 56, final + 60, digest);
     }
 
     COMPARE_S_SIMD (digest[3], digest[4], digest[2], digest[1]);

@@ -24,7 +24,7 @@
 {                                             \
   const u32 s = ((n) & 3) * 8;                \
   const u64 x = (u64) (v) << s;               \
-  (a)[((n)/4)+0] &= ~(0xff << ((n & 3) * 8)); \
+  (a)[((n)/4)+0] &= ~(0xffu << ((n & 3) * 8)); \
   (a)[((n)/4)+0] |= x;                        \
   (a)[((n)/4)+1]  = x >> 32;                  \
 }
@@ -281,7 +281,7 @@ KERNEL_FQ KERNEL_FA void m07701_m04 (KERN_ATTR_RULES ())
 
     md5_transform (t + 0, t + 4, t + 8, t + 12, digest);
 
-    const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, digest[0], digest[1], digest[2], digest[3], t);
+    const u32 sum20 = walld0rf_magic (w0, out_len, salt_buf0, salt_len, digest[0], digest[1], digest[2], digest[3], t);
 
     append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, sum20);
 
@@ -457,7 +457,7 @@ KERNEL_FQ KERNEL_FA void m07701_s04 (KERN_ATTR_RULES ())
 
     md5_transform (t + 0, t + 4, t + 8, t + 12, digest);
 
-    const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, digest[0], digest[1], digest[2], digest[3], t);
+    const u32 sum20 = walld0rf_magic (w0, out_len, salt_buf0, salt_len, digest[0], digest[1], digest[2], digest[3], t);
 
     append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, sum20);
 

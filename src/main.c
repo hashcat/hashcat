@@ -11,14 +11,21 @@
 
 #include "types.h"
 #include "user_options.h"
+#include "module_options.h"
 #include "usage.h"
 #include "memory.h"
 #include "hashcat.h"
 #include "terminal.h"
+#include "timer.h"
 #include "thread.h"
 #include "status.h"
+#include "status_rc.h"
 #include "shared.h"
+#include "mpsp.h"
+#include "system.h"
+#include "dynloader.h"
 #include "event.h"
+#include "hwmon.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -26,6 +33,99 @@
 
 #if defined (__MINGW64__) || defined (__MINGW32__)
 int _dowildcard = -1;
+#endif
+
+#if defined (_WIN)
+
+// The console handle behind this stream, or INVALID_HANDLE_VALUE when the stream is not a console.
+// GetConsoleMode () is what tells the two apart: _isatty () answers yes for any character device, a
+// pipe included, and asking for STD_OUTPUT_HANDLE answers for stdout no matter which stream is being
+// written.
+
+static HANDLE main_log_console (FILE *fp)
+{
+  const int fd = _fileno (fp);
+
+  if (fd < 0) return INVALID_HANDLE_VALUE;
+
+  const HANDLE h = (HANDLE) _get_osfhandle (fd);
+
+  if (h == INVALID_HANDLE_VALUE) return INVALID_HANDLE_VALUE;
+
+  DWORD mode;
+
+  if (GetConsoleMode (h, &mode) == 0) return INVALID_HANDLE_VALUE;
+
+  return h;
+}
+
+// Windows renders what a program writes to a console through the console output code page, which is
+// not the process code page and is rarely UTF-8. Our messages are UTF-8, so any character outside
+// that code page arrives as mojibake, and telling the user to run chcp 65001 first is a worse answer
+// than writing the console the way it wants. WriteConsoleW takes UTF-16 and skips the code page
+// entirely.
+//
+// Only a real console comes through here. Redirected output keeps its raw UTF-8 bytes, because that
+// is what a script reading it expects, and candidate data must never be converted at all.
+//
+// Returns false and writes nothing when the message is not valid UTF-8, so the caller can fall back
+// to the byte write it would have done anyway.
+
+static bool main_log_console_write (HANDLE h, const char *buf, const int len)
+{
+  if (len <= 0) return true;
+
+  const int wide_len = MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, buf, len, NULL, 0);
+
+  if (wide_len <= 0) return false;
+
+  wchar_t *wide_buf = (wchar_t *) hcmalloc ((size_t) wide_len * sizeof (wchar_t));
+
+  if (wide_buf == NULL) return false;
+
+  if (MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, buf, len, wide_buf, wide_len) != wide_len)
+  {
+    hcfree (wide_buf);
+
+    return false;
+  }
+
+  bool ok = true;
+
+  int off = 0;
+
+  while (off < wide_len)
+  {
+    int chunk = MIN (wide_len - off, 16384);
+
+    // a character outside the basic plane is two units, and half of one means nothing to the console
+
+    if ((chunk < (wide_len - off)) && (wide_buf[off + chunk - 1] >= 0xd800) && (wide_buf[off + chunk - 1] <= 0xdbff)) chunk--;
+
+    DWORD written = 0;
+
+    if (WriteConsoleW (h, wide_buf + off, (DWORD) chunk, &written, NULL) == 0)
+    {
+      ok = false;
+
+      break;
+    }
+
+    if (written == 0)
+    {
+      ok = false;
+
+      break;
+    }
+
+    off += (int) written;
+  }
+
+  hcfree (wide_buf);
+
+  return ok;
+}
+
 #endif
 
 static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
@@ -71,17 +171,29 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   }
 
   #if defined (_WIN)
-  HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
 
-  CONSOLE_SCREEN_BUFFER_INFO con_info;
+  // the stream being written, which is stderr for an error, not whatever stdout happens to be
 
-  GetConsoleScreenBufferInfo (hConsole, &con_info);
+  HANDLE hConsole = main_log_console (fp);
 
-  const int orig = con_info.wAttributes;
+  const bool is_console = (hConsole != INVALID_HANDLE_VALUE);
+
+  int orig = 0;
+
+  if (is_console == true)
+  {
+    CONSOLE_SCREEN_BUFFER_INFO con_info;
+
+    if (GetConsoleScreenBufferInfo (hConsole, &con_info) != 0) orig = con_info.wAttributes;
+  }
   #endif
 
   // color stuff pre
+  #if defined (_WIN)
+  if (is_console == true)
+  #else
   if (is_stdout_terminal ())
+  #endif
   {
   #if defined (_WIN)
     switch (loglevel)
@@ -109,10 +221,34 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   // finally, print
 
+  #if defined (_WIN)
+
+  bool printed = false;
+
+  if (is_console == true)
+  {
+    // the clear line above and the colour calls go through two different paths to the same console,
+    // one buffered by the C runtime and one not, so the stream has to be drained before this writes
+
+    fflush (fp);
+
+    printed = main_log_console_write (hConsole, msg_buf, (int) msg_len);
+  }
+
+  if (printed == false) fwrite (msg_buf, msg_len, 1, fp);
+
+  #else
+
   fwrite (msg_buf, msg_len, 1, fp);
 
+  #endif
+
   // color stuff post
+  #if defined (_WIN)
+  if (is_console == true)
+  #else
   if (is_stdout_terminal ())
+  #endif
   {
   #if defined (_WIN)
     switch (loglevel)
@@ -159,19 +295,61 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
   main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
 }
 
+// under --stdout the candidate stream owns stdout, so a diagnostic written there would land in
+// the middle of the candidates and be read back as one
+
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  main_log (hashcat_ctx, (user_options->stdout_flag == true) ? stderr : stdout, LOGLEVEL_INFO);
 }
 
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  main_log (hashcat_ctx, (user_options->stdout_flag == true) ? stderr : stdout, LOGLEVEL_WARNING);
 }
 
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
+}
+
+// One line that says who has to act, under the error that says what went wrong. It is for a person at
+// a terminal. A wrapper reads the exit code, and to one reading stderr the line would be a second
+// error, or a write to a pipe it has already closed after the first.
+
+static void main_error_banner (hashcat_ctx_t *hashcat_ctx, const int rc_final, const bool quiet)
+{
+  if (quiet == true) return;
+
+  if (is_stderr_terminal () == false) return;
+
+  const char *what = NULL;
+
+  // -5, -10 and -11 can come from kernel or module bugs, so they get no label.
+
+  switch (rc_final)
+  {
+    case RC_FINAL_ERROR_COMMAND:      what = "attack command (flags)"; break;
+    case RC_FINAL_ERROR_TASK:         what = "task";                   break;
+    case RC_FINAL_ERROR_BRIDGE:       what = "bridge (plugin)";        break;
+    case RC_FINAL_ERROR_RUNTIME_SKIP:
+    case RC_FINAL_ERROR_MEMORY_HIT:
+    case RC_FINAL_ERROR_KERNELCREATE:
+    case RC_FINAL_ERROR_EXTRA_SIZE:
+    case RC_FINAL_ERROR_MIXED:        what = "backend";                break;
+  }
+
+  if (what == NULL) return;
+
+  // what was written to stdout before belongs above this line
+
+  fflush (stdout);
+
+  event_log_error (hashcat_ctx, "The cause is in the %s.", what);
 }
 
 static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -200,13 +378,26 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   if (user_options->speed_only   == true) return;
   if (user_options->identify     == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  // Key presses come from a terminal. Anything else on stdin is data the attack does not read, and a
+  // 'c' or a 'q' in a redirected wordlist would stop the run.
+
+  if (is_stdin_terminal () == false) return;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     // see thread_keypress() how to access status information
 
-    hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
+    // only a thread that actually started goes into the count the wait later walks
 
-    hashcat_user->outer_threads_cnt++;
+    if (hc_thread_create_ok (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx) == true)
+    {
+      hashcat_user->outer_threads_cnt++;
+    }
+    else
+    {
+      event_log_warning (hashcat_ctx, "Could not start the keypress thread, interactive commands are unavailable.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
   }
 }
 
@@ -255,7 +446,7 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   // Tell the user we're about to start
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if ((user_options->quiet == false) && (user_options->speed_only == false))
     {
@@ -287,7 +478,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   // if we had a prompt, clear it
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if ((user_options->speed_only == false) && (user_options->quiet == false))
     {
@@ -358,7 +549,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (outfile_ctx->fp.pfp != NULL) return; // cracked hash was not written to an outfile
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt (hashcat_ctx);
   }
@@ -369,7 +560,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->color_cracked == true && is_stdout_terminal()) fwrite("\033[0m", 4, 1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
@@ -386,7 +577,19 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   if (user_options->keyspace == false) return;
   if (user_options->total_candidates == true) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  // --lookup turns itself into --keyspace to get the queue sized round by round, and then answers a
+  // different question. The keyspace is not what was asked for.
+
+  if (user_options->lookup != NULL) return;
+
+  if (user_options->json == true)
+  {
+    event_log_info (hashcat_ctx, "{ \"keyspace\": %" PRIu64 " }", status_ctx->words_base);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+  }
 }
 
 static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -397,7 +600,14 @@ static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->keyspace == false) return;
   if (user_options->total_candidates == false) return;
 
-  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
+  if (user_options->json == true)
+  {
+    event_log_info (hashcat_ctx, "{ \"total_candidates\": %" PRIu64 " }", status_ctx->words_cnt);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
+  }
 }
 
 static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -416,6 +626,24 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   if (user_options->quiet == true) return;
 
   event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries");
+}
+
+static void main_outcheck_preflight_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Comparing hashes with outfile check directory. Please be patient...");
+}
+
+static void main_outcheck_preflight_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Compared hashes with outfile check directory");
 }
 
 static void main_rulesfiles_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -483,6 +711,17 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
     event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries.", hashes->digests_done_pot);
     event_log_info (hashcat_ctx, NULL);
   }
+
+  if (hashes->digests_done_outcheck == 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed hash found in the outfile check directory.");
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (hashes->digests_done_outcheck > 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in the outfile check directory.", hashes->digests_done_outcheck);
+    event_log_info (hashcat_ctx, NULL);
+  }
 }
 
 static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -502,8 +741,11 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   /**
    * In benchmark-mode, inform user which algorithm is checked
@@ -511,19 +753,37 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (user_options->benchmark == true)
   {
-    if (user_options->machine_readable == false)
+    if ((user_options->machine_readable == false) && (user_options->benchmark_json == false))
     {
       char buf[HCBUFSIZ_TINY] = { 0 };
 
+      // a mode with both kernels gives two different numbers, so the row has to say which kernel
+      // produced the one below it
+
+      const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
+
+      const char *kernel_name = (optimized_kernel == true) ? "optimized" : "pure";
+
       size_t len = 0;
 
-      if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
+      if (module_ctx->module_benchmark_cost != MODULE_DEFAULT)
       {
-        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter);
+        // A mode whose cost is not one iteration count, such as argon2 with its m, t and p, spells
+        // out its own parameters here in place of the Iterations readout.
+
+        char cost[HCBUFSIZ_TINY] = { 0 };
+
+        module_ctx->module_benchmark_cost (hashconfig, &hashes[0].salts_buf[0], hashes[0].esalts_buf, cost, sizeof (cost));
+
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [%s] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, cost, kernel_name);
+      }
+      else if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
+      {
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Iterations: %d] [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, hashes[0].salts_buf[0].salt_iter, kernel_name);
       }
       else
       {
-        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s)", hashconfig->hash_mode, hashconfig->hash_name);
+        len = snprintf (buf, sizeof (buf), "* Hash-Mode %d (%s) [Kernel: %s]", hashconfig->hash_mode, hashconfig->hash_name, kernel_name);
       }
 
       char line[HCBUFSIZ_TINY] = { 0 };
@@ -542,7 +802,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->quiet == true) return;
 
   event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
-  event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
+  event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size);
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -575,6 +835,16 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
       event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
       event_log_advice (hashcat_ctx, NULL);
     }
+  }
+
+  if (mask_is_feed (user_options) == true)
+  {
+    event_log_advice (hashcat_ctx, "ATTENTION! The mask is being generated on the host.");
+    event_log_advice (hashcat_ctx, "No kernel both walks a mask and applies a rule, so a mask attack given rules builds");
+    event_log_advice (hashcat_ctx, "its candidates on the host and the rules amplify them on the device.");
+    event_log_advice (hashcat_ctx, "A slow hash barely notices. A fast hash with a small ruleset loses most of its speed,");
+    event_log_advice (hashcat_ctx, "and a larger ruleset wins some of it back by asking more of each candidate.");
+    event_log_advice (hashcat_ctx, NULL);
   }
 
   if (user_options->keep_guessing == true)
@@ -611,6 +881,22 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
     event_log_advice (hashcat_ctx, NULL);
   }
+
+  // What this attack tries is not what the hash file literally holds, and the two ways it differs are
+  // both surprising enough to be worth saying once at the start. A password that never appears in the
+  // file reads as a wrong answer, and the same line behaving differently on its own than it does inside
+  // a large list reads as a bug.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    event_log_advice (hashcat_ctx, "This attack guesses from what hashcat knows about each hash: the account name in front of");
+    event_log_advice (hashcat_ctx, "it, cut into words, and whatever the hash mode itself can tell, such as a network name.");
+    event_log_advice (hashcat_ctx, "Those words are then run through a rule list, one hash at a time.");
+    event_log_advice (hashcat_ctx, "A cracked password therefore need not appear in the file. Say phases=rules,pcfg to carry");
+    event_log_advice (hashcat_ctx, "on into a grammar afterwards, which does not run out.");
+
+    event_log_advice (hashcat_ctx, NULL);
+  }
   /**
    * Watchdog and Temperature balance
    */
@@ -620,14 +906,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->hwmon_temp_abort > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->hwmon_temp_abort);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
-  }
+  hm_temperature_abort_banner (hashcat_ctx);
 
   event_log_info (hashcat_ctx, NULL);
 }
@@ -747,7 +1026,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -756,7 +1035,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -769,7 +1048,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -778,7 +1057,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -791,7 +1070,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -801,7 +1080,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
   event_log_warning (hashcat_ctx, NULL);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -818,7 +1097,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (backend_ctx->kernel_power_final > 0) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -839,18 +1118,11 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
     }
   }
 
-  if (user_options->workload_profile < 3)
-  {
-    event_log_advice (hashcat_ctx, "* Append -w 3 to the commandline.");
-    event_log_advice (hashcat_ctx, "  This can cause your screen to lag.");
-    event_log_advice (hashcat_ctx, NULL);
-  }
-
   if (user_options->slow_candidates == false)
   {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+    if ((user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
-      if ((user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+      if ((user_options->attack_mode != ATTACK_MODE_HYBRID) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
       {
         event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
         event_log_advice (hashcat_ctx, "  This has a drastic speed impact but can be better for specific attacks.");
@@ -867,7 +1139,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/morework");
   event_log_advice (hashcat_ctx, NULL);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -891,13 +1163,57 @@ static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting");
 }
 
+static void main_monitor_stdin_overrun (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_warning (hashcat_ctx, "Input on stdin exceeded --stdin-count. Progress and time estimate are no longer shown.");
+}
+
+// The candidate generator, not the unit. Worth its own message because the device number in the
+// payload is a VIRTUAL one belonging to a bridge unit, so reporting it the usual way would name the
+// unit, which is running perfectly well, while the GPU beside it is the thing overheating.
+
+static void main_monitor_temp_abort_feeder (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  event_log_error (hashcat_ctx, "Temperature limit on the candidate generator reached, aborting");
+}
+
+// A bridge unit, named the way the watchdog banner names it. The watchdog only checks a device that is
+// not a bridge unit when it is a GPU, so the other message can keep calling it one.
+
+static void main_monitor_temp_abort_bridge (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_error (hashcat_ctx, "Temperature limit on Bridge unit #%u reached, aborting", *device_id + 1);
+}
+
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
 
-  if (((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
   {
     clear_prompt (hashcat_ctx);
   }
@@ -914,7 +1230,7 @@ static void main_monitor_runtime_limit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -930,7 +1246,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   if (status_ctx->accessible == false) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (user_options->quiet == false)
     {
@@ -943,7 +1259,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   status_display (hashcat_ctx);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (user_options->quiet == false)
     {
@@ -974,7 +1290,6 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   event_log_info (hashcat_ctx, "* Filename..: %s", cache_hit->dictfile);
   event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_hit->cached_cnt);
   event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_hit->stat.st_size);
-  event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_hit->keyspace);
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -982,30 +1297,40 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->quiet == true) return;
-
   const cache_generate_t *cache_generate = (const cache_generate_t *) buf;
+
+  // --lookup sets quiet itself, to keep the startup out of an answer that is meant to be read on its
+  // own. What it cannot do is make the wait silent as well: a lookup over a wordlist with no seekdb
+  // yet counts the whole file before it can begin, and on a large one that is minutes with nothing
+  // on the screen. The progress is kept there, on a terminal, where someone is waiting for it, and
+  // only the progress: the finished summary below stays suppressed, because that is startup noise
+  // and the answer is what should be left on the screen.
+
+  if (user_options->quiet == true)
+  {
+    if (user_options->lookup == NULL)   return;
+    if (is_stdout_terminal () == false) return;
+    if (cache_generate->percent >= 100) return;
+  }
+
+  // comp is a count of bytes and runtime a count of milliseconds, so their quotient is bytes a
+  // millisecond. A mebibyte a second is 1048.576 of those.
+
+  const u64 speed = (cache_generate->runtime > 0) ? (u64) (cache_generate->comp / cache_generate->runtime / 1048.576) : 0;
 
   if (cache_generate->percent < 100)
   {
-    const u64 speed = cache_generate->comp / cache_generate->runtime;
-
-    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " MiB/s", cache_generate->dictfile, cache_generate->comp, cache_generate->percent, speed / 1024);
+    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " MiB/s", cache_generate->dictfile, cache_generate->comp, cache_generate->percent, speed);
   }
   else
   {
-    char *runtime = (char *) hcmalloc (HCBUFSIZ_TINY);
-
     event_log_info (hashcat_ctx, "Dictionary cache built:");
     event_log_info (hashcat_ctx, "* Filename..: %s", cache_generate->dictfile);
-    event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt2);
+    event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt);
     event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_generate->comp);
-    event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_generate->cnt);
-    event_log_info (hashcat_ctx, "* Speed.....: %" PRIu64 " MiB/s", (u64) (cache_generate->comp / cache_generate->runtime) / 1024);
+    event_log_info (hashcat_ctx, "* Speed.....: %" PRIu64 " MiB/s", speed);
     event_log_info (hashcat_ctx, "* Runtime...: %.2fs", cache_generate->runtime / 1000);
     event_log_info (hashcat_ctx, NULL);
-
-    hcfree (runtime);
   }
 }
 
@@ -1074,7 +1399,7 @@ static void main_hashlist_parse_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (hashes_cnt < hashes_avail)
   {
-    event_log_info_nn (hashcat_ctx, "Parsing Hashes: %" PRIu64 "/%" PRIu64 " (%0.2f%%)...", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100.0);
+    event_log_info_nn (hashcat_ctx, "Parsing Hashes: %" PRIu64 "/%" PRIu64 " (%0.2f%%)...", hashes_cnt, hashes_avail, hc_percent_display (((double) hashes_cnt / hashes_avail) * 100.0));
   }
   else
   {
@@ -1244,6 +1569,31 @@ static void main_bridges_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Initialized bridges");
 }
 
+static void main_generic_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  // the name comes with the event because a run can bring up more than one instance, and the one
+  // being initialised is the one worth naming
+
+  const char *plugin_name = (const char *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initializing feed plugin %s. Please be patient...", plugin_name);
+}
+
+static void main_generic_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const char *plugin_name = (const char *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initialized feed plugin %s", plugin_name);
+}
+
 static void main_bridges_salt_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1262,8 +1612,385 @@ static void main_bridges_salt_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Initialized bridge salts");
 }
 
+// Where a run's wall clock went, opt in with --task-time-breakdown.
+//
+// Every stage below is bracketed by an event pair the tree already fires, except the four that have
+// no event and are started and stopped in main () directly. A stage can be entered more than once,
+// a rule file per -r for instance, so the entries accumulate rather than overwrite.
+//
+// Unclassified time stays visible. Each section prints an "Other" line holding whatever its total
+// does not account for, which is what makes the report honest when a stage is missing: the time does
+// not disappear, it lands in the bucket above it. The outfile check is one such gap today, because
+// ours runs in its own thread with no parse phase to bracket.
+
+typedef enum main_timing_stage
+{
+  MAIN_TIMING_TOTAL = 0,
+  MAIN_TIMING_COMMAND_SETUP,
+  MAIN_TIMING_SESSION_INIT,
+  MAIN_TIMING_BEFORE_ATTACK,
+  MAIN_TIMING_ATTACK,
+  MAIN_TIMING_AFTER_ATTACK,
+  MAIN_TIMING_SESSION_DESTROY,
+
+  MAIN_TIMING_BRIDGES_INIT,
+  MAIN_TIMING_BACKEND_RUNTIMES,
+  MAIN_TIMING_BACKEND_DEVICES,
+
+  MAIN_TIMING_AUTODETECT,
+  MAIN_TIMING_HASHCONFIG,
+  MAIN_TIMING_HASH_PARSE,
+  MAIN_TIMING_HASH_COUNT,
+  MAIN_TIMING_HASH_SORT,
+  MAIN_TIMING_SALT_SORT,
+  MAIN_TIMING_HASH_UNIQUE,
+  MAIN_TIMING_POTFILE,
+  MAIN_TIMING_OUTCHECK,
+  MAIN_TIMING_CANDIDATE_SOURCE,
+  MAIN_TIMING_RULES,
+  MAIN_TIMING_BITMAP,
+  MAIN_TIMING_BRIDGE_SALTS,
+  MAIN_TIMING_BACKEND_SESSION,
+  MAIN_TIMING_KERNEL_BUILD,
+  MAIN_TIMING_SELFTEST,
+  MAIN_TIMING_AUTOTUNE,
+
+  MAIN_TIMING_STAGE_MAX,
+
+} main_timing_stage_t;
+
+typedef struct main_timing_entry
+{
+  hc_timer_t timer;
+
+  double msec;
+  u32    calls;
+  bool   running;
+
+} main_timing_entry_t;
+
+typedef struct main_timing_profile
+{
+  main_timing_entry_t entries[MAIN_TIMING_STAGE_MAX];
+
+  bool initialized;
+  bool finalized;
+  bool attack_seen;
+
+} main_timing_profile_t;
+
+static main_timing_profile_t main_timing_profile;
+
+static void main_timing_start (const main_timing_stage_t stage)
+{
+  main_timing_entry_t *entry = &main_timing_profile.entries[stage];
+
+  if (entry->running == true) return;
+
+  hc_timer_set (&entry->timer);
+
+  entry->running = true;
+}
+
+static void main_timing_stop (const main_timing_stage_t stage)
+{
+  main_timing_entry_t *entry = &main_timing_profile.entries[stage];
+
+  if (entry->running == false) return;
+
+  entry->msec += hc_timer_get (entry->timer);
+  entry->calls++;
+  entry->running = false;
+}
+
+static void main_timing_reset (void)
+{
+  memset (&main_timing_profile, 0, sizeof (main_timing_profile));
+
+  main_timing_profile.initialized = true;
+
+  main_timing_start (MAIN_TIMING_TOTAL);
+  main_timing_start (MAIN_TIMING_BEFORE_ATTACK);
+  main_timing_start (MAIN_TIMING_COMMAND_SETUP);
+}
+
+static void main_timing_event (const u32 id)
+{
+  if (main_timing_profile.initialized == false) return;
+
+  switch (id)
+  {
+    case EVENT_BRIDGES_INIT_PRE:           main_timing_start (MAIN_TIMING_BRIDGES_INIT);     break;
+    case EVENT_BRIDGES_INIT_POST:          main_timing_stop  (MAIN_TIMING_BRIDGES_INIT);     break;
+    case EVENT_BACKEND_RUNTIMES_INIT_PRE:  main_timing_start (MAIN_TIMING_BACKEND_RUNTIMES); break;
+    case EVENT_BACKEND_RUNTIMES_INIT_POST: main_timing_stop  (MAIN_TIMING_BACKEND_RUNTIMES); break;
+    case EVENT_BACKEND_DEVICES_INIT_PRE:   main_timing_start (MAIN_TIMING_BACKEND_DEVICES);  break;
+    case EVENT_BACKEND_DEVICES_INIT_POST:  main_timing_stop  (MAIN_TIMING_BACKEND_DEVICES);  break;
+    case EVENT_AUTODETECT_STARTING:        main_timing_start (MAIN_TIMING_AUTODETECT);       break;
+    case EVENT_AUTODETECT_FINISHED:        main_timing_stop  (MAIN_TIMING_AUTODETECT);       break;
+    case EVENT_HASHCONFIG_PRE:             main_timing_start (MAIN_TIMING_HASHCONFIG);       break;
+    case EVENT_HASHCONFIG_POST:            main_timing_stop  (MAIN_TIMING_HASHCONFIG);       break;
+    case EVENT_HASHLIST_PARSE_INPUT_PRE:   main_timing_start (MAIN_TIMING_HASH_PARSE);       break;
+    case EVENT_HASHLIST_PARSE_INPUT_POST:  main_timing_stop  (MAIN_TIMING_HASH_PARSE);       break;
+    case EVENT_HASHLIST_COUNT_LINES_PRE:   main_timing_start (MAIN_TIMING_HASH_COUNT);       break;
+    case EVENT_HASHLIST_COUNT_LINES_POST:  main_timing_stop  (MAIN_TIMING_HASH_COUNT);       break;
+    case EVENT_HASHLIST_SORT_HASH_PRE:     main_timing_start (MAIN_TIMING_HASH_SORT);        break;
+    case EVENT_HASHLIST_SORT_HASH_POST:    main_timing_stop  (MAIN_TIMING_HASH_SORT);        break;
+    case EVENT_HASHLIST_SORT_SALT_PRE:     main_timing_start (MAIN_TIMING_SALT_SORT);        break;
+    case EVENT_HASHLIST_SORT_SALT_POST:    main_timing_stop  (MAIN_TIMING_SALT_SORT);        break;
+    case EVENT_HASHLIST_UNIQUE_HASH_PRE:   main_timing_start (MAIN_TIMING_HASH_UNIQUE);      break;
+    case EVENT_HASHLIST_UNIQUE_HASH_POST:  main_timing_stop  (MAIN_TIMING_HASH_UNIQUE);      break;
+    case EVENT_POTFILE_REMOVE_PARSE_PRE:   main_timing_start (MAIN_TIMING_POTFILE);          break;
+    case EVENT_POTFILE_REMOVE_PARSE_POST:  main_timing_stop  (MAIN_TIMING_POTFILE);          break;
+    case EVENT_OUTCHECK_PREFLIGHT_PRE:     main_timing_start (MAIN_TIMING_OUTCHECK);         break;
+    case EVENT_OUTCHECK_PREFLIGHT_POST:    main_timing_stop  (MAIN_TIMING_OUTCHECK);         break;
+    case EVENT_CANDIDATE_SOURCE_PRE:       main_timing_start (MAIN_TIMING_CANDIDATE_SOURCE); break;
+    case EVENT_CANDIDATE_SOURCE_POST:      main_timing_stop  (MAIN_TIMING_CANDIDATE_SOURCE); break;
+    case EVENT_RULESFILES_PARSE_PRE:       main_timing_start (MAIN_TIMING_RULES);            break;
+    case EVENT_RULESFILES_PARSE_POST:      main_timing_stop  (MAIN_TIMING_RULES);            break;
+    case EVENT_BITMAP_INIT_PRE:            main_timing_start (MAIN_TIMING_BITMAP);           break;
+    case EVENT_BITMAP_INIT_POST:           main_timing_stop  (MAIN_TIMING_BITMAP);           break;
+    case EVENT_BRIDGES_SALT_PRE:           main_timing_start (MAIN_TIMING_BRIDGE_SALTS);     break;
+    case EVENT_BRIDGES_SALT_POST:          main_timing_stop  (MAIN_TIMING_BRIDGE_SALTS);     break;
+    case EVENT_BACKEND_SESSION_PRE:        main_timing_start (MAIN_TIMING_BACKEND_SESSION);  break;
+    case EVENT_BACKEND_SESSION_POST:       main_timing_stop  (MAIN_TIMING_BACKEND_SESSION);  break;
+    case EVENT_KERNEL_BUILD_PRE:           main_timing_start (MAIN_TIMING_KERNEL_BUILD);     break;
+    case EVENT_KERNEL_BUILD_POST:          main_timing_stop  (MAIN_TIMING_KERNEL_BUILD);     break;
+    case EVENT_SELFTEST_STARTING:          main_timing_start (MAIN_TIMING_SELFTEST);         break;
+    case EVENT_SELFTEST_FINISHED:          main_timing_stop  (MAIN_TIMING_SELFTEST);         break;
+    case EVENT_AUTOTUNE_STARTING:          main_timing_start (MAIN_TIMING_AUTOTUNE);         break;
+    case EVENT_AUTOTUNE_FINISHED:          main_timing_stop  (MAIN_TIMING_AUTOTUNE);         break;
+
+    // the attack begins, so whatever preparation was still open closes here. A restored session
+    // reaches this more than once, which is why AFTER_ATTACK is stopped as well as ATTACK started.
+
+    case EVENT_CRACKER_STARTING:
+      main_timing_stop  (MAIN_TIMING_BEFORE_ATTACK);
+      main_timing_stop  (MAIN_TIMING_AFTER_ATTACK);
+      main_timing_start (MAIN_TIMING_ATTACK);
+
+      main_timing_profile.attack_seen = true;
+
+      break;
+
+    case EVENT_CRACKER_FINISHED:
+      main_timing_stop  (MAIN_TIMING_ATTACK);
+      main_timing_start (MAIN_TIMING_AFTER_ATTACK);
+
+      break;
+  }
+}
+
+static void main_timing_finalize (void)
+{
+  if (main_timing_profile.initialized == false) return;
+  if (main_timing_profile.finalized   == true)  return;
+
+  for (u32 stage = 0; stage < MAIN_TIMING_STAGE_MAX; stage++)
+  {
+    main_timing_stop ((main_timing_stage_t) stage);
+  }
+
+  main_timing_profile.finalized = true;
+}
+
+static double main_timing_msec (const main_timing_stage_t stage)
+{
+  const double msec = main_timing_profile.entries[stage].msec;
+
+  return msec;
+}
+
+static double main_timing_other (const double total, const double known)
+{
+  const double other = (total > known) ? (total - known) : 0;
+
+  return other;
+}
+
+static double main_timing_percent (const double part, const double total)
+{
+  const double percent = (total > 0) ? ((part * 100) / total) : 0;
+
+  return percent;
+}
+
+static void main_timing_line (hashcat_ctx_t *hashcat_ctx, const char *label, const double msec, const double total_msec, const int indent)
+{
+  event_log_info (hashcat_ctx, "%*s%-38s %10.3f s  %6.2f%%", indent, "", label, msec / 1000, main_timing_percent (msec, total_msec));
+}
+
+static void main_timing_detail_line (hashcat_ctx_t *hashcat_ctx, const char *label, const main_timing_stage_t stage, const double total_msec, const int indent)
+{
+  const main_timing_entry_t *entry = &main_timing_profile.entries[stage];
+
+  if (entry->calls == 0) return;
+
+  main_timing_line (hashcat_ctx, label, entry->msec, total_msec, indent);
+}
+
+static bool main_timing_report_enabled (const user_options_t *user_options)
+{
+  if (user_options->task_time_breakdown == false) return false;
+
+  // anything that produces machine readable output, or that is not a run at all, keeps the output it
+  // has today. --quiet silences the human text, and the breakdown is what was asked for.
+
+  if (user_options->machine_readable == true) return false;
+  if (user_options->keyspace         == true) return false;
+  if (user_options->stdout_flag      == true) return false;
+  if (user_options->show             == true) return false;
+  if (user_options->left             == true) return false;
+  if (user_options->identify         == true) return false;
+  if (user_options->usage             > 0)    return false;
+  if (user_options->hash_info         > 0)    return false;
+  if (user_options->backend_info      > 0)    return false;
+
+  return true;
+}
+
+static void main_timing_report (hashcat_ctx_t *hashcat_ctx, const bool enabled, const int rc_final)
+{
+  main_timing_finalize ();
+
+  if (enabled == false) return;
+
+  // A session that never ran still reaches here, so the times below can describe a run that gave up
+  // in its first few milliseconds. Every value RC_FINAL names for a session that reached a
+  // conclusion is zero or above, so a negative one is the signal, whichever way it failed.
+
+  const bool failed = (rc_final < 0);
+
+  const double total          = main_timing_msec (MAIN_TIMING_TOTAL);
+  const double before         = main_timing_msec (MAIN_TIMING_BEFORE_ATTACK);
+  const double attack         = main_timing_msec (MAIN_TIMING_ATTACK);
+  const double after          = main_timing_msec (MAIN_TIMING_AFTER_ATTACK);
+  const double command_setup  = main_timing_msec (MAIN_TIMING_COMMAND_SETUP);
+  const double session_init   = main_timing_msec (MAIN_TIMING_SESSION_INIT);
+  const double session_close  = main_timing_msec (MAIN_TIMING_SESSION_DESTROY);
+
+  const double init_detail = main_timing_msec (MAIN_TIMING_BRIDGES_INIT)
+                           + main_timing_msec (MAIN_TIMING_BACKEND_RUNTIMES)
+                           + main_timing_msec (MAIN_TIMING_BACKEND_DEVICES);
+
+  const double prep_detail = main_timing_msec (MAIN_TIMING_AUTODETECT)
+                           + main_timing_msec (MAIN_TIMING_HASHCONFIG)
+                           + main_timing_msec (MAIN_TIMING_HASH_PARSE)
+                           + main_timing_msec (MAIN_TIMING_HASH_SORT)
+                           + main_timing_msec (MAIN_TIMING_SALT_SORT)
+                           + main_timing_msec (MAIN_TIMING_HASH_UNIQUE)
+                           + main_timing_msec (MAIN_TIMING_POTFILE)
+                           + main_timing_msec (MAIN_TIMING_OUTCHECK)
+                           + main_timing_msec (MAIN_TIMING_CANDIDATE_SOURCE)
+                           + main_timing_msec (MAIN_TIMING_BITMAP)
+                           + main_timing_msec (MAIN_TIMING_BRIDGE_SALTS)
+                           + main_timing_msec (MAIN_TIMING_BACKEND_SESSION)
+                           + main_timing_msec (MAIN_TIMING_SELFTEST)
+                           + main_timing_msec (MAIN_TIMING_AUTOTUNE);
+
+  const double preparation = main_timing_other (before, command_setup + session_init);
+  const double cleanup     = main_timing_other (after, session_close);
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (failed == true)
+  {
+    event_log_info (hashcat_ctx, "Task Time Breakdown (THE SESSION FAILED, SO THESE TIMES ARE INCOMPLETE)");
+    event_log_info (hashcat_ctx, "=======================================================================");
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Task Time Breakdown");
+    event_log_info (hashcat_ctx, "===================");
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+
+  main_timing_line (hashcat_ctx, "BEFORE ATTACK", before, total, 0);
+  main_timing_line (hashcat_ctx, "Program and options setup", command_setup, total, 2);
+  main_timing_line (hashcat_ctx, "Session initialization", session_init, total, 2);
+  main_timing_detail_line (hashcat_ctx, "Bridge and plugin initialization", MAIN_TIMING_BRIDGES_INIT, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Backend runtime loading", MAIN_TIMING_BACKEND_RUNTIMES, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Backend device setup", MAIN_TIMING_BACKEND_DEVICES, total, 4);
+  main_timing_line (hashcat_ctx, "Other session initialization", main_timing_other (session_init, init_detail), total, 4);
+  main_timing_line (hashcat_ctx, "Attack preparation", preparation, total, 2);
+  main_timing_detail_line (hashcat_ctx, "Hash-mode autodetection", MAIN_TIMING_AUTODETECT, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Hash-mode and module setup", MAIN_TIMING_HASHCONFIG, total, 4);
+
+  if (main_timing_profile.entries[MAIN_TIMING_HASH_PARSE].calls > 0)
+  {
+    const double hash_parse = main_timing_msec (MAIN_TIMING_HASH_PARSE);
+    const double hash_count = main_timing_msec (MAIN_TIMING_HASH_COUNT);
+
+    main_timing_detail_line (hashcat_ctx, "Read and parse hash input", MAIN_TIMING_HASH_PARSE, total, 4);
+    main_timing_detail_line (hashcat_ctx, "Count hash input lines", MAIN_TIMING_HASH_COUNT, total, 6);
+    main_timing_line (hashcat_ctx, "Other hash parsing", main_timing_other (hash_parse, hash_count), total, 6);
+  }
+
+  main_timing_detail_line (hashcat_ctx, "Sort hashes", MAIN_TIMING_HASH_SORT, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Sort salts", MAIN_TIMING_SALT_SORT, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Remove duplicate hashes", MAIN_TIMING_HASH_UNIQUE, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Check potfile", MAIN_TIMING_POTFILE, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Check outfile check directory", MAIN_TIMING_OUTCHECK, total, 4);
+
+  if (main_timing_profile.entries[MAIN_TIMING_CANDIDATE_SOURCE].calls > 0)
+  {
+    const double candidate_source = main_timing_msec (MAIN_TIMING_CANDIDATE_SOURCE);
+    const double rules            = main_timing_msec (MAIN_TIMING_RULES);
+
+    main_timing_detail_line (hashcat_ctx, "Prepare wordlists, masks and rules", MAIN_TIMING_CANDIDATE_SOURCE, total, 4);
+    main_timing_detail_line (hashcat_ctx, "Load and validate rules", MAIN_TIMING_RULES, total, 6);
+    main_timing_line (hashcat_ctx, "Other candidate source setup", main_timing_other (candidate_source, rules), total, 6);
+  }
+
+  main_timing_detail_line (hashcat_ctx, "Build hash lookup bitmaps", MAIN_TIMING_BITMAP, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Prepare bridge salts", MAIN_TIMING_BRIDGE_SALTS, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Allocate attack and device session", MAIN_TIMING_BACKEND_SESSION, total, 4);
+
+  // The build is the whole of a cold start here and none of a warm one, so it is named rather than
+  // left inside the line above, where it reads as a permanent cost that it is not.
+
+  if (main_timing_profile.entries[MAIN_TIMING_KERNEL_BUILD].calls > 0)
+  {
+    const double backend_session = main_timing_msec (MAIN_TIMING_BACKEND_SESSION);
+    const double kernel_build    = main_timing_msec (MAIN_TIMING_KERNEL_BUILD);
+
+    main_timing_detail_line (hashcat_ctx, "Compile kernels, cached afterwards", MAIN_TIMING_KERNEL_BUILD, total, 6);
+    main_timing_line (hashcat_ctx, "Other device session setup", main_timing_other (backend_session, kernel_build), total, 6);
+  }
+  main_timing_detail_line (hashcat_ctx, "Kernel self-test", MAIN_TIMING_SELFTEST, total, 4);
+  main_timing_detail_line (hashcat_ctx, "Kernel autotune", MAIN_TIMING_AUTOTUNE, total, 4);
+  main_timing_line (hashcat_ctx, "Other attack preparation", main_timing_other (preparation, prep_detail), total, 4);
+
+  if (main_timing_profile.attack_seen == true)
+  {
+    main_timing_line (hashcat_ctx, "ATTACK", attack, total, 0);
+    main_timing_line (hashcat_ctx, "AFTER ATTACK", after, total, 0);
+    main_timing_line (hashcat_ctx, "Finish monitors, output and session", cleanup, total, 2);
+    main_timing_line (hashcat_ctx, "Destroy remaining session contexts", session_close, total, 2);
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+
+  main_timing_line (hashcat_ctx, (failed == true) ? "MEASURED TOTAL, SESSION FAILED" : "MEASURED TOTAL", total, total, 0);
+
+  // What the run cost in memory as well as in time. Peak rather than current, because the interesting
+  // number is the high water mark a machine had to have room for, and by here it has usually passed.
+
+  const u64 peak_rss = hc_peak_rss ();
+
+  if (peak_rss > 0)
+  {
+    event_log_info (hashcat_ctx, "%-38s %10.0f MB", "PEAK MEMORY", (double) peak_rss / (1024 * 1024));
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+}
+
 static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
+  main_timing_event (id);
+
   switch (id)
   {
     case EVENT_AUTOTUNE_FINISHED:         main_autotune_finished         (hashcat_ctx, buf, len); break;
@@ -1289,6 +2016,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_POST:         main_generic_init_post         (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_PRE:          main_generic_init_pre          (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_PRE:            main_hashconfig_pre            (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_POST:           main_hashconfig_post           (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_COUNT_LINES_POST: main_hashlist_count_lines_post (hashcat_ctx, buf, len); break;
@@ -1307,17 +2036,22 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_RUNTIME_LIMIT:     main_monitor_runtime_limit     (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_STATUS_REFRESH:    main_monitor_status_refresh    (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT:        main_monitor_temp_abort        (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_TEMP_ABORT_FEEDER: main_monitor_temp_abort_feeder (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_TEMP_ABORT_BRIDGE: main_monitor_temp_abort_bridge (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE1:         main_monitor_throttle1         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_PERFORMANCE_HINT:  main_monitor_performance_hint  (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_HINT:      main_monitor_noinput_hint      (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_NOINPUT_ABORT:     main_monitor_noinput_abort     (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_STDIN_OVERRUN:     main_monitor_stdin_overrun     (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_POST:      main_backend_session_post      (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_PRE:       main_backend_session_pre       (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_SESSION_HOSTMEM:   main_backend_session_hostmem   (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICE_INIT_POST:  main_backend_device_init_post  (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICE_INIT_PRE:   main_backend_device_init_pre   (hashcat_ctx, buf, len); break;
+    case EVENT_OUTCHECK_PREFLIGHT_POST:   main_outcheck_preflight_post   (hashcat_ctx, buf, len); break;
+    case EVENT_OUTCHECK_PREFLIGHT_PRE:    main_outcheck_preflight_pre    (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
@@ -1337,6 +2071,11 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
 
 int main (int argc, char **argv)
 {
+  // before any library is loaded, and on Windows only, so that a library found by name cannot come
+  // out of whatever directory hashcat was started in
+
+  hc_dynlib_harden_search_path ();
+
   // this increases the size on windows dos boxes
 
   setup_console ();
@@ -1346,6 +2085,8 @@ int main (int argc, char **argv)
   // hashcat main context
 
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+
+  main_timing_reset ();
 
   if (hashcat_init (hashcat_ctx, event) == -1)
   {
@@ -1377,9 +2118,12 @@ int main (int argc, char **argv)
     return -1;
   }
 
-  // parse commandline parameters and check them
+  // the options the modules add are collected first, so that the command line below can use them. The
+  // two options that control how they are collected are read ahead of the parse.
 
-  if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
+  user_options_prescan (hashcat_ctx, argc, argv);
+
+  if (module_options_init (hashcat_ctx, install_folder, shared_folder, VERSION_TAG, COMPTIME) == -1)
   {
     user_options_destroy (hashcat_ctx);
 
@@ -1390,15 +2134,34 @@ int main (int argc, char **argv)
     return -1;
   }
 
-  if (user_options_sanity (hashcat_ctx) == -1)
+  // parse commandline parameters and check them
+
+  // getopt and sanity reject a wrong command line, so they exit with -2
+
+  if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
+    main_error_banner (hashcat_ctx, RC_FINAL_ERROR_COMMAND, hashcat_ctx->user_options->quiet);
+
     user_options_destroy (hashcat_ctx);
 
     hashcat_destroy (hashcat_ctx);
 
     hcfree (hashcat_ctx);
 
-    return -1;
+    return RC_FINAL_ERROR_COMMAND;
+  }
+
+  if (user_options_sanity (hashcat_ctx) == -1)
+  {
+    main_error_banner (hashcat_ctx, RC_FINAL_ERROR_COMMAND, hashcat_ctx->user_options->quiet);
+
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return RC_FINAL_ERROR_COMMAND;
   }
 
   // some early exits
@@ -1406,6 +2169,15 @@ int main (int argc, char **argv)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   #ifdef WITH_BRAIN
+  if (user_options->brain_feed == true)
+  {
+    const int rc = brain_feed (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return rc;
+  }
+
   if (user_options->brain_server == true)
   {
     const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);
@@ -1429,15 +2201,48 @@ int main (int argc, char **argv)
     return 0;
   }
 
+  // module_options_init () has collected the options from every module and written the cache already
+
+  if (user_options->module_cache_rebuild == true)
+  {
+    const int rc = module_options_cache_report (hashcat_ctx);
+
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return rc;
+  }
+
+  // the report is decided before the session runs, because a session that fails still ends here
+
+  const bool timing_report_enabled = main_timing_report_enabled (user_options);
+
+  main_timing_stop (MAIN_TIMING_COMMAND_SETUP);
+
   // init a hashcat session; this initializes backend devices, hwmon, etc
 
   welcome_screen (hashcat_ctx, VERSION_TAG);
 
   int rc_final = -1;
 
-  if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
+  main_timing_start (MAIN_TIMING_SESSION_INIT);
+
+  const int session_init_rc = hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
+
+  main_timing_stop (MAIN_TIMING_SESSION_INIT);
+
+  if (session_init_rc == 0)
   {
-    if (user_options->usage > 0)
+    if (hashcat_ctx->restore_ctx->print_only == true)
+    {
+      // --restore has printed what the restore file holds and stopped there
+
+      rc_final = 0;
+    }
+    else if (user_options->usage > 0)
     {
       usage_big_print (hashcat_ctx);
 
@@ -1469,15 +2274,46 @@ int main (int argc, char **argv)
     }
   }
 
+  // A wrong attack command exits -2, an unusable task -12 and a failed bridge -13, so a caller can tell them apart
+  // from the generic -1. Most sites surface as -1, but the restore-value check aborts through
+  // myabort, which reports 2, so that code is refined here too. Read before hashcat_session_destroy,
+  // while status_ctx is still valid.
+
+  const rc_final_t rc_error = status_get_rc_error (hashcat_ctx);
+
+  // A bridge failure that did not end the run, such as one only autotune saw, does not turn a later
+  // quit into an error.
+
+  const bool refine_abort = (rc_final == RC_FINAL_ABORT) && (rc_error != RC_FINAL_ERROR_BRIDGE);
+
+  if (((rc_final == RC_FINAL_ERROR) || (refine_abort == true)) && (rc_error != RC_FINAL_OK)) rc_final = rc_error;
+
+  // A bridge failure during autotune or the self-test says nothing about the kernel.
+
+  if (((rc_final == RC_FINAL_ERROR_AUTOTUNE) || (rc_final == RC_FINAL_ERROR_SELFTEST)) && (rc_error == RC_FINAL_ERROR_BRIDGE)) rc_final = RC_FINAL_ERROR_BRIDGE;
+
+  // the session teardown below can still log an error, which belongs above the banner, and it takes
+  // user_options with it
+
+  const bool quiet = user_options->quiet;
+
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
+  main_timing_start (MAIN_TIMING_SESSION_DESTROY);
+
   hashcat_session_destroy (hashcat_ctx);
+
+  main_timing_stop (MAIN_TIMING_SESSION_DESTROY);
+
+  main_error_banner (hashcat_ctx, rc_final, quiet);
 
   // finished with hashcat, clean up
 
   const time_t proc_stop = time (NULL);
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
+
+  main_timing_report (hashcat_ctx, timing_report_enabled, rc_final);
 
   hashcat_destroy (hashcat_ctx);
 

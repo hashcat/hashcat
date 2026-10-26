@@ -98,6 +98,18 @@ using namespace metal;
 
 #if   VENDOR_ID == (1 << 0)
 //#define IS_AMD
+// IS_AMD is off, so nothing can ask "is this an AMD GPU" any more. Some code still needs
+// to, to reach an instruction only that hardware has, and the OpenCL backend is the one
+// case IS_AMD_USE_HIP does not already name. This says the same thing without turning the
+// disabled IS_AMD paths back on.
+//
+// The IS_GPU qualifier is load bearing. VENDOR_ID is the *platform* vendor, so a CPU device
+// exposed by an AMD OpenCL platform arrives here too, and everything IS_AMD_USE_OPENCL
+// selects is a __builtin_amdgcn_* that only exists when the target is amdgcn. Without the
+// qualifier such a device tries to compile GPU builtins for x86 and no kernel builds at all.
+#ifdef IS_GPU
+#define IS_AMD_USE_OPENCL
+#endif
 #define IS_GENERIC
 #elif VENDOR_ID == (1 << 1)
 #define IS_APPLE
@@ -120,6 +132,23 @@ using namespace metal;
 #define IS_AMD_USE_HIP
 #else
 #define IS_GENERIC
+#endif
+
+// An AMD GPU driven by a runtime whose compiler does not synthesise a 64 bit rotation for itself,
+// which means AMD's own OpenCL and Mesa's rusticl. VENDOR_ID is the platform vendor and cannot see
+// that: rusticl reports the platform as "Mesa/X.org" and lands on VENDOR_ID_GENERIC while the
+// device it exposes is an AMD one, so the device vendor id is what names both.
+//
+// Apple's OpenCL drives AMD GPUs too and is excluded by name. Its compiler does the rotation well
+// and the manual split gets in the way: on a Radeon Pro W5700X that costs SHA3-256 17 percent,
+// which is the same thing NVIDIA's OpenCL compiler does on a larger scale.
+//
+// The IS_GPU qualifier keeps a CPU device exposed by an AMD platform off this path.
+
+#ifndef IS_APPLE
+#if defined DEVICE_VENDOR_ID && defined IS_GPU && (DEVICE_VENDOR_ID == (1 << 0))
+#define IS_AMD_GPU
+#endif
 #endif
 
 #define LOCAL_MEM_TYPE_LOCAL  1
@@ -145,20 +174,95 @@ using namespace metal;
  * fast but pure kernels on rocm is a good example
  */
 
-#ifdef NO_INLINE
+#if defined NO_INLINE || defined FORCE_NO_INLINE
 #define HC_INLINE
 #else
 #define HC_INLINE inline static
 #endif
 
-#if defined IS_AMD && defined IS_GPU
-#define DECLSPEC HC_INLINE
-#elif defined IS_CUDA
-#define DECLSPEC __device__
-#elif defined IS_HIP
-#define DECLSPEC __device__ HC_INLINE
+/**
+ * NO_INLINE only drops the `inline static` hint. That is enough for some runtimes, but LLVM-based
+ * OpenCL back-ends (AMD's "LC" / comgr stack) still inline every DECLSPEC helper at -O3 and merge a
+ * kernel built from many large helpers into one huge function. Several LLVM back-end passes (greedy
+ * register allocation, SelectionDAG scheduling) scale ~super-linearly per function, so that single
+ * function can take minutes to compile. FORCE_NO_INLINE emits the hard noinline attribute, which
+ * partitions the kernel back into many small functions.
+ *
+ * This is deliberately a separate switch from NO_INLINE: the two are not interchangeable, and
+ * NO_INLINE already has a meaning that -m 33000 relies on. Out-of-line calls cost runtime
+ * throughput, so FORCE_NO_INLINE stays opt-in per module/device and must never become a global
+ * default. Note -cl-opt-disable is not an alternative: it fails to link the static/DECLSPEC helpers
+ * (`ld.lld: undefined hidden symbol`).
+ */
+
+#ifdef FORCE_NO_INLINE
+#define HC_NOINLINE __attribute__ ((noinline))
 #else
-#define DECLSPEC
+#define HC_NOINLINE
+#endif
+
+/**
+ * HC_NOINLINE_ALWAYS is the same hard noinline attribute, but always on, and it is not the switch
+ * above. FORCE_NO_INLINE is global and opt-in: the user turns it on for a whole run when a runtime
+ * is too slow to build anything. HC_NOINLINE_ALWAYS is a property of one function, it travels with
+ * that function's definition, and it is for the few helpers that are so large that inlining them
+ * cannot pay off anywhere: the caller gets a copy of thousands of instructions to save one call.
+ *
+ * Use it sparingly, and only where the body is big enough that the call is free by comparison.
+ */
+
+#define HC_NOINLINE_ALWAYS __attribute__ ((noinline))
+
+/**
+ * HC_INLINE_ALWAYS is the other direction, and it is here for one reason: a called function that the
+ * back end has to relax a branch inside. The AMD back end expands a long branch into
+ * s_getpc_b64 s[30:31] / s_add / s_setpc_b64 s[30:31], which overwrites the pair holding the
+ * function's own return address, and nothing restores it, so the function returns into itself and
+ * the card spins forever. A kernel ends in s_endpgm and has no return address to lose, so folding
+ * such a function into its kernel makes the same relaxation harmless.
+ *
+ * The other way out is to keep every called function small enough that no branch needs relaxing,
+ * which is what HC_NOINLINE_ALWAYS does for the TrueCrypt and VeraCrypt header helpers. Use whichever
+ * the body allows, and use neither without a disassembly that shows the clobber.
+ */
+
+#define HC_INLINE_ALWAYS __attribute__ ((always_inline))
+
+// On a device DECLSPEC says how a function is compiled. On the host it says something else, because
+// the host build of these files is compiled into the core and a plugin calls the result: every one
+// of these functions is a host side hash, cipher or helper entry point, so DECLSPEC is where they
+// are put into the plugin contract, once, instead of on a few hundred declarations. IS_NATIVE is
+// set from the include guard of emu_general.h, and that is the header that brings HC_PLUGIN_API in,
+// so the macro is always in hand by the time this is read.
+
+// The `static` on the last branch is what lets a helper the kernel never calls be dropped
+// before it reaches the back end. Without it these functions have external linkage and the
+// compiler has to emit every one of them into every kernel. inc_common.cl alone is 174
+// functions, so a kernel that calls twenty of them still pays for all 174, at whatever
+// VECT_SIZE it was built with. Measured on gfx1100 with ROCm 7.0.1, a kernel body that
+// calls nothing at all went from 2.97s and 99962 lines of ISA to 0.21s and 197 lines.
+//
+// This branch is where every OpenCL build lands, because the IS_AMD one above is dead.
+// Plain `static` is deliberate. HC_INLINE would add an `inline` hint on top, which measures
+// identically here and brings the whole-kernel inlining problem the FORCE_NO_INLINE comment
+// above describes, so there is no reason to ask for it.
+
+// The `static` on the last branch needs OpenCL C 1.2, which has file scope static. 1.1 does
+// not, and a device reporting 1.0 or 1.1 is now skipped at device init in backend.c rather
+// than compiled with -cl-std=CL1.1. That is not a new requirement: inc_rp_common.cl already
+// declares its lookup tables as `CONSTANT_VK static` at file scope, so rule and wordlist
+// attacks could never build on such a device anyway.
+
+#if defined IS_AMD && defined IS_GPU
+#define DECLSPEC HC_NOINLINE HC_INLINE
+#elif defined IS_CUDA
+#define DECLSPEC __device__ HC_NOINLINE
+#elif defined IS_HIP
+#define DECLSPEC __device__ HC_NOINLINE HC_INLINE
+#elif defined IS_NATIVE
+#define DECLSPEC HC_PLUGIN_API
+#else
+#define DECLSPEC static HC_NOINLINE
 #endif
 
 /**
@@ -177,14 +281,24 @@ using namespace metal;
 // Whitelist some OpenCL specific functions
 // This could create more stable kernels on systems with bad OpenCL drivers
 
+// USE_BITSELECT and USE_ROTATE each say "this backend has the OpenCL builtin of that name".
+// CUDA and HIP have neither, so inc_platform.h supplies bitselect as a macro for both. It
+// does not supply rotate: that macro is commented out at inc_platform.h:48 and :71. So
+// USE_ROTATE must not be set here, or any code that believes it fails to compile with
+// "use of undeclared identifier 'rotate'".
+//
+// Nothing hit that until now, because the two places that test USE_ROTATE without first
+// returning on IS_CUDA or IS_HIP are the fallback arms of hc_swap32 and hc_swap64, and
+// those were unreachable behind the V_PERM_B32 and prmt arms above them. The eight
+// hc_rotl/hc_rotr functions are unaffected either way; each one returns on
+// IS_CUDA || IS_HIP before it reaches its USE_ROTATE branch.
+
 #ifdef IS_CUDA
 #define USE_BITSELECT
-#define USE_ROTATE
 #endif
 
 #ifdef IS_HIP
 #define USE_BITSELECT
-#define USE_ROTATE
 #endif
 
 #ifdef IS_OPENCL

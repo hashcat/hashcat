@@ -113,6 +113,11 @@ DECLSPEC u32 replace_dot_by_len (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE
   return cur_len;
 }
 
+// RFC 4034 6.2 hashes the name in its canonical form. The host folds the word it hands over and the
+// rule engine runs on the device after that, so the candidate is folded again before the dots become
+// length bytes an ASCII fold could not tell from letters. One lane at a time, because that is how
+// this macro already holds it.
+
 #define REPLACE_DOT_BY_LEN_VECT(n)                                             \
   if (out_len.s##n > 0)                                                        \
   {                                                                            \
@@ -143,6 +148,8 @@ DECLSPEC u32 replace_dot_by_len (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE
     tmp3[1] = w3_t[1].s##n;                                                    \
     tmp3[2] = w3_t[2].s##n;                                                    \
     tmp3[3] = w3_t[3].s##n;                                                    \
+                                                                               \
+    rule_op_mangle_lrest (0, 0, tmp0, tmp1, out_len.s##n);                     \
                                                                                \
     const u32 len = replace_dot_by_len (tmp0, tmp1, tmp2, tmp3, out_len.s##n); \
                                                                                \
@@ -281,6 +288,8 @@ KERNEL_FQ KERNEL_FA void m08300_m04 (KERN_ATTR_RULES ())
     #if VECT_SIZE == 1
       if (out_len > 0)
       {
+        rule_op_mangle_lrest (0, 0, w0_t, w1_t, out_len);
+
         const u32 len = replace_dot_by_len (w0_t, w1_t, w2_t, w3_t, out_len);
 
         switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, 1);
@@ -585,6 +594,8 @@ KERNEL_FQ KERNEL_FA void m08300_s04 (KERN_ATTR_RULES ())
     #if VECT_SIZE == 1
       if (out_len > 0)
       {
+        rule_op_mangle_lrest (0, 0, w0_t, w1_t, out_len);
+
         const u32 len = replace_dot_by_len (w0_t, w1_t, w2_t, w3_t, out_len);
 
         switch_buffer_by_offset_le (w0_t, w1_t, w2_t, w3_t, 1);

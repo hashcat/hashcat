@@ -1,17 +1,19 @@
-status codes on exit:
-=====================
+Exit Status Codes:
+==================
 
+-13 = bridge error: a bridge or the plugin it runs could not be loaded or failed (Python, Rust or another assimilation bridge)
+-12 = task error: a file the command names was read, but its content cannot be used (empty or corrupt hashlist, wordlist, rule file, mask file or charset file)
 -11 = self-test failed
 -10 = autotune failure
- -9 = mixed backend errors (combo of -3, -4, -5, -6, -7 errors type)
- -8 = backend error: Invalid module_extra_buffer_size
- -7 = backend error: Too many compute units to keep minimum kernel accel limit
- -6 = backend error: kernel create error
- -5 = backend error: main kernel build error
- -4 = backend error: memory hit
- -3 = backend error: skipping hash-type due to module_unstable_warning settings
- -2 = gpu-watchdog alarm
- -1 = error
+ -9 = mixed backend errors (a combination of error types -3 through -8)
+ -8 = backend error: invalid module_extra_buffer_size
+ -7 = reserved, not produced
+ -6 = backend error: kernel creation failed
+ -5 = backend error: main kernel build failed
+ -4 = backend error: memory limit reached
+ -3 = backend error: hash type skipped by module_unstable_warning
+ -2 = attack command error: wrong flags or arguments (bad option, hash-mode, mask, or a path that does not exist)
+ -1 = generic error: could not determine whether the attack command, the task, the backend or a combination is the problem
   0 = OK/cracked
   1 = exhausted
   2 = aborted

@@ -1089,7 +1089,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_toggle_at_sep (MAYBE_UNUSED const u32 p
     {
       if (occurence == p0)
       {
-        ro = 1 << i;
+        ro = 1u << i;
 
         #ifdef IS_METAL
 
@@ -2431,14 +2431,45 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p
 
   tmp = (tmp >> sh) & 0xff;
 
-  u32 out_len = in_len;
+  // Appending byte by byte costs a step per copy, and building the run as whole words costs a fixed
+  // shift. On an RTX 4090 the first is faster for 1 or 2 copies and the second from 3 on.
 
-  for (u32 i = 0; i < p0; i++)
+  if (p0 <= 2)
   {
-    append_block1_optimized (out_len, buf0, buf1, tmp);
+    u32 out_len = in_len;
 
-    out_len++;
+    for (u32 i = 0; i < p0; i++)
+    {
+      append_block1_optimized (out_len, buf0, buf1, tmp);
+
+      out_len++;
+    }
+
+    return out_len;
   }
+
+  const u32 tmp32 = tmp <<  0
+                  | tmp <<  8
+                  | tmp << 16
+                  | tmp << 24;
+
+  u32 t0[4] = { tmp32, tmp32, tmp32, tmp32 };
+  u32 t1[4] = { tmp32, tmp32, tmp32, tmp32 };
+
+  truncate_right_optimized (t0, t1, p0);
+
+  rshift_block_optimized_N (t0, t1, t0, t1, in_len);
+
+  buf0[0] |= t0[0];
+  buf0[1] |= t0[1];
+  buf0[2] |= t0[2];
+  buf0[3] |= t0[3];
+  buf1[0] |= t1[0];
+  buf1[1] |= t1[1];
+  buf1[2] |= t1[2];
+  buf1[3] |= t1[3];
+
+  const u32 out_len = in_len + p0;
 
   return out_len;
 }

@@ -1,0 +1,49 @@
+name: New hash mode
+description: Support for a hash, key derivation or file format that hashcat cannot crack yet.
+labels: ["new algorithm"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Many custom schemes need no new mode. If the hash can be written as an expression, such as `sha256(md5(pass) . salt)`, hash-mode 4000 cracks it as a hash recipe. See [docs/hashcat-hash-recipe.md](https://github.com/hashcat/hashcat/blob/master/docs/hashcat-hash-recipe.md).
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you file
+      options:
+        - label: No existing hash mode covers it. I checked `hashcat --example-hashes` or [docs/hashcat-example-hashes.md](https://github.com/hashcat/hashcat/blob/master/docs/hashcat-example-hashes.md).
+          required: true
+        - label: I searched the existing issues and found no request for it.
+          required: true
+  - type: input
+    id: name
+    attributes:
+      label: Algorithm or application
+      placeholder: For example "Example App 3.x vault password"
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: How the hash is computed
+      description: A link to the specification, a paper or the source code that computes it. A short reference implementation or pseudo code is the most useful.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example hash and its password
+      description: Generate one yourself with a known password. Never post a hash that is not yours to share. For a file format, describe how to create a test file or attach one.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: limits
+    attributes:
+      label: Limits
+      description: Password and salt lengths, iteration counts or other parameters the format allows.
+  - type: textarea
+    id: usage
+    attributes:
+      label: Where it is used
+      description: Applications, operating systems or devices that use it, and other tools that already crack it.

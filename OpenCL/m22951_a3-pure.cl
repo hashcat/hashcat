@@ -48,6 +48,11 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -61,6 +66,11 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -78,6 +88,11 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -227,15 +242,11 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     ukey[6] = hc_swap32_S (ukey[6]);
     ukey[7] = hc_swap32_S (ukey[7]);
 
-    u32 ks[60];
-
-    AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
-
     u32 dec[4];
 
     // first check the padding
 
-    aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, enc, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= iv[0];
     dec[1] ^= iv[1];
@@ -248,7 +259,7 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
     // second check (naive code) ASN.1 structure
 
-    aes256_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, first_data, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= s[0];
     dec[1] ^= s[1];
@@ -298,6 +309,11 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -311,6 +327,11 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -328,6 +349,11 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -477,15 +503,11 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     ukey[6] = hc_swap32_S (ukey[6]);
     ukey[7] = hc_swap32_S (ukey[7]);
 
-    u32 ks[60];
-
-    AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
-
     u32 dec[4];
 
     // first check the padding
 
-    aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, enc, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= iv[0];
     dec[1] ^= iv[1];
@@ -498,7 +520,7 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
     // second check (naive code) ASN.1 structure
 
-    aes256_decrypt (ks, first_data, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt_cs (ukey, first_data, dec, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3);
 
     dec[0] ^= s[0];
     dec[1] ^= s[1];

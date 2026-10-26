@@ -11,8 +11,11 @@ hex = "0.4.3"
 sha2 = "0.10.9"
 hashcat-sys = { path = "../../hashcat-sys" }
 
+[build-dependencies]
+winresource = "0.1"
+
 [profile.release]
 opt-level = 3
 codegen-units = 1
 strip = "symbols"
-panic = "abort"
+panic = "unwind"

@@ -1,0 +1,439 @@
+Subject: [PATCH 1/5] dma: one-shot (Prog mode) descriptor arming
+
+Prog mode is already in the gateware: LitePCIeDMAScatterGather documents it and loop_prog_n = 0
+selects it. Only the driver lacked a way to use it. This adds the ioctls to arm N descriptors for a
+single transfer, with a short final descriptor so a batch need not be a whole number of buffers.
+
+The hw_count arithmetic needs its own branch. In Loop mode the table wraps and count means 'times
+wrapped'; in Prog mode index counts descriptors monotonically and the register IS the count. Reading
+it the loop-mode way scales by DMA_BUFFER_COUNT instead of 65536 and yields a plausible wrong answer.
+
+Arming disables the engine, programs the table and enables it again, which is the same shape as
+litepcie_dma_writer_start and for the same reason. The descriptor splitter latches the head of the
+table into its own registers and is only held in reset while the engine is disabled, so flushing the
+table alone leaves a descriptor behind. See the comment on litepcie_dma_arm.
+
+The default is unchanged: oneshot lives in the devm_kzalloc'd device struct, so every loop-mode path
+is byte for byte what it was.
+
+Closing the file that enabled one-shot puts the channel back in loop mode. Only that file does, so a
+process that opens the node and closes it again, which device discovery does, leaves the mode of the
+application using the channel alone.
+
+--- a/litepcie.h
++++ b/litepcie.h
+@@ -72,6 +72,29 @@
+ 	int64_t sw_count;
+ };
+ 
++/* One-shot (Prog mode) DMA.
++ *
++ * The descriptor table has always had two modes. In Loop mode each descriptor is refilled to the table
++ * as it is consumed, so the DMA cycles the buffer ring forever. In Prog mode a descriptor is executed
++ * once and the DMA stops when the table is empty. The driver has only ever used Loop mode, so Prog mode
++ * is reachable from gateware but not from software.
++ *
++ * Loop mode is right for a continuous stream. It is wrong for request/response traffic, where the device
++ * re-reads stale buffers between batches and the host cannot tell a fresh result from an old one without
++ * putting a sequence number in the data. Prog mode removes that: the device sees exactly what was armed,
++ * so position alone identifies a transfer.
++ *
++ * Set the mode before starting the DMA. Then arm a batch of descriptors for each transfer.
++ */
++struct litepcie_ioctl_dma_oneshot {
++	uint8_t enable;      /* 0: loop mode (default, unchanged behaviour), 1: one-shot */
++};
++
++struct litepcie_ioctl_dma_arm {
++	uint32_t count;       /* buffers to arm, 1..DMA_BUFFER_COUNT */
++	uint32_t last_length; /* bytes in the final buffer, 0 for a full DMA_BUFFER_SIZE */
++};
++
+ #define LITEPCIE_IOCTL 'S'
+ 
+ #define LITEPCIE_IOCTL_REG               _IOWR(LITEPCIE_IOCTL,  0, struct litepcie_ioctl_reg)
+@@ -85,5 +108,8 @@
+ #define LITEPCIE_IOCTL_LOCK                      _IOWR(LITEPCIE_IOCTL, 25, struct litepcie_ioctl_lock)
+ #define LITEPCIE_IOCTL_MMAP_DMA_WRITER_UPDATE    _IOW(LITEPCIE_IOCTL,  26, struct litepcie_ioctl_mmap_dma_update)
+ #define LITEPCIE_IOCTL_MMAP_DMA_READER_UPDATE    _IOW(LITEPCIE_IOCTL,  27, struct litepcie_ioctl_mmap_dma_update)
++#define LITEPCIE_IOCTL_DMA_ONESHOT               _IOW(LITEPCIE_IOCTL,  28, struct litepcie_ioctl_dma_oneshot)
++#define LITEPCIE_IOCTL_DMA_WRITER_ARM            _IOW(LITEPCIE_IOCTL,  29, struct litepcie_ioctl_dma_arm)
++#define LITEPCIE_IOCTL_DMA_READER_ARM            _IOW(LITEPCIE_IOCTL,  30, struct litepcie_ioctl_dma_arm)
+ 
+ #endif /* _LINUX_LITEPCIE_H */
+--- a/main.c
++++ b/main.c
+@@ -79,6 +79,7 @@
+ 	uint8_t reader_enable;
+ 	uint8_t writer_lock;
+ 	uint8_t reader_lock;
++	uint8_t oneshot;
+ };
+ 
+ struct litepcie_chan {
+@@ -118,6 +119,7 @@
+ 	struct litepcie_chan *chan;
+ 	bool reader;
+ 	bool writer;
++	bool oneshot; /* this file put the channel in one-shot mode, see litepcie_release */
+ };
+ 
+ /*
+@@ -271,20 +273,25 @@
+ 	litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_ENABLE_OFFSET, 0);
+ 	litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_FLUSH_OFFSET, 1);
+ 	litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_LOOP_PROG_N_OFFSET, 0);
+-	for (i = 0; i < DMA_BUFFER_COUNT; i++) {
+-		/* Fill buffer size + parameters. */
+-		litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_VALUE_OFFSET,
++	/* In one-shot mode the table stays empty and in Prog mode. Descriptors are supplied per transfer
++	 * through LITEPCIE_IOCTL_DMA_WRITER_ARM, so there is nothing to pre-fill and nothing to loop.
++	 */
++	if (!dmachan->oneshot) {
++		for (i = 0; i < DMA_BUFFER_COUNT; i++) {
++			/* Fill buffer size + parameters. */
++			litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_VALUE_OFFSET,
+ #ifndef DMA_BUFFER_ALIGNED
+-			DMA_LAST_DISABLE |
++				DMA_LAST_DISABLE |
+ #endif
+-			(!(i%DMA_BUFFER_PER_IRQ == 0)) * DMA_IRQ_DISABLE | /* generate an msi */
+-			DMA_BUFFER_SIZE);                                  /* every n buffers */
+-		/* Fill 32-bit Address LSB. */
+-		litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_VALUE_OFFSET + 4, (dmachan->writer_handle[i] >>  0) & 0xffffffff);
+-		/* Write descriptor (and fill 32-bit Address MSB for 64-bit mode). */
+-		litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_WE_OFFSET,        (dmachan->writer_handle[i] >> 32) & 0xffffffff);
++				(!(i%DMA_BUFFER_PER_IRQ == 0)) * DMA_IRQ_DISABLE | /* generate an msi */
++				DMA_BUFFER_SIZE);                                  /* every n buffers */
++			/* Fill 32-bit Address LSB. */
++			litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_VALUE_OFFSET + 4, (dmachan->writer_handle[i] >>  0) & 0xffffffff);
++			/* Write descriptor (and fill 32-bit Address MSB for 64-bit mode). */
++			litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_WE_OFFSET,        (dmachan->writer_handle[i] >> 32) & 0xffffffff);
++		}
++		litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_LOOP_PROG_N_OFFSET, 1);
+ 	}
+-	litepcie_writel(s, dmachan->base + PCIE_DMA_WRITER_TABLE_LOOP_PROG_N_OFFSET, 1);
+ 
+ 	/* Clear counters. */
+ 	dmachan->writer_hw_count = 0;
+@@ -325,20 +332,23 @@
+ 	litepcie_writel(s, dmachan->base + PCIE_DMA_READER_ENABLE_OFFSET, 0);
+ 	litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_FLUSH_OFFSET, 1);
+ 	litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_LOOP_PROG_N_OFFSET, 0);
+-	for (i = 0; i < DMA_BUFFER_COUNT; i++) {
+-		/* Fill buffer size + parameters. */
+-		litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_VALUE_OFFSET,
++	/* See litepcie_dma_writer_start: in one-shot mode descriptors come from the arm ioctl instead. */
++	if (!dmachan->oneshot) {
++		for (i = 0; i < DMA_BUFFER_COUNT; i++) {
++			/* Fill buffer size + parameters. */
++			litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_VALUE_OFFSET,
+ #ifndef DMA_BUFFER_ALIGNED
+-			DMA_LAST_DISABLE |
++				DMA_LAST_DISABLE |
+ #endif
+-			(!(i%DMA_BUFFER_PER_IRQ == 0)) * DMA_IRQ_DISABLE | /* generate an msi */
+-			DMA_BUFFER_SIZE);                                  /* every n buffers */
+-		/* Fill 32-bit Address LSB. */
+-		litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_VALUE_OFFSET + 4, (dmachan->reader_handle[i] >>  0) & 0xffffffff);
+-		/* Write descriptor (and fill 32-bit Address MSB for 64-bit mode). */
+-		litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_WE_OFFSET, (dmachan->reader_handle[i] >> 32) & 0xffffffff);
++				(!(i%DMA_BUFFER_PER_IRQ == 0)) * DMA_IRQ_DISABLE | /* generate an msi */
++				DMA_BUFFER_SIZE);                                  /* every n buffers */
++			/* Fill 32-bit Address LSB. */
++			litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_VALUE_OFFSET + 4, (dmachan->reader_handle[i] >>  0) & 0xffffffff);
++			/* Write descriptor (and fill 32-bit Address MSB for 64-bit mode). */
++			litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_WE_OFFSET, (dmachan->reader_handle[i] >> 32) & 0xffffffff);
++		}
++		litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_LOOP_PROG_N_OFFSET, 1);
+ 	}
+-	litepcie_writel(s, dmachan->base + PCIE_DMA_READER_TABLE_LOOP_PROG_N_OFFSET, 1);
+ 
+ 	/* Clear counters */
+ 	dmachan->reader_hw_count = 0;
+@@ -368,6 +378,124 @@
+ 	dmachan->reader_sw_count = 0;
+ }
+ 
++/* Arm one batch of descriptors on a table left in Prog mode.
++ *
++ * This is the per-transfer operation, and it resets the table before programming it, so a caller does
++ * not have to stop and restart the engine between batches to get a clean count. Stopping costs two
++ * udelay(1000) calls, which at a small batch is most of the transfer.
++ *
++ * The reset is safe here precisely because the previous batch has finished: in Prog mode the table
++ * drains and the DMA stops, so there is nothing in flight to tear up. The table is a FIFO of
++ * DMA_BUFFER_COUNT entries, so a batch can be at most that deep, and buffers are always taken from the
++ * start of the ring, which is where the counters are put back to.
++ *
++ * last_length shortens the final descriptor. That is what makes a transfer of a partial buffer possible:
++ * in loop mode the writer only completes a descriptor once a whole DMA_BUFFER_SIZE has arrived, so a
++ * batch had to be a whole number of buffers or the remainder stayed in the device.
++ *
++ * THE TABLE IS NOT THE ONLY PLACE A DESCRIPTOR LIVES, AND FLUSHING IT IS NOT A RESET.
++ *
++ * LitePCIeDMADescriptorSplitter takes the descriptor at the head of the table into registers of its
++ * own as soon as it is idle and one is available, and it pops the table entry only once that
++ * descriptor has been executed. So a transfer that does not consume the whole table ends with the
++ * splitter already holding the address of the NEXT buffer, and a table flush cannot touch it: the
++ * flush empties a FIFO the splitter has already read from.
++ *
++ * Arm again and the first data of the new transfer is written to that stale address, while the
++ * descriptor the host armed first is popped and discarded without being written. Every buffer of the
++ * transfer is then off by one and the last one never completes, so its data is never delivered.
++ *
++ * The splitter is held in reset while the engine is disabled, which is exactly why
++ * litepcie_dma_writer_start disables before it programs the table and enables afterwards. Arming is
++ * that same operation done per transfer, so it does the same two writes. The readback is what makes
++ * the order real: a posted write can still be in flight while the descriptors behind it are being
++ * programmed.
++ */
++static int litepcie_dma_arm(struct litepcie_device *s, int chan_num, bool is_writer, uint32_t count, uint32_t last_length)
++{
++	struct litepcie_dma_chan *dmachan;
++	uint32_t i, base, value_off, we_off, enable_off, length;
++	dma_addr_t handle;
++
++	dmachan = &s->chan[chan_num].dma;
++
++	if (!dmachan->oneshot)
++		return -EINVAL;
++
++	if (count == 0 || count > DMA_BUFFER_COUNT)
++		return -EINVAL;
++
++	if (last_length > DMA_BUFFER_SIZE)
++		return -EINVAL;
++
++	base = dmachan->base;
++
++	if (is_writer) {
++		value_off  = base + PCIE_DMA_WRITER_TABLE_VALUE_OFFSET;
++		we_off     = base + PCIE_DMA_WRITER_TABLE_WE_OFFSET;
++		enable_off = base + PCIE_DMA_WRITER_ENABLE_OFFSET;
++	} else {
++		value_off  = base + PCIE_DMA_READER_TABLE_VALUE_OFFSET;
++		we_off     = base + PCIE_DMA_READER_TABLE_WE_OFFSET;
++		enable_off = base + PCIE_DMA_READER_ENABLE_OFFSET;
++	}
++
++	/* Stop the engine, so the splitter drops whatever it is holding. See above. */
++	litepcie_writel(s, enable_off, 0);
++	litepcie_readl(s, enable_off);
++
++	if (is_writer) {
++		/* Resetting the table zeroes the hardware loop index and count, so the software counters
++		 * have to go back with it or the next interrupt reads a step backwards and the wrap
++		 * detection adds a spurious 2^32.
++		 */
++		litepcie_writel(s, base + PCIE_DMA_WRITER_TABLE_FLUSH_OFFSET, 1);
++
++		dmachan->writer_hw_count      = 0;
++		dmachan->writer_hw_count_last = 0;
++		dmachan->writer_sw_count      = 0;
++	} else {
++		litepcie_writel(s, base + PCIE_DMA_READER_TABLE_FLUSH_OFFSET, 1);
++
++		dmachan->reader_hw_count      = 0;
++		dmachan->reader_hw_count_last = 0;
++		dmachan->reader_sw_count      = 0;
++	}
++
++	for (i = 0; i < count; i++) {
++		handle = is_writer ? dmachan->writer_handle[i] : dmachan->reader_handle[i];
++
++		length = DMA_BUFFER_SIZE;
++		if (i == count - 1 && last_length != 0)
++			length = last_length;
++
++		/* An MSI on every descriptor, not every DMA_BUFFER_PER_IRQ as in loop mode.
++		 *
++		 * The interrupt is what makes progress trustworthy. The table's loop status advances when a
++		 * descriptor is handed to the splitter, which is issue time, so a buffer it has passed may
++		 * still be in flight. The MSI is a posted write ordered behind the data writes of the same
++		 * descriptor, so by the time the handler runs that buffer has landed. Software that wants a
++		 * safe frontier has to use the interrupt-updated count, and one interrupt per buffer is what
++		 * lets it consume a batch as it arrives instead of only at the end.
++		 *
++		 * One interrupt per buffer is far below anything that matters here: a batch takes hundreds
++		 * of milliseconds and produces a few dozen buffers.
++		 */
++		litepcie_writel(s, value_off,
++#ifndef DMA_BUFFER_ALIGNED
++			DMA_LAST_DISABLE |
++#endif
++			length);
++		litepcie_writel(s, value_off + 4, (handle >>  0) & 0xffffffff);
++		litepcie_writel(s, we_off,        (handle >> 32) & 0xffffffff);
++	}
++
++	/* Start it again, on a table that now holds this transfer and nothing else. */
++	litepcie_writel(s, enable_off, 1);
++
++	return 0;
++}
++
+ static void litepcie_stop_dma(struct litepcie_device *s)
+ {
+ 	struct litepcie_dma_chan *dmachan;
+@@ -416,10 +544,28 @@
+ 		if (irq_vector & (1 << chan->dma.reader_interrupt)) {
+ 			loop_status = litepcie_readl(s, chan->dma.base +
+ 				PCIE_DMA_READER_TABLE_LOOP_STATUS_OFFSET);
+-			chan->dma.reader_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
+-			chan->dma.reader_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
+-			if (chan->dma.reader_hw_count_last > chan->dma.reader_hw_count)
+-				chan->dma.reader_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++			/* The two modes report progress differently and the arithmetic is not interchangeable.
++			 *
++			 * In Loop mode the table is refilled as it drains, so index is a position within the
++			 * DMA_BUFFER_COUNT ring and count is the number of times the ring wrapped.
++			 *
++			 * In Prog mode nothing is refilled. index counts descriptors executed and only wraps at
++			 * 2^16, and count increments on that wrap. So the whole register IS the descriptor
++			 * count, and no scaling is needed at all. Reading it the loop-mode way scales count by
++			 * DMA_BUFFER_COUNT instead of 65536 and yields a buffer count that looks plausible and
++			 * is wrong, which presents as a framing bug rather than an accounting one.
++			 *
++			 * A batch is at most DMA_BUFFER_COUNT descriptors and litepcie_dma_arm puts the counters
++			 * back to zero for each one, so 32 bits cannot run out here.
++			 */
++			if (chan->dma.oneshot) {
++				chan->dma.reader_hw_count = loop_status;
++			} else {
++				chan->dma.reader_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
++				chan->dma.reader_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
++				if (chan->dma.reader_hw_count_last > chan->dma.reader_hw_count)
++					chan->dma.reader_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++			}
+ 			chan->dma.reader_hw_count_last = chan->dma.reader_hw_count;
+ #ifdef DEBUG_MSI
+ 			dev_dbg(&s->dev->dev, "MSI DMA%d Reader buf: %lld\n", i,
+@@ -432,10 +578,15 @@
+ 		if (irq_vector & (1 << chan->dma.writer_interrupt)) {
+ 			loop_status = litepcie_readl(s, chan->dma.base +
+ 				PCIE_DMA_WRITER_TABLE_LOOP_STATUS_OFFSET);
+-			chan->dma.writer_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
+-			chan->dma.writer_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
+-			if (chan->dma.writer_hw_count_last > chan->dma.writer_hw_count)
+-				chan->dma.writer_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++			/* See the reader path above for why Prog mode needs its own arithmetic. */
++			if (chan->dma.oneshot) {
++				chan->dma.writer_hw_count = loop_status;
++			} else {
++				chan->dma.writer_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
++				chan->dma.writer_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
++				if (chan->dma.writer_hw_count_last > chan->dma.writer_hw_count)
++					chan->dma.writer_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++			}
+ 			chan->dma.writer_hw_count_last = chan->dma.writer_hw_count;
+ #ifdef DEBUG_MSI
+ 			dev_dbg(&s->dev->dev, "MSI DMA%d Writer buf: %lld\n", i,
+@@ -523,6 +674,23 @@
+ 
+ 	litepcie_exit(s);
+ out:
++	/* Back to the default mode. One-shot is a property of how a particular application drives the
++	 * channel, not of the device, so leaving it set would hand the next opener a channel that needs
++	 * descriptors armed per transfer without its knowing. A loop-mode application inherits it, never
++	 * arms anything, and sees a device that accepts every call and moves no data.
++	 *
++	 * Only the file that set it puts it back. Any process may open the node and close it again
++	 * without touching DMA, a second instance probing for devices does exactly that, and resetting
++	 * the mode then would pull it out from under the application that is using the channel.
++	 *
++	 * Not gated on chan_priv->reader/writer: an application that releases its DMA locks before
++	 * closing, which is the tidy thing to do, has already cleared both flags by the time it gets
++	 * here. It is past the label for the same reason, so it also runs when the device is already
++	 * gone: it is a field in host memory, not a register.
++	 */
++	if (chan_priv->oneshot)
++		chan->dma.oneshot = 0;
++
+ 	kfree(chan_priv);
+ 
+ 	return 0;
+@@ -770,6 +938,30 @@
+ 	chan->dma.reader_hw_count, chan->dma.reader_sw_count);
+ #endif
+ 
++	/* The loop-mode margin of 2 buffers is a guard against reading one the device may still be
++	 * writing: there, the table's position advances when a descriptor is issued, not when its data has
++	 * landed. One-shot does not need it. Every descriptor raises an MSI, and that MSI is a posted write
++	 * ordered behind its own data, so a buffer counted here has landed and is safe to read at once.
++	 *
++	 * The margin is also wrong for one-shot rather than merely conservative: a batch can be a single
++	 * buffer, and "more than 2 ahead" would never become true, so a caller would block forever on a
++	 * transfer that had already completed.
++	 */
++	if (chan->dma.oneshot) {
++		if (chan->dma.writer_hw_count > chan->dma.writer_sw_count)
++			mask |= POLLIN | POLLRDNORM;
++
++		if (chan->dma.reader_hw_count > chan->dma.reader_sw_count)
++			mask |= POLLOUT | POLLWRNORM;
++
++		/* The early return still has to leave the gate litepcie_enter took above. Without this
++		 * the read side of hw_lock is never released, and the next remove waits for it forever.
++		 */
++		litepcie_exit(s);
++
++		return mask;
++	}
++
+ 	if ((chan->dma.writer_hw_count - chan->dma.writer_sw_count) > 2)
+ 		mask |= POLLIN | POLLRDNORM;
+ 
+@@ -1054,6 +1246,52 @@
+ 
+ 	}
+ 	break;
++	case LITEPCIE_IOCTL_DMA_ONESHOT:
++	{
++		struct litepcie_ioctl_dma_oneshot m;
++
++		if (copy_from_user(&m, (void *)arg, sizeof(m))) {
++			ret = -EFAULT;
++			break;
++		}
++
++		/* The mode decides how start() programs the table and how the interrupt handler reads
++		 * progress, so it cannot be changed underneath a running DMA.
++		 */
++		if (chan->dma.writer_enable || chan->dma.reader_enable) {
++			ret = -EBUSY;
++			break;
++		}
++
++		chan->dma.oneshot = m.enable ? 1 : 0;
++
++		chan_priv->oneshot = m.enable ? true : false;
++	}
++	break;
++	case LITEPCIE_IOCTL_DMA_WRITER_ARM:
++	{
++		struct litepcie_ioctl_dma_arm m;
++
++		if (copy_from_user(&m, (void *)arg, sizeof(m))) {
++			ret = -EFAULT;
++			break;
++		}
++
++		ret = litepcie_dma_arm(chan->litepcie_dev, chan->index, true, m.count, m.last_length);
++	}
++	break;
++	case LITEPCIE_IOCTL_DMA_READER_ARM:
++	{
++		struct litepcie_ioctl_dma_arm m;
++
++		if (copy_from_user(&m, (void *)arg, sizeof(m))) {
++			ret = -EFAULT;
++			break;
++		}
++
++		ret = litepcie_dma_arm(chan->litepcie_dev, chan->index, false, m.count, m.last_length);
++	}
++	break;
+ 	default:
+ 		ret = -ENOIOCTLCMD;
+ 		break;

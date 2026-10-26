@@ -111,6 +111,72 @@ SCRYPT_ROMIX_FN(scrypt_mix_word_t *X/*[chunkWords]*/, scrypt_mix_word_t *Y/*[chu
 	SCRYPT_ROMIX_UNTANGLE_FN(X, r * 2);
 }
 
+#if defined(SCRYPT_CHOOSE_COMPILETIME)
+
+/*
+	scrypt_ROMix_range(X, Y, V, N, r, pos, cnt)
+
+	Advance one ROMix by cnt steps, starting at step pos of the 2N steps it takes in
+	total. Steps [0, N) are the V fill, steps [N, 2N) are the mix. Everything that has
+	to survive between calls lives in X, Y and V, so a caller may split the 2N steps
+	over as many calls as it likes, as long as it keeps those three buffers alive per
+	candidate and walks pos forward without gaps or overlaps.
+
+	Calling this once with pos 0 and cnt 2N computes exactly what SCRYPT_ROMIX_FN does.
+
+	The mix works in pairs and hands the live chunk between X and Y, so stopping on an
+	odd offset leaves it in Y. That is why Y is a caller buffer here rather than scratch:
+	the parity of the offset says which of the two currently holds it, which is what
+	lets the split happen at any step instead of only at even ones.
+*/
+static void NOINLINE FASTCALL
+scrypt_ROMix_range(scrypt_mix_word_t *X/*[chunkWords]*/, scrypt_mix_word_t *Y/*[chunkWords]*/, scrypt_mix_word_t *V/*[N * chunkWords]*/, uint32_t N, uint32_t r, uint32_t pos, uint32_t cnt) {
+	uint32_t i, j, chunkWords = (uint32_t)(SCRYPT_BLOCK_WORDS * r * 2);
+	uint32_t end = pos + cnt;
+
+	if (cnt == 0)
+		return;
+
+	/* B arrives untangled, so tangle it once, as the first step does */
+	if (pos == 0) {
+		SCRYPT_ROMIX_TANGLE_FN(X, r * 2);
+
+		/* 3: V_0 = X */
+		memcpy(V, X, chunkWords * sizeof(scrypt_mix_word_t));
+	}
+
+	/* 2: for i = 0 to N - 1 do. step i derives V_{i+1}, the last one derives X */
+	for (i = pos; (i < N) && (i < end); i++) {
+		scrypt_mix_word_t *block = scrypt_item(V, i, chunkWords);
+
+		if (i < (N - 1))
+			SCRYPT_CHUNKMIX_FN(block + chunkWords, block, NULL, r);
+		else
+			SCRYPT_CHUNKMIX_FN(X, block, NULL, r);
+	}
+
+	/* 6: for i = 0 to N - 1 do, one half step at a time so any offset can be resumed */
+	for (i = (pos > N) ? pos : N; i < end; i++) {
+		if (((i - N) & 1) == 0) {
+			/* 7, 8: j = Integerify(X) % N, Y = H(X ^ V_j) */
+			j = X[chunkWords - SCRYPT_BLOCK_WORDS] & (N - 1);
+
+			SCRYPT_CHUNKMIX_FN(Y, X, scrypt_item(V, j, chunkWords), r);
+		} else {
+			/* 7, 8: j = Integerify(Y) % N, X = H(Y ^ V_j) */
+			j = Y[chunkWords - SCRYPT_BLOCK_WORDS] & (N - 1);
+
+			SCRYPT_CHUNKMIX_FN(X, Y, scrypt_item(V, j, chunkWords), r);
+		}
+	}
+
+	/* 10: B' = X. the 2N steps are an even count, so the live chunk ends up in X */
+	if (end == (N * 2))
+		SCRYPT_ROMIX_UNTANGLE_FN(X, r * 2);
+}
+
+#endif /* defined(SCRYPT_CHOOSE_COMPILETIME) */
+
 #endif /* !defined(SCRYPT_CHOOSE_COMPILETIME) || !defined(SCRYPT_HAVE_ROMIX) */
 
 

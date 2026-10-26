@@ -10,6 +10,7 @@
 
 #include <objc/runtime.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <dispatch/dispatch.h>
 
 #define mtl_device_id id
 #define mtl_command_queue id
@@ -20,12 +21,45 @@
 #define mtl_command_encoder id
 #define mtl_blit_command_encoder id
 #define mtl_compute_command_encoder id
+#define mtl_command_allocator id
+#define mtl_argument_table id
+#define mtl_residency_set id
+#define mtl_compiler id
+#define mtl_archive id
+#define mtl_serializer id
+
+// The family levels supportsFamily: takes, and the two feature sets a runtime without it answers
+// instead. The values are the same in every SDK, and a system that does not know one answers NO.
+
+#define MTL_GPU_FAMILY_MAC1   2001
+#define MTL_GPU_FAMILY_MAC2   2002
+#define MTL_GPU_FAMILY_METAL3 5001
+#define MTL_GPU_FAMILY_METAL4 5002
+
+#define MTL_FEATURE_SET_MACOS_GPUFAMILY1_V1 10000
+#define MTL_FEATURE_SET_MACOS_GPUFAMILY2_V1 10005
+
+// What a MTL4PipelineDataSetSerializer captures: the binaries, which is what its archive is read for.
+
+#define MTL4_PIPELINE_DATA_SET_SERIALIZER_CAPTURE_BINARIES 2
+
+// Bytes a kernel takes by value go through one Shared buffer per device on Metal 4, where setBytes:
+// has no equivalent. Each argument starts on a 256 byte boundary, so this holds 16 of them, and no
+// launch passes more than seven.
+
+#define METAL4_SCRATCH_SIZE 4096
 
 typedef struct mtl_mem
 {
   id buf_ptr;
 
   unsigned int buf_mode;
+
+  // Whether the buffer reads the caller's own bytes or a copy of them. A host pointer is only taken
+  // on a Shared buffer, and the mode asked for is not always the mode given, so a caller that hands
+  // one over reads this afterwards rather than working out beforehand which it would be.
+
+  unsigned int buf_host;
 
 } mtl_mem_t;
 
@@ -37,104 +71,6 @@ typedef enum metalResourceStorageMode
 
 } metalResourceStorageMode_t;
 
-typedef enum metalBufferStorageModeId
-{
-  metal_d_pws_buf_storageMode,
-  metal_d_pws_amp_buf_storageMode,
-  metal_d_pws_comp_buf_storageMode,
-  metal_d_pws_idx_storageMode,
-  metal_d_rules_storageMode,
-  metal_d_rules_c_storageMode,
-  metal_d_combs_storageMode,
-  metal_d_combs_c_storageMode,
-  metal_d_bfs_storageMode,
-  metal_d_bfs_c_storageMode,
-  metal_d_tm_c_storageMode,
-  metal_d_bitmap_s1_a_storageMode,
-  metal_d_bitmap_s1_b_storageMode,
-  metal_d_bitmap_s1_c_storageMode,
-  metal_d_bitmap_s1_d_storageMode,
-  metal_d_bitmap_s2_a_storageMode,
-  metal_d_bitmap_s2_b_storageMode,
-  metal_d_bitmap_s2_c_storageMode,
-  metal_d_bitmap_s2_d_storageMode,
-  metal_d_plain_bufs_storageMode,
-  metal_d_digests_buf_storageMode,
-  metal_d_digests_shown_storageMode,
-  metal_d_salt_bufs_storageMode,
-  metal_d_esalt_bufs_storageMode,
-  metal_d_tmps_storageMode,
-  metal_d_hooks_storageMode,
-  metal_d_result_storageMode,
-  metal_d_extra0_buf_storageMode,
-  metal_d_extra1_buf_storageMode,
-  metal_d_extra2_buf_storageMode,
-  metal_d_extra3_buf_storageMode,
-  metal_d_root_css_buf_storageMode,
-  metal_d_markov_css_buf_storageMode,
-  metal_d_st_digests_buf_storageMode,
-  metal_d_st_salts_buf_storageMode,
-  metal_d_st_esalts_buf_storageMode,
-  metal_d_kernel_param_storageMode,
-  //
-  metal_private_storageMode,
-  metal_shared_storageMode,
-  metal_managed_storageMode,
-  MTL_BUFFER_CNT
-
-} metalBufferStorageModeId_t;
-
-static const metalResourceStorageMode_t metalResourceStorageModes[MTL_BUFFER_CNT] =
-{
-  [metal_d_pws_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pws_amp_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pws_comp_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_pws_idx_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_rules_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_rules_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_combs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_combs_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bfs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bfs_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_tm_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_a_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_b_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s1_d_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_a_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_b_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_c_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_bitmap_s2_d_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_plain_bufs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_digests_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_digests_shown_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_salt_bufs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_esalt_bufs_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_tmps_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_hooks_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_result_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra0_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra1_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra2_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_extra3_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_root_css_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_markov_css_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_st_digests_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_st_salts_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_st_esalts_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_d_kernel_param_storageMode] = MTL_STORAGE_MODE_SHARED,
-  //
-  [metal_private_storageMode] = MTL_STORAGE_MODE_PRIVATE,
-  [metal_shared_storageMode] = MTL_STORAGE_MODE_SHARED,
-  [metal_managed_storageMode] = MTL_STORAGE_MODE_MANAGED
-};
-
-#define HC_MTL_CREATEBUFFER(ctx, size, ptr, buf_name)                          \
-  do {                                                                         \
-    if (hc_mtlCreateBuffer(ctx, device_param->metal_device, size, ptr,         \
-                           &device_param->metal_d_##buf_name,                  \
-                           metal_d_##buf_name##_storageMode) == -1) return -1; \
-  } while (0)
 
 typedef enum metalDeviceAttribute
 {
@@ -153,6 +89,7 @@ typedef enum metalDeviceAttribute
   MTL_DEVICE_ATTRIBUTE_REGISTRY_ID,
   MTL_DEVICE_ATTRIBUTE_PHYSICAL_LOCATION,
   MTL_DEVICE_ATTRIBUTE_LOCATION_NUMBER,
+  MTL_DEVICE_ATTRIBUTE_METAL_VERSION,
 
 } metalDeviceAttribute_t;
 
@@ -194,39 +131,43 @@ int  hc_mtlDeviceGet                        (void *hashcat_ctx, mtl_device_id *m
 int  hc_mtlDeviceGetName                    (void *hashcat_ctx, char *name, size_t len, mtl_device_id metal_device);
 int  hc_mtlDeviceGetAttribute               (void *hashcat_ctx, int *pi, metalDeviceAttribute_t attrib, mtl_device_id metal_device);
 int  hc_mtlDeviceTotalMem                   (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device);
+int  hc_mtlDeviceMemFree                    (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device);
 int  hc_mtlDeviceMaxMemAlloc                (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device);
 int  hc_mtlMemGetInfo                       (void *hashcat_ctx, size_t *mem_free, size_t *mem_total);
 
-int  hc_mtlCreateCommandQueue               (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue *command_queue);
-int  hc_mtlCreateBuffer                     (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalBufferStorageModeId_t metal_storage_mode);
-int  hc_mtlCreateKernel                     (void *hashcat_ctx, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline);
+int  hc_mtlCreateCommandQueue               (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue *command_queue);
+int  hc_mtlCreateBuffer                     (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalResourceStorageMode_t metal_storage_mode);
+int  hc_mtlCreateKernel                     (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_library metal_library, const int program, const int slot, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline);
 
 int  hc_mtlGetMaxTotalThreadsPerThreadgroup (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *maxTotalThreadsPerThreadgroup);
 int  hc_mtlGetThreadExecutionWidth          (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *threadExecutionWidth);
 int  hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline metal_pipeline, unsigned int *staticThreadgroupMemoryLength);
 
 // copy buffer
-int  hc_mtlMemcpyDtoD                       (void *hashcat_ctx, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t buf_size);
+int  hc_mtlMemcpyDtoD                       (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t buf_size);
 // write
-int  hc_mtlMemcpyHtoD                       (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *mem_src, size_t buf_size);
+int  hc_mtlMemcpyHtoD                       (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *mem_src, size_t buf_size);
 // read
-int  hc_mtlMemcpyDtoH                       (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue command_queue, void *mem_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t buf_size);
+int  hc_mtlMemcpyDtoH                       (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, void *mem_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t buf_size);
 
-int  hc_mtlReleaseMemObject                 (void *hashcat_ctx, mtl_mem_t *metal_buffer);
+int  hc_mtlReleaseMemObject                 (void *hashcat_ctx, void *device_param_ptr, mtl_mem_t *metal_buffer);
 int  hc_mtlReleaseFunction                  (void *hashcat_ctx, mtl_function *metal_function);
-int  hc_mtlReleaseLibrary                   (void *hashcat_ctx, mtl_function *metal_library);
-int  hc_mtlReleaseCommandQueue              (void *hashcat_ctx, mtl_command_queue *command_queue);
-int  hc_mtlReleaseDevice                    (void *hashcat_ctx, mtl_device_id *metal_device);
+int  hc_mtlReleasePipeline                  (void *hashcat_ctx, mtl_pipeline *metal_pipeline);
+int  hc_mtlReleaseLibrary                   (void *hashcat_ctx, mtl_library *metal_library);
+int  hc_mtlReleaseCommandQueue              (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue);
 
-int  hc_mtlCreateLibraryWithSource          (void *hashcat_ctx, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *include_path, mtl_library *metal_library);
-int  hc_mtlCreateLibraryWithFile            (void *hashcat_ctx, mtl_device_id metal_device, const char *cached_file, mtl_library *metal_library);
+int  hc_mtlCreateLibraryWithSource          (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *include_path, mtl_library *metal_library);
+int  hc_mtlArchiveOpen                      (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable);
+void hc_mtlArchiveFlush                     (void *hashcat_ctx, void *device_param_ptr, const int program);
+void hc_mtlArchiveRelease                   (void *hashcat_ctx, void *device_param_ptr, const int program);
 
-int  hc_mtlEncodeComputeCommand_pre         (void *hashcat_ctx, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder);
-int  hc_mtlSetCommandEncoderArg             (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id buf, void *host_data, size_t host_data_size);
+int  hc_mtlEncodeComputeCommand_pre         (void *hashcat_ctx, void *device_param_ptr, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder);
+int  hc_mtlSetCommandEncoderArg             (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id buf, void *host_data, size_t host_data_size);
 
-int  hc_mtlEncodeComputeCommand             (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms);
+int  hc_mtlEncodeComputeCommand             (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms);
+int  hc_mtlEncodeComputeCommand_abort       (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer);
 
-int  hc_mtlFinish                           (void *hashcat_ctx, mtl_command_queue command_queue);
+int  hc_mtlFinish                           (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue);
 
 #endif // __APPLE__
 

@@ -16,10 +16,9 @@ my $workdir          = "test_benchmarkDeep_$startTime";
 my $nvidia_cache     = "~/.nv";
 my $amd_cache        = "~/.AMD";
 my $hashcat_path     = ".";
-my $kernels_cache    = "$hashcat_path/kernels";
+my $kernels_cache    = "$hashcat_path/cache/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
 my $device           = 1;
-my $workload_profile = 3;
 my $runtime          = 11;
 my $sleep_sec        = 13;
 my $default_mask     = "?a?a?a?a?a?a?a";
@@ -78,122 +77,38 @@ system ("rm -rf $kernels_cache");
 
 print "\n\n[$workdir] > Starting...\n\n";
 
-my @hash_types_selection =
-(
-  900,
-  0,
-  100,
-  1400,
-  1700,
-  17400,
-  17600,
-  31000,
-  600,
-  11700,
-  11800,
-  5100,
-  31100,
-  11500,
-  18700,
-  34000,
-  8900,
-  400,
-  1000,
-  3000,
-  22000,
-  13100,
-  5500,
-  5600,
-  15300,
-  15900,
-  33700,
-  28100,
-  9200,
-  9300,
-  5700,
-  1100,
-  2100,
-  7100,
-  3200,
-  500,
-  1500,
-  7400,
-  1800,
-  35100,
-  14000,
-  14100,
-  26401,
-  26403,
-  12300,
-  300,
-  8300,
-  1600,
-  16700,
-  18300,
-  22100,
-  29511,
-  34100,
-  29421,
-  29341,
-  12200,
-  10400,
-  10510,
-  10500,
-  10600,
-  10700,
-  9400,
-  9500,
-  9600,
-  9700,
-  9800,
-  13400,
-  6800,
-  23400,
-  26100,
-  23100,
-  11600,
-  12500,
-  23800,
-  13000,
-  17220,
-  17200,
-  20500,
-  13600,
-  18100,
-  17010,
-  17030,
-  22921,
-  25500,
-  16300,
-  15600,
-  15700,
-  22500,
-  27700,
-  22700,
-  2611,
-  2711,
-  31900,
-  26610,
-  11300,
-  16600,
-  21700,
-  21800,
-  10,
-  20,
-  110,
-  120,
-  1410,
-  1420,
-  10810,
-  10820,
-  1710,
-  1720,
-);
+# The list hashcat itself benchmarks when it is given -b with no -m. It is read out of the source
+# rather than copied to here, because a copy is a thing that goes stale: this file used to carry all
+# 108 of them, declared and then never read by anything, which is the only reason the copy had not
+# already drifted from the original.
+
+sub default_benchmark_modes
+{
+  my $src = "src/benchmark.c";
+
+  open (my $fh, "<", $src) or die "$src: $!\nRun this from the top of the hashcat tree.\n";
+
+  my $text = do { local $/; <$fh> };
+
+  close ($fh);
+
+  my ($body) = $text =~ /DEFAULT_BENCHMARK_ALGORITHMS_BUF\[\]\s*=\s*\{(.*?)\}/s;
+
+  die "$src: could not find DEFAULT_BENCHMARK_ALGORITHMS_BUF\n" unless defined $body;
+
+  my @modes = $body =~ /^\s*(\d+)\s*,/gm;
+
+  die "$src: the benchmark list came back empty\n" unless scalar @modes;
+
+  return @modes;
+}
+
 
 my @hash_types =
 (
   900,
   0,
+  34600,
   100,
   1400,
   1700,
@@ -201,6 +116,7 @@ my @hash_types =
   17600,
   6000,
   33600,
+  34800,
   600,
   31000,
   11700,
@@ -241,14 +157,18 @@ my @hash_types =
   15400,
   14500,
   14900,
-  32900,
-  11900,
-  12000,
-  10900,
-  12100,
+  40070,
+  40031,
+  40032,
+  40024,
+  40034,
   34000,
   8900,
+  30601,
+  30600,
+  36100,
   400,
+  36200,
   16100,
   30420,
   11400,
@@ -276,27 +196,31 @@ my @hash_types =
   7500,
   13100,
   18200,
+  35300,
+  35400,
   5500,
   5600,
-  29100,
+  40056,
+  28700,
   4800,
   8500,
   14200,
   6300,
-  6700,
-  6400,
-  6500,
+  40017,
+  40015,
+  40016,
   3000,
   19000,
   19100,
   19200,
-  19210,
+  40041,
   15300,
   15310,
   15900,
   15910,
-  7200,
-  12800,
+  40019,
+  40037,
+  35200,
   12400,
   1000,
   9900,
@@ -305,42 +229,44 @@ my @hash_types =
   28100,
   13800,
   2410,
-  9200,
+  40021,
   9300,
   5700,
   2400,
-  33900,
+  40075,
   8100,
   22200,
   1100,
   2100,
   7000,
-  26300,
+  40054,
   125,
   501,
   22,
-  15100,
+  40038,
   26500,
   122,
   1722,
-  7100,
+  40018,
   3200,
+  36300,
   500,
   1500,
   7400,
   1800,
   35100,
+  35600,
   131,
   132,
   1731,
   24100,
-  24200,
+  40053,
   12,
   11100,
-  28600,
+  40055,
   3100,
   112,
-  12300,
+  40036,
   7401,
   11200,
   200,
@@ -353,34 +279,35 @@ my @hash_types =
   1711,
   29200,
   24900,
-  10901,
+  40025,
   15000,
   12600,
   1600,
   141,
   1441,
   1421,
+  33400,
   101,
   111,
   7700,
   7701,
   7800,
   7801,
-  10300,
-  35000,
+  40023,
+  40078,
   20712,
-  32031,
-  32041,
+  40061,
+  40063,
   133,
   13500,
-  32000,
-  32050,
-  32060,
-  32070,
-  32020,
-  32030,
-  32040,
-  32010,
+  40057,
+  40064,
+  40065,
+  40066,
+  40059,
+  40060,
+  40062,
+  40058,
   21500,
   21501,
   24,
@@ -388,7 +315,7 @@ my @hash_types =
   8700,
   9100,
   26200,
-  20600,
+  40045,
   4711,
   20711,
   22400,
@@ -430,13 +357,17 @@ my @hash_types =
   18600,
   16200,
   23300,
+  36400,
+  36410,
   6600,
   8200,
   31800,
   9000,
-  5200,
+  40011,
   6800,
   13400,
+  34301,
+  34300,
   23400,
   16900,
   26000,
@@ -465,41 +396,42 @@ my @hash_types =
   23600,
   14700,
   14800,
-  33400,
   8400,
   33800,
   2612,
   121,
   3711,
   4521,
-  22800,
+  40051,
   24800,
   32300,
   11,
   13900,
-  11000,
+  40026,
   16000,
-  7900,
-  32600,
+  40020,
+  40069,
   4522,
   2811,
   2611,
   2711,
   21,
   18100,
-  21600,
+  40050,
   16501,
-  10000,
+  40022,
   124,
-  12150,
-  12001,
+  35500,
+  40035,
+  40033,
   19500,
   27200,
+  35800,
   30000,
   30120,
-  20200,
-  20300,
-  20400,
+  40042,
+  40043,
+  40044,
   24410,
   24420,
   15500,
@@ -512,7 +444,7 @@ my @hash_types =
   22931,
   22941,
   22951,
-  23200,
+  40052,
   28300,
   22600,
   24500,
@@ -525,13 +457,16 @@ my @hash_types =
   26610,
   29800,
   21000,
+  30901,
+  30903,
   11300,
   16600,
   21700,
   21800,
   12700,
   15200,
-  18800,
+  40040,
+  34700,
   32500,
   25500,
   16300,
@@ -547,12 +482,20 @@ my @hash_types =
   29940,
   24600,
   31400,
-  28700,
 );
+
+# "selection" runs exactly what hashcat -b runs, anything else is taken as a list of hash-modes
 
 if (scalar @ARGV)
 {
-  @hash_types = @ARGV;
+  if ($ARGV[0] eq "selection")
+  {
+    @hash_types = default_benchmark_modes ();
+  }
+  else
+  {
+    @hash_types = @ARGV;
+  }
 }
 
 unlink ($result);
@@ -608,7 +551,6 @@ for my $hash_type (@hash_types)
     "--runtime", $runtime,
     "--machine-readable",
     "--optimized-kernel-enable",
-    "--workload-profile", $workload_profile,
     "--hash-type", $hash_type,
     "--attack-mode", 3,
     $mask
@@ -698,8 +640,10 @@ sub get_module
   my $hash_type = shift;
 
   my $st_hash         = undef;
+  my $st_pass         = undef;
   my $is_binary       = 0;
   my $pw_min          = -1;
+  my $pw_min_function = 0;
   my $pw_max          = -1;
   my $benchmark_mask  = undef;
 
@@ -710,6 +654,8 @@ sub get_module
   while (my $line = <IN>)
   {
     chomp $line;
+
+    next if ($line =~ /^\s*\/\//);
 
     if ($line =~ /OPTS_TYPE_BINARY_HASHFILE/)
     {
@@ -723,9 +669,42 @@ sub get_module
       }
     }
 
-    if ($line =~ /ST_HASH *= \"(.*)\"/)
+    if ($line =~ /ST_HASH *= \"(.*?)\"\s*(;|$)/)
     {
       $st_hash = $1;
+
+      my $end = $2;
+
+      # a hash split over several string literals, joined the way the compiler joins them
+
+      while ($end eq "")
+      {
+        my $next = <IN>;
+
+        last if (defined ($next) == 0);
+
+        chomp $next;
+
+        last if ($next =~ /^\s*\"(.*?)\"\s*(;|$)/) == 0;
+
+        $st_hash .= $1;
+
+        $end = $2;
+      }
+
+      # undo the C escapes, such as the \" around the field name in 31400's hash
+
+      $st_hash =~ s/\\(["\\])/$1/g;
+    }
+
+    if ($line =~ /ST_PASS *= \"(.*)\"/)
+    {
+      $st_pass = $1;
+    }
+
+    if ($line =~ /^u32 module_pw_min \(/)
+    {
+      $pw_min_function = 1;
     }
 
     if ($line =~ /const u32 pw_min = (\d+);/)
@@ -745,6 +724,14 @@ sub get_module
   }
 
   close (IN);
+
+  # A minimum given as an expression, such as the RC4 modes' PW_LEN, or returned on the function's
+  # own line cannot be read here, but the self-test password always satisfies it
+
+  if (($pw_min == -1) && ($pw_min_function == 1) && (defined $st_pass))
+  {
+    $pw_min = length ($st_pass);
+  }
 
   my $mask = $default_mask;
 

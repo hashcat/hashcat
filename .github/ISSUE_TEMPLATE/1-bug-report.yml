@@ -1,0 +1,79 @@
+name: Bug report
+description: hashcat crashes, misses a password it should crack, or does something else that is wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most reported bugs are already fixed. Please try the [latest release](https://hashcat.net/hashcat/) or a build of current master before you file one.
+
+        A report we can reproduce gets fixed. Paste commands and output as text, not as screenshots.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you file
+      options:
+        - label: The problem still happens with the latest release or with current master.
+          required: true
+        - label: I searched the existing issues and found no report of it.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: hashcat version
+      description: The output of `hashcat --version`.
+      placeholder: v8.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - BSD
+        - Android
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command line
+      description: The exact command you ran.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The complete output of that command, including any error.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Files to reproduce it
+      description: An example hash, a short wordlist, rules or a mask that show the problem. Generate a test hash with a known password. Never post a hash that is not yours to share.
+  - type: textarea
+    id: devices
+    attributes:
+      label: Devices
+      description: The output of `hashcat -I`. Add the driver version if the problem looks device related.
+      render: text
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: For example the last version that worked, or whether another device or backend behaves differently.

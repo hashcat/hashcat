@@ -1,0 +1,336 @@
+##
+## Author......: See docs/credits.txt
+## License.....: MIT
+##
+
+## tools/test.py on the CPU, through PoCL, because a runner has no GPU. test.py
+## is the Python suite (issue #4917); its oracles are the Python modules under
+## tools/test_modules, so there is no perl stack to install here.
+##
+## When it runs, and what:
+##
+##   pull request   every mode the pull request changes, at most 30, with every
+##                  attack mode and a single hash. A change to code the modes
+##                  share runs the minimal representative set instead, the 24
+##                  modes test.py -M covers, each on the normal per-mode path.
+##
+##   weekly         every mode, in shards, every attack mode, single and multi
+##                  hash, and five kinds: the optimized kernels, the pure
+##                  kernels, a bridge pass that cracks each mode's own test
+##                  oracle through the Python bridge (test.py --bridge, no mode
+##                  kernel), and a container pass that cracks the shipped or
+##                  fetched TrueCrypt/VeraCrypt/CryptoLoop/LUKS container files,
+##                  and edge tests of password/salt boundaries and vector widths.
+##                  Only if master has had a commit in the last seven days.
+##
+##   manual         the weekly run, or the modes given as input, with the kinds
+##                  picked by five checkboxes (optimized, pure, bridge,
+##                  container, edge). Edge is off by default. The others are on.
+##
+## .github/workflows/ci_matrix.py decides which modes, shard and kind. Each
+## matrix entry carries a kind (opt, pure, bridge, container or edge). The test step
+## below runs the one pass for its kind, so the kinds are parallel jobs rather
+## than passes in one. The kernel kinds share the on-disk mode pool; container
+## has its own and runs once. A pull request is optimized only, for latency.
+##
+## test.py exits non-zero when a mode fails, so a job here reads its exit code:
+## the per-mode runs are OR'd into one status and a nonzero one fails the job.
+
+name: test
+
+# Name a manual run after the kinds it was dispatched with, so the run list shows "test: opt pure
+# (all)" rather than a column of identical "test". A schedule or pull request keeps the event name.
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('test: {0}{1}{2}{3}{4}({5})',
+                inputs.optimized && 'opt ' || '',
+                inputs.pure && 'pure ' || '',
+                inputs.bridge && 'bridge ' || '',
+                inputs.container && 'container ' || '',
+                inputs.edge && 'edge ' || '',
+                inputs.modes)
+      || format('test ({0})', github.event_name) }}
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      modes:
+        description: 'Modes to test, "all" or a space separated list'
+        default: 'all'
+      optimized:
+        description: 'Test the optimized kernels'
+        type: boolean
+        default: true
+      pure:
+        description: 'Test the pure kernels'
+        type: boolean
+        default: true
+      bridge:
+        description: 'Test Python bridge kernels'
+        type: boolean
+        default: true
+      container:
+        description: 'Test container files (TrueCrypt/VeraCrypt/LUKS/..)'
+        type: boolean
+        default: true
+      edge:
+        description: 'Test edge cases (both kernel types and all vector widths)'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'OpenCL/**'
+      - 'src/**'
+      - 'include/**'
+      - 'deps/**'
+      - 'Makefile'
+      - 'tools/test.py'
+      - 'tools/test_module_runner.*'
+      - 'tools/test_modules/**'
+      - 'tools/requirements.txt'
+      - '.github/workflows/test.yml'
+      - '.github/workflows/ci_matrix.py'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          MODES: ${{ inputs.modes }}
+          OPTIMIZED: ${{ inputs.optimized }}
+          PURE: ${{ inputs.pure }}
+          BRIDGE: ${{ inputs.bridge }}
+          CONTAINER: ${{ inputs.container }}
+          EDGE: ${{ inputs.edge }}
+        run: |
+          # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
+          # An empty manual selection keeps the four ordinary kinds.
+          kinds=""
+          [ "$OPTIMIZED" = "true" ] && kinds="$kinds opt"
+          [ "$PURE" = "true" ]      && kinds="$kinds pure"
+          [ "$BRIDGE" = "true" ]    && kinds="$kinds bridge"
+          [ "$CONTAINER" = "true" ] && kinds="$kinds container"
+          [ "$EDGE" = "true" ]      && kinds="$kinds edge"
+          if [ "$EVENT" = "schedule" ]; then
+            kinds="opt pure bridge container edge"
+          fi
+          [ -z "$kinds" ] && kinds="opt pure bridge container"
+          kinds_arg="--kinds $(echo $kinds | tr ' ' ',')"
+
+          if [ "$EVENT" = "pull_request" ]; then
+            python3 .github/workflows/ci_matrix.py test pr "$BASE" | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
+            python3 .github/workflows/ci_matrix.py test list "$MODES" $kinds_arg | tee -a "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ] &&
+               [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
+            echo "no commit on master in the last seven days, nothing new to test"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            python3 .github/workflows/ci_matrix.py test all $kinds_arg | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 330 }}
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    name: test.py ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install PoCL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+               pocl-opencl-icd ocl-icd-libopencl1 clinfo build-essential
+          clinfo -l
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Python oracles
+        run: pip install -r tools/requirements.txt
+
+      # The LUKS containers are a large download test.py would otherwise fetch in
+      # the middle of a run, so pull and cache them here. The luks1 set covers 14600
+      # and 29511+, the luks2 set covers 34100; the minimal (-M) job needs both. The
+      # tc/vc/cl container sets are checked into the tree, so they need no fetch.
+
+      - name: Restore the luks1 test containers
+        id: luks1
+        if: contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/luks_tests
+          key: luks1-tests-v1
+
+      - name: Fetch the luks1 test containers
+        if: (contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools/luks_tests
+          cd tools/luks_tests
+          wget -q https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z
+          7z x -y hashcat_luks_testfiles.7z >/dev/null
+          rm -f hashcat_luks_testfiles.7z
+
+      - name: Save the luks1 test containers
+        if: (contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: tools/luks_tests
+          key: luks1-tests-v1
+
+      - name: Restore the luks2 test containers
+        id: luks2
+        if: contains(matrix.modes, '34100')
+        uses: actions/cache/restore@v6
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v1
+
+      - name: Fetch the luks2 test containers
+        if: (contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools/luks2_tests
+          cd tools/luks2_tests
+          wget -q https://hashcat.net/misc/example_hashes/luks2_tests.7z
+          7z x -y luks2_tests.7z >/dev/null
+          rm -f luks2_tests.7z
+
+      - name: Save the luks2 test containers
+        if: (contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: tools/luks2_tests
+          key: luks2-tests-v1
+
+      - name: Install the Rust toolchain
+        # Mode 74000 is a Rust bridge: its plugin only builds when cargo is present, and the mode
+        # skips without it. The crates are edition 2024, which needs cargo 1.85 or newer. Install a
+        # toolchain only on a shard that carries 74000, so the bridge builds and the mode runs
+        # instead of skipping, without paying the install on every shard.
+        if: contains(matrix.modes, '74000')
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain 1.85.0 --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: test.py
+        env:
+          EVENT: ${{ github.event_name }}
+          MODES: ${{ matrix.modes }}
+          KIND: ${{ matrix.kind }}
+        run: |
+          # A shared-code change with no mode of its own runs test.py -M's 24
+          # representative modes, sharded by ci_matrix.py into per-mode lists that
+          # take the normal path below (test.py now handles the container families).
+
+          # One pass, chosen by the shard's kind: opt runs the optimized kernels, pure adds -P for
+          # the pure kernels, bridge runs --bridge (cracks each mode's own test oracle through the
+          # Python bridge with no mode kernel), and container cracks the container files for the
+          # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
+          # the family's own fixed attack, so the container kind passes neither. A pull request is
+          # optimized only and a single hash, to keep its latency. Edge tests cover both kernel
+          # families and every vector width in one pass.
+          if [ "$EVENT" = "pull_request" ]; then
+            OPTS="-a all -t single"
+          elif [ "$KIND" = "pure" ]; then
+            OPTS="-a all -t all -P"
+          elif [ "$KIND" = "bridge" ]; then
+            OPTS="--bridge"
+          elif [ "$KIND" = "container" ]; then
+            OPTS=""
+          elif [ "$KIND" = "edge" ]; then
+            OPTS="--edge"
+          else
+            OPTS="-a all -t all"
+          fi
+
+          fail=0
+          failed_modes=""
+
+          for mode in $MODES; do
+            echo "::group::test.py -m ${mode} ${OPTS}"
+            log="testpy_${mode}_${KIND}.log"
+
+            # Capture the exit code through an if so rc is kept for the annotation and the job
+            # summary below. bash -e does not abort on a command that is an if condition, so the
+            # loop still runs every mode.
+            # shellcheck disable=SC2086
+            if python3 tools/test.py -m "${mode}" ${OPTS} -D 1 -f > "${log}" 2>&1; then
+              rc=0
+            else
+              rc=$?
+            fi
+
+            cat "${log}"
+            echo "::endgroup::"
+
+            if [ "${rc}" -ne 0 ]; then
+              fail=1
+              failed_modes="${failed_modes} ${mode}(${KIND})"
+
+              # A red run should name the failure, not just its exit code. Pull the worker's own
+              # diagnostic lines (the per-cell verdict and any oracle error) out of the folded log
+              # into an annotation and the job summary.
+              reason=$(grep -m1 -E '> (Error|Fault|Compare Error) :|oracle failed|did not round trip|\[ test.py edge \] !>' "${log}" | sed 's/^[[:space:]]*//' || true)
+              reason=${reason:-see the job summary}
+              reason=${reason//%/%25}
+              reason=${reason//$'\r'/%0D}
+              echo "::error title=test.py failed on mode ${mode} (${KIND})::${reason}"
+
+              if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+                {
+                  echo "### mode ${mode} (${KIND}) failed: test.py -m ${mode} ${OPTS} (exit ${rc})"
+                  echo '```'
+                  grep -m 40 -E '> (OK|Error|Fault|Compare Error) :|oracle failed|did not round trip|not found|not matched|Traceback|\[ test.py edge \] !>' "${log}" || true
+                  tail -n 20 "${log}"
+                  echo '```'
+                } >> "${GITHUB_STEP_SUMMARY}"
+              fi
+            fi
+          done
+
+          if [ "${fail}" -ne 0 ]; then
+            echo "::error title=test.py failed::modes that failed:${failed_modes}"
+          fi
+
+          exit $fail
+
+      - name: Upload the test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs-${{ matrix.name }}
+          path: |
+            test_*/
+            testpy_*.log
+          if-no-files-found: ignore

@@ -130,7 +130,7 @@ KERNEL_FQ KERNEL_FA void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
   sha1_ctx_t ctx;
 
   sha1_init (&ctx);
-  sha1_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_le (&ctx, pws[gid].i, pws[gid].pw_len);
   sha1_final_32700 (&ctx);
   // sha1_final (&ctx);
 
@@ -216,7 +216,7 @@ KERNEL_FQ KERNEL_FA void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
 
   sha1_init (&ctx);
   sha1_update (&ctx, salt, 8);
-  sha1_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_le (&ctx, pws[gid].i, pws[gid].pw_len);
   sha1_final_32700 (&ctx);
 
   const u32 r0 = ctx.h[0];

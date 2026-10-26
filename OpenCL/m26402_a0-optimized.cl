@@ -113,8 +113,11 @@ KERNEL_FQ KERNEL_FA void m26402_m04 (KERN_ATTR_RULES ())
     u32 w0[4] = { 0 };
     u32 w1[4] = { 0 };
 
-    // ignore output length
-    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    // A rule can grow the word past the 24 byte key.
+
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    if (out_len > 24) continue;
 
     u32 ukey[6];
 
@@ -261,8 +264,11 @@ KERNEL_FQ KERNEL_FA void m26402_s04 (KERN_ATTR_RULES ())
     u32 w0[4] = { 0 };
     u32 w1[4] = { 0 };
 
-    // ignore output length
-    apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    // A rule can grow the word past the 24 byte key.
+
+    const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+
+    if (out_len > 24) continue;
 
     u32 ukey[6];
 

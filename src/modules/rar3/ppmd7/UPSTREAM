@@ -1,0 +1,22 @@
+# Where the files in this directory came from, and what they were when they arrived.
+#
+# The checksum block below is in the format sha256sum -c reads, so verifying that nothing here has
+# drifted needs no tool of ours. See ORIGIN.txt for the reasoning and the licence chain.
+
+release       7-Zip 26.02
+release_date  2026-06-25
+source_url    https://www.7-zip.org/a/7z2602-src.7z
+source_sha256 c7502dd4557481f52ccf1b3e680329f1fdd207e79a25544afeb3106325474944
+source_dir    C
+
+# sha256 of each adopted file, exactly as published.
+
+0356e2eb0258e3723bf49355d97e52a712a9abfdda60f177410a406353e056dd  Ppmd.h
+dbb8572208a5670dd01be9121c3a65870ccc50d82b47dd959f5f811be7f0e459  Ppmd7.h
+07dcecf2616a8731c41bb219a44a13881b87aec34ef880226c5ebb668c17b3bd  Ppmd7.c
+fce06d8cdc3890c1309715582b20c69da75affbd4e892cba9b6b22c6be8a289d  Ppmd7aDec.c
+88acadbc12902012872fa29337c86564bb8f9198d6be416aad6119bb537425d1  Precomp.h
+ecf5b71c498d8be56b7dd50a6ba82a874135f4a03d379f419582710d1809bed3  Compiler.h
+ed00293b38492650cffe59d018a0ef4962969f8dff3f58cdfb9f7ca1ba5cf814  CpuArch.h
+6c4170c57f2555c9950dc20163583e331c5d2bc1f0ed0a17c3b0cc00cef3d422  7zTypes.h
+228be01470e87c8cee44ee2e6c1cc2a431ed26ec3a325edfbaa166b7ef4f492e  7zWindows.h
