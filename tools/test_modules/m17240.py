@@ -21,7 +21,7 @@ def module_generate_hash(word, salt, iterations=None):
 
   if method == 8:
     if random_number(0, 1):
-      content = b'A' * 131072
+      content = b'A' * 32768
 
     strategy = zlib.Z_FIXED if random_number(0, 1) else zlib.Z_DEFAULT_STRATEGY
     compressor = zlib.compressobj(6, zlib.DEFLATED, -15, strategy=strategy)

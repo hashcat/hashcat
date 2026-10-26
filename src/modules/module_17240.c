@@ -105,18 +105,33 @@ static u32 stream_crc (const u32 crc, const u32 value, const u32 *table)
   return result;
 }
 
+static u32 stream_decrypt_byte (const u32 cipher, u32 *key, const u32 *table)
+{
+  const u32 t     = (key[2] & 65535) | 3;
+  const u32 value = cipher ^ (((t * (t ^ 1)) >> 8) & 255);
+
+  key[0] = stream_crc (key[0], value, table);
+  key[1] = (key[1] + (key[0] & 255)) * 0x08088405 + 1;
+  key[2] = stream_crc (key[2], key[1] >> 24, table);
+
+  return value;
+}
+
 static void stream_decrypt (u8 *buf, const u32 len, u32 *key, const u32 *table)
+{
+  for (u32 i = 0; i < len; i++) buf[i] = stream_decrypt_byte (buf[i], key, table);
+}
+
+static u32 stream_decrypt_crc (const u8 *buf, const u32 len, u32 *key, const u32 *table, u32 crc)
 {
   for (u32 i = 0; i < len; i++)
   {
-    const u32 t     = (key[2] & 65535) | 3;
-    const u32 value = buf[i] ^ (((t * (t ^ 1)) >> 8) & 255);
+    const u32 value = stream_decrypt_byte (buf[i], key, table);
 
-    buf[i] = value;
-    key[0] = stream_crc (key[0], value, table);
-    key[1] = (key[1] + (key[0] & 255)) * 0x08088405 + 1;
-    key[2] = stream_crc (key[2], key[1] >> 24, table);
+    crc = stream_crc (crc, value, table);
   }
+
+  return crc;
 }
 
 bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
@@ -170,9 +185,9 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
   hook = &hooks[pw_pos];
 
-  hook->success = 0;
+  if (hook->state != PKZIP_STREAM_VERIFY) return;
 
-  if (hook->valid == 0) return;
+  hook->state = PKZIP_STREAM_REJECT;
 
   const pkzip_stream_salt_t *salts = NULL;
 
@@ -217,18 +232,17 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
       return;
     }
 
-    if (stream_seek (extra->file, salt->offset + 12, SEEK_SET) != 0)
-    {
-      extra->io_errors++;
-
-      return;
-    }
+    memmove (extra->input, &extra->input[12], salt->sample_len - 12);
+  }
+  else
+  {
+    memcpy (extra->input, &salt->sample[12], salt->sample_len - 12);
   }
 
   u32 key[3]    = { hook->key[0], hook->key[1], hook->key[2] };
-  u64 remaining = salt->packed - 12;
+  u64 remaining = salt->packed - salt->sample_len;
   u64 written   = 0;
-  u64 position  = 12;
+  u64 position  = salt->sample_len;
   u32 crc       = 0xffffffff;
   bool success  = false;
 
@@ -237,7 +251,12 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
   if (salt->method == 8)
   {
     if (hc_inflate_init (&stream) != HC_Z_OK) return;
+
+    stream_decrypt (extra->input, salt->sample_len - 12, key, extra->table);
   }
+
+  stream.next_in  = extra->input;
+  stream.avail_in = salt->sample_len - 12;
 
   while (true)
   {
@@ -260,7 +279,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
         memcpy (extra->input, &salt->sample[position], count);
       }
 
-      stream_decrypt (extra->input, count, key, extra->table);
+      if (salt->method == 8) stream_decrypt (extra->input, count, key, extra->table);
 
       stream.next_in  = extra->input;
       stream.avail_in = count;
@@ -270,7 +289,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
     if (salt->method == 0)
     {
-      for (u32 i = 0; i < stream.avail_in; i++) crc = stream_crc (crc, extra->input[i], extra->table);
+      crc = stream_decrypt_crc (extra->input, stream.avail_in, key, extra->table, crc);
 
       written += stream.avail_in;
       stream.avail_in = 0;
@@ -308,7 +327,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
   if (salt->method == 8) hc_inflate_end (&stream);
 
-  if (success == true) hook->success = 1;
+  if (success == true) hook->state = PKZIP_STREAM_MATCH;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *digest_buf, salt_t *salt, void *esalt_buf, void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, const int line_len)

@@ -64,3 +64,7 @@ Keep using the existing modes when their input fits. Streaming trades their fixe
 host verification and source-file reads. A DEFLATE header can reject many false candidates cheaply.
 Stored members provide a weaker initial filter, so their searches can be CPU- or I/O-bound. This
 mode removes the 320 KiB member-size barrier, but it cannot promise the same rate for every ZIP.
+
+For DEFLATE, `--hook-threads 1` can reduce dispatch overhead when most candidates are rejected by
+the GPU or after a short inflate attempt. Stored members may benefit from multiple workers because
+each surviving header needs full-file verification. Select the count with the actual target workload.
