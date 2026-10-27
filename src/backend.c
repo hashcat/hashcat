@@ -1870,6 +1870,28 @@ static u32 pcfg_dev_rules (const user_options_t *user_options)
   return 0;
 }
 
+// A kernel path that filled its buffer was cut to fit, and what follows is a read that fails or a
+// build that fails, naming a file which looks plausible. Both messages then point at the kernel,
+// which is the one thing that is not wrong, so the install path is named here instead.
+
+static bool kernel_path_fits (hashcat_ctx_t *hashcat_ctx, const char *path)
+{
+  if (strlen (path) < KERNEL_PATH_SZ - 1) return true;
+
+  event_log_error (hashcat_ctx, "A kernel path did not fit in %d bytes and was cut short:", KERNEL_PATH_SZ);
+  event_log_error (hashcat_ctx, "%s", path);
+  event_log_error (hashcat_ctx, NULL);
+
+  event_log_warning (hashcat_ctx, "The kernel is fine. What is too long is the path it is under. A cut path loses the");
+  event_log_warning (hashcat_ctx, "end of the checksum that tells one device and one set of build options from another,");
+  event_log_warning (hashcat_ctx, "so two different builds could come to share a cache entry.");
+  event_log_warning (hashcat_ctx, "Install hashcat somewhere shorter. On a POSIX system the cache path can also be moved");
+  event_log_warning (hashcat_ctx, "with XDG_CACHE_HOME and the profile path with XDG_DATA_HOME.");
+  event_log_warning (hashcat_ctx, NULL);
+
+  return false;
+}
+
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
 {
   if (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
@@ -1878,12 +1900,12 @@ void generate_source_kernel_filename (const bool slow_candidates, const u32 atta
     {
       if (slow_candidates == true)
       {
-        snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
+        snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
       }
       else
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
         // 43 modes ship an _a4-optimized.cl, from when -a 4 gained a device engine on the modes that
         // have only an optimized kernel. A mode without one never reaches this arm, because
         // generic_instance_init () refuses -O there and says to run without it.
@@ -1893,18 +1915,18 @@ void generate_source_kernel_filename (const bool slow_candidates, const u32 atta
         // names _s04, and the entry point lookup fails on a file that is otherwise correct.
 
         else if (attack_kern == ATTACK_KERN_PCFG)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a4-optimized.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a4-optimized.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a1-optimized.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a1-optimized.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a3-optimized.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a3-optimized.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_NONE)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
       }
     }
     else
     {
-      snprintf (source_file, 255, "%s/OpenCL/m%05d-optimized.cl", shared_dir, (int) kern_type);
+      snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d-optimized.cl", shared_dir, (int) kern_type);
     }
   }
   else
@@ -1913,25 +1935,25 @@ void generate_source_kernel_filename (const bool slow_candidates, const u32 atta
     {
       if (slow_candidates == true)
       {
-        snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
+        snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
       }
       else
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_PCFG)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a4-pure.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a4-pure.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a1-pure.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a1-pure.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a3-pure.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a3-pure.cl", shared_dir, (int) kern_type);
         else if (attack_kern == ATTACK_KERN_NONE)
-          snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
+          snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
       }
     }
     else
     {
-      snprintf (source_file, 255, "%s/OpenCL/m%05d-pure.cl", shared_dir, (int) kern_type);
+      snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/m%05d-pure.cl", shared_dir, (int) kern_type);
     }
   }
 }
@@ -1944,12 +1966,12 @@ void generate_cached_kernel_filename (const bool slow_candidates, const u32 atta
     {
       if (slow_candidates == true)
       {
-        snprintf (cached_file, 255, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+        snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
       }
       else
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         // 43 modes ship an _a4-optimized.cl, from when -a 4 gained a device engine on the modes that
         // have only an optimized kernel. A mode without one never reaches this arm, because
         // generic_instance_init () refuses -O there and says to run without it.
@@ -1959,18 +1981,18 @@ void generate_cached_kernel_filename (const bool slow_candidates, const u32 atta
         // names _s04, and the entry point lookup fails on a file that is otherwise correct.
 
         else if (attack_kern == ATTACK_KERN_PCFG)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a4-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a4-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a1-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a1-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a3-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a3-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_NONE)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a0-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
       }
     }
     else
     {
-      snprintf (cached_file, 255, "%s/kernels/m%05d-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+      snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d-optimized.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
     }
   }
   else
@@ -1979,48 +2001,48 @@ void generate_cached_kernel_filename (const bool slow_candidates, const u32 atta
     {
       if (slow_candidates == true)
       {
-        snprintf (cached_file, 255, "%s/kernels/m%05d_a0-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+        snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a0-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
       }
       else
       {
         if (attack_kern == ATTACK_KERN_STRAIGHT)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a0-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a0-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_PCFG)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a4-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a4-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_COMBI)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a1-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a1-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_BF)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a3-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a3-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
         else if (attack_kern == ATTACK_KERN_NONE)
-          snprintf (cached_file, 255, "%s/kernels/m%05d_a0-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+          snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d_a0-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
       }
     }
     else
     {
-      snprintf (cached_file, 255, "%s/kernels/m%05d-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
+      snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/m%05d-pure.%s.%s", cache_dir, (int) kern_type, device_name_chksum, (is_metal == true) ? "metallib" : "kernel");
     }
   }
 }
 
 void generate_source_kernel_shared_filename (char *shared_dir, char *source_file)
 {
-  snprintf (source_file, 255, "%s/OpenCL/shared.cl", shared_dir);
+  snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/shared.cl", shared_dir);
 }
 
 void generate_cached_kernel_shared_filename (char *cache_dir, const char *device_name_chksum_amp_mp, char *cached_file, bool is_metal)
 {
-  snprintf (cached_file, 255, "%s/kernels/shared.%s.%s", cache_dir, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
+  snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/shared.%s.%s", cache_dir, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
 }
 
 void generate_source_kernel_mp_filename (const u32 opti_type, const u64 opts_type, char *shared_dir, char *source_file)
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
-    snprintf (source_file, 255, "%s/OpenCL/markov_be.cl", shared_dir);
+    snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/markov_be.cl", shared_dir);
   }
   else
   {
-    snprintf (source_file, 255, "%s/OpenCL/markov_le.cl", shared_dir);
+    snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/markov_le.cl", shared_dir);
   }
 }
 
@@ -2028,22 +2050,22 @@ void generate_cached_kernel_mp_filename (const u32 opti_type, const u64 opts_typ
 {
   if ((opti_type & OPTI_TYPE_BRUTE_FORCE) && (opts_type & OPTS_TYPE_PT_GENERATE_BE))
   {
-    snprintf (cached_file, 255, "%s/kernels/markov_be.%s.%s", cache_dir, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
+    snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/markov_be.%s.%s", cache_dir, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/markov_le.%s.%s", cache_dir, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
+    snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/markov_le.%s.%s", cache_dir, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
   }
 }
 
 void generate_source_kernel_amp_filename (const u32 attack_kern, char *shared_dir, char *source_file)
 {
-  snprintf (source_file, 255, "%s/OpenCL/amp_a%u.cl", shared_dir, attack_kern);
+  snprintf (source_file, KERNEL_PATH_SZ, "%s/OpenCL/amp_a%u.cl", shared_dir, attack_kern);
 }
 
 void generate_cached_kernel_amp_filename (const u32 attack_kern, char *cache_dir, const char *device_name_chksum_amp_mp, char *cached_file, bool is_metal)
 {
-  snprintf (cached_file, 255, "%s/kernels/amp_a%u.%s.%s", cache_dir, attack_kern, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
+  snprintf (cached_file, KERNEL_PATH_SZ, "%s/kernels/amp_a%u.%s.%s", cache_dir, attack_kern, device_name_chksum_amp_mp, (is_metal == true) ? "metallib" : "kernel");
 }
 
 int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw)
@@ -15861,9 +15883,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel shared source filename
        */
 
-      char source_file[256] = { 0 };
+      char source_file[KERNEL_PATH_SZ] = { 0 };
 
       generate_source_kernel_shared_filename (folder_config->shared_dir, source_file);
+
+      if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
       if (hc_path_read (source_file) == false)
       {
@@ -15876,9 +15900,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel shared cached filename
        */
 
-      char cached_file[256] = { 0 };
+      char cached_file[KERNEL_PATH_SZ] = { 0 };
 
       generate_cached_kernel_shared_filename (folder_config->cache_dir, device_name_chksum_amp_mp, cached_file, device_param->is_metal);
+
+      if (kernel_path_fits (hashcat_ctx, cached_file) == false) return -1;
 
       device_param->opencl_program[HC_DEV_PROGRAM_SHARED] = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, HC_DEV_PROGRAM_SHARED);
 
@@ -16054,9 +16080,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // The source is named before the key is built, because the key has to carry a digest of it.
 
-      char source_file[256] = { 0 };
+      char source_file[KERNEL_PATH_SZ] = { 0 };
 
       generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
+
+      if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
       if (hc_path_read (source_file) == false)
       {
@@ -16115,9 +16143,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel cached filename
        */
 
-      char cached_file[256] = { 0 };
+      char cached_file[KERNEL_PATH_SZ] = { 0 };
 
       generate_cached_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->cache_dir, device_name_chksum, cached_file, device_param->is_metal);
+
+      if (kernel_path_fits (hashcat_ctx, cached_file) == false) return -1;
 
       /**
        * load kernel
@@ -16153,9 +16183,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
          * kernel mp source filename
          */
 
-        char source_file[256] = { 0 };
+        char source_file[KERNEL_PATH_SZ] = { 0 };
 
         generate_source_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->shared_dir, source_file);
+
+        if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
         if (hc_path_read (source_file) == false)
         {
@@ -16168,9 +16200,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
          * kernel mp cached filename
          */
 
-        char cached_file[256] = { 0 };
+        char cached_file[KERNEL_PATH_SZ] = { 0 };
 
         generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->cache_dir, device_name_chksum_amp_mp, cached_file, device_param->is_metal);
+
+        if (kernel_path_fits (hashcat_ctx, cached_file) == false) return -1;
 
         device_param->opencl_program[HC_DEV_PROGRAM_MP] = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, HC_DEV_PROGRAM_MP);
 
@@ -16204,9 +16238,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
          * kernel amp source filename
          */
 
-        char source_file[256] = { 0 };
+        char source_file[KERNEL_PATH_SZ] = { 0 };
 
         generate_source_kernel_amp_filename (user_options_extra->attack_kern, folder_config->shared_dir, source_file);
+
+        if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
         if (hc_path_read (source_file) == false)
         {
@@ -16219,9 +16255,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
          * kernel amp cached filename
          */
 
-        char cached_file[256] = { 0 };
+        char cached_file[KERNEL_PATH_SZ] = { 0 };
 
         generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->cache_dir, device_name_chksum_amp_mp, cached_file, device_param->is_metal);
+
+        if (kernel_path_fits (hashcat_ctx, cached_file) == false) return -1;
 
         device_param->opencl_program[HC_DEV_PROGRAM_AMP] = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, HC_DEV_PROGRAM_AMP);
 

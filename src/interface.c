@@ -439,7 +439,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->optimized_kernel == true)
     {
-      char optimized_file[256] = { 0 };
+      char optimized_file[KERNEL_PATH_SZ] = { 0 };
 
       generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, optimized_file);
 
@@ -573,7 +573,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // from the kern_type it declares, because backend.c only asks it for the real one once a hash has
   // been read, and hashconfig_init () runs before that
 
-  char source_file[256] = { 0 };
+  char source_file[KERNEL_PATH_SZ] = { 0 };
 
   generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
 

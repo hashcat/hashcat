@@ -520,7 +520,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   if (generic_ctx->dev_enable == true)
   {
-    char source_file[256];
+    char source_file[KERNEL_PATH_SZ];
 
     generate_source_kernel_filename (false, hashcat_ctx->hashconfig->attack_exec, ATTACK_KERN_PCFG,
                                      hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
