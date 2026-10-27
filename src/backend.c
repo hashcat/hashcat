@@ -17401,7 +17401,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_kernel_params
         + size_spilling;
 
-      const u64 size_host_extra = (512 * 1024 * 1024) / backend_ctx->backend_devices_active;
+      const u64 size_host_extra = BACKEND_HOST_MEM_RESERVE / backend_ctx->backend_devices_active;
 
       // the staging buffers are allocated once per pipeline slot, because the next batch is built
       // while the current one runs
