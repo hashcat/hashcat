@@ -17258,7 +17258,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // is there so the brain can reject candidates once the whole batch has been hashed, which is not
     // known while the batch is being built. Without the brain the drain that follows is an
     // unconditional copy, so fill_slow () adds the candidate to the batch itself and this is one
-    // pw_pre_t per work item of host budget, and one copy per candidate, that nothing needs.
+    // pw_pre_t per work item of host budget, and one copy per candidate, that nothing needs. The two
+    // brain link buffers answer the same question: that block of fill_slow () writes one hash per
+    // candidate into the out buffer and brain_client_lookup () receives one byte per candidate into the
+    // in buffer, so all three are in use together.
 
     #ifdef WITH_BRAIN
     const bool pws_pre_in_use = (user_options->slow_candidates == true) && (user_options->brain_client == true);
@@ -17409,8 +17412,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       #ifdef WITH_BRAIN
       // size_brains
 
-      size_brain_link_in  = kernel_power_max * 1;
-      size_brain_link_out = kernel_power_max * 8;
+      if (pws_pre_in_use == true)
+      {
+        size_brain_link_in  = kernel_power_max * 1;
+        size_brain_link_out = kernel_power_max * 8;
+      }
       #endif
 
       // size_pws_pre
