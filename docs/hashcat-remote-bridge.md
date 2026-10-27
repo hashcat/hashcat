@@ -14,10 +14,10 @@ Various concepts are tested with this:
 * It creates the ability to use a significant amount of computing capacity in the short term without the need for additional hardware purchase and subsequent maintenance.
 
 
-Here is a command-line examples which will crack with 'hashcat' as password:
+Here is a command-line example which will crack with 'hashcat' as password:
 
 hashcat : ./hashcat -a 3 -m 76000 '$argon2id$v=19$m=1048576,t=3,p=3$2XsI78UNmyI=$W+DIZS8IGMaJo+ru2Uhq5GfOUdDP+cXthKlHBCy60fA=' hashc?l?l --bridge-parameter1=<ip-addres:port-number>
 
 legion : java -Xmx6G -Xms6G --enable-native-access=ALL-UNNAMED -jar legion.jar <port-number>
 
-The legion application is intended as proof-of-concept and not for production. Please restart it between sessions if you have any trouble.
+The legion application is intended as proof-of-concept and not for production usage. It has only been tested on Windows and Linux (Ubuntu). Please restart the application between sessions if you have any trouble.
