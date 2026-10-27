@@ -277,6 +277,47 @@ jobs:
           name: hashcat-${{ matrix.os_name_lowercase }}-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
 
+  # A release commit sets PRODUCTION to 1, which pins the version and drops the development
+  # warnings, and the commit after it is supposed to set it back. That has been forgotten before:
+  # after v7.1.1 master built in production mode for 12 commits and three days, and only came back
+  # because an unrelated commit happened to carry the change.
+  #
+  # The release commit itself is the one case where 1 is right, and it is recognised by its subject
+  # rather than by its tag, because the branch and the tag do not always reach the runner together.
+
+  production-flag:
+    name: Production flag
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: PRODUCTION must be 0 on master
+        run: |
+          value=$(sed -n 's/^PRODUCTION[[:space:]]*:=[[:space:]]*\([01]\).*/\1/p' src/Makefile)
+
+          if [ -z "$value" ]; then
+            echo "::error file=src/Makefile::could not read the PRODUCTION value"
+            exit 1
+          fi
+
+          if [ "$value" = "0" ]; then
+            echo "PRODUCTION is 0"
+            exit 0
+          fi
+
+          subject=$(git log -1 --format=%s)
+
+          case "$subject" in
+            "hashcat "[0-9]*)
+              echo "PRODUCTION is 1 on the release commit '$subject', which is expected"
+              exit 0
+              ;;
+          esac
+
+          echo "::error file=src/Makefile::PRODUCTION is 1 on master, outside a release commit. The commit after a release has to set it back to 0, or every build from master reports the released version and compiles without the development warnings."
+          exit 1
+
   binaries:
     name: Build binaries (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: ubuntu-latest

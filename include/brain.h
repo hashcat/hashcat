@@ -46,6 +46,14 @@ static const int BRAIN_SERVER_TIMER               = 5 * 60;
 static const int BRAIN_SERVER_SESSIONS_MAX        = 64;
 static const int BRAIN_SERVER_ATTACKS_MAX         = 64 * 1024;
 static const int BRAIN_SERVER_CLIENTS_MAX         = 256;
+
+// How long a connection may take to get through the handshake. A connection that is still in it
+// holds one of the slots above, so without a deadline a peer that connects and sends nothing holds
+// a slot for as long as it likes. The deadline covers the handshake only, never the session after
+// it, so it has to be generous enough for a slow link and short enough that filling every slot
+// takes continuous effort rather than one burst.
+
+static const int BRAIN_SERVER_HANDSHAKE_TIMEOUT   = 10;
 static const int BRAIN_SERVER_REALLOC_ATTACK_SIZE = 1024;
 static const int BRAIN_HASH_SIZE                  = 2 * sizeof (u32);
 // The wire format changed when brain_auth_hash moved from a checksum to SHA-256, so a client and

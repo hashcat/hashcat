@@ -16878,8 +16878,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // GPUs only. A CPU runtime reports private memory on a different scale entirely - Intel's answers
     // 4864 bytes for MD5 and 10112 for argon2 where a GPU says 288 - so the threshold below means
     // nothing there, and a CPU device is running one work item per core regardless.
+    //
+    // Not on Intel's GPU runtime either. It answers CL_KERNEL_PRIVATE_MEM_SIZE for a whole hardware
+    // thread, which runs as many work items as the kernel's SIMD width, and its native count is
+    // CL_DEVICE_NUM_THREADS_PER_EU_INTEL, which is not a group width. A narrow group does not win
+    // there even for a kernel that is spill-heavy per work item. On an Arc A770, MD6 (256) at 16,392
+    // bytes per work item runs the same from 8 to 128 threads, and NetNTLMv1, read as 8448 bytes
+    // where a work item holds 528, runs 2.2x faster at 64 than at 8.
 
-    const bool spill_guard_applies = (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0;
+    const bool intel_runtime = (device_param->is_opencl == true) && (device_param->opencl_platform_vendor_id == VENDOR_ID_INTEL_SDK);
+
+    const bool spill_guard_applies = ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0) && (intel_runtime == false);
 
     if ((local_size_bytes >= SPILL_HEAVY_PRIVATE_BYTES)
      && (spill_guard_applies == true)
@@ -17100,6 +17109,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const bool pws_base_in_use = (user_options->slow_candidates == true) && (debugfile_wants_base (hashcat_ctx) == true);
 
+    // pws_pre is the staging buffer the slow candidate producer fills before it hands a batch over. It
+    // is there so the brain can reject candidates once the whole batch has been hashed, which is not
+    // known while the batch is being built. Without the brain the drain that follows is an
+    // unconditional copy, so fill_slow () adds the candidate to the batch itself and this is one
+    // pw_pre_t per work item of host budget, and one copy per candidate, that nothing needs.
+
+    #ifdef WITH_BRAIN
+    const bool pws_pre_in_use = (user_options->slow_candidates == true) && (user_options->brain_client == true);
+    #else
+    const bool pws_pre_in_use = false;
+    #endif
+
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
@@ -17247,12 +17268,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       size_brain_link_out = kernel_power_max * 8;
       #endif
 
-      if (user_options->slow_candidates == true)
-      {
-        // size_pws_pre
+      // size_pws_pre
 
-        size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
-      }
+      if (pws_pre_in_use == true) size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
 
       // size_pws_base
 
