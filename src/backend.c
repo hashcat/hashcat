@@ -3765,14 +3765,57 @@ static u64 launch_threads_short_batch (const hashconfig_t *hashconfig, const hc_
 // parameters and copies the count back asynchronously through pinned memory, and its wait sleeps
 // through the time the same kernel took last time and polls for the rest.
 //
-// The margin is how early the sleep ends. It doubles when the launch was already done at the first
-// poll, because then the thread may have woken late, and it shrinks when the poll took more than half
-// of it. It settles near the time this host needs to wake up, so the poll costs little CPU.
+// The margin is how early the sleep ends. It has to cover how late this host wakes, which the sleep
+// below measures for itself, and the run to run variation of the kernel, which the floor covers.
 
-#define LAUNCH_MARGIN_START_US 1000
-#define LAUNCH_MARGIN_MIN_US     50
-#define LAUNCH_MARGIN_MAX_US   2000
+#define LAUNCH_MARGIN_MIN_US   1000
+#define LAUNCH_MARGIN_MAX_US  20000
 #define LAUNCH_POLL_MIN_US      400
+
+// Older mingw headers do not carry the flag, and a Windows that does not know it fails the call,
+// which falls back to usleep () below.
+
+#if defined (_WIN)
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+#endif
+
+// usleep () returns on the operating system's timer tick, and on Windows that tick is 15.6 ms unless
+// a process asks for a shorter one. A sleep of a few milliseconds there therefore returns many
+// milliseconds late, and the device waits for the host while it does. A high resolution waitable
+// timer sleeps for the time it was given instead. It needs Windows 10 1803, and where it is missing
+// the margin above grows to cover whatever the host does.
+
+static void launch_sleep (const double usec)
+{
+  if (usec <= 0) return;
+
+  #if defined (_WIN)
+
+  HANDLE timer = CreateWaitableTimerExW (NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+
+  if (timer != NULL)
+  {
+    LARGE_INTEGER due;
+
+    // a negative due time is relative, in units of 100 ns
+
+    due.QuadPart = -((LONGLONG) (usec * 10));
+
+    const BOOL armed = SetWaitableTimer (timer, &due, 0, NULL, NULL, FALSE);
+
+    if (armed != 0) WaitForSingleObject (timer, INFINITE);
+
+    CloseHandle (timer);
+
+    if (armed != 0) return;
+  }
+
+  #endif
+
+  usleep ((useconds_t) usec);
+}
 
 // CUDA and HIP record an event behind the crack count, OpenCL gets one back from reading it.
 
@@ -3808,31 +3851,46 @@ static void launch_wait (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 {
   if (expected_us < LAUNCH_POLL_MIN_US) return;
 
-  double margin_us = (device_param->launch_margin_us > 0) ? device_param->launch_margin_us : LAUNCH_MARGIN_START_US;
+  double margin_us = (device_param->launch_margin_us > 0) ? device_param->launch_margin_us : LAUNCH_MARGIN_MIN_US;
 
-  margin_us = MIN (margin_us, MIN (LAUNCH_MARGIN_MAX_US, expected_us / 4));
   margin_us = MAX (margin_us, LAUNCH_MARGIN_MIN_US);
+  margin_us = MIN (margin_us, LAUNCH_MARGIN_MAX_US);
 
-  usleep ((useconds_t) (expected_us - margin_us));
+  // The margin is how late this host wakes. A launch that is not longer than that cannot be slept
+  // through at all, because the sleep would end after the launch whatever it is given, so poll it
+  // instead. The margin is left alone here: the longer launches keep it current.
 
-  hc_timer_t timer;
-
-  hc_timer_set (&timer);
-
-  u32 polls = 0;
-
-  while (launch_done (hashcat_ctx, device_param, opencl_event) == false) polls++;
-
-  const double poll_us = hc_timer_get (timer) * 1000;
-
-  if (polls == 0)
+  if (expected_us < (margin_us * 2))
   {
-    margin_us = MIN (margin_us * 2, LAUNCH_MARGIN_MAX_US);
+    while (launch_done (hashcat_ctx, device_param, opencl_event) == false) continue;
+
+    return;
   }
-  else if (poll_us > (margin_us / 2))
-  {
-    margin_us = MAX (margin_us * 0.75, LAUNCH_MARGIN_MIN_US);
-  }
+
+  // last, because a launch shorter than the floor would otherwise be given a margin longer than
+  // itself, and the sleep below would be handed a negative time
+
+  margin_us = MIN (margin_us, expected_us / 4);
+
+  const double sleep_us = expected_us - margin_us;
+
+  hc_timer_t sleep_timer;
+
+  hc_timer_set (&sleep_timer);
+
+  launch_sleep (sleep_us);
+
+  const double late_us = (hc_timer_get (sleep_timer) * 1000) - sleep_us;
+
+  while (launch_done (hashcat_ctx, device_param, opencl_event) == false) continue;
+
+  // The sleep just told us how late this host wakes, so the next one can end that much earlier. A
+  // single late wake up is enough to raise the margin, and one that was an outlier decays again over
+  // the launches after it.
+
+  margin_us = MAX (late_us + LAUNCH_MARGIN_MIN_US, margin_us * 0.75);
+
+  margin_us = MIN (margin_us, LAUNCH_MARGIN_MAX_US);
 
   device_param->launch_margin_us = margin_us;
 }
