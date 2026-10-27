@@ -29,6 +29,7 @@
 "$office$"
 "$RAR3$"
 "$7z$"
+"$racf-kdfaes$*"
 
 "0123456789abcdef"
 "deadbeef"
