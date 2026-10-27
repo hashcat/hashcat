@@ -1088,10 +1088,10 @@ def attacks_for(spec, mode):
 
 
 def decode_hashfile(mode, digest):
-  # test.sh/1062: the base64 decodes to the file hashcat reads. 22000/22001 are handed their
+  # test.sh/1062: the base64 decodes to the file hashcat reads. Optional binary modes are handed their
   # line as is instead.
 
-  if mode in (22000, 22001):
+  if b"OPTS_TYPE_BINARY_HASHFILE_OPTIONAL" in module_source(mode):
     return (digest + "\n").encode("ascii")
 
   return base64.b64decode(digest)

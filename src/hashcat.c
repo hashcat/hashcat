@@ -3245,6 +3245,13 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // done
 
+  if (status_ctx->rc_error == RC_FINAL_ERROR_TASK)
+  {
+    status_ctx->devices_status = STATUS_ERROR;
+
+    rc_final = RC_FINAL_ERROR_TASK;
+  }
+
   return rc_final;
 }
 

@@ -780,6 +780,7 @@ typedef enum opts_type
   OPTS_TYPE_MT_HEX                   = (1ULL << 28), // mask is always in hex
   OPTS_TYPE_HASH_COPY                = (1ULL << 29),
   OPTS_TYPE_HASH_SPLIT               = (1ULL << 30),
+  OPTS_TYPE_BINARY_HASHFILE_DIRECT   = (1ULL << 31), // optional binary input uses binary callbacks for files and the decoder for inline hashes
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
@@ -954,6 +955,9 @@ typedef enum parser_rc
   PARSER_CRYPTOAPI_KERNELTYPE = -46,
   PARSER_CRYPTOAPI_KEYSIZE    = -47,
   PARSER_ZSTD_UNAVAILABLE     = -48,
+  PARSER_PKZIP_MEMBER_EMPTY   = -49,
+  PARSER_PKZIP_MEMBER_UNSUPPORTED = -50,
+  PARSER_PKZIP_MEMBER_INDEX   = -51,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 

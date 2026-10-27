@@ -2827,7 +2827,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               // not leave an unset handle for hc_thread_wait () to join. Run the hook here and
               // keep the handles that started packed at the front.
 
-              if ((hook_threads > 1) && (hc_thread_create_ok (c_threads[hook_threads_live], hook23_thread, hook_thread_param) == true))
+              if (hc_thread_create_ok (c_threads[hook_threads_live], hook23_thread, hook_thread_param) == true)
               {
                 hook_threads_live++;
               }

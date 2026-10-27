@@ -1,70 +1,63 @@
 # PKZIP streaming mode 17240
 
-This mode recovers traditional ZipCrypto passwords for stored (method 0) and DEFLATE
-(method 8) members without putting the whole encrypted member in an esalt. It does not change modes
-17200, 17210, 17220, 17225 or 17230.
-
-The GPU derives the three ZipCrypto keys, checks the encryption header and rejects invalid DEFLATE
-headers. Candidates that survive go to a host hook. The hook decrypts the referenced member in
-32 KiB chunks, inflates it when required, and checks the final CRC32 and uncompressed length.
-Only a complete verification can reach the result kernel, outfile or potfile.
-
-Memory per hook thread is independent of the member size. It consists of two 32 KiB buffers, the
-CRC table and a zlib window. Offsets and lengths are 64 bit. Windows paths are decoded from UTF-8
-and opened with the wide-character file API.
-
-Normal hashcat device and host batch buffers still apply. Passwords can contain up to 256 bytes.
-
-## Hash format
-
-```text
-$pkzip-stream$*METHOD*OFFSET*PACKED*UNPACKED*CRC*CHECK*SAMPLE*PATH
-```
-
-All numeric fields are hexadecimal. CRC has eight digits and CHECK has two. SAMPLE is 12 to 256
-encrypted bytes beginning at the member's encryption header. PATH is the UTF-8 path encoded as hex.
-OFFSET points to the first encryption-header byte, and PACKED includes its 12 bytes. CHECK is the
-last plaintext byte of that header, selected from the CRC or DOS timestamp according to ZIP flag 8.
-
-The source file must remain available and unchanged. Loading validates the declared bounds and
-sample. Each surviving candidate checks the sample again before streaming the member. A missing or
-truncated source is rejected, and a stream with a wrong length or CRC is never accepted.
-
-For self-tests and small oracle vectors, PATH can be `-`. In that case SAMPLE must contain the
-complete encrypted member, so PACKED must equal the sample length.
-
-## Build and run
-
-The normal build discovers `src/modules/module_17240.c` automatically. A working zlib runtime is
-required for this mode, using the same dynamic loader as the other DEFLATE users.
+Mode 17240 reads a ZIP archive directly. It supports traditional ZipCrypto with
+stored (method 0) and DEFLATE (method 8) members in single-volume ZIP and ZIP64
+archives, including data descriptors. AES and strong encryption are unsupported.
 
 ```sh
 make
-python3 tools/zip2hashcat-stream.py archive.zip > archive.hash
-./hashcat -m 17240 -a 0 archive.hash passwords.txt
-./hashcat -m 17240 -a 3 archive.hash '?d?d?d?d?d?d'
-python3 tools/test.py --edge -m 17240 --allow-all-attacks
+./hashcat -m 17240 -a 0 archive.zip passwords.txt
+./hashcat -m 17240 -a 3 archive.zip '?d?d?d?d?d?d'
+./hashcat -m 17240 --pkzip-member-index 2 -a 0 archive.zip passwords.txt
+```
+
+The default member is the smallest supported encrypted nonempty file. The optional
+index is zero-based and counts all central directory entries, including directories
+and unsupported members. An explicitly selected empty or unsupported entry is an
+error. Empty passwords remain valid for nonempty data.
+
+The GPU derives the ZipCrypto keys, checks the encryption header and rejects
+invalid DEFLATE headers. Surviving candidates go to a host hook that decrypts in
+32 KiB chunks, inflates when necessary, and verifies the complete length and CRC32.
+Each hook worker owns separate file handles and buffers for each backend device.
+Memory usage is independent of the member size.
+
+The source path comes only from the command-line input. ZIP member names are never
+opened. The archive must remain available and unchanged during the attack. A source
+open, seek or read failure, or a detected change in its identity, size, timestamp or
+sample, stops the session with a task error. It is not reported as exhaustion.
+
+Potfile storage, `--show` and outfile checking are disabled, as with container modes.
+The `--remove` option is rejected because its hash-list rewrite would damage the ZIP.
+Use `--outfile` to retain recovered passwords. Existing native PKZIP modes remain
+available for inputs that fit their buffers.
+
+For self-tests and small oracle vectors only, a complete inline member is accepted:
+
+```text
+$pkzip-stream$*METHOD*0*PACKED*UNPACKED*CRC*CHECK*SAMPLE*-
+```
+
+Numeric fields are hexadecimal. CRC has eight digits and CHECK has two. SAMPLE
+contains the entire encrypted member, including its 12-byte encryption header, and
+is at most 256 bytes. UNPACKED must be nonzero. External path references from the
+previous experimental format are rejected without opening the referenced path.
+
+```sh
+python3 tools/test.py -S -m 17240
+python3 tools/test.py -P -m 17240 -a all
+python3 tools/test.py --edge -m 17240
 python3 tools/test_pkzip_stream.py
 ```
 
-The extractor selects the smallest supported encrypted member. Use `--member` with an exact member
-name to select a different one. AES and strong-encryption ZIP members are not supported by this mode.
-A hash from another machine needs its referenced file at the encoded path, or it must be exported
-again locally.
+The direct-input tests create synthetic encrypted archives. They cover stored,
+fixed and dynamic DEFLATE, ZIP64, signed and unsigned data descriptors, Unicode,
+empty members and passwords, explicit member selection, wrong passwords and CRCs,
+damaged data, truncated input and rejected external references. The default member
+size is 1 MiB. Use `--size-mib` for larger inputs and `--backend-arg` for runtime
+options.
 
-`test_pkzip_stream.py` creates members larger than 320 KiB and checks both compression methods,
-the standalone extractor, data descriptors, wrong passwords, incorrect CRCs, damaged data, UTF-8
-paths and truncated sources. Its default member size is 1 MiB. Use `--size-mib` for a larger
-reproduction and `--backend-arg` for device
-runtime options.
-
-## Performance
-
-Keep using the existing modes when their input fits. Streaming trades their fixed data buffer for
-host verification and source-file reads. A DEFLATE header can reject many false candidates cheaply.
-Stored members provide a weaker initial filter, so their searches can be CPU- or I/O-bound. This
-mode removes the 320 KiB member-size barrier, but it cannot promise the same rate for every ZIP.
-
-For DEFLATE, `--hook-threads 1` can reduce dispatch overhead when most candidates are rejected by
-the GPU or after a short inflate attempt. Stored members may benefit from multiple workers because
-each surviving header needs full-file verification. Select the count with the actual target workload.
+Streaming trades the native modes' fixed data buffers for host verification and
+file reads. Stored members have a weaker initial filter and can be CPU or I/O bound.
+The mode removes the member-size barrier but cannot promise the same speed for every
+archive. Select `--hook-threads` using the actual workload.

@@ -2433,6 +2433,8 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
         if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
         {
           hashes->hashfile = user_options_extra->hc_hash;
+
+          if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_DIRECT) != 0) hashes->hashlist_mode = HL_MODE_FILE_BINARY;
         }
       }
     }
@@ -5017,6 +5019,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
       {
+        hashes->hashes_cnt = hashes_avail;
+
         const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
 
         if (hashes_parsed > 0)

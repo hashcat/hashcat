@@ -11,12 +11,21 @@
 #include "ext_zlib.h"
 #include "event.h"
 #include "inc_pkzip_stream.h"
+#include "memory.h"
+#include "module_options.h"
+#include "status_rc.h"
+#include "thread.h"
 
 #include <limits.h>
 #include <inttypes.h>
+#include <sys/stat.h>
 
 #if defined (_WIN32)
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#else
+#include <unistd.h>
 #endif
 
 #define STREAM_CHUNK 32768
@@ -31,17 +40,24 @@ typedef struct pkzip_stream_salt
   u32 method;
   u32 sample_len;
   u8 sample[PKZIP_STREAM_SAMPLE];
-  char path[STREAM_PATH];
+  u32 external;
+  u64 identity[5];
 } pkzip_stream_salt_t;
+
+typedef struct pkzip_stream_worker
+{
+  u8 input[STREAM_CHUNK];
+  u8 output[STREAM_CHUNK];
+  FILE *file;
+} pkzip_stream_worker_t;
 
 typedef struct pkzip_stream_extra
 {
   u32 table[256];
-  u8 input[STREAM_CHUNK];
-  u8 output[STREAM_CHUNK];
-  FILE *file;
-  const pkzip_stream_salt_t *current;
-  u64 io_errors;
+  hashcat_ctx_t *ctx;
+  const char *source;
+  pkzip_stream_worker_t *workers;
+  u32 workers_cnt;
 } pkzip_stream_extra_t;
 
 static FILE *stream_open (const char *path)
@@ -53,12 +69,102 @@ static FILE *stream_open (const char *path)
 
   if (MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wide, STREAM_PATH) == 0) return NULL;
 
-  file = _wfopen (wide, L"rb");
+  HANDLE handle = CreateFileW (wide, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (handle == INVALID_HANDLE_VALUE) return NULL;
+
+  const i32 fd = _open_osfhandle ((intptr_t) handle, _O_RDONLY | _O_BINARY);
+
+  if (fd == -1)
+  {
+    CloseHandle (handle);
+
+    return NULL;
+  }
+
+  file = _fdopen (fd, "rb");
+
+  if (file == NULL) _close (fd);
   #else
   file = fopen (path, "rb");
   #endif
 
   return file;
+}
+
+static bool stream_identity (FILE *file, u64 *identity)
+{
+  #if defined (_WIN32)
+  BY_HANDLE_FILE_INFORMATION info;
+
+  if (GetFileInformationByHandle ((HANDLE) _get_osfhandle (_fileno (file)), &info) == 0) return false;
+
+  identity[0] = info.dwVolumeSerialNumber;
+  identity[1] = ((u64) info.nFileIndexHigh << 32) | info.nFileIndexLow;
+  identity[2] = ((u64) info.nFileSizeHigh << 32) | info.nFileSizeLow;
+  identity[3] = ((u64) info.ftLastWriteTime.dwHighDateTime << 32) | info.ftLastWriteTime.dwLowDateTime;
+  identity[4] = 0;
+  #else
+  struct stat info;
+
+  if (fstat (fileno (file), &info) != 0) return false;
+
+  identity[0] = info.st_dev;
+  identity[1] = info.st_ino;
+  identity[2] = info.st_size;
+  identity[3] = info.st_mtime;
+  #if defined (__APPLE__)
+  identity[4] = info.st_mtimespec.tv_nsec;
+  #else
+  identity[4] = info.st_mtim.tv_nsec;
+  #endif
+  #endif
+
+  return true;
+}
+
+static void stream_error (pkzip_stream_extra_t *extra, const char *reason)
+{
+  hashcat_ctx_t *ctx = NULL;
+
+  ctx = extra->ctx;
+
+  status_ctx_t *status = NULL;
+
+  status = ctx->status_ctx;
+
+  hc_thread_mutex_lock (status->mux_dispatcher);
+
+  const bool first = (status->rc_error == RC_FINAL_OK);
+
+  status_set_rc_error (ctx, RC_FINAL_ERROR_TASK);
+
+  status->run_main_level1   = false;
+  status->run_main_level2   = false;
+  status->run_main_level3   = false;
+  status->run_thread_level1 = false;
+  status->run_thread_level2 = false;
+  status->devices_status   = STATUS_ERROR;
+
+  hc_thread_mutex_unlock (status->mux_dispatcher);
+
+  if (first == true) event_log_error (ctx, "PKZIP source failure: %s.", reason);
+}
+
+static bool stream_source_valid (pkzip_stream_extra_t *extra, const pkzip_stream_salt_t *salt)
+{
+  FILE *file = NULL;
+
+  file = stream_open (extra->source);
+
+  u64 identity[5];
+
+  const bool valid = ((file != NULL) && (stream_identity (file, identity) == true) && (memcmp (identity, salt->identity, sizeof (identity)) == 0));
+
+  if (file != NULL) fclose (file);
+  if (valid == false) stream_error (extra, "archive unavailable or changed");
+
+  return valid;
 }
 
 static i32 stream_seek (FILE *file, const u64 offset, const i32 origin)
@@ -70,17 +176,6 @@ static i32 stream_seek (FILE *file, const u64 offset, const i32 origin)
   #endif
 
   return rc;
-}
-
-static i64 stream_tell (FILE *file)
-{
-  #if defined (_WIN32)
-  const i64 pos = _ftelli64 (file);
-  #else
-  const i64 pos = ftello (file);
-  #endif
-
-  return pos;
 }
 
 static u64 stream_number (const u8 *text, const u32 len)
@@ -140,6 +235,13 @@ bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
 
   extra = (pkzip_stream_extra_t *) hook_extra_param;
 
+  if (user_options->remove == true)
+  {
+    event_log_error (hashcat_ctx, "PKZIP archive input does not support --remove.");
+
+    return false;
+  }
+
   hc_z_stream stream = { 0 };
 
   if (hc_inflate_init (&stream) != HC_Z_OK)
@@ -150,6 +252,13 @@ bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
   }
 
   hc_inflate_end (&stream);
+
+  extra->ctx         = hashcat_ctx;
+  extra->source      = user_options_extra->hc_hash;
+  extra->workers_cnt = backend_ctx->backend_devices_cnt;
+  extra->workers     = hccalloc (extra->workers_cnt, sizeof (pkzip_stream_worker_t));
+
+  if (extra->workers == NULL) return false;
 
   for (u32 i = 0; i < 256; i++)
   {
@@ -163,14 +272,18 @@ bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
   return true;
 }
 
-bool module_hook_extra_param_term (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
+bool module_hook_extra_param_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
   const pkzip_stream_extra_t *extra = NULL;
 
   extra = (const pkzip_stream_extra_t *) hook_extra_param;
 
-  if (extra->file != NULL) fclose (extra->file);
-  if (extra->io_errors > 0) event_log_warning (hashcat_ctx, "PKZIP streaming could not read the source for %" PRIu64 " candidate(s).", extra->io_errors);
+  for (u32 i = 0; (extra->workers != NULL) && (i < extra->workers_cnt); i++)
+  {
+    if (extra->workers[i].file != NULL) fclose (extra->workers[i].file);
+  }
+
+  hcfree (extra->workers);
 
   return true;
 }
@@ -185,10 +298,6 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
   hook = &hooks[pw_pos];
 
-  if (hook->state != PKZIP_STREAM_VERIFY) return;
-
-  hook->state = PKZIP_STREAM_REJECT;
-
   const pkzip_stream_salt_t *salts = NULL;
 
   salts = (const pkzip_stream_salt_t *) hook_salts_buf;
@@ -201,42 +310,53 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
   extra = (pkzip_stream_extra_t *) hook_extra_param;
 
-  if (salt->path[0] != 0)
+  pkzip_stream_worker_t *worker = NULL;
+
+  worker = &extra->workers[device_param->device_id];
+
+  if ((salt->external != 0) && (pw_pos < extra->ctx->user_options->hook_threads))
   {
-    if (extra->current != salt)
-    {
-      if (extra->file != NULL) fclose (extra->file);
+    if (stream_source_valid (extra, salt) == false) return;
+  }
 
-      extra->file    = stream_open (salt->path);
-      extra->current = salt;
-    }
+  if (hook->state != PKZIP_STREAM_VERIFY) return;
 
-    if (extra->file == NULL)
+  hook->state = PKZIP_STREAM_REJECT;
+
+  if (salt->external != 0)
+  {
+    if (stream_source_valid (extra, salt) == false) return;
+
+    if (worker->file == NULL) worker->file = stream_open (extra->source);
+
+    u64 identity[5];
+
+    if ((worker->file == NULL) || (stream_identity (worker->file, identity) == false) || (memcmp (identity, salt->identity, sizeof (identity)) != 0))
     {
-      extra->io_errors++;
+      stream_error (extra, "cannot open original archive");
 
       return;
     }
 
-    if (stream_seek (extra->file, salt->offset, SEEK_SET) != 0)
+    if (stream_seek (worker->file, salt->offset, SEEK_SET) != 0)
     {
-      extra->io_errors++;
+      stream_error (extra, "cannot seek archive");
 
       return;
     }
 
-    if ((fread (extra->input, 1, salt->sample_len, extra->file) != salt->sample_len) || (memcmp (extra->input, salt->sample, salt->sample_len) != 0))
+    if ((fread (worker->input, 1, salt->sample_len, worker->file) != salt->sample_len) || (memcmp (worker->input, salt->sample, salt->sample_len) != 0))
     {
-      extra->io_errors++;
+      stream_error (extra, "cannot read original member");
 
       return;
     }
 
-    memmove (extra->input, &extra->input[12], salt->sample_len - 12);
+    memmove (worker->input, &worker->input[12], salt->sample_len - 12);
   }
   else
   {
-    memcpy (extra->input, &salt->sample[12], salt->sample_len - 12);
+    memcpy (worker->input, &salt->sample[12], salt->sample_len - 12);
   }
 
   u32 key[3]    = { hook->key[0], hook->key[1], hook->key[2] };
@@ -250,12 +370,17 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
   if (salt->method == 8)
   {
-    if (hc_inflate_init (&stream) != HC_Z_OK) return;
+    if (hc_inflate_init (&stream) != HC_Z_OK)
+    {
+      stream_error (extra, "cannot initialize inflater");
 
-    stream_decrypt (extra->input, salt->sample_len - 12, key, extra->table);
+      return;
+    }
+
+    stream_decrypt (worker->input, salt->sample_len - 12, key, extra->table);
   }
 
-  stream.next_in  = extra->input;
+  stream.next_in  = worker->input;
   stream.avail_in = salt->sample_len - 12;
 
   while (true)
@@ -265,23 +390,23 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
       const u32 limit = (position == 12) ? PKZIP_STREAM_SAMPLE : STREAM_CHUNK;
       const u32 count = (remaining > limit) ? limit : (u32) remaining;
 
-      if (salt->path[0] != 0)
+      if (salt->external != 0)
       {
-        if (fread (extra->input, 1, count, extra->file) != count)
+        if (fread (worker->input, 1, count, worker->file) != count)
         {
-          extra->io_errors++;
+          stream_error (extra, "cannot read archive");
 
           break;
         }
       }
       else
       {
-        memcpy (extra->input, &salt->sample[position], count);
+        memcpy (worker->input, &salt->sample[position], count);
       }
 
-      if (salt->method == 8) stream_decrypt (extra->input, count, key, extra->table);
+      if (salt->method == 8) stream_decrypt (worker->input, count, key, extra->table);
 
-      stream.next_in  = extra->input;
+      stream.next_in  = worker->input;
       stream.avail_in = count;
       remaining -= count;
       position += count;
@@ -289,7 +414,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
     if (salt->method == 0)
     {
-      crc = stream_decrypt_crc (extra->input, stream.avail_in, key, extra->table, crc);
+      crc = stream_decrypt_crc (worker->input, stream.avail_in, key, extra->table, crc);
 
       written += stream.avail_in;
       stream.avail_in = 0;
@@ -301,7 +426,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
       break;
     }
 
-    stream.next_out  = extra->output;
+    stream.next_out  = worker->output;
     stream.avail_out = STREAM_CHUNK;
 
     const u32 before = stream.avail_in;
@@ -310,7 +435,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
     if (count > salt->unpacked - written) break;
 
-    for (u32 i = 0; i < count; i++) crc = stream_crc (crc, extra->output[i], extra->table);
+    for (u32 i = 0; i < count; i++) crc = stream_crc (crc, worker->output[i], extra->table);
 
     written += count;
 
@@ -327,7 +452,23 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
 
   if (salt->method == 8) hc_inflate_end (&stream);
 
-  if (success == true) hook->state = PKZIP_STREAM_MATCH;
+  if (salt->external != 0)
+  {
+    if (stream_source_valid (extra, salt) == false) return;
+  }
+
+  if (success == true)
+  {
+    status_ctx_t *status = NULL;
+
+    status = extra->ctx->status_ctx;
+
+    hc_thread_mutex_lock (status->mux_dispatcher);
+
+    if (status->rc_error == RC_FINAL_OK) hook->state = PKZIP_STREAM_MATCH;
+
+    hc_thread_mutex_unlock (status->mux_dispatcher);
+  }
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *digest_buf, salt_t *salt, void *esalt_buf, void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, const int line_len)
@@ -359,13 +500,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   token.len_min[7] = 24;
   token.len_max[7] = PKZIP_STREAM_SAMPLE * 2;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
-  token.len_max[8] = (STREAM_PATH - 1) * 2;
+  token.len_max[8] = 1;
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const i32 rc = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc != PARSER_OK) return rc;
   if ((token.len[7] & 1) != 0) return PARSER_TOKEN_LENGTH;
+  if (token.buf[8][0] != '-') return PARSER_HASH_VALUE;
 
   pkzip_stream_t *zip = NULL;
 
@@ -383,67 +525,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   data->sample_len = token.len[7] / 2;
 
   if ((data->method != 0) && (data->method != 8)) return PARSER_PKZIP_CT_UNMATCHED;
-  if (data->offset > LLONG_MAX) return PARSER_HASH_VALUE;
-  if (data->packed > (u64) LLONG_MAX - data->offset) return PARSER_HASH_VALUE;
-  if (data->packed < data->sample_len) return PARSER_HASH_VALUE;
+  if (data->offset != 0) return PARSER_HASH_VALUE;
+  if (data->packed != data->sample_len) return PARSER_HASH_VALUE;
+  if (data->unpacked == 0) return PARSER_HASH_VALUE;
   if ((data->method == 0) && (data->unpacked != data->packed - 12)) return PARSER_HASH_VALUE;
 
   for (u32 i = 0; i < data->sample_len; i++) data->sample[i] = hex_to_u8 (&token.buf[7][i * 2]);
 
-  const bool inlined = ((token.len[8] == 1) && (token.buf[8][0] == '-'));
-
-  if (inlined == true)
-  {
-    if (data->packed != data->sample_len) return PARSER_HASH_VALUE;
-
-    data->path[0] = 0;
-  }
-  else
-  {
-    if ((token.len[8] & 1) != 0) return PARSER_TOKEN_LENGTH;
-
-    const u32 length = token.len[8] / 2;
-
-    for (u32 i = 0; i < length; i++)
-    {
-      const u8 a = token.buf[8][i * 2 + 0];
-      const u8 b = token.buf[8][i * 2 + 1];
-
-      if (isxdigit (a) == 0) return PARSER_TOKEN_ENCODING;
-      if (isxdigit (b) == 0) return PARSER_TOKEN_ENCODING;
-
-      data->path[i] = hex_to_u8 (&token.buf[8][i * 2]);
-
-      if (data->path[i] == 0) return PARSER_HASH_VALUE;
-    }
-
-    data->path[length] = 0;
-
-    FILE *file = NULL;
-
-    file = stream_open (data->path);
-
-    if (file == NULL) return PARSER_HAVE_ERRNO;
-
-    bool valid = (stream_seek (file, 0, SEEK_END) == 0);
-
-    if (valid == true)
-    {
-      const i64 size = stream_tell (file);
-
-      valid = ((size >= 0) && ((u64) size >= data->offset + data->packed));
-    }
-    if (valid == true) valid = (stream_seek (file, data->offset, SEEK_SET) == 0);
-
-    u8 sample[PKZIP_STREAM_SAMPLE];
-
-    if (valid == true) valid = (fread (sample, 1, data->sample_len, file) == data->sample_len);
-    if (valid == true) valid = (memcmp (sample, data->sample, data->sample_len) == 0);
-
-    fclose (file);
-
-    if (valid == false) return PARSER_HASH_VALUE;
-  }
+  data->external = 0;
 
   memcpy (zip->data, data->sample, data->sample_len);
 
@@ -451,7 +540,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   zip->method     = data->method;
   zip->check      = stream_number (token.buf[6], token.len[6]);
 
-  // The reference and its metadata distinguish files with identical CRCs.
   for (u32 n = 0; n < 8; n++)
   {
     u32 value = 2166136261 ^ n;
@@ -484,10 +572,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   data = (const pkzip_stream_salt_t *) hook_salt_buf;
 
   static const char format[] = "$pkzip-stream$*%u*%" PRIx64 "*%" PRIx64 "*%" PRIx64 "*%08x*%02x*";
-  const u32 path_len         = strlen (data->path);
   const i32 header           = snprintf (NULL, 0, format, data->method, data->offset, data->packed, data->unpacked, data->crc, zip->check);
-  const u32 path_hex         = (path_len > 0) ? path_len * 2 : 1;
-  const u32 needed           = header + data->sample_len * 2 + 1 + path_hex;
+  const u32 needed           = header + data->sample_len * 2 + 2;
 
   if (needed >= (u32) line_size) return 0;
 
@@ -497,19 +583,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   line_buf[count++] = '*';
 
-  if (path_len > 0)
-  {
-    for (u32 i = 0; i < path_len; i++) count += snprintf (&line_buf[count], line_size - count, "%02x", (u8) data->path[i]);
-  }
-  else
-  {
-    line_buf[count++] = '-';
-  }
+  line_buf[count++] = '-';
 
   line_buf[count] = 0;
 
   return count;
 }
+
+#include "pkzip_stream.c"
 
 u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -583,7 +664,7 @@ u64 module_kern_bits (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 
 u64 module_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 value = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_HASH_COPY;
+  const u64 value = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_HASH_COPY | OPTS_TYPE_BINARY_HASHFILE | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | OPTS_TYPE_BINARY_HASHFILE_DIRECT | OPTS_TYPE_AUTODETECT_DISABLE;
 
   return value;
 }
@@ -700,8 +781,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_extra_tmp_size          = MODULE_DEFAULT;
   module_ctx->module_extra_tuningdb_block    = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format   = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count       = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse       = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count       = module_hash_binary_count;
+  module_ctx->module_hash_binary_parse       = module_hash_binary_parse;
   module_ctx->module_hash_binary_save        = MODULE_DEFAULT;
   module_ctx->module_hash_decode_postprocess = MODULE_DEFAULT;
   module_ctx->module_hash_decode_potfile     = MODULE_DEFAULT;
@@ -740,15 +821,15 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_length_sort             = MODULE_DEFAULT;
   module_ctx->module_opti_type               = module_opti_type;
   module_ctx->module_opts_type               = module_opts_type;
-  module_ctx->module_outfile_check_disable   = MODULE_DEFAULT;
+  module_ctx->module_outfile_check_disable   = module_outfile_check_disable;
   module_ctx->module_outfile_check_nocomp    = MODULE_DEFAULT;
   module_ctx->module_potfile_custom_check    = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable         = MODULE_DEFAULT;
+  module_ctx->module_potfile_disable         = module_potfile_disable;
   module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
   module_ctx->module_pwdump_column           = MODULE_DEFAULT;
   module_ctx->module_pw_max                  = module_pw_max;
   module_ctx->module_pw_min                  = MODULE_DEFAULT;
-  module_ctx->module_register_options        = MODULE_DEFAULT;
+  module_ctx->module_register_options        = module_register_options;
   module_ctx->module_salt_max                = MODULE_DEFAULT;
   module_ctx->module_salt_min                = MODULE_DEFAULT;
   module_ctx->module_salt_type               = module_salt_type;
