@@ -21,7 +21,7 @@ DECLSPEC void pkzip_stream_update (PRIVATE_AS u32 *key, const u32 plain, LOCAL_A
 
 DECLSPEC u32 pkzip_stream_decrypt (PRIVATE_AS u32 *key, const u32 cipher, LOCAL_AS const u32 *table)
 {
-  const u32 t = (key[2] & 65535) | 3;
+  const u32 t     = (key[2] & 65535) | 3;
   const u32 plain = cipher ^ (((t * (t ^ 1)) >> 8) & 255);
 
   pkzip_stream_update (key, plain, table);
@@ -235,7 +235,7 @@ KERNEL_FQ KERNEL_FA void m17240_init (KERN_ATTR_TMPS_HOOKS_ESALT (pkzip_stream_t
 
     for (u32 i = 0; i < bytes; i++)
     {
-      const u32 pos = i + 12;
+      const u32 pos   = i + 12;
       const u32 value = (esalt_bufs[DIGESTS_OFFSET_HOST].data[pos / 4] >> ((pos & 3) * 8)) & 255;
 
       head[i / 4] |= pkzip_stream_decrypt (key, value, table) << ((i & 3) * 8);
@@ -268,7 +268,7 @@ KERNEL_FQ KERNEL_FA void m17240_init (KERN_ATTR_TMPS_HOOKS_ESALT (pkzip_stream_t
 
       for (u32 i = 0; i < count; i++)
       {
-        const u32 pos = 17 + i * 3;
+        const u32 pos   = 17 + i * 3;
         const u32 value = pkzip_stream_bits (head, pos, 3);
 
         counts[value]++;

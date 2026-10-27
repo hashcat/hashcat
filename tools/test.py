@@ -1088,8 +1088,7 @@ def attacks_for(spec, mode):
 
 
 def decode_hashfile(mode, digest):
-  # test.sh/1062: the base64 decodes to the file hashcat reads. Optional binary modes are handed their
-  # line as is instead.
+  # test.sh encodes container files as base64. Optional binary modes receive their text line.
 
   if b"OPTS_TYPE_BINARY_HASHFILE_OPTIONAL" in module_source(mode):
     return (digest + "\n").encode("ascii")

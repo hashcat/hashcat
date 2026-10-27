@@ -25,6 +25,7 @@ static bool stream_read_at (FILE *file, const u64 size, const u64 offset, void *
 static bool stream_zip64 (const u8 *extra, const u32 length, u64 *unpacked, u64 *packed, u64 *offset, u64 *disk)
 {
   u32 position = 0;
+
   bool found = false;
 
   while (position < length)
@@ -45,7 +46,7 @@ static bool stream_zip64 (const u8 *extra, const u32 length, u64 *unpacked, u64 
       found = true;
 
       u32 used = 0;
-      u64 *fields[4] = { unpacked, packed, offset, disk };
+      u64 *const fields[4] = { unpacked, packed, offset, disk };
 
       for (u32 i = 0; i < 4; i++)
       {
@@ -149,7 +150,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
 
   if ((explicit == true) && (index >= entries)) return PARSER_PKZIP_MEMBER_INDEX;
 
-  const u64 directory = offset;
+  const u64 directory     = offset;
   const u64 directory_end = offset + length;
 
   bool found = false;
@@ -174,7 +175,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
     u64 local    = stream_le (&central[42], 4);
     u64 disk     = stream_le (&central[34], 2);
 
-    const bool wide = ((packed == 0xffffffff) || (unpacked == 0xffffffff));
+    const bool wide    = ((packed == 0xffffffff) || (unpacked == 0xffffffff));
     const u32 variable = name_len + extra_len + comment;
 
     offset += 46;
@@ -197,6 +198,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
 
     const u32 local_name  = stream_le (&header[26], 2);
     const u32 local_extra = stream_le (&header[28], 2);
+
     const u64 data = local + 30 + local_name + local_extra;
 
     if ((data > directory) || (packed > directory - data)) return PARSER_FILE_SIZE;
@@ -222,8 +224,9 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
       u8 descriptor[24];
 
       const bool local_wide = ((stream_le (&header[18], 4) == 0xffffffff) || (stream_le (&header[22], 4) == 0xffffffff));
-      const u32 width = ((wide == true) || (local_wide == true)) ? 8 : 4;
-      const u32 minimum = 4 + width * 2;
+
+      const u32 width    = ((wide == true) || (local_wide == true)) ? 8 : 4;
+      const u32 minimum  = 4 + width * 2;
       const u64 position = data + packed;
 
       if (stream_read_at (file, directory, position, descriptor, minimum) == false) return PARSER_FILE_SIZE;
@@ -241,7 +244,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
     }
 
     const bool directory_member = (((name_len > 0) && (metadata[name_len - 1] == '/')) || ((attributes & 0x10) != 0));
-    const bool supported = (((flags & 0x2041) == 1) && ((method == 0) || (method == 8)) && (directory_member == false));
+    const bool supported        = (((flags & 0x2041) == 1) && ((method == 0) || (method == 8)) && (directory_member == false));
 
     if ((explicit == true) && (ordinal != index)) continue;
     if ((explicit == true) && (supported == false)) return PARSER_PKZIP_MEMBER_UNSUPPORTED;
@@ -313,7 +316,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
   return 1;
 }
 
-int module_hash_binary_count (const hashes_t *hashes)
+i32 module_hash_binary_count (const hashes_t *hashes)
 {
   FILE *file = NULL;
 
@@ -357,7 +360,7 @@ int module_hash_binary_count (const hashes_t *hashes)
   return count;
 }
 
-int module_hash_binary_parse (const hashconfig_t *hashconfig, const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, hashes_t *hashes)
+i32 module_hash_binary_parse (const hashconfig_t *hashconfig, const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, hashes_t *hashes)
 {
   FILE *file = NULL;
 
@@ -391,7 +394,7 @@ int module_hash_binary_parse (const hashconfig_t *hashconfig, const user_options
       hash = &hashes->hashes_buf[count];
 
       const u32 len = strcspn (line, "\r\n");
-      const i32 rc = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, line, len);
+      const i32 rc  = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, line, len);
 
       if (rc != PARSER_OK)
       {
@@ -430,10 +433,10 @@ const module_option_t *module_register_options (void)
   static const module_option_t options[] =
   {
     {
-      .name = "pkzip-member-index",
-      .type = MODULE_OPTION_TYPE_U32,
-      .help_type = "Num",
-      .help = "Select a PKZIP member by zero-based central directory index",
+      .name         = "pkzip-member-index",
+      .type         = MODULE_OPTION_TYPE_U32,
+      .help_type    = "Num",
+      .help         = "Select a PKZIP member by zero-based central directory index",
       .help_example = "--pkzip-member-index=0",
     },
     { .name = NULL },

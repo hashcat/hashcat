@@ -183,7 +183,7 @@ i32 hc_inflate_init (hc_z_stream *stream)
 
   if (z == NULL) return HC_Z_VERSION_ERROR;
 
-  const i32 rc = z->inflateInit2_ (stream, -HC_Z_MAX_WBITS, HC_ZLIB_VERSION, (int) sizeof (hc_z_stream));
+  const i32 rc = z->inflateInit2_ (stream, -HC_Z_MAX_WBITS, HC_ZLIB_VERSION, (i32) sizeof (hc_z_stream));
 
   return rc;
 }

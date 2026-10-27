@@ -275,9 +275,10 @@ const char *strparser (const u32 parser_status)
     case PARSER_CRYPTOAPI_KERNELTYPE: return PA_046;
     case PARSER_CRYPTOAPI_KEYSIZE:    return PA_047;
     case PARSER_ZSTD_UNAVAILABLE:     return PA_048;
-    case PARSER_PKZIP_MEMBER_EMPTY:   return PA_049;
+
+    case PARSER_PKZIP_MEMBER_EMPTY:       return PA_049;
     case PARSER_PKZIP_MEMBER_UNSUPPORTED: return PA_050;
-    case PARSER_PKZIP_MEMBER_INDEX:   return PA_051;
+    case PARSER_PKZIP_MEMBER_INDEX:       return PA_051;
   }
 
   return PA_255;
