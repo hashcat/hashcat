@@ -12,9 +12,7 @@
 #include "shared.h"
 #include "emu_inc_hash_md5.h"
 
-#ifdef WIN32
-#undef  _WIN32_WINNT
-#define _WIN32_WINNT 0x0A00
+#if defined (_WIN)
 #include <ws2tcpip.h>
 #else
 #include <signal.h>
@@ -43,7 +41,7 @@ typedef struct unit
   u64     workitem_count;
   int     chunk_size;
   size_t  workitem_size;
-  #ifdef WIN32
+  #if defined (_WIN)
   SOCKET  client_fd;
   #else
   int     client_fd;
@@ -169,7 +167,7 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
     return false;
   }
 
-  #if defined (WIN32)
+  #if defined (_WIN)
   WSADATA wsaData;
 
   WORD wVersionRequested = MAKEWORD (2,2);
@@ -209,7 +207,7 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     unit->client_fd = socket (AF_INET, SOCK_STREAM, 0);
 
-    #ifdef WIN32
+    #if defined (_WIN)
     if (unit->client_fd == INVALID_SOCKET )
     #else
     if (unit->client_fd < 0)
@@ -267,7 +265,7 @@ static void units_term (remote_t *remote)
       unit_t *unit = &remote->units[i];
       int pws_cnt_no = 0;
       send (unit->client_fd, (void *) &pws_cnt_no, sizeof (pws_cnt_no), 0);
-      #ifdef WIN32
+      #if defined (_WIN)
       closesocket (unit->client_fd);
       #else
       close (unit->client_fd);
@@ -276,7 +274,7 @@ static void units_term (remote_t *remote)
 
     hcfree (remote->units);
 
-    #if defined (WIN32)
+    #if defined (_WIN)
     WSACleanup ();
     #endif
  }
