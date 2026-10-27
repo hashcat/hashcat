@@ -59,6 +59,17 @@ typedef enum nvmlReturn_enum {
   NVML_ERROR_INSUFFICIENT_POWER = 8,  // A device's external power cables are not properly attached
   NVML_ERROR_DRIVER_NOT_LOADED = 9,   // NVIDIA driver is not loaded
   NVML_ERROR_TIMEOUT = 10,            // User provided timeout passed
+  NVML_ERROR_IRQ_ISSUE = 11,          // NVIDIA kernel detected an interrupt issue with a GPU
+  NVML_ERROR_LIBRARY_NOT_FOUND = 12,  // NVML shared library could not be found or loaded
+  NVML_ERROR_FUNCTION_NOT_FOUND = 13, // Local version of NVML does not implement this function
+  NVML_ERROR_CORRUPTED_INFOROM = 14,  // infoROM is corrupted
+  NVML_ERROR_GPU_IS_LOST = 15,        // The GPU has fallen off the bus or is otherwise inaccessible
+  NVML_ERROR_RESET_REQUIRED = 16,     // The GPU requires a reset before it can be used again
+  NVML_ERROR_OPERATING_SYSTEM = 17,   // The GPU control device is blocked by the OS or by cgroups
+  NVML_ERROR_LIB_RM_VERSION_MISMATCH = 18, // RM detects a driver/library version mismatch
+  NVML_ERROR_IN_USE = 19,             // The GPU is currently in use
+  NVML_ERROR_MEMORY = 20,             // Insufficient memory
+  NVML_ERROR_NO_DATA = 21,            // No data
   NVML_ERROR_UNKNOWN = 999            // An internal driver error occurred
 } nvmlReturn_t;
 

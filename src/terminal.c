@@ -404,12 +404,20 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  // this is required, because some of the variables down there are not initialized at that point
-  while (status_ctx->devices_status == STATUS_INIT) usleep (100000);
-
   const bool quiet = user_options->quiet;
 
+  // The terminal leaves canonical mode before the wait below rather than after it. Startup takes a
+  // while, a cold kernel cache makes it a minute or more, and a key pressed in that window used to
+  // be echoed into the output and then thrown away: canonical mode holds a line until a newline
+  // arrives, and turning ICANON off does not hand the partial line to read (). So a user who hit q
+  // while hashcat was still compiling saw a stray q in the log, no quit, and had to send a signal.
+  // With the mode changed first the key waits in the input queue and the loop reads it as soon as
+  // the attack is running.
+
   tty_break ();
+
+  // this is required, because some of the variables down there are not initialized at that point
+  while (status_ctx->devices_status == STATUS_INIT) usleep (100000);
 
   while (status_ctx->shutdown_outer == false)
   {

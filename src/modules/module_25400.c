@@ -146,7 +146,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   u32 native_threads = (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) ? 1 : 32;
 
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", native_threads);
+  // On Metal this kernel runs faster when the backend builds it at the size optimization level.
+
+  const char *metal_opt_size = (device_param->is_metal == true) ? " -D METAL_OPT_SIZE" : "";
+
+  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u%s", native_threads, metal_opt_size);
 
   return jit_build_options;
 }

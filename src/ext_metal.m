@@ -1274,9 +1274,10 @@ static void hc_mtlCompilerGaveUp (void *hashcat_ctx, const char *func_name, cons
 // call when the timeout hits, so it touches only the objects it holds, and what it made belongs to
 // whichever of the two is done last: the caller when the build ends in time, the block otherwise.
 // With lookup the archive is asked and a miss is reported in place of a build. With add, Metal 3
-// puts the built pipeline into the archive.
+// puts the built pipeline into the archive. Without report a failed build prints nothing, for an
+// attempt that has another one after it.
 
-static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_function mtl_func, id pipeline_desc, mtl_compiler compiler, mtl_archive archive, const bool lookup, const bool add, const char *func_name, mtl_pipeline *pipeline, bool *missed, bool *added)
+static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_function mtl_func, id pipeline_desc, mtl_compiler compiler, mtl_archive archive, const bool lookup, const bool add, const bool report, const char *func_name, mtl_pipeline *pipeline, bool *missed, bool *added)
 {
   __block mtl_pipeline mtl_pipe    = nil;
   __block NSError     *build_error = nil;
@@ -1370,7 +1371,7 @@ static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_
 
   if (build_error != nil)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[build_error localizedDescription] UTF8String]);
+    if (report == true) event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[build_error localizedDescription] UTF8String]);
 
     #if !__has_feature(objc_arc)
     [build_error release];
@@ -1383,6 +1384,183 @@ static int hc_mtlBuildRound (void *hashcat_ctx, mtl_device_id metal_device, mtl_
   *pipeline = mtl_pipe;
   *missed   = was_missed;
   *added    = was_added;
+
+  return 0;
+}
+
+static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library, const bool opt_size);
+
+// The file next to a program's cache file that names, one per line, the kernels of the program the
+// default level could not build. It is keyed by the cache file, so a change to the source or the
+// options leaves it behind.
+
+static char *hc_mtlOptSizeMarker (const char *cached_file)
+{
+  char *marker = NULL;
+
+  hc_asprintf (&marker, "%s.size", cached_file);
+
+  return marker;
+}
+
+char *hc_mtlOptSizeKernels (const char *cached_file, const bool cache_disable)
+{
+  if (cache_disable == true) return NULL;
+
+  char *marker = hc_mtlOptSizeMarker (cached_file);
+
+  FILE *fp = fopen (marker, "rb");
+
+  hcfree (marker);
+
+  if (fp == NULL) return NULL;
+
+  char buf[4096];
+
+  const size_t len = fread (buf, 1, sizeof (buf) - 1, fp);
+
+  fclose (fp);
+
+  buf[len] = 0;
+
+  // a newline in front, so that every name in the list reads "\n<name>\n"
+
+  char *kernels = NULL;
+
+  hc_asprintf (&kernels, "\n%s", buf);
+
+  return kernels;
+}
+
+static bool hc_mtlOptSizeListed (const hc_device_param_t *device_param, const int program, const char *func_name)
+{
+  if (device_param->metal_program_size_kernels[program] == NULL) return false;
+
+  char *needle = NULL;
+
+  hc_asprintf (&needle, "\n%s\n", func_name);
+
+  const bool listed = (strstr (device_param->metal_program_size_kernels[program], needle) != NULL);
+
+  hcfree (needle);
+
+  return listed;
+}
+
+static void hc_mtlOptSizeRemember (const hc_device_param_t *device_param, const int program, const char *func_name)
+{
+  if (device_param->metal_archive_file[program] == NULL) return;
+
+  char *marker = hc_mtlOptSizeMarker (device_param->metal_archive_file[program]);
+
+  FILE *fp = fopen (marker, "ab");
+
+  hcfree (marker);
+
+  if (fp == NULL) return;
+
+  fprintf (fp, "%s\n", func_name);
+
+  fclose (fp);
+}
+
+// The program's library at the size level, built on first use from the source and the options the
+// program keeps.
+
+static mtl_library hc_mtlOptSizeLibrary (void *hashcat_ctx, hc_device_param_t *device_param, mtl_device_id metal_device, const int program)
+{
+  if (device_param->metal_library_size[program] != nil) return device_param->metal_library_size[program];
+
+  const folder_config_t *folder_config = ((hashcat_ctx_t *) hashcat_ctx)->folder_config;
+
+  mtl_library metal_library = nil;
+
+  if (hc_mtlCreateLibraryWithSource_inner (hashcat_ctx, device_param, metal_device, device_param->metal_program_source[program], device_param->metal_program_options[program], folder_config->cpath_real, &metal_library, true) == -1) return nil;
+
+  device_param->metal_library_size[program] = metal_library;
+
+  return metal_library;
+}
+
+// One attempt at a kernel's pipeline from one library: 0 when it is built, -1 or -2 when the
+// compiler failed or timed out, -3 for anything a second attempt cannot change.
+
+static int hc_mtlCreateKernelFrom (void *hashcat_ctx, hc_device_param_t *device_param, mtl_device_id metal_device, mtl_library metal_library, const int program, const int slot, const char *func_name, NSString *f_name, const bool report, mtl_function *metal_function, mtl_pipeline *metal_pipeline, bool *pipeline_added)
+{
+  mtl_function mtl_func = [metal_library newFunctionWithName: f_name];
+
+  if (mtl_func == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create '%s' function", __func__, func_name);
+
+    return -3;
+  }
+
+  // The slot is kept with its program so that the flush can tell which pipelines of the program
+  // the archive to be written still lacks.
+
+  device_param->metal_function_program[slot]  = program;
+  device_param->metal_function_archived[slot] = false;
+
+  // Metal 4 builds the pipeline from a descriptor naming the function; the MTLFunction is made all
+  // the same, so the kernel slot holds the same thing on both paths.
+
+  id pipeline_desc = (device_param->use_metal4 == true) ? hc_mtl4_pipeline_desc (metal_library, f_name) : nil;
+
+  // An archive read from the cache is asked first, and answers nil for a pipeline it does not
+  // hold, which an archive from another OS build does for every pipeline. The program then goes
+  // back to a fresh archive, builds as a first run would, and the flush rewrites the file.
+
+  bool lookup = (device_param->metal_archive[program] != nil) && (device_param->metal_archive_write[program] == false);
+
+  mtl_pipeline mtl_pipe = nil;
+
+  bool added = false;
+
+  int rc = 0;
+
+  for (int round = 0; round < 2; round++)
+  {
+    const bool add = (lookup == false) && (device_param->metal_archive_write[program] == true);
+
+    mtl_compiler compiler = (device_param->metal_program_compiler[program] != nil) ? device_param->metal_program_compiler[program] : device_param->metal_compiler;
+
+    bool missed = false;
+
+    rc = hc_mtlBuildRound (hashcat_ctx, metal_device, mtl_func, pipeline_desc, compiler, device_param->metal_archive[program], lookup, add, report, func_name, &mtl_pipe, &missed, &added);
+
+    if ((rc != 0) || (missed == false)) break;
+
+    hc_mtlArchiveStale (hashcat_ctx, device_param, program);
+
+    lookup = false;
+  }
+
+  #if !__has_feature(objc_arc)
+  if (pipeline_desc != nil) [pipeline_desc release];
+  #endif
+
+  if ((rc == 0) && (mtl_pipe == nil))
+  {
+    if (report == true) event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline", __func__, func_name);
+
+    rc = -1;
+  }
+
+  if (rc != 0)
+  {
+    // the function is handed out only together with its pipeline
+
+    #if !__has_feature(objc_arc)
+    [mtl_func release];
+    #endif
+
+    return rc;
+  }
+
+  *metal_function = mtl_func;
+  *metal_pipeline = mtl_pipe;
+  *pipeline_added = added;
 
   return 0;
 }
@@ -1427,61 +1605,51 @@ static int hc_mtlCreateKernel_inner (void *hashcat_ctx, void *device_param_ptr, 
     return -1;
   }
 
-  mtl_function mtl_func = [metal_library newFunctionWithName: f_name];
+  // A program its module asks to build at the size level is built there whole, see
+  // load_kernel_program (). Otherwise each kernel is built at the default level, and a kernel whose
+  // pipeline the compiler cannot build there gets a second attempt at the size level, so the first
+  // attempt stays quiet about its failure. A kernel that needed the size level is listed next to the
+  // cache file, and later runs build it there straight away. That way every run builds a kernel at
+  // the same level, and its pipeline in the archive stays the one the next run asks for.
+  //
+  // A timeout gets the second attempt as well. On a Radeon Pro W5700X the default level can end the
+  // same kernel in a compiler error on one run and run past the timeout on the next, while the size
+  // level builds it in seconds. The timed out build goes on in the background and may still add its
+  // pipeline to the program's archive, so the archive is dropped first and this run writes none.
 
-  if (mtl_func == nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' function", __func__, func_name);
+  const bool can_fall_back = (device_param->metal_program_opt_size[program] == false) && (device_param->metal_program_source[program] != NULL);
 
-    return -1;
-  }
-
-  // The slot is kept with its program so that the flush can tell which pipelines of the program
-  // the archive to be written still lacks.
-
-  device_param->metal_function_program[slot]  = program;
-  device_param->metal_function_archived[slot] = false;
-
-  // Metal 4 builds the pipeline from a descriptor naming the function; the MTLFunction is made all
-  // the same, so the kernel slot holds the same thing on both paths.
-
-  id pipeline_desc = (device_param->use_metal4 == true) ? hc_mtl4_pipeline_desc (metal_library, f_name) : nil;
-
-  // An archive read from the cache is asked first, and answers nil for a pipeline it does not
-  // hold, which an archive from another OS build does for every pipeline. The program then goes
-  // back to a fresh archive, builds as a first run would, and the flush rewrites the file.
-
-  bool lookup = (device_param->metal_archive[program] != nil) && (device_param->metal_archive_write[program] == false);
-
+  mtl_function mtl_func = nil;
   mtl_pipeline mtl_pipe = nil;
 
   bool added = false;
 
-  int rc = 0;
+  int rc = -1;
 
-  for (int round = 0; round < 2; round++)
+  if ((can_fall_back == true) && (hc_mtlOptSizeListed (device_param, program, func_name) == true))
   {
-    const bool add = (lookup == false) && (device_param->metal_archive_write[program] == true);
+    mtl_library library_size = hc_mtlOptSizeLibrary (hashcat_ctx, device_param, metal_device, program);
 
-    mtl_compiler compiler = (device_param->metal_program_compiler[program] != nil) ? device_param->metal_program_compiler[program] : device_param->metal_compiler;
-
-    bool missed = false;
-
-    rc = hc_mtlBuildRound (hashcat_ctx, metal_device, mtl_func, pipeline_desc, compiler, device_param->metal_archive[program], lookup, add, func_name, &mtl_pipe, &missed, &added);
-
-    if ((rc != 0) || (missed == false)) break;
-
-    hc_mtlArchiveStale (hashcat_ctx, device_param, program);
-
-    lookup = false;
+    if (library_size != nil) rc = hc_mtlCreateKernelFrom (hashcat_ctx, device_param, metal_device, library_size, program, slot, func_name, f_name, true, &mtl_func, &mtl_pipe, &added);
   }
+  else
+  {
+    rc = hc_mtlCreateKernelFrom (hashcat_ctx, device_param, metal_device, metal_library, program, slot, func_name, f_name, (can_fall_back == false), &mtl_func, &mtl_pipe, &added);
 
-  #if !__has_feature(objc_arc)
-  if (pipeline_desc != nil) [pipeline_desc release];
+    if ((rc == -2) && (can_fall_back == true) && (device_param->metal_archive_write[program] == true)) hc_mtlArchiveAbandon (hashcat_ctx, device_param, program, func_name);
 
-  // the function is handed out only together with its pipeline
-  if ((rc != 0) || (mtl_pipe == nil)) [mtl_func release];
-  #endif
+    if (((rc == -1) || (rc == -2)) && (can_fall_back == true))
+    {
+      mtl_library library_size = hc_mtlOptSizeLibrary (hashcat_ctx, device_param, metal_device, program);
+
+      if (library_size != nil)
+      {
+        rc = hc_mtlCreateKernelFrom (hashcat_ctx, device_param, metal_device, library_size, program, slot, func_name, f_name, true, &mtl_func, &mtl_pipe, &added);
+
+        if (rc == 0) hc_mtlOptSizeRemember (device_param, program, func_name);
+      }
+    }
+  }
 
   if (rc == -2)
   {
@@ -1499,12 +1667,7 @@ static int hc_mtlCreateKernel_inner (void *hashcat_ctx, void *device_param_ptr, 
     return -1;
   }
 
-  if (mtl_pipe == nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline", __func__, func_name);
-
-    return -1;
-  }
+  if (rc != 0) return -1;
 
   // A pipeline built through the program's compiler is in its serializer on Metal 4; on Metal 3 it
   // is in the archive only if the add went through, and a refusal ends the writing of the archive.
@@ -1994,12 +2157,10 @@ static int hc_mtlMemcpyDtoD_inner (void *hashcat_ctx, void *device_param_ptr, mt
 
   [blit_encoder copyFromBuffer: mem_src.buf_ptr sourceOffset: mem_src_off toBuffer: mem_dst.buf_ptr destinationOffset: mem_dst_off size: size];
 
-  if (mem_dst.buf_mode == MTL_STORAGE_MODE_MANAGED)
-  {
-    // synchronize needed with MANAGED only
-
-    [blit_encoder synchronizeResource: mem_dst.buf_ptr];
-  }
+  // A Managed destination is not synchronized here. synchronizeResource: brings the whole buffer back
+  // to the host, not the range written, and the pws buffers this copy fills are sized for the largest
+  // launch. hc_mtlMemcpyDtoH synchronizes a Managed buffer before it reads from one, and nothing else
+  // reads the host copy.
 
   // finish encoding and start the data transfer
 
@@ -2842,7 +3003,7 @@ int hc_mtlEncodeComputeCommand_abort (void *hashcat_ctx, void *device_param_ptr,
   }
 }
 
-static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
+static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library, const bool opt_size)
 {
   hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
 
@@ -2885,21 +3046,25 @@ static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_
       */
     }
 
-    // Apple's shader compiler runs out of room on our larger kernels at the default optimization
-    // level. Building a pipeline for one of those ends with the compiler service dying and the
-    // framework reporting XPC_ERROR_CONNECTION_INTERRUPTED, which reaches the user as a kernel
-    // create failure rather than as anything it could act on. The size level asks for less
+    // Apple's shader compiler runs out of room on some of our larger kernels at the default
+    // optimization level. Building a pipeline for one of those ends with the compiler service dying
+    // and the framework reporting XPC_ERROR_CONNECTION_INTERRUPTED. The size level asks for less
     // aggressive inlining and unrolling of code we already unroll by hand, which is enough to bring
-    // those kernels back under whatever the limit is, and it also cuts the time a kernel that did
-    // build takes to compile.
+    // most of those kernels back under the limit. It is not the default because kernels that look
+    // up tables in shared memory run up to 5.6 times slower at it on a Radeon Pro W5700X. A kernel
+    // is built at the size level when its module asks for it with METAL_OPT_SIZE or when its
+    // pipeline failed at the default level, see hc_mtlCreateKernel_inner.
 
     // optimizationLevel arrived in the macOS 13 SDK, so an older SDK has to build without it. That
     // is the same version the backend refuses to use Metal below, so it comes from the same place.
 
     #ifdef MAC_OS_VERSION_13_0
-    if (@available (HC_MIN_MACOS, *))
+    if (opt_size == true)
     {
-      compileOptions.optimizationLevel = MTLLibraryOptimizationLevelSize;
+      if (@available (HC_MIN_MACOS, *))
+      {
+        compileOptions.optimizationLevel = MTLLibraryOptimizationLevelSize;
+      }
     }
     #endif
 
@@ -3004,11 +3169,11 @@ static int hc_mtlCreateLibraryWithSource_inner (void *hashcat_ctx, void *device_
   return -1;
 }
 
-int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
+int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library, const bool opt_size)
 {
   @autoreleasepool
   {
-    return hc_mtlCreateLibraryWithSource_inner (hashcat_ctx, device_param_ptr, metal_device, kernel_sources, build_options_buf, cpath, metal_library);
+    return hc_mtlCreateLibraryWithSource_inner (hashcat_ctx, device_param_ptr, metal_device, kernel_sources, build_options_buf, cpath, metal_library, opt_size);
   }
 }
 

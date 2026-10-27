@@ -12232,9 +12232,40 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       // comes out of the same sizing and is clamped for the same reason. kernel_loops is not, because
       // nothing in the sizing lowers kernel_loops_max.
 
-      device_param_dst->kernel_accel   = MIN (device_param_src->kernel_accel, device_param_dst->kernel_accel_max);
+      // The group size is aligned first, because the accel ceiling below depends on it.
+
+      const u32 kernel_threads_aligned = MIN (device_param_src->kernel_threads, device_param_dst->kernel_threads_max);
+
+      // kernel_accel_max is not a ceiling on its own. The memory sizing above arrived at it together
+      // with kernel_threads_max, and what it sized the buffers for is the product: a launch holds
+      // device_processors * kernel_threads_max * kernel_accel_max work items. Autotune then settles
+      // on its own group size, and the accel that fits those same buffers moves inversely with it.
+      //
+      // Clamping against the bare kernel_accel_max therefore cut any device whose autotune chose
+      // fewer threads than the sizing had assumed. Two identical RTX 4090s came out of MD4 running
+      // Accel:2968 Thr:64 and Accel:212 Thr:64, a factor of 14 apart in batch size, which is the
+      // same factor by which 64 threads is below the 896 the sizing used. The leader was right: at
+      // 64 threads its buffers really do hold 2968. The follower was clamped to a number that only
+      // ever applied at 896.
+      //
+      // Two shapes keep accel out of that product, and for them the ceiling is kernel_accel_max as
+      // it stands: a mode with OPTS_TYPE_THREAD_MULTI_DISABLE is sized with one thread rather than
+      // kernel_threads_max, and a bridged device is sized against its own unit width instead.
+
+      u32 kernel_accel_ceiling = device_param_dst->kernel_accel_max;
+
+      const bool threads_size_the_buffers = ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0) && (bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) == false);
+
+      if ((threads_size_the_buffers == true) && (kernel_threads_aligned > 0) && (device_param_dst->kernel_threads_max > 0))
+      {
+        const u64 workitems_sized = (u64) device_param_dst->kernel_accel_max * (u64) device_param_dst->kernel_threads_max;
+
+        kernel_accel_ceiling = (u32) (workitems_sized / kernel_threads_aligned);
+      }
+
+      device_param_dst->kernel_accel   = MIN (device_param_src->kernel_accel, kernel_accel_ceiling);
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
-      device_param_dst->kernel_threads = MIN (device_param_src->kernel_threads, device_param_dst->kernel_threads_max);
+      device_param_dst->kernel_threads = kernel_threads_aligned;
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param_dst->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
@@ -13358,9 +13389,27 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
     {
       mtl_library metal_lib = NULL;
 
-      if (hc_mtlCreateLibraryWithSource (hashcat_ctx, device_param, device_param->metal_device, kernel_sources[0], build_options_buf, folder_config->cpath_real, &metal_lib) == -1) return false;
+      // A program is built at the size level when its module asks for it with -D METAL_OPT_SIZE,
+      // for kernels that run faster there. The source and the options stay with the program for
+      // the kernels the default level cannot build, see hc_mtlCreateKernel.
+
+      const bool opt_size = (build_options_buf != NULL) && (strstr (build_options_buf, "-D METAL_OPT_SIZE") != NULL);
+
+      if (hc_mtlCreateLibraryWithSource (hashcat_ctx, device_param, device_param->metal_device, kernel_sources[0], build_options_buf, folder_config->cpath_real, &metal_lib, opt_size) == -1) return false;
 
       device_param->metal_library[program] = metal_lib;
+
+      device_param->metal_program_opt_size[program] = opt_size;
+
+      hc_mtlReleaseLibrary (hashcat_ctx, &device_param->metal_library_size[program]);
+
+      hcfree (device_param->metal_program_source[program]);
+      hcfree (device_param->metal_program_options[program]);
+      hcfree (device_param->metal_program_size_kernels[program]);
+
+      device_param->metal_program_source[program]       = hcstrdup (kernel_sources[0]);
+      device_param->metal_program_options[program]      = (build_options_buf != NULL) ? hcstrdup (build_options_buf) : NULL;
+      device_param->metal_program_size_kernels[program] = hc_mtlOptSizeKernels (cached_file, cache_disable);
 
       if (hc_mtlArchiveOpen (hashcat_ctx, device_param, program, cached_file, cache_disable) == -1) return false;
 
@@ -18195,6 +18244,17 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
         hc_mtlArchiveRelease (hashcat_ctx, device_param, i);
 
         hc_mtlReleaseLibrary (hashcat_ctx, &device_param->metal_library[i]);
+        hc_mtlReleaseLibrary (hashcat_ctx, &device_param->metal_library_size[i]);
+
+        hcfree (device_param->metal_program_source[i]);
+        hcfree (device_param->metal_program_options[i]);
+        hcfree (device_param->metal_program_size_kernels[i]);
+
+        device_param->metal_program_source[i]       = NULL;
+        device_param->metal_program_options[i]      = NULL;
+        device_param->metal_program_size_kernels[i] = NULL;
+
+        device_param->metal_program_opt_size[i] = false;
       }
     }
     #endif // __APPLE__

@@ -2257,6 +2257,16 @@ typedef struct hc_device_param
 
   mtl_library       metal_library[HC_DEV_PROGRAM_CNT];
 
+  // A program is built at the default optimization level, or at the size level when its module asks
+  // for it. A kernel the default level cannot build comes from a second library at the size level,
+  // built from the source and options kept here. See hc_mtlCreateKernel.
+
+  mtl_library       metal_library_size[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_source[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_options[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_size_kernels[HC_DEV_PROGRAM_CNT];
+  bool              metal_program_opt_size[HC_DEV_PROGRAM_CNT];
+
   // The archive the compiled pipelines of a program are cached in, see hc_mtlArchiveOpen.
 
   mtl_archive       metal_archive[HC_DEV_PROGRAM_CNT];

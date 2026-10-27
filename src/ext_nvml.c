@@ -220,6 +220,29 @@ int hm_NVML_nvmlInit (void *hashcat_ctx)
 
     event_log_error (hashcat_ctx, "nvmlInit(): %s", string);
 
+    // "Driver/library version mismatch" on its own leaves the user with nothing to act on, and the
+    // cause is never inside hashcat: the loaded kernel module and the NVML library in userspace come
+    // from different driver packages, which is what a driver upgrade without a reboot leaves behind.
+
+    if (nvml_rc == NVML_ERROR_LIB_RM_VERSION_MISMATCH)
+    {
+      event_log_warning (hashcat_ctx, "The NVIDIA kernel module and the NVML library are from different driver versions.");
+      event_log_warning (hashcat_ctx, "A driver upgrade that the running kernel module predates is the usual cause.");
+      event_log_warning (hashcat_ctx, "Compare the two with:");
+      event_log_warning (hashcat_ctx, NULL);
+      event_log_warning (hashcat_ctx, "  cat /proc/driver/nvidia/version");
+      event_log_warning (hashcat_ctx, "  readlink -f /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1");
+      event_log_warning (hashcat_ctx, NULL);
+      event_log_warning (hashcat_ctx, "Reboot, or reload the nvidia kernel modules, to bring them back into step.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
+
+    // Monitoring is the only thing NVML provides, so whatever went wrong here the attack still runs.
+    // Saying so stops the error reading like a reason the run is about to stop.
+
+    event_log_warning (hashcat_ctx, "Hardware monitoring of NVIDIA devices is disabled. Cracking is unaffected.");
+    event_log_warning (hashcat_ctx, NULL);
+
     return -1;
   }
 

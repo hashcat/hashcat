@@ -222,9 +222,17 @@ ENV PATH=/root/.cargo/bin:$PATH
 # SOURCE_DATE_EPOCH pins the build time that src/Makefile compiles in, which is otherwise the moment
 # of the build. A release passes its own commit time, git log -1 --format=%ct, so a later build of
 # the tag gives the same bytes.
+#
+# It is declared without a default, and deliberately not repeated in the ENV block below. Either of
+# those puts an empty SOURCE_DATE_EPOCH in the environment, and clang refuses to run at all with one:
+# "environment variable 'SOURCE_DATE_EPOCH' ('') must be a non-negative decimal integer". A bare ARG
+# leaves the variable unset when no value is given, which is what both compilers want. gcc accepts
+# the empty value, so this only broke the clang build, which is the one USE_CLANG=1 selects by
+# default.
+
+ARG SOURCE_DATE_EPOCH
 
 ARG CACHE_BUST=1 \
-    SOURCE_DATE_EPOCH= \
     HASHCAT_REF=v8.0.0 \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
@@ -232,7 +240,6 @@ ARG CACHE_BUST=1 \
     USE_GCC=0
 
 ENV CACHE_BUST=${CACHE_BUST} \
-    SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
     HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \

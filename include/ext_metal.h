@@ -156,7 +156,8 @@ int  hc_mtlReleasePipeline                  (void *hashcat_ctx, mtl_pipeline *me
 int  hc_mtlReleaseLibrary                   (void *hashcat_ctx, mtl_library *metal_library);
 int  hc_mtlReleaseCommandQueue              (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue *command_queue);
 
-int  hc_mtlCreateLibraryWithSource          (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *include_path, mtl_library *metal_library);
+int  hc_mtlCreateLibraryWithSource          (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *include_path, mtl_library *metal_library, const bool opt_size);
+char *hc_mtlOptSizeKernels                  (const char *cached_file, const bool cache_disable);
 int  hc_mtlArchiveOpen                      (void *hashcat_ctx, void *device_param_ptr, const int program, const char *cached_file, const bool cache_disable);
 void hc_mtlArchiveFlush                     (void *hashcat_ctx, void *device_param_ptr, const int program);
 void hc_mtlArchiveRelease                   (void *hashcat_ctx, void *device_param_ptr, const int program);
