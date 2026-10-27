@@ -324,6 +324,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   argon2_options->memory_block_count  = argon2_options->lane_length * par;
   argon2_options->digest_len          = 80;  // PPK v3 needs 80 bytes from Argon2
 
+  salt->salt_buf_pc[0] = argon2_options->memory_usage_in_kib;
+  salt->salt_buf_pc[1] = argon2_options->parallelism;
+  salt->salt_buf_pc[2] = argon2_options->type;
+
   // public key length
   const u8 *pub_len_pos = token.buf[8];
   const int pub_len = hc_strtoul ((const char *) pub_len_pos, NULL, 10);
