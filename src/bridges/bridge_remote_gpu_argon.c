@@ -80,10 +80,58 @@ typedef struct argon2id_tmp
 
 } argon2id_hybrid_tmp_t;
 
-static bool receive_unit_class (unit_t *unit)
+static bool remote_recv (int sockfd, void *buf, size_t len, hashcat_ctx_t *hashcat_ctx)
+{
+  char *ptr = (char *) buf;
+
+  size_t nrecv = 0;
+
+  while (nrecv < len)
+  {
+    ssize_t nrecv_new = recv (sockfd, buf + nrecv, len - nrecv, 0);
+
+    if (nrecv_new > 0)
+    {
+      nrecv += nrecv_new;
+    }
+    else
+    {
+      #if defined (_WIN)
+      const int  error      = WSAGetLastError ();
+      const bool is_timeout = (error == WSAETIMEDOUT);
+      #else
+      const int  error      = errno;
+      const bool is_timeout = (error == EAGAIN || errno == EWOULDBLOCK);
+      #endif
+
+      if (is_timeout == false || nrecv_new == 0)
+      {
+        event_log_error (hashcat_ctx, "[bridge-client]: Receive failed: %d\n", error);
+        return false;
+      }
+    }
+
+    if (hashcat_ctx->status_ctx->run_thread_level1 == false) return false;
+  }
+
+  return true;
+}
+
+static bool set_receive_timeout (int sockfd)
+{
+  #if defined (_WIN)
+  const DWORD timeout = 1000;
+  #else
+  const struct timeval timeout = { .tv_sec = 1, .tv_usec = 0 };
+  #endif
+
+  return (setsockopt (sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &timeout, sizeof(timeout)) == 0);
+}
+
+static bool receive_unit_class (unit_t *unit, hashcat_ctx_t *hashcat_ctx)
 {
   uint16_t info_class_len_no = 0;
-  if (recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), MSG_WAITALL) != sizeof (info_class_len_no)) return false;
+  if (remote_recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), hashcat_ctx) == false) return false;
 
   uint16_t unit_class_len = ntohs (info_class_len_no);
 
@@ -92,7 +140,7 @@ static bool receive_unit_class (unit_t *unit)
   unit->unit_class_buf[unit_class_len] = 0;
   unit->unit_class_len = unit_class_len;
 
-  if (recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, MSG_WAITALL) != unit_class_len) return false;
+  if (remote_recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, hashcat_ctx) == false) return false;
 
   for (size_t i = 0; i < unit_class_len; i++)
   {
@@ -185,7 +233,11 @@ static bool units_init (hashcat_ctx_t *hashcat_ctx, remote_t *remote, const char
 
     units_cnt++;
 
-    if (receive_unit_class (unit) == false)
+    if (set_receive_timeout (unit->client_fd) == false)
+    {
+      event_log_warning (hashcat_ctx, "[bridge-client]: Unable to set receive timeout.");
+    }
+    if (receive_unit_class (unit, hashcat_ctx) == false)
     {
       event_log_error (hashcat_ctx, "[bridge-client]: Failed to receive valid unit class from remote.");
       return false;
@@ -358,7 +410,7 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
     if (send (unit->client_fd, (void *) &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0) != sizeof (memory_usage_in_kib_no)) return false;
 
     u32 chunk_size_no = 0;
-    if (recv (unit->client_fd, (void *) &chunk_size_no, sizeof (chunk_size_no), MSG_WAITALL) != sizeof (chunk_size_no)) return false;
+    if (remote_recv (unit->client_fd, (void *) &chunk_size_no, sizeof (chunk_size_no), hashcat_ctx) == false) return false;
 
     u32 chunk_size = ntohl (chunk_size_no);
     unit->chunk_size = MIN (chunk_size, unit->workitem_count);
@@ -405,7 +457,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   md5_final (&md5_ctx);
 
-  if (send (unit->client_fd, (void *) md5_ctx.h, sizeof (md5_ctx.h), 0) != sizeof (md5_ctx.h)) return false;
+  if (send (unit->client_fd, (void *) md5_ctx.h, sizeof (md5_ctx.h), 0) == false) return false;
 
   md5_init (&md5_ctx);
 
@@ -413,7 +465,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   {
     argon2id_hybrid_tmp_t *tmp = &argon2id_hybrid_tmp[p];
 
-    if (recv (unit->client_fd, (void *) tmp->final_block, sizeof (tmp->final_block), MSG_WAITALL) != sizeof (tmp->final_block)) return false;
+    if (remote_recv (unit->client_fd, (void *) tmp->final_block, sizeof (tmp->final_block), hashcat_ctx) == false) return false;
 
     md5_update (&md5_ctx, tmp->final_block, sizeof (tmp->final_block));
   }
@@ -421,7 +473,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   md5_final (&md5_ctx);
 
   uint8_t expected_md5[16] = { 0 };
-  if (recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), MSG_WAITALL) != sizeof (expected_md5)) return false;
+  if (remote_recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), hashcat_ctx) == false) return false;
 
   if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
   {
