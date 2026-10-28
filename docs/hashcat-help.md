@@ -76,6 +76,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-keyf=x.txt
      --veracrypt-pim-start      | Num  | VeraCrypt personal iterations multiplier start       | --veracrypt-pim-start=450
      --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500
+     --pkzip-member-index       | Num  | Select a PKZIP member by zero-based central directory index | --pkzip-member-index=0
  -b, --benchmark                |      | Run benchmark of selected hash-modes                 |
  -B, --benchmark-pure           |      | Run benchmark of selected hash-modes, pure kernels   |
      --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |
