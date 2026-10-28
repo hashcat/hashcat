@@ -3267,6 +3267,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         const int path_errno = errno;
 
+        event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
+
         status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
       }
 

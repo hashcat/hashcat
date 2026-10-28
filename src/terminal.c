@@ -1105,6 +1105,15 @@ void hash_info_single_json (json_ctx_t *js, hashcat_ctx_t *hashcat_ctx, user_opt
 
       json_kv_string (js, "salt_type", t_salt_desc);
 
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      {
+        const char *t_salt_enc = "plain";
+        if (hashconfig->opts_type & OPTS_TYPE_ST_HEX) t_salt_enc = "HEX";
+        else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64) t_salt_enc = "BASE64";
+
+        json_kv_string (js, "salt_encoding", t_salt_enc);
+      }
+
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {
         u32 t_salt_min = hashconfig->salt_min;
@@ -1392,6 +1401,15 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
       const char *t_salt_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded" : (t == SALT_TYPE_GENERIC) ? "Generic" : "Virtual";
 
       event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_salt_desc);
+
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      {
+        const char *t_salt_enc = "plain";
+        if (hashconfig->opts_type & OPTS_TYPE_ST_HEX) t_salt_enc = "HEX";
+        else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64) t_salt_enc = "BASE64";
+
+        event_log_info (hashcat_ctx, "  Salt.Encoding.......: %s", t_salt_enc);
+      }
 
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {

@@ -1098,10 +1098,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_HASHCONFIG_PRE);
 
+  // Every reason hashconfig_init () fails for has already been logged by the time it returns, and
+  // three earlier callers see the same failure first: user_options_check_files (), bridges_init ()
+  // and autodetect. So a reason that reaches this call is one only this call can see, which means
+  // the hash-mode is not what is wrong with it. Naming the mode here sent the reader after the
+  // wrong thing. The mode is named where a missing module ends the run instead, in
+  // user_options_check_files ().
+
   if (hashconfig_init (hashcat_ctx) == -1)
   {
-    event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
-
     outer_loop_destroy (hashcat_ctx);
 
     return -1;

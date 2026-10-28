@@ -748,10 +748,8 @@ static void feed_optv_add_split (feed_optv_t *o, const char *opts)
 // hash_comp (), which a feed kernel does not call, so they are fixed rather than taken from a hash
 // mode the feed has nothing to do with. Otherwise the cache key would move with the mode.
 //
-// The whole HAS_* block is emitted verbatim, because hc_swap32 () and hc_swap64 () in inc_common.cl
-// pick vendor assembly on IS_NV && HAS_PRMT and fall back to rotate (), which is commented out for
-// CUDA and HIP. That is not a slower path, it is a build failure, the same one hashcat's own kernels
-// would hit.
+// The whole HAS_* block is emitted verbatim, so the inc_common.cl functions a feed kernel calls take
+// the same vendor arms as they do in hashcat's own kernels.
 //
 // Left out on purpose: KERN_TYPE and ATTACK_*, which nothing here reads; VECT_SIZE, forced to 1 as
 // long as NEW_SIMD_CODE is undefined; and ATTACK_EXEC, which is left undefined deliberately because
@@ -792,8 +790,6 @@ static void feed_optv_common (feed_optv_t *o, const hc_device_param_t *device_pa
   feed_optv_add (o, "-D HAS_VBFE=%u",     device_param->has_vbfe);
   feed_optv_add (o, "-D HAS_BFE=%u",      device_param->has_bfe);
   feed_optv_add (o, "-D HAS_LOP3=%u",     device_param->has_lop3);
-  feed_optv_add (o, "-D HAS_MOV64=%u",    device_param->has_mov64);
-  feed_optv_add (o, "-D HAS_PRMT=%u",     device_param->has_prmt);
   feed_optv_add (o, "-D HAS_SHFW=%u",     device_param->has_shfw);
 }
 
