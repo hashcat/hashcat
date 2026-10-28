@@ -18,8 +18,18 @@ from lib.test_helpers import split_hash_word
 HASHCAT_ARGS = ["--hash-recipe", r'''sha256(md5_uc^2(upper(salt)) . ':' . pass . sha1_bin(pass) . trunc(upper(md5(pass)), 20) . cut(sha1(salt), 8, 12) . "\x01" . cap(rev(pass)))''']
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def md5_uc_rounds(data, rounds):

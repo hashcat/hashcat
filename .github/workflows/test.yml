@@ -79,6 +79,10 @@ on:
         description: 'Test edge cases (both kernel types and all vector widths)'
         type: boolean
         default: false
+      artificially_low_iterations:
+        description: 'Artificially low iteration counts'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -87,6 +91,7 @@ on:
       - 'deps/**'
       - 'Makefile'
       - 'tools/test.py'
+      - 'tools/test_iterations.py'
       - 'tools/test_module_runner.*'
       - 'tools/test_modules/**'
       - 'tools/requirements.txt'
@@ -120,6 +125,7 @@ jobs:
           BRIDGE: ${{ inputs.bridge }}
           CONTAINER: ${{ inputs.container }}
           EDGE: ${{ inputs.edge }}
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
         run: |
           # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
           # An empty manual selection keeps the four ordinary kinds.
@@ -151,7 +157,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 330 }}
+    timeout-minutes: ${{ matrix.timeout_minutes || (github.event_name == 'pull_request' && 90 || 330) }}
 
     strategy:
       fail-fast: false
@@ -245,6 +251,7 @@ jobs:
 
       - name: test.py
         env:
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
           KIND: ${{ matrix.kind }}

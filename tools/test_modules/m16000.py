@@ -14,8 +14,18 @@ SALT_FROM = ":;<=>?@[\\]^_`"
 SALT_TO   = "ABCDEFGabcdef"
 
 
-def module_constraints():
-  return [[1, 8], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [1, 8],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None):

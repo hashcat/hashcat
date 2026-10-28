@@ -10,7 +10,27 @@ import hmac
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 131, 'bridge': 10, 'edge': 190}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 115, 'edge': 161},
+    },
+  }
+
 
 # KeePass 4 with the AES key derivation function, which is the same database and the same header
 # HMAC as m34300 with a different way of getting to the key:
@@ -27,8 +47,7 @@ KEYFILE_LEN = 32
 HEADER_LEN  = 250
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _header_hmac(word, keyfile, iterations, master_seed, transform_seed, header):
@@ -65,7 +84,7 @@ def module_generate_hash(word, salt, iterations=None):
   master_seed    = random_bytes(32)
   transform_seed = random_bytes(32)
 
-  rounds = random_number(20000, 60000)
+  rounds = random_number(20000, 60000) if iterations is None else int(iterations)
 
   header = random_bytes(HEADER_LEN)
 

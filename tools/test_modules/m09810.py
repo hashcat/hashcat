@@ -13,8 +13,18 @@ from lib import oldoffice
 # second block already on the line is carried through unchanged.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [5, 5], [32, 32], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [5, 5],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, param=None, param2=None):

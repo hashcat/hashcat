@@ -8,18 +8,37 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 4096}, 'ci_seconds': {'opt': 1, 'pure': 27, 'bridge': 2, 'edge': 153}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 31, 'edge': 114},
+    },
+  }
+
 
 # XMPP SCRAM PBKDF2-SHA1: SHA-1 of HMAC-SHA1("Client Key") keyed with PBKDF2-HMAC-SHA1 of the
 # password.
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 4096 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 

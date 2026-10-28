@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_salt_word
 # Skype: the salt, "\nskyper\n" and the password, so both take 8 less than the kernel's buffer.
 
 
-def module_constraints():
-  return [[0, 247], [0, 247], [0, 47], [0, 43], [0, 47]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 247],
+        'salt_length': [0, 247],
+      },
+      'optimized': {
+        'password_length': [0, 47],
+        'salt_length': [0, 43],
+      },
+      'combined_length': [0, 47],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

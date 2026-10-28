@@ -17,8 +17,21 @@ ITOA64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 OBFUSCATE = ((0, "n"), (6, "r"), (12, "c"), (17, "s"), (23, "t"), (29, "n"))
 
 
-def module_constraints():
-  return [[0, 232], [0, 232], [0, 32], [0, 28], [0, 32]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 232],
+        'salt_length': [0, 232],
+      },
+      'optimized': {
+        'password_length': [0, 32],
+        'salt_length': [0, 28],
+      },
+      'combined_length': [0, 32],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -9,13 +9,36 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 100000}, 'ci_seconds': {'opt': 1, 'pure': 99, 'bridge': 10, 'edge': 523}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 89, 'edge': 181},
+    },
+  }
+
 
 # Telegram Desktop >= 2.1.14. PBKDF2-HMAC-SHA512 over the salt derives a 136 byte auth key. From it
 # and the message key a per message AES-256 key and IV are built, and the message is AES-IGE
 # en/decrypted. AES-IGE is not in a stdlib, so it is done on top of ECB.
 
 BLOCK = 16
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _xor(a, b):
@@ -64,15 +87,11 @@ def aes256_decrypt_ige(key, iv, data):
   return out
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
-
-
 def module_generate_hash(word, salt, iterations=None, data=None):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
-  iterations = 100000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   sha512_hash = hashlib.sha512(salt + word + salt).digest()
 

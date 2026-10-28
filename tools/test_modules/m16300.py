@@ -17,8 +17,18 @@ from lib.test_helpers import random_bytes
 # that CBC encrypts the seed; the keccak-256 of the seed with a trailing 0x02 is the stored check.
 
 
-def module_constraints():
-  return [[0, 256], [40, 40], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, ethaddr, iterations=None, encseed=None):

@@ -11,7 +11,27 @@ import re
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-from lib.test_helpers import utf16le
+from lib.test_helpers import utf16le, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 39, 'bridge': 2, 'edge': 142}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 42, 'edge': 159},
+    },
+  }
+
 
 # Microsoft Online Account. The key is PBKDF2-HMAC-SHA256 over an empty salt, the password widened
 # from its UTF-8 decoding to UTF-16LE. A fixed cleartext blob is AES-256-CBC encrypted with PKCS7
@@ -25,8 +45,7 @@ DEFAULT_BLOB = bytes.fromhex("00000000010000000000000060000000600000000000000020
 MAGIC = "\x00\x00\x00\x00\x01\x00\x00\x00".encode("latin-1").hex()
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, iterations=None, ct=None):

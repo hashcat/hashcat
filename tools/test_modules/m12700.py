@@ -20,8 +20,18 @@ DATA = (b'{\n"guid" : "00000000-0000-0000-0000-000000000000",\n'
         b'"logout_time":600000,"tx_display":0,"always_keep_local_backup":false}')
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, encrypted=None):

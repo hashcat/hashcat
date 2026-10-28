@@ -28,8 +28,18 @@ A2E = bytes.fromhex(
   "b8b9babbbcbdbebfcacbcccdcecfdadbdcdddedfeaebecedeeeffafbfcfdfeff")
 
 
-def module_constraints():
-  return [[9, 100], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [9, 100],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _pbkdf2_racf(key, salt, iterations):

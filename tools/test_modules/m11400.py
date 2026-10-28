@@ -17,8 +17,21 @@ def _md5_hex(data):
   return hashlib.md5(data).hexdigest()
 
 
-def module_constraints():
-  return [[0, 24], [1, 15], [0, 24], [1, 15], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 24],
+        'salt_length': [1, 15],
+      },
+      'optimized': {
+        'password_length': [0, 24],
+        'salt_length': [1, 15],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, nonce, iterations=None, user=None, realm=None, nonce_count=None,

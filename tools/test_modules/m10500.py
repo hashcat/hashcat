@@ -16,8 +16,18 @@ from lib.test_helpers import random_number, split_hash_word
 # under the key XORed with the pass number.
 
 
-def module_constraints():
-  return [[0, 32], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 32],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, u=None, o=None, p=None, v=None, r=None, enc=None):

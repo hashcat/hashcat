@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_word
 # Telegram Mobile App Passcode (SHA256): sha256 of the 16 byte salt, the passcode and the salt again.
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [0, 55], [32, 32], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [32, 32],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

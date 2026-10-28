@@ -20,8 +20,18 @@ def last_block(key, data):
   return DES.new(key, DES.MODE_CBC, b"\x00" * 8).encrypt(data)[-8:]
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 30], [1, 30], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 30],
+        'salt_length': [1, 30],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_salt_word
 # blake2b512($pass.$salt).
 
 
-def module_constraints():
-  return [[0, 127], [0, 127], [0, 55], [0, 55], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 127],
+        'salt_length': [0, 127],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 55],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

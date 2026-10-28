@@ -38,8 +38,18 @@ HEADER_LEN = 56
 TAIL_LEN   = 112
 
 
-def module_constraints():
-  return [[0, 45], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 45],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _sha1_zero_state(msg):

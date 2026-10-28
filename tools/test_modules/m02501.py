@@ -28,8 +28,18 @@ def module_get_random_password(word):
   return hashlib.sha256(word).hexdigest().encode("ascii")
 
 
-def module_constraints():
-  return [[64, 64], [0, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [64, 64],
+        'salt_length': [0, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _gen_random_wpa_eapol(keyver, snonce):

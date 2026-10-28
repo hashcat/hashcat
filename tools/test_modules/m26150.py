@@ -9,7 +9,27 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [96, 96],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 10000}, 'ci_seconds': {'opt': 1, 'pure': 53, 'bridge': 2, 'edge': 117}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 55, 'edge': 198},
+    },
+  }
+
 
 # Mozilla key4.db, SHA-384 variant. sha384 of the global salt and password is stretched by
 # PBKDF2-HMAC-SHA256 with the entry salt into the AES-256 key that CBC encrypts "password-check".
@@ -17,13 +37,12 @@ from lib.test_helpers import random_hex_string
 CHECK = b"password-check\x02\x02"
 
 
-def module_constraints():
-  return [[0, 256], [96, 96], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, global_salt, entry_salt=None, iterations=None, iv=None, ct=None):
   entry_salt = random_hex_string(64) if entry_salt is None else entry_salt
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
   iv = random_hex_string(32) if iv is None else iv
 
   global_salt_bin = bytes.fromhex(global_salt)

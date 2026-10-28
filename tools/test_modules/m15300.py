@@ -13,7 +13,27 @@ import struct
 from Crypto.Cipher import AES, DES
 from Crypto.Hash import MD4
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 54, 'bridge': 4, 'edge': 139}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 43, 'edge': 133},
+    },
+  }
+
 
 # DPAPI masterkey v1. The password becomes an NT hash (SHA1 for context 1, MD4 for context 2),
 # HMAC-SHA1 with the SID derives a key, a Microsoft variant of PBKDF2 stretches it, and the
@@ -26,8 +46,7 @@ if os.environ.get("IS_OPTIMIZED") == "0":
   PW_CHARSET = "utf-8"
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 # perl's Digest::HMAC_* take the message first and the key second, so these keep that order.
@@ -95,7 +114,7 @@ def dpapi_pbkdf2(password, salt, iterations, keylen, prf):
   return t[:keylen]
 
 
-def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None):
+def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None, iterations=None):
   if dpapimk_salt is None:
     dpapimk_salt = get_random_dpapimk_salt(1)
 
@@ -106,7 +125,7 @@ def module_generate_hash(word, salt_buf, dpapimk_salt=None, cipher=None):
   SID              = salt_arr[2]
   cipher_algorithm = salt_arr[3]
   hash_algorithm   = salt_arr[4]
-  iterations       = int(salt_arr[5])
+  iterations       = int(salt_arr[5]) if iterations is None else int(iterations)
   salt             = bytes.fromhex(salt_arr[6])
   cipher_len       = int(salt_arr[7])
 

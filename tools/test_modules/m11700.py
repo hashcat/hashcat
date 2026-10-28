@@ -10,8 +10,21 @@ from lib import streebog
 # Streebog-256, raw unsalted digest.
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

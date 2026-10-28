@@ -14,8 +14,21 @@ from lib.test_helpers import split_hash_word
 # {SSHA256}: base64 of the 32 byte digest followed by the salt.
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 55],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

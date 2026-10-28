@@ -42,8 +42,18 @@ SB_LEN = 48
 EXT_MAGIC = 0xEF53
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _master_key(word, salt_raw, encrypted):

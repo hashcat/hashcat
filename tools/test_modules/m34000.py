@@ -17,8 +17,18 @@ from lib.test_helpers import random_number, split_hash_word
 TYPES = {"argon2d": Type.D, "argon2i": Type.I, "argon2id": Type.ID}
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _b64(data):

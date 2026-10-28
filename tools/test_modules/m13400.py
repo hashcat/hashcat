@@ -9,7 +9,27 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 64, 'bridge': 9, 'edge': 167}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 56, 'edge': 139},
+    },
+  }
+
 
 # KeePass 1 and 2: the password (and optional keyfile) is hashed to a 32 byte key, transformed
 # through many rounds of AES-256-ECB under a random seed, hashed once more and combined with the
@@ -32,6 +52,9 @@ _Q1_T = [
   [0x4, 0xC, 0x7, 0x5, 0x1, 0x6, 0x9, 0xA, 0x0, 0xE, 0xD, 0x8, 0x2, 0xB, 0x3, 0xF],
   [0xB, 0x9, 0x5, 0x1, 0xC, 0x3, 0xD, 0xE, 0x6, 0x4, 0x7, 0xF, 0x2, 0x0, 0x8, 0xA],
 ]
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _ror4(x, n):
@@ -257,10 +280,6 @@ def _cbc_decrypt(dec_block, iv, data, unpad):
 
 # --- KeePass ---
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
-
-
 def _split_star(s):
   # perl split ('\*', s) drops trailing empty fields
 
@@ -311,14 +330,14 @@ def get_random_keepass_salt():
                    transf_random_seed, enc_iv, contents_hash, contents, keyfile_attributes])
 
 
-def module_generate_hash(word, salt, param=None):
+def module_generate_hash(word, salt, param=None, iterations=None):
   if len(salt) == 0:
     salt = get_random_keepass_salt()
 
   salt_arr = _split_star(salt)
 
   version = int(salt_arr[0])
-  iteration = int(salt_arr[1])
+  iteration = int(salt_arr[1]) if iterations is None else int(iterations)
   algorithm = int(salt_arr[2])
 
   final_random_seed = bytes.fromhex(salt_arr[3])

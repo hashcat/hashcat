@@ -9,16 +9,37 @@ import base64
 import binascii
 import hashlib
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [4, 100],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 1000}, 'ci_seconds': {'opt': 1, 'pure': 36, 'bridge': 2, 'edge': 137}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 31, 'edge': 99},
+    },
+  }
+
+
 # PBKDF1-SHA1: iterations of sha1 over the running digest, starting from pass.salt. Written
 # PBKDF1:sha1:iter:base64(salt):base64(digest).
 
 
-def module_constraints():
-  return [[0, 256], [4, 100], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, salt_is_b64=False):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_dec = base64.b64decode(salt) if salt_is_b64 else salt.encode("latin-1")
 

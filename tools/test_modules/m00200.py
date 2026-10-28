@@ -11,8 +11,18 @@ from lib.test_helpers import split_hash_word
 # did.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 31], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 31],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

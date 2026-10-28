@@ -13,8 +13,18 @@ from lib.test_helpers import pack_hex, split_hash_salt_word
 # the lower cased user name in UTF-16LE. MD4 is pycryptodome's, because hashlib often has none.
 
 
-def module_constraints():
-  return [[32, 32], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [32, 32],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_get_random_password(word):

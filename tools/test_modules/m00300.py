@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_word
 # MySQL4.1/MySQL5: sha1(sha1_bin($pass)), without MySQL's leading * and in lower case.
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

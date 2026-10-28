@@ -55,8 +55,18 @@ def generate_session_response_mac(secure_session_identifier, public_value_xor, k
   return encrypt(blocks, nonce, key)
 
 
-def module_constraints():
-  return [[0, 20], [2, 2], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 20],
+        'salt_length': [2, 2],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, public_value_xor=None):

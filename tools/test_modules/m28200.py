@@ -17,8 +17,18 @@ from lib.test_helpers import random_bytes, random_hex_string
 # random bytes instead, so the emitted line is self consistent either way.
 
 
-def module_constraints():
-  return [[4, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [4, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, scrypt_n=16384, scrypt_r=8, scrypt_p=1, iv=None, data=None, tag=None):

@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_salt_word
 # WBB3 (Woltlab Burning Board): sha1($salt.sha1($salt.sha1($pass))).
 
 
-def module_constraints():
-  return [[0, 256], [40, 40], [0, 55], [40, 40], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [40, 40],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

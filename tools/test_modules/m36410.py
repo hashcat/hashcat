@@ -77,8 +77,18 @@ def kwallet_random_plain(ct_len):
   return (head + size + bytes(payload)).hex()
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, plain=None, ct_len=88):
