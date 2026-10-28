@@ -187,30 +187,30 @@ KERNEL_FQ KERNEL_FA void m01600_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 
     if (j & 1)
     {
-      md5_update (&md5_ctx, w, pw_len);
+      md5_update_padded (&md5_ctx, w, pw_len);
     }
     else
     {
-      md5_update (&md5_ctx, digest, 16);
+      md5_update_padded (&md5_ctx, digest, 16);
     }
 
     if (j % 3)
     {
-      md5_update (&md5_ctx, s, salt_len);
+      md5_update_padded (&md5_ctx, s, salt_len);
     }
 
     if (j % 7)
     {
-      md5_update (&md5_ctx, w, pw_len);
+      md5_update_padded (&md5_ctx, w, pw_len);
     }
 
     if (j & 1)
     {
-      md5_update (&md5_ctx, digest, 16);
+      md5_update_padded (&md5_ctx, digest, 16);
     }
     else
     {
-      md5_update (&md5_ctx, w, pw_len);
+      md5_update_padded (&md5_ctx, w, pw_len);
     }
 
     md5_final (&md5_ctx);

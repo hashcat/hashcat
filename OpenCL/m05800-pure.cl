@@ -297,9 +297,9 @@ KERNEL_FQ KERNEL_FA void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 
     ctx.len = 20 + pc_len;
 
-    sha1_update (&ctx, w, pw_len);
+    sha1_update_padded (&ctx, w, pw_len);
 
-    sha1_update (&ctx, s, salt_len);
+    sha1_update_padded (&ctx, s, salt_len);
 
     sha1_final (&ctx);
 

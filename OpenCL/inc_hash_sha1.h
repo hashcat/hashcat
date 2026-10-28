@@ -94,6 +94,7 @@ DECLSPEC void sha1_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1
 DECLSPEC void sha1_init (PRIVATE_AS sha1_ctx_t *ctx);
 DECLSPEC void sha1_update_64 (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
 DECLSPEC void sha1_update (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha1_update_padded (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_swap (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_utf16le (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_utf16le_swap (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);

@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Please report suspected vulnerabilities privately through the **Security** tab of this repository using **Report a vulnerability**. This creates a private draft advisory that is visible only to you and the maintainers while the issue is investigated and fixed. If you cannot use GitHub, email security@hashcat.net instead. Plain email is not encrypted.
+Please report suspected vulnerabilities privately through the **Security** tab of this repository using **Report a vulnerability**. This creates a private draft advisory that is visible only to you and the maintainers while the issue is investigated and fixed. A GitHub account is the only thing you need. The draft advisory is also where the rest of the report is handled, including the discussion, the credit and any CVE request, so a report filed there stays in one place from the first message to publication. A report sent to us any other way will be answered with a request to file it here.
 
 Please include enough information to reproduce the problem:
 
@@ -14,9 +14,9 @@ Please include enough information to reproduce the problem:
 
 A working reproducer is much more useful than a description of one. Reports produced by scanners, fuzzers or language models are welcome, but please verify that the issue actually reproduces before submitting it.
 
-We will acknowledge that the report was received. If you hear nothing within seven days, the report probably did not arrive. Try the other reporting channel. Hashcat is maintained by a small number of people, so we cannot promise response times or a remediation schedule beyond the acknowledgment. Please do not open a public issue for something you believe is exploitable.
+We will acknowledge that the report was received. If you hear nothing within seven days, the report probably did not reach us. Adding a comment to your draft advisory notifies us again. Hashcat is maintained by a small number of people, so we cannot promise response times or a remediation schedule beyond the acknowledgment. Please do not open a public issue for something you believe is exploitable.
 
-You are free to publish your findings 90 days after reporting them, whether or not a fix exists by then. When a report made through the channels above is confirmed as a vulnerability and fixed, we publish a security advisory on this repository. It credits the reporter unless they prefer not to be named. Bugs that do not cross the boundary described below are fixed without an advisory, and we do not audit past fixes to look for ones that should have had one.
+You are free to publish your findings 90 days after reporting them, whether or not a fix exists by then. When a report made this way is confirmed as a vulnerability and fixed, we publish a security advisory on this repository. It credits the reporter unless they prefer not to be named. Bugs that do not cross the boundary described below are fixed without an advisory, and we do not audit past fixes to look for ones that should have had one.
 
 ## What counts as a vulnerability
 
