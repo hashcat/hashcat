@@ -443,6 +443,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, optimized_file);
 
+      if (kernel_path_fits (hashcat_ctx, optimized_file) == false) return -1;
+
       if (hc_path_read (optimized_file) == true) use_recipe = false;
     }
 
@@ -575,11 +577,19 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   char source_file[KERNEL_PATH_SZ] = { 0 };
 
+  // A path cut to fit is not a kernel that is missing, and a probe cannot tell the difference. It
+  // would report a mode with no kernels at all, and the run would then fail on something that reads
+  // like a problem with the mode. So a cut path is refused here too, not only where a build uses it.
+
   generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+  if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
   hashconfig->has_pure_kernel = hc_path_read (source_file);
 
   generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, optimized_kern_type, true, folder_config->shared_dir, source_file);
+
+  if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
   hashconfig->has_optimized_kernel = hc_path_read (source_file);
 
@@ -664,9 +674,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], pure_kern_type, false, folder_config->shared_dir, source_file);
 
+      if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
+
       if (hc_path_read (source_file) == true) hashconfig->has_pure_kernel = true;
 
       generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, attack_kerns[i], optimized_kern_type, true, folder_config->shared_dir, source_file);
+
+      if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
       if (hc_path_read (source_file) == true) hashconfig->has_optimized_kernel = true;
     }

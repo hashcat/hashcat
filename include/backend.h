@@ -72,6 +72,8 @@ int  backend_session_update_combinator      (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp              (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl           (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
 
+bool kernel_path_fits (hashcat_ctx_t *hashcat_ctx, const char *path);
+
 void generate_source_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 void generate_source_kernel_shared_filename (char *shared_dir, char *source_file);

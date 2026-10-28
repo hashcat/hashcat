@@ -526,6 +526,8 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
                                      hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
                                      hashcat_ctx->folder_config->shared_dir, source_file);
 
+    if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
+
     if (hc_path_read (source_file) == false)
     {
       // Rules are the exception. The host engine applies them in the mode's optimized straight kernel,

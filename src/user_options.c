@@ -3300,6 +3300,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 4000, 0, folder_config->shared_dir, kernelfile);
 
+  if (kernel_path_fits (hashcat_ctx, kernelfile) == false)
+  {
+    hcfree (kernelfile);
+
+    return -1;
+  }
+
   if (hc_path_read (kernelfile) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", kernelfile, strerror (errno));

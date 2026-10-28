@@ -1874,7 +1874,7 @@ static u32 pcfg_dev_rules (const user_options_t *user_options)
 // build that fails, naming a file which looks plausible. Both messages then point at the kernel,
 // which is the one thing that is not wrong, so the install path is named here instead.
 
-static bool kernel_path_fits (hashcat_ctx_t *hashcat_ctx, const char *path)
+bool kernel_path_fits (hashcat_ctx_t *hashcat_ctx, const char *path)
 {
   if (strlen (path) < KERNEL_PATH_SZ - 1) return true;
 
@@ -12946,6 +12946,20 @@ static void nvrtc_free_headers (char **headers, char **names, const int num_head
 
 #endif
 
+// The separate clCompileProgram and clLinkProgram flow fails on Apple Silicon GPUs, so they build in
+// one step instead. The device name is the only thing that identifies such a device, and it does not
+// always begin with the GPU's name: clvk on a virtio-gpu device reports the GPU as
+// "Virtio-GPU Venus (Apple M3 Pro)" (#4959).
+
+static bool is_apple_silicon_device_name (const char *device_name)
+{
+  if (strncmp (device_name, "Apple M", 7) == 0) return true;
+
+  if (strstr (device_name, "(Apple M") != NULL) return true;
+
+  return false;
+}
+
 // Build one program, or load the build a previous run left in the cache. Which of the four runtimes
 // is compiling is the only thing that changes: the cache lookup, the source read and the binary
 // write are the same work whichever it is.
@@ -13510,7 +13524,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
       // workaround opencl issue with Apple Silicon
 
-      if (strncmp (device_param->device_name, "Apple M", 7) == 0)
+      if (is_apple_silicon_device_name (device_param->device_name) == true)
       {
         if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program[program]) == -1) return false;
 
@@ -13537,7 +13551,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
         int rc_clGetProgramBuildInfo;
 
-        if (strncmp (device_param->device_name, "Apple M", 7) == 0)
+        if (is_apple_silicon_device_name (device_param->device_name) == true)
         {
           rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program[program], device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
         }
@@ -13571,7 +13585,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
       // workaround opencl issue with Apple Silicon
 
-      if (strncmp (device_param->device_name, "Apple M", 7) != 0)
+      if (is_apple_silicon_device_name (device_param->device_name) == false)
       {
         cl_program t2[1];
 

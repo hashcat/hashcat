@@ -2829,6 +2829,7 @@ typedef struct out
   int    len;
   bool   write_failed;
   bool   always_ascii;
+  bool   autohex;
 
 } out_t;
 

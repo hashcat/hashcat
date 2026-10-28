@@ -192,8 +192,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const pbkdf2_sha512_t *pbkdf2_sha512 = (const pbkdf2_sha512_t *) esalt_buf;
 
-  // need missing example for custom iterator count
-
   // salt
 
   u8 salt_buf[512] = { 0 };
@@ -221,7 +219,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  const int out_len = snprintf ((char *) out_buf, line_size, "@S@%s@%s",
+  // The decoder took one round off the count, because the init kernel adds that one back, so the
+  // count this line carries is one more than the salt holds. A line written without the count is
+  // read back as ROUNDS_QNX, which is why it can only be left out when that is what it means.
+
+  const int iter = (int) salt->salt_iter + 1;
+
+  char iter_buf[16] = { 0 };
+
+  if (iter != ROUNDS_QNX) snprintf (iter_buf, sizeof (iter_buf), ",%d", iter);
+
+  const int out_len = snprintf ((char *) out_buf, line_size, "@S%s@%s@%s",
+    iter_buf,
     hash_buf,
     salt_buf);
 
