@@ -128,8 +128,32 @@ def parse_ppk_file(filename):
     if len(private_blob) % 16 != 0:
         raise ValueError(f"Private blob length ({len(private_blob)}) is not a multiple of 16")
 
-    if version == 2 and len(private_blob) > 8192:
-        raise ValueError("PPK v2 private blob exceeds the supported 8192 bytes")
+    for name, value, minimum, maximum in (
+        ("algorithm", algorithm, 1, 64),
+        ("encryption", encryption, 1, 32),
+        ("comment", comment, 0, 256),
+        ("public blob", public_blob, 1, 4096),
+        ("private blob", private_blob, 16, 8192),
+    ):
+        if not minimum <= len(value) <= maximum:
+            raise ValueError(
+                f"PPK v{version} {name} length ({len(value)}) is outside the supported "
+                f"{minimum} to {maximum} bytes")
+
+    mac_length = 40 if version == 2 else 64
+    if re.fullmatch(rf'[0-9a-fA-F]{{{mac_length}}}', mac) is None:
+        raise ValueError(f"PPK v{version} Private-MAC must contain {mac_length} hexadecimal characters")
+
+    if version == 3:
+        for name, value, maximum in (
+            ("Argon2-Memory", argon2_memory, 0xffffffff),
+            ("Argon2-Passes", argon2_passes, 0xffffffff),
+            ("Argon2-Parallelism", argon2_parallelism, 32),
+        ):
+            if not 1 <= value <= maximum:
+                raise ValueError(f"PPK v3 {name} ({value}) is outside the supported 1 to {maximum}")
+        if re.fullmatch(r'[0-9a-fA-F]{32}', argon2_salt) is None:
+            raise ValueError("PPK v3 Argon2-Salt must contain 32 hexadecimal characters")
 
     result = {
         'version': version,

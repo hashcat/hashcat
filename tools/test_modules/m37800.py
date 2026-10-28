@@ -28,7 +28,7 @@ def module_generate_hash(word, salt, iterations=None, algorithm=b"ssh-rsa", comm
   public = random_bytes(random_number(1, 512)) if public is None else public
 
   if encrypted is None:
-    private = bytes.fromhex(salt) + random_bytes(16 * random_number(0, 15))
+    private = bytes.fromhex(salt) + random_bytes(16 * random_number(0, 511))
     encrypted = AES.new(key, AES.MODE_CBC, bytes(16)).encrypt(private)
   else:
     private = AES.new(key, AES.MODE_CBC, bytes(16)).decrypt(encrypted)

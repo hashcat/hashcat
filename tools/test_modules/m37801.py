@@ -35,7 +35,7 @@ def module_generate_hash(word, salt, iterations=None, memory=None, parallelism=N
   public = random_bytes(random_number(1, 512)) if public is None else public
 
   if encrypted is None:
-    private = random_bytes(16 * random_number(1, 16))
+    private = random_bytes(16 * random_number(1, 512))
     encrypted = AES.new(key, AES.MODE_CBC, iv).encrypt(private)
   else:
     private = AES.new(key, AES.MODE_CBC, iv).decrypt(encrypted)

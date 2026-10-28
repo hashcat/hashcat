@@ -2,7 +2,7 @@
  * Author......: Deutsche Telekom Security GmbH
  * License.....: MIT
  *
- * PuTTY Private Key (PPK) version 3, AES-256-CBC with Argon2id
+ * PuTTY Private Key (PPK) version 3, AES-256-CBC
  */
 
 #ifdef KERNEL_STATIC
@@ -70,8 +70,6 @@ typedef struct ppk3_tmp
 
 // Helper to update HMAC-SHA256 with SSH string format (4-byte BE length + data)
 // Data from global memory needs to be swapped since hex_decode stores bytes sequentially
-// CRITICAL: sha256_update_global_swap always reads 16 u32s regardless of len, so we must
-// copy data to a local zeroed buffer to avoid reading garbage from adjacent struct members.
 DECLSPEC void hmac_sha256_update_ssh_string_global_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *buf, const int len)
 {
   // First update with the 4-byte big-endian length
@@ -159,7 +157,6 @@ DECLSPEC void hmac_sha256_update_ssh_string_global_swap (PRIVATE_AS sha256_hmac_
 }
 
 // Helper for private buffer (decrypted data) - data is in LE u32 format, needs swap
-// CRITICAL: sha256_update_swap always reads 16 u32s regardless of len
 DECLSPEC void hmac_sha256_update_ssh_string_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *buf, const int len)
 {
   u32 w[16];
