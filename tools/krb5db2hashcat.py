@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Script to turn the Kerberos keys of a domain database into hashcat lines, for modes 38400, 28800
-# and 28900
+# Script to turn the Kerberos keys of a domain database into hashcat lines, for modes 38400, 28800,
+# and 28900.
 
 #
 # Author......: See docs/credits.txt
@@ -85,11 +85,11 @@ import sys
 # des-cbc-crc.
 
 ETYPES = {
-  1:  ("des_cbc_crc", "dec_cbc_crc"),
-  2:  ("des_cbc_md4",),
-  3:  ("des_cbc_md5",),
-  17: ("aes128_hmac", "aes128_cts_hmac_sha1_96"),
-  18: ("aes256_hmac", "aes256_cts_hmac_sha1_96"),
+    1: ("des_cbc_crc", "dec_cbc_crc"),
+    2: ("des_cbc_md4",),
+    3: ("des_cbc_md5",),
+    17: ("aes128_hmac", "aes128_cts_hmac_sha1_96"),
+    18: ("aes256_hmac", "aes256_cts_hmac_sha1_96"),
 }
 
 KEY_LEN = {1: 16, 2: 16, 3: 16, 17: 32, 18: 64}
@@ -98,25 +98,28 @@ NAME_TO_ETYPE = {name: etype for etype, names in ETYPES.items() for name in name
 
 
 def etype_of(name):
-  """Gives back the encryption type a label stands for, or None."""
+    """Gives back the encryption type a label stands for, or None."""
 
-  folded = name.lower().replace("-", "_")
+    folded = name.lower().replace("-", "_")
 
-  if folded in NAME_TO_ETYPE:
-    return NAME_TO_ETYPE[folded]
+    if folded in NAME_TO_ETYPE:
+        return NAME_TO_ETYPE[folded]
 
-  try:
-    etype = int(name, 16) if name.startswith("0x") else int(name, 10)
-  except ValueError:
-    return None
+    try:
+        etype = int(name, 16) if name.startswith("0x") else int(name, 10)
+    except ValueError:
+        return None
 
-  return etype if etype in ETYPES else None
+    return etype if etype in ETYPES else None
+
 
 # mimikatz and DSInternals put the keys of the current password under "Credentials" and
 # "ServiceCredentials" and those of the passwords before it under "OldCredentials" and
 # "OlderCredentials", the one printing the title bare and the other with a colon
 
-RE_GROUP = re.compile(r"^\s+(Credentials|OldCredentials|OlderCredentials|ServiceCredentials):?\s*$")
+RE_GROUP = re.compile(
+    r"^\s+(Credentials|OldCredentials|OlderCredentials|ServiceCredentials):?\s*$"
+)
 
 HISTORY_GROUPS = ("OldCredentials", "OlderCredentials")
 
@@ -124,7 +127,7 @@ HISTORY_GROUPS = ("OldCredentials", "OlderCredentials")
 
 RE_USER = re.compile(r"^(?:SAM Username|User)\s*:\s*(\S+)\s*$")
 RE_SALT = re.compile(r"^\s*Default Salt\s*:\s*(\S+)\s*$")
-RE_KEY  = re.compile(r"^\s+(\S+)\s*(?:\(\d+\)\s*)?:\s*([0-9a-fA-F]+)\s*$")
+RE_KEY = re.compile(r"^\s+(\S+)\s*(?:\(\d+\)\s*)?:\s*([0-9a-fA-F]+)\s*$")
 
 # secretsdump writes the account bare, or with a domain in front of a backslash. That domain is the
 # suffix of the userPrincipalName, which is the realm only where the two were left alike, so it is
@@ -140,427 +143,517 @@ RE_TRUST = re.compile(r"^(\S+) \((Incoming|Outgoing)(?:, previous)?\)$")
 # DSInternals puts the encryption type on a line of its own with the key under it, and the salt
 # after the keys rather than before, so its keys are held back until the salt turns up
 
-RE_DSI_USER  = re.compile(r"^SamAccountName:\s*(\S+)\s*$")
+RE_DSI_USER = re.compile(r"^SamAccountName:\s*(\S+)\s*$")
 RE_DSI_ETYPE = re.compile(r"^\s+([A-Z][A-Z0-9_]+)\s*$")
-RE_DSI_KEY   = re.compile(r"^\s+Key:\s*([0-9a-fA-F]+)\s*$")
-RE_DSI_SALT  = re.compile(r"^\s+Salt:\s*(\S+)\s*$")
+RE_DSI_KEY = re.compile(r"^\s+Key:\s*([0-9a-fA-F]+)\s*$")
+RE_DSI_SALT = re.compile(r"^\s+Salt:\s*(\S+)\s*$")
 
 
 def emit(out, user, realm, etype, key, where, warn):
-  if len(key) != KEY_LEN[etype]:
-    warn("%s: %s key is %d hex characters, expected %d, skipped" % (where, ETYPES[etype][0], len(key), KEY_LEN[etype]))
-    return 0
+    if len(key) != KEY_LEN[etype]:
+        warn(
+            "%s: %s key is %d hex characters, expected %d, skipped"
+            % (where, ETYPES[etype][0], len(key), KEY_LEN[etype])
+        )
+        return 0
 
-  if "$" in user or "$" in realm:
-    warn("%s: '$' in %r or %r, which the hash line is cut on, skipped" % (where, user, realm))
-    return 0
+    if "$" in user or "$" in realm:
+        warn(
+            "%s: '$' in %r or %r, which the hash line is cut on, skipped"
+            % (where, user, realm)
+        )
+        return 0
 
-  if " " in user or " " in realm:
-    warn("%s: a space in %r or %r, which no principal carries, skipped" % (where, user, realm))
-    return 0
+    if " " in user or " " in realm:
+        warn(
+            "%s: a space in %r or %r, which no principal carries, skipped"
+            % (where, user, realm)
+        )
+        return 0
 
-  line = "$krb5db$%d$%s$%s$%s" % (etype, user, realm, key.lower())
+    line = "$krb5db$%d$%s$%s$%s" % (etype, user, realm, key.lower())
 
-  # a key under two headings is one key: mimikatz prints the DES one under Kerberos-Newer-Keys
-  # and again under Kerberos, and DSInternals under KerberosNew and again under Kerberos
+    # a key under two headings is one key: mimikatz prints the DES one under Kerberos-Newer-Keys
+    # and again under Kerberos, and DSInternals under KerberosNew and again under Kerberos
 
-  if line in out:
-    return 0
+    if line in out:
+        return 0
 
-  out.append(line)
-  return 1
+    out.append(line)
+    return 1
 
 
 def machine_principals(name, realm):
-  """Gives back the principals whose salt a machine or trust account key may have.
+    """Gives back the principals whose salt a machine or trust account key may have.
 
-  secretsdump and Rubeus build the two the same way, a computer account as {REALM}host{host}.{realm}
-  and a trust account as {REALM}krbtgt{FLAT}, so both are reproduced from the account name alone.
-  """
+    secretsdump and Rubeus build the two the same way, a computer account as {REALM}host{host}.{realm}
+    and a trust account as {REALM}krbtgt{FLAT}, so both are reproduced from the account name alone.
+    """
 
-  return ["host%s.%s" % (name.lower(), realm.lower()), "krbtgt%s" % name.upper()]
+    return ["host%s.%s" % (name.lower(), realm.lower()), "krbtgt%s" % name.upper()]
 
 
 def machine_realm(salt, name):
-  """Gives back the realm of a machine or trust account salt, or None when neither shape fits."""
+    """Gives back the realm of a machine or trust account salt, or None when neither shape fits."""
 
-  tail = "krbtgt%s" % name.upper()
+    tail = "krbtgt%s" % name.upper()
 
-  if salt.endswith(tail) and len(salt) > len(tail):
-    return salt[:len(salt) - len(tail)]
+    if salt.endswith(tail) and len(salt) > len(tail):
+        return salt[: len(salt) - len(tail)]
 
-  # {REALM}host{host}.{realm} carries the realm twice, so its length gives the length of the realm
+    # {REALM}host{host}.{realm} carries the realm twice, so its length gives the length of the realm
 
-  realm_len, odd = divmod(len(salt) - len("host.") - len(name), 2)
+    realm_len, odd = divmod(len(salt) - len("host.") - len(name), 2)
 
-  if odd == 0 and realm_len > 0:
-    realm = salt[:realm_len]
+    if odd == 0 and realm_len > 0:
+        realm = salt[:realm_len]
 
-    if salt == "%shost%s.%s" % (realm.upper(), name.lower(), realm.lower()):
-      return realm
+        if salt == "%shost%s.%s" % (realm.upper(), name.lower(), realm.lower()):
+            return realm
 
-  return None
+    return None
 
 
 def salt_principal(salt, user):
-  """Gives back the principal as a printed salt spells it, or the account name without one.
+    """Gives back the principal as a printed salt spells it, or the account name without one.
 
-  The salt is what the key was derived with, and its tail is the principal as the database holds
-  it, which an account name printed on another line may differ from in case. It is the same end
-  split_salt () takes the realm from. A machine or trust account salt does not end in the account
-  name and keeps it, since machine_principals () builds the principal of those from the name.
-  """
+    The salt is what the key was derived with, and its tail is the principal as the database holds
+    it, which an account name printed on another line may differ from in case. It is the same end
+    split_salt () takes the realm from. A machine or trust account salt does not end in the account
+    name and keeps it, since machine_principals () builds the principal of those from the name.
+    """
 
-  if salt and len(salt) > len(user) and salt.lower().endswith(user.lower()):
-    return salt[len(salt) - len(user):]
+    if salt and len(salt) > len(user) and salt.lower().endswith(user.lower()):
+        return salt[len(salt) - len(user) :]
 
-  return user
+    return user
 
 
 def split_salt(salt, user, where, warn):
-  """Gives back the realm of a salt, or None when it cannot be read off."""
+    """Gives back the realm of a salt, or None when it cannot be read off."""
 
-  if user and salt.lower().endswith(user.lower()) and len(salt) > len(user):
-    return salt[:len(salt) - len(user)]
+    if user and salt.lower().endswith(user.lower()) and len(salt) > len(user):
+        return salt[: len(salt) - len(user)]
 
-  if user.endswith("$"):
-    realm = machine_realm(salt, user[:-1])
+    if user.endswith("$"):
+        realm = machine_realm(salt, user[:-1])
 
-    if realm is not None:
-      return realm
+        if realm is not None:
+            return realm
 
-  warn("%s: salt %r does not end in the principal %r, pass --realm to set the realm" % (where, salt, user))
-  return None
+    warn(
+        "%s: salt %r does not end in the principal %r, pass --realm to set the realm"
+        % (where, salt, user)
+    )
+    return None
 
 
 def emit_account(out, user, realm, etype, key, salt, machine, where, warn):
-  """Writes a key out under every salt its account may have been derived with."""
+    """Writes a key out under every salt its account may have been derived with."""
 
-  if not user.endswith("$"):
-    return emit(out, user, realm, etype, key, where, warn)
+    if not user.endswith("$"):
+        return emit(out, user, realm, etype, key, where, warn)
 
-  # the trailing '$' marks an account whose password the machine generated and rotates, a computer,
-  # a trust or a group managed service account, so no wordlist and no mask reaches it
+    # the trailing '$' marks an account whose password the machine generated and rotates, a computer,
+    # a trust or a group managed service account, so no wordlist and no mask reaches it
 
-  if not machine:
-    warn("%s: %r is a machine or trust account, whose password is machine generated; pass --machine-keys to write it out anyway" % (where, user))
-    return 0
+    if not machine:
+        warn(
+            "%s: %r is a machine or trust account, whose password is machine generated; pass --machine-keys to write it out anyway"
+            % (where, user)
+        )
+        return 0
 
-  principals = machine_principals(user[:-1], realm)
+    principals = machine_principals(user[:-1], realm)
 
-  # a printed salt settles which of the two shapes the key came from
+    # a printed salt settles which of the two shapes the key came from
 
-  if salt:
-    principals = [p for p in principals if (realm.upper() + p) == salt]
+    if salt:
+        principals = [p for p in principals if (realm.upper() + p) == salt]
 
-    if not principals:
-      warn("%s: salt %r is not the one a machine or trust account named %r would have, skipped" % (where, salt, user))
-      return 0
-  else:
-    warn("%s: %r is a machine or trust account and the output does not say which, so the key is written under both salts" % (where, user))
+        if not principals:
+            warn(
+                "%s: salt %r is not the one a machine or trust account named %r would have, skipped"
+                % (where, salt, user)
+            )
+            return 0
+    else:
+        warn(
+            "%s: %r is a machine or trust account and the output does not say which, so the key is written under both salts"
+            % (where, user)
+        )
 
-  return sum(emit(out, p, realm, etype, key, where, warn) for p in principals)
+    return sum(emit(out, p, realm, etype, key, where, warn) for p in principals)
 
 
 def parse_mimikatz(lines, realm_opt, machine, history, warn):
-  out = []
-  user = None
-  salt = None
-  group = None
+    out = []
+    user = None
+    salt = None
+    group = None
 
-  for n, line in enumerate(lines, 1):
-    m = RE_USER.match(line)
-    if m:
-      user = m.group(1)
-      salt = None
-      group = None
-      continue
+    for n, line in enumerate(lines, 1):
+        m = RE_USER.match(line)
+        if m:
+            user = m.group(1)
+            salt = None
+            group = None
+            continue
 
-    m = RE_GROUP.match(line)
-    if m:
-      group = m.group(1)
-      continue
+        m = RE_GROUP.match(line)
+        if m:
+            group = m.group(1)
+            continue
 
-    m = RE_SALT.match(line)
-    if m:
-      salt = m.group(1)
-      continue
+        m = RE_SALT.match(line)
+        if m:
+            salt = m.group(1)
+            continue
 
-    m = RE_KEY.match(line)
-    if m is None:
-      continue
+        m = RE_KEY.match(line)
+        if m is None:
+            continue
 
-    etype = etype_of(m.group(1))
-    if etype is None:
-      continue
+        etype = etype_of(m.group(1))
+        if etype is None:
+            continue
 
-    where = "line %d" % n
+        where = "line %d" % n
 
-    if user is None:
-      warn("%s: a key before any 'SAM Username' line, skipped" % where)
-      continue
+        if user is None:
+            warn("%s: a key before any 'SAM Username' line, skipped" % where)
+            continue
 
-    if group in HISTORY_GROUPS and not history:
-      warn("%s: a key of %s under %s, which is a password before the current one; pass --history to write it out" % (where, user, group))
-      continue
+        if group in HISTORY_GROUPS and not history:
+            warn(
+                "%s: a key of %s under %s, which is a password before the current one; pass --history to write it out"
+                % (where, user, group)
+            )
+            continue
 
-    realm = realm_opt or (split_salt(salt, user, where, warn) if salt else None)
+        realm = realm_opt or (split_salt(salt, user, where, warn) if salt else None)
 
-    if realm is None:
-      if salt is None:
-        warn("%s: no 'Default Salt' seen for %s, pass --realm" % (where, user))
-      continue
+        if realm is None:
+            if salt is None:
+                warn("%s: no 'Default Salt' seen for %s, pass --realm" % (where, user))
+            continue
 
-    emit_account(out, salt_principal(salt, user), realm, etype, m.group(2), salt, machine, where, warn)
+        emit_account(
+            out,
+            salt_principal(salt, user),
+            realm,
+            etype,
+            m.group(2),
+            salt,
+            machine,
+            where,
+            warn,
+        )
 
-  return out
+    return out
 
 
 # secretsdump and gosecretsdump read only the current set out of the stored credential, so this
 # takes the history flag to keep one signature across the four parsers and has nothing to do with it
 
+
 def parse_secretsdump(lines, realm_opt, machine, history, warn):
-  out = []
+    out = []
 
-  # Nothing in this output is the realm. The domain in front of the backslash is the suffix of the
-  # userPrincipalName, so in a domain whose users were given a suffix of their own every key would
-  # go out under a realm none of them is salted with, and none of them would crack.
+    # Nothing in this output is the realm. The domain in front of the backslash is the suffix of the
+    # userPrincipalName, so in a domain whose users were given a suffix of their own every key would
+    # go out under a realm none of them is salted with, and none of them would crack.
 
-  if realm_opt is None:
-    if any(m is not None and etype_of(m.group(2)) for m in (RE_SDMP.match(l) for l in lines)):
-      warn("secretsdump output carries the suffix of the userPrincipalName and not the realm, pass --realm")
+    if realm_opt is None:
+        if any(
+            m is not None and etype_of(m.group(2))
+            for m in (RE_SDMP.match(l) for l in lines)
+        ):
+            warn(
+                "secretsdump output carries the suffix of the userPrincipalName and not the realm, pass --realm"
+            )
+
+        return out
+
+    for n, line in enumerate(lines, 1):
+        m = RE_SDMP.match(line)
+        if m is None:
+            continue
+
+        user, etype_name, key = m.group(1), m.group(2), m.group(3)
+
+        etype = etype_of(etype_name)
+        if etype is None:
+            continue
+
+        where = "line %d" % n
+
+        realm = realm_opt
+
+        m = RE_TRUST.match(user)
+
+        if m:
+            # the local realm comes first for an incoming trust and the other one for an outgoing one
+
+            partner = m.group(1)
+
+            if m.group(2) == "Incoming":
+                user, realm = "krbtgt" + partner.upper(), realm
+            else:
+                user, realm = "krbtgt" + realm.upper(), partner
+
+        emit_account(out, user, realm, etype, key, None, machine, where, warn)
 
     return out
 
-  for n, line in enumerate(lines, 1):
-    m = RE_SDMP.match(line)
-    if m is None:
-      continue
-
-    user, etype_name, key = m.group(1), m.group(2), m.group(3)
-
-    etype = etype_of(etype_name)
-    if etype is None:
-      continue
-
-    where = "line %d" % n
-
-    realm = realm_opt
-
-    m = RE_TRUST.match(user)
-
-    if m:
-      # the local realm comes first for an incoming trust and the other one for an outgoing one
-
-      partner = m.group(1)
-
-      if m.group(2) == "Incoming":
-        user, realm = "krbtgt" + partner.upper(), realm
-      else:
-        user, realm = "krbtgt" + realm.upper(), partner
-
-    emit_account(out, user, realm, etype, key, None, machine, where, warn)
-
-  return out
-
 
 def parse_dsinternals(lines, realm_opt, machine, history, warn):
-  out = []
-  user = None
-  etype = None
-  group = None
-  pending = []
+    out = []
+    user = None
+    etype = None
+    group = None
+    pending = []
 
-  def flush(salt):
-    realm = realm_opt
+    def flush(salt):
+        realm = realm_opt
 
-    if realm is None and salt:
-      realm = split_salt(salt, user, pending[0][2], warn) if pending else None
+        if realm is None and salt:
+            realm = split_salt(salt, user, pending[0][2], warn) if pending else None
 
-    for e, key, where in pending:
-      if realm is None:
-        warn("%s: no 'Salt' line seen for %s, pass --realm" % (where, user))
-        continue
+        for e, key, where in pending:
+            if realm is None:
+                warn("%s: no 'Salt' line seen for %s, pass --realm" % (where, user))
+                continue
 
-      emit_account(out, salt_principal(salt, user), realm, e, key, salt, machine, where, warn)
+            emit_account(
+                out,
+                salt_principal(salt, user),
+                realm,
+                e,
+                key,
+                salt,
+                machine,
+                where,
+                warn,
+            )
 
-    pending.clear()
+        pending.clear()
 
-  for n, line in enumerate(lines, 1):
-    m = RE_DSI_USER.match(line)
-    if m:
-      flush(None)
-      user = m.group(1)
-      group = None
-      continue
+    for n, line in enumerate(lines, 1):
+        m = RE_DSI_USER.match(line)
+        if m:
+            flush(None)
+            user = m.group(1)
+            group = None
+            continue
 
-    m = RE_GROUP.match(line)
-    if m:
-      group = m.group(1)
-      continue
+        m = RE_GROUP.match(line)
+        if m:
+            group = m.group(1)
+            continue
 
-    m = RE_DSI_SALT.match(line)
-    if m:
-      flush(m.group(1))
-      continue
+        m = RE_DSI_SALT.match(line)
+        if m:
+            flush(m.group(1))
+            continue
 
-    m = RE_DSI_ETYPE.match(line)
-    if m:
-      etype = etype_of(m.group(1))
-      continue
+        m = RE_DSI_ETYPE.match(line)
+        if m:
+            etype = etype_of(m.group(1))
+            continue
 
-    m = RE_DSI_KEY.match(line)
-    if m is None:
-      continue
+        m = RE_DSI_KEY.match(line)
+        if m is None:
+            continue
 
-    if etype is None:
-      continue
+        if etype is None:
+            continue
 
-    if user is None:
-      warn("line %d: a key before any 'SamAccountName' line, skipped" % n)
-      continue
+        if user is None:
+            warn("line %d: a key before any 'SamAccountName' line, skipped" % n)
+            continue
 
-    if group in HISTORY_GROUPS and not history:
-      warn("line %d: a key of %s under %s, which is a password before the current one; pass --history to write it out" % (n, user, group))
-      continue
+        if group in HISTORY_GROUPS and not history:
+            warn(
+                "line %d: a key of %s under %s, which is a password before the current one; pass --history to write it out"
+                % (n, user, group)
+            )
+            continue
 
-    pending.append((etype, m.group(1), "line %d" % n))
+        pending.append((etype, m.group(1), "line %d" % n))
 
-  flush(None)
+    flush(None)
 
-  return out
+    return out
 
 
 # ntdissector reads only the current set as well, so the history flag is here for the signature
 
+
 def parse_ntdissector(lines, realm_opt, machine, history, warn):
-  out = []
+    out = []
 
-  missing_realm = False
+    missing_realm = False
 
-  for n, line in enumerate(lines, 1):
-    line = line.strip()
+    for n, line in enumerate(lines, 1):
+        line = line.strip()
 
-    if not line.startswith("{"):
-      continue
+        if not line.startswith("{"):
+            continue
 
-    try:
-      rec = json.loads(line)
-    except ValueError:
-      continue
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
 
-    if not isinstance(rec, dict):
-      continue
+        if not isinstance(rec, dict):
+            continue
 
-    creds = rec.get("supplementalCredentials")
+        creds = rec.get("supplementalCredentials")
 
-    if not isinstance(creds, dict):
-      continue
+        if not isinstance(creds, dict):
+            continue
 
-    user = rec.get("sAMAccountName") or rec.get("name")
+        user = rec.get("sAMAccountName") or rec.get("name")
 
-    if not user:
-      warn("line %d: a record with no account name, skipped" % n)
-      continue
+        if not user:
+            warn("line %d: a record with no account name, skipped" % n)
+            continue
 
-    where = "line %d" % n
+        where = "line %d" % n
 
-    # a record carries no salt, and the suffix of its userPrincipalName is the realm only where the
-    # two were left alike, so the realm is asked for rather than read off the record
+        # a record carries no salt, and the suffix of its userPrincipalName is the realm only where the
+        # two were left alike, so the realm is asked for rather than read off the record
 
-    if realm_opt is None:
-      missing_realm = True
-      continue
+        if realm_opt is None:
+            missing_realm = True
+            continue
 
-    realm = realm_opt
+        realm = realm_opt
 
-    for group in ("Primary:Kerberos-Newer-Keys", "Primary:Kerberos"):
-      for item in creds.get(group) or []:
-        if not isinstance(item, str):
-          continue
+        for group in ("Primary:Kerberos-Newer-Keys", "Primary:Kerberos"):
+            for item in creds.get(group) or []:
+                if not isinstance(item, str):
+                    continue
 
-        label, sep, key = item.partition(":")
+                label, sep, key = item.partition(":")
 
-        if not sep:
-          continue
+                if not sep:
+                    continue
 
-        etype = etype_of(label)
+                etype = etype_of(label)
 
-        if etype is None:
-          continue
+                if etype is None:
+                    continue
 
-        emit_account(out, user, realm, etype, key, None, machine, where, warn)
+                emit_account(out, user, realm, etype, key, None, machine, where, warn)
 
-  if missing_realm:
-    warn("an ntdissector record carries no salt and no realm of its own, pass --realm")
+    if missing_realm:
+        warn(
+            "an ntdissector record carries no salt and no realm of its own, pass --realm"
+        )
 
-  return out
+    return out
 
 
 def main():
-  ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-  ap.add_argument("file", help="path to the mimikatz, secretsdump, DSInternals or ntdissector output, - to read stdin")
-  ap.add_argument("-r", "--realm", help="realm to use, required for secretsdump and ntdissector output, which carry no salt")
-  ap.add_argument("-e", "--etype", type=int, choices=sorted(ETYPES), action="append", help="keep only these encryption types, repeatable")
-  ap.add_argument("--machine-keys", action="store_true", help="write out the keys of machine and trust accounts as well, which no wordlist reaches")
-  ap.add_argument("--history", action="store_true", help="write out the keys of the passwords before the current one as well")
-  args = ap.parse_args()
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "file",
+        help="path to the mimikatz, secretsdump, DSInternals or ntdissector output, - to read stdin",
+    )
+    ap.add_argument(
+        "-r",
+        "--realm",
+        help="realm to use, required for secretsdump and ntdissector output, which carry no salt",
+    )
+    ap.add_argument(
+        "-e",
+        "--etype",
+        type=int,
+        choices=sorted(ETYPES),
+        action="append",
+        help="keep only these encryption types, repeatable",
+    )
+    ap.add_argument(
+        "--machine-keys",
+        action="store_true",
+        help="write out the keys of machine and trust accounts as well, which no wordlist reaches",
+    )
+    ap.add_argument(
+        "--history",
+        action="store_true",
+        help="write out the keys of the passwords before the current one as well",
+    )
+    args = ap.parse_args()
 
-  try:
-    with (sys.stdin if args.file == "-" else open(args.file, encoding="utf-8", errors="replace")) as f:
-      lines = f.read().splitlines()
-  except OSError as e:
-    ap.error(e.strerror.lower() if e.strerror else str(e))
+    try:
+        with (
+            sys.stdin
+            if args.file == "-"
+            else open(args.file, encoding="utf-8", errors="replace")
+        ) as f:
+            lines = f.read().splitlines()
+    except OSError as e:
+        ap.error(e.strerror.lower() if e.strerror else str(e))
 
-  warnings = []
+    warnings = []
 
-  def warn(msg):
-    warnings.append(msg)
+    def warn(msg):
+        warnings.append(msg)
 
-  realm = args.realm.upper() if args.realm else None
+    realm = args.realm.upper() if args.realm else None
 
-  out = parse_mimikatz(lines, realm, args.machine_keys, args.history, warn)
+    out = parse_mimikatz(lines, realm, args.machine_keys, args.history, warn)
 
-  if not out:
-    # no mimikatz block matched, so the input may be the plain user:etype:key of secretsdump
-    sd_warnings = []
-    sd = parse_secretsdump(lines, realm, args.machine_keys, args.history, sd_warnings.append)
+    if not out:
+        # no mimikatz block matched, so the input may be the plain user:etype:key of secretsdump
+        sd_warnings = []
+        sd = parse_secretsdump(
+            lines, realm, args.machine_keys, args.history, sd_warnings.append
+        )
 
-    if sd or sd_warnings:
-      out, warnings = sd, sd_warnings
+        if sd or sd_warnings:
+            out, warnings = sd, sd_warnings
 
-  if not out:
-    # nor that, so the input may be the block layout DSInternals prints
-    ds_warnings = []
-    ds = parse_dsinternals(lines, realm, args.machine_keys, args.history, ds_warnings.append)
+    if not out:
+        # nor that, so the input may be the block layout DSInternals prints
+        ds_warnings = []
+        ds = parse_dsinternals(
+            lines, realm, args.machine_keys, args.history, ds_warnings.append
+        )
 
-    if ds or ds_warnings:
-      out, warnings = ds, ds_warnings
+        if ds or ds_warnings:
+            out, warnings = ds, ds_warnings
 
-  if not out:
-    # nor that, so the input may be the JSON ntdissector writes, one record per line
-    nd_warnings = []
-    nd = parse_ntdissector(lines, realm, args.machine_keys, args.history, nd_warnings.append)
+    if not out:
+        # nor that, so the input may be the JSON ntdissector writes, one record per line
+        nd_warnings = []
+        nd = parse_ntdissector(
+            lines, realm, args.machine_keys, args.history, nd_warnings.append
+        )
 
-    if nd or nd_warnings:
-      out, warnings = nd, nd_warnings
+        if nd or nd_warnings:
+            out, warnings = nd, nd_warnings
 
-  if args.etype:
-    keep = {"$krb5db$%d$" % e for e in args.etype}
-    out = [line for line in out if any(line.startswith(k) for k in keep)]
+    if args.etype:
+        keep = {"$krb5db$%d$" % e for e in args.etype}
+        out = [line for line in out if any(line.startswith(k) for k in keep)]
 
-  for line in out:
-    print(line)
+    for line in out:
+        print(line)
 
-  for msg in warnings:
-    print("warning: %s" % msg, file=sys.stderr)
+    for msg in warnings:
+        print("warning: %s" % msg, file=sys.stderr)
 
-  if not out:
-    print("no Kerberos keys found", file=sys.stderr)
-    return 1
+    if not out:
+        print("no Kerberos keys found", file=sys.stderr)
+        return 1
 
-  return 0
+    return 0
 
 
 if __name__ == "__main__":
-  sys.exit(main())
+    sys.exit(main())
