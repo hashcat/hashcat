@@ -164,9 +164,29 @@ KERNEL_FQ KERNEL_FA void m08500_mxx (KERN_ATTR_RULES ())
 
     _des_crypt_encrypt_racf (iv, data, Kc, Kd, s_SPtrans);
 
-    u32 z = 0;
+    u32 iv2[2] = { 0, 0 };
 
-    COMPARE_M_SIMD (iv[0], iv[1], z, z);
+    if (tmp.pw_len > 8)
+    {
+      const u32 c9  = (tmp.i[2] >>  0) & 0xff;
+      const u32 c10 = (tmp.pw_len > 9) ? ((tmp.i[2] >> 8) & 0xff) : 0x20;
+
+      const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+      const u32 w1_b2 = 0x20202020;
+
+      u32 key2[2];
+
+      transform_racf_key (w0_b2, w1_b2, key2);
+
+      u32 Kc2[16];
+      u32 Kd2[16];
+
+      _des_crypt_keysetup (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+      _des_crypt_encrypt_racf (iv2, data, Kc2, Kd2, s_SPtrans);
+    }
+
+    COMPARE_M_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
   }
 }
 
@@ -244,8 +264,8 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_RULES ())
   {
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
-    0,
-    0
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -283,8 +303,28 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_RULES ())
 
     _des_crypt_encrypt_racf (iv, data, Kc, Kd, s_SPtrans);
 
-    u32 z = 0;
+    u32 iv2[2] = { 0, 0 };
 
-    COMPARE_S_SIMD (iv[0], iv[1], z, z);
+    if (tmp.pw_len > 8)
+    {
+      const u32 c9  = (tmp.i[2] >>  0) & 0xff;
+      const u32 c10 = (tmp.pw_len > 9) ? ((tmp.i[2] >> 8) & 0xff) : 0x20;
+
+      const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+      const u32 w1_b2 = 0x20202020;
+
+      u32 key2[2];
+
+      transform_racf_key (w0_b2, w1_b2, key2);
+
+      u32 Kc2[16];
+      u32 Kd2[16];
+
+      _des_crypt_keysetup (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+      _des_crypt_encrypt_racf (iv2, data, Kc2, Kd2, s_SPtrans);
+    }
+
+    COMPARE_S_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
   }
 }
