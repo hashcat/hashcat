@@ -28,11 +28,16 @@ def module_constraints():
   return [[0, 256], [16, 16], [0, 27], [16, 16], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, iterations=None, user=None, realm=None, spn=None,
-                         checksum=None, edata2=None):
-  user = "user" if user is None else user
-  realm = "realm" if realm is None else realm
-  spn = "test/spn" if spn is None else spn
+def module_generate_hash(
+  word,
+  salt=None,
+  iterations=None,
+  user="user",
+  realm="realm",
+  spn="test/spn",
+  checksum=None,
+  edata2=None,
+):
 
   k = ntlm_key(word)
   k1 = hmac_md5(k, MSG_TYPE)
@@ -51,14 +56,15 @@ def module_generate_hash(word, salt=None, iterations=None, user=None, realm=None
   if edata2 is not None:
     ticket = rc4(k3, bytes.fromhex(edata2)).hex()
 
-    correct = ((ticket[16:20] == "6381" and ticket[22:24] == "30") or ticket[16:20] == "6382") and \
-              (ticket[32:38] == "030500" or ticket[32:40] == "050307A0")
+    correct = (
+      (ticket[16:20] == "6381" and ticket[22:24] == "30") or ticket[16:20] == "6382"
+    ) and (ticket[32:38] == "030500" or ticket[32:40] == "050307A0")
 
     cleartext = ticket if correct else "0" * (len(cleartext) + 16)
 
   edata2 = rc4(k3, bytes.fromhex(cleartext))
 
-  return "$krb5tgs$23$*%s$%s$%s*$%s$%s" % (user, realm, spn, checksum.hex(), edata2.hex())
+  return f"$krb5tgs$23${user}${realm}${checksum.hex()}${edata2.hex()}"
 
 
 def module_verify_hash(line):
@@ -67,22 +73,31 @@ def module_verify_hash(line):
   if idx < 0:
     return None
 
-  hash_in, word = line[:idx].decode(errors="replace"), line[idx + 1:]
+  hash_in, word = line[:idx].decode(errors="replace"), line[idx + 1 :]
 
   data = hash_in.split("$")
 
-  if len(data) != 8:
+  if len(data) == 7:
+    signature = data[1]
+    user = data[3]
+    realm = data[4]
+    checksum = data[5]
+    edata2 = data[6]
+  elif len(data) == 8:
+    signature = data[1]
+    user = data[3][1:]
+    realm = data[4]
+    checksum = data[6]
+    edata2 = data[7]
+  else:
     return None
-
-  signature = data[1]
-  user = data[3][1:]
-  realm = data[4]
-  spn = data[5][:-1]
-  checksum = data[6]
-  edata2 = data[7]
 
   if signature != "krb5tgs" or len(checksum) != 32 or len(edata2) < 64:
     return None
 
-  return (module_generate_hash(word, user=user, realm=realm, spn=spn, checksum=checksum,
-                               edata2=edata2), word)
+  return (
+    module_generate_hash(
+      word, user=user, realm=realm, checksum=checksum, edata2=edata2
+    ),
+    word,
+  )

@@ -7,7 +7,6 @@
 
 from Crypto.Cipher import DES
 from Crypto.Hash import MD5
-
 from lib.kerberos_des import string_to_key
 from lib.test_helpers import random_bytes, split_hash_word
 
@@ -54,7 +53,7 @@ def _unwraps(key, cipher):
   # An EncASRepPart is application type 25 and an EncTGSRepPart 26, which RFC 4120 5.4.2 asks
   # implementations to accept here as well, and the length sits on one, two or three bytes.
 
-  if plain[24] not in (0x79, 0x7a):
+  if plain[24] not in (0x79, 0x7A):
     return False
 
   if plain[25] < 0x80:
@@ -76,8 +75,15 @@ def module_constraints():
   return [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, iterations=None, user="user", realm="realm",
-                         checksum=None, edata2=None):
+def module_generate_hash(
+  word,
+  salt=None,
+  iterations=None,
+  user="user",
+  realm="realm",
+  checksum=None,
+  edata2=None,
+):
   key = string_to_key(word, (realm.upper() + user).encode())
 
   if edata2 is None:
@@ -88,7 +94,7 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="r
     if not _unwraps(key, cipher):
       cipher = _wrap(key, bytes(len(CLEARTEXT_ASREP) // 2))
 
-  return "$krb5asrep$3$%s$%s$%s$%s" % (user, realm, cipher[:16].hex(), cipher[16:].hex())
+  return f"$krb5asrep$3${user}${realm}${cipher[:16].hex()}${cipher[16:].hex()}"
 
 
 def module_verify_hash(line):
@@ -109,5 +115,9 @@ def module_verify_hash(line):
   if len(checksum) != 32 or len(edata2) < 64 or len(edata2) % 16:
     return None
 
-  return (module_generate_hash(word, user=user, realm=realm, checksum=checksum, edata2=edata2),
-          word)
+  return (
+    module_generate_hash(
+      word, user=user, realm=realm, checksum=checksum, edata2=edata2
+    ),
+    word,
+  )

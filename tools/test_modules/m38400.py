@@ -19,7 +19,9 @@ def module_constraints():
   return [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None, user="user", realm="realm", etype=None):
+def module_generate_hash(
+  word, salt=None, iterations=None, user="user", realm="realm", etype=None
+):
   mysalt = (realm.upper() + user).encode()
 
   key = string_to_key(word, mysalt)
@@ -30,7 +32,7 @@ def module_generate_hash(word, salt, iterations=None, user="user", realm="realm"
   if etype is None:
     etype = ETYPES[(key[0] >> 1) % len(ETYPES)]
 
-  return "$krb5db$%d$%s$%s$%s" % (etype, user, realm, key.hex())
+  return f"$krb5db${etype}${user}${realm}${key.hex()}"
 
 
 def module_verify_hash(line):
@@ -49,4 +51,7 @@ def module_verify_hash(line):
   if fields[2] not in ("1", "2", "3"):
     return None
 
-  return (module_generate_hash(word, None, None, fields[3], fields[4], int(fields[2])), word)
+  return (
+    module_generate_hash(word, None, None, fields[3], fields[4], int(fields[2])),
+    word,
+  )

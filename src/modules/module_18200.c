@@ -27,7 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5asrep$23$user@domain.com:3e156ada591263b8aab0965f5aebd837$007497cb51b6c8116d6407a782ea0e1c5402b17db7afa6b05a6d30ed164a9933c754d720e279c6c573679bd27128fe77e5fea1f72334c1193c8ff0b370fadc6368bf2d49bbfdba4c5dccab95e8c8ebfdc75f438a0797dbfb2f8a1a5f4c423f9bfc1fea483342a11bd56a216f4d5158ccc4b224b52894fadfba3957dfe4b6b8f5f9f9fe422811a314768673e0c924340b8ccb84775ce9defaa3baa0910b676ad0036d13032b0dd94e3b13903cc738a7b6d00b0b3c210d1f972a6c7cae9bd3c959acf7565be528fc179118f28c679f6deeee1456f0781eb8154e18e49cb27b64bf74cd7112a0ebae2102ac";
+static const char *ST_HASH        = "$krb5asrep$23$user$realm$781a9da2242a7348a878744700d72fee$889237e51a6a4d19df78b318780552e6c708067d7a2a532d36b93126ea4cd8c99f22d28d1622e83508ffcdecedc6552df2333f1fd3c2462c6af9631ad4ce51707db73f700b0d521faabcd03ea2ad2428f73b5ed29e8b9b6e1a4ef019ea6580943aae3d9e7dee22b8b45519db0782263d867f529659308e351a725c6ca8534d2c533209af5b0973a2b23a6cbc4fe6e7e79234e8b14dc9c9b56fcb84d09e94703758793224a6984854d013e2ad24be36689f71fc8692bb9429f3eac12adf6a83bee41f6168c60161336c343f508bb6ed495ff9a68b5e0198e4e7c5aa409da86ae6e1f7a730aafceed3226c";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -51,6 +51,8 @@ typedef struct krb5asrep
   u32 edata2[5120];
   u32 edata2_len;
   u32 format;
+  u32 user[128];
+  u32 realm[128];
 
 } krb5asrep_t;
 
@@ -117,12 +119,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * hc
-   * format 1: $krb5asrep$23$user_principal_name:checksum$edata2
-   *
-   * jtr
-   * format 2: $krb5asrep$user_principal_name:checksum$edata2
+    /**
+   * canonical (output): $krb5asrep$23$user$realm$checksum$encrypted
+   * legacy:             $krb5asrep$23$user@realm:checksum$encrypted  (Impacket GetNPUsers)
+   * legacy:             $krb5asrep$user@realm:checksum$encrypted     (no etype prefix)
    */
 
   if (line_len < (int) strlen (SIGNATURE_KRB5ASREP)) return (PARSER_SALT_LENGTH);
@@ -136,7 +136,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if ((line_len > (token.len[0] + 2))
    && (line_buf[token.len[0]] == '2') && (line_buf[token.len[0] + 1] == '3') && (line_buf[token.len[0] + 2] == '$'))
   {
-    // hashcat format
+    // legacy: $krb5asrep$23$user@realm:checksum$encrypted  (Impacket GetNPUsers)
 
     krb5asrep->format = 1;
 
@@ -144,21 +144,100 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    // jtr format
+    // legacy: $krb5asrep$user@realm:checksum$encrypted  (no etype prefix)
 
     krb5asrep->format = 2;
   }
 
   const char *account_info_start = line_buf + strlen (SIGNATURE_KRB5ASREP) + parse_off;
 
-  // hc_strchr_next, not strchr: the field ends where the line ends, not at a NUL the caller is not
-  // required to put there
-
   const int account_info_left = line_len - (int) (account_info_start - line_buf);
 
   if (account_info_left < 0) return (PARSER_SALT_LENGTH);
 
   const char *account_info_stop = (const char *) hc_strchr_next ((const u8 *) account_info_start, account_info_left, ':');
+
+  if (account_info_stop == NULL && krb5asrep->format == 1)
+  {
+    // canonical (output): $krb5asrep$23$user$realm$checksum$encrypted
+
+    krb5asrep->format = 3;
+
+    token.token_cnt = 6;
+
+    token.sep[1]     = '$';
+    token.len[1]     = 2;
+    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[2]     = '$';
+    token.len_min[2] = 0;
+    token.len_max[2] = 511;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[3]     = '$';
+    token.len_min[3] = 0;
+    token.len_max[3] = 511;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[4]     = '$';
+    token.len[4]     = 32;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[5]     = '$';
+    token.len_min[5] = 64;
+    token.len_max[5] = 40958;
+    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+    memcpy (krb5asrep->user,  token.buf[2], token.len[2]);
+    memcpy (krb5asrep->realm, token.buf[3], token.len[3]);
+
+    const u8 *checksum_pos = token.buf[4];
+    const u8 *data_pos     = token.buf[5];
+    const int data_len     = token.len[5];
+
+    krb5asrep->checksum[0] = hex_to_u32 (checksum_pos +  0);
+    krb5asrep->checksum[1] = hex_to_u32 (checksum_pos +  8);
+    krb5asrep->checksum[2] = hex_to_u32 (checksum_pos + 16);
+    krb5asrep->checksum[3] = hex_to_u32 (checksum_pos + 24);
+
+    u8 *edata_ptr = (u8 *) krb5asrep->edata2;
+
+    if (data_len & 1) return (PARSER_TOKEN_LENGTH);
+
+    for (int i = 0; (i + 1) < data_len; i += 2)
+    {
+      const u8 p0 = data_pos[i + 0];
+      const u8 p1 = data_pos[i + 1];
+
+      *edata_ptr++ = hex_convert (p1) << 0
+                   | hex_convert (p0) << 4;
+    }
+
+    krb5asrep->edata2_len = data_len / 2;
+
+    *edata_ptr++ = 0x80;
+
+    salt->salt_buf[0] = krb5asrep->checksum[0];
+    salt->salt_buf[1] = krb5asrep->checksum[1];
+    salt->salt_buf[2] = krb5asrep->checksum[2];
+    salt->salt_buf[3] = krb5asrep->checksum[3];
+
+    salt->salt_len = 16;
+
+    digest[0] = krb5asrep->checksum[0];
+    digest[1] = krb5asrep->checksum[1];
+    digest[2] = krb5asrep->checksum[2];
+    digest[3] = krb5asrep->checksum[3];
+
+    return (PARSER_OK);
+  }
 
   if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -254,6 +333,31 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (checksum_pos == NULL || data_pos == NULL) return (PARSER_SALT_VALUE);
 
+  // extract user and realm from account_info (user@realm) for canonical encoder output
+
+  {
+    const u8 *info = (const u8 *) krb5asrep->account_info;
+    const int info_len = (int) strlen ((const char *) info);
+
+    const u8 *at = NULL;
+
+    for (int i = info_len - 1; i >= 0; i--)
+    {
+      if (info[i] == '@') { at = info + i; break; }
+    }
+
+    if (at != NULL)
+    {
+      const int ulen = (int) (at - info);
+      const int rlen = info_len - ulen - 1;
+
+      if (ulen > 0 && ulen < (int) sizeof (krb5asrep->user))
+        memcpy (krb5asrep->user, info, ulen);
+      if (rlen > 0 && rlen < (int) sizeof (krb5asrep->realm))
+        memcpy (krb5asrep->realm, at + 1, rlen);
+    }
+  }
+
   krb5asrep->checksum[0] = hex_to_u32 (checksum_pos +  0);
   krb5asrep->checksum[1] = hex_to_u32 (checksum_pos +  8);
   krb5asrep->checksum[2] = hex_to_u32 (checksum_pos + 16);
@@ -308,30 +412,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
-  int line_len = 0;
-
-  if (krb5asrep->format == 1)
-  {
-    line_len = snprintf (line_buf, line_size, "%s23$%s:%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5ASREP,
-      (const char *) krb5asrep->account_info,
-      byte_swap_32 (krb5asrep->checksum[0]),
-      byte_swap_32 (krb5asrep->checksum[1]),
-      byte_swap_32 (krb5asrep->checksum[2]),
-      byte_swap_32 (krb5asrep->checksum[3]),
-      data);
-  }
-  else
-  {
-    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5ASREP,
-      (const char *) krb5asrep->account_info,
-      byte_swap_32 (krb5asrep->checksum[0]),
-      byte_swap_32 (krb5asrep->checksum[1]),
-      byte_swap_32 (krb5asrep->checksum[2]),
-      byte_swap_32 (krb5asrep->checksum[3]),
-      data);
-  }
+  const int line_len = snprintf (line_buf, line_size, "%s23$%s$%s$%08x%08x%08x%08x$%s",
+    SIGNATURE_KRB5ASREP,
+    (const char *) krb5asrep->user,
+    (const char *) krb5asrep->realm,
+    byte_swap_32 (krb5asrep->checksum[0]),
+    byte_swap_32 (krb5asrep->checksum[1]),
+    byte_swap_32 (krb5asrep->checksum[2]),
+    byte_swap_32 (krb5asrep->checksum[3]),
+    data);
 
   hcfree (data);
 

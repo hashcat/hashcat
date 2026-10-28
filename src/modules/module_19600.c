@@ -28,7 +28,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5tgs$17$srv_http$synacktiv.local$849e31b3db1c1f203fa20b85$948690f5875125348286ad3346d27b43eaabc71896b620c16de7ddcdbd561628c650c508856a3f574261948b6db4b48332d30536e978046a423ad4368f9a69b4dc4642dab4e0d475d8299be718fd6f98ac85a771b457b2453e78c9411dfce572b19660fe7a5a8246d9b2a91ea2f14d1986ea0a77ecf9b8330bc8fd9ab540bcf46b74c5aa7005cfccd89ec05f66aeab30c6b2bf8595cf6c9a1b68ad885258850c4b1dd9265f270fb2af52fd76c16246df51ea67efc58a65c345686c84e43642febe908a";
+static const char *ST_HASH        = "$krb5tgs$17$user$realm$51321ca2904e5603e045d867$3280f233d1488fb7c963a2c4941bb95ec4f26fcf68c2cd62f7395c10083eabc530542b5fe8d5090b8da75468244eee08afdb231660fd109aae87c163d58b5ee7b4a374fab369ab52b85c873e8a0b18f7d4e39dbcfbc497c4f6372c21619a3ed25e44369aa37d4f734112aa0ce7ddb2b7caa7e10a41437c33b6b46de0389624adc4c6b049777b4ea7e3ef8df5f472369cfd84c2904d87474ee763eca9ceec20c415a756a2fd3240e07d1f55c96f52fc0c9314614b4973b51c4d7a7a47673bf3cc0b5396";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -100,12 +100,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * $krb5tgs$17$*user*realm*$checksum$edata2
-   * $krb5tgs$17$*user*realm*spn*$checksum$edata2
+    /**
+   * canonical (output): $krb5tgs$17$user$realm$checksum$encrypted
+   * accepted:           $krb5tgs$17$user$realm$*spn*$checksum$encrypted  (with optional SPN)
    */
 
-  // assume no signature found
+  // no signature found - reject
   if (line_len < 13) return (PARSER_SALT_LENGTH);
 
   // hc_strchr_next, not strchr: the field ends where the line ends. strchr () ended it at the
@@ -116,7 +116,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int is_spn_provided = 0;
 
-  // assume $krb5tgs$17$user$realm$checksum$edata2
+  // canonical (output): $krb5tgs$17$user$realm$checksum$encrypted
   if (spn_info_start == NULL)
   {
     token.token_cnt  = 5;
@@ -143,7 +143,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  // assume $krb5tgs$17$user$realm$*spn*$checksum$edata2
+  // legacy: $krb5tgs$17$user$realm$*spn*$checksum$encrypted  (with SPN field)
   else
   {
     // bounded for the same reason as the search above: the field ends where the line ends
@@ -154,7 +154,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if (spn_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-    spn_info_stop++; // we want the * $char included
+    spn_info_stop++; // we want the * char included
     spn_info_stop++; // we want the $ char included
 
     const int spn_info_len = spn_info_stop - spn_info_start;

@@ -29,7 +29,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "b4b9b02e6f09a9bd760f388b67351e2b";
-static const char *ST_HASH        = "$krb5tgs$23$*user$realm$test/spn*$b548e10f5694ae018d7ad63c257af7dc$35e8e45658860bc31a859b41a08989265f4ef8afd75652ab4d7a30ef151bf6350d879ae189a8cb769e01fa573c6315232b37e4bcad9105520640a781e5fd85c09615e78267e494f433f067cc6958200a82f70627ce0eebc2ac445729c2a8a0255dc3ede2c4973d2d93ac8c1a56b26444df300cb93045d05ff2326affaa3ae97f5cd866c14b78a459f0933a550e0b6507bf8af27c2391ef69fbdd649dd059a4b9ae2440edd96c82479645ccdb06bae0eead3b7f639178a90cf24d9a";
+static const char *ST_HASH        = "$krb5tgs$23$user$realm$fc240ae9017dadbc0c1c510b1bbd328e$c62caa0ae8bacf63bbb33d26fcc34737cf444e4ce6eba583a236130585997c1798661bf16d83f9bb7d900481f701db14f5b57c59701887e333fd82894ee226a9eae779519cd4b30f86bb81856b2b4de56bac6138eb1388631d90924ba1740d8b1aa39b1c3d016529667b60a5a93e10768affbb84800a81bfe22525017335f589a71a91c97c7ceb58339e14ff463407a561ec680e18f1d06560128e77289ae41876527ad6f746ef7b5203e9e2414c49a11bc6bf3f3cefb2156ee6c3";
 
 typedef struct krb5tgs
 {
@@ -38,6 +38,8 @@ typedef struct krb5tgs
   u32 edata2[5120];
   u32 edata2_len;
   u32 format;
+  u32 user[128];
+  u32 realm[128];
 } krb5tgs_t;
 
 typedef struct tgs_tmp
@@ -47,20 +49,20 @@ typedef struct tgs_tmp
 
 static const char *SIGNATURE_KRB5TGS = "$krb5tgs$";
 
-u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return ATTACK_EXEC; }
-u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return DGST_POS0; }
-u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return DGST_POS1; }
-u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return DGST_POS2; }
-u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return DGST_POS3; }
-u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return DGST_SIZE; }
-u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return HASH_CATEGORY; }
-const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return HASH_NAME; }
-u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return KERN_TYPE; }
-u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return OPTI_TYPE; }
-u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return OPTS_TYPE; }
-u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return SALT_TYPE; }
-const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return ST_HASH; }
-const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return ST_PASS; }
+u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
+u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
+u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
+u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
+u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
+u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
+u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
+const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
+u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
+u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
+u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
+const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
+const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -69,8 +71,8 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return 32; }
-u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e) { return 32; }
+u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return 32; }
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return 32; }
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -105,19 +107,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   return jit_build_options;
 }
 
-u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *u, MAYBE_UNUSED const user_options_extra_t *e)
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return (u64) sizeof (krb5tgs_t);
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
-                        void *digest_buf,
-                        salt_t *salt,
-                        void *esalt_buf,
-                        MAYBE_UNUSED void *hook_salt_buf,
-                        MAYBE_UNUSED hashinfo_t *hash_info,
-                        const char *line_buf,
-                        const int line_len)
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
   krb5tgs_t *krb5tgs = (krb5tgs_t *) esalt_buf;
@@ -131,13 +126,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
   token.attr[0]           = TOKEN_ATTR_FIXED_LENGTH
                           | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * hc
-   * format 1: $krb5tgs$23$*user$realm$spn*$checksum$edata2
-   * format 2: $krb5tgs$23$checksum$edata2
-   *
-   * jtr
-   * format 3: $krb5tgs$spn:checksum$edata2
+    /**
+   * canonical (output): $krb5tgs$23$user$realm$checksum$encrypted
+   * legacy:             $krb5tgs$23$*user$realm$spn*$checksum$encrypted  (Rubeus/Impacket)
+   * legacy:             $krb5tgs$23$checksum$encrypted                   (bare, no metadata)
+   * legacy:             $krb5tgs$spn:checksum$encrypted                  (JtR colon format)
    */
 
   if (line_len < (int) strlen (SIGNATURE_KRB5TGS)) return PARSER_SALT_LENGTH;
@@ -158,7 +151,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
     if ((line_len > (int) after_etype) && (line_buf[after_etype] == '*'))
     {
-      // format 1: include leading '*' and trailing "*$" in account_info
+      // legacy: $krb5tgs$23$*user$realm$spn*$checksum$encrypted  (Rubeus/Impacket)
       const char *acct_start = line_buf + after_etype;        // at leading '*'
 
       // hc_strchr_next, not strchr: the field ends where the line ends, not at a NUL the caller is
@@ -203,26 +196,63 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
     }
     else
     {
-      // format 2
-      token.sep[1]  = '$';
-      token.len[1]  = 2;
-      token.attr[1] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_DIGIT;
+      int dollar_cnt = 0;
+      for (int i = token.len[0] + 3; i < line_len; i++)
+        if (line_buf[i] == '$') dollar_cnt++;
 
-      token.sep[2]  = '$';
-      token.len[2]  = 32;
-      token.attr[2] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+      if (dollar_cnt >= 3)
+      {
+        // canonical (output): $krb5tgs$23$user$realm$checksum$encrypted
+        token.token_cnt = 6;
 
-      token.sep[3]     = '$';
-      token.len_min[3] = 64;
-      token.len_max[3] = 40958;
-      token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+        token.sep[1]  = '$';
+        token.len[1]  = 2;
+        token.attr[1] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_DIGIT;
 
-      krb5tgs->format = 2;
+        token.sep[2]     = '$';
+        token.len_min[2] = 0;
+        token.len_max[2] = 512;
+        token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+        token.sep[3]     = '$';
+        token.len_min[3] = 0;
+        token.len_max[3] = 512;
+        token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+        token.sep[4]  = '$';
+        token.len[4]  = 32;
+        token.attr[4] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+
+        token.sep[5]     = '$';
+        token.len_min[5] = 64;
+        token.len_max[5] = 40958;
+        token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+
+        krb5tgs->format = 4;
+      }
+      else
+      {
+        // legacy: $krb5tgs$23$checksum$encrypted  (bare, no metadata)
+        token.sep[1]  = '$';
+        token.len[1]  = 2;
+        token.attr[1] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_DIGIT;
+
+        token.sep[2]  = '$';
+        token.len[2]  = 32;
+        token.attr[2] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+
+        token.sep[3]     = '$';
+        token.len_min[3] = 64;
+        token.len_max[3] = 40958;
+        token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
+
+        krb5tgs->format = 2;
+      }
     }
   }
   else
   {
-    // format 3 (JtR style)
+    // legacy: $krb5tgs$spn:checksum$encrypted  (JtR colon format)
     token.sep[1]     = ':';
     token.len_min[1] = 0;
     token.len_max[1] = (int) sizeof (krb5tgs->account_info) - 1;
@@ -263,6 +293,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
     krb5tgs->account_info[0] = 0;
   }
+  else if (krb5tgs->format == 4)
+  {
+    checksum_pos = token.buf[4];
+    data_pos     = token.buf[5];
+    data_len     = token.len[5];
+
+    memcpy (krb5tgs->user,  token.buf[2], token.len[2]);
+    memcpy (krb5tgs->realm, token.buf[3], token.len[3]);
+  }
   else // format 3
   {
     checksum_pos = token.buf[2];
@@ -273,6 +312,37 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
   }
 
   if (checksum_pos == NULL || data_pos == NULL) return PARSER_SALT_VALUE;
+
+  if (krb5tgs->format == 1)
+  {
+    const u8 *info = (const u8 *) krb5tgs->account_info;
+    const int info_len = (int) strlen ((const char *) info);
+
+    if (info_len > 2 && info[0] == '*')
+    {
+      const u8 *user_start = info + 1;
+      const u8 *dollar1 = (const u8 *) memchr (user_start, '$', info_len - 1);
+
+      if (dollar1 != NULL)
+      {
+        const int ulen = (int) (dollar1 - user_start);
+
+        if (ulen > 0 && ulen < (int) sizeof (krb5tgs->user))
+          memcpy (krb5tgs->user, user_start, ulen);
+
+        const u8 *realm_start = dollar1 + 1;
+        const u8 *dollar2 = (const u8 *) memchr (realm_start, '$', info_len - ulen - 2);
+
+        if (dollar2 != NULL)
+        {
+          const int rlen = (int) (dollar2 - realm_start);
+
+          if (rlen > 0 && rlen < (int) sizeof (krb5tgs->realm))
+            memcpy (krb5tgs->realm, realm_start, rlen);
+        }
+      }
+    }
+  }
 
   krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
   krb5tgs->checksum[1] = hex_to_u32 (checksum_pos +  8);
@@ -316,7 +386,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
   return PARSER_OK;
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   const krb5tgs_t *krb5tgs = (const krb5tgs_t *) esalt_buf;
 
@@ -327,30 +397,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     snprintf (data + j, 3, "%02x", ptr[i]);
   }
 
-  int line_len;
-
-  if (krb5tgs->format != 3)
-  {
-    line_len = snprintf (line_buf, line_size, "%s23$%s%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5TGS,
-      (const char *) krb5tgs->account_info,
-      byte_swap_32 (krb5tgs->checksum[0]),
-      byte_swap_32 (krb5tgs->checksum[1]),
-      byte_swap_32 (krb5tgs->checksum[2]),
-      byte_swap_32 (krb5tgs->checksum[3]),
-      data);
-  }
-  else
-  {
-    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5TGS,
-      (const char *) krb5tgs->account_info,
-      byte_swap_32 (krb5tgs->checksum[0]),
-      byte_swap_32 (krb5tgs->checksum[1]),
-      byte_swap_32 (krb5tgs->checksum[2]),
-      byte_swap_32 (krb5tgs->checksum[3]),
-      data);
-  }
+  const int line_len = snprintf (line_buf, line_size, "%s23$%s$%s$%08x%08x%08x%08x$%s",
+    SIGNATURE_KRB5TGS,
+    (const char *) krb5tgs->user,
+    (const char *) krb5tgs->realm,
+    byte_swap_32 (krb5tgs->checksum[0]),
+    byte_swap_32 (krb5tgs->checksum[1]),
+    byte_swap_32 (krb5tgs->checksum[2]),
+    byte_swap_32 (krb5tgs->checksum[3]),
+    data);
 
   return line_len;
 }
