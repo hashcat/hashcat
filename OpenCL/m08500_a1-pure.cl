@@ -121,7 +121,7 @@ KERNEL_FQ KERNEL_FA void m08500_mxx (KERN_ATTR_BASIC ())
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = 0;
+  pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = 0;
   pw_buf1[0] = 0;
   pw_buf1[1] = 0;
@@ -265,9 +265,36 @@ KERNEL_FQ KERNEL_FA void m08500_mxx (KERN_ATTR_BASIC ())
 
     _des_crypt_encrypt_racf (iv, data, Kc, Kd, s_SPtrans);
 
-    u32 z = 0;
+    u32 iv2[2] = { 0, 0 };
 
-    COMPARE_M_SIMD (iv[0], iv[1], z, z);
+    if (pw_len > 8)
+    {
+      const u32 w2c = wordl0[2] | wordr0[2];
+
+      const u32 c9  = (w2c >>  0) & 0xff;
+      const u32 c10 = (pw_len > 9) ? ((w2c >> 8) & 0xff) : 0x20;
+
+      const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+      const u32 w1_b2 = 0x20202020;
+
+      u32 key2[2];
+
+      transform_racf_key (w0_b2, w1_b2, key2);
+
+      u32 Kc2[16];
+      u32 Kd2[16];
+
+      _des_crypt_keysetup (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+      u32 data2[2];
+
+      data2[0] = salt_buf0[0];
+      data2[1] = salt_buf0[1];
+
+      _des_crypt_encrypt_racf (iv2, data2, Kc2, Kd2, s_SPtrans);
+    }
+
+    COMPARE_M_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
   }
 }
 
@@ -331,7 +358,7 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_BASIC ())
 
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = 0;
+  pw_buf0[2] = pws[gid].i[ 2];
   pw_buf0[3] = 0;
   pw_buf1[0] = 0;
   pw_buf1[1] = 0;
@@ -357,8 +384,8 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_BASIC ())
   {
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
-    0,
-    0
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -487,8 +514,35 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_BASIC ())
 
     _des_crypt_encrypt_racf (iv, data, Kc, Kd, s_SPtrans);
 
-    u32 z = 0;
+    u32 iv2[2] = { 0, 0 };
 
-    COMPARE_S_SIMD (iv[0], iv[1], z, z);
+    if (pw_len > 8)
+    {
+      const u32 w2c = wordl0[2] | wordr0[2];
+
+      const u32 c9  = (w2c >>  0) & 0xff;
+      const u32 c10 = (pw_len > 9) ? ((w2c >> 8) & 0xff) : 0x20;
+
+      const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+      const u32 w1_b2 = 0x20202020;
+
+      u32 key2[2];
+
+      transform_racf_key (w0_b2, w1_b2, key2);
+
+      u32 Kc2[16];
+      u32 Kd2[16];
+
+      _des_crypt_keysetup (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+      u32 data2[2];
+
+      data2[0] = salt_buf0[0];
+      data2[1] = salt_buf0[1];
+
+      _des_crypt_encrypt_racf (iv2, data2, Kc2, Kd2, s_SPtrans);
+    }
+
+    COMPARE_S_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
   }
 }

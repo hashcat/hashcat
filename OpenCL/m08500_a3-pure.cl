@@ -84,6 +84,33 @@ DECLSPEC void m08500m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
 
   u32 w1 = w[1];
 
+  u32x iv2[2] = { 0, 0 };
+
+  if (pw_len > 8)
+  {
+    const u32 c9  = (w[2] >>  0) & 0xff;
+    const u32 c10 = (pw_len > 9) ? ((w[2] >> 8) & 0xff) : 0x20;
+
+    const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+    const u32 w1_b2 = 0x20202020;
+
+    u32x key2[2];
+
+    transform_racf_key (w0_b2, w1_b2, key2);
+
+    u32x Kc2[16];
+    u32x Kd2[16];
+
+    _des_crypt_keysetup_vect (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+    u32x data2[2];
+
+    data2[0] = salt_buf0[0];
+    data2[1] = salt_buf0[1];
+
+    _des_crypt_encrypt_racf_vect (iv2, data2, Kc2, Kd2, s_SPtrans);
+  }
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
@@ -115,9 +142,7 @@ DECLSPEC void m08500m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
 
     _des_crypt_encrypt_racf_vect (iv, data, Kc, Kd, s_SPtrans);
 
-    u32x z = 0;
-
-    COMPARE_M_SIMD (iv[0], iv[1], z, z);
+    COMPARE_M_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
   }
 }
 
@@ -144,8 +169,8 @@ DECLSPEC void m08500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
   {
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R0],
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R1],
-    0,
-    0
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
+    digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
   /**
@@ -155,6 +180,33 @@ DECLSPEC void m08500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
   u32 w0l = w[0];
 
   u32 w1 = w[1];
+
+  u32x iv2[2] = { 0, 0 };
+
+  if (pw_len > 8)
+  {
+    const u32 c9  = (w[2] >>  0) & 0xff;
+    const u32 c10 = (pw_len > 9) ? ((w[2] >> 8) & 0xff) : 0x20;
+
+    const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+    const u32 w1_b2 = 0x20202020;
+
+    u32x key2[2];
+
+    transform_racf_key (w0_b2, w1_b2, key2);
+
+    u32x Kc2[16];
+    u32x Kd2[16];
+
+    _des_crypt_keysetup_vect (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+    u32x data2[2];
+
+    data2[0] = salt_buf0[0];
+    data2[1] = salt_buf0[1];
+
+    _des_crypt_encrypt_racf_vect (iv2, data2, Kc2, Kd2, s_SPtrans);
+  }
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -187,9 +239,7 @@ DECLSPEC void m08500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
 
     _des_crypt_encrypt_racf_vect (iv, data, Kc, Kd, s_SPtrans);
 
-    u32x z = 0;
-
-    COMPARE_S_SIMD (iv[0], iv[1], z, z);
+    COMPARE_S_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
   }
 }
 
@@ -252,7 +302,7 @@ KERNEL_FQ KERNEL_FA void m08500_mxx (KERN_ATTR_VECTOR ())
 
   w[ 0] = pws[gid].i[ 0];
   w[ 1] = pws[gid].i[ 1];
-  w[ 2] = 0;
+  w[ 2] = pws[gid].i[ 2];
   w[ 3] = 0;
   w[ 4] = 0;
   w[ 5] = 0;
@@ -335,7 +385,7 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_VECTOR ())
 
   w[ 0] = pws[gid].i[ 0];
   w[ 1] = pws[gid].i[ 1];
-  w[ 2] = 0;
+  w[ 2] = pws[gid].i[ 2];
   w[ 3] = 0;
   w[ 4] = 0;
   w[ 5] = 0;
