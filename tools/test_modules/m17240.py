@@ -17,7 +17,7 @@ def module_constraints():
 
 def module_generate_hash(word, salt, iterations=None):
   method = 8 if random_number(0, 1) else 0
-  content = random_bytes(random_number(1, 128))
+  content = random_bytes(random_number(1 if method == 8 else 4, 128))
 
   if method == 8:
     if random_number(0, 1):
@@ -53,6 +53,9 @@ def module_verify_hash(line):
     sample = bytes.fromhex(parts[7])
 
     if parts[8] != '-' or offset != 0 or unpacked == 0:
+      return None
+
+    if method not in (0, 8) or (method == 0 and unpacked < 4):
       return None
 
     payload = sample

@@ -250,6 +250,13 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
     if ((explicit == true) && (supported == false)) return PARSER_PKZIP_MEMBER_UNSUPPORTED;
     if ((explicit == true) && (unpacked == 0)) return PARSER_PKZIP_MEMBER_EMPTY;
     if ((supported == false) || (unpacked == 0)) continue;
+    if ((method == 0) && (unpacked < 4))
+    {
+      if (explicit == true) return PARSER_PKZIP_MEMBER_TOO_SHORT;
+
+      continue;
+    }
+
     if (packed < 12) return PARSER_HASH_VALUE;
     if ((method == 0) && (unpacked != packed - 12)) return PARSER_HASH_VALUE;
     if ((found == true) && (packed >= selected->packed)) continue;
@@ -273,6 +280,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
 
   if (offset != directory_end) return PARSER_HASH_VALUE;
   if (found == false) return PARSER_PKZIP_MEMBER_UNSUPPORTED;
+  if ((selected->method == 8) && (hc_zlib_available () == false)) return PARSER_ZLIB_UNAVAILABLE;
   if (stream_read_at (file, size, selected->offset, selected->sample, selected->sample_len) == false) return PARSER_FILE_SIZE;
 
   u64 identity[5];

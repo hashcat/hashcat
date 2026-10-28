@@ -149,6 +149,13 @@ const hc_zlib_lib_t *hc_zlib (void)
   return &zlib_lib;
 }
 
+HC_PLUGIN_API bool hc_zlib_available (void)
+{
+  const bool available = (hc_zlib () != NULL);
+
+  return available;
+}
+
 const char *hc_zlib_error (void)
 {
   hc_once (&zlib_once, zlib_load);

@@ -14,7 +14,6 @@
 #include "memory.h"
 #include "module_options.h"
 #include "status_rc.h"
-#include "thread.h"
 
 #include <limits.h>
 #include <inttypes.h>
@@ -131,24 +130,7 @@ static void stream_error (pkzip_stream_extra_t *extra, const char *reason)
 
   ctx = extra->ctx;
 
-  status_ctx_t *status = NULL;
-
-  status = ctx->status_ctx;
-
-  hc_thread_mutex_lock (status->mux_dispatcher);
-
-  const bool first = (status->rc_error == RC_FINAL_OK);
-
-  status_set_rc_error (ctx, RC_FINAL_ERROR_TASK);
-
-  status->run_main_level1   = false;
-  status->run_main_level2   = false;
-  status->run_main_level3   = false;
-  status->run_thread_level1 = false;
-  status->run_thread_level2 = false;
-  status->devices_status   = STATUS_ERROR;
-
-  hc_thread_mutex_unlock (status->mux_dispatcher);
+  const bool first = status_abort_with_error (ctx, RC_FINAL_ERROR_TASK);
 
   if (first == true) event_log_error (ctx, "PKZIP source failure: %s.", reason);
 }
@@ -243,17 +225,6 @@ bool module_hook_extra_param_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED cons
 
     return false;
   }
-
-  hc_z_stream stream = { 0 };
-
-  if (hc_inflate_init (&stream) != HC_Z_OK)
-  {
-    event_log_error (hashcat_ctx, "PKZIP streaming requires a working zlib runtime.");
-
-    return false;
-  }
-
-  hc_inflate_end (&stream);
 
   extra->ctx         = hashcat_ctx;
   extra->source      = user_options_extra->hc_hash;
@@ -459,18 +430,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
     if (stream_source_valid (extra, salt) == false) return;
   }
 
-  if (success == true)
-  {
-    status_ctx_t *status = NULL;
-
-    status = extra->ctx->status_ctx;
-
-    hc_thread_mutex_lock (status->mux_dispatcher);
-
-    if (status->rc_error == RC_FINAL_OK) hook->state = PKZIP_STREAM_MATCH;
-
-    hc_thread_mutex_unlock (status->mux_dispatcher);
-  }
+  if (success == true) hook->state = PKZIP_STREAM_MATCH;
 }
 
 i32 module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *digest_buf, salt_t *salt, void *esalt_buf, void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, const i32 line_len)
@@ -530,7 +490,9 @@ i32 module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   if (data->offset != 0) return PARSER_HASH_VALUE;
   if (data->packed != data->sample_len) return PARSER_HASH_VALUE;
   if (data->unpacked == 0) return PARSER_HASH_VALUE;
+  if ((data->method == 0) && (data->unpacked < 4)) return PARSER_PKZIP_MEMBER_TOO_SHORT;
   if ((data->method == 0) && (data->unpacked != data->packed - 12)) return PARSER_HASH_VALUE;
+  if ((data->method == 8) && (hc_zlib_available () == false)) return PARSER_ZLIB_UNAVAILABLE;
 
   for (u32 i = 0; i < data->sample_len; i++) data->sample[i] = hex_to_u8 (&token.buf[7][i * 2]);
 
@@ -563,7 +525,7 @@ i32 module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   return PARSER_OK;
 }
 
-i32 module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const i32 line_size)
+i32 module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, const void *hook_salt_buf, const hashinfo_t *hash_info, char *line_buf, const i32 line_size)
 {
   const pkzip_stream_t *zip = NULL;
 
@@ -572,6 +534,15 @@ i32 module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const pkzip_stream_salt_t *data = NULL;
 
   data = (const pkzip_stream_salt_t *) hook_salt_buf;
+
+  if (data->external != 0)
+  {
+    const i32 count = snprintf (line_buf, line_size, "%s", hash_info->orighash);
+
+    if (count >= line_size) return 0;
+
+    return count;
+  }
 
   static const char format[] = "$pkzip-stream$*%u*%" PRIx64 "*%" PRIx64 "*%" PRIx64 "*%08x*%02x*";
   const i32 header           = snprintf (NULL, 0, format, data->method, data->offset, data->packed, data->unpacked, data->crc, zip->check);
@@ -666,7 +637,7 @@ u64 module_kern_bits (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 
 u64 module_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 value = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_HASH_COPY | OPTS_TYPE_BINARY_HASHFILE | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | OPTS_TYPE_BINARY_HASHFILE_DIRECT | OPTS_TYPE_AUTODETECT_DISABLE;
+  const u64 value = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_HASH_COPY | OPTS_TYPE_BINARY_HASHFILE | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | OPTS_TYPE_BINARY_HASHFILE_DIRECT | OPTS_TYPE_AUTODETECT_DISABLE | OPTS_TYPE_SUGGEST_KG;
 
   return value;
 }
@@ -687,7 +658,7 @@ u32 module_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 
 const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  static const char value[] = "$pkzip-stream$*8*0*2b*4e*c7da6c5b*c7*963adfae487332dce29a5702679be336f81fc296efa7b7b6d1e63b9108ae9457699b6df33b1d6fd67d44f6*-";
+  static const char value[] = "$pkzip-stream$*0*0*5a*4e*c7da6c5b*c7*963adfae487332dce29a57023cf0bc4b9e4d1273142a8c580c7212de0ec7dc414e7e5f6b09e2e0f0bb7bedb35cb5cd3c62668ea2257c89c96c221a8068db1c001f90341405a2b38794c204c11956b9a676bf465416d53a119039*-";
 
   return value;
 }

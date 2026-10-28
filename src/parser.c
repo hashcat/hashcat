@@ -67,8 +67,10 @@ static const char *const PA_046 = "Invalid or unsupported CryptoAPI hash type";
 static const char *const PA_047 = "Invalid CryptoAPI key size";
 static const char *const PA_048 = "Required compression library libzstd was not found";
 static const char *const PA_049 = "Selected PKZIP member is empty";
-static const char *const PA_050 = "No supported nonempty traditional PKZIP member selected";
+static const char *const PA_050 = "No supported traditional PKZIP member with sufficient verification data selected";
 static const char *const PA_051 = "PKZIP member index is outside the central directory";
+static const char *const PA_052 = "Stored PKZIP member must contain at least 4 bytes";
+static const char *const PA_053 = "Required compression library libz was not found";
 static const char *const PA_255 = "Unknown error";
 
 // input_tokenizer() records the offending part of the input line in here when it rejects that line.
@@ -279,6 +281,8 @@ const char *strparser (const u32 parser_status)
     case PARSER_PKZIP_MEMBER_EMPTY:       return PA_049;
     case PARSER_PKZIP_MEMBER_UNSUPPORTED: return PA_050;
     case PARSER_PKZIP_MEMBER_INDEX:       return PA_051;
+    case PARSER_PKZIP_MEMBER_TOO_SHORT:   return PA_052;
+    case PARSER_ZLIB_UNAVAILABLE:         return PA_053;
   }
 
   return PA_255;

@@ -101,6 +101,8 @@ void hc_zlib_shutdown (void);
 const hc_zlib_lib_t *hc_zlib       (void);
 const char          *hc_zlib_error (void);
 
+HC_PLUGIN_API bool hc_zlib_available (void);
+
 // Where to get the library on this platform, for the one message a user sees when it is missing.
 
 const char          *hc_zlib_hint  (void);

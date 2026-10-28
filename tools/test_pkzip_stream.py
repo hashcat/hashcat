@@ -10,10 +10,12 @@
 import argparse
 import os
 from pathlib import Path
+import re
 import struct
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
 import zlib
 
@@ -83,28 +85,41 @@ def main():
     wrong = work / 'wrong.txt'
     wrong.write_bytes(b'wrong-password\n')
 
-    def run(name, value, *, dictionary=words, expected=0, options=(), message=None, recovered=password):
+    def run(name, value, *, dictionary=words, expected=0, options=(), message=None, recovered=password, expected_hash=None):
       nonlocal checks
       outfile = work / (name + '.found')
       command = [str(args.binary.resolve()), '-m', '17240', '-a', '0', str(value), str(dictionary),
                  '--restore-disable', '--cache-path', str(work / 'kernels'), '-d', args.device,
-                 '-w', '1', '--potfile-disable', '--outfile', str(outfile), '--outfile-format=3',
+                 '-w', '1', '--potfile-disable', '--outfile', str(outfile),
+                 '--outfile-format=' + ('1,3' if expected_hash is not None else '3'),
                  *args.backend_arg, *options]
       result = subprocess.run(command, cwd=root, capture_output=True, text=True,
                               encoding='utf-8', errors='replace', timeout=180)
       output = result.stdout + result.stderr
       if expected is None:
-        assert result.returncode not in (0, 1), (name, result.returncode, output)
+        assert result.returncode in (-1, -2, -12, 0xffffffff, 0xfffffffe, 0xfffffff4), (name, result.returncode, output)
       else:
         assert result.returncode == expected, (name, result.returncode, output)
       if message:
         assert message in output, (name, output)
       if expected == 0:
-        assert outfile.read_text(encoding='ascii').strip() == recovered.hex(), name
+        encoded = outfile.read_text(encoding='utf-8').strip()
+        wanted = recovered.hex()
+        if expected_hash is not None:
+          wanted = str(expected_hash) + ':' + wanted
+        assert encoded == wanted, (name, encoded, wanted)
       else:
         assert not outfile.exists() or outfile.stat().st_size == 0, name
       checks += 1
       print('%s: passed' % name, flush=True)
+
+    def inline_member(data, pwd=password, method=0):
+      crc = zlib.crc32(data)
+      compressor = zlib.compressobj(6, zlib.DEFLATED, -15)
+      packed = compressor.compress(data) + compressor.flush() if method == 8 else data
+      payload = ZipCrypto(pwd).encrypt(bytes(range(11)) + bytes([crc >> 24]) + packed)
+      return '$pkzip-stream$*%x*0*%x*%x*%08x*%02x*%s*-' % (
+        method, len(payload), len(data), crc, crc >> 24, payload.hex())
 
     def member(data=content, method=0, strategy=zlib.Z_DEFAULT_STRATEGY, name='member.bin', pwd=password, crc=0):
       return (name, data, pwd, method, strategy, crc)
@@ -150,11 +165,82 @@ def main():
     run('damaged-data', archive, expected=1)
     archive.write_bytes(raw[:512])
     run('truncated-archive', archive, expected=None)
-    archive = work / '\u6837\u672c.zip'
+    for size in range(5):
+      data = b'x' * size
+      archive = work / ('stored-%d.zip' % size)
+      make_archive(archive, [member(data)])
+      run('stored-auto-%d' % size, archive, expected=0 if size == 4 else None)
+      run('stored-explicit-%d' % size, archive, options=['--pkzip-member-index=0'],
+          expected=0 if size == 4 else None,
+          message='member is empty' if size == 0 else 'at least 4 bytes' if size < 4 else None)
+      inline = inline_member(data)
+      run('stored-inline-%d' % size, inline, expected=0 if size == 4 else None)
+      if size < 4:
+        make_archive(archive, [member(data), member(b'verify', name='valid.bin')])
+        run('skip-short-%d' % size, archive)
+
+    inline = inline_member(b'x', method=8)
+    run('short-deflate-inline', inline, expected_hash=inline)
+    archive = work / 'short-deflate.zip'
+    make_archive(archive, [member(b'x', method=8)])
+    run('short-deflate-archive', archive)
+    archive = work / '\u6837\u672c archive.zip'
     make_archive(archive, [member()])
-    run('unicode', archive)
-    payload = ZipCrypto(b'').encrypt(bytes(range(11)) + bytes([zlib.crc32(b'x') >> 24]) + b'x')
-    inline = '$pkzip-stream$*0*0*d*1*%08x*%02x*%s*-' % (zlib.crc32(b'x'), zlib.crc32(b'x') >> 24, payload.hex())
+    run('unicode', archive, expected_hash=archive,
+        message='Use --keep-guessing to continue attack')
+    encoded = (work / 'unicode.found').read_text(encoding='utf-8').strip().rsplit(':', 1)[0]
+    run('reload-archive-path', encoded, expected_hash=archive)
+    make_archive(archive, [member(b'skipped'), member(name='chosen.bin')])
+    run('encode-explicit-member', archive, options=['--pkzip-member-index=1'], expected_hash=archive)
+
+    for change in ('delete', 'truncate', 'replace'):
+      archive = work / ('source-' + change + '.zip')
+      make_archive(archive, [member()])
+      log = work / ('source-' + change + '.log')
+      outfile = work / ('source-' + change + '.found')
+      command = [str(args.binary.resolve()), '-m', '17240', '-a', '3', str(archive), '?d' * 10,
+                 '--restore-disable', '--cache-path', str(work / 'kernels'), '-d', args.device,
+                 '-w', '1', '--potfile-disable', '--status', '--status-json', '--status-timer=1',
+                 '--outfile', str(outfile), *args.backend_arg]
+      with log.open('w', encoding='utf-8') as output:
+        process = subprocess.Popen(command, cwd=root, stdout=output, stderr=subprocess.STDOUT)
+        try:
+          deadline = time.monotonic() + 180
+          while re.search(r'"status"\s*:\s*3', log.read_text(encoding='utf-8', errors='replace')) is None:
+            assert process.poll() is None, log.read_text(encoding='utf-8', errors='replace')
+            assert time.monotonic() < deadline, 'Timed out waiting for attack'
+            time.sleep(0.05)
+          if change == 'delete':
+            archive.unlink()
+          elif change == 'truncate':
+            archive.write_bytes(b'PK')
+          else:
+            replacement = work / 'replacement.zip'
+            replacement.write_bytes(archive.read_bytes())
+            if os.name == 'nt':
+              # ReplaceFileW permits replacing an archive with open read handles.
+              import ctypes
+              kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+              replace = kernel.ReplaceFileW
+              replace.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p,
+                                  ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]
+              if not replace(str(archive), str(replacement), None, 0, None, None):
+                raise ctypes.WinError(ctypes.get_last_error())
+            else:
+              replacement.replace(archive)
+          rc = process.wait(timeout=180)
+        finally:
+          if process.poll() is None:
+            process.kill()
+            process.wait()
+      output = log.read_text(encoding='utf-8', errors='replace')
+      assert rc in (-12, 0xfffffff4), (change, rc, output)
+      assert output.count('PKZIP source failure:') == 1, (change, output)
+      assert not outfile.exists() or outfile.stat().st_size == 0, change
+      checks += 1
+      print('source-%s: passed' % change, flush=True)
+
+    inline = inline_member(b'data', pwd=b'')
     words.write_bytes(b'\n')
     run('empty-password', inline, recovered=b'')
     empty = '$pkzip-stream$*0*0*c*0*00000000*00*963adfae487332dce29a87cc*-'

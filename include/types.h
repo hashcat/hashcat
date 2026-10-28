@@ -793,7 +793,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
-  // Bits 31 to 44 and bit 50 are free. They held the 16 flags that said which kernels a session
+  // Bits 32 to 44 and bit 50 are free. They held flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.
@@ -962,6 +962,8 @@ typedef enum parser_rc
   PARSER_PKZIP_MEMBER_EMPTY       = -49,
   PARSER_PKZIP_MEMBER_UNSUPPORTED = -50,
   PARSER_PKZIP_MEMBER_INDEX       = -51,
+  PARSER_PKZIP_MEMBER_TOO_SHORT   = -52,
+  PARSER_ZLIB_UNAVAILABLE         = -53,
 
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
