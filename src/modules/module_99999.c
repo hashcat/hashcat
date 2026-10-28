@@ -87,7 +87,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     unhex_len = exec_unhexify (unhex_buf, unhex_len, (u8 *) unhex_buf, unhex_len);
   }
-  else if (unhex_len > 256)
+
+  if ((u32) unhex_len > hashconfig->pw_max)
   {
     return (PARSER_HASH_LENGTH);
   }
