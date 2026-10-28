@@ -66,7 +66,7 @@ HC_PLUGIN_API bool status_abort_with_error (hashcat_ctx_t *hashcat_ctx, const rc
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
-  status_ctx->devices_status   = STATUS_ERROR;
+  status_ctx->devices_status    = STATUS_ERROR;
 
   hc_thread_mutex_unlock (status_ctx->mux_display);
 

@@ -97,7 +97,8 @@ def main():
                               encoding='utf-8', errors='replace', timeout=180)
       output = result.stdout + result.stderr
       if expected is None:
-        assert result.returncode in (-1, -2, -12, 0xffffffff, 0xfffffffe, 0xfffffff4), (name, result.returncode, output)
+        assert os.name == 'nt' or result.returncode >= 0, (name, result.returncode, output)
+        assert (result.returncode & 0xff) in (0xff, 0xfe, 0xf4), (name, result.returncode, output)
       else:
         assert result.returncode == expected, (name, result.returncode, output)
       if message:
@@ -234,7 +235,8 @@ def main():
             process.kill()
             process.wait()
       output = log.read_text(encoding='utf-8', errors='replace')
-      assert rc in (-12, 0xfffffff4), (change, rc, output)
+      assert os.name == 'nt' or rc >= 0, (change, rc, output)
+      assert (rc & 0xff) == 0xf4, (change, rc, output)
       assert output.count('PKZIP source failure:') == 1, (change, output)
       assert not outfile.exists() or outfile.stat().st_size == 0, change
       checks += 1
