@@ -72,8 +72,18 @@ def _unwraps(key, cipher):
   return MD5.new(plain[:8] + b"\x00" * 16 + plain[24:]).digest() == plain[8:24]
 
 
-def module_constraints():
-  return [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 64],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None, user="user", realm="realm",

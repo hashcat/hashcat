@@ -18,8 +18,21 @@ from lib.test_helpers import random_hex_string, split_hash_word
 _HEX_RE = re.compile(rb"^[0-9a-f]+$")
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, iv=None, salt_type=None, plain_bin=None):

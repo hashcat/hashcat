@@ -7,20 +7,36 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # Oracle T: PBKDF2-HMAC-SHA512 salted with the 16 byte salt and AUTH_PBKDF2_SPEEDY_KEY, then SHA-512
 # of the key and the salt, all in upper case hex.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 4096}},
+  }
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
   salt_bin = bytes.fromhex(salt)
 
-  key = hashlib.pbkdf2_hmac("sha512", word, salt_bin + b"AUTH_PBKDF2_SPEEDY_KEY", 4096, 64)
+  key = hashlib.pbkdf2_hmac("sha512", word, salt_bin + b"AUTH_PBKDF2_SPEEDY_KEY", ITERATIONS, 64)
 
   return (hashlib.sha512(key + salt_bin).hexdigest() + salt).upper()
 

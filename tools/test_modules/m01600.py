@@ -10,8 +10,21 @@ from lib import md5crypt, shacrypt
 # Apache $apr1$ MD5: md5crypt with the magic $apr1$, see lib/md5crypt.py.
 
 
-def module_constraints():
-  return [[0, 256], [0, 8], [0, 15], [0, 8], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 8],
+      },
+      'optimized': {
+        'password_length': [0, 15],
+        'salt_length': [0, 8],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

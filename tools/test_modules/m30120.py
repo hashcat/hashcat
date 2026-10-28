@@ -14,8 +14,21 @@ from lib.test_helpers import split_hash_word
 # generate_password_hash (pw, method="sha256") gave before werkzeug 2.3 removed it.
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [0, 31], [0, 51], [0, 82]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': {
+        'password_length': [0, 31],
+        'salt_length': [0, 51],
+      },
+      'combined_length': [0, 82],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

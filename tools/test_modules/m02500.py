@@ -13,7 +13,8 @@ import struct
 from Crypto.Hash import CMAC
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_bytes
+from lib.test_helpers import random_number, random_bytes, runtime_iterations
+
 
 # WPA-EAPOL-PBKDF2, HCCAPX output. The PMK is PBKDF2-HMAC-SHA1 (4096 iterations) of the passphrase
 # salted by the ESSID, the PTK is a PRF over the MACs and nonces, and the MIC follows the key
@@ -21,9 +22,24 @@ from lib.test_helpers import random_number, random_bytes
 # predates a stable output format; every field is present in the HCCAPX record, so verify here
 # parses it back and re-derives, which is what the python runner's round trip check needs.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 63],
+        'salt_length': [0, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 4096}},
+  }
 
-def module_constraints():
-  return [[8, 63], [0, 32], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def _gen_random_wpa_eapol(keyver, snonce):
@@ -155,7 +171,7 @@ def module_generate_hash(word, salt, iterations=None, bssid=None, stmac=None,
 
   eapol_len = len(eapol)
 
-  pmk = hashlib.pbkdf2_hmac("sha1", word, essid, 4096, 32)
+  pmk = hashlib.pbkdf2_hmac("sha1", word, essid, ITERATIONS, 32)
 
   ptk = _wpa_prf_512(keyver, pmk, stmac, bssid, snonce, anonce)
 

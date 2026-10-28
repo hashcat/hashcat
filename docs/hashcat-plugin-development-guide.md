@@ -83,9 +83,9 @@ The main program, `tools/test_module_runner.py`, loads the mode-specific Python 
 The test suite itself is two files:
 
 * `tools/test_module_runner.py` generates random passwords and salts, then loads the Python test module.
-* `tools/test.py` drives hashcat against the runner's output. On its own it compares reference hashes with hashcat output across several option combinations. `--edge` exercises password and salt length boundaries: it reads `module_constraints()`, generates the claimed minimum and maximum values, then tests every supported attack and kernel type. `--test-coverage` checks that every mode has a runnable oracle. `-g` builds a real container or archive and cracks that.
+* `tools/test.py` drives hashcat against the runner's output. On its own it compares reference hashes with hashcat output across several option combinations. `--edge` exercises password and salt length boundaries: it reads `module_test_properties()`, generates the claimed minimum and maximum values, then tests every supported attack and kernel type. `--test-coverage` checks that every mode has a runnable oracle. `-g` builds a real container or archive and cracks that.
 
-Name the test module `tools/test_modules/m[hash_mode].py`. It defines `module_constraints()`, `module_generate_hash()` and `module_verify_hash()`. Passwords use `bytes`, while hashes and salts use `str`, because `$HEX[...]` can decode to password bytes that are not text.
+Name the test module `tools/test_modules/m[hash_mode].py`. It defines `module_test_properties()`, `module_generate_hash()` and `module_verify_hash()`. Passwords use `bytes`, while hashes and salts use `str`, because `$HEX[...]` can decode to password bytes that are not text.
 
 Test modules are Python. Shared helpers live in the `tools/test_modules/lib` package and can be imported with statements such as `from lib.test_helpers import random_bytes` or `from lib import gpg`.
 
@@ -106,7 +106,7 @@ The three described below are the ones you will use while writing a module. Of t
 
 Every Python test module implements three functions used by all runner modes:
 
-* module_constraints()
+* module_test_properties()
 * module_generate_hash()
 * module_verify_hash()
 
@@ -120,17 +120,15 @@ Single mode generates random passwords for the selected hash mode and passes eac
 
 Function `module_generate_hash()` must return the complete hash line as a string in exactly the format accepted by hashcat.
 
-Length-dependent optimizations, including padding and zero-byte assumptions, must be tested across every supported password length. Function `module_constraints()` defines those boundaries.
+Length-dependent optimizations, including padding and zero-byte assumptions, must be tested across every supported password length. Function `module_test_properties()` defines those boundaries.
 
-Function `module_constraints()` returns five minimum-and-maximum integer pairs in this order:
+Function `module_test_properties()` returns a dictionary with a required `constraints` section and optional `normal` and `reduced` sections for iteration defaults and CI timings. The constraints use named fields:
 
-* Pure-Mode-PW-Constraints
-* Pure-Mode-Salt-Constraints
-* Optimized-Mode-PW-Constraints
-* Optimized-Mode-Salt-Constraints
-* Optimized-Combined-PW-and-Salt-Constraints
+* `pure` and `optimized`: dictionaries containing `password_length` and `salt_length` minimum-and-maximum pairs, or `None` when the kernel family is unavailable.
+* `salt_length`: `None` when no supplied salt is needed.
+* `combined_length`: a separate minimum-and-maximum pair for the combined password and salt length, or `None` when no bound applies.
 
-Use `-1` for both values when a pair is not applicable. Pure and optimized kernels can have different constraints, as described later. Most slow hash modes provide only pure kernels because iteration count, rather than register pressure, dominates their performance.
+Pure and optimized kernels can have different constraints, as described later. Most slow hash modes provide only pure kernels because iteration count, rather than register pressure, dominates their performance. See [the test module README](../tools/test_modules/README.md) for a complete properties example.
 
 In test modules, *salt* can also represent iteration counts, initialization vectors and other randomized format data. These formats are too diverse for one automatic generator. The runner supplies simple random salts using the declared length constraints. For a structured format, generate the necessary fields inside `module_generate_hash()` with the provided helper functions.
 

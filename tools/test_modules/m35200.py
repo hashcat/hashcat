@@ -11,8 +11,21 @@ import hashlib
 # both widened to UTF-16BE. The user name is the salt.
 
 
-def module_constraints():
-  return [[0, 256], [1, 10], [0, 16], [1, 10], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [1, 10],
+      },
+      'optimized': {
+        'password_length': [0, 16],
+        'salt_length': [1, 10],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def as400_ssha1(username, password):

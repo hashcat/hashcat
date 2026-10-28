@@ -8,14 +8,33 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 40],
+        'salt_length': [4, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 54, 'bridge': 2, 'edge': 221}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 46, 'edge': 228},
+    },
+  }
+
 
 # SAP CODVN H (PWDSALTEDHASH) iSSHA-384: like 40081 but SHA-384, so the stored blob is the final
 # 48 byte digest followed by the salt, and the default iteration count is 5000.
 
 
-def module_constraints():
-  return [[0, 40], [4, 32], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

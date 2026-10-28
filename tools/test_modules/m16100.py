@@ -16,8 +16,21 @@ from lib.test_helpers import pack_hex, random_bytes, split_hash_word
 # The random session id goes through pack_hex () as raw bytes, which is what the perl did with it.
 
 
-def module_constraints():
-  return [[0, 243], [-1, -1], [0, 43], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 243],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 43],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, encrypted_data=None, sequence=None):

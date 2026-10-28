@@ -9,7 +9,28 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  # Salt is 40 hex characters (20 bytes). The runner emits this many characters.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 2048}, 'ci_seconds': {'opt': 1, 'pure': 136, 'bridge': 2, 'edge': 126}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 78, 'edge': 126},
+    },
+  }
+
 
 # Apple DMG (encrcdsa v2, $dmg$3). PBKDF2-HMAC-SHA1 derives a 24-byte KEK; the 64-byte key blob is
 # the AES-192-CBC wrap of the volume keys. A password is accepted when CBC-decrypting the LAST blob
@@ -19,12 +40,9 @@ from lib.test_helpers import random_bytes
 
 SIGNATURE    = "$dmg$3"
 KEY_LEN      = 24   # AES-192 KEK
-ITER_DEFAULT = 2048
 
 
-def module_constraints():
-  # salt is 40 hex characters (20 bytes); the runner emits this many characters
-  return [[0, 256], [40, 40], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _pbkdf2(word, salt_bin, iterations):
@@ -56,7 +74,7 @@ def _build_blob(word, salt_bin, iterations):
 
 
 def module_generate_hash(word, salt, iterations=None, keyblob=None):
-  iterations = ITER_DEFAULT if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bin = bytes.fromhex(salt)
 

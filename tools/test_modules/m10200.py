@@ -13,8 +13,21 @@ import hmac
 # CRAM-MD5: base64 of the challenge, and base64 of "user hmac-md5(challenge)".
 
 
-def module_constraints():
-  return [[0, 256], [0, 127], [0, 55], [0, 55], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 127],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 55],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, username=b"user"):

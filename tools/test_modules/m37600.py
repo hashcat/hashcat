@@ -14,8 +14,18 @@ from lib.test_helpers import random_hex_string, random_number, split_hash_word
 # are the salt, drawn the same way the perl oracle drew them so a seeded run repeats.
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _response(word, realm, username, nonce, cnonce, nc, qop, uri):

@@ -14,8 +14,18 @@ from lib.test_helpers import random_number, random_string, split_hash_word
 # bytes of the plaintext.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [13, 13], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [13, 13],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, dropN=None, ciphertext=None, plaintext_offset=None, plaintext=None):

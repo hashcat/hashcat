@@ -35,8 +35,21 @@ ROTOR = bytes.fromhex(
 ROUNDS = 1000
 
 
-def module_constraints():
-  return [[0, 256], [16, 16], [0, 15], [16, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': {
+        'password_length': [0, 15],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def _sha1_kremlin(msg):

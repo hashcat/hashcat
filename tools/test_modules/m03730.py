@@ -12,8 +12,18 @@ from lib.test_helpers import random_numeric_string
 # md5($salt1.strtoupper(md5($salt2.$pass))), both salts in the line.
 
 
-def module_constraints():
-  return [[0, 255], [0, 255], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 255],
+        'salt_length': [0, 255],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, salt2=None):

@@ -13,7 +13,8 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from lib.pyserpent import Serpent
 from lib.pytwofish import Twofish
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_scrypt_n
+
 
 # BestCrypt v4 volume. The key is scrypt (N=32768, r=16, p=1) of the password
 # salted, and the 64 byte plaintext plus its SHA-256 is encrypted in CBC (zero IV,
@@ -21,15 +22,28 @@ from lib.test_helpers import random_bytes, random_number
 # 0x0f Camellia. A password is right when decrypting reproduces a block whose
 # SHA-256 matches its trailing 32 bytes.
 
-SCRYPT_N = 32768
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [24, 24],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'compiled_cost': True, 'limit': 1024, 'scrypt': True},
+    'normal': {'parameters': {'scrypt_n': 32768}},
+  }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+SCRYPT_N = runtime_scrypt_n(ITERATION_DEFAULTS['scrypt_n'])
 SCRYPT_R = 16
 SCRYPT_P = 1
 
 CRYPTO_TYPE_CONV = (8, 9, 10, 15)
-
-
-def module_constraints():
-  return [[0, 256], [24, 24], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def _cbc_encrypt(block_encrypt, data, iv):
@@ -89,7 +103,7 @@ def module_generate_hash(word, salt, data=None, type=None):
     salt = salt.encode("latin-1")
 
   # most heavy part of the algorithm
-  maxmem = 128 * SCRYPT_N * SCRYPT_R * 2
+  maxmem = 128 * ITERATION_DEFAULTS['scrypt_n'] * SCRYPT_R * 2
   key = hashlib.scrypt(word, salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P,
                        dklen=32, maxmem=maxmem)
 

@@ -8,18 +8,36 @@
 import base64
 import hashlib
 
+from lib.test_helpers import runtime_iterations
+
+
 # Cisco-IOS $8$: PBKDF2-HMAC-SHA256, base64 encoded, then moved into Cisco's own alphabet.
 
 CISCO = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
                       "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [14, 14],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 20000}},
+  }
 
-def module_constraints():
-  return [[0, 256], [14, 14], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 20000 if iterations is None else int(iterations)
+  iterations = ITERATIONS if iterations is None else int(iterations)
 
   raw = hashlib.pbkdf2_hmac("sha256", word, salt.encode(), iterations)
 

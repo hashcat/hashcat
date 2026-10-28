@@ -57,8 +57,18 @@ def pe_encode(word):
   return bytes(target).decode("latin-1")
 
 
-def module_constraints():
-  return [[0, 16], [-1, -1], [-1, -1], [-1, -1], [0, 16]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 16],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': [0, 16],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

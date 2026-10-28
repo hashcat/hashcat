@@ -10,7 +10,8 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string, random_number
+from lib.test_helpers import random_hex_string, random_number, runtime_iterations
+
 
 # MetaMask: PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The line is the
 # salt, the 16 byte nonce and the ciphertext with its 16 byte tag, each base64 encoded. When there
@@ -21,9 +22,24 @@ from lib.test_helpers import random_hex_string, random_number
 CT_MIN_LEN = 30
 CT_MAX_LEN = 3136
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 10000}},
+  }
 
-def module_constraints():
-  return [[8, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iv=None, ct=None):
@@ -33,7 +49,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
   salt_bin = bytes.fromhex(salt)
   iv_bin = bytes.fromhex(iv)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, 10000, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, ITERATIONS, 32)
 
   if ct is not None:
     ct_bin = bytes.fromhex(ct)

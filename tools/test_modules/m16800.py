@@ -8,7 +8,8 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, runtime_iterations
+
 
 # WPA-PMKID-PBKDF2: the PMK is PBKDF2-HMAC-SHA1 of the passphrase over the ESSID, and the PMKID is
 # the first half of HMAC-SHA1 of "PMK Name", the AP MAC and the station MAC.
@@ -17,9 +18,24 @@ from lib.test_helpers import random_bytes, random_number
 # between the fields. This one takes either, which is also what the python engine's round trip
 # check needs.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 63],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 4096}},
+  }
 
-def module_constraints():
-  return [[8, 63], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None, macap=None, macsta=None, essid=None):
@@ -32,7 +48,7 @@ def module_generate_hash(word, salt, iterations=None, macap=None, macsta=None, e
   if essid is None:
     essid = random_bytes(random_number(0, 32) & 0x1e).hex()
 
-  pmk = hashlib.pbkdf2_hmac("sha1", word, bytes.fromhex(essid), 4096, 32)
+  pmk = hashlib.pbkdf2_hmac("sha1", word, bytes.fromhex(essid), ITERATIONS, 32)
 
   pmkid = hmac.new(pmk, b"PMK Name" + bytes.fromhex(macap) + bytes.fromhex(macsta), hashlib.sha1).hexdigest()
 

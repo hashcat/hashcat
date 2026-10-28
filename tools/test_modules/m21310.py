@@ -12,8 +12,21 @@ from lib.test_helpers import random_hex_string
 # md5($salt1.sha1($salt2.$pass)), both salts in the line.
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 55],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, salt2=None):

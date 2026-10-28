@@ -7,20 +7,36 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_salt_word
+from lib.test_helpers import runtime_iterations, split_hash_salt_word
+
 
 # Salesforce sha512+sha256: 10000 rounds of sha512 over the running hex digest, the salt appended
 # once the loop passes 5000, then a final sha256.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 5002},
+    'normal': {'parameters': {'iterations': 10000}},
+  }
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
   cur = word
 
-  for i in range(10000):
+  for i in range(ITERATIONS):
     if i > 5000:
       cur += salt.encode()
 

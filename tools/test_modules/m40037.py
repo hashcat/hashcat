@@ -9,7 +9,27 @@ import hashlib
 
 from Crypto.Hash import MD4
 
-from lib.test_helpers import kernel_charset, split_hash_word, utf16le
+from lib.test_helpers import kernel_charset, split_hash_word, utf16le, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [20, 20],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 100}, 'ci_seconds': {'opt': 1, 'pure': 36, 'bridge': 2, 'edge': 92}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 32, 'edge': 119},
+    },
+  }
+
 
 # MS-AzureSync PBKDF2-HMAC-SHA256: PBKDF2 over the NT hash written in upper case hex and widened to
 # UTF-16LE. The two kernel families convert the password to UTF-16 differently, see
@@ -18,12 +38,11 @@ from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 CHARSET = kernel_charset()
 
 
-def module_constraints():
-  return [[0, 256], [20, 20], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 100 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   nt = MD4.new(utf16le(word, CHARSET)).hexdigest()
 

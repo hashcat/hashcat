@@ -9,22 +9,38 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # Kerberos 5 etype 17 (AES128-CTS key from the DB): PBKDF2-HMAC-SHA1 of the password
 # over uppercase(realm)+user, then AES-CBC of the n-fold constant to derive the key.
 
 NFOLD = bytes.fromhex("6b65726265726f737b9b5b2b93132b93")
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 4096}},
+  }
 
-def module_constraints():
-  return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None, user="user", realm="realm"):
   mysalt = (realm.upper() + user).encode()
 
-  seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, 4096, 16)
+  seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, ITERATIONS, 16)
 
   iv = b"\x00" * 16
 

@@ -10,7 +10,8 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations
+
 
 # MetaMask mobile vault. The base64 of the salt is the PBKDF2-HMAC-SHA512 salt, the key it derives
 # does AES-256-CBC with no padding, and only the first 32 bytes of the ciphertext are stored. On
@@ -23,9 +24,24 @@ FAKE_PT = (
   b"\"hdPath\":\"m/44'/60'/0'/0\"}}]"
 )
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 5000}},
+  }
 
-def module_constraints():
-  return [[8, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def _is_printable(data):
@@ -40,7 +56,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
 
   salt_b64 = base64.b64encode(salt_bytes).decode("ascii")
 
-  key = hashlib.pbkdf2_hmac("sha512", word, salt_b64.encode("ascii"), 5000, 32)
+  key = hashlib.pbkdf2_hmac("sha512", word, salt_b64.encode("ascii"), ITERATIONS, 32)
 
   iv_bin = bytes.fromhex(iv)
 

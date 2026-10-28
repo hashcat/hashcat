@@ -13,7 +13,8 @@ import hmac
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_number, random_string
+from lib.test_helpers import random_hex_string, random_number, random_string, runtime_iterations
+
 
 # Electrum wallet v5. The key derivation and AES-128-CBC layer are the same as -m 21700; version 5
 # stores only the first 1024 bytes of the ciphertext, so the mode is recognised by the deflate
@@ -24,9 +25,24 @@ TRUNCATE_DATA_LEN = 1024
 
 P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 1024}},
+  }
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def _point_add(pt1, pt2):
@@ -86,7 +102,7 @@ def _decompress_point(prefix, x):
 
 
 def generate_key(word, ephemeral_pubkey):
-  private_key = hashlib.pbkdf2_hmac("sha512", word, b"", 1024, 64)
+  private_key = hashlib.pbkdf2_hmac("sha512", word, b"", ITERATIONS, 64)
 
   m = int.from_bytes(private_key, "big")
 

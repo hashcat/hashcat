@@ -24,8 +24,21 @@ from lib.test_helpers import random_numeric_string
 B32HEX = "0123456789abcdefghijklmnopqrstuv"
 
 
-def module_constraints():
-  return [[1, 63], [1, 63], [1, 32], [1, 24], [1, 44]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [1, 63],
+        'salt_length': [1, 63],
+      },
+      'optimized': {
+        'password_length': [1, 32],
+        'salt_length': [1, 24],
+      },
+      'combined_length': [1, 44],
+    },
+  }
 
 
 def _encode_base32hex(digest):

@@ -29,6 +29,61 @@ STRING_CHARS    = UPPERCASE_CHARS + LOWERCASE_CHARS + NUMERIC_CHARS
 _STATE = None
 
 
+def test_iteration_parameters(properties):
+  # Select generator iterations, keeping other KDF cost defaults local to the oracle.
+  defaults = properties.get("normal", {}).get("parameters", {})
+  parameters = {"iterations": defaults["iterations"]} if "iterations" in defaults else {}
+  value = os.environ.get("ARTIFICIALLY_LOW_ITERATION_COUNT", "false").lower()
+
+  if value not in ("true", "false"):
+    raise ValueError("ARTIFICIALLY_LOW_ITERATION_COUNT must be true or false")
+
+  if value == "false":
+    return parameters
+
+  reduced = properties.get("reduced", properties.get("runtime", {}))
+  parameters.update(reduced.get("parameters", {}))
+
+  return parameters
+
+
+def iteration_override_enabled():
+  # Enable runtime costs only when the runner selected an explicit limit.
+  return runtime_iteration_limit() is not None
+
+
+def runtime_iteration_limit(initial=0):
+  value = os.environ.get("HASHCAT_ITER_OVERRIDE")
+
+  if value is None:
+    return None
+
+  if not value.isascii() or not value.isdecimal() or len(value) > 10:
+    raise ValueError("HASHCAT_ITER_OVERRIDE must be an integer from 0 to 4294967295")
+
+  limit = int(value)
+
+  if limit > 4294967295:
+    raise ValueError("HASHCAT_ITER_OVERRIDE must be an integer from 0 to 4294967295")
+
+  if limit == 0:
+    return None
+
+  return limit + initial
+
+
+def runtime_iterations(count, initial=0):
+  limit = runtime_iteration_limit(initial)
+
+  return count if limit is None else min(count, limit)
+
+
+def runtime_scrypt_n(count):
+  limit = runtime_iterations(count)
+
+  return min(count, max(1024, 1 << (limit.bit_length() - 1)))
+
+
 def seed(value):
   # The mix is what the perl engine does with HCTEST_SEED, so that the same number means the same
   # stream on both sides.

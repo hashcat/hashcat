@@ -28,7 +28,7 @@ SEQUENCE   = 1
 FLAGS = ("02000400", "02000500", "02000800")
 
 
-def _keys(word, salt_raw, count):
+def _keys(word, salt_raw, count, iterations):
   # The kernel decodes the UTF-8 rather than widening the bytes, and the mode has no optimized
   # kernel, so there is no second behaviour to follow and no IS_OPTIMIZED switch either. Both this
   # helper and the kernel's own decode widened before, which is why no multi byte password was ever
@@ -36,7 +36,7 @@ def _keys(word, salt_raw, count):
 
   utf16le = word.decode("utf-8").encode("utf-16-le")
 
-  key = hashlib.pbkdf2_hmac("sha512", utf16le, salt_raw, ITERATIONS, count * 32)
+  key = hashlib.pbkdf2_hmac("sha512", utf16le, salt_raw, iterations, count * 32)
 
   return [key[off:off + 32] for off in range(0, len(key), 32)]
 
@@ -59,9 +59,9 @@ def _plausible(body):
   return body[:4] == b"DCRP" and body[8:14].hex() in [flag + "0000" for flag in FLAGS]
 
 
-def generate_hash(cascades, key_count, word, salt, data):
+def generate_hash(cascades, key_count, word, salt, data, iterations=ITERATIONS):
   salt_raw = bytes.fromhex(salt)
-  keys     = _keys(word, salt_raw, key_count)
+  keys     = _keys(word, salt_raw, key_count, iterations)
 
   if data is None:
     cascade = cascades[random_number(0, len(cascades) - 1)]
@@ -83,7 +83,7 @@ def generate_hash(cascades, key_count, word, salt, data):
   return "$diskcryptor$0*%s%s" % (salt, _encrypt(cascade, keys, salt_raw, body).hex())
 
 
-def verify_hash(cascades, key_count, line):
+def verify_hash(cascades, key_count, line, iterations=ITERATIONS):
   idx = line.find(b":")
 
   if idx < 1:
@@ -109,7 +109,7 @@ def verify_hash(cascades, key_count, line):
   except (UnicodeDecodeError, ValueError):
     return None
 
-  digest = generate_hash(cascades, key_count, word, data[:128].decode("ascii"), raw)
+  digest = generate_hash(cascades, key_count, word, data[:128].decode("ascii"), raw, iterations=iterations)
 
   if digest is None:
     return None

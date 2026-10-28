@@ -8,14 +8,30 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes, split_hash_word
+from lib.test_helpers import runtime_iterations, random_bytes, split_hash_word
+
 
 # AES Crypt (SHA256): 8192 rounds of SHA-256 over the key and the password widened to UTF-16LE byte
 # by byte, starting from the salt and 16 zero bytes, then HMAC-SHA256 of the IV and the file key.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 128],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 8192}},
+  }
 
-def module_constraints():
-  return [[0, 128], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None, iv=None, key_aes=None):
@@ -31,7 +47,7 @@ def module_generate_hash(word, salt, iterations=None, iv=None, key_aes=None):
 
   key = salt_bytes + b"\x00" * 16
 
-  for _ in range(8192):
+  for _ in range(ITERATIONS):
     key = hashlib.sha256(key + wide).digest()
 
   digest = hmac.new(key, iv + key_aes, hashlib.sha256).hexdigest()

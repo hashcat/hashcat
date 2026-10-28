@@ -7,19 +7,35 @@
 
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # PBKDF2-HMAC-SHA1, 100000 rounds: $pbkdf2-hmac-sha1$100000$<salt hex>$<key hex>, the 32 byte salt.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 100000}},
+  }
 
-def module_constraints():
-  return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
   salt_bin = bytes.fromhex(salt)
 
-  key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, 100000, 20)
+  key = hashlib.pbkdf2_hmac("sha1", word, salt_bin, ITERATIONS, 20)
 
   return "$pbkdf2-hmac-sha1$100000$%s$%s" % (salt_bin.hex(), key.hex())
 

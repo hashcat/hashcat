@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_word
 # Placeholder mode 74000: sha256(salt.pass) then 10000 more rounds of sha256, digest*salt.
 
 
-def module_constraints():
-  return [[0, 256], [16, 16], [0, 55], [16, 16], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

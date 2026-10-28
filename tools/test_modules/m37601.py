@@ -12,8 +12,21 @@ from lib.test_helpers import split_hash_word
 # POP3 APOP: the server banner is the salt, and the response is md5(banner . password).
 
 
-def module_constraints():
-  return [[0, 256], [10, 128], [0, 55], [10, 55], [0, 55]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [10, 128],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [10, 55],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

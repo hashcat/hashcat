@@ -10,17 +10,31 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_hex_string
+from lib.test_helpers import random_bytes, random_hex_string, runtime_iterations
+
 
 # Terra Station wallet. PBKDF2-HMAC-SHA1 (100 rounds) of the password makes an AES-256 key that CBC
 # encrypts 64 bytes followed by a full 0x10 padding block; the salt and iv are stored in front of the
 # base64 ciphertext.
 
-ITERATIONS = 100
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 100}},
+  }
 
 
-def module_constraints():
-  return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iv=None, data=None):

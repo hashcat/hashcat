@@ -11,7 +11,8 @@ import struct
 
 from Crypto.Cipher import Blowfish
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import runtime_iterations, random_bytes
+
 
 # Password Safe v2. Like m40011 this is OPTS_TYPE_BINARY_HASHFILE, so the oracle prints the file
 # in base64 and test.sh decodes it back before handing it to hashcat.
@@ -37,9 +38,24 @@ from lib.test_helpers import random_bytes
 HEADER_LEN = 56
 TAIL_LEN   = 112
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 45],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 1000}},
+  }
 
-def module_constraints():
-  return [[0, 45], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'])
 
 
 def _sha1_zero_state(msg):
@@ -87,7 +103,7 @@ def _rand_hash(word, rand_stuff):
   bf    = Blowfish.new(key, Blowfish.MODE_ECB)
   block = struct.pack(">II", *struct.unpack("<II", rand_stuff))
 
-  for _ in range(1000):
+  for _ in range(ITERATIONS):
     block = bf.encrypt(block)
 
   return _sha1_zero_state(struct.pack("<II", *struct.unpack(">II", block)) + b"\x00\x00")

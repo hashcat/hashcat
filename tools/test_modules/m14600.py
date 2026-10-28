@@ -20,8 +20,18 @@ _MODULE_ID = re.match(r"m(\d+)\.py$", os.path.basename(__file__)).group(1)
 _SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "luks1.sh")
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None):

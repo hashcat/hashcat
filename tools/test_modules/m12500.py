@@ -89,8 +89,21 @@ def _derive(word, salt):
   return key, iv
 
 
-def module_constraints():
-  return [[0, 128], [8, 8], [0, 20], [8, 8], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 128],
+        'salt_length': [8, 8],
+      },
+      'optimized': {
+        'password_length': [0, 20],
+        'salt_length': [8, 8],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

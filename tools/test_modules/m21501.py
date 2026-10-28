@@ -9,19 +9,35 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # SolarWinds Serv-U: SHA-512 of a 1024 byte PBKDF2-HMAC-SHA1 key, the 16 byte salt in base64.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 1000}},
+  }
 
-def module_constraints():
-  return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
   salt_bytes = salt.encode("latin-1")
 
-  key = hashlib.pbkdf2_hmac("sha1", word, salt_bytes, 1000, 1024)
+  key = hashlib.pbkdf2_hmac("sha1", word, salt_bytes, ITERATIONS, 1024)
 
   return "$solarwinds$1$%s$%s" % (base64.b64encode(salt_bytes).decode(), base64.b64encode(hashlib.sha512(key).digest()).decode())
 

@@ -11,19 +11,37 @@ import hashlib
 
 from lib import sspr
 
+from lib.test_helpers import runtime_iterations
+
+
 # NetIQ SSPR (Salted SHA1): 100000 rounds, a 24 byte salt in base64, see lib/sspr.py.
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [24, 24],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 100000}},
+  }
 
-def module_constraints():
-  return [[0, 256], [24, 24], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return sspr.generate_hash(2, hashlib.sha1, 100000, word, base64.b64encode(salt.encode("latin-1")).decode())
+  return sspr.generate_hash(2, hashlib.sha1, ITERATION_DEFAULTS['iterations'], word, base64.b64encode(salt.encode("latin-1")).decode(), effective_iterations=ITERATIONS)
 
 
 def module_verify_hash(line):
-  parsed = sspr.parse(2, 100000, line)
+  parsed = sspr.parse(2, ITERATION_DEFAULTS['iterations'], line)
 
   if parsed is None or len(parsed[0]) != 32:
     return None

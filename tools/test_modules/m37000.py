@@ -14,8 +14,18 @@ from lib.test_helpers import random_bytes, random_number, split_hash_word
 # exchange, so the stored ERndB and the two CBC blocks pin the key segment.
 
 
-def module_constraints():
-  return [[4, 4], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [4, 4],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _e(k, d):

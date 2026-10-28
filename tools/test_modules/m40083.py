@@ -20,8 +20,18 @@ from lib.test_helpers import random_bytes, random_number, split_hash_word
 TOKEN = re.compile(r"^[A-Za-z0-9_-]+={0,2}$")
 
 
-def module_constraints():
-  return [[0, 256], [1, 14], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [1, 14],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def fernet_token(word, data, padded):

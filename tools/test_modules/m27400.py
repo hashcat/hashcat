@@ -9,18 +9,32 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations
+
 
 # VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC). The key encrypts a fixed 16 byte marker; only the
 # first cipher block is stored, so the padding of the rest does not matter.
 
 DATA = b"type=key:cipher="
 
-ITERATIONS = 10000
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 10000}},
+  }
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def module_generate_hash(word, salt_str, ct_str=None):
@@ -33,7 +47,7 @@ def module_generate_hash(word, salt_str, ct_str=None):
 
   encrypted = AES.new(key, AES.MODE_CBC, iv).encrypt(DATA).hex()
 
-  return "$vmx$0$%s$%s$%s%s" % (ITERATIONS, salt.hex(), iv.hex(), encrypted[:32])
+  return "$vmx$0$%s$%s$%s%s" % (ITERATION_DEFAULTS['iterations'], salt.hex(), iv.hex(), encrypted[:32])
 
 
 def module_verify_hash(line):

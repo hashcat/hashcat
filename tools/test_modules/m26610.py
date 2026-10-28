@@ -10,7 +10,8 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, runtime_iterations
+
 
 # MetaMask (short). PBKDF2-HMAC-SHA256 of the password over a 32 byte salt, then AES-GCM. The
 # ciphertext is fixed at 64 bytes and carries no tag: the oracle only checks that the plaintext is
@@ -25,9 +26,24 @@ FIXED_PT = ("[{\"type\":\"HD Key Tree\",\"data\":{\"mnemonic\":"
 
 CT_LEN = 64
 
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 10000}},
+  }
 
-def module_constraints():
-  return [[8, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def _is_printable(pt):
@@ -41,7 +57,7 @@ def module_generate_hash(word, salt, iv=None, ct=None):
   salt_bin = bytes.fromhex(salt)
   iv_bin   = bytes.fromhex(iv)
 
-  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, 10000, 32)
+  key = hashlib.pbkdf2_hmac("sha256", word, salt_bin, ITERATIONS, 32)
 
   if ct is None:
     pt = FIXED_PT

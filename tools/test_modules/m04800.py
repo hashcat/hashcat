@@ -19,8 +19,21 @@ def random_md5chap_salt():
   return challenge + ":" + random_bytes(1).hex()
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [0, 38], [-1, -1], [-1, -1]]
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 38],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

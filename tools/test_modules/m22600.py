@@ -9,13 +9,36 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, test_iteration_parameters
+
+
+def module_test_properties():
+  # Declare input bounds and optional iteration defaults and CI timings for the test tools.
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'ci_seconds': {'opt': 1, 'pure': 31, 'bridge': 2, 'edge': 109}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+      'ci_seconds': {'opt': 1, 'pure': 46, 'edge': 140},
+    },
+  }
+
 
 # Telegram Desktop <= 2.1.13. PBKDF2-HMAC-SHA1 makes a 136 byte authkey, whose bytes are scattered
 # into four SHA1 inputs together with the message key to derive an AES-256 key and IV. The payload is
 # AES-256 in IGE mode, which is built here from ECB.
 
 BLOCK = 16
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _xor(a, b):
@@ -56,10 +79,6 @@ def _ige_decrypt(key, iv, data):
     out += y
 
   return out
-
-
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, data=None):
