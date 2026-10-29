@@ -40,6 +40,7 @@
 #include "emu_inc_hash_radiogatun.h"
 #include "emu_inc_hash_ripemd.h"
 #include "emu_inc_hash_whirlpool01.h"
+#include "emu_inc_hash_xxhash.h"
 #include "emu_inc_hash_ripemd256.h"
 #include "emu_inc_hash_mysql323.h"
 #include "emu_inc_hash_haval.h"
@@ -133,6 +134,7 @@ typedef enum recipe_node_kind
   RECIPE_NODE_FIELD    = 20,
   RECIPE_NODE_BOP      = 21,
   RECIPE_NODE_DES      = 22,
+  RECIPE_NODE_SEED     = 23,
 
 } recipe_node_kind_t;
 
@@ -420,6 +422,8 @@ static const recipe_algo_entry_t RECIPE_ALGOS[] =
   { "ripemd",        RECIPE_ALGO_RIPEMD,        16,  64, true,  false },
   { "wrl0",          RECIPE_ALGO_WRL0,          64,  64, true,  false },
   { "wrl1",          RECIPE_ALGO_WRL1,          64,  64, true,  false },
+  { "xxh64",         RECIPE_ALGO_XXH64,          8,  32, false, false },
+  { "xxh32",         RECIPE_ALGO_XXH32,          4,  16, false, false },
 
   { "aes",         RECIPE_ALGO_AES,         0,  16, false, false },
   { "bop",         RECIPE_ALGO_BOP,         0,   0, false, false },
@@ -433,7 +437,7 @@ static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_
 
 static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE", "B64", "XOR" };
 
-static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
+static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, xxh64 and xxh32 (also with a seed), lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
 const char *recipe_algo_name (const u32 algo)
 {
@@ -500,8 +504,8 @@ static bool recipe_algo_is_skein (const u32 algo)
   return r;
 }
 
-// The families from BLAKE to Whirlpool-T, each with its first and last algo and the define that
-// has the kernels include it. Their functions take little endian words as MD5 does, and none of
+// The families from BLAKE to xxHash, each with its first and last algo and the define that has the
+// kernels include it. Their functions take little endian words as MD5 does, and none of
 // them has a block template.
 
 typedef struct recipe_family
@@ -533,6 +537,7 @@ static const recipe_family_t RECIPE_FAMILIES[] =
   { RECIPE_ALGO_RADIOGATUN32, RECIPE_ALGO_RADIOGATUN64, "RECIPE_RADIOGATUN" },
   { RECIPE_ALGO_RIPEMD,       RECIPE_ALGO_RIPEMD,       "RECIPE_RIPEMD"     },
   { RECIPE_ALGO_WRL0,         RECIPE_ALGO_WRL1,         "RECIPE_WRL01"      },
+  { RECIPE_ALGO_XXH64,        RECIPE_ALGO_XXH32,        "RECIPE_XXHASH"     },
 };
 
 static const u32 RECIPE_FAMILIES_CNT = sizeof (RECIPE_FAMILIES) / sizeof (recipe_family_t);
@@ -564,6 +569,18 @@ static bool recipe_fail_at (recipe_parser_t *p, const u32 pos, const char *error
 static bool recipe_fail (recipe_parser_t *p, const char *error)
 {
   return recipe_fail_at (p, p->pos, error);
+}
+
+// BLAKE2, Streebog and xxHash have no UTF-16 update functions in the kernel includes, so they
+// cannot accept utf16le yet.
+
+static bool recipe_fail_utf16 (recipe_parser_t *p, const u32 pos, const u32 algo)
+{
+  recipe_prog_t *prog = p->prog;
+
+  snprintf (prog->error_buf, sizeof (prog->error_buf), "utf16le cannot feed %s yet", recipe_algo (algo)->name);
+
+  return recipe_fail_at (p, pos, prog->error_buf);
 }
 
 // Whitespace includes line breaks, and a # starts a comment that runs to the end of the line.
@@ -1245,6 +1262,8 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
   {
     if (algo == RECIPE_ALGO_MYSQL323) { recipe_fail_at (p, name_pos, "mysql3 has no block size, so it has no hmac_ form"); return 0; }
 
+    if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32)) { recipe_fail_at (p, name_pos, "xxh64 and xxh32 take a seed rather than a key, as in xxh64 (pass, salt), so they have no hmac_ form"); return 0; }
+
     if (algo == RECIPE_ALGO_TTH) { recipe_fail_at (p, name_pos, "tth is a tree hash, so it has no hmac_ form"); return 0; }
 
     if (algo == RECIPE_ALGO_LM) { recipe_fail_at (p, name_pos, "lm keeps only the first 14 bytes of its input, so it has no hmac_ form"); return 0; }
@@ -1308,11 +1327,27 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
 
     if (arg == 0) return 0;
 
-    if (recipe_accept (p, ',') == true) { recipe_fail (p, "a hash call takes one argument, join its parts with ."); return 0; }
+    // xxh64 and xxh32 take an optional seed after the data, as hx's murmur3 does. A call with a seed
+    // is a SEED node, which keeps the seed as its first kid the way an HMAC node keeps its key.
+
+    const bool seeds = (algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32);
+
+    u32 seed = 0;
+
+    if (recipe_accept (p, ',') == true)
+    {
+      if (seeds == false) { recipe_fail (p, "a hash call takes one argument, join its parts with ."); return 0; }
+
+      if (iter != 1) { recipe_fail (p, "^ cannot repeat a call with a seed"); return 0; }
+
+      seed = recipe_parse_expr (p);
+
+      if (seed == 0) return 0;
+    }
 
     if (recipe_accept (p, ')') == false) { recipe_fail (p, "expected ) or ."); return 0; }
 
-    const u32 id = recipe_new_node (p, RECIPE_NODE_HASH, name_pos);
+    const u32 id = recipe_new_node (p, (seed == 0) ? RECIPE_NODE_HASH : RECIPE_NODE_SEED, name_pos);
 
     if (id == 0) { recipe_fail (p, "the recipe is too long"); return 0; }
 
@@ -1321,8 +1356,9 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
     node->algo     = algo;
     node->role     = role;
     node->iter     = (u32) iter;
-    node->kids[0]  = arg;
-    node->kids_cnt = 1;
+    node->kids[0]  = (seed == 0) ? arg : seed;
+    node->kids[1]  = arg;
+    node->kids_cnt = (seed == 0) ? 1 : 2;
 
     return id;
   }
@@ -3034,7 +3070,7 @@ static bool recipe_elem_len (recipe_parser_t *p, const u32 id, const recipe_wrap
     return true;
   }
 
-  if ((base->kind != RECIPE_NODE_HASH) && (base->kind != RECIPE_NODE_HMAC) && (base->kind != RECIPE_NODE_DES)) return false;
+  if ((base->kind != RECIPE_NODE_HASH) && (base->kind != RECIPE_NODE_HMAC) && (base->kind != RECIPE_NODE_SEED) && (base->kind != RECIPE_NODE_DES)) return false;
 
   const u32 digest_len = (base->kind == RECIPE_NODE_DES) ? 8 : recipe_digest_len (base->algo);
 
@@ -3396,7 +3432,7 @@ static u32 recipe_b64_bytes (const recipe_step_t *step)
 {
   u32 raw_len = step->data_len;
 
-  if ((step->kind == RECIPE_KIND_HASH) || (step->kind == RECIPE_KIND_HMAC)) raw_len = recipe_digest_len (step->algo);
+  if ((step->kind == RECIPE_KIND_HASH) || (step->kind == RECIPE_KIND_HMAC) || (step->kind == RECIPE_KIND_SEED)) raw_len = recipe_digest_len (step->algo);
 
   if (step->kind == RECIPE_KIND_AES) raw_len = recipe_aes_out_len (step);
   if (step->kind == RECIPE_KIND_BOP) raw_len = MAX (step->part_lens[0], step->part_lens[1]);
@@ -3861,6 +3897,7 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
   step.iter      = node->iter;
 
   if (node->kind == RECIPE_NODE_HMAC) step.kind = RECIPE_KIND_HMAC;
+  if (node->kind == RECIPE_NODE_SEED) step.kind = RECIPE_KIND_SEED;
 
   if (node->kind == RECIPE_NODE_AES)
   {
@@ -3928,9 +3965,27 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
 
     if (key.parts_cnt != 1) return recipe_fail_at (p, key_pos, "the key of an hmac has to be a single part, such as pass, salt, a string or a hash call");
 
-    if ((key.parts[0].wide == 1) && (recipe_algo (node->algo)->utf16 == false)) return recipe_fail_at (p, key_pos, "utf16le cannot feed blake2 or streebog yet");
+    if ((key.parts[0].wide == 1) && (recipe_algo (node->algo)->utf16 == false)) return recipe_fail_utf16 (p, key_pos, node->algo);
 
     step.key = key.parts[0];
+
+    if (recipe_lower_parts (p, node->kids[1], &none, &step) == false) return false;
+  }
+  else if (step.kind == RECIPE_KIND_SEED)
+  {
+    recipe_step_t seed;
+
+    memset (&seed, 0, sizeof (seed));
+
+    if (recipe_lower_parts (p, node->kids[0], &none, &seed) == false) return false;
+
+    const u32 seed_pos = recipe_node (p, node->kids[0])->pos;
+
+    if (seed.parts_cnt != 1) return recipe_fail_at (p, seed_pos, "the seed has to be a single part, such as salt, a string or a hash call");
+
+    if (seed.parts[0].wide == 1) return recipe_fail_at (p, seed_pos, "the seed is read as a number, so it cannot be utf16le");
+
+    step.key = seed.parts[0];
 
     if (recipe_lower_parts (p, node->kids[1], &none, &step) == false) return false;
   }
@@ -3943,7 +3998,7 @@ static bool recipe_lower_hash (recipe_parser_t *p, const u32 id, const recipe_wr
   {
     for (u32 i = 0; i < step.parts_cnt; i++)
     {
-      if (step.parts[i].wide == 1) return recipe_fail_at (p, node->pos, "utf16le cannot feed blake2 or streebog yet");
+      if (step.parts[i].wide == 1) return recipe_fail_utf16 (p, node->pos, node->algo);
     }
   }
 
@@ -4224,7 +4279,7 @@ static void recipe_deps (const recipe_prog_t *prog, bool *dep)
       if (recipe_part_dep_on (prog, part, dep) == true) d = true;
     }
 
-    if (step->kind == RECIPE_KIND_HMAC)
+    if ((step->kind == RECIPE_KIND_HMAC) || (step->kind == RECIPE_KIND_SEED))
     {
       if (recipe_part_dep_on (prog, &step->key, dep) == true) d = true;
     }
@@ -4254,7 +4309,7 @@ static bool recipe_part_is_pass (const recipe_prog_t *prog, const recipe_part_t 
 }
 
 // Whether pass or a transformed copy of it appears anywhere in the recipe: in the parts of a step,
-// as an HMAC or AES key or an IV, as the value a carried variable starts from, or as the key or salt
+// as an HMAC or AES key, a seed or an IV, as the value a carried variable starts from, or as the key or salt
 // of pbkdf2. A loop replaces a carried variable with a hash call only, a step of its own.
 
 static bool recipe_uses_pass (const recipe_prog_t *prog)
@@ -4268,7 +4323,7 @@ static bool recipe_uses_pass (const recipe_prog_t *prog)
       if (recipe_part_is_pass (prog, &step->parts[i]) == true) return true;
     }
 
-    if ((step->kind == RECIPE_KIND_HMAC) && (recipe_part_is_pass (prog, &step->key) == true)) return true;
+    if (((step->kind == RECIPE_KIND_HMAC) || (step->kind == RECIPE_KIND_SEED)) && (recipe_part_is_pass (prog, &step->key) == true)) return true;
 
     if (step->kind == RECIPE_KIND_AES)
     {
@@ -5194,6 +5249,8 @@ static bool recipe_algo_swaps (const u32 algo)
 
   if ((algo == RECIPE_ALGO_SHA0) || (algo == RECIPE_ALGO_SM3) || (algo == RECIPE_ALGO_WRL) || (algo == RECIPE_ALGO_MYSQL323)) return true;
 
+  if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32)) return true;
+
   if ((algo >= RECIPE_ALGO_BLAKE224)   && (algo <= RECIPE_ALGO_BLAKE512))   return true;
   if ((algo >= RECIPE_ALGO_ECHO224)    && (algo <= RECIPE_ALGO_ECHO512))    return true;
   if ((algo >= RECIPE_ALGO_HAMSI224)   && (algo <= RECIPE_ALGO_HAMSI512))   return true;
@@ -5298,7 +5355,7 @@ static void recipe_root_peel (recipe_prog_t *prog)
 
       const recipe_step_t *hash = &prog->steps[recipe_step_under_xor (prog, root - 1)];
 
-      const bool swapped = ((hash->kind == RECIPE_KIND_HASH) || (hash->kind == RECIPE_KIND_HMAC)) && (recipe_algo_swaps (hash->algo) == true);
+      const bool swapped = ((hash->kind == RECIPE_KIND_HASH) || (hash->kind == RECIPE_KIND_HMAC) || (hash->kind == RECIPE_KIND_SEED)) && (recipe_algo_swaps (hash->algo) == true);
 
       if ((order == true) && (swapped == true)) break;
 
@@ -5358,10 +5415,13 @@ static void recipe_root_peel (recipe_prog_t *prog)
 
 static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_native);
 
-// Compile a recipe. Only with peel are the transforms around the result left to the hash line
-// parser, see recipe_root_peel ().
+// Compile a recipe. A stored recipe is the one a hash-mode carries for its pure kernels. Its module
+// parses the hash lines and undoes no transforms, so only a recipe for mode 4000 leaves the
+// transforms around the result to the hash line parser, see recipe_root_peel (). The module also
+// compares in its own digest layout, so a stored recipe can give a hex result of 4 to 7 bytes, as
+// xxh32 (pass, salt) does.
 
-static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const bool peel)
+static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const bool stored)
 {
   memset (prog, 0, sizeof (recipe_prog_t));
 
@@ -5664,7 +5724,7 @@ static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const boo
         }
       }
     }
-    else if ((node->kind != RECIPE_NODE_HASH) && (node->kind != RECIPE_NODE_HMAC) && (node->kind != RECIPE_NODE_AES) && (node->kind != RECIPE_NODE_BOP) && (node->kind != RECIPE_NODE_DES) && (var_xfrm == false))
+    else if ((node->kind != RECIPE_NODE_HASH) && (node->kind != RECIPE_NODE_HMAC) && (node->kind != RECIPE_NODE_SEED) && (node->kind != RECIPE_NODE_AES) && (node->kind != RECIPE_NODE_BOP) && (node->kind != RECIPE_NODE_DES) && (var_xfrm == false))
     {
       recipe_fail_at (p, node->pos, "the result must be a hash, aes, des, xor, and or or call, possibly inside upper, lower, hex, base64, cut, trunc or another transform");
     }
@@ -5773,7 +5833,7 @@ static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const boo
           fmt_ok = true;
         }
       }
-      else if ((b64 == false) && (aes_var == false) && (step->cut_len < 16))
+      else if ((b64 == false) && (aes_var == false) && (step->cut_len < ((stored == true) ? 8 : 16)))
       {
         recipe_fail_at (p, node->pos, "the result must keep at least 16 hex characters, mode 4000 compares 8 to 16 bytes");
       }
@@ -5836,7 +5896,7 @@ static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const boo
     }
   }
 
-  if ((rc == true) && (peel == true)) recipe_root_peel (prog);
+  if ((rc == true) && (stored == false)) recipe_root_peel (prog);
 
   // Assigning a pbkdf2 call to an unread variable would leave a slow recipe without
   // a pbkdf2 call to run.
@@ -5936,6 +5996,13 @@ static bool recipe_compile_prog (recipe_prog_t *prog, const char *src, const boo
 }
 
 bool recipe_compile (recipe_prog_t *prog, const char *src)
+{
+  const bool rc = recipe_compile_prog (prog, src, false);
+
+  return rc;
+}
+
+bool recipe_compile_stored (recipe_prog_t *prog, const char *src)
 {
   const bool rc = recipe_compile_prog (prog, src, true);
 
@@ -6210,10 +6277,9 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 {
   recipe_prog_t prog;
 
-  // A hash-mode with a stored recipe parses its hash lines in its own module, which undoes no
-  // transforms, so its kernel keeps them.
+  // Only a hash-mode with a stored recipe compares in its native layout.
 
-  if (recipe_compile_prog (&prog, src, root_native == false) == false) return NULL;
+  if (recipe_compile_prog (&prog, src, root_native) == false) return NULL;
 
   char *jit_build_options = recipe_jit_prog (&prog, root_native);
 
@@ -6293,7 +6359,7 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
   {
     for (u32 i = 0; i < prog.steps[k].parts_cnt; i++) recipe_wide_src (&prog, &prog.steps[k].parts[i], &wide_pass, &wide_salt, &wide_field);
 
-    if (prog.steps[k].kind == RECIPE_KIND_HMAC) recipe_wide_src (&prog, &prog.steps[k].key, &wide_pass, &wide_salt, &wide_field);
+    if ((prog.steps[k].kind == RECIPE_KIND_HMAC) || (prog.steps[k].kind == RECIPE_KIND_SEED)) recipe_wide_src (&prog, &prog.steps[k].key, &wide_pass, &wide_salt, &wide_field);
   }
 
   // A utf16le key or salt of pbkdf2 decodes UTF-8 as well.
@@ -6435,14 +6501,15 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
   if (prog.fields != 0) len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_LINE_FIELDS=%u -D RECIPE_FIELD_WORDS=%u", prog.fields, RECIPE_FIELD_WORDS);
 
   // Whether the password is only hashed as parts, so the combinator kernel can hand it over as the
-  // base word and the right word. See RECIPE_TAIL in the kernel include. An HMAC key, the source of
-  // a transformed copy and a value of xor, and, or or des require the password in one piece.
+  // base word and the right word. See RECIPE_TAIL in the kernel include. An HMAC key, a seed, the
+  // source of a transformed copy and a value of xor, and, or or des require the password in one
+  // piece.
 
   bool pass_plain = true;
 
   for (u32 k = 0; k < prog.steps_cnt; k++)
   {
-    if ((prog.steps[k].kind == RECIPE_KIND_HMAC) && (prog.steps[k].key.kind == RECIPE_PART_PASS)) pass_plain = false;
+    if (((prog.steps[k].kind == RECIPE_KIND_HMAC) || (prog.steps[k].kind == RECIPE_KIND_SEED)) && (prog.steps[k].key.kind == RECIPE_PART_PASS)) pass_plain = false;
 
     if ((prog.steps[k].kind != RECIPE_KIND_BOP) && (prog.steps[k].kind != RECIPE_KIND_DES)) continue;
 
@@ -6485,17 +6552,19 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
     const bool is_bop  = (step->kind == RECIPE_KIND_BOP);
     const bool is_xfrm = (step->kind == RECIPE_KIND_XFRM);
     const bool is_des  = (step->kind == RECIPE_KIND_DES);
+    const bool is_seed = (step->kind == RECIPE_KIND_SEED);
 
     u32 lead = 0;
 
     while ((lead < step->parts_cnt) && (recipe_part_dep_on (&prog, &step->parts[lead], dep) == false)) lead++;
 
-    // An AES, BOP, XFRM or DES step runs per candidate or, when its parts do not depend on it, once
-    // per salt. In a slow recipe an AES step always runs per candidate, see recipe_deps ().
+    // An AES, BOP, XFRM, DES or SEED step runs per candidate or, when its parts do not depend on it,
+    // once per salt. In a slow recipe an AES step always runs per candidate, see recipe_deps (). A
+    // SEED step starts from its seed, so preparation cannot save a context fed before it.
 
     u32 phase = 0;
 
-    if ((is_aes == true) || (is_bop == true) || (is_xfrm == true) || (is_des == true))
+    if ((is_aes == true) || (is_bop == true) || (is_xfrm == true) || (is_des == true) || (is_seed == true))
     {
       phase = (dep[k] == true) ? 0 : 1;
     }
@@ -6521,7 +6590,7 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
 
     char key[16];
 
-    if ((is_hmac == true) || (is_aes == true))
+    if ((is_hmac == true) || (is_aes == true) || (is_seed == true))
     {
       recipe_part_token (&prog, &step->key, key_in_prep, dep, key, sizeof (key));
     }
@@ -6554,6 +6623,7 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
     if (is_bop  == true) kind = "BOP";
     if (is_xfrm == true) kind = "XFRM";
     if (is_des  == true) kind = "DES";
+    if (is_seed == true) kind = "SEED";
 
     len += snprintf (buf + len, sizeof (buf) - len, " -D RECIPE_S%u_KIND=%s -D RECIPE_S%u_KEY=%s -D RECIPE_S%u_PH=P%u", k, kind, k, key, k, phase);
 
@@ -6637,7 +6707,7 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
     // A step whose first P slot is the password can start from the base word, which the combinator
     // kernel then feeds once per work item. See RECIPE_S<k>_BW in the kernel include.
 
-    const bool bw_phase = (is_aes == false) && (is_bop == false) && (is_xfrm == false) && (is_des == false) && (((is_hmac == false) && ((phase == 0) || (phase == 3))) || ((is_hmac == true) && (phase == 2)));
+    const bool bw_phase = (is_aes == false) && (is_bop == false) && (is_xfrm == false) && (is_des == false) && (is_seed == false) && (((is_hmac == false) && ((phase == 0) || (phase == 3))) || ((is_hmac == true) && (phase == 2)));
 
     const bool bw = (bw_phase == true) && (q_cnt < step->parts_cnt) && (step->parts[q_cnt].kind == RECIPE_PART_PASS);
 
@@ -7075,6 +7145,58 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
 // Hash the parts and write the digest to raw as little endian words. Wide parts use the UTF-16LE
 // update, which decodes UTF-8 as the kernel does. SHA-224 and SHA-384 use the SHA-256 and SHA-512
 // code with their own initial values. Return the digest length.
+
+// The seed of a SEED step, the first 8 bytes of its key or 4 for xxh32, read as a big endian
+// number, as RECIPE_STEP_SEED in the kernel include reads it.
+
+static u64 recipe_seed_value (const u32 *buf, const u32 len, const u32 max)
+{
+  const u8 *b = (const u8 *) buf;
+
+  u64 seed = 0;
+
+  const u32 cnt = MIN (len, max);
+
+  for (u32 i = 0; i < cnt; i++) seed = (seed << 8) | b[i];
+
+  return seed;
+}
+
+// xxh64 or xxh32 of the parts from the given seed. The digest is written big endian, as the
+// kernel include writes it.
+
+static u32 recipe_xxh_parts (const u32 algo, const u64 seed, const u32 **bufs, const u32 *lens, const u32 cnt, u32 *raw)
+{
+  memset (raw, 0, 64);
+
+  if (algo == RECIPE_ALGO_XXH64)
+  {
+    xxh64_ctx_t ctx;
+
+    xxh64_init (&ctx, seed);
+
+    for (u32 i = 0; i < cnt; i++) xxh64_update (&ctx, bufs[i], (int) lens[i]);
+
+    xxh64_final (&ctx);
+
+    raw[0] = byte_swap_32 ((u32) (ctx.h >> 32));
+    raw[1] = byte_swap_32 ((u32) (ctx.h >>  0));
+
+    return 8;
+  }
+
+  xxh32_ctx_t ctx;
+
+  xxh32_init (&ctx, (u32) seed);
+
+  for (u32 i = 0; i < cnt; i++) xxh32_update (&ctx, bufs[i], (int) lens[i]);
+
+  xxh32_final (&ctx);
+
+  raw[0] = byte_swap_32 (ctx.h);
+
+  return 4;
+}
 
 static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens, const u32 *wides, const u32 cnt, u32 *raw)
 {
@@ -7930,6 +8052,10 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
     raw[1] = byte_swap_32 (ctx.nr2);
 
     raw_len = 8;
+  }
+  else if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32))
+  {
+    raw_len = recipe_xxh_parts (algo, 0, bufs, lens, cnt, raw);
   }
   else if (algo == RECIPE_ALGO_LM)
   {
@@ -8846,6 +8972,17 @@ static void recipe_eval_sec (const recipe_prog_t *prog, recipe_env_t *env, const
       recipe_env_part (prog, env, &step->key, &key_buf, &key_len);
 
       env->raw_len = recipe_hmac_parts (step->algo, key_buf, key_len, step->key.wide, bufs, lens, wides, step->parts_cnt, env->raw);
+    }
+    else if (step->kind == RECIPE_KIND_SEED)
+    {
+      const u32 *seed_buf = NULL;
+      u32        seed_len = 0;
+
+      recipe_env_part (prog, env, &step->key, &seed_buf, &seed_len);
+
+      const u64 seed = recipe_seed_value (seed_buf, seed_len, (step->algo == RECIPE_ALGO_XXH64) ? 8 : 4);
+
+      env->raw_len = recipe_xxh_parts (step->algo, seed, bufs, lens, step->parts_cnt, env->raw);
     }
     else
     {

@@ -1972,6 +1972,26 @@ typedef enum sm3_constants
 
 } sm3_constants_t;
 
+typedef enum xxh64_constants
+{
+  XXH64_PRIME_1=0x9e3779b185ebca87UL,
+  XXH64_PRIME_2=0xc2b2ae3d27d4eb4fUL,
+  XXH64_PRIME_3=0x165667b19e3779f9UL,
+  XXH64_PRIME_4=0x85ebca77c2b2ae63UL,
+  XXH64_PRIME_5=0x27d4eb2f165667c5UL
+
+} xxh64_constants_t;
+
+typedef enum xxh32_constants
+{
+  XXH32_PRIME_1=0x9e3779b1U,
+  XXH32_PRIME_2=0x85ebca77U,
+  XXH32_PRIME_3=0xc2b2ae3dU,
+  XXH32_PRIME_4=0x27d4eb2fU,
+  XXH32_PRIME_5=0x165667b1U
+
+} xxh32_constants_t;
+
 typedef enum combinator_mode
 {
   COMBINATOR_MODE_BASE_LEFT   = 10001,

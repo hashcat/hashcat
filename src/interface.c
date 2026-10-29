@@ -454,7 +454,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
       recipe_prog_t prog;
 
-      if (recipe_compile (&prog, recipe) == false)
+      if (recipe_compile_stored (&prog, recipe) == false)
       {
         event_log_error (hashcat_ctx, "Recipe of hash-mode %d is invalid at position %u: %s", hashconfig->hash_mode, prog.error_pos, prog.error);
 
@@ -721,7 +721,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     recipe_prog_t prog;
 
-    if ((recipe_compile (&prog, hashconfig->hash_recipe) == true) && (prog.slow == 1)) hashconfig->tmp_size = recipe_tmp_size (&prog);
+    if ((recipe_compile_stored (&prog, hashconfig->hash_recipe) == true) && (prog.slow == 1)) hashconfig->tmp_size = recipe_tmp_size (&prog);
   }
 
   // those depend on some previously defined values

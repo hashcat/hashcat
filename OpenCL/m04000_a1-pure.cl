@@ -102,6 +102,9 @@
 #ifdef RECIPE_MYSQL323
 #include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
 #endif
+#ifdef RECIPE_XXHASH
+#include M2S(INCLUDE_PATH/inc_hash_xxhash.cl)
+#endif
 #ifdef RECIPE_DES
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif

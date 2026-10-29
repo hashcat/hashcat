@@ -4455,6 +4455,73 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
   raw[1] = hc_swap32##HS (ctx.nr2);                                   \
 }
 
+// xxh64 and xxh32 use inc_hash_xxhash.cl, see RECIPE_XXHASH. They take bytes in memory order and
+// write the digest big endian, as the canonical form of xxHash does. A call without a seed starts
+// from seed 0, and a call with one is a SEED step, see RECIPE_STEP_SEED. They have no HMAC form and
+// no utf16le update.
+
+// The type of a seed, so that a call without one can pass 0 in the word type of its context.
+
+#define RECIPE_XXH64_T        u64
+#define RECIPE_XXH64_T_vector u64x
+#define RECIPE_XXH32_T        u32
+#define RECIPE_XXH32_T_vector u32x
+
+#define RECIPE_LEN_xxh64    8
+#define RECIPE_BLOCK_xxh64  32
+#define RECIPE_UPD_xxh64(X)  xxh64_update##X
+#define RECIPE_UPDW_xxh64(X) recipe_no_utf16_xxhash
+#define RECIPE_UPDG_xxh64    xxh64_update_global
+#define RECIPE_UPDWG_xxh64   recipe_no_utf16_xxhash
+#define RECIPE_UPDP_xxh64(X) xxh64_update##X
+#define RECIPE_PBUF_xxh64    w
+#define RECIPE_UPDS_xxh64(X) xxh64_update##X
+#define RECIPE_SBUF_xxh64    s
+#define RECIPE_CTX_xxh64(X)  xxh64_ctx##X##_t
+#define RECIPE_INIT_xxh64(X) xxh64_init##X (&ctx, (RECIPE_XXH64_T##X) 0);
+#define RECIPE_KS_xxh64(HS,V)  (V)
+
+#define RECIPE_HASH_xxh64(X,HS,INIT,FEED)                             \
+{                                                                     \
+  xxh64_ctx##X##_t ctx;                                               \
+                                                                      \
+  INIT                                                                \
+                                                                      \
+  FEED                                                                \
+                                                                      \
+  xxh64_final##X (&ctx);                                              \
+                                                                      \
+  raw[0] = hc_swap32##HS (h32_from_64##HS (ctx.h));                   \
+  raw[1] = hc_swap32##HS (l32_from_64##HS (ctx.h));                   \
+}
+
+#define RECIPE_LEN_xxh32    4
+#define RECIPE_BLOCK_xxh32  16
+#define RECIPE_UPD_xxh32(X)  xxh32_update##X
+#define RECIPE_UPDW_xxh32(X) recipe_no_utf16_xxhash
+#define RECIPE_UPDG_xxh32    xxh32_update_global
+#define RECIPE_UPDWG_xxh32   recipe_no_utf16_xxhash
+#define RECIPE_UPDP_xxh32(X) xxh32_update##X
+#define RECIPE_PBUF_xxh32    w
+#define RECIPE_UPDS_xxh32(X) xxh32_update##X
+#define RECIPE_SBUF_xxh32    s
+#define RECIPE_CTX_xxh32(X)  xxh32_ctx##X##_t
+#define RECIPE_INIT_xxh32(X) xxh32_init##X (&ctx, (RECIPE_XXH32_T##X) 0);
+#define RECIPE_KS_xxh32(HS,V)  (V)
+
+#define RECIPE_HASH_xxh32(X,HS,INIT,FEED)                             \
+{                                                                     \
+  xxh32_ctx##X##_t ctx;                                               \
+                                                                      \
+  INIT                                                                \
+                                                                      \
+  FEED                                                                \
+                                                                      \
+  xxh32_final##X (&ctx);                                              \
+                                                                      \
+  raw[0] = hc_swap32##HS (ctx.h);                                     \
+}
+
 // lm and mdc2 use inc_hash_lm.cl and inc_hash_mdc2.cl with the DES tables, see RECIPE_DES. Both
 // take bytes in memory order and return little endian words. They have no hmac_ form: lm keeps only
 // 14 bytes of its input, and the block of mdc2 is shorter than its digest.
@@ -4680,6 +4747,66 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 #define RECIPE_KBUF(X)  RECIPE_KBUF2 (X)
 #define RECIPE_KLEN2(X) RECIPE_KLEN_##X
 #define RECIPE_KLEN(X)  RECIPE_KLEN2 (X)
+
+// A SEED step is a call such as xxh64 (pass, salt). Its key part holds the seed, read as a big
+// endian number from its first 8 bytes, or 4 for xxh32, the way the hex of the seed reads. A
+// shorter key gives a smaller number. The step then hashes its parts as a HASH step does.
+
+#ifdef RECIPE_XXHASH
+
+DECLSPEC u64 recipe_seed64_S (PRIVATE_AS const u32 *buf, const u32 len)
+{
+  u64 seed = 0;
+
+  const u32 cnt = (len < 8) ? len : 8;
+
+  for (u32 i = 0; i < cnt; i++) seed = (seed << 8) | ((buf[i / 4] >> ((i & 3) * 8)) & 0xff);
+
+  return seed;
+}
+
+DECLSPEC u32 recipe_seed32_S (PRIVATE_AS const u32 *buf, const u32 len)
+{
+  u32 seed = 0;
+
+  const u32 cnt = (len < 4) ? len : 4;
+
+  for (u32 i = 0; i < cnt; i++) seed = (seed << 8) | ((buf[i / 4] >> ((i & 3) * 8)) & 0xff);
+
+  return seed;
+}
+
+DECLSPEC u64x recipe_seed64 (PRIVATE_AS const u32x *buf, const u32 len)
+{
+  u64x seed = 0;
+
+  const u32 cnt = (len < 8) ? len : 8;
+
+  for (u32 i = 0; i < cnt; i++) seed = (seed << 8) | hl32_to_64 (make_u32x (0), (buf[i / 4] >> ((i & 3) * 8)) & 0xff);
+
+  return seed;
+}
+
+DECLSPEC u32x recipe_seed32 (PRIVATE_AS const u32x *buf, const u32 len)
+{
+  u32x seed = 0;
+
+  const u32 cnt = (len < 4) ? len : 4;
+
+  for (u32 i = 0; i < cnt; i++) seed = (seed << 8) | ((buf[i / 4] >> ((i & 3) * 8)) & 0xff);
+
+  return seed;
+}
+
+#endif
+
+#define RECIPE_SEED_xxh64(X,HS,KEY) xxh64_init##X (&ctx, recipe_seed64##HS (RECIPE_KBUF (KEY), (u32) RECIPE_KLEN (KEY)));
+#define RECIPE_SEED_xxh32(X,HS,KEY) xxh32_init##X (&ctx, recipe_seed32##HS (RECIPE_KBUF (KEY), (u32) RECIPE_KLEN (KEY)));
+
+#define RECIPE_SEED3(F,X,HS,KEY) RECIPE_SEED_##F (X, HS, KEY)
+#define RECIPE_SEED2(F,X,HS,KEY) RECIPE_SEED3 (F, X, HS, KEY)
+
+#define RECIPE_STEP_SEED(F,K,X,HS,T,INIT) RECIPE_STEP_HASHF (F, K, X, HS, T, RECIPE_SEED2 (F, X, HS, RECIPE_S##K##_KEY), RECIPE_FEED (K, F, X))
 
 // XOR the HMAC key block with the pad, then feed it as one block of register words through the
 // family's block update, as the hash includes' HMAC helpers do. KS converts little endian key
@@ -6220,6 +6347,8 @@ typedef struct recipe_state_scalar
 #define RECIPE_NAT_ripemd(HS)          RECIPE_NAT_LE    ( 4, HS)
 #define RECIPE_NAT_wrl0(HS)            RECIPE_NAT_LE    (16, HS)
 #define RECIPE_NAT_wrl1(HS)            RECIPE_NAT_LE    (16, HS)
+#define RECIPE_NAT_xxh64(HS)           RECIPE_NAT_BE64  ( 2, HS)
+#define RECIPE_NAT_xxh32(HS)           RECIPE_NAT_BE    ( 1, HS)
 
 // The result of xor, and or or belongs to no family and keeps its bytes in memory order. It can be
 // up to 64 bytes long, and its step zeroes raw past its length.

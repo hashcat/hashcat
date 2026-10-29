@@ -212,6 +212,8 @@ typedef enum recipe_algo
   RECIPE_ALGO_RIPEMD       = 121,
   RECIPE_ALGO_WRL0         = 122,
   RECIPE_ALGO_WRL1         = 123,
+  RECIPE_ALGO_XXH64        = 124,
+  RECIPE_ALGO_XXH32        = 125,
 
 } recipe_algo_t;
 
@@ -224,13 +226,14 @@ typedef enum recipe_fmt
 
 } recipe_fmt_t;
 
-// A step is a plain hash call, an HMAC, an AES call, a bitwise call, transforms of a hash output or
-// a DES call. The bitwise calls are xor, and, and or. An HMAC step hashes key ^ ipad followed by its
-// parts. It then hashes key ^ opad followed by that digest. An AES step encrypts or decrypts its
-// parts using its key. See recipe_aes_op_t for the AES operations. A BOP step combines its 2 parts
-// byte by byte. See recipe_bop_op_t. An XFRM step applies the transforms of a copy to another
-// step's output, as in rev (md5 (pass)). A DES step encrypts one block, its second part, with the
-// key in its first part. See recipe_des_op_t.
+// A step is a plain hash call, an HMAC, an AES call, a bitwise call, transforms of a hash output, a
+// DES call or a seeded hash call. The bitwise calls are xor, and, and or. An HMAC step hashes
+// key ^ ipad followed by its parts. It then hashes key ^ opad followed by that digest. An AES step
+// encrypts or decrypts its parts using its key. See recipe_aes_op_t for the AES operations. A BOP
+// step combines its 2 parts byte by byte. See recipe_bop_op_t. An XFRM step applies the transforms
+// of a copy to another step's output, as in rev (md5 (pass)). A DES step encrypts one block, its
+// second part, with the key in its first part. See recipe_des_op_t. A SEED step hashes its parts
+// starting from the seed in its key, as in xxh64 (pass, salt).
 
 typedef enum recipe_step_kind
 {
@@ -240,6 +243,7 @@ typedef enum recipe_step_kind
   RECIPE_KIND_BOP  = 3,
   RECIPE_KIND_XFRM = 4,
   RECIPE_KIND_DES  = 5,
+  RECIPE_KIND_SEED = 6,
 
 } recipe_step_kind_t;
 
@@ -422,7 +426,7 @@ typedef struct recipe_step
   recipe_part_t parts[RECIPE_MAX_PARTS];
   u32         parts_cnt;
 
-  // An HMAC key must be a single part.
+  // An HMAC key and the seed of a SEED step must be a single part.
 
   recipe_part_t key;
 
@@ -606,6 +610,7 @@ typedef struct recipe_prog
 } recipe_prog_t;
 
 HC_PLUGIN_API bool        recipe_compile   (recipe_prog_t *prog, const char *src);
+HC_PLUGIN_API bool        recipe_compile_stored (recipe_prog_t *prog, const char *src);
 HC_PLUGIN_API u32         recipe_eval      (const recipe_prog_t *prog, const u8 *pw, const u32 pw_len, const u8 *salt, const u32 salt_len, const u32 *fields, u32 *raw, u8 *out, u32 *out_len);
 HC_PLUGIN_API void        recipe_field_set (u32 *fields, const u32 field, const u8 *buf, const u32 len);
 HC_PLUGIN_API u32         recipe_field_get (const u32 *fields, const u32 field, u8 *buf);
