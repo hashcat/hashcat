@@ -455,7 +455,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   md5_final (&md5_ctx);
 
-  if (send (unit->client_fd, (void *) md5_ctx.h, sizeof (md5_ctx.h), 0) == false) return false;
+  if (send (unit->client_fd, (void *) md5_ctx.h, sizeof (md5_ctx.h), 0) != sizeof (md5_ctx.h)) return false;
 
   md5_init (&md5_ctx);
 
