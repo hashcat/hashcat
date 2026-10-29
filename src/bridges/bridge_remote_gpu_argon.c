@@ -128,10 +128,11 @@ static bool set_receive_timeout (int sockfd)
 
 static bool receive_unit_class (unit_t *unit, hashcat_ctx_t *hashcat_ctx)
 {
-  uint16_t info_class_len_no = 0;
+  u16 info_class_len_no = 0;
+
   if (remote_recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), hashcat_ctx) == false) return false;
 
-  uint16_t unit_class_len = ntohs (info_class_len_no);
+  u16 unit_class_len = ntohs (info_class_len_no);
 
   if (unit_class_len >= sizeof (unit->unit_info_buf)) return false;
 
@@ -470,7 +471,8 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   md5_final (&md5_ctx);
 
-  uint8_t expected_md5[16] = { 0 };
+  u8 expected_md5[16] = { 0 };
+
   if (remote_recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), hashcat_ctx) == false) return false;
 
   if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
