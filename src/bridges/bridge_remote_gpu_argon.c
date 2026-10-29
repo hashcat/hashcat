@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #define HASH_MODE 76000
@@ -78,9 +79,12 @@ typedef struct argon2id_tmp
 
 } argon2id_hybrid_tmp_t;
 
-static bool remote_recv (int sockfd, void *buf, size_t len, hashcat_ctx_t *hashcat_ctx)
+static bool remote_recv (int sockfd, void *buf, size_t len, hashcat_ctx_t *hashcat_ctx, const bool initializing)
 {
   size_t nrecv = 0;
+
+  bool   abort_set = false;
+  time_t abort_time = 0;
 
   while (nrecv < len)
   {
@@ -107,7 +111,15 @@ static bool remote_recv (int sockfd, void *buf, size_t len, hashcat_ctx_t *hashc
       }
     }
 
-    if (hashcat_ctx->status_ctx->run_thread_level1 == false) return false;
+    const time_t now = time (NULL);
+
+    if ((abort_set == false) && ((hashcat_ctx->status_ctx->run_thread_level1 == false) || (initializing == true)))
+    {
+      abort_time = (now + 10);
+      abort_set  = true;
+    }
+
+    if ((abort_set == true) && (now > abort_time)) return false;
   }
 
   return true;
@@ -128,7 +140,7 @@ static bool receive_unit_class (unit_t *unit, hashcat_ctx_t *hashcat_ctx)
 {
   u16 info_class_len_no = 0;
 
-  if (remote_recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), hashcat_ctx) == false) return false;
+  if (remote_recv (unit->client_fd, (void *) &info_class_len_no, sizeof (info_class_len_no), hashcat_ctx, true) == false) return false;
 
   u16 unit_class_len = ntohs (info_class_len_no);
 
@@ -137,7 +149,7 @@ static bool receive_unit_class (unit_t *unit, hashcat_ctx_t *hashcat_ctx)
   unit->unit_class_buf[unit_class_len] = 0;
   unit->unit_class_len = unit_class_len;
 
-  if (remote_recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, hashcat_ctx) == false) return false;
+  if (remote_recv (unit->client_fd, (void *) unit->unit_class_buf, unit_class_len, hashcat_ctx, true) == false) return false;
 
   for (size_t i = 0; i < unit_class_len; i++)
   {
@@ -407,7 +419,7 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
     if (send (unit->client_fd, (void *) &memory_usage_in_kib_no, sizeof (memory_usage_in_kib_no), 0) != sizeof (memory_usage_in_kib_no)) return false;
 
     u32 chunk_size_no = 0;
-    if (remote_recv (unit->client_fd, (void *) &chunk_size_no, sizeof (chunk_size_no), hashcat_ctx) == false) return false;
+    if (remote_recv (unit->client_fd, (void *) &chunk_size_no, sizeof (chunk_size_no), hashcat_ctx, false) == false) return false;
 
     u32 chunk_size = ntohl (chunk_size_no);
     unit->chunk_size = MIN (chunk_size, unit->workitem_count);
@@ -462,7 +474,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
   {
     argon2id_hybrid_tmp_t *tmp = &argon2id_hybrid_tmp[p];
 
-    if (remote_recv (unit->client_fd, (void *) tmp->final_block, sizeof (tmp->final_block), hashcat_ctx) == false) return false;
+    if (remote_recv (unit->client_fd, (void *) tmp->final_block, sizeof (tmp->final_block), hashcat_ctx, false) == false) return false;
 
     md5_update (&md5_ctx, tmp->final_block, sizeof (tmp->final_block));
   }
@@ -471,7 +483,7 @@ bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
 
   u8 expected_md5[16] = { 0 };
 
-  if (remote_recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), hashcat_ctx) == false) return false;
+  if (remote_recv (unit->client_fd, (void *) expected_md5, sizeof (expected_md5), hashcat_ctx, false) == false) return false;
 
   if (memcmp (expected_md5,  md5_ctx.h, sizeof (expected_md5)) != 0)
   {
