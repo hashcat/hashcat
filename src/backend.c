@@ -2608,14 +2608,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     if (true)
     {
       // The amp kernel writes every candidate of the launch from the base words in pws_amp, the copy of
-      // the base word included, so only slow candidates still need them copied across. With more than
-      // one amplifier item in the launch the copy would cover just the first.
+      // the base word included. A slow candidate is finished when it reaches the device, so it has no
+      // amp kernel and the decompress kernel wrote it into pws_buf, where the launch reads it.
 
-      if (user_options->slow_candidates == true)
-      {
-        if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, device_param->d_buf[HC_DEV_BUF_PWS_AMP_BUF], 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
-      }
-      else
+      if (user_options->slow_candidates == false)
       {
         const u64 amp_base_cnt = (device_param->amp_base_cnt > 0) ? device_param->amp_base_cnt : pws_cnt;
 
@@ -17246,6 +17242,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const bool pws_staging_in_use = (user_options->slow_candidates == true) || (user_options_extra->base_source != BASE_SOURCE_MASK);
 
+    // pws_amp holds the base words the amp kernel expands into pws_buf, so a slow hash has one only
+    // because that kernel does. Under --slow-candidates there is no amp kernel: the host builds the
+    // finished candidate, and the decompress kernel can write pws_buf directly. Staging it here first
+    // made this a second buffer the size of pws_buf, which comes off the accel the device has room for,
+    // and one copy of the whole launch per launch.
+
+    const bool pws_amp_in_use = (hashconfig->attack_exec != ATTACK_EXEC_INSIDE_KERNEL) && (user_options->slow_candidates == false);
+
     // pws_base is the third staging buffer, and the only one nothing in a normal run reads. It keeps
     // the base word each slow candidate came from so --debug-mode can report it, and it is charged to
     // the host budget twice, once per pipeline slot, which is budget kernel_accel is sized against.
@@ -17348,7 +17352,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       size_pws = kernel_power_max * sizeof (pw_t);
 
-      size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
+      size_pws_amp = (pws_amp_in_use == true) ? size_pws : 1;
 
       // size_pcfg_cells, size_pcfg_pool
       //
@@ -18036,9 +18040,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->kernel_params_decompress[0] = hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_IDX);
     device_param->kernel_params_decompress[1] = hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_COMP_BUF);
-    device_param->kernel_params_decompress[2] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-                                              ? hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_BUF)
-                                              : hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_AMP_BUF);
+    device_param->kernel_params_decompress[2] = (pws_amp_in_use == true)
+                                              ? hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_AMP_BUF)
+                                              : hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_BUF);
 
     if (device_param->is_opencl == true)
     {
