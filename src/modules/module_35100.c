@@ -266,6 +266,17 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
+  // With plain rotates, the loop of the optimized kernel needs fewer instructions for the same
+  // rotates. The pure kernel gets shorter as well but runs slower, so it keeps the funnelshift. The
+  // option reaches NVIDIA builds alone, and the AMD branches above hold the string, so the vendor
+  // is asked here.
+
+  if (device_param->opencl_device_vendor_id != VENDOR_ID_NV) return jit_build_options;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) return jit_build_options;
+
+  hc_asprintf (&jit_build_options, "-D NO_FUNNELSHIFT");
+
   return jit_build_options;
 }
 

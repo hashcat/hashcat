@@ -138,6 +138,22 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = scrypt_module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
 
+  // With plain rotates, the compiler keeps the Salsa20/8 double rounds of the loop kernel as a
+  // loop instead of unrolling them, and at the N, r and p that every 9300 hash uses, that runs
+  // faster. 8900 builds the same kernel and runs slower with plain rotates at its own settings, so
+  // the option stays with this module.
+
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    char *nv_build_options = NULL;
+
+    hc_asprintf (&nv_build_options, "%s -D NO_FUNNELSHIFT", jit_build_options);
+
+    hcfree (jit_build_options);
+
+    return nv_build_options;
+  }
+
   if (device_param->is_metal == false) return jit_build_options;
 
   // On Metal this kernel runs faster when the backend builds it at the size optimization level,
