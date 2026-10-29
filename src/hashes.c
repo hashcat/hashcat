@@ -736,6 +736,18 @@ static void apply_permutation_hash_inplace (hash_t *hashes_buf, u32 *indices, co
 {
   char *dbase = (char *) digests_buf;
 
+  // scratch for one digest during each cycle rotation, sized to dgst_size so it tracks the mode
+  // instead of a fixed cap (mode 99999 has dgst_size 320, past the old DGST_SIZE_4_64 = 256 max)
+
+  u8 *tmp_d = NULL;
+
+  if (dbase != NULL)
+  {
+    tmp_d = (u8 *) hcmalloc (dgst_size);
+
+    if (tmp_d == NULL) return;
+  }
+
   for (u32 i = 0; i < count; i++)
   {
     if (indices[i] == i) continue;
@@ -743,8 +755,6 @@ static void apply_permutation_hash_inplace (hash_t *hashes_buf, u32 *indices, co
     hash_t tmp_h;
 
     memcpy (&tmp_h, &hashes_buf[i], sizeof (hash_t));
-
-    u8 tmp_d[256]; // max dgst_size is DGST_SIZE_4_64 = 256
 
     if (dbase != NULL)
     {
@@ -786,6 +796,8 @@ static void apply_permutation_hash_inplace (hash_t *hashes_buf, u32 *indices, co
       hashes_buf[i].digest = dbase + (u64) i * dgst_size;
     }
   }
+
+  hcfree (tmp_d);
 }
 
 static void apply_permutation_hash (hash_t **hashes_buf_ptr, u32 *indices, const u32 count, void **digests_buf_ptr, const u32 dgst_size, const bool uniform)

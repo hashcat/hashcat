@@ -18,7 +18,7 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 3;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
-static const u32   DGST_SIZE      = DGST_SIZE_4_32; // originally DGST_SIZE_4_;
+static const u32   DGST_SIZE      = 80 * sizeof (u32); // 320 bytes: md4 digest at 0, plaintext stored at +64 for up to 256 chars
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PLAIN;
 static const char *HASH_NAME      = "Plaintext";
 static const char *HASH_RECIPE    = "md4(pass)";
@@ -73,7 +73,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 1;
 
   token.len_min[0] = 1;
-  token.len_max[0] = 55 * 2 + 6; /* 55 without $HEX[...] */
+  token.len_max[0] = 256 * 2 + 6; /* 256 without $HEX[...] */
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -87,7 +87,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     unhex_len = exec_unhexify (unhex_buf, unhex_len, (u8 *) unhex_buf, unhex_len);
   }
-  else if (unhex_len > 55)
+
+  if ((u32) unhex_len > hashconfig->pw_max)
   {
     return (PARSER_HASH_LENGTH);
   }
@@ -101,7 +102,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   //strncpy ((char *) digest + 64, (char *) input_buf, 64);
 
-  u32 w[16] = { 0 };
+  u32 w[64] = { 0 };
 
   //strncpy ((char *) w, (char *) input_buf, 64);
 
@@ -134,11 +135,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const char *ptr = (const char *) digest_buf;
 
   const char *line_ptr = ptr + 64;
-  size_t line_len      = strnlen (line_ptr, 55);
+  size_t line_len      = strnlen (line_ptr, 256);
 
   if (need_hexify ((const u8 *) line_ptr, line_len, ':', 0))
   {
-    char tmp_buf[55 * 2 + 6 + 1] = { 0 };
+    char tmp_buf[256 * 2 + 6 + 1] = { 0 };
 
     int tmp_len = 0;
 
@@ -159,7 +160,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     return snprintf (line_buf, tmp_len, "%s", tmp_buf);
   }
 
-  return snprintf (line_buf, line_size, "%s", line_ptr);
+  return snprintf (line_buf, line_size, "%.*s", (int) line_len, line_ptr);
 }
 
 void module_init (module_ctx_t *module_ctx)
