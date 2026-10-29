@@ -11,10 +11,8 @@ from argon2.low_level import Type, hash_secret_raw
 
 from lib.test_helpers import random_number, split_hash_word
 
-# Argon2 (argon2d, argon2i, argon2id). The hash keeps the variant, the m/t/p cost parameters and
-# the salt, all of which the verify path reads back so the same raw digest is recomputed.
-
-TYPES = {"argon2d": Type.D, "argon2i": Type.I, "argon2id": Type.ID}
+# Argon2 (argon2id). The hash keeps the m/t/p cost parameters and the salt,
+# all of which the verify path reads back so the same raw digest is recomputed.
 
 
 def module_constraints():
@@ -25,10 +23,7 @@ def _b64(data):
   return base64.b64encode(data).decode("ascii").rstrip("=")
 
 
-def module_generate_hash(word, salt, sign=None, m=None, t=None, p=None, length=None):
-  if sign is None:
-    sign = ("argon2d", "argon2i", "argon2id")[random_number(0, 2)]
-
+def module_generate_hash(word, salt, m=None, t=None, p=None):
   if m is None:
     m = 1 << random_number(12, 18)
 
@@ -38,14 +33,11 @@ def module_generate_hash(word, salt, sign=None, m=None, t=None, p=None, length=N
   if p is None:
     p = random_number(1, 8)
 
-  if length is None:
-    length = random_number(1, 2) * 16
-
   salt_bin = bytes.fromhex(salt)
 
-  digest = hash_secret_raw(word, salt_bin, int(t), int(m), int(p), int(length), TYPES[sign], version=19)
+  digest = hash_secret_raw(word, salt_bin, int(t), int(m), int(p), int(32), Type.ID, version=19)
 
-  return "$%s$v=19$m=%d,t=%d,p=%d$%s$%s" % (sign, int(m), int(t), int(p), _b64(salt_bin), _b64(digest))
+  return "$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s" % (int(m), int(t), int(p), _b64(salt_bin), _b64(digest))
 
 
 def module_verify_hash(line):
@@ -56,9 +48,7 @@ def module_verify_hash(line):
 
   hash_str, word = res
 
-  if not (hash_str.startswith("$argon2d$")
-          or hash_str.startswith("$argon2i$")
-          or hash_str.startswith("$argon2id$")):
+  if not (hash_str.startswith("$argon2id$")):
     return None
 
   data = hash_str.split("$")
@@ -66,7 +56,6 @@ def module_verify_hash(line):
   if len(data) != 6:
     return None
 
-  signature = data[1]
   version = data[2]
   config = data[3]
   salt = data[4]
@@ -87,6 +76,9 @@ def module_verify_hash(line):
   salt_bin = base64.b64decode(salt + "=" * (-len(salt) % 4))
   digest_bin = base64.b64decode(digest + "=" * (-len(digest) % 4))
 
-  new_hash = module_generate_hash(word, salt_bin.hex(), signature, int(m), int(t), int(p), len(digest_bin))
+  if len(digest_bin) != 32
+    return None
+
+  new_hash = module_generate_hash(word, salt_bin.hex(), int(m), int(t), int(p))
 
   return (new_hash, word)
