@@ -80,8 +80,6 @@ typedef struct argon2id_tmp
 
 static bool remote_recv (int sockfd, void *buf, size_t len, hashcat_ctx_t *hashcat_ctx)
 {
-  char *ptr = (char *) buf;
-
   size_t nrecv = 0;
 
   while (nrecv < len)
