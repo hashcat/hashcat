@@ -88,6 +88,19 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
+  // Only the first word changes in the loop of the optimized mask kernel. With plain rotates, the
+  // compiler computes the message schedule terms that do not depend on it once, before the loop.
+  // The other kernels gain nothing from plain rotates or run slower with them. The option reaches
+  // NVIDIA builds alone, and the AMD branch above holds the string, so the vendor is asked here.
+
+  if (device_param->opencl_device_vendor_id != VENDOR_ID_NV) return jit_build_options;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) return jit_build_options;
+
+  if (user_options_extra->attack_kern != ATTACK_KERN_BF) return jit_build_options;
+
+  hc_asprintf (&jit_build_options, "-D NO_FUNNELSHIFT");
+
   return jit_build_options;
 }
 

@@ -121,6 +121,17 @@ DECLSPEC u64  rotr64_S (const u64  a, const int n);
 // across the workgroup. HC_SHFL_BARRIER marks that case: there every thread of the workgroup has
 // to make the calls.
 
+// An AMD GPU reaches the crossbar through the lane builtins of the amdgcn target, but not every AMD
+// OpenCL compiler declares them. The one in AMD's Windows driver rejects __builtin_amdgcn_mbcnt_hi,
+// and since every program includes this file, no kernel builds at all. Where they are missing, the
+// exchange goes through local memory as it does on other platforms.
+
+#if defined IS_AMD_USE_OPENCL && defined IS_GPU && defined __has_builtin
+#if __has_builtin (__builtin_amdgcn_mbcnt_lo) && __has_builtin (__builtin_amdgcn_mbcnt_hi) && __has_builtin (__builtin_amdgcn_ds_bpermute)
+#define HC_SHFL_AMDGCN
+#endif
+#endif
+
 #if defined IS_CUDA
 #define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) __shfl_sync (0xffffffff, (var), (src_lane))
 #elif defined IS_HIP
@@ -129,7 +140,7 @@ DECLSPEC u64  rotr64_S (const u64  a, const int n);
 #else
 #define hc_shfl_u64(shfl_buf,var,src_lane,lid,lsz) hc_shfl_u64_impl ((shfl_buf), (var), (src_lane), (lid), (lsz))
 DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 var, const int src_lane, MAYBE_UNUSED const u32 lid, MAYBE_UNUSED const u32 lsz);
-#if !defined IS_METAL && !(defined IS_AMD_USE_OPENCL && defined IS_GPU) && !(defined IS_NV && defined IS_GPU)
+#if !defined IS_METAL && !defined HC_SHFL_AMDGCN && !(defined IS_NV && defined IS_GPU)
 #define HC_SHFL_BARRIER
 #endif
 #endif

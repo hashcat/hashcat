@@ -146,7 +146,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   u32 native_threads = (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) ? 1 : 32;
 
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", native_threads);
+  // On Metal this kernel runs faster when the backend builds it at the size optimization level.
+
+  const char *metal_opt_size = (device_param->is_metal == true) ? " -D METAL_OPT_SIZE" : "";
+
+  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u%s", native_threads, metal_opt_size);
 
   return jit_build_options;
 }
@@ -529,27 +533,39 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
     return snprintf ((char *) dst_buf, dst_sz, "%s    (user password not set)", (const char *) src_buf);
   }
 
-  // cast out buffer to byte such that we can do a byte per byte comparison
-  const u32 *u32OutBufPtr = pdf_tmp->out;
-  u8 *u8OutBufPtr;
-  u8OutBufPtr = (u8*) u32OutBufPtr;
+  // The recovered user password sits at the front of out, followed by as much of the PDF padding
+  // string as it takes to fill 32 bytes. Its length is therefore the shortest prefix whose remainder
+  // is exactly the head of the padding.
+  //
+  // Worked out on a copy, because tmps reaches this callback as const and the search used to write
+  // its zeros back through it.
+  //
+  // The search also never advanced its index into the padding, so every byte was compared against
+  // the padding's first byte alone, and the first password byte that happened to equal it truncated
+  // the result. It covered 16 of the 32 bytes.
 
-  // cast padding buffer to byte such that we can do a byte per byte comparison
-  const u32 *u32OutPadPtr = padding;
-  const u8 *u8OutPadPtr;
-  u8OutPadPtr = (u8*) u32OutPadPtr;
+  u8 out_buf[32 + 1];
+  u8 pad_buf[32];
 
-  bool remove_padding = false;
-  int i_padding = 0;
+  memcpy (out_buf, pdf_tmp->out, 32);
+  memcpy (pad_buf, padding,      32);
 
-  for (int i = 0; i < 16; i++)
+  int out_len = 32;
+
+  for (int i = 0; i <= 32; i++)
   {
-    if (u8OutBufPtr[i] == u8OutPadPtr[i_padding] || remove_padding)
+    if (memcmp (out_buf + i, pad_buf, (size_t) (32 - i)) == 0)
     {
-      u8OutBufPtr[i] = 0x0;
-      remove_padding = true;
+      out_len = i;
+
+      break;
     }
   }
+
+  // Nothing terminates those 32 bytes, so a password filling all of them left the %s below reading
+  // past the end of the array.
+
+  out_buf[out_len] = 0;
 
   // if the password in tmp->out is equal to the password tried, then we recovered just the owner-password or just the user-password
   //   we check whether we already have a user-password in the hash
@@ -573,7 +589,7 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
     }
   }
   // we recovered both the user-password and the owner-password
-  return snprintf ((char *) dst_buf, dst_sz, "%s    (user password=%s)", (const char *) src_buf, (const char *) pdf_tmp->out);
+  return snprintf ((char *) dst_buf, dst_sz, "%s    (user password=%s)", (const char *) src_buf, (const char *) out_buf);
 }
 
 // TODO how to add the recovered user-password to the hash?

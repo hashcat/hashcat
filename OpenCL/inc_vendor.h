@@ -287,11 +287,9 @@ using namespace metal;
 // USE_ROTATE must not be set here, or any code that believes it fails to compile with
 // "use of undeclared identifier 'rotate'".
 //
-// Nothing hit that until now, because the two places that test USE_ROTATE without first
-// returning on IS_CUDA or IS_HIP are the fallback arms of hc_swap32 and hc_swap64, and
-// those were unreachable behind the V_PERM_B32 and prmt arms above them. The eight
-// hc_rotl/hc_rotr functions are unaffected either way; each one returns on
-// IS_CUDA || IS_HIP before it reaches its USE_ROTATE branch.
+// The one place that tests USE_ROTATE without first returning on IS_CUDA or IS_HIP is
+// hc_swap32, and every CUDA and HIP build compiles it. The eight hc_rotl/hc_rotr functions
+// each return on IS_CUDA || IS_HIP before they reach their USE_ROTATE branch.
 
 #ifdef IS_CUDA
 #define USE_BITSELECT

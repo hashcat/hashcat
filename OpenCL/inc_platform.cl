@@ -674,7 +674,7 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   return out;
 
-  #elif defined IS_AMD_USE_OPENCL && defined IS_GPU
+  #elif defined HC_SHFL_AMDGCN
 
   // ds_bpermute addresses lanes in bytes. On GCN and CDNA it reaches across the whole wave64,
   // which then holds more than one group of lsz threads, so the source lane is taken within the

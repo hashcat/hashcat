@@ -520,11 +520,13 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   if (generic_ctx->dev_enable == true)
   {
-    char source_file[256];
+    char source_file[KERNEL_PATH_SZ];
 
     generate_source_kernel_filename (false, hashcat_ctx->hashconfig->attack_exec, ATTACK_KERN_PCFG,
                                      hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
                                      hashcat_ctx->folder_config->shared_dir, source_file);
+
+    if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
 
     if (hc_path_read (source_file) == false)
     {

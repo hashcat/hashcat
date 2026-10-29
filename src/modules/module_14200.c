@@ -259,9 +259,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
   // mem_fac is four hex digits off the line, so it reaches 0xffff, and the shift below is then
   // undefined rather than large. The buffer it sizes is racf_kdfaes_tmp->out, u32[256], which is
-  // what a mem_fac of 10 fills, and a mem_fac of 0 would shift by -1.
+  // what a mem_fac of 10 fills. Below 5 the division gives 0, and the kernel then indexes out[]
+  // with 8 * (0 - 1).
 
-  if ((mem_fac < 1) || (mem_fac > 10)) return (PARSER_SALT_VALUE);
+  if ((mem_fac < 5) || (mem_fac > 10)) return (PARSER_SALT_VALUE);
+
+  // rep_fac comes off the same header and sets both iteration counts, each one less than a
+  // multiple of it, so a rep_fac of 0 makes them 0xffffffff.
+
+  if (rep_fac == 0) return (PARSER_SALT_ITERATION);
 
   racf_kdfaes->mem_fac = (2u << (mem_fac - 1)) / 32;
   /**

@@ -314,6 +314,17 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
   slow_fill_state_t *sc = (slow_fill_state_t *) state;
 
+  // pws_pre holds a batch's candidates so the brain can reject some of them once the whole batch has
+  // been hashed, which it cannot know while the batch is still being built. Without the brain nothing
+  // rejects anything after the fact, so the candidate goes straight into the batch and the staging
+  // buffer is neither allocated nor written. backend_session_begin () sizes it on the same question.
+
+  #ifdef WITH_BRAIN
+  const bool stage = (user_options->brain_client == true);
+  #else
+  const bool stage = false;
+  #endif
+
   hc_timer_t timer_feed;
 
   pipe_mark (&timer_feed);
@@ -446,13 +457,20 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         }
         #endif
 
-        if (sc->base_buf)
+        // A producer with no base word of its own leaves both of these NULL, so neither is read for it.
+
+        const int rule_idx = (sc->rule_pos) ? (int) sc->rule_pos[0] : 0;
+        const int base_len = (sc->base_len) ? (int) sc->base_len[0] : 0;
+
+        if (stage == true)
         {
-          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], sc->base_buf, sc->base_len[0], (sc->rule_pos) ? (int) sc->rule_pos[0] : 0);
+          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], sc->base_buf, base_len, rule_idx);
         }
         else
         {
-          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], NULL, 0, 0);
+          if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, sc->base_buf, base_len, rule_idx);
+
+          pw_add (batch, device_param->kernel_power, sc->out_buf, sc->out_len[0]);
         }
 
         if (status_ctx->run_thread_level1 == false) break;
@@ -464,7 +482,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     }
 
     #ifdef WITH_BRAIN
-    if (user_options->brain_client == true)
+    if (stage == true)
     {
       if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
       {
@@ -483,40 +501,16 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
           pre_rejects++;
 
           brain_rejects_hashes++;
+
+          continue;
         }
-        else
-        {
-          pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
-          if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
-
-          pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-        }
-      }
-    }
-    else
-    {
-      const u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-      for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-      {
         pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
-        if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
+        if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, (const u8 *) pw_pre->base_buf, (const int) pw_pre->base_len, (const int) pw_pre->rule_idx);
 
         pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
       }
-    }
-    #else
-    const u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-    for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-    {
-      pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-      if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
-
-      pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
     }
     #endif
 

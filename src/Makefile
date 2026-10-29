@@ -27,7 +27,7 @@
 ##
 
 DEBUG                   := 0
-PRODUCTION              := 1
+PRODUCTION              := 0
 PRODUCTION_VERSION      := v8.0.0
 MACOS_UNIVERSAL_BINARY  ?= 0
 ENABLE_LTO              ?= 0

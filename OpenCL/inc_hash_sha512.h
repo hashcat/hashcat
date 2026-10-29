@@ -107,6 +107,7 @@ DECLSPEC void sha512_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *
 DECLSPEC void sha512_init (PRIVATE_AS sha512_ctx_t *ctx);
 DECLSPEC void sha512_update_128 (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const int len);
 DECLSPEC void sha512_update (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha512_update_padded (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha512_update_swap (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha512_update_utf16le (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha512_update_utf16le_swap (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);

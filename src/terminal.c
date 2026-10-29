@@ -404,12 +404,20 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  // this is required, because some of the variables down there are not initialized at that point
-  while (status_ctx->devices_status == STATUS_INIT) usleep (100000);
-
   const bool quiet = user_options->quiet;
 
+  // The terminal leaves canonical mode before the wait below rather than after it. Startup takes a
+  // while, a cold kernel cache makes it a minute or more, and a key pressed in that window used to
+  // be echoed into the output and then thrown away: canonical mode holds a line until a newline
+  // arrives, and turning ICANON off does not hand the partial line to read (). So a user who hit q
+  // while hashcat was still compiling saw a stray q in the log, no quit, and had to send a signal.
+  // With the mode changed first the key waits in the input queue and the loop reads it as soon as
+  // the attack is running.
+
   tty_break ();
+
+  // this is required, because some of the variables down there are not initialized at that point
+  while (status_ctx->devices_status == STATUS_INIT) usleep (100000);
 
   while (status_ctx->shutdown_outer == false)
   {
@@ -1097,6 +1105,15 @@ void hash_info_single_json (json_ctx_t *js, hashcat_ctx_t *hashcat_ctx, user_opt
 
       json_kv_string (js, "salt_type", t_salt_desc);
 
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      {
+        const char *t_salt_enc = "plain";
+        if (hashconfig->opts_type & OPTS_TYPE_ST_HEX) t_salt_enc = "HEX";
+        else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64) t_salt_enc = "BASE64";
+
+        json_kv_string (js, "salt_encoding", t_salt_enc);
+      }
+
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {
         u32 t_salt_min = hashconfig->salt_min;
@@ -1384,6 +1401,15 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
       const char *t_salt_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded" : (t == SALT_TYPE_GENERIC) ? "Generic" : "Virtual";
 
       event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_salt_desc);
+
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      {
+        const char *t_salt_enc = "plain";
+        if (hashconfig->opts_type & OPTS_TYPE_ST_HEX) t_salt_enc = "HEX";
+        else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64) t_salt_enc = "BASE64";
+
+        event_log_info (hashcat_ctx, "  Salt.Encoding.......: %s", t_salt_enc);
+      }
 
       if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
       {

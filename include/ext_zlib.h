@@ -101,10 +101,16 @@ void hc_zlib_shutdown (void);
 const hc_zlib_lib_t *hc_zlib       (void);
 const char          *hc_zlib_error (void);
 
+HC_PLUGIN_API bool hc_zlib_available (void);
+
 // Where to get the library on this platform, for the one message a user sees when it is missing.
 
 const char          *hc_zlib_hint  (void);
 
 HC_PLUGIN_API bool hc_inflate_raw (const unsigned char *in, const size_t in_len, unsigned char *out, const size_t out_len);
+
+HC_PLUGIN_API i32  hc_inflate_init (hc_z_stream *stream);
+HC_PLUGIN_API i32  hc_inflate_step (hc_z_stream *stream);
+HC_PLUGIN_API void hc_inflate_end  (hc_z_stream *stream);
 
 #endif // HC_EXT_ZLIB_H

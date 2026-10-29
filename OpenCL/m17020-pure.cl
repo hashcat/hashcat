@@ -340,7 +340,7 @@ KERNEL_FQ KERNEL_FA void m17020_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   for (u32 i = 0; i < rounds; i++)
   {
-    sha512_update (&ctx, salted_pw_block, salted_pw_block_len);
+    sha512_update_padded (&ctx, salted_pw_block, salted_pw_block_len);
   }
 
   if ((LOOP_POS + LOOP_CNT) == salt_iter)
@@ -351,7 +351,7 @@ KERNEL_FQ KERNEL_FA void m17020_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     {
       memzero_be_S (salted_pw_block, remaining_bytes, salted_pw_block_len);
 
-      sha512_update (&ctx, salted_pw_block, remaining_bytes);
+      sha512_update_padded (&ctx, salted_pw_block, remaining_bytes);
     }
 
     sha512_final (&ctx);

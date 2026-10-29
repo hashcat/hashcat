@@ -1,3 +1,105 @@
+* changes v8.0.0 -> v8.0.x
+
+##
+## New Hash Modes
+##
+
+- Added mode 38100: IKE-PSK SHA256
+
+##
+## New Features and Options
+##
+
+- "--hash-info" reports the expected encoding for a separate salt field, plain, HEX or BASE64, as a
+  Salt.Encoding line and as "salt_encoding" under "--machine-readable". Modes with an embedded salt
+  do not report this field
+
+##
+## Performance
+##
+
+Results depend on the device, runtime and workload.
+
+- Increased the speed of SHA2-256 and eight related SHA-256 hash-modes under CUDA by 3-14% on an RTX
+  4090 by computing rotations with plain shifts that the compiler can lift out of the loop
+- Increased "--slow-candidates" speed when host memory limits the launch size by skipping candidate
+  staging when the brain is not in use
+- Reduced host memory use by allocating brain link buffers only when running a brain client
+- Reduced the overhead of hash-modes with a host hook when only one hook thread runs by executing
+  the hook in the calling thread
+
+##
+## Bug Fixes
+##
+
+## Hash modes and kernels
+
+- Fixed hash-modes 14200 and 37500 writing beyond a device array when the RACF memory factor in the
+  hash line was out of range
+- Fixed hash-modes 14200 and 37500 accepting a RACF repetition factor of 0, which set both iteration
+  counts to 0xffffffff
+- Fixed hash-mode 34000 writing past the end of a device array when a hash file specified an Argon2
+  tag longer than 32 bytes, and made it reject tags the kernel cannot compute or compare
+- Fixed incorrect yescrypt results for workgroups unsupported by the register path. Workgroups with
+  fewer than eight threads are now rejected, while the others use the local memory path
+- Fixed yescrypt memory budgeting on unified memory devices, where tuning claimed memory that the
+  backend had already reserved, preventing the run from starting
+- Fixed PKZIP and Electrum Wallet (Salt-Type 5) failing to crack hashes on Intel Arc GPUs because a
+  compiler fault caused the inflate step to reject every candidate
+- Fixed TOTP (HMAC-SHA1) running at a sixth of its v7.1.2 speed with "-a 3" on an Arc A770. The
+  kernel now runs 2.8x faster than in v7.1.2
+- Fixed some Intel GPU kernels running with only 8 threads per workgroup, which reduced NetNTLMv1
+  and VeraCrypt performance by more than half on an Arc A770
+- Fixed the pure kernels of md5crypt, Apache apr1, AIX {smd5}, Samsung Android Password/PIN and four
+  GPG modes running up to a fifth slower than in v7.1.2 by hashing their loop buffers with the
+  padded update helpers
+- Fixed md5($salt.md5($pass.$salt)) and md5($salt.md5($pass)) running 3% and 10% slower,
+  respectively, than in v7.1.2 under CUDA in mask attacks, restoring their previous performance on
+  an RTX 4090
+- Fixed hash-mode 25400 printing an unterminated buffer as plaintext because the padding stripping
+  code never advanced past the first byte
+- Fixed hash-mode 40041 dropping a custom round count when writing a hash, so hashes written to
+  outfiles and potfiles or displayed by "--show" could not be loaded again
+
+## Backends and devices
+
+- Fixed all kernel builds failing when an AMD GPU's OpenCL compiler does not declare the amdgcn lane
+  builtins, as with AMD's Windows OpenCL runtime on an integrated GPU
+- Fixed OpenCL kernel builds failing on Apple Silicon GPUs whose device name does not start with
+  "Apple M", such as clvk on a virtio-gpu device
+- Fixed identical devices running different batch sizes because the alignment clamp used the limit
+  calculated for the thread count assumed during memory sizing rather than the one selected by
+  autotune
+- Fixed devices remaining idle after a kernel launch when the host woke late from sleep, which
+  reduced fast hash-mode performance by 2.4-2.8% on an RTX 3090 under Windows
+- Fixed the Metal backend transferring an entire buffer back to the host after every device to
+  device copy on AMD GPUs, which reduced slow hash-mode performance by 58-61% in mask attacks
+- Fixed Metal building every kernel at the size optimization level, which slowed table lookup,
+  scrypt and Radmin3 kernels by up to 9.6x. Kernels that cannot be built at the default optimization
+  level still fall back to the size level
+- Fixed the NVML driver and library mismatch error failing to report its cause or how to resolve it,
+  and added the NVML error codes needed for that message
+
+## Paths, startup and interface
+
+- Fixed kernel paths longer than 255 bytes being silently truncated, leaving hashcat looking for a
+  kernel at a path that does not exist
+- Fixed "--hash-info" and other kernel file probes reporting that a hash-mode had no kernels when
+  the install path exceeded the path buffer
+- Fixed "--outfile-autohex-disable" being ignored by "--stdout", which caused candidate output to
+  contain "$HEX[...]"
+- Fixed an unknown "-m" value producing no error that named the hash-mode, and a valid hash-mode
+  being blamed for an unrelated failure that had already been reported
+- Fixed the q key being ignored if pressed during startup, leaving a signal as the only way to quit
+  the run
+
+## Brain and build
+
+- Fixed the brain server retaining a client slot for a connection that never authenticated, which
+  allowed 255 silent connections to fill the server and block legitimate clients
+- Fixed the Docker build failing under clang because the Dockerfile set SOURCE_DATE_EPOCH to an
+  empty value instead of leaving it unset
+
 * changes v7.1.2 -> v8.0.0
 
 ##

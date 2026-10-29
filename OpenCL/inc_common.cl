@@ -1286,42 +1286,6 @@ DECLSPEC u32x hc_swap32 (const u32x v)
   #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
   #else
-  #if defined IS_NV  && HAS_PRMT  == 1
-
-  #if VECT_SIZE == 1
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s0) : "r"(v.s0));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s1) : "r"(v.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s2) : "r"(v.s2));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s3) : "r"(v.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s4) : "r"(v.s4));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s5) : "r"(v.s5));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s6) : "r"(v.s6));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s7) : "r"(v.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s8) : "r"(v.s8));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.s9) : "r"(v.s9));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sa) : "r"(v.sa));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sb) : "r"(v.sb));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sc) : "r"(v.sc));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sd) : "r"(v.sd));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.se) : "r"(v.se));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r.sf) : "r"(v.sf));
-  #endif
-
-  #else
-
   #if defined USE_BITSELECT && defined USE_ROTATE
   r = bitselect (rotate (v, make_u32x (24)),
                  rotate (v, make_u32x ( 8)),
@@ -1364,8 +1328,6 @@ DECLSPEC u32x hc_swap32 (const u32x v)
 
   #endif
 
-  #endif
-
   return r;
 }
 
@@ -1375,9 +1337,6 @@ DECLSPEC u32 hc_swap32_S (const u32 v)
 
   #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
-  #else
-  #if defined IS_NV  && HAS_PRMT  == 1
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
   #else
   #ifdef USE_SWIZZLE
   #ifdef IS_METAL
@@ -1393,7 +1352,6 @@ DECLSPEC u32 hc_swap32_S (const u32 v)
     | ((v & 0x000000ff) << 24);
   #endif
   #endif
-  #endif
 
   return r;
 }
@@ -1405,131 +1363,7 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_64 (v);
   #else
-  #if defined IS_NV && HAS_MOV64 == 1 && HAS_PRMT == 1
-
-  u32x il;
-  u32x ir;
-
-  #if VECT_SIZE == 1
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s0), "=r"(ir.s0) : "l"(v.s0));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s1), "=r"(ir.s1) : "l"(v.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s2), "=r"(ir.s2) : "l"(v.s2));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s3), "=r"(ir.s3) : "l"(v.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s4), "=r"(ir.s4) : "l"(v.s4));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s5), "=r"(ir.s5) : "l"(v.s5));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s6), "=r"(ir.s6) : "l"(v.s6));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s7), "=r"(ir.s7) : "l"(v.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s8), "=r"(ir.s8) : "l"(v.s8));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.s9), "=r"(ir.s9) : "l"(v.s9));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sa), "=r"(ir.sa) : "l"(v.sa));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sb), "=r"(ir.sb) : "l"(v.sb));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sc), "=r"(ir.sc) : "l"(v.sc));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sd), "=r"(ir.sd) : "l"(v.sd));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.se), "=r"(ir.se) : "l"(v.se));
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il.sf), "=r"(ir.sf) : "l"(v.sf));
-  #endif
-
-  u32x tl;
-  u32x tr;
-
-  #if VECT_SIZE == 1
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s0) : "r"(il.s0));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s0) : "r"(ir.s0));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s1) : "r"(il.s1));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s1) : "r"(ir.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s2) : "r"(il.s2));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s2) : "r"(ir.s2));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s3) : "r"(il.s3));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s3) : "r"(ir.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s4) : "r"(il.s4));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s4) : "r"(ir.s4));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s5) : "r"(il.s5));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s5) : "r"(ir.s5));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s6) : "r"(il.s6));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s6) : "r"(ir.s6));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s7) : "r"(il.s7));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s7) : "r"(ir.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s8) : "r"(il.s8));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s8) : "r"(ir.s8));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.s9) : "r"(il.s9));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.s9) : "r"(ir.s9));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sa) : "r"(il.sa));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sa) : "r"(ir.sa));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sb) : "r"(il.sb));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sb) : "r"(ir.sb));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sc) : "r"(il.sc));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sc) : "r"(ir.sc));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sd) : "r"(il.sd));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sd) : "r"(ir.sd));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.se) : "r"(il.se));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.se) : "r"(ir.se));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl.sf) : "r"(il.sf));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr.sf) : "r"(ir.sf));
-  #endif
-
-  #if VECT_SIZE == 1
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
-  #endif
-
-  #if VECT_SIZE >= 2
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s0) : "r"(tr.s0), "r"(tl.s0));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s1) : "r"(tr.s1), "r"(tl.s1));
-  #endif
-
-  #if VECT_SIZE >= 4
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s2) : "r"(tr.s2), "r"(tl.s2));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s3) : "r"(tr.s3), "r"(tl.s3));
-  #endif
-
-  #if VECT_SIZE >= 8
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s4) : "r"(tr.s4), "r"(tl.s4));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s5) : "r"(tr.s5), "r"(tl.s5));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s6) : "r"(tr.s6), "r"(tl.s6));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s7) : "r"(tr.s7), "r"(tl.s7));
-  #endif
-
-  #if VECT_SIZE >= 16
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s8) : "r"(tr.s8), "r"(tl.s8));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.s9) : "r"(tr.s9), "r"(tl.s9));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sa) : "r"(tr.sa), "r"(tl.sa));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sb) : "r"(tr.sb), "r"(tl.sb));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sc) : "r"(tr.sc), "r"(tl.sc));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sd) : "r"(tr.sd), "r"(tl.sd));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.se) : "r"(tr.se), "r"(tl.se));
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
-  #endif
-
-  #else
-
-  // A 64 bit byte reverse is two 32 bit ones over the halves, and asking for it that way is what
-  // every backend without a byte permute instruction wants. The 64 bit spellings that were here
+  // A 64 bit byte reverse is two 32 bit ones over the halves. The 64 bit spellings that were here
   // ask a compiler to see through a chain of 64 bit shifts, and neither AMD compiler does: on a
   // gfx1100 the bitselect one cost 20 instructions under ROCm and 22 under Mesa, where this costs
   // 2 and 6.
@@ -1541,8 +1375,6 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   const u32x t1 = hc_swap32 (a1);
 
   r = hl32_to_64 (t1, t0);
-
-  #endif
   #endif
 
   return r;
@@ -1555,22 +1387,6 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
   #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_64 (v);
   #else
-  #if defined IS_NV  && HAS_PRMT  == 1
-  u32 il;
-  u32 ir;
-
-  asm volatile ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
-
-  u32 tl;
-  u32 tr;
-
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
-
-  asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
-
-  #else
-
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
 
@@ -1578,8 +1394,6 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
   const u32 t1 = hc_swap32_S (v1);
 
   r = hl32_to_64_S (t1, t0);
-
-  #endif
   #endif
 
   return r;

@@ -780,6 +780,10 @@ typedef enum opts_type
   OPTS_TYPE_MT_HEX                   = (1ULL << 28), // mask is always in hex
   OPTS_TYPE_HASH_COPY                = (1ULL << 29),
   OPTS_TYPE_HASH_SPLIT               = (1ULL << 30),
+
+  // Optional binary input uses callbacks for files and the decoder for inline hashes.
+  OPTS_TYPE_BINARY_HASHFILE_DIRECT   = (1ULL << 31),
+
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
@@ -789,7 +793,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
-  // Bits 31 to 44 and bit 50 are free. They held the 16 flags that said which kernels a session
+  // Bits 32 to 44 and bit 50 are free. They held flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.
@@ -954,6 +958,13 @@ typedef enum parser_rc
   PARSER_CRYPTOAPI_KERNELTYPE = -46,
   PARSER_CRYPTOAPI_KEYSIZE    = -47,
   PARSER_ZSTD_UNAVAILABLE     = -48,
+
+  PARSER_PKZIP_MEMBER_EMPTY       = -49,
+  PARSER_PKZIP_MEMBER_UNSUPPORTED = -50,
+  PARSER_PKZIP_MEMBER_INDEX       = -51,
+  PARSER_PKZIP_MEMBER_TOO_SHORT   = -52,
+  PARSER_ZLIB_UNAVAILABLE         = -53,
+
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
@@ -2100,8 +2111,6 @@ typedef struct hc_device_param
   bool    has_subc;
   bool    has_bfe;
   bool    has_lop3;
-  bool    has_mov64;
-  bool    has_prmt;
   bool    has_shfw;
 
   double  spin_damp;
@@ -2256,6 +2265,16 @@ typedef struct hc_device_param
   dispatch_semaphore_t  metal_sema;
 
   mtl_library       metal_library[HC_DEV_PROGRAM_CNT];
+
+  // A program is built at the default optimization level, or at the size level when its module asks
+  // for it. A kernel the default level cannot build comes from a second library at the size level,
+  // built from the source and options kept here. See hc_mtlCreateKernel.
+
+  mtl_library       metal_library_size[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_source[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_options[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_size_kernels[HC_DEV_PROGRAM_CNT];
+  bool              metal_program_opt_size[HC_DEV_PROGRAM_CNT];
 
   // The archive the compiled pipelines of a program are cached in, see hc_mtlArchiveOpen.
 
@@ -2819,6 +2838,7 @@ typedef struct out
   int    len;
   bool   write_failed;
   bool   always_ascii;
+  bool   autohex;
 
 } out_t;
 

@@ -3267,6 +3267,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         const int path_errno = errno;
 
+        event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
+
         status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
       }
 
@@ -3299,6 +3301,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   char *kernelfile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   generate_source_kernel_filename (false, ATTACK_EXEC_OUTSIDE_KERNEL, ATTACK_KERN_STRAIGHT, 4000, 0, folder_config->shared_dir, kernelfile);
+
+  if (kernel_path_fits (hashcat_ctx, kernelfile) == false)
+  {
+    hcfree (kernelfile);
+
+    return -1;
+  }
 
   if (hc_path_read (kernelfile) == false)
   {

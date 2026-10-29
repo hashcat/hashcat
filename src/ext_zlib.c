@@ -149,6 +149,13 @@ const hc_zlib_lib_t *hc_zlib (void)
   return &zlib_lib;
 }
 
+HC_PLUGIN_API bool hc_zlib_available (void)
+{
+  const bool available = (hc_zlib () != NULL);
+
+  return available;
+}
+
 const char *hc_zlib_error (void)
 {
   hc_once (&zlib_once, zlib_load);
@@ -171,6 +178,43 @@ const char *hc_zlib_hint (void)
   #else
   return "install your distribution's zlib runtime package, named zlib1g on Debian and Ubuntu and zlib on Arch";
   #endif
+}
+
+// Streaming callers retain the inflater's window across bounded input and output buffers.
+
+i32 hc_inflate_init (hc_z_stream *stream)
+{
+  const hc_zlib_lib_t *z = NULL;
+
+  z = hc_zlib ();
+
+  if (z == NULL) return HC_Z_VERSION_ERROR;
+
+  const i32 rc = z->inflateInit2_ (stream, -HC_Z_MAX_WBITS, HC_ZLIB_VERSION, (i32) sizeof (hc_z_stream));
+
+  return rc;
+}
+
+i32 hc_inflate_step (hc_z_stream *stream)
+{
+  const hc_zlib_lib_t *z = NULL;
+
+  z = hc_zlib ();
+
+  if (z == NULL) return HC_Z_VERSION_ERROR;
+
+  const i32 rc = z->inflate (stream, HC_Z_NO_FLUSH);
+
+  return rc;
+}
+
+void hc_inflate_end (hc_z_stream *stream)
+{
+  const hc_zlib_lib_t *z = NULL;
+
+  z = hc_zlib ();
+
+  if (z != NULL) z->inflateEnd (stream);
 }
 
 // A raw deflate stream, which is what zlib calls a negative window size, decompressed in one call.

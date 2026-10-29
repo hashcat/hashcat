@@ -42,12 +42,15 @@ static void out_flush (out_t *out)
 //
 // The widest a candidate can get is "$HEX[" plus two characters a byte plus "]" plus the line
 // ending, which is what STDOUT_CAND_MAX below reserves for it.
+//
+// --outfile-autohex-disable turns it off, for a caller that wants the bytes as they are and will
+// take the ambiguity with them. A rules file is one, because $HEX[] is not rule syntax.
 
-static size_t stdout_append (char *dst, const u8 *pw_buf, const int pw_len, const bool always_ascii)
+static size_t stdout_append (char *dst, const u8 *pw_buf, const int pw_len, const bool always_ascii, const bool autohex)
 {
   size_t len = 0;
 
-  if (need_hexify (pw_buf, (size_t) pw_len, 0, always_ascii) == true)
+  if ((autohex == true) && (need_hexify (pw_buf, (size_t) pw_len, 0, always_ascii) == true))
   {
     memcpy (dst, "$HEX[", 5);
 
@@ -88,7 +91,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 {
   char *ptr = out->buf + out->len;
 
-  out->len += (int) stdout_append (ptr, pw_buf, pw_len, out->always_ascii);
+  out->len += (int) stdout_append (ptr, pw_buf, pw_len, out->always_ascii, out->autohex);
 
   // the flush has to leave room for a whole candidate, because the next one is written before the
   // buffer is looked at again
@@ -131,6 +134,7 @@ typedef struct stdout_rule_job
   const kernel_rule_t *rules;
   bool                 optimized;
   bool                 always_ascii;
+  bool                 autohex;
   u32                  pw_max;
 
   char                *buf;
@@ -176,7 +180,7 @@ static HC_THREAD_FUNC stdout_rule_worker (void *p)
 
     if (plain_len > (int) job->pw_max) plain_len = (int) job->pw_max;
 
-    job->len += stdout_append (job->buf + job->len, plain_ptr, plain_len, job->always_ascii);
+    job->len += stdout_append (job->buf + job->len, plain_ptr, plain_len, job->always_ascii, job->autohex);
   }
 
   return 0;
@@ -188,6 +192,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   outfile_ctx_t        *outfile_ctx        = hashcat_ctx->outfile_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   // prevent wrong candidates in output when backend_ctx->backend_devices_active > 1
@@ -202,7 +207,10 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
+  const bool autohex = user_options->outfile_autohex;
+
   out.always_ascii = always_ascii;
+  out.autohex      = autohex;
 
   if (filename)
   {
@@ -406,6 +414,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
                 jobs[t].optimized     = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? true : false;
                 jobs[t].pw_max        = hashconfig->pw_max;
                 jobs[t].always_ascii  = always_ascii;
+                jobs[t].autohex       = autohex;
                 jobs[t].buf           = pool + ((size_t) t * worker_buf_sz);
                 jobs[t].len           = 0;
 
