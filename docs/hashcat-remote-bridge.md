@@ -13,6 +13,7 @@ Various concepts are tested with this:
 * Note that if the private hash and salt were to be compromised, it would provide an attacker recovery of the password at Blake2b speed.
 * It creates the ability to use a significant amount of computing capacity in the short term without the need for additional hardware purchase and subsequent maintenance.
 
+Note: The remote bridge plugin is provided solely as a proof of concept (PoC) for experimentation and learning. It has only been tested on Windows and Linux (Ubuntu).
 
 Here is a command-line example which will crack with 'hashcat' as password:
 
@@ -20,4 +21,13 @@ hashcat : ./hashcat -a 3 -m 76000 '$argon2id$v=19$m=1048576,t=3,p=3$2XsI78UNmyI=
 
 legion : java -Xmx6G -Xms6G --enable-native-access=ALL-UNNAMED -jar legion.jar <port-number>
 
-The legion application is intended as proof-of-concept and not for production usage. It has only been tested on Windows and Linux (Ubuntu). Please restart the application between sessions if you have any trouble.
+Network protocol description
+
+Hashcat initiates a TCP connection to each configured Legion Java worker over IPv4. The custom, unencrypted binary protocol then proceeds as follows:
+
+1. Handshake: The Legion worker sends a length-prefixed unit-class string identifying its compute capability.
+2. Configuration: Hashcat sends the hash mode and Argon2id parameters as 32-bit network-byte-order integers. The worker responds with its preferred chunk size for these parameters.
+3. Work submission: Hashcat sends the candidate count, intermediate Argon2id state blocks, and a MD5 checksum of these state blocks. The number of blocks sent depends on the parallelism and the number of candidates (2 x parallelism x candidate count) Each block is 1024 bytes.
+4. Result retrieval: The worker returns the processed state blocks and an MD5 checksum. The number of blocks that are returned is the number of candidates. Hashcat verifies the checksum and completes the computation locally. A zero candidate count signals shutdown.
+
+Security considerations: The protocol provides no encryption, peer authentication, or cryptographic transport integrity. The MD5 checksums detect accidental truncation or corruption. Use a trusted network or an encrypted tunnel (e.g., SSH) when communicating across untrusted networks.
