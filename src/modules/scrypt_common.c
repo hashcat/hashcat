@@ -186,6 +186,16 @@ char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashc
 
       if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
       {
+        // The kernels store N >> tmto elements, so a tmto that reaches log2 (N) stores none of them
+        // and the mode stops cracking. N is a power of two by the time it gets here, so this walk is
+        // that log, and it bounds both of the searches below.
+
+        u32 tmto_max = 0;
+
+        while (((u64) 1 << tmto_max) < scrypt_N) tmto_max++;
+
+        tmto_max = MIN (tmto_max, SCRYPT_TMTO_CEILING);
+
         for (tmto = 0; tmto < 2; tmto++) // results in tmto = 2
         {
           if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
@@ -214,6 +224,11 @@ char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashc
           break;
         }
 
+        // Neither test has to be met for the loop to run out, and when neither is it ends at 2
+        // whatever N is. A low N cannot carry that: at N=2 it stores nothing at all.
+
+        tmto = MIN (tmto, tmto_max);
+
         // The search above stops at 2, and on a configuration big enough that even a TMTO of 2
         // leaves the device nearly empty that ceiling is what limits the launch, not the memory.
         // A 4090 attacking N=262144 gets 8 work items where 176 fit, and the same holds for every
@@ -232,14 +247,6 @@ char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashc
 
         if (blocks_perc_ceiling > 2.0)
         {
-          // N >> tmto is the number of stored elements, so the walk stops before that reaches zero
-
-          u32 tmto_max = 0;
-
-          while (((u64) 1 << tmto_max) < scrypt_N) tmto_max++;
-
-          tmto_max = MIN (tmto_max, SCRYPT_TMTO_CEILING);
-
           while (tmto < tmto_max)
           {
             const u64 size_per_accel_tmto = size_per_accel >> tmto;
