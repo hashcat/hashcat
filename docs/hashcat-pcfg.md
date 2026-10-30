@@ -140,7 +140,7 @@ In each location, a directory takes precedence over a `<name>.tar.xz` archive wi
 
 ### 3.1. The rulesets hashcat ships
 
-hashcat ships two rulesets. Attack mode 4 uses the first when none is specified.
+hashcat ships two trained rulesets and 10 keyboard-walk rulesets. Attack mode 4 uses `default-passwords` when none is specified.
 
 | ruleset | what it is |
 |---|---|
@@ -148,6 +148,29 @@ hashcat ships two rulesets. Attack mode 4 uses the first when none is specified.
 | `hints` | the same grammar with the words taken out, for when you supply them yourself. Section 4 |
 
 A ruleset trained on ordinary language covers words a password list does not have, and merging one with `default-passwords` reaches candidates neither reaches alone. hashcat does not ship such a ruleset, because the training text carries a licence of its own. Train one with `pcfg_cracker`, whose ruleset format the feed reads directly, using text you are permitted to obtain and process.
+
+A keyboard walk is a password typed as a path across the keys rather than spelled out, `1qaz` or `1q2w3e4r`, and the string a path produces depends on the layout under the fingers. The path that gives `1qaz` on a US keyboard gives `1qay` on a German one and a Cyrillic string on a Russian one. `default-passwords` was trained on English leaks, so the walks it carries are the ones a US keyboard produces, and against somebody who types on another layout those are the wrong strings.
+
+These 10 rulesets carry the same walks on other layouts. Each one holds a `Keyboard` category and a grammar whose every structure is a single K token and nothing else, so it adds the walks of one layout to whatever it is merged with and replaces nothing:
+
+```
+./hashcat -m 0 -a 4 example0.hash default-passwords keyboard-walks-russian weights=9:1
+```
+
+| ruleset | layout |
+|---|---|
+| `keyboard-walks-english` | US English, from the `en-us` keymap |
+| `keyboard-walks-russian` | Russian, from the `ru` keymap |
+| `keyboard-walks-arabic` | Arabic, from the `ara` keymap |
+| `keyboard-walks-french` | French AZERTY, from the `fr` keymap |
+| `keyboard-walks-czech` | Czech QWERTZ, from the `cz` keymap |
+| `keyboard-walks-greek` | Greek, from the `gr` keymap |
+| `keyboard-walks-hebrew` | Hebrew, from the `il` keymap |
+| `keyboard-walks-persian` | Persian, from the `ir` keymap |
+| `keyboard-walks-thai` | Thai, from the `th` keymap |
+| `keyboard-walks-vietnamese` | Vietnamese, from the `vn` keymap |
+
+Each one is built from the keymaps of kwprocessor. The grid path of every keyboard walk in `default-passwords` is read on the target layout and keeps the probability the training measured, a path the layout cannot produce is left out, and a generated tail of further walks is ranked below the trained ones. `keyboard-walks-english` is the US layout that `default-passwords` already covers, and it is there for a run that merges these with a ruleset of your own rather than with the one hashcat ships.
 
 Name your own beside the shipped one and both run:
 

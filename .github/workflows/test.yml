@@ -3,9 +3,10 @@
 ## License.....: MIT
 ##
 
-## tools/test.py on the CPU, through PoCL, because a runner has no GPU. test.py
-## is the Python suite (issue #4917); its oracles are the Python modules under
-## tools/test_modules, so there is no perl stack to install here.
+## tools/test.py on the CPU, through the Intel CPU Runtime for OpenCL, because a
+## runner has no GPU. test.py is the Python suite (issue #4917); its oracles are
+## the Python modules under tools/test_modules, so there is no perl stack to
+## install here.
 ##
 ## When it runs, and what:
 ##
@@ -162,11 +163,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install PoCL
+      # The CPU runtime hashcat recommends, from Intel's oneAPI repository. Its
+      # package registers the ICD itself.
+
+      - name: Install the Intel CPU Runtime for OpenCL
         run: |
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | sudo tee /etc/apt/sources.list.d/oneAPI.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-               pocl-opencl-icd ocl-icd-libopencl1 clinfo build-essential
+               intel-oneapi-runtime-opencl ocl-icd-libopencl1 clinfo build-essential
           clinfo -l
 
       - uses: actions/setup-python@v6
