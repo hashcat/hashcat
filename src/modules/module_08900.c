@@ -118,8 +118,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_repeats = salt->scrypt_p - 1;
 
-  // N should be higher than 1 and a power of 2
-  if (salt->scrypt_N <= 1 || (salt->scrypt_N & (salt->scrypt_N - 1)) != 0) return (PARSER_SALT_VALUE);
+  // the kernel reduces its index with k & (SCRYPT_N - 1), which is the modulo it is meant to be
+  // only while N is a power of two, and an N of 1 leaves the walk with nothing to store
+
+  if (salt->scrypt_N < 2) return (PARSER_SALT_VALUE);
+
+  if ((salt->scrypt_N & (salt->scrypt_N - 1)) != 0) return (PARSER_SALT_VALUE);
 
   // salt
 
