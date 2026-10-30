@@ -26,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5pa$23$user$realm$salt$5cbb0c882a2b26956e81644edbdb746326f4f5f0e947144fb3095dffe4b4b03e854fc1d631323632303636373330383333353630";
+static const char *ST_HASH        = "$krb5pa$23$user$realm$da3f156c66005549ac0e0b2e9e4c38bf$b05a767d075535c0385edbf2f1054aad954df166204382612fa79d4c37134a4ef05ea28e";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -105,8 +105,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 6;
-
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
 
@@ -114,28 +112,105 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = '$';
-  token.len_min[1] = 0;
-  token.len_max[1] = 64;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+    /**
+   * canonical (output): $krb5pa$23$user$realm$checksum$encrypted
+   * legacy:             $krb5pa$23$user$realm$data               (encrypted||checksum, single field)
+   * legacy:             $krb5pa$23$user$realm$salt$enc$$hmac     (with explicit salt field)
+   * legacy:             $krb5pa$23$user$realm$$enc$$hmac         (empty salt field)
+   */
 
-  token.sep[2]     = '$';
-  token.len_min[2] = 0;
-  token.len_max[2] = 64;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+  int sep_cnt = 0;
 
-  token.sep[3]     = '$';
-  token.len_min[3] = 0;
-  token.len_max[3] = 128;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+  for (int i = 0; i < line_len; i++)
+  {
+    if (line_buf[i] == '$') sep_cnt++;
+  }
 
-  token.len[4]     = 72;
-  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  int data_token;
 
-  token.len[5]     = 32;
-  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  if (sep_cnt >= 7)
+  {
+    // legacy: $krb5pa$23$user$realm$[salt]$enc$$hmac  (8 $'s)
+
+    token.token_cnt  = 6;
+
+    token.sep[1]     = '$';
+    token.len_min[1] = 0;
+    token.len_max[1] = 63;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[2]     = '$';
+    token.len_min[2] = 0;
+    token.len_max[2] = 63;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[3]     = '$';
+    token.len_min[3] = 0;
+    token.len_max[3] = 128;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.len[4]     = 72;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.len[5]     = 32;
+    token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    data_token = 4;
+  }
+  else if (sep_cnt == 6)
+  {
+    // wire order: $krb5pa$23$user$realm$checksum$encrypted  (6 $'s)
+    // pcap extraction tools output this order (RFC 4757 wire layout)
+
+    token.token_cnt  = 5;
+
+    token.sep[1]     = '$';
+    token.len_min[1] = 0;
+    token.len_max[1] = 63;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[2]     = '$';
+    token.len_min[2] = 0;
+    token.len_max[2] = 63;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[3]     = '$';
+    token.len[3]     = 32;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[4]     = '$';
+    token.len[4]     = 72;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    data_token = 3;
+  }
+  else
+  {
+    // canonical (output): $krb5pa$23$user$realm$data
+
+    token.token_cnt  = 4;
+
+    token.sep[1]     = '$';
+    token.len_min[1] = 0;
+    token.len_max[1] = 63;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[2]     = '$';
+    token.len_min[2] = 0;
+    token.len_max[2] = 63;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[3]     = '$';
+    token.len[3]     = 104;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    data_token = 3;
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -143,25 +218,45 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *user_pos  = token.buf[1];
   const u8 *realm_pos = token.buf[2];
-  const u8 *salt_pos  = token.buf[3];
 
   const int user_len  = token.len[1];
   const int realm_len = token.len[2];
-  const int salt_len  = token.len[3];
-
-  /**
-   * copy data
-   */
 
   memcpy (krb5pa->user,  user_pos,  user_len);
   memcpy (krb5pa->realm, realm_pos, realm_len);
-  memcpy (krb5pa->salt,  salt_pos,  salt_len);
 
-  /**
-   * decode data
-   */
+  if (sep_cnt >= 7)
+  {
+    const u8 *salt_pos = token.buf[3];
+    const int salt_len = token.len[3];
 
-  const u8 *timestamp_pos = token.buf[4];
+    memcpy (krb5pa->salt, salt_pos, salt_len);
+  }
+  else
+  {
+    memset (krb5pa->salt, 0, sizeof (krb5pa->salt));
+  }
+
+  const u8 *data_pos = token.buf[data_token];
+
+  const u8 *timestamp_pos;
+  const u8 *checksum_pos;
+
+  if (sep_cnt >= 7)
+  {
+    timestamp_pos = token.buf[4];
+    checksum_pos  = token.buf[5];
+  }
+  else if (sep_cnt == 6)
+  {
+    checksum_pos  = token.buf[3];
+    timestamp_pos = token.buf[4];
+  }
+  else
+  {
+    timestamp_pos = data_pos;
+    checksum_pos  = data_pos + 72;
+  }
 
   u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
 
@@ -173,8 +268,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     *timestamp_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
   }
-
-  const u8 *checksum_pos = token.buf[5];
 
   u8 *checksum_ptr = (u8 *) krb5pa->checksum;
 
@@ -218,28 +311,25 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *ptr_timestamp = (const u8 *) krb5pa->timestamp;
   const u8 *ptr_checksum  = (const u8 *) krb5pa->checksum;
 
-  char data[128] = { 0 };
+  char checksum_hex[64] = { 0 };
+  char encrypted_hex[160] = { 0 };
 
-  char *ptr_data = data;
-
-  for (u32 i = 0; i < 36; i++, ptr_data += 2)
+  for (u32 i = 0; i < 16; i++)
   {
-    snprintf (ptr_data, 3, "%02x", ptr_timestamp[i]);
+    snprintf (checksum_hex + i * 2, 3, "%02x", ptr_checksum[i]);
   }
 
-  for (u32 i = 0; i < 16; i++, ptr_data += 2)
+  for (u32 i = 0; i < 36; i++)
   {
-    snprintf (ptr_data, 3, "%02x", ptr_checksum[i]);
+    snprintf (encrypted_hex + i * 2, 3, "%02x", ptr_timestamp[i]);
   }
-
-  *ptr_data = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s",
     SIGNATURE_KRB5PA,
     (const char *) krb5pa->user,
     (const char *) krb5pa->realm,
-    (const char *) krb5pa->salt,
-    data);
+    checksum_hex,
+    encrypted_hex);
 
   return line_len;
 }

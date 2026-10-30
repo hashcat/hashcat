@@ -33,6 +33,8 @@ typedef struct krb5tgs
   u32 edata2[5120];
   u32 edata2_len;
   u32 format;
+  u32 user[128];
+  u32 realm[128];
 } krb5tgs_t;
 
 typedef struct tgs_tmp

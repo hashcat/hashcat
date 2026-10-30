@@ -30,9 +30,15 @@ def module_constraints():
   return [[32, 32], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, user_principal_name=None, checksum=None, edata2=None):
-  if user_principal_name is None:
-    user_principal_name = "user@domain.com"
+def module_generate_hash(
+  word,
+  salt=None,
+  iterations=None,
+  user="user",
+  realm="realm",
+  checksum=None,
+  edata2=None,
+):
 
   k = pack_hex(word)
   k1 = hmac_md5(k, MSG_TYPE)
@@ -51,50 +57,54 @@ def module_generate_hash(word, salt=None, user_principal_name=None, checksum=Non
   if edata2 is not None:
     ticket = rc4(k3, bytes.fromhex(edata2)).hex()
 
-    correct = (ticket[16:20] == "7981" and ticket[22:24] == "30") or \
-              (ticket[16:18] == "79" and ticket[20:22] == "30") or \
-              (ticket[16:20] == "7982" and ticket[24:26] == "30")
+    correct = (
+      (ticket[16:20] == "7981" and ticket[22:24] == "30")
+      or (ticket[16:18] == "79" and ticket[20:22] == "30")
+      or (ticket[16:20] == "7982" and ticket[24:26] == "30")
+    )
 
     cleartext = ticket if correct else "0" * (len(cleartext) + 16)
 
   edata2 = rc4(k3, bytes.fromhex(cleartext))
 
-  return "$krb5asrep$23$%s:%s$%s" % (user_principal_name, checksum.hex(), edata2.hex())
+  return f"$krb5asrep$23${user}${realm}${checksum.hex()}${edata2.hex()}"
 
 
 def module_verify_hash(line):
-  idx = line.find(b":")
+  s = line.decode("latin-1")
 
-  if idx < 0:
+  colon = s.rfind(":")
+  if colon < 1:
     return None
 
-  # the hash is $krb5asrep$23$upn : checksum $ edata2, so it carries its own colon before the word
+  hash_in = s[:colon]
+  word = line[colon + 1 :]
 
-  first, rest = line[:idx].decode(errors="replace"), line[idx + 1:]
+  data = hash_in.split("$")
 
-  idx2 = rest.find(b":")
-
-  if idx2 < 0:
+  if len(data) == 7 and data[1] == "krb5asrep":
+    user = data[3]
+    realm = data[4]
+    checksum = data[5]
+    edata2 = data[6]
+  elif len(data) == 4 and data[1] == "krb5asrep":
+    upn = data[3]
+    at = upn.find("@")
+    user = upn[:at] if at >= 0 else upn
+    realm = upn[at + 1 :] if at >= 0 else ""
+    rest = s[s.index(upn) + len(upn) + 1 : colon]
+    parts = rest.split("$")
+    checksum = parts[0]
+    edata2 = parts[1] if len(parts) > 1 else ""
+  else:
     return None
-
-  second, word = rest[:idx2].decode(errors="replace"), rest[idx2 + 1:]
-
-  data = first.split("$")
-
-  if len(data) != 4 or data[1] != "krb5asrep" or data[2] != "23":
-    return None
-
-  user_principal_name = data[3]
-
-  data2 = second.split("$")
-
-  if len(data2) != 2:
-    return None
-
-  checksum, edata2 = data2[0], data2[1]
 
   if len(checksum) != 32 or len(edata2) < 64:
     return None
 
-  return (module_generate_hash(word, user_principal_name=user_principal_name, checksum=checksum,
-                               edata2=edata2), word)
+  return (
+    module_generate_hash(
+      word, user=user, realm=realm, checksum=checksum, edata2=edata2
+    ),
+    word,
+  )

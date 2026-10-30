@@ -7,7 +7,6 @@
 
 from Crypto.Cipher import DES
 from Crypto.Hash import MD5
-
 from lib.kerberos_des import string_to_key
 from lib.test_helpers import random_bytes, split_hash_word
 
@@ -67,8 +66,16 @@ def module_constraints():
   return [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, iterations=None, user="user", realm="realm",
-                         spn="test/spn", checksum=None, edata2=None):
+def module_generate_hash(
+  word,
+  salt=None,
+  iterations=None,
+  user="user",
+  realm="realm",
+  spn="test/spn",
+  checksum=None,
+  edata2=None,
+):
   key = string_to_key(word, (realm.upper() + user).encode())
 
   if edata2 is None:
@@ -79,7 +86,7 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="r
     if not _unwraps(key, cipher):
       cipher = _wrap(key, bytes(len(CLEARTEXT_TICKET) // 2))
 
-  return "$krb5tgs$3$*%s$%s$%s*$%s$%s" % (user, realm, spn, cipher[:16].hex(), cipher[16:].hex())
+  return f"$krb5tgs$3${user}${realm}${cipher[:16].hex()}${cipher[16:].hex()}"
 
 
 def module_verify_hash(line):
@@ -92,13 +99,19 @@ def module_verify_hash(line):
 
   fields = hash_in.split("$")
 
-  if len(fields) != 8 or fields[1] != "krb5tgs" or fields[2] != "3":
+  if len(fields) == 7 and fields[1] == "krb5tgs" and fields[2] == "3":
+    user, realm, checksum, edata2 = fields[3], fields[4], fields[5], fields[6]
+  elif len(fields) == 8 and fields[1] == "krb5tgs" and fields[2] == "3":
+    user, realm, checksum, edata2 = fields[3][1:], fields[4], fields[6], fields[7]
+  else:
     return None
-
-  user, realm, spn, checksum, edata2 = fields[3][1:], fields[4], fields[5][:-1], fields[6], fields[7]
 
   if len(checksum) != 32 or len(edata2) < 64 or len(edata2) % 16:
     return None
 
-  return (module_generate_hash(word, user=user, realm=realm, spn=spn, checksum=checksum,
-                               edata2=edata2), word)
+  return (
+    module_generate_hash(
+      word, user=user, realm=realm, checksum=checksum, edata2=edata2
+    ),
+    word,
+  )

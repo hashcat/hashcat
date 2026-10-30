@@ -9,7 +9,6 @@ import hashlib
 import hmac
 
 from Crypto.Cipher import AES
-
 from lib.test_helpers import random_bytes, split_hash_word
 
 # Kerberos 5 TGS-REP with AES128-CTS-HMAC-SHA1-96 (etype 17). The key is derived with
@@ -68,8 +67,15 @@ def module_constraints():
   return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, iterations=None, user="user", realm="realm",
-                         checksum=None, edata2=None):
+def module_generate_hash(
+  word,
+  salt=None,
+  iterations=None,
+  user="user",
+  realm="realm",
+  checksum=None,
+  edata2=None,
+):
   mysalt = (realm.upper() + user).encode()
 
   b_seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, 4096, KEYSIZE)
@@ -93,20 +99,25 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="r
     b_truncated_ticket_decrypted = _cbc_dec(b_truncated_enc_ticket, b_ke)
     truncated_ticket_decrypted = b_truncated_ticket_decrypted.hex()
 
-    check_correct = ((truncated_ticket_decrypted[32:36] == "6381" and
-                      truncated_ticket_decrypted[38:40] == "30") or
-                     (truncated_ticket_decrypted[32:36] == "6382")) and \
-                    ((truncated_ticket_decrypted[48:54] == "030500") or
-                     (truncated_ticket_decrypted[48:56] == "050307A0"))
+    check_correct = (
+      (
+        truncated_ticket_decrypted[32:36] == "6381"
+        and truncated_ticket_decrypted[38:40] == "30"
+      )
+      or (truncated_ticket_decrypted[32:36] == "6382")
+    ) and (
+      (truncated_ticket_decrypted[48:54] == "030500")
+      or (truncated_ticket_decrypted[48:56] == "050307A0")
+    )
 
     if check_correct:
       b_n_2 = b_truncated_enc_ticket[-16:]
 
       b_n_1_decrypted = _cbc_dec(b_n_1_block, b_ke)
 
-      b_last_plain = _xor(b_n_1_decrypted[:len_last_block // 2], b_last_block)
+      b_last_plain = _xor(b_n_1_decrypted[: len_last_block // 2], b_last_block)
 
-      omitted = b_n_1_decrypted[-(16 - len_last_block // 2):]
+      omitted = b_n_1_decrypted[-(16 - len_last_block // 2) :]
 
       b_n_1 = _xor(_cbc_dec(b_last_block + omitted, b_ke), b_n_2)
 
@@ -121,7 +132,9 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="r
     if edata2 is None:
       cleartext_ticket = random_bytes(16).hex() + cleartext_ticket
 
-    checksum = hmac.new(b_ki, bytes.fromhex(cleartext_ticket), hashlib.sha1).digest()[:12]
+    checksum = hmac.new(b_ki, bytes.fromhex(cleartext_ticket), hashlib.sha1).digest()[
+      :12
+    ]
 
   len_cleartext_last_block = len(cleartext_ticket) % 32
   cleartext_last_block = cleartext_ticket[-len_cleartext_last_block:]
@@ -137,14 +150,16 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="r
 
   b_enc_ticket_n_1_block = b_truncated_enc_ticket[-16:]
 
-  b_enc_last_block = b_enc_ticket_n_1_block[:len_cleartext_last_block // 2]
+  b_enc_last_block = b_enc_ticket_n_1_block[: len_cleartext_last_block // 2]
 
   # craft the new n-1 block
-  b_enc_ticket_n_1_block = _cbc_enc(_xor(b_enc_ticket_n_1_block, b_cleartext_last_block_padded), b_ke)
+  b_enc_ticket_n_1_block = _cbc_enc(
+    _xor(b_enc_ticket_n_1_block, b_cleartext_last_block_padded), b_ke
+  )
 
   edata2 = b_truncated_enc_ticket[:-16] + b_enc_ticket_n_1_block + b_enc_last_block
 
-  return "$krb5tgs$%s$%s$%s$%s$%s" % (ETYPE, user, realm, checksum.hex(), edata2.hex())
+  return f"$krb5tgs${ETYPE}${user}${realm}${checksum.hex()}${edata2.hex()}"
 
 
 def module_verify_hash(line):
@@ -174,5 +189,9 @@ def module_verify_hash(line):
   if len(edata2) < 64:
     return None
 
-  return (module_generate_hash(word, user=user, realm=realm, checksum=checksum, edata2=edata2),
-          word)
+  return (
+    module_generate_hash(
+      word, user=user, realm=realm, checksum=checksum, edata2=edata2
+    ),
+    word,
+  )

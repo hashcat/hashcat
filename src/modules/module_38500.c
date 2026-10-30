@@ -27,7 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5tgs$3$*user$realm$test/spn*$bf121bf846245e8f7ca288e61797866d$dd842b865809244a05fcb67176bfd4e5443389c9f37b2c336aa2fb1ac4ddcc518444a576ae7f94a2cc21eb1349ba843e3cc1b641362838f97a2a06c6e169580ee3f76c8a57b6f15113bb20b650b3dd806864388bfd05c55d8b6c822648b10e08b574b5e3c4383b6103f1556c81cca31cd20af1965df0a2cb7adb9d21521c9c1f2abfdf6a93a1299a5e2eee00d3a202da9d4921f3e370da4b0afe75c26f48d92497ca36b88f5203936222eeb4e87e99efefd0edc0c8bce0e26a88e383f1b7a7f7";
+static const char *ST_HASH        = "$krb5tgs$3$user$realm$945b202c19551d29b253a5a932ac09cd$1ad6c7535f90808c80b200c18c0f82b7c153ca097c40ab17e0e90e4309c8f09d25650a4312e96a9d4b767e88925c52295da02a9acd54f13e2baf44425519646745c93abda433ce39e4695c7ea8e7f58384b9e2a1e5f46556e0c7a2694d989b90e10f978bac904d6b4f2fb7d51a8d65e04e3b27326cebc82eceb8c91e5f43842b76fed48c8d047eb205937492cc1573e2189759972f7e0c07fd2a877a8caa35368480d845e02cf213a5967adc475ba50443d42039c17f37712fa5e01cc1ea1ada";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -55,13 +55,12 @@ static const char *SIGNATURE_KRB5TGS = "$krb5tgs$3$";
 
 #define MAX_EDATA2_LEN 20480
 
-// account_info is the asterisk delimited block the way the line carries it, which is all the
-// encode needs. salt_buf is what the key is derived from: the realm in upper case followed by the
-// principal, as it is for the other Kerberos modes.
-
 typedef struct krb5tgs_3
 {
   u32 account_info[512];
+
+  u32 user[MAX_SALT_LEN / 4];
+  u32 realm[MAX_SALT_LEN / 4];
 
   u32 salt_buf[MAX_SALT_LEN / 4];
   u32 salt_len;
@@ -69,6 +68,8 @@ typedef struct krb5tgs_3
   u32 checksum[4];
   u32 edata2[MAX_EDATA2_LEN / 4];
   u32 edata2_len;
+
+  u32 format;
 
 } krb5tgs_3_t;
 
@@ -98,8 +99,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (krb5tgs, 0, sizeof (krb5tgs_3_t));
 
-  /**
-   * $krb5tgs$3$*user$realm$spn*$checksum$edata2
+    /**
+   * canonical (output): $krb5tgs$3$user$realm$checksum$encrypted
+   * legacy:             $krb5tgs$3$*user$realm$spn*$checksum$encrypted  (legacy asterisk block)
    */
 
   token.signatures_cnt    = 1;
@@ -113,78 +115,130 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len < (sig_len + 1)) return (PARSER_SALT_LENGTH);
 
-  if (line_buf[sig_len] != '*') return (PARSER_SIGNATURE_UNMATCHED);
+  const u8 *user_pos  = NULL;
+  const u8 *realm_pos = NULL;
 
-  // the account block is delimited by asterisks, so it is measured out before the tokenizer runs
-  // and handed over whole: a service principal may carry the '$' that separates every other field.
-  // hc_strchr_next, not strchr: the field ends where the line ends, not at a NUL the caller is not
-  // required to put there.
+  int user_len  = 0;
+  int realm_len = 0;
 
-  const char *account_info_start = line_buf + sig_len;
+  u32 checksum_token = 0;
+  u32 data_token     = 0;
 
-  const int account_info_left = line_len - (int) (account_info_start + 1 - line_buf);
+  if (line_buf[sig_len] == '*')
+  {
+    // legacy: $krb5tgs$3$*user$realm$spn*$checksum$encrypted  (asterisk block)
 
-  const char *account_info_stop = (const char *) hc_strchr_next ((const u8 *) account_info_start + 1, account_info_left, '*');
+    const char *account_info_start = line_buf + sig_len;
 
-  if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+    const int account_info_left = line_len - (int) (account_info_start + 1 - line_buf);
 
-  account_info_stop++; // we want the * char included
-  account_info_stop++; // we want the $ char included
+    const char *account_info_stop = (const char *) hc_strchr_next ((const u8 *) account_info_start + 1, account_info_left, '*');
 
-  const int account_info_len = (int) (account_info_stop - account_info_start);
+    if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  if (account_info_len >= (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
+    account_info_stop++;
+    account_info_stop++;
 
-  token.token_cnt  = 4;
+    const int account_info_len = (int) (account_info_stop - account_info_start);
 
-  token.len[1]     = account_info_len;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
+    if (account_info_len >= (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
 
-  token.sep[2]     = '$';
-  token.len[2]     = 32;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    token.token_cnt  = 4;
 
-  token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = MAX_EDATA2_LEN * 2;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    token.len[1]     = account_info_len;
+    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+    checksum_token   = 2;
+    data_token       = 3;
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+    token.sep[2]     = '$';
+    token.len[2]     = 32;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
+    token.sep[3]     = '$';
+    token.len_min[3] = 64;
+    token.len_max[3] = MAX_EDATA2_LEN * 2;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  // the principal and the realm are the first two fields of the block, which starts on its
-  // asterisk and ends on the "*$" the length above takes in
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  const u8 *user_pos = token.buf[1] + 1;
+    if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const int block_len = token.len[1] - 3;
+    memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
 
-  if (block_len < 1) return (PARSER_SALT_LENGTH);
+    user_pos = token.buf[1] + 1;
 
-  const u8 *realm_pos = hc_strchr_next (user_pos, block_len, '$');
+    const int block_len = token.len[1] - 3;
 
-  if (realm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+    if (block_len < 1) return (PARSER_SALT_LENGTH);
 
-  const int user_len = (int) (realm_pos - user_pos);
+    realm_pos = hc_strchr_next (user_pos, block_len, '$');
 
-  realm_pos++;
+    if (realm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  const u8 *spn_pos = hc_strchr_next (realm_pos, block_len - (user_len + 1), '$');
+    user_len = (int) (realm_pos - user_pos);
 
-  if (spn_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+    realm_pos++;
 
-  const int realm_len = (int) (spn_pos - realm_pos);
+    const u8 *spn_pos = hc_strchr_next (realm_pos, block_len - (user_len + 1), '$');
+
+    if (spn_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    realm_len = (int) (spn_pos - realm_pos);
+
+    krb5tgs->format = 2;
+  }
+  else
+  {
+    // canonical (output): $krb5tgs$3$user$realm$checksum$encrypted
+
+    token.token_cnt  = 5;
+
+    checksum_token   = 3;
+    data_token       = 4;
+
+    token.sep[1]     = '$';
+    token.len_min[1] = 1;
+    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[2]     = '$';
+    token.len_min[2] = 1;
+    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[3]     = '$';
+    token.len[3]     = 32;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[4]     = '$';
+    token.len_min[4] = 64;
+    token.len_max[4] = MAX_EDATA2_LEN * 2;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+    user_pos  = token.buf[1];
+    realm_pos = token.buf[2];
+
+    user_len  = token.len[1];
+    realm_len = token.len[2];
+
+    krb5tgs->format = 1;
+  }
 
   if ((user_len < 1) || (realm_len < 1)) return (PARSER_SALT_LENGTH);
 
   if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
 
-  // the Kerberos salt is the realm in upper case followed by the principal, with no separator
+  memcpy (krb5tgs->user,  user_pos,  user_len);
+  memcpy (krb5tgs->realm, realm_pos, realm_len);
 
   u8 *salt_ptr = (u8 *) krb5tgs->salt_buf;
 
@@ -196,20 +250,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   krb5tgs->salt_len = realm_len + user_len;
 
-  // the line keeps the first two blocks of the ciphertext apart from the rest, the way the etype 23
-  // format does, although nothing here is a checksum of its own: the checksum of a DES encryption
-  // type sits inside the plaintext
-
-  const u8 *checksum_pos = token.buf[2];
+  const u8 *checksum_pos = token.buf[checksum_token];
 
   krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
   krb5tgs->checksum[1] = hex_to_u32 (checksum_pos +  8);
   krb5tgs->checksum[2] = hex_to_u32 (checksum_pos + 16);
   krb5tgs->checksum[3] = hex_to_u32 (checksum_pos + 24);
 
-  const u8 *data_pos = token.buf[3];
+  const u8 *data_pos = token.buf[data_token];
 
-  const int data_len = token.len[3];
+  const int data_len = token.len[data_token];
 
   // DES has an eight byte block and the plaintext is not padded any further, so the ciphertext the
   // two fields make up together is a whole number of blocks
@@ -257,9 +307,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x%08x$%s",
     SIGNATURE_KRB5TGS,
-    (const char *) krb5tgs->account_info,
+    (const char *) krb5tgs->user,
+    (const char *) krb5tgs->realm,
     byte_swap_32 (krb5tgs->checksum[0]),
     byte_swap_32 (krb5tgs->checksum[1]),
     byte_swap_32 (krb5tgs->checksum[2]),
