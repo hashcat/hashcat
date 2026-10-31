@@ -46,23 +46,8 @@
 #endif
 void setup_environment_variables (const folder_config_t *folder_config)
 {
-  char *compute = getenv ("COMPUTE");
-
-  if (compute)
-  {
-    char *display;
-
-    hc_asprintf (&display, "DISPLAY=%s", compute);
-
-    putenv (display);
-
-    hcfree (display);
-  }
-  else
-  {
-    if (getenv ("DISPLAY") == NULL)
-      putenv ((char *) "DISPLAY=:0");
-  }
+  if (getenv ("DISPLAY") == NULL)
+    putenv ((char *) "DISPLAY=:0");
 
   // a debug build turns off our own kernel cache, so the runtime caches have to go too, or a stale
   // binary from an earlier run is what gets executed
@@ -74,6 +59,13 @@ void setup_environment_variables (const folder_config_t *folder_config)
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
   #endif
+
+  // the Intel CPU runtime vectorizes each kernel on its own, on top of our explicit vector types.
+  // that costs compile time on every kernel it builds, and with it on, the RAR3 optimized kernels
+  // of 12500 and 23700 fault
+
+  if (getenv ("CL_CONFIG_CPU_VECTORIZER_MODE") == NULL)
+    putenv ((char *) "CL_CONFIG_CPU_VECTORIZER_MODE=1");
 
   if (getenv ("TMPDIR") == NULL)
   {
