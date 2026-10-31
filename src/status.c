@@ -1162,8 +1162,8 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   // A batch can end while this reads it, and then a candidate cannot be built. The line keeps saying
   // what the device is doing rather than showing two empty candidates.
 
-  const int rc1 = build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1, true);
-  const int rc2 = build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2, true);
+  const int rc1 = build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
+  const int rc2 = build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
 
   if ((rc1 == -1) || (rc2 == -1)) return display;
 

@@ -366,15 +366,15 @@ The run is the one without the setting, minus every candidate that lacks the pie
 
 The piece is read as a mask, by the same parser `mask` uses, and each place it can stand is filtered as section 4.1 describes, with every other position left open. So everything a mask means applies to the piece. `contains=19?d?d` asks for any year of the 1900s, `-1` through `-8` define your own charsets, and a literal is matched byte for byte, so `contains=tom` does not admit `Tom` while `-1 tT contains=?1om` admits both.
 
-Several pieces, separated by commas, must all be in a candidate, in any order and anywhere, overlapping or not:
+Several pieces, separated by commas, must all be in a candidate, in any order and anywhere, each on bytes of its own:
 
 ```
 ./hashcat -m 0 -a 4 example0.hash /path/to/ruleset contains=1987,tom
 ```
 
-Each piece filters what the pieces before it left, so the run is still the one without the setting, minus every candidate that lacks one of them. The grammar grows with every piece by about the number of places it can stand. In the bundled ruleset `contains=1987` turns 23,121 shapes into 23,583, `1987,tom` into 34,107 and `1987,tom,123` into 39,353. Pieces of one or two characters on a large ruleset can stand almost anywhere, and a run whose pieces would split the grammar into more than 2,097,152 shapes is refused rather than left to run out of memory. A comma inside a piece is written with a charset, as in `-1 , contains=a?1b`, and a piece named twice is refused.
+Each piece filters what the pieces before it left, at the places they left free, so the run is still the one without the setting, minus every candidate that cannot hold all of them apart. `contains=93,31` admits `9331` and `3193`, but not `931`, where the two would share the `3`. The grammar grows with every piece by about the number of places it can stand. In the bundled ruleset `contains=1987` turns 23,121 shapes into 23,583, `1987,tom` into 34,107 and `1987,tom,123` into 39,353. Pieces of one or two characters on a large ruleset can stand almost anywhere, and a run whose pieces would split the grammar into more than 2,097,152 shapes is refused rather than left to run out of memory. A comma inside a piece is written with a charset, as in `-1 , contains=a?1b`, and a piece named twice is refused.
 
-Three things follow from filtering every place on its own. A candidate is tried once for every way it holds the pieces, which is once where it holds each of them once. A candidate that holds a piece at two places is tried twice: `19871987` comes out twice under `contains=1987` and four times under `contains=19,87`, and a piece that repeats itself, such as `3333` against a run of threes, is tried once for every place it fits. Within one cost level the candidates of a shape come out place by place, so their order can differ from the run without the setting, while the order across cost levels is unchanged. And the OMEN escape is dropped as it is for a mask, because it has no terminals for the filter to hold.
+Three things follow from filtering every place on its own. A candidate is tried once for every way it holds the pieces apart, which is once where it holds each of them once. A candidate that holds a piece at two places is tried twice: `19871987` comes out twice under `contains=1987` and four times under `contains=19,87`, and a piece that repeats itself, such as `3333` against a run of threes, is tried once for every place it fits. Within one cost level the candidates of a shape come out place by place, so their order can differ from the run without the setting, while the order across cost levels is unchanged. And the OMEN escape is dropped as it is for a mask, because it has no terminals for the filter to hold.
 
 A place deep inside a long run of characters of varying byte length, such as a keyboard walk trained on a non-ASCII keyboard, can be reached in more ways than the filter carries. Such places are left out, and the run says how many and what share of the grammar their shapes carry.
 
@@ -407,7 +407,7 @@ The defaults are suitable for most attacks.
 | `hintrepeat` | 0 | Let one candidate spell the same hint word twice. See section 4. |
 | `hintaccount` | 0 | Words to take from each hash instead, which is what `-a 9` uses. See `hashcat-association.md`. |
 | `mask` | none | The shape a candidate must have, in mask syntax. See section 4.1. |
-| `contains` | none | What a candidate must hold somewhere, in mask syntax. Several pieces, comma separated, must all be there. See section 4.2. |
+| `contains` | none | What a candidate must hold somewhere, in mask syntax. Several pieces, comma separated, must all be there, no two sharing a byte. See section 4.2. |
 | `pwmin` | from the hash-mode | Shortest candidate to produce. |
 | `pwmax` | from the hash-mode | Longest candidate to produce. |
 
