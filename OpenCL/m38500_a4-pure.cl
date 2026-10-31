@@ -51,12 +51,17 @@ typedef struct krb5tgs_3
 {
   u32 account_info[512];
 
+  u32 user[32];
+  u32 realm[32];
+
   u32 salt_buf[32];
   u32 salt_len;
 
   u32 checksum[4];
   u32 edata2[5120];
   u32 edata2_len;
+
+  u32 format;
 
 } krb5tgs_3_t;
 

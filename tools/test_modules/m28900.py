@@ -8,7 +8,6 @@
 import hashlib
 
 from Crypto.Cipher import AES
-
 from lib.test_helpers import split_hash_word
 
 # Kerberos 5 etype 18 (AES256-CTS key from the DB): PBKDF2-HMAC-SHA1 of the password
@@ -21,7 +20,7 @@ def module_constraints():
   return [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None, user="user", realm="realm"):
+def module_generate_hash(word, salt=None, iterations=None, user="user", realm="realm"):
   mysalt = (realm.upper() + user).encode()
 
   seed = hashlib.pbkdf2_hmac("sha1", word, mysalt, 4096, 32)
@@ -32,7 +31,7 @@ def module_generate_hash(word, salt, iterations=None, user="user", realm="realm"
 
   key += AES.new(seed, AES.MODE_CBC, iv).encrypt(key)
 
-  return "$krb5db$18$%s$%s$%s" % (user, realm, key.hex())
+  return f"$krb5db$18${user}${realm}${key.hex()}"
 
 
 def module_verify_hash(line):

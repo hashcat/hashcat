@@ -24,6 +24,8 @@ typedef struct krb5asrep
   u32 edata2_len;
   u32 format;
 
+  u32 user[128];
+  u32 realm[128];
 } krb5asrep_t;
 
 #define PCFG_KERN_ATTR      KERN_ATTR_PCFG_ESALT (krb5asrep_t)

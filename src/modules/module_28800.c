@@ -28,7 +28,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$1c41586d6c060071e08186ee214e725e";
+static const char *ST_HASH        = "$krb5db$17$user$realm$85176d997cd3c118749b7577b02ede33";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -101,12 +101,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * $krb5db$17$user$realm$hash
-   * $krb5db$17$user$realm$*spn*$hash
+    /**
+   * canonical (output): $krb5db$17$user$realm$key
+   * accepted:           $krb5db$17$user$realm$*spn*$key    (with optional SPN)
    */
 
-  // assume no signature found
+  // no signature found - reject
   if (line_len < 12) return (PARSER_SALT_LENGTH);
 
   // hc_strchr_next, not strchr: the field ends where the line ends. strchr () ended it at the
@@ -117,7 +117,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int is_spn_provided = 0;
 
-  // assume $krb5db$17$user$realm$hash
+  // canonical (output): $krb5db$17$user$realm$hash
   if (spn_info_start == NULL)
   {
     token.token_cnt  = 4;
@@ -137,7 +137,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  // assume $krb5db$17$user$realm$*spn*$hash
+  // legacy: $krb5db$17$user$realm$*spn*$hash  (with SPN field)
   else
   {
     // bounded for the same reason as the search above: the field ends where the line ends
@@ -148,7 +148,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if (spn_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-    spn_info_stop++; // we want the * $char included
+    spn_info_stop++; // we want the * char included
     spn_info_stop++; // we want the $ char included
 
     const int spn_info_len = spn_info_stop - spn_info_start;

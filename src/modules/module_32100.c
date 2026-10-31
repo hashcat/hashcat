@@ -28,7 +28,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5asrep$17$user$EXAMPLE.COM$a419c4030e555734b06c2629$c09a1421f96eb126c757a4b87830381f142477d9a85b2beb3093dbfd44f38ddb6016a479537fb7b36e046315869fe79187217971ff6a12c1e0a2df3f68045e03814b21f756d8981f781803d65e8572823c88979581d93cf7d768f2efced16f3719b8d1004d9e73d798de255383476bced47d1982f16be77d0feb55a1f44f58bd013fa4caee58ac614caf0f1cf9101ec9623c5b8c2a1491b73f134f074790088fdb360b5ebce0d32a8145ed00a81ddf77188e150b92d8e8ddd0285d27f1514253e5546e6bba864b362bb1e6483b26d08fa4cc268bfbefe0f690039bcc524b774599df3680c1c3431d891bfa99514a877f964e";
+static const char *ST_HASH        = "$krb5asrep$17$user$realm$05f3c4b1320a6c8ef1d610ce$d75ca1b5edcbffc1bde6f749eebaf02cc2e67f3b823a08009298446c6cfb9f894528076c23385740092c7d86182ac6c3302b73b4c3ae0e7b52ac79cb2809d9d5dea7c2aaa3559c40f00b578d462a9ef9bc0d3e03d4202fc1732105d0cd7b20002a6643a9edf4d72fab347af152d7cc5891a512cc0bf90c23f1b8c339561ed10da0819905344c49be3d3f99a1c3491f831c4689e2e3f1caeefb36913367633d361ea61570e89aaade3412847df1bfcb9d9b55f1e4956ae4630c9aae9e4e09fb25d6f793c3b1c53e10de5f066e5a4980e23eec721ca0f8fd01a31707e8c332cd155410378d09f4707d199adc78bf60e6c32469";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -119,12 +119,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  /**
-   * Hashcat
-   * format 1: $krb5asrep$18$user$realm$checksum$edata2
-   *
-   * JtR
-   * format 2: $krb5asrep$18$salt$edata2$checksum
+    /**
+   * canonical (output): $krb5asrep$17$user$realm$checksum$encrypted
+   * legacy:             $krb5asrep$17$salt$encrypted$checksum    (JtR: checksum after encrypted)
    */
 
   if (line_len < (int) strlen (SIGNATURE_KRB5ASREP)) return (PARSER_SALT_LENGTH);
@@ -138,18 +135,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   // the checksum is 24 characters plus its '$', so the line must be at least
-  // 25 bytes before that offset can be computed -- without this the index
+  // 25 bytes before that offset can be computed - without this the index
   // below goes negative and reads in front of the buffer
   if (line_len < 25) return (PARSER_SALT_LENGTH);
 
   if (line_buf[line_len - 25] == '$')
   {
-    // JtR format
+    // legacy: $krb5asrep$17$salt$encrypted$checksum  (JtR: checksum after encrypted)
     krb5asrep->format = 2;
   }
   else
   {
-    // Hashcat format
+    // canonical (output): $krb5asrep$17$user$realm$checksum$encrypted
     krb5asrep->format = 1;
   }
 

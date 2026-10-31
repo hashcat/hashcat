@@ -10,7 +10,6 @@
 #include "convert.h"
 #include "shared.h"
 #include "parser.h"
-#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -27,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5db$1$test$TEST.LOCAL$7f153708497ae385";
+static const char *ST_HASH        = "$krb5db$2$user$realm$0829763e025d9804";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -102,12 +101,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  /**
-   * $krb5db$1$user$realm$hash
-   * $krb5db$1$user$realm$*spn*$hash
-   *
-   * with 2 and 3 in place of the 1 for the other two DES encryption types
-   */
+  // canonical (output): $krb5db$<1|2|3>$user$realm$key
+  // legacy:             $krb5db$<1|2|3>$user$realm$*spn*$key    (with optional SPN)
+
 
   token.signatures_cnt    = 3;
   token.signatures_buf[0] = SIGNATURE_KRB5DB_1;
