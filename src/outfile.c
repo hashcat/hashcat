@@ -764,18 +764,15 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   // a batch closes it, not the write inside one
 
-  if (outfile_ctx->batch_depth > 0)
-  {
-    hc_fflush (&outfile_ctx->fp);
-
-    return;
-  }
+  if (outfile_ctx->batch_depth > 0) return;
 
   if (outfile_ctx->is_fifo == true)
   {
     hc_fflush (&outfile_ctx->fp);
     return;
   }
+
+  hc_fflush (&outfile_ctx->fp);
 
   hc_unlockfile_warn (hashcat_ctx, &outfile_ctx->fp, outfile_ctx->filename, &outfile_ctx->lock_warned);
 
