@@ -94,14 +94,14 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 8; // Underlaying DES max
+  const u32 pw_max = 10; // AS400 allows for up to 10 characters, with 2 DES blocks
 
   return pw_max;
 }
 
 u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 salt_max = 8;
+  const u32 salt_max = 10;
 
   return salt_max;
 }
@@ -133,13 +133,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[1]     = '*';
   token.len_min[1] = 0;
-  token.len_max[1] = 8;
+  token.len_max[1] = 10;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  // the digest is one DES block and is read below as exactly 16 hex
-  // characters, so anything shorter sends that read off the end of the line
+  // 16 hex = one DES block (passwords up to 8 chars), 32 hex = two blocks (9-10 chars).
   token.len_min[2] = 16;
-  token.len_max[2] = 16;
+  token.len_max[2] = 32;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -198,6 +197,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // hash
 
   const u8 *hash_pos = token.buf[2];
+  const int hash_len = token.len[2];
+
+  if ((hash_len != 16) && (hash_len != 32)) return (PARSER_HASH_LENGTH);
 
   digest[0] = hex_to_u32 (hash_pos + 0);
   digest[1] = hex_to_u32 (hash_pos + 8);
@@ -206,8 +208,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   digest[0] = rotr32 (digest[0], 29);
   digest[1] = rotr32 (digest[1], 29);
-  digest[2] = 0;
-  digest[3] = 0;
+
+  if (hash_len == 32)
+  {
+    digest[2] = hex_to_u32 (hash_pos + 16);
+    digest[3] = hex_to_u32 (hash_pos + 24);
+
+    DES_IP (digest[2], digest[3]);
+
+    digest[2] = rotr32 (digest[2], 29);
+    digest[3] = rotr32 (digest[3], 29);
+  }
+  else
+  {
+    digest[2] = 0;
+    digest[3] = 0;
+  }
 
   return (PARSER_OK);
 }
@@ -229,7 +245,23 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X", SIGNATURE_AS400_DES, tmp_salt, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]));
+  int line_len;
+
+  if ((digest[2] == 0) && (digest[3] == 0))
+  {
+    line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X", SIGNATURE_AS400_DES, tmp_salt, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]));
+  }
+  else
+  {
+    u32 tmp2[2];
+
+    tmp2[0] = rotl32 (digest[2], 29);
+    tmp2[1] = rotl32 (digest[3], 29);
+
+    DES_FP (tmp2[1], tmp2[0]);
+
+    line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X%08X%08X", SIGNATURE_AS400_DES, tmp_salt, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]), byte_swap_32 (tmp2[0]), byte_swap_32 (tmp2[1]));
+  }
 
   return line_len;
 }

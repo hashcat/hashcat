@@ -140,10 +140,37 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   _des_crypt_encrypt_racf (iv, data, Kc, Kd, s_SPtrans);
 
+  u32 iv2[2] = { 0, 0 };
+
+  if (len > 8)
+  {
+    const u32 c9  = (w[2] >>  0) & 0xff;
+    const u32 c10 = (len > 9) ? ((w[2] >> 8) & 0xff) : 0x20;
+
+    const u32 w0_b2 = c9 | (c10 << 8) | (0x20 << 16) | (0x20 << 24);
+    const u32 w1_b2 = 0x20202020;
+
+    u32 key2[2];
+
+    transform_racf_key (w0_b2, w1_b2, key2);
+
+    u32 Kc2[16];
+    u32 Kd2[16];
+
+    _des_crypt_keysetup (key2[0], key2[1], Kc2, Kd2, s_skb);
+
+    u32 data2[2];
+
+    data2[0] = hc->salt_buf0[0];
+    data2[1] = hc->salt_buf0[1];
+
+    _des_crypt_encrypt_racf (iv2, data2, Kc2, Kd2, s_SPtrans);
+  }
+
   dgst[0] = iv[0];
   dgst[1] = iv[1];
-  dgst[2] = 0;
-  dgst[3] = 0;
+  dgst[2] = iv2[0];
+  dgst[3] = iv2[1];
 
   return true;
 }
