@@ -354,6 +354,32 @@ Tomben
 
 What it cannot go with is `hintaccount`, where the words come from the hashes. Those are a different set for every hash and the filter is built once, so there is nothing one filtering could hold for all of them. The one other thing a mask does not do is hold the OMEN escape, so a masked run has no escape at all: see section 7.4.
 
+### 4.2. What you know is in it, but not where
+
+Sometimes what you know is a piece of the password and not where it sits: the year someone was born, four digits of a PIN you saw typed, a name. Setting `contains` takes that piece and holds the grammar to the candidates that have it somewhere:
+
+```
+./hashcat -m 0 -a 4 example0.hash /path/to/ruleset contains=1987
+```
+
+The run is the one without the setting, minus every candidate that lacks the piece, at the same costs. Nothing is renormalised. In the bundled ruleset `michael1987` moves from candidate 409,405 to candidate 1,526, `1987jordan` from 24,549,833 to 32,318 and `kitty1987!` from 185,296,379 to 215,872, and the run shrinks from 34,935,457,766,817,424 candidates to 8,288,273,198,779.
+
+The piece is read as a mask, by the same parser `mask` uses, and each place it can stand is filtered as section 4.1 describes, with every other position left open. So everything a mask means applies to the piece. `contains=19?d?d` asks for any year of the 1900s, `-1` through `-8` define your own charsets, and a literal is matched byte for byte, so `contains=tom` does not admit `Tom` while `-1 tT contains=?1om` admits both.
+
+Several pieces, separated by commas, must all be in a candidate, in any order and anywhere, overlapping or not:
+
+```
+./hashcat -m 0 -a 4 example0.hash /path/to/ruleset contains=1987,tom
+```
+
+Each piece filters what the pieces before it left, so the run is still the one without the setting, minus every candidate that lacks one of them. The grammar grows with every piece by about the number of places it can stand. In the bundled ruleset `contains=1987` turns 23,121 shapes into 23,583, `1987,tom` into 34,107 and `1987,tom,123` into 39,353. Pieces of one or two characters on a large ruleset can stand almost anywhere, and a run whose pieces would split the grammar into more than 2,097,152 shapes is refused rather than left to run out of memory. A comma inside a piece is written with a charset, as in `-1 , contains=a?1b`, and a piece named twice is refused.
+
+Three things follow from filtering every place on its own. A candidate is tried once for every way it holds the pieces, which is once where it holds each of them once. A candidate that holds a piece at two places is tried twice: `19871987` comes out twice under `contains=1987` and four times under `contains=19,87`, and a piece that repeats itself, such as `3333` against a run of threes, is tried once for every place it fits. Within one cost level the candidates of a shape come out place by place, so their order can differ from the run without the setting, while the order across cost levels is unchanged. And the OMEN escape is dropped as it is for a mask, because it has no terminals for the filter to hold.
+
+A place deep inside a long run of characters of varying byte length, such as a keyboard walk trained on a non-ASCII keyboard, can be reached in more ways than the filter carries. Such places are left out, and the run says how many and what share of the grammar their shapes carry.
+
+`contains` cannot go with `mask`, which already fixes every position, so write the characters into the mask where they stand. It goes with `pwmin` and `pwmax`, with hint words and with `lookup=`, and like a mask it cannot go with `hintaccount`.
+
 ## 5. Settings
 
 Settings are `key=value` arguments after the ruleset path, the same convention every attack-mode 8 feed uses:
@@ -374,13 +400,14 @@ The defaults are suitable for most attacks.
 | `maxword` | auto | How long a candidate the card will build, in 4 byte words. Must be a multiple of 16. |
 | `maxgain` | 1.5 | How much wider the expansion has to get before the bigger candidate buffer is worth taking. |
 | `walk` | 1 | Steps to the next base word where it can instead of working it out from its position. It produces exactly the same run either way, so this is only here to turn off. |
-| `omen` | 1 | Carries the OMEN escape. See section 7.4. Refused alongside `mask`. |
+| `omen` | 1 | Carries the OMEN escape. See section 7.4. Refused alongside `mask` and `contains`. |
 | `hintwords` | none | The words a hint ruleset is given, comma separated. See section 4. |
 | `hintfile` | none | The same words out of a file, one per line. |
 | `hintrank` | `zipf` | What a hint word with no probability of its own is worth. |
 | `hintrepeat` | 0 | Let one candidate spell the same hint word twice. See section 4. |
 | `hintaccount` | 0 | Words to take from each hash instead, which is what `-a 9` uses. See `hashcat-association.md`. |
 | `mask` | none | The shape a candidate must have, in mask syntax. See section 4.1. |
+| `contains` | none | What a candidate must hold somewhere, in mask syntax. Several pieces, comma separated, must all be there. See section 4.2. |
 | `pwmin` | from the hash-mode | Shortest candidate to produce. |
 | `pwmax` | from the hash-mode | Longest candidate to produce. |
 
@@ -617,7 +644,7 @@ Only the slots the card expanded are named. The ones in front of them are alread
 
 * **Option `--stdout` shows the host engine.** It never starts a kernel, so it gets the host generator, escape and all. Fast-path candidates exist only on the device and are therefore unavailable to `--stdout`.
 * **`-O` is refused rather than ignored** on a fast hash whose only PCFG device kernel is the pure one, unless rules are given. With `-r` or `-g` it moves the run to the host engine, which is faster with a large ruleset. Modes that ship an `_a4-optimized.cl` kernel take it.
-* **Options `-i` and `--increment` are rejected.** They belong to a mask, and `-a 4` takes a ruleset. What decides the lengths here is the grammar, `costmax`, and `pwmin` and `pwmax` where a run names them. Custom character sets `-1` through `-8` are accepted, because the `mask` setting of section 4.1 is a mask for them to sit in. Naming one without `mask=` is refused rather than ignored.
+* **Options `-i` and `--increment` are rejected.** They belong to a mask, and `-a 4` takes a ruleset. What decides the lengths here is the grammar, `costmax`, and `pwmin` and `pwmax` where a run names them. Custom character sets `-1` through `-8` are accepted, because the `mask` setting of section 4.1 and the `contains` setting of section 4.2 give them a mask to sit in. Naming one without either is refused rather than ignored.
 
 * **Options `-S`, `--slow-candidates` and `--brain-client` select the host engine** as well, and the startup line reports the selected engine. Both ask for every candidate to be built on the host, which is the one thing the device engine does not do.
 * **Options `-r` and `-g` keep the device engine** unless `-O` is given on a mode without an `_a4-optimized.cl` kernel. The rules run in the same kernel that walks the cell, so a base word is worth its cell once per rule. The line after the ruleset summary reports the selected engine.
