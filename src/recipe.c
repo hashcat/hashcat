@@ -6286,6 +6286,264 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
   return jit_build_options;
 }
 
+// Where a word of a step's output comes from: a word of an earlier hash, HMAC, AES, DES or seeded
+// call, a word known to be zero, or neither. xor and or pass the other value's word through a zero
+// word, and wperm, cut and pad move whole words or fill them with zeros. The early reject of the
+// kernels follows a compared word back this way, see recipe_gate ().
+
+typedef enum recipe_gsrc
+{
+  RECIPE_GSRC_NONE = 0,
+  RECIPE_GSRC_ZERO = 1,
+  RECIPE_GSRC_WORD = 2,
+
+} recipe_gsrc_t;
+
+static u32 recipe_gate_src (const recipe_prog_t *prog, const u32 k, const u32 w, const bool root, u32 *gk, u32 *gw);
+
+// Word w of a part whose fixed length is len.
+
+static u32 recipe_gate_part (const recipe_prog_t *prog, const recipe_part_t *part, const u32 len, const u32 w, u32 *gk, u32 *gw)
+{
+  if (part->kind != RECIPE_PART_STEP) return RECIPE_GSRC_NONE;
+  if (part->wide == 1)                return RECIPE_GSRC_NONE;
+
+  if (((w * 4) + 4) > len) return RECIPE_GSRC_NONE;
+
+  const u32 r = recipe_gate_src (prog, part->idx, w, false, gk, gw);
+
+  return r;
+}
+
+// Word w of step k's output after its own format and cut, or of its raw output for the root step.
+
+static u32 recipe_gate_src (const recipe_prog_t *prog, const u32 k, const u32 w, const bool root, u32 *gk, u32 *gw)
+{
+  const recipe_step_t *step = &prog->steps[k];
+
+  if (step->sec != RECIPE_SEC_MAIN) return RECIPE_GSRC_NONE;
+
+  const bool is_xfrm = (step->kind == RECIPE_KIND_XFRM);
+  const bool is_bop  = (step->kind == RECIPE_KIND_BOP);
+
+  if (root == false)
+  {
+    if (step->fmt != RECIPE_FMT_RAW) return RECIPE_GSRC_NONE;
+
+    if (((w * 4) + 4) > step->cut_len) return RECIPE_GSRC_NONE;
+
+    if ((is_xfrm == false) && (is_bop == false))
+    {
+      *gk = k;
+      *gw = w;
+
+      return RECIPE_GSRC_WORD;
+    }
+
+    if ((step->cut_start % 4) != 0) return RECIPE_GSRC_NONE;
+  }
+
+  const u32 v = (root == true) ? w : (w + (step->cut_start / 4));
+
+  if (is_bop == true)
+  {
+    if ((step->aop != RECIPE_BOP_XOR) && (step->aop != RECIPE_BOP_OR)) return RECIPE_GSRC_NONE;
+
+    if (step->part_lens[0] == 0)                 return RECIPE_GSRC_NONE;
+    if (step->part_lens[0] != step->part_lens[1]) return RECIPE_GSRC_NONE;
+
+    u32 ak = 0;
+    u32 aw = 0;
+
+    const u32 a = recipe_gate_part (prog, &step->parts[0], step->part_lens[0], v, &ak, &aw);
+
+    u32 bk = 0;
+    u32 bw = 0;
+
+    const u32 b = recipe_gate_part (prog, &step->parts[1], step->part_lens[1], v, &bk, &bw);
+
+    if ((a == RECIPE_GSRC_ZERO) && (b == RECIPE_GSRC_ZERO)) return RECIPE_GSRC_ZERO;
+
+    if (a == RECIPE_GSRC_ZERO)
+    {
+      *gk = bk;
+      *gw = bw;
+
+      return b;
+    }
+
+    if (b == RECIPE_GSRC_ZERO)
+    {
+      *gk = ak;
+      *gw = aw;
+
+      return a;
+    }
+
+    return RECIPE_GSRC_NONE;
+  }
+
+  if (is_xfrm == false) return RECIPE_GSRC_NONE;
+
+  const recipe_part_t *in = &step->parts[0];
+
+  if (in->kind != RECIPE_PART_STEP) return RECIPE_GSRC_NONE;
+
+  // The length before each transform, from the input's own fixed length.
+
+  u32 lens[RECIPE_MAX_XOPS + 1];
+
+  lens[0] = prog->steps[in->idx].cut_len;
+
+  if (lens[0] == 0) return RECIPE_GSRC_NONE;
+
+  for (u32 x = 0; x < step->xops_cnt; x++)
+  {
+    const recipe_xop_entry_t *op = &step->xops[x];
+
+    if (op->op == RECIPE_XOP_WPERM)
+    {
+      lens[x + 1] = (u32) op->b * 4;
+    }
+    else if (op->op == RECIPE_XOP_PAD)
+    {
+      lens[x + 1] = (u32) op->a;
+    }
+    else if (op->op == RECIPE_XOP_CUT)
+    {
+      if (op->a < 0)              return RECIPE_GSRC_NONE;
+      if (op->has_len == false)   return RECIPE_GSRC_NONE;
+      if ((op->a % 4) != 0)       return RECIPE_GSRC_NONE;
+      if ((u32) op->a > lens[x])  return RECIPE_GSRC_NONE;
+
+      lens[x + 1] = MIN ((u32) op->b, lens[x] - (u32) op->a);
+    }
+    else
+    {
+      return RECIPE_GSRC_NONE;
+    }
+  }
+
+  // Follow the word from the outermost transform to the input.
+
+  u32 cur = v;
+
+  for (u32 x = step->xops_cnt; x > 0; x--)
+  {
+    const recipe_xop_entry_t *op = &step->xops[x - 1];
+
+    const u32 before = lens[x - 1];
+
+    if (((cur * 4) + 4) > lens[x]) return RECIPE_GSRC_NONE;
+
+    if (op->op == RECIPE_XOP_WPERM)
+    {
+      const u32 idx = (u32) ((op->a >> (cur * 4)) & 15);
+
+      if ((idx * 4) >= before) return RECIPE_GSRC_ZERO;
+
+      cur = idx;
+    }
+    else if (op->op == RECIPE_XOP_PAD)
+    {
+      if ((cur * 4) >= before) return RECIPE_GSRC_ZERO;
+    }
+    else
+    {
+      cur += (u32) op->a / 4;
+    }
+
+    if (((cur * 4) + 4) > before) return RECIPE_GSRC_NONE;
+  }
+
+  const u32 r = recipe_gate_part (prog, in, lens[0], cur, gk, gw);
+
+  return r;
+}
+
+// A recipe without a loop or pbkdf2 whose result is an xor, or or a transform can have a compared
+// word that comes from an earlier call alone. If calls on the candidate follow that call, the kernel
+// compares the word right after it and skips them for a candidate that differs. That is the case for
+// 2 hashes packed into one result, as in
+// xor (pad (md5_bin (pass), 32), wperm (sha256_bin (pass), 8, 8, 8, 8, 0, 1, 2, 3)), which then
+// costs about one hash per candidate. Returns the length of the options written, 0 for none.
+//
+// With root_native, a hash-mode compares the result in the layout of its family, see
+// RECIPE_ROOT_NATIVE in the kernel include. Only xor, and and or keep memory order there.
+
+static int recipe_gate (const recipe_prog_t *prog, const bool *dep, const bool root_native, char *buf, const size_t size)
+{
+  if (prog->slow > 0)      return 0;
+  if (prog->root_var > 0)  return 0;
+  if (prog->steps_cnt < 2) return 0;
+
+  const u32 root = prog->steps_cnt - 1;
+
+  const recipe_step_t *rs = &prog->steps[root];
+
+  if ((rs->kind != RECIPE_KIND_BOP) && (rs->kind != RECIPE_KIND_XFRM)) return 0;
+
+  if ((root_native == true) && (rs->kind != RECIPE_KIND_BOP)) return 0;
+
+  const bool mask = (prog->cmp == 1) || (prog->root_len < 16);
+
+  const u32 start = (prog->cmp == 1) ? prog->cmp_start : (prog->root_off * 4);
+  const u32 cnt   = (prog->cmp == 1) ? prog->cmp_len   : prog->root_len;
+
+  u32 best_k = RECIPE_MAX_STEPS;
+  u32 best_w = 0;
+  u32 best_d = 0;
+  u32 best_m = 0;
+
+  for (u32 d = 0; d < 4; d++)
+  {
+    const u32 have = (cnt > (d * 4)) ? MIN (cnt - (d * 4), 4) : 0;
+
+    if (have == 0) continue;
+
+    const u32 m = (have == 4) ? 0xffffffff : ((1u << (have * 8)) - 1);
+
+    const u32 idx = (mask == true) ? ((start / 4) + d) : (prog->root_off + d);
+
+    u32 gk = 0;
+    u32 gw = 0;
+
+    if (recipe_gate_src (prog, root, idx, true, &gk, &gw) != RECIPE_GSRC_WORD) continue;
+
+    if (dep[gk] == false) continue;
+
+    if (gk >= best_k) continue;
+
+    best_k = gk;
+    best_w = gw;
+    best_d = d;
+    best_m = m;
+  }
+
+  if (best_k == RECIPE_MAX_STEPS) return 0;
+
+  // Leaving early pays only when a call on the candidate follows. xor, or and transforms are cheap.
+
+  bool later = false;
+
+  for (u32 k = best_k + 1; k < prog->steps_cnt; k++)
+  {
+    const u32 kind = prog->steps[k].kind;
+
+    if (dep[k] == false) continue;
+
+    if ((kind == RECIPE_KIND_BOP) || (kind == RECIPE_KIND_XFRM)) continue;
+
+    later = true;
+  }
+
+  if (later == false) return 0;
+
+  const int len = snprintf (buf, size, " -D RECIPE_GATE -D RECIPE_GATE_STEP=%u -D RECIPE_GATE_W=%u -D RECIPE_GATE_D=%u -D RECIPE_GATE_M=0x%08xu", best_k, best_w, best_d, best_m);
+
+  return len;
+}
+
 // The options of a compiled recipe. recipe_compile () calls this too, to check their length. The
 // buffer holds the options of RECIPE_MAX_STEPS steps of every kind with all their parts, which is
 // more than RECIPE_MAX_JIT allows.
@@ -6533,6 +6791,8 @@ static char *recipe_jit_prog (const recipe_prog_t *src_prog, const bool root_nat
   bool dep[RECIPE_MAX_STEPS];
 
   recipe_deps (&prog, dep);
+
+  len += recipe_gate (&prog, dep, root_native, buf + len, sizeof (buf) - len);
 
   // The hoisted HMAC key pads of a loop recipe, see recipe_hk_layout ().
 

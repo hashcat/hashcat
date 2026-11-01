@@ -786,6 +786,14 @@ Mode 74000's dynamic plugin supports bcrypt. It runs on the CPU and is much slow
   recipes without a loop or `pbkdf2` when nothing cuts the result. `rev` and `bswap32` of SHA-1,
   SHA-2 and some other families stay in the kernel, where they undo a byte swap the kernel makes
   anyway and cost nothing.
+- A result can join the outputs of several calls.
+  `xor(pad(md5_bin(pass), 32), wperm(sha256_bin(pass), 8, 8, 8, 8, 0, 1, 2, 3))` puts the MD5 of
+  the candidate in front of the first 16 bytes of its SHA-256. When one compared word of the result
+  comes from a single call, and other calls on the candidate follow that call, the kernel compares
+  the word as soon as the call is done. A candidate whose word differs skips the rest of the recipe,
+  so this recipe computes the SHA-256 only for a candidate whose first MD5 word matches. The word is
+  followed through `xor`, `or`, `wperm`, `pad` and cuts that start at a multiple of 4 bytes, in
+  recipes without a loop or `pbkdf2`. It is compared for each salt that has a single hash.
 - In a loop, an HMAC of MD4, MD5, SHA-1, SHA-2, RIPEMD-160 or SM3 whose key the loop does not
   change, such as `pass`, computes its key pads before the loop rather than in every iteration.
 - In a loop, a call of one of those families whose input fits one block, such as `md5_bin(h . pass)`

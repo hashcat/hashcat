@@ -3949,6 +3949,10 @@ typedef struct
 
 } pcfg_vreq_t;
 
+// The key of a WIDE question that names no capitalisation, see view_keep ().
+
+#define PCFG_WIDE_ANY UINT64_MAX
+
 typedef struct
 {
   pcfg_vreq_t req;
@@ -3963,10 +3967,12 @@ typedef struct
   u32            cnt;
   u32            cap;
 
-  // Structures holding a letter run of more than 64 characters, which is more than the group key has bits
-  // for. Counted rather than reported one by one, and named once at the end.
+  // An index over ent by question, twice its size, holding an entry's position plus one. A contains= run
+  // can ask tens of thousands of distinct questions, and reading every entry for each of them was most
+  // of its time. NULL where the index could not be allocated, and then every entry is read.
 
-  u32 deep;
+  u32 *hix;
+  u32  hcap;
 
   // Whether a letter run needed more capitalisation groups than the split carries.
 
@@ -3984,7 +3990,16 @@ typedef struct
   u32 base;
   u32 fend;
 
+  // Walk states, a slot and the offset it starts at, that spelled no variant of the structure being
+  // walked. dead holds a stamp per state and gen is the stamp of the current walk, so a new walk forgets
+  // the old states without clearing them.
+
+  u32 *dead;
+  u32  gen;
+
 } pcfg_mctx_t;
+
+#define PCFG_WALK_STATES ((PCFG_MAXSLOT + 1) * (MASK_CSS_MAXPOS + 1))
 
 // Whether a contains= walk may give slot j of s that many bytes. Such a walk leaves the length of the
 // candidate open, so the ceiling and the floor the structure already carries still hold, and they are
@@ -4071,15 +4086,20 @@ static bool view_keep (const pcfg_global_t *pg, const pcfg_vreq_t *r, const pcfg
   // A letter run written out one character at a time. Which of the two images a character comes from is
   // what the capitalisation says, and how many bytes it takes is what the terminal says, so the two are
   // walked together rather than read off the mask.
+  //
+  // PCFG_WIDE_ANY asks for the words some capitalisation admits, taking each character from whichever
+  // image the mask admits. Every word a single capitalisation admits is among them.
 
   if (r->kind == PCFG_VIEW_WIDE)
   {
     if (len != r->want_len) return false;
 
+    const bool any = (r->key == PCFG_WIDE_ANY);
+
     const pcfg_tlist_t *c = &pg->lists[r->aux];
 
-    const u32 cat  = c->off[r->key];
-    const u32 clen = c->off[r->key + 1] - cat;
+    const u32 cat  = (any == true) ? 0     : c->off[r->key + 0];
+    const u32 clen = (any == true) ? t->ln : (c->off[r->key + 1] - cat);
 
     if (clen != t->ln) return false;
 
@@ -4100,6 +4120,27 @@ static bool view_keep (const pcfg_global_t *pg, const pcfg_vreq_t *r, const pcfg
         w = pcfg_utf8_get (e + at, len - at, &cp);
 
         if (w == 0) return false;
+      }
+
+      if (any == true)
+      {
+        bool lo_ok = true;
+        bool up_ok = (up != NULL);
+
+        for (u32 q = 0; q < w; q++)
+        {
+          if (mask_css_allows (mm, r->off + at + q, e[at + q]) == false) lo_ok = false;
+
+          if (up_ok == false) continue;
+
+          if (mask_css_allows (mm, r->off + at + q, up[at + q]) == false) up_ok = false;
+        }
+
+        if ((lo_ok == false) && (up_ok == false)) return false;
+
+        at += w;
+
+        continue;
       }
 
       const bool upper = (c->buf[cat + ci] == 'U');
@@ -4320,6 +4361,67 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
   return made;
 }
 
+// Whether two questions are the same. Offsets are compared relative to where the fragment stood, see
+// view_get (). amb is not compared, because mask_amb () derives it from off and want_len alone, both of
+// which are.
+
+static bool view_same (const pcfg_vreq_t *q, const pcfg_vreq_t *k)
+{
+  if (q->kind     != k->kind)     return false;
+  if (q->parent   != k->parent)   return false;
+  if (q->want_len != k->want_len) return false;
+  if (q->key      != k->key)      return false;
+
+  if ((q->off + k->base) != (k->off + q->base)) return false;
+
+  return true;
+}
+
+// Hashes what view_same () compares. off - base wraps the same way for two questions that view_same ()
+// calls equal, so it stands for the offset relative to the fragment.
+
+static u32 view_hash (const pcfg_vreq_t *q)
+{
+  const u32 rel = q->off - q->base;
+
+  u64 h = ((u64) q->kind << 56) ^ ((u64) q->parent << 32) ^ ((u64) q->want_len << 16) ^ (u64) rel;
+
+  h ^= q->key * 0x9e3779b97f4a7c15ULL;
+  h ^= h >> 31;
+  h *= 0xbf58476d1ce4e5b9ULL;
+  h ^= h >> 29;
+
+  const u32 out = (u32) h;
+
+  return out;
+}
+
+static void view_insert (pcfg_mctx_t *mc, const u32 i)
+{
+  const u32 mask = mc->hcap - 1;
+
+  u32 at = view_hash (&mc->ent[i].req) & mask;
+
+  while (mc->hix[at] != 0) at = (at + 1) & mask;
+
+  mc->hix[at] = i + 1;
+}
+
+// Builds the index again for a cache that has just grown. The index is twice the cache's capacity, so it
+// is never more than half full and a probe always ends at an empty slot.
+
+static void view_index (pcfg_mctx_t *mc)
+{
+  hcfree (mc->hix);
+
+  mc->hcap = mc->cap * 2;
+  mc->hix  = (u32 *) hccalloc (mc->hcap, sizeof (u32));
+
+  if (mc->hix == NULL) return;
+
+  for (u32 i = 0; i < mc->cnt; i++) view_insert (mc, i);
+}
+
 // The same question asked twice gets the same answer, and a grammar asks a few thousand times what is
 // a few dozen distinct questions: one list at one offset serves every structure that puts it there.
 
@@ -4333,20 +4435,23 @@ static int view_get (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_vreq_t *r)
 
   k.base = mc->base;
 
-  for (u32 i = 0; i < mc->cnt; i++)
+  if (mc->hix != NULL)
   {
-    const pcfg_vreq_t *q = &mc->ent[i].req;
+    const u32 mask = mc->hcap - 1;
 
-    if (q->kind     != k.kind)     continue;
-    if (q->parent   != k.parent)   continue;
-    if (q->want_len != k.want_len) continue;
-    if (q->key      != k.key)      continue;
+    for (u32 at = view_hash (&k) & mask; mc->hix[at] != 0; at = (at + 1) & mask)
+    {
+      const pcfg_vcache_t *c = &mc->ent[mc->hix[at] - 1];
 
-    if ((q->off + k.base) != (k.off + q->base)) continue;
-
-    // amb is not compared, because mask_amb () derives it from off and want_len alone, both of which are.
-
-    return mc->ent[i].made;
+      if (view_same (&c->req, &k) == true) return c->made;
+    }
+  }
+  else
+  {
+    for (u32 i = 0; i < mc->cnt; i++)
+    {
+      if (view_same (&mc->ent[i].req, &k) == true) return mc->ent[i].made;
+    }
   }
 
   const int made = tlist_view (pg, &k);
@@ -4366,14 +4471,25 @@ static int view_get (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_vreq_t *r)
 
     mc->ent = grown;
     mc->cap = want;
+
+    view_index (mc);
   }
 
   mc->ent[mc->cnt].req  = k;
   mc->ent[mc->cnt].made = made;
 
+  if (mc->hix != NULL) view_insert (mc, mc->cnt);
+
   mc->cnt++;
 
   return made;
+}
+
+static void mctx_free (pcfg_mctx_t *mc)
+{
+  hcfree (mc->ent);
+  hcfree (mc->hix);
+  hcfree (mc->dead);
 }
 
 // The byte lengths a slot may contribute, one bit per length. One length for nearly every list, and one
@@ -4453,7 +4569,9 @@ typedef struct
 // A walk placing a contains= fragment is done as soon as the fragment is behind it. What follows may
 // spell anything, so the rest of the structure keeps the lists and the bounds it came with.
 
-static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt)
+static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt);
+
+static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt)
 {
   if (*out_cnt >= PCFG_MASK_MAXVAR) return false;
 
@@ -4533,13 +4651,27 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
     // Only a mask that admits a byte above 0x7e needs this. Where it does not, every character of more
     // than one byte is refused on its lead byte alone, so the grouped path below reaches the same answer
     // and costs one list per group instead of one per capitalisation per length.
+    //
+    // The terminals that are as many bytes long as the run has characters hold no such character, so the
+    // grouped path below takes those even here. A contains= run admits every byte around its piece, so a
+    // ruleset with a few such words in a list meets this path at every letter run of that list. Judging
+    // the ASCII words there one capitalisation at a time cost a list and a pass over the whole list for
+    // each capitalisation.
+    //
+    // A letter run of more than 64 characters cannot be keyed, because the group is a bit per character,
+    // so all of it is judged one capitalisation at a time. The stock pcfg_cracker ruleset trains runs of
+    // up to 228 characters, and their capitalisation lists hold one entry each.
 
-    if ((pg->lists[li].fixed_len != pg->lists[li].ln) && (pg->mcss_high == true))
+    const bool keyed = (n <= 64);
+
+    if (((pg->lists[li].fixed_len != pg->lists[li].ln) && (pg->mcss_high == true)) || (keyed == false))
     {
       const u32 ci = s->list[j + 1];
 
       for (u32 len = 1; len <= PW_MAX; len++)
       {
+        if ((len == n) && (keyed == true)) continue;
+
         if (((lens[len / 32] >> (len % 32)) & 1) == 0) continue;
         if (walk_len_ok (mc, s, j, len) == false) continue;
 
@@ -4547,12 +4679,30 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 
         if (mask_css_open (pg->mcss, off, len) == true) continue;
 
+        // Nearly every capitalisation leaves nothing here, and asking each one reads the whole list. So
+        // the words some capitalisation admits are asked for once, and each capitalisation then reads
+        // only those.
+
+        pcfg_vreq_t ra;
+
+        ra.kind     = PCFG_VIEW_WIDE;
+        ra.parent   = li;
+        ra.off      = off;
+        ra.want_len = len;
+        ra.key      = PCFG_WIDE_ANY;
+        ra.amb      = 0;
+        ra.aux      = ci;
+
+        const int av = view_get (pg, mc, &ra);
+
+        if (av < 0) continue;
+
         for (u32 e = 0; e < pg->lists[ci].cnt; e++)
         {
           pcfg_vreq_t rw;
 
           rw.kind     = PCFG_VIEW_WIDE;
-          rw.parent   = li;
+          rw.parent   = (u32) av;
           rw.off      = off;
           rw.want_len = len;
           rw.key      = e;
@@ -4586,23 +4736,13 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
         }
       }
 
-      return true;
+      if (keyed == false) return true;
     }
 
     if ((off + n) > pg->mcss->cnt) return true;
     if (walk_len_ok (mc, s, j, n) == false) return true;
 
     if (mask_css_open (pg->mcss, off, n) == true) return true;
-
-    // A letter run of more than 64 characters cannot be keyed, because the group is a bit per character.
-    // Nothing trains one, and a run that meets one says so rather than filtering it wrongly.
-
-    if (n > 64)
-    {
-      mc->deep++;
-
-      return true;
-    }
 
     const u32 cj = s->list[j + 1];
 
@@ -4761,6 +4901,27 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
   }
 
   return true;
+}
+
+// What the walk finds from a slot on depends only on the slot and the offset it starts at, and not on
+// the lengths chosen in front of it. A flat token's slot branches on every length its words have, so a
+// structure holding several of them reaches one state along a great many paths. Placed deep in such a
+// structure, a contains= piece is reached by few of those paths, and the others run out of slots in
+// front of it. So a state that spelled no variant once is not walked again.
+
+static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt)
+{
+  const u32 at = (j * (MASK_CSS_MAXPOS + 1)) + off;
+
+  if (mc->dead[at] == mc->gen) return true;
+
+  const u32 was = *out_cnt;
+
+  const bool ok = mask_step (pg, mc, s, j, off, cur, out, out_cnt);
+
+  if ((ok == true) && (*out_cnt == was)) mc->dead[at] = mc->gen;
+
+  return ok;
 }
 
 // HOLDING A BOUNDED RUN INSIDE ITS BOUND
@@ -5233,7 +5394,7 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if ((alone == true) || (inside == true) || (unknown == true))
     {
-      if (pin_emit (&pc, s, NULL, NULL, 0, 0) == false) { hcfree (pc.out); hcfree (pc.mc.ent); return false; }
+      if (pin_emit (&pc, s, NULL, NULL, 0, 0) == false) { hcfree (pc.out); mctx_free (&pc.mc); return false; }
 
       continue;
     }
@@ -5254,7 +5415,7 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     if (ok == false)
     {
       hcfree (pc.out);
-      hcfree (pc.mc.ent);
+      mctx_free (&pc.mc);
 
       if (pc.mc.full == true) gerr (global_ctx, "pwmin %u and pwmax %u: holding the hint words to them needs more than the %d terminal lists a ruleset can hold", pg->pwmin, pg->pwmax, PCFG_LIST_CACHE);
 
@@ -5271,7 +5432,7 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
       loose++;
 
-      if (span_emit (&pc, s, fixed, span) == false) { hcfree (pc.out); hcfree (pc.mc.ent); return false; }
+      if (span_emit (&pc, s, fixed, span) == false) { hcfree (pc.out); mctx_free (&pc.mc); return false; }
 
       continue;
     }
@@ -5283,7 +5444,7 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     if (pc.cnt == pc.base) dropped++;
   }
 
-  hcfree (pc.mc.ent);
+  mctx_free (&pc.mc);
 
   hcfree (pg->structs);
 
@@ -5387,6 +5548,15 @@ static bool mask_variants (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct
   u32 nvar = 0;
 
   memset (&cur, 0, sizeof (pcfg_var_t));
+
+  if (mc->dead == NULL)
+  {
+    mc->dead = (u32 *) hccalloc (PCFG_WALK_STATES, sizeof (u32));
+
+    if (mc->dead == NULL) return false;
+  }
+
+  mc->gen++;
 
   // A walk cut short at the variant bound has found part of the structure, and part of it is worse than
   // none of it: the caller either ends the run or names what it left out.
@@ -5567,7 +5737,7 @@ static bool filter_pass (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, pc
 
     if (pg->contains == NULL)
     {
-      if (mask_variants (pg, &mc, s, &out, &out_cnt, &out_cap, &over) == false) { hcfree (out); hcfree (mc.ent); return false; }
+      if (mask_variants (pg, &mc, s, &out, &out_cnt, &out_cap, &over) == false) { hcfree (out); mctx_free (&mc); return false; }
 
       continue;
     }
@@ -5607,9 +5777,9 @@ static bool filter_pass (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, pc
 
       contains_place (pg, off, false);
 
-      if (ok == false) { hcfree (out); hcfree (claim); hcfree (mc.ent); return false; }
+      if (ok == false) { hcfree (out); hcfree (claim); mctx_free (&mc); return false; }
 
-      if (claim_grow (&claim, &claim_cap, out_cnt) == false) { hcfree (out); hcfree (claim); hcfree (mc.ent); return false; }
+      if (claim_grow (&claim, &claim_cap, out_cnt) == false) { hcfree (out); hcfree (claim); mctx_free (&mc); return false; }
 
       // off is below MASK_CSS_MAXPOS, so it fits the byte it is kept in.
 
@@ -5639,7 +5809,7 @@ static bool filter_pass (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, pc
   {
     hcfree (out);
     hcfree (claim);
-    hcfree (mc.ent);
+    mctx_free (&mc);
 
     gerr (global_ctx, "contains %s: its pieces split this grammar into more than %u structures, which is more than the filter carries. Longer pieces, fewer of them, or pwmin and pwmax keep it smaller", pg->contains, PCFG_CONTAINS_MAXSTRUCT);
 
@@ -5654,11 +5824,10 @@ static bool filter_pass (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, pc
     st->built++;
   }
 
-  const u32  deep   = mc.deep;
   const bool full   = mc.full;
   const bool groups = mc.groups;
 
-  hcfree (mc.ent);
+  mctx_free (&mc);
 
   if (full == true)
   {
@@ -5676,16 +5845,6 @@ static bool filter_pass (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, pc
     hcfree (claim);
 
     gerr (global_ctx, "%s %s: a letter run of it needs more than %d capitalisation groups, which is more than the filter carries. A charset holding letters of one case, or a different set of letters per case, is what multiplies them", filter_name (pg), filter_arg (pg), PCFG_MASK_MAXGROUP);
-
-    return false;
-  }
-
-  if (deep > 0)
-  {
-    hcfree (out);
-    hcfree (claim);
-
-    gerr (global_ctx, "%s %s: %u structures hold a letter run of more than 64 characters, which is more than this filter keys", filter_name (pg), filter_arg (pg), deep);
 
     return false;
   }

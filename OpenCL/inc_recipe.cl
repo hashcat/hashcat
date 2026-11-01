@@ -1726,6 +1726,57 @@ DECLSPEC u32 recipe_salt_decode (PRIVATE_AS u32 *out, GLOBAL_AS const u32 *in, c
 
 #endif
 
+// A compared word that comes from one earlier step alone, as word 0 of
+// xor (pad (md5_bin (pass), 32), wperm (sha256_bin (pass), 8, 8, 8, 8, 0, 1, 2, 3)) does, lets a
+// candidate leave after that step: word RECIPE_GATE_W of step RECIPE_GATE_STEP, under the mask
+// RECIPE_GATE_M, is compared word RECIPE_GATE_D. See recipe_gate () in src/recipe.c. Only a salt
+// with a single digest has one word to compare, so the others run every step. A candidate that
+// leaves gets that word as its result, which differs from the digest's in every lane.
+
+#ifdef RECIPE_GATE
+
+#define RECIPE_GATE_BIND(S,SALT)                                                        \
+{                                                                                       \
+  (S)->gate_on = ((SALT).digests_cnt == 1) ? 1 : 0;                                     \
+  (S)->gate    = digests_buf[(SALT).digests_offset].digest_buf[RECIPE_GATE_D];          \
+}
+
+#define RECIPE_STATE_GATE     u32 gate; u32 gate_on;
+#define RECIPE_GATE_COPY(D,S) (D).gate = (S)->gate; (D).gate_on = (S)->gate_on;
+
+// The scalar kernels do not include inc_simd.h, and their words are scalar.
+
+#ifdef MATCHES_NONE_VS
+#define RECIPE_GATE_MISS(V,G)   MATCHES_NONE_VS ((V), (G))
+#else
+#define RECIPE_GATE_MISS(V,G)   ((V) != (G))
+#endif
+
+#define RECIPE_GATE_MISS_S(V,G) ((V) != (G))
+
+#define RECIPE_GATE_CHK(K,HS,T)                                                         \
+if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                                    \
+{                                                                                       \
+  const T gv = outs[((K) * 32) + RECIPE_GATE_W] & RECIPE_GATE_M;                        \
+                                                                                        \
+  if (RECIPE_GATE_MISS##HS (gv, st->gate))                                              \
+  {                                                                                     \
+    for (u32 i = 0; i < 4; i++) r[i] = 0;                                               \
+                                                                                        \
+    r[RECIPE_GATE_D] = gv;                                                              \
+                                                                                        \
+    return;                                                                             \
+  }                                                                                     \
+}
+
+#else
+
+#define RECIPE_GATE_BIND(S,SALT)
+#define RECIPE_STATE_GATE
+#define RECIPE_GATE_COPY(D,S)
+
+#endif
+
 // Feed one part into the running hash. U is the plain update and W is the UTF-16LE update. PU and
 // PB are the update and buffer for pass. SU and SB are their salt equivalents. See RECIPE_UPDP_*.
 // Part tokens are PASS, SALT, LIT0 through LIT3, STEP0 through STEP15, their UTF-16LE variants with
@@ -5984,6 +6035,7 @@ DECLSPEC int recipe_utf16le_S (PRIVATE_AS const u32 *src, const int len, PRIVATE
 #define RECIPE_EVB3(B,P,D,F,K,X,HS,T) RECIPE_EVB_##B (P, D, F, K, X, HS, T)
 #define RECIPE_EVB2(B,P,D,F,K,X,HS,T) RECIPE_EVB3 (B, P, D, F, K, X, HS, T)
 #define RECIPE_EVB(K,X,HS,T)          RECIPE_EVB2 (RECIPE_S##K##_BW, RECIPE_S##K##_PH, RECIPE_S##K##_KIND, RECIPE_S##K##_FN, K, X, HS, T)
+#define RECIPE_EVBG(K,X,HS,T)         RECIPE_EVB (K, X, HS, T) RECIPE_GATE_CHK (K, HS, T)
 
 #define RECIPE_BFLD_0(F,K)
 #define RECIPE_BFLD_1(F,K)  RECIPE_CTX_##F ( ) bc##K;
@@ -6084,6 +6136,7 @@ DECLSPEC int recipe_utf16le_S (PRIVATE_AS const u32 *src, const int len, PRIVATE
   RECIPE_STATE_SB (T)              \
   RECIPE_STATE_SD (T)              \
   RECIPE_STATE_FDS (T)             \
+  RECIPE_STATE_GATE                \
   RECIPE_XFLDS (T)
 
 typedef struct recipe_state_vector
@@ -6466,7 +6519,12 @@ typedef struct recipe_state_scalar
 // 16-word r buffer. The pouts array holds the outputs recipe_prep () computed, and outs holds the
 // candidate's outputs.
 
+#ifdef RECIPE_GATE
+#define RECIPE_EVG(K,X,HS,T)  RECIPE_EV (K, X, HS, T) RECIPE_GATE_CHK (K, HS, T)
+#define RECIPE_EVAL(X,HS,T,M) RECIPE_EVALR (X, HS, T, M, RECIPE_EVG)
+#else
 #define RECIPE_EVAL(X,HS,T,M) RECIPE_EVALR (X, HS, T, M, RECIPE_EV)
+#endif
 
 #define RECIPE_EVALR(X,HS,T,M,R) RECIPE_EVALS (X, HS, T, M, R, RECIPE_ROOT (HS))
 
@@ -6656,7 +6714,11 @@ DECLSPEC RECIPE_INLINE void recipe_base (PRIVATE_AS const recipe_state_t *st, PR
 
 DECLSPEC RECIPE_INLINE void recipe_eval_base (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS const recipe_base_t *bst, PRIVATE_AS const u32 *w, const u32 pw_len, GLOBAL_AS const u32 *tail, const u32 tail_len, PRIVATE_AS const u32 *s, const u32 salt_len, PRIVATE_AS u32 *r)
 {
+  #ifdef RECIPE_GATE
+  RECIPE_EVALR ( , _S, u32, , RECIPE_EVBG)
+  #else
   RECIPE_EVALR ( , _S, u32, , RECIPE_EVB)
+  #endif
 }
 
 #define RECIPE_BASE(B,ST,W,LEN)                          recipe_base_t B; recipe_base (ST, &B, W, LEN);
@@ -6714,6 +6776,7 @@ DECLSPEC void recipe_eval_lanes (PRIVATE_AS const recipe_state_t *st, PRIVATE_AS
   RECIPE_FUGUE_COPY (sts, st)
   RECIPE_GROESTL_COPY (sts, st)
   RECIPE_WRL01_COPY (sts, st)
+  RECIPE_GATE_COPY (sts, st)
 
   #ifdef RECIPE_SALT_DEC
   for (u32 i = 0; i < 64; i++) sts.sd[i] = 0;
