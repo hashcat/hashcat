@@ -50,6 +50,7 @@ typedef struct krb5asrep_1
 {
   u32 user[32];
   u32 realm[32];
+  u32 joined;
 
   u32 salt_buf[32];
   u32 salt_len;
