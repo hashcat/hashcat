@@ -175,6 +175,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->self_test                  = SELF_TEST;
   user_options->separator                  = SEPARATOR;
   user_options->session                    = PROGNAME;
+  user_options->session_alloc              = NULL;
   user_options->show                       = SHOW;
   user_options->skip                       = SKIP;
   user_options->slow_candidates            = SLOW_CANDIDATES;
@@ -206,10 +207,9 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hcfree (user_options->rp_files);
-
   hcfree (user_options->hc_argv_alias);
-
   hcfree (user_options->lookup_alias);
+  hcfree (user_options->session_alloc);
 
   option_table_destroy (hashcat_ctx);
 
@@ -924,6 +924,9 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
+  // Assign/append predefined session names based on the selected operation,
+  // to improve user experience and avoid conflicts between concurrent runs.
+  
   if (strcmp (user_options->session, PROGNAME) == 0)
   {
     if (user_options->benchmark == true)
@@ -991,6 +994,38 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "identify";
     }
   }
+  else
+  {
+    const char *mode = NULL;
+
+    if (user_options->show == true)
+    {
+      mode = "show";
+    }
+    else if (user_options->left == true)
+    {
+      mode = "left";
+    }
+    else if (user_options->hash_info > 0)
+    {
+      mode = "hash_info";
+    }
+    else if (user_options->usage > 0)
+    {
+      mode = "usage";
+    }
+    else if (user_options->identify == true)
+    {
+      mode = "identify";
+    }
+
+    if (mode != NULL)
+    {
+      hc_asprintf (&user_options->session_alloc, "%s.%s", user_options->session, mode);
+      user_options->session = user_options->session_alloc;
+    }
+  }
+  
 }
 
 // -a 1, -a 6 and -a 7 are -a 12 masks with the ?w in a fixed place, and -a 4 is -a 8 with the feed
