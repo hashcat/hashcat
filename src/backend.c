@@ -13502,9 +13502,9 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
       cl_program p1 = NULL;
 
-      // workaround opencl issue with Apple Silicon
+      // Apple's OpenCL drivers abort in a split compile and link, so its devices build in one step
 
-      if (is_apple_silicon_device_name (device_param->device_name) == true)
+      if ((is_apple_silicon_device_name (device_param->device_name) == true) || (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE))
       {
         if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program[program]) == -1) return false;
 
@@ -13531,7 +13531,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
         int rc_clGetProgramBuildInfo;
 
-        if (is_apple_silicon_device_name (device_param->device_name) == true)
+        if ((is_apple_silicon_device_name (device_param->device_name) == true) || (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE))
         {
           rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program[program], device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
         }
@@ -13563,9 +13563,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
         return false;
       }
 
-      // workaround opencl issue with Apple Silicon
-
-      if (is_apple_silicon_device_name (device_param->device_name) == false)
+      if ((is_apple_silicon_device_name (device_param->device_name) == false) && (device_param->opencl_platform_vendor_id != VENDOR_ID_APPLE))
       {
         cl_program t2[1];
 
