@@ -29,27 +29,14 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "b4b9b02e6f09a9bd760f388b67351e2b";
-static const char *ST_HASH        = "$krb5pa$23$user$realm$b3515d146dc326af0fd885c8079207ba$36a581548d55c65278ca30d2189c106176015a8e2c04145a6d91b736a387a9f5f8a245d3";
+static const char *ST_HASH        = "$krb5pa$23$user$realm$$36a581548d55c65278ca30d2189c106176015a8e2c04145a6d91b736a387a9f5f8a245d3b3515d146dc326af0fd885c8079207ba";
 
-u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
-u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
-u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
-u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
-u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
-u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
-u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
-const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
-u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
-u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
-u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
-u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
-const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
-const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+#include "hooks_common.c"
 
 typedef struct krb5pa
 {
-  u32 user[16];
-  u32 realm[16];
+  u32 user[64];
+  u32 realm[64];
   u32 salt[32];
   u32 timestamp[16];
   u32 checksum[4];
@@ -113,6 +100,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
+  token.token_cnt  = 6;
+
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
 
@@ -120,97 +109,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  // canonical (output): $krb5pa$23$user$realm$checksum$encrypted
-  // legacy:             $krb5pa$23$user$realm$data               (encrypted||checksum, single field)
-  // legacy:             $krb5pa$23$user$realm$salt$enc$$hmac     (with explicit salt field)
-  // legacy:             $krb5pa$23$user$realm$$enc$$hmac         (empty salt field)
+  token.sep[1]     = '$';
+  token.len_min[1] = 0;
+  token.len_max[1] = 253;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
+  token.sep[2]     = '$';
+  token.len_min[2] = 0;
+  token.len_max[2] = 253;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  int sep_cnt = 0;
+  token.sep[3]     = '$';
+  token.len_min[3] = 0;
+  token.len_max[3] = 128;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == '$') sep_cnt++;
-  }
+  token.len[4]     = 72;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  int data_token;
-
-  if (sep_cnt >= 7)
-  {
-    token.token_cnt  = 6;
-
-    token.sep[1]     = '$';
-    token.len_min[1] = 0;
-    token.len_max[1] = 63;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 0;
-    token.len_max[2] = 63;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.sep[3]     = '$';
-    token.len_min[3] = 0;
-    token.len_max[3] = 128;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.len[4]     = 72;
-    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.len[5]     = 32;
-    token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    data_token = 4;
-  }
-  else if (sep_cnt == 6)
-  {
-    token.token_cnt  = 5;
-
-    token.sep[1]     = '$';
-    token.len_min[1] = 0;
-    token.len_max[1] = 63;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 0;
-    token.len_max[2] = 63;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.sep[3]     = '$';
-    token.len[3]     = 32;
-    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[4]     = '$';
-    token.len[4]     = 72;
-    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    data_token = 3;
-  }
-  else
-  {
-    token.token_cnt  = 4;
-
-    token.sep[1]     = '$';
-    token.len_min[1] = 0;
-    token.len_max[1] = 63;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 0;
-    token.len_max[2] = 63;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.sep[3]     = '$';
-    token.len[3]     = 104;
-    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    data_token = 3;
-  }
+  token.len[5]     = 32;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -218,45 +138,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *user_pos  = token.buf[1];
   const u8 *realm_pos = token.buf[2];
+  const u8 *salt_pos  = token.buf[3];
 
   const int user_len  = token.len[1];
   const int realm_len = token.len[2];
+  const int salt_len  = token.len[3];
 
   memcpy (krb5pa->user,  user_pos,  user_len);
   memcpy (krb5pa->realm, realm_pos, realm_len);
+  memcpy (krb5pa->salt,  salt_pos,  salt_len);
 
-  if (sep_cnt >= 7)
-  {
-    const u8 *salt_pos = token.buf[3];
-    const int salt_len = token.len[3];
-
-    memcpy (krb5pa->salt, salt_pos, salt_len);
-  }
-  else
-  {
-    memset (krb5pa->salt, 0, sizeof (krb5pa->salt));
-  }
-
-  const u8 *data_pos = token.buf[data_token];
-
-  const u8 *timestamp_pos;
-  const u8 *checksum_pos;
-
-  if (sep_cnt >= 7)
-  {
-    timestamp_pos = token.buf[4];
-    checksum_pos  = token.buf[5];
-  }
-  else if (sep_cnt == 6)
-  {
-    checksum_pos  = token.buf[3];
-    timestamp_pos = token.buf[4];
-  }
-  else
-  {
-    timestamp_pos = data_pos;
-    checksum_pos  = data_pos + 72;
-  }
+  const u8 *timestamp_pos = token.buf[4];
 
   u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
 
@@ -268,6 +160,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     *timestamp_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
   }
+
+  const u8 *checksum_pos = token.buf[5];
 
   u8 *checksum_ptr = (u8 *) krb5pa->checksum;
 
@@ -307,25 +201,28 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *ptr_timestamp = (const u8 *) krb5pa->timestamp;
   const u8 *ptr_checksum  = (const u8 *) krb5pa->checksum;
 
-  char checksum_hex[64] = { 0 };
-  char encrypted_hex[160] = { 0 };
+  char data[128] = { 0 };
 
-  for (u32 i = 0; i < 16; i++)
+  char *ptr_data = data;
+
+  for (u32 i = 0; i < 36; i++, ptr_data += 2)
   {
-    snprintf (checksum_hex + i * 2, 3, "%02x", ptr_checksum[i]);
+    snprintf (ptr_data, 3, "%02x", ptr_timestamp[i]);
   }
 
-  for (u32 i = 0; i < 36; i++)
+  for (u32 i = 0; i < 16; i++, ptr_data += 2)
   {
-    snprintf (encrypted_hex + i * 2, 3, "%02x", ptr_timestamp[i]);
+    snprintf (ptr_data, 3, "%02x", ptr_checksum[i]);
   }
+
+  *ptr_data = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s",
     SIGNATURE_KRB5PA,
     (const char *) krb5pa->user,
     (const char *) krb5pa->realm,
-    checksum_hex,
-    encrypted_hex);
+    (const char *) krb5pa->salt,
+    data);
 
   return line_len;
 }
@@ -338,89 +235,15 @@ const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 void module_init (module_ctx_t *module_ctx)
 {
-  module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
-  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
+  module_init_common (module_ctx);
 
-  module_ctx->module_advice_notice            = MODULE_DEFAULT;
-  module_ctx->module_attack_exec              = module_attack_exec;
-  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = module_benchmark_mask;
-  module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
-  module_ctx->module_bridge_name              = MODULE_DEFAULT;
-  module_ctx->module_bridge_type              = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
-  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
-  module_ctx->module_dgst_pos0                = module_dgst_pos0;
-  module_ctx->module_dgst_pos1                = module_dgst_pos1;
-  module_ctx->module_dgst_pos2                = module_dgst_pos2;
-  module_ctx->module_dgst_pos3                = module_dgst_pos3;
-  module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_esalt_size               = module_esalt_size;
-  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
-  module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
-  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
-  module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
-  module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
-  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
-  module_ctx->module_hash_hints               = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
-  module_ctx->module_hash_mode                = MODULE_DEFAULT;
-  module_ctx->module_hash_category            = module_hash_category;
-  module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
-  module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
-  module_ctx->module_hook12                   = MODULE_DEFAULT;
-  module_ctx->module_hook23                   = MODULE_DEFAULT;
-  module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
-  module_ctx->module_hook_size                = MODULE_DEFAULT;
   module_ctx->module_jit_build_options        = module_jit_build_options;
-  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
-  module_ctx->module_kern_bits                = MODULE_DEFAULT;
-  module_ctx->module_kern_type                = module_kern_type;
-  module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
-  module_ctx->module_length_sort              = MODULE_DEFAULT;
-  module_ctx->module_opti_type                = module_opti_type;
-  module_ctx->module_opts_type                = module_opts_type;
-  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
-  module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
-  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
-  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
-  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = module_pw_min;
-  module_ctx->module_register_options         = MODULE_DEFAULT;
-  module_ctx->module_salt_max                 = MODULE_DEFAULT;
-  module_ctx->module_salt_min                 = MODULE_DEFAULT;
-  module_ctx->module_salt_type                = module_salt_type;
-  module_ctx->module_separator                = MODULE_DEFAULT;
-  module_ctx->module_st_hash                  = module_st_hash;
-  module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
-  module_ctx->module_usage_notice             = MODULE_DEFAULT;
-  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -10,7 +10,7 @@ from lib.test_helpers import pack_hex, random_bytes, random_numeric_string
 
 # Kerberos 5 AS-REQ Pre-Auth (NT hash variant, etype 23). Same as mode 07500 but the input is a
 # 32-char hex NT hash instead of a password. The MD4 step is skipped.
-# Canonical format: $krb5pa$23$user$realm$<enc_timestamp_hex><checksum_hex>
+# Format: $krb5pa$23$user$realm$salt$<enc_72hex><checksum_32hex>
 
 MSG_TYPE = b"\x01\x00\x00\x00"
 
@@ -36,7 +36,7 @@ def module_generate_hash(word, salt=None, iterations=None, user="user", realm="r
 
     hash_buf = rc4(k3, clear_data)
 
-    return f"$krb5pa$23${user}${realm}${checksum.hex()}${hash_buf.hex()}"
+    return f"$krb5pa$23${user}${realm}$${hash_buf.hex()}{checksum.hex()}"
 
 
 def module_verify_hash(line):
@@ -59,15 +59,18 @@ def module_verify_hash(line):
     user = parts[3]
     realm = parts[4]
 
-    if len(parts) >= 7 and len(parts[5]) == 32:
-        checksum_hex = parts[5]
-        enc_hex = parts[6]
-    else:
+    if len(parts) == 7:
+        data = parts[6]
+    elif len(parts) == 6:
         data = parts[5]
-        if len(data) < 104:
-            return None
-        checksum_hex = data[-32:]
-        enc_hex = data[:-32]
+    else:
+        return None
+
+    if len(data) != 104:
+        return None
+
+    enc_hex = data[:72]
+    checksum_hex = data[72:]
 
     checksum_bin = bytes.fromhex(checksum_hex)
     enc_bin = bytes.fromhex(enc_hex)
@@ -85,4 +88,4 @@ def module_verify_hash(line):
     if not is_numeric:
         return None
 
-    return (f"$krb5pa$23${user}${realm}${checksum_hex}${enc_hex}", word)
+    return (f"$krb5pa$23${user}${realm}$${enc_hex}{checksum_hex}", word)
