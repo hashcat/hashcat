@@ -93,10 +93,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  /**
-   * format 1: $krb5pa$23$user$realm$salt$<enc><checksum>  (with salt field)
-   * format 2: $krb5pa$23$user$realm$<enc||checksum>       (single field, no salt)
-   */
+  // $krb5pa$23$user$realm$salt$<enc><checksum>
+
+  token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
@@ -115,143 +114,39 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[2] = 64;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  /**
-   * format 1: $krb5pa$23$user$realm$salt$<enc><checksum>  (with salt, combined data)
-   * format 2: $krb5pa$23$user$realm$<enc||checksum>       (no salt, combined data)
-   * format 3: $krb5pa$23$user$realm$<checksum>$<enc>      (no salt, split fields)
-   */
+  token.sep[3]     = '$';
+  token.len_min[3] = 0;
+  token.len_max[3] = 128;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  int sep_cnt = 0;
+  token.len_min[4] = 90;
+  token.len_max[4] = 108;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  for (int i = 0; i < line_len; i++)
-  {
-    if (line_buf[i] == '$') sep_cnt++;
-  }
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  const u8 *timestamp_pos;
-  const u8 *checksum_pos;
-  int timestamp_hex_len;
-  int format;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (sep_cnt >= 6)
-  {
-    // format 1: try $user$realm$salt$<90-108 hex data>
-    token.token_cnt  = 5;
+  const int data_hex_len = token.len[4];
 
-    token.sep[3]     = '$';
-    token.len_min[3] = 0;
-    token.len_max[3] = 128;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.len_min[4] = 90;
-    token.len_max[4] = 108;
-    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    int rc = input_tokenizer ((const u8 *) line_buf, line_len, &token);
-
-    if (rc == PARSER_OK)
-    {
-      format = 1;
-    }
-    else
-    {
-      // format 3: $user$realm$<32 hex checksum>$<58-76 hex enc>
-      memset (&token, 0, sizeof (hc_token_t));
-
-      token.signatures_cnt    = 1;
-      token.signatures_buf[0] = SIGNATURE_KRB5PA;
-
-      token.token_cnt  = 5;
-
-      token.len[0]     = 11;
-      token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                       | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-      token.sep[1]     = '$';
-      token.len_min[1] = 0;
-      token.len_max[1] = 64;
-      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-      token.sep[2]     = '$';
-      token.len_min[2] = 0;
-      token.len_max[2] = 64;
-      token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-      token.sep[3]     = '$';
-      token.len[3]     = 32;
-      token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
-
-      token.sep[4]     = '$';
-      token.len_min[4] = 58;
-      token.len_max[4] = 76;
-      token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
-
-      rc = input_tokenizer ((const u8 *) line_buf, line_len, &token);
-
-      if (rc != PARSER_OK) return (rc);
-
-      format = 3;
-    }
-  }
-  else
-  {
-    // format 2: $user$realm$<90-108 hex data>
-    token.token_cnt  = 4;
-
-    token.len_min[3] = 90;
-    token.len_max[3] = 108;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    const int rc = input_tokenizer ((const u8 *) line_buf, line_len, &token);
-
-    if (rc != PARSER_OK) return (rc);
-
-    format = 2;
-  }
+  if (data_hex_len % 2 != 0) return (PARSER_TOKEN_LENGTH);
 
   const u8 *user_pos  = token.buf[1];
   const u8 *realm_pos = token.buf[2];
+  const u8 *salt_pos  = token.buf[3];
 
   const int user_len  = token.len[1];
   const int realm_len = token.len[2];
+  const int salt_len  = token.len[3];
 
   memcpy (krb5pa->user,  user_pos,  user_len);
   memcpy (krb5pa->realm, realm_pos, realm_len);
+  memcpy (krb5pa->salt,  salt_pos,  salt_len);
 
-  if (format == 1)
-  {
-    const u8 *salt_pos = token.buf[3];
-    const int salt_len = token.len[3];
-
-    memcpy (krb5pa->salt, salt_pos, salt_len);
-
-    const u8 *data_pos = token.buf[4];
-    const int data_hex_len = token.len[4];
-
-    timestamp_hex_len = data_hex_len - 32;
-    timestamp_pos = data_pos;
-    checksum_pos  = data_pos + timestamp_hex_len;
-  }
-  else if (format == 3)
-  {
-    checksum_pos = token.buf[3];
-
-    timestamp_pos = token.buf[4];
-    timestamp_hex_len = token.len[4];
-  }
-  else
-  {
-    const u8 *data_pos = token.buf[3];
-    const int data_hex_len = token.len[3];
-
-    timestamp_hex_len = data_hex_len - 32;
-    timestamp_pos = data_pos;
-    checksum_pos  = data_pos + timestamp_hex_len;
-  }
+  const int timestamp_hex_len = data_hex_len - 32;
+  const u8 *timestamp_pos = token.buf[4];
+  const u8 *checksum_pos  = token.buf[4] + timestamp_hex_len;
 
   u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
 
