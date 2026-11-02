@@ -14995,6 +14995,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_id, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
 
         if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
+
+        // 'N' is stored as -1, which the hook would take as an accel of 4294967295
+
+        if (_kernel_accel == (u32) -1) _kernel_accel = device_param->device_processors;
       }
 
       // The module builds the block on the heap for this device and hands it over, so it is parsed in
