@@ -13,7 +13,7 @@
 #include <limits.h>
 #include <inttypes.h>
 
-static const int MODULE_INTERFACE_VERSION_MINIMUM = 800;
+static const int MODULE_INTERFACE_VERSION_MINIMUM = 810;
 
 static const int MODULE_HASH_MODES_MAXIMUM = 100000;
 
@@ -60,5 +60,8 @@ u32         default_salt_max                (MAYBE_UNUSED const hashconfig_t *ha
 char        default_separator               (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u64         default_tmp_size                (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 bool        default_warmup_disable          (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         default_combined_len_max        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         default_combined_len_pw         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const u32 pw_len);
+u32         default_combined_len_salt       (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const salt_t *salt, MAYBE_UNUSED const void *esalt);
 
 #endif // HC_INTERFACE_H

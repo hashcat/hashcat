@@ -25,7 +25,7 @@ B32HEX = "0123456789abcdefghijklmnopqrstuv"
 
 
 def module_constraints():
-  return [[1, 63], [1, 63], [1, 32], [1, 24], [1, 44]]
+  return [[1, 63], [1, 63], [1, 32], [1, 24], [1, 48]]
 
 
 def _encode_base32hex(digest):

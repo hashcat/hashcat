@@ -104,6 +104,9 @@
 #ifdef RECIPE_MYSQL323
 #include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
 #endif
+#ifdef RECIPE_XXHASH
+#include M2S(INCLUDE_PATH/inc_hash_xxhash.cl)
+#endif
 #ifdef RECIPE_DES
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif
@@ -225,6 +228,7 @@ KERNEL_FQ KERNEL_FA void m04000_mxx (KERN_ATTR_VECTOR ())
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
   RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
+  RECIPE_GATE_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 
@@ -372,6 +376,7 @@ KERNEL_FQ KERNEL_FA void m04000_sxx (KERN_ATTR_VECTOR ())
 
   RECIPE_SALTD_BIND (&st, salt_bufs[SALT_POS_HOST])
   RECIPE_FIELDS_BIND (&st, salt_bufs[SALT_POS_HOST])
+  RECIPE_GATE_BIND (&st, salt_bufs[SALT_POS_HOST])
 
   recipe_prep (&st, s, salt_len);
 

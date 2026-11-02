@@ -1131,6 +1131,8 @@ void hash_info_single_json (json_ctx_t *js, hashcat_ctx_t *hashcat_ctx, user_opt
         json_kv_uint (js, "salt_len_min", t_salt_min);
         json_kv_uint (js, "salt_len_max", t_salt_max);
       }
+
+      if (hashconfig->combined_len_max > 0) json_kv_uint (js, "combined_len_max", hashconfig->combined_len_max);
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
@@ -1428,6 +1430,8 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         event_log_info (hashcat_ctx, "  Salt.Len.Min........: %u", t_salt_min);
         event_log_info (hashcat_ctx, "  Salt.Len.Max........: %u", t_salt_max);
       }
+
+      if (hashconfig->combined_len_max > 0) event_log_info (hashcat_ctx, "  Combined.Len.Max....: %u", hashconfig->combined_len_max);
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))

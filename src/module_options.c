@@ -571,7 +571,7 @@ int module_options_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder,
   char *shared_dir = NULL;
   char *cache_dir  = NULL;
 
-  if (folder_early_dirs (install_folder, shared_folder, user_options->cache_path, &shared_dir, &cache_dir) == -1) return 0;
+  if (folder_early_dirs (&hashcat_ctx->folder_config->request, install_folder, shared_folder, user_options->cache_path, &shared_dir, &cache_dir) == -1) return 0;
 
   folder_config_t folder_config;
 

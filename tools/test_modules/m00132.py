@@ -9,8 +9,8 @@ import hashlib
 
 from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 
-# MSSQL (2005): the password in UTF-16LE, then the 4 byte salt. The two kernel families convert the
-# password to UTF-16 differently, see kernel_charset ().
+# MSSQL (2005, 2008): the password in UTF-16LE, then the 4 byte salt. The two kernel families
+# convert the password to UTF-16 differently, see kernel_charset ().
 
 CHARSET = kernel_charset()
 

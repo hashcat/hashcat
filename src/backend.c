@@ -721,6 +721,9 @@ static const hc_dev_kern_t kern_run_all[] =
   HC_DEV_KERN_INIT2,
   HC_DEV_KERN_LOOP2P,
   HC_DEV_KERN_LOOP2,
+  HC_DEV_KERN_INIT3,
+  HC_DEV_KERN_LOOP3P,
+  HC_DEV_KERN_LOOP3,
   HC_DEV_KERN_AUX1,
   HC_DEV_KERN_AUX2,
   HC_DEV_KERN_AUX3,
@@ -749,6 +752,9 @@ static hc_dev_kern_t kern_run_to_slot (const int kern_run)
     case KERN_RUN_INIT2:  return HC_DEV_KERN_INIT2;
     case KERN_RUN_LOOP2P: return HC_DEV_KERN_LOOP2P;
     case KERN_RUN_LOOP2:  return HC_DEV_KERN_LOOP2;
+    case KERN_RUN_INIT3:  return HC_DEV_KERN_INIT3;
+    case KERN_RUN_LOOP3P: return HC_DEV_KERN_LOOP3P;
+    case KERN_RUN_LOOP3:  return HC_DEV_KERN_LOOP3;
     case KERN_RUN_AUX1:   return HC_DEV_KERN_AUX1;
     case KERN_RUN_AUX2:   return HC_DEV_KERN_AUX2;
     case KERN_RUN_AUX3:   return HC_DEV_KERN_AUX3;
@@ -2608,14 +2614,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     if (true)
     {
       // The amp kernel writes every candidate of the launch from the base words in pws_amp, the copy of
-      // the base word included, so only slow candidates still need them copied across. With more than
-      // one amplifier item in the launch the copy would cover just the first.
+      // the base word included. A slow candidate is finished when it reaches the device, so it has no
+      // amp kernel and the decompress kernel wrote it into pws_buf, where the launch reads it.
 
-      if (user_options->slow_candidates == true)
-      {
-        if (hc_dev_memcpy_d2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], 0, device_param->d_buf[HC_DEV_BUF_PWS_AMP_BUF], 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
-      }
-      else
+      if (user_options->slow_candidates == false)
       {
         const u64 amp_base_cnt = (device_param->amp_base_cnt > 0) ? device_param->amp_base_cnt : pws_cnt;
 
@@ -2782,8 +2784,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
             const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+            const u32 iter3r = hashes->salts_buf[salt_pos].salt_iter3 * (salt_repeats + 1);
 
-            const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+            const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r + iter3r);
 
             const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
@@ -2918,8 +2921,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
             const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+            const u32 iter3r = hashes->salts_buf[salt_pos].salt_iter3 * (salt_repeats + 1);
 
-            const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+            const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r + iter3r);
 
             const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
@@ -2948,6 +2952,69 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TMPS], 0, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
 
             if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) return -1;
+          }
+        }
+      }
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_INIT3)
+    {
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+    }
+
+    if (true)
+    {
+      const u32 salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
+
+      for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
+      {
+        device_param->kernel_param.salt_repeat = salt_repeat;
+
+        if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+        {
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3P, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+        }
+
+        if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+        {
+          u32 iter = hashes->salts_buf[salt_pos].salt_iter3;
+
+          u32 loop_step = device_param->kernel_loops;
+
+          for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+          {
+            u32 loop_left = iter - loop_pos;
+
+            loop_left = MIN (loop_left, loop_step);
+
+            device_param->kernel_param.loop_pos = loop_pos;
+            device_param->kernel_param.loop_cnt = loop_left;
+
+            if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
+
+            //bug?
+            //while (status_ctx->run_thread_level2 == false) break;
+            if (status_ctx->run_thread_level2 == false) break;
+
+            /**
+             * speed
+             */
+
+            const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
+            const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+            const u32 iter3r = hashes->salts_buf[salt_pos].salt_iter3 * (salt_repeats + 1);
+
+            const double iter_part = (double) (iter1r + iter2r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r + iter3r);
+
+            const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+
+            double speed_msec = hc_timer_get (device_param->timer_speed);
+
+            const u32 speed_pos = device_param->speed_pos;
+
+            device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+            device_param->speed_msec[speed_pos] = speed_msec;
           }
         }
       }
@@ -12951,14 +13018,14 @@ static bool is_apple_silicon_device_name (const char *device_name)
 // The program the result lands in is named by its slot rather than by four out pointers, so a caller
 // names the program to build and no more.
 
-static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, const hc_dev_program_t program, size_t *kernel_lengths, char **kernel_sources)
+static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, const bool cache_refused, const hc_dev_program_t program, size_t *kernel_lengths, char **kernel_sources)
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
-  const bool cached = kernel_is_cached (cached_file, cache_disable);
+  const bool cached = (cache_refused == true) ? false : kernel_is_cached (cached_file, cache_disable);
 
   /**
    * kernel compile or load
@@ -13506,9 +13573,9 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
       cl_program p1 = NULL;
 
-      // workaround opencl issue with Apple Silicon
+      // Apple's OpenCL drivers abort in a split compile and link, so its devices build in one step
 
-      if (is_apple_silicon_device_name (device_param->device_name) == true)
+      if ((is_apple_silicon_device_name (device_param->device_name) == true) || (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE))
       {
         if (hc_clCreateProgramWithSource (hashcat_ctx, device_param->opencl_context, 1, (const char **) kernel_sources, NULL, &device_param->opencl_program[program]) == -1) return false;
 
@@ -13535,7 +13602,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
         int rc_clGetProgramBuildInfo;
 
-        if (is_apple_silicon_device_name (device_param->device_name) == true)
+        if ((is_apple_silicon_device_name (device_param->device_name) == true) || (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE))
         {
           rc_clGetProgramBuildInfo = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->opencl_program[program], device_param->opencl_device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
         }
@@ -13567,9 +13634,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
         return false;
       }
 
-      // workaround opencl issue with Apple Silicon
-
-      if (is_apple_silicon_device_name (device_param->device_name) == false)
+      if ((is_apple_silicon_device_name (device_param->device_name) == false) && (device_param->opencl_platform_vendor_id != VENDOR_ID_APPLE))
       {
         cl_program t2[1];
 
@@ -13658,6 +13723,9 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
         event_log_error (hashcat_ctx, "%s", mod_error_log);
         event_log_error (hashcat_ctx, NULL);
 
+        hcfree (mod_info_log);
+        hcfree (mod_error_log);
+
         return false;
       }
 
@@ -13707,6 +13775,9 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
         event_log_error (hashcat_ctx, "%s", mod_error_log);
         event_log_error (hashcat_ctx, NULL);
 
+        hcfree (mod_info_log);
+        hcfree (mod_error_log);
+
         return false;
       }
 
@@ -13744,7 +13815,28 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
 
   char **kernel_sources = &kernel_sources_buf;
 
-  const bool rc = load_kernel_program (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, program, kernel_lengths, kernel_sources);
+  // A cache key can match a binary the runtime no longer accepts, when an update changed the compiler
+  // but nothing the key is made of. Giving up there would fail the device on every start until the
+  // cache is deleted by hand, so the program is built from the source and the build overwrites the
+  // file. Metal is left out: its cache holds pipelines, and its build already starts from the source.
+
+  const bool from_cache = (device_param->is_metal == false) && (kernel_is_cached (cached_file, cache_disable) == true);
+
+  bool rc = load_kernel_program (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, false, program, kernel_lengths, kernel_sources);
+
+  if ((rc == false) && (from_cache == true))
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: The runtime refused the cached kernel %s. Building it again.", device_param->device_id + 1, cached_file);
+    event_log_warning (hashcat_ctx, NULL);
+
+    if (device_param->is_opencl == true) hc_clReleaseProgramPtr (hashcat_ctx, &device_param->opencl_program[program]);
+
+    hcfree (kernel_sources[0]);
+
+    kernel_sources[0] = NULL;
+
+    rc = load_kernel_program (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, true, program, kernel_lengths, kernel_sources);
+  }
 
   hcfree (kernel_sources[0]);
 
@@ -14063,6 +14155,33 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
 
       SETUP_KERNEL (HC_DEV_KERN_LOOP2, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // init3
+
+    if (hashconfig->kern_bits & KERN_BIT_INIT3)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_init3", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_INIT3, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // loop3 prepare
+
+    if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop3_prepare", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_LOOP3P, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // loop3
+
+    if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop3", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_LOOP3, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
     // the auxiliary kernels this mode names, m<type>_aux1 upwards
@@ -17246,6 +17365,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const bool pws_staging_in_use = (user_options->slow_candidates == true) || (user_options_extra->base_source != BASE_SOURCE_MASK);
 
+    // pws_amp holds the base words the amp kernel expands into pws_buf, so a slow hash has one only
+    // because that kernel does. Under --slow-candidates there is no amp kernel: the host builds the
+    // finished candidate, and the decompress kernel can write pws_buf directly. Staging it here first
+    // made this a second buffer the size of pws_buf, which comes off the accel the device has room for,
+    // and one copy of the whole launch per launch.
+
+    const bool pws_amp_in_use = (hashconfig->attack_exec != ATTACK_EXEC_INSIDE_KERNEL) && (user_options->slow_candidates == false);
+
     // pws_base is the third staging buffer, and the only one nothing in a normal run reads. It keeps
     // the base word each slow candidate came from so --debug-mode can report it, and it is charged to
     // the host budget twice, once per pipeline slot, which is budget kernel_accel is sized against.
@@ -17348,7 +17475,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       size_pws = kernel_power_max * sizeof (pw_t);
 
-      size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
+      size_pws_amp = (pws_amp_in_use == true) ? size_pws : 1;
 
       // size_pcfg_cells, size_pcfg_pool
       //
@@ -18036,9 +18163,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->kernel_params_decompress[0] = hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_IDX);
     device_param->kernel_params_decompress[1] = hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_COMP_BUF);
-    device_param->kernel_params_decompress[2] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-                                              ? hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_BUF)
-                                              : hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_AMP_BUF);
+    device_param->kernel_params_decompress[2] = (pws_amp_in_use == true)
+                                              ? hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_AMP_BUF)
+                                              : hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_BUF);
 
     if (device_param->is_opencl == true)
     {

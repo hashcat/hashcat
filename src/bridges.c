@@ -264,6 +264,43 @@ bool bridge_unit_tuning (hashcat_ctx_t *hashcat_ctx, const int bridge_link_devic
 // A bridge that is already up is left alone. Loading one is not free: an FPGA bridge programs the
 // boards it finds as part of coming up.
 
+// A bridge assigns the functions it implements and leaves the others alone, the same way a module
+// does, see module_ctx_defaults (). A function it left alone takes BRIDGE_DEFAULT here, and the check
+// below still refuses a bridge that leaves out one it has to implement.
+
+static void bridge_ctx_defaults (bridge_ctx_t *bridge_ctx)
+{
+  if (bridge_ctx->platform_init                  == NULL) bridge_ctx->platform_init                  = BRIDGE_DEFAULT;
+  if (bridge_ctx->platform_term                  == NULL) bridge_ctx->platform_term                  = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_count                 == NULL) bridge_ctx->get_unit_count                 = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_info                  == NULL) bridge_ctx->get_unit_info                  = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_workitem_count             == NULL) bridge_ctx->get_workitem_count             = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_workitem_multiple          == NULL) bridge_ctx->get_workitem_multiple          = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_class                 == NULL) bridge_ctx->get_unit_class                 = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_member_count          == NULL) bridge_ctx->get_unit_member_count          = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_member_info           == NULL) bridge_ctx->get_unit_member_info           = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_tuning                == NULL) bridge_ctx->get_unit_tuning                = BRIDGE_DEFAULT;
+  if (bridge_ctx->salt_prepare                   == NULL) bridge_ctx->salt_prepare                   = BRIDGE_DEFAULT;
+  if (bridge_ctx->salt_destroy                   == NULL) bridge_ctx->salt_destroy                   = BRIDGE_DEFAULT;
+  if (bridge_ctx->thread_init                    == NULL) bridge_ctx->thread_init                    = BRIDGE_DEFAULT;
+  if (bridge_ctx->thread_term                    == NULL) bridge_ctx->thread_term                    = BRIDGE_DEFAULT;
+  if (bridge_ctx->launch_loop                    == NULL) bridge_ctx->launch_loop                    = BRIDGE_DEFAULT;
+  if (bridge_ctx->launch_loop2                   == NULL) bridge_ctx->launch_loop2                   = BRIDGE_DEFAULT;
+  if (bridge_ctx->st_update_pass                 == NULL) bridge_ctx->st_update_pass                 = BRIDGE_DEFAULT;
+  if (bridge_ctx->st_update_hash                 == NULL) bridge_ctx->st_update_hash                 = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_temperature           == NULL) bridge_ctx->get_unit_temperature           = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_temperature_str       == NULL) bridge_ctx->get_unit_temperature_str       = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_buslanes_str          == NULL) bridge_ctx->get_unit_buslanes_str          = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_temperature_abort     == NULL) bridge_ctx->get_unit_temperature_abort     = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_temperature_unwatched == NULL) bridge_ctx->get_unit_temperature_unwatched = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_fanspeed              == NULL) bridge_ctx->get_unit_fanspeed              = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_utilization           == NULL) bridge_ctx->get_unit_utilization           = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_corespeed             == NULL) bridge_ctx->get_unit_corespeed             = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_memoryspeed           == NULL) bridge_ctx->get_unit_memoryspeed           = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_buslanes              == NULL) bridge_ctx->get_unit_buslanes              = BRIDGE_DEFAULT;
+  if (bridge_ctx->get_unit_power                 == NULL) bridge_ctx->get_unit_power                 = BRIDGE_DEFAULT;
+}
+
 bool bridges_init_late (hashcat_ctx_t *hashcat_ctx)
 {
   bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
@@ -283,6 +320,8 @@ bool bridges_init_late (hashcat_ctx_t *hashcat_ctx)
 
   bridge_ctx->bridge_init (bridge_ctx);
 
+  bridge_ctx_defaults (bridge_ctx);
+
   if (bridge_ctx->bridge_context_size != BRIDGE_CONTEXT_SIZE_CURRENT)
   {
     event_log_error (hashcat_ctx, "bridge context size is invalid. Old template?");
@@ -297,61 +336,27 @@ bool bridges_init_late (hashcat_ctx_t *hashcat_ctx)
     return false;
   }
 
-  // check for missing pointer assignements
+  // mandatory functions check
 
-  #define CHECK_DEFINED(func)                                                     \
-    if ((func) == NULL)                                                           \
+  #define CHECK_MANDATORY(func)                                                   \
+    if (bridge_ctx->func == BRIDGE_DEFAULT)                                       \
     {                                                                             \
-      event_log_error (hashcat_ctx, "Missing symbol definitions in bridge '%s'. Old template?", hashconfig->bridge_name); \
+      event_log_error (hashcat_ctx, "Bridge '%s' does not set '%s' in 'bridge_init()', but has to.", hashconfig->bridge_name, #func); \
                                                                                   \
       return false;                                                               \
     }
 
-  CHECK_DEFINED (bridge_ctx->platform_init);
-  CHECK_DEFINED (bridge_ctx->platform_term);
-  CHECK_DEFINED (bridge_ctx->get_unit_count);
-  CHECK_DEFINED (bridge_ctx->get_unit_info);
-  CHECK_DEFINED (bridge_ctx->get_workitem_count);
-  CHECK_DEFINED (bridge_ctx->get_workitem_multiple);
-  CHECK_DEFINED (bridge_ctx->thread_init);
-  CHECK_DEFINED (bridge_ctx->thread_term);
-  CHECK_DEFINED (bridge_ctx->salt_prepare);
-  CHECK_DEFINED (bridge_ctx->salt_destroy);
-  CHECK_DEFINED (bridge_ctx->launch_loop);
-  CHECK_DEFINED (bridge_ctx->launch_loop2);
-  CHECK_DEFINED (bridge_ctx->st_update_hash);
-  CHECK_DEFINED (bridge_ctx->st_update_pass);
-  CHECK_DEFINED (bridge_ctx->get_unit_temperature);
-  CHECK_DEFINED (bridge_ctx->get_unit_fanspeed);
-  CHECK_DEFINED (bridge_ctx->get_unit_utilization);
-  CHECK_DEFINED (bridge_ctx->get_unit_corespeed);
-  CHECK_DEFINED (bridge_ctx->get_unit_memoryspeed);
-  CHECK_DEFINED (bridge_ctx->get_unit_buslanes);
-  CHECK_DEFINED (bridge_ctx->get_unit_power);
+  CHECK_MANDATORY (platform_init);
+  CHECK_MANDATORY (platform_term);
+  CHECK_MANDATORY (get_unit_count);
+  CHECK_MANDATORY (get_unit_info);
+  CHECK_MANDATORY (get_workitem_count);
+  CHECK_MANDATORY (get_workitem_multiple);
 
-  #undef CHECK_DEFINED
-
-  // mandatory functions check
-
-  #define CHECK_MANDATORY(func)                                               \
-    if ((func) == MODULE_DEFAULT)                                             \
-    {                                                                         \
-      event_log_error (hashcat_ctx, "Missing mandatory symbol definitions");  \
-                                                                              \
-      return false;                                                           \
-    }
-
-  CHECK_MANDATORY (bridge_ctx->platform_init);
-  CHECK_MANDATORY (bridge_ctx->platform_term);
-  CHECK_MANDATORY (bridge_ctx->get_unit_count);
-  CHECK_MANDATORY (bridge_ctx->get_unit_info);
-  CHECK_MANDATORY (bridge_ctx->get_workitem_count);
-  CHECK_MANDATORY (bridge_ctx->get_workitem_multiple);
-
-  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)  CHECK_MANDATORY (bridge_ctx->launch_loop);
-  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2) CHECK_MANDATORY (bridge_ctx->launch_loop2);
-  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)   CHECK_MANDATORY (bridge_ctx->launch_loop);
-  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP2)  CHECK_MANDATORY (bridge_ctx->launch_loop2);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)  CHECK_MANDATORY (launch_loop);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2) CHECK_MANDATORY (launch_loop2);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)   CHECK_MANDATORY (launch_loop);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP2)  CHECK_MANDATORY (launch_loop2);
 
   #undef CHECK_MANDATORY
 

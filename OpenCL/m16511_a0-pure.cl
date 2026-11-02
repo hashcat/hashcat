@@ -18,7 +18,7 @@
 
 typedef struct jwt
 {
-  u32 salt_buf[1024];
+  u32 salt_buf[2048];
   u32 salt_len;
 
   u32 signature_len;

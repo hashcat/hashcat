@@ -2737,24 +2737,13 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_workitem_count    = get_workitem_count;
   bridge_ctx->get_workitem_multiple = get_workitem_multiple;
   bridge_ctx->get_unit_tuning       = get_unit_tuning;
-  bridge_ctx->thread_init           = BRIDGE_DEFAULT;
-  bridge_ctx->thread_term           = BRIDGE_DEFAULT;
-  bridge_ctx->salt_prepare          = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy          = BRIDGE_DEFAULT;
   bridge_ctx->launch_loop           = launch_loop;
-  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash        = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_pass        = BRIDGE_DEFAULT;
 
   bridge_ctx->get_unit_temperature     = get_unit_temperature;
   bridge_ctx->get_unit_temperature_str = get_unit_temperature_str;
   bridge_ctx->get_unit_temperature_abort = get_unit_temperature_abort;
   bridge_ctx->get_unit_temperature_unwatched = get_unit_temperature_unwatched;
-  bridge_ctx->get_unit_fanspeed    = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_utilization = BRIDGE_DEFAULT;
   bridge_ctx->get_unit_corespeed   = get_unit_corespeed;
-  bridge_ctx->get_unit_memoryspeed = BRIDGE_DEFAULT;
   bridge_ctx->get_unit_buslanes    = get_unit_buslanes;
   bridge_ctx->get_unit_buslanes_str = get_unit_buslanes_str;
-  bridge_ctx->get_unit_power       = BRIDGE_DEFAULT;
 }

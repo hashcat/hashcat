@@ -1914,7 +1914,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
   int plain_len = 0;
 
-  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len, false);
+  build_plain (hashcat_ctx, device_param, plain, (u32 *) plain_buf, &plain_len);
 
   if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
@@ -5782,6 +5782,104 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// Where a kernel keeps password and salt in one buffer, a long salt leaves less room for the password
+// than hashconfig->pw_max says. What each salt leaves is worked out here, from the module's own count
+// of password and salt, so that the frontend can say how far the salts in this run lower the limit.
+
+static void hashes_combined_len (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashconfig->combined_len_max == 0) return;
+  if (hashconfig->is_salted == false) return;
+
+  const u32 combined_len_max = hashconfig->combined_len_max;
+
+  const u32 pw_min = hashconfig->pw_min;
+  const u32 pw_max = hashconfig->pw_max;
+
+  if (pw_min > pw_max) return;
+
+  // what a password counts does not depend on the salt beside it
+
+  u32 *pw_counts = (u32 *) hccalloc (pw_max + 1, sizeof (u32));
+
+  for (u32 pw_len = pw_min; pw_len <= pw_max; pw_len++)
+  {
+    pw_counts[pw_len] = module_ctx->module_combined_len_pw (hashconfig, user_options, user_options_extra, pw_len);
+  }
+
+  u32 salts_cnt   = 0;
+  u32 salts_short = 0;
+
+  u32 salt_len_min = 0;
+  u32 salt_len_max = 0;
+  u32 pw_len_min   = 0;
+  u32 pw_len_max   = 0;
+
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  {
+    if (hashes->salts_shown[salt_pos] == 1) continue;
+
+    const salt_t *salt = &hashes->salts_buf[salt_pos];
+
+    const void *esalt = NULL;
+
+    if (hashconfig->esalt_size > 0) esalt = &((const u8 *) hashes->esalts_buf)[salt->digests_offset * hashconfig->esalt_size];
+
+    const u32 salt_count = module_ctx->module_combined_len_salt (hashconfig, user_options, user_options_extra, salt, esalt);
+
+    // the longest password that still fits beside this salt, from the top, and 0 when none does
+
+    u32 pw_len_fit = 0;
+
+    for (u32 i = 0; i <= (pw_max - pw_min); i++)
+    {
+      const u32 pw_len = pw_max - i;
+
+      if ((pw_counts[pw_len] + salt_count) > combined_len_max) continue;
+
+      pw_len_fit = pw_len;
+
+      break;
+    }
+
+    // the range reported is what the salt takes of the shared buffer as the module counts it, which
+    // is not always salt_len
+
+    if (salts_cnt == 0)
+    {
+      salt_len_min = salt_count;
+      salt_len_max = salt_count;
+      pw_len_min   = pw_len_fit;
+      pw_len_max   = pw_len_fit;
+    }
+
+    salt_len_min = MIN (salt_len_min, salt_count);
+    salt_len_max = MAX (salt_len_max, salt_count);
+    pw_len_min   = MIN (pw_len_min,   pw_len_fit);
+    pw_len_max   = MAX (pw_len_max,   pw_len_fit);
+
+    salts_cnt++;
+
+    if (pw_len_fit < pw_max) salts_short++;
+  }
+
+  hcfree (pw_counts);
+
+  hashes->combined_salts_cnt    = salts_cnt;
+  hashes->combined_salts_short  = salts_short;
+  hashes->combined_salt_len_min = salt_len_min;
+  hashes->combined_salt_len_max = salt_len_max;
+  hashes->combined_pw_len_min   = pw_len_min;
+  hashes->combined_pw_len_max   = pw_len_max;
+}
+
 int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -5890,6 +5988,8 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
   hashes->tmp_buf = tmp_buf;
+
+  hashes_combined_len (hashcat_ctx);
 
   // brain session
 

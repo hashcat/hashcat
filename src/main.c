@@ -802,6 +802,23 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->quiet == true) return;
 
   event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
+
+  if (hashes->combined_salts_cnt > 0)
+  {
+    const char *with = (hashes->combined_salts_cnt == 1) ? "it" : "them";
+
+    char salt_lens[32];
+    char pw_lens[32];
+
+    if (hashes->combined_salt_len_min == hashes->combined_salt_len_max) snprintf (salt_lens, sizeof (salt_lens), "%u", hashes->combined_salt_len_max);
+    else snprintf (salt_lens, sizeof (salt_lens), "%u to %u", hashes->combined_salt_len_min, hashes->combined_salt_len_max);
+
+    if (hashes->combined_pw_len_min == hashes->combined_pw_len_max) snprintf (pw_lens, sizeof (pw_lens), "%u", hashes->combined_pw_len_max);
+    else snprintf (pw_lens, sizeof (pw_lens), "%u to %u", hashes->combined_pw_len_min, hashes->combined_pw_len_max);
+
+    event_log_info (hashcat_ctx, "Salts: %s bytes of the shared buffer, the kernel cracks passwords up to %s bytes long with %s", salt_lens, pw_lens, with);
+  }
+
   event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size);
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -835,6 +852,29 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
       event_log_advice (hashcat_ctx, "See the above message to find out about the exact limits.");
       event_log_advice (hashcat_ctx, NULL);
     }
+  }
+
+  if (hashes->combined_salts_short > 0)
+  {
+    event_log_advice (hashcat_ctx, "ATTENTION! Password and salt share a buffer in this kernel.");
+    event_log_advice (hashcat_ctx, "%u of %u salts leave less room than the maximum password length of %u.", hashes->combined_salts_short, hashes->combined_salts_cnt, hashconfig->pw_max);
+    event_log_advice (hashcat_ctx, "The longest one leaves %u, so longer candidates cannot crack its hashes.", hashes->combined_pw_len_min);
+
+    // A mode with a recipe runs the recipe's pure kernels without -O, which has_pure_kernel does not
+    // count because it probes for the mode's own.
+
+    const bool pure_available = (hashconfig->has_pure_kernel == true) || (module_ctx->module_hash_recipe != MODULE_DEFAULT);
+
+    if (pure_available == true)
+    {
+      event_log_advice (hashcat_ctx, "Remove -O to lift this limit, the pure kernel has none.");
+    }
+    else
+    {
+      event_log_advice (hashcat_ctx, "This hash-mode has no pure kernel without this limit.");
+    }
+
+    event_log_advice (hashcat_ctx, NULL);
   }
 
   if (mask_is_feed (user_options) == true)
@@ -1358,6 +1398,11 @@ static void main_hashconfig_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE
     {
       event_log_info (hashcat_ctx, "Minimum salt length supported by kernel: %u", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
+    }
+
+    if (hashconfig->combined_len_max > 0)
+    {
+      event_log_info (hashcat_ctx, "Maximum combined password and salt length supported by kernel: %u", hashconfig->combined_len_max);
     }
   }
 

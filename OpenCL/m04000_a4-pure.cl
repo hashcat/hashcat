@@ -100,6 +100,9 @@
 #ifdef RECIPE_MYSQL323
 #include M2S(INCLUDE_PATH/inc_hash_mysql323.cl)
 #endif
+#ifdef RECIPE_XXHASH
+#include M2S(INCLUDE_PATH/inc_hash_xxhash.cl)
+#endif
 #ifdef RECIPE_DES
 #include M2S(INCLUDE_PATH/inc_cipher_des.cl)
 #endif
@@ -172,6 +175,7 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const sa
 
   RECIPE_SALTD_BIND (&hc->st, salt_bufs[salt_pos])
   RECIPE_FIELDS_BIND (&hc->st, salt_bufs[salt_pos])
+  RECIPE_GATE_BIND (&hc->st, salt_bufs[salt_pos])
 
   // Prepare work independent of the candidate once per salt.
 

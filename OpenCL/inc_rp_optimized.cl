@@ -2918,38 +2918,43 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, M
 {
   if (in_len == 0) return in_len;
 
-  u32 r0 = search_on_register (buf0[0], p0);
-  u32 r1 = search_on_register (buf0[1], p0);
-  u32 r2 = search_on_register (buf0[2], p0);
-  u32 r3 = search_on_register (buf0[3], p0);
-  u32 r4 = search_on_register (buf1[0], p0);
-  u32 r5 = search_on_register (buf1[1], p0);
-  u32 r6 = search_on_register (buf1[2], p0);
-  u32 r7 = search_on_register (buf1[3], p0);
+  u32 buf_in[8];
 
-  rule_op_mangle_lrest_ufirst (p0, p1, buf0, buf1, in_len);
+  buf_in[0] = buf0[0];
+  buf_in[1] = buf0[1];
+  buf_in[2] = buf0[2];
+  buf_in[3] = buf0[3];
+  buf_in[4] = buf1[0];
+  buf_in[5] = buf1[1];
+  buf_in[6] = buf1[2];
+  buf_in[7] = buf1[3];
 
-  const u32 rn = r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7;
+  u32 rem = 0xff;
 
-  if (rn == 0) return in_len;
+  for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
+  {
+    const u32 t = buf_in[idx];
 
-  r0 <<= 1;
-  r1 <<= 1; r1 |= r0 >> 4;
-  r2 <<= 1; r2 |= r1 >> 4;
-  r3 <<= 1; r3 |= r2 >> 4;
-  r4 <<= 1; r4 |= r3 >> 4;
-  r5 <<= 1; r5 |= r4 >> 4;
-  r6 <<= 1; r6 |= r5 >> 4;
-  r7 <<= 1; r7 |= r6 >> 4;
+    u32 sep = 0;
 
-  buf0[0] = toggle_on_register (buf0[0], r0);
-  buf0[1] = toggle_on_register (buf0[1], r1);
-  buf0[2] = toggle_on_register (buf0[2], r2);
-  buf0[3] = toggle_on_register (buf0[3], r3);
-  buf1[0] = toggle_on_register (buf1[0], r4);
-  buf1[1] = toggle_on_register (buf1[1], r5);
-  buf1[2] = toggle_on_register (buf1[2], r6);
-  buf1[3] = toggle_on_register (buf1[3], r7);
+    if (((t >>  0) & 0xff) == p0) sep |= 0x000000ff;
+    if (((t >>  8) & 0xff) == p0) sep |= 0x0000ff00;
+    if (((t >> 16) & 0xff) == p0) sep |= 0x00ff0000;
+    if (((t >> 24) & 0xff) == p0) sep |= 0xff000000;
+
+    buf_in[idx] = title_sep_word (t, sep, &rem);
+  }
+
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
+
+  buf0[0] = buf_in[0];
+  buf0[1] = buf_in[1];
+  buf0[2] = buf_in[2];
+  buf0[3] = buf_in[3];
+  buf1[0] = buf_in[4];
+  buf1[1] = buf_in[5];
+  buf1[2] = buf_in[6];
+  buf1[3] = buf_in[7];
 
   return in_len;
 }
@@ -2971,27 +2976,21 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_l (MAYBE_UNUSED const u
 
   u32 rem = 0xff;
 
-  u32 rn = 0;
-
   for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_l ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_l ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_l ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_l ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_l ((t >>  0) & 0xff)) { rn++; out |= 0x0000ff00; }
-    if (is_l ((t >>  8) & 0xff)) { rn++; out |= 0x00ff0000; }
-    if (is_l ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
-    if (is_l ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
-
-    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
+    buf_in[idx] = title_sep_word (t, sep, &rem);
   }
 
-  if (rn == 0) return in_len;
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
 
   buf0[0] = buf_in[0];
   buf0[1] = buf_in[1];
@@ -3022,27 +3021,21 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_u (MAYBE_UNUSED const u
 
   u32 rem = 0xff;
 
-  u32 rn = 0;
-
   for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_u ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_u ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_u ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_u ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_u ((t >>  0) & 0xff)) { rn++; out |= 0x0000ff00; }
-    if (is_u ((t >>  8) & 0xff)) { rn++; out |= 0x00ff0000; }
-    if (is_u ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
-    if (is_u ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
-
-    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
+    buf_in[idx] = title_sep_word (t, sep, &rem);
   }
 
-  if (rn == 0) return in_len;
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
 
   buf0[0] = buf_in[0];
   buf0[1] = buf_in[1];
@@ -3073,27 +3066,21 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_d (MAYBE_UNUSED const u
 
   u32 rem = 0xff;
 
-  u32 rn = 0;
-
   for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_d ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_d ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_d ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_d ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_d ((t >>  0) & 0xff)) { rn++; out |= 0x0000ff00; }
-    if (is_d ((t >>  8) & 0xff)) { rn++; out |= 0x00ff0000; }
-    if (is_d ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
-    if (is_d ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
-
-    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
+    buf_in[idx] = title_sep_word (t, sep, &rem);
   }
 
-  if (rn == 0) return in_len;
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
 
   buf0[0] = buf_in[0];
   buf0[1] = buf_in[1];
@@ -3124,27 +3111,21 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_lh (MAYBE_UNUSED const 
 
   u32 rem = 0xff;
 
-  u32 rn = 0;
-
   for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_lh ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_lh ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_lh ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_lh ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_lh ((t >>  0) & 0xff)) { rn++; out |= 0x0000ff00; }
-    if (is_lh ((t >>  8) & 0xff)) { rn++; out |= 0x00ff0000; }
-    if (is_lh ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
-    if (is_lh ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
-
-    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
+    buf_in[idx] = title_sep_word (t, sep, &rem);
   }
 
-  if (rn == 0) return in_len;
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
 
   buf0[0] = buf_in[0];
   buf0[1] = buf_in[1];
@@ -3175,27 +3156,21 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_uh (MAYBE_UNUSED const 
 
   u32 rem = 0xff;
 
-  u32 rn = 0;
-
   for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_uh ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_uh ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_uh ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_uh ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_uh ((t >>  0) & 0xff)) { rn++; out |= 0x0000ff00; }
-    if (is_uh ((t >>  8) & 0xff)) { rn++; out |= 0x00ff0000; }
-    if (is_uh ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
-    if (is_uh ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
-
-    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
+    buf_in[idx] = title_sep_word (t, sep, &rem);
   }
 
-  if (rn == 0) return in_len;
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
 
   buf0[0] = buf_in[0];
   buf0[1] = buf_in[1];
@@ -3226,27 +3201,21 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_s (MAYBE_UNUSED const u
 
   u32 rem = 0xff;
 
-  u32 rn = 0;
-
   for (u32 i = 0, idx = 0; i < in_len; i += 4, idx += 1)
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_s ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_s ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_s ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_s ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_s ((t >>  0) & 0xff)) { rn++; out |= 0x0000ff00; }
-    if (is_s ((t >>  8) & 0xff)) { rn++; out |= 0x00ff0000; }
-    if (is_s ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
-    if (is_s ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
-
-    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
+    buf_in[idx] = title_sep_word (t, sep, &rem);
   }
 
-  if (rn == 0) return in_len;
+  buf_in[0] &= ~(0x00000020 & generate_cmask (buf_in[0]));
 
   buf0[0] = buf_in[0];
   buf0[1] = buf_in[1];
