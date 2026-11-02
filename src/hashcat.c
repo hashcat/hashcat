@@ -2403,6 +2403,26 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   return 0;
 }
 
+// hashcat_session_init () picks the installed or the portable layout by comparing install_folder with
+// the folder of the running executable. In a program built against libhashcat that executable is the
+// program, so the layout comes out portable and the folders it passed are dropped. This variant
+// takes them as given.
+//
+// shared_folder holds what hashcat ships, OpenCL/ and modules/ among it. profile_folder holds the
+// potfile and the sessions, and NULL leaves them where an installed hashcat keeps them. The cache
+// stays where an installed hashcat keeps it, and user_options->cache_path moves it as --cache-path
+// does. Windows has no per user folders, so there the profile folder holds the cache as well, and a
+// NULL profile folder means the shared one.
+
+int hashcat_session_init_folders (hashcat_ctx_t *hashcat_ctx, const char *shared_folder, const char *profile_folder, int argc, char **argv, const int comptime)
+{
+  folder_request_init (hashcat_ctx, profile_folder);
+
+  const int rc = hashcat_session_init (hashcat_ctx, NULL, shared_folder, argc, argv, comptime);
+
+  return rc;
+}
+
 // Everything autodetect_hashmode_test () builds for one module's attempt, given back in one place.
 // hash_info owns blocks of its own that hcfree () on the struct does not reach, so the loader's
 // hash_info_destroy () gives those back and the struct with them. hcfree () takes a NULL, so the two
@@ -3298,6 +3318,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_destroy           (hashcat_ctx);
   folder_config_destroy       (hashcat_ctx);
+  folder_request_destroy      (hashcat_ctx);
   hwmon_ctx_destroy           (hashcat_ctx);
   induct_ctx_destroy          (hashcat_ctx);
   logfile_destroy             (hashcat_ctx);

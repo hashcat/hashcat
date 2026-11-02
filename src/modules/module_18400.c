@@ -28,20 +28,7 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$odf$*1*1*100000*32*751854d8b90731ce0579f96bea6f0d4ac2fb2f546b31f1b6af9a5f66952a0bf4*16*2185a966155baa9e2fb597298febecbc*16*c18eaae34bcbbe9119be017fe5f8b52d*0*051e0f1ce0e866f2b771029e03a6c7119aad132af54c4e45824f16f61f357a40407ab82744fe6370c7b2346075fcd4c2e58ab244411b3ab1d532a46e2321599ef13c3d3472fc2f14d480d8c33215e473da67f90540279d3ef1f62dde314fa222796046e496c951235ddf88aa754620b7810d22ebc8835c90dce9276946f52b8ea7d95d2f86e4cc725366a8b3edacc2ce88518e535991a5f84d5ea8795dc02bfb731b5f202ecaf7d4b245d928c4248709fcdf3fba2acf1a08be0c1eee7dbeda07e8c3a6983565635e99952b8ad79d31c965f245ae90b5cc3dba6387898c66fa35cad9ac9595c41b62e68efcdd73185b38e220cf004269b77ec6974474b03b7569afc3b503a2bf8b2d035756f3f4cb880d9ba815e5c944508a0bde214076c35bf0e0814a96d21ccaa744c9056948ed935209f5c7933841d2ede3d28dd84da89d477d4a0041ce6d8ddab891d929340db6daa921d69b46fd5aee306d0bcef88c38acbb495d0466df7e2f744e3d10201081215c02db5dd479a4cda15a3338969c7baec9d3d2c378a8dd30449319b149dc3b4e7f00996a59fcb5f243d0df2cbaf749241033f7865aefa960adfeb8ebf205b270f90b1f82c34f80d5a8a0db7aec89972a32f5daa2a73c5895d1fced01b3ab8e576bd2630eff01cad97781f4966d4b528e1b15f011f28ae907a352073c96b203adc7742d2b79b2e2f440b17e7856ae119e08d15d8bdf951f6d4a3f9b516da2d9a8f9dd93488f8e0119f3da19138ab787f0d7098a652cccd914aa0ff81d375bd6a5a165acc936f591639059287975cfc3ca4342e5f9501b3249a76d14e56d6d56b319e036bc0449ac7b5afa24ffbea11babed8183edf8d4fdca1c3f0d23bfd4a02797627d556634f1a9304e03737604bd86f6b5a26aa687d6df73383e0f7dfe62a131e8dbb8c3f4f13d24857dd29d76984eac6c45df7428fc79323ffa1f4e7962d705df74320141ed1f16d1ad483b872168df60315ffadbfa1b7f4afaed8a0017421bf5e05348cb5c707a5e852d6fee6077ec1c33bc707bcd97b7701ee05a03d6fa78b0d31c8c97ea16e0edf434961bd5cc7cbb7eb2553730f0405c9bd21cee09b3f7c1bc57779fdfc15f3935985737a1b522004c4436b631a39a66e8577a03f5020e6aa41952c0662c8c57f66caa483b47af38b8cb5d457245fd3241749e17433e6f929233e8862d7c584111b1991b2d6e94278e7e6e1908cee5a83d94c78b75a84a695d25aeb9fdde72174fe6dd75e8d406671f44892a385a4a1e249f61ebc993e985607423a0a5742e668d52c1ebf5cecae7c2b7908f4627b92ec49354a9ccff8cb5763ad074a00e65a485a41bf4c25ce7e6fae49358a58547b1c0ca79713e297310c0a367c3de196f1dd685ca4be643bdf1e4f6b034211d020557e37a3b6614d061010b4a3416b6b279728c245d3322";
 
-u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
-u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
-u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
-u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
-u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
-u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
-u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
-const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
-u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
-u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
-u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
-u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
-const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
-const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+#include "hooks_common.c"
 
 typedef struct odf12_tmp
 {
@@ -275,89 +262,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 void module_init (module_ctx_t *module_ctx)
 {
-  module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
-  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
+  module_init_common (module_ctx);
 
-  module_ctx->module_advice_notice            = MODULE_DEFAULT;
-  module_ctx->module_attack_exec              = module_attack_exec;
-  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
-  module_ctx->module_bridge_name              = MODULE_DEFAULT;
-  module_ctx->module_bridge_type              = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
-  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
-  module_ctx->module_dgst_pos0                = module_dgst_pos0;
-  module_ctx->module_dgst_pos1                = module_dgst_pos1;
-  module_ctx->module_dgst_pos2                = module_dgst_pos2;
-  module_ctx->module_dgst_pos3                = module_dgst_pos3;
-  module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_esalt_size               = module_esalt_size;
-  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
-  module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
-  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
-  module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
-  module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
-  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
-  module_ctx->module_hash_hints               = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
-  module_ctx->module_hash_mode                = MODULE_DEFAULT;
-  module_ctx->module_hash_category            = module_hash_category;
-  module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
-  module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
-  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
-  module_ctx->module_hook12                   = MODULE_DEFAULT;
-  module_ctx->module_hook23                   = MODULE_DEFAULT;
-  module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
-  module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
-  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
-  module_ctx->module_kern_bits                = MODULE_DEFAULT;
-  module_ctx->module_kern_type                = module_kern_type;
-  module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
-  module_ctx->module_length_sort              = MODULE_DEFAULT;
-  module_ctx->module_opti_type                = module_opti_type;
-  module_ctx->module_opts_type                = module_opts_type;
-  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
-  module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
-  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
-  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
-  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
-  module_ctx->module_pw_max                   = MODULE_DEFAULT;
-  module_ctx->module_pw_min                   = MODULE_DEFAULT;
-  module_ctx->module_register_options         = MODULE_DEFAULT;
-  module_ctx->module_salt_max                 = MODULE_DEFAULT;
-  module_ctx->module_salt_min                 = MODULE_DEFAULT;
-  module_ctx->module_salt_type                = module_salt_type;
-  module_ctx->module_separator                = MODULE_DEFAULT;
-  module_ctx->module_st_hash                  = module_st_hash;
-  module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
-  module_ctx->module_usage_notice             = MODULE_DEFAULT;
-  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

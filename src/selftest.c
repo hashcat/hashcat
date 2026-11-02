@@ -707,6 +707,38 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       }
     }
 
+    if (hashconfig->kern_bits & KERN_BIT_INIT3)
+    {
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, 0, 1, false, 0, false) == -1) return -1;
+    }
+
+    for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
+    {
+      device_param->kernel_param.salt_repeat = salt_repeat;
+
+      if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+      {
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3P, 0, 1, false, 0, false) == -1) return -1;
+      }
+
+      if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+      {
+        const u32 iter3 = salt_buf->salt_iter3;
+
+        for (u32 loop_pos = 0; loop_pos < iter3; loop_pos += loop_step)
+        {
+          u32 loop_left = iter3 - loop_pos;
+
+          loop_left = MIN (loop_left, loop_step);
+
+          device_param->kernel_param.loop_pos = loop_pos;
+          device_param->kernel_param.loop_cnt = loop_left;
+
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3, 0, 1, false, 0, false) == -1) return -1;
+        }
+      }
+    }
+
     if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
     {
       device_param->kernel_param.loop_pos = 0;

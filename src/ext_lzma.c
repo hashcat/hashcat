@@ -129,28 +129,80 @@ const char *hc_lzma_hint (void)
   #endif
 }
 
+// liblzma allocated these from the properties and copied what it needed into its own state, so the
+// library is what has to release them. On Windows a module linked against a different C runtime
+// allocates from a different heap, and free () here corrupts the one hashcat itself allocates from.
+// lzma_filters_free arrived in xz 5.4. Where it is missing, free () is what this did before and is
+// still correct on a platform that gives the whole process one heap.
+
+static void hc_lzma_filters_release (const hc_lzma_lib_t *lz, hc_lzma_filter *filters, const int filters_cnt)
+{
+  if (lz->lzma_filters_free != NULL)
+  {
+    lz->lzma_filters_free (filters, NULL);
+
+    return;
+  }
+
+  for (int i = 0; i < filters_cnt; i++)
+  {
+    free (filters[i].options);
+
+    filters[i].options = NULL;
+  }
+}
+
 // One raw coder, with no container around it and its properties passed beside it, which is how a
-// 7-Zip archive stores a compressed block and how the Markov table is stored.
+// 7-Zip archive stores a compressed block and how the Markov table is stored. A filter can run in
+// front of the coder, which pre_id names. The chain lists the filter first, in the order the data
+// was encoded, and liblzma decodes it from the coder backwards.
 //
 // A raw stream carries no end marker, so liblzma reports running out of output rather than reaching
 // an end. That is the expected finish here: every caller already knows the decompressed length and
-// asks for exactly that, so the test for success is that the buffer came back full.
+// asks for exactly that, so the test for success is that the buffer came back full. *out_len says
+// how much came back either way, and 0 when nothing was decoded at all.
 
-static bool hc_lzma_raw_decompress (const u64 filter_id, const unsigned char *in, size_t *in_len, unsigned char *out, size_t *out_len, const unsigned char *props, const size_t props_size)
+static bool hc_lzma_raw_decompress (const u64 pre_id, const unsigned char *pre_props, const size_t pre_props_size, const u64 coder_id, const unsigned char *in, size_t *in_len, unsigned char *out, size_t *out_len, const unsigned char *props, const size_t props_size)
 {
+  const size_t want_out = *out_len;
+
+  *out_len = 0;
+
   const hc_lzma_lib_t *lz = hc_lzma ();
 
   if (lz == NULL) return false;
 
-  hc_lzma_filter filters[2];
+  hc_lzma_filter filters[3];
 
-  filters[0].id      = filter_id;
-  filters[0].options = NULL;
+  int filters_cnt = 0;
 
-  if (lz->lzma_properties_decode (&filters[0], NULL, props, props_size) != HC_LZMA_OK) return false;
+  if (pre_id != HC_LZMA_VLI_UNKNOWN)
+  {
+    filters[filters_cnt].id      = pre_id;
+    filters[filters_cnt].options = NULL;
 
-  filters[1].id      = HC_LZMA_VLI_UNKNOWN;
-  filters[1].options = NULL;
+    filters_cnt++;
+  }
+
+  filters[filters_cnt].id      = coder_id;
+  filters[filters_cnt].options = NULL;
+
+  filters_cnt++;
+
+  filters[filters_cnt].id      = HC_LZMA_VLI_UNKNOWN;
+  filters[filters_cnt].options = NULL;
+
+  if (pre_id != HC_LZMA_VLI_UNKNOWN)
+  {
+    if (lz->lzma_properties_decode (&filters[0], NULL, pre_props, pre_props_size) != HC_LZMA_OK) return false;
+  }
+
+  if (lz->lzma_properties_decode (&filters[filters_cnt - 1], NULL, props, props_size) != HC_LZMA_OK)
+  {
+    hc_lzma_filters_release (lz, filters, filters_cnt);
+
+    return false;
+  }
 
   hc_lzma_stream strm;
 
@@ -158,24 +210,9 @@ static bool hc_lzma_raw_decompress (const u64 filter_id, const unsigned char *in
 
   const int rc_init = lz->lzma_raw_decoder (&strm, filters);
 
-  // liblzma allocated this from the properties and copied what it needed into its own state, so the
-  // library is what has to release it. On Windows a module linked against a different C runtime
-  // allocates from a different heap, and free () here corrupts the one hashcat itself allocates from.
-  // lzma_filters_free arrived in xz 5.4. Where it is missing, free () is what this did before and is
-  // still correct on a platform that gives the whole process one heap.
-
-  if (lz->lzma_filters_free != NULL)
-  {
-    lz->lzma_filters_free (filters, NULL);
-  }
-  else
-  {
-    free (filters[0].options);
-  }
+  hc_lzma_filters_release (lz, filters, filters_cnt);
 
   if (rc_init != HC_LZMA_OK) return false;
-
-  const size_t want_out = *out_len;
 
   strm.next_in   = in;
   strm.avail_in  = *in_len;
@@ -203,14 +240,63 @@ static bool hc_lzma_raw_decompress (const u64 filter_id, const unsigned char *in
 
 bool hc_lzma1_decompress (const unsigned char *in, size_t *in_len, unsigned char *out, size_t *out_len, const char *props)
 {
-  const bool rc = hc_lzma_raw_decompress (HC_LZMA_FILTER_LZMA1, in, in_len, out, out_len, (const unsigned char *) props, HC_LZMA1_PROPS_SIZE);
+  const bool rc = hc_lzma_raw_decompress (HC_LZMA_VLI_UNKNOWN, NULL, 0, HC_LZMA_FILTER_LZMA1, in, in_len, out, out_len, (const unsigned char *) props, HC_LZMA1_PROPS_SIZE);
 
   return rc;
 }
 
 bool hc_lzma2_decompress (const unsigned char *in, size_t *in_len, unsigned char *out, size_t *out_len, const char *props)
 {
-  const bool rc = hc_lzma_raw_decompress (HC_LZMA_FILTER_LZMA2, in, in_len, out, out_len, (const unsigned char *) props, HC_LZMA2_PROPS_SIZE);
+  const bool rc = hc_lzma_raw_decompress (HC_LZMA_VLI_UNKNOWN, NULL, 0, HC_LZMA_FILTER_LZMA2, in, in_len, out, out_len, (const unsigned char *) props, HC_LZMA2_PROPS_SIZE);
+
+  return rc;
+}
+
+// liblzma decodes a filter only in front of a coder, and a branch converter holds back its last
+// bytes until the coder behind it reports an end. So the data is wrapped as uncompressed LZMA2
+// chunks, which end with a 0 byte, and decoded through the filter and LZMA2. A chunk holds at most
+// 64 KiB behind a control byte and its size less one in 2 bytes. The first chunk resets the
+// dictionary and the later ones keep it, and since an uncompressed chunk refers to nothing before
+// it, the smallest dictionary will do.
+
+#define HC_LZMA2_CHUNK_MAX (64 * 1024)
+
+bool hc_lzma_filter_decode (const u64 filter_id, const unsigned char *filter_props, const size_t filter_props_size, const unsigned char *in, const size_t in_len, unsigned char *out)
+{
+  if (in_len == 0) return true;
+
+  const size_t chunks_cnt = (in_len + HC_LZMA2_CHUNK_MAX - 1) / HC_LZMA2_CHUNK_MAX;
+
+  size_t wrapped_len = in_len + (chunks_cnt * 3) + 1;
+
+  unsigned char *wrapped = (unsigned char *) hcmalloc (wrapped_len);
+
+  if (wrapped == NULL) return false;
+
+  size_t pos = 0;
+
+  for (size_t off = 0; off < in_len; off += HC_LZMA2_CHUNK_MAX)
+  {
+    const size_t len = MIN (HC_LZMA2_CHUNK_MAX, in_len - off);
+
+    wrapped[pos + 0] = (off == 0) ? 0x01 : 0x02;
+    wrapped[pos + 1] = ((len - 1) >> 8) & 0xff;
+    wrapped[pos + 2] = ((len - 1) >> 0) & 0xff;
+
+    memcpy (&wrapped[pos + 3], &in[off], len);
+
+    pos += 3 + len;
+  }
+
+  wrapped[pos] = 0x00;
+
+  const unsigned char lzma2_props = 0;
+
+  size_t out_len = in_len;
+
+  const bool rc = hc_lzma_raw_decompress (filter_id, filter_props, filter_props_size, HC_LZMA_FILTER_LZMA2, wrapped, &wrapped_len, out, &out_len, &lzma2_props, HC_LZMA2_PROPS_SIZE);
+
+  hcfree (wrapped);
 
   return rc;
 }

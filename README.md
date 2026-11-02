@@ -47,7 +47,7 @@ Tests:
 
 Build | BSD | Rust | Test | Fuzz
 ----- | --- | ---- | ---- | ----
-[![Build](https://github.com/hashcat/hashcat/actions/workflows/build.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/build.yml) | [![BSD](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml) | [![Rust tests](https://github.com/hashcat/hashcat/actions/workflows/rust.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/rust.yml) | [![test](https://github.com/hashcat/hashcat/actions/workflows/test.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/test.yml) | [![fuzz](https://github.com/hashcat/hashcat/actions/workflows/fuzz.yml/badge.svg)](https://github.com/hashcat/hashcat/actions/workflows/fuzz.yml)
+[![Build](https://github.com/hashcat/hashcat/actions/workflows/build.yml/badge.svg?branch=master&event=push)](https://github.com/hashcat/hashcat/actions/workflows/build.yml) | [![BSD](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml/badge.svg?branch=master&event=schedule)](https://github.com/hashcat/hashcat/actions/workflows/bsd.yml) | [![Rust tests](https://github.com/hashcat/hashcat/actions/workflows/rust.yml/badge.svg?branch=master&event=push)](https://github.com/hashcat/hashcat/actions/workflows/rust.yml) | [![test](https://github.com/hashcat/hashcat/actions/workflows/test.yml/badge.svg?branch=master&event=schedule)](https://github.com/hashcat/hashcat/actions/workflows/test.yml) | [![fuzz](https://github.com/hashcat/hashcat/actions/workflows/fuzz.yml/badge.svg?branch=master&event=schedule)](https://github.com/hashcat/hashcat/actions/workflows/fuzz.yml)
 
 ### Usage and help ###
 

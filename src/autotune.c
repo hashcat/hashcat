@@ -593,7 +593,13 @@ static u64 autotune_loop_work (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 salt_iter = hashes->salts_buf[0].salt_iter;
 
-      if (salt_iter > 0) work = salt_iter;
+      // The loop phase runs itself once per salt repeat, which is the p of scrypt and the like, so
+      // the work is that many times the iteration count. This term counted the iterations only, so
+      // a mode with a p above 1 was sized against a fraction of the work it does.
+
+      const u32 salt_repeats = hashes->salts_buf[0].salt_repeats;
+
+      if (salt_iter > 0) work = (u64) salt_iter * (salt_repeats + 1);
     }
   }
   else
@@ -705,6 +711,35 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
   device_param->kernel_threads = threads_sav;
 }
 
+// The same for the third loop, which reads what INIT3 wrote, which in turn reads what the second
+// loop left. So this chains through the second loop's setup rather than repeating it.
+
+static void autotune2_run_init3 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 accel, const u32 threads)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  if ((hashconfig->kern_bits & KERN_BIT_INIT3) == 0) return;
+
+  autotune2_run_init2 (hashcat_ctx, device_param, accel, threads);
+
+  const u32 threads_sav = device_param->kernel_threads;
+
+  const u32 kernel_power_full = autotune_hardware_power (hashcat_ctx, device_param, threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
+
+  device_param->kernel_threads = threads;
+
+  run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, 0, kernel_power, false, 0, true);
+
+  if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+  {
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3P, 0, kernel_power, false, 0, true);
+  }
+
+  device_param->kernel_threads = threads_sav;
+}
+
 // Time one launch of the second loop. Same shape as try_run, but naming the kernel rather than
 // asking find_tuning_function, which only ever answers with the first loop.
 
@@ -725,6 +760,37 @@ static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
   device_param->spin_damp      = 0;
 
   run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 0, kernel_power, true, 0, true);
+
+  device_param->spin_damp      = spin_damp_sav;
+  device_param->kernel_threads = threads_sav;
+
+  const double msec = get_avg_exec_time (device_param, 1);
+
+  return msec;
+}
+
+// And the third loop. This is the second one again with the kernel changed, and so is the fit that
+// consumes it below. Three near-copies of one model is worth collapsing into a shared fitter, but
+// that is a change to this file's arithmetic and belongs in its own commit with its own before and
+// after on a loop2 mode, not inside the commit that adds the slot.
+
+static double autotune2_loop3_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 accel, const u32 loops, const u32 threads)
+{
+  device_param->kernel_param.loop_pos = 0;
+  device_param->kernel_param.loop_cnt = loops;
+  device_param->kernel_param.il_cnt   = loops;
+
+  const u32 kernel_power_full = autotune_hardware_power (hashcat_ctx, device_param, threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
+
+  const u32    threads_sav   = device_param->kernel_threads;
+  const double spin_damp_sav = device_param->spin_damp;
+
+  device_param->kernel_threads = threads;
+  device_param->spin_damp      = 0;
+
+  run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3, 0, kernel_power, true, 0, true);
 
   device_param->spin_damp      = spin_damp_sav;
   device_param->kernel_threads = threads_sav;
@@ -929,7 +995,7 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
   if (hashconfig->kern_bits & KERN_BIT_LOOP2)
   {
-    if (hashes->salts_buf != NULL) work2 = (double) hashes->salts_buf[0].salt_iter2;
+    if (hashes->salts_buf != NULL) work2 = (double) hashes->salts_buf[0].salt_iter2 * (double) (hashes->salts_buf[0].salt_repeats + 1);
 
     if (work2 > 0)
     {
@@ -977,6 +1043,62 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
     }
   }
 
+  // The third loop, fitted the same way again. A mode that chains three derivations, as Android FDE
+  // with a hardware bound key does, has a third of its work here and would otherwise be sized from
+  // the first loop alone.
+
+  double work3      = 0;
+  double per_accel3 = 0;
+  double per_loop3  = 0;
+  double base_msec3 = 0;
+
+  if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+  {
+    if (hashes->salts_buf != NULL) work3 = (double) hashes->salts_buf[0].salt_iter3 * (double) (hashes->salts_buf[0].salt_repeats + 1);
+
+    if (work3 > 0)
+    {
+      autotune2_run_init3 (hashcat_ctx, device_param, a_cal, threads);
+
+      const double u_lo_min = autotune2_loop3_msec (hashcat_ctx, device_param, a_cal, loops_min, threads);
+
+      double u_cal = u_lo_min;
+
+      if (l_cal > loops_min)
+      {
+        u_cal = autotune2_loop3_msec (hashcat_ctx, device_param, a_cal, l_cal, threads);
+
+        const double slope3 = (u_cal - u_lo_min) / ((double) a_cal * (double) (l_cal - loops_min));
+
+        if (slope3 > 0) per_loop3 = slope3;
+      }
+
+      if (a_cal > a_lo)
+      {
+        const double u_acc = autotune2_loop3_msec (hashcat_ctx, device_param, a_lo, l_cal, threads);
+
+        const double per_unit3 = (u_cal - u_acc) / (double) (a_cal - a_lo);
+
+        if (per_unit3 > 0)
+        {
+          per_accel3 = per_unit3 - ((double) l_cal * per_loop3);
+          base_msec3 = u_cal - ((double) a_cal * per_unit3);
+        }
+      }
+
+      if (per_accel3 <= 0)
+      {
+        per_accel3 = (u_cal / (double) a_cal) - ((double) l_cal * per_loop3);
+        base_msec3 = 0;
+      }
+
+      if (per_accel3 < 0) per_accel3 = 0;
+      if (base_msec3 < 0) base_msec3 = 0;
+
+      if (verbose == true) event_log_info (hashcat_ctx, "AT2 loop3 A=%.3f F=%.5f P=%.5f W3=%.0f", base_msec3, per_accel3, per_loop3, work3);
+    }
+  }
+
   double best_rate  = 0;
   u32    best_accel = accel_min;
   u32    best_loops = loops_min;
@@ -1009,6 +1131,19 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
         if (fit < (double) loops_min) break;
       }
 
+      if (per_loop3 > 0)
+      {
+        const double room3 = ((target_msec - base_msec3) / (double) accel) - per_accel3;
+
+        if (room3 <= 0) break;
+
+        const double fit3 = room3 / per_loop3;
+
+        if (fit3 < fit) fit = fit3;
+
+        if (fit < (double) loops_min) break;
+      }
+
       loops = (u32) fit;
 
       loops = autotune2_align_loops (loops, (u32) work, loops_min);
@@ -1022,9 +1157,14 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
     if (msec_loop2 > target_msec) continue;
 
+    const double msec_loop3 = (work3 > 0) ? (base_msec3 + ((double) accel * (per_accel3 + ((double) loops * per_loop3)))) : 0;
+
+    if (msec_loop3 > target_msec) continue;
+
     double total = fixed_msec + ((work / (double) loops) * msec_loop);
 
     if (work2 > 0) total += (work2 / (double) loops) * msec_loop2;
+    if (work3 > 0) total += (work3 / (double) loops) * msec_loop3;
 
     if (total <= 0) continue;
 
@@ -1256,7 +1396,7 @@ static u32 autotune3_threads (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
 // A mode with a second loop stage runs the same loop count through both of them, and the second can
 // cost more per iteration. 15910's loop2 ran 145-184 ms launches where its first stage was tuned to
-// 92. So both are timed, and the slower one decides.
+// 92. So every stage the mode has is timed, and the slowest one decides.
 
 static double autotune3_time (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 accel, const u32 loops, const u32 threads)
 {
@@ -1269,6 +1409,13 @@ static double autotune3_time (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
     const double msec2 = try_run_times_kern (hashcat_ctx, device_param, KERN_RUN_LOOP2, accel, loops, threads, 2);
 
     msec = MAX (msec, msec2);
+  }
+
+  if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->kern_bits & KERN_BIT_LOOP3))
+  {
+    const double msec3 = try_run_times_kern (hashcat_ctx, device_param, KERN_RUN_LOOP3, accel, loops, threads, 2);
+
+    msec = MAX (msec, msec3);
   }
 
   return msec;
@@ -1732,7 +1879,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, kernel_power_max, false, 0, true);
       }
 
-      // autotune v3 times the second loop stage as well, so it gets the state the real run hands it
+      // autotune v3 times the second and third loop stages as well, so they get the state the real
+      // run hands them
 
       if (hashconfig->kern_bits & KERN_BIT_INIT2)
       {
@@ -1746,6 +1894,20 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_LOOP2P], kernel_threads_max);
 
         run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, 0, kernel_power_max, false, 0, true);
+      }
+
+      if (hashconfig->kern_bits & KERN_BIT_INIT3)
+      {
+        device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_INIT3], kernel_threads_max);
+
+        run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, 0, kernel_power_max, false, 0, true);
+      }
+
+      if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+      {
+        device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_LOOP3P], kernel_threads_max);
+
+        run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3P, 0, kernel_power_max, false, 0, true);
       }
 
       device_param->kernel_threads = kernel_threads_sav;

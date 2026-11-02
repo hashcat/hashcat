@@ -36,22 +36,10 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269";
 
-u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
-u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
-u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
-u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
-u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
-u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
-u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
-const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+#include "hooks_common.c"
+
 u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
-u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 bool        module_length_sort    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return LENGTH_SORT;     }
-u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
-u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
-u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
-const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
-const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
 const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -100,6 +88,9 @@ typedef struct seven_zip_hook_salt
   char coder_attributes[5 + 1];
   u8   coder_attributes_len;
 
+  u8   filter_attributes[4];
+  u8   filter_attributes_len;
+
   int aes_len; // pre-computed length of the maximal (subset of) data we need for AES-CBC
 
 } seven_zip_hook_salt_t;
@@ -108,10 +99,31 @@ typedef struct seven_zip_hook_extra
 {
   void **aes;
   void **unp;
+  void **flt;
 
 } seven_zip_hook_extra_t;
 
 static const char *SIGNATURE_SEVEN_ZIP = "$7z$";
+
+// 7z2hashcat writes the filter that ran before the compressor into the upper 4 bits of the data type.
+// Only the filters liblzma decodes are mapped. BCJ2 (2) splits the data into four streams and 7zAES
+// (10) is the encryption itself, so neither can be decoded here.
+
+static u64 seven_zip_filter_id (const u32 filter)
+{
+  switch (filter)
+  {
+    case 1: return HC_LZMA_FILTER_X86;
+    case 3: return HC_LZMA_FILTER_POWERPC;
+    case 4: return HC_LZMA_FILTER_IA64;
+    case 5: return HC_LZMA_FILTER_ARM;
+    case 6: return HC_LZMA_FILTER_ARMTHUMB;
+    case 7: return HC_LZMA_FILTER_SPARC;
+    case 9: return HC_LZMA_FILTER_DELTA;
+  }
+
+  return HC_LZMA_VLI_UNKNOWN;
+}
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -153,6 +165,10 @@ bool module_hook_extra_param_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if (seven_zip_hook_extra->unp == NULL) return false;
 
+  seven_zip_hook_extra->flt = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
+
+  if (seven_zip_hook_extra->flt == NULL) return false;
+
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
@@ -166,6 +182,10 @@ bool module_hook_extra_param_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
     seven_zip_hook_extra->unp[backend_devices_idx] = hcmalloc (UNPSIZE);
 
     if (seven_zip_hook_extra->unp[backend_devices_idx] == NULL) return false;
+
+    seven_zip_hook_extra->flt[backend_devices_idx] = hcmalloc (UNPSIZE);
+
+    if (seven_zip_hook_extra->flt[backend_devices_idx] == NULL) return false;
   }
 
   return true;
@@ -183,12 +203,59 @@ bool module_hook_extra_param_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
     hcfree (seven_zip_hook_extra->aes[backend_devices_idx]);
     hcfree (seven_zip_hook_extra->unp[backend_devices_idx]);
+    hcfree (seven_zip_hook_extra->flt[backend_devices_idx]);
   }
 
   hcfree (seven_zip_hook_extra->aes);
   hcfree (seven_zip_hook_extra->unp);
+  hcfree (seven_zip_hook_extra->flt);
 
   return true;
+}
+
+// A filter is decoded after the compressor rather than in one chain with it. An LZMA1 stream in a
+// 7-Zip archive carries no end marker, and a branch converter behind it in a chain holds back its
+// last bytes, waiting to learn whether an instruction continues past them. Decoding the filter on
+// its own says where the data ends.
+//
+// Where that is depends on the folder. When the first file is the whole folder, the data ends after
+// crc_len bytes. When another file follows, an instruction can cross into it, and the filter needs
+// the bytes after crc_len to convert it the way the encoder did. Both are tried, the second with up
+// to 16 more bytes, the length of an IA64 bundle, the longest unit any of the filters converts.
+
+#define SEVEN_ZIP_FILTER_LOOKAHEAD 16
+
+static bool seven_zip_filtered_crc (const seven_zip_hook_salt_t *seven_zip, const u32 coder, const u64 filter, const u8 *compressed_data, size_t compressed_data_len, u8 *decompressed_data, u8 *filtered_data)
+{
+  const u32 crc_len = seven_zip->crc_len;
+
+  size_t decompressed_data_len = MIN (crc_len + SEVEN_ZIP_FILTER_LOOKAHEAD, UNPSIZE);
+
+  // a stream that ends before that answers false, which is expected here, so only the length counts
+
+  if (coder == 1)
+  {
+    hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, seven_zip->coder_attributes);
+  }
+  else
+  {
+    hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, seven_zip->coder_attributes);
+  }
+
+  if (decompressed_data_len < crc_len) return false;
+
+  if (hc_lzma_filter_decode (filter, seven_zip->filter_attributes, seven_zip->filter_attributes_len, decompressed_data, crc_len, filtered_data) == true)
+  {
+    if (cpu_crc32_buffer (filtered_data, crc_len) == seven_zip->crc) return true;
+  }
+
+  if (decompressed_data_len == crc_len) return false;
+
+  if (hc_lzma_filter_decode (filter, seven_zip->filter_attributes, seven_zip->filter_attributes_len, decompressed_data, decompressed_data_len, filtered_data) == false) return false;
+
+  const bool match = (cpu_crc32_buffer (filtered_data, crc_len) == seven_zip->crc);
+
+  return match;
 }
 
 void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *hook_extra_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pw_pos)
@@ -298,6 +365,11 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
 
     const char *coder_attributes = seven_zip->coder_attributes;
 
+    // the lower 4 bits name the compressor, the upper 4 bits a filter that ran before it
+
+    const u32 coder  = data_type & 0x0f;
+    const u64 filter = seven_zip_filter_id (data_type >> 4);
+
     // input buffers and length
 
     u8 *compressed_data = (u8 *) out_full;
@@ -308,23 +380,34 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
 
     unsigned char *decompressed_data = (unsigned char *) seven_zip_hook_extra->unp[device_param->device_id];
 
+    if (filter != HC_LZMA_VLI_UNKNOWN)
+    {
+      unsigned char *filtered_data = (unsigned char *) seven_zip_hook_extra->flt[device_param->device_id];
+
+      const bool match = seven_zip_filtered_crc (seven_zip, coder, filter, compressed_data, compressed_data_len, decompressed_data, filtered_data);
+
+      hook_item->hook_success = (match == true) ? 1 : 0;
+
+      return;
+    }
+
     size_t decompressed_data_len = crc_len;
 
     bool ok;
 
-    if (data_type == 1) // LZMA1
+    if (coder == 1) // LZMA1
     {
       ok = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
-    else if (data_type == 7) // DEFLATE
+    else if (coder == 7) // DEFLATE
     {
       ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
     }
-    else if (data_type == 8) // ZSTD
+    else if (coder == 8) // ZSTD
     {
       ok = hc_zstd_decompress (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
     }
-    else // we only support LZMA2 in addition to LZMA1 and ZSTD
+    else // we only support LZMA2 in addition to LZMA1, DEFLATE and ZSTD
     {
       ok = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
@@ -439,8 +522,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                     | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]      = '$';
-  token.len[1]      = 1;
-  token.attr[1]     = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[1]  = 1;
+  token.len_max[1]  = 3;
+  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]      = '$';
@@ -529,6 +613,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *coder_attributes_pos = 0;
   u32 coder_attributes_len = 0;
 
+  u8 *filter_attributes_pos = NULL;
+  u32 filter_attributes_len = 0;
+
   if (crc_len_pos != NULL)
   {
     const int crc_left = data_buf_len - (int) (crc_len_pos - data_buf_pos) - 1;
@@ -568,6 +655,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     coder_attributes_len = line_len - 1 - 2 - 1 - data_type_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1 - data_buf_len - 1 - crc_len_len - 1;
 
+    // the attributes of a filter that ran before the compressor follow the coder attributes
+
+    const int attributes_left = (const u8 *) line_buf + line_len - coder_attributes_pos;
+
+    filter_attributes_pos = (u8 *) hc_strchr_next (coder_attributes_pos, attributes_left, '$');
+
+    if (filter_attributes_pos != NULL)
+    {
+      coder_attributes_len  = filter_attributes_pos - coder_attributes_pos;
+      filter_attributes_len = attributes_left - coder_attributes_len - 1;
+
+      filter_attributes_pos++;
+    }
+
     crc_len = hc_strtoul ((const char *) crc_len_pos, NULL, 10);
   }
 
@@ -575,14 +676,30 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * verify some data
    */
 
-  // this check also returns an error with data_type == 0x80 (special case that means "truncated")
+  // 0x80 marks data that 7z2hashcat truncated for a padding attack, which hashcat does not do
 
-  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7) && (data_type != 8))
+  if (data_type == 0x80) return (PARSER_SALT_VALUE);
+
+  // the lower 4 bits name the compressor, the upper 4 bits a filter that ran before it
+
+  const int coder  = data_type & 0x0f;
+  const int filter = data_type >> 4;
+
+  if ((coder != 0) && (coder != 1) && (coder != 2) && (coder != 7) && (coder != 8))
   {
-    return (PARSER_SALT_VALUE);
+    return (PARSER_SEVEN_ZIP_METHOD_UNSUPPORTED);
   }
 
-  if ((data_type == 8) && (hc_zstd_available () == false))
+  // liblzma decodes a filter in one chain with LZMA1 or LZMA2, so it cannot follow another compressor
+
+  if (filter != 0)
+  {
+    if ((coder != 1) && (coder != 2)) return (PARSER_SEVEN_ZIP_METHOD_UNSUPPORTED);
+
+    if (seven_zip_filter_id (filter) == HC_LZMA_VLI_UNKNOWN) return (PARSER_SEVEN_ZIP_METHOD_UNSUPPORTED);
+  }
+
+  if ((coder == 8) && (hc_zstd_available () == false))
   {
     return (PARSER_ZSTD_UNAVAILABLE);
   }
@@ -605,13 +722,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     // we should be more strict about the needed attribute_len:
 
-    if (data_type == 1) // LZMA1
+    if (coder == 1) // LZMA1
     {
       if ((coder_attributes_len / 2) != 5) return (PARSER_SALT_VALUE);
     }
-    else if (data_type == 2) // LZMA2
+    else if (coder == 2) // LZMA2
     {
       if ((coder_attributes_len / 2) != 1) return (PARSER_SALT_VALUE);
+    }
+
+    // delta stores its distance in one byte, a branch converter nothing or a 4 byte start offset
+
+    if ((filter == 0) && (filter_attributes_pos != NULL)) return (PARSER_SALT_VALUE);
+
+    if ((filter_attributes_len % 2) != 0) return (PARSER_SALT_VALUE);
+
+    if (filter == 9)
+    {
+      if ((filter_attributes_len / 2) != 1) return (PARSER_SALT_VALUE);
+    }
+    else if (filter != 0)
+    {
+      if (((filter_attributes_len / 2) != 0) && ((filter_attributes_len / 2) != 4)) return (PARSER_SALT_VALUE);
     }
   }
 
@@ -681,6 +813,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     }
   }
 
+  memset (seven_zip->filter_attributes, 0, sizeof (seven_zip->filter_attributes));
+
+  seven_zip->filter_attributes_len = 0;
+
+  if (filter_attributes_len > 0)
+  {
+    if (is_valid_hex_string (filter_attributes_pos, filter_attributes_len) == false) return (PARSER_SALT_ENCODING);
+
+    for (u32 i = 0, j = 0; j < filter_attributes_len; i += 1, j += 2)
+    {
+      seven_zip->filter_attributes[i] = hex_to_u8 (&filter_attributes_pos[j]);
+
+      seven_zip->filter_attributes_len++;
+    }
+  }
+
   // normally: crc_len <= unpacksize <= packsize (== data_len)
 
   int aes_len = data_len;
@@ -691,13 +839,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // is larger than the original data! (because of some additional bytes from lzma/headers)
     // the +0.5 is used to round up (just to be sure we don't truncate)
 
-    if (data_type == 1) // LZMA1 uses more bytes
+    // a filter also needs the bytes after the first file, see seven_zip_filtered_crc ()
+
+    const int needed_len = (filter != 0) ? crc_len + SEVEN_ZIP_FILTER_LOOKAHEAD : crc_len;
+
+    if (coder == 1) // LZMA1 uses more bytes
     {
-      aes_len = 32.5f + (float) crc_len * 1.05f; // +5% max (only for small random inputs)
+      aes_len = 32.5f + (float) needed_len * 1.05f; // +5% max (only for small random inputs)
     }
-    else if (data_type == 2) // LZMA2 is more clever (e.g. uncompressed chunks)
+    else if (coder == 2) // LZMA2 is more clever (e.g. uncompressed chunks)
     {
-      aes_len =  4.5f + (float) crc_len * 1.01f; // +1% max (only for small random inputs)
+      aes_len =  4.5f + (float) needed_len * 1.01f; // +1% max (only for small random inputs)
     }
 
     // just make sure we never go beyond the data_len limit itself
@@ -807,6 +959,22 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       if (bytes_written >= line_size) bytes_written = line_size - 1;
     }
+
+    // 7z2hashcat only writes the field for filter attributes when there are any
+
+    if (seven_zip->filter_attributes_len > 0)
+    {
+      bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "$");
+
+      if (bytes_written >= line_size) bytes_written = line_size - 1;
+
+      for (u32 i = 0; i < seven_zip->filter_attributes_len; i++)
+      {
+        bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "%02x", seven_zip->filter_attributes[i]);
+
+        if (bytes_written >= line_size) bytes_written = line_size - 1;
+      }
+    }
   }
 
   hcfree (data_buf);
@@ -816,89 +984,22 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 void module_init (module_ctx_t *module_ctx)
 {
-  module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
-  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
+  module_init_common (module_ctx);
 
-  module_ctx->module_advice_notice            = MODULE_DEFAULT;
-  module_ctx->module_attack_exec              = module_attack_exec;
-  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_cost           = MODULE_DEFAULT;
-  module_ctx->module_bridge_name              = MODULE_DEFAULT;
-  module_ctx->module_bridge_type              = MODULE_DEFAULT;
-  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
-  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
-  module_ctx->module_dgst_pos0                = module_dgst_pos0;
-  module_ctx->module_dgst_pos1                = module_dgst_pos1;
-  module_ctx->module_dgst_pos2                = module_dgst_pos2;
-  module_ctx->module_dgst_pos3                = module_dgst_pos3;
-  module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_esalt_size               = MODULE_DEFAULT;
-  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
-  module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
-  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
-  module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_postprocess  = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
-  module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
-  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
-  module_ctx->module_hash_hints               = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
-  module_ctx->module_hash_mode                = MODULE_DEFAULT;
-  module_ctx->module_hash_category            = module_hash_category;
-  module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_recipe              = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
-  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
-  module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook_extra_param_size    = module_hook_extra_param_size;
   module_ctx->module_hook_extra_param_init    = module_hook_extra_param_init;
   module_ctx->module_hook_extra_param_term    = module_hook_extra_param_term;
-  module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = module_hook23;
   module_ctx->module_hook_salt_size           = module_hook_salt_size;
   module_ctx->module_hook_size                = module_hook_size;
   module_ctx->module_jit_build_options        = module_jit_build_options;
-  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_bits                = module_kern_bits;
-  module_ctx->module_kern_type                = module_kern_type;
-  module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_length_sort              = module_length_sort;
-  module_ctx->module_opti_type                = module_opti_type;
-  module_ctx->module_opts_type                = module_opts_type;
-  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
-  module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
-  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
-  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
-  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
-  module_ctx->module_pw_min                   = MODULE_DEFAULT;
-  module_ctx->module_register_options         = MODULE_DEFAULT;
-  module_ctx->module_salt_max                 = MODULE_DEFAULT;
-  module_ctx->module_salt_min                 = MODULE_DEFAULT;
-  module_ctx->module_salt_type                = module_salt_type;
-  module_ctx->module_separator                = MODULE_DEFAULT;
-  module_ctx->module_st_hash                  = module_st_hash;
-  module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_usage_notice             = module_usage_notice;
-  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

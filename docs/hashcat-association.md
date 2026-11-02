@@ -43,7 +43,7 @@ Line 3 of the wordlist is tried against line 3 of the hash file and no other. Th
 
 ## 3. Where the words come from
 
-The hash-mode module selects the source because only it can interpret its salt and extended salt. A module that leaves the hook at `MODULE_DEFAULT` uses the generic fallback, which splits the account name preceding the hash into words.
+The hash-mode module selects the source because only it can interpret its salt and extended salt. A module that leaves the hook unassigned uses the generic fallback, which splits the account name preceding the hash into words.
 
 `j.smith` becomes, in this order:
 

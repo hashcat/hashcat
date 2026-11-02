@@ -100,10 +100,14 @@ DECLSPEC void m10100m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
   switch (pw_len / 8)
   {
-    case 0: w[1] |= pw_len << 24; break;
-    case 1: w[3] |= pw_len << 24; break;
-    case 2: w[5] |= pw_len << 24; break;
-    case 3: w[7] |= pw_len << 24; break;
+    case 0: w[ 1] |= pw_len << 24; break;
+    case 1: w[ 3] |= pw_len << 24; break;
+    case 2: w[ 5] |= pw_len << 24; break;
+    case 3: w[ 7] |= pw_len << 24; break;
+    case 4: w[ 9] |= pw_len << 24; break;
+    case 5: w[11] |= pw_len << 24; break;
+    case 6: w[13] |= pw_len << 24; break;
+    case 7: w[15] |= pw_len << 24; break;
   }
 
   /**
@@ -191,10 +195,14 @@ DECLSPEC void m10100s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
   switch (pw_len / 8)
   {
-    case 0: w[1] |= pw_len << 24; break;
-    case 1: w[3] |= pw_len << 24; break;
-    case 2: w[5] |= pw_len << 24; break;
-    case 3: w[7] |= pw_len << 24; break;
+    case 0: w[ 1] |= pw_len << 24; break;
+    case 1: w[ 3] |= pw_len << 24; break;
+    case 2: w[ 5] |= pw_len << 24; break;
+    case 3: w[ 7] |= pw_len << 24; break;
+    case 4: w[ 9] |= pw_len << 24; break;
+    case 5: w[11] |= pw_len << 24; break;
+    case 6: w[13] |= pw_len << 24; break;
+    case 7: w[15] |= pw_len << 24; break;
   }
 
   /**

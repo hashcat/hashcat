@@ -42,7 +42,7 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST   'y'  // duplicates first N chars
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST    'Y'  // duplicates last N chars
 #define RULE_OP_MANGLE_TITLE             'E'  // lowercase everything then upper case the first letter and every letter after a space
-#define RULE_OP_MANGLE_TITLE_SEP         'e'  // lowercase everything then upper case the first letter and every letter after char X
+#define RULE_OP_MANGLE_TITLE_SEP         'e'  // upper case the first letter and the letter after each run of char X, lowercase all others but X
 #define RULE_OP_MANGLE_TO_HEX_LOWER      'h'  // convert the entire password to lowercase hex
 #define RULE_OP_MANGLE_TO_HEX_UPPER      'H'  // convert the entire password to uppercase hex
 
@@ -70,7 +70,7 @@
 #define RULE_OP_CLASS_BASED              '~'
 #define RULE_OP_MANGLE_REPLACE_CLASS     0x01 // replace all instances of chars in class C with char Y, ~s?CY
 #define RULE_OP_MANGLE_PURGECHAR_CLASS   0x02 // purge all instances of chars in class C, ~@?C
-#define RULE_OP_MANGLE_TITLE_SEP_CLASS   0x03 // lowercase everything then upper case the first letter and every letter after chars in class C, ~e?C
+#define RULE_OP_MANGLE_TITLE_SEP_CLASS   0x03 // upper case the first letter and the letter after each run of class C, lowercase all others but C, ~e?C
 
 /* using character classes, with -j or -k only */
 

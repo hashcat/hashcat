@@ -11,7 +11,7 @@ from lib.test_helpers import split_hash_salt_word
 
 
 def module_constraints():
-  return [[0, 256], [0, 256], [0, 55], [0, 31], [0, 55]]
+  return [[0, 256], [0, 256], [0, 55], [0, 31], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):

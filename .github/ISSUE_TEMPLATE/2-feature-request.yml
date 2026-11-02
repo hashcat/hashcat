@@ -1,6 +1,6 @@
 name: Feature request
 description: A new option, attack, output format or other change to how hashcat works.
-labels: ["new feature"]
+labels: ["type: feature"]
 body:
   - type: markdown
     attributes:

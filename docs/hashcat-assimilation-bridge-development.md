@@ -2,14 +2,7 @@
 
 ## Updating existing plugins
 
-A module written before bridge support was added must initialize the two bridge fields. Use the defaults unless the module actually selects a bridge:
-
-```c
-module_ctx->module_bridge_name = MODULE_DEFAULT;
-module_ctx->module_bridge_type = MODULE_DEFAULT;
-```
-
-Current in-tree modules already contain these assignments. External modules need the same update when rebuilt against the current `module_ctx_t`.
+A module that does not select a bridge leaves `module_bridge_name` and `module_bridge_type` unassigned in `module_init()`, and hashcat gives both their defaults. Only a module that selects a bridge assigns them.
 
 ## Plugin integration and bridge registration
 
@@ -150,7 +143,7 @@ At startup, hashcat resolves the plugin path as follows:
 
 ### Bridge initializer
 
-A bridge exports only `bridge_init()`. The initializer records the interface it was built against and fills the callback table. Assign `BRIDGE_DEFAULT` to callbacks the bridge does not implement. Do not leave the older required-defined fields as null pointers.
+A bridge exports only `bridge_init()`. The initializer records the interface it was built against and fills the callback table. Assign the callbacks the bridge implements and leave the others unassigned. hashcat gives each of them its default after `bridge_init()` returns, the same one that an explicit `BRIDGE_DEFAULT` selects.
 
 ```c
 void bridge_init (bridge_ctx_t *bridge_ctx)
@@ -164,31 +157,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_info         = get_unit_info;
   bridge_ctx->get_workitem_count    = get_workitem_count;
   bridge_ctx->get_workitem_multiple = get_workitem_multiple;
-  bridge_ctx->get_unit_class        = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_member_count = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_member_info  = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_tuning       = BRIDGE_DEFAULT;
-
-  bridge_ctx->thread_init    = BRIDGE_DEFAULT;
-  bridge_ctx->thread_term    = BRIDGE_DEFAULT;
-  bridge_ctx->salt_prepare   = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy   = BRIDGE_DEFAULT;
-  bridge_ctx->launch_loop    = launch_loop;
-  bridge_ctx->launch_loop2   = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_pass = BRIDGE_DEFAULT;
-
-  bridge_ctx->get_unit_temperature           = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_str       = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_abort     = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_unwatched = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_fanspeed              = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_utilization           = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_corespeed             = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_memoryspeed           = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_buslanes              = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_buslanes_str          = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_power                 = BRIDGE_DEFAULT;
+  bridge_ctx->launch_loop           = launch_loop;
 }
 ```
 
@@ -243,7 +212,7 @@ get_workitem_count
 get_workitem_multiple
 ```
 
-In addition, every loop named by the module's `BRIDGE_TYPE` must be implemented: `launch_loop` for a launch or replacement of `LOOP`, and `launch_loop2` for `LOOP2`. Other callbacks use `BRIDGE_DEFAULT` when they are not needed.
+In addition, every loop named by the module's `BRIDGE_TYPE` must be implemented: `launch_loop` for a launch or replacement of `LOOP`, and `launch_loop2` for `LOOP2`. Other callbacks are left unassigned when they are not needed.
 
 Callback `get_workitem_multiple` is mandatory in the current interface. An older bridge is normally refused first by the `bridge_context_size` check with "bridge context size is invalid. Old template?". Rebuild it against the current headers and update the initializer.
 
@@ -288,13 +257,13 @@ Return the unit type, never the individual instance:
 
 **Do not include a device path, serial number or index.** Unlike the class callback, `get_unit_info` deliberately identifies an individual device so users can distinguish otherwise identical units.
 
-When the callback is left as `BRIDGE_DEFAULT`, hashcat compares `get_unit_info` instead. That is correct when your units really are identical, which is the normal case for a bridge whose units are CPU threads and whose info strings are all the same string. You need `get_unit_class` only when your info string names the individual unit.
+When the bridge leaves the callback unassigned, hashcat compares `get_unit_info` instead. That is correct when your units really are identical, which is the normal case for a bridge whose units are CPU threads and whose info strings are all the same string. You need `get_unit_class` only when your info string names the individual unit.
 
 Units that cannot be described do not compare as equal. If a bridge returns `NULL`, hashcat leaves their tunings independent instead of assuming that unidentified units are interchangeable.
 
 ### Units made of several members
 
-A bridge may combine several hardware components into one scheduling unit. Implement both `get_unit_member_count` and `get_unit_member_info` so the startup and `--backend-info` displays can show what that unit contains. A bridge whose units are individual devices leaves both callbacks at `BRIDGE_DEFAULT`.
+A bridge may combine several hardware components into one scheduling unit. Implement both `get_unit_member_count` and `get_unit_member_info` so the startup and `--backend-info` displays can show what that unit contains. A bridge whose units are individual devices leaves both callbacks unassigned.
 
 ```c
 int   get_unit_member_count (hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx);
@@ -305,7 +274,7 @@ Member indices start at zero and must match any numbering used elsewhere by the 
 
 ### Reporting sensors
 
-All sensor callbacks are optional. Implement those supported by the hardware and leave the rest as `BRIDGE_DEFAULT`.
+All sensor callbacks are optional. Implement those supported by the hardware and leave the rest unassigned.
 
 ```c
   int  (*get_unit_temperature)           (hashcat_ctx_t *, void *, const int);
