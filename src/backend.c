@@ -15022,7 +15022,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, next);
 
-        tuning_db_process_line (hashcat_ctx, search_name, line_num);
+        tuning_db_process_line (hashcat_ctx, search_name, "module_extra_tuningdb_block", line_num);
 
         hcfree (search_name);
 
