@@ -221,104 +221,6 @@ void module_unload (module_ctx_t *module_ctx)
   }
 }
 
-// A module assigns the hooks it implements and leaves the others alone. module_load () zeroed the
-// context, so a hook the module left alone is NULL here and takes its default, the same one that an
-// explicit MODULE_DEFAULT asks for. A module that still assigns MODULE_DEFAULT to every hook it does
-// not implement therefore loads exactly as before.
-//
-// A new hook then only has to appear in the modules that implement it. It still grows module_ctx_t,
-// so it still raises the plugin interface version: a module built against the larger context would
-// write past the end of a smaller one.
-
-static void module_ctx_defaults (module_ctx_t *module_ctx)
-{
-  if (module_ctx->module_attack_exec             == NULL) module_ctx->module_attack_exec             = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_esalt         == NULL) module_ctx->module_benchmark_esalt         = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_hook_salt     == NULL) module_ctx->module_benchmark_hook_salt     = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_mask          == NULL) module_ctx->module_benchmark_mask          = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_charset       == NULL) module_ctx->module_benchmark_charset       = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_salt          == NULL) module_ctx->module_benchmark_salt          = MODULE_DEFAULT;
-  if (module_ctx->module_benchmark_cost          == NULL) module_ctx->module_benchmark_cost          = MODULE_DEFAULT;
-  if (module_ctx->module_bridge_name             == NULL) module_ctx->module_bridge_name             = MODULE_DEFAULT;
-  if (module_ctx->module_bridge_type             == NULL) module_ctx->module_bridge_type             = MODULE_DEFAULT;
-  if (module_ctx->module_build_plain_postprocess == NULL) module_ctx->module_build_plain_postprocess = MODULE_DEFAULT;
-  if (module_ctx->module_combined_len_max        == NULL) module_ctx->module_combined_len_max        = MODULE_DEFAULT;
-  if (module_ctx->module_combined_len_pw         == NULL) module_ctx->module_combined_len_pw         = MODULE_DEFAULT;
-  if (module_ctx->module_combined_len_salt       == NULL) module_ctx->module_combined_len_salt       = MODULE_DEFAULT;
-  if (module_ctx->module_deep_comp_kernel        == NULL) module_ctx->module_deep_comp_kernel        = MODULE_DEFAULT;
-  if (module_ctx->module_deprecated_notice       == NULL) module_ctx->module_deprecated_notice       = MODULE_DEFAULT;
-  if (module_ctx->module_usage_notice            == NULL) module_ctx->module_usage_notice            = MODULE_DEFAULT;
-  if (module_ctx->module_advice_notice           == NULL) module_ctx->module_advice_notice           = MODULE_DEFAULT;
-  if (module_ctx->module_length_sort             == NULL) module_ctx->module_length_sort             = MODULE_DEFAULT;
-  if (module_ctx->module_dgst_pos0               == NULL) module_ctx->module_dgst_pos0               = MODULE_DEFAULT;
-  if (module_ctx->module_dgst_pos1               == NULL) module_ctx->module_dgst_pos1               = MODULE_DEFAULT;
-  if (module_ctx->module_dgst_pos2               == NULL) module_ctx->module_dgst_pos2               = MODULE_DEFAULT;
-  if (module_ctx->module_dgst_pos3               == NULL) module_ctx->module_dgst_pos3               = MODULE_DEFAULT;
-  if (module_ctx->module_dgst_size               == NULL) module_ctx->module_dgst_size               = MODULE_DEFAULT;
-  if (module_ctx->module_esalt_size              == NULL) module_ctx->module_esalt_size              = MODULE_DEFAULT;
-  if (module_ctx->module_extra_buffer_size       == NULL) module_ctx->module_extra_buffer_size       = MODULE_DEFAULT;
-  if (module_ctx->module_extra_tmp_size          == NULL) module_ctx->module_extra_tmp_size          = MODULE_DEFAULT;
-  if (module_ctx->module_extra_tuningdb_block    == NULL) module_ctx->module_extra_tuningdb_block    = MODULE_DEFAULT;
-  if (module_ctx->module_forced_outfile_format   == NULL) module_ctx->module_forced_outfile_format   = MODULE_DEFAULT;
-  if (module_ctx->module_hash_binary_count       == NULL) module_ctx->module_hash_binary_count       = MODULE_DEFAULT;
-  if (module_ctx->module_hash_binary_parse       == NULL) module_ctx->module_hash_binary_parse       = MODULE_DEFAULT;
-  if (module_ctx->module_hash_binary_save        == NULL) module_ctx->module_hash_binary_save        = MODULE_DEFAULT;
-  if (module_ctx->module_hash_category           == NULL) module_ctx->module_hash_category           = MODULE_DEFAULT;
-  if (module_ctx->module_hash_decode             == NULL) module_ctx->module_hash_decode             = MODULE_DEFAULT;
-  if (module_ctx->module_hash_decode_postprocess == NULL) module_ctx->module_hash_decode_postprocess = MODULE_DEFAULT;
-  if (module_ctx->module_hash_decode_potfile     == NULL) module_ctx->module_hash_decode_potfile     = MODULE_DEFAULT;
-  if (module_ctx->module_hash_decode_zero_hash   == NULL) module_ctx->module_hash_decode_zero_hash   = MODULE_DEFAULT;
-  if (module_ctx->module_hash_encode             == NULL) module_ctx->module_hash_encode             = MODULE_DEFAULT;
-  if (module_ctx->module_hash_encode_potfile     == NULL) module_ctx->module_hash_encode_potfile     = MODULE_DEFAULT;
-  if (module_ctx->module_hash_encode_status      == NULL) module_ctx->module_hash_encode_status      = MODULE_DEFAULT;
-  if (module_ctx->module_hash_hints              == NULL) module_ctx->module_hash_hints              = MODULE_DEFAULT;
-  if (module_ctx->module_hash_init_selftest      == NULL) module_ctx->module_hash_init_selftest      = MODULE_DEFAULT;
-  if (module_ctx->module_hash_mode               == NULL) module_ctx->module_hash_mode               = MODULE_DEFAULT;
-  if (module_ctx->module_hash_name               == NULL) module_ctx->module_hash_name               = MODULE_DEFAULT;
-  if (module_ctx->module_hash_recipe             == NULL) module_ctx->module_hash_recipe             = MODULE_DEFAULT;
-  if (module_ctx->module_hashes_count_max        == NULL) module_ctx->module_hashes_count_max        = MODULE_DEFAULT;
-  if (module_ctx->module_hashes_count_min        == NULL) module_ctx->module_hashes_count_min        = MODULE_DEFAULT;
-  if (module_ctx->module_hlfmt_disable           == NULL) module_ctx->module_hlfmt_disable           = MODULE_DEFAULT;
-  if (module_ctx->module_hook_extra_param_size   == NULL) module_ctx->module_hook_extra_param_size   = MODULE_DEFAULT;
-  if (module_ctx->module_hook_extra_param_init   == NULL) module_ctx->module_hook_extra_param_init   = MODULE_DEFAULT;
-  if (module_ctx->module_hook_extra_param_term   == NULL) module_ctx->module_hook_extra_param_term   = MODULE_DEFAULT;
-  if (module_ctx->module_hook12                  == NULL) module_ctx->module_hook12                  = MODULE_DEFAULT;
-  if (module_ctx->module_hook23                  == NULL) module_ctx->module_hook23                  = MODULE_DEFAULT;
-  if (module_ctx->module_hook_salt_size          == NULL) module_ctx->module_hook_salt_size          = MODULE_DEFAULT;
-  if (module_ctx->module_hook_size               == NULL) module_ctx->module_hook_size               = MODULE_DEFAULT;
-  if (module_ctx->module_jit_build_options       == NULL) module_ctx->module_jit_build_options       = MODULE_DEFAULT;
-  if (module_ctx->module_jit_cache_disable       == NULL) module_ctx->module_jit_cache_disable       = MODULE_DEFAULT;
-  if (module_ctx->module_kern_bits               == NULL) module_ctx->module_kern_bits               = MODULE_DEFAULT;
-  if (module_ctx->module_kern_type               == NULL) module_ctx->module_kern_type               = MODULE_DEFAULT;
-  if (module_ctx->module_kern_type_dynamic       == NULL) module_ctx->module_kern_type_dynamic       = MODULE_DEFAULT;
-  if (module_ctx->module_kernel_accel_max        == NULL) module_ctx->module_kernel_accel_max        = MODULE_DEFAULT;
-  if (module_ctx->module_kernel_accel_min        == NULL) module_ctx->module_kernel_accel_min        = MODULE_DEFAULT;
-  if (module_ctx->module_kernel_loops_max        == NULL) module_ctx->module_kernel_loops_max        = MODULE_DEFAULT;
-  if (module_ctx->module_kernel_loops_min        == NULL) module_ctx->module_kernel_loops_min        = MODULE_DEFAULT;
-  if (module_ctx->module_kernel_threads_max      == NULL) module_ctx->module_kernel_threads_max      = MODULE_DEFAULT;
-  if (module_ctx->module_kernel_threads_min      == NULL) module_ctx->module_kernel_threads_min      = MODULE_DEFAULT;
-  if (module_ctx->module_opti_type               == NULL) module_ctx->module_opti_type               = MODULE_DEFAULT;
-  if (module_ctx->module_opts_type               == NULL) module_ctx->module_opts_type               = MODULE_DEFAULT;
-  if (module_ctx->module_outfile_check_disable   == NULL) module_ctx->module_outfile_check_disable   = MODULE_DEFAULT;
-  if (module_ctx->module_outfile_check_nocomp    == NULL) module_ctx->module_outfile_check_nocomp    = MODULE_DEFAULT;
-  if (module_ctx->module_potfile_custom_check    == NULL) module_ctx->module_potfile_custom_check    = MODULE_DEFAULT;
-  if (module_ctx->module_potfile_disable         == NULL) module_ctx->module_potfile_disable         = MODULE_DEFAULT;
-  if (module_ctx->module_potfile_keep_all_hashes == NULL) module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
-  if (module_ctx->module_pw_max                  == NULL) module_ctx->module_pw_max                  = MODULE_DEFAULT;
-  if (module_ctx->module_pw_min                  == NULL) module_ctx->module_pw_min                  = MODULE_DEFAULT;
-  if (module_ctx->module_pwdump_column           == NULL) module_ctx->module_pwdump_column           = MODULE_DEFAULT;
-  if (module_ctx->module_register_options        == NULL) module_ctx->module_register_options        = MODULE_DEFAULT;
-  if (module_ctx->module_salt_max                == NULL) module_ctx->module_salt_max                = MODULE_DEFAULT;
-  if (module_ctx->module_salt_min                == NULL) module_ctx->module_salt_min                = MODULE_DEFAULT;
-  if (module_ctx->module_salt_type               == NULL) module_ctx->module_salt_type               = MODULE_DEFAULT;
-  if (module_ctx->module_separator               == NULL) module_ctx->module_separator               = MODULE_DEFAULT;
-  if (module_ctx->module_st_hash                 == NULL) module_ctx->module_st_hash                 = MODULE_DEFAULT;
-  if (module_ctx->module_st_pass                 == NULL) module_ctx->module_st_pass                 = MODULE_DEFAULT;
-  if (module_ctx->module_tmp_size                == NULL) module_ctx->module_tmp_size                = MODULE_DEFAULT;
-  if (module_ctx->module_unstable_warning        == NULL) module_ctx->module_unstable_warning        = MODULE_DEFAULT;
-  if (module_ctx->module_warmup_disable          == NULL) module_ctx->module_warmup_disable          = MODULE_DEFAULT;
-}
-
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
@@ -358,8 +260,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   module_ctx->module_init (module_ctx);
 
-  module_ctx_defaults (module_ctx);
-
   // What a hash tells us about whoever chose the password. A module that says nothing gets the answer
   // that works for every mode, which is the account name in front of the hash cut into words, and a
   // module that knows better says so and is not overwritten. -m 22000 is the example: its salt is the
@@ -369,12 +269,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // either way and the question "did this module define one" is asked once.
 
   if (module_ctx->module_hash_hints == MODULE_DEFAULT) module_ctx->module_hash_hints = default_hash_hints;
-
-  // The same for what a password and a salt count towards hashconfig->combined_len_max, which
-  // hashes_init_stage4 () asks once for every salt and every password length.
-
-  if (module_ctx->module_combined_len_pw   == MODULE_DEFAULT) module_ctx->module_combined_len_pw   = default_combined_len_pw;
-  if (module_ctx->module_combined_len_salt == MODULE_DEFAULT) module_ctx->module_combined_len_salt = default_combined_len_salt;
 
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
@@ -390,12 +284,107 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  // check for missing pointer assignments
+
+  #define CHECK_DEFINED(module_ctx, func)                                         \
+    if ((module_ctx)->func == NULL)                                               \
+    {                                                                             \
+      event_log_error (hashcat_ctx, "Module context missing field '%s' in 'module_init()' for hash-mode '%d'. Is this module based on an old template?", #func, user_options->hash_mode); \
+                                                                                  \
+      return -1;                                                                  \
+    }
+
+  CHECK_DEFINED (module_ctx, module_attack_exec);
+  CHECK_DEFINED (module_ctx, module_benchmark_esalt);
+  CHECK_DEFINED (module_ctx, module_benchmark_hook_salt);
+  CHECK_DEFINED (module_ctx, module_benchmark_mask);
+  CHECK_DEFINED (module_ctx, module_benchmark_charset);
+  CHECK_DEFINED (module_ctx, module_benchmark_salt);
+  CHECK_DEFINED (module_ctx, module_benchmark_cost);
+  CHECK_DEFINED (module_ctx, module_bridge_name);
+  CHECK_DEFINED (module_ctx, module_bridge_type);
+  CHECK_DEFINED (module_ctx, module_build_plain_postprocess);
+  CHECK_DEFINED (module_ctx, module_deep_comp_kernel);
+  CHECK_DEFINED (module_ctx, module_deprecated_notice);
+  CHECK_DEFINED (module_ctx, module_usage_notice);
+  CHECK_DEFINED (module_ctx, module_advice_notice);
+  CHECK_DEFINED (module_ctx, module_length_sort);
+  CHECK_DEFINED (module_ctx, module_dgst_pos0);
+  CHECK_DEFINED (module_ctx, module_dgst_pos1);
+  CHECK_DEFINED (module_ctx, module_dgst_pos2);
+  CHECK_DEFINED (module_ctx, module_dgst_pos3);
+  CHECK_DEFINED (module_ctx, module_dgst_size);
+  CHECK_DEFINED (module_ctx, module_esalt_size);
+  CHECK_DEFINED (module_ctx, module_extra_buffer_size);
+  CHECK_DEFINED (module_ctx, module_extra_tmp_size);
+  CHECK_DEFINED (module_ctx, module_extra_tuningdb_block);
+  CHECK_DEFINED (module_ctx, module_forced_outfile_format);
+  CHECK_DEFINED (module_ctx, module_hash_binary_count);
+  CHECK_DEFINED (module_ctx, module_hash_binary_parse);
+  CHECK_DEFINED (module_ctx, module_hash_binary_save);
+  CHECK_DEFINED (module_ctx, module_hash_category);
+  CHECK_DEFINED (module_ctx, module_hash_decode);
+  CHECK_DEFINED (module_ctx, module_hash_decode_postprocess);
+  CHECK_DEFINED (module_ctx, module_hash_decode_potfile);
+  CHECK_DEFINED (module_ctx, module_hash_decode_zero_hash);
+  CHECK_DEFINED (module_ctx, module_hash_encode);
+  CHECK_DEFINED (module_ctx, module_hash_encode_potfile);
+  CHECK_DEFINED (module_ctx, module_hash_encode_status);
+  CHECK_DEFINED (module_ctx, module_hash_hints);
+  CHECK_DEFINED (module_ctx, module_hash_init_selftest);
+  CHECK_DEFINED (module_ctx, module_hash_mode);
+  CHECK_DEFINED (module_ctx, module_hash_name);
+  CHECK_DEFINED (module_ctx, module_hash_recipe);
+  CHECK_DEFINED (module_ctx, module_hashes_count_max);
+  CHECK_DEFINED (module_ctx, module_hashes_count_min);
+  CHECK_DEFINED (module_ctx, module_hlfmt_disable);
+  CHECK_DEFINED (module_ctx, module_hook_extra_param_size);
+  CHECK_DEFINED (module_ctx, module_hook_extra_param_init);
+  CHECK_DEFINED (module_ctx, module_hook_extra_param_term);
+  CHECK_DEFINED (module_ctx, module_hook12);
+  CHECK_DEFINED (module_ctx, module_hook23);
+  CHECK_DEFINED (module_ctx, module_hook_salt_size);
+  CHECK_DEFINED (module_ctx, module_hook_size);
+  CHECK_DEFINED (module_ctx, module_jit_build_options);
+  CHECK_DEFINED (module_ctx, module_jit_cache_disable);
+  CHECK_DEFINED (module_ctx, module_kern_bits);
+  CHECK_DEFINED (module_ctx, module_kern_type);
+  CHECK_DEFINED (module_ctx, module_kern_type_dynamic);
+  CHECK_DEFINED (module_ctx, module_kernel_accel_max);
+  CHECK_DEFINED (module_ctx, module_kernel_accel_min);
+  CHECK_DEFINED (module_ctx, module_kernel_loops_max);
+  CHECK_DEFINED (module_ctx, module_kernel_loops_min);
+  CHECK_DEFINED (module_ctx, module_kernel_threads_max);
+  CHECK_DEFINED (module_ctx, module_kernel_threads_min);
+  CHECK_DEFINED (module_ctx, module_opti_type);
+  CHECK_DEFINED (module_ctx, module_opts_type);
+  CHECK_DEFINED (module_ctx, module_outfile_check_disable);
+  CHECK_DEFINED (module_ctx, module_outfile_check_nocomp);
+  CHECK_DEFINED (module_ctx, module_potfile_custom_check);
+  CHECK_DEFINED (module_ctx, module_potfile_disable);
+  CHECK_DEFINED (module_ctx, module_potfile_keep_all_hashes);
+  CHECK_DEFINED (module_ctx, module_pw_max);
+  CHECK_DEFINED (module_ctx, module_pw_min);
+  CHECK_DEFINED (module_ctx, module_pwdump_column);
+  CHECK_DEFINED (module_ctx, module_register_options);
+  CHECK_DEFINED (module_ctx, module_salt_max);
+  CHECK_DEFINED (module_ctx, module_salt_min);
+  CHECK_DEFINED (module_ctx, module_salt_type);
+  CHECK_DEFINED (module_ctx, module_separator);
+  CHECK_DEFINED (module_ctx, module_st_hash);
+  CHECK_DEFINED (module_ctx, module_st_pass);
+  CHECK_DEFINED (module_ctx, module_tmp_size);
+  CHECK_DEFINED (module_ctx, module_unstable_warning);
+  CHECK_DEFINED (module_ctx, module_warmup_disable);
+
+  #undef CHECK_DEFINED
+
   // mandatory functions check
 
   #define CHECK_MANDATORY(module_ctx, func)                                   \
     if ((module_ctx)->func == MODULE_DEFAULT)                                 \
     {                                                                         \
-      event_log_error (hashcat_ctx, "Module context field '%s' in 'module_init()' for hash-mode '%d' is not set, but every module has to set it.", #func, user_options->hash_mode); \
+      event_log_error (hashcat_ctx, "Module context field '%s' in 'module_init()' for hash-mode '%d' is set to MODULE_DEFAULT, but must be explicitly set.", #func, user_options->hash_mode); \
                                                                               \
       return -1;                                                              \
     }
@@ -465,7 +454,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
       recipe_prog_t prog;
 
-      if (recipe_compile_stored (&prog, recipe) == false)
+      if (recipe_compile (&prog, recipe) == false)
       {
         event_log_error (hashcat_ctx, "Recipe of hash-mode %d is invalid at position %u: %s", hashconfig->hash_mode, prog.error_pos, prog.error);
 
@@ -732,7 +721,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     recipe_prog_t prog;
 
-    if ((recipe_compile_stored (&prog, hashconfig->hash_recipe) == true) && (prog.slow == 1)) hashconfig->tmp_size = recipe_tmp_size (&prog);
+    if ((recipe_compile (&prog, hashconfig->hash_recipe) == true) && (prog.slow == 1)) hashconfig->tmp_size = recipe_tmp_size (&prog);
   }
 
   // those depend on some previously defined values
@@ -741,7 +730,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->pw_min              = default_pw_min              (hashconfig, user_options, user_options_extra);
   hashconfig->salt_max            = default_salt_max            (hashconfig, user_options, user_options_extra);
   hashconfig->salt_min            = default_salt_min            (hashconfig, user_options, user_options_extra);
-  hashconfig->combined_len_max    = default_combined_len_max    (hashconfig, user_options, user_options_extra);
   hashconfig->kernel_accel_min    = default_kernel_accel_min    (hashconfig, user_options, user_options_extra);
   hashconfig->kernel_accel_max    = default_kernel_accel_max    (hashconfig, user_options, user_options_extra);
   hashconfig->kernel_loops_min    = default_kernel_loops_min    (hashconfig, user_options, user_options_extra);
@@ -753,7 +741,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_pw_min             != MODULE_DEFAULT) hashconfig->pw_min             = module_ctx->module_pw_min             (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_salt_max           != MODULE_DEFAULT) hashconfig->salt_max           = module_ctx->module_salt_max           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_salt_min           != MODULE_DEFAULT) hashconfig->salt_min           = module_ctx->module_salt_min           (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_combined_len_max   != MODULE_DEFAULT) hashconfig->combined_len_max   = module_ctx->module_combined_len_max   (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_accel_min   != MODULE_DEFAULT) hashconfig->kernel_accel_min   = module_ctx->module_kernel_accel_min   (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_accel_max   != MODULE_DEFAULT) hashconfig->kernel_accel_max   = module_ctx->module_kernel_accel_max   (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_loops_min   != MODULE_DEFAULT) hashconfig->kernel_loops_min   = module_ctx->module_kernel_loops_min   (hashconfig, user_options, user_options_extra);
@@ -1257,33 +1244,4 @@ u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
   }
 
   return salt_max;
-}
-
-u32 default_combined_len_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  // no kernel keeps password and salt in one buffer unless its module says so
-
-  const u32 combined_len_max = 0;
-
-  return combined_len_max;
-}
-
-u32 default_combined_len_pw (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const u32 pw_len)
-{
-  // an optimized kernel of a UTF-16 mode widens each password byte to two
-
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  const bool utf16 = ((hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE));
-
-  const u32 combined_len_pw = ((optimized_kernel == true) && (utf16 == true)) ? (pw_len * 2) : pw_len;
-
-  return combined_len_pw;
-}
-
-u32 default_combined_len_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const salt_t *salt, MAYBE_UNUSED const void *esalt)
-{
-  const u32 combined_len_salt = salt->salt_len;
-
-  return combined_len_salt;
 }

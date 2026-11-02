@@ -757,26 +757,17 @@ static int mangle_title_sep_class_l (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_lower (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_lower (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }
@@ -787,26 +778,17 @@ static int mangle_title_sep_class_u (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_upper (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_upper (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }
@@ -847,26 +829,17 @@ static int mangle_title_sep_class_lh (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_lower_hex (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_lower_hex (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }
@@ -877,26 +850,17 @@ static int mangle_title_sep_class_uh (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_upper_hex (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_upper_hex (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }

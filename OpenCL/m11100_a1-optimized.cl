@@ -87,7 +87,6 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
-  u32 salt_buf2[1];
 
   salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 1]; // not a bug, see challenge
   salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
@@ -97,7 +96,6 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
   salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
   salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
   salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
-  salt_buf2[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 9]; // the 0x80 behind a 32 byte user name
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 4;
 
@@ -236,7 +234,7 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
     s1[1] = salt_buf1[1];
     s1[2] = salt_buf1[2];
     s1[3] = salt_buf1[3];
-    s2[0] = salt_buf2[0];
+    s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
@@ -528,7 +526,6 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
-  u32 salt_buf2[1];
 
   salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 1]; // not a bug, see challenge
   salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
@@ -538,7 +535,6 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
   salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
   salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
   salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
-  salt_buf2[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 9]; // the 0x80 behind a 32 byte user name
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 4;
 
@@ -689,7 +685,7 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
     s1[1] = salt_buf1[1];
     s1[2] = salt_buf1[2];
     s1[3] = salt_buf1[3];
-    s2[0] = salt_buf2[0];
+    s2[0] = 0;
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;

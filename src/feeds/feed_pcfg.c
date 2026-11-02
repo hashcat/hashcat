@@ -401,31 +401,6 @@ typedef struct
 
   bool mcss_high;
 
-  // What a contains= run names: pieces in mask syntax, comma separated, every one of which a candidate
-  // has to hold somewhere, each on bytes of its own. NULL where the run named none. Each piece is kept as
-  // what it allows at each of its own positions, beside its own text for the messages that name one,
-  // which points into contains_buf. mask_filter () slides one piece at a time over every offset a
-  // structure can reach, so in such a run mcss is a working copy that holds ccss, the piece being placed,
-  // at one offset at a time and admits every byte everywhere else.
-
-  const char *contains;
-
-  char *contains_buf;
-
-  mask_css_t **cpiece;
-  char       **cpiece_text;
-  u32          cpiece_cnt;
-
-  const mask_css_t *ccss;
-
-  // While mask_filter () runs, claim holds PCFG_CONTAINS_MAX bytes for every structure: the offset each
-  // piece placed so far stands at in it. cpass is the piece being placed now, which takes no byte of
-  // those.
-
-  u8 *claim;
-
-  u32 cpass;
-
   // The hint list, which is what a hint ruleset puts where a trained ruleset has its letters.
   //
   // hint_cnt is how wide that list is: the number of words a named set holds, counting every case form
@@ -3882,18 +3857,6 @@ static void pcfg_pick_varlen (pcfg_global_t *pg)
 #define PCFG_MASK_MAXVAR   512
 #define PCFG_MASK_MAXGROUP 32
 
-// Pieces one contains= run takes. Each multiplies the grammar by about the number of places it can stand,
-// so a handful is already a large grammar.
-
-#define PCFG_CONTAINS_MAX 8
-
-// Structures a contains= run may split the grammar into, about 2 GB of tables. Four digit pieces on a
-// ruleset of digit passwords stay far below it: three of them at 16 to 20 digits make 102150. Pieces of
-// one or two characters on a large ruleset do not, and would otherwise grind for minutes before running
-// out of memory.
-
-#define PCFG_CONTAINS_MAXSTRUCT (1u << 21)
-
 #define PCFG_VIEW_EMPTY (-2)
 #define PCFG_VIEW_FULL  (-3)
 
@@ -3910,16 +3873,6 @@ typedef enum
 
   PCFG_VIEW_WIDE  = 3,
   PCFG_VIEW_ONE   = 4,
-
-  // The words of a hint list that are one length long, asked without a mask. This is how bound_pin ()
-  // holds a hint slot to a length, because a hint list's buckets carry none for a ceiling to judge.
-
-  PCFG_VIEW_LEN   = 5,
-
-  // The words of a hint list from want_len to key bytes long. This is the per slot bound of a hint slot
-  // in a structure bound_pin () has too many combinations to pin.
-
-  PCFG_VIEW_SPAN  = 6,
 
 } pcfg_view_kind_t;
 
@@ -3942,16 +3895,7 @@ typedef struct
 
   u32 aux;
 
-  // Where a contains= fragment stood when the question was asked, which view_get () fills in. Zero in
-  // a mask= run.
-
-  u32 base;
-
 } pcfg_vreq_t;
-
-// The key of a WIDE question that names no capitalisation, see view_keep ().
-
-#define PCFG_WIDE_ANY UINT64_MAX
 
 typedef struct
 {
@@ -3967,12 +3911,10 @@ typedef struct
   u32            cnt;
   u32            cap;
 
-  // An index over ent by question, twice its size, holding an entry's position plus one. A contains= run
-  // can ask tens of thousands of distinct questions, and reading every entry for each of them was most
-  // of its time. NULL where the index could not be allocated, and then every entry is read.
+  // Structures holding a letter run of more than 64 characters, which is more than the group key has bits
+  // for. Counted rather than reported one by one, and named once at the end.
 
-  u32 *hix;
-  u32  hcap;
+  u32 deep;
 
   // Whether a letter run needed more capitalisation groups than the split carries.
 
@@ -3984,37 +3926,7 @@ typedef struct
 
   bool full;
 
-  // The offset a contains= fragment stands at in the mask the walk is reading, and the offset just past
-  // it. Both zero in a mask= run, and a nonzero end is what tells a walk it is placing a fragment.
-
-  u32 base;
-  u32 fend;
-
-  // Walk states, a slot and the offset it starts at, that spelled no variant of the structure being
-  // walked. dead holds a stamp per state and gen is the stamp of the current walk, so a new walk forgets
-  // the old states without clearing them.
-
-  u32 *dead;
-  u32  gen;
-
 } pcfg_mctx_t;
-
-#define PCFG_WALK_STATES ((PCFG_MAXSLOT + 1) * (MASK_CSS_MAXPOS + 1))
-
-// Whether a contains= walk may give slot j of s that many bytes. Such a walk leaves the length of the
-// candidate open, so the ceiling and the floor the structure already carries still hold, and they are
-// what keeps one of the structures bound_pin () split from turning back into all of them. A mask= walk
-// fixes the length of the whole candidate and needs no such test.
-
-static bool walk_len_ok (const pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 len)
-{
-  if (mc->fend == 0) return true;
-
-  if ((s->cap != NULL) && (s->cap[j] != 0) && (len > s->cap[j])) return false;
-  if ((s->flr != NULL) && (s->flr[j] != 0) && (len < s->flr[j])) return false;
-
-  return true;
-}
 
 // Positions of a letter run where the case decides which letters the mask admits. Everywhere else the
 // two sets are equal, so the capitalisation is free to put either letter there and the group key does
@@ -4086,20 +3998,15 @@ static bool view_keep (const pcfg_global_t *pg, const pcfg_vreq_t *r, const pcfg
   // A letter run written out one character at a time. Which of the two images a character comes from is
   // what the capitalisation says, and how many bytes it takes is what the terminal says, so the two are
   // walked together rather than read off the mask.
-  //
-  // PCFG_WIDE_ANY asks for the words some capitalisation admits, taking each character from whichever
-  // image the mask admits. Every word a single capitalisation admits is among them.
 
   if (r->kind == PCFG_VIEW_WIDE)
   {
     if (len != r->want_len) return false;
 
-    const bool any = (r->key == PCFG_WIDE_ANY);
-
     const pcfg_tlist_t *c = &pg->lists[r->aux];
 
-    const u32 cat  = (any == true) ? 0     : c->off[r->key + 0];
-    const u32 clen = (any == true) ? t->ln : (c->off[r->key + 1] - cat);
+    const u32 cat  = c->off[r->key];
+    const u32 clen = c->off[r->key + 1] - cat;
 
     if (clen != t->ln) return false;
 
@@ -4122,27 +4029,6 @@ static bool view_keep (const pcfg_global_t *pg, const pcfg_vreq_t *r, const pcfg
         if (w == 0) return false;
       }
 
-      if (any == true)
-      {
-        bool lo_ok = true;
-        bool up_ok = (up != NULL);
-
-        for (u32 q = 0; q < w; q++)
-        {
-          if (mask_css_allows (mm, r->off + at + q, e[at + q]) == false) lo_ok = false;
-
-          if (up_ok == false) continue;
-
-          if (mask_css_allows (mm, r->off + at + q, up[at + q]) == false) up_ok = false;
-        }
-
-        if ((lo_ok == false) && (up_ok == false)) return false;
-
-        at += w;
-
-        continue;
-      }
-
       const bool upper = (c->buf[cat + ci] == 'U');
 
       if ((upper == true) && (up == NULL)) return false;
@@ -4162,19 +4048,10 @@ static bool view_keep (const pcfg_global_t *pg, const pcfg_vreq_t *r, const pcfg
     return true;
   }
 
-  if (r->kind == PCFG_VIEW_SPAN)
-  {
-    const bool inside = ((len >= r->want_len) && ((u64) len <= r->key));
-
-    return inside;
-  }
-
-  // Every other question names the length it wants, so a view holds entries of one length and the slot
-  // that reads it contributes exactly that many bytes.
+  // Every question names the length it wants, so a view holds entries of one length and the slot that
+  // reads it contributes exactly that many bytes.
 
   if (len != r->want_len) return false;
-
-  if (r->kind == PCFG_VIEW_LEN) return true;
 
   const mask_css_t *m = pg->mcss;
 
@@ -4240,8 +4117,8 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
     const u32 at  = t->off[i];
     const u32 len = t->off[i + 1] - at;
 
-    const u8 *e  = (hint == true) ? pg->hw[hint_word_of (t, i)].buf : (t->buf + at);
-    const u32 el = (hint == true) ? pg->hw[hint_word_of (t, i)].len : len;
+    const u8 *e  = (hint == true) ? pg->hw[i].buf : (t->buf + at);
+    const u32 el = (hint == true) ? pg->hw[i].len : len;
 
     if (view_keep (pg, r, t, i, e, el) == false) continue;
 
@@ -4281,9 +4158,6 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
   u32 w  = 0;
   u32 wb = 0;
 
-  u32 kept_lo = UINT32_MAX;
-  u32 kept_hi = 0;
-
   for (u32 b = 0; b < t->nb; b++)
   {
     const u32 start = t->b_start[b];
@@ -4296,13 +4170,10 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
       const u32 at  = t->off[i];
       const u32 len = t->off[i + 1] - at;
 
-      const u8 *e  = (hint == true) ? pg->hw[hint_word_of (t, i)].buf : (t->buf + at);
-      const u32 el = (hint == true) ? pg->hw[hint_word_of (t, i)].len : len;
+      const u8 *e  = (hint == true) ? pg->hw[i].buf : (t->buf + at);
+      const u32 el = (hint == true) ? pg->hw[i].len : len;
 
       if (view_keep (pg, r, t, i, e, el) == false) continue;
-
-      kept_lo = MIN (kept_lo, el);
-      kept_hi = MAX (kept_hi, el);
 
       v.off[w] = wb;
 
@@ -4333,14 +4204,6 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
   v.min_len   = r->want_len;
   v.max_len   = r->want_len;
 
-  // A span keeps words of several lengths, so it is as long as what it kept.
-
-  if (r->kind == PCFG_VIEW_SPAN)
-  {
-    v.min_len = kept_lo;
-    v.max_len = kept_hi;
-  }
-
   tlist_mark_order (&v);
 
   // Assigning the result straight back would lose the only pointer to the old array, which realloc keeps
@@ -4361,100 +4224,27 @@ static int tlist_view (pcfg_global_t *pg, const pcfg_vreq_t *r)
   return made;
 }
 
-// Whether two questions are the same. Offsets are compared relative to where the fragment stood, see
-// view_get (). amb is not compared, because mask_amb () derives it from off and want_len alone, both of
-// which are.
-
-static bool view_same (const pcfg_vreq_t *q, const pcfg_vreq_t *k)
-{
-  if (q->kind     != k->kind)     return false;
-  if (q->parent   != k->parent)   return false;
-  if (q->want_len != k->want_len) return false;
-  if (q->key      != k->key)      return false;
-
-  if ((q->off + k->base) != (k->off + q->base)) return false;
-
-  return true;
-}
-
-// Hashes what view_same () compares. off - base wraps the same way for two questions that view_same ()
-// calls equal, so it stands for the offset relative to the fragment.
-
-static u32 view_hash (const pcfg_vreq_t *q)
-{
-  const u32 rel = q->off - q->base;
-
-  u64 h = ((u64) q->kind << 56) ^ ((u64) q->parent << 32) ^ ((u64) q->want_len << 16) ^ (u64) rel;
-
-  h ^= q->key * 0x9e3779b97f4a7c15ULL;
-  h ^= h >> 31;
-  h *= 0xbf58476d1ce4e5b9ULL;
-  h ^= h >> 29;
-
-  const u32 out = (u32) h;
-
-  return out;
-}
-
-static void view_insert (pcfg_mctx_t *mc, const u32 i)
-{
-  const u32 mask = mc->hcap - 1;
-
-  u32 at = view_hash (&mc->ent[i].req) & mask;
-
-  while (mc->hix[at] != 0) at = (at + 1) & mask;
-
-  mc->hix[at] = i + 1;
-}
-
-// Builds the index again for a cache that has just grown. The index is twice the cache's capacity, so it
-// is never more than half full and a probe always ends at an empty slot.
-
-static void view_index (pcfg_mctx_t *mc)
-{
-  hcfree (mc->hix);
-
-  mc->hcap = mc->cap * 2;
-  mc->hix  = (u32 *) hccalloc (mc->hcap, sizeof (u32));
-
-  if (mc->hix == NULL) return;
-
-  for (u32 i = 0; i < mc->cnt; i++) view_insert (mc, i);
-}
-
 // The same question asked twice gets the same answer, and a grammar asks a few thousand times what is
 // a few dozen distinct questions: one list at one offset serves every structure that puts it there.
 
 static int view_get (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_vreq_t *r)
 {
-  // A contains= run asks the same question with the fragment at every offset, and what a slot keeps
-  // depends only on where it sits against the fragment. So offsets are compared relative to it, which
-  // lets one list serve every offset. In a mask= run base is zero and this is the offset itself.
-
-  pcfg_vreq_t k = *r;
-
-  k.base = mc->base;
-
-  if (mc->hix != NULL)
+  for (u32 i = 0; i < mc->cnt; i++)
   {
-    const u32 mask = mc->hcap - 1;
+    const pcfg_vreq_t *q = &mc->ent[i].req;
 
-    for (u32 at = view_hash (&k) & mask; mc->hix[at] != 0; at = (at + 1) & mask)
-    {
-      const pcfg_vcache_t *c = &mc->ent[mc->hix[at] - 1];
+    if (q->kind     != r->kind)     continue;
+    if (q->parent   != r->parent)   continue;
+    if (q->off      != r->off)      continue;
+    if (q->want_len != r->want_len) continue;
+    if (q->key      != r->key)      continue;
 
-      if (view_same (&c->req, &k) == true) return c->made;
-    }
-  }
-  else
-  {
-    for (u32 i = 0; i < mc->cnt; i++)
-    {
-      if (view_same (&mc->ent[i].req, &k) == true) return mc->ent[i].made;
-    }
+    // amb is not compared, because mask_amb () derives it from off and want_len alone, both of which are.
+
+    return mc->ent[i].made;
   }
 
-  const int made = tlist_view (pg, &k);
+  const int made = tlist_view (pg, r);
 
   if (made == PCFG_VIEW_FULL) mc->full = true;
 
@@ -4471,25 +4261,14 @@ static int view_get (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_vreq_t *r)
 
     mc->ent = grown;
     mc->cap = want;
-
-    view_index (mc);
   }
 
-  mc->ent[mc->cnt].req  = k;
+  mc->ent[mc->cnt].req  = *r;
   mc->ent[mc->cnt].made = made;
-
-  if (mc->hix != NULL) view_insert (mc, mc->cnt);
 
   mc->cnt++;
 
   return made;
-}
-
-static void mctx_free (pcfg_mctx_t *mc)
-{
-  hcfree (mc->ent);
-  hcfree (mc->hix);
-  hcfree (mc->dead);
 }
 
 // The byte lengths a slot may contribute, one bit per length. One length for nearly every list, and one
@@ -4514,9 +4293,9 @@ static bool slot_lengths (const pcfg_global_t *pg, const pcfg_tlist_t *t, u32 *o
     if (pg->hint_cased == false) return false;
     if (pg->hw == NULL) return false;
 
-    for (u32 i = 0; i < t->cnt; i++)
+    for (u32 i = 0; i < pg->hw_cnt; i++)
     {
-      const u32 len = pg->hw[hint_word_of (t, i)].len;
+      const u32 len = pg->hw[i].len;
 
       if (len == 0) continue;
       if (len > PW_MAX) continue;
@@ -4565,30 +4344,10 @@ typedef struct
 // Walking one structure over the mask. Each slot in turn is asked which of its terminals may stand
 // where the slots in front of it leave off, and a slot with more than one answer branches. A walk that
 // reaches the end of the structure exactly at the end of the mask is one variant of it.
-//
-// A walk placing a contains= fragment is done as soon as the fragment is behind it. What follows may
-// spell anything, so the rest of the structure keeps the lists and the bounds it came with.
 
-static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt);
-
-static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt)
+static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt)
 {
   if (*out_cnt >= PCFG_MASK_MAXVAR) return false;
-
-  if ((mc->fend != 0) && (off >= mc->fend))
-  {
-    for (u32 k = j; k < s->nslot; k++)
-    {
-      cur->list[k] = s->list[k];
-      cur->pin[k]  = 0;
-    }
-
-    out[*out_cnt] = *cur;
-
-    *out_cnt += 1;
-
-    return true;
-  }
 
   if (j == s->nslot)
   {
@@ -4628,7 +4387,6 @@ static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
     for (u32 len = 1; len <= PW_MAX; len++)
     {
       if (((lens[len / 32] >> (len % 32)) & 1) == 0) continue;
-      if (walk_len_ok (mc, s, j, len) == false) continue;
 
       if (mask_css_open (pg->mcss, off, len) == false) continue;
 
@@ -4651,58 +4409,25 @@ static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
     // Only a mask that admits a byte above 0x7e needs this. Where it does not, every character of more
     // than one byte is refused on its lead byte alone, so the grouped path below reaches the same answer
     // and costs one list per group instead of one per capitalisation per length.
-    //
-    // The terminals that are as many bytes long as the run has characters hold no such character, so the
-    // grouped path below takes those even here. A contains= run admits every byte around its piece, so a
-    // ruleset with a few such words in a list meets this path at every letter run of that list. Judging
-    // the ASCII words there one capitalisation at a time cost a list and a pass over the whole list for
-    // each capitalisation.
-    //
-    // A letter run of more than 64 characters cannot be keyed, because the group is a bit per character,
-    // so all of it is judged one capitalisation at a time. The stock pcfg_cracker ruleset trains runs of
-    // up to 228 characters, and their capitalisation lists hold one entry each.
 
-    const bool keyed = (n <= 64);
-
-    if (((pg->lists[li].fixed_len != pg->lists[li].ln) && (pg->mcss_high == true)) || (keyed == false))
+    if ((pg->lists[li].fixed_len != pg->lists[li].ln) && (pg->mcss_high == true))
     {
       const u32 ci = s->list[j + 1];
 
       for (u32 len = 1; len <= PW_MAX; len++)
       {
-        if ((len == n) && (keyed == true)) continue;
-
         if (((lens[len / 32] >> (len % 32)) & 1) == 0) continue;
-        if (walk_len_ok (mc, s, j, len) == false) continue;
 
         if ((off + len) > pg->mcss->cnt) continue;
 
         if (mask_css_open (pg->mcss, off, len) == true) continue;
-
-        // Nearly every capitalisation leaves nothing here, and asking each one reads the whole list. So
-        // the words some capitalisation admits are asked for once, and each capitalisation then reads
-        // only those.
-
-        pcfg_vreq_t ra;
-
-        ra.kind     = PCFG_VIEW_WIDE;
-        ra.parent   = li;
-        ra.off      = off;
-        ra.want_len = len;
-        ra.key      = PCFG_WIDE_ANY;
-        ra.amb      = 0;
-        ra.aux      = ci;
-
-        const int av = view_get (pg, mc, &ra);
-
-        if (av < 0) continue;
 
         for (u32 e = 0; e < pg->lists[ci].cnt; e++)
         {
           pcfg_vreq_t rw;
 
           rw.kind     = PCFG_VIEW_WIDE;
-          rw.parent   = (u32) av;
+          rw.parent   = li;
           rw.off      = off;
           rw.want_len = len;
           rw.key      = e;
@@ -4736,13 +4461,22 @@ static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
         }
       }
 
-      if (keyed == false) return true;
+      return true;
     }
 
     if ((off + n) > pg->mcss->cnt) return true;
-    if (walk_len_ok (mc, s, j, n) == false) return true;
 
     if (mask_css_open (pg->mcss, off, n) == true) return true;
+
+    // A letter run of more than 64 characters cannot be keyed, because the group is a bit per character.
+    // Nothing trains one, and a run that meets one says so rather than filtering it wrongly.
+
+    if (n > 64)
+    {
+      mc->deep++;
+
+      return true;
+    }
 
     const u32 cj = s->list[j + 1];
 
@@ -4859,7 +4593,6 @@ static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
   for (u32 len = 1; len <= PW_MAX; len++)
   {
     if (((lens[len / 32] >> (len % 32)) & 1) == 0) continue;
-    if (walk_len_ok (mc, s, j, len) == false) continue;
 
     if ((off + len) > pg->mcss->cnt) continue;
 
@@ -4903,27 +4636,6 @@ static bool mask_step (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
   return true;
 }
 
-// What the walk finds from a slot on depends only on the slot and the offset it starts at, and not on
-// the lengths chosen in front of it. A flat token's slot branches on every length its words have, so a
-// structure holding several of them reaches one state along a great many paths. Placed deep in such a
-// structure, a contains= piece is reached by few of those paths, and the others run out of slots in
-// front of it. So a state that spelled no variant once is not walked again.
-
-static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, const u32 j, const u32 off, pcfg_var_t *cur, pcfg_var_t *out, u32 *out_cnt)
-{
-  const u32 at = (j * (MASK_CSS_MAXPOS + 1)) + off;
-
-  if (mc->dead[at] == mc->gen) return true;
-
-  const u32 was = *out_cnt;
-
-  const bool ok = mask_step (pg, mc, s, j, off, cur, out, out_cnt);
-
-  if ((ok == true) && (*out_cnt == was)) mc->dead[at] = mc->gen;
-
-  return ok;
-}
-
 // HOLDING A BOUNDED RUN INSIDE ITS BOUND
 //
 // pw_min and pw_max are held per slot: the ceiling and the floor grammar_load () gives each one say what
@@ -4940,12 +4652,6 @@ static bool mask_walk (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *
 // The bucket walk already reads both, and the counting and the unranking read the same predicate, so
 // neither can leave the bound afterwards.
 //
-// A hint slot is pinned as well, and it is pinned even where it is the only slot that varies. Its buckets
-// carry no length, so neither the ceiling grammar_load () gives it nor a pinned one can judge them, and
-// such a slot was never held at all. It is held by its list instead: the variant reads a list of only the
-// words that are that long, as a mask= walk would give it. Where that makes more combinations than the
-// pass carries, the last hint slot is left open and reads the words of the lengths the others leave it.
-//
 // The varlen regime is left alone. There a bucket may hold entries of several byte lengths and carries a
 // length of zero to say so, which is the one thing a pinned ceiling cannot judge.
 
@@ -4957,16 +4663,6 @@ typedef struct
   u32 cnt;
 
   u32 len[PCFG_MAXSLOT][PCFG_MASK_LENWORDS];
-
-  bool hint[PCFG_MAXSLOT];
-  u32  hints;
-
-  // A hint slot left out of the pinning, which then reads exactly what the pinned slots leave it, and
-  // the bytes its words span. open is PCFG_MAXSLOT where every slot that varies is pinned.
-
-  u32 open;
-  u32 open_lo;
-  u32 open_hi;
 
 } pcfg_pin_t;
 
@@ -4980,10 +4676,6 @@ typedef struct
   u32            base;
 
   bool over;
-
-  // The lists hint slots are pinned with, one per list and length, shared by every structure.
-
-  pcfg_mctx_t mc;
 
 } pcfg_pinctx_t;
 
@@ -5006,7 +4698,7 @@ static bool pin_room (pcfg_pinctx_t *pc)
 // One structure of the run, as it stands. A slot the pinning does not name keeps no bound of its own:
 // its list holds one byte length, so no ceiling and no floor can exclude a bucket of it.
 
-static bool pin_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t *pin, const u16 *chosen, const u32 open_lo, const u32 open_hi)
+static bool pin_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t *pin, const u16 *chosen)
 {
   if ((pc->cnt - pc->base) >= PCFG_PIN_MAXVAR)
   {
@@ -5019,73 +4711,7 @@ static bool pin_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_
 
   pcfg_struct_t n = *s;
 
-  if ((pin != NULL) && ((pin->hints > 0) || (pin->open < PCFG_MAXSLOT)))
-  {
-    u16 *sl = (u16 *) slots_alloc (pc->pg, (size_t) s->nslot * sizeof (u16));
-
-    if (sl == NULL) return false;
-
-    memcpy (sl, s->list, (size_t) s->nslot * sizeof (u16));
-
-    for (u32 i = 0; i < pin->cnt; i++)
-    {
-      if (pin->hint[i] == false) continue;
-
-      const u32 k = pin->slot[i];
-
-      pcfg_vreq_t r;
-
-      memset (&r, 0, sizeof (pcfg_vreq_t));
-
-      r.kind     = PCFG_VIEW_LEN;
-      r.parent   = s->list[k];
-      r.want_len = chosen[i];
-
-      const int v = view_get (pc->pg, &pc->mc, &r);
-
-      // No word of the list is that long, so this combination spells nothing.
-
-      if (v == PCFG_VIEW_EMPTY) return true;
-
-      if (v < 0) return false;
-
-      sl[k] = (u16) v;
-    }
-
-    // The open slot reads the words of the lengths the pinned slots leave room for. Where that is all of
-    // them, it keeps the list it came with.
-
-    if ((pin->open < PCFG_MAXSLOT) && ((open_lo > pin->open_lo) || (open_hi < pin->open_hi)))
-    {
-      const u32 k = pin->open;
-
-      pcfg_vreq_t r;
-
-      memset (&r, 0, sizeof (pcfg_vreq_t));
-
-      r.kind     = PCFG_VIEW_SPAN;
-      r.parent   = s->list[k];
-      r.want_len = open_lo;
-      r.key      = open_hi;
-
-      const int v = view_get (pc->pg, &pc->mc, &r);
-
-      if (v == PCFG_VIEW_EMPTY) return true;
-
-      if (v < 0) return false;
-
-      sl[k] = (u16) v;
-    }
-
-    // A structure whose pinned slots are all hint slots reads a list of one length wherever it varies, and
-    // needs no ceiling or floor at all. Where other slots are pinned too, theirs are written below.
-
-    n.list = sl;
-    n.cap  = NULL;
-    n.flr  = NULL;
-  }
-
-  if ((pin != NULL) && (pin->hints < pin->cnt))
+  if (pin != NULL)
   {
     u16 *sc = (u16 *) slots_alloc (pc->pg, (size_t) s->nslot * sizeof (u16));
     u16 *sf = (u16 *) slots_alloc (pc->pg, (size_t) s->nslot * sizeof (u16));
@@ -5097,8 +4723,6 @@ static bool pin_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_
 
     for (u32 i = 0; i < pin->cnt; i++)
     {
-      if (pin->hint[i] == true) continue;
-
       sc[pin->slot[i]] = chosen[i];
       sf[pin->slot[i]] = chosen[i];
     }
@@ -5116,118 +4740,16 @@ static bool pin_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_
   return true;
 }
 
-// A structure with more combinations than the pass carries keeps the per slot bound it came with. A hint
-// slot never had one, so it is given the words that bound would admit: no longer than what is left of
-// pw_max while every other slot spends its least, and no shorter than what pw_min still needs while they
-// spend their most. fixed and span are what the whole structure spends at its least and at its most.
-
-static bool span_emit (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const u32 fixed, const u32 span)
-{
-  if (pin_room (pc) == false) return false;
-
-  const pcfg_global_t *pg = pc->pg;
-
-  // At its least it is never longer than pw_max, or the grammar would not have kept it.
-
-  if (fixed > pg->pwmax) return true;
-
-  pcfg_struct_t n = *s;
-
-  u16 *sl = NULL;
-
-  for (u32 k = 0; k < s->nslot; k++)
-  {
-    if (s->kind[k] == PCFG_SLOT_MASK) continue;
-
-    // Read where it is used: view_get () below may move pg->lists.
-
-    const u32 li = s->list[k];
-
-    if (pg->lists[li].ty != 'H') continue;
-
-    const u32 lo = pg->lists[li].min_len;
-    const u32 hi = pg->lists[li].max_len;
-
-    if (lo == hi) continue;
-
-    const u32 cap  = pg->pwmax - (fixed - lo);
-    const u32 rest = span - hi;
-    const u32 flr  = (pg->pwmin > rest) ? (pg->pwmin - rest) : 0;
-
-    const u32 want_lo = MAX (flr, lo);
-    const u32 want_hi = MIN (cap, hi);
-
-    if ((want_lo == lo) && (want_hi == hi)) continue;
-
-    // No word of an admissible length, so this structure spells nothing inside the bound.
-
-    if (want_lo > want_hi) return true;
-
-    if (sl == NULL)
-    {
-      sl = (u16 *) slots_alloc (pc->pg, (size_t) s->nslot * sizeof (u16));
-
-      if (sl == NULL) return false;
-
-      memcpy (sl, s->list, (size_t) s->nslot * sizeof (u16));
-    }
-
-    pcfg_vreq_t r;
-
-    memset (&r, 0, sizeof (pcfg_vreq_t));
-
-    r.kind     = PCFG_VIEW_SPAN;
-    r.parent   = li;
-    r.want_len = want_lo;
-    r.key      = want_hi;
-
-    const int v = view_get (pc->pg, &pc->mc, &r);
-
-    if (v == PCFG_VIEW_EMPTY) return true;
-
-    if (v < 0) return false;
-
-    sl[k] = (u16) v;
-  }
-
-  if (sl != NULL) n.list = sl;
-
-  pc->out[pc->cnt] = n;
-
-  pc->cnt++;
-
-  return true;
-}
-
 static bool pin_walk (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t *pin, const u32 vi, const u32 spent, u16 *chosen)
 {
   const pcfg_global_t *pg = pc->pg;
 
-  if ((vi == pin->cnt) && (pin->open == PCFG_MAXSLOT))
+  if (vi == pin->cnt)
   {
     if (spent < pg->pwmin) return true;
     if (spent > pg->pwmax) return true;
 
-    const bool ok = pin_emit (pc, s, pin, chosen, 0, 0);
-
-    return ok;
-  }
-
-  // With every other slot pinned, what the open slot may spend is exactly what is left of the bound.
-
-  if (vi == pin->cnt)
-  {
-    if (spent > pg->pwmax) return true;
-
-    const u32 left_lo = (pg->pwmin > spent) ? (pg->pwmin - spent) : 0;
-    const u32 left_hi = pg->pwmax - spent;
-
-    const u32 want_lo = MAX (left_lo, pin->open_lo);
-    const u32 want_hi = MIN (left_hi, pin->open_hi);
-
-    if (want_lo > want_hi) return true;
-
-    const bool ok = pin_emit (pc, s, pin, chosen, want_lo, want_hi);
+    const bool ok = pin_emit (pc, s, pin, chosen);
 
     return ok;
   }
@@ -5237,9 +4759,9 @@ static bool pin_walk (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_
     if (((pin->len[vi][len / 32] >> (len % 32)) & 1) == 0) continue;
 
     // The lengths come in ascending order, so once one of them puts the total past the ceiling the
-    // longer ones do as well. An open slot spends at least its shortest word on top.
+    // longer ones do as well.
 
-    if ((spent + len + pin->open_lo) > pg->pwmax) break;
+    if ((spent + len) > pg->pwmax) break;
 
     chosen[vi] = (u16) len;
 
@@ -5249,72 +4771,13 @@ static bool pin_walk (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_
   return true;
 }
 
-// Every combination of the pinned slots' lengths that lands inside the bound, each a structure of its
-// own. false is a failed pass. A structure with more combinations than the pass carries comes back with
-// nothing of it kept and pc->over set.
-
-static bool pin_try (pcfg_pinctx_t *pc, const pcfg_struct_t *s, const pcfg_pin_t *pin, const u32 fixed)
-{
-  // What the slots that are not being pinned spend, which is the same at every combination. An open slot
-  // is not one of them: it spends whatever the combination leaves it.
-
-  u32 rest = fixed;
-
-  for (u32 i = 0; i < pin->cnt; i++) rest -= pc->pg->lists[s->list[pin->slot[i]]].min_len;
-
-  if (pin->open < PCFG_MAXSLOT) rest -= pin->open_lo;
-
-  u16 chosen[PCFG_MAXSLOT];
-
-  if (pin_walk (pc, s, pin, 0, rest, chosen) == true) return true;
-
-  if (pc->over == false) return false;
-
-  pc->cnt = pc->base;
-
-  return true;
-}
-
-// The same pinning with its last hint slot left open. That divides the combinations by the number of
-// lengths the slot's words come in, and the slot is still held exactly, by what the others leave it.
-
-static void pin_open_last_hint (const pcfg_global_t *pg, const pcfg_struct_t *s, const pcfg_pin_t *pin, pcfg_pin_t *out)
-{
-  *out = *pin;
-
-  u32 h = 0;
-
-  for (u32 i = 0; i < pin->cnt; i++)
-  {
-    if (pin->hint[i] == true) h = i;
-  }
-
-  const u32 k = pin->slot[h];
-
-  out->open    = k;
-  out->open_lo = pg->lists[s->list[k]].min_len;
-  out->open_hi = pg->lists[s->list[k]].max_len;
-
-  for (u32 i = h; (i + 1) < pin->cnt; i++)
-  {
-    out->slot[i] = pin->slot[i + 1];
-    out->hint[i] = pin->hint[i + 1];
-
-    memcpy (out->len[i], pin->len[i + 1], sizeof (out->len[i]));
-  }
-
-  out->cnt   = pin->cnt   - 1;
-  out->hints = pin->hints - 1;
-}
-
 static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 {
   if (pg->pwmax == 0) return true;
 
-  // A mask pins every slot of every structure it keeps, so there is nothing left here to pin. contains=
-  // leaves the slots behind its fragment as they are, so those are pinned here as in any other run.
+  // A mask pins every slot of every structure it keeps, so there is nothing left here to pin.
 
-  if (pg->mask != NULL) return true;
+  if (pg->mcss != NULL) return true;
 
   if (pg->varlen == true) return true;
 
@@ -5336,11 +4799,7 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     pcfg_pin_t pin;
 
-    pin.cnt     = 0;
-    pin.hints   = 0;
-    pin.open    = PCFG_MAXSLOT;
-    pin.open_lo = 0;
-    pin.open_hi = 0;
+    pin.cnt = 0;
 
     u32 fixed = 0;
     u32 span  = 0;
@@ -5360,8 +4819,18 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
       if (t->min_len == t->max_len) continue;
 
-      // How long a hint is belongs to the word, and slot_lengths () reads the words. Words a run takes
-      // from the hashes are not known here, so a structure holding one cannot be held at all.
+      // A pin is a ceiling and a floor on the bucket's own length, and a hint list's buckets carry none:
+      // how long a hint is belongs to the word. So a structure holding one cannot be held this way and
+      // keeps the per slot bound it came with, which is the bound that cannot judge a sum.
+
+      if (t->ty == 'H')
+      {
+        pin.cnt = 0;
+
+        unknown = true;
+
+        break;
+      }
 
       if (slot_lengths (pg, t, pin.len[pin.cnt]) == false)
       {
@@ -5373,9 +4842,6 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
       }
 
       pin.slot[pin.cnt] = k;
-      pin.hint[pin.cnt] = (t->ty == 'H');
-
-      if (t->ty == 'H') pin.hints++;
 
       pin.cnt++;
     }
@@ -5390,49 +4856,34 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if (unknown == true) unheld++;
 
-    const bool alone = ((pin.cnt < 2) && (pin.hints == 0));
-
-    if ((alone == true) || (inside == true) || (unknown == true))
+    if ((pin.cnt < 2) || (inside == true) || (unknown == true))
     {
-      if (pin_emit (&pc, s, NULL, NULL, 0, 0) == false) { hcfree (pc.out); mctx_free (&pc.mc); return false; }
+      if (pin_emit (&pc, s, NULL, NULL) == false) { hcfree (pc.out); return false; }
 
       continue;
     }
 
-    bool ok = pin_try (&pc, s, &pin, fixed);
+    // What the slots that are not being pinned spend, which is the same at every combination.
 
-    if ((ok == true) && (pc.over == true) && (pin.hints > 0))
+    u32 rest = fixed;
+
+    for (u32 i = 0; i < pin.cnt; i++) rest -= pg->lists[s->list[pin.slot[i]]].min_len;
+
+    u16 chosen[PCFG_MAXSLOT];
+
+    if (pin_walk (&pc, s, &pin, 0, rest, chosen) == false)
     {
-      pc.over = false;
+      if (pc.over == false) { hcfree (pc.out); return false; }
 
-      pcfg_pin_t part;
-
-      pin_open_last_hint (pg, s, &pin, &part);
-
-      ok = pin_try (&pc, s, &part, fixed);
-    }
-
-    if (ok == false)
-    {
-      hcfree (pc.out);
-      mctx_free (&pc.mc);
-
-      if (pc.mc.full == true) gerr (global_ctx, "pwmin %u and pwmax %u: holding the hint words to them needs more than the %d terminal lists a ruleset can hold", pg->pwmin, pg->pwmax, PCFG_LIST_CACHE);
-
-      return false;
-    }
-
-    if (pc.over == true)
-    {
       // More combinations than the pass carries. The structure keeps the per slot bound it came with,
-      // which is the bound that cannot judge a sum, and its hint slots are given theirs as lists. So
-      // this is reported rather than passed over.
+      // which is the bound that cannot judge a sum, so this is reported rather than passed over.
 
+      pc.cnt = pc.base;
       pc.over = false;
 
       loose++;
 
-      if (span_emit (&pc, s, fixed, span) == false) { hcfree (pc.out); mctx_free (&pc.mc); return false; }
+      if (pin_emit (&pc, s, NULL, NULL) == false) { hcfree (pc.out); return false; }
 
       continue;
     }
@@ -5443,8 +4894,6 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if (pc.cnt == pc.base) dropped++;
   }
-
-  mctx_free (&pc.mc);
 
   hcfree (pg->structs);
 
@@ -5478,409 +4927,6 @@ static bool bound_pin (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   return true;
 }
 
-// The setting that filters the grammar, for a message that names it. A run names mask= or contains=,
-// never both.
-
-static const char *filter_name (const pcfg_global_t *pg)
-{
-  const char *name = (pg->contains != NULL) ? "contains" : "mask";
-
-  return name;
-}
-
-static const char *filter_arg (const pcfg_global_t *pg)
-{
-  const char *arg = (pg->contains != NULL) ? pg->contains : pg->mask;
-
-  return arg;
-}
-
-// One position of the working mask of a contains= run as it stands wherever the fragment is not: every
-// byte admitted, in either case, which is what a slot the fragment does not reach is held to.
-
-static void contains_open (mask_css_t *m, const u32 pos)
-{
-  memset (m->any[pos], 0xff, sizeof (m->any[pos]));
-  memset (m->up[pos],  0xff, sizeof (m->up[pos]));
-
-  m->has_any[pos] = true;
-  m->has_up[pos]  = true;
-  m->amb[pos]     = false;
-}
-
-// Writes the fragment into the working mask at off, or with put false opens those positions again.
-
-static void contains_place (pcfg_global_t *pg, const u32 off, const bool put)
-{
-  mask_css_t *m = pg->mcss;
-
-  const mask_css_t *f = pg->ccss;
-
-  for (u32 i = 0; i < f->cnt; i++)
-  {
-    const u32 pos = off + i;
-
-    if (put == false)
-    {
-      contains_open (m, pos);
-
-      continue;
-    }
-
-    memcpy (m->any[pos], f->any[i], sizeof (m->any[pos]));
-    memcpy (m->up[pos],  f->up[i],  sizeof (m->up[pos]));
-
-    m->has_any[pos] = f->has_any[i];
-    m->has_up[pos]  = f->has_up[i];
-    m->amb[pos]     = f->amb[i];
-  }
-}
-
-// Walks one structure over the mask as it now stands and appends every variant it finds to out, which
-// grows as it has to. False only where memory runs out. A structure that splits into more variants than
-// one walk carries is counted in over and appends nothing.
-
-static bool mask_variants (pcfg_global_t *pg, pcfg_mctx_t *mc, const pcfg_struct_t *s, pcfg_struct_t **out, u32 *out_cnt, u32 *out_cap, u32 *over)
-{
-  pcfg_var_t cur;
-  pcfg_var_t var[PCFG_MASK_MAXVAR];
-
-  u32 nvar = 0;
-
-  memset (&cur, 0, sizeof (pcfg_var_t));
-
-  if (mc->dead == NULL)
-  {
-    mc->dead = (u32 *) hccalloc (PCFG_WALK_STATES, sizeof (u32));
-
-    if (mc->dead == NULL) return false;
-  }
-
-  mc->gen++;
-
-  // A walk cut short at the variant bound has found part of the structure, and part of it is worse than
-  // none of it: the caller either ends the run or names what it left out.
-
-  if (mask_walk (pg, mc, s, 0, 0, &cur, var, &nvar) == false)
-  {
-    *over += 1;
-
-    return true;
-  }
-
-  for (u32 v = 0; v < nvar; v++)
-  {
-    if (*out_cnt == *out_cap)
-    {
-      const u32 old  = *out_cap;
-      const u32 want = (old == 0) ? PCFG_MASK_MAXVAR : (old * 2);
-
-      pcfg_struct_t *grown = (pcfg_struct_t *) hcrealloc (*out, (size_t) old * sizeof (pcfg_struct_t), (size_t) (want - old) * sizeof (pcfg_struct_t));
-
-      if (grown == NULL) return false;
-
-      *out     = grown;
-      *out_cap = want;
-    }
-
-    pcfg_struct_t n = *s;
-
-    u16 *sl = (u16 *) slots_alloc (pg, (size_t) s->nslot * sizeof (u16));
-
-    if (sl == NULL) return false;
-
-    memcpy (sl, var[v].list, (size_t) s->nslot * sizeof (u16));
-
-    n.list = sl;
-
-    // A slot the mask left alone is held to its length here rather than by a list of its own. Where any
-    // slot is, the ceiling and the floor are written from scratch: every other slot of the variant reads
-    // a list of one byte length, so no bound of the structure's own can exclude a bucket of it, and the
-    // bounds it came with were worked out over the wider lists it no longer reads.
-    //
-    // Behind a contains= fragment that is not so. Those slots still read the lists they came with, so
-    // they keep the bounds they came with too.
-
-    bool pinned = false;
-
-    for (u32 k = 0; k < s->nslot; k++)
-    {
-      if (var[v].pin[k] != 0) pinned = true;
-    }
-
-    if (pinned == true)
-    {
-      u16 *sc = (u16 *) slots_alloc (pg, (size_t) s->nslot * sizeof (u16));
-      u16 *sf = (u16 *) slots_alloc (pg, (size_t) s->nslot * sizeof (u16));
-
-      if ((sc == NULL) || (sf == NULL)) return false;
-
-      memcpy (sc, var[v].pin, (size_t) s->nslot * sizeof (u16));
-      memcpy (sf, var[v].pin, (size_t) s->nslot * sizeof (u16));
-
-      if (mc->fend != 0)
-      {
-        for (u32 k = 0; k < s->nslot; k++)
-        {
-          if (var[v].pin[k] != 0) continue;
-
-          if (s->cap != NULL) sc[k] = s->cap[k];
-          if (s->flr != NULL) sf[k] = s->flr[k];
-        }
-      }
-
-      n.cap = sc;
-      n.flr = sf;
-
-      pg->bounded = true;
-    }
-
-    (*out)[*out_cnt] = n;
-
-    *out_cnt += 1;
-  }
-
-  return true;
-}
-
-// What a pass of the filter did, added up over the passes a run makes.
-
-typedef struct
-{
-  u32 built;
-
-  // Placements a contains= pass left out because they passed the variant bound, the structures they
-  // belong to, and the share of the grammar those structures carry, summed over the passes, which is
-  // an upper bound of what was lost.
-
-  u32    over;
-  u32    skipped;
-  double share;
-
-} pcfg_fstat_t;
-
-// Whether the piece of this pass can stand at off without taking a byte of a piece placed before it. had
-// is where those pieces stand in the structure being walked.
-
-static bool contains_apart (const pcfg_global_t *pg, const u8 *had, const u32 off, const u32 flen)
-{
-  for (u32 j = 0; j < pg->cpass; j++)
-  {
-    const u32 lo = had[j];
-    const u32 hi = lo + pg->cpiece[j]->cnt;
-
-    if ((off + flen) <= lo) continue;
-    if (off >= hi) continue;
-
-    return false;
-  }
-
-  return true;
-}
-
-static bool claim_grow (u8 **claim, u32 *cap, const u32 need)
-{
-  if (*cap >= need) return true;
-
-  u32 want = (*cap == 0) ? PCFG_MASK_MAXVAR : *cap;
-
-  while (want < need) want *= 2;
-
-  u8 *grown = (u8 *) hcrealloc (*claim, (size_t) *cap * PCFG_CONTAINS_MAX, (size_t) (want - *cap) * PCFG_CONTAINS_MAX);
-
-  if (grown == NULL) return false;
-
-  *claim = grown;
-  *cap   = want;
-
-  return true;
-}
-
-// One pass of the filter over the grammar as it stands. A mask= run makes one, walking the mask once per
-// structure. A contains= run makes one per piece, placing the piece at every offset a structure can
-// reach, each placement a mask of its own that says nothing about the bytes around it. A candidate that
-// holds the piece is in exactly the variants of its structure that put the piece where the candidate has
-// it, so the pass keeps every such candidate at the cost it had, and one that holds it twice is made
-// twice. The next piece then filters what this one left, at the offsets the pieces before it left free.
-// Each variant records where its piece stands, so no two pieces of a candidate share a byte, and 931
-// holds 93 or 31 but not both.
-
-static bool filter_pass (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, pcfg_fstat_t *st)
-{
-  pcfg_mctx_t mc;
-
-  memset (&mc, 0, sizeof (pcfg_mctx_t));
-
-  pcfg_struct_t *out = (pcfg_struct_t *) hcmalloc ((size_t) pg->structs_cnt * sizeof (pcfg_struct_t));
-
-  if (out == NULL) return false;
-
-  u32 out_cnt = 0;
-  u32 out_cap = pg->structs_cnt;
-
-  u32 over = 0;
-
-  const u32 flen = (pg->contains != NULL) ? pg->ccss->cnt : 0;
-
-  u8 *claim = NULL;
-
-  u32 claim_cap = 0;
-
-  u32 skipped = 0;
-
-  double skip_mass = 0.0;
-  double all_mass  = 0.0;
-
-  for (u32 si = 0; si < pg->structs_cnt; si++)
-  {
-    const pcfg_struct_t *s = &pg->structs[si];
-
-    if (pg->contains == NULL)
-    {
-      if (mask_variants (pg, &mc, s, &out, &out_cnt, &out_cap, &over) == false) { hcfree (out); mctx_free (&mc); return false; }
-
-      continue;
-    }
-
-    const u8 *had = (pg->claim != NULL) ? &pg->claim[(size_t) si * PCFG_CONTAINS_MAX] : NULL;
-
-    // The variants of one structure stay together, so the grammar keeps its order. The piece can stand at
-    // every offset that leaves it inside the longest candidate the structure spells.
-
-    u32 hi = 0;
-
-    for (u32 j = 0; j < s->nslot; j++)
-    {
-      if (s->kind[j] != PCFG_SLOT_TERM) continue;
-
-      hi += pg->lists[s->list[j]].max_len;
-    }
-
-    if (hi > MASK_CSS_MAXPOS) hi = MASK_CSS_MAXPOS;
-
-    if ((pg->pwmax != 0) && (hi > pg->pwmax)) hi = pg->pwmax;
-
-    const u32 over_was = over;
-
-    for (u32 off = 0; (off + flen) <= hi; off++)
-    {
-      if (contains_apart (pg, had, off, flen) == false) continue;
-
-      const u32 was = out_cnt;
-
-      contains_place (pg, off, true);
-
-      mc.base = off;
-      mc.fend = off + flen;
-
-      const bool ok = mask_variants (pg, &mc, s, &out, &out_cnt, &out_cap, &over);
-
-      contains_place (pg, off, false);
-
-      if (ok == false) { hcfree (out); hcfree (claim); mctx_free (&mc); return false; }
-
-      if (claim_grow (&claim, &claim_cap, out_cnt) == false) { hcfree (out); hcfree (claim); mctx_free (&mc); return false; }
-
-      // off is below MASK_CSS_MAXPOS, so it fits the byte it is kept in.
-
-      for (u32 v = was; v < out_cnt; v++)
-      {
-        u8 *c = &claim[(size_t) v * PCFG_CONTAINS_MAX];
-
-        if (pg->cpass > 0) memcpy (c, had, pg->cpass);
-
-        c[pg->cpass] = (u8) off;
-      }
-    }
-
-    const double mass = exp2 (-(double) s->cost / (double) pg->scale);
-
-    all_mass += mass;
-
-    if (out_cnt > PCFG_CONTAINS_MAXSTRUCT) break;
-
-    if (over == over_was) continue;
-
-    skipped   += 1;
-    skip_mass += mass;
-  }
-
-  if (out_cnt > PCFG_CONTAINS_MAXSTRUCT)
-  {
-    hcfree (out);
-    hcfree (claim);
-    mctx_free (&mc);
-
-    gerr (global_ctx, "contains %s: its pieces split this grammar into more than %u structures, which is more than the filter carries. Longer pieces, fewer of them, or pwmin and pwmax keep it smaller", pg->contains, PCFG_CONTAINS_MAXSTRUCT);
-
-    return false;
-  }
-
-  for (u32 i = 0; i < mc.cnt; i++)
-  {
-    if (mc.ent[i].made == PCFG_VIEW_EMPTY) continue;
-    if (mc.ent[i].made == (int) mc.ent[i].req.parent) continue;
-
-    st->built++;
-  }
-
-  const bool full   = mc.full;
-  const bool groups = mc.groups;
-
-  mctx_free (&mc);
-
-  if (full == true)
-  {
-    hcfree (out);
-    hcfree (claim);
-
-    gerr (global_ctx, "%s %s: filtering this grammar needs more than the %d terminal lists a ruleset can hold", filter_name (pg), filter_arg (pg), PCFG_LIST_CACHE);
-
-    return false;
-  }
-
-  if (groups == true)
-  {
-    hcfree (out);
-    hcfree (claim);
-
-    gerr (global_ctx, "%s %s: a letter run of it needs more than %d capitalisation groups, which is more than the filter carries. A charset holding letters of one case, or a different set of letters per case, is what multiplies them", filter_name (pg), filter_arg (pg), PCFG_MASK_MAXGROUP);
-
-    return false;
-  }
-
-  // Splitting a structure past the variant bound would mean enumerating part of it, which is a quiet
-  // loss of reach. A contains= run reaches that bound only where the slots in front of a deep placement
-  // spell its offset in hundreds of ways, which is a long run of characters of varying byte length. It
-  // leaves those placements out and says how much of the grammar they belong to instead.
-
-  if ((over > 0) && (pg->contains == NULL))
-  {
-    hcfree (out);
-    hcfree (claim);
-
-    gerr (global_ctx, "%s %s: %u structures split into more than %d variants under it, which is more than the filter carries", filter_name (pg), filter_arg (pg), over, PCFG_MASK_MAXVAR);
-
-    return false;
-  }
-
-  st->over    += over;
-  st->skipped += skipped;
-
-  if (all_mass > 0.0) st->share += skip_mass / all_mass;
-
-  hcfree (pg->structs);
-
-  pg->structs     = out;
-  pg->structs_cnt = out_cnt;
-
-  hcfree (pg->claim);
-
-  pg->claim = claim;
-
-  return true;
-}
-
 // The grammar the mask leaves. Runs after the lists are cut and the structures resolved, and before
 // the tables are keyed, so a masked run keys as the grammar it actually enumerates and reads none of
 // the cached tables of the run without the mask.
@@ -5893,30 +4939,152 @@ static bool mask_filter (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
   hc_timer_set (&t_f);
 
+  pcfg_mctx_t mc;
+
+  memset (&mc, 0, sizeof (pcfg_mctx_t));
+
+  pcfg_struct_t *out = (pcfg_struct_t *) hcmalloc ((size_t) pg->structs_cnt * sizeof (pcfg_struct_t));
+
+  if (out == NULL) return false;
+
+  u32 out_cnt = 0;
+  u32 out_cap = pg->structs_cnt;
+
   const u32 was = pg->structs_cnt;
 
-  pcfg_fstat_t st;
+  u32 over = 0;
 
-  memset (&st, 0, sizeof (pcfg_fstat_t));
-
-  if (pg->contains == NULL)
+  for (u32 si = 0; si < pg->structs_cnt; si++)
   {
-    if (filter_pass (global_ctx, pg, &st) == false) return false;
+    const pcfg_struct_t *s = &pg->structs[si];
+
+    pcfg_var_t cur;
+    pcfg_var_t var[PCFG_MASK_MAXVAR];
+
+    u32 nvar = 0;
+
+    memset (&cur, 0, sizeof (pcfg_var_t));
+
+    if (mask_walk (pg, &mc, s, 0, 0, &cur, var, &nvar) == false) over++;
+
+    for (u32 v = 0; v < nvar; v++)
+    {
+      if (out_cnt == out_cap)
+      {
+        const u32 old = out_cap;
+
+        out_cap = (old == 0) ? PCFG_MASK_MAXVAR : (old * 2);
+
+        pcfg_struct_t *grown = (pcfg_struct_t *) hcrealloc (out, (size_t) old * sizeof (pcfg_struct_t), (size_t) (out_cap - old) * sizeof (pcfg_struct_t));
+
+        if (grown == NULL) { hcfree (out); hcfree (mc.ent); return false; }
+
+        out = grown;
+      }
+
+      pcfg_struct_t n = *s;
+
+      u16 *sl = (u16 *) slots_alloc (pg, (size_t) s->nslot * sizeof (u16));
+
+      if (sl == NULL) { hcfree (out); hcfree (mc.ent); return false; }
+
+      memcpy (sl, var[v].list, (size_t) s->nslot * sizeof (u16));
+
+      n.list = sl;
+
+      // A slot the mask left alone is held to its length here rather than by a list of its own. Where any
+      // slot is, the ceiling and the floor are written from scratch: every other slot of the variant reads
+      // a list of one byte length, so no bound of the structure's own can exclude a bucket of it, and the
+      // bounds it came with were worked out over the wider lists it no longer reads.
+
+      bool pinned = false;
+
+      for (u32 k = 0; k < s->nslot; k++)
+      {
+        if (var[v].pin[k] != 0) pinned = true;
+      }
+
+      if (pinned == true)
+      {
+        u16 *sc = (u16 *) slots_alloc (pg, (size_t) s->nslot * sizeof (u16));
+        u16 *sf = (u16 *) slots_alloc (pg, (size_t) s->nslot * sizeof (u16));
+
+        if ((sc == NULL) || (sf == NULL)) { hcfree (out); hcfree (mc.ent); return false; }
+
+        memcpy (sc, var[v].pin, (size_t) s->nslot * sizeof (u16));
+        memcpy (sf, var[v].pin, (size_t) s->nslot * sizeof (u16));
+
+        n.cap = sc;
+        n.flr = sf;
+
+        pg->bounded = true;
+      }
+
+      out[out_cnt] = n;
+
+      out_cnt++;
+    }
   }
 
-  for (u32 k = 0; k < pg->cpiece_cnt; k++)
-  {
-    pg->ccss  = pg->cpiece[k];
-    pg->cpass = k;
+  u32 built = 0;
 
-    if (filter_pass (global_ctx, pg, &st) == false) return false;
+  for (u32 i = 0; i < mc.cnt; i++)
+  {
+    if (mc.ent[i].made == PCFG_VIEW_EMPTY) continue;
+    if (mc.ent[i].made == (int) mc.ent[i].req.parent) continue;
+
+    built++;
   }
 
-  hcfree (pg->claim);
+  const u32  deep   = mc.deep;
+  const bool full   = mc.full;
+  const bool groups = mc.groups;
 
-  pg->claim = NULL;
+  hcfree (mc.ent);
 
-  const u32 out_cnt = pg->structs_cnt;
+  if (full == true)
+  {
+    hcfree (out);
+
+    gerr (global_ctx, "mask %s: filtering this grammar needs more than the %d terminal lists a ruleset can hold", pg->mask, PCFG_LIST_CACHE);
+
+    return false;
+  }
+
+  if (groups == true)
+  {
+    hcfree (out);
+
+    gerr (global_ctx, "mask %s: a letter run of it needs more than %d capitalisation groups, which is more than the filter carries. A charset holding letters of one case, or a different set of letters per case, is what multiplies them", pg->mask, PCFG_MASK_MAXGROUP);
+
+    return false;
+  }
+
+  if (deep > 0)
+  {
+    hcfree (out);
+
+    gerr (global_ctx, "mask %s: %u structures hold a letter run of more than 64 characters, which is more than this filter keys", pg->mask, deep);
+
+    return false;
+  }
+
+  // Splitting a structure past the variant bound would mean enumerating part of it, which is a quiet
+  // loss of reach.
+
+  if (over > 0)
+  {
+    hcfree (out);
+
+    gerr (global_ctx, "mask %s: %u structures split into more than %d variants under this mask, which is more than the filter carries", pg->mask, over, PCFG_MASK_MAXVAR);
+
+    return false;
+  }
+
+  hcfree (pg->structs);
+
+  pg->structs     = out;
+  pg->structs_cnt = out_cnt;
 
   // Terminal lists the filtered grammar cannot reach are dropped rather than left for the device pool to
   // carry. The pool is sized from pg->lists whether a structure points at a list or not, and so is the
@@ -5978,28 +5146,17 @@ static bool mask_filter (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
   if (out_cnt == 0)
   {
-    gerr (global_ctx, "%s %s: no structure of this grammar spells a candidate it admits", filter_name (pg), filter_arg (pg));
+    gerr (global_ctx, "mask %s: no structure of this grammar spells a candidate this mask admits", pg->mask);
 
     return false;
   }
 
-  if (global_ctx->quiet == true) return true;
-
-  char display[32];
-
-  pcfg_duration ((hc_timer_get (t_f) / 1000.0), display, sizeof (display));
-
-  if (pg->contains != NULL)
+  if (global_ctx->quiet == false)
   {
-    const char *how = (pg->cpiece_cnt == 1) ? "one for each place it can stand" : "one for each way its pieces can stand apart";
+    char display[32];
 
-    pmsg (pg, "pcfg: contains %s turns %u structures into %u, %s, and filtered %u terminal lists, in %s", pg->contains, was, out_cnt, how, st.built, display);
-
-    if (st.over > 0) pmsg (pg, "pcfg: contains %s leaves out %u places in %u structures, whose slots in front of it reach the place in more than %d ways. Those structures carry at most %.4f%% of the grammar", pg->contains, st.over, st.skipped, PCFG_MASK_MAXVAR, 100.0 * st.share);
-  }
-  else
-  {
-    pmsg (pg, "pcfg: mask %s keeps %u of %u structures and filtered %u terminal lists, in %s", pg->mask, out_cnt, was, st.built, display);
+    pmsg (pg, "pcfg: mask %s keeps %u of %u structures and filtered %u terminal lists, in %s",
+      pg->mask, out_cnt, was, built, pcfg_duration ((hc_timer_get (t_f) / 1000.0), display, sizeof (display)));
   }
 
   return true;
@@ -7516,9 +6673,9 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
   {
     if ((pg->m_lines > 0) && (global_ctx->quiet == false))
     {
-      if (pg->mcss != NULL)
+      if (pg->mask != NULL)
       {
-        pmsg (pg, "pcfg: OMEN escape dropped, because %s %s holds the grammar and the escape has no terminals for it to hold. %.0f%% of the mass, set by coverage", filter_name (pg), filter_arg (pg), omen_mass_pct (roots, nroots));
+        pmsg (pg, "pcfg: OMEN escape dropped, because mask %s holds the grammar and the escape has no terminals for it to hold. %.0f%% of the mass, set by coverage", pg->mask, omen_mass_pct (roots, nroots));
       }
       else
       {
@@ -11914,8 +11071,7 @@ static int pf_next (pcfg_pf_t *pf, u8 *out_buf, const int out_size, pcfg_cell_t 
 // password with several derivations is ordinary, "password" is both A8 and A4A4, but the ones past a
 // handful are all deeper in the run than the ones already found and cannot change the answer.
 
-#define PCFG_LOOKUP_MAXHIT  16
-#define PCFG_LOOKUP_MAXWAYS (1u << 16)
+#define PCFG_LOOKUP_MAXHIT 16
 
 typedef struct
 {
@@ -12002,107 +11158,12 @@ static bool pcfg_rank_unit_omen (const pcfg_global_t *pg, const u32 oi, const u6
   return true;
 }
 
-// Whether a candidate holds one contains= piece at off: each of its bytes there is one the piece admits.
-
-static bool contains_at (const mask_css_t *f, const u8 *pw, const u32 off)
-{
-  for (u32 i = 0; i < f->cnt; i++)
-  {
-    if (mask_css_allows (f, i, pw[off + i]) == false) return false;
-  }
-
-  return true;
-}
-
-// How many places a candidate holds one contains= piece at.
-
-static u32 contains_places (const mask_css_t *f, const u8 *pw, const u32 pwlen)
-{
-  u32 places = 0;
-
-  for (u32 off = 0; (off + f->cnt) <= pwlen; off++)
-  {
-    if (contains_at (f, pw, off) == true) places++;
-  }
-
-  return places;
-}
-
-// How many ways a candidate holds all of the contains= pieces, each on bytes of its own, which is how
-// many times the run makes it from one derivation. Counted from the end of the candidate back, over the
-// set of pieces already placed: at each byte either no piece starts, or one not yet placed does, so each
-// way is counted once. The count stops at PCFG_LOOKUP_MAXWAYS. Without the memory to count, one way is
-// assumed, which leaves the lookup cap where a run without the setting has it.
-
-static u64 contains_ways (const pcfg_global_t *pg, const u8 *pw, const u32 pwlen)
-{
-  const u32 sets = 1u << pg->cpiece_cnt;
-  const u32 full = sets - 1;
-
-  u64 *ways = (u64 *) hccalloc ((size_t) (pwlen + 1) * sets, sizeof (u64));
-
-  if (ways == NULL) return 1;
-
-  ways[((size_t) pwlen * sets) + full] = 1;
-
-  for (u32 p = pwlen; p > 0; p--)
-  {
-    const u32 at = p - 1;
-
-    for (u32 m = 0; m < sets; m++)
-    {
-      u64 w = ways[((size_t) p * sets) + m];
-
-      for (u32 k = 0; k < pg->cpiece_cnt; k++)
-      {
-        const mask_css_t *f = pg->cpiece[k];
-
-        if ((m & (1u << k)) != 0) continue;
-
-        if ((at + f->cnt) > pwlen) continue;
-
-        if (contains_at (f, pw, at) == false) continue;
-
-        w = sat_add (w, ways[((size_t) (at + f->cnt) * sets) + (m | (1u << k))]);
-      }
-
-      ways[((size_t) at * sets) + m] = MIN (w, (u64) PCFG_LOOKUP_MAXWAYS);
-    }
-  }
-
-  const u64 total = ways[0];
-
-  hcfree (ways);
-
-  return total;
-}
-
 static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_hit_t *hit)
 {
-  // A contains= run holds every derivation of a candidate once for each way the candidate holds its
-  // pieces apart, and the copies of one structure sit next to each other. With the cap as it is, the
-  // copies of the first few structures would crowd out one further down that reaches the candidate
-  // sooner. So the cap grows with them, and the search sees as many structures as it does without the
-  // setting. It stops growing at PCFG_LOOKUP_MAXWAYS, which only a candidate holding a short piece many
-  // times over reaches.
+  u32 si[PCFG_LOOKUP_MAXHIT];
+  u32 idx[PCFG_LOOKUP_MAXHIT][PCFG_MAXSLOT];
 
-  u64 maxhit = PCFG_LOOKUP_MAXHIT;
-
-  if (pg->cpiece_cnt > 0) maxhit = MIN (maxhit * contains_ways (pg, pw, pwlen), (u64) PCFG_LOOKUP_MAXWAYS);
-
-  u32 *si = (u32 *) hcmalloc (((size_t) maxhit + 1) * sizeof (u32));
-
-  u32 (*idx)[PCFG_MAXSLOT] = (u32 (*)[PCFG_MAXSLOT]) hcmalloc (((size_t) maxhit + 1) * sizeof (*idx));
-
-  if ((si == NULL) || (idx == NULL))
-  {
-    hcfree (si);
-    hcfree (idx);
-
-    return false;
-  }
-
-  const u32 cnt = pcfg_parse (pg, pw, pwlen, si, idx, (u32) maxhit);
+  const u32 cnt = pcfg_parse (pg, pw, pwlen, si, idx, PCFG_LOOKUP_MAXHIT);
 
   for (u32 i = 0; i < cnt; i++)
   {
@@ -12187,9 +11248,6 @@ static bool lookup_find (pcfg_global_t *pg, const u8 *pw, const u32 pwlen, pcfg_
       hit->unit     = unit;
     }
   }
-
-  hcfree (si);
-  hcfree (idx);
 
   return hit->found;
 }
@@ -12336,26 +11394,6 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
       return;
     }
 
-    // A password without one of the pieces is not in a contains= run, whatever the grammar spells.
-
-    for (u32 k = 0; k < pg->cpiece_cnt; k++)
-    {
-      if (contains_places (pg->cpiece[k], cand, cand_len) > 0) continue;
-
-      event_log_info (pg->hcctx, "lookup: it does not hold %s anywhere, so this attack never tries this password", pg->cpiece_text[k]);
-
-      return;
-    }
-
-    // Nor is one that holds every piece, but only where two of them would share a byte.
-
-    if ((pg->cpiece_cnt > 1) && (contains_ways (pg, cand, cand_len) == 0))
-    {
-      event_log_info (pg->hcctx, "lookup: it holds the pieces of %s only where two of them share a byte, so this attack never tries this password", pg->contains);
-
-      return;
-    }
-
     // Case 3, and the reason the setting exists. No structure spells this password, so the OMEN
     // escape is the only route left, and this run does not carry it. There is nothing here to
     // search either: a run that dropped the escape never built its tables, so what can be said is
@@ -12365,10 +11403,10 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
     {
       event_log_info (pg->hcctx, "lookup: no structure in this grammar derives it, so the OMEN escape is the only route to it");
 
-      if ((pg->omen_want == false) && (pg->mcss != NULL))
+      if ((pg->omen_want == false) && (pg->mask != NULL))
       {
-        event_log_info (pg->hcctx, "lookup: and a filtered run has no escape, because the filter holds the grammar and the escape has no terminals for it to hold");
-        event_log_info (pg->hcctx, "lookup: so this attack never tries this password. ask again without %s= for the offset", filter_name (pg));
+        event_log_info (pg->hcctx, "lookup: and a masked run has no escape, because a mask holds the grammar and the escape has no terminals for it to hold");
+        event_log_info (pg->hcctx, "lookup: so this attack never tries this password. ask again without mask= for the offset");
       }
       else if (pg->omen_want == false)
       {
@@ -12545,69 +11583,6 @@ static void pcfg_pick_workers (pcfg_global_t *pg)
   pg->threads = want;
 }
 
-// A mask as the mask processor reads it, turned into one set of bytes per position. Shared by mask= and
-// contains=, so the characters of a fragment mean exactly what they mean in a mask.
-
-static bool filter_css (generic_global_ctx_t *global_ctx, hashcat_ctx_t *hashcat_ctx, const char *name, const char *text, mask_css_t **out)
-{
-  if (hashcat_ctx == NULL)
-  {
-    gerr (global_ctx, "%s needs the mask processor, which this run has no context for", name);
-
-    return false;
-  }
-
-  cs_t *css = (cs_t *) hcmalloc (256 * sizeof (cs_t));
-
-  if (css == NULL) return false;
-
-  u32 css_cnt = 0;
-
-  if (mask_css_parse (hashcat_ctx, text, css, 256, &css_cnt) == -1)
-  {
-    hcfree (css);
-
-    gerr (global_ctx, "%s %s: not a mask this attack can use", name, text);
-
-    return false;
-  }
-
-  mask_css_t *m = (mask_css_t *) hcmalloc (sizeof (mask_css_t));
-
-  if (m == NULL) { hcfree (css); return false; }
-
-  // A hash mode that hashes uppercase plaintext only, such as LM, has the mask processor capitalise the
-  // charset, so the filter has to measure a stored terminal the same way.
-
-  bool pt_upper = false;
-  bool pt_lower = false;
-
-  if (hashcat_ctx->hashconfig != NULL)
-  {
-    pt_upper = ((hashcat_ctx->hashconfig->opts_type & OPTS_TYPE_PT_UPPER) != 0);
-    pt_lower = ((hashcat_ctx->hashconfig->opts_type & OPTS_TYPE_PT_LOWER) != 0);
-  }
-
-  const bool built = mask_css_build (m, css, css_cnt,
-                                     (pt_lower == true) ? pcfg_byte_lower : pcfg_byte_upper,
-                                     pt_upper | pt_lower);
-
-  hcfree (css);
-
-  if (built == false)
-  {
-    hcfree (m);
-
-    gerr (global_ctx, "%s %s: more positions than a mask can hold", name, text);
-
-    return false;
-  }
-
-  *out = m;
-
-  return true;
-}
-
 bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
 {
   if (global_ctx->workc < 1)
@@ -12664,8 +11639,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   const char *weights = NULL;
   const char *lookup  = NULL;
-  const char *mask     = NULL;
-  const char *contains = NULL;
+  const char *mask    = NULL;
 
   // 0 is "say nothing", which leaves the bound the hash mode already carries. They only ever narrow
   // that bound, so naming a length the kernel cannot take is not a way to ask for one.
@@ -12692,7 +11666,6 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "weights",     FEED_PARAM_TYPE_STR, &weights,     0,   0,                   "share of the grammar each ruleset carries, colon separated, one per ruleset"                                                               },
     { "lookup",      FEED_PARAM_TYPE_STR, &lookup,      0,   0,                   "ask where this attack reaches a candidate instead of running it"                                                                           },
     { "mask",        FEED_PARAM_TYPE_STR, &mask,        0,   0,                   "the shape a candidate must have, in mask syntax, for an attack against one password whose length and part of whose layout are known"      },
-    { "contains",    FEED_PARAM_TYPE_STR, &contains,    0,   0,                   "what a candidate must hold somewhere, in mask syntax, for an attack where part of the password is known but not where it stands"          },
     { "pwmin",       FEED_PARAM_TYPE_U64, &pwmin,       0,   PW_MAX,              "shortest candidate to produce, 0 to take what the hash mode allows"                                                                        },
     { "pwmax",       FEED_PARAM_TYPE_U64, &pwmax,       0,   PW_MAX,              "longest candidate to produce, 0 to take what the hash mode allows. A run against a list of one known length spends nothing on the others"  },
     { NULL, 0, NULL, 0, 0, NULL }
@@ -12759,7 +11732,56 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   if (mask != NULL)
   {
-    if (filter_css (global_ctx, hashcat_ctx, "mask", mask, &pg->mcss) == false) return false;
+    if (hashcat_ctx == NULL)
+    {
+      gerr (global_ctx, "mask needs the mask processor, which this run has no context for");
+
+      return false;
+    }
+
+    cs_t *css = (cs_t *) hcmalloc (256 * sizeof (cs_t));
+
+    if (css == NULL) return false;
+
+    u32 css_cnt = 0;
+
+    if (mask_css_parse (hashcat_ctx, mask, css, 256, &css_cnt) == -1)
+    {
+      hcfree (css);
+
+      gerr (global_ctx, "mask %s: not a mask this attack can use", mask);
+
+      return false;
+    }
+
+    pg->mcss = (mask_css_t *) hcmalloc (sizeof (mask_css_t));
+
+    if (pg->mcss == NULL) { hcfree (css); return false; }
+
+    // A hash mode that hashes uppercase plaintext only, such as LM, has the mask processor capitalise the
+    // charset, so the filter has to measure a stored terminal the same way.
+
+    bool pt_upper = false;
+    bool pt_lower = false;
+
+    if (hashcat_ctx->hashconfig != NULL)
+    {
+      pt_upper = ((hashcat_ctx->hashconfig->opts_type & OPTS_TYPE_PT_UPPER) != 0);
+      pt_lower = ((hashcat_ctx->hashconfig->opts_type & OPTS_TYPE_PT_LOWER) != 0);
+    }
+
+    const bool built = mask_css_build (pg->mcss, css, css_cnt,
+                                       (pt_lower == true) ? pcfg_byte_lower : pcfg_byte_upper,
+                                       pt_upper | pt_lower);
+
+    hcfree (css);
+
+    if (built == false)
+    {
+      gerr (global_ctx, "mask %s: more positions than a mask can hold", mask);
+
+      return false;
+    }
 
     pg->mcss_high = mask_css_high (pg->mcss);
 
@@ -12797,129 +11819,9 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     pg->pwmax = mlen;
   }
 
-  // The same filter with the length and the place left open: pieces every candidate has to hold
-  // somewhere. The filter walks a working mask that admits every byte until mask_filter () writes a piece
-  // into it, once for every place it can stand.
-
-  if (contains != NULL)
-  {
-    if (mask != NULL)
-    {
-      gerr (global_ctx, "contains %s cannot be combined with mask %s. A mask already fixes every position, so write the characters into it where they stand", contains, mask);
-
-      return false;
-    }
-
-    if (strlen (contains) == 0)
-    {
-      gerr (global_ctx, "contains needs at least one character");
-
-      return false;
-    }
-
-    // The pieces are split where hintwords= splits its words. A comma inside a piece is written with a
-    // charset, -1 , for one.
-
-    pg->contains_buf = hcstrdup (contains);
-
-    if (pg->contains_buf == NULL) return false;
-
-    const size_t clen = strlen (pg->contains_buf);
-
-    u32 cnt = 1;
-
-    for (size_t i = 0; i < clen; i++)
-    {
-      if (pg->contains_buf[i] == ',') cnt++;
-    }
-
-    if (cnt > PCFG_CONTAINS_MAX)
-    {
-      gerr (global_ctx, "contains %s: %u pieces, but a run takes at most %d", contains, cnt, PCFG_CONTAINS_MAX);
-
-      return false;
-    }
-
-    pg->cpiece      = (mask_css_t **) hccalloc (cnt, sizeof (mask_css_t *));
-    pg->cpiece_text = (char **)       hccalloc (cnt, sizeof (char *));
-
-    if ((pg->cpiece == NULL) || (pg->cpiece_text == NULL)) return false;
-
-    u32 at = 0;
-
-    size_t start = 0;
-
-    for (size_t i = 0; i <= clen; i++)
-    {
-      if ((pg->contains_buf[i] != ',') && (pg->contains_buf[i] != 0)) continue;
-
-      pg->contains_buf[i] = 0;
-
-      pg->cpiece_text[at] = &pg->contains_buf[start];
-
-      at++;
-
-      start = i + 1;
-    }
-
-    for (u32 k = 0; k < cnt; k++)
-    {
-      const char *text = pg->cpiece_text[k];
-
-      if (strlen (text) == 0)
-      {
-        gerr (global_ctx, "contains %s: piece %u is empty, which is what a comma at either end or two in a row leave", contains, k + 1);
-
-        return false;
-      }
-
-      // A piece named twice still only has to be in a candidate once, and filtering for it twice would make
-      // every candidate that holds it at n places come out n times n times.
-
-      for (u32 m = 0; m < k; m++)
-      {
-        if (strcmp (pg->cpiece_text[m], text) != 0) continue;
-
-        gerr (global_ctx, "contains %s: piece %s is named twice, and a candidate only has to hold it once", contains, text);
-
-        return false;
-      }
-
-      if (filter_css (global_ctx, hashcat_ctx, "contains", text, &pg->cpiece[k]) == false) return false;
-
-      pg->cpiece_cnt = k + 1;
-
-      const u32 flen = pg->cpiece[k]->cnt;
-
-      if ((pg->pwmax != 0) && (flen > pg->pwmax))
-      {
-        gerr (global_ctx, "contains %s: %u positions, but nothing longer than %u bytes is being produced", text, flen, pg->pwmax);
-
-        return false;
-      }
-
-      // A candidate shorter than a piece cannot hold it, and a raised floor drops the structures that only
-      // spell those while the grammar is read.
-
-      if (pg->pwmin < flen) pg->pwmin = flen;
-    }
-
-    pg->mcss = (mask_css_t *) hcmalloc (sizeof (mask_css_t));
-
-    if (pg->mcss == NULL) return false;
-
-    for (u32 pos = 0; pos < MASK_CSS_MAXPOS; pos++) contains_open (pg->mcss, pos);
-
-    pg->mcss->cnt = MASK_CSS_MAXPOS;
-
-    pg->mcss_high = mask_css_high (pg->mcss);
-
-    pg->contains = contains;
-  }
-
   // A charset with no mask to sit in is a run that quietly does not do what its command line says.
 
-  if ((mask == NULL) && (contains == NULL))
+  if (mask == NULL)
   {
     const user_options_t *uo = (hashcat_ctx != NULL) ? hashcat_ctx->user_options : NULL;
 
@@ -12929,7 +11831,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
       if (any == true)
       {
-        gerr (global_ctx, "a custom charset belongs to a mask, and this run named neither mask= nor contains=. Add one of them to use it");
+        gerr (global_ctx, "a custom charset belongs to a mask, and this run named no mask. Add mask= to use it");
 
         return false;
       }
@@ -12959,13 +11861,13 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   // and crack hashes the mask says are not the target. A masked run therefore drops it, and asking for it
   // by name is refused rather than answered with a run that does not do what the mask says.
 
-  if (pg->mcss != NULL)
+  if (pg->mask != NULL)
   {
     const bool omen_named = (feed_param_lookup (global_ctx->workc, global_ctx->workv, "omen") != NULL);
 
     if ((omen_named == true) && (omen != 0))
     {
-      gerr (global_ctx, "omen=1 cannot be combined with %s %s, which holds the grammar, and the escape has no terminals for it to hold", filter_name (pg), filter_arg (pg));
+      gerr (global_ctx, "omen=1 cannot be combined with mask %s. A mask holds the grammar, and the escape has no terminals for it to hold", pg->mask);
 
       return false;
     }
@@ -13050,9 +11952,9 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   // Words taken from the hashes are not: they are a different set for every hash and the grammar is one,
   // so no filtering done once can hold for all of them.
 
-  if ((pg->mcss != NULL) && (pg->hint_cnt > 0) && (pg->hint_cased == false))
+  if ((pg->mask != NULL) && (pg->hint_cnt > 0) && (pg->hint_cased == false))
   {
-    gerr (global_ctx, "%s %s cannot be combined with hintaccount, because those words are a different set for every hash and the filter is built once", filter_name (pg), filter_arg (pg));
+    gerr (global_ctx, "mask %s cannot be combined with hintaccount, because those words are a different set for every hash and the filter is built once", pg->mask);
 
     return false;
   }
@@ -13480,17 +12382,9 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   hcfree (pg->hw_cost);
   hcfree (pg->hw_src);
 
-  // pg->mask and pg->contains point into the arguments they were read from, so only the tables built
-  // from them are ours.
+  // pg->mask itself points into the argument it was read from, so only the table built from it is ours.
 
   hcfree (pg->mcss);
-
-  for (u32 k = 0; k < pg->cpiece_cnt; k++) hcfree (pg->cpiece[k]);
-
-  hcfree (pg->cpiece);
-  hcfree (pg->cpiece_text);
-  hcfree (pg->contains_buf);
-  hcfree (pg->claim);
 
   hcfree (pg->lists);
 

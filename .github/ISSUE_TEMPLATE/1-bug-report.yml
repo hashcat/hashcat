@@ -1,6 +1,6 @@
 name: Bug report
 description: hashcat crashes, misses a password it should crack, or does something else that is wrong.
-labels: ["type: bug"]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:

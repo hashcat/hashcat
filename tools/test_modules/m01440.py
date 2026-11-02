@@ -15,7 +15,7 @@ CHARSET = kernel_charset()
 
 
 def module_constraints():
-  return [[0, 256], [0, 256], [0, 27], [0, 27], [0, 55, 2, 1]]
+  return [[0, 256], [0, 256], [0, 27], [0, 27], [0, 27]]
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -62,20 +62,12 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
    * salt
    */
 
-  u32 salt_buf[12];
+  u32 salt_buf[4];
 
-  salt_buf[ 0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 0]);
-  salt_buf[ 1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 1]);
-  salt_buf[ 2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 2]);
-  salt_buf[ 3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 3]);
-  salt_buf[ 4] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 4]);
-  salt_buf[ 5] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 5]);
-  salt_buf[ 6] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 6]);
-  salt_buf[ 7] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 7]);
-  salt_buf[ 8] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 8]);
-  salt_buf[ 9] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 9]);
-  salt_buf[10] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[10]);
-  salt_buf[11] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[11]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
+  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
+  salt_buf[2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[2]);
+  salt_buf[3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[3]);
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -84,18 +76,18 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
   u32 s2[4];
   u32 s3[4];
 
-  s0[0] = salt_buf[ 0];
-  s0[1] = salt_buf[ 1];
-  s0[2] = salt_buf[ 2];
-  s0[3] = salt_buf[ 3];
-  s1[0] = salt_buf[ 4];
-  s1[1] = salt_buf[ 5];
-  s1[2] = salt_buf[ 6];
-  s1[3] = salt_buf[ 7];
-  s2[0] = salt_buf[ 8];
-  s2[1] = salt_buf[ 9];
-  s2[2] = salt_buf[10];
-  s2[3] = salt_buf[11];
+  s0[0] = salt_buf[0];
+  s0[1] = salt_buf[1];
+  s0[2] = salt_buf[2];
+  s0[3] = salt_buf[3];
+  s1[0] = 0;
+  s1[1] = 0;
+  s1[2] = 0;
+  s1[3] = 0;
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;
@@ -123,8 +115,18 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
      * SAP
      */
 
-    // SETSHIFTEDINT () below writes into final[] with no bounds check, so it has room for all 4 SHA1
-    // blocks the longest candidate, magic array and salt can need
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
     u32 final[64];
 
     final[ 0] = w0[0] | s0[0];
@@ -214,10 +216,10 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     final[ 7] = w1[3];
     final[ 8] = w2[0];
     final[ 9] = w2[1];
-    final[10] = w2[2];
-    final[11] = w2[3];
-    final[12] = w3[0];
-    final[13] = w3[1];
+    final[10] = 0;
+    final[11] = 0;
+    final[12] = 0;
+    final[13] = 0;
     final[14] = 0;
     final[15] = 0;
 
@@ -319,20 +321,12 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
    * salt
    */
 
-  u32 salt_buf[12];
+  u32 salt_buf[4];
 
-  salt_buf[ 0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 0]);
-  salt_buf[ 1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 1]);
-  salt_buf[ 2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 2]);
-  salt_buf[ 3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 3]);
-  salt_buf[ 4] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 4]);
-  salt_buf[ 5] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 5]);
-  salt_buf[ 6] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 6]);
-  salt_buf[ 7] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 7]);
-  salt_buf[ 8] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 8]);
-  salt_buf[ 9] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 9]);
-  salt_buf[10] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[10]);
-  salt_buf[11] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[11]);
+  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
+  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
+  salt_buf[2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[2]);
+  salt_buf[3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[3]);
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -341,18 +335,18 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
   u32 s2[4];
   u32 s3[4];
 
-  s0[0] = salt_buf[ 0];
-  s0[1] = salt_buf[ 1];
-  s0[2] = salt_buf[ 2];
-  s0[3] = salt_buf[ 3];
-  s1[0] = salt_buf[ 4];
-  s1[1] = salt_buf[ 5];
-  s1[2] = salt_buf[ 6];
-  s1[3] = salt_buf[ 7];
-  s2[0] = salt_buf[ 8];
-  s2[1] = salt_buf[ 9];
-  s2[2] = salt_buf[10];
-  s2[3] = salt_buf[11];
+  s0[0] = salt_buf[0];
+  s0[1] = salt_buf[1];
+  s0[2] = salt_buf[2];
+  s0[3] = salt_buf[3];
+  s1[0] = 0;
+  s1[1] = 0;
+  s1[2] = 0;
+  s1[3] = 0;
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;
@@ -392,8 +386,18 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
      * SAP
      */
 
-    // SETSHIFTEDINT () below writes into final[] with no bounds check, so it has room for all 4 SHA1
-    // blocks the longest candidate, magic array and salt can need
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
     u32 final[64];
 
     final[ 0] = w0[0] | s0[0];
@@ -483,10 +487,10 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     final[ 7] = w1[3];
     final[ 8] = w2[0];
     final[ 9] = w2[1];
-    final[10] = w2[2];
-    final[11] = w2[3];
-    final[12] = w3[0];
-    final[13] = w3[1];
+    final[10] = 0;
+    final[11] = 0;
+    final[12] = 0;
+    final[13] = 0;
     final[14] = 0;
     final[15] = 0;
 

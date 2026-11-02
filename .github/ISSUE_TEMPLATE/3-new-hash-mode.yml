@@ -1,6 +1,6 @@
 name: New hash mode
 description: Support for a hash, key derivation or file format that hashcat cannot crack yet.
-labels: ["type: algorithm"]
+labels: ["new algorithm"]
 body:
   - type: markdown
     attributes:
