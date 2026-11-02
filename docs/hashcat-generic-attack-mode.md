@@ -123,3 +123,11 @@ A feed may instead provide data for a device-side amplifier. The PCFG and table 
 
 Device-side amplification also makes feeds practical for fast hashes. Feed authors should account for the fact that users can apply additional rules, and may provide a matching ruleset when useful.
 
+## 7. The hybrid feed and attack modes 1, 6, 7 and 12
+
+Attack modes 1, 6, 7 and 12 build one candidate from two or three parts: a base word, a mask value, and where the mask names one, a second word. No device kernel both joins those parts and applies a rule to the result, so when one of these modes is given `-r` or `-g` it is rewritten into attack mode 8 with the shipped hybrid feed in front of it. Without `-r` or `-g` the attack runs on the device as before and the feed is not involved.
+
+The feed assembles each candidate on the host and hands the finished string to the attack-mode 0 kernels, which apply `-r` and `-g` to the candidate as a whole. The word rules are applied earlier, inside the feed, to the words they name: `-j` is the base word's rule and `-k` the second word's, and neither has ever applied to a mask. Because the words are ruled before assembly, the feed declines the core's own rule step, so `-j` is not applied a second time to the finished candidate.
+
+In attack mode 12 the markers decide which rule each word takes, wherever the mask puts them: the `?w` word takes `-j` and the `?q` word takes `-k`. A word meant to take `-k` is written as `?q` rather than as a `?w` at the end of the mask. Attack modes 6 and 7 are fixed-position shorthands for a single wordlist, which takes `-j` when it leads the mask (mode 6) and `-k` when it follows it (mode 7), the left and right wordlist of the help text. Attack mode 1 is the same join with no mask between the two words.
+
