@@ -471,6 +471,8 @@ static const char *ST_PASS         = <<"enter your test password here">>;
 static const char *ST_HASH         = <<"enter your test hash here">>;
 ```
 
+Below the configuration, the template includes `hooks_common.c`. That file turns these values into the methods hashcat calls, so leave the include in place.
+
 ### Explanation
 
 `static const u32 ATTACK_EXEC = ATTACK_EXEC_OUTSIDE_KERNEL;`
@@ -581,14 +583,10 @@ In addition to defining the struct, you must also specify the size of the struct
 **Example init_module workshop module_12345.c**
 
 ```c
-Is:
-module_ctx->module_esalt_size                 = MODULE_DEFAULT;
-
-Becomes:
 module_ctx->module_esalt_size                 = module_esalt_size;
 ```
 
-Hashcat must also know that the `module_esalt_size()` method is being used. You do this by specifying the `module_esalt_size` method in `module_init()`. By default, it is set to `MODULE_DEFAULT` and you will change it to `module_esalt_size`.
+Hashcat must also know that the `module_esalt_size()` method is being used. You do this by assigning the `module_esalt_size` method in `module_init()`. A method that `module_init()` does not assign keeps its default.
 
 ### Step 4: Define the temporary struct
 
@@ -795,23 +793,22 @@ return line_len;
 ### Step 7: Add the init () method
 
 1. Add the module_init() method. This is the last method and is always positioned at the
-   end of the module. You must specify which methods were used in the module. All
-   other methods must be set to default (MODULE_DEFAULT).
+   end of the module. It starts with `module_init_common()`, which registers the
+   configuration from Step 2. After that, you assign every other method the module
+   implements. All other methods keep their default.
 
 **Example module_init()**
 
 ```c
 void module_init (module_ctx_t *module_ctx)
 {
-  module_ctx->module_context_size                     = MODULE_CONTEXT_SIZE_CURRENT;
-  module_ctx->module_interface_version                = MODULE_INTERFACE_VERSION_CURRENT;
+  module_init_common (module_ctx);
 
-  module_ctx->module_attack_exec                      = module_attack_exec;
-  module_ctx->module_benchmark_esalt                  = MODULE_DEFAULT;
-  module_ctx->module_benchmark_hook_salt              = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask                   = MODULE_DEFAULT;
-  module_ctx->module_benchmark_charset                = MODULE_DEFAULT;
-  . . . . . . . . . . . . . . . .
+  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_tmp_size                 = module_tmp_size;
+}
 ```
 
 We have explained the most commonly used methods and you added to them to your

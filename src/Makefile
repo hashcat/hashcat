@@ -28,7 +28,7 @@
 
 DEBUG                   := 0
 PRODUCTION              := 0
-PRODUCTION_VERSION      := v7.1.2
+PRODUCTION_VERSION      := v8.0.0
 MACOS_UNIVERSAL_BINARY  ?= 0
 ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
@@ -188,9 +188,9 @@ endif
 ## Do not modify
 ##
 
-MODULE_INTERFACE_VERSION := 720
-BRIDGE_INTERFACE_VERSION := 720
-FEEDS_INTERFACE_VERSION  := 720
+MODULE_INTERFACE_VERSION := 810
+BRIDGE_INTERFACE_VERSION := 800
+FEEDS_INTERFACE_VERSION  := 800
 
 ##
 ## Toolchains
@@ -305,13 +305,13 @@ ifeq ($(PRODUCTION),1)
 VERSION_TAG             := $(PRODUCTION_VERSION)
 else
 VERSION_TAG             := $(shell git describe --tags --dirty=+ || echo $(PRODUCTION_VERSION))
+endif # PRODUCTION
 
 # A Windows version resource is four numbers. VERSION_TAG is a git description, so the release is
 # taken from the front of it and the commit count becomes the fourth field. Both forms work:
 # v7.1.2 gives 7,1,2,0 and v7.1.2-40-gabc1234 gives 7,1,2,40.
 
 VERSION_NUM             := $(shell echo "$(VERSION_TAG)" | sed -e 's/^v//' -e 's/+$$//' -e 's/-g[0-9a-f]*$$//' -e 's/-/./' | awk -F. '{printf "%d,%d,%d,%d", $$1+0, $$2+0, $$3+0, $$4+0}')
-endif # PRODUCTION
 
 VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
 VERSION_MAJOR           := $(firstword $(subst ., ,$(VERSION_PURE)))
@@ -381,13 +381,20 @@ ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
 RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
+LIBRARY_RESOURCE_NATIVE := obj/hashcat_lib.res.NATIVE.o
+PLUGIN_RESOURCE_NATIVE  := obj/hashcat_plugin.res.NATIVE.o
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
 RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
+LIBRARY_RESOURCE_NATIVE := obj/hashcat_lib.res.NATIVE.o
+PLUGIN_RESOURCE_NATIVE  := obj/hashcat_plugin.res.NATIVE.o
 endif # MSYS2
+
+LIBRARY_RESOURCE_WIN    := obj/hashcat_lib.res.WIN.o
+PLUGIN_RESOURCE_WIN     := obj/hashcat_plugin.res.WIN.o
 
 # make install and make uninstall run on this machine and touch nothing a cross build wrote
 
@@ -607,7 +614,7 @@ CFLAGS                  += -fsanitize=$(SANITIZE) -fno-omit-frame-pointer
 # UBSAN_OPTIONS=halt_on_error=1 when that is what you actually want.
 # The sanitizer must reach the link too, otherwise every target that links the
 # C++ deps (deps/unrar) fails with undefined __asan_* references. CFLAGS is not
-# enough for the shared-library layout: libhashcat.so.7, the module plugins and
+# enough for the shared-library layout: libhashcat.so.8, the module plugins and
 # the feed plugins are all separate link steps.
 LFLAGS                  += -fsanitize=$(SANITIZE)
 endif
@@ -742,11 +749,18 @@ CFLAGS_NATIVE           += -DSSE2NEON_SUPPRESS_WARNINGS
 CFLAGS_NATIVE           += -I$(DEPS_SSE2NEON)
 endif
 
+## Windows gives every thread the stack size the executable header asks for, 2 MiB by default, where
+## Linux gives 8 MiB. hiprtc compiles a kernel on the calling thread, and the Whirlpool and Streebog
+## kernels need more than 2 MiB there, so they died with a stack overflow under HIP on Windows only.
+
+LFLAGS_WIN_STACK        := -Wl,--stack,0x800000
+
 ifeq ($(UNAME),CYGWIN)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
+LFLAGS_NATIVE           += $(LFLAGS_WIN_STACK)
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
@@ -757,6 +771,7 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
+LFLAGS_NATIVE           += $(LFLAGS_WIN_STACK)
 
 # Every library that is not part of Windows goes INTO the binary that needs it, because no runtime
 # DLL is shipped beside these binaries and the working directory is no longer searched for one. A
@@ -886,11 +901,11 @@ ifeq ($(CC_WIN_CLANG),0)
 LFLAGS_WIN              += -static-libstdc++
 endif
 LFLAGS_WIN              += -lole32 -loleaut32 -lwbemuuid
+LFLAGS_WIN              += $(LFLAGS_WIN_STACK)
 
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(CC_WIN_CLANG),1)
 LFLAGS_WIN              += -fuse-ld=lld
-LFLAGS_WIN              += -Wl,--stack,0x200000
 endif
 endif
 
@@ -1231,14 +1246,17 @@ endif
 
 EMU_OBJS_ALL            := emu_general emu_inc_common emu_inc_platform emu_inc_scalar emu_inc_simd
 EMU_OBJS_ALL            += emu_inc_rp_common emu_inc_rp emu_inc_rp_optimized
-EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512 emu_inc_ecc_secp256k1 emu_inc_bignum_operations
+EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd160 emu_inc_hash_sha1 emu_inc_hash_sha256 emu_inc_hash_sha384 emu_inc_hash_sha512 emu_inc_hash_streebog256 emu_inc_hash_streebog512 emu_inc_ecc_secp256k1 emu_inc_bignum_2048
+EMU_OBJS_ALL            += emu_inc_hash_blake2b emu_inc_hash_blake2s emu_inc_hash_sm3 emu_inc_hash_whirlpool emu_inc_hash_sha3 emu_inc_hash_gost94 emu_inc_hash_ripemd320 emu_inc_hash_mysql323 emu_inc_hash_haval emu_inc_hash_tiger emu_inc_hash_ripemd128 emu_inc_hash_ripemd256 emu_inc_hash_md2 emu_inc_hash_sha0 emu_inc_hash_snefru emu_inc_hash_skein512 emu_inc_hash_panama emu_inc_hash_lm emu_inc_hash_mdc2
+EMU_OBJS_ALL            += emu_inc_hash_blake emu_inc_hash_bmw emu_inc_hash_cubehash emu_inc_hash_echo emu_inc_hash_fugue emu_inc_hash_groestl emu_inc_hash_hamsi emu_inc_hash_jh emu_inc_hash_luffa emu_inc_hash_shabal emu_inc_hash_shavite emu_inc_hash_simd
+EMU_OBJS_ALL            += emu_inc_hash_has160 emu_inc_hash_edonr emu_inc_hash_md6 emu_inc_hash_radiogatun emu_inc_hash_ripemd emu_inc_hash_whirlpool01 emu_inc_hash_xxhash
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
 # the escape's walk over the packed pool, so the host reports what the device matched from one source
 EMU_OBJS_ALL            += emu_inc_pcfg emu_inc_pcfg_omen
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface json keyboard_layout locking logfile loopback memchr memory module_options module_options_cache module_options_value monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe recipe restore rp rp_cpu selftest slow_candidates shared status status_rc stdout straight generic system terminal thread timer tuningdb usage user_options user_options_table wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1539,8 +1557,8 @@ LIBRARY_LFLAGS_WIN      += $(TARGET_WIN)
 
 define LIBRARY_RULES
 
-$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) obj/arrangement
-	$$(CC_$(1)) $$(CORE_OBJS_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
+$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) $$(LIBRARY_RESOURCE_$(1)) obj/arrangement
+	$$(CC_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_RESOURCE_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 
@@ -1580,6 +1598,17 @@ obj/hashcat.res.WIN.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
 obj/hashcat.res.NATIVE.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
 	$(call resource_compile,NATIVE)
 
+## src/hashcat_dll.rc is the same version block for hashcat.dll and for every plugin DLL. One object
+## serves all the plugins, so it names no file.
+
+resource_dll_compile = $(WINDRES_$(1)) -I src -DHC_VERSION_NUM=$(VERSION_NUM) -DHC_VERSION_STR='\"$(VERSION_TAG)\"' $(2) src/hashcat_dll.rc -o $@
+
+obj/hashcat_lib.res.%.o: src/hashcat_dll.rc obj/arrangement
+	$(call resource_dll_compile,$*,-DHC_RC_LIBRARY)
+
+obj/hashcat_plugin.res.%.o: src/hashcat_dll.rc obj/arrangement
+	$(call resource_dll_compile,$*,)
+
 # A native build is a Windows one on MSYS2 and CYGWIN, and those get the resource section too. On
 # every other platform RESOURCE_NATIVE is empty and the link is unchanged.
 
@@ -1603,17 +1632,17 @@ $(HASHCAT_FRONTEND): src/main.c $(CORE_NATIVE) $(RESOURCE_NATIVE) obj/arrangemen
 ## $(call) cuts its arguments at every comma and a flag is allowed to contain one. Those flags come
 ## last, so a plugin cannot put its own include path in front of the tree's.
 
-plugin_link = $(CC_$(1)) $(CCFLAGS) $(CFLAGS_PLUGIN_$(1)) $(CFLAGS_ABI) $(if $(3),$(DEPFLAGS) -MF $(3)) $(2) $(CORE_$(1)) -o $@ $(LFLAGS_$(1)) $(if $(filter $(1),$(SHARED_PLATFORMS)),$(LFLAGS_PLUGIN_$(1))) -shared -fPIC -D $(4) $($(5))
+plugin_link = $(CC_$(1)) $(CCFLAGS) $(CFLAGS_PLUGIN_$(1)) $(CFLAGS_ABI) $(if $(3),$(DEPFLAGS) -MF $(3)) $(2) $(PLUGIN_RESOURCE_$(1)) $(CORE_$(1)) -o $@ $(LFLAGS_$(1)) $(if $(filter $(1),$(SHARED_PLATFORMS)),$(LFLAGS_PLUGIN_$(1))) -shared -fPIC -D $(4) $($(5))
 
 define PLUGIN_RULES
 
-modules/module_%.$(PLUGIN_SUFFIX_$(1)): src/modules/module_%.c $$(CORE_$(1)) obj/arrangement
+modules/module_%.$(PLUGIN_SUFFIX_$(1)): src/modules/module_%.c $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement
 	$$(call plugin_link,$(1),$$<,obj/module_$$*.$(1).d,MODULE_INTERFACE_VERSION_CURRENT=$$(MODULE_INTERFACE_VERSION),)
 
-feeds/feed_%.$(PLUGIN_SUFFIX_$(1)): src/feeds/feed_%.c $$(CORE_$(1)) obj/arrangement
+feeds/feed_%.$(PLUGIN_SUFFIX_$(1)): src/feeds/feed_%.c $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement
 	$$(call plugin_link,$(1),$$<,obj/feed_$$*.$(1).d,FEEDS_INTERFACE_VERSION_CURRENT=$$(FEEDS_INTERFACE_VERSION),)
 
-bridges/bridge_%.$(PLUGIN_SUFFIX_$(1)): src/bridges/bridge_%.c $$(CORE_$(1)) obj/arrangement
+bridges/bridge_%.$(PLUGIN_SUFFIX_$(1)): src/bridges/bridge_%.c $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement
 	$$(call plugin_link,$(1),$$<,,BRIDGE_INTERFACE_VERSION_CURRENT=$$(BRIDGE_INTERFACE_VERSION),)
 
 MODULES_LIB_$(1)        := $$(patsubst src/modules/module_%.c,modules/module_%.$(PLUGIN_SUFFIX_$(1)),$$(MODULES_SRC))
@@ -1637,7 +1666,7 @@ define BRIDGE_RULES
 
 BRIDGE_FLAGS_$(2)_$(1)  := $(BRIDGE_CFLAGS_$(2)) $(BRIDGE_CFLAGS_$(2)_$(1))
 
-bridges/$(2).$(PLUGIN_SUFFIX_$(1)): $$(BRIDGE_SRC_$(2)) $$(CORE_$(1)) obj/arrangement $(BRIDGE_DEPS_$(2)_$(1))
+bridges/$(2).$(PLUGIN_SUFFIX_$(1)): $$(BRIDGE_SRC_$(2)) $$(CORE_$(1)) $$(PLUGIN_RESOURCE_$(1)) obj/arrangement $(BRIDGE_DEPS_$(2)_$(1))
 	$$(call plugin_link,$(1),$$(BRIDGE_SRC_$(2)),,BRIDGE_INTERFACE_VERSION_CURRENT=$$(BRIDGE_INTERFACE_VERSION),BRIDGE_FLAGS_$(2)_$(1))
 
 endef
@@ -1649,8 +1678,13 @@ $(foreach P,$(PLUGIN_PLATFORMS),$(foreach B,$(BRIDGES_ALL), \
 ## Targets: native compilation
 ##
 
+# The rows every module registers are kept in cache/module_options.<suffix>.cache, which a start reads
+# instead of loading every module. The binary just built writes it as the last step, and rewrites it
+# by itself whenever a module changes after that.
+
 .PHONY: default
 default: $(HASHCAT_FRONTEND) modules bridges feeds
+	./$(HASHCAT_FRONTEND) --module-cache-rebuild
 
 # The version this build stamps into the binary. tools/package_bin.sh asks for it so an archive is
 # named after what it holds, rather than the release number being written out a second time where it
@@ -1726,6 +1760,11 @@ distclean: clean
 
 ifneq (,$(filter LINUX,$(PLATFORMS)))
 
+# hashcat.exe can only write its module option cache where it runs. Under wine that is here, and
+# otherwise it writes the file on its first start.
+
+WIN_MODULE_CACHE        := if command -v wine > /dev/null 2>&1; then wine ./hashcat.exe --module-cache-rebuild || true; else echo "wine is not installed, so hashcat.exe writes its module option cache on its first start"; fi
+
 ifeq ($(UNAME),Darwin)
 .PHONY: binaries
 binaries: win
@@ -1735,6 +1774,7 @@ host_win:   hashcat.exe
 
 .PHONY: win
 win:   host_win   modules_win   bridges_win   feeds_win
+	@$(WIN_MODULE_CACHE)
 else
 .PHONY: binaries
 binaries: linux win
@@ -1746,6 +1786,7 @@ host_win:   hashcat.exe
 .PHONY: linux win
 linux: host_linux modules_linux bridges_linux feeds_linux
 win:   host_win   modules_win   bridges_win   feeds_win
+	@$(WIN_MODULE_CACHE)
 endif
 
 hashcat.bin: src/main.c $(CORE_LINUX) obj/arrangement
@@ -1776,9 +1817,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
+install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_rules install_kernels install_modules install_module_cache install_bridges install_python install_feeds install_hashcat
 else
-install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_bridges install_python install_feeds install_hashcat
+install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_rules install_kernels install_modules install_module_cache install_bridges install_python install_feeds install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -1830,6 +1871,15 @@ install_docs: install_make_shared_root
 install_shared: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)
 	$(INSTALL) -m 644 hashcat.hcstat2                                       $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/extra/fpga
+	$(INSTALL) -m 644 extra/fpga/99-digilent.rules                          $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/
+	$(INSTALL) -m 644 extra/fpga/99-litepcie.rules                          $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/
+	$(INSTALL) -m 644 extra/fpga/99-ztex.rules                              $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot
+	$(INSTALL) -m 644 extra/fpga/zc706-sdboot/README.md                     $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
+	$(INSTALL) -m 644 extra/fpga/zc706-sdboot/build_fsbl.tcl                $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
+	$(INSTALL) -m 644 extra/fpga/zc706-sdboot/fsbl.elf                      $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
+	$(INSTALL) -m 755 extra/fpga/zc706-sdboot/make_bootbin.py               $(DESTDIR)$(SHARED_FOLDER)/extra/fpga/zc706-sdboot/
 
 .PHONY: install_tunings
 install_tunings: install_shared
@@ -1866,11 +1916,19 @@ install_kernels: install_shared
 	$(FIND) OpenCL/   -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 	$(FIND) OpenCL/   -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 
+## The modules keep their modification times, which the module option cache installed beside them
+## identifies them by. Installed with new times, the cache is only rebuilt per user on the first start.
+
 .PHONY: install_modules
 install_modules: install_shared modules
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/modules
 	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
-	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -p -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+
+.PHONY: install_module_cache
+install_module_cache: install_shared $(HASHCAT_FRONTEND) modules
+	./$(HASHCAT_FRONTEND) --module-cache-rebuild
+	$(INSTALL) -m 644 cache/module_options.$(PLUGIN_SUFFIX_NATIVE).cache   $(DESTDIR)$(SHARED_FOLDER)/
 
 ## The Python bridge starts Python/hcworker.py from the shared folder, and Python/generic_hash.py is the
 ## plugin it loads when --bridge-parameter1 names none.

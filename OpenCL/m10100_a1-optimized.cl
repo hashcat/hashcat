@@ -167,14 +167,7 @@ KERNEL_FQ KERNEL_FA void m10100_m04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -258,6 +251,10 @@ KERNEL_FQ KERNEL_FA void m10100_m04 (KERN_ATTR_BASIC ())
       case 1: w0[3] |= pw_len << 24; break;
       case 2: w1[1] |= pw_len << 24; break;
       case 3: w1[3] |= pw_len << 24; break;
+      case 4: w2[1] |= pw_len << 24; break;
+      case 5: w2[3] |= pw_len << 24; break;
+      case 6: w3[1] |= pw_len << 24; break;
+      case 7: w3[3] |= pw_len << 24; break;
     }
 
     u64x v0 = v0p;
@@ -283,6 +280,30 @@ KERNEL_FQ KERNEL_FA void m10100_m04 (KERN_ATTR_BASIC ())
     for (       j = 0; i <= pw_len && i < 32; i += 8, j += 2)
     {
       u64x m = hl32_to_64 (w1[j + 1], w1[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 48; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w2[j + 1], w2[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 64; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w3[j + 1], w3[j + 0]);
 
       v3 ^= m;
 
@@ -418,14 +439,7 @@ KERNEL_FQ KERNEL_FA void m10100_s04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -509,6 +523,10 @@ KERNEL_FQ KERNEL_FA void m10100_s04 (KERN_ATTR_BASIC ())
       case 1: w0[3] |= pw_len << 24; break;
       case 2: w1[1] |= pw_len << 24; break;
       case 3: w1[3] |= pw_len << 24; break;
+      case 4: w2[1] |= pw_len << 24; break;
+      case 5: w2[3] |= pw_len << 24; break;
+      case 6: w3[1] |= pw_len << 24; break;
+      case 7: w3[3] |= pw_len << 24; break;
     }
 
     u64x v0 = v0p;
@@ -534,6 +552,30 @@ KERNEL_FQ KERNEL_FA void m10100_s04 (KERN_ATTR_BASIC ())
     for (       j = 0; i <= pw_len && i < 32; i += 8, j += 2)
     {
       u64x m = hl32_to_64 (w1[j + 1], w1[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 48; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w2[j + 1], w2[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 64; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w3[j + 1], w3[j + 0]);
 
       v3 ^= m;
 

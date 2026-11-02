@@ -11,6 +11,8 @@
 #include "shared.h"
 #include "ext_openssl.h"
 #include "pubkey.h"
+#include "path.h"
+#include "status_rc.h"
 
 #include <time.h>
 #include <inttypes.h>
@@ -116,7 +118,12 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Cannot find the OpenSSL 3 crypto library, which --encrypt-with-pubkey requires.");
 
+    #if defined (_WIN)
+    event_log_warning (hashcat_ctx, "Put libcrypto-3-x64.dll from an OpenSSL 3 build for Windows next to hashcat.exe or on PATH,");
+    event_log_warning (hashcat_ctx, "and try again.");
+    #else
     event_log_warning (hashcat_ctx, "Install OpenSSL 3 (for instance the libssl3 or openssl package) and try again.");
+    #endif
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;
@@ -127,6 +134,15 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (bio == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", user_options->encrypt_with_pubkey, strerror (errno));
+
+    // a key file that is there and does not open is the machine's, and stays -1
+
+    if (hc_path_exist (user_options->encrypt_with_pubkey) == false)
+    {
+      const int path_errno = errno;
+
+      status_set_rc_error (hashcat_ctx, path_missing_rc (path_errno));
+    }
 
     return -1;
   }
@@ -143,6 +159,8 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "Create one from a private key with: openssl rsa -in private.pem -pubout -out public.pem");
     event_log_warning (hashcat_ctx, NULL);
 
+    status_set_rc_error (hashcat_ctx, (hc_path_is_directory (user_options->encrypt_with_pubkey) == true) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
     return -1;
   }
 
@@ -155,6 +173,8 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "--encrypt-with-pubkey uses RSA-OAEP. Elliptic curve and Ed25519 keys are not supported.");
     event_log_warning (hashcat_ctx, NULL);
 
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
+
     return -1;
   }
 
@@ -164,6 +184,8 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (key_size <= PUBKEY_OAEP_OVERHEAD)
   {
     event_log_error (hashcat_ctx, "%s: the key is far too small to encrypt anything.", user_options->encrypt_with_pubkey);
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
     return -1;
   }
@@ -188,6 +210,8 @@ int pubkey_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out private.pem");
     event_log_warning (hashcat_ctx, "  openssl rsa -in private.pem -pubout -out public.pem");
     event_log_warning (hashcat_ctx, NULL);
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_TASK);
 
     return -1;
   }

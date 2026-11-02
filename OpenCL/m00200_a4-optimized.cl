@@ -41,9 +41,16 @@ DECLSPEC bool pcfg_hash (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIV
 
   u32 add = 7;
 
+  // MySQL's hash_password () skips spaces and tabs.
+
   for (u32 i = 0; i < len; i++)
   {
-    MYSQL323_ROUND (pcfg_get_byte (w, i));
+    const u32 ch = pcfg_get_byte (w, i);
+
+    if (ch == 0x20) continue;
+    if (ch == 0x09) continue;
+
+    MYSQL323_ROUND (ch);
   }
 
   dgst[0] = a & 0x7fffffff;
@@ -61,9 +68,16 @@ DECLSPEC bool pcfg_hash_global (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *h
 
   u32 add = 7;
 
+  // MySQL's hash_password () skips spaces and tabs.
+
   for (u32 i = 0; i < len; i++)
   {
-    MYSQL323_ROUND ((w[i / 4] >> ((i & 3) * 8)) & 0xff);
+    const u32 ch = (w[i / 4] >> ((i & 3) * 8)) & 0xff;
+
+    if (ch == 0x20) continue;
+    if (ch == 0x09) continue;
+
+    MYSQL323_ROUND (ch);
   }
 
   dgst[0] = a & 0x7fffffff;

@@ -11,7 +11,7 @@ import struct
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import random_bytes, split_hash_word
 
 # RACF KDFAES Passphrase. A memory-hard construction over a custom PBKDF2-HMAC-SHA256 (each pass also
 # returns a 16 byte carry salt): 2^(rfactor-5) passes fill an accumulator, a second pass mixes it, and
@@ -53,7 +53,7 @@ def module_generate_hash(word, salt, iterations=None):
   rounds = 50
 
   if (salt or "") == "":
-    random_salt = bytes.fromhex("00112233445566778899AABBCCDDEEFF")
+    random_salt = random_bytes(16)
     user = "HASHCAT"
   else:
     _sig, user, header_hex, salt_hex, _hash_hex = salt.split("*")

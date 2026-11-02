@@ -100,6 +100,26 @@ DECLSPEC MAYBE_UNUSED u32 generate_cshift_mask (const u32 value)
   return mask;
 }
 
+// One word of the title case rules E, e and ~e?C. sep marks the separator bytes: they keep their byte,
+// the byte after each of them is uppercased, and every other byte is lowercased. rem carries that mark
+// from the last byte of one word to the first byte of the next. A run of separators therefore leaves
+// every separator as it was and uppercases only the byte after the run, the same as the host engine.
+
+DECLSPEC MAYBE_UNUSED u32 title_sep_word (const u32 t, const u32 sep, PRIVATE_AS u32 *rem)
+{
+  const u32 upper = *rem | (sep << 8);
+
+  *rem = sep >> 24;
+
+  const u32 lower = t | generate_cmask (t);
+
+  const u32 title = lower & ~(generate_cmask (lower) & upper);
+
+  const u32 r = (title & ~sep) | (t & sep);
+
+  return r;
+}
+
 #ifdef HC_CPU_OPENCL_EMU_H
 #undef DECLSPEC
 #define DECLSPEC

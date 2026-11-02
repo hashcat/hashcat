@@ -163,6 +163,27 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   hc_unlockfile_warn (hashcat_ctx, &debugfile_ctx->fp, debugfile_ctx->filename, &debugfile_ctx->lock_warned);
 }
 
+// Whether anything will read back the rule and the base word a candidate was built from. --debug-mode
+// is the only thing that does, through build_debugdata (), and the straight kernel is the one that
+// applies a rule, so it is the one that has a rule to report. That is attack mode 0, 8 and 9 as it
+// always was, and now also the mask attacks, which reach it through a feed once they are given rules.
+//
+// The slow candidate producer and the host memory budget ask here as well, so a run that will report
+// nothing neither stages the base words nor pays for the buffer that would hold them.
+
+bool debugfile_wants_base (const hashcat_ctx_t *hashcat_ctx)
+{
+  const debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (debugfile_ctx->mode == 0) return false;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) return true;
+  if (user_options_extra->attack_kern == ATTACK_KERN_PCFG) return true;
+
+  return false;
+}
+
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;

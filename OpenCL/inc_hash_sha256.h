@@ -93,6 +93,7 @@ DECLSPEC void sha256_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *
 DECLSPEC void sha256_init (PRIVATE_AS sha256_ctx_t *ctx);
 DECLSPEC void sha256_update_64 (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
 DECLSPEC void sha256_update (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_update_padded (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_update_swap (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le_swap (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);

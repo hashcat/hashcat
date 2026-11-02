@@ -22,7 +22,7 @@
 # with a completely plausible-looking stack trace.
 #
 # Confirmed instance: every module calling b58dec() (m28501/2/5/6, m30901/2/5/6)
-# reports `pubkey` uninitialized, because b58dec lives in libhashcat.so.7. It
+# reports `pubkey` uninitialized, because b58dec lives in the libhashcat core. It
 # writes all 64 bytes on success. Instrument it and the finding vanishes.
 #
 # So THIS SWEEP IS A SCREEN, NOT A VERDICT. Two stages:
@@ -47,8 +47,22 @@ CC_BIN=${CC:-clang-11}
 EXTRA_SRC=${EXTRA:-src/convert.c}
 
 [ -f src/modules/module_00000.c ] || { echo "run from hashcat source root" >&2; exit 2; }
-[ -f ./libhashcat.so.7 ] || { echo "need ./libhashcat.so.7" >&2; exit 2; }
-if nm -D ./libhashcat.so.7 2>/dev/null | grep -q __asan; then
+
+# The core is named after the major version the Makefile reports, so the name follows the release
+# rather than being written out here. tools/package_bin.sh reads it the same way.
+VERSION_TAG=$(make -s version 2>/dev/null | tail -1)
+MAJOR=${VERSION_TAG#v}
+MAJOR=${MAJOR%%.*}
+
+if [ -z "$MAJOR" ]; then
+  echo "error: the Makefile reported no version, so the core's name is unknown" >&2
+  exit 2
+fi
+
+CORE=./libhashcat.so.$MAJOR
+
+[ -f "$CORE" ] || { echo "need $CORE" >&2; exit 2; }
+if nm -D "$CORE" 2>/dev/null | grep -q __asan; then
   echo "error: core is ASan-instrumented; MSan needs a plain core" >&2; exit 2
 fi
 

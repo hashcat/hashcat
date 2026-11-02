@@ -1,0 +1,56 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+// The version block of hashcat.dll and of every module, feed and bridge DLL. It is hashcat.rc's
+// version block without the manifest, which only an executable reads. Inventory and endpoint
+// tooling reads the block, and a DLL without one is the kind it flags. HC_RC_LIBRARY selects the
+// text for hashcat.dll. Without it the text is the plugins', whose one object is linked into all of
+// them and so names no file.
+
+#include <winresrc.h>
+
+#ifndef HC_VERSION_NUM
+#define HC_VERSION_NUM 0,0,0,0
+#endif
+
+#ifndef HC_VERSION_STR
+#define HC_VERSION_STR "unknown"
+#endif
+
+#ifdef HC_RC_LIBRARY
+#define HC_FILE_DESC "hashcat core library"
+#else
+#define HC_FILE_DESC "hashcat plugin"
+#endif
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     HC_VERSION_NUM
+PRODUCTVERSION  HC_VERSION_NUM
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_DLL
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName",      "hashcat"
+      VALUE "FileDescription",  HC_FILE_DESC
+      VALUE "FileVersion",      HC_VERSION_STR
+      VALUE "LegalCopyright",   "MIT licensed. See docs/license.txt"
+#ifdef HC_RC_LIBRARY
+      VALUE "OriginalFilename", "hashcat.dll"
+#endif
+      VALUE "ProductName",      "hashcat"
+      VALUE "ProductVersion",   HC_VERSION_STR
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

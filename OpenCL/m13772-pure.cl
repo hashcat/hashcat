@@ -148,7 +148,7 @@ DECLSPEC int check_header_1024 (GLOBAL_AS const vc_t *esalt_bufs, const u64 dige
   return -1;
 }
 
-DECLSPEC void hmac_streebog512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u64x *ipad_hash, PRIVATE_AS u64x *opad_hash, PRIVATE_AS u64x *ipad_raw, PRIVATE_AS u64x *opad_raw, PRIVATE_AS u64x *digest, SHM_TYPE u64a (*s_sbob_sl64)[256])
+DECLSPEC void hmac_streebog512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u64x *ipad_hash, PRIVATE_AS u64x *opad_hash, PRIVATE_AS u64x *ipad_raw, PRIVATE_AS u64x *opad_raw, PRIVATE_AS u64x *digest, SBOG_SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   const u64x nullbuf[8] = { 0 };
   u64x counterbuf[8]    = { 0 };
@@ -263,7 +263,7 @@ KERNEL_FQ KERNEL_FA void m13772_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
 
   #endif
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 
@@ -480,7 +480,7 @@ KERNEL_FQ KERNEL_FA void m13772_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_
    * shared lookup table
    */
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 

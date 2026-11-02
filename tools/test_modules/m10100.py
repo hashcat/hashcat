@@ -56,7 +56,7 @@ def siphash(key, data):
 
 
 def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 55], [32, 32], [0, 55]]
+  return [[-1, -1], [-1, -1], [0, 55], [32, 32], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None):

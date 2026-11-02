@@ -590,6 +590,11 @@ KERNEL_FQ KERNEL_FA void m14200_init2 (KERN_ATTR_TMPS_ESALT (racf_kdfaes_tmp_t, 
 
   if (gid >= GID_CNT) return;
 
+  // The parser rejects a mem_fac that divides to 0. The tail write at the end of this kernel
+  // would index out[] at 8 * (0 - 1) if one ever reached here.
+
+  if (esalt_bufs[DIGESTS_OFFSET_HOST].mem_fac == 0) return;
+
   tmps[gid].key[0] = tmps[gid].salt_buf[4];
   tmps[gid].key[1] = tmps[gid].salt_buf[5];
   tmps[gid].key[2] = tmps[gid].salt_buf[6];

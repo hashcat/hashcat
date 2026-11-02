@@ -169,14 +169,7 @@ KERNEL_FQ KERNEL_FA void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -357,7 +350,7 @@ KERNEL_FQ KERNEL_FA void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt1_buf, salt1_len);
+    md5_update_vector_padded (&ctx, salt1_buf, salt1_len);
 
     md5_final_vector (&ctx);
 
@@ -368,7 +361,7 @@ KERNEL_FQ KERNEL_FA void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_init_vector (&ctx);
 
-    md5_update_vector (&ctx, salt2_buf, salt2_len);
+    md5_update_vector_padded (&ctx, salt2_buf, salt2_len);
 
     u32x ww0[4];
     u32x ww1[4];
@@ -403,7 +396,7 @@ KERNEL_FQ KERNEL_FA void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_update_vector_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-    md5_update_vector (&ctx, salt3_buf, salt3_len);
+    md5_update_vector_padded (&ctx, salt3_buf, salt3_len);
 
     // md5_final_vector
 
@@ -668,14 +661,7 @@ KERNEL_FQ KERNEL_FA void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -856,7 +842,7 @@ KERNEL_FQ KERNEL_FA void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt1_buf, salt1_len);
+    md5_update_vector_padded (&ctx, salt1_buf, salt1_len);
 
     md5_final_vector (&ctx);
 
@@ -867,7 +853,7 @@ KERNEL_FQ KERNEL_FA void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_init_vector (&ctx);
 
-    md5_update_vector (&ctx, salt2_buf, salt2_len);
+    md5_update_vector_padded (&ctx, salt2_buf, salt2_len);
 
     u32x ww0[4];
     u32x ww1[4];
@@ -902,7 +888,7 @@ KERNEL_FQ KERNEL_FA void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 
     md5_update_vector_64 (&ctx, ww0, ww1, ww2, ww3, 32);
 
-    md5_update_vector (&ctx, salt3_buf, salt3_len);
+    md5_update_vector_padded (&ctx, salt3_buf, salt3_len);
 
     // md5_final_vector
 

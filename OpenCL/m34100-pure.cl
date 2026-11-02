@@ -189,9 +189,11 @@ KERNEL_FQ KERNEL_FA void m34100_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, merged_o
   pos.pass   = (LOOP_POS / ARGON2_SYNC_POINTS);
   pos.slice  = (LOOP_POS % ARGON2_SYNC_POINTS);
 
+  const u32 lanes = argon2_lane_limit (argon2_options.parallelism, lsz);
+
   for (u32 i = 0; i < LOOP_CNT; i++)
   {
-    for (pos.lane = lid; pos.lane < argon2_options.parallelism; pos.lane += lsz)
+    for (pos.lane = lid; pos.lane < lanes; pos.lane += lsz)
     {
       argon2_fill_segment (argon2_block, &argon2_options, &pos, shuffle_buf, argon2_thread, argon2_lsz);
     }

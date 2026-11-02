@@ -17,6 +17,9 @@ HC_PLUGIN_API bool hc_path_read (const char *path);
 HC_PLUGIN_API bool hc_path_write (const char *path);
 HC_PLUGIN_API bool hc_path_create (const char *path);
 
+HC_PLUGIN_API rc_final_t path_missing_rc (const int path_errno);
+HC_PLUGIN_API bool path_access_denied (const int path_errno);
+
 HC_PLUGIN_API bool check_file_suffix (const char *file, const char *suffix);
 HC_PLUGIN_API bool remove_file_suffix (char *file, const char *suffix);
 

@@ -48,10 +48,13 @@
 #include "restore.h"
 #include "selftest.h"
 #include "status.h"
+#include "status_rc.h"
 #include "feed_ctx.h"
 #include "straight.h"
 #include "tuningdb.h"
 #include "user_options.h"
+#include "module_options.h"
+#include "user_options_table.h"
 #include "wordlist.h"
 #include "hashcat.h"
 #include "ext_zlib.h"
@@ -59,10 +62,31 @@
 #include "ext_zstd.h"
 #include "ext_iconv.h"
 #include "usage.h"
+#include "json.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
 #endif
+
+// A round ends with -1 on an error, and with -10 when autotune failed on every device, which
+// inner2_autotune () has already announced. A benchmark over every hash mode skips that mode, as
+// outer_loop () skips one whose backend session does not start. Anywhere else -10 stops the session
+// and is passed back up so that it reaches the exit code.
+
+static int round_failed (hashcat_ctx_t *hashcat_ctx, const int rc)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (rc == -1) myabort (hashcat_ctx);
+
+  if (rc != -10) return 0;
+
+  if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false)) return 0;
+
+  myabort (hashcat_ctx);
+
+  return -10;
+}
 
 // Measure how every device should be launched for this round.
 //
@@ -122,6 +146,30 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
 
   hc_thread_wait (autotune_cnt, c_threads);
 
+  // A bridge that lost its group leader still needs one surviving unit tuned before the others
+  // can copy its tuning and take the work.
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    const hc_device_param_t *leader_param = &backend_ctx->devices_param[device_param->group_id];
+
+    if (leader_param->skipped_warning == false) continue;
+
+    backend_ctx_devices_group (hashcat_ctx);
+
+    thread_param_t *thread_param = &threads_param[backend_devices_idx];
+
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = backend_devices_idx;
+
+    thread_autotune (thread_param);
+  }
+
   // check for any autotune failures
   // by default, skipping device on error
   // using --force, accel/loops/threads min values are used instead of skipping
@@ -146,12 +194,16 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
       {
         event_log_warning (hashcat_ctx, "* Device #%u: skipped, due to kernel autotune failure (%d).", device_param->device_id + 1, device_param->at_rc);
 
-        device_param->skipped = true;
+        // for the rest of this session only, see backend_session_destroy ()
+
+        device_param->skipped          = true;
+        device_param->skipped_autotune = true;
 
         // update counters
 
         if (device_param->is_hip == true)    backend_ctx->hip_devices_active--;
         if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active--;
+        if (device_param->is_metal == true)  backend_ctx->metal_devices_active--;
         if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
 
         backend_ctx->backend_devices_active--;
@@ -169,10 +221,18 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
 
     if (user_options->force == false)
     {
-      // if all enabled devices fail, abort session
+      // if all enabled devices fail, abort session, or in a benchmark over every hash mode skip
+      // this one (see round_failed ())
       if (backend_ctx->backend_devices_active <= 0)
       {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+        if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+        {
+          event_log_error (hashcat_ctx, "Skipping hash-mode %u due to kernel autotune failures, for all active devices.", user_options->hash_mode);
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+        }
 
         event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
@@ -278,6 +338,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_base_given = 0;
 
   if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
+
+  // A mask that failed only skips its round, so its error code must not outlive the next round that
+  // does run. It is still set at the end when no round ran after it. A bridge unit that failed before
+  // this round is not the round's to forget.
+
+  if (status_get_rc_error (hashcat_ctx) != RC_FINAL_ERROR_BRIDGE) status_clear_rc_error (hashcat_ctx);
 
   /**
    * Update attack-mode specific stuff based on wordlist
@@ -404,6 +470,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   if (status_ctx->words_off > status_ctx->words_base)
   {
     event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
+
+    // --skip past the end is the command's. A position read back from a restore file is past the end
+    // because the files it was saved against changed since, which is the task's.
+
+    status_set_rc_error (hashcat_ctx, (restored == true) ? RC_FINAL_ERROR_TASK : RC_FINAL_ERROR_COMMAND);
 
     return -1;
   }
@@ -596,7 +667,16 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_RUNNING;
 
+  // A status snapshot taken between rounds borrows its strings from hashcat_status_final, and
+  // status_status_destroy () reads this flag to decide whether to free them. The keypress and monitor
+  // threads hold mux_display from taking a snapshot until they free it, so the flag only changes
+  // under that lock. Otherwise a borrowed snapshot could be freed as if it were its own.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
   status_ctx->accessible = true;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
   // A seek stops every device and starts it again from the position it moved to. Everything set up
   // above survives that, the autotune and the backend session the devices are holding included, so
@@ -765,6 +845,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   // put there has to go first or it is lost rather than freed. It adds up twice over: once per
   // round of an attack, and once per hash mode under -b. accessible is still true here, so the call
   // does its work rather than returning at the flag the way it does everywhere else.
+  //
+  // Under mux_display, for the reason given where accessible is raised. A snapshot borrowed from
+  // the previous round must not be read while its strings are freed here.
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
 
   status_status_destroy (hashcat_ctx, status_ctx->hashcat_status_final);
 
@@ -774,6 +859,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   status_ctx->accessible = false;
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 
   // update newly cracked hashes per session
 
@@ -810,6 +897,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // New induction folder check, which is a controlled recursion
 
+  int rc_induction = 0;
+
   if (induct_ctx->induction_dictionaries_cnt == 0)
   {
     induct_ctx_scan (hashcat_ctx);
@@ -822,7 +911,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       {
         if (status_ctx->devices_status == STATUS_EXHAUSTED)
         {
-          if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+          if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_induction = -10;
 
           if (status_ctx->run_main_level3 == false) break;
         }
@@ -857,7 +946,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  return 0;
+  return rc_induction;
 }
 
 // inner1_loop iterates through masks, then calls inner2_loop
@@ -873,6 +962,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
+
+  int rc_inner1 = 0;
 
   /**
    * loop through wordlists
@@ -898,7 +989,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
     {
       straight_ctx->dicts_pos = dicts_pos;
 
-      if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+      if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_inner1 = -10;
 
       if (status_ctx->run_main_level3 == false) break;
     }
@@ -910,12 +1001,12 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+    if (round_failed (hashcat_ctx, inner2_loop (hashcat_ctx)) == -10) rc_inner1 = -10;
   }
 
   EVENT (EVENT_INNERLOOP2_FINISHED);
 
-  return 0;
+  return rc_inner1;
 }
 
 // outer_loop iterates through hash_modes (in benchmark mode)
@@ -927,9 +1018,18 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 // status_progress_destroy () free a zeroed one. Being called a second time is a different question,
 // and this does not answer it: module_unload () closes the module handle without clearing it. No
 // caller asks, because every return in outer_loop () calls this and returns.
+//
+// The keypress thread can display the status while this runs, and part of what status_display () reads
+// is live context rather than the snapshot. It holds mux_display for the whole display, so taking the
+// lock here lets a display finish before anything is freed and keeps the next one waiting until every
+// context is back to zero.
 
 static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_display);
+
   #ifdef WITH_BRAIN
   brain_ctx_destroy       (hashcat_ctx);
   #endif
@@ -945,6 +1045,8 @@ static void outer_loop_destroy (hashcat_ctx_t *hashcat_ctx)
   status_progress_destroy (hashcat_ctx);
   generic_ctx_destroy     (hashcat_ctx);
   straight_ctx_destroy    (hashcat_ctx);
+
+  hc_thread_mutex_unlock (status_ctx->mux_display);
 }
 
 // The monitor and outfile-check threads read the contexts outer_loop_destroy () gives back, so they
@@ -996,9 +1098,26 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_HASHCONFIG_PRE);
 
+  // Every reason hashconfig_init () fails for has already been logged by the time it returns, and
+  // three earlier callers see the same failure first: user_options_check_files (), bridges_init ()
+  // and autodetect. So a reason that reaches this call is one only this call can see, which means
+  // the hash-mode is not what is wrong with it. Naming the mode here sent the reader after the
+  // wrong thing. The mode is named where a missing module ends the run instead, in
+  // user_options_check_files ().
+
   if (hashconfig_init (hashcat_ctx) == -1)
   {
-    event_log_error (hashcat_ctx, "Invalid hash-mode '%u' selected.", user_options->hash_mode);
+    outer_loop_destroy (hashcat_ctx);
+
+    return -1;
+  }
+
+  // A mode taken from autodetect or from --dynamic-x was not known when user_options_check_files ()
+  // held the options against the module, so it is asked here. A mode that was known has answered.
+
+  if (option_table_check_module (hashcat_ctx, OPTION_MODULE_SAY | OPTION_MODULE_RANGE) == -1)
+  {
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
 
     outer_loop_destroy (hashcat_ctx);
 
@@ -1011,6 +1130,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   user_options_extra_init_late (hashcat_ctx);
 
   EVENT (EVENT_HASHCONFIG_POST);
+
+  // Modes without a self-test hash need a module-supplied benchmark salt. Mode 4000 without
+  // --hash-recipe has neither, so --benchmark-all skips it instead of stopping the whole run. See
+  // hashes_init_benchmark ().
+
+  if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
+  {
+    if ((hashconfig->st_hash == NULL) && (module_ctx->module_benchmark_salt == MODULE_DEFAULT))
+    {
+      outer_loop_destroy (hashcat_ctx);
+
+      return 0;
+    }
+  }
 
   /**
    * deprecated notice
@@ -1051,6 +1184,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
         outer_loop_destroy (hashcat_ctx);
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return 0;
       }
     }
@@ -1089,6 +1224,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     if (hashes->hashes_cnt == 0)
     {
       event_log_error (hashcat_ctx, "No hashes loaded.");
+
+      status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
       outer_loop_destroy (hashcat_ctx);
 
@@ -1206,6 +1343,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     event_log_error (hashcat_ctx, "Not enough hashes loaded - minimum is %u for this hash-mode.", hashconfig->hashes_count_min);
 
+    status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
+
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1214,6 +1353,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (hashes->digests_cnt > hashconfig->hashes_count_max)
   {
     event_log_error (hashcat_ctx, "Too many hashes loaded - maximum is %u for this hash-mode.", hashconfig->hashes_count_max);
+
+    status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
     outer_loop_destroy (hashcat_ctx);
 
@@ -1389,45 +1530,28 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   // Whether the device engine runs is settled by the feed, not by the attack mode: -a 4, -a 5 and a
   // feed on -a 8 or -a 9 all reach it, and any of them falls back to the host engine when the feed
-  // has no base word for it. So a loop count can only be judged here, once generic_ctx_init () has
-  // answered. On the device engine a base word becomes its whole cell of candidates in one launch,
-  // the kernel takes that bound from the cell it was handed, and kernel_loops reaches nothing. A
-  // value set there would travel to the status display and to no launch at all, so --force does not
-  // open this one either.
-
-  // Unless the rules are applied inside the engine. Then the inner loop is the rule chunk, exactly as
-  // it is for the straight kernel, and kernel_loops is what sizes it, so -u reaches a launch again.
-
-  if ((user_options->kernel_loops_chgd == true) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == false))
-  {
-    event_log_error (hashcat_ctx, "The -u option (or --kernel-loops) does not apply to this attack.");
-
-    event_log_warning (hashcat_ctx, "The device engine turns a base word into its whole cell of candidates in one launch, so there is no loop count to set.");
-    event_log_warning (hashcat_ctx, NULL);
-
-    outer_loop_destroy (hashcat_ctx);
-
-    return -1;
-  }
-
-  // -j and -k are refused on the device engine for the same reason, and whether it runs is settled in
-  // the same place: generic_ctx_init () above, so this asks the feed rather than the attack mode.
+  // has no base word for it. So the options the engine has no use for can only be judged here, once
+  // generic_ctx_init () has answered.
   //
-  // Both name a rule for one side of a candidate, and the device engine's candidate has no sides: a
-  // base word becomes a cell of candidates whose bytes come from the grammar's terminals, and only the
-  // runs a structure copies out of the base word ever read what the host handed over. So -j reaches
-  // some candidates and not others, and -k reaches none at all, because a feed's cell is not an
-  // amplifier the host fills and no producer reads rule_buf_amp on this path.
+  // On the device engine a base word becomes its whole cell of candidates in one launch, the kernel
+  // takes that bound from the cell it was handed, and kernel_loops reaches nothing, unless the rules
+  // are applied inside the engine. Then the inner loop is the rule chunk, exactly as it is for the
+  // straight kernel, and kernel_loops is what sizes it.
+  //
+  // -j and -k both name a rule for one side of a candidate, and the device engine's candidate has no
+  // sides: a base word becomes a cell of candidates whose bytes come from the grammar's terminals, and
+  // only the runs a structure copies out of the base word ever read what the host handed over.
 
-  if (((user_options->rule_buf_l_chgd == true) || (user_options->rule_buf_r_chgd == true)) && (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_enable == true))
+  const generic_global_ctx_t *base_global = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx;
+
+  u32 feed_failed = 0;
+
+  if (base_global->dev_enable == true) feed_failed |= LATE_FEED_ENGINE;
+
+  if ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (base_global->dev_rules == false)) feed_failed |= LATE_FEED_ENGINE_LOOPS;
+
+  if (option_table_check_feed (hashcat_ctx, feed_failed) == -1)
   {
-    event_log_error (hashcat_ctx, "The -j and -k options (or --rule-left/--rule-right) do not apply while the device engine makes the candidates.");
-
-    event_log_warning (hashcat_ctx, "The engine builds a candidate out of the grammar rather than out of the base word, so a rule on the base word reaches only part of what it generates.");
-    event_log_warning (hashcat_ctx, "Use -r instead, which the engine applies to every candidate it makes.");
-    event_log_warning (hashcat_ctx, "The same attack keeps -j and -k wherever the host makes the candidates, which is any slow hash, --stdout and --slow-candidates.");
-    event_log_warning (hashcat_ctx, NULL);
-
     outer_loop_destroy (hashcat_ctx);
 
     return -1;
@@ -1509,7 +1633,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     if (straight_ctx->dicts_cnt > 1)
     {
-      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with multiple dictionaries or --stdout.");
+      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with multiple dictionaries.");
 
       outer_loop_destroy (hashcat_ctx);
 
@@ -1545,19 +1669,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
       return -1;
     }
-  }
-
-  /**
-   * prevent the user from using -m/--hash-type together with --stdout
-   */
-
-  if (user_options->hash_mode_chgd == true && user_options->stdout_flag == true)
-  {
-    event_log_error (hashcat_ctx, "Use of -m/--hash-type is not supported with --stdout.");
-
-    outer_loop_destroy (hashcat_ctx);
-
-    return -1;
   }
 
   /**
@@ -1600,12 +1711,19 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     if ((user_options->benchmark == true) && (user_options->hash_mode_chgd == false))
     {
+      // STATUS_INIT would end the sweep as an error when this is its last mode, see the feed that
+      // describes its attack further up
+
+      status_ctx->devices_status = STATUS_RUNNING;
+
       outer_loop_destroy (hashcat_ctx);
 
       return 0;
     }
 
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
+
+    bridges_failed (hashcat_ctx);
 
     outer_loop_destroy (hashcat_ctx);
 
@@ -1639,7 +1757,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   {
     if (user_options->benchmark == true)
     {
-      if (user_options->hash_mode_chgd == false)
+      // with no device left no later hash mode can run either, so that one ends the sweep
+
+      if ((user_options->hash_mode_chgd == false) && (backend_ctx->backend_devices_active > 0))
       {
         // finalize backend session
 
@@ -1648,6 +1768,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
         // clean up
 
         outer_loop_destroy (hashcat_ctx);
+
+        // as for a bridge that does not come up, above
+
+        status_ctx->devices_status = STATUS_RUNNING;
 
         return 0;
       }
@@ -1713,10 +1837,20 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
       if (device_param->st_status == ST_STATUS_FAILED)
       {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+        // A bridge that failed during the self-test said why on its own, and --self-test-disable would
+        // only move the same failure into the attack.
 
-        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
-        event_log_warning (hashcat_ctx, NULL);
+        if (status_get_rc_error (hashcat_ctx) == RC_FINAL_ERROR_BRIDGE)
+        {
+          event_log_error (hashcat_ctx, "Aborting session because the bridge failed during the self-test.");
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+
+          event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
+          event_log_warning (hashcat_ctx, NULL);
+        }
 
         backend_ctx->self_test_warnings = true;
 
@@ -1844,13 +1978,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_ctx->words_walk_base = 0;
   status_ctx->words_walk_cnt  = 0;
 
+  int rc_outer = 0;
+
   if (mask_ctx->masks_cnt)
   {
     for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
       mask_ctx->masks_pos = masks_pos;
 
-      if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+      if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
 
       if (status_ctx->run_main_level2 == false) break;
     }
@@ -1862,7 +1998,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   }
   else
   {
-    if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+    if (round_failed (hashcat_ctx, inner1_loop (hashcat_ctx)) == -10) rc_outer = -10;
   }
 
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
@@ -1917,7 +2053,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   outer_loop_destroy (hashcat_ctx);
 
-  return 0;
+  return rc_outer;
 }
 
 static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -2038,6 +2174,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * make it a bit more comfortable to use some of the special modes in hashcat
    */
 
+  user_options_benchmark_imply (hashcat_ctx);
+
   user_options_session_auto (hashcat_ctx);
 
   /**
@@ -2050,6 +2188,26 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    */
 
   if (status_ctx_init (hashcat_ctx) == -1) return -1;
+
+  /**
+   * options
+   */
+
+  // A program that fills user_options itself and calls this without the command line functions gets
+  // the same option rules as the frontend. The frontend has had its options checked already, and the
+  // table records that, so nothing is checked twice. This comes after status_ctx_init (), because a
+  // failed session is still handed to hashcat_session_destroy (), which needs it.
+
+  if (module_options_init (hashcat_ctx, install_folder, shared_folder, NULL, 0) == -1) return -1;
+
+  if (option_table_check (hashcat_ctx) == -1) return -1;
+
+  // The restore file records how far the run got, which is the same thing the status display
+  // withholds under --encrypt-with-pubkey, so it is turned off the same way --restore-disable does
+  // it. This has to happen before restore_ctx_init () and not in user_options_preprocess (), which
+  // runs after it, when the file would already have been set up.
+
+  if (user_options->encrypt_with_pubkey != NULL) user_options->restore_enable = false;
 
   /**
    * folder
@@ -2207,6 +2365,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   {
     event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
 
+    bridges_failed (hashcat_ctx);
+
     return -1;
   }
 
@@ -2243,6 +2403,26 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   return 0;
 }
 
+// hashcat_session_init () picks the installed or the portable layout by comparing install_folder with
+// the folder of the running executable. In a program built against libhashcat that executable is the
+// program, so the layout comes out portable and the folders it passed are dropped. This variant
+// takes them as given.
+//
+// shared_folder holds what hashcat ships, OpenCL/ and modules/ among it. profile_folder holds the
+// potfile and the sessions, and NULL leaves them where an installed hashcat keeps them. The cache
+// stays where an installed hashcat keeps it, and user_options->cache_path moves it as --cache-path
+// does. Windows has no per user folders, so there the profile folder holds the cache as well, and a
+// NULL profile folder means the shared one.
+
+int hashcat_session_init_folders (hashcat_ctx_t *hashcat_ctx, const char *shared_folder, const char *profile_folder, int argc, char **argv, const int comptime)
+{
+  folder_request_init (hashcat_ctx, profile_folder);
+
+  const int rc = hashcat_session_init (hashcat_ctx, NULL, shared_folder, argc, argv, comptime);
+
+  return rc;
+}
+
 // Everything autodetect_hashmode_test () builds for one module's attempt, given back in one place.
 // hash_info owns blocks of its own that hcfree () on the struct does not reach, so the loader's
 // hash_info_destroy () gives those back and the struct with them. hcfree () takes a NULL, so the two
@@ -2268,7 +2448,10 @@ static void autodetect_hashmode_test_destroy (hashes_t *hashes, void *digest, sa
   hashes->hook_salts_buf = NULL;
 }
 
-bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
+// How much of the hash input this module parses. A hash on the command line and a binary hash file are
+// one line each. hits_max and hit_map are passed on to hashes_probe_file () for a hash file.
+
+static void autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx, const u32 hits_max, u8 *hit_map, hashes_probe_t *probe)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
@@ -2276,10 +2459,12 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
+  memset (probe, 0, sizeof (hashes_probe_t));
+
   // check for file or hash on command line
   // if file, find out if binary file
 
-  if (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) return false;
+  if (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) return;
 
   if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
@@ -2296,7 +2481,7 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
     {
       hashes->hashlist_mode = HL_MODE_FILE_BINARY;
 
-      if (hc_path_read (user_options_extra->hc_hash) == false) return false;
+      if (hc_path_read (user_options_extra->hc_hash) == false) return;
 
       hashes->hashfile = user_options_extra->hc_hash;
     }
@@ -2311,25 +2496,19 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  /**
-   * load hashes, part I: find input mode
-   */
+  // A hash file is sampled as a whole rather than read up to the first line that parses, because one
+  // word of a wordlist with the shape of a hash does not make it a hash file, see autodetect_hashmodes ()
 
-  const char *hashfile      = hashes->hashfile;
-  const u32   hashlist_mode = hashes->hashlist_mode;
-
-  u32 hashlist_format = HLFMT_HASHCAT;
-
-  if (hashlist_mode == HL_MODE_FILE_PLAIN)
+  if (hashes->hashlist_mode == HL_MODE_FILE_PLAIN)
   {
-    HCFILE fp;
+    hashes_probe_file (hashcat_ctx, hashes->hashfile, HASHES_PROBE_AUTODETECT, hits_max, 0, hit_map, probe);
 
-    if (hc_fopen (&fp, hashfile, "rb") == false) return false;
-
-    hashlist_format = hlfmt_detect (hashcat_ctx, &fp, 100);
-
-    hc_fclose (&fp);
+    return;
   }
+
+  const u32 hashlist_mode = hashes->hashlist_mode;
+
+  const u32 hashlist_format = HLFMT_HASHCAT;
 
   hashes->hashlist_format = hashlist_format;
 
@@ -2388,7 +2567,7 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
     {
       autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
 
-      return false;
+      return;
     }
 
     size_t input_len = strlen (input_buf);
@@ -2407,70 +2586,12 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
     {
       autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
 
-      return false;
+      return;
     }
 
     const int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
 
     if (parser_status == PARSER_OK) success = true;
-  }
-  else if (hashlist_mode == HL_MODE_FILE_PLAIN)
-  {
-    HCFILE fp;
-
-    int error_count = 0;
-
-    if (hc_fopen (&fp, hashfile, "rb") == false)
-    {
-      autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
-
-      return false;
-    }
-
-    char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
-    while (!hc_feof (&fp))
-    {
-      const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
-
-      if (line_len == 0) continue;
-
-      char *hash_buf = NULL;
-      int   hash_len = 0;
-
-      hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
-
-      bool hash_fmt_error = false;
-
-      if (hash_len < 1)     hash_fmt_error = true;
-      if (hash_buf == NULL) hash_fmt_error = true;
-
-      if (hash_fmt_error) continue;
-
-      int parser_status = module_ctx->module_hash_decode (hashconfig, digest, salt, esalt, hook_salt, hash_info, hash_buf, hash_len);
-
-      if (parser_status == PARSER_OK)
-      {
-        success = true;
-
-        break;
-      }
-
-      // abort this list after 100 errors
-
-      if (error_count == 100)
-      {
-        break;
-      }
-      else
-      {
-        error_count++;
-      }
-    }
-
-    hcfree (line_buf);
-
-    hc_fclose (&fp);
   }
   else if (hashlist_mode == HL_MODE_FILE_BINARY)
   {
@@ -2494,13 +2615,139 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
 
   autodetect_hashmode_test_destroy (hashes, digest, salt, esalt, hook_salt, hash_info, hashes_buf);
 
-  return success;
+  probe->lines = 1;
+  probe->tried = 1;
+  probe->hit   = (success == true) ? 1 : 0;
 }
 
-int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_buf)
+// What autodetect saw of the hash file, and of the wordlist that parses best, for the message when no
+// hash-mode is offered. refused says the hash file looks like a wordlist. hash_hit counts the sampled
+// lines that any hash-mode parses, leaving out the partial hits of a mode that words pass for, and
+// wordlike_hit says whether there were any. word_name is the hash-mode the wordlist parses as.
+
+typedef struct autodetect_probe
+{
+  bool refused;
+
+  u32 hash_tried;
+  u32 hash_hit;
+
+  bool wordlike_hit;
+
+  const char *word_file;
+  char       *word_name;
+
+  hashes_probe_t word;
+
+} autodetect_probe_t;
+
+typedef enum autodetect_load
+{
+  AUTODETECT_LOAD_SKIP  = 0,
+  AUTODETECT_LOAD_NOUSE = 1,
+  AUTODETECT_LOAD_READY = 2,
+
+} autodetect_load_t;
+
+// Loads one hash-mode for autodetect. SKIP means there is nothing to try and nothing loaded. NOUSE and
+// READY both leave the hashconfig for the caller to destroy, and only READY can be tried.
+
+static autodetect_load_t autodetect_hashmode_load (hashcat_ctx_t *hashcat_ctx, const u32 hash_mode, char *modulefile, const bool username_sav)
 {
   folder_config_t      *folder_config      = hashcat_ctx->folder_config;
   module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  user_options->hash_mode = hash_mode;
+
+  // this is just to find out of that hash-mode exists or not
+
+  module_filename (folder_config, hash_mode, modulefile, HCBUFSIZ_TINY);
+
+  if (hc_path_exist (modulefile) == false) return AUTODETECT_LOAD_SKIP;
+
+  // an old number loads the module of its new number, so a module file left under it by an
+  // earlier build or install would detect the hash-mode twice
+
+  if (module_hash_mode_resolve (hash_mode) != hash_mode) return AUTODETECT_LOAD_SKIP;
+
+  // a module that could not be loaded was reported when the options were collected
+
+  if (module_options_broken (user_options, hash_mode) == true) return AUTODETECT_LOAD_SKIP;
+
+  // we know it exists, so load the plugin
+
+  const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
+
+  // a mode that would refuse one of the options given is not a match
+
+  if (hashconfig_init_rc != 0) return AUTODETECT_LOAD_NOUSE;
+
+  if (option_table_check_module (hashcat_ctx, 0) != 0) return AUTODETECT_LOAD_NOUSE;
+
+  user_options->username = username_sav;
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    if (module_ctx->module_hash_hints == default_hash_hints) user_options->username = true;
+  }
+
+  return AUTODETECT_LOAD_READY;
+}
+
+// The wordlist that parses best as some hash-mode, for a hash file that hardly parses and an attack
+// that names a wordlist file. It can only be parsed with a mode loaded, so the modes are loaded once
+// more. A mode that words pass for, or one autodetect never offers, says nothing about which file
+// holds the hashes.
+
+static void autodetect_wordlists (hashcat_ctx_t *hashcat_ctx, autodetect_probe_t *probe, char *modulefile, const bool username_sav)
+{
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  for (u32 i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  {
+    const autodetect_load_t load = autodetect_hashmode_load (hashcat_ctx, i, modulefile, username_sav);
+
+    if (load == AUTODETECT_LOAD_SKIP) continue;
+
+    // a mode that reads its hash from a binary file takes a line of text as the name of that file
+
+    const bool binary = ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) != 0) && ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL) == 0);
+
+    const bool offered = (load == AUTODETECT_LOAD_READY) && ((hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) == 0) && (binary == false);
+
+    if ((offered == true) && (hashes_probe_wordlike (hashconfig) == false))
+    {
+      const char *word_file = NULL;
+
+      hashes_probe_t word;
+
+      hashes_probe_wordlists (hashcat_ctx, HASHES_PROBE_WORDLIST, 0, &word_file, &word);
+
+      if ((word_file != NULL) && (word.hit > 0) && ((probe->word_file == NULL) || (((u64) word.hit * probe->word.tried) > ((u64) probe->word.hit * word.tried))))
+      {
+        hcfree (probe->word_name);
+
+        probe->word_file = word_file;
+        probe->word_name = hcstrdup (hashconfig->hash_name);
+
+        memcpy (&probe->word, &word, sizeof (hashes_probe_t));
+      }
+    }
+
+    hashconfig_destroy (hashcat_ctx);
+
+    // nothing parses better than all of it
+
+    if ((probe->word_file != NULL) && (probe->word.hit == probe->word.tried)) break;
+  }
+}
+
+static int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_buf, autodetect_probe_t *probe)
+{
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -2527,40 +2774,89 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
   if (modulefile == NULL) return -1;
 
+  // Which of the sampled lines of a hash file the mode being tried parses, and which any mode does.
+  // Any wordlist has a few lines with the shape of some hash, so a file is refused as a wordlist when
+  // the modes together parse less than a tenth of it. Counting each mode on its own would refuse a hash
+  // file that holds many hash types, one line each.
+
+  u8 *hit_map = (u8 *) hcmalloc (HASHES_PROBE_AUTODETECT);
+  u8 *any_map = (u8 *) hcmalloc (HASHES_PROBE_AUTODETECT);
+
+  u32 any_tried = 0;
+  u32 any_hit   = 0;
+
+  bool sampled    = false;
+  bool binary_hit = false;
+
+  // --force and --identify only ask whether a mode parses a line at all. --identify is asked what the
+  // lines could be, and it loads nothing. -a 9 splitting its own hash file is left out as well: whether
+  // a line is split is decided per mode there, so the modes would not count the same lines.
+
+  const bool counted = (user_options->force == false) && (user_options->identify == false) && (user_options_extra->association_autosplit == false);
+
   // brute force all the modes
 
-  for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  for (u32 i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
   {
-    user_options->hash_mode = i;
+    const autodetect_load_t load = autodetect_hashmode_load (hashcat_ctx, i, modulefile, username_sav);
 
-    // this is just to find out of that hash-mode exists or not
+    if (load == AUTODETECT_LOAD_SKIP) continue;
 
-    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
-
-    if (hc_path_exist (modulefile) == false) continue;
-
-    // we know it exists, so load the plugin
-
-    const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
-
-    if (hashconfig_init_rc == 0)
+    if (load == AUTODETECT_LOAD_READY)
     {
-      user_options->username = username_sav;
+      // Once the modes so far parse a tenth of the sample, the file is not going to be refused, and the
+      // rest of the modes are read up to their first hit only. Until then a mode stops as soon as it
+      // settles the question on its own, which keeps a decoder that costs a lot per line, like the one
+      // of BitLocker, from running over the whole sample of a real hash file.
 
-      if (user_options_extra->association_autosplit == true)
+      const bool settled = (counted == false) || ((sampled == true) && (hashes_probe_few (any_hit, any_tried, false) == false));
+
+      const bool wordlike = hashes_probe_wordlike (hashconfig);
+
+      u32 hits_max = HASHES_PROBE_AUTODETECT / ((wordlike == true) ? 2 : 10);
+
+      if (settled == true) hits_max = 1;
+
+      memset (hit_map, 0, HASHES_PROBE_AUTODETECT);
+
+      hashes_probe_t test;
+
+      autodetect_hashmode_test (hashcat_ctx, hits_max, hit_map, &test);
+
+      if (test.hit > 0)
       {
-        if (module_ctx->module_hash_hints == default_hash_hints) user_options->username = true;
-      }
-
-      const bool test_rc = autodetect_hashmode_test (hashcat_ctx);
-
-      if (test_rc == true)
-      {
-        usage_sort_buf[usage_sort_cnt].hash_mode     = hashcat_ctx->hashconfig->hash_mode;
-        usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashcat_ctx->hashconfig->hash_name);
-        usage_sort_buf[usage_sort_cnt].hash_category = hashcat_ctx->hashconfig->hash_category;
+        usage_sort_buf[usage_sort_cnt].hash_mode     = hashconfig->hash_mode;
+        usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashconfig->hash_name);
+        usage_sort_buf[usage_sort_cnt].hash_category = hashconfig->hash_category;
 
         usage_sort_cnt++;
+      }
+
+      // a binary hash file that a mode reads is a hash file, whatever its bytes look like as lines
+
+      if ((hashes->hashlist_mode == HL_MODE_FILE_BINARY) && (test.hit > 0)) binary_hit = true;
+
+      // A mode that words pass for parses part of any wordlist, so its lines count only when it takes
+      // half of the sample, the way it does with a real hash file of its own.
+
+      if ((settled == false) && (hashes->hashlist_mode == HL_MODE_FILE_PLAIN) && (test.tried > 0))
+      {
+        sampled = true;
+
+        any_tried = (any_tried == 0) ? test.tried : MIN (any_tried, test.tried);
+
+        if ((wordlike == true) && (hashes_probe_few (test.hit, test.tried, true) == true))
+        {
+          if (test.hit > 0) probe->wordlike_hit = true;
+        }
+        else
+        {
+          for (u32 j = 0; j < HASHES_PROBE_AUTODETECT; j++) any_map[j] |= hit_map[j];
+        }
+
+        any_hit = 0;
+
+        for (u32 j = 0; j < HASHES_PROBE_AUTODETECT; j++) any_hit += any_map[j];
       }
     }
 
@@ -2568,6 +2864,21 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
     hashconfig_destroy (hashcat_ctx);
   }
+
+  // A file that no mode parses a line of is not called a wordlist, unless words passed for short hashes
+  // in it. It may just as well hold hashes that only a mode autodetect does not try can read, and "No
+  // hash-mode matches" is the true answer for that.
+
+  const bool few = (sampled == true) && (binary_hit == false) && (hashes_probe_few (any_hit, any_tried, false) == true);
+
+  probe->refused    = (few == true) && ((any_hit > 0) || (probe->wordlike_hit == true));
+  probe->hash_tried = any_tried;
+  probe->hash_hit   = any_hit;
+
+  if ((few == true) && (hashes_probe_has_wordlist (hashcat_ctx) == true)) autodetect_wordlists (hashcat_ctx, probe, modulefile, username_sav);
+
+  hcfree (hit_map);
+  hcfree (any_map);
 
   hcfree (modulefile);
 
@@ -2583,11 +2894,12 @@ int autodetect_hashmodes (hashcat_ctx_t *hashcat_ctx, usage_sort_t *usage_sort_b
 
 int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  logfile_ctx_t   *logfile_ctx   = hashcat_ctx->logfile_ctx;
-  status_ctx_t    *status_ctx    = hashcat_ctx->status_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
-  backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
 
   // start logfile entry
 
@@ -2631,18 +2943,63 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (usage_sort_buf == NULL) return -1;
 
-    const int modes_cnt = autodetect_hashmodes (hashcat_ctx, usage_sort_buf);
+    autodetect_probe_t probe;
+
+    memset (&probe, 0, sizeof (probe));
+
+    int modes_cnt = autodetect_hashmodes (hashcat_ctx, usage_sort_buf, &probe);
+
+    // a hash file refused as a wordlist offers none of the modes its odd lines matched
+
+    if (probe.refused == true)
+    {
+      for (int i = 0; i < modes_cnt; i++) hcfree (usage_sort_buf[i].hash_name);
+
+      modes_cnt = 0;
+    }
 
     if (modes_cnt <= 0)
     {
-      if (user_options->show == false)
+      // John writes the format into the line and autodetect does not read it, so a hash that
+      // came from John lands here with nothing to go on
+
+      const bool john = (dynamicx_first_number (hashcat_ctx) >= 0);
+
+      const bool swapped = (probe.word_file != NULL) && (hashes_probe_most (probe.word.hit, probe.word.tried) == true);
+
+      // A refusal is said with --show as well. --show stays quiet about a hash nothing matches, but a
+      // file it refused may have matched before, and it would have said nothing about why it stopped.
+
+      if ((john == false) && (swapped == true))
+      {
+        event_log_error (hashcat_ctx, "The hash file and the wordlist look swapped: %u of %u lines of %s parse as a hash, but %u of %u lines of %s parse as %s.", probe.hash_hit, probe.hash_tried, user_options_extra->hc_hash, probe.word.hit, probe.word.tried, probe.word_file, probe.word_name);
+
+        event_log_warning (hashcat_ctx, "Name the hash file first, then the wordlist. Use --force to auto-detect from them as given.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      }
+      else if ((john == false) && (probe.refused == true))
+      {
+        if (probe.wordlike_hit == true)
+        {
+          event_log_error (hashcat_ctx, "%s: %u of %u lines parse as a hash, leaving out short hashes that ordinary words pass for. This looks like a wordlist, not a hash file.", user_options_extra->hc_hash, probe.hash_hit, probe.hash_tried);
+        }
+        else
+        {
+          event_log_error (hashcat_ctx, "%s: only %u of %u lines parse as a hash. This looks like a wordlist, not a hash file.", user_options_extra->hc_hash, probe.hash_hit, probe.hash_tried);
+        }
+
+        event_log_warning (hashcat_ctx, "If it is a wordlist, name the hash file first. If it is a hash file, give its hash-mode with -m.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+      }
+      else if (user_options->show == false)
       {
         event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
 
-        // John writes the format into the line and autodetect does not read it, so a hash that
-        // came from John lands here with nothing to go on
-
-        if (dynamicx_first_number (hashcat_ctx) >= 0)
+        if (john == true)
         {
           event_log_warning (hashcat_ctx, NULL);
           event_log_warning (hashcat_ctx, "This hash is in John's $dynamic_N$ format. Add --dynamic-x to load it.");
@@ -2650,13 +3007,52 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
+      hcfree (probe.word_name);
       hcfree (usage_sort_buf);
 
       return -1;
     }
 
+    hcfree (probe.word_name);
+
     if (modes_cnt > 1)
     {
+      // --json prints the matches as one object. Hash-mode names are fixed module
+      // strings without quote or backslash bytes, so they need no JSON escaping.
+
+      if ((user_options->json == true) && (user_options->identify == true))
+      {
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+
+        for (int i = 0; i < modes_cnt; i++)
+        {
+          json_object_begin (&js);
+          json_kv_uint   (&js, "hash_mode", usage_sort_buf[i].hash_mode);
+          json_kv_string (&js, "name", usage_sort_buf[i].hash_name);
+          json_kv_string (&js, "category", strhashcategory (usage_sort_buf[i].hash_category));
+          json_object_end (&js);
+
+          hcfree (usage_sort_buf[i].hash_name);
+        }
+
+        json_array_end (&js);
+        json_object_end (&js);
+
+        fwrite (EOL, strlen (EOL), 1, stdout);
+
+        fflush (stdout);
+
+        hcfree (usage_sort_buf);
+
+        return 0;
+      }
+
       if (user_options->machine_readable == false)
       {
         event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
@@ -2687,6 +3083,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Please specify the hash-mode with -m [hash-mode].");
 
+        status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
         return -1;
       }
 
@@ -2703,7 +3101,28 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->identify == true)
     {
-      if (user_options->machine_readable == true)
+      if (user_options->json == true)
+      {
+        json_ctx_t js;
+
+        json_init (&js, stdout);
+
+        json_object_begin (&js);
+        json_key (&js, "modes");
+        json_array_begin (&js);
+        json_object_begin (&js);
+        json_kv_uint   (&js, "hash_mode", usage_sort_buf[0].hash_mode);
+        json_kv_string (&js, "name", usage_sort_buf[0].hash_name);
+        json_kv_string (&js, "category", strhashcategory (usage_sort_buf[0].hash_category));
+        json_object_end (&js);
+        json_array_end (&js);
+        json_object_end (&js);
+
+        fwrite (EOL, strlen (EOL), 1, stdout);
+
+        fflush (stdout);
+      }
+      else if (user_options->machine_readable == true)
       {
         event_log_info (hashcat_ctx, "%u", usage_sort_buf[0].hash_mode);
       }
@@ -2829,12 +3248,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   else if (rc_final == -1)
   {
     // set up the new negative status code, useful in test.py
-    // -2 is marked as used in status_codes.txt
+    // -2, -12 and -13 are set in main (), and -7 is reserved in docs/exit_status_code.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
     if (backend_ctx->kernel_build_warning  == true)               rc_final = -5;
     if (backend_ctx->kernel_create_warning == true)               rc_final = -6;
-    if (backend_ctx->kernel_accel_warnings == true)               rc_final = -7;
     if (backend_ctx->extra_size_warning    == true)               rc_final = -8;
     if (backend_ctx->mixed_warnings        == true)               rc_final = -9;
     if (backend_ctx->self_test_warnings    == true)               rc_final = -11;
@@ -2900,6 +3318,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_destroy           (hashcat_ctx);
   folder_config_destroy       (hashcat_ctx);
+  folder_request_destroy      (hashcat_ctx);
   hwmon_ctx_destroy           (hashcat_ctx);
   induct_ctx_destroy          (hashcat_ctx);
   logfile_destroy             (hashcat_ctx);

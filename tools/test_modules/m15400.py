@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-import random
+from lib.test_helpers import random_number
 
 # ChaCha20 in the OpenSSH "original" layout: 64 bit block counter in words 12 and 13, 64 bit iv in
 # words 14 and 15, both little endian. Matches Crypt::OpenSSH::ChachaPoly ivsetup and encrypt.
@@ -86,7 +86,7 @@ def module_generate_hash(word, salt=None, param=None, param2=None, param3=None):
     iv = param3
   else:
     counter = "0400000000000003"
-    offset = int(random.random() * 63)
+    offset = random_number(0, 62)
     iv = "0200000000000001"
 
   ks = _keystream(word, bytes.fromhex(counter), bytes.fromhex(iv), len(PLAINTEXT))

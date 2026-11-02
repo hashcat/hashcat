@@ -17,7 +17,7 @@
 #error "a bridge names the plugin interface it is built against: -DHC_PLUGIN_ABI_VERSION=<n>, see docs/hashcat-plugin-development-guide.md"
 #endif
 
-static const int BRIDGE_INTERFACE_VERSION_MINIMUM = 720;
+static const int BRIDGE_INTERFACE_VERSION_MINIMUM = 800;
 
 static const size_t BRIDGE_CONTEXT_SIZE_CURRENT = sizeof (bridge_ctx_t);
 
@@ -34,6 +34,7 @@ bool  bridge_active            (hashcat_ctx_t *hashcat_ctx, const int bridge_lin
 bool  bridge_same_unit_class   (hashcat_ctx_t *hashcat_ctx, const int unit_a, const int unit_b);
 u32   bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
 u32   bridge_workitem_count    (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
+bool  bridge_unit_tuning       (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device, const double target_msec, u32 *kernel_accel, u32 *kernel_loops);
 
 // Attack mode 9 gives every candidate its own salt. The kernel reads it at pws_pos + gid and a
 // hook does the same sum on the host through salt_per_pw, so a bridge, which reaches neither, works it
@@ -63,6 +64,7 @@ bool  bridges_init_late (hashcat_ctx_t *hashcat_ctx);
 void  bridges_destroy   (hashcat_ctx_t *hashcat_ctx);
 
 bool  bridges_salt_prepare (hashcat_ctx_t *hashcat_ctx);
+void  bridges_failed       (hashcat_ctx_t *hashcat_ctx);
 void  bridges_salt_destroy (hashcat_ctx_t *hashcat_ctx);
 
 #endif // HC_BRIDGE_H

@@ -76,7 +76,7 @@ what a per mode format deserves: an input that reaches deep into the pkzip parse
 about sha256crypt.
 
 `FUZZ_MODES` in `build.sh` holds the list, four to begin with rather than all 600: 17225 and 22000
-have both needed a memory safety fix in their parsers, 29100 is the mode whose overflow the
+have both needed a memory safety fix in their parsers, 40056 is the mode whose overflow the
 structural harness in `tools/asan/` only reached by accident, and 7400 carries a rounds field. Add
 a mode by putting it in that list. ci_matrix.py reads the same list, so nothing else needs changing.
 

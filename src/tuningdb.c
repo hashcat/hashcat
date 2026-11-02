@@ -10,6 +10,7 @@
 #include "filehandling.h"
 #include "folder.h"
 #include "shared.h"
+#include "interface.h"
 #include "tuningdb.h"
 
 int sort_by_tuning_db_alias (const void *v1, const void *v2)
@@ -367,6 +368,11 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
       }
     }
 
+    // A row may name a hash-mode by an old number from the alias table in interface.c. It is filed
+    // under the new number, which is the number tuning_db_search () looks up for either of the two.
+
+    if (hash_mode != -1) hash_mode = (int) module_hash_mode_resolve ((u32) hash_mode);
+
     tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
 
     entry->device_name  = hcstrdup (device_name);
@@ -561,8 +567,13 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
   return entry;
 }
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const int device_id, const cl_device_type device_type, const cl_uint device_vendor_id, const int attack_kern, const int hash_mode)
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const int device_id, const cl_device_type device_type, const cl_uint device_vendor_id, const int attack_kern, const int hash_mode_given)
 {
+  // A hash-mode given by an old number from the alias table in interface.c is looked up by its new
+  // number, where tuning_db_process_line () files the rows for either of the two.
+
+  const int hash_mode = (int) module_hash_mode_resolve ((u32) hash_mode_given);
+
   tuning_db_entry_t *entry = NULL;
 
   // A module generates its rows for one device, and they are registered under a name no vendor alias

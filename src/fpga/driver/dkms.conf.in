@@ -1,0 +1,15 @@
+#
+# Author......: See docs/credits.txt
+# License.....: MIT
+#
+
+PACKAGE_NAME="litepcie-hashcat"
+PACKAGE_VERSION="@VERSION@"
+
+BUILT_MODULE_NAME[0]="litepcie"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/misc"
+
+MAKE[0]="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build modules"
+CLEAN="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build clean"
+
+AUTOINSTALL="yes"

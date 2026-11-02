@@ -17,7 +17,7 @@
 
 #define INITVAL 0x0101010101010101UL
 
-DECLSPEC void streebog_g (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, LOCAL_AS u64 (*s_sbob_sl64)[256])
+DECLSPEC void streebog_g (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, SBOG_LOCAL_TYPE u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
@@ -99,6 +99,12 @@ KERNEL_FQ KERNEL_FA void m11700_m04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
+  #ifdef SBOG_CONSTANT_TABLES
+
+  CONSTANT_AS u64 (*s_sbob_sl64)[256] = sbob256_sl64;
+
+  #else
+
   LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -114,6 +120,8 @@ KERNEL_FQ KERNEL_FA void m11700_m04 (KERN_ATTR_BASIC ())
   }
 
   SYNC_THREADS ();
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -179,14 +187,7 @@ KERNEL_FQ KERNEL_FA void m11700_m04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -367,6 +368,12 @@ KERNEL_FQ KERNEL_FA void m11700_s04 (KERN_ATTR_BASIC ())
    * shared lookup table
    */
 
+  #ifdef SBOG_CONSTANT_TABLES
+
+  CONSTANT_AS u64 (*s_sbob_sl64)[256] = sbob256_sl64;
+
+  #else
+
   LOCAL_VK u64 s_sbob_sl64[8][256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -382,6 +389,8 @@ KERNEL_FQ KERNEL_FA void m11700_s04 (KERN_ATTR_BASIC ())
   }
 
   SYNC_THREADS ();
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -459,14 +468,7 @@ KERNEL_FQ KERNEL_FA void m11700_s04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 

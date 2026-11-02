@@ -261,6 +261,10 @@ void pw_pre_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw
 
       pw_pre->base_len = base_len;
     }
+    else
+    {
+      pw_pre->base_len = 0;
+    }
 
     pw_pre->rule_idx = rule_idx;
 
@@ -274,11 +278,20 @@ void pw_pre_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw
   }
 }
 
-void pw_base_add (pw_batch_t *batch, const u64 pws_max, pw_pre_t *pw_pre)
+void pw_base_add (pw_batch_t *batch, const u64 pws_max, const u8 *base_buf, const int base_len, const int rule_idx)
 {
   if (batch->pws_base_cnt < pws_max)
   {
-    memcpy (batch->pws_base + batch->pws_base_cnt, pw_pre, sizeof (pw_pre_t));
+    // The fields rather than a pw_pre_t, because a candidate that goes straight into the batch never
+    // had one. Only these three are what build_debugdata () reads back, and the candidate itself
+    // reaches the batch through pw_add (), so copying pw_buf here would be a second copy of it.
+
+    pw_pre_t *pw_base = batch->pws_base + batch->pws_base_cnt;
+
+    memcpy (pw_base->base_buf, base_buf, base_len);
+
+    pw_base->base_len = base_len;
+    pw_base->rule_idx = rule_idx;
 
     batch->pws_base_cnt++;
   }

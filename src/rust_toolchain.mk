@@ -64,3 +64,9 @@ define RUST_SKIP_WARNING
 @echo "         For more information, see 'docs/hashcat-rust-plugin-requirements.md'."
 @echo ""
 endef
+
+# What cargo compiles into a crate: its manifest, lock file, build script and sources. Cargo tracks
+# these itself, but make only runs cargo when a prerequisite is newer than the library, so a rule
+# that builds a crate names them.
+
+RUST_CRATE_SRC    = $(wildcard $(addprefix $(1)/,Cargo.toml Cargo.lock build.rs src/*.rs src/*/*.rs src/*.h))

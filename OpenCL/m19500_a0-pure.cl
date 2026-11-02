@@ -84,12 +84,12 @@ KERNEL_FQ KERNEL_FA void m19500_mxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].site_key_buf[idx]);
   }
 
   // precompute some stuff
@@ -231,12 +231,12 @@ KERNEL_FQ KERNEL_FA void m19500_sxx (KERN_ATTR_RULES_ESALT (devise_hash_t))
 
   for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
-    s[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].salt_buf[idx]);
+    s[idx] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[idx]);
   }
 
   for (int i = 0, idx = 0; i < site_key_len; i += 4, idx += 1)
   {
-    k[idx] = hc_swap32_S (esalt_bufs[SALT_POS_HOST].site_key_buf[idx]);
+    k[idx] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].site_key_buf[idx]);
   }
 
   // precompute some stuff

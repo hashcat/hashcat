@@ -93,14 +93,17 @@ KERNEL_FQ KERNEL_FA void m37400_mxx (KERN_ATTR_ESALT (racf_ph_t))
 
   if (gid >= GID_CNT) return;
 
-  u32 pw_buf[32] = { 0 };
+  // A RACF password phrase runs to 100 bytes, past the 64 the combinator word registers hold, so
+  // the candidate is assembled as bytes. The EBCDIC step below masks everything past pw_len, so bytes
+  // a longer candidate left behind do no harm.
 
-  for (u32 i = 0; i < 32; i++)
-  {
-    pw_buf[i] = pws[gid].i[i];
-  }
+  u32 w[64] = { 0 };
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
+  PRIVATE_AS u8 *w_ptr = (PRIVATE_AS u8 *) w;
+
+  const u32 pw_l_len = pws[gid].pw_len;
+
+  combs_copy_bytes (w_ptr, 0, pws[gid].i, pw_l_len);
 
   u32 salt_buf[2];
 
@@ -112,135 +115,34 @@ KERNEL_FQ KERNEL_FA void m37400_mxx (KERN_ATTR_ESALT (racf_ph_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
-
-    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
+    const u32 pw_len = pw_l_len + combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
     if (pw_len != ph_pw_len) continue;
-
-    u32 wordl0[4] = { 0 };
-    u32 wordl1[4] = { 0 };
-    u32 wordl2[4] = { 0 };
-    u32 wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf[0];
-    wordl0[1] = pw_buf[1];
-    wordl0[2] = pw_buf[2];
-    wordl0[3] = pw_buf[3];
-    wordl1[0] = pw_buf[4];
-    wordl1[1] = pw_buf[5];
-    wordl1[2] = pw_buf[6];
-    wordl1[3] = pw_buf[7];
-    wordl2[0] = pw_buf[8];
-    wordl2[1] = pw_buf[9];
-    wordl2[2] = pw_buf[10];
-    wordl2[3] = pw_buf[11];
-    wordl3[0] = pw_buf[12];
-    wordl3[1] = pw_buf[13];
-    wordl3[2] = pw_buf[14];
-    wordl3[3] = pw_buf[15];
-
-    u32 wordr0[4] = { 0 };
-    u32 wordr1[4] = { 0 };
-    u32 wordr2[4] = { 0 };
-    u32 wordr3[4] = { 0 };
 
     #if ATTACK_MODE == 12
     if (COMBS_IS_MIDDLE)
     {
-      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
-      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
-      // last word is left in wordr, because the OR below already folds wordr in.
-      //
-      // Only the second word changes length from one amplifier item to the next. Every other offset
-      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
-      // pw_l_len costs today.
+      // -a 12 puts the base word inside the amplifier, so all five pieces are copied per item
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+      u32 comb_len = combs_copy_bytes (w_ptr, 0, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
 
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
-
-      u32 comb_off = COMBS_PRE_LEN + pw_l_len;
-
-      if (COMBS_MID_LEN > 0)
-      {
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
-
-        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-
-        comb_off += COMBS_MID_LEN;
-      }
-
-      if (COMBS_HAS_Q > 0)
-      {
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
-
-        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-
-        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
-      }
-
-      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
-
-      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, pws[gid].i,            pw_l_len);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
     }
     else
     #endif
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-      wordr2[0] = ix_create_combt (combs_buf, il_pos, 8);
-      wordr2[1] = ix_create_combt (combs_buf, il_pos, 9);
-      wordr2[2] = ix_create_combt (combs_buf, il_pos, 10);
-      wordr2[3] = ix_create_combt (combs_buf, il_pos, 11);
-      wordr3[0] = ix_create_combt (combs_buf, il_pos, 12);
-      wordr3[1] = ix_create_combt (combs_buf, il_pos, 13);
-      wordr3[2] = ix_create_combt (combs_buf, il_pos, 14);
-      wordr3[3] = ix_create_combt (combs_buf, il_pos, 15);
-
-      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
-      {
-        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-      }
-      else
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-      }
+      combs_copy_bytes (w_ptr, pw_l_len, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
+    else
+    {
+      const u32 comb_len = combs_copy_bytes (w_ptr, 0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    u32 w[26];
-
-    w[ 0] = wordl0[0] | wordr0[0];
-    w[ 1] = wordl0[1] | wordr0[1];
-    w[ 2] = wordl0[2] | wordr0[2];
-    w[ 3] = wordl0[3] | wordr0[3];
-    w[ 4] = wordl1[0] | wordr1[0];
-    w[ 5] = wordl1[1] | wordr1[1];
-    w[ 6] = wordl1[2] | wordr1[2];
-    w[ 7] = wordl1[3] | wordr1[3];
-    w[ 8] = wordl2[0] | wordr2[0];
-    w[ 9] = wordl2[1] | wordr2[1];
-    w[10] = wordl2[2] | wordr2[2];
-    w[11] = wordl2[3] | wordr2[3];
-    w[12] = wordl3[0] | wordr3[0];
-    w[13] = wordl3[1] | wordr3[1];
-    w[14] = wordl3[2] | wordr3[2];
-    w[15] = wordl3[3] | wordr3[3];
+      combs_copy_bytes (w_ptr, comb_len, pws[gid].i, pw_l_len);
+    }
 
     const u32 pw_u32_cnt = (pw_len + 3) / 4;
 
@@ -370,14 +272,17 @@ KERNEL_FQ KERNEL_FA void m37400_sxx (KERN_ATTR_ESALT (racf_ph_t))
 
   if (gid >= GID_CNT) return;
 
-  u32 pw_buf[32] = { 0 };
+  // A RACF password phrase runs to 100 bytes, past the 64 the combinator word registers hold, so
+  // the candidate is assembled as bytes. The EBCDIC step below masks everything past pw_len, so bytes
+  // a longer candidate left behind do no harm.
 
-  for (u32 i = 0; i < 32; i++)
-  {
-    pw_buf[i] = pws[gid].i[i];
-  }
+  u32 w[64] = { 0 };
 
-  const u32 pw_l_len = pws[gid].pw_len & 63;
+  PRIVATE_AS u8 *w_ptr = (PRIVATE_AS u8 *) w;
+
+  const u32 pw_l_len = pws[gid].pw_len;
+
+  combs_copy_bytes (w_ptr, 0, pws[gid].i, pw_l_len);
 
   u32 salt_buf[2];
 
@@ -397,135 +302,34 @@ KERNEL_FQ KERNEL_FA void m37400_sxx (KERN_ATTR_ESALT (racf_ph_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    const u32 pw_r_len = COMBS_PW_R_LEN (il_pos) & 63;
-
-    const u32 pw_len = (pw_l_len + pw_r_len) & 63;
+    const u32 pw_len = pw_l_len + combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
     if (pw_len != ph_pw_len) continue;
-
-    u32 wordl0[4] = { 0 };
-    u32 wordl1[4] = { 0 };
-    u32 wordl2[4] = { 0 };
-    u32 wordl3[4] = { 0 };
-
-    wordl0[0] = pw_buf[0];
-    wordl0[1] = pw_buf[1];
-    wordl0[2] = pw_buf[2];
-    wordl0[3] = pw_buf[3];
-    wordl1[0] = pw_buf[4];
-    wordl1[1] = pw_buf[5];
-    wordl1[2] = pw_buf[6];
-    wordl1[3] = pw_buf[7];
-    wordl2[0] = pw_buf[8];
-    wordl2[1] = pw_buf[9];
-    wordl2[2] = pw_buf[10];
-    wordl2[3] = pw_buf[11];
-    wordl3[0] = pw_buf[12];
-    wordl3[1] = pw_buf[13];
-    wordl3[2] = pw_buf[14];
-    wordl3[3] = pw_buf[15];
-
-    u32 wordr0[4] = { 0 };
-    u32 wordr1[4] = { 0 };
-    u32 wordr2[4] = { 0 };
-    u32 wordr3[4] = { 0 };
 
     #if ATTACK_MODE == 12
     if (COMBS_IS_MIDDLE)
     {
-      // -a 12 assembles five pieces in these two register sets: mask, base word, mask, second word,
-      // mask. wordl is the accumulator and wordr carries one piece at a time. The piece behind the
-      // last word is left in wordr, because the OR below already folds wordr in.
-      //
-      // Only the second word changes length from one amplifier item to the next. Every other offset
-      // is a property of the mask, so those shifts are by a scalar and cost what the shift by
-      // pw_l_len costs today.
+      // -a 12 puts the base word inside the amplifier, so all five pieces are copied per item
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
+      u32 comb_len = combs_copy_bytes (w_ptr, 0, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
 
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
-
-      u32 comb_off = COMBS_PRE_LEN + pw_l_len;
-
-      if (COMBS_MID_LEN > 0)
-      {
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_MID, wordr0, wordr1, wordr2, wordr3);
-
-        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-
-        comb_off += COMBS_MID_LEN;
-      }
-
-      if (COMBS_HAS_Q > 0)
-      {
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_WORD, wordr0, wordr1, wordr2, wordr3);
-
-        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-
-        comb_off += pwlenx_create_combp (combs_buf, il_pos, COMBS_PIECE_WORD);
-      }
-
-      combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_POST, wordr0, wordr1, wordr2, wordr3);
-
-      if (COMBS_POST_LEN > 0) switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, comb_off);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, pws[gid].i,            pw_l_len);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      comb_len = combs_copy_bytes (w_ptr, comb_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
     }
     else
     #endif
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      wordr0[0] = ix_create_combt (combs_buf, il_pos, 0);
-      wordr0[1] = ix_create_combt (combs_buf, il_pos, 1);
-      wordr0[2] = ix_create_combt (combs_buf, il_pos, 2);
-      wordr0[3] = ix_create_combt (combs_buf, il_pos, 3);
-      wordr1[0] = ix_create_combt (combs_buf, il_pos, 4);
-      wordr1[1] = ix_create_combt (combs_buf, il_pos, 5);
-      wordr1[2] = ix_create_combt (combs_buf, il_pos, 6);
-      wordr1[3] = ix_create_combt (combs_buf, il_pos, 7);
-      wordr2[0] = ix_create_combt (combs_buf, il_pos, 8);
-      wordr2[1] = ix_create_combt (combs_buf, il_pos, 9);
-      wordr2[2] = ix_create_combt (combs_buf, il_pos, 10);
-      wordr2[3] = ix_create_combt (combs_buf, il_pos, 11);
-      wordr3[0] = ix_create_combt (combs_buf, il_pos, 12);
-      wordr3[1] = ix_create_combt (combs_buf, il_pos, 13);
-      wordr3[2] = ix_create_combt (combs_buf, il_pos, 14);
-      wordr3[3] = ix_create_combt (combs_buf, il_pos, 15);
-
-      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
-      {
-        switch_buffer_by_offset_le_VV (wordr0, wordr1, wordr2, wordr3, pw_l_len);
-      }
-      else
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, pw_r_len);
-      }
+      combs_copy_bytes (w_ptr, pw_l_len, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
+    else
+    {
+      const u32 comb_len = combs_copy_bytes (w_ptr, 0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    u32 w[26];
-
-    w[ 0] = wordl0[0] | wordr0[0];
-    w[ 1] = wordl0[1] | wordr0[1];
-    w[ 2] = wordl0[2] | wordr0[2];
-    w[ 3] = wordl0[3] | wordr0[3];
-    w[ 4] = wordl1[0] | wordr1[0];
-    w[ 5] = wordl1[1] | wordr1[1];
-    w[ 6] = wordl1[2] | wordr1[2];
-    w[ 7] = wordl1[3] | wordr1[3];
-    w[ 8] = wordl2[0] | wordr2[0];
-    w[ 9] = wordl2[1] | wordr2[1];
-    w[10] = wordl2[2] | wordr2[2];
-    w[11] = wordl2[3] | wordr2[3];
-    w[12] = wordl3[0] | wordr3[0];
-    w[13] = wordl3[1] | wordr3[1];
-    w[14] = wordl3[2] | wordr3[2];
-    w[15] = wordl3[3] | wordr3[3];
+      combs_copy_bytes (w_ptr, comb_len, pws[gid].i, pw_l_len);
+    }
 
     const u32 pw_u32_cnt = (pw_len + 3) / 4;
 

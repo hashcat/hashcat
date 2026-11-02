@@ -5,8 +5,7 @@
 ## License.....: MIT
 ##
 
-import crypt_r
-
+from lib import libcrypt
 from lib import yescrypt
 from lib.test_helpers import random_string, split_hash_word
 
@@ -23,7 +22,7 @@ def module_generate_hash(word, salt, iterations=None, params="j9T"):
 
   setting = "$gy$%s$%s$" % (params, yescrypt.encode64(salt.encode("latin-1")))
 
-  return crypt_r.crypt(word.decode("utf-8"), setting)
+  return libcrypt.crypt(word.decode("utf-8"), setting)
 
 
 def module_verify_hash(line):

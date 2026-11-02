@@ -143,6 +143,8 @@ __Some options are refused.__ These would write a password, its source word, or 
 | `--debug-file` | Records the originating word in the clear |
 | `--debug-mode` | Records the originating word in the clear |
 | `--restore` | A protected run writes no restore file, so no restore state is available |
+| `--show` | Prints the potfile as it is, and plains from unprotected runs are in it in the clear. Run `--show` without the option to get the encrypted entries |
+| `--stdout` | Prints every candidate in the clear |
 
 __The key must be RSA and large enough for every payload.__ Elliptic-curve and Ed25519 keys are rejected. hashcat checks the key size at startup before beginning the attack. With the current 256-byte password limit and 96-byte binding header, RSA-OAEP with SHA-256 requires at least 3344 bits, and a 4096-bit key is recommended.
 

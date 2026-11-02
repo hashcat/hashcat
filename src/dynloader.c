@@ -100,6 +100,19 @@ char *hc_dlerror ()
     trimmed--;
   }
 
+  // The text is asked for without its inserts, so a message such as ERROR_BAD_EXE_FORMAT's comes back
+  // as "%1 is not a valid Win32 application." with the %1 still in it. The caller names the file in
+  // front of the message, so the insert is spelled out as the file rather than left as a %1.
+
+  if (strncmp (msg_buf, "%1 ", 3) == 0)
+  {
+    char tail[sizeof (msg_buf)];
+
+    snprintf (tail, sizeof (tail), "%s", &msg_buf[3]);
+
+    snprintf (msg_buf, sizeof (msg_buf), "The file %s", tail);
+  }
+
   return msg_buf;
 }
 
@@ -175,9 +188,14 @@ static void hc_dynlib_ver_of_dll (const char *name, const size_t prefix_len, int
   }
 }
 
+// A version is the numbers out of the file name, then one more number that only breaks a tie, see
+// hc_dynlib_dir_tie ().
+
+#define HC_DYNLIB_KEY_MAX (HC_DYNLIB_VER_MAX + 1)
+
 static int hc_dynlib_ver_cmp (const int *a, const int *b)
 {
-  for (int i = 0; i < HC_DYNLIB_VER_MAX; i++)
+  for (int i = 0; i < HC_DYNLIB_KEY_MAX; i++)
   {
     if (a[i] > b[i]) return  1;
     if (a[i] < b[i]) return -1;
@@ -186,10 +204,69 @@ static int hc_dynlib_ver_cmp (const int *a, const int *b)
   return 0;
 }
 
+static bool hc_dynlib_is_valid_version (const char *version, const size_t version_size)
+{
+  if ((version_size == 0) || (isdigit (version[0]) == 0)) return false;
+
+  for (size_t i = 1; i < version_size; i++)
+  {
+    const int c = (const int) version[i];
+
+    if ((isdigit (c) == 0) && (c != '_')) return false;
+  }
+
+  return true;
+}
+
+// Some runtimes keep one name across a whole major release. Every CUDA 12 toolkit ships
+// nvrtc64_120_0.dll, and its version resource reads the same in all of them, so 12.2 and 12.6 tie by
+// name. The file beside it does carry the release, nvrtc-builtins64_126.dll for 12.6, so the highest
+// such number in the directory breaks the tie. 0 when there is none.
+
+static int hc_dynlib_dir_tie (const char *dir, const char *tie_prefix)
+{
+  if (tie_prefix == NULL) return 0;
+
+  const size_t tie_len = strlen (tie_prefix);
+
+  char pattern[MAX_PATH];
+
+  const int len = snprintf (pattern, sizeof (pattern), "%s\\%s*.dll", dir, tie_prefix);
+
+  if (len < 0) return 0;
+  if ((size_t) len >= sizeof (pattern)) return 0;
+
+  WIN32_FIND_DATAA fd;
+
+  const HANDLE h = FindFirstFileA (pattern, &fd);
+
+  if (h == INVALID_HANDLE_VALUE) return 0;
+
+  int tie = 0;
+
+  do
+  {
+    const size_t version_size = strlen (fd.cFileName) - strlen (".dll") - tie_len;
+
+    if (hc_dynlib_is_valid_version ((fd.cFileName + tie_len), version_size) == false) continue;
+
+    int ver[HC_DYNLIB_VER_MAX];
+
+    hc_dynlib_ver_of_dll (fd.cFileName, tie_len, ver);
+
+    tie = MAX (tie, ver[0]);
+
+  } while (FindNextFileA (h, &fd) != 0);
+
+  FindClose (h);
+
+  return tie;
+}
+
 // A candidate is a file whose name starts with the fixed part and carries a digit straight after it.
 // That last condition is what keeps hiprtc-builtins0702.dll from being mistaken for hiprtc0702.dll.
 
-static void hc_dynlib_best_dll (const char *dir, const char *prefix, char *best, const size_t best_size, int *best_ver, bool *have)
+static void hc_dynlib_best_dll (const char *dir, const char *prefix, const char *tie_prefix, char *best, const size_t best_size, int *best_ver, bool *have)
 {
   const size_t prefix_len = strlen (prefix);
 
@@ -208,13 +285,15 @@ static void hc_dynlib_best_dll (const char *dir, const char *prefix, char *best,
 
   do
   {
-    const char c = fd.cFileName[prefix_len];
+    const size_t version_size = strlen (fd.cFileName) - strlen (".dll") - prefix_len;
 
-    if ((c < '0') || (c > '9')) continue;
+    if (hc_dynlib_is_valid_version ((fd.cFileName + prefix_len), version_size) == false) continue;
 
-    int ver[HC_DYNLIB_VER_MAX];
+    int ver[HC_DYNLIB_KEY_MAX];
 
     hc_dynlib_ver_of_dll (fd.cFileName, prefix_len, ver);
+
+    ver[HC_DYNLIB_VER_MAX] = hc_dynlib_dir_tie (dir, tie_prefix);
 
     if ((*have == true) && (hc_dynlib_ver_cmp (ver, best_ver) <= 0)) continue;
 
@@ -229,13 +308,13 @@ static void hc_dynlib_best_dll (const char *dir, const char *prefix, char *best,
   FindClose (h);
 }
 
-hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size)
+hc_dynlib_t hc_dynlib_open_newest_dll_tie (const char *prefix, const char *tie_prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size)
 {
   if (prefix == NULL) return NULL;
 
   char best[MAX_PATH];
 
-  int best_ver[HC_DYNLIB_VER_MAX];
+  int best_ver[HC_DYNLIB_KEY_MAX];
 
   bool have = false;
 
@@ -243,7 +322,7 @@ hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *di
   {
     if (dirs[i] == NULL) continue;
 
-    hc_dynlib_best_dll (dirs[i], prefix, best, sizeof (best), best_ver, &have);
+    hc_dynlib_best_dll (dirs[i], prefix, tie_prefix, best, sizeof (best), best_ver, &have);
   }
 
   // Whatever is on PATH, which is where a driver leaves its copy. The SDK directories above come
@@ -269,7 +348,7 @@ hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *di
 
         one[len] = 0;
 
-        hc_dynlib_best_dll (one, prefix, best, sizeof (best), best_ver, &have);
+        hc_dynlib_best_dll (one, prefix, tie_prefix, best, sizeof (best), best_ver, &have);
       }
 
       if (e == NULL) break;
@@ -300,6 +379,13 @@ hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *di
   err[err_size - 1] = 0;
 
   return NULL;
+}
+
+hc_dynlib_t hc_dynlib_open_newest_dll (const char *prefix, const char *const *dirs, const size_t dirs_cnt, char *err, const size_t err_size)
+{
+  const hc_dynlib_t lib = hc_dynlib_open_newest_dll_tie (prefix, NULL, dirs, dirs_cnt, err, err_size);
+
+  return lib;
 }
 
 #endif // _WIN

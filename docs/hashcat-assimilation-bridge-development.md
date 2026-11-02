@@ -2,14 +2,7 @@
 
 ## Updating existing plugins
 
-A module written before bridge support was added must initialize the two bridge fields. Use the defaults unless the module actually selects a bridge:
-
-```c
-module_ctx->module_bridge_name = MODULE_DEFAULT;
-module_ctx->module_bridge_type = MODULE_DEFAULT;
-```
-
-Current in-tree modules already contain these assignments. External modules need the same update when rebuilt against the current `module_ctx_t`.
+A module that does not select a bridge leaves `module_bridge_name` and `module_bridge_type` unassigned in `module_init()`, and hashcat gives both their defaults. Only a module that selects a bridge assigns them.
 
 ## Plugin integration and bridge registration
 
@@ -87,7 +80,7 @@ Two sets of flags were removed without direct replacements: `BRIDGE_TYPE_MATCH_T
 
 Tuning no longer requires an opt-in flag. For every bridge, hashcat sizes launches and device buffers from the value returned by `get_workitem_count()`. This value is an upper bound that hashcat never exceeds.
 
-The reported count is not necessarily the launch size. Autotune searches from one work-item multiple up to that maximum and selects the fastest measured size, so the bridge does not need to predict an ideal value. Option `-n` sets the size directly and is clamped to the same range.
+The reported count is not necessarily the launch size. When a bridge declares `BRIDGE_TYPE_REPLACE_LOOP`, autotune times the bridge itself and picks the size, from one work-item multiple up to that maximum, at which one launch fills its time budget. The bridge therefore does not need to predict an ideal value, and a slow unit gets short launches. A `BRIDGE_TYPE_LAUNCH_LOOP` bridge runs after the loop kernel, and autotune times that kernel instead, so its launches follow the maximum. Option `-n` sets the size directly and is clamped to the same range.
 
 Mandatory callback `get_workitem_multiple()` reports the granularity at which a unit computes. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width when the unit processes candidates in parallel waves, as an accelerator with many cores behind one unit would.
 
@@ -150,7 +143,7 @@ At startup, hashcat resolves the plugin path as follows:
 
 ### Bridge initializer
 
-A bridge exports only `bridge_init()`. The initializer records the interface it was built against and fills the callback table. Assign `BRIDGE_DEFAULT` to callbacks the bridge does not implement. Do not leave the older required-defined fields as null pointers.
+A bridge exports only `bridge_init()`. The initializer records the interface it was built against and fills the callback table. Assign the callbacks the bridge implements and leave the others unassigned. hashcat gives each of them its default after `bridge_init()` returns, the same one that an explicit `BRIDGE_DEFAULT` selects.
 
 ```c
 void bridge_init (bridge_ctx_t *bridge_ctx)
@@ -164,30 +157,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_unit_info         = get_unit_info;
   bridge_ctx->get_workitem_count    = get_workitem_count;
   bridge_ctx->get_workitem_multiple = get_workitem_multiple;
-  bridge_ctx->get_unit_class        = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_member_count = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_member_info  = BRIDGE_DEFAULT;
-
-  bridge_ctx->thread_init    = BRIDGE_DEFAULT;
-  bridge_ctx->thread_term    = BRIDGE_DEFAULT;
-  bridge_ctx->salt_prepare   = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy   = BRIDGE_DEFAULT;
-  bridge_ctx->launch_loop    = launch_loop;
-  bridge_ctx->launch_loop2   = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_pass = BRIDGE_DEFAULT;
-
-  bridge_ctx->get_unit_temperature           = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_str       = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_abort     = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_unwatched = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_fanspeed              = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_utilization           = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_corespeed             = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_memoryspeed           = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_buslanes              = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_buslanes_str          = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_power                 = BRIDGE_DEFAULT;
+  bridge_ctx->launch_loop           = launch_loop;
 }
 ```
 
@@ -203,6 +173,7 @@ The principal callbacks are declared as follows:
   char       *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
   int         (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
   char       *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
+  bool        (*get_unit_tuning)       (hashcat_ctx_t *, void *, const int, const hashconfig_t *, const hashes_t *, const double, u32 *, u32 *);
   bool        (*salt_prepare)          (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
   void        (*salt_destroy)          (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
   bool        (*thread_init)           (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
@@ -241,7 +212,7 @@ get_workitem_count
 get_workitem_multiple
 ```
 
-In addition, every loop named by the module's `BRIDGE_TYPE` must be implemented: `launch_loop` for a launch or replacement of `LOOP`, and `launch_loop2` for `LOOP2`. Other callbacks use `BRIDGE_DEFAULT` when they are not needed.
+In addition, every loop named by the module's `BRIDGE_TYPE` must be implemented: `launch_loop` for a launch or replacement of `LOOP`, and `launch_loop2` for `LOOP2`. Other callbacks are left unassigned when they are not needed.
 
 Callback `get_workitem_multiple` is mandatory in the current interface. An older bridge is normally refused first by the `bridge_context_size` check with "bridge context size is invalid. Old template?". Rebuild it against the current headers and update the initializer.
 
@@ -251,11 +222,12 @@ Callback `get_workitem_multiple` is mandatory in the current interface. An older
 - Callback `platform_term` performs final cleanup and frees context data allocated during initialization.
 - Callback `get_unit_count` returns the number of available units. For example, return `2` when two FPGAs are detected.
 - Callback `get_unit_info` returns a human-readable unit description, such as `Python v3.13.3`.
-- Callback `get_workitem_count` returns the maximum number of candidates a unit can receive in one invocation. This is an upper bound, not a requested launch size. Autotune searches below it and selects the fastest measured value.
+- Callback `get_workitem_count` returns the maximum number of candidates a unit can receive in one invocation. This is an upper bound, not a requested launch size. For a `BRIDGE_TYPE_REPLACE_LOOP` bridge, autotune searches below it for the size that fills one launch's time budget.
 - Callback `get_workitem_multiple` returns the computational granularity of the unit. Return `1` when processing N candidates costs N units of work, as it does for one thread handling a batch sequentially. Return the internal width for parallel waves so hashcat never supplies a partial wave.
 - Optional callback `get_unit_class` identifies the type of unit so hashcat can determine which units are interchangeable. See the section below.
 - Optional callbacks `get_unit_member_count` and `get_unit_member_info` describe the hardware members combined into one unit. Implement both or neither.
-- Optional callback `thread_init` performs per-thread setup, such as creating a Python interpreter.
+- Optional callback `get_unit_tuning` returns a fixed `kernel_accel` and `kernel_loops` for one unit. It is the bridge's counterpart to a module's extra tuning db block, for a bridge that knows what its hardware costs per launch. A unit with an answer is not autotuned: hashcat launches nothing to measure it and skips the warm up launches. It receives the time budget autotune would have used, and `kernel_accel` counts the unit's own waves. Return `false` to have the unit autotuned. Values given with `-n` or `-u` win over the callback.
+- Optional callback `thread_init` performs per-thread setup, such as creating a Python interpreter. hashcat calls it on every thread that drives a unit: the self-test, the cracking thread and, for a `BRIDGE_TYPE_REPLACE_LOOP` bridge, autotune.
 - Optional callback `thread_term` performs per-thread cleanup.
 - Callback `salt_prepare` runs once after the hashes are loaded and can preprocess salt or esalt data for the complete hash set.
 - Callback `salt_destroy` releases data allocated by `salt_prepare`.
@@ -285,13 +257,13 @@ Return the unit type, never the individual instance:
 
 **Do not include a device path, serial number or index.** Unlike the class callback, `get_unit_info` deliberately identifies an individual device so users can distinguish otherwise identical units.
 
-When the callback is left as `BRIDGE_DEFAULT`, hashcat compares `get_unit_info` instead. That is correct when your units really are identical, which is the normal case for a bridge whose units are CPU threads and whose info strings are all the same string. You need `get_unit_class` only when your info string names the individual unit.
+When the bridge leaves the callback unassigned, hashcat compares `get_unit_info` instead. That is correct when your units really are identical, which is the normal case for a bridge whose units are CPU threads and whose info strings are all the same string. You need `get_unit_class` only when your info string names the individual unit.
 
 Units that cannot be described do not compare as equal. If a bridge returns `NULL`, hashcat leaves their tunings independent instead of assuming that unidentified units are interchangeable.
 
 ### Units made of several members
 
-A bridge may combine several hardware components into one scheduling unit. Implement both `get_unit_member_count` and `get_unit_member_info` so the startup and `--backend-info` displays can show what that unit contains. A bridge whose units are individual devices leaves both callbacks at `BRIDGE_DEFAULT`.
+A bridge may combine several hardware components into one scheduling unit. Implement both `get_unit_member_count` and `get_unit_member_info` so the startup and `--backend-info` displays can show what that unit contains. A bridge whose units are individual devices leaves both callbacks unassigned.
 
 ```c
 int   get_unit_member_count (hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx);
@@ -302,7 +274,7 @@ Member indices start at zero and must match any numbering used elsewhere by the 
 
 ### Reporting sensors
 
-All sensor callbacks are optional. Implement those supported by the hardware and leave the rest as `BRIDGE_DEFAULT`.
+All sensor callbacks are optional. Implement those supported by the hardware and leave the rest unassigned.
 
 ```c
   int  (*get_unit_temperature)           (hashcat_ctx_t *, void *, const int);

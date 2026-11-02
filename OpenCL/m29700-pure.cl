@@ -45,6 +45,23 @@ typedef struct keepass
 
 } keepass_t;
 
+#ifdef KERNEL_STATIC
+DECLSPEC u8 hex_convert (const u8 c)
+{
+  return (c & 15) + (c >> 6) * 9;
+}
+
+DECLSPEC u8 hex_to_u8 (PRIVATE_AS const u8 *hex)
+{
+  u8 v = 0;
+
+  v |= ((u8) hex_convert (hex[1]) << 0);
+  v |= ((u8) hex_convert (hex[0]) << 4);
+
+  return (v);
+}
+#endif
+
 KERNEL_FQ KERNEL_FA void m29700_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   /**
@@ -55,11 +72,25 @@ KERNEL_FQ KERNEL_FA void m29700_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepa
 
   if (gid >= GID_CNT) return;
 
+  // The candidate is the keyfile's 32 byte key as 64 hex characters, decoded here as in 22001, so
+  // every attack mode can hand it over as plain text.
+
+  u32 in[16];
+
+  for (int i = 0; i < 16; i++) in[i] = pws[gid].i[i];
+
+  u32 key[8];
+
+  PRIVATE_AS u8 *in_ptr  = (PRIVATE_AS u8 *) in;
+  PRIVATE_AS u8 *key_ptr = (PRIVATE_AS u8 *) key;
+
+  for (int i = 0, j = 0; i < 32; i += 1, j += 2) key_ptr[i] = hex_to_u8 (in_ptr + j);
+
   sha256_ctx_t ctx;
 
   sha256_init (&ctx);
 
-  sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha256_update_swap (&ctx, key, 32);
 
   sha256_final (&ctx);
 

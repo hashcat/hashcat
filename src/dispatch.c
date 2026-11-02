@@ -17,10 +17,12 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
+#include "debugfile.h"
 #include "dispatch.h"
 #include "feed_ctx.h"
 #include "convert.h"
 #include "user_options.h"
+#include "bridges.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -183,13 +185,13 @@ static u64 get_power (backend_ctx_t *backend_ctx, hc_device_param_t *device_para
 
     const u64 words_left_device = (u64) CEIL (kernel_power_final * device_factor);
 
-    // work should be at least the hardware power available without any accelerator
-
-    const u64 work = MAX (words_left_device, device_param->hardware_power);
+    // No floor of one hardware_power per device. With fewer words left than a wave on every device the
+    // floor gave the first devices a wave each and the last ones nothing, and under an amplifier each
+    // of those words carries the whole of it, so a device that got nothing stayed idle for the run.
 
     // we need to make sure the value is not larger than the regular kernel_power
 
-    const u64 work_final = MIN (work, device_param->kernel_power);
+    const u64 work_final = MIN (words_left_device, device_param->kernel_power);
 
     return work_final;
   }
@@ -312,6 +314,17 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
   slow_fill_state_t *sc = (slow_fill_state_t *) state;
 
+  // pws_pre holds a batch's candidates so the brain can reject some of them once the whole batch has
+  // been hashed, which it cannot know while the batch is still being built. Without the brain nothing
+  // rejects anything after the fact, so the candidate goes straight into the batch and the staging
+  // buffer is neither allocated nor written. backend_session_begin () sizes it on the same question.
+
+  #ifdef WITH_BRAIN
+  const bool stage = (user_options->brain_client == true);
+  #else
+  const bool stage = false;
+  #endif
+
   hc_timer_t timer_feed;
 
   pipe_mark (&timer_feed);
@@ -335,7 +348,10 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     u64 brain_rejects_hashes  = 0;
     #endif
 
-    memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+    // Nothing is cleared here. pw_pre_add () writes every field a reader of an entry consumes, and
+    // every reader stops at pws_pre_cnt, so an entry left over from the round before is below the
+    // bound of all of them. Clearing it was size_pws_pre of memset for each round of a batch, which
+    // is hundreds of megabytes on a large launch, for the reason pw_batch_reset () already gives.
 
     device_param->pws_pre_cnt = 0;
 
@@ -441,13 +457,20 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         }
         #endif
 
-        if (sc->base_buf)
+        // A producer with no base word of its own leaves both of these NULL, so neither is read for it.
+
+        const int rule_idx = (sc->rule_pos) ? (int) sc->rule_pos[0] : 0;
+        const int base_len = (sc->base_len) ? (int) sc->base_len[0] : 0;
+
+        if (stage == true)
         {
-          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], sc->base_buf, sc->base_len[0], (sc->rule_pos) ? (int) sc->rule_pos[0] : 0);
+          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], sc->base_buf, base_len, rule_idx);
         }
         else
         {
-          pw_pre_add (device_param, sc->out_buf, sc->out_len[0], NULL, 0, 0);
+          if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, sc->base_buf, base_len, rule_idx);
+
+          pw_add (batch, device_param->kernel_power, sc->out_buf, sc->out_len[0]);
         }
 
         if (status_ctx->run_thread_level1 == false) break;
@@ -459,7 +482,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     }
 
     #ifdef WITH_BRAIN
-    if (user_options->brain_client == true)
+    if (stage == true)
     {
       if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES)
       {
@@ -478,40 +501,16 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
           pre_rejects++;
 
           brain_rejects_hashes++;
+
+          continue;
         }
-        else
-        {
-          pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
-          if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
-
-          pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
-        }
-      }
-    }
-    else
-    {
-      const u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-      for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-      {
         pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
-        if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
+        if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, (const u8 *) pw_pre->base_buf, (const int) pw_pre->base_len, (const int) pw_pre->rule_idx);
 
         pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
       }
-    }
-    #else
-    const u64 pws_pre_cnt = device_param->pws_pre_cnt;
-
-    for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
-    {
-      pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
-
-      if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, pw_pre);
-
-      pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
     }
     #endif
 
@@ -1182,6 +1181,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_kern = user_options_extra->attack_kern;
   const u32 base_source = user_options_extra->base_source;
 
+  // pw_base_add () copies a whole pw_pre_t per candidate to keep the base word a candidate came from,
+  // and --debug-mode is the only thing that reads one back.
+
+  const bool keep_base = debugfile_wants_base (hashcat_ctx);
+
   // only read inside a WITH_BRAIN block, so a build without the brain has no use for it
 
   MAYBE_UNUSED hashes_t *hashes = hashcat_ctx->hashes;
@@ -1277,7 +1281,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.reject     = &extra_info_combi.reject;
       sc.seek       = true;
       sc.reject_len = true;
-      sc.keep_base  = true;
+      sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
       bool pipe_serial = false;
@@ -1324,7 +1328,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.reject     = &extra_info_generic.reject;
       sc.seek       = true;
       sc.reject_len = true;
-      sc.keep_base  = true;
+      sc.keep_base  = keep_base;
       sc.words_cur  = 0;
 
       bool pipe_serial = false;
@@ -1633,6 +1637,13 @@ HC_THREAD_FUNC thread_calc (void *p)
     {
       if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
       {
+        // as in the self-test, the unit drops out, so a run with no unit left ends as an error rather
+        // than as Exhausted with nothing tried
+
+        bridges_failed (hashcat_ctx);
+
+        device_param->skipped_warning = true;
+
         device_param->calc_done = true;
 
         return 0;

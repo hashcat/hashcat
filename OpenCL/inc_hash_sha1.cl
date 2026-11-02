@@ -547,6 +547,64 @@ DECLSPEC void sha1_update (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, 
   sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+// sha1_update () for a caller whose buffer is zero padded to the end of the 64 byte block that len ends
+// in. Every read is then a plain load. A kernel that passes the same buffer on every round of a loop,
+// such as a salt, or the password of a slow hash, gets those loads out of the loop. The bounded reads
+// of sha1_update () stay inside it, because each one is conditional, and the kernel pays for all of
+// them on every round.
+
+DECLSPEC void sha1_update_padded (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    sha1_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
 DECLSPEC void sha1_update_swap (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];

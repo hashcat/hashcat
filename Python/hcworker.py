@@ -340,6 +340,20 @@ def main() -> None:
     import hcshared
 
     plugin = load_plugin(plugin_path)
+  except ModuleNotFoundError as e:
+    # A dependency the plugin imports and this interpreter does not have is the usual first failure.
+    # The traceback names the line, and the hint says which interpreter to install it for. The hint
+    # is left out where the name says nothing to install: a message raised by hand, a submodule, or
+    # hashcat's own hcshared.
+
+    message = traceback.format_exc()
+
+    top = (e.name or "").split(".")[0]
+
+    if (top != "") and (top != "hcshared") and (top == e.name):
+      message += "%s cannot import the module '%s'. Install the package that provides it for that interpreter, for example: \"%s\" -m pip install %s\n" % (sys.executable, top, sys.executable, top)
+
+    fail(out, message)
   except BaseException:
     fail(out, traceback.format_exc())
 

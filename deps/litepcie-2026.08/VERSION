@@ -1,0 +1,12 @@
+LitePCIe, vendored PRISTINE. Never edit anything in this directory.
+
+upstream: https://github.com/enjoy-digital/litepcie
+tag:      2026.08
+commit:   671aa895acdb96015ce841cc730579c0f2b678a3
+
+Only the files the driver build uses are vendored: software/kernel/main.c, config.h, flags.h and
+litepcie.h, plus LICENSE. Upstream's software/kernel/litex.h is left out because nothing here
+includes it, and it is the one GPL-2.0 file in that directory.
+
+Our changes live in src/fpga/driver/patches/ and are applied at build time into a
+separate build directory. `git diff` here should always be empty.

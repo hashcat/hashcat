@@ -1,0 +1,16 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+FPGA_RELEASE ("bcrypt", "zc706",        0, 0, "bit",    FPGA_DIST_PUBLISHED, FPGA_SET_SUBDIR)
+FPGA_RELEASE ("bcrypt", "ypcb",         0, 0, "bit",    FPGA_DIST_PUBLISHED, FPGA_SET_SUBDIR)
+FPGA_RELEASE ("bcrypt", "enigmax1",     0, 0, "bit",    FPGA_DIST_PUBLISHED, FPGA_SET_SUBDIR)
+
+FPGA_RELEASE ("bcrypt", "u50",          0, 0, "xclbin", FPGA_DIST_PUBLISHED, FPGA_SET_SUBDIR)
+
+FPGA_RELEASE ("bcrypt", "ztex213",      0, 0, "bit",    FPGA_DIST_PUBLISHED, FPGA_SET_SUBDIR)
+
+FPGA_RELEASE ("bcrypt", "artyz7",       0, 0, "bin",    FPGA_DIST_PUBLISHED, FPGA_SET_SUBDIR)
+
+FPGA_RELEASE ("bcrypt", "ztex115y",     0, 0, "bit",    FPGA_DIST_REDISTRIBUTED, "ztex")

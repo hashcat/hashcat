@@ -31,7 +31,7 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   // Every argument after the plugin name is a wordlist or a directory of them.
 
-  const bool rc = wordlist_init (global_ctx, feed_global, 1, global_ctx->workc);
+  const bool rc = wordlist_init (global_ctx, feed_global, hashcat_ctx, 1, global_ctx->workc);
 
   return rc;
 }

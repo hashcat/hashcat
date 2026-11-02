@@ -40,7 +40,7 @@ it as `from lib import gpg`.
 #### Examples ####
 
 * For a basic unsalted mode, see [m01000.py](m01000.py)
-* For a mode whose artifact is a file rather than a hash string, see [m05200.py](m05200.py)
+* For a mode whose artifact is a file rather than a hash string, see [m40011.py](m40011.py)
 * For a body shared across a family, see [m17010.py](m17010.py) and [lib/gpg.py](lib/gpg.py)
 * For a mode that drives its own cipher chaining, see [m20011.py](m20011.py) and
 [lib/diskcryptor.py](lib/diskcryptor.py)

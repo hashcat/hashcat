@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "convert.h"
+#include "debugfile.h"
 #include "mpsp.h"
 #include "rp.h"
 #include "emu_inc_rp.h"
@@ -19,6 +20,7 @@
 #include "locking.h"
 #include "thread.h"
 #include "outfile.h"
+#include "json.h"
 
 #include <stdarg.h>
 
@@ -117,6 +119,33 @@ u32 outfile_format_parse (const char *format_string)
   return outfile_format;
 }
 
+// The host copy of the batch is what was uploaded, and it stays in place until the launch and its
+// cracks are done. Reading it costs nothing, where a read of the device copy costs 2 copies and 2
+// waits, and every cracked hash and every status update asks for one. Under a pure kernel with the
+// mask as base words the mask processor writes them on the device, so only the device has them.
+
+static int plain_pw (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidvid, pw_t *pw)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  bool host = true;
+
+  if ((user_options->slow_candidates == false) && (user_options_extra->attack_kern == ATTACK_KERN_COMBI) && ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options_extra->base_source == BASE_SOURCE_MASK)) host = false;
+
+  if (host == true)
+  {
+    const int rc = gidd_to_pw_t_host (device_param, gidvid, pw);
+
+    return rc;
+  }
+
+  const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, pw);
+
+  return rc;
+}
+
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -143,7 +172,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     pw_t pw;
 
-    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw);
 
     if (rc == -1) return -1;
 
@@ -157,7 +186,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       pw_t pw;
 
-      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw);
 
       if (rc == -1) return -1;
 
@@ -319,7 +348,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     {
       pw_t pw;
 
-      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw);
 
       if (rc == -1) return -1;
 
@@ -515,15 +544,9 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   const u32 cell_pos = (hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].global_ctx.dev_rules == true) ? plain->extra1 : il_pos;
 
-  // The straight kernel is the one that applies a rule, so it is the one that has a rule to report.
-  // That is attack mode 0, 8 and 9 as it always was, and now also the mask attacks, which reach it
-  // through a feed once they are given rules.
-
-  if ((user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) && (user_options_extra->attack_kern != ATTACK_KERN_PCFG)) return 0;
+  if (debugfile_wants_base (hashcat_ctx) == false) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
-
-  if (debug_mode == 0) return 0;
 
   if (user_options->slow_candidates == true)
   {
@@ -553,7 +576,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     pw_t pw;
 
-    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = plain_pw (hashcat_ctx, device_param, gidvid, &pw);
 
     if (rc == -1) return -1;
 
@@ -645,7 +668,11 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx->outfile_format  = user_options->outfile_format;
   outfile_ctx->outfile_autohex = user_options->outfile_autohex;
   outfile_ctx->outfile_json    = user_options->outfile_json;
-  outfile_ctx->is_fifo         = hc_path_is_fifo (outfile_ctx->filename);
+  outfile_ctx->is_fifo         = false;
+
+  // without -o the results go to stdout and there is no path to look at
+
+  if (outfile_ctx->filename != NULL) outfile_ctx->is_fifo = hc_path_is_fifo (outfile_ctx->filename);
 
   hc_thread_mutex_init (outfile_ctx->mux_outfile);
 
@@ -737,18 +764,15 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
   // a batch closes it, not the write inside one
 
-  if (outfile_ctx->batch_depth > 0)
-  {
-    hc_fflush (&outfile_ctx->fp);
-
-    return;
-  }
+  if (outfile_ctx->batch_depth > 0) return;
 
   if (outfile_ctx->is_fifo == true)
   {
     hc_fflush (&outfile_ctx->fp);
     return;
   }
+
+  hc_fflush (&outfile_ctx->fp);
 
   hc_unlockfile_warn (hashcat_ctx, &outfile_ctx->fp, outfile_ctx->filename, &outfile_ctx->lock_warned);
 
@@ -789,64 +813,34 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
   if (outfile_ctx->outfile_json == true)
   {
-    tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '{');
+    // Built through the JSON emitter in its fixed-buffer mode: it writes into tmp_buf with no
+    // allocation, so this per-crack path stays off the heap, and it owns the braces, the commas and
+    // the quoting. The values are byte buffers, emitted as hex, which needs no escaping.
+    json_ctx_t js;
 
-    if (user_len > 0)
+    json_init_buffer (&js, tmp_buf, HCBUFSIZ_LARGE);
+
+    json_object_begin (&js);
+
+    if ((user_len > 0) && (username != NULL))
     {
-      if (username != NULL)
-      {
-        tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"username_hex\": ");
-
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-        tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) username, (int) user_len);
-
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
-        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
-      }
+      json_kv_hex (&js, "username_hex", username, (size_t) user_len);
     }
 
     if (hashes->hashlist_mode == HL_MODE_FILE_BINARY)
     {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"filename_hex\": ");
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) hashes->hashfile, (int) strlen (hashes->hashfile));
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
+      json_kv_hex (&js, "filename_hex", (const unsigned char *) hashes->hashfile, strlen (hashes->hashfile));
     }
     else
     {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"hash_hex\": ");
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) out_buf, (int) out_len);
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
+      json_kv_hex (&js, "hash_hex", (const unsigned char *) out_buf, (size_t) out_len);
     }
 
-    if (1) // plain
-    {
-      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"password_hex\": ");
+    json_kv_hex (&js, "password_hex", plain_ptr, (size_t) plain_len);
 
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
+    json_object_end (&js);
 
-      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) plain_ptr, (int) plain_len);
-
-      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
-    }
-
-    tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '}');
+    tmp_len = (int) js.buf_len;
   }
   else
   {

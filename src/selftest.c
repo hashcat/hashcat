@@ -11,6 +11,7 @@
 #include "backend.h"
 #include "thread.h"
 #include "selftest.h"
+#include "bridges.h"
 
 // The auxiliary kernels in slot order. backend.c keeps its own copy for the cracking loop, and
 // neither is worth a shared symbol for a handful of entries.
@@ -542,7 +543,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
           st_hashes.esalts_buf      = st_hashes.st_esalts_buf;
           st_hashes.hook_salts_buf  = st_hashes.st_hook_salts_buf;
 
-          if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false) return -1;
+          if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false)
+          {
+            bridges_failed (hashcat_ctx);
+
+            return -1;
+          }
 
           if (COPY_TMPS)
           {
@@ -685,13 +691,50 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
             st_hashes.esalts_buf      = st_hashes.st_esalts_buf;
             st_hashes.hook_salts_buf  = st_hashes.st_hook_salts_buf;
 
-            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false) return -1;
+            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false)
+            {
+              bridges_failed (hashcat_ctx);
+
+              return -1;
+            }
 
             if (COPY_TMPS)
             {
               if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TMPS], 0, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
             }
           }
+        }
+      }
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_INIT3)
+    {
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, 0, 1, false, 0, false) == -1) return -1;
+    }
+
+    for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
+    {
+      device_param->kernel_param.salt_repeat = salt_repeat;
+
+      if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+      {
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3P, 0, 1, false, 0, false) == -1) return -1;
+      }
+
+      if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+      {
+        const u32 iter3 = salt_buf->salt_iter3;
+
+        for (u32 loop_pos = 0; loop_pos < iter3; loop_pos += loop_step)
+        {
+          u32 loop_left = iter3 - loop_pos;
+
+          loop_left = MIN (loop_left, loop_step);
+
+          device_param->kernel_param.loop_pos = loop_pos;
+          device_param->kernel_param.loop_cnt = loop_left;
+
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3, 0, 1, false, 0, false) == -1) return -1;
         }
       }
     }
@@ -909,7 +952,17 @@ HC_THREAD_FUNC thread_selftest (void *p)
   {
     if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
     {
-      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false)
+      {
+        // A unit whose bridge does not start drops out, the way a bridge drops a unit whose board went
+        // away, and the others take the work. If none is left, the run ends as an error.
+
+        bridges_failed (hashcat_ctx);
+
+        device_param->skipped_warning = true;
+
+        return 0;
+      }
     }
   }
 

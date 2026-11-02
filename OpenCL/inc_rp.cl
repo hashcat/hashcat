@@ -1034,19 +1034,17 @@ DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (((t >>  0) & 0xff) == p0) sep |= 0x000000ff;
+    if (((t >>  8) & 0xff) == p0) sep |= 0x0000ff00;
+    if (((t >> 16) & 0xff) == p0) sep |= 0x00ff0000;
+    if (((t >> 24) & 0xff) == p0) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (((t >>  0) & 0xff) == p0) out |= 0x0000ff00;
-    if (((t >>  8) & 0xff) == p0) out |= 0x00ff0000;
-    if (((t >> 16) & 0xff) == p0) out |= 0xff000000;
-    if (((t >> 24) & 0xff) == p0) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }
@@ -1061,19 +1059,17 @@ DECLSPEC int mangle_title_sep_class_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_l ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_l ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_l ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_l ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_l ((t >>  0) & 0xff)) out |= 0x0000ff00;
-    if (is_l ((t >>  8) & 0xff)) out |= 0x00ff0000;
-    if (is_l ((t >> 16) & 0xff)) out |= 0xff000000;
-    if (is_l ((t >> 24) & 0xff)) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }
@@ -1088,19 +1084,17 @@ DECLSPEC int mangle_title_sep_class_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_u ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_u ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_u ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_u ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_u ((t >>  0) & 0xff)) out |= 0x0000ff00;
-    if (is_u ((t >>  8) & 0xff)) out |= 0x00ff0000;
-    if (is_u ((t >> 16) & 0xff)) out |= 0xff000000;
-    if (is_u ((t >> 24) & 0xff)) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }
@@ -1115,19 +1109,17 @@ DECLSPEC int mangle_title_sep_class_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_d ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_d ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_d ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_d ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_d ((t >>  0) & 0xff)) out |= 0x0000ff00;
-    if (is_d ((t >>  8) & 0xff)) out |= 0x00ff0000;
-    if (is_d ((t >> 16) & 0xff)) out |= 0xff000000;
-    if (is_d ((t >> 24) & 0xff)) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }
@@ -1142,19 +1134,17 @@ DECLSPEC int mangle_title_sep_class_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED c
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_lh ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_lh ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_lh ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_lh ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_lh ((t >>  0) & 0xff)) out |= 0x0000ff00;
-    if (is_lh ((t >>  8) & 0xff)) out |= 0x00ff0000;
-    if (is_lh ((t >> 16) & 0xff)) out |= 0xff000000;
-    if (is_lh ((t >> 24) & 0xff)) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }
@@ -1169,19 +1159,17 @@ DECLSPEC int mangle_title_sep_class_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED c
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_uh ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_uh ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_uh ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_uh ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_uh ((t >>  0) & 0xff)) out |= 0x0000ff00;
-    if (is_uh ((t >>  8) & 0xff)) out |= 0x00ff0000;
-    if (is_uh ((t >> 16) & 0xff)) out |= 0xff000000;
-    if (is_uh ((t >> 24) & 0xff)) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }
@@ -1196,19 +1184,17 @@ DECLSPEC int mangle_title_sep_class_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
   {
     const u32 t = buf[idx];
 
-    buf[idx] = t | generate_cmask (t);
+    u32 sep = 0;
 
-    u32 out = rem;
+    if (is_s ((t >>  0) & 0xff)) sep |= 0x000000ff;
+    if (is_s ((t >>  8) & 0xff)) sep |= 0x0000ff00;
+    if (is_s ((t >> 16) & 0xff)) sep |= 0x00ff0000;
+    if (is_s ((t >> 24) & 0xff)) sep |= 0xff000000;
 
-    rem = 0;
-
-    if (is_s ((t >>  0) & 0xff)) out |= 0x0000ff00;
-    if (is_s ((t >>  8) & 0xff)) out |= 0x00ff0000;
-    if (is_s ((t >> 16) & 0xff)) out |= 0xff000000;
-    if (is_s ((t >> 24) & 0xff)) rem |= 0x000000ff;
-
-    buf[idx] &= ~(generate_cmask (buf[idx]) & out);
+    buf[idx] = title_sep_word (t, sep, &rem);
   }
+
+  buf[0] &= ~(0x00000020 & generate_cmask (buf[0]));
 
   return len;
 }

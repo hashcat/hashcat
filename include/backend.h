@@ -9,6 +9,21 @@
 #include <stdio.h>
 #include <errno.h>
 
+#define BACKEND_HOST_MEM_RESERVE (512ULL * 1024 * 1024)
+
+// Every kernel source and cache path is built into a buffer of this size. The generators below and
+// the places that check the result both read it from here, because a caller that assumed a
+// different size could not tell a path that fit from one that was cut to fit.
+//
+// It was 256, which a long install path overran. A cut path is not always a failure: a cache file
+// written and read under the same cut name works, and hashcat installed 225 characters deep ran
+// perfectly well that way. What a cut cache name costs is the tail of device_name_chksum, which is
+// what tells one device and one set of build options from another, so two different builds can come
+// to share a cache entry. 1024 puts any realistic install well inside the buffer, and the check at
+// the call sites catches what is left.
+
+#define KERNEL_PATH_SZ 1024
+
 static const char CL_VENDOR_AMD1[]              = "Advanced Micro Devices, Inc.";
 static const char CL_VENDOR_AMD2[]              = "AuthenticAMD";
 static const char CL_VENDOR_AMD_USE_INTEL[]     = "GenuineIntel";
@@ -57,6 +72,8 @@ int  backend_session_update_combinator      (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp              (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl           (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
 
+bool kernel_path_fits (hashcat_ctx_t *hashcat_ctx, const char *path);
+
 void generate_source_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 void generate_source_kernel_shared_filename (char *shared_dir, char *source_file);
@@ -74,6 +91,7 @@ void pipe_acc                               (hc_device_param_t *device_param, co
 void pipe_launch_done                       (hc_device_param_t *device_param, const u64 cands);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+int gidd_to_pw_t_host                       (const hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
 u64 gidvid_to_feed_pos                      (const hc_device_param_t *device_param, const u64 gidvid);
 
@@ -105,7 +123,7 @@ int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_bridge_loop                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt, const u32 loop_pos, const u32 loop_cnt, const u32 event_update);
 int run_kernel_mp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
 int run_kernel_tm                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
-int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
+int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt, const u64 num);
 int run_kernel_decompress                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
 int run_copy                                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 int pcfg_seed_cells                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);

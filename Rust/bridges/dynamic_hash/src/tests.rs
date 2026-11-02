@@ -521,7 +521,7 @@ fn test_pbkdf2_hmac_sha512() {
 }
 
 #[test]
-fn test_m12800() {
+fn test_m40037() {
     let algoritm = r#"pbkdf2_hmac_sha256:hex(rounds=$s1,salt=$s2:unhex,dklen=$s3,utf16le(upper(md4(utf16le($p)))))"#;
     let ast = parse(algoritm).unwrap();
     let mut ctx = EvalContext::new();

@@ -17,7 +17,12 @@
 
 static const char *const OPENSSL_SONAMES[] =
 {
-  #if   defined (_WIN) || defined (__CYGWIN__)
+  #if   defined (_WIN)
+  // Not libcrypto.dll. On Windows that name is found in System32 before PATH, and the copy there is
+  // the LibreSSL of Windows' own OpenSSH, which has none of the OpenSSL 3 functions loaded below.
+  "libcrypto-3-x64.dll",
+  "libcrypto-3.dll",
+  #elif defined (__CYGWIN__)
   "libcrypto-3-x64.dll",
   "libcrypto-3.dll",
   "libcrypto.dll",

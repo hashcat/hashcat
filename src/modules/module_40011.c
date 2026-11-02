@@ -1,0 +1,186 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#include "common.h"
+#include "types.h"
+#include "modules.h"
+#include "bitops.h"
+#include "convert.h"
+#include "shared.h"
+#include "filehandling.h"
+
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_8;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const char *HASH_NAME      = "Password Safe v3";
+static const char *HASH_RECIPE    = "h = sha256_bin(pass . salt); for i = 1 to iter { h = sha256_bin(h) }; sha256(h)";
+static const u64   KERN_TYPE      = 40011;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_BINARY_HASHFILE;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "50575333e4e2a590a5e5c8269f57ec04a8a1c0c03da55b311c51236dab8c6b96b0afca02000800005eaeee20c6cc10d5caa6522b3ca545c41d9133d630ca08f467b7aae8a2bbef51aa2df968d10b9c4cfb17a182c0add7acb8c153794f51337e12f472f451d10e6dcac664ed760606aabdbb6b794a80d6ce2a330100c76de0ff961a45cca21576b893d826c52f272b97cdf48aca6fbe6c74b039f81c61b7d632fb6fddd9f96162ab1effd69a4598a331e855e38792e5365272d4791bf991d248e1585a9ad20ea3d77b5d2ef9a711ef90a70ec6991cb578f1b8bdaa9efa7b0039e9ea96f777491713047bdd99fa1d78f06f23406a66046b387d3034e46b1f84129bba853cc18fa49f107dc0290547258d30566a4b1b363ff4c1c16cb2f5f400059833d4b651bfa508200cbdc7a75fc57ef90eb1d90b0deea8505753332d454f46505753332d454f466236710e2e2477878e738b60d0aa2834a96b01e97764fe980243a06ad16939d1";
+
+#include "hooks_common.c"
+
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
+
+typedef struct psafe3
+{
+  char signature[4];
+  u32  salt_buf[8];
+  u32  iterations;
+  u32  hash_buf[8];
+
+} psafe3_t;
+
+typedef struct pwsafe3_tmp
+{
+  u32 digest_buf[8];
+
+} pwsafe3_tmp_t;
+
+static const char *SIGNATURE_PSAFE3 = "PWS3";
+
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  char *jit_build_options = NULL;
+
+  // Extra treatment for Apple systems
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    return jit_build_options;
+  }
+
+  // Intel CPU
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  // NVIDIA GPU
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  // HIP
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  // ROCM
+  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
+  {
+    hc_asprintf (&jit_build_options, "-D _unroll");
+  }
+
+  return jit_build_options;
+}
+
+u32 module_hashes_count_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hashes_count_max = 1;
+
+  return hashes_count_max;
+}
+
+u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 tmp_size = (const u64) sizeof (pwsafe3_tmp_t);
+
+  return tmp_size;
+}
+
+bool module_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool outfile_check_disable = true;
+
+  return outfile_check_disable;
+}
+
+bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool potfile_disable = true;
+
+  return potfile_disable;
+}
+
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+{
+  u32 *digest = (u32 *) digest_buf;
+
+  if (line_len == 0) return (PARSER_HASH_LENGTH);
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, line_buf, "rb") == false) return (PARSER_HASH_FILE);
+
+  psafe3_t in;
+
+  memset (&in, 0, sizeof (psafe3_t));
+
+  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, &fp);
+
+  hc_fclose (&fp);
+
+  if (n != 1) return (PARSER_PSAFE3_FILE_SIZE);
+
+  if (memcmp (SIGNATURE_PSAFE3, in.signature, 4) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+
+  salt->salt_iter = in.iterations;
+
+  salt->salt_buf[0] = in.salt_buf[0];
+  salt->salt_buf[1] = in.salt_buf[1];
+  salt->salt_buf[2] = in.salt_buf[2];
+  salt->salt_buf[3] = in.salt_buf[3];
+  salt->salt_buf[4] = in.salt_buf[4];
+  salt->salt_buf[5] = in.salt_buf[5];
+  salt->salt_buf[6] = in.salt_buf[6];
+  salt->salt_buf[7] = in.salt_buf[7];
+
+  salt->salt_len = 32;
+
+  digest[0] = in.hash_buf[0];
+  digest[1] = in.hash_buf[1];
+  digest[2] = in.hash_buf[2];
+  digest[3] = in.hash_buf[3];
+  digest[4] = in.hash_buf[4];
+  digest[5] = in.hash_buf[5];
+  digest[6] = in.hash_buf[6];
+  digest[7] = in.hash_buf[7];
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
+
+  return (PARSER_OK);
+}
+
+void module_init (module_ctx_t *module_ctx)
+{
+  module_init_common (module_ctx);
+
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_recipe              = module_hash_recipe;
+  module_ctx->module_hashes_count_max         = module_hashes_count_max;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_outfile_check_disable    = module_outfile_check_disable;
+  module_ctx->module_potfile_disable          = module_potfile_disable;
+  module_ctx->module_tmp_size                 = module_tmp_size;
+}

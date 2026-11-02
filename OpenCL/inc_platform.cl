@@ -103,9 +103,13 @@ DECLSPEC u32 hc_funnelshift_r (const u32 lo, const u32 hi, const int shift)
 // them. PCFG also reads from global, but the host borrows this symbol by name when the device
 // engine applies the rules itself, and that lookup is a hard failure if the symbol is absent, so
 // PCFG keeps the full declaration.
+//
+// The host clears the slice with gpu_bzero, which stores 16 bytes at a time. The compiler places it
+// after the kernel's own constant tables, at a 4 byte boundary unless told otherwise, so it is aligned
+// explicitly.
 
 #if   ATTACK_KERN == 0
-CONSTANT_VK u32 generic_constant[8192]; // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   ((const kernel_rule_t *) generic_constant)
 #define words_buf_s g_words_buf_s
@@ -116,13 +120,13 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 4
-CONSTANT_VK u32 generic_constant[8192]; // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
-CONSTANT_VK u32 generic_constant[1024]; // 4k
+CONSTANT_VK u32 generic_constant[1024] __attribute__((aligned (16))); // 4k
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)
@@ -349,9 +353,13 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 // them. PCFG also reads from global, but the host borrows this symbol by name when the device
 // engine applies the rules itself, and that lookup is a hard failure if the symbol is absent, so
 // PCFG keeps the full declaration.
+//
+// The host clears the slice with gpu_bzero, which stores 16 bytes at a time. The compiler places it
+// after the kernel's own constant tables, at a 4 byte boundary unless told otherwise, so it is aligned
+// explicitly.
 
 #if   ATTACK_KERN == 0
-CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used, aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   ((const kernel_rule_t *) generic_constant)
 #define words_buf_s g_words_buf_s
@@ -362,13 +370,13 @@ CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 4
-CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
+CONSTANT_VK u32 generic_constant[8192] __attribute__((used, aligned (16))); // 32k
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
-CONSTANT_VK u32 generic_constant[1024] __attribute__((used)); // 4k
+CONSTANT_VK u32 generic_constant[1024] __attribute__((used, aligned (16))); // 4k
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)
@@ -666,11 +674,15 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   return out;
 
-  #elif defined IS_AMD_USE_OPENCL && defined IS_GPU
+  #elif defined HC_SHFL_AMDGCN
 
-  // ds_bpermute addresses lanes in bytes, so the lane number shifts up by four
+  // ds_bpermute addresses lanes in bytes. On GCN and CDNA it reaches across the whole wave64,
+  // which then holds more than one group of lsz threads, so the source lane is taken within the
+  // caller's own group, as HIP's __shfl does.
 
-  const u32 idx = src_lane << 2;
+  const u32 self = __builtin_amdgcn_mbcnt_hi (~0u, __builtin_amdgcn_mbcnt_lo (~0u, 0u));
+
+  const u32 idx = ((self & ~(lsz - 1)) | (src_lane & (lsz - 1))) << 2;
 
   const u32 l32r = __builtin_amdgcn_ds_bpermute (idx, l32_from_64_S (var));
   const u32 h32r = __builtin_amdgcn_ds_bpermute (idx, h32_from_64_S (var));
@@ -694,7 +706,7 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   return out;
 
-  #else
+  #elif defined HC_SHFL_BARRIER
 
   // nothing to reach, so the exchange goes through local memory
 
@@ -708,6 +720,8 @@ DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 va
 
   return out;
 
+  #else
+  #error "hc_shfl_u64_impl () goes through local memory here, but HC_SHFL_BARRIER in inc_platform.h is not set"
   #endif
 }
 

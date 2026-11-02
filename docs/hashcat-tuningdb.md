@@ -26,7 +26,7 @@ ALIAS_nv_sm50_or_higher    1       1000    1       128     A
 
 - **Device-Name** is the device name hashcat prints at startup, with every space replaced by an underscore. It can also be an alias, one of the two device type names, or `*` for every device.
 - **Attack-Kern** is 0 for a wordlist kernel, 1 for the combinator kernel also used by attack modes 6 and 7, 3 for a mask kernel, 4 for a feed-owned device kernel used by PCFG and table attacks, or `*`.
-- **Hash-Type** is a mode number or `*`.
+- **Hash-Type** is a mode number or `*`. For a hash-mode that moved into the stored-recipe range, a row may name the old number or the new one, and it applies whichever of the two is given with `-m`. The numbers are listed in `docs/hashcat-hash-recipe.md`.
 - **Vector-Width** is 1, 2, 4, 8, or `N` for whatever the device reports as native.
 - **Kernel-Accel** is 1 to 1024, `A` for autotune, `M` for 1024, or `N` for the device processor count.
 - **Kernel-Loops** is a positive number or `A`. For attack kernels 0, 1 and 3, `M` selects that kernel's maximum. A fixed value is used only when it fits the runtime limits of the selected mode.

@@ -30,6 +30,14 @@
 #define RC4_DECLSPEC_DEFAULT
 #endif
 
+// The prefetching key schedule a caller asks for with RC4_INIT_128_PREFETCH is slower on an AMD GPU.
+// An RX 7900 XTX runs 13100 at two thirds of the plain schedule's speed with it, where an RTX 4090
+// and an Arc A770 run faster. So an AMD GPU builds the plain one.
+
+#if defined RC4_INIT_128_PREFETCH && (defined IS_AMD_USE_HIP || defined IS_AMD_GPU)
+#undef RC4_INIT_128_PREFETCH
+#endif
+
 #include "inc_cipher_rc4.h"
 
 #ifdef IS_HIP

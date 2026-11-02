@@ -1,0 +1,40 @@
+Subject: [PATCH 3/5] LOCAL ONLY: do not pulse soc_rst at probe
+
+NOT for upstream. Bit 0 of the SoCController reset register resets the full SoC, and on the hcfpga
+designs the PCIe endpoint is part of that SoC. Probe therefore pulses a reset through the link it is
+talking over, waits 10 ms, and immediately reads 256 words back. On an AMD host a PCIe completion
+timeout is fatal: the machine resets with no oops and nothing in the journal.
+
+The framing reset that matters is a different register in the algorithm block, which the bridge
+asserts itself while the DMA engines are stopped.
+
+--- a/main.c
++++ b/main.c
+@@ -1492,8 +1492,25 @@
+ 		goto fail1;
+ 	}
+ 
+-	/* Reset LitePCIe core */
+-#ifdef CSR_CTRL_RESET_ADDR
++	/* Reset LitePCIe core.
++	 *
++	 * DELIBERATELY DISABLED FOR THE HCFPGA DESIGNS, and this is a LOCAL divergence that is NOT part of
++	 * the one-shot patch we would propose upstream. The change is 0003-local-disable-soc-reset.patch.
++	 *
++	 * Bit 0 of the SoCController reset register is soc_rst, "reset the full SoC (pulse reset)" in
++	 * LiteX's own words. On our designs the PCIe endpoint is part of that SoC, so this pulses a reset
++	 * through the very link the driver is talking over, waits a fixed 10 ms, and then immediately reads
++	 * 256 words of the identifier back through it. If the endpoint has not finished recovering, those
++	 * reads hit a dead link. On an AMD host a PCIe completion timeout is fatal: the machine resets
++	 * instantly with no oops, no trace and nothing flushed to the journal.
++	 *
++	 * We do not need it. The framing reset that actually matters is a different register, ctrl bit 0 of
++	 * the ALGORITHM block at offset 0x00, which the bridge asserts itself while the DMA engines are
++	 * stopped. That resets the feeder, the collector and the cores without touching the endpoint.
++	 *
++	 * Do not restore this without a way to re-establish the link afterwards.
++	 */
++#if 0
+ 	litepcie_writel(litepcie_dev, CSR_CTRL_RESET_ADDR, 1);
+ 	msleep(10);
+ #endif

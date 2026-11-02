@@ -1,0 +1,211 @@
+Subject: [PATCH 2/5] msi: acknowledge before reading channel status
+
+The handler cleared the MSI vector at the very end, after every loop status had been read. A
+descriptor completing in between had its notification destroyed by that clear: the status read had
+already missed it, and the bit it set was wiped on the way out.
+
+In loop mode this is invisible, because interrupts keep arriving and the next one recomputes the count
+from a free running register. In one-shot mode the last interrupt of a batch is the only one that will
+ever be sent, so losing it hangs the transfer.
+
+Clearing the latched vector first, and repeating until it reads back empty, means a notification
+landing at any point during servicing is picked up rather than lost.
+
+The repeat is bounded. A card that has left the bus reads as all ones, so its vector never reads back
+empty, and an open loop would hold the CPU in hard IRQ context for good. All ones ends the handler at
+once and any other vector that will not clear ends it after 4 passes.
+
+--- a/main.c
++++ b/main.c
+@@ -508,13 +508,16 @@
+ 	}
+ }
+ 
++/* How many times litepcie_interrupt re-reads a vector that is still set. See the note there. */
++#define LITEPCIE_IRQ_PASSES 4
++
+ static irqreturn_t litepcie_interrupt(int irq, void *data)
+ {
+ 	struct litepcie_device *s = (struct litepcie_device *) data;
+ 	struct litepcie_chan *chan;
+ 	uint32_t loop_status;
+-	uint32_t clear_mask, irq_vector, irq_enable;
+-	int i;
++	uint32_t irq_vector, irq_enable;
++	int i, pass;
+ 
+ /* Single MSI */
+ #ifdef CSR_PCIE_MSI_CLEAR_ADDR
+@@ -535,71 +538,114 @@
+ #ifdef DEBUG_MSI
+ 	dev_dbg(&s->dev->dev, "MSI: 0x%x 0x%x\n", irq_vector, irq_enable);
+ #endif
++
++	/* Acknowledge BEFORE reading the channel status, and keep going until the vector is quiet.
++	 *
++	 * The clear used to happen at the end of the handler, after every loop status had been read. Any
++	 * descriptor that completed in between had its notification destroyed by that clear: the status
++	 * read had already missed it, and the bit it set was wiped on the way out. The count then stays
++	 * one short of the batch with no further interrupt coming to correct it.
++	 *
++	 * In loop mode this is invisible, because interrupts keep arriving and the next one recomputes the
++	 * count from a free running register. In one-shot mode the last interrupt of a batch is the only
++	 * one that will ever be sent, so losing it hangs the transfer for good.
++	 *
++	 * Clearing first shrinks that window but does not close it: anything arriving while the channels
++	 * are being serviced is still only visible to whatever this pass happened to read. So the pass
++	 * repeats until the vector comes back empty, and a notification landing at any point during
++	 * servicing is picked up by the next iteration instead of being lost. At worst the loop runs one
++	 * extra time and finds nothing to do.
++	 *
++	 * The repeat is bounded, and the bound is what keeps this a hard IRQ handler rather than a hang. A
++	 * card that has left the bus reads as all ones, every register of it, so its vector never comes
++	 * back empty and an open loop would hold this CPU for good. All ones is recognised and ends the
++	 * handler at once, and any other vector that will not clear ends it after LITEPCIE_IRQ_PASSES
++	 * passes. A notification still pending then is not lost to the host: the transfer it belongs to
++	 * runs into the caller's deadline and is redone.
++	 *
++	 * Multi-vector MSI and MSI-X have no shared status register to re-read, since the vector is implied
++	 * by the irq number. There a single pass is all there is, so the loop runs exactly once.
++	 */
++#ifndef CSR_PCIE_MSI_CLEAR_ADDR
+ 	irq_vector &= irq_enable;
+-	clear_mask = 0;
++#endif
+ 
+-	for (i = 0; i < s->channels; i++) {
+-		chan = &s->chan[i];
+-		/* dma reader interrupt handling */
+-		if (irq_vector & (1 << chan->dma.reader_interrupt)) {
+-			loop_status = litepcie_readl(s, chan->dma.base +
+-				PCIE_DMA_READER_TABLE_LOOP_STATUS_OFFSET);
+-			/* The two modes report progress differently and the arithmetic is not interchangeable.
+-			 *
+-			 * In Loop mode the table is refilled as it drains, so index is a position within the
+-			 * DMA_BUFFER_COUNT ring and count is the number of times the ring wrapped.
+-			 *
+-			 * In Prog mode nothing is refilled. index counts descriptors executed and only wraps at
+-			 * 2^16, and count increments on that wrap. So the whole register IS the descriptor
+-			 * count, and no scaling is needed at all. Reading it the loop-mode way scales count by
+-			 * DMA_BUFFER_COUNT instead of 65536 and yields a buffer count that looks plausible and
+-			 * is wrong, which presents as a framing bug rather than an accounting one.
+-			 *
+-			 * A batch is at most DMA_BUFFER_COUNT descriptors and litepcie_dma_arm puts the counters
+-			 * back to zero for each one, so 32 bits cannot run out here.
+-			 */
+-			if (chan->dma.oneshot) {
+-				chan->dma.reader_hw_count = loop_status;
+-			} else {
+-				chan->dma.reader_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
+-				chan->dma.reader_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
+-				if (chan->dma.reader_hw_count_last > chan->dma.reader_hw_count)
+-					chan->dma.reader_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
+-			}
+-			chan->dma.reader_hw_count_last = chan->dma.reader_hw_count;
+-#ifdef DEBUG_MSI
+-			dev_dbg(&s->dev->dev, "MSI DMA%d Reader buf: %lld\n", i,
+-				chan->dma.reader_hw_count);
++	for (pass = 0; pass < LITEPCIE_IRQ_PASSES; pass++) {
++#ifdef CSR_PCIE_MSI_CLEAR_ADDR
++		irq_vector = litepcie_readl(s, CSR_PCIE_MSI_VECTOR_ADDR);
++
++		if (irq_vector == 0xffffffff)
++			break;
++
++		irq_vector &= irq_enable;
++
++		if (irq_vector == 0)
++			break;
++
++		litepcie_writel(s, CSR_PCIE_MSI_CLEAR_ADDR, irq_vector);
+ #endif
+-			wake_up_interruptible(&chan->wait_wr);
+-			clear_mask |= (1 << chan->dma.reader_interrupt);
+-		}
+-		/* dma writer interrupt handling */
+-		if (irq_vector & (1 << chan->dma.writer_interrupt)) {
+-			loop_status = litepcie_readl(s, chan->dma.base +
+-				PCIE_DMA_WRITER_TABLE_LOOP_STATUS_OFFSET);
+-			/* See the reader path above for why Prog mode needs its own arithmetic. */
+-			if (chan->dma.oneshot) {
+-				chan->dma.writer_hw_count = loop_status;
+-			} else {
+-				chan->dma.writer_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
+-				chan->dma.writer_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
+-				if (chan->dma.writer_hw_count_last > chan->dma.writer_hw_count)
+-					chan->dma.writer_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++
++		for (i = 0; i < s->channels; i++) {
++			chan = &s->chan[i];
++			/* dma reader interrupt handling */
++			if (irq_vector & (1 << chan->dma.reader_interrupt)) {
++				loop_status = litepcie_readl(s, chan->dma.base +
++					PCIE_DMA_READER_TABLE_LOOP_STATUS_OFFSET);
++				/* The two modes report progress differently and the arithmetic is not interchangeable.
++				 *
++				 * In Loop mode the table is refilled as it drains, so index is a position within the
++				 * DMA_BUFFER_COUNT ring and count is the number of times the ring wrapped.
++				 *
++				 * In Prog mode nothing is refilled. index counts descriptors executed and only wraps at
++				 * 2^16, and count increments on that wrap. So the whole register IS the descriptor
++				 * count, and no scaling is needed at all. Reading it the loop-mode way scales count by
++				 * DMA_BUFFER_COUNT instead of 65536 and yields a buffer count that looks plausible and
++				 * is wrong, which presents as a framing bug rather than an accounting one.
++				 *
++				 * A batch is at most DMA_BUFFER_COUNT descriptors and litepcie_dma_arm puts the counters
++				 * back to zero for each one, so 32 bits cannot run out here.
++				 */
++				if (chan->dma.oneshot) {
++					chan->dma.reader_hw_count = loop_status;
++				} else {
++					chan->dma.reader_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
++					chan->dma.reader_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
++					if (chan->dma.reader_hw_count_last > chan->dma.reader_hw_count)
++						chan->dma.reader_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++				}
++				chan->dma.reader_hw_count_last = chan->dma.reader_hw_count;
++	#ifdef DEBUG_MSI
++				dev_dbg(&s->dev->dev, "MSI DMA%d Reader buf: %lld\n", i,
++					chan->dma.reader_hw_count);
++	#endif
++				wake_up_interruptible(&chan->wait_wr);
++			}
++			/* dma writer interrupt handling */
++			if (irq_vector & (1 << chan->dma.writer_interrupt)) {
++				loop_status = litepcie_readl(s, chan->dma.base +
++					PCIE_DMA_WRITER_TABLE_LOOP_STATUS_OFFSET);
++				/* See the reader path above for why Prog mode needs its own arithmetic. */
++				if (chan->dma.oneshot) {
++					chan->dma.writer_hw_count = loop_status;
++				} else {
++					chan->dma.writer_hw_count &= ((~(DMA_BUFFER_COUNT - 1) << 16) & 0xffffffffffff0000);
++					chan->dma.writer_hw_count |= (loop_status >> 16) * DMA_BUFFER_COUNT + (loop_status & 0xffff);
++					if (chan->dma.writer_hw_count_last > chan->dma.writer_hw_count)
++						chan->dma.writer_hw_count += (1 << (ilog2(DMA_BUFFER_COUNT) + 16));
++				}
++				chan->dma.writer_hw_count_last = chan->dma.writer_hw_count;
++	#ifdef DEBUG_MSI
++				dev_dbg(&s->dev->dev, "MSI DMA%d Writer buf: %lld\n", i,
++					chan->dma.writer_hw_count);
++	#endif
++				wake_up_interruptible(&chan->wait_rd);
+ 			}
+-			chan->dma.writer_hw_count_last = chan->dma.writer_hw_count;
+-#ifdef DEBUG_MSI
+-			dev_dbg(&s->dev->dev, "MSI DMA%d Writer buf: %lld\n", i,
+-				chan->dma.writer_hw_count);
+-#endif
+-			wake_up_interruptible(&chan->wait_rd);
+-			clear_mask |= (1 << chan->dma.writer_interrupt);
+ 		}
+-	}
+ 
+-#ifdef CSR_PCIE_MSI_CLEAR_ADDR
+-	litepcie_writel(s, CSR_PCIE_MSI_CLEAR_ADDR, clear_mask);
++#ifndef CSR_PCIE_MSI_CLEAR_ADDR
++		break;
+ #endif
++	}
+ 
+ 	return IRQ_HANDLED;
+ }

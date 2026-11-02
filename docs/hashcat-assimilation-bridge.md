@@ -1,4 +1,4 @@
-# Assimilation Bridge in hashcat v7
+# Assimilation Bridge
 
 ## Overview
 
@@ -21,7 +21,7 @@ These bridges execute Python or Rust code on the host. They do not translate it 
 - Mode `70100` keeps PBKDF2 on the normal backend and runs the memory-intensive scrypt `smix()` stage through the scrypt-jane bridge.
 - Mode `70200` demonstrates yescrypt in scrypt-emulation mode through a CPU bridge.
 
-Mode 70100 shows the hybrid design: a normal backend and a bridge can own different stages of one hash computation. The same interface can support another accelerator or a remote service, but no FPGA bridge currently ships with hashcat.
+Mode 70100 shows the hybrid design: a normal backend and a bridge can own different stages of one hash computation. The same interface supports other accelerators: mode 75000 runs bcrypt on FPGA boards through it, see [hashcat-fpga-setup.md](hashcat-fpga-setup.md).
 
 ## Other possible uses
 

@@ -7,7 +7,8 @@
 
 import hashlib
 import hmac
-import random
+
+from lib.test_helpers import random_number
 
 # WinZip AES. PBKDF2-HMAC-SHA1 over the salt yields, in one run, the encryption key, the
 # authentication key and the two password verification bytes. The stored auth code is the first ten
@@ -24,11 +25,10 @@ def module_generate_hash(word, salt, param=None, param2=None, param3=None,
 
   hash_type = 0 if param is None else int(param)
 
-  # mode picks the AES strength (1, 2, 3 for 128, 192, 256), drawn from perl's own rand () when the
-  # caller does not fix it, so this mode is not seedable, matching the .pm
+  # mode picks the AES strength (1, 2, 3 for 128, 192, 256)
 
   if param2 is None:
-    mode = 1 + int(random.random() * 3)
+    mode = random_number(1, 3)
   else:
     mode = int(param2)
 

@@ -748,10 +748,8 @@ static void feed_optv_add_split (feed_optv_t *o, const char *opts)
 // hash_comp (), which a feed kernel does not call, so they are fixed rather than taken from a hash
 // mode the feed has nothing to do with. Otherwise the cache key would move with the mode.
 //
-// The whole HAS_* block is emitted verbatim, because hc_swap32 () and hc_swap64 () in inc_common.cl
-// pick vendor assembly on IS_NV && HAS_PRMT and fall back to rotate (), which is commented out for
-// CUDA and HIP. That is not a slower path, it is a build failure, the same one hashcat's own kernels
-// would hit.
+// The whole HAS_* block is emitted verbatim, so the inc_common.cl functions a feed kernel calls take
+// the same vendor arms as they do in hashcat's own kernels.
 //
 // Left out on purpose: KERN_TYPE and ATTACK_*, which nothing here reads; VECT_SIZE, forced to 1 as
 // long as NEW_SIMD_CODE is undefined; and ATTACK_EXEC, which is left undefined deliberately because
@@ -792,8 +790,6 @@ static void feed_optv_common (feed_optv_t *o, const hc_device_param_t *device_pa
   feed_optv_add (o, "-D HAS_VBFE=%u",     device_param->has_vbfe);
   feed_optv_add (o, "-D HAS_BFE=%u",      device_param->has_bfe);
   feed_optv_add (o, "-D HAS_LOP3=%u",     device_param->has_lop3);
-  feed_optv_add (o, "-D HAS_MOV64=%u",    device_param->has_mov64);
-  feed_optv_add (o, "-D HAS_PRMT=%u",     device_param->has_prmt);
   feed_optv_add (o, "-D HAS_SHFW=%u",     device_param->has_shfw);
 }
 
@@ -883,12 +879,12 @@ static void feed_gpu_cache_key (hashcat_ctx_t *hashcat_ctx, const hc_device_para
 
   char ident[HCBUFSIZ_TINY];
 
-  const int ident_len = snprintf (ident, sizeof (ident), "%s-%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d",
+  const int ident_len = snprintf (ident, sizeof (ident), "%s-%d-%d-%d-%s-%u-%u-%s-%d-%u-%s-%s-%s-%d",
     name,
     backend_ctx->comptime,
     backend_ctx->cuda_driver_version,
     backend_ctx->hip_runtimeVersion,
-    backend_ctx->metal_runtimeVersion,
+    (backend_ctx->metal_runtimeVersionStr != NULL) ? backend_ctx->metal_runtimeVersionStr : "",
     device_param->sm_major,
     device_param->sm_minor,
     (device_param->is_hip == true) ? device_param->gcnArchName : "",
@@ -1640,8 +1636,8 @@ feed_gpu_t *feed_gpu_init (hashcat_ctx_t *hashcat_ctx, const int device_id, cons
   {
     // Metal, today. hc_mtlBuildOptionsToDict () does not hand the option string to a compiler: it
     // strips "-D ", splits on whitespace and drops anything that is not a name=value pair. And
-    // load_kernel () never writes a .metallib, so there would be a full cold build at every session
-    // start with no cache to fall back on.
+    // load_kernel () caches only the pipelines of a Metal program, so the library would be a full
+    // cold build at every session start.
 
     snprintf (reason, reason_size, "this backend cannot build a feed kernel");
 
@@ -1697,6 +1693,21 @@ feed_gpu_t *feed_gpu_init (hashcat_ctx_t *hashcat_ctx, const int device_id, cons
     feed_optv_add (&o, "-D MAX_THREADS_PER_BLOCK=%u", threads);
     feed_optv_add (&o, "--gpu-architecture=%s", device_param->gcnArchName);
     feed_optv_add (&o, "--gpu-max-threads-per-block=%u", threads);
+
+    // The same two options as the hiprtc build in backend.c, for the reasons given there: ISO C++17
+    // keeps linux and unix undefined in the include path M2S () expands, and the long branch factor
+    // keeps a relaxed branch in a called function off the return address. DTK's LLVM ends the
+    // process on an option it does not know.
+
+    feed_optv_add (&o, "-std=c++17");
+
+    const HIPRTC_PTR *hiprtc = backend_ctx->hiprtc;
+
+    if (hiprtc->is_dtk == false)
+    {
+      feed_optv_add (&o, "-mllvm");
+      feed_optv_add (&o, "-amdgpu-long-branch-factor=0");
+    }
 
     feed_optv_include_path (&o, folder_config, device_param, false);
   }

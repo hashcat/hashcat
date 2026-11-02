@@ -34,9 +34,23 @@ CC=${CC:-clang}
 EXTRA=${EXTRA:-}
 OUT=${OUT:-./asan-repro}
 
+# Without CORE, the core is named after the major version the Makefile reports, so the name follows
+# the release rather than being written out here. tools/package_bin.sh reads it the same way.
+if [ -z "${CORE:-}" ]; then
+  VERSION_TAG=$(make -s version 2>/dev/null | tail -1)
+  MAJOR=${VERSION_TAG#v}
+  MAJOR=${MAJOR%%.*}
+
+  if [ -z "$MAJOR" ]; then
+    echo "error: the Makefile reported no version, so the core's name is unknown. Set CORE" >&2
+    exit 2
+  fi
+
+  CORE=./libhashcat.so.$MAJOR
+fi
+
 # Must be an ordinary DEBUG=1 build. An ASan-instrumented core here makes every
 # run abort with "incompatible ASan runtimes" and breaks msan outright.
-CORE=${CORE:-./libhashcat.so.7}
 CORE_DIR=$(cd "$(dirname "$CORE")" && pwd)
 
 case "$TOOL" in
@@ -78,7 +92,7 @@ $CC -std=gnu99 -DDEBUG -DSTATIC_MODULE -g -O1 \
     tools/asan/parse_harness.c tools/asan/hashconfig.c "src/modules/${MOD}.c" $EXTRA \
     "$CORE" -ldl -o "$OUT/repro_${TOOL}_m${MODE}" -Wl,-rpath,"$CORE_DIR"
 
-# Pin the loader to the core we just linked against. libhashcat.so.7 can
+# Pin the loader to the core we just linked against. The core can
 # otherwise resolve to another copy on the search path.
 export LD_LIBRARY_PATH="$CORE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 

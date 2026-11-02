@@ -8,7 +8,7 @@ It answers one question: when a run takes longer than expected and cracking is n
 hashcat -m 0 -a 0 --task-time-breakdown hashes.txt wordlist.txt
 ```
 
-The report is suppressed by `--quiet`, `--machine-readable`, `--keyspace`, `--stdout`, `--show`, `--left`, `--identify`, `--help`, `--hash-info` and `--backend-info`, so no existing script output changes.
+The report is suppressed by `--machine-readable`, `--keyspace`, `--stdout`, `--show`, `--left`, `--identify`, `--help`, `--hash-info` and `--backend-info`, so no existing script output changes. Option `--quiet` does not suppress it, because printing the report is the whole purpose of `--task-time-breakdown`.
 
 ## How to read it
 

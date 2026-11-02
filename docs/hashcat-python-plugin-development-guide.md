@@ -194,7 +194,7 @@ anything your plugin prints goes to standard error rather than into the protocol
 ## 8. Upgrading from hashcat 7
 
 hashcat 7 had two Python modes with different parallel designs, and a plugin had to be written against
-one of them. There is one bridge now, which starts an ordinary interpreter per CPU thread. The
+one of them. Hashcat 8 has one bridge, which starts an ordinary interpreter per CPU thread. The
 following is what that changes.
 
 ### Your command line
@@ -220,7 +220,7 @@ to `hcsp` or `hcmp`. The worker now loops over the batch itself, so:
 - `hcsp` and `hcmp` are **gone**. Nothing imports them.
 - `calc_hash()` and `extract_esalts()` are **unchanged**.
 
-A hashcat 7 plugin therefore becomes a current one by deleting code:
+A hashcat 7 plugin therefore becomes a hashcat 8 plugin by deleting code:
 
 ```python
 # hashcat 7
@@ -237,7 +237,7 @@ def term(ctx):
 ```
 
 ```python
-# now: none of it is needed
+# hashcat 8: none of it is needed
 ```
 
 `ST_HASH` and `ST_PASS` are now required rather than merely expected. A plugin without them is refused
@@ -278,7 +278,7 @@ Measured with the shipped plugin, which is `sha256(salt + password)` and then 10
 Each figure is the range over three runs, and the interpreter is the same on both sides of a row.
 
 ```
-                                                    hashcat 7         now
+                                                    hashcat 7   hashcat 8
 i7-14700K, 28 threads, Python 3.14.7                4750-4770   6210-6390   H/s
 i7-14700K, 28 threads, Python 3.14.7t                 600-609   6060-6070   H/s
 i9-13900K, 32 threads, Python 3.14.7, Windows         270-279   4285-4390   H/s

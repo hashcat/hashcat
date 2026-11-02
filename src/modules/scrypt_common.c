@@ -12,6 +12,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "memory.h"
+#include "module_options.h"
 
 u32 scrypt_module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -32,6 +33,29 @@ u32 scrypt_module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfi
   const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : SCRYPT_THREADS;
 
   return kernel_threads_max;
+}
+
+// --scrypt-tmto overrides the TMTO the tuning below would pick. Every module that includes this file
+// registers it with scrypt_module_register_options (). It has no brain slot, because TMTO only trades
+// memory for time and two runs that differ in it test the same candidates.
+
+#define OPTION_SCRYPT_TMTO "scrypt-tmto"
+
+const module_option_t *scrypt_module_register_options (void)
+{
+  static const module_option_t options[] =
+  {
+    {
+      .name         = OPTION_SCRYPT_TMTO,
+      .type         = MODULE_OPTION_TYPE_U32,
+      .help_type    = "Num",
+      .help         = "Manually override TMTO value for scrypt to X",
+      .help_example = "--scrypt-tmto=3",
+    },
+    { .name = NULL },
+  };
+
+  return options;
 }
 
 // The highest TMTO the search will propose. Past this the recomputation dominates on every
@@ -56,7 +80,7 @@ u32 scrypt_exptected_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return threads;
 }
 
-const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
+char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
 {
   hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
@@ -107,11 +131,11 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
   {
     kernel_accel_new = kernel_accel_user;
 
-    if (user_options->scrypt_tmto_chgd == true)
+    if (module_option_given (user_options, OPTION_SCRYPT_TMTO) == true)
     {
       // in this branch the user can shoot themselves into the foot
 
-      tmto = user_options->scrypt_tmto;
+      tmto = module_option_u32 (user_options, OPTION_SCRYPT_TMTO);
     }
     else
     {
@@ -129,9 +153,9 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
   }
   else
   {
-    if (user_options->scrypt_tmto_chgd == true)
+    if (module_option_given (user_options, OPTION_SCRYPT_TMTO) == true)
     {
-      tmto = user_options->scrypt_tmto;
+      tmto = module_option_u32 (user_options, OPTION_SCRYPT_TMTO);
     }
     else
     {
@@ -162,6 +186,16 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
       if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
       {
+        // The kernels store N >> tmto elements, so a tmto that reaches log2 (N) stores none of them
+        // and the mode stops cracking. N is a power of two by the time it gets here, so this walk is
+        // that log, and it bounds both of the searches below.
+
+        u32 tmto_max = 0;
+
+        while (((u64) 1 << tmto_max) < scrypt_N) tmto_max++;
+
+        tmto_max = MIN (tmto_max, SCRYPT_TMTO_CEILING);
+
         for (tmto = 0; tmto < 2; tmto++) // results in tmto = 2
         {
           if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
@@ -190,6 +224,11 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
           break;
         }
 
+        // Neither test has to be met for the loop to run out, and when neither is it ends at 2
+        // whatever N is. A low N cannot carry that: at N=2 it stores nothing at all.
+
+        tmto = MIN (tmto, tmto_max);
+
         // The search above stops at 2, and on a configuration big enough that even a TMTO of 2
         // leaves the device nearly empty that ceiling is what limits the launch, not the memory.
         // A 4090 attacking N=262144 gets 8 work items where 176 fit, and the same holds for every
@@ -208,14 +247,6 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
         if (blocks_perc_ceiling > 2.0)
         {
-          // N >> tmto is the number of stored elements, so the walk stops before that reaches zero
-
-          u32 tmto_max = 0;
-
-          while (((u64) 1 << tmto_max) < scrypt_N) tmto_max++;
-
-          tmto_max = MIN (tmto_max, SCRYPT_TMTO_CEILING);
-
           while (tmto < tmto_max)
           {
             const u64 size_per_accel_tmto = size_per_accel >> tmto;
@@ -302,6 +333,18 @@ u64 scrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   const u64 tmp_size = 0; // we'll add some later
 
   return tmp_size;
+}
+
+int scrypt_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // scrypt's cost is the triple N, r and p, with the memory use set by 128 * N * r bytes. salt_iter
+  // carries only N, so the plain Iterations readout hides r and p. Show the three the hash spells.
+
+  const u32 N = salt->scrypt_N;
+  const u32 r = salt->scrypt_r;
+  const u32 p = salt->scrypt_p;
+
+  return snprintf (line_buf, line_size, "N=%u, r=%u, p=%u", N, r, p);
 }
 
 u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes)

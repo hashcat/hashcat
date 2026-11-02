@@ -88,14 +88,7 @@ KERNEL_FQ KERNEL_FA void m00200_m04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -199,11 +192,17 @@ KERNEL_FQ KERNEL_FA void m00200_m04 (KERN_ATTR_BASIC ())
 
     u32x add = 7;
 
-    #define ROUND(v)                              \
-    {                                             \
-      a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
-      b += (b << 8) ^ a;                          \
-      add += v;                                   \
+    // MySQL's hash_password () skips spaces and tabs. keep is 0 for those two bytes and all ones
+    // otherwise, so the round leaves a, b and add as they were without a branch.
+
+    #define ROUND(v)                                                         \
+    {                                                                        \
+      const u32x ch   = (v);                                                 \
+      const u32x keep = ((((ch ^ 0x20) - 1) | ((ch ^ 0x09) - 1)) >> 31) - 1; \
+                                                                             \
+      a ^= ((((a & 0x3f) + add) * ch) + (a << 8)) & keep;                    \
+      b += ((b << 8) ^ a) & keep;                                            \
+      add += ch & keep;                                                      \
     }
 
     int i;
@@ -342,14 +341,7 @@ KERNEL_FQ KERNEL_FA void m00200_s04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -453,11 +445,17 @@ KERNEL_FQ KERNEL_FA void m00200_s04 (KERN_ATTR_BASIC ())
 
     u32x add = 7;
 
-    #define ROUND(v)                              \
-    {                                             \
-      a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
-      b += (b << 8) ^ a;                          \
-      add += v;                                   \
+    // MySQL's hash_password () skips spaces and tabs. keep is 0 for those two bytes and all ones
+    // otherwise, so the round leaves a, b and add as they were without a branch.
+
+    #define ROUND(v)                                                         \
+    {                                                                        \
+      const u32x ch   = (v);                                                 \
+      const u32x keep = ((((ch ^ 0x20) - 1) | ((ch ^ 0x09) - 1)) >> 31) - 1; \
+                                                                             \
+      a ^= ((((a & 0x3f) + add) * ch) + (a << 8)) & keep;                    \
+      b += ((b << 8) ^ a) & keep;                                            \
+      add += ch & keep;                                                      \
     }
 
     int i;

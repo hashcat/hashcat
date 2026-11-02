@@ -18,6 +18,7 @@
 #include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
+#include "user_options_table.h"
 #include "backend.h"
 #include "terminal.h"
 #include "timer.h"
@@ -334,23 +335,6 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->dev_rules_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE_RULES) ? true : false;
 
-  // A charset belongs to a mask, and only some feeds read one. Refused here rather than in
-  // user_options_sanity (), which runs before the feed is known and so cannot tell them apart.
-
-  if ((*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_MASK) == 0)
-  {
-    const user_options_t *user_options = hashcat_ctx->user_options;
-
-    const bool any = (user_options->custom_charset_1 != NULL) || (user_options->custom_charset_2 != NULL) || (user_options->custom_charset_3 != NULL) || (user_options->custom_charset_4 != NULL) || (user_options->custom_charset_5 != NULL) || (user_options->custom_charset_6 != NULL) || (user_options->custom_charset_7 != NULL) || (user_options->custom_charset_8 != NULL);
-
-    if (any == true)
-    {
-      event_log_error (hashcat_ctx, "%s: this feed reads no mask, so a custom charset has nothing to apply to.", generic_ctx->dynlib_filename);
-
-      return -1;
-    }
-  }
-
   const bool dev_offered = generic_ctx->dev_enable;
 
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_init,     GENERIC_GLOBAL_INIT);
@@ -430,7 +414,7 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   //
   // That headroom is not a property of every outside-kernel mode and must not be read as one. All 294
   // of them were measured on that card, and the fastest which takes a password rather than a key is
-  // 12700 at 355 MH/s, then 10500, 25400 and 06700 between 108 and 165. One core cannot feed those.
+  // 12700 at 355 MH/s, then 10500, 25400 and 40017 between 108 and 165. One core cannot feed those.
   // They land here anyway, because a mode with no attack kernel has nowhere else to go, and what
   // limits them is the feed rather than the card.
   //
@@ -532,23 +516,29 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // known, and the hashes were parsed under it on the way: a raw md5 digest has had the initial state
   // subtracted out of it for a kernel that is now not going to run. Clearing the flag here leaves
   // those digests wrong, which shows up as a self-test failure and, with the self-test disabled, as
-  // an attack that cracks nothing.
+  // an attack that cracks nothing. -b turns -O on by itself, but it never runs a feed.
 
   if (generic_ctx->dev_enable == true)
   {
-    char source_file[256];
+    char source_file[KERNEL_PATH_SZ];
 
     generate_source_kernel_filename (false, hashcat_ctx->hashconfig->attack_exec, ATTACK_KERN_PCFG,
                                      hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
                                      hashcat_ctx->folder_config->shared_dir, source_file);
 
+    if (kernel_path_fits (hashcat_ctx, source_file) == false) return -1;
+
     if (hc_path_read (source_file) == false)
     {
-      if (hashcat_ctx->user_options->optimized_kernel == true)
-      {
-        event_log_error (hashcat_ctx, "The device engine has no optimized kernel for this hash mode. Run this without -O.");
+      // Rules are the exception. The host engine applies them in the mode's optimized straight kernel,
+      // exactly as -a 0 -O -r does for a word list, and over a large ruleset that runs several times
+      // faster than the pure device kernel. So -O with rules takes the host engine instead of the refusal.
 
-        return -1;
+      const bool rules = (hashcat_ctx->user_options->rp_files_cnt > 0) || (hashcat_ctx->user_options->rp_gen > 0);
+
+      if (rules == false)
+      {
+        if (option_table_check_feed (hashcat_ctx, LATE_FEED_ENGINE_KERNEL) == -1) return -1;
       }
 
       generic_ctx->dev_enable = false;

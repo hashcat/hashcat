@@ -19,11 +19,12 @@ KERNEL_FQ KERNEL_FA void amp (KERN_ATTR_AMP)
 
   if (gid >= gid_max) return;
 
-  if (rules_buf[0].cmds[0] == RULE_OP_MANGLE_NOOP && rules_buf[0].cmds[1] == 0) return;
+  const u32 pw_pos = (u32) gid % pws_cnt;
+  const u32 il_pos = (u32) gid / pws_cnt;
 
-  pw_t pw = pws_amp[gid];
+  pw_t pw = pws_amp[pw_pos];
 
-  pw.pw_len = apply_rules (rules_buf[0].cmds, pw.i, pw.pw_len);
+  pw.pw_len = apply_rules (rules_buf[il_pos].cmds, pw.i, pw.pw_len);
 
   pws[gid] = pw;
 }

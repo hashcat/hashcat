@@ -1,6 +1,6 @@
 FROM rocm/dev-ubuntu-26.04:7.14.0-full
 
-ENV HASHCAT_VERSION=7.1.2
+ENV HASHCAT_VERSION=8.0.0
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 

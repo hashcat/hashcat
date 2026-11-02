@@ -29,6 +29,9 @@ MODULES_DIR = SCRIPT_DIR / "modules"
 
 VALID_TOOLS = ("memcheck", "racecheck", "synccheck", "initcheck")
 
+# hashcat flags that print and exit without running a kernel.
+INFO_QUERIES = ("-I", "-II", "--backend-info", "-H", "-HH", "--hash-info", "--example-hashes")
+
 
 def find_compute_sanitizer():
     for candidate in ("compute-sanitizer",):
@@ -200,10 +203,32 @@ def cmd_check(ns):
 # exec
 # ---------------------------------------------------------------------------
 
+def backend_ignore_flags():
+    # Compute Sanitizer sees CUDA only, so every other backend is taken out of the run.
+
+    flags = ["--backend-ignore-opencl", "--backend-ignore-hip"]
+
+    if sys.platform == "darwin":
+        flags.append("--backend-ignore-metal")
+
+    return flags
+
+
 def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
     if not hc_cmd:
         print("ERROR: no hashcat command given after --", file=sys.stderr)
         return 2
+
+    # An information query runs no kernel, so it goes through without the sanitizer.
+
+    if any(a in INFO_QUERIES for a in hc_cmd[1:]):
+        try:
+            rc = subprocess.run(hc_cmd + backend_ignore_flags()).returncode
+        except OSError as e:
+            print(f"ERROR: failed to invoke hashcat: {e}", file=sys.stderr)
+            return 2
+
+        return (128 - rc) if rc < 0 else rc
 
     import re
     if not re.match(r"^[A-Za-z0-9_-]+$", ns.test_name):
@@ -253,10 +278,7 @@ def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
         print("WARNING: -d/-D already present in the given command, left as-is, but "
               "--compute-sanitizer normally forces CUDA-only via --backend-ignore-*.", file=sys.stderr)
 
-    ignore_flags = ["--backend-ignore-opencl", "--backend-ignore-hip"]
-    if sys.platform == "darwin":
-        ignore_flags.append("--backend-ignore-metal")
-    hc_cmd = hc_cmd + ignore_flags
+    hc_cmd = hc_cmd + backend_ignore_flags()
 
     if ns.sweep:
         if not ns.results_dir:

@@ -200,6 +200,17 @@ typedef struct hc_lzma_index_iter
 #define HC_LZMA_FILTER_LZMA1    0x4000000000000001ULL
 #define HC_LZMA_FILTER_LZMA2    0x21ULL
 
+// The branch converters and the delta filter a 7-Zip archive can put in front of LZMA1 or LZMA2.
+// They change the data before it is compressed, so they are decoded after it.
+
+#define HC_LZMA_FILTER_DELTA    0x03ULL
+#define HC_LZMA_FILTER_X86      0x04ULL
+#define HC_LZMA_FILTER_POWERPC  0x05ULL
+#define HC_LZMA_FILTER_IA64     0x06ULL
+#define HC_LZMA_FILTER_ARM      0x07ULL
+#define HC_LZMA_FILTER_ARMTHUMB 0x08ULL
+#define HC_LZMA_FILTER_SPARC    0x09ULL
+
 #define HC_LZMA_VLI_UNKNOWN     0xffffffffffffffffULL
 
 // Several .xz streams written one after another are one file, and reading past the first is what
@@ -258,5 +269,11 @@ const char          *hc_lzma_hint  (void);
 
 HC_PLUGIN_API bool hc_lzma1_decompress (const unsigned char *in, size_t *in_len, unsigned char *out, size_t *out_len, const char *props);
 HC_PLUGIN_API bool hc_lzma2_decompress (const unsigned char *in, size_t *in_len, unsigned char *out, size_t *out_len, const char *props);
+
+// One of the filters above, run over data that ends where the buffer ends, into out, which takes
+// in_len bytes. filter_props are the properties the archive stores for the filter: none for a branch
+// converter that starts at offset 0, one byte for delta.
+
+HC_PLUGIN_API bool hc_lzma_filter_decode (const u64 filter_id, const unsigned char *filter_props, const size_t filter_props_size, const unsigned char *in, const size_t in_len, unsigned char *out);
 
 #endif // HC_EXT_LZMA_H

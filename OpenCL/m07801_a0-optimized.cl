@@ -88,16 +88,20 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
    * salt
    */
 
-  u32 salt_buf[8];
+  u32 salt_buf[12];
 
-  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
-  salt_buf[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
-  salt_buf[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
-  salt_buf[4] = salt_bufs[SALT_POS_HOST].salt_buf[4];
-  salt_buf[5] = salt_bufs[SALT_POS_HOST].salt_buf[5];
-  salt_buf[6] = salt_bufs[SALT_POS_HOST].salt_buf[6];
-  salt_buf[7] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  salt_buf[ 0] = salt_bufs[SALT_POS_HOST].salt_buf[ 0];
+  salt_buf[ 1] = salt_bufs[SALT_POS_HOST].salt_buf[ 1];
+  salt_buf[ 2] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
+  salt_buf[ 3] = salt_bufs[SALT_POS_HOST].salt_buf[ 3];
+  salt_buf[ 4] = salt_bufs[SALT_POS_HOST].salt_buf[ 4];
+  salt_buf[ 5] = salt_bufs[SALT_POS_HOST].salt_buf[ 5];
+  salt_buf[ 6] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
+  salt_buf[ 7] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
+  salt_buf[ 8] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  salt_buf[ 9] = salt_bufs[SALT_POS_HOST].salt_buf[ 9];
+  salt_buf[10] = salt_bufs[SALT_POS_HOST].salt_buf[10];
+  salt_buf[11] = salt_bufs[SALT_POS_HOST].salt_buf[11];
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -123,18 +127,18 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
     u32 s2[4];
     u32 s3[4];
 
-    s0[0] = salt_buf[0];
-    s0[1] = salt_buf[1];
-    s0[2] = salt_buf[2];
-    s0[3] = salt_buf[3];
-    s1[0] = salt_buf[4];
-    s1[1] = salt_buf[5];
-    s1[2] = salt_buf[6];
-    s1[3] = salt_buf[7];
-    s2[0] = 0;
-    s2[1] = 0;
-    s2[2] = 0;
-    s2[3] = 0;
+    s0[0] = salt_buf[ 0];
+    s0[1] = salt_buf[ 1];
+    s0[2] = salt_buf[ 2];
+    s0[3] = salt_buf[ 3];
+    s1[0] = salt_buf[ 4];
+    s1[1] = salt_buf[ 5];
+    s1[2] = salt_buf[ 6];
+    s1[3] = salt_buf[ 7];
+    s2[0] = salt_buf[ 8];
+    s2[1] = salt_buf[ 9];
+    s2[2] = salt_buf[10];
+    s2[3] = salt_buf[11];
     s3[0] = 0;
     s3[1] = 0;
     s3[2] = 0;
@@ -148,18 +152,8 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
      * sha1
      */
 
-    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
-    // variable-length pieces into final[] back to back with no bounds check:
-    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
-    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
-    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
-    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
-    // overflows by design for realistic inputs, not just contrived ones.
-    // Sized here to the worst case with headroom; the sha1_transform calls
-    // a few lines down still only ever process the first two 64-byte blocks
-    // of it (final+0..32), which is a separate, not-yet-addressed question:
-    // whether that's a correctness gap for inputs long enough to need a
-    // third block is outside the scope of this memory-safety fix.
+    // SETSHIFTEDINT () below writes into final[] with no bounds check, so it has room for all 4 SHA1
+    // blocks the longest candidate, magic array and salt can need
     u32 final[64];
 
     final[ 0] = hc_swap32_S (w0[0] | s0[0]);
@@ -256,13 +250,16 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
     final[14] = 0;
     final[15] = 0;
 
-    // final[] can hold up to 4 SHA1 blocks (see the SETSHIFTEDINT fix); only
-    // the first block (final[0..15]) is set above, and SETSHIFTEDINT() below
-    // only ever writes as many bytes as are actually appended, so anything
-    // past the appended data and before the length word placed by the block
-    // loop further down would otherwise be uninitialized.
+    // final[] holds up to 4 SHA1 blocks. final[16] to final[31] are still zero from the first block
+    // above, and SETSHIFTEDINT () ORs into zero words, so only the third and fourth block need
+    // zeroing, and only when the data reaches them.
 
-    for (u32 j = 16; j < 64; j++) final[j] = 0;
+    const u32 n_blocks = ((pw_len + lengthMagicArray + salt_len + 8) / 64) + 1;
+
+    if (n_blocks > 2)
+    {
+      for (u32 j = 32; j < 64; j++) final[j] = 0;
+    }
 
     u32 final_len = out_len;
 
@@ -298,19 +295,43 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
 
     // calculate
     //
-    // final_len can reach up to 188 bytes (pw_max 55 + magic_max 82 +
-    // salt_max 51), needing up to 4 SHA1 blocks with padding -- this used to
-    // be hardcoded to at most 2 blocks, silently dropping anything past byte
-    // 119 into a wrong digest instead of a crash.
+    // final_len reaches up to 188 bytes (pw_max 55, a magic array of up to 82 and salt_max 51),
+    // which is up to 4 SHA1 blocks. Each block count has its own branch, so every index into
+    // final[] stays constant.
 
-    const u32 n_blocks = ((final_len + 8) / 64) + 1;
-
-    final[(n_blocks * 16) - 2] = 0;
-    final[(n_blocks * 16) - 1] = final_len * 8;
-
-    for (u32 b = 0; b < n_blocks; b++)
+    if (n_blocks == 1)
     {
-      sha1_transform (final + (b * 16) + 0, final + (b * 16) + 4, final + (b * 16) + 8, final + (b * 16) + 12, digest);
+      final[14] = 0;
+      final[15] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+    }
+    else if (n_blocks == 2)
+    {
+      final[30] = 0;
+      final[31] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+    }
+    else if (n_blocks == 3)
+    {
+      final[46] = 0;
+      final[47] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+    }
+    else
+    {
+      final[62] = 0;
+      final[63] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+      sha1_transform (final + 48, final + 52, final + 56, final + 60, digest);
     }
 
     COMPARE_M_SIMD (0, 0, digest[2] & 0xffff0000, digest[1]);
@@ -359,16 +380,20 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
    * salt
    */
 
-  u32 salt_buf[8];
+  u32 salt_buf[12];
 
-  salt_buf[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
-  salt_buf[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
-  salt_buf[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
-  salt_buf[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
-  salt_buf[4] = salt_bufs[SALT_POS_HOST].salt_buf[4];
-  salt_buf[5] = salt_bufs[SALT_POS_HOST].salt_buf[5];
-  salt_buf[6] = salt_bufs[SALT_POS_HOST].salt_buf[6];
-  salt_buf[7] = salt_bufs[SALT_POS_HOST].salt_buf[7];
+  salt_buf[ 0] = salt_bufs[SALT_POS_HOST].salt_buf[ 0];
+  salt_buf[ 1] = salt_bufs[SALT_POS_HOST].salt_buf[ 1];
+  salt_buf[ 2] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
+  salt_buf[ 3] = salt_bufs[SALT_POS_HOST].salt_buf[ 3];
+  salt_buf[ 4] = salt_bufs[SALT_POS_HOST].salt_buf[ 4];
+  salt_buf[ 5] = salt_bufs[SALT_POS_HOST].salt_buf[ 5];
+  salt_buf[ 6] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
+  salt_buf[ 7] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
+  salt_buf[ 8] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  salt_buf[ 9] = salt_bufs[SALT_POS_HOST].salt_buf[ 9];
+  salt_buf[10] = salt_bufs[SALT_POS_HOST].salt_buf[10];
+  salt_buf[11] = salt_bufs[SALT_POS_HOST].salt_buf[11];
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -406,18 +431,18 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
     u32 s2[4];
     u32 s3[4];
 
-    s0[0] = salt_buf[0];
-    s0[1] = salt_buf[1];
-    s0[2] = salt_buf[2];
-    s0[3] = salt_buf[3];
-    s1[0] = salt_buf[4];
-    s1[1] = salt_buf[5];
-    s1[2] = salt_buf[6];
-    s1[3] = salt_buf[7];
-    s2[0] = 0;
-    s2[1] = 0;
-    s2[2] = 0;
-    s2[3] = 0;
+    s0[0] = salt_buf[ 0];
+    s0[1] = salt_buf[ 1];
+    s0[2] = salt_buf[ 2];
+    s0[3] = salt_buf[ 3];
+    s1[0] = salt_buf[ 4];
+    s1[1] = salt_buf[ 5];
+    s1[2] = salt_buf[ 6];
+    s1[3] = salt_buf[ 7];
+    s2[0] = salt_buf[ 8];
+    s2[1] = salt_buf[ 9];
+    s2[2] = salt_buf[10];
+    s2[3] = salt_buf[11];
     s3[0] = 0;
     s3[1] = 0;
     s3[2] = 0;
@@ -431,18 +456,8 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
      * sha1
      */
 
-    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
-    // variable-length pieces into final[] back to back with no bounds check:
-    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
-    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
-    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
-    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
-    // overflows by design for realistic inputs, not just contrived ones.
-    // Sized here to the worst case with headroom; the sha1_transform calls
-    // a few lines down still only ever process the first two 64-byte blocks
-    // of it (final+0..32), which is a separate, not-yet-addressed question:
-    // whether that's a correctness gap for inputs long enough to need a
-    // third block is outside the scope of this memory-safety fix.
+    // SETSHIFTEDINT () below writes into final[] with no bounds check, so it has room for all 4 SHA1
+    // blocks the longest candidate, magic array and salt can need
     u32 final[64];
 
     final[ 0] = hc_swap32_S (w0[0] | s0[0]);
@@ -539,13 +554,16 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
     final[14] = 0;
     final[15] = 0;
 
-    // final[] can hold up to 4 SHA1 blocks (see the SETSHIFTEDINT fix); only
-    // the first block (final[0..15]) is set above, and SETSHIFTEDINT() below
-    // only ever writes as many bytes as are actually appended, so anything
-    // past the appended data and before the length word placed by the block
-    // loop further down would otherwise be uninitialized.
+    // final[] holds up to 4 SHA1 blocks. final[16] to final[31] are still zero from the first block
+    // above, and SETSHIFTEDINT () ORs into zero words, so only the third and fourth block need
+    // zeroing, and only when the data reaches them.
 
-    for (u32 j = 16; j < 64; j++) final[j] = 0;
+    const u32 n_blocks = ((pw_len + lengthMagicArray + salt_len + 8) / 64) + 1;
+
+    if (n_blocks > 2)
+    {
+      for (u32 j = 32; j < 64; j++) final[j] = 0;
+    }
 
     u32 final_len = out_len;
 
@@ -581,19 +599,43 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
 
     // calculate
     //
-    // final_len can reach up to 188 bytes (pw_max 55 + magic_max 82 +
-    // salt_max 51), needing up to 4 SHA1 blocks with padding -- this used to
-    // be hardcoded to at most 2 blocks, silently dropping anything past byte
-    // 119 into a wrong digest instead of a crash.
+    // final_len reaches up to 188 bytes (pw_max 55, a magic array of up to 82 and salt_max 51),
+    // which is up to 4 SHA1 blocks. Each block count has its own branch, so every index into
+    // final[] stays constant.
 
-    const u32 n_blocks = ((final_len + 8) / 64) + 1;
-
-    final[(n_blocks * 16) - 2] = 0;
-    final[(n_blocks * 16) - 1] = final_len * 8;
-
-    for (u32 b = 0; b < n_blocks; b++)
+    if (n_blocks == 1)
     {
-      sha1_transform (final + (b * 16) + 0, final + (b * 16) + 4, final + (b * 16) + 8, final + (b * 16) + 12, digest);
+      final[14] = 0;
+      final[15] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+    }
+    else if (n_blocks == 2)
+    {
+      final[30] = 0;
+      final[31] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+    }
+    else if (n_blocks == 3)
+    {
+      final[46] = 0;
+      final[47] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+    }
+    else
+    {
+      final[62] = 0;
+      final[63] = final_len * 8;
+
+      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
+      sha1_transform (final + 32, final + 36, final + 40, final + 44, digest);
+      sha1_transform (final + 48, final + 52, final + 56, final + 60, digest);
     }
 
     COMPARE_S_SIMD (0, 0, digest[2] & 0xffff0000, digest[1]);

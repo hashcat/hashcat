@@ -104,14 +104,7 @@ KERNEL_FQ KERNEL_FA void m06900_m04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -234,17 +227,27 @@ KERNEL_FQ KERNEL_FA void m06900_m04 (KERN_ATTR_BASIC ())
 
     u32x tmp[8];
 
-    //if (pw_len > 0) // not really SIMD compatible
-    {
-      PASS0 (state, tmp, state_m, data_m, s_tables);
-      PASS2 (state, tmp, state_m, data_m, s_tables);
-      PASS4 (state, tmp, state_m, data_m, s_tables);
-      PASS6 (state, tmp, state_m, data_m, s_tables);
+    PASS0 (state, tmp, state_m, data_m, s_tables);
+    PASS2 (state, tmp, state_m, data_m, s_tables);
+    PASS4 (state, tmp, state_m, data_m, s_tables);
+    PASS6 (state, tmp, state_m, data_m, s_tables);
 
-      SHIFT12 (state_m, data, tmp);
-      SHIFT16 (state, data_m, state_m);
-      SHIFT61 (state, data_m);
-    }
+    SHIFT12 (state_m, data, tmp);
+    SHIFT16 (state, data_m, state_m);
+    SHIFT61 (state, data_m);
+
+    // an empty password has no message block, so its lanes keep the zero state
+
+    const u32x mask = ((pw_len | (pw_len * 0xffffffff)) >> 31) * 0xffffffff;
+
+    state[0] &= mask;
+    state[1] &= mask;
+    state[2] &= mask;
+    state[3] &= mask;
+    state[4] &= mask;
+    state[5] &= mask;
+    state[6] &= mask;
+    state[7] &= mask;
 
     data[0] = pw_len * 8;
     data[1] = 0;
@@ -438,14 +441,7 @@ KERNEL_FQ KERNEL_FA void m06900_s04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -568,17 +564,27 @@ KERNEL_FQ KERNEL_FA void m06900_s04 (KERN_ATTR_BASIC ())
 
     u32x tmp[8];
 
-    //if (pw_len > 0) // not really SIMD compatible
-    {
-      PASS0 (state, tmp, state_m, data_m, s_tables);
-      PASS2 (state, tmp, state_m, data_m, s_tables);
-      PASS4 (state, tmp, state_m, data_m, s_tables);
-      PASS6 (state, tmp, state_m, data_m, s_tables);
+    PASS0 (state, tmp, state_m, data_m, s_tables);
+    PASS2 (state, tmp, state_m, data_m, s_tables);
+    PASS4 (state, tmp, state_m, data_m, s_tables);
+    PASS6 (state, tmp, state_m, data_m, s_tables);
 
-      SHIFT12 (state_m, data, tmp);
-      SHIFT16 (state, data_m, state_m);
-      SHIFT61 (state, data_m);
-    }
+    SHIFT12 (state_m, data, tmp);
+    SHIFT16 (state, data_m, state_m);
+    SHIFT61 (state, data_m);
+
+    // an empty password has no message block, so its lanes keep the zero state
+
+    const u32x mask = ((pw_len | (pw_len * 0xffffffff)) >> 31) * 0xffffffff;
+
+    state[0] &= mask;
+    state[1] &= mask;
+    state[2] &= mask;
+    state[3] &= mask;
+    state[4] &= mask;
+    state[5] &= mask;
+    state[6] &= mask;
+    state[7] &= mask;
 
     data[0] = pw_len * 8;
     data[1] = 0;

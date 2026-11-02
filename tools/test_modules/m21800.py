@@ -5,7 +5,6 @@
 ## License.....: MIT
 ##
 
-import random
 import zlib
 
 import hashlib
@@ -14,7 +13,7 @@ import hmac
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_string
+from lib.test_helpers import random_hex_string, random_number, random_string
 
 # Electrum wallet v5. The key derivation and AES-128-CBC layer are the same as -m 21700; version 5
 # stores only the first 1024 bytes of the ciphertext, so the mode is recognised by the deflate
@@ -108,7 +107,7 @@ def module_generate_hash(word, salt=None, iterations=None):
   ephemeral_pubkey = b""
 
   while key is None:
-    sign_of_curve_point = random.randrange(2)
+    sign_of_curve_point = random_number(0, 1)
 
     ephemeral_pubkey = bytes.fromhex("0%d%s" % (sign_of_curve_point + 2, random_hex_string(64)))
 
@@ -119,10 +118,10 @@ def module_generate_hash(word, salt=None, iterations=None):
   while True:
     data_buf = "{\r\n    \""
 
-    if random.randrange(2) == 1:
+    if random_number(0, 1) == 1:
       data_buf = "{\n    \""
 
-    data_length = MAX_DATA_LEN + random.randrange(int(MAX_DATA_LEN * 1.30 + 1))
+    data_length = MAX_DATA_LEN + random_number(0, int(MAX_DATA_LEN * 1.30))
 
     random_length = data_length - len(data_buf)
 

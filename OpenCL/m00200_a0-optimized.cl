@@ -85,11 +85,17 @@ KERNEL_FQ KERNEL_FA void m00200_m04 (KERN_ATTR_RULES ())
 
     u32x add = 7;
 
-    #define ROUND(v)                              \
-    {                                             \
-      a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
-      b += (b << 8) ^ a;                          \
-      add += v;                                   \
+    // MySQL's hash_password () skips spaces and tabs. keep is 0 for those two bytes and all ones
+    // otherwise, so the round leaves a, b and add as they were without a branch.
+
+    #define ROUND(v)                                                         \
+    {                                                                        \
+      const u32x ch   = (v);                                                 \
+      const u32x keep = ((((ch ^ 0x20) - 1) | ((ch ^ 0x09) - 1)) >> 31) - 1; \
+                                                                             \
+      a ^= ((((a & 0x3f) + add) * ch) + (a << 8)) & keep;                    \
+      b += ((b << 8) ^ a) & keep;                                            \
+      add += ch & keep;                                                      \
     }
 
     int i;
@@ -223,11 +229,17 @@ KERNEL_FQ KERNEL_FA void m00200_s04 (KERN_ATTR_RULES ())
 
     u32x add = 7;
 
-    #define ROUND(v)                              \
-    {                                             \
-      a ^= (((a & 0x3f) + add) * (v)) + (a << 8); \
-      b += (b << 8) ^ a;                          \
-      add += v;                                   \
+    // MySQL's hash_password () skips spaces and tabs. keep is 0 for those two bytes and all ones
+    // otherwise, so the round leaves a, b and add as they were without a branch.
+
+    #define ROUND(v)                                                         \
+    {                                                                        \
+      const u32x ch   = (v);                                                 \
+      const u32x keep = ((((ch ^ 0x20) - 1) | ((ch ^ 0x09) - 1)) >> 31) - 1; \
+                                                                             \
+      a ^= ((((a & 0x3f) + add) * ch) + (a << 8)) & keep;                    \
+      b += ((b << 8) ^ a) & keep;                                            \
+      add += ch & keep;                                                      \
     }
 
     int i;

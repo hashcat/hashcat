@@ -1,0 +1,53 @@
+extra/fpga/zc706-sdboot/fsbl.elf is a compiled binary. It is built from the Zynq-7000 first stage boot
+loader and the standalone BSP that ship with AMD Vivado, in
+data/embeddedsw/lib/sw_apps/zynq_fsbl, plus the ps7_init for this board taken from the ZC706
+hardware platform in data/embeddedsw/lib/fixed_hwplatforms/zc706.xsa.
+
+Those sources carry the MIT licence and the first notice below. Note that the board initialisation
+code used here is ps7_init.c, the MIT licensed variant, and NOT ps7_init_gpl.c.
+
+The loader reads the bitstream out of BOOT.BIN on the SD card through the xilffs library, which
+build_fsbl.tcl adds to the BSP. xilffs wraps ChaN's FatFs, and FatFs carries its own terms, the
+second notice below. Vivado 2026.1 supplies FatFs R0.16. Earlier releases carry the same terms with
+an earlier year.
+
+Rebuild the binary from the same sources with build_fsbl.tcl in the same directory.
+
+----
+
+Copyright (c) 2010 - 2020 Xilinx, Inc. All rights reserved.
+Copyright (c) 2022 - 2024 Advanced Micro Devices, Inc. All rights reserved.
+
+SPDX-License-Identifier: MIT
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+----
+
+FatFs - Generic FAT Filesystem Module R0.16
+Copyright (C) 2025, ChaN, all right reserved.
+
+FatFs module is an open source software. Redistribution and use of FatFs in
+source and binary forms, with or without modification, are permitted provided
+that the following condition is met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this condition and the following disclaimer.
+
+This software is provided by the copyright holder and contributors "AS IS"
+and any warranties related to this software are DISCLAIMED.
+The copyright owner or contributors be NOT LIABLE for any damages caused
+by use of this software.

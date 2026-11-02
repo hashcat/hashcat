@@ -149,17 +149,21 @@ typedef enum event_identifier
   EVENT_MONITOR_STATUS_REFRESH     = 0x00000091,
   EVENT_MONITOR_TEMP_ABORT         = 0x00000092,
   EVENT_MONITOR_TEMP_ABORT_FEEDER  = 0x00000099,
+  EVENT_MONITOR_TEMP_ABORT_BRIDGE  = 0x0000009a,
   EVENT_MONITOR_THROTTLE1          = 0x00000093,
   EVENT_MONITOR_THROTTLE2          = 0x00000094,
   EVENT_MONITOR_THROTTLE3          = 0x00000095,
   EVENT_MONITOR_PERFORMANCE_HINT   = 0x00000096,
   EVENT_MONITOR_NOINPUT_HINT       = 0x00000097,
   EVENT_MONITOR_NOINPUT_ABORT      = 0x00000098,
+  EVENT_MONITOR_STDIN_OVERRUN      = 0x0000009b,
   EVENT_BACKEND_SESSION_POST       = 0x000000a0,
   EVENT_BACKEND_SESSION_PRE        = 0x000000a1,
   EVENT_BACKEND_SESSION_HOSTMEM    = 0x000000a2,
   EVENT_BACKEND_DEVICE_INIT_POST   = 0x000000a3,
   EVENT_BACKEND_DEVICE_INIT_PRE    = 0x000000a4,
+  EVENT_OUTCHECK_PREFLIGHT_POST    = 0x00000150,
+  EVENT_OUTCHECK_PREFLIGHT_PRE     = 0x00000151,
   EVENT_OUTERLOOP_FINISHED         = 0x000000b0,
   EVENT_OUTERLOOP_MAINSCREEN       = 0x000000b1,
   EVENT_OUTERLOOP_STARTING         = 0x000000b2,
@@ -230,7 +234,7 @@ typedef enum vendor_id
 typedef enum mem_source
 {
   MEM_SOURCE_UNKNOWN   = 0,   // nothing asked; derived from the physical size
-  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo ()
+  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo (), the system's free memory on unified Apple devices
   MEM_SOURCE_ALIAS     = 2,   // copied from the CUDA or HIP view of the same device
   MEM_SOURCE_EXTENSION = 3,   // CL_DEVICE_GLOBAL_FREE_MEMORY_AMD
   MEM_SOURCE_HWMON     = 4,   // the hardware monitor's used-memory reading
@@ -292,13 +296,24 @@ typedef enum status_rc
 
 typedef enum rc_final
 {
-  RC_FINAL_ERROR            = -1,
-  RC_FINAL_OK               = 0,
-  RC_FINAL_EXHAUSTED        = 1,
-  RC_FINAL_ABORT            = 2,
-  RC_FINAL_ABORT_CHECKPOINT = 3,
-  RC_FINAL_ABORT_RUNTIME    = 4,
-  RC_FINAL_ABORT_FINISH     = 5,
+  RC_FINAL_ERROR_BRIDGE       = -13,
+  RC_FINAL_ERROR_TASK         = -12,
+  RC_FINAL_ERROR_SELFTEST     = -11,
+  RC_FINAL_ERROR_AUTOTUNE     = -10,
+  RC_FINAL_ERROR_MIXED        = -9,
+  RC_FINAL_ERROR_EXTRA_SIZE   = -8,
+  RC_FINAL_ERROR_KERNELCREATE = -6,
+  RC_FINAL_ERROR_KERNELBUILD  = -5,
+  RC_FINAL_ERROR_MEMORY_HIT   = -4,
+  RC_FINAL_ERROR_RUNTIME_SKIP = -3,
+  RC_FINAL_ERROR_COMMAND      = -2,
+  RC_FINAL_ERROR              = -1,
+  RC_FINAL_OK                 = 0,
+  RC_FINAL_EXHAUSTED          = 1,
+  RC_FINAL_ABORT              = 2,
+  RC_FINAL_ABORT_CHECKPOINT   = 3,
+  RC_FINAL_ABORT_RUNTIME      = 4,
+  RC_FINAL_ABORT_FINISH       = 5,
 
 } rc_final_t;
 
@@ -437,6 +452,9 @@ typedef enum kern_run
   KERN_RUN_INIT2  = 5000,
   KERN_RUN_LOOP2P = 5999,
   KERN_RUN_LOOP2  = 6000,
+  KERN_RUN_INIT3  = 6001,
+  KERN_RUN_LOOP3P = 6999,
+  KERN_RUN_LOOP3  = 7000,
   KERN_RUN_AUX1   = 7001,
   KERN_RUN_AUX2   = 7002,
   KERN_RUN_AUX3   = 7003,
@@ -475,6 +493,9 @@ typedef enum hc_dev_kern
   HC_DEV_KERN_INIT2,
   HC_DEV_KERN_LOOP2P,
   HC_DEV_KERN_LOOP2,
+  HC_DEV_KERN_INIT3,
+  HC_DEV_KERN_LOOP3P,
+  HC_DEV_KERN_LOOP3,
   HC_DEV_KERN_MP,
   HC_DEV_KERN_MP_L,
   HC_DEV_KERN_MP_R,
@@ -523,6 +544,9 @@ typedef enum hc_dev_kern
 #define KERN_BIT_INIT2          (1ULL << HC_DEV_KERN_INIT2)
 #define KERN_BIT_LOOP2_PREPARE  (1ULL << HC_DEV_KERN_LOOP2P)
 #define KERN_BIT_LOOP2          (1ULL << HC_DEV_KERN_LOOP2)
+#define KERN_BIT_INIT3          (1ULL << HC_DEV_KERN_INIT3)
+#define KERN_BIT_LOOP3_PREPARE  (1ULL << HC_DEV_KERN_LOOP3P)
+#define KERN_BIT_LOOP3          (1ULL << HC_DEV_KERN_LOOP3)
 #define KERN_BIT_TM             (1ULL << HC_DEV_KERN_TM)
 #define KERN_BIT_AUX1           (1ULL << HC_DEV_KERN_AUX1)
 #define KERN_BIT_AUX2           (1ULL << HC_DEV_KERN_AUX2)
@@ -765,6 +789,10 @@ typedef enum opts_type
   OPTS_TYPE_MT_HEX                   = (1ULL << 28), // mask is always in hex
   OPTS_TYPE_HASH_COPY                = (1ULL << 29),
   OPTS_TYPE_HASH_SPLIT               = (1ULL << 30),
+
+  // Optional binary input uses callbacks for files and the decoder for inline hashes.
+  OPTS_TYPE_BINARY_HASHFILE_DIRECT   = (1ULL << 31),
+
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
@@ -774,7 +802,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
-  // Bits 31 to 44 and bit 50 are free. They held the 16 flags that said which kernels a session
+  // Bits 32 to 44 and bit 50 are free. They held flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.
@@ -786,7 +814,7 @@ typedef enum opts_type
   OPTS_TYPE_MP_MULTI_DISABLE         = (1ULL << 56), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
   OPTS_TYPE_THREAD_MULTI_DISABLE     = (1ULL << 57), // do not multiply the kernel-power with the thread count per device for super slow algos
   OPTS_TYPE_NATIVE_THREADS           = (1ULL << 58), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
-  OPTS_TYPE_MAXIMUM_THREADS          = (1ULL << 59), // disable else branch in pre-compilation thread count optimization setting
+  OPTS_TYPE_MAXIMUM_THREADS          = (1ULL << 59), // autotune takes the largest workgroup that still reaches the most resident threads
   OPTS_TYPE_POST_AMP_UTF16LE         = (1ULL << 60), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
   OPTS_TYPE_AUTODETECT_DISABLE       = (1ULL << 61), // skip autodetect engine
   OPTS_TYPE_STOCK_MODULE             = (1ULL << 62), // module included with hashcat default distribution
@@ -939,6 +967,15 @@ typedef enum parser_rc
   PARSER_CRYPTOAPI_KERNELTYPE = -46,
   PARSER_CRYPTOAPI_KEYSIZE    = -47,
   PARSER_ZSTD_UNAVAILABLE     = -48,
+
+  PARSER_PKZIP_MEMBER_EMPTY       = -49,
+  PARSER_PKZIP_MEMBER_UNSUPPORTED = -50,
+  PARSER_PKZIP_MEMBER_INDEX       = -51,
+  PARSER_PKZIP_MEMBER_TOO_SHORT   = -52,
+  PARSER_ZLIB_UNAVAILABLE         = -53,
+
+  PARSER_SEVEN_ZIP_METHOD_UNSUPPORTED = -54,
+
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
@@ -993,6 +1030,7 @@ typedef enum user_options_defaults
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST  = 1,
   BENCHMARK_ALL             = false,
+  BENCHMARK_JSON            = false,
   BENCHMARK_MAX             = 99999,
   BENCHMARK_MIN             = 0,
   BENCHMARK_PURE            = false,
@@ -1025,7 +1063,6 @@ typedef enum user_options_defaults
   HASH_COPY                = false,
   HASH_INFO                = 0,
   HASH_MODE                = 0,
-  HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
   HEX_SALT                 = false,
   HEX_WORDLIST             = false,
@@ -1035,6 +1072,7 @@ typedef enum user_options_defaults
   INCREMENT_INVERSE        = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
+  JSON                     = false,
   KEEP_GUESSING            = false,
   KERNEL_ACCEL             = 0,
   KERNEL_LOOPS             = 0,
@@ -1051,8 +1089,8 @@ typedef enum user_options_defaults
   MARKOV                   = true,
   MARKOV_INVERSE           = false,
   MARKOV_THRESHOLD         = 0,
-  METAL_COMPILER_RUNTIME   = 120,
-  NONCE_ERROR_CORRECTIONS  = 8,
+  METAL_COMPILER_RUNTIME   = 180,
+  MODULE_CACHE_REBUILD     = false,
   BACKEND_IGNORE_CUDA      = false,
   BACKEND_IGNORE_HIP       = false,
   #if defined (__APPLE__)
@@ -1081,7 +1119,6 @@ typedef enum user_options_defaults
   RP_GEN_FUNC_MIN          = 1,
   RP_GEN_SEED              = 0,
   RUNTIME                  = 0,
-  SCRYPT_TMTO              = 0,
   SELF_TEST                = true,
   SHOW                     = false,
   SKIP                     = 0,
@@ -1093,13 +1130,12 @@ typedef enum user_options_defaults
   PIPELINE_STATS           = false,
   TASK_TIME_BREAKDOWN      = false,
   STATUS_TIMER             = 10,
+  STDIN_COUNT              = 0,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
   USAGE                    = 0,
   USERNAME                 = false,
   VERSION                  = false,
-  VERACRYPT_PIM_START      = 485,
-  VERACRYPT_PIM_STOP       = 485,
   WORDLIST_AUTOHEX         = true,
 
 } user_options_defaults_t;
@@ -1118,6 +1154,7 @@ typedef enum user_options_map
   IDX_BACKEND_INFO              = 'I',
   IDX_BACKEND_VECTOR_WIDTH      = 0xff05,
   IDX_BENCHMARK_ALL             = 0xff06,
+  IDX_BENCHMARK_JSON            = 0xff8e,
   IDX_BENCHMARK_MAX             = 0xff56,
   IDX_BENCHMARK_MIN             = 0xff57,
   IDX_BENCHMARK_PURE            = 'B',
@@ -1164,7 +1201,7 @@ typedef enum user_options_map
   IDX_HWMON_DISABLE             = 0xff19,
   IDX_HWMON_TEMP_ABORT          = 0xff1a,
   IDX_HASH_MODE                 = 'm',
-  IDX_HCCAPX_MESSAGE_PAIR       = 0xff1b,
+  IDX_HASH_RECIPE               = 0xff8d,
   IDX_HELP                      = 'h',
   IDX_HEX_CHARSET               = 0xff1c,
   IDX_HEX_SALT                  = 0xff1d,
@@ -1176,11 +1213,11 @@ typedef enum user_options_map
   IDX_INCREMENT_MAX             = 0xff21,
   IDX_INCREMENT_MIN             = 0xff22,
   IDX_INDUCTION_DIR             = 0xff23,
+  IDX_JSON                      = 0xff86,
   IDX_KEEP_GUESSING             = 0xff24,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
   IDX_KERNEL_THREADS            = 'T',
-  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff25,
   IDX_KEYSPACE                  = 0xff26,
   IDX_LEFT                      = 0xff27,
   IDX_LENGTH_SORT_DISABLE       = 0xff5a,
@@ -1197,7 +1234,7 @@ typedef enum user_options_map
   IDX_MARKOV_INVERSE            = 0xff2e,
   IDX_MARKOV_THRESHOLD          = 't',
   IDX_METAL_COMPILER_RUNTIME    = 0xff2f,
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff30,
+  IDX_MODULE_CACHE_REBUILD      = 0xff90,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_MULTIPLY_ACCEL_DISABLE    = 'M',
@@ -1227,7 +1264,6 @@ typedef enum user_options_map
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
   IDX_RUNTIME                   = 0xff43,
-  IDX_SCRYPT_TMTO               = 0xff44,
   IDX_CACHE_PATH                = 0xff88,
   IDX_SELF_TEST_DISABLE         = 0xff45,
   IDX_SEPARATOR                 = 'p',
@@ -1241,18 +1277,18 @@ typedef enum user_options_map
   IDX_STATUS_JSON               = 0xff4b,
   IDX_STATUS_TIMER              = 0xff4c,
   IDX_STDOUT_FLAG               = 0xff4d,
+  IDX_STDIN_COUNT               = 0xff8f,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff4e,
   IDX_TOTAL_CANDIDATES          = 0xff58,
-  IDX_TRUECRYPT_KEYFILES        = 0xff4f,
   IDX_USERNAME                  = 0xff50,
-  IDX_VERACRYPT_KEYFILES        = 0xff51,
-  IDX_VERACRYPT_PIM_START       = 0xff52,
-  IDX_VERACRYPT_PIM_STOP        = 0xff53,
-  IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
   IDX_ENCRYPT_WITH_PUBKEY       = 0xff70,
+
+  // the options modules register take the getopt values from here up, one each
+
+  IDX_MODULE_OPTION             = 0xfe00,
 
 } user_options_map_t;
 
@@ -1313,6 +1349,11 @@ typedef struct dynamicx
 {
   char *dynamicx_buf;
   u32   dynamicx_len;
+
+  // John's text after the tag, as it was read, which --show, --left and --remove write back
+
+  char *dynamicx_rest;
+  u32   dynamicx_rest_len;
 
 } dynamicx_t;
 
@@ -1406,6 +1447,7 @@ typedef struct hashes
   u32          digests_done;
   u32          digests_done_pot;
   u32          digests_done_zero;
+  u32          digests_done_outcheck;
   u32          digests_done_new;
   u32          digests_saved;
 
@@ -1447,6 +1489,16 @@ typedef struct hashes
 
   bool         radix_deduped;
   bool         radix_digests_reordered;
+
+  // the salts still to crack and what hashconfig->combined_len_max leaves for the password beside
+  // them, filled when the module sets that limit
+
+  u32          combined_salts_cnt;
+  u32          combined_salts_short;
+  u32          combined_salt_len_min;
+  u32          combined_salt_len_max;
+  u32          combined_pw_len_min;
+  u32          combined_pw_len_max;
 
 } hashes_t;
 
@@ -1490,6 +1542,10 @@ typedef struct hashconfig
   u32   salt_min;
   u32   salt_max;
 
+  // what password and salt may take together, where a kernel keeps both in one buffer, or 0
+
+  u32   combined_len_max;
+
   // hash count limit
 
   u32   hashes_count_min;
@@ -1499,6 +1555,15 @@ typedef struct hashconfig
 
   const char *st_hash;
   const char *st_pass;
+
+  // Optional recipe for a mode's pure kernels. See hashconfig_init ().
+
+  const char *hash_recipe;
+
+  // The recipe supplied through --hash-recipe, used by a module to determine how its
+  // hash lines are parsed.
+
+  const char *hash_recipe_option;
 
   u32         hash_category;
   const char *hash_name;
@@ -1773,6 +1838,7 @@ typedef struct hc_device_param
 
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
+  bool    skipped_autotune;     // session
 
   // Why this device is not being used, for the summary printed once enumeration is over. A device
   // the user excluded is not a loss and leaves this empty, so what remains here is a device that was
@@ -1862,6 +1928,7 @@ typedef struct hc_device_param
   u32     kernel_threads_min;
   u32     kernel_threads_max;
 
+  bool    kernel_threads_fixed; // the module requires exactly kernel_threads_min threads, FIXED_LOCAL_SIZE or FORCED_THREAD_COUNT
   bool    overtune_unfriendly;  // whatever sets this decide we operate in a mode that is not allowing to overtune threads_max or accel_max in autotuner
 
   u64     kernel_power;
@@ -2021,6 +2088,12 @@ typedef struct hc_device_param
   u64     innerloop_pos;
   u64     innerloop_left;
 
+  // The base words of a slow hash launch. The launch holds innerloop_left amplifier items over all of
+  // them, item after item, so its work item gid is word (gid % amp_base_cnt) under item (gid /
+  // amp_base_cnt). Zero where a launch is just its base words.
+
+  u64     amp_base_cnt;
+
   u32     exec_pos;
   double  exec_msec[EXEC_CACHE];
 
@@ -2063,11 +2136,18 @@ typedef struct hc_device_param
   bool    has_subc;
   bool    has_bfe;
   bool    has_lop3;
-  bool    has_mov64;
-  bool    has_prmt;
   bool    has_shfw;
 
   double  spin_damp;
+
+  // How early the launch wait wakes up before a launch is expected to end, and the pinned host
+  // memory a cracking launch uploads its parameters from and copies the crack count back into.
+
+  double  launch_margin_us;
+
+  void   *launch_param_host;
+  u32    *launch_result_host;
+  bool    launch_result_valid;
 
   void   *kernel_params[PARAMCNT];
   void   *kernel_params_mp[PARAMCNT];
@@ -2134,6 +2214,7 @@ typedef struct hc_device_param
   CUevent           cuda_event1;
   CUevent           cuda_event2;
   CUevent           cuda_event3;
+  CUevent           cuda_event_done;
 
   CUmodule          cuda_module[HC_DEV_PROGRAM_CNT];
 
@@ -2152,6 +2233,7 @@ typedef struct hc_device_param
   hipEvent_t        hip_event1;
   hipEvent_t        hip_event2;
   hipEvent_t        hip_event3;
+  hipEvent_t        hip_event_done;
 
   hipModule_t       hip_module[HC_DEV_PROGRAM_CNT];
 
@@ -2166,6 +2248,12 @@ typedef struct hc_device_param
   // API: metal
 
   bool              is_metal;
+
+  // The Metal family level, 1 to 4 and 0 for none, and whether the Metal 4 path was taken. Outside
+  // the Apple guard because the kernel cache key carries both on every platform.
+
+  int               metal_version;
+  bool              use_metal4;
 
   #if defined (__APPLE__)
 
@@ -2185,13 +2273,51 @@ typedef struct hc_device_param
   mtl_device_id     metal_device;
   mtl_command_queue metal_command_queue;
 
+  // Bound in place of every kernel argument the mode leaves NULL, because Metal takes no nil buffer.
+
+  mtl_mem_t         metal_fake_buf;
+
+  // Metal 4, when the device takes that path: the queue above is then an MTL4CommandQueue and these
+  // are what a launch or a copy needs around it. All nil on the Metal 3 path.
+
+  mtl_command_allocator metal_command_allocator;
+  mtl_command_buffer    metal_command_buffer;
+  mtl_argument_table    metal_argument_table;
+  mtl_residency_set     metal_residency_set;
+  mtl_compiler          metal_compiler;
+  id                    metal_scratch_buf;
+  size_t                metal_scratch_offset;
+  dispatch_semaphore_t  metal_sema;
+
   mtl_library       metal_library[HC_DEV_PROGRAM_CNT];
+
+  // A program is built at the default optimization level, or at the size level when its module asks
+  // for it. A kernel the default level cannot build comes from a second library at the size level,
+  // built from the source and options kept here. See hc_mtlCreateKernel.
+
+  mtl_library       metal_library_size[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_source[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_options[HC_DEV_PROGRAM_CNT];
+  char             *metal_program_size_kernels[HC_DEV_PROGRAM_CNT];
+  bool              metal_program_opt_size[HC_DEV_PROGRAM_CNT];
+
+  // The archive the compiled pipelines of a program are cached in, see hc_mtlArchiveOpen.
+
+  mtl_archive       metal_archive[HC_DEV_PROGRAM_CNT];
+  mtl_serializer    metal_serializer[HC_DEV_PROGRAM_CNT];
+  mtl_compiler      metal_program_compiler[HC_DEV_PROGRAM_CNT];
+  char             *metal_archive_file[HC_DEV_PROGRAM_CNT];
+  bool              metal_archive_write[HC_DEV_PROGRAM_CNT];
 
   mtl_function      metal_function[HC_DEV_KERN_CNT];
 
   mtl_pipeline      metal_pipeline[HC_DEV_KERN_CNT];
 
+  // The program each kernel slot was built from, and whether its pipeline is in the archive that
+  // will be written: a pipeline taken from an archive that turns out stale is added at the flush.
 
+  int               metal_function_program[HC_DEV_KERN_CNT];
+  bool              metal_function_archived[HC_DEV_KERN_CNT];
 
   #endif // __APPLE__
 
@@ -2217,9 +2343,16 @@ typedef struct hc_device_param
 
   mem_source_t      device_available_mem_source;
 
+  // device_available_mem and its source as enumeration found them. A session adjusts both for itself,
+  // and the next session starts again from these.
+
+  u64               device_available_mem_init;
+  mem_source_t      device_available_mem_source_init;
+
   cl_device_id      opencl_device;
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;
+  cl_mem            opencl_launch_buf;
 
   cl_program        opencl_program[HC_DEV_PROGRAM_CNT];
 
@@ -2290,7 +2423,6 @@ typedef struct backend_ctx
   bool                runtime_skip_warning;
   bool                kernel_build_warning;
   bool                kernel_create_warning;
-  bool                kernel_accel_warnings;
   bool                extra_size_warning;
   bool                mixed_warnings;
   bool                self_test_warnings;
@@ -2388,7 +2520,9 @@ typedef struct backend_ctx
 
   int                 rc_metal_init;
 
-  unsigned int        metal_runtimeVersion;
+  // The kernel cache key carries the whole string, 368.53 rather than 368, since the runtime moves
+  // with every macOS update and an archive from another OS build only falls back to a compile.
+
   char               *metal_runtimeVersionStr;
 
   // opencl
@@ -2729,6 +2863,7 @@ typedef struct out
   int    len;
   bool   write_failed;
   bool   always_ascii;
+  bool   autohex;
 
 } out_t;
 
@@ -2789,14 +2924,12 @@ typedef struct user_options
   bool         bypass_delay_chgd;
   bool         bypass_threshold_chgd;
   bool         hash_mode_chgd;
-  bool         hccapx_message_pair_chgd;
   bool         identify;
   bool         increment_max_chgd;
   bool         increment_min_chgd;
   bool         kernel_accel_chgd;
   bool         kernel_loops_chgd;
   bool         kernel_threads_chgd;
-  bool         nonce_error_corrections_chgd;
   bool         spin_damp_chgd;
   bool         backend_vector_width_chgd;
   bool         outfile_chgd;
@@ -2807,7 +2940,6 @@ typedef struct user_options
   bool         metal_compiler_runtime_chgd;
   bool         skip_chgd;
   bool         limit_chgd;
-  bool         scrypt_tmto_chgd;
   bool         separator_chgd;
   bool         rule_buf_l_chgd;
   bool         rule_buf_r_chgd;
@@ -2816,6 +2948,7 @@ typedef struct user_options
   bool         advice;
   bool         benchmark;
   bool         benchmark_all;
+  bool         benchmark_json;
   bool         benchmark_pure;
   #ifdef WITH_BRAIN
   bool         brain_client;
@@ -2831,6 +2964,7 @@ typedef struct user_options
   bool         hex_salt;
   bool         hex_wordlist;
   increment_t  increment;
+  bool         json;
   bool         keep_guessing;
   bool         keyspace;
   bool         total_candidates;
@@ -2838,6 +2972,7 @@ typedef struct user_options
   bool         logfile;
   bool         loopback;
   bool         machine_readable;
+  bool         module_cache_rebuild;
   bool         markov_classic;
   bool         markov;
   bool         markov_inverse;
@@ -2867,10 +3002,9 @@ typedef struct user_options
   bool         pipeline_stats;
   bool         task_time_breakdown;
   bool         stdout_flag;
+  bool         stdin_count_chgd;
   bool         stdin_timeout_abort_chgd;
   bool         username;
-  bool         veracrypt_pim_start_chgd;
-  bool         veracrypt_pim_stop_chgd;
   bool         version;
   bool         wordlist_autohex;
   #ifdef WITH_BRAIN
@@ -2884,8 +3018,8 @@ typedef struct user_options
   char        *bridge_parameter4;
   char        *cpu_affinity;
   char        *debug_file;
+  char        *hash_recipe;
   char        *induction_dir;
-  char        *keyboard_layout_mapping;
   char        *lookup;
   char        *lookup_alias;    // "lookup=" plus the above, when -a 4 is handed the question
   char        *markov_hcstat2;
@@ -2899,8 +3033,6 @@ typedef struct user_options
   char        *rp_gen_func_sel;
   char        *cache_path;
   char        *separator;
-  char        *truecrypt_keyfiles;
-  char        *veracrypt_keyfiles;
   const char  *custom_charset_1;
   const char  *custom_charset_2;
   const char  *custom_charset_3;
@@ -2948,7 +3080,6 @@ typedef struct user_options
   u32          hwmon_temp_abort;
   u32          hash_info;
   int          hash_mode;
-  u32          hccapx_message_pair;
   u32          hook_threads;
   u32          increment_max;
   u32          increment_min;
@@ -2956,7 +3087,6 @@ typedef struct user_options
   u32          kernel_loops;
   u32          kernel_threads;
   u32          markov_threshold;
-  u32          nonce_error_corrections;
   u32          spin_damp;
   u32          backend_vector_width;
   u32          outfile_check_timer;
@@ -2970,15 +3100,21 @@ typedef struct user_options
   u32          rp_gen_seed;
   u32          runtime;
   u32          metal_compiler_runtime;
-  u32          scrypt_tmto;
   u32          status_timer;
   u32          stdin_timeout_abort;
   u32          usage;
-  u32          veracrypt_pim_start;
-  u32          veracrypt_pim_stop;
   u64          limit;
   u64          skip;
+  u64          stdin_count;
   bool         hash_copy;
+
+  // what the option table validator read off the command line, see src/user_options_table.c
+
+  struct option_table *option_table;
+
+  // the options the modules registered and the values given for them, see src/module_options.c
+
+  struct module_options *module_options;
 
 } user_options_t;
 
@@ -3023,6 +3159,10 @@ typedef struct user_options_extra
 
   int    dynamicx_num;
 
+  // how the lines are laid out once they are hashcat's, DYNAMICX_LINE_* and DYNAMICX_SPLIT_*
+
+  u32    dynamicx_layout;
+
   int    hc_workc;  // can be 0 in bf-mode = default mask
   char **hc_workv;
 
@@ -3061,6 +3201,13 @@ typedef struct bitmap_ctx
 
 } bitmap_ctx_t;
 
+typedef struct folder_request
+{
+  bool  given;
+  char *profile_folder;
+
+} folder_request_t;
+
 typedef struct folder_config
 {
   char *cwd;
@@ -3070,6 +3217,11 @@ typedef struct folder_config
   char *session_dir;
   char *shared_dir;
   char *cpath_real;
+
+  // What a program asked for with hashcat_session_init_folders (). folder_config_destroy () keeps it,
+  // because a restore into another working directory sets the folders above up a second time.
+
+  folder_request_t request;
 
 } folder_config_t;
 
@@ -3270,16 +3422,18 @@ typedef struct mask_ctx
   hcstat_table_t *root_table_buf;
   hcstat_table_t *markov_table_buf;
 
-  // How many character positions of the markov statistics this run can reach. The tables hold one
-  // slice per position of the longest mask hashcat accepts, and the index puts the position outermost,
-  // so a run only ever reads the first sp_pw_max_used slices: an eight character mask reaches eight of
-  // 256. Everything sp_setup_tbl () does is bounded by this, which is what keeps a four character mask
-  // from decompressing, byte swapping, filling and sorting 256 MB it cannot address.
+  // How many character positions of the markov statistics this run can reach, and the size of every
+  // buffer that is indexed by position. The index puts the position outermost, so a run only ever
+  // reads the first sp_pw_max_used slices: an eight character mask reaches eight of 256. markov_table_buf
+  // and markov_css_buf are allocated for exactly this many, on the host and on each device, and
+  // everything sp_setup_tbl () does is bounded by it, which is what keeps a four character mask from
+  // decompressing, byte swapping, filling and sorting 256 MB it cannot address.
   //
   // It is an upper bound taken over the whole mask queue rather than any one round's css_cnt, and it is
   // deliberately loose: a mask string is at least as long as the number of positions it produces, so
-  // strlen bounds it without parsing the mask. Too large only wastes work, while too small would
-  // silently change which candidate a position maps to.
+  // strlen bounds it without parsing the mask. Too large only wastes memory. Too small would be a read
+  // past the end of markov_css_buf, which is why sp_tbl_to_css () checks the round's css_cnt against it
+  // rather than trusting it.
 
   u32    sp_pw_max_used;
 
@@ -3899,6 +4053,14 @@ typedef struct status_ctx
 
   u32  stdin_read_timeout_cnt;
 
+  /**
+   * exit code refinement
+   */
+
+  // What an exit -1 becomes, see status_rc.c. 0 until an error names who has to act.
+
+  rc_final_t rc_error;
+
 } status_ctx_t;
 
 typedef struct hashcat_user
@@ -4032,6 +4194,19 @@ typedef struct bridge_ctx
   int       (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
   char     *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
 
+  // A fixed tuning for one unit, for a bridge that knows what its hardware costs per launch. It is the
+  // bridge's counterpart to a module's extra tuning db block.
+  //
+  // OPTIONAL. A bridge that leaves it unset, or returns false for a unit, has that unit autotuned as
+  // before. A unit that gets an answer is not autotuned at all: nothing is launched to measure it, and
+  // the warm up launches are skipped as well. -n and -u still win over it.
+  //
+  // target_msec is the time budget autotune would have sized the launch against. kernel_accel counts
+  // the unit's own waves, as it does everywhere for a bridge unit, and the answer is clamped into the
+  // bounds the device was allocated for. hashes is passed explicitly for the reason given below.
+
+  bool      (*get_unit_tuning)       (hashcat_ctx_t *, void *, const int, const hashconfig_t *, const hashes_t *, const double, u32 *, u32 *);
+
   // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
   //
   // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
@@ -4123,6 +4298,63 @@ typedef struct hlfmt_word
 
 } hlfmt_word_t;
 
+// An option a module adds to the command line, see module_register_options () in
+// docs/hashcat-plugin-development-guide.md. It holds what a row of include/options.def and its rule
+// hold for a core option, and a module returns a list of them ended by a row whose name is NULL.
+
+typedef enum module_option_type
+{
+  MODULE_OPTION_TYPE_FLAG = 1,
+  MODULE_OPTION_TYPE_U32  = 2,
+  MODULE_OPTION_TYPE_STR  = 3,
+
+} module_option_type_t;
+
+typedef enum module_option_flag
+{
+  MODULE_OPTION_FLAG_MIN    = (1 << 0),
+  MODULE_OPTION_FLAG_MAX    = (1 << 1),
+  MODULE_OPTION_FLAG_HIDDEN = (1 << 2),
+
+} module_option_flag_t;
+
+// Called once the module is loaded, with the value given as text, for an option that takes a value.
+// It fills the buffer with the reason and returns false when the value cannot be used.
+
+typedef bool (*MODULE_OPTION_CHECK) (const char *, char *, const size_t);
+
+// the highest brain_slot a row can name, see brain_compute_attack ()
+
+#define BRAIN_SLOTS_MAX 16
+
+typedef struct module_option
+{
+  const char           *name;
+  module_option_type_t  type;
+  u32                   flags;
+  u64                   min;
+  u64                   max;
+  u64                   def;
+
+  // a position in the brain attack identity, 1 to BRAIN_SLOTS_MAX, for a number or flag option that
+  // has to keep two runs apart there, or 0. Only the hash-mode in use fills slots, so families can
+  // number from 1 each.
+
+  u32                   brain_slot;
+
+  const char           *alias;
+  const char           *le;
+  const char           *requires;
+  const char           *excludes;
+
+  MODULE_OPTION_CHECK   check;
+
+  const char           *help_type;
+  const char           *help;
+  const char           *help_example;
+
+} module_option_t;
+
 typedef struct module_ctx
 {
   size_t      module_context_size;
@@ -4140,6 +4372,7 @@ typedef struct module_ctx
   const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_charset)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  int         (*module_benchmark_cost)          (const hashconfig_t *, const salt_t *, const void *, char *, const int);
   const char *(*module_deprecated_notice)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_usage_notice)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_advice_notice)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -4149,11 +4382,12 @@ typedef struct module_ctx
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const backend_ctx_t *, const hashes_t *, const u32, const u32);
+  char       *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const backend_ctx_t *, const hashes_t *, const u32, const u32);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   int         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_hash_recipe)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hashes_count_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hashes_count_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -4185,6 +4419,10 @@ typedef struct module_ctx
   const char *(*module_st_pass)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_tmp_size)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_warmup_disable)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+
+  u32         (*module_combined_len_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_combined_len_pw)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const u32);
+  u32         (*module_combined_len_salt)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const salt_t *, const void *);
 
   int         (*module_hash_binary_count)       (const hashes_t *);
   int         (*module_hash_binary_parse)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, hashes_t *);
@@ -4222,6 +4460,8 @@ typedef struct module_ctx
 
   u64         (*module_bridge_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_bridge_name)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+
+  const module_option_t *(*module_register_options) (void);
 
 } module_ctx_t;
 
@@ -4323,7 +4563,9 @@ typedef struct hc_token
 } hc_token_t;
 
 /**
- * hash category is relevant in usage.c (--help screen)
+ * hash category is relevant in usage.c (--help screen). The numeric order of the
+ * categories is the order in which --help groups the hash-modes, so related
+ * categories are kept next to each other.
  */
 
 typedef enum hash_category
@@ -4334,25 +4576,34 @@ typedef enum hash_category
   HASH_CATEGORY_RAW_CHECKSUM            = 4,
   HASH_CATEGORY_RAW_CIPHER_KPA          = 5,
   HASH_CATEGORY_GENERIC_KDF             = 6,
-  HASH_CATEGORY_NETWORK_PROTOCOL        = 7,
-  HASH_CATEGORY_OS                      = 8,
-  HASH_CATEGORY_DATABASE_SERVER         = 9,
-  HASH_CATEGORY_NETWORK_SERVER          = 10,
-  HASH_CATEGORY_EAS                     = 11,
-  HASH_CATEGORY_FDE                     = 12,
-  HASH_CATEGORY_DOCUMENTS               = 13,
-  HASH_CATEGORY_PASSWORD_MANAGER        = 14,
-  HASH_CATEGORY_ARCHIVE                 = 15,
-  HASH_CATEGORY_FORUM_SOFTWARE          = 16,
-  HASH_CATEGORY_OTP                     = 17,
-  HASH_CATEGORY_PLAIN                   = 18,
-  HASH_CATEGORY_FRAMEWORK               = 19,
-  HASH_CATEGORY_PRIVATE_KEY             = 20,
-  HASH_CATEGORY_IMS                     = 21,
-  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 22,
-  HASH_CATEGORY_FBE                     = 23,
-  HASH_CATEGORY_APPLICATION_DATABASE    = 24,
+  HASH_CATEGORY_USER_DEFINED            = 7,
+
+  HASH_CATEGORY_NETWORK_PROTOCOL        = 8,
+  HASH_CATEGORY_NETWORK_SERVER          = 9,
+  HASH_CATEGORY_DATABASE_SERVER         = 10,
+
+  HASH_CATEGORY_OS                      = 11,
+  HASH_CATEGORY_EAS                     = 12,
+  HASH_CATEGORY_FRAMEWORK               = 13,
+  HASH_CATEGORY_FORUM_SOFTWARE          = 14,
+  HASH_CATEGORY_MESSAGING               = 15,
+  HASH_CATEGORY_APPLICATION_DATABASE    = 16,
+
+  HASH_CATEGORY_FDE                     = 17,
+  HASH_CATEGORY_FBE                     = 18,
+  HASH_CATEGORY_ARCHIVE                 = 19,
+  HASH_CATEGORY_DOCUMENTS               = 20,
+
+  HASH_CATEGORY_PASSWORD_MANAGER        = 21,
+  HASH_CATEGORY_PRIVATE_KEY             = 22,
+  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 23,
+  HASH_CATEGORY_OTP                     = 24,
+  HASH_CATEGORY_RFID                    = 25,
+
+  HASH_CATEGORY_PLAIN                   = 26,
+
   HASH_CATEGORY_UNDEFINED               = -1,
+
 } hash_category_t;
 
 // hash specific

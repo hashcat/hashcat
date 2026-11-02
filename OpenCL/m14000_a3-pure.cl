@@ -1529,7 +1529,55 @@ DECLSPEC void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const 
 #define KEYSET07 { k00 = K31; k01 = K35; k02 = K52; k03 = K43; k04 = K08; k05 = K37; k06 = K51; k07 = K15; k08 = K49; k09 = K30; k10 = K07; k11 = K02; k12 = K50; k13 = K21; k14 = K45; k15 = K44; k16 = K29; k17 = K16; k18 = K42; k19 = K23; k20 = K22; k21 = K14; k22 = K38; k23 = K01; k24 = K10; k25 = K47; k26 = K53; k27 = K11; k28 = K27; k29 = K26; k30 = K05; k31 = K17; k32 = K54; k33 = K41; k34 = K39; k35 = K20; k36 = K48; k37 = K13; k38 = K24; k39 = K19; k40 = K32; k41 = K40; k42 = K34; k43 = K03; k44 = K06; k45 = K18; k46 = K12; k47 = K46; }
 #define KEYSET17 { k00 = K15; k01 = K51; k02 = K36; k03 = K02; k04 = K49; k05 = K21; k06 = K35; k07 = K31; k08 = K08; k09 = K14; k10 = K23; k11 = K43; k12 = K09; k13 = K37; k14 = K29; k15 = K28; k16 = K45; k17 = K00; k18 = K01; k19 = K07; k20 = K38; k21 = K30; k22 = K22; k23 = K42; k24 = K26; k25 = K04; k26 = K41; k27 = K54; k28 = K39; k29 = K10; k30 = K48; k31 = K33; k32 = K11; k33 = K53; k34 = K27; k35 = K32; k36 = K05; k37 = K25; k38 = K40; k39 = K03; k40 = K20; k41 = K24; k42 = K46; k43 = K19; k44 = K18; k45 = K06; k46 = K55; k47 = K34; }
 
-DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, PRIVATE_AS u32 *D00, PRIVATE_AS u32 *D01, PRIVATE_AS u32 *D02, PRIVATE_AS u32 *D03, PRIVATE_AS u32 *D04, PRIVATE_AS u32 *D05, PRIVATE_AS u32 *D06, PRIVATE_AS u32 *D07, PRIVATE_AS u32 *D08, PRIVATE_AS u32 *D09, PRIVATE_AS u32 *D10, PRIVATE_AS u32 *D11, PRIVATE_AS u32 *D12, PRIVATE_AS u32 *D13, PRIVATE_AS u32 *D14, PRIVATE_AS u32 *D15, PRIVATE_AS u32 *D16, PRIVATE_AS u32 *D17, PRIVATE_AS u32 *D18, PRIVATE_AS u32 *D19, PRIVATE_AS u32 *D20, PRIVATE_AS u32 *D21, PRIVATE_AS u32 *D22, PRIVATE_AS u32 *D23, PRIVATE_AS u32 *D24, PRIVATE_AS u32 *D25, PRIVATE_AS u32 *D26, PRIVATE_AS u32 *D27, PRIVATE_AS u32 *D28, PRIVATE_AS u32 *D29, PRIVATE_AS u32 *D30, PRIVATE_AS u32 *D31, PRIVATE_AS u32 *D32, PRIVATE_AS u32 *D33, PRIVATE_AS u32 *D34, PRIVATE_AS u32 *D35, PRIVATE_AS u32 *D36, PRIVATE_AS u32 *D37, PRIVATE_AS u32 *D38, PRIVATE_AS u32 *D39, PRIVATE_AS u32 *D40, PRIVATE_AS u32 *D41, PRIVATE_AS u32 *D42, PRIVATE_AS u32 *D43, PRIVATE_AS u32 *D44, PRIVATE_AS u32 *D45, PRIVATE_AS u32 *D46, PRIVATE_AS u32 *D47, PRIVATE_AS u32 *D48, PRIVATE_AS u32 *D49, PRIVATE_AS u32 *D50, PRIVATE_AS u32 *D51, PRIVATE_AS u32 *D52, PRIVATE_AS u32 *D53, PRIVATE_AS u32 *D54, PRIVATE_AS u32 *D55, PRIVATE_AS u32 *D56, PRIVATE_AS u32 *D57, PRIVATE_AS u32 *D58, PRIVATE_AS u32 *D59, PRIVATE_AS u32 *D60, PRIVATE_AS u32 *D61, PRIVATE_AS u32 *D62, PRIVATE_AS u32 *D63)
+// Odd rounds read D32-D63 and write D00-D31, even rounds the other way round. Round 15 is split
+// after S-box 4, so a kernel can test part of R15 before it pays for the rest.
+
+#define DES_ODD_LO \
+  s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30); \
+  s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17); \
+  s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05); \
+  s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
+#define DES_ODD_HI \
+  s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02); \
+  s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18); \
+  s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06); \
+  s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+#define DES_EVEN \
+  s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62); \
+  s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49); \
+  s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37); \
+  s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32); \
+  s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34); \
+  s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50); \
+  s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38); \
+  s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+
+#define DES_PARAMS const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 K04, const u32 K05, const u32 K06, const u32 K07, const u32 K08, const u32 K09, const u32 K10, const u32 K11, const u32 K12, const u32 K13, const u32 K14, const u32 K15, const u32 K16, const u32 K17, const u32 K18, const u32 K19, const u32 K20, const u32 K21, const u32 K22, const u32 K23, const u32 K24, const u32 K25, const u32 K26, const u32 K27, const u32 K28, const u32 K29, const u32 K30, const u32 K31, const u32 K32, const u32 K33, const u32 K34, const u32 K35, const u32 K36, const u32 K37, const u32 K38, const u32 K39, const u32 K40, const u32 K41, const u32 K42, const u32 K43, const u32 K44, const u32 K45, const u32 K46, const u32 K47, const u32 K48, const u32 K49, const u32 K50, const u32 K51, const u32 K52, const u32 K53, const u32 K54, const u32 K55, PRIVATE_AS u32 *D00, PRIVATE_AS u32 *D01, PRIVATE_AS u32 *D02, PRIVATE_AS u32 *D03, PRIVATE_AS u32 *D04, PRIVATE_AS u32 *D05, PRIVATE_AS u32 *D06, PRIVATE_AS u32 *D07, PRIVATE_AS u32 *D08, PRIVATE_AS u32 *D09, PRIVATE_AS u32 *D10, PRIVATE_AS u32 *D11, PRIVATE_AS u32 *D12, PRIVATE_AS u32 *D13, PRIVATE_AS u32 *D14, PRIVATE_AS u32 *D15, PRIVATE_AS u32 *D16, PRIVATE_AS u32 *D17, PRIVATE_AS u32 *D18, PRIVATE_AS u32 *D19, PRIVATE_AS u32 *D20, PRIVATE_AS u32 *D21, PRIVATE_AS u32 *D22, PRIVATE_AS u32 *D23, PRIVATE_AS u32 *D24, PRIVATE_AS u32 *D25, PRIVATE_AS u32 *D26, PRIVATE_AS u32 *D27, PRIVATE_AS u32 *D28, PRIVATE_AS u32 *D29, PRIVATE_AS u32 *D30, PRIVATE_AS u32 *D31, PRIVATE_AS u32 *D32, PRIVATE_AS u32 *D33, PRIVATE_AS u32 *D34, PRIVATE_AS u32 *D35, PRIVATE_AS u32 *D36, PRIVATE_AS u32 *D37, PRIVATE_AS u32 *D38, PRIVATE_AS u32 *D39, PRIVATE_AS u32 *D40, PRIVATE_AS u32 *D41, PRIVATE_AS u32 *D42, PRIVATE_AS u32 *D43, PRIVATE_AS u32 *D44, PRIVATE_AS u32 *D45, PRIVATE_AS u32 *D46, PRIVATE_AS u32 *D47, PRIVATE_AS u32 *D48, PRIVATE_AS u32 *D49, PRIVATE_AS u32 *D50, PRIVATE_AS u32 *D51, PRIVATE_AS u32 *D52, PRIVATE_AS u32 *D53, PRIVATE_AS u32 *D54, PRIVATE_AS u32 *D55, PRIVATE_AS u32 *D56, PRIVATE_AS u32 *D57, PRIVATE_AS u32 *D58, PRIVATE_AS u32 *D59, PRIVATE_AS u32 *D60, PRIVATE_AS u32 *D61, PRIVATE_AS u32 *D62, PRIVATE_AS u32 *D63
+
+#define DES_KEYS k00, k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, K28, K29, K30, K31, K32, K33, K34, K35, K36, K37, K38, K39, K40, K41, K42, K43, K44, K45, K46, K47, K48, K49, K50, K51, K52, K53, K54, K55
+
+#define DES_DATA(p) &p##00, &p##01, &p##02, &p##03, &p##04, &p##05, &p##06, &p##07, &p##08, &p##09, &p##10, &p##11, &p##12, &p##13, &p##14, &p##15, &p##16, &p##17, &p##18, &p##19, &p##20, &p##21, &p##22, &p##23, &p##24, &p##25, &p##26, &p##27, &p##28, &p##29, &p##30, &p##31, &p##32, &p##33, &p##34, &p##35, &p##36, &p##37, &p##38, &p##39, &p##40, &p##41, &p##42, &p##43, &p##44, &p##45, &p##46, &p##47, &p##48, &p##49, &p##50, &p##51, &p##52, &p##53, &p##54, &p##55, &p##56, &p##57, &p##58, &p##59, &p##60, &p##61, &p##62, &p##63
+
+// Under NVIDIA the compiler rebuilds the 64 masks of the initial state from the salt in every slice,
+// on the ALU pipe this kernel saturates. Built once in local memory, they cost a load each. AMD
+// builds them in scalar registers, where they are free, and loses speed with local memory.
+
+#ifdef IS_NV
+#define DES_INIT(i,d) s_d[i]
+#else
+#define DES_INIT(i,d) d
+#endif
+
+// Intel's GPU compiler runs the single-hash R15 test faster with its 16 masks in local memory than
+// with the S masks the full compare keeps. NVIDIA and AMD run it slower that way.
+
+#if defined IS_INTEL_SDK && defined IS_GPU
+#define R15_MASK(b,s) s_check[b]
+#else
+#define R15_MASK(b,s) s
+#endif
+
+DECLSPEC void DES_R01_R14 (DES_PARAMS)
 {
   KXX_DECL u32 k00, k01, k02, k03, k04, k05;
   KXX_DECL u32 k06, k07, k08, k09, k10, k11;
@@ -1540,99 +1588,108 @@ DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, c
   KXX_DECL u32 k36, k37, k38, k39, k40, k41;
   KXX_DECL u32 k42, k43, k44, k45, k46, k47;
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
+  // Apple's OpenCL compiler runs rounds 1-14 faster as a loop of 2 passes. Metal and PoCL run them
+  // faster as a straight line.
+
+  #if defined IS_APPLE && defined IS_OPENCL
   for (u32 i = 0; i < 2; i++)
   {
     if (i) KEYSET10 else KEYSET00
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+    DES_ODD_LO
+    DES_ODD_HI
 
     if (i) KEYSET11 else KEYSET01
 
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+    DES_EVEN
 
     if (i) KEYSET12 else KEYSET02
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+    DES_ODD_LO
+    DES_ODD_HI
 
     if (i) KEYSET13 else KEYSET03
 
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+    DES_EVEN
 
     if (i) KEYSET14 else KEYSET04
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+    DES_ODD_LO
+    DES_ODD_HI
 
     if (i) KEYSET15 else KEYSET05
 
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+    DES_EVEN
 
-    if (i) KEYSET16 else KEYSET06
+    if (i == 1) break;
 
-    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
-    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
-    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
-    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
-    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
-    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
-    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
-    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+    KEYSET06
 
-    if (i) KEYSET17 else KEYSET07
+    DES_ODD_LO
+    DES_ODD_HI
 
-    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
-    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
-    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
-    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
-    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
-    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
-    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
-    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+    KEYSET07
+
+    DES_EVEN
   }
+  #else
+  KEYSET00 DES_ODD_LO DES_ODD_HI
+  KEYSET01 DES_EVEN
+  KEYSET02 DES_ODD_LO DES_ODD_HI
+  KEYSET03 DES_EVEN
+  KEYSET04 DES_ODD_LO DES_ODD_HI
+  KEYSET05 DES_EVEN
+  KEYSET06 DES_ODD_LO DES_ODD_HI
+  KEYSET07 DES_EVEN
+  KEYSET10 DES_ODD_LO DES_ODD_HI
+  KEYSET11 DES_EVEN
+  KEYSET12 DES_ODD_LO DES_ODD_HI
+  KEYSET13 DES_EVEN
+  KEYSET14 DES_ODD_LO DES_ODD_HI
+  KEYSET15 DES_EVEN
+  #endif
+}
+
+DECLSPEC void DES_R15_LO (DES_PARAMS)
+{
+  KXX_DECL u32 k00, k01, k02, k03, k04, k05;
+  KXX_DECL u32 k06, k07, k08, k09, k10, k11;
+  KXX_DECL u32 k12, k13, k14, k15, k16, k17;
+  KXX_DECL u32 k18, k19, k20, k21, k22, k23;
+  KXX_DECL u32 k24, k25, k26, k27, k28, k29;
+  KXX_DECL u32 k30, k31, k32, k33, k34, k35;
+  KXX_DECL u32 k36, k37, k38, k39, k40, k41;
+  KXX_DECL u32 k42, k43, k44, k45, k46, k47;
+
+  KEYSET16 DES_ODD_LO
+}
+
+DECLSPEC void DES_R15_HI (DES_PARAMS)
+{
+  KXX_DECL u32 k00, k01, k02, k03, k04, k05;
+  KXX_DECL u32 k06, k07, k08, k09, k10, k11;
+  KXX_DECL u32 k12, k13, k14, k15, k16, k17;
+  KXX_DECL u32 k18, k19, k20, k21, k22, k23;
+  KXX_DECL u32 k24, k25, k26, k27, k28, k29;
+  KXX_DECL u32 k30, k31, k32, k33, k34, k35;
+  KXX_DECL u32 k36, k37, k38, k39, k40, k41;
+  KXX_DECL u32 k42, k43, k44, k45, k46, k47;
+
+  KEYSET16 DES_ODD_HI
+}
+
+DECLSPEC void DES_R16 (DES_PARAMS)
+{
+  KXX_DECL u32 k00, k01, k02, k03, k04, k05;
+  KXX_DECL u32 k06, k07, k08, k09, k10, k11;
+  KXX_DECL u32 k12, k13, k14, k15, k16, k17;
+  KXX_DECL u32 k18, k19, k20, k21, k22, k23;
+  KXX_DECL u32 k24, k25, k26, k27, k28, k29;
+  KXX_DECL u32 k30, k31, k32, k33, k34, k35;
+  KXX_DECL u32 k36, k37, k38, k39, k40, k41;
+  KXX_DECL u32 k42, k43, k44, k45, k46, k47;
+
+  KEYSET17 DES_EVEN
 }
 
 DECLSPEC void transpose32c (PRIVATE_AS u32 *data)
@@ -1764,8 +1821,53 @@ KERNEL_FQ KERNEL_FA void m14000_mxx (KERN_ATTR_BITSLICE ())
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  #ifdef IS_NV
+  LOCAL_VK u32 s_d[64];
+
+  for (u32 i = lid; i < 64; i += lsz)
+  {
+    const u32 salt = salt_bufs[SALT_POS_HOST].salt_buf_pc[(i < 32) ? 1 : 0];
+
+    s_d[i] = ((salt >> (i & 31)) & 1) ? -1 : 0;
+  }
+
+  SYNC_THREADS ();
+  #endif
+
+  // The R15 test compares 16 bits of each digest on every slice. Expanded here once per work-group,
+  // each costs a local load. Intel's OpenCL runtime is slow at global loads inside the slice loop.
+
+  LOCAL_VK u32 s_check[16][16];
+
+  for (u32 i = lid; i < 16; i += lsz)
+  {
+    const u32 r0 = (i < DIGESTS_CNT) ? digests_buf[DIGESTS_OFFSET_HOST + i].digest_buf[DGST_R0] : 0;
+
+    s_check[i][ 0] = -((r0 >>  0) & 1);
+    s_check[i][ 1] = -((r0 >>  1) & 1);
+    s_check[i][ 2] = -((r0 >>  5) & 1);
+    s_check[i][ 3] = -((r0 >>  8) & 1);
+    s_check[i][ 4] = -((r0 >>  9) & 1);
+    s_check[i][ 5] = -((r0 >> 12) & 1);
+    s_check[i][ 6] = -((r0 >> 15) & 1);
+    s_check[i][ 7] = -((r0 >> 16) & 1);
+    s_check[i][ 8] = -((r0 >> 17) & 1);
+    s_check[i][ 9] = -((r0 >> 19) & 1);
+    s_check[i][10] = -((r0 >> 22) & 1);
+    s_check[i][11] = -((r0 >> 23) & 1);
+    s_check[i][12] = -((r0 >> 25) & 1);
+    s_check[i][13] = -((r0 >> 27) & 1);
+    s_check[i][14] = -((r0 >> 29) & 1);
+    s_check[i][15] = -((r0 >> 30) & 1);
+  }
+
+  SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  const u32 digests_cnt = DIGESTS_CNT;
 
   /**
    * salt
@@ -1972,90 +2074,110 @@ KERNEL_FQ KERNEL_FA void m14000_mxx (KERN_ATTR_BITSLICE ())
     k26 |= words_buf_s[pc_pos].b[26];
     k27 |= words_buf_s[pc_pos].b[27];
 
-    u32 D00 = d00;
-    u32 D01 = d01;
-    u32 D02 = d02;
-    u32 D03 = d03;
-    u32 D04 = d04;
-    u32 D05 = d05;
-    u32 D06 = d06;
-    u32 D07 = d07;
-    u32 D08 = d08;
-    u32 D09 = d09;
-    u32 D10 = d10;
-    u32 D11 = d11;
-    u32 D12 = d12;
-    u32 D13 = d13;
-    u32 D14 = d14;
-    u32 D15 = d15;
-    u32 D16 = d16;
-    u32 D17 = d17;
-    u32 D18 = d18;
-    u32 D19 = d19;
-    u32 D20 = d20;
-    u32 D21 = d21;
-    u32 D22 = d22;
-    u32 D23 = d23;
-    u32 D24 = d24;
-    u32 D25 = d25;
-    u32 D26 = d26;
-    u32 D27 = d27;
-    u32 D28 = d28;
-    u32 D29 = d29;
-    u32 D30 = d30;
-    u32 D31 = d31;
-    u32 D32 = d32;
-    u32 D33 = d33;
-    u32 D34 = d34;
-    u32 D35 = d35;
-    u32 D36 = d36;
-    u32 D37 = d37;
-    u32 D38 = d38;
-    u32 D39 = d39;
-    u32 D40 = d40;
-    u32 D41 = d41;
-    u32 D42 = d42;
-    u32 D43 = d43;
-    u32 D44 = d44;
-    u32 D45 = d45;
-    u32 D46 = d46;
-    u32 D47 = d47;
-    u32 D48 = d48;
-    u32 D49 = d49;
-    u32 D50 = d50;
-    u32 D51 = d51;
-    u32 D52 = d52;
-    u32 D53 = d53;
-    u32 D54 = d54;
-    u32 D55 = d55;
-    u32 D56 = d56;
-    u32 D57 = d57;
-    u32 D58 = d58;
-    u32 D59 = d59;
-    u32 D60 = d60;
-    u32 D61 = d61;
-    u32 D62 = d62;
-    u32 D63 = d63;
+    u32 D00 = DES_INIT ( 0, d00);
+    u32 D01 = DES_INIT ( 1, d01);
+    u32 D02 = DES_INIT ( 2, d02);
+    u32 D03 = DES_INIT ( 3, d03);
+    u32 D04 = DES_INIT ( 4, d04);
+    u32 D05 = DES_INIT ( 5, d05);
+    u32 D06 = DES_INIT ( 6, d06);
+    u32 D07 = DES_INIT ( 7, d07);
+    u32 D08 = DES_INIT ( 8, d08);
+    u32 D09 = DES_INIT ( 9, d09);
+    u32 D10 = DES_INIT (10, d10);
+    u32 D11 = DES_INIT (11, d11);
+    u32 D12 = DES_INIT (12, d12);
+    u32 D13 = DES_INIT (13, d13);
+    u32 D14 = DES_INIT (14, d14);
+    u32 D15 = DES_INIT (15, d15);
+    u32 D16 = DES_INIT (16, d16);
+    u32 D17 = DES_INIT (17, d17);
+    u32 D18 = DES_INIT (18, d18);
+    u32 D19 = DES_INIT (19, d19);
+    u32 D20 = DES_INIT (20, d20);
+    u32 D21 = DES_INIT (21, d21);
+    u32 D22 = DES_INIT (22, d22);
+    u32 D23 = DES_INIT (23, d23);
+    u32 D24 = DES_INIT (24, d24);
+    u32 D25 = DES_INIT (25, d25);
+    u32 D26 = DES_INIT (26, d26);
+    u32 D27 = DES_INIT (27, d27);
+    u32 D28 = DES_INIT (28, d28);
+    u32 D29 = DES_INIT (29, d29);
+    u32 D30 = DES_INIT (30, d30);
+    u32 D31 = DES_INIT (31, d31);
+    u32 D32 = DES_INIT (32, d32);
+    u32 D33 = DES_INIT (33, d33);
+    u32 D34 = DES_INIT (34, d34);
+    u32 D35 = DES_INIT (35, d35);
+    u32 D36 = DES_INIT (36, d36);
+    u32 D37 = DES_INIT (37, d37);
+    u32 D38 = DES_INIT (38, d38);
+    u32 D39 = DES_INIT (39, d39);
+    u32 D40 = DES_INIT (40, d40);
+    u32 D41 = DES_INIT (41, d41);
+    u32 D42 = DES_INIT (42, d42);
+    u32 D43 = DES_INIT (43, d43);
+    u32 D44 = DES_INIT (44, d44);
+    u32 D45 = DES_INIT (45, d45);
+    u32 D46 = DES_INIT (46, d46);
+    u32 D47 = DES_INIT (47, d47);
+    u32 D48 = DES_INIT (48, d48);
+    u32 D49 = DES_INIT (49, d49);
+    u32 D50 = DES_INIT (50, d50);
+    u32 D51 = DES_INIT (51, d51);
+    u32 D52 = DES_INIT (52, d52);
+    u32 D53 = DES_INIT (53, d53);
+    u32 D54 = DES_INIT (54, d54);
+    u32 D55 = DES_INIT (55, d55);
+    u32 D56 = DES_INIT (56, d56);
+    u32 D57 = DES_INIT (57, d57);
+    u32 D58 = DES_INIT (58, d58);
+    u32 D59 = DES_INIT (59, d59);
+    u32 D60 = DES_INIT (60, d60);
+    u32 D61 = DES_INIT (61, d61);
+    u32 D62 = DES_INIT (62, d62);
+    u32 D63 = DES_INIT (63, d63);
 
-    DES
-    (
-      k00, k01, k02, k03, k04, k05, k06,
-      k07, k08, k09, k10, k11, k12, k13,
-      k14, k15, k16, k17, k18, k19, k20,
-      k21, k22, k23, k24, k25, k26, k27,
-      K28, K29, K30, K31, K32, K33, K34,
-      K35, K36, K37, K38, K39, K40, K41,
-      K42, K43, K44, K45, K46, K47, K48,
-      K49, K50, K51, K52, K53, K54, K55,
-      &D00, &D01, &D02, &D03, &D04, &D05, &D06, &D07,
-      &D08, &D09, &D10, &D11, &D12, &D13, &D14, &D15,
-      &D16, &D17, &D18, &D19, &D20, &D21, &D22, &D23,
-      &D24, &D25, &D26, &D27, &D28, &D29, &D30, &D31,
-      &D32, &D33, &D34, &D35, &D36, &D37, &D38, &D39,
-      &D40, &D41, &D42, &D43, &D44, &D45, &D46, &D47,
-      &D48, &D49, &D50, &D51, &D52, &D53, &D54, &D55,
-      &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63
-    );
+    DES_R01_R14 (DES_KEYS, DES_DATA (D));
+    DES_R15_LO  (DES_KEYS, DES_DATA (D));
+
+    // Round 16 leaves D00-D31 alone, so these 16 bits of the result are final already. A slice in
+    // which no lane matches them is done.
+
+    if (digests_cnt < 16)
+    {
+      u32 hit = 0;
+
+      for (u32 d = 0; d < digests_cnt; d++)
+      {
+        u32 tmpResult = 0;
+
+        tmpResult |= D00 ^ s_check[d][ 0];
+        tmpResult |= D01 ^ s_check[d][ 1];
+        tmpResult |= D05 ^ s_check[d][ 2];
+        tmpResult |= D08 ^ s_check[d][ 3];
+        tmpResult |= D09 ^ s_check[d][ 4];
+        tmpResult |= D12 ^ s_check[d][ 5];
+        tmpResult |= D15 ^ s_check[d][ 6];
+        tmpResult |= D16 ^ s_check[d][ 7];
+        tmpResult |= D17 ^ s_check[d][ 8];
+        tmpResult |= D19 ^ s_check[d][ 9];
+        tmpResult |= D22 ^ s_check[d][10];
+        tmpResult |= D23 ^ s_check[d][11];
+        tmpResult |= D25 ^ s_check[d][12];
+        tmpResult |= D27 ^ s_check[d][13];
+        tmpResult |= D29 ^ s_check[d][14];
+        tmpResult |= D30 ^ s_check[d][15];
+
+        hit |= ~tmpResult;
+      }
+
+      if (hit == 0) continue;
+    }
+
+    DES_R15_HI  (DES_KEYS, DES_DATA (D));
+    DES_R16     (DES_KEYS, DES_DATA (D));
 
     u32 out[64];
 
@@ -2208,6 +2330,48 @@ KERNEL_FQ KERNEL_FA void m14000_sxx (KERN_ATTR_BITSLICE ())
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  #ifdef IS_NV
+  LOCAL_VK u32 s_d[64];
+
+  for (u32 i = lid; i < 64; i += lsz)
+  {
+    const u32 salt = salt_bufs[SALT_POS_HOST].salt_buf_pc[(i < 32) ? 1 : 0];
+
+    s_d[i] = ((salt >> (i & 31)) & 1) ? -1 : 0;
+  }
+
+  SYNC_THREADS ();
+  #endif
+
+  #if defined IS_INTEL_SDK && defined IS_GPU
+  LOCAL_VK u32 s_check[16];
+
+  if (lid == 0)
+  {
+    const u32 r0 = digests_buf[0].digest_buf[0];
+
+    s_check[ 0] = -((r0 >>  0) & 1);
+    s_check[ 1] = -((r0 >>  1) & 1);
+    s_check[ 2] = -((r0 >>  5) & 1);
+    s_check[ 3] = -((r0 >>  8) & 1);
+    s_check[ 4] = -((r0 >>  9) & 1);
+    s_check[ 5] = -((r0 >> 12) & 1);
+    s_check[ 6] = -((r0 >> 15) & 1);
+    s_check[ 7] = -((r0 >> 16) & 1);
+    s_check[ 8] = -((r0 >> 17) & 1);
+    s_check[ 9] = -((r0 >> 19) & 1);
+    s_check[10] = -((r0 >> 22) & 1);
+    s_check[11] = -((r0 >> 23) & 1);
+    s_check[12] = -((r0 >> 25) & 1);
+    s_check[13] = -((r0 >> 27) & 1);
+    s_check[14] = -((r0 >> 29) & 1);
+    s_check[15] = -((r0 >> 30) & 1);
+  }
+
+  SYNC_THREADS ();
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -2487,90 +2651,100 @@ KERNEL_FQ KERNEL_FA void m14000_sxx (KERN_ATTR_BITSLICE ())
     k26 |= words_buf_s[pc_pos].b[26];
     k27 |= words_buf_s[pc_pos].b[27];
 
-    u32 D00 = d00;
-    u32 D01 = d01;
-    u32 D02 = d02;
-    u32 D03 = d03;
-    u32 D04 = d04;
-    u32 D05 = d05;
-    u32 D06 = d06;
-    u32 D07 = d07;
-    u32 D08 = d08;
-    u32 D09 = d09;
-    u32 D10 = d10;
-    u32 D11 = d11;
-    u32 D12 = d12;
-    u32 D13 = d13;
-    u32 D14 = d14;
-    u32 D15 = d15;
-    u32 D16 = d16;
-    u32 D17 = d17;
-    u32 D18 = d18;
-    u32 D19 = d19;
-    u32 D20 = d20;
-    u32 D21 = d21;
-    u32 D22 = d22;
-    u32 D23 = d23;
-    u32 D24 = d24;
-    u32 D25 = d25;
-    u32 D26 = d26;
-    u32 D27 = d27;
-    u32 D28 = d28;
-    u32 D29 = d29;
-    u32 D30 = d30;
-    u32 D31 = d31;
-    u32 D32 = d32;
-    u32 D33 = d33;
-    u32 D34 = d34;
-    u32 D35 = d35;
-    u32 D36 = d36;
-    u32 D37 = d37;
-    u32 D38 = d38;
-    u32 D39 = d39;
-    u32 D40 = d40;
-    u32 D41 = d41;
-    u32 D42 = d42;
-    u32 D43 = d43;
-    u32 D44 = d44;
-    u32 D45 = d45;
-    u32 D46 = d46;
-    u32 D47 = d47;
-    u32 D48 = d48;
-    u32 D49 = d49;
-    u32 D50 = d50;
-    u32 D51 = d51;
-    u32 D52 = d52;
-    u32 D53 = d53;
-    u32 D54 = d54;
-    u32 D55 = d55;
-    u32 D56 = d56;
-    u32 D57 = d57;
-    u32 D58 = d58;
-    u32 D59 = d59;
-    u32 D60 = d60;
-    u32 D61 = d61;
-    u32 D62 = d62;
-    u32 D63 = d63;
+    u32 D00 = DES_INIT ( 0, d00);
+    u32 D01 = DES_INIT ( 1, d01);
+    u32 D02 = DES_INIT ( 2, d02);
+    u32 D03 = DES_INIT ( 3, d03);
+    u32 D04 = DES_INIT ( 4, d04);
+    u32 D05 = DES_INIT ( 5, d05);
+    u32 D06 = DES_INIT ( 6, d06);
+    u32 D07 = DES_INIT ( 7, d07);
+    u32 D08 = DES_INIT ( 8, d08);
+    u32 D09 = DES_INIT ( 9, d09);
+    u32 D10 = DES_INIT (10, d10);
+    u32 D11 = DES_INIT (11, d11);
+    u32 D12 = DES_INIT (12, d12);
+    u32 D13 = DES_INIT (13, d13);
+    u32 D14 = DES_INIT (14, d14);
+    u32 D15 = DES_INIT (15, d15);
+    u32 D16 = DES_INIT (16, d16);
+    u32 D17 = DES_INIT (17, d17);
+    u32 D18 = DES_INIT (18, d18);
+    u32 D19 = DES_INIT (19, d19);
+    u32 D20 = DES_INIT (20, d20);
+    u32 D21 = DES_INIT (21, d21);
+    u32 D22 = DES_INIT (22, d22);
+    u32 D23 = DES_INIT (23, d23);
+    u32 D24 = DES_INIT (24, d24);
+    u32 D25 = DES_INIT (25, d25);
+    u32 D26 = DES_INIT (26, d26);
+    u32 D27 = DES_INIT (27, d27);
+    u32 D28 = DES_INIT (28, d28);
+    u32 D29 = DES_INIT (29, d29);
+    u32 D30 = DES_INIT (30, d30);
+    u32 D31 = DES_INIT (31, d31);
+    u32 D32 = DES_INIT (32, d32);
+    u32 D33 = DES_INIT (33, d33);
+    u32 D34 = DES_INIT (34, d34);
+    u32 D35 = DES_INIT (35, d35);
+    u32 D36 = DES_INIT (36, d36);
+    u32 D37 = DES_INIT (37, d37);
+    u32 D38 = DES_INIT (38, d38);
+    u32 D39 = DES_INIT (39, d39);
+    u32 D40 = DES_INIT (40, d40);
+    u32 D41 = DES_INIT (41, d41);
+    u32 D42 = DES_INIT (42, d42);
+    u32 D43 = DES_INIT (43, d43);
+    u32 D44 = DES_INIT (44, d44);
+    u32 D45 = DES_INIT (45, d45);
+    u32 D46 = DES_INIT (46, d46);
+    u32 D47 = DES_INIT (47, d47);
+    u32 D48 = DES_INIT (48, d48);
+    u32 D49 = DES_INIT (49, d49);
+    u32 D50 = DES_INIT (50, d50);
+    u32 D51 = DES_INIT (51, d51);
+    u32 D52 = DES_INIT (52, d52);
+    u32 D53 = DES_INIT (53, d53);
+    u32 D54 = DES_INIT (54, d54);
+    u32 D55 = DES_INIT (55, d55);
+    u32 D56 = DES_INIT (56, d56);
+    u32 D57 = DES_INIT (57, d57);
+    u32 D58 = DES_INIT (58, d58);
+    u32 D59 = DES_INIT (59, d59);
+    u32 D60 = DES_INIT (60, d60);
+    u32 D61 = DES_INIT (61, d61);
+    u32 D62 = DES_INIT (62, d62);
+    u32 D63 = DES_INIT (63, d63);
 
-    DES
-    (
-      k00, k01, k02, k03, k04, k05, k06,
-      k07, k08, k09, k10, k11, k12, k13,
-      k14, k15, k16, k17, k18, k19, k20,
-      k21, k22, k23, k24, k25, k26, k27,
-      K28, K29, K30, K31, K32, K33, K34,
-      K35, K36, K37, K38, K39, K40, K41,
-      K42, K43, K44, K45, K46, K47, K48,
-      K49, K50, K51, K52, K53, K54, K55,
-      &D00, &D01, &D02, &D03, &D04, &D05, &D06, &D07,
-      &D08, &D09, &D10, &D11, &D12, &D13, &D14, &D15,
-      &D16, &D17, &D18, &D19, &D20, &D21, &D22, &D23,
-      &D24, &D25, &D26, &D27, &D28, &D29, &D30, &D31,
-      &D32, &D33, &D34, &D35, &D36, &D37, &D38, &D39,
-      &D40, &D41, &D42, &D43, &D44, &D45, &D46, &D47,
-      &D48, &D49, &D50, &D51, &D52, &D53, &D54, &D55,
-      &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63
-    );
+    DES_R01_R14 (DES_KEYS, DES_DATA (D));
+    DES_R15_LO  (DES_KEYS, DES_DATA (D));
+
+    // Round 16 leaves D00-D31 alone, so these 16 bits of the result are final already. A slice in
+    // which no lane matches them is done.
+
+    u32 early = 0;
+
+    early |= D00 ^ R15_MASK ( 0, S00);
+    early |= D01 ^ R15_MASK ( 1, S01);
+    early |= D05 ^ R15_MASK ( 2, S05);
+    early |= D08 ^ R15_MASK ( 3, S08);
+    early |= D09 ^ R15_MASK ( 4, S09);
+    early |= D12 ^ R15_MASK ( 5, S12);
+    early |= D15 ^ R15_MASK ( 6, S15);
+    early |= D16 ^ R15_MASK ( 7, S16);
+    early |= D17 ^ R15_MASK ( 8, S17);
+    early |= D19 ^ R15_MASK ( 9, S19);
+    early |= D22 ^ R15_MASK (10, S22);
+    early |= D23 ^ R15_MASK (11, S23);
+    early |= D25 ^ R15_MASK (12, S25);
+    early |= D27 ^ R15_MASK (13, S27);
+    early |= D29 ^ R15_MASK (14, S29);
+    early |= D30 ^ R15_MASK (15, S30);
+
+    if (early == 0xffffffff) continue;
+
+    DES_R15_HI  (DES_KEYS, DES_DATA (D));
+    DES_R16     (DES_KEYS, DES_DATA (D));
 
     u32 tmpResult = 0;
 

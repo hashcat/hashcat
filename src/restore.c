@@ -220,6 +220,25 @@ static bool restore_str_is_pasteable (const char *src)
   return true;
 }
 
+// A restore file stores each argument as it was typed, so a control byte in one is possible but rare,
+// and unusual enough to be worth a look. Text outside ASCII is common, from a path or a mask the
+// user typed, and so is a %, ! or double quote.
+
+static bool restore_str_has_control (const char *src)
+{
+  const size_t src_len = strlen (src);
+
+  for (size_t i = 0; i < src_len; i++)
+  {
+    const u8 c = (u8) src[i];
+
+    if (c <  0x20) return true;
+    if (c == 0x7f) return true;
+  }
+
+  return false;
+}
+
 // The options below are hashcat's own bookkeeping and are appended fresh to every printed command
 // line, so a copy left over from a previous resume is dropped rather than printed twice.
 
@@ -639,41 +658,8 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
     break;
   }
 
-  if (pasteable == false)
-  {
-    event_log_warning (hashcat_ctx, "Part of it is not printable text, so it is not printed as a command line to run. A restore");
-    event_log_warning (hashcat_ctx, "file written by hashcat does not hold anything like that. Look at this one before you use it:");
-    event_log_warning (hashcat_ctx, NULL);
-    event_log_warning (hashcat_ctx, "    https://github.com/philsmd/analyze_hc_restore");
-    event_log_warning (hashcat_ctx, NULL);
-
-    char *cwd = restore_str_escape (rd->cwd);
-
-    event_log_warning (hashcat_ctx, "  directory    %s", cwd);
-
-    hcfree (cwd);
-
-    for (u32 i = 1; i < argc; i++)
-    {
-      char *arg = restore_str_escape (argv[i]);
-
-      event_log_warning (hashcat_ctx, "  argument %3u %s", i, arg);
-
-      hcfree (arg);
-    }
-
-    event_log_warning (hashcat_ctx, NULL);
-
-    return;
-  }
-
-  event_log_warning (hashcat_ctx, "Read it, then run it yourself if it is what you expect:");
-  event_log_warning (hashcat_ctx, NULL);
-
-  // argv[0] is in the file as well and the file is not trusted, so the name of the program to run is
-  // never taken from it. It is the binary the user has just started.
-
-  const char *hc_bin = (user_options->hc_bin == NULL) ? PROGNAME : user_options->hc_bin;
+  // The restore file is named on the printed line as an absolute path, because the line may begin by
+  // changing to the directory the session was started in.
 
   char *restore_path = NULL;
 
@@ -685,6 +671,89 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
   {
     hc_asprintf (&restore_path, "%s/%s", folder_config->cwd, restore_ctx->eff_restore_file);
   }
+
+  if (pasteable == false)
+  {
+    bool control = restore_str_has_control (rd->cwd);
+
+    for (u32 i = 1; i < argc; i++)
+    {
+      if (restore_str_has_control (argv[i]) == false) continue;
+
+      control = true;
+
+      break;
+    }
+
+    if (control == true)
+    {
+      event_log_warning (hashcat_ctx, "Part of it is control bytes, so it is not printed as a command line to run. An argument");
+      event_log_warning (hashcat_ctx, "typed at a prompt rarely holds one. Look at this file before you use it:");
+      event_log_warning (hashcat_ctx, NULL);
+      event_log_warning (hashcat_ctx, "    https://github.com/philsmd/analyze_hc_restore");
+    }
+    else
+    {
+      #if defined (_WIN)
+      event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, or a %%, ! or double quote that cmd.exe would act on, so it");
+      event_log_warning (hashcat_ctx, "is not printed as a command line to run. Every argument is listed instead, with each byte");
+      event_log_warning (hashcat_ctx, "outside ASCII written as \\xNN.");
+      #else
+      event_log_warning (hashcat_ctx, "Part of it is text outside ASCII, so it is not printed as a command line to run. Every");
+      event_log_warning (hashcat_ctx, "argument is listed instead, with each byte outside ASCII written as \\xNN.");
+      #endif
+    }
+
+    event_log_warning (hashcat_ctx, NULL);
+
+    char *cwd = restore_str_escape (rd->cwd);
+
+    event_log_warning (hashcat_ctx, "  directory    %s", cwd);
+
+    hcfree (cwd);
+
+    // The restore options a previous resume left in the file are dropped here as they are from the
+    // pasteable line. Retyped after the two options below, a stale --restore-file-path would win.
+
+    for (u32 i = 1; i < argc; i++)
+    {
+      if (restore_arg_is_ours (argv[i]) == true)
+      {
+        if (strcmp (argv[i], "--restore-file-path") == 0) i++;
+
+        continue;
+      }
+
+      char *arg = restore_str_escape (argv[i]);
+
+      event_log_warning (hashcat_ctx, "  argument %3u %s", i, arg);
+
+      hcfree (arg);
+    }
+
+    event_log_warning (hashcat_ctx, NULL);
+    event_log_warning (hashcat_ctx, "To resume, change to the directory above and type the command yourself, with these two options");
+    event_log_warning (hashcat_ctx, "in front of the arguments listed:");
+    event_log_warning (hashcat_ctx, NULL);
+
+    char *path = restore_str_escape (restore_path);
+
+    event_log_warning (hashcat_ctx, "  --restore-position --restore-file-path=%s", path);
+    event_log_warning (hashcat_ctx, NULL);
+
+    hcfree (path);
+    hcfree (restore_path);
+
+    return;
+  }
+
+  event_log_warning (hashcat_ctx, "Read it, then run it yourself if it is what you expect:");
+  event_log_warning (hashcat_ctx, NULL);
+
+  // argv[0] is in the file as well and the file is not trusted, so the name of the program to run is
+  // never taken from it. It is the binary the user has just started.
+
+  const char *hc_bin = (user_options->hc_bin == NULL) ? PROGNAME : user_options->hc_bin;
 
   char *bin_quoted  = restore_shell_quote (hc_bin);
   char *path_quoted = restore_shell_quote (restore_path);

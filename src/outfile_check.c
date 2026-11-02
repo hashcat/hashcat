@@ -182,6 +182,14 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
       folder_mtime = outfile_check_stat.st_mtime;
     }
 
+    // Only the preflight pass is announced. It holds up the start of the attack for as long as it
+    // reads, and with a large directory that is a long pause with nothing on screen. The pass during
+    // the attack has the status screen, and an empty directory is not worth a line.
+
+    const bool announce = ((once == true) && (out_cnt > 0));
+
+    if (announce == true) EVENT (EVENT_OUTCHECK_PREFLIGHT_PRE);
+
     for (int j = 0; j < out_cnt; j++)
     {
       HCFILE fp;
@@ -340,6 +348,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
 
       if (status_ctx->shutdown_inner == true) break;
     }
+
+    if (announce == true) EVENT (EVENT_OUTCHECK_PREFLIGHT_POST);
   }
 
   hcfree (hash_buf.esalt);
@@ -379,13 +389,18 @@ HC_THREAD_FUNC thread_outfile_remove (void *p)
 int outcheck_preflight (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+        hashes_t       *hashes       = hashcat_ctx->hashes;
   const outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
 
   if (hashconfig->outfile_check_disable == true) return 0;
 
   if (outcheck_ctx->enabled == false) return 0;
 
+  const u32 digests_done_before = hashes->digests_done;
+
   const int rc = outfile_remove (hashcat_ctx, true);
+
+  hashes->digests_done_outcheck = hashes->digests_done - digests_done_before;
 
   return rc;
 }

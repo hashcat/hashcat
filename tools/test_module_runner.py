@@ -21,6 +21,12 @@ import random
 import re
 import sys
 
+# Checked before any test module is imported, since an older python fails inside one with an error
+# that does not name the interpreter.
+
+if sys.version_info < (3, 10):
+  sys.exit("tools/test_module_runner.py needs Python 3.10 or newer, and this is %d.%d.%d" % sys.version_info[:3])
+
 TDIR = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.insert(0, os.path.join(TDIR, "test_modules"))
@@ -264,6 +270,7 @@ def usage_exit():
     "\nUsage:\n"
     " {0} edge        <mode> [attack-type] [optimized]\n"
     " {0} single      <mode> [length]\n"
+    " {0} spare       <mode> [length]\n"
     " {0} password    <mode> [length]\n"
     " {0} passthrough <mode> [iter]\n"
     " {0} potthrough  <mode> [iter]\n"
@@ -305,6 +312,39 @@ def constraints(mod):
   return word, salt, comb
 
 
+def comb_weights(comb):
+  # The fifth constraint is [min, max] over the password and salt lengths added up, or [min, max,
+  # word weight, salt weight] for a kernel that spends more than one byte of its block on each
+  # character of one of them, as a UTF-16 optimized kernel does for the password.
+
+  if len(comb) > 2:
+    return comb[2], comb[3]
+
+  return 1, 1
+
+
+def comb_length(comb, word_len, salt_len):
+  word_weight, salt_weight = comb_weights(comb)
+
+  return (word_weight * word_len) + (salt_weight * salt_len)
+
+
+def comb_fit_word(comb, comb_max, salt_len):
+  # the longest password that fits beside salt_len
+
+  word_weight, salt_weight = comb_weights(comb)
+
+  return (comb_max - (salt_weight * salt_len)) // word_weight
+
+
+def comb_fit_salt(comb, comb_max, word_len):
+  # the longest salt that fits beside word_len
+
+  word_weight, salt_weight = comb_weights(comb)
+
+  return (comb_max - (word_weight * word_len)) // salt_weight
+
+
 def length_pool(len_min, len_max, descending):
   # The lengths a run of test vectors uses. Slots 0 and 1 are pinned to the edges so those are
   # always covered, the rest come off a shuffled pool, and a short range is padded by
@@ -338,7 +378,7 @@ def word_lengths(word, salt, comb):
 
   if IS_OPTIMIZED:
     if comb[0] != -1 and salt[0] == salt[1] and salt[0] != -1:
-      len_max -= salt[0]
+      len_max = min(len_max, comb_fit_word(comb, comb[1], salt[0]))
 
     if len_min != len_max:
       len_max = min(len_max, 31)
@@ -466,11 +506,11 @@ def edge(mod, mode, attack_type, optimized):
         if optimized:
           salt_len = min(salt_len, 51)
 
-          if comb_max != -1 and (word_min + salt_len) > comb_max:
-            off = word_min + salt_len - comb_max
+          if comb_max != -1 and comb_length(comb, word_min, salt_len) > comb_max:
+            fit = comb_fit_salt(comb, comb_max, word_min)
 
-            if salt_len > off:
-              salt_len -= off
+            if fit > 0:
+              salt_len = fit
 
         emit(word_min, salt_len)
     elif salt_min != -1:
@@ -490,11 +530,11 @@ def edge(mod, mode, attack_type, optimized):
     word_len = word_max
     salt_len = salt_max
 
-    if optimized and comb_max != -1 and (word_len + salt_len) > comb_max:
-      off = word_len + salt_len - comb_max
+    if optimized and comb_max != -1 and comb_length(comb, word_len, salt_len) > comb_max:
+      fit = comb_fit_word(comb, comb_max, salt_len)
 
-      if word_len > off:
-        word_len = max(word_len - off, word_min)
+      if fit > 0:
+        word_len = max(fit, word_min)
 
     emit(word_len, salt_len)
 
@@ -509,16 +549,16 @@ def edge(mod, mode, attack_type, optimized):
     if optimized:
       comb_max_cur = comb_max if comb_max != -1 else 55
 
-      if (word_len + salt_len) > comb_max_cur:
-        off = word_len + salt_len - comb_max_cur
+      if comb_length(comb, word_len, salt_len) > comb_max_cur:
+        fit = comb_fit_word(comb, comb_max_cur, salt_len)
 
-        if word_len <= off:
+        if fit <= 0:
           sys.stdout.write("ERROR with MODE %d, WORD %d, SALT %d, MAX %d"
                            % (mode, word_len, salt_len, comb_max_cur))
 
           sys.exit(1)
 
-        word_len -= off
+        word_len = fit
 
     emit(word_len, salt_len)
 
@@ -533,21 +573,19 @@ def edge(mod, mode, attack_type, optimized):
 
       salt_len = min(salt_len, 51)
 
-      if (word_len + salt_len) > comb_max_cur:
-        off = word_len + salt_len - comb_max_cur
-
+      if comb_length(comb, word_len, salt_len) > comb_max_cur:
         if last_word_len == word_len:
-          word_len -= off
+          word_len = comb_fit_word(comb, comb_max_cur, salt_len)
 
           if word_len < word_min:
-            salt_len -= word_min - word_len
-            word_len  = word_min
+            salt_len = comb_fit_salt(comb, comb_max_cur, word_min)
+            word_len = word_min
         else:
-          salt_len -= off
+          salt_len = comb_fit_salt(comb, comb_max_cur, word_len)
 
           if salt_len < salt_min:
-            word_len -= salt_min - salt_len
-            salt_len  = salt_min
+            word_len = comb_fit_word(comb, comb_max_cur, salt_min)
+            salt_len = salt_min
 
     emit(word_len, salt_len)
 
@@ -568,14 +606,23 @@ def password(count):
   sys.stdout.buffer.write(random_non_ascii_string(count, NON_ASCII_OK) + b"\n")
 
 
-def single(mod, mode, length):
+def single(mod, mode, length, spare=False):
   word, salt, comb = constraints(mod)
 
   db_word = word_lengths(word, salt, comb)
   db_salt = salt_lengths(salt)
 
   seen  = set()
+  salts = set()
   pairs = []
+  lens  = []
+
+  # tools/test.py loads all of these at once in its multi-hash run, so it says what -HH declares about
+  # several hashes on one salt: UNIQUE_SALT for a mode that refuses them, SHARED_SALT for one that
+  # allows them, so that the run tests it. A spare is one vector, so it shares nothing.
+
+  unique_salt = salt[1] > 0 and "UNIQUE_SALT" in os.environ
+  shared_salt = salt[1] > 0 and "SHARED_SALT" in os.environ and not spare
 
   giveup = 0
 
@@ -595,8 +642,16 @@ def single(mod, mode, length):
     if salt[0] != -1:
       salt_len = salt[0] if salt[0] == salt[1] else db_salt[giveup % len(db_salt)]
 
+      # A spare stands in for one vector of a list another call drew, and the two calls walk the same
+      # salt length pool, so a short random salt can repeat one already in the list. A mode that
+      # cannot hold 2 hashes on one salt then refuses the whole list. The longest salt the mode
+      # allows makes that repeat practically impossible.
+
+      if (spare == True) and (giveup == 1):
+        salt_len = max(db_salt)
+
     if IS_OPTIMIZED and comb[0] != -1:
-      if not comb[0] <= word_len + salt_len <= comb[1]:
+      if not comb[0] <= comb_length(comb, word_len, salt_len) <= comb[1]:
         continue
 
     candidate = (make_word(mod, word_len), random_numeric_string(salt_len))
@@ -604,11 +659,80 @@ def single(mod, mode, length):
     if candidate in seen:
       continue
 
+    if unique_salt and candidate[1] in salts:
+      continue
+
     seen.add(candidate)
+    salts.add(candidate[1])
     pairs.append(candidate)
+    lens.append(word_len)
+
+  # Two pairs each take the salt of another, and the two salts differ. A shared salt sorted last
+  # would hide a kernel that confuses the salt index with the hash index, since the two only part
+  # after the first salt that holds more than one hash, and hashcat's order is not the oracle's when a
+  # module hashes the salt. Of two shared salts, the one sorted first has the other after it. A lead
+  # is the shortest salt left, which fits a length limit best.
+
+  shares = []
+  used   = set()
+
+  while shared_salt and len(shares) < 2:
+    found = None
+    rest  = [i for i in range(len(pairs)) if i not in used]
+
+    for lead in sorted(rest, key=lambda i: len(pairs[i][1])):
+      if any(pairs[lead][1] == pairs[j][1] for j in used):
+        continue
+
+      for i in rest:
+        candidate = (pairs[i][0], pairs[lead][1])
+
+        if i == lead or candidate in seen:
+          continue
+
+        if IS_OPTIMIZED and comb[0] != -1:
+          if not comb[0] <= comb_length(comb, lens[i], len(candidate[1])) <= comb[1]:
+            continue
+
+        found = (lead, i, candidate)
+
+        break
+
+      if found is not None:
+        break
+
+    if found is None:
+      break
+
+    lead, i, candidate = found
+
+    pairs[i] = candidate
+
+    seen.add(candidate)
+    used.update((lead, i))
+    shares.append({pairs[lead], candidate})
+
+  replay = {}
 
   for word_bytes, salt_str in sorted(pairs, key=lambda p: len(p[0])):
+    # The second hash of a shared pair is generated from the same generator state as the first, so
+    # whatever else the module draws into the salt (a site key, a user name) comes out equal too.
+
+    resume = None
+    group  = next((k for k, share in enumerate(shares) if (word_bytes, salt_str) in share), None)
+
+    if group is not None:
+      if group not in replay:
+        replay[group] = test_helpers.rand_state()
+      else:
+        resume = test_helpers.rand_state()
+
+        test_helpers.set_rand_state(replay[group])
+
     digest = mod.module_generate_hash(word_bytes, salt_str, None)
+
+    if resume is not None:
+      test_helpers.set_rand_state(resume)
 
     # possible if the requested length is not supported by the algorithm
 
@@ -647,7 +771,7 @@ def passthrough(mod, iterations, with_plain):
       salt_len = salt[0] if salt[0] == salt[1] else random_number(salt[0], salt[1])
 
     if IS_OPTIMIZED and comb[0] != -1:
-      if not comb[0] <= len(word_bytes) + salt_len <= comb[1]:
+      if not comb[0] <= comb_length(comb, len(word_bytes), salt_len) <= comb[1]:
         continue
 
     digest = mod.module_generate_hash(word_bytes, random_numeric_string(salt_len), iterations)
@@ -704,7 +828,7 @@ def main():
 
   kind, mode = argv[0], argv[1]
 
-  if kind not in ("edge", "single", "password", "passthrough", "potthrough", "verify"):
+  if kind not in ("edge", "single", "spare", "password", "passthrough", "potthrough", "verify"):
     usage_exit()
 
   if not mode.isdigit():
@@ -728,6 +852,20 @@ def main():
   for hook in ("module_constraints", "module_generate_hash", "module_verify_hash"):
     if not hasattr(mod, hook):
       sys.exit("Module function '%s' not found\n" % hook)
+
+  # A run by hand names no kernel family, so a mode that has only pure kernels uses them, the way
+  # test_module_runner.pl did. The test suites always set IS_OPTIMIZED and keep the exit 2 Skip.
+  # The module is loaded again because a module can read IS_OPTIMIZED when it is imported.
+
+  if (kind != "edge") and ("IS_OPTIMIZED" in os.environ) == False:
+    pairs = mod.module_constraints()
+
+    if (pairs[2][0] == -1) and (pairs[2][1] == -1) and (pairs[0][0] != -1):
+      os.environ["IS_OPTIMIZED"] = "0"
+
+      IS_OPTIMIZED = False
+
+      mod = importlib.reload(mod)
 
   global NON_ASCII_OK
 
@@ -760,8 +898,8 @@ def main():
 
     return
 
-  if kind == "single":
-    single(mod, mode, int(extra) if extra is not None and extra.isdigit() else None)
+  if kind in ("single", "spare"):
+    single(mod, mode, int(extra) if extra is not None and extra.isdigit() else None, kind == "spare")
   else:
     passthrough(mod, int(extra) if extra is not None and extra.isdigit() else None,
           kind == "potthrough")

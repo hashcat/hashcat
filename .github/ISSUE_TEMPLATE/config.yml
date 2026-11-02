@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Help and support
+    url: https://hashcat.net/forum/
+    about: Questions about using hashcat belong in the forum, which holds years of answered questions. The FAQ is at https://hashcat.net/wiki/doku.php?id=frequently_asked_questions
+  - name: Chat on Discord
+    url: https://discord.gg/HFS523HGBT
+    about: Talk to other users and the developers.

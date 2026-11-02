@@ -18,4 +18,4 @@ winresource = "0.1"
 opt-level = 3
 codegen-units = 1
 strip = "symbols"
-panic = "abort"
+panic = "unwind"

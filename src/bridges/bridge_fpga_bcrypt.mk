@@ -1,0 +1,2 @@
+BRIDGE_SRC_bridge_fpga_bcrypt    := src/bridges/bridge_fpga_bcrypt.c src/bridges/fpga/hcfpga.c src/bridges/fpga/hcfpga_pool.c src/bridges/fpga/ztex_usb.c src/bridges/fpga/transport_ztex115y.c src/bridges/fpga/transport_ztex213.c src/bridges/fpga/transport_xrt.c src/bridges/fpga/transport_artyz7.c src/bridges/fpga/artyz7_ftdi.c src/bridges/fpga/artyz7_jtag.c src/bridges/fpga/artyz7_dap.c src/bridges/fpga/artyz7_loader.c src/bridges/fpga/artyz7_bitstream.c
+BRIDGE_CFLAGS_bridge_fpga_bcrypt := -Isrc/bridges

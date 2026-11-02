@@ -12,6 +12,8 @@
 #include "thread.h"
 #include "cpu_features.h"
 #include "system.h"
+#include "path.h"
+#include "status_rc.h"
 
 #if defined (_WIN)
 #include <windows.h>
@@ -329,6 +331,16 @@ static bool worker_start (worker_t *worker, const char *python, const char *work
 {
   #if defined (__APPLE__)
   char **envp = *_NSGetEnviron ();
+  #elif defined (__FreeBSD__) || defined (__DragonFly__)
+  // environ lives in the program, not in libc, on FreeBSD and DragonflyBSD, so a plugin linked with
+  // -z defs has no definition to resolve and the link fails with "undefined symbol: environ".
+  // Marking the reference weak lets the link succeed; the runtime loader still binds it to the
+  // program's environ, the same one posix_spawnp would inherit on every other platform. The weak
+  // marking stays off the other systems: there environ resolves from libc, and on NetBSD marking it
+  // weak makes the linker publish environ in the plugin's own dynamic symbol table.
+  extern char **environ __attribute__ ((weak));
+
+  char **envp = environ;
   #else
   extern char **environ;
 
@@ -989,6 +1001,44 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
   bridge_context->bridge_parameter[2] = user_options->bridge_parameter3;
   bridge_context->bridge_parameter[3] = user_options->bridge_parameter4;
 
+  // A plugin or an interpreter named on the command line that is not there is the attack command's,
+  // and said here in one line rather than by the worker's traceback or the spawn error.
+
+  if ((user_options->bridge_parameter1 != NULL) && (hc_path_is_directory (bridge_context->plugin_path) == true))
+  {
+    event_log_error (hashcat_ctx, "%s: A directory cannot be used as a Python plugin.", bridge_context->plugin_path);
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    context_free (bridge_context);
+
+    return NULL;
+  }
+
+  if ((user_options->bridge_parameter1 != NULL) && (hc_path_exist (bridge_context->plugin_path) == false))
+  {
+    event_log_error (hashcat_ctx, "%s: %s", bridge_context->plugin_path, strerror (errno));
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    context_free (bridge_context);
+
+    return NULL;
+  }
+
+  const bool python_has_dir = (strchr (bridge_context->python, '/') != NULL) || (strchr (bridge_context->python, '\\') != NULL);
+
+  if ((user_options->bridge_parameter2 != NULL) && (python_has_dir == true) && (hc_path_exist (bridge_context->python) == false))
+  {
+    event_log_error (hashcat_ctx, "%s: %s", bridge_context->python, strerror (errno));
+
+    status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+    context_free (bridge_context);
+
+    return NULL;
+  }
+
   // One worker started here and stopped again proves the interpreter and the plugin load, and brings
   // back the self-test pair, before hashcat sets up anything that depends on them.
 
@@ -1327,19 +1377,7 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->get_workitem_multiple      = get_workitem_multiple;
   bridge_ctx->thread_init                = thread_init;
   bridge_ctx->thread_term                = thread_term;
-  bridge_ctx->salt_prepare               = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy               = BRIDGE_DEFAULT;
   bridge_ctx->launch_loop                = launch_loop;
-  bridge_ctx->launch_loop2               = BRIDGE_DEFAULT;
   bridge_ctx->st_update_hash             = st_update_hash;
   bridge_ctx->st_update_pass             = st_update_pass;
-  bridge_ctx->get_unit_temperature       = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_str   = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_temperature_abort = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_fanspeed          = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_utilization       = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_corespeed         = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_memoryspeed       = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_buslanes          = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_power             = BRIDGE_DEFAULT;
 }

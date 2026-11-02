@@ -1,0 +1,13 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+FPGA_BOARD ("zc706",    "Xilinx ZC706",         "PCIe", FPGA_PROG_USER,    "99-litepcie.rules", "ZC706")
+FPGA_BOARD ("ypcb",     "YPCB-00338-1P1",       "PCIe", FPGA_PROG_USER,    "99-litepcie.rules", "YPCB-00338-1P1")
+FPGA_BOARD ("enigmax1", "Enigma X1",            "PCIe", FPGA_PROG_USER,    "99-litepcie.rules", "Enigma X1")
+FPGA_BOARD ("u50",      "Alveo U50",            "PCIe", FPGA_PROG_HASHCAT, NULL,                "Alveo U50")
+FPGA_BOARD ("ztex115y", "ZTEX USB-FPGA 1.15y",  "USB",  FPGA_PROG_HASHCAT, "99-ztex.rules",     "ZTEX 1.15y")
+FPGA_BOARD ("ztex213",  "ZTEX USB-FPGA 2.13",   "USB",  FPGA_PROG_HASHCAT, "99-ztex.rules",     "ZTEX 2.13")
+
+FPGA_BOARD ("artyz7",   "Digilent Arty Z7-20",  "USB",  FPGA_PROG_HASHCAT, "99-digilent.rules", "Arty Z7-20")

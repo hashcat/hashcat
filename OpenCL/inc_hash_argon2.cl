@@ -365,7 +365,10 @@ DECLSPEC GLOBAL_AS argon2_block_t *argon2_get_current_block (GLOBAL_AS argon2_bl
 
   GLOBAL_AS argon2_block_t *prev_block = &blocks[(prev_in_lane * options->parallelism) + lane];
 
-  for (u32 idx = 0; idx < LBLOCKSIZE; idx++) R[idx] = prev_block->values[(idx * THREADS_PER_LANE) + argon2_thread];
+  if (lane < options->parallelism)
+  {
+    for (u32 idx = 0; idx < LBLOCKSIZE; idx++) R[idx] = prev_block->values[(idx * THREADS_PER_LANE) + argon2_thread];
+  }
 
   return &blocks[(index_in_lane * options->parallelism) + lane];
 }
@@ -373,6 +376,10 @@ DECLSPEC GLOBAL_AS argon2_block_t *argon2_get_current_block (GLOBAL_AS argon2_bl
 DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const argon2_options_t *options, PRIVATE_AS const argon2_pos_t *pos, bool indep_addr, const u32 addresses[LBLOCKSIZE],
                                       u32 start_index, u32 end_index, GLOBAL_AS argon2_block_t *cur_block, u64 R[LBLOCKSIZE], u32 argon2_thread, LOCAL_AS u64 *shuffle_buf, u32 argon2_lsz)
 {
+  // a row past the last lane, see argon2_lane_limit (), leaves the blocks alone
+
+  const bool has_lane = (pos->lane < options->parallelism);
+
   for (u32 index = start_index; index < end_index; index++, cur_block += options->parallelism)
   {
     u32 ref_address = 0;
@@ -399,12 +406,15 @@ DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, PRIVATE_
     u64 tmp[LBLOCKSIZE] = { 0 };
 
     // First pass is overwrite, next passes are XOR with previous
-    if ((pos->pass > 0) && (options->version != ARGON2_VERSION_10))
+    if ((has_lane == true) && (pos->pass > 0) && (options->version != ARGON2_VERSION_10))
     {
       for (u32 idx = 0; idx < LBLOCKSIZE; idx++) tmp[idx]  = cur_block->values[(idx * THREADS_PER_LANE) + argon2_thread];
     }
 
-    for (u32 idx = 0; idx < LBLOCKSIZE; idx++) R[idx]   ^= ref_block->values[(idx * THREADS_PER_LANE) + argon2_thread];
+    if (has_lane == true)
+    {
+      for (u32 idx = 0; idx < LBLOCKSIZE; idx++) R[idx]   ^= ref_block->values[(idx * THREADS_PER_LANE) + argon2_thread];
+    }
 
     for (u32 idx = 0; idx < LBLOCKSIZE; idx++) tmp[idx] ^= R[idx];
 
@@ -412,8 +422,26 @@ DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, PRIVATE_
 
     for (u32 idx = 0; idx < LBLOCKSIZE; idx++) R[idx]   ^= tmp[idx];
 
+    if (has_lane == false) continue;
+
     for (u32 idx = 0; idx < LBLOCKSIZE; idx++) cur_block->values[(idx * THREADS_PER_LANE) + argon2_thread] = R[idx];
   }
+}
+
+// The lane where a row of the _loop kernels stops. Where the shuffle is a barrier across the
+// workgroup, a row that ran out of lanes early would reach the barrier behind the lane loop while
+// the others are still at the ones inside it. There every row runs as many lanes as the fullest
+// one, and a row past the last lane only takes part in the shuffles.
+
+DECLSPEC u32 argon2_lane_limit (const u32 parallelism, const u32 rows)
+{
+  #if defined HC_SHFL_BARRIER && THREADS_PER_LANE != 1
+  const u32 lane_limit = ((parallelism + rows - 1) / rows) * rows;
+  #else
+  const u32 lane_limit = parallelism;
+  #endif
+
+  return lane_limit;
 }
 
 DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const argon2_options_t *options, PRIVATE_AS const argon2_pos_t *pos, LOCAL_AS u64 *shuffle_buf, const u32 argon2_thread, const u32 argon2_lsz)
@@ -458,7 +486,7 @@ DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const a
   blake2b_init (&ctx);
 
   // Override default (0x40) value in BLAKE2b
-  ctx.h[0] ^= 0x40 ^ options->digest_len;
+  ctx.h[0] ^= 0x40 ^ MIN (options->digest_len, 64);
 
   u32 rem = options->digest_len;
 
@@ -492,10 +520,41 @@ DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const a
 
   blake2b_transform (ctx.h, ctx.m, 1028, (u64) BLAKE2B_FINAL);
 
-  for (uint i = 0, idx = 0; i < (options->digest_len / 4); i += 2, idx += 1)
+  u32 remaining = options->digest_len;
+  u32 output_offset = 0;
+
+  while (remaining > 64)
   {
-    out [i + 0] = l32_from_64_S (ctx.h[idx]);
-    out [i + 1] = h32_from_64_S (ctx.h[idx]);
+    for (u32 idx = 0; idx < 4; idx++)
+    {
+      out[output_offset + idx * 2 + 0] = l32_from_64_S (ctx.h[idx]);
+      out[output_offset + idx * 2 + 1] = h32_from_64_S (ctx.h[idx]);
+    }
+
+    remaining -= 32;
+    output_offset += 8;
+
+    for (u32 idx = 0; idx < 8; idx++) ctx.m[idx] = ctx.h[idx];
+    for (u32 idx = 8; idx < 16; idx++) ctx.m[idx] = 0;
+
+    blake2b_ctx_t next;
+    blake2b_init (&next);
+
+    next.h[0] ^= 0x40 ^ MIN (remaining, 64);
+
+    blake2b_transform (next.h, ctx.m, 64, (u64) BLAKE2B_FINAL);
+
+    for (u32 idx = 0; idx < 8; idx++) ctx.h[idx] = next.h[idx];
+  }
+
+  for (u32 offset = 0; offset < remaining; offset += 4)
+  {
+    const u64 value = ctx.h[offset / 8];
+    u32 word = (offset & 4) ? h32_from_64_S (value) : l32_from_64_S (value);
+
+    if (remaining - offset < 4) word &= 0xffffffff >> ((4 - (remaining - offset)) * 8);
+
+    out[output_offset + offset / 4] = word;
   }
 }
 

@@ -87,6 +87,7 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
+  u32 salt_buf2[1];
 
   salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 1]; // not a bug, see challenge
   salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
@@ -96,6 +97,7 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
   salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
   salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
   salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  salt_buf2[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 9]; // the 0x80 behind a 32 byte user name
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 4;
 
@@ -143,14 +145,7 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -241,7 +236,7 @@ KERNEL_FQ KERNEL_FA void m11100_m04 (KERN_ATTR_BASIC ())
     s1[1] = salt_buf1[1];
     s1[2] = salt_buf1[2];
     s1[3] = salt_buf1[3];
-    s2[0] = 0;
+    s2[0] = salt_buf2[0];
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;
@@ -533,6 +528,7 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
 
   u32 salt_buf0[4];
   u32 salt_buf1[4];
+  u32 salt_buf2[1];
 
   salt_buf0[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 1]; // not a bug, see challenge
   salt_buf0[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 2];
@@ -542,6 +538,7 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
   salt_buf1[1] = salt_bufs[SALT_POS_HOST].salt_buf[ 6];
   salt_buf1[2] = salt_bufs[SALT_POS_HOST].salt_buf[ 7];
   salt_buf1[3] = salt_bufs[SALT_POS_HOST].salt_buf[ 8];
+  salt_buf2[0] = salt_bufs[SALT_POS_HOST].salt_buf[ 9]; // the 0x80 behind a 32 byte user name
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len - 4;
 
@@ -601,14 +598,7 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
       // is a property of the mask, so those shifts are by a scalar and cost what the shift by
       // pw_l_len costs today.
 
-      if (COMBS_PRE_LEN > 0)
-      {
-        switch_buffer_by_offset_le_VV (wordl0, wordl1, wordl2, wordl3, COMBS_PRE_LEN);
-
-        combs_piece8_VV (combs_buf, il_pos, COMBS_PIECE_PRE, wordr0, wordr1, wordr2, wordr3);
-
-        combs_fold_VV (wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
-      }
+      if (COMBS_PRE_LEN > 0) combs_pre8_VV (combs_buf, il_pos, COMBS_PRE_LEN, wordl0, wordl1, wordl2, wordl3, wordr0, wordr1, wordr2, wordr3);
 
       u32x comb_off = COMBS_PRE_LEN + pw_l_len;
 
@@ -699,7 +689,7 @@ KERNEL_FQ KERNEL_FA void m11100_s04 (KERN_ATTR_BASIC ())
     s1[1] = salt_buf1[1];
     s1[2] = salt_buf1[2];
     s1[3] = salt_buf1[3];
-    s2[0] = 0;
+    s2[0] = salt_buf2[0];
     s2[1] = 0;
     s2[2] = 0;
     s2[3] = 0;

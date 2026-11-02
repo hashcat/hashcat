@@ -47,7 +47,8 @@ Slow kernels are usually easier to implement because they use one candidate-gene
 Choose a hash-mode number before creating the files:
 
 * For a private plugin, choose a number from 90000 through 99998. Upstream reserves this range for private use except for the stock Plaintext mode 99999, preventing collisions with future public modes.
-* For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22800 is a suitable temporary number. Maintainers assign the final number during pull-request review.
+* For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22900 is a suitable temporary number. Maintainers assign the final number during pull-request review.
+* Leave out the range 40000 to 43999 both when you look for the highest assigned mode and when you choose a number. It is reserved for hash-modes defined only by a stored recipe, see `docs/hashcat-hash-recipe.md`. The old numbers listed there are not free either, because hashcat still loads the moved hash-mode for each of them.
 
 ## Development environment ##
 
@@ -111,7 +112,7 @@ Every Python test module implements three functions used by all runner modes:
 
 The second argument is the hash-mode number. Verify mode takes additional arguments. Run `tools/test_module_runner.py` without arguments to display the complete syntax.
 
-The Python dependencies are listed in `tools/requirements.txt` and installed by `tools/install_modules.sh`. Review the script before running it.
+The test suite needs Python 3.10 or newer, the version Ubuntu 22.04 ships. The Python dependencies are listed in `tools/requirements.txt` and installed by `tools/install_modules.sh`. Review the script before running it.
 
 #### Single mode ####
 
@@ -168,7 +169,7 @@ Function `module_verify_hash()` parses the hash line into every component needed
 
 What makes this work is that module_verify_hash() rebuilds the hash out of the hash. Everything the derivation needs is carried in the string, so the salt, the iteration count and anything else random are read back from it rather than drawn again. A hook that generated a fresh salt here could never reproduce its own output, and tools/test_module_runner.py refuses to print a vector whose module_verify_hash() does not round trip it.
 
-The following example comes from the Password Safe v3 test module (tools/test_modules/m05200.py)
+The following example comes from the Password Safe v3 test module (tools/test_modules/m40011.py)
 
 ```
 def module_verify_hash (line):
@@ -198,7 +199,7 @@ def module_verify_hash (line):
 The script is called with the following command line parameters:
 
 ```
-python3 tools/test_module_runner.py verify 5200 hash_list.txt cracked_list.txt verified_list.txt
+python3 tools/test_module_runner.py verify 40011 hash_list.txt cracked_list.txt verified_list.txt
 ```
 
 After `verify`, specify the mode number, the original hash list, the file containing hash-and-password pairs, and the output file. The cracked input uses hashcat's `hash[:salt]:password` format and may contain several lines. The output contains only correctly regenerated hashes also present in the original list.
@@ -228,7 +229,7 @@ Without these options, the script runs attack mode 0 for hash mode 0. Run `tools
 
 ## Module ##
 
-The first required part of a hash-mode plugin is its module. A module is one `.c` source file that assigns the interface functions it needs and may add its own helpers. Most interface functions cover special cases and remain at `MODULE_DEFAULT`. A simple mode may need only a few.
+The first required part of a hash-mode plugin is its module. A module is one `.c` source file that assigns the interface functions it needs and may add its own helpers. Most interface functions cover special cases, and a module leaves the ones it does not need unassigned. A simple mode may need only a few.
 
 The module is compiled as a `.so` shared object on Linux and macOS or a `.dll` on Windows. At startup, hashcat loads the module selected by `-m`, which defaults to mode 0.
 
@@ -284,6 +285,25 @@ const char *module_hash_name (...) { return HASH_NAME; }
 module_ctx->module_hash_name = module_hash_name;
 ```
 
+File `src/modules/hooks_common.c` holds these callbacks for `module_attack_exec()`, `module_dgst_pos0()` to `module_dgst_pos3()`, `module_dgst_size()`, `module_hash_category()`, `module_hash_name()`, `module_kern_type()`, `module_opti_type()`, `module_opts_type()`, `module_salt_type()`, `module_st_hash()` and `module_st_pass()`. Each returns the constant of the same name in capitals, such as `HASH_NAME`. A module defines the constants, includes the file after them, and calls `module_init_common()` from `module_init()`. That call also sets `module_context_size` and `module_interface_version`:
+
+```
+static const char *ST_PASS        = "hashcat";
+static const char *ST_HASH        = "8743b52063cd84097a65d1633f5c74f5";
+
+#include "hooks_common.c"
+...
+void module_init (module_ctx_t *module_ctx)
+{
+  module_init_common (module_ctx);
+
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_encode              = module_hash_encode;
+}
+```
+
+A module that computes one of these callbacks defines `MODULE_OWN_` and the callback's name in capitals before the include, for example `#define MODULE_OWN_OPTI_TYPE`, and writes that function itself. `module_init_common()` then registers the module's own function. Mode 4000 does this for three of them. A module can also leave the file out and write and assign all of these callbacks itself.
+
 Structure `module_ctx` registers every callback implemented by the module. Header `include/modules.h` declares the complete interface.
 
 hashcat calls `module_init()` when loading the module. This function assigns every implemented callback to `module_ctx`.
@@ -294,7 +314,7 @@ Example:
 module_ctx->module_hash_name = module_hash_name;
 ```
 
-Assign `MODULE_DEFAULT` to every unused callback. The sentinel allows hashcat to validate the `module_ctx_t` layout of a compiled plugin. If a later interface adds a field, an older structure is shorter and leaves that entry `NULL`, allowing hashcat to reject the incompatible binary safely.
+Leave every callback the module does not implement unassigned. hashcat gives each of them its default after `module_init()` returns, the same default that an explicit `MODULE_DEFAULT` selects, which is still accepted. The mandatory callbacks listed above have no default, and hashcat refuses a module that leaves one of them unset. A compiled module built against another plugin interface does not load at all, see the section on the core library.
 
 For a minimal plugin, the two mandatory functions that normally require substantial code are `module_hash_decode()` and `module_hash_encode()`. Most other mandatory functions return static configuration values. The following sections explain each one.
 
@@ -380,14 +400,14 @@ static const char *HASH_NAME = "MD5";
 
 ### module_kern_type() ###
 
-Callback `module_kern_type()` selects the kernel number loaded by the module. A fast hash using `ATTACK_EXEC_INSIDE_KERNEL` loads `OpenCL/mXXXXX_a[0|1|3|4]-[optimized|pure].cl`: `a0` for straight, `a1` for combinator, `a3` for brute force, and optional `a4` for the PCFG device engine. A slow hash using `ATTACK_EXEC_OUTSIDE_KERNEL` loads `OpenCL/mXXXXX-[optimized|pure].cl` without an attack-mode suffix. For example, kernel type 7100 loads `OpenCL/m07100-pure.cl`. Multiple modules may select the same kernel, as the GRUB2 and macOS 10.8 modes do for PBKDF2-HMAC-SHA512.
+Callback `module_kern_type()` selects the kernel number loaded by the module. A fast hash using `ATTACK_EXEC_INSIDE_KERNEL` loads `OpenCL/mXXXXX_a[0|1|3|4]-[optimized|pure].cl`: `a0` for straight, `a1` for combinator, `a3` for brute force, and optional `a4` for the PCFG device engine. A slow hash using `ATTACK_EXEC_OUTSIDE_KERNEL` loads `OpenCL/mXXXXX-[optimized|pure].cl` without an attack-mode suffix. For example, kernel type 8900 loads `OpenCL/m08900-pure.cl`. Multiple modules may select the same kernel, as the scrypt and Cisco-IOS $9$ modes do.
 
 Several modules can share one kernel implementation, but combining unrelated modes creates branches that reduce performance and maintainability. Performance-sensitive modes therefore usually have dedicated kernels, as the `OpenCL/` directory demonstrates.
 
 Example:
 
 ```
-static const u64 KERN_TYPE = 7100;
+static const u64 KERN_TYPE = 8900;
 ```
 
 ### module_opti_type() ###
@@ -467,7 +487,7 @@ Callback `module_hash_decode_postprocess()` applies option-dependent changes aft
 
 Callback `module_hash_hints()` exposes contextual words associated with whoever chose the password. Attack mode 9 pairs one hash with one candidate set and can use names, network identifiers, principals, or other human-selected values stored in the salt or esalt.
 
-The callback is optional. `MODULE_DEFAULT` splits the account name preceding the hash into words, preserving the behavior of modules written before this interface existed. Implement the callback when the hash contains stronger context or has no useful account name.
+The callback is optional. Its default splits the account name preceding the hash into words, preserving the behavior of modules written before this interface existed. Implement the callback when the hash contains stronger context or has no useful account name.
 
 ```
 u32 module_hash_hints (const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
@@ -513,7 +533,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_HASH_COPY`: Preserves the original input line in `hash_info->orighash` for formats that contain unused data not stored in `salt_t` or the esalt. Use it only when reconstruction is impractical. Reconstructing a line normally verifies that the decoder retained every required field, while copying every original line consumes additional host memory.
 * `OPTS_TYPE_HASH_SPLIT`: Marks a line that contains multiple independent hashes, such as an LM value stored as one 128-bit string but composed of two 64-bit hashes.
 * `module_kern_bits()`: Not an `OPTS_TYPE` flag. Returns the `KERN_BIT_*` constants, ored together, naming the optional kernels this mode provides, and a mode with none leaves the hook alone. Each one replaces the `OPTS_TYPE` flag of the same name: `KERN_BIT_LOOP_PREPARE` a `_loop_prepare` kernel run before each `_loop`, `KERN_BIT_LOOP_EXTENDED` a `_loop_extended` run after each one, `KERN_BIT_HOOK12` and `KERN_BIT_HOOK23` the `_hook12` and `_hook23` device hooks, `KERN_BIT_INIT2`, `KERN_BIT_LOOP2_PREPARE` and `KERN_BIT_LOOP2` a second derivation stage, `KERN_BIT_TM` the mask table kernel, and `KERN_BIT_AUX1` to `KERN_BIT_AUX6` auxiliary verification kernels for formats that share a KDF but use its result differently by version. hashcat decides the rest itself, so a module never names `KERN_BIT_INIT`, `KERN_BIT_LOOP` or `KERN_BIT_COMP`, nor the `KERN_BIT_04`, `KERN_BIT_08`, `KERN_BIT_16` and `KERN_BIT_XX` cracking kernels that share those first three bits. A plugin outside the tree that still sets one of the 16 removed flags will no longer compile.
-* `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_05200.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
+* `OPTS_TYPE_BINARY_HASHFILE`: Enables binary hash input. The default path presents the file as one value in `line_buf[]` and therefore supports one hash. For multiple hashes, implement `module_hash_binary_count()` so hashcat can allocate storage, then implement `module_hash_binary_parse()` to split the file. Keep `module_hash_decode()` as the common decoder for each extracted record. See `src/modules/module_40011.c` for a single-hash example and `src/modules/module_02500.c` for multiple hashes.
 * `OPTS_TYPE_BINARY_HASHFILE_OPTIONAL`: Allows a mode with `OPTS_TYPE_BINARY_HASHFILE` to accept either binary files or text hashes, including hashes on the command line. The binary path converts its records into the form consumed by the text decoder. Mode 22000 is an example.
 * `OPTS_TYPE_PT_ADD06`: Same as OPTS_TYPE_PT_ADD01 but use 0x06 byte instead, which is the SHA-3 domain separation byte. See `src/modules/module_17300.c` for an example.
 * `OPTS_TYPE_KEYBOARD_MAPPING`: Enables kernel-side character remapping from a table loaded by the host. See `docs/keyboard-layout-mapping.md`.
@@ -526,7 +546,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_MP_MULTI_DISABLE`: Prevents hashcat from multiplying kernel acceleration by the device multiprocessor count, allowing finer workload control.
 * `OPTS_TYPE_NATIVE_THREADS`: Selects the native thread count: one on a CPU or the preferred workgroup-size multiple reported by a GPU backend. It does not override a user-defined `-u` value.
 * `OPTS_TYPE_POST_AMP_UTF16LE`: Runs a complete UTF-8-to-UTF-16LE conversion after amplifier processing. This flag applies only to slow-hash kernels.
-* `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection.
+* `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection. A mode whose example hash is 16 characters or shorter needs no flag just because ordinary words pass for its hashes: autodetect counts its matches only when it parses at least half of the sampled lines, and the check for a swapped hash file and wordlist leaves it out.
 
 ### module_salt_type() ###
 
@@ -536,6 +556,22 @@ Callback `module_salt_type()` selects the storage and input rules for salted and
 * `SALT_TYPE_EMBEDDED`: Selects a strict format in which the salt is parsed from the hash line and option `--hex-salt` is unnecessary. Use it for formats produced by a dedicated or controlled extraction tool.
 * `SALT_TYPE_GENERIC`: Selects a user-supplied salt format that may vary between exporting tools and enables option `--hex-salt`.
 * `SALT_TYPE_VIRTUAL`: Supplies a fixed synthetic salt, normally empty, so an unsalted format variant can reuse a kernel that expects salt data. For example, `md5(md5($p))` shares a kernel with vBulletin `md5(md5($p).$s)`.
+
+### module_combined_len_max(), module_combined_len_pw() and module_combined_len_salt() ###
+
+The password and salt limits from `module_pw_max()` and `module_salt_max()` apply to each field on its own. Some optimized kernels keep password and salt in one buffer, so the two also have to fit together. In `md5($p.$s)`, both share one 64-byte block, of which 55 bytes are left after the padding and the length.
+
+Callback `module_combined_len_max()` returns how much password and salt may take together, or 0 when they do not share a buffer. Most modes return 55 for their optimized kernel and 0 for the pure kernel, which has no such limit. Callbacks `module_combined_len_pw()` and `module_combined_len_salt()` return what a password of a given length and a given salt count towards that limit. A password and a salt fit together when the sum of the two counts does not exceed the limit:
+
+```
+u32 module_combined_len_max  (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
+u32 module_combined_len_pw   (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const u32 pw_len)
+u32 module_combined_len_salt (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const salt_t *salt, const void *esalt)
+```
+
+By default, a password counts its length, doubled in the optimized kernel of a UTF-16 mode, and a salt counts its stored `salt_len`. A mode that keeps the salt twice, such as `md5($s.$p.$s)`, counts it twice. A mode with a constant beside them in the buffer adds the constant to one of the two counts.
+
+The limit itself does not change `pw_max` or `salt_max`. After the hashes are loaded, hashcat works out the longest password that fits beside each salt and reports it, together with a warning when a salt leaves less than `pw_max`. Candidates are not dropped. A mode that leaves all three unassigned has no combined limit, which is the previous behavior.
 
 ### module_st_hash() ###
 
@@ -572,6 +608,24 @@ Callback `module_benchmark_charset()` supplies custom character set 1 for `--ben
 ### module_benchmark_salt() ###
 
 Callback `module_benchmark_salt()` fills a mode-specific `salt_t` for benchmarks that require particular iteration counts or salt lengths.
+
+### module_benchmark_cost() ###
+
+Callback `module_benchmark_cost()` formats the cost parameters shown in the benchmark header for a mode whose cost is not a single iteration count. The header normally prints `[Iterations: N]` from `salt_iter`, which misleads a mode that packs several parameters (argon2's `m`, `t` and `p`, scrypt's `N`, `r` and `p`, bcrypt's cost factor). The callback receives the decoded `salt_t` and esalt and writes the parameters the hash actually carries into `line_buf`, returning the length as `snprintf()` does; the header prints that in place of the Iterations readout. It is optional: a mode that leaves it unassigned keeps the Iterations readout, so only a mode with extra cost parameters to show needs to set it.
+
+### module_register_options() ###
+
+Callback `module_register_options()` adds the command line options that only this mode reads. It returns a list of `module_option_t` rows, ended by a row whose `name` is `NULL`. A row holds what a row of `include/options.def` and its rule hold for a core option: the long name, the type (`MODULE_OPTION_TYPE_FLAG`, `MODULE_OPTION_TYPE_U32` or `MODULE_OPTION_TYPE_STR`), a default, an optional range (`MODULE_OPTION_FLAG_MIN`, `MODULE_OPTION_FLAG_MAX`), the relations to other options, and the three columns `--help` prints. `MODULE_OPTION_FLAG_HIDDEN` keeps a row out of `--help`. Each relation (`alias`, `le`, `requires`, `excludes`) names one other option. An `alias` has to name another module option of the same type, or the row is dropped, and a relation that names no known option is ignored.
+
+hashcat calls the hook of every module at startup, before the command line is parsed, so `--help` lists the rows and they are parsed like any other option. An option is in scope only for the hash-modes whose module registered it. Given with a hash-mode whose module did not register it, it is refused, and without `-m` autodetect only considers the modes that registered every module option given. An action that does not read `-m`, such as `--stdout` or `-b` without `-m`, accepts it. Modes that share an option register the same row from one helper file they all include, as `src/modules/scrypt_common.c`, `src/modules/wpa_common.c` and `src/modules/truecrypt_veracrypt_common.c` do. The helpers are not part of a development install, so a module built outside the tree copies the row exactly.
+
+The module reads a value back with `module_option_given()`, `module_option_u32()` and `module_option_str()`, passing `user_options` and the option name. `module_option_u32()` returns the default of the row when the option was not given, and 0 for a name no module registered. `module_option_str()` returns `NULL` when the option was not given. A row of an option that takes a value may name a `check` callback, which is called with the value as text once the module is loaded. When it returns false, the run is refused with the message the callback wrote. A number or flag row with a `brain_slot`, from 1 to 16, puts its value into the brain attack identity, for an option whose value has to keep two runs apart there. Only the options registered by the hash-mode in use fill a slot, and every other slot enters the identity as the same neutral value, so the slots of one family do not collide with another's and each family numbers from 1.
+
+Every module that registers a name has to register the same row. When two modules register a name with different rows, neither row is used, whichever module was loaded first: hashcat prints an error at startup that names both module files, and the option is left out for every hash-mode that registered it under either row. A run of one of those hash-modes with the option is refused. A name that is already a core option, a check on a flag, or a brain slot outside 1 to 16, on a string option or used twice by one module, is refused at startup with the name of the module, and the option is left out for that module.
+
+A mode without options of its own leaves the callback unassigned, like every other callback it does not use.
+
+hashcat keeps the rows every module registers in a cache file, `module_options.so.cache` (`module_options.dll.cache` on Windows) in the cache directory that `--cache-path` moves, so that a start reads one file instead of loading every module. The file records the name, size and modification time of each module file and the hashcat build that wrote it. A start that finds a module added, removed, rebuilt or touched since then loads all modules again and rewrites the file, so a module under development needs nothing extra. The rows a module returns therefore have to depend on nothing but the module itself. A `check` callback is not kept in the file: it runs from the loaded module of the hash-mode in use, and only for that hash-mode. `HASHCAT_MODULE_CACHE_DISABLE=1` makes every start load the modules instead, and `--module-cache-rebuild`, which `--help` does not list, writes the file and exits.
 
 ## Kernel ##
 
@@ -743,7 +797,35 @@ You do not write the kernel. You write four hooks and include the engine, which 
 * `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
 * `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
 
-File `OpenCL/inc_pcfg_kernel.cl` documents all four hooks and is worth reading before writing one. Files `OpenCL/m00100_a4-pure.cl` and `OpenCL/m00200_a4-optimized.cl` are the smallest complete examples of the two variants. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
+File `OpenCL/inc_pcfg_kernel.cl` documents all four hooks and is worth reading before writing one. Files `OpenCL/m11500_a4-pure.cl` and `OpenCL/m00200_a4-optimized.cl` are the smallest complete examples of the two variants. One name is not yours to choose: `inc_vendor.h` maps `s0` to `s3` onto `x` to `w` under Metal, and `w` is the parameter the hooks are handed the candidate in, so a local called `s3` becomes a second `w` in the same scope and the file builds everywhere except Apple. Existing kernels use `s0` to `s3` as vector components, where the rewrite maps a name onto the component it already meant, and do not declare a local called `s3`. Name word buffers `w0` to `w3`, as the existing PCFG kernels commonly do.
+
+#### Kernel: fast hash type (recipe) ####
+
+A fast hash built from the families supported by hash-mode 4000 can use a recipe for its pure kernels. Define the recipe using the syntax in `docs/hashcat-hash-recipe.md`. hashcat then runs mode 4000's pure kernels with that recipe. The module keeps its optimized kernels, parser, digest layout and self-test hash. Modules without a recipe leave this hook unassigned. A module with one adds the recipe, its accessor and its registration in `module_init ()`:
+
+```
+static const char *HASH_RECIPE    = "md5(pass . salt)";
+
+const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
+
+  module_ctx->module_hash_recipe              = module_hash_recipe;
+```
+
+When `-O` is omitted, or the mode has no optimized kernels, hashcat uses kernel type 4000. It compiles the recipe with any options returned by `module_jit_build_options ()`. An invalid recipe is rejected at startup with the parser's error message.
+
+The kernel stores the complete final digest in the word layout used by the family's own kernels: little endian words for MD4, MD5, RIPEMD-160 and BLAKE2, big endian words for SHA-1, SHA-2 and SM3, and each 64-bit SHA-512 word as its low half followed by its high half. The hooks `module_dgst_pos0 ()` through `module_dgst_pos3 ()` select the comparison words as they would for the mode's own pure kernel.
+
+hashcat generates the candidate little endian for the recipe kernels. The recipe hashes each candidate as generated and the salt as stored by `module_hash_decode ()`.
+
+Apply salt and digest preparation for optimized kernels only when `OPTI_TYPE_OPTIMIZED_KERNEL` is set. This includes byte swapping salt words or subtracting a precomputed state from the digest. Recipe kernels read the salt as bytes and compare the complete digest. See the examples in `src/modules/module_08100.c` and `src/modules/module_12600.c`.
+
+Migrate all modes that share a kernel type together, because the recipe replaces their shared pure kernel files.
+
+#### Kernel: slow hash type (recipe) ####
+
+A slow hash that applies PBKDF2 to the password and salt can also use a recipe, such as `pbkdf2_sha256(pass, salt, iter, 32)`. For this recipe, hashcat runs mode 4000's slow kernel, `OpenCL/m04000-pure.cl`. It sizes the tmps for that kernel regardless of the value returned by `module_tmp_size ()`. The loop kernel processes `VECT_SIZE` candidates per work item, so hashcat sets `OPTI_TYPE_SLOW_HASH_SIMD_LOOP`. The module keeps its parser, digest layout and self-test hash. It registers the recipe using the same 3 lines shown for a fast hash.
+
+The recipe reads the complete salt from `salt->salt_buf`, using `salt->salt_len` bytes. Store the complete salt there, including any words beyond the first ones. The value `iter` in the recipe represents the iteration count. Store that count minus 1 in `salt->salt_iter`, as the modes' own PBKDF2 kernels already expect. The kernel compares the first 4 words of the derived key in the family's word layout, as described above for a hash call. A slow mode requires a slow recipe, and a fast mode requires a fast recipe. If they do not match, hashcat rejects the recipe at startup.
 
 ### Kernel: slow hash type ###
 
@@ -910,7 +992,7 @@ This section describes how plugins are built and loaded. It is most relevant whe
 
 A module does not carry its own copy of the hashcat core. The core is built once as a library, and the frontend, modules, bridges, and feeds link against it. This substantially reduces plugin and package size without changing module source or the normal `make` workflow.
 
-The library is `libhashcat.so.7` on Linux, `libhashcat.7.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
+The library is `libhashcat.so.8` on Linux, `libhashcat.8.dylib` on macOS, and `hashcat.dll` on Windows. It resides beside the hashcat executable, one directory above `modules/`. Linux and macOS plugins carry an rpath to that parent directory. On Windows, the executable imports the DLL from its own directory before loading plugins. No environment variable is required. An external plugin build should follow the library naming and link settings in `src/Makefile`, with the library one directory above the module.
 
 The library does not export everything it defines. Most names are internal machinery that plugins must not call. An exported name is part of an interface a plugin can bind to, so its visibility is declared explicitly rather than inferred from whether a current module happens to use it.
 
@@ -938,7 +1020,7 @@ An external plugin can use the following compile command. The interface version 
 
 ```
 gcc -O2 -fPIC -shared -fvisibility=hidden \
-    -DHC_PLUGIN_ABI_VERSION=720 -DMODULE_INTERFACE_VERSION_CURRENT=720 \
+    -DHC_PLUGIN_ABI_VERSION=810 -DMODULE_INTERFACE_VERSION_CURRENT=810 \
     -I/usr/local/include/hashcat -I/usr/local/share/hashcat/OpenCL \
     module_80000.c -o module_80000.so \
     -L/usr/local/lib -lhashcat -Wl,-rpath,'$ORIGIN/..' -Wl,-z,defs
@@ -948,7 +1030,7 @@ Keep `-Wl,-z,defs` so the link fails when the core does not export a referenced 
 
 A source-distributed plugin is compiled against the user's installed core and needs no separate compatibility build. A binary-distributed plugin must be rebuilt for each plugin interface version. hashcat rejects an incompatible binary before running any plugin code.
 
-Compatibility is enforced through a versioned exported symbol such as `HASHCAT_PLUGIN_720`. Every C plugin holds a pointer to that symbol through `include/export.h`, although the function is never called. Raising `MODULE_INTERFACE_VERSION` changes the symbol name, so an older plugin cannot resolve it. This check works before `module_init()` on Linux, macOS, and Windows.
+Compatibility is enforced through a versioned exported symbol such as `HASHCAT_PLUGIN_810`. Every C plugin holds a pointer to that symbol through `include/export.h`, although the function is never called. Raising `MODULE_INTERFACE_VERSION` changes the symbol name, so an older plugin cannot resolve it. This check works before `module_init()` on Linux, macOS, and Windows.
 
 Compile-time definition `HC_PLUGIN_ABI_VERSION` supplies the version number. Headers `include/modules.h`, `include/bridges.h`, and `include/feed.h` require it so that no C plugin can be built without the compatibility reference.
 
@@ -957,7 +1039,7 @@ The Rust feed is the one plugin here that is not built this way. It calls no cor
 An incompatible plugin produces the same diagnostic on every platform:
 
 ```
-Module modules/module_12345.so was built for plugin interface 719, this hashcat provides 720
+Module modules/module_12345.so was built for plugin interface 800, this hashcat provides 810
 ```
 
 hashcat then stops. Native loader errors differ by platform, so hashcat reads the version from the plugin and reports a consistent message. Rebuild the named plugin against the current hashcat version.
@@ -969,10 +1051,10 @@ A module can also report the current interface version while retaining an outdat
 ```
 Module context size in 'module_init()' for hash-mode '12345' is invalid. Is this module based on an old template?
 Interface version in module context in 'module_init()' for hash-mode '12345' is outdated. Please recompile.
-Module context missing field 'module_hash_decode' in 'module_init()' for hash-mode '12345'. Is this module based on an old template?
+Module context field 'module_hash_decode' in 'module_init()' for hash-mode '12345' is not set, but every module has to set it.
 ```
 
-The first two messages require a rebuild. The last means that `module_init()` omits a field. Assign every field either a callback or `MODULE_DEFAULT`.
+The first two messages require a rebuild. The last means that `module_init()` leaves out one of the mandatory callbacks.
 
 Command `make SHARED=0` restores the static arrangement in which every plugin contains its own core copy. This can be useful on platforms where shared loading is unsuitable. Do not combine static plugins with a shared frontend because that loads two core copies with independent global state. Switching through `make` is safe because the build relinks the affected targets. Copying individual binaries between differently configured trees is not.
 
@@ -1046,24 +1128,22 @@ A feed must include `feed.h` instead of the removed `generic.h`. Candidate-only 
 
 `feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h` with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for them.
 
-Remove the `module_dictstat_disable` registration from `module_init()`. Four hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, and `module_kern_bits` names the optional kernels the mode provides. Assigning all four to `MODULE_DEFAULT` preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
+Remove the `module_dictstat_disable` registration from `module_init()`. Eight hooks were added. Hooks `module_usage_notice` and `module_advice_notice` let a module print format-specific guidance, `module_hash_hints` exposes account context used by attack mode 9, `module_kern_bits` names the optional kernels the mode provides, and `module_hash_recipe` names a hash recipe its pure kernels run as. Hook `module_register_options` adds the command line options that only the mode reads, see `module_register_options()` above. Hook `module_length_sort` lets a mode have its candidates sorted by length, and `module_benchmark_cost` shows its cost parameters in the benchmark header, see `module_benchmark_cost()` above. Leaving all eight unassigned preserves the previous behavior, except for a mode that used one of the removed kernel flags, which is covered below.
 
-The following command applies all five changes when `module_init()` still follows the in-tree template. It matches field names rather than line numbers:
+The following command makes the one change that `module_init()` needs:
 
 ```
-sed -i -e '/module_ctx->module_dictstat_disable/d' \
-       -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
-       -e '/module_ctx->module_hash_init_selftest/i\  module_ctx->module_hash_hints               = MODULE_DEFAULT;' \
-       -e '/module_ctx->module_kern_type /i\  module_ctx->module_kern_bits                = MODULE_DEFAULT;' \
-       -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
-       src/modules/module_*.c
+sed -i -e '/module_ctx->module_dictstat_disable/d' src/modules/module_*.c
 ```
 
-The 16 `OPTS_TYPE` flags that said which kernels a mode runs are removed, so a plugin that set one of them no longer compiles: `OPTS_TYPE_INIT`, `OPTS_TYPE_LOOP`, `OPTS_TYPE_COMP`, `OPTS_TYPE_LOOP_PREPARE`, `OPTS_TYPE_LOOP_EXTENDED`, `OPTS_TYPE_HOOK12`, `OPTS_TYPE_HOOK23`, `OPTS_TYPE_INIT2`, `OPTS_TYPE_LOOP2_PREPARE`, `OPTS_TYPE_LOOP2`, `OPTS_TYPE_TM_KERNEL` and `OPTS_TYPE_AUX1` to `OPTS_TYPE_AUX5`. The sed above only registers the hook, so a mode that set any of the optional ones has to name them: drop the flags from its `OPTS_TYPE`, add a `KERN_BITS` constant oring the `KERN_BIT_*` of the same name, and return it from a `module_kern_bits()` callback in place of the `MODULE_DEFAULT` the sed wrote. `KERN_BIT_INIT`, `KERN_BIT_LOOP` and `KERN_BIT_COMP` are not among them, because hashcat turns those on itself for a mode that hashes outside the cracking kernel.
+The options that only some hash-modes read are no longer fields of `user_options_t`: `--eapol-message-pair` with its alias `--hccapx-message-pair`, `--nonce-error-corrections`, `--keyboard-layout-mapping`, `--truecrypt-keyfiles`, `--veracrypt-keyfiles`, `--veracrypt-pim-start`, `--veracrypt-pim-stop` and `--scrypt-tmto`. A plugin that read one of those fields no longer compiles. It registers the option with `module_register_options()`, through the shared helper where it belongs to one of those families, and reads it with `module_option_given()`, `module_option_u32()` or `module_option_str()`.
+
+`module_extra_tuningdb_block()` now returns `char *` instead of `const char *`. The block is built with `hcmalloc()` and handed over, and hashcat frees it after reading it. A plugin that returned a string literal or a static buffer has to return a heap copy instead.
+
+The 16 `OPTS_TYPE` flags that said which kernels a mode runs are removed, so a plugin that set one of them no longer compiles: `OPTS_TYPE_INIT`, `OPTS_TYPE_LOOP`, `OPTS_TYPE_COMP`, `OPTS_TYPE_LOOP_PREPARE`, `OPTS_TYPE_LOOP_EXTENDED`, `OPTS_TYPE_HOOK12`, `OPTS_TYPE_HOOK23`, `OPTS_TYPE_INIT2`, `OPTS_TYPE_LOOP2_PREPARE`, `OPTS_TYPE_LOOP2`, `OPTS_TYPE_TM_KERNEL` and `OPTS_TYPE_AUX1` to `OPTS_TYPE_AUX5`. A mode that set any of the optional ones has to name them: drop the flags from its `OPTS_TYPE`, add a `KERN_BITS` constant oring the `KERN_BIT_*` of the same name, and return it from a `module_kern_bits()` callback that `module_init()` registers. `KERN_BIT_INIT`, `KERN_BIT_LOOP` and `KERN_BIT_COMP` are not among them, because hashcat turns those on itself for a mode that hashes outside the cracking kernel.
 
 Mode 11600 is the smallest worked example. It used one kernel flag, and porting it is four edits:
-drop the flag, add the constant, add the callback, and point the registration at it instead of
-`MODULE_DEFAULT`.
+drop the flag, add the constant, add the callback, and register it.
 
 ```
 -static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
@@ -1077,7 +1157,6 @@ drop the flag, add the constant, add the callback, and point the registration at
 
 +u64         module_kern_bits      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_BITS;       }
 
--  module_ctx->module_kern_bits                = MODULE_DEFAULT;
 +  module_ctx->module_kern_bits                = module_kern_bits;
 ```
 
@@ -1097,3 +1176,31 @@ module declares that it has them has moved.
 Callbacks `module_hook_extra_param_init()` and `module_hook_extra_param_term()` now take `hashcat_ctx_t *` as their first parameter. Add it to either implemented callback so its definition matches the interface type. Most plugins do not implement these hooks. The new context also gives them access to `event_log_warning()` and the other logging functions described above.
 
 Header `shared.h` was split, so include the header that now owns each helper. Parser functions such as `input_tokenizer`, `hc_strchr_next`, `hc_strchr_last`, `generic_salt_decode`, `generic_salt_encode`, and `strparser` are in `parser.h`. Path helpers are in `path.h`, system queries are in `system.h`, and `file_to_buffer` plus `hc_same_files` are in `filehandling.h`. No new header is included implicitly. Leaving only `shared.h` can produce implicit declarations and, for pointer-returning functions, truncated values at runtime.
+
+## Porting a plugin from 8.0.0 ##
+
+A plugin written for hashcat 8.0.0 needs no source change. Its `module_init()` assigns `MODULE_DEFAULT` to every callback it does not implement, and hashcat accepts that as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
+
+Three hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above. Leaving them unassigned preserves the previous behavior.
+
+A module now only has to assign the callbacks it implements, see `module_init()` above, so a hook added in a later version appears only in the modules that use it. The following command removes the `MODULE_DEFAULT` assignments from a module, which is how the in-tree modules look now:
+
+```
+sed -i -E '/^[[:space:]]*module_ctx->module_[a-z0-9_]+[[:space:]]*=[[:space:]]*MODULE_DEFAULT;[[:space:]]*$/d' src/modules/module_*.c
+```
+
+A bridge takes the same command with its own names:
+
+```
+sed -i -E '/^[[:space:]]*bridge_ctx->[a-z0-9_]+[[:space:]]*=[[:space:]]*BRIDGE_DEFAULT;[[:space:]]*$/d' src/bridges/bridge_*.c
+```
+
+The callbacks that return a constant can then come from `src/modules/hooks_common.c`, see the section on the module. The following command makes that change in a module that writes them in the one-line form of the in-tree modules. It puts the include where `module_attack_exec()` was and replaces their assignments with the call to `module_init_common()`:
+
+```
+sed -i -E -e 's/^u32 +module_attack_exec +\(.*\) *\{ *return ATTACK_EXEC; *\}$/#include "hooks_common.c"/' -e '/^(u32|u64|const char) +\*?module_(dgst_pos[0-3]|dgst_size|hash_category|hash_name|kern_type|opti_type|opts_type|salt_type|st_hash|st_pass) +\(.*\) *\{ *return [A-Z0-9_]+; *\}$/d' -e 's/^  module_ctx->module_context_size +=.*;$/  module_init_common (module_ctx);/' -e '/^  module_ctx->module_interface_version +=.*;$/d' -e '/^  module_ctx->module_(attack_exec|dgst_pos[0-3]|dgst_size|hash_category|hash_name|kern_type|opti_type|opts_type|salt_type|st_hash|st_pass) += module_(attack_exec|dgst_pos[0-3]|dgst_size|hash_category|hash_name|kern_type|opti_type|opts_type|salt_type|st_hash|st_pass);$/d' src/modules/module_*.c
+```
+
+A module that writes one of these callbacks in another form, or computes one, needs that part of the change by hand. The compiler then reports the callback as defined twice, or `module_init_common()` as undeclared.
+
+On macOS, BSD sed takes the in-place flag as `-i ''`. The commands can leave an empty line where a group of assignments used to be, which does no harm. A compiled plugin still has to be rebuilt whenever the plugin interface version changes, as described in the section on the core library.

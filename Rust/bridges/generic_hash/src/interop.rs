@@ -10,7 +10,9 @@ use std::{
     sync::OnceLock,
 };
 
-use hashcat_sys::generic::{ThreadContext, bridge_context_t, generic_io_tmp_t, string_from_ptr};
+use hashcat_sys::generic::{
+    ThreadContext, bridge_context_t, generic_io_tmp_t, no_panic, no_panic_void, string_from_ptr,
+};
 
 use crate::generic_hash;
 
@@ -29,6 +31,10 @@ pub extern "C" fn get_info(buf: *mut c_char, buf_size: c_int) -> c_int {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn global_init(ctx: *mut bridge_context_t) -> bool {
+    no_panic(|| global_init_inner(ctx))
+}
+
+fn global_init_inner(ctx: *mut bridge_context_t) -> bool {
     assert!(!ctx.is_null());
     let ctx = unsafe { &mut *ctx };
     assert!(!ctx.dynlib_filename.is_null());
@@ -48,20 +54,34 @@ pub extern "C" fn global_term(_ctx: *mut bridge_context_t) {}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn thread_init(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    let ctx = unsafe { &mut *ctx.cast::<ThreadContext>() };
-    generic_hash::thread_init(ctx);
+    no_panic_void(|| {
+        assert!(!ctx.is_null());
+        let ctx = unsafe { &mut *ctx.cast::<ThreadContext>() };
+        generic_hash::thread_init(ctx);
+    });
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn thread_term(ctx: *mut c_void) {
-    assert!(!ctx.is_null());
-    let ctx = unsafe { &mut *ctx.cast::<ThreadContext>() };
-    generic_hash::thread_term(ctx);
+    no_panic_void(|| {
+        assert!(!ctx.is_null());
+        let ctx = unsafe { &mut *ctx.cast::<ThreadContext>() };
+        generic_hash::thread_term(ctx);
+    });
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_loop(
+    ctx: *const c_void,
+    io: *mut generic_io_tmp_t,
+    pws_cnt: u64,
+    salt_id: c_int,
+    is_selftest: bool,
+) -> bool {
+    no_panic(|| kernel_loop_inner(ctx, io, pws_cnt, salt_id, is_selftest))
+}
+
+fn kernel_loop_inner(
     ctx: *const c_void,
     io: *mut generic_io_tmp_t,
     pws_cnt: u64,

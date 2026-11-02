@@ -215,7 +215,7 @@ The brain is most useful when the client produces candidates slowly enough for l
 
 The client calculates its brain session from the hash-list entries, allowing a large collection of salts to share one history. Option `--brain-session` overrides the calculated identifier. An explicit identifier is useful when seeding the brain from candidate sources independently of a particular hash list.
 
-Option `--remove` is incompatible with a brain client because the potfile already excludes cracked hashes. Option `--potfile-disable` is also rejected with `Using --potfile-disable is not allowed if --brain-client is used`. Use `--potfile-path` to place the potfile elsewhere.
+Option `--remove` is incompatible with a brain client because the potfile already excludes cracked hashes. Option `--potfile-disable` is also rejected with `--brain-client cannot be combined with --potfile-disable.` Use `--potfile-path` to place the potfile elsewhere.
 
 Several clients using the same attack and brain session coordinate their keyspace without a separate distribution layer. This can resemble a distributed cracking system, but it lacks important capabilities of a complete orchestration platform, as explained below.
 
@@ -370,7 +370,7 @@ Feeding performs no target hashing or cracking. The 8.4 million candidates take 
 Fed 8475456 candidates from 8475456 lines into brain session 0x1234abcd, 8475456 were already known.
 ```
 
-The feeder accepts the same input as hashcat's wordlist reader. Feeding a list and later cracking it therefore inserts and queries the same candidate set.
+The feeder accepts the same input as hashcat's wordlist reader. Feeding a list and later cracking it therefore inserts and queries the same candidate set. This includes the `$HEX[...]` form that `--stdout` writes for a candidate it cannot print. The feeder decodes it, unless `--wordlist-autohex-disable` is given.
 
 The only discarded input is a line longer than the 256-byte candidate limit. Storing its identity would create an entry no client can query. The feeder counts and reports these lines so the input and candidate totals remain explainable:
 

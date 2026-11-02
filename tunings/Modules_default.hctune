@@ -42,9 +42,9 @@ ALIAS_nv_real_simd                              3       5600    2       A       
 ALIAS_nv_real_simd                              3       8700    4       A       A
 ALIAS_nv_real_simd                              3       9900    2       A       A
 ALIAS_nv_real_simd                              3       11100   2       A       A
-ALIAS_nv_real_simd                              3       11900   2       A       A
 ALIAS_nv_real_simd                              3       13300   4       A       A
 ALIAS_nv_real_simd                              3       18700   8       A       A
+ALIAS_nv_real_simd                              3       40031   2       A       A
 ALIAS_nv_real_simd                              3       99999   4       A       A
 
 ALIAS_nv_sm50_or_higher                         3       0       8       A       A
@@ -221,4 +221,7 @@ ALIAS_AMD                                       3       17200   N       32      
 ALIAS_NV                                        3       17200   N       1024    A
 ALIAS_INTEL                                     0       18100   N       1024    A
 ALIAS_INTEL                                     1       18100   N       128     A
+ALIAS_NV                                        *       23700   N       6       A
 ALIAS_INTEL                                     3       29421   N       1024    A
+ALIAS_AMD                                       *       34600   N       4       A
+ALIAS_NV                                        *       34600   N       1       A

@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include "common.h"
 #include "types.h"
+#include "backend.h"
 #include "modules.h"
 #include "bitops.h"
 #include "convert.h"
@@ -27,11 +28,10 @@
 
 #define YESCRYPT_HASH_B64_LEN 43
 
-// The loop kernel is cooperative: one workgroup owns one hash and threads 0 to PWXgather-1 are the
-// four pwxform lanes. A workgroup narrower than that leaves lanes unprocessed and silently computes
-// a wrong digest, so this is a hard floor and not a tuning preference.
+// The register-based cooperative kernel exchanges eight u64 words across eight threads.
+// Smaller workgroups wrap the shuffle indices and silently compute a wrong digest.
 
-#define YESCRYPT_MIN_THREADS 4
+#define YESCRYPT_MIN_THREADS 8
 
 // the only flag bit that changes the shape of the computation, see YESCRYPT_FLAG_RW in the kernel
 
@@ -626,7 +626,7 @@ u32 yescrypt_module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashcon
 
 u32 yescrypt_module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : YESCRYPT_THREADS;
+  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? MAX (user_options->kernel_threads, YESCRYPT_MIN_THREADS) : YESCRYPT_THREADS;
 
   return kernel_threads_max;
 }
@@ -655,7 +655,7 @@ static u64 yescrypt_size_per_accel (const hashes_t *hashes)
   return size_per_accel;
 }
 
-const char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
+char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
 {
   hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
@@ -669,9 +669,15 @@ const char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_
 
   const u32 device_processors = device_param->device_processors;
 
-  const u64 fixed_mem = (128 * 1024 * 1024); // some storage we need for pws[], tmps[], and others
+  // Unified memory must also leave room for the backend's per-device host reserve.
 
-  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+  const u64 host_mem = (device_param->device_host_unified_memory == 1) ? BACKEND_HOST_MEM_RESERVE / backend_ctx->backend_devices_active : 0;
+
+  const u64 device_mem = (device_param->device_available_mem > host_mem) ? device_param->device_available_mem - host_mem : 0;
+
+  const u64 fixed_mem = (128ULL * 1024 * 1024);
+
+  const u64 usable_mem = MIN (device_mem, (device_param->device_maxmem_alloc * 4));
 
   // a device that reports less than the reserve would underflow this on a u64, and the accel
   // computed from the wrapped value asks for far more memory than the device has
@@ -737,6 +743,20 @@ u64 yescrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u64 tmp_size = 0; // we'll add some later
 
   return tmp_size;
+}
+
+int yescrypt_module_benchmark_cost (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, char *line_buf, const int line_size)
+{
+  // yescrypt extends scrypt with a time factor t on top of N, r and p. N, r and p sit in the salt.
+  // The esalt opens with flags then t, so t is its second u32. salt_iter folds N together with the
+  // passes, so the plain Iterations readout stands for none of the four on its own.
+
+  const u32 N = salt->scrypt_N;
+  const u32 r = salt->scrypt_r;
+  const u32 p = salt->scrypt_p;
+  const u32 t = (esalt_buf != NULL) ? ((const u32 *) esalt_buf)[1] : 0;
+
+  return snprintf (line_buf, line_size, "N=%u, r=%u, p=%u, t=%u", N, r, p, t);
 }
 
 u64 yescrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, const u64 esalt_size)
@@ -818,13 +838,10 @@ char *yescrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
   const u32 expected_threads = yescrypt_expected_threads (hashconfig, user_options, user_options_extra, device_param);
 
-  // X can live in registers instead of local memory. Thread lid keeps every u64 of it whose
-  // index is lid modulo the thread count, which only works when 16r divides evenly by that
-  // count. Real hashes all have an even r, so this is the normal case and the block below is
-  // the fallback. It leaves local memory holding the Sbox and one u64 per thread for the lane
-  // exchange, instead of the Sbox and the whole 128r block.
+  // Register shuffles require a power-of-two workgroup within one 32-lane warp.
+  // The 16r words must also divide evenly across the threads.
 
-  const bool x_in_regs = (((16 * scrypt_r) % expected_threads) == 0);
+  const bool x_in_regs = (expected_threads >= 8) && (expected_threads <= 32) && ((expected_threads & (expected_threads - 1)) == 0) && (((16 * scrypt_r) % expected_threads) == 0);
 
   const u64 lds_x = (x_in_regs == true) ? (8ULL * expected_threads) : (128ULL * scrypt_r);
 

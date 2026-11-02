@@ -49,13 +49,13 @@ KERNEL_FQ KERNEL_FA void m29000_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   sha1_init (&ctx0);
 
-  sha1_update_global_swap (&ctx0, esalt_bufs[SALT_POS_HOST].salt1_buf, esalt_bufs[SALT_POS_HOST].salt1_len);
+  sha1_update_global_swap (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len);
 
   sha1_ctx_t ctx2;
 
   sha1_init (&ctx2);
 
-  sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
+  sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
 
   sha1_update(&ctx2, colon, 1);
 
@@ -147,13 +147,13 @@ KERNEL_FQ KERNEL_FA void m29000_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   sha1_init (&ctx0);
 
-  sha1_update_global_swap (&ctx0, esalt_bufs[SALT_POS_HOST].salt1_buf, esalt_bufs[SALT_POS_HOST].salt1_len);
+  sha1_update_global_swap (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len);
 
   sha1_ctx_t ctx2;
 
   sha1_init (&ctx2);
 
-  sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
+  sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
 
   sha1_update(&ctx2, colon, 1);
 

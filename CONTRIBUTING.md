@@ -14,7 +14,7 @@ Whatever the size of the patch, describe what prompted the change. A one line di
 
 ## Requirements
 
-1. Licensed under the MIT license, or dedicated to the public domain. BSD and GPL code is incompatible.
+1. Licensed under the MIT license, or dedicated to the public domain. This applies to code written for hashcat. Third-party code keeps its own license, which must allow redistribution with hashcat and is recorded in `docs/license_libs/`. GPL code is never linked into hashcat.
 2. Adheres to the gnu99 standard.
 3. Compiles cleanly with no warnings under `-W -Wall -std=gnu99`.
 
@@ -156,6 +156,16 @@ With only `-m`, the suite covers every attack type, kernel type, target type and
 Paste the tail of the run, down to and including the line that reports how many errors were detected. That line is the one a reviewer looks for.
 
 If a mode you touched cannot be tested on your hardware, say so. Leaving the output out without saying why is what a reviewer will ask about first.
+
+## Leave docs/changes.txt to us
+
+Do not edit `docs/changes.txt`. Most pull requests would add their entry at the end of the same section, so two of them that are open at the same time conflict as soon as one is merged. The other one then needs a rebase for nothing but that line. We write the changelog entry ourselves when we merge.
+
+You can suggest one. Put it on a line of its own that starts with `Changelog:`, either in the pull request description or as the last line of a commit message:
+
+    Changelog: Fixed mode 17010 missing the second of two keys that share an S2K salt
+
+One line per entry. Write it the way the entries in `docs/changes.txt` read: one sentence about what a user notices, plain ASCII, and for a fix a sentence that starts with "Fixed". We read these lines when we merge, but we may reword an entry, combine it with others, file it under a different section, or leave it out.
 
 ## A new hash mode should come with a test module
 

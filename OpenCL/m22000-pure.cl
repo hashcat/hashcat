@@ -915,26 +915,18 @@ KERNEL_FQ KERNEL_FA void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
   z[2] = 0;
   z[3] = 0;
 
-  u32 to;
+  // The KDF-SHA256 input opens with a 2 byte counter, so both nonces sit 1 byte later than in the
+  // keyver 1 and 2 layout, and the last 4 bytes of the ANonce fill a whole word.
 
-  u32 m0;
-  u32 m1;
+  u32 to;
 
   if (wpa->nonce_compare < 0)
   {
-    m0 = pke[15] & ~0x000000ff;
-    m1 = pke[16] & ~0xffffff00;
-
-    to = pke[15] << 24
-       | pke[16] >>  8;
+    to = pke[16];
   }
   else
   {
-    m0 = pke[23] & ~0x000000ff;
-    m1 = pke[24] & ~0xffffff00;
-
-    to = pke[23] << 24
-       | pke[24] >>  8;
+    to = pke[24];
   }
 
   u32 bo_loops = wpa->detected_le + wpa->detected_be;
@@ -986,13 +978,11 @@ KERNEL_FQ KERNEL_FA void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
 
       if (wpa->nonce_compare < 0)
       {
-        pke[15] = m0 | (t >> 24);
-        pke[16] = m1 | (t <<  8);
+        pke[16] = t;
       }
       else
       {
-        pke[23] = m0 | (t >> 24);
-        pke[24] = m1 | (t <<  8);
+        pke[24] = t;
       }
 
       sha256_hmac_ctx_t ctx1;
@@ -1128,18 +1118,43 @@ KERNEL_FQ KERNEL_FA void m22000_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
   // this can occur on -a 9 because we are ignoring module_deep_comp_kernel()
   if (wpa->type != 1) return;
 
-  sha1_hmac_ctx_t sha1_hmac_ctx;
+  u32 r0;
+  u32 r1;
+  u32 r2;
+  u32 r3;
 
-  sha1_hmac_init (&sha1_hmac_ctx, w, 32);
+  // an AKM 6 (PSK-SHA256) network takes its PMKID with HMAC-SHA256, the parser marks it as keyver 3
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, wpa->pmkid_data, 20);
+  if (wpa->keyver == 3)
+  {
+    sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha1_hmac_final (&sha1_hmac_ctx);
+    sha256_hmac_init (&sha256_hmac_ctx, w, 32);
 
-  const u32 r0 = sha1_hmac_ctx.opad.h[0];
-  const u32 r1 = sha1_hmac_ctx.opad.h[1];
-  const u32 r2 = sha1_hmac_ctx.opad.h[2];
-  const u32 r3 = sha1_hmac_ctx.opad.h[3];
+    sha256_hmac_update_global_swap (&sha256_hmac_ctx, wpa->pmkid_data, 20);
+
+    sha256_hmac_final (&sha256_hmac_ctx);
+
+    r0 = sha256_hmac_ctx.opad.h[0];
+    r1 = sha256_hmac_ctx.opad.h[1];
+    r2 = sha256_hmac_ctx.opad.h[2];
+    r3 = sha256_hmac_ctx.opad.h[3];
+  }
+  else
+  {
+    sha1_hmac_ctx_t sha1_hmac_ctx;
+
+    sha1_hmac_init (&sha1_hmac_ctx, w, 32);
+
+    sha1_hmac_update_global_swap (&sha1_hmac_ctx, wpa->pmkid_data, 20);
+
+    sha1_hmac_final (&sha1_hmac_ctx);
+
+    r0 = sha1_hmac_ctx.opad.h[0];
+    r1 = sha1_hmac_ctx.opad.h[1];
+    r2 = sha1_hmac_ctx.opad.h[2];
+    r3 = sha1_hmac_ctx.opad.h[3];
+  }
 
   #ifdef KERNEL_STATIC
 

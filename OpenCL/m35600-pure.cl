@@ -38,7 +38,7 @@ KERNEL_FQ KERNEL_FA void m35600_init (KERN_ATTR_TMPS (gost12512crypt_tmp_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 
@@ -349,7 +349,7 @@ KERNEL_FQ KERNEL_FA void m35600_loop (KERN_ATTR_TMPS (gost12512crypt_tmp_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  #ifdef REAL_SHM
+  #if defined REAL_SHM && !defined SBOG_CONSTANT_TABLES
 
   LOCAL_VK u64a s_sbob_sl64[8][256];
 

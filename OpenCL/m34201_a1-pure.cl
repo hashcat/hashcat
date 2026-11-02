@@ -41,17 +41,22 @@ DECLSPEC u64 MurmurHash64A (PRIVATE_AS const u32 *data, const u32 len)
     i += 2;
   }
 
-  // Up to 7 overflow bytes
+  // Up to 7 overflow bytes. The buffer is reused for every candidate, so the bytes after them in the
+  // last word can be left over from a longer one and have to be masked off.
   const u32 overflow = len & 7;
 
   if (overflow > 4)
   {
-    hash ^= hl32_to_64 (data[i + 1], data[i]);
+    const u32 mask = 0xffffffff >> ((8 - overflow) * 8);
+
+    hash ^= hl32_to_64 (data[i + 1] & mask, data[i]);
     hash *= M;
   }
   else if (overflow > 0)
   {
-    hash ^= hl32_to_64 (0, data[i]);
+    const u32 mask = 0xffffffff >> ((4 - overflow) * 8);
+
+    hash ^= hl32_to_64 (0, data[i] & mask);
     hash *= M;
   }
 

@@ -16,8 +16,9 @@ from lib.test_helpers import random_number, random_bytes
 
 # WPA-PBKDF2-PMKID+EAPOL. The PMK is PBKDF2-HMAC-SHA1 (4096 iterations) of the
 # passphrase salted by the ESSID. Four record kinds share the format: type 1 is a
-# PMKID (HMAC-SHA1 over "PMK Name" || AP MAC || STA MAC), type 2 is an EAPOL MIC
-# whose algorithm follows the key version (1/2/3 -> HMAC-MD5, HMAC-SHA1, AES-CMAC).
+# PMKID (HMAC-SHA1 over "PMK Name" || AP MAC || STA MAC, or HMAC-SHA256 on an AKM 6
+# network), type 2 is an EAPOL MIC whose algorithm follows the key version
+# (1/2/3 -> HMAC-MD5, HMAC-SHA1, AES-CMAC).
 #
 # Types 3 and 4 are the 802.11r Fast BSS Transition forms of the same two. They
 # carry three more fields, the mobility domain and the two key holder IDs, and the
@@ -237,20 +238,32 @@ def _ft_generate_hash(word, type, macap, macsta, essid, anonce, eapol, mp,
       type, pmkid.hex(), macap, macsta, essid, mp, mdid, r0khid, r1khid)
 
   # type == 4
-  if eapol is None:
-    snonce = random_bytes(32)
-    eapol  = _gen_ft_eapol(snonce)
-  else:
-    eapol  = bytes.fromhex(eapol)
-    snonce = eapol[17:49]
-
-  if anonce is None:
-    anonce = random_bytes(32)
-  else:
-    anonce = bytes.fromhex(anonce)
+  # Message pairs 3 and 4 store M3, whose frame carries the ANonce, and the nonce field then holds
+  # the SNonce. hcxpcapngtool writes them with the AP-less bit set, as 13 and 14.
+  if (mp is None) and (eapol is None):
+    mp = "13" if random_number(0, 1) == 1 else "00"
 
   if mp is None:
     mp = "00"
+
+  if eapol is None:
+    frame_nonce = random_bytes(32)
+    eapol       = _gen_ft_eapol(frame_nonce)
+  else:
+    eapol       = bytes.fromhex(eapol)
+    frame_nonce = eapol[17:49]
+
+  if anonce is None:
+    field_nonce = random_bytes(32)
+  else:
+    field_nonce = bytes.fromhex(anonce)
+
+  if (int(mp, 16) & 7) in (3, 4):
+    snonce = field_nonce
+    anonce = frame_nonce
+  else:
+    snonce = frame_nonce
+    anonce = field_nonce
 
   pmkr0 = _ft_kdf_block(pmk, 1, b"FT-R0", r0_ctx, 384)
   pmkr1 = _ft_kdf_block(pmkr0, 1, b"FT-R1", r1khid_bin + macsta_bin, 256)
@@ -270,7 +283,7 @@ def _ft_generate_hash(word, type, macap, macsta, essid, anonce, eapol, mp,
   mic = c.digest()[:16]
 
   return "WPA*%02x*%s*%s*%s*%s*%s*%s*%s*%s*%s*%s" % (
-    type, mic.hex(), macap, macsta, essid, anonce.hex(), eapol.hex(), mp,
+    type, mic.hex(), macap, macsta, essid, field_nonce.hex(), eapol.hex(), mp,
     mdid, r0khid, r1khid)
 
 
@@ -287,6 +300,14 @@ def module_generate_hash(word, salt=None, type=None, macap=None, macsta=None,
                              mdid, r0khid, r1khid)
 
   if type == 1:
+    # Bit 1 of the message pair marks a PMKID from an AKM 6 (PSK-SHA256) network, which takes
+    # HMAC-SHA256 rather than HMAC-SHA1. hcxpcapngtool writes it as 03. A fresh hash picks either.
+    if (mp is None) and (macap is None):
+      mp = "03" if random_number(0, 1) == 1 else ""
+
+    if mp is None:
+      mp = ""
+
     if macap is None:
       macap = random_bytes(6).hex()
     if macsta is None:
@@ -300,9 +321,12 @@ def module_generate_hash(word, salt=None, type=None, macap=None, macsta=None,
 
     data = b"PMK Name" + bytes.fromhex(macap) + bytes.fromhex(macsta)
 
-    pmkid = hmac.new(pmk, data, hashlib.sha1).hexdigest()
+    if (mp != "") and ((int(mp, 16) & 0x02) == 0x02):
+      pmkid = hmac.new(pmk, data, hashlib.sha256).hexdigest()
+    else:
+      pmkid = hmac.new(pmk, data, hashlib.sha1).hexdigest()
 
-    return "WPA*%02x*%s*%s*%s*%s***" % (type, pmkid[:32], macap, macsta, essid)
+    return "WPA*%02x*%s*%s*%s*%s***%s" % (type, pmkid[:32], macap, macsta, essid, mp)
 
   # type == 2
   if macap is None:

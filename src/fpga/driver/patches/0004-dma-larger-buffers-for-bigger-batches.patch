@@ -1,0 +1,39 @@
+Subject: [PATCH 4/5] dma: 32 KB buffers, so a batch can be four times as big
+
+The ring is DMA_BUFFER_COUNT * DMA_BUFFER_SIZE and it is what bounds a bcrypt batch: the bridge asks
+the transport how much it will take at once and divides by its own worst-case record to get the
+candidate ceiling for a launch. At 256 x 8192 that is 2 MB, which is 26,214 candidates of the packed
+password record and was 16,384 of the fixed 128-byte one it replaced.
+
+THE CANDIDATE CEILING IS A THROUGHPUT NUMBER, NOT A BUFFER SIZE. hashcat drives the card in one-shot
+batches: arm, send, wait, drain, disarm. Every batch therefore fills and drains the core array once,
+and on a 450-core board that fixed cost is one core-period per launch however big the launch is.
+Measured on hardware, 16,200 candidates is 36 periods of work in 37 periods of time, so 2.7 percent
+is lost to it; 104,857 candidates is 233 in 234, which is 0.43. The array is not idle for longer with
+a bigger ring, it is idle the same amount less often.
+
+Raising the COUNT is not available: the descriptor table in the gateware is a 256-entry FIFO and the
+driver fills exactly that many, so the two numbers are one number and changing it means rebuilding
+every bitstream. Raising the SIZE needs no gateware change at all. The descriptor length field is 24
+bits, so 32 KB is far inside it, and nothing in the fabric has cared about the buffer size since the
+host record format stopped being a fixed 128 bytes: the feeder used to check its word count against
+the buffer-end marker, and it now checks a tag in every record header instead.
+
+32 KB rather than 64 KB. Each buffer is a separate dma_alloc_coherent, so the size is also the
+contiguous allocation order the host has to satisfy 512 times at probe: 32 KB is order 3 and 64 KB is
+order 4, and the extra headroom is not worth the higher chance of a probe failing on a fragmented
+machine. 8 MB a direction, 16 MB a device.
+
+Signed-off-by: See docs/credits.txt
+
+--- a/config.h
++++ b/config.h
+@@ -76,7 +76,7 @@
+ #define DMA_CHANNEL_COUNT      DMA_CHANNELS
+ #define DMA_BUFFER_PER_IRQ     32
+ #define DMA_BUFFER_COUNT       256
+-#define DMA_BUFFER_SIZE        8192
++#define DMA_BUFFER_SIZE        32768
+ #define DMA_BUFFER_TOTAL_SIZE (DMA_BUFFER_COUNT*DMA_BUFFER_SIZE)
+ //#define DMA_BUFFER_ALIGNED
+ 

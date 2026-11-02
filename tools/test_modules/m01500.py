@@ -5,11 +5,10 @@
 ## License.....: MIT
 ##
 
-import crypt_r
-
+from lib import libcrypt
 from lib.test_helpers import split_hash_word
 
-# descrypt, DES (Unix), Traditional DES: the 2 character salt then the crypt string. crypt_r is
+# descrypt, DES (Unix), Traditional DES: the 2 character salt then the crypt string. libcrypt is
 # libc's crypt, the same routine the perl module reached. DES keeps only 7 bits of each password
 # byte, so hashcat prints a cracked byte above 0x7f with its top bit cleared wherever that is
 # printable, and the oracle's own verify accepts it.
@@ -20,7 +19,7 @@ def module_constraints():
 
 
 def module_generate_hash(word, salt, iterations=None):
-  return crypt_r.crypt(word.decode("utf-8"), salt)
+  return libcrypt.crypt(word.decode("utf-8"), salt)
 
 
 def module_verify_hash(line):
@@ -36,11 +35,11 @@ def module_verify_hash(line):
   if text is None:
     return None
 
-  return (crypt_r.crypt(text, hash_in[:2]), word)
+  return (libcrypt.crypt(text, hash_in[:2]), word)
 
 
 def utf8_spelling(word):
-  # A printed password with some top bits cleared need not be UTF-8, and crypt_r takes only a str.
+  # A printed password with some top bits cleared need not be UTF-8, and libcrypt takes only a str.
   # Every setting of the top bits hashes the same, and the generated password is one of them, so
   # the first setting that decodes stands in for the word. A byte whose low 7 bits are 0 keeps its
   # top bit, because a NUL would end the key early.
