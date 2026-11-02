@@ -721,6 +721,9 @@ static const hc_dev_kern_t kern_run_all[] =
   HC_DEV_KERN_INIT2,
   HC_DEV_KERN_LOOP2P,
   HC_DEV_KERN_LOOP2,
+  HC_DEV_KERN_INIT3,
+  HC_DEV_KERN_LOOP3P,
+  HC_DEV_KERN_LOOP3,
   HC_DEV_KERN_AUX1,
   HC_DEV_KERN_AUX2,
   HC_DEV_KERN_AUX3,
@@ -749,6 +752,9 @@ static hc_dev_kern_t kern_run_to_slot (const int kern_run)
     case KERN_RUN_INIT2:  return HC_DEV_KERN_INIT2;
     case KERN_RUN_LOOP2P: return HC_DEV_KERN_LOOP2P;
     case KERN_RUN_LOOP2:  return HC_DEV_KERN_LOOP2;
+    case KERN_RUN_INIT3:  return HC_DEV_KERN_INIT3;
+    case KERN_RUN_LOOP3P: return HC_DEV_KERN_LOOP3P;
+    case KERN_RUN_LOOP3:  return HC_DEV_KERN_LOOP3;
     case KERN_RUN_AUX1:   return HC_DEV_KERN_AUX1;
     case KERN_RUN_AUX2:   return HC_DEV_KERN_AUX2;
     case KERN_RUN_AUX3:   return HC_DEV_KERN_AUX3;
@@ -2778,8 +2784,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
             const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+            const u32 iter3r = hashes->salts_buf[salt_pos].salt_iter3 * (salt_repeats + 1);
 
-            const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+            const double iter_part = (double) ((iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r + iter3r);
 
             const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
@@ -2914,8 +2921,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
             const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
             const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+            const u32 iter3r = hashes->salts_buf[salt_pos].salt_iter3 * (salt_repeats + 1);
 
-            const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r);
+            const double iter_part = (double) (iter1r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r + iter3r);
 
             const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
@@ -2944,6 +2952,69 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             if (hc_dev_memcpy_h2d (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_TMPS], 0, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
 
             if (hc_dev_synchronize (hashcat_ctx, device_param) == -1) return -1;
+          }
+        }
+      }
+    }
+
+    if (hashconfig->kern_bits & KERN_BIT_INIT3)
+    {
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+    }
+
+    if (true)
+    {
+      const u32 salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
+
+      for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
+      {
+        device_param->kernel_param.salt_repeat = salt_repeat;
+
+        if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+        {
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3P, pws_pos, pws_cnt, false, 0, is_autotune) == -1) return -1;
+        }
+
+        if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+        {
+          u32 iter = hashes->salts_buf[salt_pos].salt_iter3;
+
+          u32 loop_step = device_param->kernel_loops;
+
+          for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+          {
+            u32 loop_left = iter - loop_pos;
+
+            loop_left = MIN (loop_left, loop_step);
+
+            device_param->kernel_param.loop_pos = loop_pos;
+            device_param->kernel_param.loop_cnt = loop_left;
+
+            if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP3, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
+
+            //bug?
+            //while (status_ctx->run_thread_level2 == false) break;
+            if (status_ctx->run_thread_level2 == false) break;
+
+            /**
+             * speed
+             */
+
+            const u32 iter1r = hashes->salts_buf[salt_pos].salt_iter  * (salt_repeats + 1);
+            const u32 iter2r = hashes->salts_buf[salt_pos].salt_iter2 * (salt_repeats + 1);
+            const u32 iter3r = hashes->salts_buf[salt_pos].salt_iter3 * (salt_repeats + 1);
+
+            const double iter_part = (double) (iter1r + iter2r + (iter * salt_repeat) + loop_pos + loop_left) / (double) (iter1r + iter2r + iter3r);
+
+            const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+
+            double speed_msec = hc_timer_get (device_param->timer_speed);
+
+            const u32 speed_pos = device_param->speed_pos;
+
+            device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+            device_param->speed_msec[speed_pos] = speed_msec;
           }
         }
       }
@@ -14084,6 +14155,33 @@ static int backend_session_setup_kernel_types (hashcat_ctx_t *hashcat_ctx, hc_de
       snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
 
       SETUP_KERNEL (HC_DEV_KERN_LOOP2, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // init3
+
+    if (hashconfig->kern_bits & KERN_BIT_INIT3)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_init3", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_INIT3, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // loop3 prepare
+
+    if (hashconfig->kern_bits & KERN_BIT_LOOP3_PREPARE)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop3_prepare", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_LOOP3P, HC_DEV_PROGRAM_MAIN, kernel_name);
+    }
+
+    // loop3
+
+    if (hashconfig->kern_bits & KERN_BIT_LOOP3)
+    {
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop3", kern_type);
+
+      SETUP_KERNEL (HC_DEV_KERN_LOOP3, HC_DEV_PROGRAM_MAIN, kernel_name);
     }
 
     // the auxiliary kernels this mode names, m<type>_aux1 upwards

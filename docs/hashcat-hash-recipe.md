@@ -440,7 +440,7 @@ than with a kernel of their own. Hash-mode 1450, for example, runs `hmac_sha256(
 a hash-mode reads its own hash format and needs no `--hash-recipe`. Its pure kernels are the recipe
 kernels of mode 4000. Where the hash-mode also has optimized kernels, `-O` runs those instead.
 
-Hash-modes 40000 to 44000 are reserved for hash-modes that are defined only by a stored recipe and
+Hash-modes 40000 to 43999 are reserved for hash-modes that are defined only by a stored recipe and
 have no optimized kernels. A new hash-mode of that kind takes the next free number in this range.
 
 The existing hash-modes of that kind moved into this range. Their old numbers still work with `-m`

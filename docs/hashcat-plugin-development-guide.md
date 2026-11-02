@@ -48,7 +48,7 @@ Choose a hash-mode number before creating the files:
 
 * For a private plugin, choose a number from 90000 through 99998. Upstream reserves this range for private use except for the stock Plaintext mode 99999, preventing collisions with future public modes.
 * For an upstream contribution, inspect `src/modules/` on the current master branch and choose a temporary number ending in `00`, roughly 1,000 to 2,000 above the highest assigned mode. If the highest mode is 21500, for example, 22900 is a suitable temporary number. Maintainers assign the final number during pull-request review.
-* Leave out the range 40000 to 44000 both when you look for the highest assigned mode and when you choose a number. It is reserved for hash-modes defined only by a stored recipe, see `docs/hashcat-hash-recipe.md`. The old numbers listed there are not free either, because hashcat still loads the moved hash-mode for each of them.
+* Leave out the range 40000 to 43999 both when you look for the highest assigned mode and when you choose a number. It is reserved for hash-modes defined only by a stored recipe, see `docs/hashcat-hash-recipe.md`. The old numbers listed there are not free either, because hashcat still loads the moved hash-mode for each of them.
 
 ## Development environment ##
 
