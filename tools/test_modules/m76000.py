@@ -76,7 +76,7 @@ def module_verify_hash(line):
   salt_bin = base64.b64decode(salt + "=" * (-len(salt) % 4))
   digest_bin = base64.b64decode(digest + "=" * (-len(digest) % 4))
 
-  if len(digest_bin) != 32
+  if len(digest_bin) != 32:
     return None
 
   new_hash = module_generate_hash(word, salt_bin.hex(), int(m), int(t), int(p))
