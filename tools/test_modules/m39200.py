@@ -6,6 +6,7 @@
 ##
 
 import binascii
+import random
 import struct
 
 from Crypto.Cipher import DES
@@ -79,6 +80,7 @@ def module_generate_hash(
     realm="realm",
     checksum=None,
     edata2=None,
+    fmt=None,
 ):
     key = string_to_key(word, (realm.upper() + user).encode())
 
@@ -90,44 +92,68 @@ def module_generate_hash(
         if not _unwraps(key, cipher):
             cipher = _wrap(key, bytes(len(CLEARTEXT_ASREP) // 2))
 
-    return f"$krb5asrep$1${user}${realm}${cipher[:16].hex()}${cipher[16:].hex()}"
+    if fmt is None:
+        fmt = random.randint(1, 2)
+
+    if fmt == 1:
+        return f"$krb5asrep$1${user}@{realm}:{cipher[:16].hex()}${cipher[16:].hex()}"
+    else:
+        return f"$krb5asrep$1${user}${realm}${cipher[:16].hex()}${cipher[16:].hex()}"
 
 
 def module_verify_hash(line):
-    parts = split_hash_word(line)
+    s = line.decode("latin-1")
 
-    if parts is None:
+    if not s.startswith("$krb5asrep$1$"):
         return None
 
-    hash_in, word = parts
+    rest = s[13:]
 
-    fields = hash_in.split("$")
+    d1 = rest.find("$")
+    if d1 < 0:
+        return None
 
-    if len(fields) == 7 and fields[1] == "krb5asrep" and fields[2] == "1":
-        user, realm, checksum, edata2 = fields[3], fields[4], fields[5], fields[6]
-    elif ":" in hash_in:
-        sig_end = hash_in.index("$", hash_in.index("$") + 1)
-        rest = hash_in[sig_end + 1 :]
-        colon = rest.index(":")
-        upn = rest[:colon]
+    first_field = rest[:d1]
+
+    if "@" in first_field and ":" in first_field:
+        fmt = 1
+        upn_cksum = first_field
+        c2 = upn_cksum.rfind(":")
+        upn = upn_cksum[:c2]
+        checksum = upn_cksum[c2 + 1 :]
         at = upn.rfind("@")
-        if at < 0:
+        user = upn[:at] if at >= 0 else upn
+        realm = upn[at + 1 :] if at >= 0 else ""
+        edata2_rest = rest[d1 + 1 :]
+        c3 = edata2_rest.find(":")
+        if c3 < 0:
             return None
-        user = upn[:at]
-        realm = upn[at + 1 :]
-        after_colon = rest[colon + 1 :]
-        dollar = after_colon.index("$")
-        checksum = after_colon[:dollar]
-        edata2 = after_colon[dollar + 1 :]
+        edata2 = edata2_rest[:c3]
+        word = line[13 + d1 + 1 + c3 + 1 :]
     else:
-        return None
+        fmt = 2
+        user = first_field
+        d2 = rest.find("$", d1 + 1)
+        if d2 < 0:
+            return None
+        realm = rest[d1 + 1 : d2]
+        d3 = rest.find("$", d2 + 1)
+        if d3 < 0:
+            return None
+        checksum = rest[d2 + 1 : d3]
+        edata2_rest = rest[d3 + 1 :]
+        c3 = edata2_rest.find(":")
+        if c3 < 0:
+            return None
+        edata2 = edata2_rest[:c3]
+        word = line[13 + d3 + 1 + c3 + 1 :]
 
     if len(checksum) != 32 or len(edata2) < 64 or len(edata2) % 16:
         return None
 
     return (
         module_generate_hash(
-            word, user=user, realm=realm, checksum=checksum, edata2=edata2
+            word, user=user, realm=realm, checksum=checksum, edata2=edata2, fmt=fmt
         ),
         word,
     )

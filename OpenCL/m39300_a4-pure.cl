@@ -135,6 +135,45 @@ DECLSPEC bool krb5_des_crc_pa_timestamp_check (PRIVATE_AS const u32 *key_in, PRI
 
   if (computed_crc != stored_crc) return false;
 
+  if (((plain[4] >> 16) & 0x0000ffff) != 0x00003032) return false;
+
+  u32 d;
+
+  d = plain[5];
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false;
+
+  d = plain[6];
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false;
+
+  d = plain[7];
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false;
+
+
+  d = plain[5];
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false;
+
+  d = plain[6];
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false;
+
+  d = plain[7];
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false; d >>= 8;
+  if (((d & 0xff) < 0x30) || ((d & 0xff) > 0x39)) return false;
+
   return true;
 }
 

@@ -6,6 +6,7 @@
 ##
 
 import binascii
+import random
 import struct
 
 from Crypto.Cipher import DES
@@ -79,6 +80,7 @@ def module_generate_hash(
     spn="test/spn",
     checksum=None,
     edata2=None,
+    fmt=None,
 ):
     key = string_to_key(word, (realm.upper() + user).encode())
 
@@ -90,7 +92,15 @@ def module_generate_hash(
         if not _unwraps(key, cipher):
             cipher = _wrap(key, bytes(len(CLEARTEXT_TICKET) // 2))
 
-    return f"$krb5tgs$1$*{user}${realm}${spn}*${cipher[:16].hex()}${cipher[16:].hex()}"
+    if fmt is None:
+        fmt = random.randint(1, 2)
+
+    if fmt == 1:
+        return (
+            f"$krb5tgs$1$*{user}${realm}${spn}*${cipher[:16].hex()}${cipher[16:].hex()}"
+        )
+    else:
+        return f"$krb5tgs$1${user}${realm}${cipher[:16].hex()}${cipher[16:].hex()}"
 
 
 def module_verify_hash(line):
@@ -103,23 +113,39 @@ def module_verify_hash(line):
 
     fields = hash_in.split("$")
 
-    if len(fields) != 8 or fields[1] != "krb5tgs" or fields[2] != "1":
+    if len(fields) == 7 and fields[1] == "krb5tgs" and fields[2] == "1":
+        fmt = 2
+        user, realm, checksum, edata2 = fields[3], fields[4], fields[5], fields[6]
+    elif len(fields) == 8 and fields[1] == "krb5tgs" and fields[2] == "1":
+        fmt = 1
+        user = fields[3][1:]
+        realm = fields[4]
+        spn = fields[5][:-1]
+        checksum = fields[6]
+        edata2 = fields[7]
+    else:
         return None
-
-    user, realm, spn, checksum, edata2 = (
-        fields[3][1:],
-        fields[4],
-        fields[5][:-1],
-        fields[6],
-        fields[7],
-    )
 
     if len(checksum) != 32 or len(edata2) < 64 or len(edata2) % 16:
         return None
 
+    if fmt == 1:
+        return (
+            module_generate_hash(
+                word,
+                user=user,
+                realm=realm,
+                spn=spn,
+                checksum=checksum,
+                edata2=edata2,
+                fmt=fmt,
+            ),
+            word,
+        )
+
     return (
         module_generate_hash(
-            word, user=user, realm=realm, spn=spn, checksum=checksum, edata2=edata2
+            word, user=user, realm=realm, checksum=checksum, edata2=edata2, fmt=fmt
         ),
         word,
     )
