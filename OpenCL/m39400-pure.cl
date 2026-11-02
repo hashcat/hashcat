@@ -30,9 +30,10 @@ typedef struct krb5pa
 {
   u32 user[64];
   u32 realm[64];
-  u32 salt[32];
+  u32 salt[64];
   u32 timestamp[16];
   u32 checksum[4];
+  u32 enc_timestamp_len;
 
 } krb5pa_t;
 
@@ -183,49 +184,10 @@ KERNEL_FQ KERNEL_FA void m39400_comp (KERN_ATTR_TMPS_ESALT (pa_tmp_t, krb5pa_t))
     if (((out[2] & 0xff) < '0') || ((out[2] & 0xff) > '9')) return;
   }
 
-  {
-    PRIVATE_AS u32 key0[4] = { K3[0], K3[1], K3[2], K3[3] };
-    rc4_init_128 (S, (PRIVATE_AS u32 *) key0, lid);
-  }
-
-  md5_hmac_ctx_t hctx;
-
-  {
-    u32 hk0[4] = { K1[0], K1[1], K1[2], K1[3] };
-    u32 hk1[4] = { 0,0,0,0 };
-    u32 hk2[4] = { 0,0,0,0 };
-    u32 hk3[4] = { 0,0,0,0 };
-
-    md5_hmac_init_64 (&hctx, hk0, hk1, hk2, hk3);
-  }
-
-  u32 i = 0, j = 0;
-
-  PRIVATE_AS u32 w0[4], w1[4], w2[4], w3[4];
-
-  j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].timestamp +  0, w0, lid); i += 16;
-  j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].timestamp +  4, w1, lid); i += 16;
-
-  w2[0] = 0;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = 0;
-
-  j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].timestamp +  8, w2, lid); i += 16;
-  truncate_block_4x4_le_S (w2, 4);
-
-  md5_hmac_update_64 (&hctx, w0, w1, w2, w3, 36);
-
-  md5_hmac_final (&hctx);
-
-  const u32 r0 = hctx.opad.h[0];
-  const u32 r1 = hctx.opad.h[1];
-  const u32 r2 = hctx.opad.h[2];
-  const u32 r3 = hctx.opad.h[3];
+  const u32 r0 = checksum[0];
+  const u32 r1 = checksum[1];
+  const u32 r2 = checksum[2];
+  const u32 r3 = checksum[3];
 
 
 
