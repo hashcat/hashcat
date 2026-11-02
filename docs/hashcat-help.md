@@ -233,6 +233,8 @@ device. That is the one to use for a fast hash.
   w | the word from the wordlist, required, once
   q | a word from a second wordlist, optional, after ?w
 
+  The ?w word takes the -j rule and the ?q word takes the -k rule.
+
 - [ OpenCL Device Types ] -
 
   # | Device Type
@@ -264,6 +266,7 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule
   Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash ?d?w?d?d example.dict
   Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash ?w-?q! example.dict example.dict
+  Hybrid + Rules   | MD5   | hashcat -a 7 -m 0 example0.hash ?d?d example.dict -r rules/best66.rule
 
 If you still have no idea what just happened, try the following pages:
 
