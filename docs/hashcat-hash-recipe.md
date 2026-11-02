@@ -119,7 +119,7 @@ with the `*` before the salt. See [Comparisons](#comparisons) for the format.
 | `keccak224(x)` `keccak256(x)` `keccak384(x)` `keccak512(x)` | Keccak with its original padding, as Ethereum uses it, as lowercase hex |
 | `streebog_32(x)` `streebog_64(x)` | Streebog-256 and Streebog-512 (GOST R 34.11-2012), as lowercase hex in the byte order hashcat's modes 11700 and 11800 print. `streebog256(x)`, `streebog512(x)`, `gost2012_32(x)` and `gost2012_64(x)` are the same calls |
 | `hav128(x)` `hav160_4(x)` `hav256_5(x)` | HAVAL, as lowercase hex. `havN_P` names the digest size N (128, 160, 192, 224 or 256 bits) and the pass count P (3, 4 or 5). `hav128`, `hav160`, `hav192`, `hav224` and `hav256` use 3 passes, the same as `hav128_3` to `hav256_3` |
-| `tiger(x)` `tiger128(x)` `tiger160(x)` `tiger2(x)` `tth(x)` | Tiger with 3 passes, as lowercase hex in the byte order printed by PHP and the reference implementation. `tiger128` and `tiger160` keep its first 16 and 20 bytes, `tiger192` is `tiger`, and `tiger2` is Tiger2, which pads with 0x80 instead of 0x01. `tth(x)` is the Tiger tree hash of one leaf, Tiger over a 0x00 byte and `x`. It matches TTH for inputs of up to 1024 bytes. A longer input gives an inverted digest, so it cannot crack the TTH of that input. It has no `hmac_` form |
+| `tiger(x)` `tiger128(x)` `tiger160(x)` `tiger2(x)` `tiger192_4(x)` `tth(x)` | Tiger with 3 passes, as lowercase hex in the byte order printed by PHP and the reference implementation. `tiger128` and `tiger160` keep its first 16 and 20 bytes, `tiger192` is `tiger`, and `tiger2` is Tiger2, which pads with 0x80 instead of 0x01. `tiger192_4` is Tiger with 4 passes, what PHP calls tiger192,4. `tth(x)` is the Tiger tree hash of one leaf, Tiger over a 0x00 byte and `x`. It matches TTH for inputs of up to 1024 bytes. A longer input gives an inverted digest, so it cannot crack the TTH of that input. It has no `hmac_` form |
 | `mysql3(x)` | The password hash of MySQL before 4.1, 8 bytes as lowercase hex. It skips spaces and tabs as MySQL does. It can be the result, as in mode 200, or appear inside another call, as in `md5(mysql3(pass))`. It has no `hmac_` form |
 | `lm(x)` | The LM hash, 16 bytes as lowercase hex. It keeps the first 14 bytes of `x`, converts ASCII letters to uppercase and pads with zero bytes. Each half of 7 bytes is a DES key that encrypts `KGS!@#$%`. It has no `hmac_` form |
 | `mdc2(x)` | MDC-2 with DES, 16 bytes as lowercase hex, as OpenSSL computes it. It has no `hmac_` form, because its 8-byte block is shorter than its digest |
@@ -525,7 +525,7 @@ new number.
 
 Every hash function of the recipe language that has no hash-mode of its own also has a raw hash-mode,
 which hashes the password alone and takes the hex digest as its hash line. These are hash-modes 40084
-to 40175, so they appear in `-hh` and `--example-hashes` like any other hash-mode.
+to 40176, so they appear in `-hh` and `--example-hashes` like any other hash-mode.
 MD6-256 is not among them, because hash-mode 34600 already covers it and uses `md6256(pass)` for its
 pure kernels.
 
@@ -622,6 +622,7 @@ pure kernels.
 | 40173 | `RIPEMD (original)` | `ripemd(pass)` |
 | 40174 | `Whirlpool-0` | `wrl0(pass)` |
 | 40175 | `Whirlpool-T` | `wrl1(pass)` |
+| 40176 | `Tiger-192,4` | `tiger192_4(pass)` |
 
 ## Limits
 

@@ -6,7 +6,7 @@
 
 /*
 Pseudocode:
-1. sha256(sha256(password=masterkey)||keyfile) = aes_key
+1. sha256(sha256(password=masterkey)||keyfile||userkey) = aes_key
 2. aes(aes_key, iterations) = aes_out
 3. sha256(aes_out) = shaed_aes_out
 4. sha512(masterseed||shaed_aes_out||0x01) = final
@@ -37,10 +37,13 @@ typedef struct keepass4
   u32 masterseed[8];
 
   u32 header_len;
-  u32 header[64];
+  u32 header[1024];
 
   u32 keyfile_len;
   u32 keyfile[8];
+
+  u32 userkey_len;
+  u32 userkey[16];
 
 } keepass4_t;
 
@@ -58,53 +61,43 @@ KERNEL_FQ KERNEL_FA void m34301_init (KERN_ATTR_TMPS_ESALT (keepass4_tmp_t, keep
   sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
   sha256_final (&ctx0);
 
+  // the composite key: the password digest, then 32 bytes for a key file and 64 bytes for a
+  // Windows user account when the database uses those key providers
+
+  u32 w[32] = { 0 };
+
+  w[0] = ctx0.h[0];
+  w[1] = ctx0.h[1];
+  w[2] = ctx0.h[2];
+  w[3] = ctx0.h[3];
+  w[4] = ctx0.h[4];
+  w[5] = ctx0.h[5];
+  w[6] = ctx0.h[6];
+  w[7] = ctx0.h[7];
+
+  u32 w_len = 32;
+
+  if (keepass4->keyfile_len)
+  {
+    for (u32 i = 0; i < 8; i++) w[8 + i] = keepass4->keyfile[i];
+
+    w_len += 32;
+  }
+
+  if (keepass4->userkey_len)
+  {
+    const u32 idx = w_len / 4;
+
+    for (u32 i = 0; i < 16; i++) w[idx + i] = keepass4->userkey[i];
+
+    w_len += 64;
+  }
+
   sha256_ctx_t ctx;
 
   sha256_init (&ctx);
 
-  ctx.w0[0] = ctx0.h[0];
-  ctx.w0[1] = ctx0.h[1];
-  ctx.w0[2] = ctx0.h[2];
-  ctx.w0[3] = ctx0.h[3];
-  ctx.w1[0] = ctx0.h[4];
-  ctx.w1[1] = ctx0.h[5];
-  ctx.w1[2] = ctx0.h[6];
-  ctx.w1[3] = ctx0.h[7];
-
-  ctx.len = 32;
-
-  if (keepass4->keyfile_len)
-  {
-    ctx.w2[0] = keepass4->keyfile[0];
-    ctx.w2[1] = keepass4->keyfile[1];
-    ctx.w2[2] = keepass4->keyfile[2];
-    ctx.w2[3] = keepass4->keyfile[3];
-    ctx.w3[0] = keepass4->keyfile[4];
-    ctx.w3[1] = keepass4->keyfile[5];
-    ctx.w3[2] = keepass4->keyfile[6];
-    ctx.w3[3] = keepass4->keyfile[7];
-
-    ctx.len += 32;
-
-    sha256_transform (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.h);
-
-    ctx.w0[0] = 0;
-    ctx.w0[1] = 0;
-    ctx.w0[2] = 0;
-    ctx.w0[3] = 0;
-    ctx.w1[0] = 0;
-    ctx.w1[1] = 0;
-    ctx.w1[2] = 0;
-    ctx.w1[3] = 0;
-    ctx.w2[0] = 0;
-    ctx.w2[1] = 0;
-    ctx.w2[2] = 0;
-    ctx.w2[3] = 0;
-    ctx.w3[0] = 0;
-    ctx.w3[1] = 0;
-    ctx.w3[2] = 0;
-    ctx.w3[3] = 0;
-  }
+  sha256_update (&ctx, w, w_len);
 
   sha256_final (&ctx);
 

@@ -15,7 +15,7 @@ from lib.test_helpers import random_bytes, random_number
 # KeePass 4 with the Argon2 KDF. What hashcat verifies is the HMAC-SHA256 over the database
 # header, and the chain to its key is
 #
-#   composite = SHA256(SHA256(password) || keyfile)
+#   composite = SHA256(SHA256(password) || keyfile || user account key)
 #   derived   = Argon2(composite, salt = transform seed, t, m, p)
 #   hmac key  = SHA512(0xff * 8 || SHA512(master seed || derived || 0x01))
 #
@@ -26,16 +26,22 @@ UUIDS = {"ef636ddf": Type.D, "9e298b19": Type.ID}
 
 ARGON2_VERSION = 19
 KEYFILE_LEN    = 32
-HEADER_LEN     = 253
+USERKEY_LEN    = 64
+
+# The header length depends on the cipher and on optional fields, 253 bytes for the defaults. The
+# module takes 200 to 4096.
+
+HEADER_MIN = 200
+HEADER_MAX = 4096
 
 
 def module_constraints():
   return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def _header_hmac(word, keyfile, uuid, time_cost, memory_kib, parallelism, master_seed,
+def _header_hmac(word, keyfile, userkey, uuid, time_cost, memory_kib, parallelism, master_seed,
                  transform_seed, header):
-  composite = hashlib.sha256(hashlib.sha256(word).digest() + keyfile).digest()
+  composite = hashlib.sha256(hashlib.sha256(word).digest() + keyfile + userkey).digest()
 
   derived = hash_secret_raw(secret=composite, salt=transform_seed, time_cost=time_cost,
                             memory_cost=memory_kib, parallelism=parallelism, hash_len=32,
@@ -47,7 +53,7 @@ def _header_hmac(word, keyfile, uuid, time_cost, memory_kib, parallelism, master
 
 
 def _build(time_cost, uuid, memory_kib, parallelism, master_seed, transform_seed, header,
-           header_hmac, keyfile):
+           header_hmac, keyfile, userkey):
   out = "$keepass$*4*%d*%s*%d*%d*%d*%s*%s*%s*%s" % (
     time_cost, uuid, memory_kib * 1024, ARGON2_VERSION, parallelism,
     master_seed.hex(), transform_seed.hex(), header.hex(), header_hmac.hex())
@@ -55,11 +61,15 @@ def _build(time_cost, uuid, memory_kib, parallelism, master_seed, transform_seed
   if keyfile:
     out += "*1*64*%s" % keyfile.hex()
 
+  if userkey:
+    out += "*2*128*%s" % userkey.hex()
+
   return out
 
 
 def module_generate_hash(word, salt, iterations=None):
   keyfile = random_bytes(KEYFILE_LEN) if random_number(0, 1) else b""
+  userkey = random_bytes(USERKEY_LEN) if random_number(0, 1) else b""
 
   master_seed    = random_bytes(32)
   transform_seed = random_bytes(32)
@@ -68,15 +78,15 @@ def module_generate_hash(word, salt, iterations=None):
   memory_kib  = 1 << random_number(12, 18)
   parallelism = random_number(1, 8)
 
-  header = random_bytes(HEADER_LEN)
+  header = random_bytes(random_number(HEADER_MIN, HEADER_MAX))
 
   uuid = sorted(UUIDS)[random_number(0, len(UUIDS) - 1)]
 
-  header_hmac = _header_hmac(word, keyfile, uuid, time_cost, memory_kib, parallelism,
+  header_hmac = _header_hmac(word, keyfile, userkey, uuid, time_cost, memory_kib, parallelism,
                              master_seed, transform_seed, header)
 
   return _build(time_cost, uuid, memory_kib, parallelism, master_seed, transform_seed, header,
-                header_hmac, keyfile)
+                header_hmac, keyfile, userkey)
 
 
 def module_verify_hash(line):
@@ -89,7 +99,7 @@ def module_verify_hash(line):
 
   parts = hash_in.split(b"*")
 
-  if len(parts) not in (11, 14) or parts[0] != b"$keepass$" or parts[1] != b"4":
+  if len(parts) not in (11, 14, 17) or parts[0] != b"$keepass$" or parts[1] != b"4":
     return None
 
   try:
@@ -101,18 +111,29 @@ def module_verify_hash(line):
     transform_seed = bytes.fromhex(parts[8].decode("ascii"))
     header         = bytes.fromhex(parts[9].decode("ascii"))
     header_hmac    = bytes.fromhex(parts[10].decode("ascii"))
-    keyfile        = bytes.fromhex(parts[13].decode("ascii")) if len(parts) == 14 else b""
+    keyfile = b""
+    userkey = b""
+
+    idx = 11
+
+    if (len(parts) > idx) and (parts[idx] == b"1"):
+      keyfile = bytes.fromhex(parts[idx + 2].decode("ascii"))
+
+      idx += 3
+
+    if (len(parts) > idx) and (parts[idx] == b"2"):
+      userkey = bytes.fromhex(parts[idx + 2].decode("ascii"))
   except (UnicodeDecodeError, ValueError):
     return None
 
   if uuid not in UUIDS or int(parts[5]) != ARGON2_VERSION:
     return None
 
-  got = _header_hmac(word, keyfile, uuid, time_cost, memory_bytes // 1024, parallelism,
+  got = _header_hmac(word, keyfile, userkey, uuid, time_cost, memory_bytes // 1024, parallelism,
                      master_seed, transform_seed, header)
 
   if got != header_hmac:
     return None
 
   return (_build(time_cost, uuid, memory_bytes // 1024, parallelism, master_seed, transform_seed,
-                 header, header_hmac, keyfile), word)
+                 header, header_hmac, keyfile, userkey), word)

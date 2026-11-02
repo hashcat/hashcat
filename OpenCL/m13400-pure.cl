@@ -31,6 +31,10 @@ typedef struct keepass
   u32 keyfile_len;
   u32 keyfile[8];
 
+  /* Windows user account handling */
+  u32 userkey_len;
+  u32 userkey[16];
+
   u32 final_random_seed[8];
   u32 transf_random_seed[8];
   u32 enc_iv[4];
@@ -74,73 +78,47 @@ KERNEL_FQ KERNEL_FA void m13400_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepa
   digest[6] = ctx.h[6];
   digest[7] = ctx.h[7];
 
-  if (esalt_bufs[DIGESTS_OFFSET_HOST].version == 2 && esalt_bufs[DIGESTS_OFFSET_HOST].keyfile_len == 0)
-  {
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
+  const u32 keyfile_len = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile_len;
+  const u32 userkey_len = esalt_bufs[DIGESTS_OFFSET_HOST].userkey_len;
 
-    w0[0] = digest[0];
-    w0[1] = digest[1];
-    w0[2] = digest[2];
-    w0[3] = digest[3];
-    w1[0] = digest[4];
-    w1[1] = digest[5];
-    w1[2] = digest[6];
-    w1[3] = digest[7];
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
+  // A kdb takes the password digest as the key, while a kdbx and every database with another key
+  // provider hash the parts of the composite key together: the password digest, then 32 bytes for
+  // a key file and 64 bytes for a Windows user account.
+
+  if ((esalt_bufs[DIGESTS_OFFSET_HOST].version == 2) || (keyfile_len != 0) || (userkey_len != 0))
+  {
+    u32 w[32] = { 0 };
+
+    w[0] = digest[0];
+    w[1] = digest[1];
+    w[2] = digest[2];
+    w[3] = digest[3];
+    w[4] = digest[4];
+    w[5] = digest[5];
+    w[6] = digest[6];
+    w[7] = digest[7];
+
+    u32 w_len = 32;
+
+    if (keyfile_len != 0)
+    {
+      for (u32 i = 0; i < 8; i++) w[8 + i] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[i];
+
+      w_len += 32;
+    }
+
+    if (userkey_len != 0)
+    {
+      const u32 idx = w_len / 4;
+
+      for (u32 i = 0; i < 16; i++) w[idx + i] = esalt_bufs[DIGESTS_OFFSET_HOST].userkey[i];
+
+      w_len += 64;
+    }
 
     sha256_init (&ctx);
 
-    sha256_update_64 (&ctx, w0, w1, w2, w3, 32);
-
-    sha256_final (&ctx);
-
-    digest[0] = ctx.h[0];
-    digest[1] = ctx.h[1];
-    digest[2] = ctx.h[2];
-    digest[3] = ctx.h[3];
-    digest[4] = ctx.h[4];
-    digest[5] = ctx.h[5];
-    digest[6] = ctx.h[6];
-    digest[7] = ctx.h[7];
-  }
-
-  if (esalt_bufs[DIGESTS_OFFSET_HOST].keyfile_len != 0)
-  {
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
-
-    w0[0] = digest[0];
-    w0[1] = digest[1];
-    w0[2] = digest[2];
-    w0[3] = digest[3];
-    w1[0] = digest[4];
-    w1[1] = digest[5];
-    w1[2] = digest[6];
-    w1[3] = digest[7];
-    w2[0] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[0];
-    w2[1] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[1];
-    w2[2] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[2];
-    w2[3] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[3];
-    w3[0] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[4];
-    w3[1] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[5];
-    w3[2] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[6];
-    w3[3] = esalt_bufs[DIGESTS_OFFSET_HOST].keyfile[7];
-
-    sha256_init (&ctx);
-
-    sha256_update_64 (&ctx, w0, w1, w2, w3, 64);
+    sha256_update (&ctx, w, w_len);
 
     sha256_final (&ctx);
 

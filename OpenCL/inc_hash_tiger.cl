@@ -381,7 +381,44 @@ DECLSPEC void tiger_transform (PRIVATE_AS u64 *h, PRIVATE_AS const u32 *w, SHM_T
   h[2]  = c + h[2];
 }
 
-DECLSPEC void tiger_init (PRIVATE_AS tiger_ctx_t *ctx, SHM_TYPE u64a (*s_tiger)[256], const u32 pad)
+// The fourth pass of Tiger-192,4. The reference implementation rotates a, b and c once more after
+// every pass past the third, so the feed forward below reads them in their rotated places.
+
+DECLSPEC void tiger_transform4 (PRIVATE_AS u64 *h, PRIVATE_AS const u32 *w, SHM_TYPE u64a (*s_tiger)[256])
+{
+  u64 x0 = hl32_to_64_S (w[ 1], w[ 0]);
+  u64 x1 = hl32_to_64_S (w[ 3], w[ 2]);
+  u64 x2 = hl32_to_64_S (w[ 5], w[ 4]);
+  u64 x3 = hl32_to_64_S (w[ 7], w[ 6]);
+  u64 x4 = hl32_to_64_S (w[ 9], w[ 8]);
+  u64 x5 = hl32_to_64_S (w[11], w[10]);
+  u64 x6 = hl32_to_64_S (w[13], w[12]);
+  u64 x7 = hl32_to_64_S (w[15], w[14]);
+
+  u64 a = h[0];
+  u64 b = h[1];
+  u64 c = h[2];
+
+  TIGER_PASS (TIGER_BOX_S, u32, l32_from_64_S, a, b, c, TIGER_MUL5);
+
+  TIGER_KSCHED;
+
+  TIGER_PASS (TIGER_BOX_S, u32, l32_from_64_S, c, a, b, TIGER_MUL7);
+
+  TIGER_KSCHED;
+
+  TIGER_PASS (TIGER_BOX_S, u32, l32_from_64_S, b, c, a, TIGER_MUL9);
+
+  TIGER_KSCHED;
+
+  TIGER_PASS (TIGER_BOX_S, u32, l32_from_64_S, a, b, c, TIGER_MUL9);
+
+  h[0] ^= c;
+  h[1]  = a - h[1];
+  h[2]  = b + h[2];
+}
+
+DECLSPEC void tiger_init (PRIVATE_AS tiger_ctx_t *ctx, SHM_TYPE u64a (*s_tiger)[256], const u32 pad, const u32 passes)
 {
   ctx->h[0] = 0x0123456789abcdef;
   ctx->h[1] = 0xfedcba9876543210;
@@ -392,7 +429,8 @@ DECLSPEC void tiger_init (PRIVATE_AS tiger_ctx_t *ctx, SHM_TYPE u64a (*s_tiger)[
   ctx->pos = 0;
   ctx->len = 0;
 
-  ctx->pad = pad;
+  ctx->pad    = pad;
+  ctx->passes = passes;
 
   ctx->max = 0x7fffffff;
 
@@ -401,7 +439,7 @@ DECLSPEC void tiger_init (PRIVATE_AS tiger_ctx_t *ctx, SHM_TYPE u64a (*s_tiger)[
 
 DECLSPEC void tiger_init_tth (PRIVATE_AS tiger_ctx_t *ctx, SHM_TYPE u64a (*s_tiger)[256])
 {
-  tiger_init (ctx, s_tiger, TIGER_PAD_TIGER);
+  tiger_init (ctx, s_tiger, TIGER_PAD_TIGER, 3);
 
   // the leaf prefix, a 0x00 byte that the block already holds
 
@@ -413,7 +451,8 @@ DECLSPEC void tiger_init_tth (PRIVATE_AS tiger_ctx_t *ctx, SHM_TYPE u64a (*s_tig
 
 DECLSPEC void tiger_block (PRIVATE_AS tiger_ctx_t *ctx)
 {
-  tiger_transform (ctx->h, ctx->w, ctx->s_tiger);
+  if (ctx->passes == 4) tiger_transform4 (ctx->h, ctx->w, ctx->s_tiger);
+  else                  tiger_transform  (ctx->h, ctx->w, ctx->s_tiger);
 
   for (int i = 0; i < 16; i++) ctx->w[i] = 0;
 
@@ -627,7 +666,41 @@ DECLSPEC void tiger_transform_vector (PRIVATE_AS u64x *h, PRIVATE_AS const u32x 
   h[2]  = c + h[2];
 }
 
-DECLSPEC void tiger_init_vector (PRIVATE_AS tiger_ctx_vector_t *ctx, SHM_TYPE u64a (*s_tiger)[256], const u32 pad)
+DECLSPEC void tiger_transform4_vector (PRIVATE_AS u64x *h, PRIVATE_AS const u32x *w, SHM_TYPE u64a (*s_tiger)[256])
+{
+  u64x x0 = hl32_to_64 (w[ 1], w[ 0]);
+  u64x x1 = hl32_to_64 (w[ 3], w[ 2]);
+  u64x x2 = hl32_to_64 (w[ 5], w[ 4]);
+  u64x x3 = hl32_to_64 (w[ 7], w[ 6]);
+  u64x x4 = hl32_to_64 (w[ 9], w[ 8]);
+  u64x x5 = hl32_to_64 (w[11], w[10]);
+  u64x x6 = hl32_to_64 (w[13], w[12]);
+  u64x x7 = hl32_to_64 (w[15], w[14]);
+
+  u64x a = h[0];
+  u64x b = h[1];
+  u64x c = h[2];
+
+  TIGER_PASS (TIGER_BOX, u32x, l32_from_64, a, b, c, TIGER_MUL5);
+
+  TIGER_KSCHED;
+
+  TIGER_PASS (TIGER_BOX, u32x, l32_from_64, c, a, b, TIGER_MUL7);
+
+  TIGER_KSCHED;
+
+  TIGER_PASS (TIGER_BOX, u32x, l32_from_64, b, c, a, TIGER_MUL9);
+
+  TIGER_KSCHED;
+
+  TIGER_PASS (TIGER_BOX, u32x, l32_from_64, a, b, c, TIGER_MUL9);
+
+  h[0] ^= c;
+  h[1]  = a - h[1];
+  h[2]  = b + h[2];
+}
+
+DECLSPEC void tiger_init_vector (PRIVATE_AS tiger_ctx_vector_t *ctx, SHM_TYPE u64a (*s_tiger)[256], const u32 pad, const u32 passes)
 {
   ctx->h[0] = 0x0123456789abcdef;
   ctx->h[1] = 0xfedcba9876543210;
@@ -638,7 +711,8 @@ DECLSPEC void tiger_init_vector (PRIVATE_AS tiger_ctx_vector_t *ctx, SHM_TYPE u6
   ctx->pos = 0;
   ctx->len = 0;
 
-  ctx->pad = pad;
+  ctx->pad    = pad;
+  ctx->passes = passes;
 
   ctx->max = 0x7fffffff;
 
@@ -647,7 +721,7 @@ DECLSPEC void tiger_init_vector (PRIVATE_AS tiger_ctx_vector_t *ctx, SHM_TYPE u6
 
 DECLSPEC void tiger_init_tth_vector (PRIVATE_AS tiger_ctx_vector_t *ctx, SHM_TYPE u64a (*s_tiger)[256])
 {
-  tiger_init_vector (ctx, s_tiger, TIGER_PAD_TIGER);
+  tiger_init_vector (ctx, s_tiger, TIGER_PAD_TIGER, 3);
 
   // the leaf prefix, a 0x00 byte that the block already holds
 
@@ -659,7 +733,8 @@ DECLSPEC void tiger_init_tth_vector (PRIVATE_AS tiger_ctx_vector_t *ctx, SHM_TYP
 
 DECLSPEC void tiger_block_vector (PRIVATE_AS tiger_ctx_vector_t *ctx)
 {
-  tiger_transform_vector (ctx->h, ctx->w, ctx->s_tiger);
+  if (ctx->passes == 4) tiger_transform4_vector (ctx->h, ctx->w, ctx->s_tiger);
+  else                  tiger_transform_vector  (ctx->h, ctx->w, ctx->s_tiger);
 
   for (int i = 0; i < 16; i++) ctx->w[i] = 0;
 

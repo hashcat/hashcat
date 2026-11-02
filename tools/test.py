@@ -1555,6 +1555,9 @@ def combinator_init_params(mode):
   elif mode == 14100:
     init_min = 0
     min_offset = 3
+  elif mode == 14300:
+    init_min = 0
+    min_offset = 3
   elif mode == 14900:
     init_min = 0
     min_offset = 5
@@ -1618,7 +1621,7 @@ def combinator_single_range(mode):
 
   smin, smax = 1, 8
 
-  if mode in (14000, 14100, 14900, 15400):
+  if mode in (14000, 14100, 14300, 14900, 15400):
     smin, smax = 0, 5
   elif mode == 20510:
     smin = 2
@@ -1898,7 +1901,7 @@ def a3_single_max(mode):
   # test.sh attack_3 single (test.sh): the number of hashes a single-hash run covers. Some
   # modes cap it lower because they carry a minimum password length.
 
-  if mode in (14000, 14100, 14900, 15400):
+  if mode in (14000, 14100, 14300, 14900, 15400):
     return 1
 
   if mode in (2500, 16800, 22000):
@@ -1909,11 +1912,11 @@ def a3_single_max(mode):
 
 def a3_single_mask(mode, word, i):
   # test.sh attack_3 single mask (test.sh): the first i bytes become a '?d' run rewritten to
-  # spell them and the rest of the password trails as literals. 14000 and 14100 hand hashcat the
-  # whole password as a literal mask instead, and 20510 drops the leading groups the mode does not
-  # keep.
+  # spell them and the rest of the password trails as literals. 14000, 14100 and 14300 hand hashcat
+  # the whole password as a literal mask instead, and 20510 drops the leading groups the mode does
+  # not keep.
 
-  if mode in (14000, 14100):
+  if mode in (14000, 14100, 14300):
     return word
 
   if mode == 20510:
@@ -2188,11 +2191,11 @@ def multi_len_params(mode, attack=None):
 
   if mode == 2500:
     min_len = 7
-  elif mode in (14000, 14100, 14900, 15400):
+  elif mode in (14000, 14100, 14300, 14900, 15400):
     # The oracle makes one password length only, so every slot is pinned to it, or the hybrid multi
     # runs feed hashcat an empty hash file. The split keeps the masked part to a few bytes: the tail
     # for -a 6 and the head for -a 7.
-    fixed_len = {14000: 8, 14100: 24, 14900: 10, 15400: 32}[mode]
+    fixed_len = {14000: 8, 14100: 24, 14300: 16, 14900: 10, 15400: 32}[mode]
     min_len   = 3 if attack == 7 else fixed_len - 5
   elif mode == 16800:
     min_len = 7
@@ -2307,7 +2310,7 @@ def a6_single_params(mode):
 
   if mode == 2500:
     max_i = 6
-  elif mode in (14000, 14100, 14900, 15400):
+  elif mode in (14000, 14100, 14300, 14900, 15400):
     min_i, max_i = 0, 1
   elif mode == 16800:
     max_i = 6
@@ -2525,6 +2528,8 @@ def a7_single_params(mode):
     min_i, max_i, mask_offset = 0, 1, 4
   elif mode == 14100:
     min_i, max_i, mask_offset = 0, 1, 3
+  elif mode == 14300:
+    min_i, max_i, mask_offset = 0, 1, 3
   elif mode == 14900:
     min_i, max_i, mask_offset = 0, 1, 5
   elif mode == 15400:
@@ -2665,7 +2670,7 @@ def a7_multi_max(mode):
     max_i = 8
   elif mode == 8500:
     max_i = 8
-  elif mode in (14000, 14100, 14900, 15400, 16800, 22000):
+  elif mode in (14000, 14100, 14300, 14900, 15400, 16800, 22000):
     max_i = 5
   elif mode in (33501, 33502):
     max_i = 3
@@ -2774,7 +2779,7 @@ def attack_7(r):
 # nothing for a mask on both sides of the word to vary, and 20510 reports a plaintext that is not the
 # candidate it was given. attack_6 and attack_7 already cover these (test.sh).
 
-A12_SKIP = {14000, 14100, 14900, 15400, 20510}
+A12_SKIP = {14000, 14100, 14300, 14900, 15400, 20510}
 
 
 def a12_single_max(mode):
@@ -5041,11 +5046,11 @@ EDGE_RUNTIME    = 270
 
 EDGE_SKIP_MODES = {2000}
 
-# 14000/14100/31500/31600 crack a plaintext other than the one the hash was made from, and
+# 14000/14100/14300/31500/31600 crack a plaintext other than the one the hash was made from, and
 # 22000/22001 write the handshake parts rather than hash and plaintext, so their outfile cannot be
 # compared to what the oracle generated (test_edge.sh SKIP_OUT_MATCH_HASH_TYPES).
 
-EDGE_SKIP_OUT_MATCH = {14000, 14100, 22000, 22001, 31500, 31600}
+EDGE_SKIP_OUT_MATCH = {14000, 14100, 14300, 22000, 22001, 31500, 31600}
 
 # 1500 prints a recovered byte above 0x7f with its top bit cleared wherever that leaves it printable
 # (module_build_plain_postprocess). DES ignores that bit, so the printed password is another spelling
