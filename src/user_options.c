@@ -1864,7 +1864,7 @@ static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
   // so the answer given here is the pure one and user_options_extra_init_late () upgrades it once the
   // kernel type is known.
 
-  if (attack_mode == ATTACK_MODE_HYBRID2) return BASE_SOURCE_MASK;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2) return BASE_SOURCE_MASK;
 
   return BASE_SOURCE_FEED;
 }
@@ -1909,7 +1909,7 @@ void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
   // so it takes its base from the dictionary; the pure kernel can only append, so the mask has to be
   // the base and the dictionary the amplifier.
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2)
   {
     if (user_options_extra->base_source != BASE_SOURCE_MASK) return;
 
@@ -1968,11 +1968,20 @@ void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
   user_options_extra->wordlist_mode = WL_MODE_MASK;
 
   // The wordlist has moved from the base loop to the amplifier loop and every producer picks its rule
-  // by role, so the rule that named the word has to move with it. -j named it before and names it
-  // still.
+  // by role, so the rule that governs the wordlist has to move with it. For -a 7 that word is the
+  // defined right hand side and -k governs it. For -a 12 the wordlist rode in on a ?w and keeps -j
+  // wherever its mask puts the marker; a word meant to take -k is written as a ?q instead.
 
-  user_options_extra->rule_buf_amp = user_options->rule_buf_l;
-  user_options_extra->rule_len_amp = user_options_extra->rule_len_l;
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2)
+  {
+    user_options_extra->rule_buf_amp = user_options->rule_buf_r;
+    user_options_extra->rule_len_amp = user_options_extra->rule_len_r;
+  }
+  else
+  {
+    user_options_extra->rule_buf_amp = user_options->rule_buf_l;
+    user_options_extra->rule_len_amp = user_options_extra->rule_len_l;
+  }
 }
 
 void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
@@ -2016,17 +2025,17 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   user_options_extra->rule_buf_amp  = user_options->rule_buf_r;
   user_options_extra->rule_len_amp  = user_options_extra->rule_len_r;
 
-  // -a 7 appends a word to a mask, so its word is the right hand side and -k is the rule for it. That
-  // holds whichever loop the word ends up in: the optimized kernel makes it the base and the pure
-  // kernel makes it the amplifier, and -k applies either way. Which means this one does not have to
-  // wait for the kernel type, and it must not: the pure kernel counts that dictionary twice, once in
-  // combinator_ctx_init and once per round in straight_ctx_update_loop, and the two counts divide into
-  // each other. They have to be made with the same rule.
+  // The two word markers carry the two rules: ?w is the base word and takes -j, ?q is the amplifier
+  // word and takes -k, which is what the defaults above already say and what -a 1 and -a 12 both use.
   //
-  // The mask is the other side and nothing applies a rule to a mask, so both fields naming -k is right
-  // rather than merely harmless.
+  // -a 7 is the exception. It appends a single word to a mask and that word is defined to be the right
+  // hand side, so -k names it even though it rides in on a ?w. The optimized kernel makes that word the
+  // base, so the base rule has to carry the -k; the pure kernel makes it the amplifier, where -k is
+  // already the default. This is settled here, before the kernel type is known, and it must be: the
+  // pure kernel counts that dictionary twice, once in combinator_ctx_init and once per round in
+  // straight_ctx_update_loop, and the two counts divide into each other, so both use the same rule.
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  if (user_options->attack_mode_typed == ATTACK_MODE_HYBRID2)
   {
     user_options_extra->rule_buf_base = user_options->rule_buf_r;
     user_options_extra->rule_len_base = user_options_extra->rule_len_r;
