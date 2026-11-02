@@ -52,10 +52,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 2;
 
+  // a user name may contain a $, so it ends at the last one
+
   token.sep[0]     = '$';
   token.len_min[0] = 1;
   token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_SEPARATOR_FARTHEST;
 
   token.len[1]     = 16;
   token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
@@ -70,19 +73,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   const u8 *salt_pos = token.buf[0];
-  const int salt_len = token.len[0];
 
-  int user_len = 0;
+  // exports pad the user name with spaces, which SAP does not hash
 
-  for (int i = 0; i < salt_len; i++)
-  {
-    if (salt_pos[i] == ' ') continue;
+  int salt_len = token.len[0];
 
-    user_len++;
-  }
+  while ((salt_len > 0) && (salt_pos[salt_len - 1] == ' ')) salt_len--;
+
+  if (salt_len == 0) return (PARSER_SALT_LENGTH);
 
   // SAP user names cannot be longer than 12 characters
-  if (user_len > 12) return (PARSER_SALT_LENGTH);
+  if (salt_len > 12) return (PARSER_SALT_LENGTH);
 
   // SAP user name cannot start with ! or ?
   if (salt_pos[0] == '!' || salt_pos[0] == '?') return (PARSER_SALT_VALUE);

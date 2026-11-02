@@ -312,6 +312,39 @@ def constraints(mod):
   return word, salt, comb
 
 
+def comb_weights(comb):
+  # The fifth constraint is [min, max] over the password and salt lengths added up, or [min, max,
+  # word weight, salt weight] for a kernel that spends more than one byte of its block on each
+  # character of one of them, as a UTF-16 optimized kernel does for the password.
+
+  if len(comb) > 2:
+    return comb[2], comb[3]
+
+  return 1, 1
+
+
+def comb_length(comb, word_len, salt_len):
+  word_weight, salt_weight = comb_weights(comb)
+
+  return (word_weight * word_len) + (salt_weight * salt_len)
+
+
+def comb_fit_word(comb, comb_max, salt_len):
+  # the longest password that fits beside salt_len
+
+  word_weight, salt_weight = comb_weights(comb)
+
+  return (comb_max - (salt_weight * salt_len)) // word_weight
+
+
+def comb_fit_salt(comb, comb_max, word_len):
+  # the longest salt that fits beside word_len
+
+  word_weight, salt_weight = comb_weights(comb)
+
+  return (comb_max - (word_weight * word_len)) // salt_weight
+
+
 def length_pool(len_min, len_max, descending):
   # The lengths a run of test vectors uses. Slots 0 and 1 are pinned to the edges so those are
   # always covered, the rest come off a shuffled pool, and a short range is padded by
@@ -345,7 +378,7 @@ def word_lengths(word, salt, comb):
 
   if IS_OPTIMIZED:
     if comb[0] != -1 and salt[0] == salt[1] and salt[0] != -1:
-      len_max -= salt[0]
+      len_max = min(len_max, comb_fit_word(comb, comb[1], salt[0]))
 
     if len_min != len_max:
       len_max = min(len_max, 31)
@@ -473,11 +506,11 @@ def edge(mod, mode, attack_type, optimized):
         if optimized:
           salt_len = min(salt_len, 51)
 
-          if comb_max != -1 and (word_min + salt_len) > comb_max:
-            off = word_min + salt_len - comb_max
+          if comb_max != -1 and comb_length(comb, word_min, salt_len) > comb_max:
+            fit = comb_fit_salt(comb, comb_max, word_min)
 
-            if salt_len > off:
-              salt_len -= off
+            if fit > 0:
+              salt_len = fit
 
         emit(word_min, salt_len)
     elif salt_min != -1:
@@ -497,11 +530,11 @@ def edge(mod, mode, attack_type, optimized):
     word_len = word_max
     salt_len = salt_max
 
-    if optimized and comb_max != -1 and (word_len + salt_len) > comb_max:
-      off = word_len + salt_len - comb_max
+    if optimized and comb_max != -1 and comb_length(comb, word_len, salt_len) > comb_max:
+      fit = comb_fit_word(comb, comb_max, salt_len)
 
-      if word_len > off:
-        word_len = max(word_len - off, word_min)
+      if fit > 0:
+        word_len = max(fit, word_min)
 
     emit(word_len, salt_len)
 
@@ -516,16 +549,16 @@ def edge(mod, mode, attack_type, optimized):
     if optimized:
       comb_max_cur = comb_max if comb_max != -1 else 55
 
-      if (word_len + salt_len) > comb_max_cur:
-        off = word_len + salt_len - comb_max_cur
+      if comb_length(comb, word_len, salt_len) > comb_max_cur:
+        fit = comb_fit_word(comb, comb_max_cur, salt_len)
 
-        if word_len <= off:
+        if fit <= 0:
           sys.stdout.write("ERROR with MODE %d, WORD %d, SALT %d, MAX %d"
                            % (mode, word_len, salt_len, comb_max_cur))
 
           sys.exit(1)
 
-        word_len -= off
+        word_len = fit
 
     emit(word_len, salt_len)
 
@@ -540,21 +573,19 @@ def edge(mod, mode, attack_type, optimized):
 
       salt_len = min(salt_len, 51)
 
-      if (word_len + salt_len) > comb_max_cur:
-        off = word_len + salt_len - comb_max_cur
-
+      if comb_length(comb, word_len, salt_len) > comb_max_cur:
         if last_word_len == word_len:
-          word_len -= off
+          word_len = comb_fit_word(comb, comb_max_cur, salt_len)
 
           if word_len < word_min:
-            salt_len -= word_min - word_len
-            word_len  = word_min
+            salt_len = comb_fit_salt(comb, comb_max_cur, word_min)
+            word_len = word_min
         else:
-          salt_len -= off
+          salt_len = comb_fit_salt(comb, comb_max_cur, word_len)
 
           if salt_len < salt_min:
-            word_len -= salt_min - salt_len
-            salt_len  = salt_min
+            word_len = comb_fit_word(comb, comb_max_cur, salt_min)
+            salt_len = salt_min
 
     emit(word_len, salt_len)
 
@@ -620,7 +651,7 @@ def single(mod, mode, length, spare=False):
         salt_len = max(db_salt)
 
     if IS_OPTIMIZED and comb[0] != -1:
-      if not comb[0] <= word_len + salt_len <= comb[1]:
+      if not comb[0] <= comb_length(comb, word_len, salt_len) <= comb[1]:
         continue
 
     candidate = (make_word(mod, word_len), random_numeric_string(salt_len))
@@ -660,7 +691,7 @@ def single(mod, mode, length, spare=False):
           continue
 
         if IS_OPTIMIZED and comb[0] != -1:
-          if not comb[0] <= lens[i] + len(candidate[1]) <= comb[1]:
+          if not comb[0] <= comb_length(comb, lens[i], len(candidate[1])) <= comb[1]:
             continue
 
         found = (lead, i, candidate)
@@ -740,7 +771,7 @@ def passthrough(mod, iterations, with_plain):
       salt_len = salt[0] if salt[0] == salt[1] else random_number(salt[0], salt[1])
 
     if IS_OPTIMIZED and comb[0] != -1:
-      if not comb[0] <= len(word_bytes) + salt_len <= comb[1]:
+      if not comb[0] <= comb_length(comb, len(word_bytes), salt_len) <= comb[1]:
         continue
 
     digest = mod.module_generate_hash(word_bytes, random_numeric_string(salt_len), iterations)

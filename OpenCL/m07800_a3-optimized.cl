@@ -62,12 +62,20 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
    * salt
    */
 
-  u32 salt_buf[4];
+  u32 salt_buf[12];
 
-  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
-  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
-  salt_buf[2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[2]);
-  salt_buf[3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[3]);
+  salt_buf[ 0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 0]);
+  salt_buf[ 1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 1]);
+  salt_buf[ 2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 2]);
+  salt_buf[ 3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 3]);
+  salt_buf[ 4] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 4]);
+  salt_buf[ 5] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 5]);
+  salt_buf[ 6] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 6]);
+  salt_buf[ 7] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 7]);
+  salt_buf[ 8] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 8]);
+  salt_buf[ 9] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 9]);
+  salt_buf[10] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[10]);
+  salt_buf[11] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[11]);
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -76,18 +84,18 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
   u32 s2[4];
   u32 s3[4];
 
-  s0[0] = salt_buf[0];
-  s0[1] = salt_buf[1];
-  s0[2] = salt_buf[2];
-  s0[3] = salt_buf[3];
-  s1[0] = 0;
-  s1[1] = 0;
-  s1[2] = 0;
-  s1[3] = 0;
-  s2[0] = 0;
-  s2[1] = 0;
-  s2[2] = 0;
-  s2[3] = 0;
+  s0[0] = salt_buf[ 0];
+  s0[1] = salt_buf[ 1];
+  s0[2] = salt_buf[ 2];
+  s0[3] = salt_buf[ 3];
+  s1[0] = salt_buf[ 4];
+  s1[1] = salt_buf[ 5];
+  s1[2] = salt_buf[ 6];
+  s1[3] = salt_buf[ 7];
+  s2[0] = salt_buf[ 8];
+  s2[1] = salt_buf[ 9];
+  s2[2] = salt_buf[10];
+  s2[3] = salt_buf[11];
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;
@@ -311,12 +319,20 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
    * salt
    */
 
-  u32 salt_buf[4];
+  u32 salt_buf[12];
 
-  salt_buf[0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[0]);
-  salt_buf[1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[1]);
-  salt_buf[2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[2]);
-  salt_buf[3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[3]);
+  salt_buf[ 0] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 0]);
+  salt_buf[ 1] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 1]);
+  salt_buf[ 2] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 2]);
+  salt_buf[ 3] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 3]);
+  salt_buf[ 4] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 4]);
+  salt_buf[ 5] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 5]);
+  salt_buf[ 6] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 6]);
+  salt_buf[ 7] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 7]);
+  salt_buf[ 8] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 8]);
+  salt_buf[ 9] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[ 9]);
+  salt_buf[10] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[10]);
+  salt_buf[11] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[11]);
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -325,18 +341,18 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
   u32 s2[4];
   u32 s3[4];
 
-  s0[0] = salt_buf[0];
-  s0[1] = salt_buf[1];
-  s0[2] = salt_buf[2];
-  s0[3] = salt_buf[3];
-  s1[0] = 0;
-  s1[1] = 0;
-  s1[2] = 0;
-  s1[3] = 0;
-  s2[0] = 0;
-  s2[1] = 0;
-  s2[2] = 0;
-  s2[3] = 0;
+  s0[0] = salt_buf[ 0];
+  s0[1] = salt_buf[ 1];
+  s0[2] = salt_buf[ 2];
+  s0[3] = salt_buf[ 3];
+  s1[0] = salt_buf[ 4];
+  s1[1] = salt_buf[ 5];
+  s1[2] = salt_buf[ 6];
+  s1[3] = salt_buf[ 7];
+  s2[0] = salt_buf[ 8];
+  s2[1] = salt_buf[ 9];
+  s2[2] = salt_buf[10];
+  s2[3] = salt_buf[11];
   s3[0] = 0;
   s3[1] = 0;
   s3[2] = 0;

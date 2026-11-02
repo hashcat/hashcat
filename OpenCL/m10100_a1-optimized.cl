@@ -251,6 +251,10 @@ KERNEL_FQ KERNEL_FA void m10100_m04 (KERN_ATTR_BASIC ())
       case 1: w0[3] |= pw_len << 24; break;
       case 2: w1[1] |= pw_len << 24; break;
       case 3: w1[3] |= pw_len << 24; break;
+      case 4: w2[1] |= pw_len << 24; break;
+      case 5: w2[3] |= pw_len << 24; break;
+      case 6: w3[1] |= pw_len << 24; break;
+      case 7: w3[3] |= pw_len << 24; break;
     }
 
     u64x v0 = v0p;
@@ -276,6 +280,30 @@ KERNEL_FQ KERNEL_FA void m10100_m04 (KERN_ATTR_BASIC ())
     for (       j = 0; i <= pw_len && i < 32; i += 8, j += 2)
     {
       u64x m = hl32_to_64 (w1[j + 1], w1[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 48; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w2[j + 1], w2[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 64; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w3[j + 1], w3[j + 0]);
 
       v3 ^= m;
 
@@ -495,6 +523,10 @@ KERNEL_FQ KERNEL_FA void m10100_s04 (KERN_ATTR_BASIC ())
       case 1: w0[3] |= pw_len << 24; break;
       case 2: w1[1] |= pw_len << 24; break;
       case 3: w1[3] |= pw_len << 24; break;
+      case 4: w2[1] |= pw_len << 24; break;
+      case 5: w2[3] |= pw_len << 24; break;
+      case 6: w3[1] |= pw_len << 24; break;
+      case 7: w3[3] |= pw_len << 24; break;
     }
 
     u64x v0 = v0p;
@@ -520,6 +552,30 @@ KERNEL_FQ KERNEL_FA void m10100_s04 (KERN_ATTR_BASIC ())
     for (       j = 0; i <= pw_len && i < 32; i += 8, j += 2)
     {
       u64x m = hl32_to_64 (w1[j + 1], w1[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 48; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w2[j + 1], w2[j + 0]);
+
+      v3 ^= m;
+
+      SIPROUND (v0, v1, v2, v3);
+      SIPROUND (v0, v1, v2, v3);
+
+      v0 ^= m;
+    }
+
+    for (       j = 0; i <= pw_len && i < 64; i += 8, j += 2)
+    {
+      u64x m = hl32_to_64 (w3[j + 1], w3[j + 0]);
 
       v3 ^= m;
 

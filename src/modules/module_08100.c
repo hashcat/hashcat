@@ -37,6 +37,17 @@ static const char *ST_HASH        = "1130725275da09ca13254957f2314a639818d44c37e
 
 const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // the optimized kernels hash the 8 byte salt, the password and the trailing zero in one block
+
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  const u32 pw_max = (optimized_kernel == true) ? MIN (hashconfig->pw_max, 46) : hashconfig->pw_max; // 55 - 8 - 1
+
+  return pw_max;
+}
+
 static const char *SIGNATURE_NETSCALER = "1";
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -163,4 +174,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_recipe              = module_hash_recipe;
+  module_ctx->module_pw_max                   = module_pw_max;
 }

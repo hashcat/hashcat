@@ -5849,16 +5849,19 @@ static void hashes_combined_len (hashcat_ctx_t *hashcat_ctx)
       break;
     }
 
+    // the range reported is what the salt takes of the shared buffer as the module counts it, which
+    // is not always salt_len
+
     if (salts_cnt == 0)
     {
-      salt_len_min = salt->salt_len;
-      salt_len_max = salt->salt_len;
+      salt_len_min = salt_count;
+      salt_len_max = salt_count;
       pw_len_min   = pw_len_fit;
       pw_len_max   = pw_len_fit;
     }
 
-    salt_len_min = MIN (salt_len_min, salt->salt_len);
-    salt_len_max = MAX (salt_len_max, salt->salt_len);
+    salt_len_min = MIN (salt_len_min, salt_count);
+    salt_len_max = MAX (salt_len_max, salt_count);
     pw_len_min   = MIN (pw_len_min,   pw_len_fit);
     pw_len_max   = MAX (pw_len_max,   pw_len_fit);
 

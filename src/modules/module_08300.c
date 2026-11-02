@@ -54,6 +54,26 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   return src_len;
 }
 
+u32 module_combined_len_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // the optimized kernels keep the candidate, the domain and the salt in one block
+
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  const u32 combined_len_max = (optimized_kernel == true) ? 55 : 0;
+
+  return combined_len_max;
+}
+
+u32 module_combined_len_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const salt_t *salt, MAYBE_UNUSED const void *esalt)
+{
+  // the length byte of the candidate, the domain, the root that ends it and the salt
+
+  const u32 combined_len_salt = 1 + salt->salt_len_pc + 1 + salt->salt_len;
+
+  return combined_len_salt;
+}
+
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   u32 pw_max = 63;
@@ -269,6 +289,8 @@ void module_init (module_ctx_t *module_ctx)
 
   module_ctx->module_advice_notice            = module_advice_notice;
   module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
+  module_ctx->module_combined_len_max         = module_combined_len_max;
+  module_ctx->module_combined_len_salt        = module_combined_len_salt;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_pw_max                   = module_pw_max;

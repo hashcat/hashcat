@@ -816,7 +816,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     if (hashes->combined_pw_len_min == hashes->combined_pw_len_max) snprintf (pw_lens, sizeof (pw_lens), "%u", hashes->combined_pw_len_max);
     else snprintf (pw_lens, sizeof (pw_lens), "%u to %u", hashes->combined_pw_len_min, hashes->combined_pw_len_max);
 
-    event_log_info (hashcat_ctx, "Salts: %s bytes, the kernel cracks passwords up to %s bytes long with %s", salt_lens, pw_lens, with);
+    event_log_info (hashcat_ctx, "Salts: %s bytes of the shared buffer, the kernel cracks passwords up to %s bytes long with %s", salt_lens, pw_lens, with);
   }
 
   event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size);

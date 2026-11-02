@@ -38,6 +38,17 @@ static const char *ST_HASH        = "2f9282ade42ce148175dc3b4d8b5916dae5211eee49
 
 const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // the optimized kernels hash the 8 byte salt, the password and the trailing zero in one block
+
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  const u32 pw_max = (optimized_kernel == true) ? MIN (hashconfig->pw_max, 46) : hashconfig->pw_max; // 55 - 8 - 1
+
+  return pw_max;
+}
+
 static const char *SIGNATURE_NETSCALER = "2";
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -225,4 +236,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_recipe              = module_hash_recipe;
   module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_pw_max                   = module_pw_max;
 }

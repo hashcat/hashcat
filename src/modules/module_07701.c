@@ -35,6 +35,13 @@ static const char *ST_HASH        = "027642760180$77EC386300000000";
 
 #include "hooks_common.c"
 
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_max = 8; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+
+  return pw_max;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -45,10 +52,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 2;
 
+  // a user name may contain a $, so it ends at the last one
+
   token.sep[0]     = '$';
   token.len_min[0] = 1;
   token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_SEPARATOR_FARTHEST;
 
   token.len[1]     = 16;
   token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
@@ -63,19 +73,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   const u8 *salt_pos = token.buf[0];
-  const int salt_len = token.len[0];
 
-  int user_len = 0;
+  // exports pad the user name with spaces, which SAP does not hash
 
-  for (int i = 0; i < salt_len; i++)
-  {
-    if (salt_pos[i] == ' ') continue;
+  int salt_len = token.len[0];
 
-    user_len++;
-  }
+  while ((salt_len > 0) && (salt_pos[salt_len - 1] == ' ')) salt_len--;
+
+  if (salt_len == 0) return (PARSER_SALT_LENGTH);
 
   // SAP user names cannot be longer than 12 characters
-  if (user_len > 12) return (PARSER_SALT_LENGTH);
+  if (salt_len > 12) return (PARSER_SALT_LENGTH);
 
   // SAP user name cannot start with ! or ?
   if (salt_pos[0] == '!' || salt_pos[0] == '?') return (PARSER_SALT_VALUE);
@@ -119,4 +127,5 @@ void module_init (module_ctx_t *module_ctx)
 
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_pw_max                   = module_pw_max;
 }
