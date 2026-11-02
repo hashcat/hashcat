@@ -101,10 +101,10 @@ static bool remote_recv (int sockfd, void *buf, size_t len, hashcat_ctx_t *hashc
       const bool is_timeout = (error == WSAETIMEDOUT);
       #else
       const int  error      = errno;
-      const bool is_timeout = (error == EAGAIN || errno == EWOULDBLOCK);
+      const bool is_timeout = ((error == EAGAIN) || (errno == EWOULDBLOCK));
       #endif
 
-      if (is_timeout == false || nrecv_new == 0)
+      if ((is_timeout == false) || (nrecv_new == 0))
       {
         event_log_error (hashcat_ctx, "[bridge-client]: Receive failed: %d\n", error);
         return false;
