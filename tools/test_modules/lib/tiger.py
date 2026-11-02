@@ -5,8 +5,9 @@
 ## License.....: MIT
 ##
 
-# Tiger and Tiger2 (Anderson and Biham), 3 passes, digest in the reference byte order, with the
-# 128 and 160 bit truncations and the Tiger tree hash. Neither hashlib nor pycryptodome carries them.
+# Tiger and Tiger2 (Anderson and Biham) with 3 or 4 passes, digest in the reference byte order, with
+# the 128 and 160 bit truncations and the Tiger tree hash. Neither hashlib nor pycryptodome carries
+# them.
 
 import struct
 
@@ -55,7 +56,7 @@ def _schedule(x: list) -> None:
   x[7] = (x[7] - (x[6] ^ 0x0123456789abcdef)) & _M
 
 
-def _compress(h: list, block: bytes) -> list:
+def _compress(h: list, block: bytes, passes: int) -> list:
   x = list(struct.unpack("<8Q", block))
 
   a, b, c = h
@@ -70,12 +71,21 @@ def _compress(h: list, block: bytes) -> list:
 
   b, c, a = _pass(b, c, a, x, 9)
 
+  if passes == 4:
+    _schedule(x)
+
+    a, b, c = _pass(a, b, c, x, 9)
+
+    # the reference rotates a, b and c once more after every pass past the third
+
+    a, b, c = c, a, b
+
   out = [h[0] ^ a, (b - h[1]) & _M, (c + h[2]) & _M]
 
   return out
 
 
-def _tiger(data: bytes, pad: int) -> bytes:
+def _tiger(data: bytes, pad: int, passes: int = 3) -> bytes:
   # Tiger pads with 0x01, Tiger2 with 0x80, otherwise the two are the same
 
   h = [0x0123456789abcdef, 0xfedcba9876543210, 0xf096a5b4c3b2e187]
@@ -84,7 +94,7 @@ def _tiger(data: bytes, pad: int) -> bytes:
   msg += b"\x00" * ((56 - len(msg)) % 64)
   msg += struct.pack("<Q", (len(data) * 8) & _M)
 
-  for off in range(0, len(msg), 64): h = _compress(h, msg[off:off + 64])
+  for off in range(0, len(msg), 64): h = _compress(h, msg[off:off + 64], passes)
 
   return struct.pack("<3Q", *h)
 
@@ -95,6 +105,10 @@ def tiger(data: bytes) -> bytes:
 
 def tiger2(data: bytes) -> bytes:
   return _tiger(data, 0x80)
+
+
+def tiger192_4(data: bytes) -> bytes:
+  return _tiger(data, 0x01, 4)
 
 
 def tiger128(data: bytes) -> bytes:

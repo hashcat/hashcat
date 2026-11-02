@@ -22,6 +22,9 @@ typedef struct sip
   u32 esalt_buf[256];
   u32 esalt_len;
 
+  u32 sess_buf[64];
+  u32 sess_len;
+
 } sip_t;
 
 #if   VECT_SIZE == 1
@@ -84,10 +87,47 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   md5_final (&ctx1);
 
-  const u32 a = ctx1.h[0];
-  const u32 b = ctx1.h[1];
-  const u32 c = ctx1.h[2];
-  const u32 d = ctx1.h[3];
+  u32 a = ctx1.h[0];
+  u32 b = ctx1.h[1];
+  u32 c = ctx1.h[2];
+  u32 d = ctx1.h[3];
+
+  // MD5-sess hashes the first digest again with the nonce and the client nonce
+
+  if (hc->esalt_bufs[hc->digest_pos].sess_len != 0)
+  {
+    md5_ctx_t ctx_sess;
+
+    md5_init (&ctx_sess);
+
+    ctx_sess.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
+    ctx_sess.w0[1] = uint_to_hex_lower8 ((a >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((a >> 24) & 255) << 16;
+    ctx_sess.w0[2] = uint_to_hex_lower8 ((b >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((b >>  8) & 255) << 16;
+    ctx_sess.w0[3] = uint_to_hex_lower8 ((b >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((b >> 24) & 255) << 16;
+    ctx_sess.w1[0] = uint_to_hex_lower8 ((c >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((c >>  8) & 255) << 16;
+    ctx_sess.w1[1] = uint_to_hex_lower8 ((c >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((c >> 24) & 255) << 16;
+    ctx_sess.w1[2] = uint_to_hex_lower8 ((d >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
+    ctx_sess.w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
+
+    ctx_sess.len = 32;
+
+    md5_update_global_padded (&ctx_sess, hc->esalt_bufs[hc->digest_pos].sess_buf, hc->esalt_bufs[hc->digest_pos].sess_len);
+
+    md5_final (&ctx_sess);
+
+    a = ctx_sess.h[0];
+    b = ctx_sess.h[1];
+    c = ctx_sess.h[2];
+    d = ctx_sess.h[3];
+  }
 
   md5_ctx_t ctx;
 
@@ -134,10 +174,47 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
 
   md5_final (&ctx1);
 
-  const u32 a = ctx1.h[0];
-  const u32 b = ctx1.h[1];
-  const u32 c = ctx1.h[2];
-  const u32 d = ctx1.h[3];
+  u32 a = ctx1.h[0];
+  u32 b = ctx1.h[1];
+  u32 c = ctx1.h[2];
+  u32 d = ctx1.h[3];
+
+  // MD5-sess hashes the first digest again with the nonce and the client nonce
+
+  if (hc->esalt_bufs[hc->digest_pos].sess_len != 0)
+  {
+    md5_ctx_t ctx_sess;
+
+    md5_init (&ctx_sess);
+
+    ctx_sess.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
+    ctx_sess.w0[1] = uint_to_hex_lower8 ((a >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((a >> 24) & 255) << 16;
+    ctx_sess.w0[2] = uint_to_hex_lower8 ((b >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((b >>  8) & 255) << 16;
+    ctx_sess.w0[3] = uint_to_hex_lower8 ((b >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((b >> 24) & 255) << 16;
+    ctx_sess.w1[0] = uint_to_hex_lower8 ((c >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((c >>  8) & 255) << 16;
+    ctx_sess.w1[1] = uint_to_hex_lower8 ((c >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((c >> 24) & 255) << 16;
+    ctx_sess.w1[2] = uint_to_hex_lower8 ((d >>  0) & 255) <<  0
+                   | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
+    ctx_sess.w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
+                   | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
+
+    ctx_sess.len = 32;
+
+    md5_update_global_padded (&ctx_sess, hc->esalt_bufs[hc->digest_pos].sess_buf, hc->esalt_bufs[hc->digest_pos].sess_len);
+
+    md5_final (&ctx_sess);
+
+    a = ctx_sess.h[0];
+    b = ctx_sess.h[1];
+    c = ctx_sess.h[2];
+    d = ctx_sess.h[3];
+  }
 
   md5_ctx_t ctx;
 

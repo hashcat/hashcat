@@ -65,7 +65,7 @@ u32 module_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
   {
     const u32 algo = prog.steps[k].algo;
 
-    if ((algo == RECIPE_ALGO_SHA384) || (algo == RECIPE_ALGO_SHA512) || (algo == RECIPE_ALGO_BLAKE2B512) || (algo == RECIPE_ALGO_BLAKE2B256) || (algo == RECIPE_ALGO_WRL) || ((algo >= RECIPE_ALGO_SHA3_224) && (algo <= RECIPE_ALGO_KECCAK512)) || (algo == RECIPE_ALGO_SBOG256) || (algo == RECIPE_ALGO_SBOG512) || ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH) || ((algo >= RECIPE_ALGO_SKEIN224) && (algo <= RECIPE_ALGO_SKEIN512))) bits_64 = true;
+    if ((algo == RECIPE_ALGO_SHA384) || (algo == RECIPE_ALGO_SHA512) || (algo == RECIPE_ALGO_BLAKE2B512) || (algo == RECIPE_ALGO_BLAKE2B256) || (algo == RECIPE_ALGO_WRL) || ((algo >= RECIPE_ALGO_SHA3_224) && (algo <= RECIPE_ALGO_KECCAK512)) || (algo == RECIPE_ALGO_SBOG256) || (algo == RECIPE_ALGO_SBOG512) || ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH) || (algo == RECIPE_ALGO_TIGER192_4) || ((algo >= RECIPE_ALGO_SKEIN224) && (algo <= RECIPE_ALGO_SKEIN512))) bits_64 = true;
     if ((algo == RECIPE_ALGO_BLAKE384) || (algo == RECIPE_ALGO_BLAKE512) || (algo == RECIPE_ALGO_BMW384) || (algo == RECIPE_ALGO_BMW512) || ((algo >= RECIPE_ALGO_GROESTL224) && (algo <= RECIPE_ALGO_GROESTL512)) || ((algo >= RECIPE_ALGO_JH224) && (algo <= RECIPE_ALGO_JH512)) || (algo == RECIPE_ALGO_EDON512) || ((algo >= RECIPE_ALGO_MD6128) && (algo <= RECIPE_ALGO_MD6512)) || (algo == RECIPE_ALGO_RADIOGATUN64) || (algo == RECIPE_ALGO_WRL0) || (algo == RECIPE_ALGO_WRL1)) bits_64 = true;
   }
 

@@ -6,7 +6,7 @@
 
 /*
 Pseudocode:
-1. sha256(sha256(password=masterkey)||keyfile) = argon.in
+1. sha256(sha256(password=masterkey)||keyfile||userkey) = argon.in
 2. argon2(salt=transformseed, password=argon2.in) = argon2.out
 3. sha512(masterseed||argon2.out||0x01) = final
 4. sha512(0xFFFFFFFFFFFFFFFF||final) = out
@@ -35,11 +35,17 @@ typedef struct argon2_tmp
 typedef struct keepass4
 {
   u32 masterseed[8];
-  u32 header[64];
+
+  u32 header_len;
+  u32 header[1024];
 
   /* key-file handling */
   u32 keyfile_len;
   u32 keyfile[8];
+
+  /* Windows user account handling */
+  u32 userkey_len;
+  u32 userkey[16];
 
 } keepass4_t;
 
@@ -81,53 +87,43 @@ KERNEL_FQ KERNEL_FA void m34300_init (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, merged
   sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
   sha256_final (&ctx0);
 
+  // the composite key: the password digest, then 32 bytes for a key file and 64 bytes for a
+  // Windows user account when the database uses those key providers
+
+  u32 w[32] = { 0 };
+
+  w[0] = ctx0.h[0];
+  w[1] = ctx0.h[1];
+  w[2] = ctx0.h[2];
+  w[3] = ctx0.h[3];
+  w[4] = ctx0.h[4];
+  w[5] = ctx0.h[5];
+  w[6] = ctx0.h[6];
+  w[7] = ctx0.h[7];
+
+  u32 w_len = 32;
+
+  if (keepass4->keyfile_len)
+  {
+    for (u32 i = 0; i < 8; i++) w[8 + i] = keepass4->keyfile[i];
+
+    w_len += 32;
+  }
+
+  if (keepass4->userkey_len)
+  {
+    const u32 idx = w_len / 4;
+
+    for (u32 i = 0; i < 16; i++) w[idx + i] = keepass4->userkey[i];
+
+    w_len += 64;
+  }
+
   sha256_ctx_t ctx;
 
   sha256_init (&ctx);
 
-  ctx.w0[0] = ctx0.h[0];
-  ctx.w0[1] = ctx0.h[1];
-  ctx.w0[2] = ctx0.h[2];
-  ctx.w0[3] = ctx0.h[3];
-  ctx.w1[0] = ctx0.h[4];
-  ctx.w1[1] = ctx0.h[5];
-  ctx.w1[2] = ctx0.h[6];
-  ctx.w1[3] = ctx0.h[7];
-
-  ctx.len = 32;
-
-  if (keepass4->keyfile_len)
-  {
-    ctx.w2[0] = keepass4->keyfile[0];
-    ctx.w2[1] = keepass4->keyfile[1];
-    ctx.w2[2] = keepass4->keyfile[2];
-    ctx.w2[3] = keepass4->keyfile[3];
-    ctx.w3[0] = keepass4->keyfile[4];
-    ctx.w3[1] = keepass4->keyfile[5];
-    ctx.w3[2] = keepass4->keyfile[6];
-    ctx.w3[3] = keepass4->keyfile[7];
-
-    ctx.len += 32;
-
-    sha256_transform (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.h);
-
-    ctx.w0[0] = 0;
-    ctx.w0[1] = 0;
-    ctx.w0[2] = 0;
-    ctx.w0[3] = 0;
-    ctx.w1[0] = 0;
-    ctx.w1[1] = 0;
-    ctx.w1[2] = 0;
-    ctx.w1[3] = 0;
-    ctx.w2[0] = 0;
-    ctx.w2[1] = 0;
-    ctx.w2[2] = 0;
-    ctx.w2[3] = 0;
-    ctx.w3[0] = 0;
-    ctx.w3[1] = 0;
-    ctx.w3[2] = 0;
-    ctx.w3[3] = 0;
-  }
+  sha256_update (&ctx, w, w_len);
 
   sha256_final (&ctx);
 
@@ -329,7 +325,7 @@ KERNEL_FQ KERNEL_FA void m34300_comp (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, merged
 
   sha256_hmac_ctx_t ctx3;
   sha256_hmac_init (&ctx3, outu32, 64);
-  sha256_hmac_update_global_swap (&ctx3, keepass4->header, 253);
+  sha256_hmac_update_global_swap (&ctx3, keepass4->header, keepass4->header_len);
   sha256_hmac_final (&ctx3);
 
   const u32 r0 = hc_swap32_S (ctx3.opad.h[0]);

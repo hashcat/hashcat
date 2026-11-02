@@ -40,6 +40,12 @@ typedef struct sip
   u32 esalt_buf[256];
   u32 esalt_len;
 
+  // MD5-sess only: the nonce and the client nonce, which hash together with the first digest into
+  // the HA1 the response uses. Zero length for plain MD5.
+
+  u32 sess_buf[64];
+  u32 sess_len;
+
 } sip_t;
 
 static const char *SIGNATURE_SIP_AUTH = "$sip$";
@@ -148,8 +154,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[13]     = '*';
-  token.len[13]     = 3;
-  token.attr[13]    = TOKEN_ATTR_FIXED_LENGTH;
+  token.len_min[13] = 3;
+  token.len_max[13] = 8;
+  token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[14]     = '*';
   token.len[14]     = 32;
@@ -173,6 +180,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *directive_pos     = token.buf[13];
   const u8 *digest_pos        = token.buf[14];
 
+  const int directive_len     = token.len[13];
   const int user_len          = token.len[ 3];
   const int realm_len         = token.len[ 4];
   const int method_len        = token.len[ 5];
@@ -184,9 +192,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int nonce_count_len   = token.len[11];
   const int qop_len           = token.len[12];
 
-  // verify
+  // verify. MD5 hashes the user, the realm and the password into HA1, while MD5-sess hashes that
+  // digest again together with the nonce and the client nonce, see RFC 2617 3.2.2.2
 
-  if (memcmp (directive_pos, "MD5", 3) != 0) return (PARSER_SIP_AUTH_DIRECTIVE);
+  bool md5_sess = false;
+
+  if (directive_len == 3)
+  {
+    if (memcmp (directive_pos, "MD5", 3) != 0) return (PARSER_SIP_AUTH_DIRECTIVE);
+  }
+  else if (directive_len == 8)
+  {
+    if (memcmp (directive_pos, "MD5-sess", 8) != 0) return (PARSER_SIP_AUTH_DIRECTIVE);
+
+    md5_sess = true;
+  }
+  else
+  {
+    return (PARSER_SIP_AUTH_DIRECTIVE);
+  }
 
   /*
    * first (pre-)compute: HA2 = md5 ($method . ":" . $uri)
@@ -350,6 +374,35 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   esalt_buf_ptr[esalt_len] = 0x80;
 
   sip->esalt_len = esalt_len;
+
+  /*
+   * the MD5-sess part of the esalt, what the kernel appends to the first digest
+   */
+
+  sip->sess_len = 0;
+
+  if (md5_sess == true)
+  {
+    u8 *sess_buf_ptr = (u8 *) sip->sess_buf;
+
+    const int sess_len = 1 + nonce_len + 1 + nonce_client_len;
+
+    const int max_sess_len = sizeof (sip->sess_buf);
+
+    if (sess_len >= max_sess_len) return (PARSER_SALT_LENGTH);
+
+    hc_strncat (sess_buf_ptr, pcsep, 1);
+
+    hc_strncat (sess_buf_ptr, nonce_pos, nonce_len);
+
+    hc_strncat (sess_buf_ptr, pcsep, 1);
+
+    hc_strncat (sess_buf_ptr, nonce_client_pos, nonce_client_len);
+
+    sess_buf_ptr[sess_len] = 0x80;
+
+    sip->sess_len = sess_len;
+  }
 
   /*
    * actual salt

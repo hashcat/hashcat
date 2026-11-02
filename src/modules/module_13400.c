@@ -29,6 +29,11 @@ static const char *ST_HASH        = "$keepass$*2*24569*0*c40432355cce7348c48053c
 
 #include "hooks_common.c"
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "A database protected with a Windows user account carries that key as *2*128* and the 128 hex characters of the 64 bytes DPAPI returns for %APPDATA%\\KeePass\\ProtectedUserKey.bin";
+}
+
 typedef struct keepass
 {
   u32 version;
@@ -37,6 +42,10 @@ typedef struct keepass
   /* key-file handling */
   u32 keyfile_len;
   u32 keyfile[8];
+
+  /* Windows user account handling */
+  u32 userkey_len;
+  u32 userkey[16];
 
   u32 final_random_seed[8];
   u32 transf_random_seed[8];
@@ -60,6 +69,13 @@ typedef struct keepass_tmp
 
 static const char *SIGNATURE_KEEPASS = "$keepass$";
 
+// The optional parts at the end of the line, each written as a marker, the length of its data in
+// hex characters and the data itself: *1*64* and 64 hex characters for the key file, then *2*128*
+// and 128 hex characters for the Windows user account key.
+
+#define KEEPASS_KEYFILE_PART_LEN (6 + 64)
+#define KEEPASS_USERKEY_PART_LEN (7 + 128)
+
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (keepass_t);
@@ -81,12 +97,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   keepass_t *keepass = (keepass_t *) esalt_buf;
 
   bool is_keyfile_present = false;
+  bool is_userkey_present = false;
 
   if (line_len < 128) return (PARSER_SALT_LENGTH);
 
-  if ((line_buf[line_len - (64 + 1 + 2 + 1 + 2)] == '*')
-   && (line_buf[line_len - (64 + 1 + 2 + 1 + 1)] == '1')
-   && (line_buf[line_len - (64 + 1 + 2 + 1 + 0)] == '*')) is_keyfile_present = true;
+  // the key file part is the last one unless a user account key follows it
+
+  int parts_len = line_len;
+
+  if (parts_len > KEEPASS_USERKEY_PART_LEN)
+  {
+    if (memcmp (line_buf + parts_len - KEEPASS_USERKEY_PART_LEN, "*2*128*", 7) == 0)
+    {
+      is_userkey_present = true;
+
+      parts_len -= KEEPASS_USERKEY_PART_LEN;
+    }
+  }
+
+  if (parts_len > KEEPASS_KEYFILE_PART_LEN)
+  {
+    if (memcmp (line_buf + parts_len - KEEPASS_KEYFILE_PART_LEN, "*1*64*", 6) == 0) is_keyfile_present = true;
+  }
 
   hc_token_t token;
 
@@ -234,6 +266,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     return (PARSER_SALT_VALUE);
   }
 
+  if (is_userkey_present == true)
+  {
+    const u32 idx = token.token_cnt;
+
+    token.token_cnt += 3;
+
+    token.sep[idx + 0]  = '*';
+    token.len[idx + 0]  = 1;
+    token.attr[idx + 0] = TOKEN_ATTR_FIXED_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[idx + 1]  = '*';
+    token.len[idx + 1]  = 3;
+    token.attr[idx + 1] = TOKEN_ATTR_FIXED_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[idx + 2]  = '*';
+    token.len[idx + 2]  = 128;
+    token.attr[idx + 2] = TOKEN_ATTR_FIXED_LENGTH
+                        | TOKEN_ATTR_VERIFY_HEX;
+  }
+
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
@@ -245,6 +299,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   keepass->version = hc_strtoul ((const char *) version_pos, NULL, 10);
 
   if (keepass->version > 2) return (PARSER_HASH_VALUE); // this hash-type only supports versions 1 and 2; version 4 is supported by hash-types 34300 and 34301
+
+  // the Windows user account key is a KeePass 2 key provider, a kdb has no such part
+
+  if ((keepass->version == 1) && (is_userkey_present == true)) return (PARSER_HASH_VALUE);
 
   // iter
 
@@ -450,6 +508,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     keepass->keyfile[7] = byte_swap_32 (keepass->keyfile[7]);
   }
 
+  keepass->userkey_len = 0;
+
+  if (is_userkey_present == true)
+  {
+    const u8 *userkey_pos = token.buf[token.token_cnt - 1];
+
+    keepass->userkey_len = 64;
+
+    for (int i = 0, j = 0; i < 16; i += 1, j += 8)
+    {
+      keepass->userkey[i] = hex_to_u32 (&userkey_pos[j]);
+
+      keepass->userkey[i] = byte_swap_32 (keepass->userkey[i]);
+    }
+  }
+
   if (keepass->version == 1)
   {
     digest[0] = keepass->contents_hash[0];
@@ -484,6 +558,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = 64;
 
+  if (is_userkey_present == true)
+  {
+    for (int i = 0; i < 16; i++) salt->salt_buf[16 + i] = keepass->userkey[i];
+
+    salt->salt_len = 128;
+  }
+
   return (PARSER_OK);
 }
 
@@ -495,12 +576,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32 rounds      = salt->salt_iter;
   u32 algorithm   = keepass->algorithm;
   u32 keyfile_len = keepass->keyfile_len;
+  u32 userkey_len = keepass->userkey_len;
 
   const u32 *ptr_final_random_seed  = (const u32 *) keepass->final_random_seed;
   const u32 *ptr_transf_random_seed = (const u32 *) keepass->transf_random_seed;
   const u32 *ptr_enc_iv             = (const u32 *) keepass->enc_iv;
   const u32 *ptr_contents_hash      = (const u32 *) keepass->contents_hash;
   const u32 *ptr_keyfile            = (const u32 *) keepass->keyfile;
+  const u32 *ptr_userkey            = (const u32 *) keepass->userkey;
 
   // specific to version 2
   u32 expected_bytes_len;
@@ -558,7 +641,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // here is the real one. The room left is checked once, and covers the contents hash, the length,
     // the contents themselves and the keyfile block that can follow them.
 
-    const int room_needed = (int) (contents_hash_len * 8) + 3 + 10 + 1 + (int) (contents_len * 2) + 70 + 1;
+    const int room_needed = (int) (contents_hash_len * 8) + 3 + 10 + 1 + (int) (contents_len * 2) + KEEPASS_KEYFILE_PART_LEN + KEEPASS_USERKEY_PART_LEN + 1;
 
     if (((int) (ptr_data - line_buf) + room_needed) > line_size) return 0;
 
@@ -622,6 +705,28 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     for (u32 i = 0; i < 8; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_keyfile[i]);
   }
 
+  if (userkey_len)
+  {
+    *ptr_data = '*';
+    ptr_data++;
+
+    // the marker of the Windows user account key
+    *ptr_data = '2';
+    ptr_data++;
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    snprintf (ptr_data, 4, "%u", userkey_len * 2);
+
+    ptr_data += 3;
+
+    *ptr_data = '*';
+    ptr_data++;
+
+    for (u32 i = 0; i < 16; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_userkey[i]);
+  }
+
   return strlen (line_buf);
 }
 
@@ -633,4 +738,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_tmp_size                 = module_tmp_size;
+  module_ctx->module_usage_notice              = module_usage_notice;
 }

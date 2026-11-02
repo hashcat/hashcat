@@ -329,6 +329,7 @@ static const recipe_algo_entry_t RECIPE_ALGOS[] =
   { "tiger128",    RECIPE_ALGO_TIGER128,   16,  64, true,  false },
   { "tiger160",    RECIPE_ALGO_TIGER160,   20,  64, true,  false },
   { "tiger2",      RECIPE_ALGO_TIGER2,     24,  64, true,  false },
+  { "tiger192_4",  RECIPE_ALGO_TIGER192_4, 24,  64, true,  false },
   { "tth",         RECIPE_ALGO_TTH,        24,  64, true,  false },
   { "sne128",      RECIPE_ALGO_SNE128,     16,  48, true,  false },
   { "snefru128",   RECIPE_ALGO_SNE128,     16,  48, true,  false },
@@ -437,7 +438,7 @@ static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_
 
 static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE", "B64", "XOR" };
 
-static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, xxh64 and xxh32 (also with a seed), lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
+static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tiger192_4 (Tiger with 4 passes), tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, xxh64 and xxh32 (also with a seed), lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
 const char *recipe_algo_name (const u32 algo)
 {
@@ -474,7 +475,7 @@ static u32 recipe_digest_len (const u32 algo)
 
 static bool recipe_algo_is_tiger (const u32 algo)
 {
-  const bool r = ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH);
+  const bool r = ((algo >= RECIPE_ALGO_TIGER) && (algo <= RECIPE_ALGO_TIGER2)) || (algo == RECIPE_ALGO_TTH) || (algo == RECIPE_ALGO_TIGER192_4);
 
   return r;
 }
@@ -8255,8 +8256,11 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
   {
     tiger_ctx_t ctx;
 
+    const u32 pad    = (algo == RECIPE_ALGO_TIGER2) ? TIGER_PAD_TIGER2 : TIGER_PAD_TIGER;
+    const u32 passes = (algo == RECIPE_ALGO_TIGER192_4) ? 4 : 3;
+
     if (algo == RECIPE_ALGO_TTH) tiger_init_tth (&ctx, tiger_sbox);
-    else                         tiger_init     (&ctx, tiger_sbox, (algo == RECIPE_ALGO_TIGER2) ? TIGER_PAD_TIGER2 : TIGER_PAD_TIGER);
+    else                         tiger_init     (&ctx, tiger_sbox, pad, passes);
 
     for (u32 i = 0; i < cnt; i++)
     {

@@ -22,6 +22,9 @@ typedef struct sip
   u32 esalt_buf[256];
   u32 esalt_len;
 
+  u32 sess_buf[64];
+  u32 sess_len;
+
 } sip_t;
 
 #if   VECT_SIZE == 1
@@ -87,6 +90,15 @@ KERNEL_FQ KERNEL_FA void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
     esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf[idx];
   }
 
+  const u32 sess_len = esalt_bufs[DIGESTS_OFFSET_HOST].sess_len;
+
+  u32x sess_buf[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < sess_len; i += 4, idx += 1)
+  {
+    sess_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].sess_buf[idx];
+  }
+
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
@@ -115,10 +127,47 @@ KERNEL_FQ KERNEL_FA void m11400_mxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
     md5_final_vector (&ctx1);
 
-    const u32x a = ctx1.h[0];
-    const u32x b = ctx1.h[1];
-    const u32x c = ctx1.h[2];
-    const u32x d = ctx1.h[3];
+    u32x a = ctx1.h[0];
+    u32x b = ctx1.h[1];
+    u32x c = ctx1.h[2];
+    u32x d = ctx1.h[3];
+
+    // MD5-sess hashes the first digest again with the nonce and the client nonce
+
+    if (sess_len != 0)
+    {
+      md5_ctx_vector_t ctx_sess;
+
+      md5_init_vector (&ctx_sess);
+
+      ctx_sess.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
+      ctx_sess.w0[1] = uint_to_hex_lower8 ((a >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((a >> 24) & 255) << 16;
+      ctx_sess.w0[2] = uint_to_hex_lower8 ((b >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((b >>  8) & 255) << 16;
+      ctx_sess.w0[3] = uint_to_hex_lower8 ((b >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((b >> 24) & 255) << 16;
+      ctx_sess.w1[0] = uint_to_hex_lower8 ((c >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((c >>  8) & 255) << 16;
+      ctx_sess.w1[1] = uint_to_hex_lower8 ((c >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((c >> 24) & 255) << 16;
+      ctx_sess.w1[2] = uint_to_hex_lower8 ((d >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
+      ctx_sess.w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
+
+      ctx_sess.len = 32;
+
+      md5_update_vector_padded (&ctx_sess, sess_buf, sess_len);
+
+      md5_final_vector (&ctx_sess);
+
+      a = ctx_sess.h[0];
+      b = ctx_sess.h[1];
+      c = ctx_sess.h[2];
+      d = ctx_sess.h[3];
+    }
 
     md5_ctx_vector_t ctx;
 
@@ -219,6 +268,15 @@ KERNEL_FQ KERNEL_FA void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
     esalt_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].esalt_buf[idx];
   }
 
+  const u32 sess_len = esalt_bufs[DIGESTS_OFFSET_HOST].sess_len;
+
+  u32x sess_buf[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < sess_len; i += 4, idx += 1)
+  {
+    sess_buf[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].sess_buf[idx];
+  }
+
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
@@ -247,10 +305,47 @@ KERNEL_FQ KERNEL_FA void m11400_sxx (KERN_ATTR_VECTOR_ESALT (sip_t))
 
     md5_final_vector (&ctx1);
 
-    const u32x a = ctx1.h[0];
-    const u32x b = ctx1.h[1];
-    const u32x c = ctx1.h[2];
-    const u32x d = ctx1.h[3];
+    u32x a = ctx1.h[0];
+    u32x b = ctx1.h[1];
+    u32x c = ctx1.h[2];
+    u32x d = ctx1.h[3];
+
+    // MD5-sess hashes the first digest again with the nonce and the client nonce
+
+    if (sess_len != 0)
+    {
+      md5_ctx_vector_t ctx_sess;
+
+      md5_init_vector (&ctx_sess);
+
+      ctx_sess.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
+      ctx_sess.w0[1] = uint_to_hex_lower8 ((a >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((a >> 24) & 255) << 16;
+      ctx_sess.w0[2] = uint_to_hex_lower8 ((b >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((b >>  8) & 255) << 16;
+      ctx_sess.w0[3] = uint_to_hex_lower8 ((b >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((b >> 24) & 255) << 16;
+      ctx_sess.w1[0] = uint_to_hex_lower8 ((c >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((c >>  8) & 255) << 16;
+      ctx_sess.w1[1] = uint_to_hex_lower8 ((c >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((c >> 24) & 255) << 16;
+      ctx_sess.w1[2] = uint_to_hex_lower8 ((d >>  0) & 255) <<  0
+                     | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
+      ctx_sess.w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
+                     | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
+
+      ctx_sess.len = 32;
+
+      md5_update_vector_padded (&ctx_sess, sess_buf, sess_len);
+
+      md5_final_vector (&ctx_sess);
+
+      a = ctx_sess.h[0];
+      b = ctx_sess.h[1];
+      c = ctx_sess.h[2];
+      d = ctx_sess.h[3];
+    }
 
     md5_ctx_vector_t ctx;
 

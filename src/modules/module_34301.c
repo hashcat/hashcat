@@ -31,6 +31,11 @@ static const char *ST_HASH        = "$keepass$*4*600000*c9d9f39a*0*0*0*824e99f94
 
 #include "hooks_common.c"
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "A database protected with a Windows user account carries that key as *2*128* and the 128 hex characters of the 64 bytes DPAPI returns for %APPDATA%\\KeePass\\ProtectedUserKey.bin";
+}
+
 typedef struct keepass4_tmp
 {
   u32 tmp_digest[8];
@@ -42,12 +47,22 @@ typedef struct keepass4
   u32 masterseed[8];
 
   u32 header_len;
-  u32 header[64];
+  u32 header[1024];
 
   u32 keyfile_len;
   u32 keyfile[8];
 
+  u32 userkey_len;
+  u32 userkey[16];
+
 } keepass4_t;
+
+// The optional parts at the end of the line, each written as a marker, the length of its data in
+// hex characters and the data itself: *1*64* and 64 hex characters for the key file, then *2*128*
+// and 128 hex characters for the Windows user account key.
+
+#define KEEPASS_KEYFILE_PART_LEN (6 + 64)
+#define KEEPASS_USERKEY_PART_LEN (7 + 128)
 
 static const char *SIGNATURE_AESKDF_UUID   = "c9d9f39a";
 
@@ -72,12 +87,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   keepass4_t *keepass4 = esalt_buf;
 
   bool is_keyfile_present = false;
+  bool is_userkey_present = false;
 
   if (line_len < 128) return (PARSER_SALT_LENGTH);
 
-  if ((line_buf[line_len - (64 + 1 + 2 + 1 + 2)] == '*')
-   && (line_buf[line_len - (64 + 1 + 2 + 1 + 1)] == '1')
-   && (line_buf[line_len - (64 + 1 + 2 + 1 + 0)] == '*')) is_keyfile_present = true;
+  // the key file part is the last one unless a user account key follows it
+
+  int parts_len = line_len;
+
+  if (parts_len > KEEPASS_USERKEY_PART_LEN)
+  {
+    if (memcmp (line_buf + parts_len - KEEPASS_USERKEY_PART_LEN, "*2*128*", 7) == 0)
+    {
+      is_userkey_present = true;
+
+      parts_len -= KEEPASS_USERKEY_PART_LEN;
+    }
+  }
+
+  if (parts_len > KEEPASS_KEYFILE_PART_LEN)
+  {
+    if (memcmp (line_buf + parts_len - KEEPASS_KEYFILE_PART_LEN, "*1*64*", 6) == 0) is_keyfile_present = true;
+  }
 
   hc_token_t token;
 
@@ -141,7 +172,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // 9. header
   token.len_min[9] = 400;
-  token.len_max[9] = 512; // sizeof (keepass4->header) * 2
+  token.len_max[9] = 8192; // sizeof (keepass4->header) * 2
   token.sep[9]     = '*';
   token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
 
@@ -169,6 +200,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.len[13]     = 64;
     token.attr[13]    = TOKEN_ATTR_FIXED_LENGTH
                       | TOKEN_ATTR_VERIFY_HEX;
+  }
+
+  if (is_userkey_present == true)
+  {
+    const u32 idx = token.token_cnt;
+
+    token.token_cnt += 3;
+
+    token.sep[idx + 0]  = '*';
+    token.len[idx + 0]  = 1;
+    token.attr[idx + 0] = TOKEN_ATTR_FIXED_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[idx + 1]  = '*';
+    token.len[idx + 1]  = 3;
+    token.attr[idx + 1] = TOKEN_ATTR_FIXED_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[idx + 2]  = '*';
+    token.len[idx + 2]  = 128;
+    token.attr[idx + 2] = TOKEN_ATTR_FIXED_LENGTH
+                        | TOKEN_ATTR_VERIFY_HEX;
   }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -281,6 +334,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   }
 
+  keepass4->userkey_len = 0;
+
+  if (is_userkey_present == true)
+  {
+    const u8 *userkey_pos = token.buf[token.token_cnt - 1];
+
+    keepass4->userkey_len = 64;
+
+    for (int i = 0, j = 0; i < 16; i += 1, j += 8)
+    {
+      keepass4->userkey[i] = hex_to_u32 (&userkey_pos[j]);
+
+      keepass4->userkey[i] = byte_swap_32 (keepass4->userkey[i]);
+    }
+  }
+
   return (PARSER_OK);
 }
 
@@ -309,7 +378,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = 0;
+  char parts[KEEPASS_KEYFILE_PART_LEN + KEEPASS_USERKEY_PART_LEN + 1] = { 0 };
+
+  int parts_len = 0;
 
   if (keepass4->keyfile_len)
   {
@@ -327,38 +398,36 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     char keyfile_hex[64+1] = { 0 };
     hex_encode( (const u8 *) keyfile_swap, 32, (u8 *) keyfile_hex);
 
-    out_len = snprintf ((char *) out_buf, line_size, "%s*%d*%d*%s*%d*%d*%d*%s*%s*%s*%s*1*%d*%s",
-      "$keepass$",          // 0. signature
-      4,                    // 1. keepassDB version
-      salt->salt_iter,      // 2. iterations
-      SIGNATURE_AESKDF_UUID,// 3. KDF UUID
-      0,                    // 4. memoryUsageInBytes
-      0,                    // 5. Argon version
-      0,                    // 6. parallelism
-      masterseed_hex,       // 7. masterseed
-      salt_hex,             // 8. transformseed (salt)
-      header_hex,           // 9. header
-      digest_hex,           // 10. headerhmac (digest)
-      keepass4->keyfile_len*2,
-      keyfile_hex
-    );
+    parts_len += snprintf (parts + parts_len, sizeof (parts) - parts_len, "*1*%u*%s", keepass4->keyfile_len * 2, keyfile_hex);
   }
-  else
+
+  if (keepass4->userkey_len)
   {
-    out_len = snprintf ((char *) out_buf, line_size, "%s*%d*%d*%s*%d*%d*%d*%s*%s*%s*%s",
-      "$keepass$",          // 0. signature
-      4,                    // 1. keepassDB version
-      salt->salt_iter,      // 2. iterations
-      SIGNATURE_AESKDF_UUID,// 3. KDF UUID
-      0,                    // 4. memoryUsageInBytes
-      0,                    // 5. Argon version
-      0,                    // 6. parallelism
-      masterseed_hex,       // 7. masterseed
-      salt_hex,             // 8. transformseed (salt)
-      header_hex,           // 9. header
-      digest_hex            // 10. headerhmac (digest)
-    );
+    u32 userkey_swap[16];
+
+    for (int i = 0; i < 16; i++) userkey_swap[i] = byte_swap_32 (keepass4->userkey[i]);
+
+    char userkey_hex[129] = { 0 };
+
+    hex_encode ((const u8 *) userkey_swap, 64, (u8 *) userkey_hex);
+
+    parts_len += snprintf (parts + parts_len, sizeof (parts) - parts_len, "*2*%u*%s", keepass4->userkey_len * 2, userkey_hex);
   }
+
+  const int out_len = snprintf ((char *) out_buf, line_size, "%s*%d*%d*%s*%d*%d*%d*%s*%s*%s*%s%s",
+    "$keepass$",          // 0. signature
+    4,                    // 1. keepassDB version
+    salt->salt_iter,      // 2. iterations
+    SIGNATURE_AESKDF_UUID,// 3. KDF UUID
+    0,                    // 4. memoryUsageInBytes
+    0,                    // 5. Argon version
+    0,                    // 6. parallelism
+    masterseed_hex,       // 7. masterseed
+    salt_hex,             // 8. transformseed (salt)
+    header_hex,           // 9. header
+    digest_hex,           // 10. headerhmac (digest)
+    parts                 // the key file and user account key parts
+  );
 
   return out_len;
 }
@@ -371,5 +440,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_tmp_size                 = module_tmp_size;
+  module_ctx->module_usage_notice             = module_usage_notice;
 }
 

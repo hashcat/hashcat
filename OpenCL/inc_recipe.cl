@@ -4126,7 +4126,7 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 #define RECIPE_UPDS_tiger(X) tiger_update##X
 #define RECIPE_SBUF_tiger    s
 #define RECIPE_CTX_tiger(X)  tiger_ctx##X##_t
-#define RECIPE_INIT_tiger(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER);
+#define RECIPE_INIT_tiger(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER, 3);
 #define RECIPE_HASH_tiger(X,HS,INIT,FEED) RECIPE_HASH_TIGER (X, HS, INIT, FEED)
 #define RECIPE_KS_tiger(HS,V)  (V)
 #define RECIPE_RAW_tiger       RECIPE_RAWG
@@ -4143,7 +4143,7 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 #define RECIPE_UPDS_tiger128(X) tiger_update##X
 #define RECIPE_SBUF_tiger128    s
 #define RECIPE_CTX_tiger128(X)  tiger_ctx##X##_t
-#define RECIPE_INIT_tiger128(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER);
+#define RECIPE_INIT_tiger128(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER, 3);
 #define RECIPE_HASH_tiger128(X,HS,INIT,FEED) RECIPE_HASH_TIGER (X, HS, INIT, FEED)
 #define RECIPE_KS_tiger128(HS,V)  (V)
 #define RECIPE_RAW_tiger128       RECIPE_RAWG
@@ -4160,7 +4160,7 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 #define RECIPE_UPDS_tiger160(X) tiger_update##X
 #define RECIPE_SBUF_tiger160    s
 #define RECIPE_CTX_tiger160(X)  tiger_ctx##X##_t
-#define RECIPE_INIT_tiger160(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER);
+#define RECIPE_INIT_tiger160(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER, 3);
 #define RECIPE_HASH_tiger160(X,HS,INIT,FEED) RECIPE_HASH_TIGER (X, HS, INIT, FEED)
 #define RECIPE_KS_tiger160(HS,V)  (V)
 #define RECIPE_RAW_tiger160       RECIPE_RAWG
@@ -4177,11 +4177,30 @@ if (((K) == RECIPE_GATE_STEP) && (st->gate_on == 1))                            
 #define RECIPE_UPDS_tiger2(X) tiger_update##X
 #define RECIPE_SBUF_tiger2    s
 #define RECIPE_CTX_tiger2(X)  tiger_ctx##X##_t
-#define RECIPE_INIT_tiger2(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER2);
+#define RECIPE_INIT_tiger2(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER2, 3);
 #define RECIPE_HASH_tiger2(X,HS,INIT,FEED) RECIPE_HASH_TIGER (X, HS, INIT, FEED)
 #define RECIPE_KS_tiger2(HS,V)  (V)
 #define RECIPE_RAW_tiger2       RECIPE_RAWG
 #define RECIPE_PAD_tiger2       RECIPE_PADG
+
+// tiger192_4 is Tiger with 4 passes, what PHP calls tiger192,4.
+
+#define RECIPE_LEN_tiger192_4    24
+#define RECIPE_BLOCK_tiger192_4  64
+#define RECIPE_UPD_tiger192_4(X)  tiger_update##X
+#define RECIPE_UPDW_tiger192_4(X) tiger_update##X##_utf16le
+#define RECIPE_UPDG_tiger192_4    tiger_update_global
+#define RECIPE_UPDWG_tiger192_4   tiger_update_global_utf16le
+#define RECIPE_UPDP_tiger192_4(X) tiger_update##X
+#define RECIPE_PBUF_tiger192_4    w
+#define RECIPE_UPDS_tiger192_4(X) tiger_update##X
+#define RECIPE_SBUF_tiger192_4    s
+#define RECIPE_CTX_tiger192_4(X)  tiger_ctx##X##_t
+#define RECIPE_INIT_tiger192_4(X) tiger_init##X (&ctx, st->tiger, TIGER_PAD_TIGER, 4);
+#define RECIPE_HASH_tiger192_4(X,HS,INIT,FEED) RECIPE_HASH_TIGER (X, HS, INIT, FEED)
+#define RECIPE_KS_tiger192_4(HS,V)  (V)
+#define RECIPE_RAW_tiger192_4       RECIPE_RAWG
+#define RECIPE_PAD_tiger192_4       RECIPE_PADG
 
 // tth is the Tiger tree hash of one leaf, whose init sets the 0x00 prefix. It has no HMAC form.
 
@@ -5025,6 +5044,7 @@ DECLSPEC u32x recipe_seed32 (PRIVATE_AS const u32x *buf, const u32 len)
 #define RECIPE_KW_tiger128(HS,R,I,LEN)    (R)[I]
 #define RECIPE_KW_tiger160(HS,R,I,LEN)    (R)[I]
 #define RECIPE_KW_tiger2(HS,R,I,LEN)      (R)[I]
+#define RECIPE_KW_tiger192_4(HS,R,I,LEN)  (R)[I]
 #define RECIPE_KW_tth(HS,R,I,LEN)         (R)[I]
 #define RECIPE_KW_hav128(HS,R,I,LEN)      (R)[I]
 #define RECIPE_KW_hav128_4(HS,R,I,LEN)    (R)[I]
@@ -6318,6 +6338,7 @@ typedef struct recipe_state_scalar
 #define RECIPE_NAT_tiger128(HS)        RECIPE_NAT_LE    ( 4, HS)
 #define RECIPE_NAT_tiger160(HS)        RECIPE_NAT_LE    ( 5, HS)
 #define RECIPE_NAT_tiger2(HS)          RECIPE_NAT_LE    ( 6, HS)
+#define RECIPE_NAT_tiger192_4(HS)      RECIPE_NAT_LE    ( 6, HS)
 #define RECIPE_NAT_tth(HS)             RECIPE_NAT_LE    ( 6, HS)
 #define RECIPE_NAT_sne128(HS)          RECIPE_NAT_LE    ( 4, HS)
 #define RECIPE_NAT_sne256(HS)          RECIPE_NAT_LE    ( 8, HS)

@@ -11,7 +11,8 @@ from Crypto.Cipher import AES
 
 from lib.test_helpers import random_bytes, random_number
 
-# KeePass 1 and 2: the password (and optional keyfile) is hashed to a 32 byte key, transformed
+# KeePass 1 and 2: the password (and the optional keyfile and Windows user account key) is hashed
+# to a 32 byte key, transformed
 # through many rounds of AES-256-ECB under a random seed, hashed once more and combined with the
 # final seed. Version 1 then encrypts the contents with AES or Twofish in CBC; version 2 decrypts a
 # stored block to recover the expected bytes. Twofish has no stdlib or PyPI binding that runs on
@@ -295,10 +296,19 @@ def get_random_keepass_salt():
   contents = contents.hex()
 
   is_keyfile = random_number(0, 1)
+  is_userkey = random_number(0, 1)
   keyfile_attributes = ""
 
   if is_keyfile == 1:
     keyfile_attributes = keyfile_attributes + "1*64*" + random_bytes(32).hex()
+
+  # the Windows user account key is a KeePass 2 key provider, so a kdb never carries one
+
+  if (version == 2) and (is_userkey == 1):
+    if len(keyfile_attributes) > 0:
+      keyfile_attributes = keyfile_attributes + "*"
+
+    keyfile_attributes = keyfile_attributes + "2*128*" + random_bytes(64).hex()
 
   if version == 1:
     return "*".join([str(version), str(iteration), str(algorithm), final_random_seed,
@@ -344,14 +354,27 @@ def module_generate_hash(word, salt, param=None):
 
       intermediate_hash = hashlib.sha256(intermediate_hash + bytes.fromhex(keyfile_content)).digest()
   else:
-    if len(salt_arr) == 11:
-      inline_keyfile_flag = salt_arr[8]
-      keyfile_len = salt_arr[9]
-      keyfile_content = salt_arr[10]
+    # the optional parts follow the contents hash, each one a marker, a length and its data: 1 for
+    # a keyfile and 2 for a Windows user account key. Both can be present, so the marker tells them
+    # apart rather than the field count.
+
+    idx = 8
+
+    if (len(salt_arr) > idx) and (salt_arr[idx] == "1"):
+      keyfile_content = salt_arr[idx + 2]
 
       intermediate_hash = intermediate_hash + bytes.fromhex(keyfile_content)
 
-      keyfile_attributes = "*" + inline_keyfile_flag + "*" + keyfile_len + "*" + keyfile_content
+      keyfile_attributes = keyfile_attributes + "*1*" + salt_arr[idx + 1] + "*" + keyfile_content
+
+      idx += 3
+
+    if (len(salt_arr) > idx) and (salt_arr[idx] == "2"):
+      userkey_content = salt_arr[idx + 2]
+
+      intermediate_hash = intermediate_hash + bytes.fromhex(userkey_content)
+
+      keyfile_attributes = keyfile_attributes + "*2*" + salt_arr[idx + 1] + "*" + userkey_content
 
     intermediate_hash = hashlib.sha256(intermediate_hash).digest()
 
@@ -414,7 +437,7 @@ def module_verify_hash(line):
 
   data = hash_in.split("*")
 
-  if len(data) not in (9, 11, 12, 14):
+  if len(data) not in (9, 11, 12, 14, 15):
     return None
 
   if data[0] != "$keepass$":

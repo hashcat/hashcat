@@ -42,6 +42,7 @@
 "tiger128"
 "tiger160"
 "tiger2"
+"tiger192_4"
 "tth"
 "sne128"
 "snefru128"
