@@ -206,12 +206,12 @@ device. That is the one to use for a fast hash.
   1 | Combination
   3 | Brute-force
   4 | PCFG, a trained grammar makes the candidates
-  5 | Table, tables say what each token may become
+  5 | Table, each token is replaced from a table
   6 | Hybrid Wordlist + Mask
   7 | Hybrid Mask + Wordlist
   8 | Generic
   9 | Association
- 12 | Hybrid, mask says where the word goes
+ 12 | Hybrid, the mask positions the word
 
 - [ Built-in Charsets ] -
 
