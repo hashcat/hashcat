@@ -218,11 +218,22 @@ DECLSPEC void zlib_memset (PRIVATE_AS u8 *s, const u8 c, int len)
 #define TINFL_LZ_DICT_SIZE 32768
 
 // hashcat-patched/hashcat-specific:
+//
+// m_dict is only read by mz_inflate (). A kernel that drives the decoder through hc_inflate ()
+// never reaches it, because TINFL_FLAG_FLUSH_WINDOW makes the caller's output buffer the window,
+// so that kernel can ask for the one byte dictionary and keep the state small. CRC32_IN_INFLATE
+// does that and also moves the input to global memory, since the PKZIP modes decrypt it as they
+// read it. INFLATE_SMALL_DICT is the same saving for a kernel whose input is already private and
+// needs no decryption.
 #ifdef CRC32_IN_INFLATE
 #define M_DICT_SIZE 1
 #define MAYBE_GLOBAL GLOBAL_AS
 #else
+#ifdef INFLATE_SMALL_DICT
+#define M_DICT_SIZE 1
+#else
 #define M_DICT_SIZE TINFL_LZ_DICT_SIZE
+#endif
 #define MAYBE_GLOBAL PRIVATE_AS
 #endif
 

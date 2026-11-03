@@ -366,6 +366,8 @@ DECLSPEC int hc_count_char (PRIVATE_AS const u32 *buf, const int elems, const u3
 DECLSPEC float hc_get_entropy (PRIVATE_AS const u32 *buf, const int elems);
 DECLSPEC int is_valid_hex_8 (const u8 v);
 DECLSPEC int is_valid_hex_32 (const u32 v);
+DECLSPEC int is_valid_hex_8_incl_uppercase (const u8 v);
+DECLSPEC int is_valid_hex_32_incl_uppercase (const u32 v);
 DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_32 (const u32 v);
 DECLSPEC int is_valid_printable_8 (const u8 v);

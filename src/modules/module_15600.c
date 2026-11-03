@@ -43,10 +43,18 @@ typedef struct pbkdf2_sha256_tmp
 
 } pbkdf2_sha256_tmp_t;
 
+// A keystore v3 payload is whatever the wallet chose to encrypt. A private key is 32 bytes, but a
+// wallet that backs up a BIP39 recovery phrase stores the phrase itself, and 24 of the longest
+// words with their separators come to 215 bytes.
+
+#define ETHEREUM_CT_MAX 256
+
 typedef struct ethereum_pbkdf2
 {
   u32 salt_buf[16];
-  u32 ciphertext[8];
+
+  u32 ciphertext[ETHEREUM_CT_MAX / 4];
+  u32 ciphertext_len;
 
 } ethereum_pbkdf2_t;
 
@@ -124,14 +132,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '*';
-  token.len_min[2] = 32;
+  token.len_min[2] = 0;
   token.len_max[2] = 64;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len[3]     = 64;
-  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[3] = 2;
+  token.len_max[3] = ETHEREUM_CT_MAX * 2;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '*';
@@ -158,8 +167,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[2];
   const int salt_len = token.len[2];
 
-  if ((salt_len != 32) && (salt_len != 64)) return (PARSER_SALT_LENGTH);
-
   const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
@@ -176,15 +183,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // ciphertext
 
   const u8 *ciphertext_pos = token.buf[3];
+  const int ciphertext_len = token.len[3];
 
-  ethereum_pbkdf2->ciphertext[0] = hex_to_u32 (&ciphertext_pos[ 0]);
-  ethereum_pbkdf2->ciphertext[1] = hex_to_u32 (&ciphertext_pos[ 8]);
-  ethereum_pbkdf2->ciphertext[2] = hex_to_u32 (&ciphertext_pos[16]);
-  ethereum_pbkdf2->ciphertext[3] = hex_to_u32 (&ciphertext_pos[24]);
-  ethereum_pbkdf2->ciphertext[4] = hex_to_u32 (&ciphertext_pos[32]);
-  ethereum_pbkdf2->ciphertext[5] = hex_to_u32 (&ciphertext_pos[40]);
-  ethereum_pbkdf2->ciphertext[6] = hex_to_u32 (&ciphertext_pos[48]);
-  ethereum_pbkdf2->ciphertext[7] = hex_to_u32 (&ciphertext_pos[56]);
+  if ((ciphertext_len % 2) != 0) return (PARSER_CT_LENGTH);
+
+  ethereum_pbkdf2->ciphertext_len = ciphertext_len / 2;
+
+  u8 *ciphertext_ptr = (u8 *) ethereum_pbkdf2->ciphertext;
+
+  for (int i = 0, j = 0; j < ciphertext_len; i += 1, j += 2)
+  {
+    ciphertext_ptr[i] = hex_to_u8 (&ciphertext_pos[j]);
+  }
 
   // hash
 
@@ -214,18 +224,24 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+  const u32 ciphertext_len = ethereum_pbkdf2->ciphertext_len;
+
+  const u8 *ciphertext_ptr = (const u8 *) ethereum_pbkdf2->ciphertext;
+
+  char tmp_ciphertext[(ETHEREUM_CT_MAX * 2) + 1];
+
+  for (u32 i = 0; i < ciphertext_len; i++)
+  {
+    u8_to_hex (ciphertext_ptr[i], (u8 *) &tmp_ciphertext[i * 2]);
+  }
+
+  tmp_ciphertext[ciphertext_len * 2] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s*%u*%s*%s*%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_ETHEREUM_PBKDF2,
     salt->salt_iter + 1,
     tmp_salt,
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[0]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[1]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[2]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[3]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[4]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[5]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[6]),
-    byte_swap_32 (ethereum_pbkdf2->ciphertext[7]),
+    tmp_ciphertext,
     byte_swap_32 (digest[0]),
     byte_swap_32 (digest[1]),
     byte_swap_32 (digest[2]),

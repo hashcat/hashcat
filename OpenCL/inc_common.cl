@@ -2846,6 +2846,25 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
   return 1;
 }
 
+DECLSPEC int is_valid_hex_8_incl_uppercase (const u8 v)
+{
+  if ((v >= (u8) '0') && (v <= (u8) '9')) return 1;
+  if ((v >= (u8) 'a') && (v <= (u8) 'f')) return 1;
+  if ((v >= (u8) 'A') && (v <= (u8) 'F')) return 1;
+
+  return 0;
+}
+
+DECLSPEC int is_valid_hex_32_incl_uppercase (const u32 v)
+{
+  if (is_valid_hex_8_incl_uppercase ((u8) (v >>  0)) == 0) return 0;
+  if (is_valid_hex_8_incl_uppercase ((u8) (v >>  8)) == 0) return 0;
+  if (is_valid_hex_8_incl_uppercase ((u8) (v >> 16)) == 0) return 0;
+  if (is_valid_hex_8_incl_uppercase ((u8) (v >> 24)) == 0) return 0;
+
+  return 1;
+}
+
 DECLSPEC int is_valid_base58_8 (const u8 v)
 {
   if (v > (u8) 'z') return 0;

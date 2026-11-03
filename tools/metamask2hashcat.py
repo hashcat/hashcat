@@ -20,7 +20,7 @@ import json
 import argparse
 import base64
 
-def metamask_parser(file, shortdata):
+def metamask_parser(file, shortdata, shortdata32=False):
   try:
     isMobile = False
     wallet_data = open(file, "rb").read().decode("utf-8","ignore").replace("\\","")
@@ -71,12 +71,19 @@ def metamask_parser(file, shortdata):
       except KeyError:
         iter_count = 10_000
 
-      if((len(j['data']) > 3000) or shortdata):
+      if((len(j['data']) > 3000) or shortdata or shortdata32):
         data_bin = base64.b64decode(j['data'])
         # TODO limit data to 16 bytes, we only check the first block of data, so we don't need more data.
         #  The use of smaller buffers should speedup the attack.
         #  Still the pbkdf 10k iter will be taking the most time by far probably.
-        j['data'] = base64.b64encode(data_bin[0:64]).decode("ascii")
+
+        # m26610 checks both blocks of the vault and needs 64 bytes, m37240 checks the 32 byte
+        # prefix and needs only those. Both are re-encoded from the bytes rather than cut out of
+        # the base64 string, which would leave a last character that carries bits of the byte
+        # after the cut.
+        vault_len = 32 if shortdata32 else 64
+
+        j['data'] = base64.b64encode(data_bin[0:vault_len]).decode("ascii")
 
         if iter_count != 10000:
           print('$metamask-short$rounds=' + str(iter_count) + '$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
@@ -114,11 +121,12 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="metamask2hashcat.py extraction tool")
   parser.add_argument('--vault', required=True, help='set metamask vault (json) file from path', type=str)
   parser.add_argument('--shortdata', help='force short data, can only be used with m26610, ', action='store_true')
+  parser.add_argument('--shortdata32', help='force short data cut to 32 bytes, can only be used with m37240', action='store_true')
 
   args = parser.parse_args()
 
   if args.vault:
-      metamask_parser(args.vault, args.shortdata)
+      metamask_parser(args.vault, args.shortdata, args.shortdata32)
   else:
       parser.print_help()
       exit(1)

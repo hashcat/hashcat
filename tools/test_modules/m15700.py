@@ -9,13 +9,17 @@ import hashlib
 
 from Crypto.Hash import keccak
 
-from lib.test_helpers import random_bytes
+from lib.test_helpers import random_bytes, random_number
 
 # Ethereum wallet, scrypt variant. Same MAC as mode 15600, the derived key just comes from scrypt.
+#
+# The payload is whatever the wallet encrypted, so its length is drawn rather than fixed at the 32
+# bytes of a private key. Past 120 bytes the MAC runs to a second keccak block. The salt range
+# starts at zero because a Trust Wallet cloud backup carries an empty one.
 
 
 def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+  return [[0, 256], [0, 32], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, scrypt_N=None, scrypt_r=8, scrypt_p=1, ciphertext=None):
@@ -26,7 +30,7 @@ def module_generate_hash(word, salt, scrypt_N=None, scrypt_r=8, scrypt_p=1, ciph
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 
   if ciphertext is None:
-    ciphertext = random_bytes(32)
+    ciphertext = random_bytes(random_number(1, 256))
 
   derived_key = hashlib.scrypt(word, salt=salt_bytes, n=scrypt_N, r=scrypt_r, p=scrypt_p,
                                dklen=32, maxmem=(128 * scrypt_N * scrypt_r * 2))
