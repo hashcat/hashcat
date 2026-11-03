@@ -143,6 +143,13 @@ DECLSPEC void m08500m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
     _des_crypt_encrypt_racf_vect (iv, data, Kc, Kd, s_SPtrans);
 
     COMPARE_M_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
+
+    if (pw_len > 8)
+    {
+      const u32x z = 0;
+
+      COMPARE_M_SIMD (iv[0] ^ iv2[0], iv[1] ^ iv2[1], z, z);
+    }
   }
 }
 
@@ -240,6 +247,13 @@ DECLSPEC void m08500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
     _des_crypt_encrypt_racf_vect (iv, data, Kc, Kd, s_SPtrans);
 
     COMPARE_S_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
+
+    if (pw_len > 8)
+    {
+      const u32x z = 0;
+
+      COMPARE_S_SIMD (iv[0] ^ iv2[0], iv[1] ^ iv2[1], z, z);
+    }
   }
 }
 

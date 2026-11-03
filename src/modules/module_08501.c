@@ -214,10 +214,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[2] = hex_to_u32 (hash_pos + 16);
     digest[3] = hex_to_u32 (hash_pos + 24);
 
-    DES_IP (digest[2], digest[3]);
+    if ((digest[2] == 0x40404040) && (digest[3] == 0x40404040))
+    {
+      digest[2] = 0;
+      digest[3] = 0;
+    }
+    else
+    {
+      DES_IP (digest[2], digest[3]);
 
-    digest[2] = rotr32 (digest[2], 29);
-    digest[3] = rotr32 (digest[3], 29);
+      digest[2] = rotr32 (digest[2], 29);
+      digest[3] = rotr32 (digest[3], 29);
+    }
   }
   else
   {

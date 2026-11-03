@@ -54,12 +54,20 @@ def _des_block(username_ebc, password_chars):
 def as400_des(username, password):
   username_ebc = _fold_username(username)
 
-  out = _des_block(username_ebc, password[:8])
+  block1 = _des_block(username_ebc, password[:8])
 
-  if len(password) > 8:
-    out += _des_block(username_ebc, password[8:])
+  if len(password) <= 8:
+    return block1.hex()
 
-  return out.hex()
+  block2 = _des_block(username_ebc, password[8:])
+
+
+  if len(password) == 10:
+    folded = bytes (b1 ^ b2 for b1, b2 in zip (block1, block2))
+
+    return folded.hex()
+
+  return (block1 + block2).hex()
 
 
 def module_constraints():
