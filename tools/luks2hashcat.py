@@ -124,6 +124,7 @@ class HeaderVersion1:
         AES = auto()
         TWOFISH = auto()
         SERPENT = auto()
+        BLOWFISH = auto()
 
     class Mode(StrEnum):
         CBC_ESSIV_SHA256 = "cbc-essiv:sha256"

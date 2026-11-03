@@ -38,7 +38,7 @@ static const char *ST_HASH        = "mojolicious=eyJiYXIiOiJhYmNhYmNhYmNhYmNhYmN
 
 typedef struct mojolicious
 {
-  u32 salt_buf[1024];
+  u32 salt_buf[2048];
   u32 salt_len;
 
   u32 signature_len;

@@ -33,6 +33,11 @@ static const char *ST_HASH        = "$RAR3$*0*45109af8ab5f297a*adbf6c5385d7a4037
 
 bool        module_length_sort    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return LENGTH_SORT;     }
 
+const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/rar32hashcat.py to extract the hashes, including those of volumes";
+}
+
 typedef struct rar3_tmp
 {
   u32 dgst[5];
@@ -143,9 +148,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
+  // 16 bytes, or 32 for the end header of a volume
   token.sep[3]     = '*';
-  token.len[3]     = 32;
-  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[3] = 32;
+  token.len_max[3] = 64;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -158,23 +165,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (type_pos[0] != '0') return (PARSER_SIGNATURE_UNMATCHED);
 
+  const int crypted_len = token.len[3];
+
+  if ((crypted_len != 32) && (crypted_len != 64)) return (PARSER_CT_LENGTH);
+
   /**
    * copy data
    */
 
   salt->salt_buf[0] = hex_to_u32 (salt_pos + 0);
   salt->salt_buf[1] = hex_to_u32 (salt_pos + 8);
-  salt->salt_buf[2] = hex_to_u32 (crypted_pos +  0);
-  salt->salt_buf[3] = hex_to_u32 (crypted_pos +  8);
-  salt->salt_buf[4] = hex_to_u32 (crypted_pos + 16);
-  salt->salt_buf[5] = hex_to_u32 (crypted_pos + 24);
 
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
-  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
+  for (int i = 0, j = 0; j < crypted_len; i += 1, j += 8)
+  {
+    salt->salt_buf[2 + i] = byte_swap_32 (hex_to_u32 (crypted_pos + j));
+  }
 
-  salt->salt_len  = 24;
+  salt->salt_len  = 8 + (crypted_len / 2);
   salt->salt_iter = ROUNDS_RAR3;
 
   // there's no hash for rar3. the data which is in crypted_pos is some encrypted data and
@@ -185,19 +192,33 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
+  // the end header of a volume is 20 bytes and encrypts to 32. Everything from its volume number
+  // on is zero, so its second block decrypts to 16 zero bytes.
+
+  if (crypted_len == 64)
+  {
+    digest[0] = 0;
+    digest[1] = 0;
+  }
+
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  return snprintf (line_buf, line_size, "%s*0*%08x%08x*%08x%08x%08x%08x",
+  int line_len = snprintf (line_buf, line_size, "%s*0*%08x%08x*",
       SIGNATURE_RAR3,
       byte_swap_32 (salt->salt_buf[0]),
-      byte_swap_32 (salt->salt_buf[1]),
-      salt->salt_buf[2],
-      salt->salt_buf[3],
-      salt->salt_buf[4],
-      salt->salt_buf[5]);
+      byte_swap_32 (salt->salt_buf[1]));
+
+  const u32 crypted_words = (salt->salt_len - 8) / 4;
+
+  for (u32 i = 0; i < crypted_words; i++)
+  {
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "%08x", salt->salt_buf[2 + i]);
+  }
+
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -213,4 +234,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = module_usage_notice;
 }

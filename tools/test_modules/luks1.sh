@@ -238,6 +238,26 @@ while true; do
       cipher="twofish"
       hash="ripemd160"
       ;;
+    29514) # LUKS v1 SHA-1 + Blowfish
+      cipher="blowfish"
+      hash="sha1"
+      cipher_mode="cbc-plain64"   # Blowfish has an eight byte block, so XTS does not apply
+      ;;
+    29524) # LUKS v1 SHA-256 + Blowfish
+      cipher="blowfish"
+      hash="sha256"
+      cipher_mode="cbc-plain64"
+      ;;
+    29534) # LUKS v1 SHA-512 + Blowfish
+      cipher="blowfish"
+      hash="sha512"
+      cipher_mode="cbc-plain64"
+      ;;
+    29544) # LUKS v1 RIPEMD-160 + Blowfish
+      cipher="blowfish"
+      hash="ripemd160"
+      cipher_mode="cbc-plain64"
+      ;;
   esac
 
   case "$keysize" in

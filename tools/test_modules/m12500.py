@@ -11,10 +11,13 @@ import hashlib
 
 from Crypto.Cipher import AES
 
+from lib.test_helpers import random_bytes, random_number
+
 # RAR3-hp (password protected header). The AES-128 key comes from a 0x40000 round SHA1 over the
 # UTF-16LE password and salt, with RAR's quirk of hashing the buffer while an in-place SHA1 rewrites
 # it, and every 0x4000th round contributes one IV byte. The key is the byte swapped first 16 bytes
-# of the final digest. The check value is the first 16 bytes of AES-CBC over a fixed block.
+# of the final digest. The check value is the first 16 bytes of AES-CBC over a fixed block. A volume
+# ends in a 20 byte end header instead, 32 bytes once encrypted, whose second block is all zero.
 
 ITERATIONS = 0x40000
 
@@ -93,15 +96,41 @@ def module_constraints():
   return [[0, 128], [8, 8], [0, 20], [8, 8], [-1, -1]]
 
 
-def module_generate_hash(word, salt, iterations=None):
+def _volume_end_header():
+  # header CRC, type 0x7b, flags (next volume, data CRC, reserved space, volume number), size 0x14,
+  # data CRC and volume number, then 7 reserved and 12 padding bytes, all zero
+
+  flags = [0x400f, 0x400e][random_number(0, 1)]
+
+  head = random_bytes(2) + bytes([0x7b]) + struct.pack("<HH", flags, 0x14) + random_bytes(4)
+
+  head += struct.pack("<H", random_number(0, 99))
+
+  return head + bytes(32 - len(head))
+
+
+def module_generate_hash(word, salt, iterations=None, crypted=None):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
   key, iv = _derive(word, salt)
 
-  hash_buf = AES.new(key, AES.MODE_CBC, iv).encrypt(FIXED_RAW_STRING)
+  if crypted is None:
+    if random_number(0, 1) == 0:
+      hash_buf = AES.new(key, AES.MODE_CBC, iv).encrypt(FIXED_RAW_STRING)
+    else:
+      hash_buf = AES.new(key, AES.MODE_CBC, iv).encrypt(_volume_end_header())
+  elif len(crypted) == 32:
+    # re-encrypting what the first block decrypts to, ahead of a zero block, gives the line back
+    # only when the password is right
 
-  return "$RAR3$*0*%s*%s" % (salt.hex(), hash_buf[0:16].hex())
+    head = AES.new(key, AES.MODE_CBC, iv).decrypt(crypted)[0:16]
+
+    hash_buf = AES.new(key, AES.MODE_CBC, iv).encrypt(head + bytes(16))
+  else:
+    hash_buf = AES.new(key, AES.MODE_CBC, iv).encrypt(FIXED_RAW_STRING)
+
+  return "$RAR3$*0*%s*%s" % (salt.hex(), hash_buf.hex())
 
 
 def module_verify_hash(line):
@@ -121,8 +150,9 @@ def module_verify_hash(line):
   if idx2 < 1:
     return None
 
-  salt = bytes.fromhex(hash_in[9:idx2])
+  salt    = bytes.fromhex(hash_in[9:idx2])
+  crypted = bytes.fromhex(hash_in[idx2 + 1:])
 
-  new_hash = module_generate_hash(word, salt)
+  new_hash = module_generate_hash(word, salt, None, crypted)
 
   return (new_hash, word)

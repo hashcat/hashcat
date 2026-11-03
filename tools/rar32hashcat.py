@@ -10,8 +10,9 @@
 # https://raw.githubusercontent.com/php/pecl-file_formats-rar/master/technote.txt
 #
 # The packing method byte picks the mode: a stored file is -m 23700, a compressed one -m 23800. An
-# archive written by rar -hp has encrypted headers and cannot be read. A solid one, rar -s, gets a
-# line for its first file only.
+# archive written by rar -hp has encrypted headers, so the file headers cannot be read, and it gets
+# one -m 12500 line for its encrypted end header instead. A solid one, rar -s, gets a line for its
+# first file only.
 
 import sys
 
@@ -24,6 +25,9 @@ HEAD_TYPE_FILE = 0x74
 
 
 FLAG_ADD_SIZE      = 0x8000
+
+MAIN_FLAG_VOLUME   = 0x0001
+MAIN_FLAG_PASSWORD = 0x0080
 
 
 FLAG_ENCRYPTED     = 0x0004
@@ -154,8 +158,20 @@ def hash_lines (data: bytes, quiet: bool):
 
   main_flags = u16 (data, off + 3)
 
-  if main_flags & 0x0080:
-    raise Rar3Error ("the archive has encrypted headers, written by rar -hp, and cannot be read without the password")
+  # Every encrypted header has its own 8 byte salt in front, and the end header is the last of them.
+  # It is 7 bytes and one AES block, except in a volume, where it is 20 bytes and two blocks.
+
+  if (main_flags & MAIN_FLAG_PASSWORD) != 0:
+    tail_len = 32 if (main_flags & MAIN_FLAG_VOLUME) != 0 else 16
+
+    if (off + u16 (data, off + 5) + 8 + tail_len) > len (data):
+      raise Rar3Error ("archive ends before its encrypted end header")
+
+    tail = data[len (data) - 8 - tail_len:]
+
+    line = "$RAR3$*0*%s*%s" % (tail[0:8].hex (), tail[8:].hex ())
+
+    return [("(encrypted headers)", line)]
 
   off += u16 (data, off + 5)
 
@@ -239,7 +255,7 @@ def hash_lines (data: bytes, quiet: bool):
 
 
 def main () -> int:
-  parser = ArgumentParser (description = "extract -m 23800 hash lines from a password protected RAR3 archive")
+  parser = ArgumentParser (description = "extract -m 12500 or -m 23800 hash lines from a password protected RAR3 archive")
 
   parser.add_argument ("archive", nargs = "+", help = "the .rar file to read")
   parser.add_argument ("--quiet", action = "store_true", help = "do not say why a file was skipped")
