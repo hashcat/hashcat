@@ -37,6 +37,7 @@ typedef struct krb5pa
   u32 salt[64];
   u32 timestamp[16];
   u32 checksum[4];
+  u32 enc_timestamp_len;
 
 } krb5pa_t;
 
@@ -92,7 +93,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 6;
+  // $krb5pa$23$user$realm$salt$<enc><checksum>
+
+  token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
@@ -116,17 +119,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[3] = 128;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.len[4]     = 72;
-  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len[5]     = 32;
-  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[4] = 90;
+  token.len_max[4] = 108;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  const int data_hex_len = token.len[4];
+
+  if (data_hex_len % 2 != 0) return (PARSER_TOKEN_LENGTH);
 
   const u8 *user_pos  = token.buf[1];
   const u8 *realm_pos = token.buf[2];
@@ -136,23 +140,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int realm_len = token.len[2];
   const int salt_len  = token.len[3];
 
-  /**
-   * copy data
-   */
-
   memcpy (krb5pa->user,  user_pos,  user_len);
   memcpy (krb5pa->realm, realm_pos, realm_len);
   memcpy (krb5pa->salt,  salt_pos,  salt_len);
 
-  /**
-   * decode data
-   */
-
+  const int timestamp_hex_len = data_hex_len - 32;
   const u8 *timestamp_pos = token.buf[4];
+  const u8 *checksum_pos  = token.buf[4] + timestamp_hex_len;
 
   u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
 
-  for (int i = 0; i < 72; i += 2)
+  for (int i = 0; i < timestamp_hex_len; i += 2)
   {
     const u8 p0 = timestamp_pos[i + 0];
     const u8 p1 = timestamp_pos[i + 1];
@@ -161,7 +159,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                      | hex_convert (p0) << 4;
   }
 
-  const u8 *checksum_pos = token.buf[5];
+  krb5pa->enc_timestamp_len = timestamp_hex_len / 2;
 
   u8 *checksum_ptr = (u8 *) krb5pa->checksum;
 
@@ -209,7 +207,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char *ptr_data = data;
 
-  for (u32 i = 0; i < 36; i++, ptr_data += 2)
+  for (u32 i = 0; i < krb5pa->enc_timestamp_len; i++, ptr_data += 2)
   {
     snprintf (ptr_data, 3, "%02x", ptr_timestamp[i]);
   }
