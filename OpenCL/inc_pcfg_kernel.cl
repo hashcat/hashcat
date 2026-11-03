@@ -7,6 +7,22 @@
 #define PCFG_KERN_ATTR KERN_ATTR_PCFG ()
 #endif
 
+#ifndef PCFG_COMPARE_EXTRA_M
+#define PCFG_COMPARE_EXTRA_M(r0,r1,r2,r3)
+#endif
+
+#ifndef PCFG_COMPARE_EXTRA_S
+#define PCFG_COMPARE_EXTRA_S(r0,r1,r2,r3)
+#endif
+
+#ifndef PCFG_COMPARE_EXTRA_M_OMEN
+#define PCFG_COMPARE_EXTRA_M_OMEN(r0,r1,r2,r3,cell_pos)
+#endif
+
+#ifndef PCFG_COMPARE_EXTRA_S_OMEN
+#define PCFG_COMPARE_EXTRA_S_OMEN(r0,r1,r2,r3,cell_pos)
+#endif
+
 // The rule engine is compiled in only where the rules are applied on the device. A run without them
 // builds the kernel it built before this existed, which is what keeps the cell's speed and what keeps
 // the kernel inside what Metal's compiler will take.
@@ -185,6 +201,8 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
       const u32 r3 = dgst[3];
 
       COMPARE_M_SCALAR (r0, r1, r2, r3);
+
+      PCFG_COMPARE_EXTRA_M (r0, r1, r2, r3);
     }
 
     return;
@@ -407,6 +425,8 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
         const u32 r3 = dgst[3];
 
         COMPARE_M_SCALAR_EXTRA (r0, r1, r2, r3, cell_pos, 0);
+
+        PCFG_COMPARE_EXTRA_M_OMEN (r0, r1, r2, r3, cell_pos);
       }
     }
 
@@ -424,6 +444,8 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
       const u32 r3 = dgst[3];
 
       COMPARE_M_SCALAR (r0, r1, r2, r3);
+
+      PCFG_COMPARE_EXTRA_M (r0, r1, r2, r3);
     }
 
     #endif
@@ -531,6 +553,8 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
       const u32 r3 = dgst[3];
 
       COMPARE_S_SCALAR (r0, r1, r2, r3);
+
+      PCFG_COMPARE_EXTRA_S (r0, r1, r2, r3);
     }
 
     return;
@@ -747,6 +771,8 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
         const u32 r3 = dgst[3];
 
         COMPARE_S_SCALAR_EXTRA (r0, r1, r2, r3, cell_pos, 0);
+
+        PCFG_COMPARE_EXTRA_S_OMEN (r0, r1, r2, r3, cell_pos);
       }
     }
 
@@ -764,6 +790,8 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
       const u32 r3 = dgst[3];
 
       COMPARE_S_SCALAR (r0, r1, r2, r3);
+
+      PCFG_COMPARE_EXTRA_S (r0, r1, r2, r3);
     }
 
     #endif

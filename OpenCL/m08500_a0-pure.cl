@@ -187,6 +187,11 @@ KERNEL_FQ KERNEL_FA void m08500_mxx (KERN_ATTR_RULES ())
     }
 
     COMPARE_M_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
+
+    if (tmp.pw_len > 8)
+    {
+      COMPARE_M_SIMD (iv[0] ^ iv2[0], iv[1] ^ iv2[1], 0, 0);
+    }
   }
 }
 
@@ -326,5 +331,10 @@ KERNEL_FQ KERNEL_FA void m08500_sxx (KERN_ATTR_RULES ())
     }
 
     COMPARE_S_SIMD (iv[0], iv[1], iv2[0], iv2[1]);
+
+    if (tmp.pw_len > 8)
+    {
+      COMPARE_S_SIMD (iv[0] ^ iv2[0], iv[1] ^ iv2[1], 0, 0);
+    }
   }
 }

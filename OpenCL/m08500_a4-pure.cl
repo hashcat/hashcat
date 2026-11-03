@@ -186,6 +186,11 @@ DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS 
   return ok;
 }
 
+#define PCFG_COMPARE_EXTRA_M(r0,r1,r2,r3)               COMPARE_M_SCALAR       ((r0) ^ (r2), (r1) ^ (r3), 0, 0)
+#define PCFG_COMPARE_EXTRA_S(r0,r1,r2,r3)               COMPARE_S_SCALAR       ((r0) ^ (r2), (r1) ^ (r3), 0, 0)
+#define PCFG_COMPARE_EXTRA_M_OMEN(r0,r1,r2,r3,cell_pos) COMPARE_M_SCALAR_EXTRA ((r0) ^ (r2), (r1) ^ (r3), 0, 0, cell_pos, 0)
+#define PCFG_COMPARE_EXTRA_S_OMEN(r0,r1,r2,r3,cell_pos) COMPARE_S_SCALAR_EXTRA ((r0) ^ (r2), (r1) ^ (r3), 0, 0, cell_pos, 0)
+
 #define PCFG_KERNEL_MXX m08500_mxx
 #define PCFG_KERNEL_SXX m08500_sxx
 
