@@ -1895,6 +1895,8 @@ typedef struct hc_device_param
 
   int     at_rc;                // autotune rc
 
+  bool    at_warm;              // the kernel autotune times has just run, so a timing skips its warm-up launch
+
   int     vector_width;
 
   u32     kernel_wgs[HC_DEV_KERN_CNT];
@@ -2189,6 +2191,11 @@ typedef struct hc_device_param
   u64     kernel_params_decompress_buf64[PARAMCNT];
 
   kernel_param_t kernel_param;
+
+  // the loop_phases and loop_lanes of the tune_variant_t that kernel_param.module_tune came from
+
+  u32     kernel_loop_phases;
+  u32     kernel_loop_lanes;
 
   // Indexed by hc_dev_buf_t. The pool parts are their own array because there are several of them
   // per run; the slot HC_DEV_BUF_PCFG_POOL is what carries their per-backend allocation metadata.
@@ -2547,16 +2554,21 @@ typedef struct backend_ctx
 // launch, so the same number is a much smaller thing. A bridge whose unit is itself wide computes in
 // waves of its own width and wants many whole waves per launch, which can put its useful range in the
 // thousands, and 1024 would then express only the bottom few percent of it.
+//
+// A mode that sets OPTS_TYPE_MP_MULTI_DISABLE and OPTS_TYPE_THREAD_MULTI_DISABLE counts candidates in
+// kernel_accel as well. A memory-hard one can need tens of thousands of small candidates to fill a
+// large card, as scrypt does at r=1, and KERNEL_ACCEL_MAX_CANDIDATES is the ceiling for those.
 
 typedef enum kernel_workload
 {
-  KERNEL_ACCEL_MIN        = 1,
-  KERNEL_ACCEL_MAX        = 1024,
-  KERNEL_ACCEL_MAX_BRIDGE = 16384,
-  KERNEL_LOOPS_MIN        = 1,
-  KERNEL_LOOPS_MAX        = 1024,
-  KERNEL_THREADS_MIN      = 1,
-  KERNEL_THREADS_MAX      = 1024,
+  KERNEL_ACCEL_MIN            = 1,
+  KERNEL_ACCEL_MAX            = 1024,
+  KERNEL_ACCEL_MAX_BRIDGE     = 16384,
+  KERNEL_ACCEL_MAX_CANDIDATES = 65536,
+  KERNEL_LOOPS_MIN            = 1,
+  KERNEL_LOOPS_MAX            = 1024,
+  KERNEL_THREADS_MIN          = 1,
+  KERNEL_THREADS_MAX          = 1024,
 
 } kernel_workload_t;
 
@@ -4355,6 +4367,28 @@ typedef struct module_option
 
 } module_option_t;
 
+// One way a module can run its kernels, see module_tune_variants (). module_tune is what the kernel
+// reads from kernel_param->module_tune, and kernel_accel the candidates the variant launches with.
+// loop_phases names the loop phases whose kernels module_tune governs, bit 0 for loop_prepare and
+// loop, bit 1 for loop2_prepare and loop2, bit 2 for loop3_prepare and loop3, and autotune times the
+// loop kernel of the first of them. loop_lanes is how many work items one candidate takes in those
+// loop kernels, where several candidates share a work group, and 0 keeps the whole work group per
+// candidate that OPTS_TYPE_THREAD_MULTI_DISABLE gives. loop_launches is how many launches of that
+// loop kernel one candidate's whole run costs, the other kernels it needs counted as their share of
+// that, so that the time of one launch makes a speed.
+
+typedef struct tune_variant
+{
+  u32    module_tune;
+  u32    kernel_accel;
+  u32    loop_phases;
+  u32    loop_lanes;
+  double loop_launches;
+
+} tune_variant_t;
+
+#define TUNE_VARIANTS_MAX 128
+
 typedef struct module_ctx
 {
   size_t      module_context_size;
@@ -4455,6 +4489,8 @@ typedef struct module_ctx
   int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const void *, const u32 *, const size_t, const int, u32 *, const size_t);
 
   bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hc_device_param_t *);
+
+  u32         (*module_tune_variants)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *, tune_variant_t *, const u32);
 
   bool        (*module_potfile_custom_check)    (const hashconfig_t *, const hash_t *, const hash_t *, const void *);
 

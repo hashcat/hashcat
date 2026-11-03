@@ -298,7 +298,13 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     {
       kernel_accel = (int) strtol (token_ptr[4], NULL, 10);
 
-      if ((kernel_accel < 1) || (kernel_accel > 1024))
+      // A module whose kernel_accel counts candidates, as the scrypt modes do, builds rows well past
+      // 1024 for its devices, filed under a MODULE_ device name. A row from a file keeps the ceiling
+      // it always had.
+
+      const int kernel_accel_ceiling = (strncmp (token_ptr[0], "MODULE_", 7) == 0) ? KERNEL_ACCEL_MAX_CANDIDATES : KERNEL_ACCEL_MAX;
+
+      if ((kernel_accel < 1) || (kernel_accel > kernel_accel_ceiling))
       {
         event_log_warning (hashcat_ctx, "Tuning-db: %s: Invalid kernel_accel '%d' in Line '%d'", source, kernel_accel, line_num);
 

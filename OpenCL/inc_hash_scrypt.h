@@ -25,6 +25,61 @@
 #define SALSA_CNT4 (SALSA_SZ / 4)
 #define SALSA_CNT44 ((SALSA_SZ / 4) / 4)
 
+// the most iterations of the second loop one launch runs, which is the kernel_loops of every scrypt
+// module, or N where that is less
+
+#define SCRYPT_LOOP_MAX ((SCRYPT_N < 2048) ? SCRYPT_N : 2048)
+
+// module_tune as the scrypt modules fill it, see scrypt_module_tune_variants (): the TMTO in the low
+// byte, and whether the four-lane kernel runs.
+
+#define SCRYPT_TUNE_TMTO(t)  ((t) & 0xff)
+#define SCRYPT_TUNE_LANES4   (1u << 8)
+
+// The single-lane entry points that take SCRYPT_TMTO as a build constant stay for plugins written
+// against them.
+
+#ifndef SCRYPT_TMTO
+#define SCRYPT_TMTO 0
+#endif
+
+// SCRYPT_COOP comes from the module and asks for the four-lane kernel to be built beside the
+// single-lane one, for module_tune to choose between at run time. It is built where the kernel has a
+// lane exchange of its own and the work group is 32 lanes. Anywhere else only the single-lane kernel
+// is, and it runs on the same launch and the same V layout.
+
+#if defined SCRYPT_COOP && defined FIXED_LOCAL_SIZE
+#if FIXED_LOCAL_SIZE == 32
+#if defined IS_CUDA || defined IS_HIP || (defined IS_NV && defined IS_GPU) || defined HC_SHFL_AMDGCN
+#define SCRYPT_COOP_LANES
+#define SCRYPT_COOP_GROUP (FIXED_LOCAL_SIZE / 4)
+#endif
+#endif
+#endif
+
+// Whether module_tune runs the four-lane kernel. Past r=2 the host lists only the four-lane kernel
+// where it is built, see scrypt_tune_variants (), so the single-lane kernel stays out of the build
+// there and its spills do not size the stack of the four-lane kernel.
+
+#if defined SCRYPT_COOP_LANES
+#if SCRYPT_R > 2
+#define SCRYPT_COOP_RUNS(t) (true)
+#else
+#define SCRYPT_COOP_RUNS(t) (((t) & SCRYPT_TUNE_LANES4) != 0)
+#endif
+#endif
+
+// Where the single-lane kernel is written so that X and T stay in registers, see scrypt_shuffle () in
+// inc_hash_scrypt.cl: at r <= 2, and only where no four-lane kernel is built. Beside one, under HIP,
+// autotune's short launches then timed the single-lane kernel faster than four lanes and it ran 8
+// percent slower, and NVIDIA keeps the arrays in registers without it.
+
+#if SCRYPT_R <= 2
+#ifndef SCRYPT_COOP_LANES
+#define SCRYPT_SINGLE_REGS
+#endif
+#endif
+
 // should be safe, because in backend.c we use:
 //    u64 size_extra_buffer1 = 4096;
 //  size_extra_buffer1 += base_chunk_size;

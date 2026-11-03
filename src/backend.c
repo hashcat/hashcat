@@ -3783,6 +3783,28 @@ static u32 launch_vector_width (const hashconfig_t *hashconfig, const hc_device_
   return vector_width;
 }
 
+// How many work items a launch of a mode with OPTS_TYPE_THREAD_MULTI_DISABLE gives one candidate. The
+// flag gives each a whole work group, and that stays where the module's tuning variant does not say
+// otherwise. Where it does, the loop kernels of the phases it names give a candidate loop_lanes work
+// items, several candidates to a work group, and every other kernel of the mode one, see
+// tune_variant_t. Whole work groups there would launch up to 32 times the groups the work needs, and
+// on an RTX 4090 that cost the single-lane scrypt kernel 17 percent of its speed.
+
+static u64 launch_items_per_candidate (const hc_device_param_t *device_param, const u32 kern_run, const u64 kernel_threads)
+{
+  if (device_param->kernel_loop_lanes == 0) return kernel_threads;
+
+  u32 phase = 0;
+
+  if ((kern_run == KERN_RUN_2P)     || (kern_run == KERN_RUN_2))     phase = 1u << 0;
+  if ((kern_run == KERN_RUN_LOOP2P) || (kern_run == KERN_RUN_LOOP2)) phase = 1u << 1;
+  if ((kern_run == KERN_RUN_LOOP3P) || (kern_run == KERN_RUN_LOOP3)) phase = 1u << 2;
+
+  const u64 items = ((device_param->kernel_loop_phases & phase) != 0) ? device_param->kernel_loop_lanes : 1;
+
+  return items;
+}
+
 // A batch shorter than one full launch, a small wordlist or the end of any wordlist, used to run in
 // work groups of the tuned thread count. 1000 candidates at 1024 threads are one work group, so one
 // compute unit does all the work while the others idle, and for a slow hash that costs seconds.
@@ -4099,6 +4121,10 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     {
       num_elements = CEILDIV (num_elements, kernel_threads);
     }
+    else
+    {
+      num_elements = CEILDIV (num_elements * launch_items_per_candidate (device_param, kern_run, kernel_threads), kernel_threads);
+    }
 
     if (kern_run == KERN_RUN_1)
     {
@@ -4151,7 +4177,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
       blockDimY = dimy;
 
-    if (is_autotune == true)
+    if ((is_autotune == true) && (device_param->at_warm == false))
     {
       if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
     }
@@ -4237,6 +4263,10 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     {
       num_elements = CEILDIV (num_elements, kernel_threads);
     }
+    else
+    {
+      num_elements = CEILDIV (num_elements * launch_items_per_candidate (device_param, kern_run, kernel_threads), kernel_threads);
+    }
 
     if (kern_run == KERN_RUN_1)
     {
@@ -4291,7 +4321,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     //printf ("%d %d %d %d %d %d %d\n", kern_run, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ);
 
-    if (is_autotune == true)
+    if ((is_autotune == true) && (device_param->at_warm == false))
     {
       if (hc_hipLaunchKernel (hashcat_ctx, hip_function, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, dynamic_shared_mem, device_param->hip_stream, device_param->kernel_params, NULL) == -1) return -1;
     }
@@ -4428,7 +4458,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
     else
     {
-      num_elements = num_elements * kernel_threads;
+      num_elements = round_up_multiple_32 (num_elements * launch_items_per_candidate (device_param, kern_run, kernel_threads), kernel_threads);
     }
 
     unsigned int work_dim = 1;
@@ -4456,7 +4486,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     double ms = 0;
 
-    if (is_autotune == true)
+    if ((is_autotune == true) && (device_param->at_warm == false))
     {
       hc_mtlEncodeComputeCommand (hashcat_ctx, device_param, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, &ms);
 
@@ -4595,7 +4625,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
     else
     {
-      num_elements = num_elements * kernel_threads;
+      num_elements = round_up_multiple_64 (num_elements * launch_items_per_candidate (device_param, kern_run, kernel_threads), kernel_threads);
     }
 
     size_t global_work_size[3] = { num_elements,   1, 1 };
@@ -4621,7 +4651,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       work_dim = 2;
     }
 
-    if (is_autotune == true)
+    if ((is_autotune == true) && (device_param->at_warm == false))
     {
       // This event is never read: the enqueue below overwrites the handle before anything looks at
       // it, and only that second one reaches hc_clReleaseEvent (). Asking for none leaves nothing
@@ -12268,10 +12298,37 @@ int backend_ctx_device_group_size (const hashcat_ctx_t *hashcat_ctx, const int b
   return cnt;
 }
 
+// Whether a device lists the way to run named by module_tune at this many candidates or more, see
+// module_tune_variants (). Its buffers were sized for its own list, so that is where another device's
+// pick can go.
+
+static bool backend_tune_variant_fits (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 module_tune, const u32 kernel_accel)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
+  const module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  tune_variant_t variants[TUNE_VARIANTS_MAX];
+
+  const u32 variants_cnt = module_ctx->module_tune_variants (hashconfig, user_options, user_options_extra, hashes, device_param, variants, TUNE_VARIANTS_MAX);
+
+  for (u32 i = 0; i < variants_cnt; i++)
+  {
+    if (variants[i].module_tune != module_tune) continue;
+
+    if (variants[i].kernel_accel >= kernel_accel) return true;
+  }
+
+  return false;
+}
+
 void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t   *backend_ctx  = hashcat_ctx->backend_ctx;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  module_ctx_t    *module_ctx   = hashcat_ctx->module_ctx;
 
   if (backend_ctx->enabled == false) return;
 
@@ -12362,6 +12419,21 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       // an uneven batch size is a far better outcome than an out of bounds launch. kernel_threads_max
       // comes out of the same sizing and is clamped for the same reason. kernel_loops is not, because
       // nothing in the sizing lowers kernel_loops_max.
+
+      // A module that runs its kernels in one of several ways picks one per device, and kernel_accel
+      // only holds together with the way it was picked for. So the way travels with the count, and
+      // only to a device that lists it at that count or more. Anywhere else the device keeps its own
+      // pick, because the count alone could ask for more memory than its buffers hold.
+
+      if (module_ctx->module_tune_variants != MODULE_DEFAULT)
+      {
+        if (backend_tune_variant_fits (hashcat_ctx, device_param_dst, device_param_src->kernel_param.module_tune, device_param_src->kernel_accel) == false) continue;
+
+        device_param_dst->kernel_param.module_tune = device_param_src->kernel_param.module_tune;
+
+        device_param_dst->kernel_loop_phases = device_param_src->kernel_loop_phases;
+        device_param_dst->kernel_loop_lanes  = device_param_src->kernel_loop_lanes;
+      }
 
       // The group size is aligned first, because the accel ceiling below depends on it.
 
@@ -15238,11 +15310,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // every mode, where a value applies to the modes that allow it and the speed line shows what
       // each one ran with. The tighter ceiling of a non-bridge mode still holds there, because a
       // bridge counts candidates where every other mode multiplies a multiprocessor load, and the
-      // bridge block further down clamps it into what the device has allocated for.
+      // bridge block further down clamps it into what the device has allocated for. A mode that counts
+      // candidates in kernel_accel, as the scrypt modes do, raises its own ceiling above that one.
 
-      if ((hashconfig->bridge_type == 0) && (_kernel_accel > KERNEL_ACCEL_MAX))
+      const u32 kernel_accel_ceiling = MAX (KERNEL_ACCEL_MAX, hashconfig->kernel_accel_max);
+
+      if ((hashconfig->bridge_type == 0) && (_kernel_accel > kernel_accel_ceiling))
       {
-        event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= %d for this hash-mode.", KERNEL_ACCEL_MAX);
+        event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= %u for this hash-mode.", kernel_accel_ceiling);
 
         return -1;
       }
@@ -16704,6 +16779,30 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.salt_repeat         = 0;
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
+    device_param->kernel_param.module_tune         = 0;
+
+    device_param->kernel_loop_phases = 0;
+    device_param->kernel_loop_lanes  = 0;
+
+    // A module that runs its kernels in more than one way starts in the first one it lists. The
+    // self-test runs a single candidate in it, and a run that keeps the minimum values after autotune
+    // failed uses it at kernel_accel_min. autotune then times every way. The buffers hold the most
+    // candidates any way takes, so the first need not be the one that takes the most.
+
+    if (module_ctx->module_tune_variants != MODULE_DEFAULT)
+    {
+      tune_variant_t variants[TUNE_VARIANTS_MAX];
+
+      const u32 variants_cnt = module_ctx->module_tune_variants (hashconfig, user_options, user_options_extra, hashes, device_param, variants, TUNE_VARIANTS_MAX);
+
+      if (variants_cnt > 0)
+      {
+        device_param->kernel_param.module_tune = variants[0].module_tune;
+
+        device_param->kernel_loop_phases = variants[0].loop_phases;
+        device_param->kernel_loop_lanes  = variants[0].loop_lanes;
+      }
+    }
 
     device_param->kernel_params[ 0] = NULL; // hc_dev_kern_arg (device_param, HC_DEV_BUF_PWS_BUF);
     device_param->kernel_params[ 1] = hc_dev_kern_arg (device_param, HC_DEV_BUF_RULES_C);

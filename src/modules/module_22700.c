@@ -26,6 +26,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
+                                  | OPTS_TYPE_THREAD_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS;
 static const u64   KERN_BITS      = KERN_BIT_LOOP_PREPARE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -170,10 +171,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_jit_build_options        = scrypt_module_jit_build_options;
+  module_ctx->module_kernel_accel_max         = scrypt_module_kernel_accel_max;
   module_ctx->module_kernel_loops_max         = scrypt_module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = scrypt_module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = scrypt_module_kernel_threads_max;
   module_ctx->module_kern_bits                = module_kern_bits;
   module_ctx->module_register_options         = scrypt_module_register_options;
   module_ctx->module_tmp_size                 = scrypt_module_tmp_size;
+  module_ctx->module_tune_variants            = scrypt_module_tune_variants;
 }

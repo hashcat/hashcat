@@ -315,6 +315,7 @@ static void module_ctx_defaults (module_ctx_t *module_ctx)
   if (module_ctx->module_st_hash                 == NULL) module_ctx->module_st_hash                 = MODULE_DEFAULT;
   if (module_ctx->module_st_pass                 == NULL) module_ctx->module_st_pass                 = MODULE_DEFAULT;
   if (module_ctx->module_tmp_size                == NULL) module_ctx->module_tmp_size                = MODULE_DEFAULT;
+  if (module_ctx->module_tune_variants           == NULL) module_ctx->module_tune_variants           = MODULE_DEFAULT;
   if (module_ctx->module_unstable_warning        == NULL) module_ctx->module_unstable_warning        = MODULE_DEFAULT;
   if (module_ctx->module_warmup_disable          == NULL) module_ctx->module_warmup_disable          = MODULE_DEFAULT;
 }

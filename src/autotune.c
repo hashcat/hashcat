@@ -1655,6 +1655,238 @@ static void autotune3 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   out_threads[0] = threads;
 }
 
+// A module that can run its kernels in more than one way lists the ways in module_tune_variants (),
+// each with the kernel_accel it runs at and the loop launches one candidate costs in it. Each way is
+// timed on one launch of the loop kernel, all of them in turn, and the ways within
+// AUTOTUNE_VARIANT_CLOSE of the fastest once more, so that a clock still rising after the self-test
+// favours none of them. The fastest wins, unless another one within AUTOTUNE_VARIANT_SLACK of it holds
+// at most AUTOTUNE_VARIANT_FEWER of its candidates, which fills the device from a shorter wordlist and
+// loses less to the last launch of an attack. A count only a few percent smaller does neither, and the
+// timings cannot rank two such neighbours: on an RX 7900 XTX mode 8900 took 5760 candidates over 5928
+// that way and ran 2 percent slower.
+//
+// Before that, every way runs once at AUTOTUNE_VARIANT_PROBE times fewer loop iterations, and a way
+// below AUTOTUNE_VARIANT_DROP of the best of those is not timed further. A module can list ways that
+// are far from the best on a given device, and whole launches of those would only lengthen the start.
+//
+// Nor does the first round need whole launches. A way whose launch the probe puts above
+// AUTOTUNE_VARIANT_LONG milliseconds runs it with fewer loop iterations, as many as take about that
+// long but at least one in AUTOTUNE_VARIANT_CUT, and keeps its probe where the probe already ran
+// that long. Fewer iterations read slow, by 7.4 percent at most at a quarter of them on an RTX 4090
+// and an RX 7900 XTX, and the second round still times every way within AUTOTUNE_VARIANT_CLOSE of the
+// fastest on a whole launch. On an RX 7900 XTX mode 24000 spent 9 of its 14 seconds of autotune on
+// whole launches of ways at most 0.83 as fast as the one it picked.
+//
+// The loop kernel runs on the states the init kernel computes from the fake words, as in a real run.
+// What the self-test leaves behind is mostly zeros, and a kernel that takes its memory accesses from
+// its state can then walk a path no real run takes.
+
+#define AUTOTUNE_VARIANT_SLACK 0.02
+#define AUTOTUNE_VARIANT_FEWER 0.90
+#define AUTOTUNE_VARIANT_CLOSE 0.90
+#define AUTOTUNE_VARIANT_PROBE 16
+#define AUTOTUNE_VARIANT_DROP  0.50
+#define AUTOTUNE_VARIANT_LONG  100
+#define AUTOTUNE_VARIANT_CUT   4
+
+// Candidates per millisecond of a whole run, from the time of one loop launch. The count is the one
+// the launch held, which an association attack trims to the number of salts whatever kernel_accel
+// asks for.
+
+static double autotune_variant_rate (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const tune_variant_t *variant, const u32 kernel_threads, const double msec)
+{
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, autotune_hardware_power (hashcat_ctx, device_param, kernel_threads) * variant->kernel_accel);
+
+  const double msec_run = msec * variant->loop_launches;
+
+  const double rate = (msec_run > 0) ? (kernel_power / msec_run) : 0;
+
+  return rate;
+}
+
+static int autotune_variants (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_loops, const u32 kernel_threads, const u32 kernel_threads_max, const u32 kernel_power_max, u32 *kernel_accel)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
+  const module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (module_ctx->module_tune_variants == MODULE_DEFAULT) return 0;
+
+  tune_variant_t variants[TUNE_VARIANTS_MAX];
+
+  const u32 variants_cnt = module_ctx->module_tune_variants (hashconfig, user_options, user_options_extra, hashes, device_param, variants, TUNE_VARIANTS_MAX);
+
+  // one way needs no timing, and backend.c has already set it
+
+  if (variants_cnt < 2) return 0;
+
+  // The loop kernel of the first phase the variants govern is what gets timed, and the init kernels
+  // up to that phase run first so that it starts from the state they hand it.
+
+  const u32 loop_phases = variants[0].loop_phases;
+
+  u32 kern_run_loop = KERN_RUN_2;
+
+  if ((loop_phases & 1) == 0)
+  {
+    kern_run_loop = ((loop_phases & 2) != 0) ? KERN_RUN_LOOP2 : KERN_RUN_LOOP3;
+  }
+
+  const u32 kernel_threads_sav = device_param->kernel_threads;
+
+  device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_1], kernel_threads_max);
+
+  int rc_init = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0, true);
+
+  if ((rc_init == 0) && (kern_run_loop != KERN_RUN_2) && ((hashconfig->kern_bits & KERN_BIT_INIT2) != 0))
+  {
+    device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_INIT2], kernel_threads_max);
+
+    rc_init = run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 0, kernel_power_max, false, 0, true);
+  }
+
+  if ((rc_init == 0) && (kern_run_loop == KERN_RUN_LOOP3) && ((hashconfig->kern_bits & KERN_BIT_INIT3) != 0))
+  {
+    device_param->kernel_threads = MIN (device_param->kernel_wgs[HC_DEV_KERN_INIT3], kernel_threads_max);
+
+    rc_init = run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT3, 0, kernel_power_max, false, 0, true);
+  }
+
+  device_param->kernel_threads = kernel_threads_sav;
+
+  if (rc_init == -1) return -1;
+
+  const u32 module_tune_sav = device_param->kernel_param.module_tune;
+  const u32 loop_phases_sav = device_param->kernel_loop_phases;
+  const u32 loop_lanes_sav  = device_param->kernel_loop_lanes;
+
+  const u32 kernel_loops_probe = MAX (kernel_loops / AUTOTUNE_VARIANT_PROBE, 1);
+
+  const double probe_scale = (double) kernel_loops / kernel_loops_probe;
+
+  double rate_probe[TUNE_VARIANTS_MAX];
+  double msec_probe[TUNE_VARIANTS_MAX];
+
+  double rate_probe_best = 0;
+
+  for (u32 i = 0; i < variants_cnt; i++)
+  {
+    device_param->kernel_param.module_tune = variants[i].module_tune;
+    device_param->kernel_loop_phases       = variants[i].loop_phases;
+    device_param->kernel_loop_lanes        = variants[i].loop_lanes;
+
+    msec_probe[i] = try_run_kern (hashcat_ctx, device_param, kern_run_loop, variants[i].kernel_accel, kernel_loops_probe, kernel_threads);
+
+    rate_probe[i] = autotune_variant_rate (hashcat_ctx, device_param, &variants[i], kernel_threads, msec_probe[i] * probe_scale);
+
+    rate_probe_best = MAX (rate_probe_best, rate_probe[i]);
+
+    // run_kernel () puts an untimed launch before every autotune timing, which here would double the
+    // whole pass. The first probe keeps it for the kernel's first launch, and from then on the loop
+    // kernel runs back to back.
+
+    device_param->at_warm = true;
+  }
+
+  bool keep[TUNE_VARIANTS_MAX];
+
+  for (u32 i = 0; i < variants_cnt; i++) keep[i] = (rate_probe[i] >= (rate_probe_best * AUTOTUNE_VARIANT_DROP));
+
+  double rate[TUNE_VARIANTS_MAX];
+
+  double rate_best = 0;
+
+  const u32 kernel_loops_cut = MAX (kernel_loops / AUTOTUNE_VARIANT_CUT, 1);
+
+  for (u32 round = 0; round < 2; round++)
+  {
+    const double rate_close = rate_best * AUTOTUNE_VARIANT_CLOSE;
+
+    for (u32 i = 0; i < variants_cnt; i++)
+    {
+      if (keep[i] == false) continue;
+
+      if ((round == 1) && (rate[i] < rate_close)) continue;
+
+      device_param->kernel_param.module_tune = variants[i].module_tune;
+      device_param->kernel_loop_phases       = variants[i].loop_phases;
+      device_param->kernel_loop_lanes        = variants[i].loop_lanes;
+
+      u32 kernel_loops_run = kernel_loops;
+
+      const double msec_full = msec_probe[i] * probe_scale;
+
+      if ((round == 0) && (msec_full > AUTOTUNE_VARIANT_LONG))
+      {
+        if (msec_probe[i] >= AUTOTUNE_VARIANT_LONG)
+        {
+          rate[i] = rate_probe[i];
+
+          rate_best = MAX (rate_best, rate[i]);
+
+          continue;
+        }
+
+        const u32 kernel_loops_long = (u32) (kernel_loops * (AUTOTUNE_VARIANT_LONG / msec_full));
+
+        kernel_loops_run = MAX (kernel_loops_long, kernel_loops_cut);
+      }
+
+      const double exec_msec = try_run_kern (hashcat_ctx, device_param, kern_run_loop, variants[i].kernel_accel, kernel_loops_run, kernel_threads);
+
+      const double exec_rate = autotune_variant_rate (hashcat_ctx, device_param, &variants[i], kernel_threads, exec_msec * ((double) kernel_loops / kernel_loops_run));
+
+      rate[i] = (round == 0) ? exec_rate : MAX (rate[i], exec_rate);
+
+      rate_best = MAX (rate_best, rate[i]);
+    }
+  }
+
+  device_param->kernel_param.module_tune = module_tune_sav;
+  device_param->kernel_loop_phases       = loop_phases_sav;
+  device_param->kernel_loop_lanes        = loop_lanes_sav;
+
+  device_param->at_warm = false;
+
+  u32 best = 0;
+
+  for (u32 i = 0; i < variants_cnt; i++)
+  {
+    if (keep[i] == false) rate[i] = 0;
+
+    if (rate[i] > rate[best]) best = i;
+  }
+
+  // a launch that failed to time leaves the setting backend.c made
+
+  if (rate[best] == 0) return 0;
+
+  u32 pick = best;
+
+  for (u32 i = 0; i < variants_cnt; i++)
+  {
+    if (rate[i] < (rate[best] * (1.0 - AUTOTUNE_VARIANT_SLACK))) continue;
+
+    if ((i != best) && (variants[i].kernel_accel > (variants[best].kernel_accel * AUTOTUNE_VARIANT_FEWER))) continue;
+
+    if (variants[i].kernel_accel > variants[pick].kernel_accel) continue;
+
+    if ((variants[i].kernel_accel == variants[pick].kernel_accel) && (rate[i] <= rate[pick])) continue;
+
+    pick = i;
+  }
+
+  device_param->kernel_param.module_tune = variants[pick].module_tune;
+  device_param->kernel_loop_phases       = variants[pick].loop_phases;
+  device_param->kernel_loop_lanes        = variants[pick].loop_lanes;
+
+  *kernel_accel = variants[pick].kernel_accel;
+
+  return 0;
+}
+
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -1792,6 +2024,31 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (run_kernel_atinit (hashcat_ctx, device_param, device_param->d_buf[HC_DEV_BUF_PWS_BUF], kernel_power_max) == -1) return -1;
 
+  // A module that lists the ways it can run decides kernel_accel by timing them, see
+  // autotune_variants (). From there it is tuned as if -n had been given.
+
+  device_param->at_rc = -7;
+
+  u32 variant_accel = 0;
+
+  if (autotune_variants (hashcat_ctx, device_param, kernel_loops, kernel_threads, kernel_threads_max, kernel_power_max, &variant_accel) == -1) return -1;
+
+  if (variant_accel > 0)
+  {
+    kernel_accel_min = variant_accel;
+    kernel_accel_max = variant_accel;
+
+    kernel_accel = variant_accel;
+
+    // what --force falls back to if autotune fails from here has to be the way picked
+
+    if (user_options->force == true)
+    {
+      device_param->kernel_accel = variant_accel;
+      device_param->kernel_power = device_param->hardware_power * variant_accel;
+    }
+  }
+
   // in this case the user specified a fixed -n and -u on the commandline
   // no way to tune anything
   // but we need to run a few caching rounds
@@ -1807,8 +2064,9 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     // A unit the bridge sized is not warmed up either. Its launches go to the bridge's hardware, which
     // has no kernel cache to fill, and at a high iteration count each of the four is a full launch.
+    // Nor is a way autotune_variants () picked: it has just timed the loop kernel in that way.
 
-    if ((hashconfig->warmup_disable == false) && (bridge_fixed == false))
+    if ((hashconfig->warmup_disable == false) && (bridge_fixed == false) && (variant_accel == 0))
     {
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads);

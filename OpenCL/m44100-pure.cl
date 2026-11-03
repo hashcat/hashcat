@@ -67,33 +67,18 @@ KERNEL_FQ KERNEL_FA void m44100_loop_prepare (KERN_ATTR_TMPS (androidfde_km_tmp_
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
   const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
-
-  u32 X[STATE_CNT4];
-
-  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
-
-  scrypt_smix_init (P, X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+  scrypt_smix_init_kernel (tmps[0].out, sizeof (tmps[0]), d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, bid, GID_CNT, SALT_REPEAT, MODULE_TUNE);
 }
 
 KERNEL_FQ KERNEL_FA void m44100_loop (KERN_ATTR_TMPS (androidfde_km_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
   const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
-
-  u32 X[STATE_CNT4];
-  u32 T[STATE_CNT4];
-
-  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
-
-  scrypt_smix_loop (P, X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+  scrypt_smix_loop_kernel (tmps[0].out, sizeof (tmps[0]), d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, bid, GID_CNT, SALT_REPEAT, MODULE_TUNE, LOOP_CNT);
 }
 
 // The boundary between the first and second pass, so this kernel holds the RSA operation and
@@ -168,33 +153,18 @@ KERNEL_FQ KERNEL_FA void m44100_loop2_prepare (KERN_ATTR_TMPS (androidfde_km_tmp
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
   const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
-
-  u32 X[STATE_CNT4];
-
-  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
-
-  scrypt_smix_init (P, X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+  scrypt_smix_init_kernel (tmps[0].out, sizeof (tmps[0]), d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, bid, GID_CNT, SALT_REPEAT, MODULE_TUNE);
 }
 
 KERNEL_FQ KERNEL_FA void m44100_loop2 (KERN_ATTR_TMPS (androidfde_km_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
   const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
-
-  u32 X[STATE_CNT4];
-  u32 T[STATE_CNT4];
-
-  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
-
-  scrypt_smix_loop (P, X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+  scrypt_smix_loop_kernel (tmps[0].out, sizeof (tmps[0]), d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, bid, GID_CNT, SALT_REPEAT, MODULE_TUNE, LOOP_CNT);
 }
 
 // The boundary between the second and third pass. No RSA here, just the rechain.
@@ -230,33 +200,18 @@ KERNEL_FQ KERNEL_FA void m44100_loop3_prepare (KERN_ATTR_TMPS (androidfde_km_tmp
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
   const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
-
-  u32 X[STATE_CNT4];
-
-  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
-
-  scrypt_smix_init (P, X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+  scrypt_smix_init_kernel (tmps[0].out, sizeof (tmps[0]), d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, bid, GID_CNT, SALT_REPEAT, MODULE_TUNE);
 }
 
 KERNEL_FQ KERNEL_FA void m44100_loop3 (KERN_ATTR_TMPS (androidfde_km_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
-  const u64 lsz = get_local_size (0);
   const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
-
-  u32 X[STATE_CNT4];
-  u32 T[STATE_CNT4];
-
-  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
-
-  scrypt_smix_loop (P, X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+  scrypt_smix_loop_kernel (tmps[0].out, sizeof (tmps[0]), d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, bid, GID_CNT, SALT_REPEAT, MODULE_TUNE, LOOP_CNT);
 }
 
 KERNEL_FQ KERNEL_FA void m44100_comp (KERN_ATTR_TMPS (androidfde_km_tmp_t))

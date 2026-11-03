@@ -810,15 +810,16 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .excludes     = { OPT_REMOVE },
   },
 
-  // The ceiling here is the one a bridge allows, where kernel_accel counts candidates. Every other
-  // mode is held against its own range once it is loaded, which is LATE_MODULE_ACCEL.
+  // The ceiling here is the highest any mode allows, where kernel_accel counts candidates as a bridge
+  // and the scrypt modes do. Every mode is held against its own range once it is loaded, which is
+  // LATE_MODULE_ACCEL.
 
   [OPT_KERNEL_ACCEL] =
   {
     .type         = OPTION_TYPE_U32,
     .flags        = OPTION_FLAG_MIN | OPTION_FLAG_MAX,
     .min          = 1,
-    .max          = KERNEL_ACCEL_MAX_BRIDGE,
+    .max          = KERNEL_ACCEL_MAX_CANDIDATES,
     .def          = KERNEL_ACCEL,
     .actions      = ACT_CRACK | ACT_BENCHMARK | ACT_SPEED_ONLY,
     .requires     = { OPT_FORCE },

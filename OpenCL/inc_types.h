@@ -24,6 +24,7 @@
 #define PWS_POS             kernel_param->pws_pos
 #define GID_CNT             kernel_param->gid_max
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
+#define MODULE_TUNE         kernel_param->module_tune
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
 #define PCFG_POOL_AT1       kernel_param->pcfg_pool_at1
@@ -42,6 +43,7 @@
 #define PWS_POS             kernel_param->pws_pos
 #define GID_CNT             kernel_param->gid_max
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
+#define MODULE_TUNE         kernel_param->module_tune
 #endif
 
 #ifdef IS_CUDA
@@ -2122,6 +2124,11 @@ typedef struct kernel_param
   u32 pcfg_pool_at1;        // 40
   u32 pcfg_pool_at2;        // 41
   u32 pcfg_pool_at3;        // 42
+
+  // The way to run the kernels that autotune picked for this device out of module_tune_variants (),
+  // read at run time so that one build serves them all. Zero for a module without that hook.
+
+  u32 module_tune;          // 43
 
 } kernel_param_t;
 

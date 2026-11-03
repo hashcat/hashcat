@@ -102,6 +102,8 @@ int         module_build_plain_postprocess  (MAYBE_UNUSED const hashconfig_t *ha
 
 bool        module_unstable_warning         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param);
 
+u32         module_tune_variants            (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param, tune_variant_t *variants, const u32 variants_size);
+
 bool        module_potfile_custom_check     (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hash_t *db, MAYBE_UNUSED const hash_t *entry_hash, MAYBE_UNUSED const void *entry_tmps);
 
 const module_option_t *module_register_options (void);

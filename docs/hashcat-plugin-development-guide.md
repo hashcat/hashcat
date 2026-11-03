@@ -627,6 +627,18 @@ A mode without options of its own leaves the callback unassigned, like every oth
 
 hashcat keeps the rows every module registers in a cache file, `module_options.so.cache` (`module_options.dll.cache` on Windows) in the cache directory that `--cache-path` moves, so that a start reads one file instead of loading every module. The file records the name, size and modification time of each module file and the hashcat build that wrote it. A start that finds a module added, removed, rebuilt or touched since then loads all modules again and rewrites the file, so a module under development needs nothing extra. The rows a module returns therefore have to depend on nothing but the module itself. A `check` callback is not kept in the file: it runs from the loaded module of the hash-mode in use, and only for that hash-mode. `HASHCAT_MODULE_CACHE_DISABLE=1` makes every start load the modules instead, and `--module-cache-rebuild`, which `--help` does not list, writes the file and exits.
 
+### module_tune_variants() ###
+
+The `module_tune_variants()` callback provides autotune with the available ways to run a mode's kernels on a device. It allows a single kernel build to support settings that a JIT build option would otherwise fix for the entire run, such as the TMTO of scrypt. Each variant is a `tune_variant_t` with five fields. The `module_tune` field specifies the value the kernels read as `MODULE_TUNE`. The `kernel_accel` field specifies the corresponding launch size. The `loop_phases` field names the loop phases whose kernels `module_tune` governs: bit 0 for `_loop_prepare` and `_loop`, bit 1 for `_loop2_prepare` and `_loop2`, and bit 2 for `_loop3_prepare` and `_loop3`. The `loop_lanes` field specifies how many work items one candidate takes in those loop kernels when several candidates share a work group, or 0 to keep the whole work group per candidate that `OPTS_TYPE_THREAD_MULTI_DISABLE` gives. When it is not 0, every other kernel of the mode gets one work item per candidate. The `loop_launches` field specifies the effective number of loop kernel launches per candidate, including the proportional cost of other required kernels.
+
+```
+u32 module_tune_variants (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const hashes_t *hashes, const hc_device_param_t *device_param, tune_variant_t *variants, const u32 variants_size)
+```
+
+The callback writes up to `variants_size` entries and returns the number written. The kernels initially use the first variant, and the self-test runs a single candidate in it, so list first a variant that computes one candidate quickly and still runs the code paths the other variants run. Autotune then runs each variant once with a sixteenth of the loop count and drops those that reach less than half of the best speed. It then measures one launch of the loop kernel of the first phase in `loop_phases` for each remaining variant, and a full launch for those within 10 percent of the fastest. Where a full launch would take more than 100 milliseconds, the first of these runs fewer loop iterations, but at least a quarter of them, and is skipped if the run with a sixteenth already took 100 milliseconds. The speed of a variant is the number of candidates the launch held divided by the product of the launch time and `loop_launches`. Among variants within 2 percent of the fastest that hold at most 90 percent of its candidates, it selects the one with the fewest, and otherwise the fastest. The loop kernel must therefore honor `LOOP_CNT`. Extra buffers must be large enough for every variant returned by the callback, and `module_extra_tuningdb_block()` must provide a `kernel_accel` at least as large as the maximum value.
+
+The scrypt modes use this callback to select the TMTO and whether four lanes compute each candidate. See `src/modules/scrypt_common.c`. Modes that leave the callback unassigned use the existing tuning behavior.
+
 ## Kernel ##
 
 The kernel is the second required part of a plugin. Kernel compilation is relatively expensive, so hashcat and the compute runtimes cache compiled binaries to reduce startup time.
@@ -737,6 +749,7 @@ These are the members, with the macro to read each one:
 * `u64 gid_max (GID_CNT)`: Gives the number of valid work items. Each kernel must compare `get_global_id (0)` with this value because the launch size may be rounded up to a multiple of the workgroup size. Processing a padded work item can produce an out-of-bounds host read when hashcat reconstructs the corresponding password.
 * u32 pre_len, u32 mid_len, u32 post_len, u32 has_q (COMBS_PRE_LEN, COMBS_MID_LEN, COMBS_POST_LEN, COMBS_HAS_Q): These describe where the word markers sit in an attack mode 12 mask, counted in mask positions. The mask is cut into three pieces: the positions before `?w`, the mid_len positions after it, and whatever is left after `?q`. Field `has_q` indicates whether the mask contains `?q`. The optimized kernels take these as numbers because they are the same for every amplifier item, which makes the shift cheaper than reading it per item.
 * u64 pcfg_lane_stride (PCFG_LANE_STRIDE): This is how many candidates one lane covers in a PCFG device engine launch. It is only meaningful in an _a4 kernel.
+* u32 module_tune (MODULE_TUNE): This is the way to run the kernels that autotune picked from `module_tune_variants()`, see that section above. It is zero for a mode without that callback.
 
 Kernel attribute macros provide the fixed prototype. Choose the macro appropriate for the kernel type:
 
@@ -1181,7 +1194,7 @@ Header `shared.h` was split, so include the header that now owns each helper. Pa
 
 A plugin written for hashcat 8.0.0 needs no source change. Its `module_init()` assigns `MODULE_DEFAULT` to every callback it does not implement, and hashcat accepts that as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
 
-Three hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above. Leaving them unassigned preserves the previous behavior.
+Four hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above, and `module_tune_variants`, see `module_tune_variants()` above. Leaving them unassigned preserves the previous behavior.
 
 A module now only has to assign the callbacks it implements, see `module_init()` above, so a hook added in a later version appears only in the modules that use it. The following command removes the `MODULE_DEFAULT` assignments from a module, which is how the in-tree modules look now:
 
