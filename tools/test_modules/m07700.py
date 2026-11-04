@@ -10,8 +10,17 @@ from lib import sap
 # SAP CODVN B (BCODE), see lib/sap.py.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 8], [1, 12], [0, 55]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 8],
+        'salt_length': [1, 12],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

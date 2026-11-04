@@ -12,8 +12,20 @@ from lib.test_helpers import split_hash_salt_word
 # BLAKE2b-256 of salt.pass.
 
 
-def module_constraints():
-  return [[0, 127], [0, 127], [0, 55], [0, 55], [0, 55]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 127],
+        'salt_length': [0, 127],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 55],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -12,8 +12,20 @@ from lib.test_helpers import split_hash_word
 # GOST R 34.11-94, the test parameter S box, which is what perl's Digest::GOST uses.
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [0, 32], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': {
+        'password_length': [0, 32],
+        'salt_length': None,
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

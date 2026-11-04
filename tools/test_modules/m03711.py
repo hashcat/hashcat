@@ -12,8 +12,20 @@ from lib.test_helpers import split_hash_word
 # MediaWiki B type: $B$salt$md5(salt-md5(pass)).
 
 
-def module_constraints():
-  return [[0, 256], [0, 221], [0, 55], [0, 22], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 221],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [0, 22],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

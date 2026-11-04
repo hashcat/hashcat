@@ -10,9 +10,27 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+from lib.test_helpers import test_iteration_parameters
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, encrypted=None):

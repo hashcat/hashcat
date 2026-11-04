@@ -97,8 +97,17 @@ def _bip32_seed_key(seed):
   return (int.from_bytes(child[:32], "big") + k_par) % N
 
 
-def module_constraints():
-  return [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [64, 64],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_get_random_password(word):

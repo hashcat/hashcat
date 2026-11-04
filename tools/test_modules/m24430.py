@@ -8,7 +8,25 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import pack_hex, random_bytes, split_hash_word, utf16be
+from lib.test_helpers import pack_hex, random_bytes, split_hash_word, utf16be, test_iteration_parameters
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 48],
+        'salt_length': [16, 40],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 2048}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
 
 # PKCS#12 MAC, SHA-1 ($pkcs12$1). The HMAC key comes from the RFC 7292 Appendix B KDF with the
 # diversifier id set to 3. SHA-1 already produces the 20 bytes that key needs, so one block covers
@@ -22,8 +40,7 @@ KEY_LEN  = 20
 V = 64
 
 
-def module_constraints():
-  return [[0, 48], [16, 40], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _digest(data):
@@ -53,7 +70,7 @@ def _mac_key(word, salt_bin, iterations):
 
 
 def module_generate_hash(word, salt, iterations=None, data=None):
-  iterations = 2048 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bin = pack_hex(salt)
 

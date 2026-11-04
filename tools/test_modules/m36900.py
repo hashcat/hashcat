@@ -97,8 +97,17 @@ def _hash0(des_out0, des_out1):
   return div_key
 
 
-def module_constraints():
-  return [[8, 8], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 8],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

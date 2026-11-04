@@ -13,8 +13,17 @@ from lib.test_helpers import random_bytes, split_hash_word
 # two card/reader nonces.
 
 
-def module_constraints():
-  return [[5, 5], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [5, 5],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _gen_key(pk, index):

@@ -74,8 +74,20 @@ def compute_verifier(word, username, salt_hex):
   return ("%064x" % x_mont)[:56]
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [0, 256], [32, 32], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None):

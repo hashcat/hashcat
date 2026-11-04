@@ -9,11 +9,31 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
+from lib.test_helpers import random_hex_string, test_iteration_parameters
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
 
 # APFS / FileVault (fvde). PBKDF2-HMAC-SHA256 derives a 256 bit KEK, which AES key wraps (RFC 3394)
 # the 40 byte volume key blob. Verify unwraps the stored blob and, when the IV constant 0xa6..a6
 # comes back, wraps it again, so the printed hash is rebuilt from the file's own fields.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _xor8(a, b):
@@ -40,10 +60,6 @@ def _unwrap(aes, a, p):
       p[n - 1] = b[8:16]
 
   return a, p
-
-
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, z_pk=None, blob=None):

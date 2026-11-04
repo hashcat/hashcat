@@ -47,8 +47,17 @@ def murmur(word, seed):
   return h & 0xffffffff
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 55], [8, 8], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [8, 8],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -208,8 +208,17 @@ def _line(salt, cipher, md, ct, kpa, kpt):
   return line
 
 
-def module_constraints():
-  return [[0, 256], [8, 8], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [8, 8],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None, line=None):

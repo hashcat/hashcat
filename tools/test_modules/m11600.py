@@ -57,8 +57,20 @@ BRANCHES = {
 }
 
 
-def module_constraints():
-  return [[0, 256], [0, 16], [0, 20], [0, 16], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 16],
+      },
+      'optimized': {
+        'password_length': [0, 20],
+        'salt_length': [0, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def _derive_key(word, num_cycle_power):

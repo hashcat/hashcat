@@ -27,8 +27,17 @@ def random_mojolicious_salt():
   return "mojolicious=" + base64.b64encode(payload).decode().replace("=", "-")
 
 
-def module_constraints():
-  return [[0, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 64],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

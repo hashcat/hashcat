@@ -19,8 +19,17 @@ PLAIN  = re.compile(r"^([0-9a-fA-F]{32})$")
 PACKET = re.compile(r"^((?:[0-9a-fA-F]{2})+)$")
 
 
-def module_constraints():
-  return [[0, 16], [1, 256], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 16],
+        'salt_length': [1, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def netmd5(word, packet):

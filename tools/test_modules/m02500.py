@@ -22,8 +22,17 @@ from lib.test_helpers import random_number, random_bytes
 # parses it back and re-derives, which is what the python runner's round trip check needs.
 
 
-def module_constraints():
-  return [[8, 63], [0, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 63],
+        'salt_length': [0, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _gen_random_wpa_eapol(keyver, snonce):

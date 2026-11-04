@@ -27,8 +27,20 @@ CLEARTEXT_TICKET = (
 )
 
 
-def module_constraints():
-    return [[0, 256], [16, 16], [0, 27], [16, 16], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': {
+        'password_length': [0, 27],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(

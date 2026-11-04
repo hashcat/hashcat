@@ -19,8 +19,20 @@ PRIME32_4 = 0x27d4eb2f
 PRIME32_5 = 0x165667b1
 
 
-def module_constraints():
-  return [[0, 256], [8, 8], [0, 55], [8, 8], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [8, 8],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [8, 8],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def rotl32(x, r):

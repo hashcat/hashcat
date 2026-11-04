@@ -13,8 +13,17 @@ from lib import oldoffice
 # the line so the collider can recover it.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 15], [32, 32], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 15],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, param=None, version=None):

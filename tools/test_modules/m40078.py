@@ -9,18 +9,35 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import split_hash_word
+from lib.test_helpers import split_hash_word, test_iteration_parameters
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 40],
+        'salt_length': [4, 192],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 15000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
 
 # SAP CODVN H isSHA512: iterations of sha512 over the password and the running digest, starting from
 # the salt, then base64 of the digest and the salt.
 
 
-def module_constraints():
-  return [[0, 40], [4, 192], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 15000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1")
 

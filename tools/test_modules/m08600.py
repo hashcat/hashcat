@@ -11,8 +11,17 @@ from lib.test_helpers import split_hash_word
 # Lotus Notes/Domino 5, the unsalted account hash: the domino big md of the password, see lib/lotus.py.
 
 
-def module_constraints():
-  return [[0, 16], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 16],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

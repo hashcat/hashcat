@@ -13,8 +13,17 @@ from lib.test_helpers import split_hash_word
 # result are stored in Domino base64. See lib/lotus.py.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 32], [5, 5], [0, 55]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 32],
+        'salt_length': [5, 5],
+      },
+      'combined_length': [0, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, char=None):

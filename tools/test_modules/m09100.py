@@ -9,9 +9,31 @@ import hashlib
 
 from lib import lotus
 
+from lib.test_helpers import test_iteration_parameters
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 64],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
+
 # Lotus Notes/Domino 8.5.x (SEC_pwddigest_V3). The password runs through the Domino "big md" mix
 # twice to build the -m 8700 style tmp hash, which PBKDF2-HMAC-SHA1 then salts. The account file
 # stores salt, iteration count, a two char field and the 8 byte digest in a wider Domino base64.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def _b85x_encode(final):
@@ -42,10 +64,6 @@ def _b85x_decode(s):
   chars      = raw[26:28]
 
   return bytes(salt), iterations, chars
-
-
-def module_constraints():
-  return [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def module_generate_hash(word, salt, iterations=None, param=None):

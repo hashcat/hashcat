@@ -9,7 +9,25 @@ import hashlib
 
 from Crypto.Hash import keccak
 
-from lib.test_helpers import random_bytes, random_number
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {'parameters': {'iterations': 1024}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
 
 # Ethereum wallet, PBKDF2-HMAC-SHA256 variant. The derived key's second half is keccak-256 hashed
 # together with the ciphertext to form the MAC.
@@ -19,12 +37,11 @@ from lib.test_helpers import random_bytes, random_number
 # starts at zero because a Trust Wallet cloud backup carries an empty one.
 
 
-def module_constraints():
-  return [[0, 256], [0, 32], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, ciphertext=None):
-  iterations = 1024 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 

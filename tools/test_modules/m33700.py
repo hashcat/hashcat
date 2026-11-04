@@ -11,7 +11,24 @@ import re
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-from lib.test_helpers import utf16le
+from lib.test_helpers import utf16le, test_iteration_parameters
+
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+
 
 # Microsoft Online Account. The key is PBKDF2-HMAC-SHA256 over an empty salt, the password widened
 # from its UTF-8 decoding to UTF-16LE. A fixed cleartext blob is AES-256-CBC encrypted with PKCS7
@@ -25,11 +42,10 @@ DEFAULT_BLOB = bytes.fromhex("00000000010000000000000060000000600000000000000020
 MAGIC = "\x00\x00\x00\x00\x01\x00\x00\x00".encode("latin-1").hex()
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
-def module_generate_hash(word, iterations=None, ct=None):
+def module_generate_hash(word, salt=None, iterations=None, ct=None):
   if iterations is None or not re.match(r"^\d+$", str(iterations)):
     iter_n = 10000
   else:
@@ -84,4 +100,4 @@ def module_verify_hash(line):
   if hid != "0":
     return None
 
-  return (module_generate_hash(word, iterations, ct), word)
+  return (module_generate_hash(word, iterations=iterations, ct=ct), word)
