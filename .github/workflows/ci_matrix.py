@@ -16,6 +16,8 @@
 ## fuzz corpus, when modes are added or removed elsewhere. Not mode % SHARDS,
 ## because most modes are a multiple of 100 and four shards would get them all.
 
+import ast
+import functools
 import json
 import os
 import re
@@ -23,12 +25,18 @@ import subprocess
 import sys
 import zlib
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools"))
+from test_policies import has_rule
+
 # test.py takes about 100 minutes on the largest of 16 shards on a 12 core laptop, which on a 4 core
 # runner is too close to the 330 minute job limit, so it gets three times the shards fuzz does
 
-# Edge checks cover both kernel families and five vector widths. The 96 edge shards plus
+# Edge checks cover both kernel families and five vector widths. The 96 edge jobs plus
 # 48 shards for each ordinary kind and 16 container shards fit GitHub's 256-job matrix limit.
 SHARDS = {"test": 48, "edge": 96, "fuzz": 16, "container": 16}
+
+EDGE_SPLIT_MODES = {21800, 34000, 36100, 36200}
+EDGE_VECTOR_WIDTHS = (1, 2, 4, 8, 16)
 
 # A pull request is bounded by this many modes. Past it the rest is left to the
 # weekly run, and the summary says which were left out.
@@ -130,18 +138,87 @@ def balance_shards(modes, n):
     return [sorted(b) for b in bins if b]
 
 
-def test_matrix(groups, kinds):
-    # One matrix entry per shard and kind: optimized, pure, Python bridge or edge tests.
-    # The kinds are separate parallel jobs rather than passes in one,
-    # so running several does not add their times in a single shard. The shard number is only a label
-    # here (unlike fuzz, which keys its corpus off it); the kind is appended to the name so the jobs
-    # of a shard are told apart in the run list.
-    return [{"name": "shard-%d-%s" % (i, kind), "shard": i, "kind": kind,
-             "modes": " ".join(str(m) for m in group)}
-            for kind in kinds
-            for i, group in enumerate(groups)]
+@functools.lru_cache(maxsize=None)
+def kernel_families(mode):
+    # Read the oracle's word constraints without importing its optional crypto dependencies.
+    path = "tools/test_modules/m%05d.py" % mode
+
+    with open(path) as fh:
+        tree = ast.parse(fh.read(), filename=path)
+
+    constraints = next(node for node in tree.body
+                       if isinstance(node, ast.FunctionDef) and node.name == "module_test_properties")
+    result = next(node.value for node in constraints.body if isinstance(node, ast.Return))
+
+    properties = {ast.literal_eval(key): value for key, value in zip(result.keys, result.values)}
+    bounds = properties["constraints"]
+    families = {ast.literal_eval(key): value for key, value in zip(bounds.keys, bounds.values)}
+
+    return {kind for kind, family in (("pure", "pure"), ("opt", "optimized"))
+            if not (isinstance(families[family], ast.Constant) and families[family].value is None)}
 
 
+def test_matrix(groups, kinds, fallback=False):
+    # PR checks prefer optimized kernels, falling back to pure for pure-only modes.
+    # Full runs select each supported family once. Bridge runs do not use the mode's kernels.
+    matrix = []
+
+    for i, group in enumerate(groups):
+        selected = {}
+
+        for kind in kinds:
+            for mode in group:
+                if kind == "edge" and not edge_supported(mode):
+                    continue
+
+                if mode in test_modes("--list-container-modes"):
+                    selected.setdefault("container", []).append(mode)
+                    continue
+
+                families = kernel_families(mode)
+                actual = kind
+
+                if kind in ("opt", "pure") and kind not in families:
+                    if fallback and kind == "opt" and "pure" in families:
+                        actual = "pure"
+                    else:
+                        continue
+
+                selected.setdefault(actual, []).append(mode)
+
+        for kind, modes in selected.items():
+            matrix.append({"name": "shard-%d-%s" % (i, kind), "shard": i, "kind": kind,
+                           "modes": " ".join(str(m) for m in modes)})
+
+    return matrix
+
+
+def edge_matrix(modes):
+    # Slow modes can exceed a job's wall time across all five vector widths.
+    # Split those widths into separate jobs without changing the tested combinations.
+    split = modes & EDGE_SPLIT_MODES
+    shards = SHARDS["edge"] - len(split) * len(EDGE_VECTOR_WIDTHS)
+    matrix = test_matrix(balance_shards(modes - split, shards), ["edge"])
+
+    for mode in sorted(split):
+        for width in EDGE_VECTOR_WIDTHS:
+            matrix.append({"name": f"edge-{mode}-v{width}", "shard": -1, "kind": "edge",
+                           "modes": str(mode), "vector_width": width})
+
+    return matrix
+
+
+@functools.lru_cache(maxsize=None)
+def edge_supported(mode):
+    # Per-mode edge exclusions are declared beside the oracle.
+    if has_rule(mode, "edge", "all", "exclude"):
+        return False
+
+    with open("src/modules/module_%05d.c" % mode) as fh:
+        return "const char *module_deprecated_notice (" not in fh.read()
+
+
+@functools.lru_cache(maxsize=None)
 def test_modes(option):
     # Ask test.py for mode lists that cannot be inferred from the files on disk.
     out = subprocess.run([sys.executable, "tools/test.py", option],
@@ -281,8 +358,8 @@ def main():
     # from the on-disk mode pool. Edge uses that pool with more shards and covers both kernel families
     # in one pass. Container has its own pool and runs once, not per kernel kind.
     # --kinds picks the subset to emit, which is how a manual dispatch selects kinds with
-    # its checkboxes. It defaults to all five. A fuzz run has no kinds, and a pull request stays
-    # optimized only whatever is passed.
+    # its checkboxes. It defaults to all five. A fuzz run has no kinds. A pull request prefers
+    # optimized kernels and falls back to pure kernels where needed.
     ALL_KINDS  = ("opt", "pure", "bridge", "container", "edge")
     test_kinds = list(ALL_KINDS)
 
@@ -303,7 +380,7 @@ def main():
             matrix = test_matrix(balance_shards(pool, SHARDS["test"]), kernel_kinds)
 
             if want_edge:
-                matrix += test_matrix(balance_shards(pool, SHARDS["edge"]), ["edge"])
+                matrix += edge_matrix(pool)
 
             if want_container:
                 matrix += container_matrix(balance_shards(cpool, SHARDS["container"]))
@@ -328,7 +405,7 @@ def main():
             matrix = test_matrix(balance_shards(asked_kernel, SHARDS["test"]), kernel_kinds)
 
             if want_edge:
-                matrix += test_matrix(balance_shards(asked_kernel, SHARDS["edge"]), ["edge"])
+                matrix += edge_matrix(asked_kernel)
 
             if asked_cont:
                 matrix += container_matrix(balance_shards(asked_cont, SHARDS["container"]))
@@ -379,14 +456,17 @@ def main():
 
             matrix = entries(kind, impacted, shared)
         else:
-            # A pull request stays optimized only, to keep its latency unchanged; the pure and
-            # bridge kinds are left to the weekly and manual runs.
-            matrix = test_matrix(pr_test_shards(impacted), ["opt"])
+            # A PR tests one supported kernel family per mode, preferring optimized.
+            matrix = test_matrix(pr_test_shards(impacted), ["opt"], fallback=True)
 
             if shared:
-                for i, shard in enumerate(minimal_shards(MINIMAL_SHARDS)):
-                    matrix.append({"name": f"minimal-{i}-opt", "shard": -1, "kind": "opt",
-                                   "modes": " ".join(str(m) for m in shard)})
+                minimal = test_matrix(minimal_shards(MINIMAL_SHARDS), ["opt"], fallback=True)
+
+                for entry in minimal:
+                    entry["name"] = entry["name"].replace("shard-", "minimal-", 1)
+                    entry["shard"] = -1
+
+                matrix.extend(minimal)
 
         note = f"{len(impacted)} impacted modes"
 
@@ -395,6 +475,13 @@ def main():
                      if kind == "test" else ", shared code changed")
 
         notes.append(note)
+
+    if "--vector-width" in sys.argv:
+        i = sys.argv.index("--vector-width")
+        value = sys.argv[i + 1] if i + 1 < len(sys.argv) else ""
+        if value not in ("1", "2", "4", "8", "16"):
+            sys.exit("ci_matrix.py: vector width must be 1, 2, 4, 8 or 16")
+        matrix = [entry for entry in matrix if entry.get("vector_width", int(value)) == int(value)]
 
     if len(matrix) > 256:
         sys.exit(f"ci_matrix.py: {len(matrix)} jobs exceed GitHub's 256-job matrix limit. Reduce shard counts or selected kinds.")
