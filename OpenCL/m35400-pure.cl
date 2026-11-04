@@ -29,6 +29,8 @@ typedef struct krb5asrep
   u32 edata2[5120];
   u32 edata2_len;
   u32 format;
+  u32 user[128];
+  u32 realm[128];
 } krb5asrep_t;
 
 typedef struct asrep_tmp

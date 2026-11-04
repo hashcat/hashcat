@@ -27,6 +27,7 @@ typedef struct krb5pa
   u32 timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;
+  u32 format;
 
 } krb5pa_t;
 
