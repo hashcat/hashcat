@@ -593,8 +593,8 @@ MFULC_MODES = {37000}
 # leaves their -a 4 list alone (test.sh); 40023 takes its hash from another field and is excluded
 # there too.
 
-LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
-              34100}
+LUKS_MODES = {29511, 29512, 29513, 29514, 29521, 29522, 29523, 29524,
+              29531, 29532, 29533, 29534, 29541, 29542, 29543, 29544, 34100}
 
 # The modes test.sh runs through its self-test vector path in a normal run (test.sh SELFTEST_MODES):
 # no .pm and no .py oracle, so the ground truth is the module's own example hash read from
@@ -3291,14 +3291,21 @@ def container_luks2(args, mode, attack, width, tmp):
 # test.sh luks_test's per-mode hash+cipher (test.sh): 29511+ each map to one hash+cipher and vary
 # only the cipher mode and key size.
 LUKS1_HASH_CIPHER = {
-  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"),
-  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"),
-  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"),
-  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"),
+  29511: ("sha1", "aes"),      29512: ("sha1", "serpent"),      29513: ("sha1", "twofish"), 29514: ("sha1", "blowfish"),
+  29521: ("sha256", "aes"),    29522: ("sha256", "serpent"),    29523: ("sha256", "twofish"), 29524: ("sha256", "blowfish"),
+  29531: ("sha512", "aes"),    29532: ("sha512", "serpent"),    29533: ("sha512", "twofish"), 29534: ("sha512", "blowfish"),
+  29541: ("ripemd160", "aes"), 29542: ("ripemd160", "serpent"), 29543: ("ripemd160", "twofish"), 29544: ("ripemd160", "blowfish"),
 }
 
 
-def luks_variants():
+def luks_variants(cipher=None):
+  # Blowfish has 64-bit blocks, so it cannot use the XTS variants generated for AES.
+  if cipher == "blowfish":
+    for ksize in ("128", "256"):
+      yield "cbc-plain64", ksize
+
+    return
+
   # test.sh's luksMode x luksKeySize double loop with the keysize->mode validity filter (test.sh):
   # 128 is cbc only, 512 is xts only, 256 is any.
   for lmode in ("cbc-essiv", "cbc-plain64", "xts-plain64"):
@@ -3318,7 +3325,9 @@ def container_luks1(args, mode, attack, width, tmp):
   luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
   opts = base_opts(args)
 
-  for lmode, ksize in luks_variants():
+  found = False
+
+  for lmode, ksize in luks_variants(luks_cipher):
     name      = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
     container = os.path.join(LUKS_TESTS_DIR, name + ".luks")
     label     = "Luks-Mode %s-%s-%s-%s" % (luks_hash, luks_cipher, lmode, ksize)
@@ -3326,6 +3335,7 @@ def container_luks1(args, mode, attack, width, tmp):
     if not os.path.isfile(container):
       continue
 
+    found = True
     hash_file = os.path.join(tmp, name + ".hash")
 
     if not container_extract("luks2hashcat.py", container, hash_file):
@@ -3334,6 +3344,9 @@ def container_luks1(args, mode, attack, width, tmp):
 
     extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
     container_crack(args, opts, mode, attack, hash_file, width, label, extra)
+
+  if luks_cipher == "blowfish" and not found:
+    die("! no Blowfish LUKS1 containers for mode %d. Run with -g to generate them." % mode)
 
 
 def container_luks_legacy(args, mode, attack, width, tmp):
@@ -3997,7 +4010,7 @@ def generate_containers(args, mode, tmp):
     os.makedirs(LUKS_TESTS_DIR, exist_ok=True)
     luks_hash, luks_cipher = LUKS1_HASH_CIPHER[mode]
 
-    for lmode, ksize in luks_variants():
+    for lmode, ksize in luks_variants(luks_cipher):
       name = "hashcat_%s_%s_%s_%s" % (luks_hash, luks_cipher, lmode, ksize)
       out  = os.path.join(LUKS_TESTS_DIR, name + ".luks")
 
