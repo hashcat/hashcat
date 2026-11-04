@@ -22,9 +22,17 @@ KEY_LEN      = 24   # AES-192 KEK
 ITER_DEFAULT = 2048
 
 
-def module_constraints():
-  # salt is 40 hex characters (20 bytes); the runner emits this many characters
-  return [[0, 256], [40, 40], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _pbkdf2(word, salt_bin, iterations):

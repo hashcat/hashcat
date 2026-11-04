@@ -19,8 +19,20 @@ PRIME64_4 = 0x85ebca77c2b2ae63
 PRIME64_5 = 0x27d4eb2f165667c5
 
 
-def module_constraints():
-  return [[0, 256], [16, 16], [0, 55], [16, 16], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def rotl64(x, r):

@@ -12,8 +12,20 @@ from lib.test_helpers import split_hash_salt_word
 # Huawei sha1(md5($pass).$salt), with an 8 character salt.
 
 
-def module_constraints():
-  return [[0, 256], [8, 8], [0, 55], [8, 8], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [8, 8],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [8, 8],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

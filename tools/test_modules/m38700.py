@@ -114,8 +114,17 @@ def _opens(word, ealgo, keylen, keys, iterations, salt, mkeys):
   return False
 
 
-def module_constraints():
-  return [[0, 256], [SALT_LEN, SALT_LEN], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [SALT_LEN, SALT_LEN],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, ealgo=None, keylen=None, keys=None,

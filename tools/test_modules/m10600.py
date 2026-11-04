@@ -20,8 +20,20 @@ def default_rest(doc_id):
           "*32*" + "0" * 64 + "*32*" + "0" * 64)
 
 
-def module_constraints():
-  return [[0, 127], [32, 32], [0, 31], [32, 32], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 127],
+        'salt_length': [32, 32],
+      },
+      'optimized': {
+        'password_length': [0, 31],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, rest=None):

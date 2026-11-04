@@ -32,8 +32,17 @@ def padded_md5(data):
   return hashlib.md5(data + b"\x00" * (-len(data) % 16)).digest()
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 47], [1, 4], [0, 48]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 47],
+        'salt_length': [1, 4],
+      },
+      'combined_length': [0, 48],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

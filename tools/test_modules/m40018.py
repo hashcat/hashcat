@@ -12,8 +12,17 @@ from lib.test_helpers import random_hex_string
 # macOS v10.8+: PBKDF2-HMAC-SHA512 with a 32 byte salt, all in hex.
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

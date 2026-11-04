@@ -11,8 +11,20 @@ import hashlib
 # terminating zero byte.
 
 
-def module_constraints():
-  return [[0, 256], [8, 8], [0, 54], [8, 8], [8, 54]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [8, 8],
+      },
+      'optimized': {
+        'password_length': [0, 54],
+        'salt_length': [8, 8],
+      },
+      'combined_length': [8, 54],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

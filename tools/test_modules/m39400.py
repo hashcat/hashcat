@@ -15,8 +15,20 @@ from lib.test_helpers import pack_hex, random_bytes, random_numeric_string
 MSG_TYPE = b"\x01\x00\x00\x00"
 
 
-def module_constraints():
-    return [[32, 32], [16, 16], [0, 27], [16, 16], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [32, 32],
+        'salt_length': [16, 16],
+      },
+      'optimized': {
+        'password_length': [0, 27],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None, user="user", realm="realm"):

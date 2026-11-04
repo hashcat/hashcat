@@ -50,8 +50,17 @@ RSA_D = 0x0f60ce2dc03b1d887cd6570a7846d3e728778ac941d915c5166cf069aa802ef1d36636
 SIK_LEN = 32
 
 
-def module_constraints():
-  return [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _scrypt(password, salt_raw, n, r, p, dklen):

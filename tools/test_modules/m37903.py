@@ -14,8 +14,17 @@ from lib import bestcrypt
 MODES = (bestcrypt.MODE_CBC, bestcrypt.MODE_XTS)
 
 
-def module_constraints():
-  return [[0, 63], [128, 128], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 63],
+        'salt_length': [128, 128],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, source=None):

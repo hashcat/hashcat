@@ -12,8 +12,17 @@ from lib import snmpv3
 # SNMPv3 HMAC-MD5-96, see lib/snmpv3.py.
 
 
-def module_constraints():
-  return [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [24, 3000],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

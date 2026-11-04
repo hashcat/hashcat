@@ -12,8 +12,17 @@ from lib.test_helpers import split_hash_salt_word
 # AES-128-ECB with the password as key (zero padded), encrypting the 16 byte salt.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 16], [32, 32], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 16],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

@@ -12,8 +12,20 @@ from lib.test_helpers import split_hash_salt_word
 # Oracle 11g+: the salt is 10 bytes, written as 20 hex characters.
 
 
-def module_constraints():
-  return [[0, 30], [20, 20], [0, 30], [20, 20], [20, 55]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 30],
+        'salt_length': [20, 20],
+      },
+      'optimized': {
+        'password_length': [0, 30],
+        'salt_length': [20, 20],
+      },
+      'combined_length': [20, 55],
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

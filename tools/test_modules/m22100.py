@@ -24,8 +24,17 @@ MAC_LEN  = 16
 VMK_LEN  = 44  # note: MAC_LEN + VMK_LEN = 60
 
 
-def module_constraints():
-  return [[6, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [6, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def bitlocker_kdf(initial_hash, salt):

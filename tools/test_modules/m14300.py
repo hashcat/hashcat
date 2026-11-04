@@ -13,8 +13,17 @@ from lib.test_helpers import split_hash_salt_word
 # is the key material split into halves, and the third key is the first one again.
 
 
-def module_constraints():
-  return [[16, 16], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [16, 16],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

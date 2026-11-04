@@ -68,8 +68,20 @@ def _aes_unwrap(key, wpky):
   return a, r
 
 
-def module_constraints():
-  return [[0, 256], [40, 40], [0, 55], [40, 40], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [40, 40],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [40, 40],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, wpky_param=None):

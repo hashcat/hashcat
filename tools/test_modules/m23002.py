@@ -34,11 +34,20 @@ def _derive_key(word, key_len):
   return key[:key_len]
 
 
-def module_constraints():
-  # The IV is this mode's salt (module_generate_hash turns the salt into the IV), so a salt range
-  # is declared here. That lets the shared-salt multi run put two entries on one IV, the case the
-  # kernel has to recover both of.
-  return [[0, 256], [1, 16], [0, 55], [1, 16], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [1, 16],
+      },
+      'optimized': {
+        'password_length': [0, 55],
+        'salt_length': [1, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None, iv=None, data=None, file=None):

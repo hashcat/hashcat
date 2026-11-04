@@ -258,8 +258,17 @@ def _cbc_decrypt(dec_block, iv, data, unpad):
 
 # --- KeePass ---
 
-def module_constraints():
-  return [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [64, 64],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _split_star(s):

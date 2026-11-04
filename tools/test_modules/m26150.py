@@ -17,8 +17,17 @@ from lib.test_helpers import random_hex_string
 CHECK = b"password-check\x02\x02"
 
 
-def module_constraints():
-  return [[0, 256], [96, 96], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [96, 96],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, global_salt, entry_salt=None, iterations=None, iv=None, ct=None):

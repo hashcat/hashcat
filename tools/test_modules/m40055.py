@@ -14,8 +14,17 @@ import hmac
 # sha256(HMAC("Client Key")) and the server key HMAC("Server Key").
 
 
-def module_constraints():
-  return [[0, 256], [28, 28], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [28, 28],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

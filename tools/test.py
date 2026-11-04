@@ -6360,9 +6360,8 @@ def run_parallel_depth(args):
 def bridge_family(mode):
   # The bridge hashes in Python, so it has no kernel of its own and the optimized/pure split does not
   # apply to the crack. It still draws its candidates from the mode's oracle, which offers one
-  # constraint set per family (word slot 0 is pure, slot 2 is optimized; [-1, -1] means that family
-  # has no kernel). So pick the family the mode actually has, preferring pure, which covers almost
-  # every mode; a few dozen are optimized only. Returns "p", "o", or None when the mode has an oracle
+  # constraint set per family, or None when that family has no kernel. Prefer pure, which covers
+  # almost every mode. A few dozen are optimized only. Returns "p", "o", or None when the mode has an oracle
   # with neither, so there is nothing to generate.
   tests = os.path.join(TDIR, "test_modules")
   path  = os.path.join(tests, "m%05d.py" % mode)
@@ -6380,9 +6379,9 @@ def bridge_family(mode):
 
   spec.loader.exec_module(mod)
 
-  pairs    = mod.module_constraints()
-  has_pure = not (pairs[0][0] == -1 and pairs[0][1] == -1)
-  has_opt  = not (pairs[2][0] == -1 and pairs[2][1] == -1)
+  bounds   = mod.module_test_properties()["constraints"]
+  has_pure = bounds["pure"] is not None
+  has_opt  = bounds["optimized"] is not None
 
   if has_pure:
     return "p"

@@ -295,25 +295,25 @@ def constraints(mod):
   # copies the constraints across and rewrites IS_OPTIMIZED to match, so a -O run on a mode with
   # no optimized kernel silently reports on the pure one.
   #
-  # Applicability is decided by the word pairs, slots 0 and 2. Slots 1 and 3 are the salt, where
-  # [-1, -1] keeps its own meaning of "this mode has no salt".
+  # A missing family means no kernel. Missing salt bounds mean no supplied salt is needed.
 
-  pairs = mod.module_constraints()
+  bounds = mod.module_test_properties()["constraints"]
+  family = bounds["optimized" if IS_OPTIMIZED else "pure"]
 
-  word = list(pairs[2] if IS_OPTIMIZED else pairs[0])
-  salt = list(pairs[3] if IS_OPTIMIZED else pairs[1])
-  comb = list(pairs[4])
-
-  if word[0] == -1 and word[1] == -1:
+  if family is None:
     sys.stderr.write("no %s kernel for this mode\n" % ("optimized" if IS_OPTIMIZED else "pure"))
 
     sys.exit(2)
+
+  word = list(family["password_length"])
+  salt = list(family["salt_length"] or [-1, -1])
+  comb = list(bounds["combined_length"] or [-1, -1])
 
   return word, salt, comb
 
 
 def comb_weights(comb):
-  # The fifth constraint is [min, max] over the password and salt lengths added up, or [min, max,
+  # The combined bound is [min, max] over the password and salt lengths added up, or [min, max,
   # word weight, salt weight] for a kernel that spends more than one byte of its block on each
   # character of one of them, as a UTF-16 optimized kernel does for the password.
 
@@ -414,18 +414,14 @@ def edge_constraints(mod, optimized):
   # module, and it counts an empty vector list as an error, so refusing here would report a mode
   # as broken for having nothing to say about a kernel it does not have.
 
-  pairs = [list(pair) for pair in mod.module_constraints()]
+  bounds = mod.module_test_properties()["constraints"]
+  family = bounds["optimized" if optimized else "pure"]
+  if family is None:
+    family = bounds["pure" if optimized else "optimized"]
 
-  if pairs[0] == [-1, -1]:
-    pairs[0] = list(pairs[2])
-    pairs[1] = list(pairs[3])
-  elif pairs[2] == [-1, -1]:
-    pairs[2] = list(pairs[0])
-    pairs[3] = list(pairs[1])
-
-  word = pairs[2] if optimized else pairs[0]
-  salt = pairs[3] if optimized else pairs[1]
-  comb = pairs[4] if optimized else [-1, -1]
+  word = list(family["password_length"]) if family is not None else [-1, -1]
+  salt = list(family["salt_length"] or [-1, -1]) if family is not None else [-1, -1]
+  comb = list(bounds["combined_length"] or [-1, -1]) if optimized else [-1, -1]
 
   return word, salt, comb
 
@@ -849,7 +845,7 @@ def main():
 
   mod = load_module(mode)
 
-  for hook in ("module_constraints", "module_generate_hash", "module_verify_hash"):
+  for hook in ("module_test_properties", "module_generate_hash", "module_verify_hash"):
     if not hasattr(mod, hook):
       sys.exit("Module function '%s' not found\n" % hook)
 
@@ -858,9 +854,9 @@ def main():
   # The module is loaded again because a module can read IS_OPTIMIZED when it is imported.
 
   if (kind != "edge") and ("IS_OPTIMIZED" in os.environ) == False:
-    pairs = mod.module_constraints()
+    bounds = mod.module_test_properties()["constraints"]
 
-    if (pairs[2][0] == -1) and (pairs[2][1] == -1) and (pairs[0][0] != -1):
+    if bounds["optimized"] is None and bounds["pure"] is not None:
       os.environ["IS_OPTIMIZED"] = "0"
 
       IS_OPTIMIZED = False

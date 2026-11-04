@@ -25,8 +25,17 @@ DEFAULT_BLOB = bytes.fromhex("00000000010000000000000060000000600000000000000020
 MAGIC = "\x00\x00\x00\x00\x01\x00\x00\x00".encode("latin-1").hex()
 
 
-def module_constraints():
-  return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': None,
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt=None, iterations=None, ct=None):

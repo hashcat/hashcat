@@ -11,8 +11,17 @@ import hashlib
 # Django (PBKDF2-SHA256): pbkdf2_sha256$iterations$salt$base64.
 
 
-def module_constraints():
-  return [[0, 256], [0, 15], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 15],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

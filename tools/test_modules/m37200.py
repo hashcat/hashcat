@@ -41,8 +41,17 @@ def _hkdf_sha256(ikm, info, length):
   return okm[:length]
 
 
-def module_constraints():
-  return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, hkdf=None, scrypt_n=65536, scrypt_r=8, scrypt_p=1, iv=None, data=None, tag=None):

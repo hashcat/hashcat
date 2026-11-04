@@ -13,8 +13,17 @@ import hashlib
 # PBKDF1:sha1:iter:base64(salt):base64(digest).
 
 
-def module_constraints():
-  return [[0, 256], [4, 100], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [4, 100],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, salt_is_b64=False):

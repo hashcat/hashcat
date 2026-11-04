@@ -29,8 +29,17 @@ def racf_hash(username, password):
   return ciphertext.hex()
 
 
-def module_constraints():
-  return [[0, 8], [1, 8], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 8],
+        'salt_length': [1, 8],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

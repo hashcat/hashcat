@@ -18,8 +18,17 @@ from lib.test_helpers import kernel_charset, split_hash_word, utf16le
 CHARSET = kernel_charset()
 
 
-def module_constraints():
-  return [[0, 15], [32, 32], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 15],
+        'salt_length': [32, 32],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, param=None, aes_key_size=128):

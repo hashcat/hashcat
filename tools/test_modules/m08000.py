@@ -11,8 +11,17 @@ import hashlib
 # then the 8 byte salt.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [0, 27], [16, 16], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [0, 27],
+        'salt_length': [16, 16],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

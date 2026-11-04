@@ -37,8 +37,17 @@ ITERATIONS_DEFAULT = 2048
 TAIL_LEN           = 288
 
 
-def module_constraints():
-  return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [64, 64],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _psafe3(word, salt_raw, iterations, tail):

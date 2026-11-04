@@ -17,8 +17,17 @@ import hashlib
 CBOR_BYTES_32 = bytes([0x58, 0x20])
 
 
-def module_constraints():
-  return [[0, 256], [68, 68], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [68, 68],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def _key_material(word):

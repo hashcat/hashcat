@@ -12,8 +12,17 @@ from lib import snmpv3
 # SNMPv3 HMAC-SHA512-384, see lib/snmpv3.py. The line carries the engine id the digest is keyed with.
 
 
-def module_constraints():
-  return [[8, 256], [96, 3000], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [8, 256],
+        'salt_length': [96, 3000],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None):

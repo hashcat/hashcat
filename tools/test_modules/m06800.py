@@ -15,8 +15,17 @@ from lib.test_helpers import random_bytes, split_hash_word
 # salt bytes.
 
 
-def module_constraints():
-  return [[0, 256], [10, 15], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [10, 15],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, iv=None):

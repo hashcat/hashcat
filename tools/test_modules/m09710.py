@@ -12,8 +12,17 @@ from lib import oldoffice
 # MS Office <= 2003 MD5 + RC4, collider #1: the candidate is the 5 byte RC4 key itself.
 
 
-def module_constraints():
-  return [[-1, -1], [-1, -1], [5, 5], [32, 32], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': None,
+      'optimized': {
+        'password_length': [5, 5],
+        'salt_length': [32, 32],
+      },
+      'combined_length': None,
+    },
+  }
 
 
 def module_generate_hash(word, salt, iterations=None, param=None, version=None):
