@@ -23,8 +23,17 @@ SESSKEY_LEN = 48
 VFR_LEN     = 10
 
 
-def module_constraints():
-  return [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]]
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [0, 256],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+  }
 
 
 def o5logon_key(word, vfr):

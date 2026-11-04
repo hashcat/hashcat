@@ -1190,7 +1190,7 @@ Header `shared.h` was split, so include the header that now owns each helper. Pa
 
 ## Porting a plugin from 8.0.0 ##
 
-A plugin written for hashcat 8.0.0 needs no source change. Its `module_init()` assigns `MODULE_DEFAULT` to every callback it does not implement, and hashcat accepts that as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
+The C source of a plugin written for hashcat 8.0.0 needs no change. Its `module_init()` assigns `MODULE_DEFAULT` to every callback it does not implement, and hashcat accepts that as before. A compiled plugin has to be rebuilt, because the plugin interface version is now 810.
 
 Four hooks were added: `module_combined_len_max`, `module_combined_len_pw` and `module_combined_len_salt`, see `module_combined_len_max()` above, and `module_tune_variants`, see `module_tune_variants()` above. Leaving them unassigned preserves the previous behavior.
 
@@ -1215,3 +1215,15 @@ sed -i -E -e 's/^u32 +module_attack_exec +\(.*\) *\{ *return ATTACK_EXEC; *\}$/#
 A module that writes one of these callbacks in another form, or computes one, needs that part of the change by hand. The compiler then reports the callback as defined twice, or `module_init_common()` as undeclared.
 
 On macOS, BSD sed takes the in-place flag as `-i ''`. The commands can leave an empty line where a group of assignments used to be, which does no harm. A compiled plugin still has to be rebuilt whenever the plugin interface version changes, as described in the section on the core library.
+
+Python test modules must replace `module_constraints()` with `module_test_properties()`, which returns named constraints as described in the test module section above. The following GNU sed command converts the in-tree form in place, preserving comments, references to constants and combined-length weights:
+
+```sh
+sed -i -E '/^def module_constraints\(\):$/{:read;N;/\n([[:blank:]]*#[^\n]*|[[:blank:]]*)$/bread;s/^def module_constraints\(\):(\n.*)  return \[(\[[^][]*\]),[[:space:]]*(\[[^][]*\]),[[:space:]]*(\[[^][]*\]),[[:space:]]*(\[[^][]*\]),[[:space:]]*(\[[^][]*\])\]$/def module_test_properties():\1  return {"constraints": {"pure": {"password_length": \2, "salt_length": \3}, "optimized": {"password_length": \4, "salt_length": \5}, "combined_length": \6}}/;t converted;b;:converted;s/("[a-z_]+": )\[[[:space:]]*-1,[[:space:]]*-1[[:space:]]*\]/\1None/g;s/\{"password_length": None, "salt_length": None\}/None/g;}' tools/test_modules/m*.py
+```
+
+For modules kept outside the repository, replace the file glob with their paths. The command expects LF line endings and a function that returns the five flat bounds on one line, optionally preceded by comments or blank lines. Already converted functions are unchanged. Other forms are left unchanged and need manual conversion. Check for remaining declarations with:
+
+```sh
+grep -n 'def module_constraints' tools/test_modules/m*.py
+```
