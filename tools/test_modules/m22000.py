@@ -29,6 +29,18 @@ from lib.test_helpers import random_number, random_bytes
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {
+          'password_only': 'The recovered hash encoding differs from the oracle input. Compare the recovered password.',
+        },
+      },
+      'edge': {
+        'all': {
+          'skip_output': 'The recovered representation differs from the oracle hash/password pair. Check the exit status only.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [8, 63],

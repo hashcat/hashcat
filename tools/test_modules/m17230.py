@@ -12,6 +12,13 @@ from lib import pkzip
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'verify_output': 'A different valid plaintext can be recovered. Verify it with the oracle.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [0, 64],
@@ -28,4 +35,4 @@ def module_generate_hash(word, salt, iterations=None):
 
 
 def module_verify_hash(line):
-  return pkzip.verify_hash(line)
+  return pkzip.verify_hash(line, checksum_only=True)

@@ -16,6 +16,7 @@ MODES = (bestcrypt.MODE_CBC, bestcrypt.MODE_XTS)
 
 def module_test_properties():
   return {
+    'tests': {'edge': {'all': {'verify_output': 'Passwords sharing their first 32 characters derive the same key.'}}},
     'constraints': {
       'pure': {
         'password_length': [0, 63],

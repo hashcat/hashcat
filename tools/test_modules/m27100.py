@@ -14,6 +14,13 @@ from lib.test_helpers import pack_hex
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'allow_same_salt': 'The edge fixtures retain shared salts despite the mode capability flag.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [32, 32],

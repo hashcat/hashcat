@@ -33,6 +33,31 @@ def _crc32(x, c):
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {'single_hash': 'The master-key fixture supports one hash per run.'},
+        12: {
+          'exclude': "The current hybrid mask fixture cannot express this mode's candidate layout.",
+        },
+      },
+      'edge': {
+        3: {
+          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+        },
+        6: {
+          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+        },
+        7: {
+          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+        },
+        12: {
+          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+        },
+        'all': {
+          'single_hash': 'The master-key fixture supports one hash per run.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [6, 250],

@@ -15,6 +15,13 @@ from lib.test_helpers import random_bytes, split_hash_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'verify_output': 'A different valid plaintext can be recovered. Verify it with the oracle.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [5, 5],

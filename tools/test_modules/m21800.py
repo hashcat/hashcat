@@ -13,7 +13,7 @@ import hmac
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-from lib.test_helpers import random_hex_string, random_number, random_string
+from lib.test_helpers import random_count, random_hex_string, random_number, random_string
 
 # Electrum wallet v5. The key derivation and AES-128-CBC layer are the same as -m 21700; version 5
 # stores only the first 1024 bytes of the ciphertext, so the mode is recognised by the deflate
@@ -123,6 +123,7 @@ def module_generate_hash(word, salt=None, iterations=None):
     key = generate_key(word, ephemeral_pubkey)
 
   compressed_data = b""
+  length_span = int(MAX_DATA_LEN * 1.30) + 1
 
   while True:
     data_buf = "{\r\n    \""
@@ -130,7 +131,9 @@ def module_generate_hash(word, salt=None, iterations=None):
     if random_number(0, 1) == 1:
       data_buf = "{\n    \""
 
-    data_length = MAX_DATA_LEN + random_number(0, int(MAX_DATA_LEN * 1.30))
+    # Attack 9 fixes random_number draws across its association batch. The ciphertext length is
+    # not a work factor, so draw it independently to avoid repeating a rejected deflate header.
+    data_length = MAX_DATA_LEN + random_count(length_span + 1) - 1
 
     random_length = data_length - len(data_buf)
 

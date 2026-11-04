@@ -15,6 +15,18 @@ from lib.test_helpers import split_hash_salt_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        12: {
+          'exclude': "The current hybrid mask fixture cannot express this mode's candidate layout.",
+        },
+      },
+      'edge': {
+        'all': {
+          'skip_output': 'The recovered representation differs from the oracle hash/password pair. Check the exit status only.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [24, 24],

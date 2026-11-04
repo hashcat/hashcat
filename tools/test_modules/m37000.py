@@ -16,6 +16,68 @@ from lib.test_helpers import random_bytes, random_number, split_hash_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'selftest': {
+        3: {
+          'mask_only': 'Only the mask kernel is implemented.',
+        },
+      },
+      'ordinary': {
+        'all': {
+          'hash_only': 'Key recovery is not unique. Check the recovered hash instead of the original key segment.',
+        },
+        0: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        1: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        4: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        6: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        7: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        8: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        9: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        12: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+      },
+      'edge': {
+        0: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        1: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        4: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        6: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        7: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        8: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        9: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+        12: {
+          'exclude': 'Only attack 3 has a kernel.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [4, 4],

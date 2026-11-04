@@ -22,6 +22,7 @@ def load_test_properties(mode):
   filename = "m%05d.py" % mode
   hook = "module_test_properties"
   settings = {}
+  parallel = {}
 
   if not os.path.isfile(os.path.join(directory, filename)):
     return {}
@@ -41,10 +42,16 @@ def load_test_properties(mode):
 
     properties = node.body[0].value
     keys = [ast.literal_eval(key) for key in properties.keys]
-    if "constraints" not in keys or set(keys) - {"constraints", "normal", "reduced"}:
-      raise ValueError("%s: test properties require constraints and allow normal and reduced entries" % filename)
+    if "constraints" not in keys or set(keys) - {"constraints", "normal", "reduced", "tests", "parallel"}:
+      raise ValueError("%s: test properties require constraints and allow normal, reduced, tests and parallel entries" % filename)
+    parallel = next((ast.literal_eval(value) for key, value in zip(keys, properties.values)
+                     if key == "parallel"), {})
+    if not isinstance(parallel, dict) or set(parallel) - {"memory_cap"}:
+      raise ValueError("%s: invalid parallel test properties" % filename)
+    if "memory_cap" in parallel and type(parallel["memory_cap"]) is not bool:
+      raise ValueError("%s: parallel.memory_cap must be a boolean" % filename)
     settings = {
-      key: ast.literal_eval(value) for key, value in zip(keys, properties.values) if key != "constraints"
+      key: ast.literal_eval(value) for key, value in zip(keys, properties.values) if key not in ("constraints", "tests", "parallel")
     }
 
   if not isinstance(settings, dict) or set(settings) - {"normal", "reduced"}:
@@ -60,6 +67,8 @@ def load_test_properties(mode):
       raise ValueError("m%05d.py: invalid iteration parameters" % mode)
     if any(type(value) is not int or value < 1 for value in parameters.values()):
       raise ValueError("m%05d.py: iteration counts must be positive integers" % mode)
+  if parallel:
+    settings["parallel"] = parallel
   return settings
 
 

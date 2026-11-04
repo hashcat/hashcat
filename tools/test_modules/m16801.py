@@ -26,6 +26,18 @@ def module_get_random_password(word):
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {
+          'password_only': 'The recovered hash encoding differs from the oracle input. Compare the recovered password.',
+        },
+      },
+      'edge': {
+        'all': {
+          'exclude': 'This hash mode is deprecated.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [64, 64],

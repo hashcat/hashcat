@@ -36,6 +36,13 @@ A2E_UP = bytes.fromhex(
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'verify_output': 'A different valid plaintext can be recovered. Verify it with the oracle.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [9, 100],

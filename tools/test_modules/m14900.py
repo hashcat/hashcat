@@ -59,6 +59,13 @@ def skip32_encrypt(key, block):
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        12: {
+          'exclude': "The current hybrid mask fixture cannot express this mode's candidate layout.",
+        },
+      },
+    },
     'constraints': {
       'pure': None,
       'optimized': {

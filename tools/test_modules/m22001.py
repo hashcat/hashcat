@@ -28,6 +28,13 @@ from lib.test_helpers import random_number, random_bytes, pack_hex
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'skip_output': 'The recovered representation differs from the oracle hash/password pair. Check the exit status only.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [64, 64],

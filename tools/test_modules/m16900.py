@@ -16,6 +16,13 @@ from lib.test_helpers import random_hex_string, split_hash_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'allow_same_salt': 'The edge fixtures retain shared salts despite the mode capability flag.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [0, 256],

@@ -22,6 +22,7 @@ _SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "m34100.sh")
 
 def module_test_properties():
   return {
+    'parallel': {'memory_cap': False},
     'constraints': {
       'pure': {
         'password_length': [0, 256],

@@ -21,6 +21,28 @@ B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {
+          'whole_word': 'Structured oracle candidates require whole-word attacks.',
+        },
+        1: {
+          'exclude': 'The structured oracle candidates require whole-word attacks.',
+        },
+        3: {
+          'exclude': 'The structured oracle candidates require whole-word attacks.',
+        },
+        6: {
+          'exclude': 'The structured oracle candidates require whole-word attacks.',
+        },
+        7: {
+          'exclude': 'The structured oracle candidates require whole-word attacks.',
+        },
+        12: {
+          'exclude': 'The structured oracle candidates require whole-word attacks.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [51, 51],

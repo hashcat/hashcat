@@ -46,6 +46,13 @@ def random_netntlmv1_salt(len_user, len_domain):
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'allow_same_salt': 'The edge fixtures retain shared salts despite the mode capability flag.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [32, 32],

@@ -30,6 +30,13 @@ def module_get_random_password(word):
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'exclude': 'This hash mode is deprecated.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [64, 64],

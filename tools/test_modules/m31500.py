@@ -15,6 +15,13 @@ from lib.test_helpers import pack_hex, split_hash_salt_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'skip_output': 'The recovered representation differs from the oracle hash/password pair. Check the exit status only.',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [32, 32],

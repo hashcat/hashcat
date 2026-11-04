@@ -29,6 +29,8 @@ A module may also define `module_get_random_password`, which takes the generated
 returns the one the mode actually needs. That is for a mode whose candidate is a seed phrase, a
 challenge response or anything else with a shape of its own rather than a free string.
 
+A module may define `module_hash_identity(hash_str)` when different encodings represent the same hash and hashcat deduplicates them. It returns a hashable value containing the complete effective digest and salt. Verification accepts another encoding only after `module_verify_hash` validates its recovered password and its identity matches a requested hash. For example, `m00501.py` decrypts the wrapping IV and ciphertext to identify the underlying md5crypt value.
+
 Where a family of modes shares a body, it lives in `lib` beside the helpers, and a module reaches
 it as `from lib import gpg`.
 
@@ -39,6 +41,35 @@ it as `from lib import gpg`.
 * For a body shared across a family, see [m17010.py](m17010.py) and [lib/gpg.py](lib/gpg.py)
 * For a mode that drives its own cipher chaining, see [m20011.py](m20011.py) and
 [lib/diskcryptor.py](lib/diskcryptor.py)
+
+#### Test exclusions and verification rules ####
+
+Mode-specific exceptions belong in `module_test_properties()["tests"]`, a literal dictionary. The manager and CI planner read it through Python's AST without importing the oracle or its optional dependencies. Each suite (`ordinary`, `edge` or `selftest`) contains attack numbers and their rules. An `all` entry supplies rules shared by every attack in that suite. Every rule needs a nonempty reason. Invalid declarations fail rather than silently removing coverage.
+
+```python
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {'password_length': [0, 256], 'salt_length': None},
+      'optimized': None,
+      'combined_length': None,
+    },
+    'tests': {
+      'ordinary': {
+        12: {'exclude': 'The hybrid mask fixture cannot express this candidate layout.'},
+      },
+      'edge': {
+        'all': {'verify_output': 'A different valid plaintext can be recovered.'},
+      },
+    },
+  }
+```
+
+`exclude` omits an unsupported combination from automatic selection. Explicitly requesting an excluded ordinary attack fails. `exclude_empty` omits an edge mask vector whose candidate disappeared after removing a format prefix. `single_hash` omits multi-target fixtures. `password_only`, `hash_only` and `skip_output` identify which output comparisons are omitted. `verify_output` verifies an alternative result with the oracle instead of accepting it unchecked. `allow_same_salt` records an intentional shared-salt fixture override. `whole_word` marks structured ordinary candidates that require whole-word attacks, and `mask_only` selects the mask kernel for a self-test.
+
+Generate the inventory with `python3 tools/test.py --list-test-exclusions`, or select one mode with `python3 tools/test.py -m 14000 --list-test-exclusions json`. The standalone equivalent is `python3 tools/test_policies.py --mode 14000 --format json`. It includes declarations, unavailable kernel families and shared conditional filters. Conditional rows describe when a fixture is omitted, not proof that it was omitted in a particular run. These are test-selection and verification rules, not permission to ignore runtime errors: memory refusals, timeouts, failed oracles and zero-result runs remain failures.
+
+`module_test_properties()["parallel"]` may set `memory_cap` to `False` for modes that need the full device and host budget. Breadth-parallel ordinary, self-test and edge runs execute those modes alone after the capped workers finish. Memory refusals still fail. This does not remove operating-system limits or change serial runs.
 
 #### Reproducible runs ####
 
