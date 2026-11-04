@@ -26,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5pa$3$user$realm$df8e4459369e8f512f827f8a55b552c24668bc8fd02db4118264d02c1c952b1018636eb1d3e0888ac5c860d9ee897b6ed71483dc0bbfa4d7";
+static const char *ST_HASH        = "$krb5pa$3$user$realm$df8e4459369e8f512f827f8a55b552c2$4668bc8fd02db4118264d02c1c952b1018636eb1d3e0888ac5c860d9ee897b6ed71483dc0bbfa4d7";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -61,6 +61,7 @@ typedef struct krb5pa_3
 
   u32 enc_timestamp[MAX_TIMESTAMP_LEN / 4];
   u32 enc_timestamp_len;
+  u32 format;
 
 } krb5pa_3_t;
 
@@ -90,15 +91,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (krb5pa, 0, sizeof (krb5pa_3_t));
 
-  // canonical (output): $krb5pa$3$user$realm$data
-
+  /**
+   * format 1: $krb5pa$3$user$realm$data
+   * format 2: $krb5pa$3$user$realm$checksum$encrypted
+   */
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5PA;
 
   const int sig_len = (int) strlen (SIGNATURE_KRB5PA);
 
-  token.token_cnt  = 4;
+  // format 2: $krb5pa$3$user$realm$checksum$encrypted
+
+  token.token_cnt  = 5;
 
   token.len[0]     = sig_len;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -115,22 +120,83 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = MAX_TIMESTAMP_LEN * 2;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 32;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  token.len_min[4] = 32;
+  token.len_max[4] = (MAX_TIMESTAMP_LEN - 16) * 2;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+  int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  const u8 *user_pos  = token.buf[1];
-  const u8 *realm_pos = token.buf[2];
-  const u8 *data_pos = token.buf[3];
+  const u8 *user_pos;
+  const u8 *realm_pos;
 
-  const int user_len  = token.len[1];
-  const int realm_len = token.len[2];
-  const int data_len = token.len[3];
+  int user_len;
+  int realm_len;
+  int data_len;
+
+  if (rc_tokenizer == PARSER_OK)
+  {
+    const int enc_len = token.len[4];
+
+    if ((32 + enc_len) % 16 != 0) return (PARSER_TOKEN_LENGTH);
+
+    krb5pa->format = 2;
+
+    user_pos  = token.buf[1];
+    realm_pos = token.buf[2];
+
+    user_len  = token.len[1];
+    realm_len = token.len[2];
+
+    data_len  = 32 + enc_len;
+  }
+  else
+  {
+    // format 1: $krb5pa$3$user$realm$data
+
+    memset (&token, 0, sizeof (hc_token_t));
+
+    token.signatures_cnt    = 1;
+    token.signatures_buf[0] = SIGNATURE_KRB5PA;
+
+    token.token_cnt  = 4;
+
+    token.len[0]     = sig_len;
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+    token.sep[1]     = '$';
+    token.len_min[1] = 1;
+    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.sep[2]     = '$';
+    token.len_min[2] = 1;
+    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.len_min[3] = 64;
+    token.len_max[3] = MAX_TIMESTAMP_LEN * 2;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+    krb5pa->format = 1;
+
+    user_pos  = token.buf[1];
+    realm_pos = token.buf[2];
+
+    user_len  = token.len[1];
+    realm_len = token.len[2];
+    data_len  = token.len[3];
+  }
 
   if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
 
@@ -151,13 +217,42 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *ts_ptr = (u8 *) krb5pa->enc_timestamp;
 
-  for (int i = 0; i < data_len; i += 2)
+  if (krb5pa->format == 2)
   {
-    const u8 p0 = data_pos[i + 0];
-    const u8 p1 = data_pos[i + 1];
+    const u8 *checksum_pos  = token.buf[3];
+    const u8 *encrypted_pos = token.buf[4];
+    const int encrypted_len = token.len[4];
 
-    *ts_ptr++ = hex_convert (p1) << 0
-              | hex_convert (p0) << 4;
+    for (int i = 0; i < 32; i += 2)
+    {
+      const u8 p0 = checksum_pos[i + 0];
+      const u8 p1 = checksum_pos[i + 1];
+
+      *ts_ptr++ = hex_convert (p1) << 0
+                | hex_convert (p0) << 4;
+    }
+
+    for (int i = 0; i < encrypted_len; i += 2)
+    {
+      const u8 p0 = encrypted_pos[i + 0];
+      const u8 p1 = encrypted_pos[i + 1];
+
+      *ts_ptr++ = hex_convert (p1) << 0
+                | hex_convert (p0) << 4;
+    }
+  }
+  else
+  {
+    const u8 *data_pos = token.buf[3];
+
+    for (int i = 0; i < data_len; i += 2)
+    {
+      const u8 p0 = data_pos[i + 0];
+      const u8 p1 = data_pos[i + 1];
+
+      *ts_ptr++ = hex_convert (p1) << 0
+                | hex_convert (p0) << 4;
+    }
   }
 
   krb5pa->enc_timestamp_len = data_len / 2;
@@ -181,22 +276,51 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5pa_3_t *krb5pa = (const krb5pa_3_t *) esalt_buf;
 
-  char data[MAX_TIMESTAMP_LEN * 2 + 1];
-
-  memset (data, 0, sizeof (data));
-
   const u8 *ptr = (const u8 *) krb5pa->enc_timestamp;
 
-  for (u32 i = 0, j = 0; i < krb5pa->enc_timestamp_len; i += 1, j += 2)
-  {
-    snprintf (data + j, 3, "%02x", ptr[i]);
-  }
+  int line_len;
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%s",
-    SIGNATURE_KRB5PA,
-    (const char *) krb5pa->user,
-    (const char *) krb5pa->realm,
-    data);
+  if (krb5pa->format == 2)
+  {
+    char checksum_hex[64] = { 0 };
+    char encrypted_hex[MAX_TIMESTAMP_LEN * 2 + 1];
+
+    memset (encrypted_hex, 0, sizeof (encrypted_hex));
+
+    for (u32 i = 0; i < 16; i++)
+    {
+      snprintf (checksum_hex + i * 2, 3, "%02x", ptr[i]);
+    }
+
+    for (u32 i = 16, j = 0; i < krb5pa->enc_timestamp_len; i++, j += 2)
+    {
+      snprintf (encrypted_hex + j, 3, "%02x", ptr[i]);
+    }
+
+    line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s",
+      SIGNATURE_KRB5PA,
+      (const char *) krb5pa->user,
+      (const char *) krb5pa->realm,
+      checksum_hex,
+      encrypted_hex);
+  }
+  else
+  {
+    char data[MAX_TIMESTAMP_LEN * 2 + 1];
+
+    memset (data, 0, sizeof (data));
+
+    for (u32 i = 0, j = 0; i < krb5pa->enc_timestamp_len; i += 1, j += 2)
+    {
+      snprintf (data + j, 3, "%02x", ptr[i]);
+    }
+
+    line_len = snprintf (line_buf, line_size, "%s%s$%s$%s",
+      SIGNATURE_KRB5PA,
+      (const char *) krb5pa->user,
+      (const char *) krb5pa->realm,
+      data);
+  }
 
   return line_len;
 }
