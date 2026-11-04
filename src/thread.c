@@ -292,6 +292,7 @@ void seek_apply (hashcat_ctx_t *hashcat_ctx)
     device_param->words_off        = target;
     device_param->words_done       = target;
     device_param->words_off_launch = target;
+    device_param->runs_launch_cnt  = 0;
 
     // calc () ends a device by saving what autotune chose into the _prev fields and zeroing the live
     // ones, so that a device which has finished reports Accel:0 Loops:0 Thr:0 rather than the values

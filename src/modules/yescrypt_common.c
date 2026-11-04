@@ -684,6 +684,21 @@ char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *has
 
   const u64 available_mem = (usable_mem > fixed_mem) ? usable_mem - fixed_mem : 0;
 
+  // The init and comp kernels keep the 128r byte state twice in private memory, and it spills. On an
+  // RTX 4090 the comp kernel's stack is 1696, 4704 and 8800 bytes per work item at r=8, 16 and 32. The
+  // runtime allocates that scratch at the first launch, after the V buffers, and sizes it for
+  // device_maxworkgroup_size work items on every processor rather than for our launch. spill_mem in
+  // scrypt_common.c makes the same assumption. On the 4090 at r=32 the launches ran with 1085 MiB left
+  // and failed with 1052 MiB, where that model gives 1100 MiB. The 2048 bytes on top of the two states
+  // cover the rest of the stack with room to spare, since the stack differs between compilers and
+  // architectures.
+
+  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
+
+  const u64 spill_mem = ((2ULL * 128 * scrypt_r) + 2048) * device_processors * device_param->device_maxworkgroup_size;
+
+  const u64 spill_free = (available_mem > spill_mem) ? available_mem - spill_mem : 0;
+
   u32 kernel_accel_new;
 
   if (kernel_accel_user)
@@ -697,6 +712,11 @@ char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *has
     // there is no TMTO to fall back on here, so leave a margin rather than trying to reclaim it later
 
     kernel_accel_new = (kernel_accel_new * 94) / 100;
+
+    // The margin has to hold the spill scratch as well, and on a card with many processors for its
+    // memory it does not.
+
+    kernel_accel_new = MIN (kernel_accel_new, (u32) (spill_free / size_per_accel));
 
     kernel_accel_new = MIN (kernel_accel_new, YESCRYPT_ACCEL_MAX);
 

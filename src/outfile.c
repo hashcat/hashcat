@@ -445,39 +445,37 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   const user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
   // A length sort renumbers the work items of a launch, and a crack position counts words in the feed,
-  // so this is the position the work item's word came in at.
+  // so this is the position the work item's word came in at, in the batch being launched and not the
+  // one the producer has moved on to filling.
 
-  const u64 feed_pos = gidvid_to_feed_pos (device_param, plain->gidvid);
-  const u32 il_pos = plain->il_pos;
+  const u64 word_pos = gidvid_to_word_pos (device_param, plain->gidvid);
+  const u32 il_pos   = plain->il_pos;
 
-  // The batch being launched, and not the one the producer has moved on to filling.
-
-  u64 crackpos = device_param->words_off_launch;
+  u64 crackpos = 0;
 
   if (user_options->slow_candidates == true)
   {
-    // The host already applied the amplifier, so the work item is a candidate and nothing multiplies
-    // it. It still needs the launch's own offset, which is what every other branch here adds.
+    // The host already applied the amplifier, so nothing multiplies the candidate.
 
-    crackpos += feed_pos;
+    crackpos += word_pos;
   }
   else
   {
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      crackpos += feed_pos;
+      crackpos += word_pos;
       crackpos *= straight_ctx->kernel_rules_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      crackpos += feed_pos;
+      crackpos += word_pos;
       crackpos *= combinator_ctx->combs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
-      crackpos += feed_pos;
+      crackpos += word_pos;
       crackpos *= mask_ctx->bfs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
@@ -514,11 +512,10 @@ static int debug_rule_from_feed (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   const u32 *pool = (amp == true) ? generic_ctx->dev_pool : NULL;
 
-  // Where this candidate's base word sat in the feed's own keyspace. The batch being launched, plus
-  // the work item inside it, which is the same arithmetic build_crackpos () makes before it multiplies
-  // by whatever amplifies.
+  // Where this candidate's base word sat in the feed's own keyspace, which is the same position
+  // build_crackpos () starts from before it multiplies by whatever amplifies.
 
-  const u64 pos = device_param->words_off_launch + gidvid_to_feed_pos (device_param, gidvid);
+  const u64 pos = gidvid_to_word_pos (device_param, gidvid);
 
   const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, cell, pool, base, base_len, (amp == true) ? il_pos : 0, pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
 

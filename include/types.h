@@ -1616,6 +1616,20 @@ typedef struct pw_pre
 
 #define PW_PIPE_SLOTS 2
 
+// Where a batch goes on from another position than the one it reached. A refill usually picks up
+// where the batch left off, but the brain skips the part of a chunk another client has already
+// covered, and with several devices the positions in between may have gone to another device. A
+// crack is named by the position its candidate came from, so the batch keeps each such place.
+
+#define PW_RUNS_MAX 32
+
+typedef struct pw_run
+{
+  u64 pws_idx;    // the first candidate that came from here
+  u64 words_off;  // and its position in the keyspace
+
+} pw_run_t;
+
 typedef struct pw_batch
 {
   pw_idx_t *pws_idx;
@@ -1653,6 +1667,9 @@ typedef struct pw_batch
   u64 words_off;
   u64 words_fin;
   u64 words_extra;
+
+  pw_run_t runs_buf[PW_RUNS_MAX];
+  u32      runs_cnt;
 
   // A rejected word of a feed that amplifies cost a whole cell rather than one candidate, and this
   // holds what those cells came to, in candidates. The cell itself does not survive the rejection,
@@ -2066,6 +2083,11 @@ typedef struct hc_device_param
   // not from wherever the producer happens to have got to.
 
   u64     words_off_launch;
+
+  // and where inside that batch it goes on from somewhere else, read from the batch while it runs
+
+  const pw_run_t *runs_launch_buf;
+  u32             runs_launch_cnt;
 
   u64     words_done;
 

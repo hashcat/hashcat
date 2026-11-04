@@ -163,6 +163,32 @@ u64 gidvid_to_feed_pos (const hc_device_param_t *device_param, const u64 gidvid)
   return feed_pos;
 }
 
+// Where in the keyspace the word behind a work item came from. A batch counts on from
+// words_off_launch until a run of its own begins, and from there the last run that begins at or
+// before the word gives its position. See pw_run_t.
+
+u64 gidvid_to_word_pos (const hc_device_param_t *device_param, const u64 gidvid)
+{
+  const u64 feed_pos = gidvid_to_feed_pos (device_param, gidvid);
+
+  u64 run_idx = 0;
+  u64 run_off = device_param->words_off_launch;
+
+  for (u32 i = 0; i < device_param->runs_launch_cnt; i++)
+  {
+    const pw_run_t *run = &device_param->runs_launch_buf[i];
+
+    if (run->pws_idx > feed_pos) break;
+
+    run_idx = run->pws_idx;
+    run_off = run->words_off;
+  }
+
+  const u64 word_pos = run_off + (feed_pos - run_idx);
+
+  return word_pos;
+}
+
 // How long one launch is allowed to take. It was a table of four, selected by -w, and a user who
 // wanted speed had no reason to pick any of the lower three. The cost model does not produce the
 // long launches the search based tuner did, so the responsiveness those profiles bought is no
@@ -18638,6 +18664,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->pws_idx             = NULL;
     device_param->pws_pre_buf         = NULL;
     device_param->pws_base_buf        = NULL;
+    device_param->runs_launch_buf     = NULL;
+    device_param->runs_launch_cnt     = 0;
     device_param->pws_sort_idx        = NULL;
     device_param->pws_sort_map        = NULL;
     device_param->pws_sort_cnt        = 0;
@@ -18694,6 +18722,7 @@ void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     device_param->words_off        = 0;
     device_param->words_off_launch = 0;
+    device_param->runs_launch_cnt  = 0;
     device_param->words_done       = 0;
 
     #if defined (_WIN)

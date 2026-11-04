@@ -63,6 +63,7 @@ int  pw_transform_apply   (const pw_transform_t *transform, u8 *buf, const int l
 void pw_pre_add       (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len, const u8 *base_buf, const int base_len, const int rule_idx);
 void pw_base_add      (pw_batch_t *batch, const u64 pws_max, const u8 *base_buf, const int base_len, const int rule_idx);
 void pw_batch_reset   (pw_batch_t *batch);
+void pw_batch_from    (pw_batch_t *batch, const u64 words_off);
 void pw_add_zerocopy  (pw_batch_t *batch, const u64 pws_max, u8 *out_buf, const int pw_len);
 void pw_add           (pw_batch_t *batch, const u64 pws_max, const u8 *pw_buf, const int pw_len);
 
