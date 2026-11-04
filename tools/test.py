@@ -3119,18 +3119,23 @@ def selftest_write_hash(mode, vhash, vfmt, path):
 
 
 def container_mask_from_password(pw, where):
-  # test.sh container_mask_from_password (test.sh): the password with one digit given up as a
-  # '?d', so the run has ten candidates rather than being handed the answer, every other byte staying
-  # literal. 'first' or 'last' picks which digit; no digit means nothing to search, so hand the
-  # password back as a literal mask.
+  # Replace the first or last digit with '?d', falling back to a lowercase letter
+  # with '?l' when password contains no ASCII digit. This searches multiple candidates
+  # and keeps 'hashcat' from being interpreted as a mask filename.
 
   n = len(pw)
 
   order = range(0, n) if where == "first" else range(n - 1, -1, -1)
 
+  # Prefer a digit to keep the search to ten candidates.
   for i in order:
     if b"0" <= pw[i:i + 1] <= b"9":
       return pw[:i] + b"?d" + pw[i + 1:]
+
+  # With no digit available, use a lowercase letter for 26 candidates.
+  for i in order:
+    if b"a" <= pw[i:i + 1] <= b"z":
+      return pw[:i] + b"?l" + pw[i + 1:]
 
   return pw
 
