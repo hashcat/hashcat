@@ -54,7 +54,7 @@ run-name: >-
 
 on:
   schedule:
-    - cron: '0 1 * * 1'
+    - cron: '0 1 * * 6'
   workflow_dispatch:
     inputs:
       modes:
@@ -157,7 +157,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 330 }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 180 }}
 
     strategy:
       fail-fast: false
