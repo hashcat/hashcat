@@ -6282,7 +6282,27 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
 
   if (recipe_compile_prog (&prog, src, root_native) == false) return NULL;
 
-  char *jit_build_options = recipe_jit_prog (&prog, root_native);
+  // That layout is the word order of the hash family that produced the result, and only a hash has
+  // one: the kernel pastes the family's name through RECIPE_NAT3 (), and there is no RECIPE_NAT_aes
+  // or RECIPE_NAT_des. A result that comes from a cipher is therefore compiled the way every recipe
+  // under --hash-recipe is, comparing in the engine's own layout. A module whose stored recipe ends
+  // in a cipher reads its digest in that layout too, see module_40008.c.
+
+  bool native = root_native;
+
+  if ((native == true) && (prog.root_step < prog.steps_cnt))
+  {
+    const recipe_step_kind_t kind = prog.steps[prog.root_step].kind;
+
+    if ((kind != RECIPE_KIND_HASH) && (kind != RECIPE_KIND_HMAC)) native = false;
+  }
+
+  if (native != root_native)
+  {
+    if (recipe_compile_prog (&prog, src, native) == false) return NULL;
+  }
+
+  char *jit_build_options = recipe_jit_prog (&prog, native);
 
   return jit_build_options;
 }

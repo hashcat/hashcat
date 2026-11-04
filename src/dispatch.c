@@ -335,6 +335,11 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
   const u64 pre_rejects_ignore = get_power (backend_ctx, device_param) / 2;
 
+  // Where the last chunk this batch walked ended. A chunk that goes on from there continues the run
+  // the batch is in, and one that does not starts a run of its own.
+
+  u64 walked_fin = 0;
+
   while (pre_rejects > pre_rejects_ignore)
   {
     u64 words_extra_total = 0;
@@ -355,8 +360,20 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
     device_param->pws_pre_cnt = 0;
 
+    // Under the brain a candidate only reaches the batch in the drain below, so where a chunk starts a
+    // run is noted against the staging buffer and handed to the batch in the drain. A build without
+    // the brain has no drain and never reads it.
+
+    MAYBE_UNUSED pw_run_t runs_pre[PW_RUNS_MAX];
+
+    u32 runs_pre_cnt = 0;
+
     while (words_extra)
     {
+      // a refill can start a run of its own, and the batch has room for only so many
+
+      if ((batch->runs_cnt + runs_pre_cnt) >= PW_RUNS_MAX) break;
+
       u64 work = get_work (hashcat_ctx, device_param, words_extra);
 
       if (work == 0) break;
@@ -408,8 +425,33 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       // turns a work item back into a position had only the index inside the launch. The chunk that
       // contributes the first candidate sets it, because a batch built from several chunks still
       // begins where its first candidate did.
+      //
+      // A chunk that does not go on from where the last one ended is a run of its own, see pw_run_t.
+      // Under the brain the batch is still empty for every chunk of the first round, because nothing
+      // reaches it before the drain, so a test on the batch alone let the last chunk of the round
+      // set the start of all of it. What is already staged counts as well.
 
-      if (batch->pws_cnt == 0) batch->words_off = words_off;
+      if (work > 0)
+      {
+        const bool first = (batch->pws_cnt == 0) && (device_param->pws_pre_cnt == 0);
+
+        if ((first == true) || (words_off != walked_fin))
+        {
+          if (stage == true)
+          {
+            runs_pre[runs_pre_cnt].pws_idx   = device_param->pws_pre_cnt;
+            runs_pre[runs_pre_cnt].words_off = words_off;
+
+            runs_pre_cnt++;
+          }
+          else
+          {
+            pw_batch_from (batch, words_off);
+          }
+        }
+
+        walked_fin = words_fin;
+      }
 
       batch->words_fin = words_fin;
 
@@ -494,8 +536,19 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       const u64 pws_pre_cnt = device_param->pws_pre_cnt;
 
+      u32 runs_pre_idx = 0;
+
       for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
       {
+        // a run goes to the batch before the first candidate of it does
+
+        while ((runs_pre_idx < runs_pre_cnt) && (runs_pre[runs_pre_idx].pws_idx <= pws_pre_idx))
+        {
+          pw_batch_from (batch, runs_pre[runs_pre_idx].words_off);
+
+          runs_pre_idx++;
+        }
+
         if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
         {
           pre_rejects++;
@@ -510,6 +563,16 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         if (sc->keep_base == true) pw_base_add (batch, device_param->kernel_power, (const u8 *) pw_pre->base_buf, (const int) pw_pre->base_len, (const int) pw_pre->rule_idx);
 
         pw_add (batch, device_param->kernel_power, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+      }
+
+      // and of a chunk at the end that staged nothing, so the next round is measured from it as it is
+      // without the brain
+
+      while (runs_pre_idx < runs_pre_cnt)
+      {
+        pw_batch_from (batch, runs_pre[runs_pre_idx].words_off);
+
+        runs_pre_idx++;
       }
     }
     #endif
@@ -743,6 +806,10 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
   while (words_extra)
   {
+    // a refill can start a run of its own, and the batch has room for only so many
+
+    if (batch->runs_cnt >= PW_RUNS_MAX) break;
+
     u64 work_cnt = get_work (hashcat_ctx, device_param, words_extra);
 
     if (work_cnt == 0) break;
@@ -805,8 +872,12 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     // refusing positions: several chunks are then needed to fill one batch, and the launch was left
     // reporting the last of them. A crack was named at a position millions of words past the candidate
     // that produced it. fill_slow () answers the same question the same way.
+    //
+    // A refill that does not go on from where the last chunk ended is a run of its own, because the
+    // offset of the batch does not reach it. The brain skipping a covered part does that, and so does
+    // another device taking the positions in between. See pw_run_t.
 
-    if (batch->pws_cnt == 0) batch->words_off = words_off;
+    if ((batch->pws_cnt == 0) || (words_off != batch->words_fin)) pw_batch_from (batch, words_off);
 
     if ((gf->seek_known == false) || (gf->seek_pos != words_off))
     {
@@ -1082,6 +1153,8 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // for the one being launched here.
 
     device_param->words_off_launch = words_off;
+    device_param->runs_launch_buf  = batch->runs_buf;
+    device_param->runs_launch_cnt  = batch->runs_cnt;
 
     if (slow == true) device_param->pws_base_buf = batch->pws_base;
 
@@ -1488,6 +1561,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         // rather than left behind, because what reads it cannot tell the two paths apart.
 
         device_param->words_off_launch = words_off;
+        device_param->runs_launch_cnt  = 0;
 
         // The mask producer has a loop of its own, and the copy is timed in it for the same reason as
         // in pipe_run ().
