@@ -324,7 +324,7 @@ static i32 stream_archive (FILE *file, const user_options_t *options, hash_t *ha
   return 1;
 }
 
-i32 module_hash_binary_count (const hashes_t *hashes)
+static i32 module_hash_binary_count (const hashes_t *hashes)
 {
   FILE *file = NULL;
 
@@ -368,7 +368,7 @@ i32 module_hash_binary_count (const hashes_t *hashes)
   return count;
 }
 
-i32 module_hash_binary_parse (const hashconfig_t *hashconfig, const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, hashes_t *hashes)
+static i32 module_hash_binary_parse (const hashconfig_t *hashconfig, const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, hashes_t *hashes)
 {
   FILE *file = NULL;
 
@@ -426,17 +426,17 @@ i32 module_hash_binary_parse (const hashconfig_t *hashconfig, const user_options
   return count;
 }
 
-bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+static bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return true;
 }
 
-bool module_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+static bool module_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return true;
 }
 
-const module_option_t *module_register_options (void)
+static const module_option_t *module_register_options (void)
 {
   static const module_option_t options[] =
   {

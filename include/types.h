@@ -793,6 +793,10 @@ typedef enum opts_type
   // Optional binary input uses callbacks for files and the decoder for inline hashes.
   OPTS_TYPE_BINARY_HASHFILE_DIRECT   = (1ULL << 31),
 
+  // One candidate per work group at an accel the module's tuning fixed. Under CUDA, whose runtime
+  // says how many work groups an SM holds, the backend drops a mostly empty last wave from it.
+  OPTS_TYPE_ACCEL_WHOLE_WAVES        = (1ULL << 32),
+
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),

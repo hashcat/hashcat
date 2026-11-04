@@ -12773,6 +12773,28 @@ static int get_hip_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hipFunctio
   return 0;
 }
 
+// The work groups of the given size that all SMs hold at once, one wave of a launch, from CUDA's
+// occupancy calculator, with the dynamic shared memory the launch passes. 0 on other backends.
+// HIP has a calculator as well, but on a Radeon Pro W7800 it gave a wave of 175 work groups where
+// the launch times step at 350, also with the physical compute unit count, so HIP is left out.
+
+static u32 backend_kernel_wave (hashcat_ctx_t *hashcat_ctx, const hashconfig_t *hashconfig, const hc_device_param_t *device_param, const hc_dev_kern_t slot, const u32 threads)
+{
+  if (device_param->is_cuda == false) return 0;
+
+  const size_t dynamic_shared_mem = ((hashconfig->opts_type & OPTS_TYPE_DYNAMIC_SHARED) != 0) ? device_param->kernel_dynamic_local_mem_size[slot] : 0;
+
+  int groups = 0;
+
+  if (hc_cuOccupancyMaxActiveBlocksPerMultiprocessor (hashcat_ctx, &groups, device_param->cuda_function[slot], (int) threads, dynamic_shared_mem) == -1) return 0;
+
+  if (groups <= 0) return 0;
+
+  const u32 wave = (u32) groups * device_param->device_processors;
+
+  return wave;
+}
+
 #if defined (__APPLE__)
 static int get_metal_kernel_wgs (hashcat_ctx_t *hashcat_ctx, mtl_pipeline pipeline, u32 *result)
 {
@@ -17355,6 +17377,29 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     u32 kernel_threads_min = device_param->kernel_threads_min;
     u32 kernel_threads_max = device_param->kernel_threads_max;
+
+    // A mode that sets OPTS_TYPE_ACCEL_WHOLE_WAVES runs one candidate per work group at an accel
+    // its tuning fixed from the memory. A launch runs its work groups in waves of as many as all
+    // the processors hold, and a last wave that is only part filled costs most of a full one. On
+    // an RTX A400, yescrypt at r=32 ran 213 H/s at 42 work groups, one full wave there, and
+    // 156 H/s at 48. So once the accel reaches a full wave and its last wave is less than two
+    // thirds full, that wave is dropped. A fuller last wave costs about what it brings: on a
+    // Radeon Pro W7800, 1024 work groups, 2.93 waves, ran 5 percent faster than 700. Below one
+    // wave the memory sets the accel, and it stays. A count from -n is taken as given.
+
+    if (((hashconfig->opts_type & OPTS_TYPE_ACCEL_WHOLE_WAVES) != 0) && (user_options->kernel_accel_chgd == false))
+    {
+      const u32 wave = backend_kernel_wave (hashcat_ctx, hashconfig, device_param, HC_DEV_KERN_2, kernel_threads_max);
+
+      if ((wave > 0) && (device_param->kernel_accel_max >= wave))
+      {
+        const u32 part = device_param->kernel_accel_max % wave;
+
+        if ((wave * 2) > (part * 3)) device_param->kernel_accel_max -= part;
+
+        device_param->kernel_accel_min = MIN (device_param->kernel_accel_min, device_param->kernel_accel_max);
+      }
+    }
 
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;

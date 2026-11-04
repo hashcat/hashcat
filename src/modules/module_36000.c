@@ -87,7 +87,7 @@ typedef struct bip39_skeleton
 
 } bip39_skeleton_t;
 
-u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+static u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return (u64) sizeof (bip39_skeleton_t);
 }
@@ -106,7 +106,7 @@ typedef struct bip39_tmp
 
 } bip39_tmp_t;
 
-u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return (u64) sizeof (bip39_tmp_t);
 }
@@ -688,7 +688,7 @@ static int decode_address_bech32 (const u8 *address, const u32 address_len, bip3
   return PARSER_OK;
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *digest_buf, salt_t *salt, void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, const int line_len)
+static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *digest_buf, salt_t *salt, void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
   bip39_skeleton_t *bip39 = (bip39_skeleton_t *) esalt_buf;
@@ -888,7 +888,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   return PARSER_OK;
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
+static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
 {
   const bip39_skeleton_t *bip39 = (const bip39_skeleton_t *) esalt_buf;
 
@@ -900,7 +900,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return line_len;
 }
 
-int module_hash_encode_status (const hashconfig_t *hashconfig, const void *digest_buf, const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
+static int module_hash_encode_status (const hashconfig_t *hashconfig, const void *digest_buf, const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
 {
   int line_len = module_hash_encode (hashconfig, digest_buf, salt, esalt_buf, NULL, NULL, line_buf, line_size);
 
@@ -936,9 +936,9 @@ int module_hash_encode_status (const hashconfig_t *hashconfig, const void *diges
   return line_len + extra;
 }
 
-u32         module_pw_max         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BIP39_MAX_PASSPHRASE_LEN;}
+static u32         module_pw_max         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BIP39_MAX_PASSPHRASE_LEN;}
 
-char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, MAYBE_UNUSED const u32 kernel_accel_user)
+static char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, MAYBE_UNUSED const u32 kernel_accel_user)
 {
   hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
 
@@ -993,7 +993,7 @@ char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_UNUSED 
 // arrive at Accel:2, and 64 reaches the same answer in 27. A tighter bound than this starts to
 // move autotune's thread choice down from 1024, which costs throughput, so 64 is the floor.
 
-u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+static u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u32 kernel_accel_max = 64;
 

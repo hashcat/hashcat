@@ -280,7 +280,7 @@ Most mandatory callbacks return static configuration values. Functions are used 
 ```
 static const char *HASH_NAME = "MD5";
 ...
-const char *module_hash_name (...) { return HASH_NAME; }
+static const char *module_hash_name (...) { return HASH_NAME; }
 ...
 module_ctx->module_hash_name = module_hash_name;
 ```
@@ -304,7 +304,7 @@ void module_init (module_ctx_t *module_ctx)
 
 A module that computes one of these callbacks defines `MODULE_OWN_` and the callback's name in capitals before the include, for example `#define MODULE_OWN_OPTI_TYPE`, and writes that function itself. `module_init_common()` then registers the module's own function. Mode 4000 does this for three of them. A module can also leave the file out and write and assign all of these callbacks itself.
 
-Structure `module_ctx` registers every callback implemented by the module. Header `include/modules.h` declares the complete interface.
+Structure `module_ctx` in `include/types.h` declares the complete interface, as a function pointer per callback, and `module_init()` registers the ones the module implements. Each callback is private to its module, so give it `static` linkage: the compiler then reports one that is defined and never registered. Header `include/modules.h` declares only `module_init()`, the single name a built plugin exports.
 
 hashcat calls `module_init()` when loading the module. This function assigns every implemented callback to `module_ctx`.
 
@@ -490,7 +490,7 @@ Callback `module_hash_hints()` exposes contextual words associated with whoever 
 The callback is optional. Its default splits the account name preceding the hash into words, preserving the behavior of modules written before this interface existed. Implement the callback when the hash contains stronger context or has no useful account name.
 
 ```
-u32 module_hash_hints (const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
+static u32 module_hash_hints (const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, const hashinfo_t *hash_info, hlfmt_word_t *out_words, const u32 out_max, char *scratch, const u32 scratch_size)
 ```
 
 Fill at most `out_max` entries in `out_words` and return the number written. Each entry contains a pointer and length. The pointer may refer to the salt or esalt, which outlive the call, or to the per-thread `scratch` buffer of `scratch_size` bytes when the word must be constructed. Do not allocate memory or return a pointer to stack storage.
@@ -544,6 +544,7 @@ Callback `module_opts_type()` returns a bitmask of general workflow options, whi
 * `OPTS_TYPE_DYNAMIC_SHARED`: Queries and registers the shared-memory capacity available to a kernel. On NVIDIA devices this permits allocations beyond the fixed 48 KB region when the kernel is prepared to use dynamic shared memory. See `OpenCL/m03200-pure.cl`.
 * `OPTS_TYPE_SELF_TEST_DISABLE`: Disables the mode self-test when it would create an invalid cached kernel or make startup impractical. Examples include target-specific compile-time salts in DEScrypt, primitives derived from the target in JWT, and very expensive modes such as Ethereum Wallet scrypt.
 * `OPTS_TYPE_MP_MULTI_DISABLE`: Prevents hashcat from multiplying kernel acceleration by the device multiprocessor count, allowing finer workload control.
+* `OPTS_TYPE_ACCEL_WHOLE_WAVES`: For a mode that runs one candidate per work group at an accel its tuning fixed, rounds that accel down to whole waves under CUDA, whose runtime reports how many work groups one SM holds. A last wave less than two thirds full costs most of a full one, so it is dropped. A fuller last wave is kept, and so are a count below one wave and a count from `-n`. Other backends keep the previous rounding. See `src/modules/module_36100.c`.
 * `OPTS_TYPE_NATIVE_THREADS`: Selects the native thread count: one on a CPU or the preferred workgroup-size multiple reported by a GPU backend. It does not override a user-defined `-u` value.
 * `OPTS_TYPE_POST_AMP_UTF16LE`: Runs a complete UTF-8-to-UTF-16LE conversion after amplifier processing. This flag applies only to slow-hash kernels.
 * `OPTS_TYPE_AUTODETECT_DISABLE`: Excludes the hash mode from automatic detection. A mode whose example hash is 16 characters or shorter needs no flag just because ordinary words pass for its hashes: autodetect counts its matches only when it parses at least half of the sampled lines, and the check for a swapped hash file and wordlist leaves it out.
@@ -564,9 +565,9 @@ The password and salt limits from `module_pw_max()` and `module_salt_max()` appl
 Callback `module_combined_len_max()` returns how much password and salt may take together, or 0 when they do not share a buffer. Most modes return 55 for their optimized kernel and 0 for the pure kernel, which has no such limit. Callbacks `module_combined_len_pw()` and `module_combined_len_salt()` return what a password of a given length and a given salt count towards that limit. A password and a salt fit together when the sum of the two counts does not exceed the limit:
 
 ```
-u32 module_combined_len_max  (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
-u32 module_combined_len_pw   (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const u32 pw_len)
-u32 module_combined_len_salt (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const salt_t *salt, const void *esalt)
+static u32 module_combined_len_max  (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra)
+static u32 module_combined_len_pw   (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const u32 pw_len)
+static u32 module_combined_len_salt (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const salt_t *salt, const void *esalt)
 ```
 
 By default, a password counts its length, doubled in the optimized kernel of a UTF-16 mode, and a salt counts its stored `salt_len`. A mode that keeps the salt twice, such as `md5($s.$p.$s)`, counts it twice. A mode with a constant beside them in the buffer adds the constant to one of the two counts.
@@ -632,7 +633,7 @@ hashcat keeps the rows every module registers in a cache file, `module_options.s
 The `module_tune_variants()` callback provides autotune with the available ways to run a mode's kernels on a device. It allows a single kernel build to support settings that a JIT build option would otherwise fix for the entire run, such as the TMTO of scrypt. Each variant is a `tune_variant_t` with five fields. The `module_tune` field specifies the value the kernels read as `MODULE_TUNE`. The `kernel_accel` field specifies the corresponding launch size. The `loop_phases` field names the loop phases whose kernels `module_tune` governs: bit 0 for `_loop_prepare` and `_loop`, bit 1 for `_loop2_prepare` and `_loop2`, and bit 2 for `_loop3_prepare` and `_loop3`. The `loop_lanes` field specifies how many work items one candidate takes in those loop kernels when several candidates share a work group, or 0 to keep the whole work group per candidate that `OPTS_TYPE_THREAD_MULTI_DISABLE` gives. When it is not 0, every other kernel of the mode gets one work item per candidate. The `loop_launches` field specifies the effective number of loop kernel launches per candidate, including the proportional cost of other required kernels.
 
 ```
-u32 module_tune_variants (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const hashes_t *hashes, const hc_device_param_t *device_param, tune_variant_t *variants, const u32 variants_size)
+static u32 module_tune_variants (const hashconfig_t *hashconfig, const user_options_t *user_options, const user_options_extra_t *user_options_extra, const hashes_t *hashes, const hc_device_param_t *device_param, tune_variant_t *variants, const u32 variants_size)
 ```
 
 The callback writes up to `variants_size` entries and returns the number written. The kernels initially use the first variant, and the self-test runs a single candidate in it, so list first a variant that computes one candidate quickly and still runs the code paths the other variants run. Autotune then runs each variant once with a sixteenth of the loop count and drops those that reach less than half of the best speed. It then measures one launch of the loop kernel of the first phase in `loop_phases` for each remaining variant, and a full launch for those within 10 percent of the fastest. Where a full launch would take more than 100 milliseconds, the first of these runs fewer loop iterations, but at least a quarter of them, and is skipped if the run with a sixteenth already took 100 milliseconds. The speed of a variant is the number of candidates the launch held divided by the product of the launch time and `loop_launches`. Among variants within 2 percent of the fastest that hold at most 90 percent of its candidates, it selects the one with the fewest, and otherwise the fastest. The loop kernel must therefore honor `LOOP_CNT`. Extra buffers must be large enough for every variant returned by the callback, and `module_extra_tuningdb_block()` must provide a `kernel_accel` at least as large as the maximum value.
@@ -819,7 +820,7 @@ A fast hash built from the families supported by hash-mode 4000 can use a recipe
 ```
 static const char *HASH_RECIPE    = "md5(pass . salt)";
 
-const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
+static const char *module_hash_recipe    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_RECIPE;     }
 
   module_ctx->module_hash_recipe              = module_hash_recipe;
 ```
@@ -1215,5 +1216,13 @@ sed -i -E -e 's/^u32 +module_attack_exec +\(.*\) *\{ *return ATTACK_EXEC; *\}$/#
 ```
 
 A module that writes one of these callbacks in another form, or computes one, needs that part of the change by hand. The compiler then reports the callback as defined twice, or `module_init_common()` as undeclared.
+
+Every callback a module implements now has `static` linkage, which is what lets the compiler report one that is defined and never registered. A plugin needs no change for this. A callback defined without `static` still compiles, because nothing declares it ahead of its definition any more, and it simply gets no such warning. The following command adds `static` in a module:
+
+```
+sed -i -E '/^(const +)?[a-z_0-9]+ +\*?module_init +\(/!s/^((const +)?[a-z_0-9]+ +\*?)(module_[a-z_0-9]+ *\()/static \1\3/' src/modules/module_*.c
+```
+
+`module_init()` keeps external linkage, because it is the one name hashcat resolves in a plugin. A module that calls one of its own callbacks above the line defining it needs a declaration of that callback as well, which the compiler asks for by name. A wrong callback signature is now reported where `module_init()` assigns it rather than where it is defined.
 
 On macOS, BSD sed takes the in-place flag as `-i ''`. The commands can leave an empty line where a group of assignments used to be, which does no harm. A compiled plugin still has to be rebuilt whenever the plugin interface version changes, as described in the section on the core library.

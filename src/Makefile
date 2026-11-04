@@ -1130,6 +1130,13 @@ $(foreach P,$(PLATFORMS),$(eval CFLAGS_PLUGIN_$(P) := $(filter-out $(CFLAGS_HOST
 
 $(foreach P,$(PLATFORMS),$(eval CFLAGS_PLUGIN_$(P) += -fvisibility=hidden))
 
+# A hook is private to the module that defines it, so the compiler reports one that is defined and
+# never registered. Nothing declares a hook ahead of its definition any more, which leaves the
+# assignment in module_init () as the only place its signature is checked, so that has to fail the
+# build rather than warn.
+
+$(foreach P,$(PLATFORMS),$(eval CFLAGS_PLUGIN_$(P) += -Werror=incompatible-pointer-types))
+
 ##
 ## Flags a vendored dependency needs, per platform
 ##
