@@ -9,13 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_number, random_hex_string
-
-# SQLCipher: PBKDF2 derives a 32 byte AES key from the password and page salt, then a 16 byte block
-# of zeros is AES-CBC encrypted under that key. type selects the PBKDF2 hash, 1 is HMAC-SHA1 (the
-# only one the generator emits), 2 is HMAC-SHA256, 3 is HMAC-SHA512.
-
-_PRF = {1: "sha1", 2: "sha256", 3: "sha512"}
+from lib.test_helpers import random_number, random_hex_string, test_iteration_parameters
 
 
 def module_test_properties():
@@ -28,7 +22,20 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# SQLCipher: PBKDF2 derives a 32 byte AES key from the password and page salt, then a 16 byte block
+# of zeros is AES-CBC encrypted under that key. type selects the PBKDF2 hash, 1 is HMAC-SHA1 (the
+# only one the generator emits), 2 is HMAC-SHA256, 3 is HMAC-SHA512.
+
+_PRF = {1: "sha1", 2: "sha256", 3: "sha512"}
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, type=1, iv=None, enc=None):

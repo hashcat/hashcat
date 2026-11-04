@@ -8,11 +8,7 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import random_bytes
-
-# 1Password, cloudkeychain: PBKDF2-HMAC-SHA512 of the password, and HMAC-SHA256 over the data with
-# the second half of the key. The salt argument carries the 16 byte salt and the 304 data bytes, in
-# hex, one after the other.
+from lib.test_helpers import random_bytes, test_iteration_parameters
 
 
 def module_test_properties():
@@ -25,11 +21,23 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 40000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# 1Password, cloudkeychain: PBKDF2-HMAC-SHA512 of the password, and HMAC-SHA256 over the data with
+# the second half of the key. The salt argument carries the 16 byte salt and the 304 data bytes, in
+# hex, one after the other.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 40000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   if not salt:
     salt = random_bytes(16 + 304).hex()

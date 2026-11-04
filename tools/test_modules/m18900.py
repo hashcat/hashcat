@@ -9,21 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes, random_hex_string
-
-# Android FDE (Samsung DEK). PBKDF2-HMAC-SHA1 over the user salt derives an AES-256 key that CBC
-# encrypts the 83 byte master key blob. Crypt::CBC "standard" padding is PKCS#7 whose decrypt strips
-# the last byte's count without validating it, so the padding is done by hand to match.
-
-
-def _pad(data):
-  n = 16 - (len(data) % 16)
-
-  return data + bytes([n]) * n
-
-
-def _unpad(data):
-  return data[:-data[-1]]
+from lib.test_helpers import random_bytes, random_hex_string, test_iteration_parameters
 
 
 def module_test_properties():
@@ -36,7 +22,29 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 10000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# Android FDE (Samsung DEK). PBKDF2-HMAC-SHA1 over the user salt derives an AES-256 key that CBC
+# encrypts the 83 byte master key blob. Crypt::CBC "standard" padding is PKCS#7 whose decrypt strips
+# the last byte's count without validating it, so the padding is done by hand to match.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def _pad(data):
+  n = 16 - (len(data) % 16)
+
+  return data + bytes([n]) * n
+
+
+def _unpad(data):
+  return data[:-data[-1]]
 
 
 def module_generate_hash(word, salt, version=None, iterations=None, user_salt=None,
@@ -45,7 +53,7 @@ def module_generate_hash(word, salt, version=None, iterations=None, user_salt=No
   # missing value falls back to 5 the same way its shift // 5 does
   version = 5 if version is None else version
 
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   # draw defaults in the same order the perl oracle does, so a seeded run stays on one rng stream
 

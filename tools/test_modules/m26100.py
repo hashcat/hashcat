@@ -9,12 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_hex_string
-
-# Mozilla key4.db (AES). sha1 of the global salt and password is stretched by PBKDF2-HMAC-SHA256 with
-# the entry salt into an AES-256 key that CBC encrypts the fixed check string "password-check\x02\x02".
-
-CHECK = b"password-check\x02\x02"
+from lib.test_helpers import random_hex_string, test_iteration_parameters
 
 
 def module_test_properties():
@@ -27,12 +22,25 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 10000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# Mozilla key4.db (AES). sha1 of the global salt and password is stretched by PBKDF2-HMAC-SHA256 with
+# the entry salt into an AES-256 key that CBC encrypts the fixed check string "password-check\x02\x02".
+
+CHECK = b"password-check\x02\x02"
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, global_salt, entry_salt=None, iterations=None, iv=None, ct=None):
   entry_salt = random_hex_string(64) if entry_salt is None else entry_salt
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
   iv = random_hex_string(32) if iv is None else iv
 
   global_salt_bin = bytes.fromhex(global_salt)

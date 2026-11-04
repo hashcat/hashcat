@@ -8,8 +8,7 @@
 import base64
 import hashlib
 
-# Oracle Transportation Management (SHA256): SHA-256 of the salt and the password, then of the
-# digest, iterations times in all.
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -22,11 +21,22 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 1000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# Oracle Transportation Management (SHA256): SHA-256 of the salt and the password, then of the
+# digest, iterations times in all.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   digest = hashlib.sha256(salt.encode() + word).digest()
 

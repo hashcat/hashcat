@@ -7,7 +7,7 @@
 
 from lib import passlib_pbkdf2
 
-# Python passlib pbkdf2-sha512, see lib/passlib_pbkdf2.py.
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -20,7 +20,16 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# Python passlib pbkdf2-sha512, see lib/passlib_pbkdf2.py.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

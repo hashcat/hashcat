@@ -6,10 +6,7 @@
 ##
 
 from lib import pbkdf2_b64
-from lib.test_helpers import random_number
-
-# PBKDF2-HMAC-SHA1: sha1:iterations:base64(salt):base64(key), a 16 byte key and a random iteration
-# count, see lib/pbkdf2_b64.py.
+from lib.test_helpers import random_number, test_iteration_parameters
 
 
 def module_test_properties():
@@ -22,7 +19,17 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# PBKDF2-HMAC-SHA1: sha1:iterations:base64(salt):base64(key), a 16 byte key and a random iteration
+# count, see lib/pbkdf2_b64.py.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

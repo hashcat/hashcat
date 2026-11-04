@@ -10,10 +10,7 @@ import binascii
 import hashlib
 import re
 
-from lib.test_helpers import random_numeric_string
-
-# QNX 7 /etc/shadow (SHA512): PBKDF2-HMAC-SHA512, 4096 rounds by default, @S@base64(key)@base64(salt),
-# with "S,rounds" as the tag for any other count.
+from lib.test_helpers import random_numeric_string, test_iteration_parameters
 
 
 def module_test_properties():
@@ -26,11 +23,22 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 4096}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# QNX 7 /etc/shadow (SHA512): PBKDF2-HMAC-SHA512, 4096 rounds by default, @S@base64(key)@base64(salt),
+# with "S,rounds" as the tag for any other count.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 4096 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   if not salt:
     salt = random_numeric_string(16)

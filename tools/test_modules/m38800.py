@@ -7,7 +7,7 @@
 
 from lib import openbsd_softraid
 
-# OpenBSD softraid CRYPTO, created before OpenBSD 6.1: the mask key is PBKDF2-HMAC-SHA1.
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -20,7 +20,16 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# OpenBSD softraid CRYPTO, created before OpenBSD 6.1: the mask key is PBKDF2-HMAC-SHA1.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None, masked=None):

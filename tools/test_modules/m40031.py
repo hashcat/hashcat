@@ -7,7 +7,7 @@
 
 from lib import pbkdf2_b64
 
-# PBKDF2-HMAC-MD5: md5:iterations:base64(salt):base64(key), see lib/pbkdf2_b64.py.
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -20,11 +20,21 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 1000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# PBKDF2-HMAC-MD5: md5:iterations:base64(salt):base64(key), see lib/pbkdf2_b64.py.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None, out_len=32):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   return pbkdf2_b64.generate_hash("md5", "md5", word, salt, iterations, out_len)
 

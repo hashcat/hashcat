@@ -8,11 +8,7 @@
 import base64
 import hashlib
 
-from lib.test_helpers import split_hash_word
-
-# SAP CODVN H (PWDSALTEDHASH) iSSHA-256: {x-isSHA256, iter}base64(sha256 iterated over word.buf . salt).
-# The buffer starts at the salt and each round is sha256(word . buffer); the stored blob is the final
-# 32 byte digest followed by the salt.
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 
 def module_test_properties():
@@ -25,7 +21,18 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# SAP CODVN H (PWDSALTEDHASH) iSSHA-256: {x-isSHA256, iter}base64(sha256 iterated over word.buf . salt).
+# The buffer starts at the salt and each round is sha256(word . buffer); the stored blob is the final
+# 32 byte digest followed by the salt.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

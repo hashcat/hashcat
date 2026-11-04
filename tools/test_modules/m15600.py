@@ -9,14 +9,7 @@ import hashlib
 
 from Crypto.Hash import keccak
 
-from lib.test_helpers import random_bytes, random_number
-
-# Ethereum wallet, PBKDF2-HMAC-SHA256 variant. The derived key's second half is keccak-256 hashed
-# together with the ciphertext to form the MAC.
-#
-# The payload is whatever the wallet encrypted, so its length is drawn rather than fixed at the 32
-# bytes of a private key. Past 120 bytes the MAC runs to a second keccak block. The salt range
-# starts at zero because a Trust Wallet cloud backup carries an empty one.
+from lib.test_helpers import random_bytes, random_number, test_iteration_parameters
 
 
 def module_test_properties():
@@ -29,11 +22,26 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 1024}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# Ethereum wallet, PBKDF2-HMAC-SHA256 variant. The derived key's second half is keccak-256 hashed
+# together with the ciphertext to form the MAC.
+#
+# The payload is whatever the wallet encrypted, so its length is drawn rather than fixed at the 32
+# bytes of a private key. Past 120 bytes the MAC runs to a second keccak block. The salt range
+# starts at zero because a Trust Wallet cloud backup carries an empty one.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None, ciphertext=None):
-  iterations = 1024 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 

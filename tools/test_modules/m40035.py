@@ -10,12 +10,7 @@ import binascii
 import hashlib
 import re
 
-from lib.test_helpers import random_bytes, split_hash_word
-
-# Apache Shiro 1 SHA-512: SHA-512 of the salt and the password, then of the digest, iterations times
-# in all.
-
-LINE = re.compile(r"^\$shiro1\$SHA-512\$(\d+)\$([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+)$")
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
 
 def module_test_properties():
@@ -28,11 +23,24 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 1024}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# Apache Shiro 1 SHA-512: SHA-512 of the salt and the password, then of the digest, iterations times
+# in all.
+
+LINE = re.compile(r"^\$shiro1\$SHA-512\$(\d+)\$([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+)$")
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 1024 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if salt else random_bytes(16)
 

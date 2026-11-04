@@ -11,10 +11,7 @@ import hashlib
 import hmac
 import re
 
-from lib.test_helpers import random_number, random_string, split_hash_word
-
-# MongoDB ServerKey SCRAM-SHA-256: HMAC-SHA256 of "Server Key" keyed with PBKDF2-HMAC-SHA256
-# of the password, the user name drawn at random.
+from lib.test_helpers import random_number, random_string, split_hash_word, test_iteration_parameters
 
 
 def module_test_properties():
@@ -27,11 +24,22 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 15000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# MongoDB ServerKey SCRAM-SHA-256: HMAC-SHA256 of "Server Key" keyed with PBKDF2-HMAC-SHA256
+# of the password, the user name drawn at random.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None, user=None):
-  iterations = 15000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   if user is None:
     user = random_string(random_number(0, 64)).encode()

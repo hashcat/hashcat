@@ -8,10 +8,7 @@
 import hashlib
 import hmac
 
-from lib.test_helpers import split_hash_word
-
-# XMPP SCRAM PBKDF2-SHA1: SHA-1 of HMAC-SHA1("Client Key") keyed with PBKDF2-HMAC-SHA1 of the
-# password.
+from lib.test_helpers import split_hash_word, test_iteration_parameters
 
 
 def module_test_properties():
@@ -24,11 +21,22 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 4096}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# XMPP SCRAM PBKDF2-SHA1: SHA-1 of HMAC-SHA1("Client Key") keyed with PBKDF2-HMAC-SHA1 of the
+# password.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 4096 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if isinstance(salt, str) else salt
 

@@ -11,9 +11,7 @@ import zlib
 
 from base64 import b64decode, b64encode
 
-# Blockchain, My Wallet, Second Password (SHA256). The 16 byte salt is printed as a UUID, hashed
-# with the word and iterated, then packed with the salt, the iteration count and a crc32 tail and
-# base64 encoded.
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -26,14 +24,26 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 10000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# Blockchain, My Wallet, Second Password (SHA256). The 16 byte salt is printed as a UUID, hashed
+# with the word and iterated, then packed with the salt, the iteration count and a crc32 tail and
+# base64 encoded.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):
   if isinstance(salt, str):
     salt = salt.encode("latin-1")
 
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   uuid = "%s-%s-%s-%s-%s" % (salt[0:4].hex(), salt[4:6].hex(), salt[6:8].hex(),
                              salt[8:10].hex(), salt[10:16].hex())

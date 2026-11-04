@@ -16,10 +16,13 @@
 
 import glob
 import importlib
+import json
 import os
 import random
 import re
 import sys
+
+import test_iterations
 
 # Checked before any test module is imported, since an older python fails inside one with an error
 # that does not name the interpreter.
@@ -275,16 +278,24 @@ def usage_exit():
     " {0} passthrough <mode> [iter]\n"
     " {0} potthrough  <mode> [iter]\n"
     " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
+    " {0} selftest_hash <mode>\n"
     "\n".format(name))
 
   sys.exit(1)
 
 
-def load_module(mode):
+def load_module(mode, missing_dependency_rc=1):
+  # Load an oracle with a distinct missing-dependency exit code for self-test fallback.
   name = "m%05d" % mode
 
   try:
     return importlib.import_module(name)
+  except ModuleNotFoundError as exc:
+    sys.stderr.write("Could not load test module: %s.py\n%s\n" % (name, exc))
+
+    # Only absent optional packages permit fallback. Broken internal imports must fail.
+    optional_packages = {"Crypto", "cryptography", "argon2", "gostcrypto"}
+    sys.exit(missing_dependency_rc if exc.name in optional_packages else 1)
   except Exception as exc:
     sys.exit("Could not load test module: %s.py\n%s" % (name, exc))
 
@@ -434,7 +445,7 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = mod.module_generate_hash(word, salt)
+    digest = test_iterations.generate_iteration_hash(mod, word, salt)
 
     # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
     # again rather than passed on
@@ -725,7 +736,7 @@ def single(mod, mode, length, spare=False):
 
         test_helpers.set_rand_state(replay[group])
 
-    digest = mod.module_generate_hash(word_bytes, salt_str, None)
+    digest = test_iterations.generate_iteration_hash(mod, word_bytes, salt_str)
 
     if resume is not None:
       test_helpers.set_rand_state(resume)
@@ -770,7 +781,7 @@ def passthrough(mod, iterations, with_plain):
       if not comb[0] <= comb_length(comb, len(word_bytes), salt_len) <= comb[1]:
         continue
 
-    digest = mod.module_generate_hash(word_bytes, random_numeric_string(salt_len), iterations)
+    digest = test_iterations.generate_iteration_hash(mod, word_bytes, random_numeric_string(salt_len), iterations)
 
     if digest is None:
       continue
@@ -824,13 +835,18 @@ def main():
 
   kind, mode = argv[0], argv[1]
 
-  if kind not in ("edge", "single", "spare", "password", "passthrough", "potthrough", "verify"):
+  if kind not in ("edge", "single", "spare", "password", "passthrough", "potthrough", "verify", "selftest_hash"):
     usage_exit()
 
   if not mode.isdigit():
     sys.exit("Mode must be a number\n")
 
   mode = int(mode)
+
+  try:
+    test_iterations.iteration_reduction_requested()
+  except ValueError as exc:
+    sys.exit(str(exc))
 
   # tools/test.sh exports IS_OPTIMIZED, but tools/test_edge.sh hands the same flag to the edge
   # subcommand as an argument instead. A module reads the variable when it is imported, so the
@@ -843,7 +859,7 @@ def main():
 
     IS_OPTIMIZED = argv[3] != "0"
 
-  mod = load_module(mode)
+  mod = load_module(mode, missing_dependency_rc=3 if kind == "selftest_hash" else 1)
 
   for hook in ("module_test_properties", "module_generate_hash", "module_verify_hash"):
     if not hasattr(mod, hook):
@@ -866,6 +882,31 @@ def main():
   global NON_ASCII_OK
 
   NON_ASCII_OK = non_ascii_supported(mode, mod)
+
+  if kind == "selftest_hash":
+    word_range, salt_range, comb = constraints(mod)
+    length = max(word_range[0], min(7, word_range[1]))
+    salt_length = max(0, max(salt_range[0], min(8, salt_range[1])))
+    # for ST_HASH we generate a password that's always the same
+    word = b"A" * length
+    salt = "1" * salt_length
+
+    if hasattr(mod, "module_get_random_password"):
+      word = mod.module_get_random_password(word)
+
+    digest = test_iterations.generate_iteration_hash(mod, word, salt)
+
+    if digest is None:
+      sys.exit("could not generate a reduced-iteration vector")
+
+    checked = mod.module_verify_hash(digest.encode("utf-8") + b":" + word)
+
+    if checked != (digest, word):
+      sys.exit("reduced-iteration vector did not round trip")
+
+    print(json.dumps({"hash": digest, "password_hex": word.hex()}))
+
+    return
 
   if kind == "verify":
     if len(argv) != 5:

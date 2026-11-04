@@ -1,13 +1,8 @@
 ### Hashcat test modules ###
 
-A test module is `mXXXXX.py`, where XXXXX is the hash mode padded to five digits. It provides the
-functions `module_constraints`, `module_generate_hash` and `module_verify_hash`.
+A test module is `mXXXXX.py`, where XXXXX is the hash mode padded to five digits. It provides the functions `module_test_properties`, `module_generate_hash` and `module_verify_hash`.
 
-* `module_constraints` returns the minimum and maximum length of the password, the salt and the
-combination of password and salt, in this order: password (pure), salt (pure), password
-(optimized), salt (optimized), combination (optimized). A pair is -1, -1 where the field does not
-apply, so a mode without a salt sets both salt pairs that way. The last pair matters where the
-password and the salt share one kernel buffer, which is typically raw hashes only.
+* `module_test_properties` returns a dictionary containing `constraints` and optional `normal` and `reduced` metadata. The constraints name the `pure` and `optimized` kernel families. Each available family declares `password_length` and `salt_length` as minimum-and-maximum pairs. A family is `None` when its kernel is unavailable. Salt bounds are `None` when no supplied salt is needed. The separate `combined_length` pair bounds the combined password and salt length, typically where they share a kernel buffer, or is `None` when no bound applies.
 * `module_generate_hash` takes the password as `bytes`, the salt as `str`, and an iteration count
 that is None unless the caller pins one. It returns the hash line as `str`, in the exact format
 hashcat accepts, or None where the mode cannot produce one for that input.
@@ -73,3 +68,32 @@ The bridge runs each oracle in an ordinary Python process, so an oracle that imp
 works the same as a hashlib-only one, on Linux, macOS and Windows alike. It needs a `python3` on PATH
 and nothing else. See
 [docs/hashcat-python-plugin-requirements.md](/docs/hashcat-python-plugin-requirements.md).
+
+#### Reduced iteration counts ####
+
+Normal runs, including `-S`, retain their original iteration counts. Pass `--artificially-low-iteration-count` to `tools/test.py`, or set `ARTIFICIALLY_LOW_ITERATION_COUNT=true`, to generate supported test vectors with a fixed count of 2. The generated hash stores that count in its real format, and hashcat decodes it normally. No hashcat runtime override is used.
+
+A supported oracle adds a literal `reduced` section to `module_test_properties()`, containing `{'parameters': {'iterations': 2}}`. The manager reads this declaration without importing optional dependencies. Each oracle child reads its own properties to initialize `ITERATION_PARAMETERS`. Verification uses the count decoded from the hash. Explicit iteration arguments to `passthrough` and `potthrough` take precedence over the reduced default.
+
+Only formats whose generators support an encoded count of 2 opt in. Other formats, missing test modules, and external archives or containers keep their normal costs. The modes 13733, 13772, 13773, 29433, 29472 and 29473 reported in issue 5003 have no Python test module and are not covered by this option.
+
+With this option, `-S` generates a supported reduced vector instead of using the published self-test vector. Missing oracle dependencies fall back to the published vector. Other oracle errors fail the test. The setting also applies to ordinary and edge tests. Manual CI runs expose an unchecked checkbox. Scheduled and PR runs retain their original counts.
+
+`module_test_properties()` requires `constraints` and may contain `normal.parameters` for generator defaults and `reduced.parameters` for the fixed reduced count. `test_iteration_parameters(module_test_properties())` reads those properties inside the oracle process and applies reduced parameters when `ARTIFICIALLY_LOW_ITERATION_COUNT=true`. Explicit generator arguments take precedence. The manager reads the literal iteration declarations without importing crypto dependencies or evaluating constraints that may refer to module constants.
+
+```python
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {'password_length': [0, 256], 'salt_length': [0, 64]},
+      'optimized': None,
+      'combined_length': None,
+    },
+    'normal': {
+      'parameters': {'iterations': 40000},
+    },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
+  }
+```

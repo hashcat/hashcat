@@ -9,10 +9,7 @@ import base64
 import binascii
 import hashlib
 
-from lib.test_helpers import random_bytes, split_hash_word
-
-# RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256): base64 of the iteration count as 4 big endian bytes, the
-# 64 byte salt and a 256 byte key.
+from lib.test_helpers import random_bytes, split_hash_word, test_iteration_parameters
 
 
 def module_test_properties():
@@ -25,11 +22,22 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 8192}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256): base64 of the iteration count as 4 big endian bytes, the
+# 64 byte salt and a 256 byte key.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 8192 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bytes = salt.encode("latin-1") if salt else random_bytes(16)
 

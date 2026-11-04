@@ -7,14 +7,7 @@
 
 from Crypto.Cipher import AES
 
-from lib.test_helpers import random_bytes
-
-# 1Password agilekeychain: PBKDF2-HMAC-SHA1 of the password over the 8 byte salt, then AES-128-CBC of
-# a fixed block. The line packs the salt hex, a 1008 byte prefix and the IV together.
-
-
-def get_random_salt():
-  return (random_bytes(8) + b"\x00" * 1008 + random_bytes(16)).hex()
+from lib.test_helpers import random_bytes, test_iteration_parameters
 
 
 def module_test_properties():
@@ -27,11 +20,26 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 1000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# 1Password agilekeychain: PBKDF2-HMAC-SHA1 of the password over the 8 byte salt, then AES-128-CBC of
+# a fixed block. The line packs the salt hex, a 1008 byte prefix and the IV together.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
+def get_random_salt():
+  return (random_bytes(8) + b"\x00" * 1008 + random_bytes(16)).hex()
+
+
 def module_generate_hash(word, salt, iterations=None):
-  iterations = 1000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   if not salt:
     salt = get_random_salt()

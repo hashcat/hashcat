@@ -80,6 +80,10 @@ on:
         description: 'Test edge cases (both kernel types and all vector widths)'
         type: boolean
         default: false
+      artificially_low_iterations:
+        description: 'Artificially low iteration counts'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -88,6 +92,7 @@ on:
       - 'deps/**'
       - 'Makefile'
       - 'tools/test.py'
+      - 'tools/test_iterations.py'
       - 'tools/test_module_runner.*'
       - 'tools/test_modules/**'
       - 'tools/requirements.txt'
@@ -253,6 +258,7 @@ jobs:
 
       - name: test.py
         env:
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
           KIND: ${{ matrix.kind }}

@@ -9,7 +9,7 @@ import hashlib
 
 from lib import qnx
 
-# QNX /etc/shadow (SHA512), see lib/qnx.py.
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -22,7 +22,16 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
+
+
+# QNX /etc/shadow (SHA512), see lib/qnx.py.
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
 
 
 def module_generate_hash(word, salt, iterations=None):

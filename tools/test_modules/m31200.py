@@ -9,11 +9,7 @@ import hashlib
 
 from Crypto.Cipher import AES
 
-# Veeam VBK. PBKDF2-HMAC-SHA1 of the UTF-16LE password gives an AES-256 key and iv that CBC encrypt a
-# marker whose tail is twelve 0x0c bytes. The kernel decodes the UTF-8 password rather than widening
-# it, and there is no optimized kernel, so the charset is always UTF-8.
-
-PLAIN = b"\x30\x30\x30\x30" + b"\x0c" * 12
+from lib.test_helpers import test_iteration_parameters
 
 
 def module_test_properties():
@@ -26,11 +22,25 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
+    'normal': {'parameters': {'iterations': 10000}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
+# Veeam VBK. PBKDF2-HMAC-SHA1 of the UTF-16LE password gives an AES-256 key and iv that CBC encrypt a
+# marker whose tail is twelve 0x0c bytes. The kernel decodes the UTF-8 password rather than widening
+# it, and there is no optimized kernel, so the charset is always UTF-8.
+
+PLAIN = b"\x30\x30\x30\x30" + b"\x0c" * 12
+
+
+ITERATION_PARAMETERS = test_iteration_parameters(module_test_properties())
+
+
 def module_generate_hash(word, salt, iterations=None, ct=None):
-  iterations = 10000 if iterations is None else int(iterations)
+  iterations = ITERATION_PARAMETERS['iterations'] if iterations is None else int(iterations)
 
   salt_bin = bytes.fromhex(salt)
 
