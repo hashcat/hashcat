@@ -38,6 +38,8 @@ typedef struct krb5tgs
   u32 edata2_len;
   u32 format;
 
+  u32 user[128];
+  u32 realm[128];
 } krb5tgs_t;
 
 DECLSPEC void hmac_md5_pad (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *ipad, PRIVATE_AS u32 *opad)

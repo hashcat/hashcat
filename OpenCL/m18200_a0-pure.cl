@@ -26,6 +26,8 @@ typedef struct krb5asrep
   u32 edata2_len;
   u32 format;
 
+  u32 user[128];
+  u32 realm[128];
 } krb5asrep_t;
 
 DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)

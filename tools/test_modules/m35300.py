@@ -5,6 +5,8 @@
 ## License.....: MIT
 ##
 
+import random
+
 from lib.kerberos_rc4 import hmac_md5, rc4
 from lib.test_helpers import pack_hex, random_bytes
 
@@ -16,74 +18,114 @@ from lib.test_helpers import pack_hex, random_bytes
 MSG_TYPE = b"\x02\x00\x00\x00"
 
 CLEARTEXT_TICKET = (
-  "6381b03081ada00703050050a00000a11b3019a003020117a1"
-  "12041058e0d77776e8b8e03991f2966939222aa2171b154d594b5242544553542e434f4e5"
-  "44f534f2e434f4da3133011a003020102a10a30081b067472616e6365a40b3009a0030201"
-  "01a1020400a511180f32303136303231353134343735305aa611180f32303136303231353"
-  "134343735305aa711180f32303136303231363030343735305aa811180f32303136303232"
-  "323134343735305a"
+    "6381b03081ada00703050050a00000a11b3019a003020117a1"
+    "12041058e0d77776e8b8e03991f2966939222aa2171b154d594b5242544553542e434f4e5"
+    "44f534f2e434f4da3133011a003020102a10a30081b067472616e6365a40b3009a0030201"
+    "01a1020400a511180f32303136303231353134343735305aa611180f32303136303231353"
+    "134343735305aa711180f32303136303231363030343735305aa811180f32303136303232"
+    "323134343735305a"
 )
 
 
 def module_constraints():
-  return [[32, 32], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
+    return [[32, 32], [16, 16], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, salt=None, user=None, realm=None, spn=None,
-                         checksum=None, edata2=None):
-  user = "user" if user is None else user
-  realm = "realm" if realm is None else realm
-  spn = "test/spn" if spn is None else spn
+def module_generate_hash(
+    word,
+    salt=None,
+    iterations=None,
+    user="user",
+    realm="realm",
+    spn="test/spn",
+    checksum=None,
+    edata2=None,
+    fmt=None,
+):
 
-  k = pack_hex(word)
-  k1 = hmac_md5(k, MSG_TYPE)
+    k = pack_hex(word)
+    k1 = hmac_md5(k, MSG_TYPE)
 
-  cleartext = CLEARTEXT_TICKET
+    cleartext = CLEARTEXT_TICKET
 
-  if checksum is not None:
-    checksum = bytes.fromhex(checksum)
-  else:
-    nonce = random_bytes(8).hex()
-    cleartext = nonce + cleartext
-    checksum = hmac_md5(k1, bytes.fromhex(cleartext))
+    if checksum is not None:
+        checksum = bytes.fromhex(checksum)
+    else:
+        nonce = random_bytes(8).hex()
+        cleartext = nonce + cleartext
+        checksum = hmac_md5(k1, bytes.fromhex(cleartext))
 
-  k3 = hmac_md5(k1, checksum)
+    k3 = hmac_md5(k1, checksum)
 
-  if edata2 is not None:
-    ticket = rc4(k3, bytes.fromhex(edata2)).hex()
+    if edata2 is not None:
+        ticket = rc4(k3, bytes.fromhex(edata2)).hex()
 
-    correct = ((ticket[16:20] == "6381" and ticket[22:24] == "30") or ticket[16:20] == "6382") and \
-              (ticket[32:38] == "030500" or ticket[32:40] == "050307A0")
+        correct = (
+            (ticket[16:20] == "6381" and ticket[22:24] == "30")
+            or ticket[16:20] == "6382"
+        ) and (ticket[32:38] == "030500" or ticket[32:40] == "050307A0")
 
-    cleartext = ticket if correct else "0" * (len(cleartext) + 16)
+        cleartext = ticket if correct else "0" * (len(cleartext) + 16)
 
-  edata2 = rc4(k3, bytes.fromhex(cleartext))
+    edata2 = rc4(k3, bytes.fromhex(cleartext))
 
-  return "$krb5tgs$23$*%s$%s$%s*$%s$%s" % (user, realm, spn, checksum.hex(), edata2.hex())
+    if fmt is None:
+        fmt = random.randint(1, 2)
+
+    if fmt == 1:
+        return f"$krb5tgs$23$*{user}${realm}${spn}*${checksum.hex()}${edata2.hex()}"
+    else:
+        return f"$krb5tgs$23${user}${realm}${checksum.hex()}${edata2.hex()}"
 
 
 def module_verify_hash(line):
-  idx = line.find(b":")
+    idx = line.find(b":")
 
-  if idx < 0:
-    return None
+    if idx < 0:
+        return None
 
-  hash_in, word = line[:idx].decode(errors="replace"), line[idx + 1:]
+    hash_in, word = line[:idx].decode(errors="replace"), line[idx + 1 :]
 
-  data = hash_in.split("$")
+    data = hash_in.split("$")
 
-  if len(data) != 8:
-    return None
+    if len(data) == 7:
+        fmt = 2
+        signature = data[1]
+        user = data[3]
+        realm = data[4]
+        checksum = data[5]
+        edata2 = data[6]
+    elif len(data) == 8:
+        fmt = 1
+        signature = data[1]
+        user = data[3][1:]
+        realm = data[4]
+        spn = data[5][:-1]
+        checksum = data[6]
+        edata2 = data[7]
+    else:
+        return None
 
-  signature = data[1]
-  user = data[3][1:]
-  realm = data[4]
-  spn = data[5][:-1]
-  checksum = data[6]
-  edata2 = data[7]
+    if signature != "krb5tgs" or len(checksum) != 32 or len(edata2) < 64:
+        return None
 
-  if signature != "krb5tgs" or len(checksum) != 32 or len(edata2) < 64:
-    return None
+    if fmt == 1:
+        return (
+            module_generate_hash(
+                word,
+                user=user,
+                realm=realm,
+                spn=spn,
+                checksum=checksum,
+                edata2=edata2,
+                fmt=fmt,
+            ),
+            word,
+        )
 
-  return (module_generate_hash(word, user=user, realm=realm, spn=spn, checksum=checksum,
-                               edata2=edata2), word)
+    return (
+        module_generate_hash(
+            word, user=user, realm=realm, checksum=checksum, edata2=edata2, fmt=fmt
+        ),
+        word,
+    )
