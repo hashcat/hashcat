@@ -33,7 +33,7 @@ def module_test_properties():
     'tests': {
       'edge': {
         'all': {
-          'exclude': 'This hash mode is deprecated.',
+          'exclude': 'deprecated_mode',
         },
       },
     },

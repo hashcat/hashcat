@@ -8,8 +8,6 @@
 # Read oracle test rules without importing their crypto dependencies and generate the inventory.
 # test.py, ci_matrix.py and test_policies_tests.py depend on this module.
 
-# Read per-mode test policies for test.py and CI without importing optional oracle dependencies.
-
 import argparse
 import ast
 import functools
@@ -23,6 +21,45 @@ ACTIONS = {
   "edge": {"exclude", "skip_output", "verify_output", "allow_same_salt", "exclude_empty", "single_hash"},
   "selftest": {"exclude", "mask_only"},
 }
+
+
+# Shared explanations keep oracle declarations small while preserving the policy inventory.
+DEFAULT_REASONS = {
+  'allow_same_salt': 'The edge fixtures retain shared salts despite the mode capability flag.',
+  'password_only': 'The recovered hash encoding differs from the oracle input. Compare the recovered password.',
+  'skip_output': 'The recovered representation differs from the oracle hash/password pair. Check the exit status only.',
+  'verify_output': 'A different valid plaintext can be recovered. Verify it with the oracle.',
+  'whole_word': 'Structured oracle candidates require whole-word attacks.',
+}
+
+NAMED_REASONS = {
+  'exclude': {
+    'mask_only_kernel': 'Only attack 3 has a kernel.',
+    'hybrid_mask_layout': "The current hybrid mask fixture cannot express this mode's candidate layout.",
+    'whole_word_candidates': 'The structured oracle candidates require whole-word attacks.',
+    'deprecated_mode': 'This hash mode is deprecated.',
+    'no_selftest_vector': 'This mode has no published cracking self-test vector.',
+  },
+  'exclude_empty': {
+    'master_key_prefix': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+  },
+  'single_hash': {
+    'master_key_fixture': 'The master-key fixture supports one hash per run.',
+  },
+}
+
+
+def resolve_reason(action, reason, path):
+  # Expand shared reasons without importing or executing an oracle.
+  if reason is True:
+    reason = DEFAULT_REASONS.get(action)
+  elif isinstance(reason, str):
+    reason = NAMED_REASONS.get(action, {}).get(reason, reason)
+
+  if not isinstance(reason, str) or not reason.strip() or reason.isidentifier():
+    raise ValueError("%s: unknown or missing reason for %r" % (path, action))
+
+  return reason
 
 
 @functools.lru_cache(maxsize=None)
@@ -62,8 +99,9 @@ def load_policies(directory=DIRECTORY):
           raise ValueError("%s: attack rules must be a dictionary" % path)
 
         for action, reason in rules.items():
-          if action not in ACTIONS[suite] or not isinstance(reason, str) or not reason.strip():
-            raise ValueError("%s: invalid rule or missing reason for %r" % (path, action))
+          if action not in ACTIONS[suite]:
+            raise ValueError("%s: invalid rule %r" % (path, action))
+          rules[action] = resolve_reason(action, reason, path)
           if (action == "whole_word" or suite == "selftest" and action == "exclude") and attack != "all":
             raise ValueError("%s: %s is a suite-wide rule" % (path, action))
           if action == "mask_only" and attack != 3:

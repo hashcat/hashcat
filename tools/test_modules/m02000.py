@@ -21,7 +21,7 @@ def module_test_properties():
     'tests': {
       'selftest': {
         'all': {
-          'exclude': 'This mode has no published cracking self-test vector.',
+          'exclude': 'no_selftest_vector',
         },
       },
       'edge': {

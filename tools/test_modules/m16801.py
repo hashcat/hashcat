@@ -29,12 +29,12 @@ def module_test_properties():
     'tests': {
       'ordinary': {
         'all': {
-          'password_only': 'The recovered hash encoding differs from the oracle input. Compare the recovered password.',
+          'password_only': True,
         },
       },
       'edge': {
         'all': {
-          'exclude': 'This hash mode is deprecated.',
+          'exclude': 'deprecated_mode',
         },
       },
     },

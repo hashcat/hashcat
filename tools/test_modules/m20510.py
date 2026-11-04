@@ -35,26 +35,26 @@ def module_test_properties():
   return {
     'tests': {
       'ordinary': {
-        'all': {'single_hash': 'The master-key fixture supports one hash per run.'},
+        'all': {'single_hash': 'master_key_fixture'},
         12: {
-          'exclude': "The current hybrid mask fixture cannot express this mode's candidate layout.",
+          'exclude': 'hybrid_mask_layout',
         },
       },
       'edge': {
         3: {
-          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+          'exclude_empty': 'master_key_prefix',
         },
         6: {
-          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+          'exclude_empty': 'master_key_prefix',
         },
         7: {
-          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+          'exclude_empty': 'master_key_prefix',
         },
         12: {
-          'exclude_empty': 'Removing the six-byte master-key prefix leaves no mask candidate.',
+          'exclude_empty': 'master_key_prefix',
         },
         'all': {
-          'single_hash': 'The master-key fixture supports one hash per run.',
+          'single_hash': 'master_key_fixture',
         },
       },
     },

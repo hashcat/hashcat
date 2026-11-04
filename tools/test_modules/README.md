@@ -44,7 +44,7 @@ it as `from lib import gpg`.
 
 #### Test exclusions and verification rules ####
 
-Mode-specific exceptions belong in `module_test_properties()["tests"]`, a literal dictionary. The manager and CI planner read it through Python's AST without importing the oracle or its optional dependencies. Each suite (`ordinary`, `edge` or `selftest`) contains attack numbers and their rules. An `all` entry supplies rules shared by every attack in that suite. Every rule needs a nonempty reason. Invalid declarations fail rather than silently removing coverage.
+Mode-specific exceptions belong in `module_test_properties()["tests"]`, a literal dictionary. The manager and CI planner read it through Python's AST without importing the oracle or its optional dependencies. Each suite (`ordinary`, `edge` or `selftest`) contains attack numbers and their rules. An `all` entry supplies rules shared by every attack in that suite. Use `True` for an action with a shared default explanation, a named reason such as `whole_word_candidates` for a shared exclusion, or a nonempty explanation specific to the mode. Shared explanations are defined in `tools/test_policies.py` and expanded in the generated inventory. Bare identifiers are reserved for named reasons. Unknown names, unsupported defaults and `False` fail validation rather than silently removing coverage. Omit a rule to leave it disabled.
 
 ```python
 def module_test_properties():
@@ -56,10 +56,10 @@ def module_test_properties():
     },
     'tests': {
       'ordinary': {
-        12: {'exclude': 'The hybrid mask fixture cannot express this candidate layout.'},
+        12: {'exclude': 'hybrid_mask_layout'},
       },
       'edge': {
-        'all': {'verify_output': 'A different valid plaintext can be recovered.'},
+        'all': {'verify_output': True},
       },
     },
   }

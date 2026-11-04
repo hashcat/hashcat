@@ -99,22 +99,22 @@ def module_test_properties():
     'tests': {
       'ordinary': {
         'all': {
-          'whole_word': 'Structured oracle candidates require whole-word attacks.',
+          'whole_word': True,
         },
         1: {
-          'exclude': 'The structured oracle candidates require whole-word attacks.',
+          'exclude': 'whole_word_candidates',
         },
         3: {
-          'exclude': 'The structured oracle candidates require whole-word attacks.',
+          'exclude': 'whole_word_candidates',
         },
         6: {
-          'exclude': 'The structured oracle candidates require whole-word attacks.',
+          'exclude': 'whole_word_candidates',
         },
         7: {
-          'exclude': 'The structured oracle candidates require whole-word attacks.',
+          'exclude': 'whole_word_candidates',
         },
         12: {
-          'exclude': 'The structured oracle candidates require whole-word attacks.',
+          'exclude': 'whole_word_candidates',
         },
       },
     },

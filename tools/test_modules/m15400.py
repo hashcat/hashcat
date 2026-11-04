@@ -76,7 +76,7 @@ def module_test_properties():
     'tests': {
       'ordinary': {
         12: {
-          'exclude': "The current hybrid mask fixture cannot express this mode's candidate layout.",
+          'exclude': 'hybrid_mask_layout',
         },
       },
     },

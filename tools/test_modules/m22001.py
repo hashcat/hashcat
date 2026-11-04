@@ -31,7 +31,7 @@ def module_test_properties():
     'tests': {
       'edge': {
         'all': {
-          'skip_output': 'The recovered representation differs from the oracle hash/password pair. Check the exit status only.',
+          'skip_output': True,
         },
       },
     },

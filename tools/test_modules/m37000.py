@@ -27,54 +27,54 @@ def module_test_properties():
           'hash_only': 'Key recovery is not unique. Check the recovered hash instead of the original key segment.',
         },
         0: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         1: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         4: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         6: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         7: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         8: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         9: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         12: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
       },
       'edge': {
         0: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         1: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         4: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         6: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         7: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         8: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         9: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
         12: {
-          'exclude': 'Only attack 3 has a kernel.',
+          'exclude': 'mask_only_kernel',
         },
       },
     },

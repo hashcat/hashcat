@@ -18,7 +18,7 @@ def module_test_properties():
     'tests': {
       'edge': {
         'all': {
-          'verify_output': 'A different valid plaintext can be recovered. Verify it with the oracle.',
+          'verify_output': True,
         },
       },
     },

@@ -83,7 +83,7 @@ def module_test_properties():
     'tests': {
       'edge': {
         'all': {
-          'allow_same_salt': 'The edge fixtures retain shared salts despite the mode capability flag.',
+          'allow_same_salt': True,
         },
       },
     },

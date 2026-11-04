@@ -43,6 +43,24 @@ class PolicyTests(unittest.TestCase):
         declaration = 'return {\"tests\": ' + body.removeprefix('return ') + '}' if body.startswith('return ') else body
         self.load('def module_test_properties():\n  ' + declaration + '\n')
 
+  def test_shared_reasons_expand_and_custom_reasons_survive(self):
+    result = self.load("def module_test_properties():\n"
+                       "  return {'tests': {'edge': {'all': {'verify_output': True}},\n"
+                       "                    'ordinary': {1: {'exclude': 'whole_word_candidates'},\n"
+                       "                                 3: {'exclude': 'This format needs a custom candidate.'}}}}\n")
+    self.assertEqual(result[1]['edge']['all']['verify_output'], policies.DEFAULT_REASONS['verify_output'])
+    self.assertEqual(result[1]['ordinary'][1]['exclude'],
+                     policies.NAMED_REASONS['exclude']['whole_word_candidates'])
+    self.assertEqual(result[1]['ordinary'][3]['exclude'], 'This format needs a custom candidate.')
+
+  def test_invalid_shared_reasons_fail(self):
+    for action, reason in [('verify_output', False), ('verify_output', 1),
+                           ('verify_output', 'whole_word_candidates'),
+                           ('exclude', True), ('exclude', 'whole_word_candidate')]:
+      with self.subTest(action=action, reason=reason), self.assertRaises(ValueError):
+        self.load("def module_test_properties():\n  return " +
+                  repr({'tests': {'edge': {0: {action: reason}}}}) + "\n")
+
   def test_attack_and_suite_rules_do_not_leak(self):
     data = {1: {'edge': {'all': {'verify_output': 'Check the oracle.'},
                          4: {'exclude_empty': 'No empty grammar word.'}},
