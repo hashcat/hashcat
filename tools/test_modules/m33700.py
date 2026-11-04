@@ -29,7 +29,7 @@ def module_constraints():
   return [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]
 
 
-def module_generate_hash(word, iterations=None, ct=None):
+def module_generate_hash(word, salt=None, iterations=None, ct=None):
   if iterations is None or not re.match(r"^\d+$", str(iterations)):
     iter_n = 10000
   else:
@@ -84,4 +84,4 @@ def module_verify_hash(line):
   if hid != "0":
     return None
 
-  return (module_generate_hash(word, iterations, ct), word)
+  return (module_generate_hash(word, iterations=iterations, ct=ct), word)
