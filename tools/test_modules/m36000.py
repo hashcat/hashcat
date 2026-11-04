@@ -138,6 +138,7 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'normal': {'ci_seconds': {'pure': 34, 'bridge': 9, 'opt': 54, 'edge': 108}},
   }
 
 

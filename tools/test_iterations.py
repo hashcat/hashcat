@@ -6,7 +6,7 @@
 ##
 
 # Shared by test.py and test_module_runner.py to select reduced-count hash generators.
-# Hashcat reads the generated counts without a runtime override.
+# ci_matrix.py also reads normal and reduced CI timings without importing oracle dependencies.
 
 import ast
 import os
@@ -17,7 +17,7 @@ ITERATION_ENV = "ARTIFICIALLY_LOW_ITERATION_COUNT"
 
 @lru_cache(maxsize=None)
 def load_test_properties(mode):
-  # Read iteration metadata without evaluating constraints or importing crypto libraries.
+  # Read iteration and timing metadata without evaluating constraints or importing crypto libraries.
   directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_modules")
   filename = "m%05d.py" % mode
   hook = "module_test_properties"
@@ -50,7 +50,7 @@ def load_test_properties(mode):
   if not isinstance(settings, dict) or set(settings) - {"normal", "reduced"}:
     raise ValueError("m%05d.py: test settings allow normal and reduced entries" % mode)
   for name, section in settings.items():
-    allowed = {"parameters"}
+    allowed = {"parameters", "ci_seconds"}
     if not isinstance(section, dict) or set(section) - allowed:
       raise ValueError("m%05d.py: invalid %s test settings" % (mode, name))
     if name == "reduced" and section.get("parameters") != {"iterations": 2}:
@@ -60,12 +60,30 @@ def load_test_properties(mode):
       raise ValueError("m%05d.py: invalid iteration parameters" % mode)
     if any(type(value) is not int or value < 1 for value in parameters.values()):
       raise ValueError("m%05d.py: iteration counts must be positive integers" % mode)
+    seconds = section.get("ci_seconds", {})
+    if not isinstance(seconds, dict) or set(seconds) - {"opt", "pure", "bridge", "edge"}:
+      raise ValueError("m%05d.py: invalid CI timing kinds" % mode)
+    if any(type(value) is not int or value < 1 for value in seconds.values()):
+      raise ValueError("m%05d.py: CI timings must be positive integer seconds" % mode)
   return settings
 
 
 def reduced_iteration_parameters(mode):
   # Read only the selected mode's reduced parameters, caching its declaration for later calls.
   return load_test_properties(mode).get("reduced", {}).get("parameters", {})
+
+
+def ci_timings(modes, reduced=False):
+  # Select per-kind timings, retaining normal costs where reduced measurements are unavailable.
+  timings = {}
+  for mode in modes:
+    properties = load_test_properties(mode)
+    seconds = dict(properties.get("normal", {}).get("ci_seconds", {}))
+    if reduced:
+      seconds.update(properties.get("reduced", {}).get("ci_seconds", {}))
+    for kind, value in seconds.items():
+      timings.setdefault(kind, {})[mode] = value
+  return timings
 
 
 def iteration_reduction_requested():

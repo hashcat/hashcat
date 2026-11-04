@@ -30,6 +30,7 @@ def module_test_properties():
       },
       'combined_length': None,
     },
+    'normal': {'ci_seconds': {'pure': 48, 'bridge': 2, 'opt': 42, 'edge': 355}},
   }
 
 
