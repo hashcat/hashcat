@@ -93,7 +93,7 @@ def iteration_reduction_enabled(mode):
 
 
 def iteration_copy_hash(mode):
-  # Preserve the custom count that this mode's hash encoder omits from its output.
+  # Preserve the input hash when runtime overrides change the count used by its encoder.
   return iteration_reduction_enabled(mode) and bool(runtime_iteration_policy(mode))
 
 

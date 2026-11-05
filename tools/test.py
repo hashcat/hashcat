@@ -1226,7 +1226,7 @@ def verdict(c):
   return "OK"
 
 
-def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_hash=True, hash_copy_mode=None):
+def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_hash=True):
   global LAST_CMD, LAST_STDIN, LAST_ENV
 
   cmd = [BIN] + with_bridge_opts(opts, mode) + module_opts(mode) + ["-a", str(attack), "-m", str(mode), target] + list(extra)
@@ -1236,11 +1236,10 @@ def run_hashcat(opts, mode, target, stdin_bytes, attack=0, extra=(), generated_h
   # Run from the repo root, the way test.sh does, so hashcat finds OpenCL/ and caches kernels/
   # there rather than in whatever directory the manager was invoked from.
 
-  hash_copy_mode = mode if hash_copy_mode is None else hash_copy_mode
   env = test_iterations.iteration_environment(mode, generated=generated_hash)
   LAST_ENV = env
 
-  if generated_hash and test_iterations.iteration_copy_hash(hash_copy_mode) and "--hash-copy" not in cmd:
+  if generated_hash and test_iterations.iteration_copy_hash(mode) and "--hash-copy" not in cmd:
     cmd.append("--hash-copy")
 
   if generated_hash and test_iterations.iteration_disable_selftest(mode) and "--self-test-disable" not in cmd:
