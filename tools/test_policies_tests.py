@@ -79,6 +79,11 @@ class PolicyTests(unittest.TestCase):
     self.assertTrue(any(r['mode'] == 37400 and r['rule'] == 'verify_output' for r in rows))
     self.assertFalse(any(r['mode'] == 37400 and r['rule'] == 'skip_output' for r in rows))
 
+  def test_des_two_key_policy_preserves_alternative_key_verification(self):
+    self.assertTrue(policies.has_rule(14300, 'ordinary', 12, 'exclude'))
+    self.assertTrue(policies.has_rule(14300, 'edge', 3, 'verify_output'))
+    self.assertFalse(policies.has_rule(14300, 'edge', 3, 'skip_output'))
+
   def test_focused_width_does_not_duplicate_split_jobs(self):
     root = Path(__file__).resolve().parent.parent
     output = subprocess.check_output([sys.executable, '.github/workflows/ci_matrix.py',
