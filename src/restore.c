@@ -506,6 +506,15 @@ static int check_restore_cwd (hashcat_ctx_t *hashcat_ctx, const bool with_chdir)
   return 0;
 }
 
+static void write_restore_failed (hashcat_ctx_t *hashcat_ctx, const char *path, const char *reason)
+{
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  if (restore_ctx->write_failed == false) event_log_error (hashcat_ctx, "%s: %s", path, reason);
+
+  restore_ctx->write_failed = true;
+}
+
 static int write_restore (hashcat_ctx_t *hashcat_ctx)
 {
   const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
@@ -527,38 +536,62 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&fp, new_restore_file, "wb") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", new_restore_file, hc_fopen_strerror ());
+    write_restore_failed (hashcat_ctx, new_restore_file, hc_fopen_strerror ());
 
     return -1;
   }
 
   if (setvbuf (fp.pfp, NULL, _IONBF, 0))
   {
-    event_log_error (hashcat_ctx, "setvbuf file '%s': %s", new_restore_file, strerror (errno));
+    write_restore_failed (hashcat_ctx, new_restore_file, strerror (errno));
 
     hc_fclose (&fp);
 
     return -1;
   }
 
-  hc_fwrite (rd, sizeof (restore_data_t), 1, &fp);
+  // A full disk lets the open through and fails the writes. The stream is unbuffered, so each write
+  // reports its own result, and cycle_restore () must not replace the last restore file with a short
+  // one.
+
+  bool written = (hc_fwrite (rd, sizeof (restore_data_t), 1, &fp) == 1);
 
   for (u32 i = 0; i < rd->argc; i++)
   {
-    hc_fprintf (&fp, "%s", rd->argv[i]);
+    if (written == false) break;
 
-    hc_fputc ('\n', &fp);
+    if (hc_fprintf (&fp, "%s", rd->argv[i]) < 0) written = false;
+
+    if (hc_fputc ('\n', &fp) == EOF) written = false;
   }
 
-  hc_fflush (&fp);
+  if (written == true) hc_fflush (&fp);
 
-  hc_fsync (&fp);
+  if ((written == true) && (hc_fsync (&fp) == -1)) written = false;
 
-  hc_fclose (&fp);
+  // no call has run since the one that failed, so errno is still the reason
+
+  const int write_errno = errno;
+
+  const int close_rc = hc_fclose (&fp);
 
   rd->masks_pos = 0;
   rd->dicts_pos = 0;
   rd->words_cur = 0;
+
+  if (written == false)
+  {
+    write_restore_failed (hashcat_ctx, new_restore_file, strerror (write_errno));
+
+    return -1;
+  }
+
+  if (close_rc == -1)
+  {
+    write_restore_failed (hashcat_ctx, new_restore_file, strerror (errno));
+
+    return -1;
+  }
 
   return 0;
 }
@@ -578,14 +611,25 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
    && (restore_ctx->dicts_pos_prev == straight_ctx->dicts_pos)
    && (restore_ctx->words_cur_prev == status_ctx->words_cur)) return 0;
 
-  restore_ctx->masks_pos_prev = mask_ctx->masks_pos;
-  restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
-  restore_ctx->words_cur_prev = status_ctx->words_cur;
-
   const char *eff_restore_file = restore_ctx->eff_restore_file;
   const char *new_restore_file = restore_ctx->new_restore_file;
 
-  if (write_restore (hashcat_ctx) == -1) return -1;
+  // The last restore file stays until a new one is written in full, so a write that fails costs the
+  // progress since that file and not the session. The positions count as written only once they are,
+  // so a failed write is tried again at the next update even if the positions have not moved.
+
+  if (write_restore (hashcat_ctx) == -1)
+  {
+    unlink (new_restore_file);
+
+    return -1;
+  }
+
+  restore_ctx->write_failed = false;
+
+  restore_ctx->masks_pos_prev = mask_ctx->masks_pos;
+  restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
+  restore_ctx->words_cur_prev = status_ctx->words_cur;
 
   if (hc_path_exist (eff_restore_file) == true)
   {
@@ -919,6 +963,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   restore_ctx->masks_pos_prev = -1;
   restore_ctx->dicts_pos_prev = -1;
   restore_ctx->words_cur_prev = -1;
+
+  restore_ctx->write_failed = false;
 
   return 0;
 }

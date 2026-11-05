@@ -6,9 +6,9 @@ This document explains what the database contains, how hashcat selects a row, an
 
 ## What it is
 
-Every file ending in `.hctune` under the `tunings` folder is read at startup. There is no single database file. hashcat loads all of them, in whatever order the directory hands them over, and the rows go into one table. The current tree carries 322 tuning rows across 12 files, plus 329 alias definitions in `Alias.hctune`.
+Every file ending in `.hctune` under the `tunings` folder is read at startup. There is no single database file. hashcat loads all of them, in whatever order the directory hands them over, and the rows go into one table. The current tree carries 325 tuning rows across 4 files, plus 329 alias definitions in `Alias.hctune`.
 
-The split into files is for the people maintaining them, not for hashcat. File `Modules_default.hctune` holds broadly applicable rows, while `Device_GB10.hctune` holds rows for one GPU family. Several module files contain measurement instructions but no rows. File `Module_09300.hctune` is the scrypt example. Your own file sits beside them and is read the same way.
+The split into files is for the people maintaining them, not for hashcat. File `Modules_default.hctune` holds broadly applicable rows, while `Device_GB10.hctune` holds rows for one GPU family. Your own file sits beside them and is read the same way.
 
 The database is skipped entirely for `--help`, `-I`, `--hash-info`, `--keyspace`, `--left`, `--show`, `--version` and `--identify`, because none of those launch a kernel.
 
@@ -64,7 +64,9 @@ A vendor alias is tried after the file's own alias, so a row written for a narro
 
 Put a file ending in `.hctune` in the `tunings` folder. No additional setup is required. A row with an incorrect device name is ignored without an error. Check the name against the startup output and remember to replace spaces with underscores.
 
-To find a Kernel-Accel value worth pinning, sweep `-n` against a hash of the mode you care about and read the speed back. The comment block at the top of `Module_09300.hctune` walks through it for scrypt, which is the case where it matters most.
+To find a Kernel-Accel value worth pinning, sweep `-n` against a hash of the mode you care about and read the speed back. A manual `-n` needs `--force`, because autotune sizes the launch itself.
+
+This does not carry over to the scrypt modes. They choose Kernel-Accel and the TMTO by timing each way they can run, and the right Kernel-Accel depends on the N, r and p of the hash, which a row cannot match on. To fix the TMTO yourself, pass `--scrypt-tmto` on the command line. Autotune then sizes the launch for that TMTO.
 
 Kernel-Accel is a multiplier on the work item count, not the work item count itself, and Kernel-Loops is the number of iterations for a slow hash or the number of mutations for a fast one. Neither is an OpenCL thread count. hashcat maintains that itself and there is no column for it.
 

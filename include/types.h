@@ -2870,6 +2870,11 @@ typedef struct restore_ctx
   u32  masks_pos_prev;
   u64  words_cur_prev;
 
+  // Set while writing the restore file keeps failing, so the error is reported once and not with
+  // every update. cycle_restore () runs about once a second.
+
+  bool write_failed;
+
 } restore_ctx_t;
 
 typedef struct pidfile_ctx

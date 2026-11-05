@@ -22,10 +22,7 @@ def module_test_properties():
         'password_length': [32, 32],
         'salt_length': [16, 16],
       },
-      'optimized': {
-        'password_length': [0, 27],
-        'salt_length': [16, 16],
-      },
+      'optimized': None,
       'combined_length': None,
     },
   }

@@ -89,6 +89,12 @@ typedef struct bip39_tmp
   u32 prefix_key[8];
   u32 prefix_chain[8];
 
+  // The compressed public key of prefix_key, as its x coordinate and its 0x02 or 0x03 tag. The init
+  // kernel sets it only when the first dynamic path level is non-hardened, and a tag of 0 means unset.
+
+  u32 prefix_pub_x[8];
+  u32 prefix_pub_tag;
+
   // The combination indices whose address matched a digest. Only the first BIP39_MAX_HITS are
   // kept, but hit_cnt counts every one of them, so a candidate reaching more addresses than that
   // sends the comp kernel around the whole range again rather than losing a match. That costs one
@@ -430,21 +436,11 @@ DECLSPEC void bip39_bip32_public_child_data (PRIVATE_AS u8 *data_bytes, PRIVATE_
   bip39_words_le_to_bytes_be32 (x, data_bytes + 1);
 }
 
-DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE_AS u8 *key_bytes, PRIVATE_AS u8 *chain_bytes, PRIVATE_AS secp256k1_t *preG)
+// The HMAC half of a BIP32 child derivation. data_bytes holds the 33 bytes of parent data, 00 and the
+// key for a hardened index or the compressed public key otherwise, and has room for the index.
+
+DECLSPEC u32 bip39_bip32_child_from_data (const u32 index, PRIVATE_AS u8 *data_bytes, PRIVATE_AS u32 *key_le, PRIVATE_AS u8 *key_bytes, PRIVATE_AS u8 *chain_bytes)
 {
-  PRIVATE_AS u8 data_bytes[37];
-
-  if ((index & 0x80000000) != 0)
-  {
-    data_bytes[0] = 0;
-
-    for (u32 i = 0; i < 32; i++) data_bytes[1 + i] = key_bytes[i];
-  }
-  else
-  {
-    bip39_bip32_public_child_data (data_bytes, key_le, preG);
-  }
-
   data_bytes[33] = (u8) (index >> 24);
   data_bytes[34] = (u8) (index >> 16);
   data_bytes[35] = (u8) (index >> 8);
@@ -491,10 +487,30 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   return 1;
 }
 
+DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE_AS u8 *key_bytes, PRIVATE_AS u8 *chain_bytes, PRIVATE_AS secp256k1_t *preG)
+{
+  PRIVATE_AS u8 data_bytes[37];
+
+  if ((index & 0x80000000) != 0)
+  {
+    data_bytes[0] = 0;
+
+    for (u32 i = 0; i < 32; i++) data_bytes[1 + i] = key_bytes[i];
+  }
+  else
+  {
+    bip39_bip32_public_child_data (data_bytes, key_le, preG);
+  }
+
+  const u32 derived = bip39_bip32_child_from_data (index, data_bytes, key_le, key_bytes, chain_bytes);
+
+  return derived;
+}
+
 // One combination of the dynamic path segments, derived from the prefix the init kernel left in
 // tmps. Returns 0 when a child index lands outside the curve order, which BIP32 asks us to skip.
 
-DECLSPEC u32 bip39_derive_combination (const u32 combo_idx, GLOBAL_AS const bip39_skeleton_t *skeleton, PRIVATE_AS const u32 *prefix_key, PRIVATE_AS const u32 *prefix_chain, PRIVATE_AS secp256k1_t *preG, PRIVATE_AS u32 *out_hash)
+DECLSPEC u32 bip39_derive_combination (const u32 combo_idx, GLOBAL_AS const bip39_skeleton_t *skeleton, PRIVATE_AS const u32 *prefix_key, PRIVATE_AS const u32 *prefix_chain, PRIVATE_AS const u32 *prefix_pub_x, const u32 prefix_pub_tag, PRIVATE_AS secp256k1_t *preG, PRIVATE_AS u32 *out_hash)
 {
   const u32 path_depth  = skeleton->path_depth;
   const u32 dynamic_cnt = skeleton->path_dynamic_count;
@@ -543,7 +559,27 @@ DECLSPEC u32 bip39_derive_combination (const u32 combo_idx, GLOBAL_AS const bip3
 
   for (u32 i = prefix_len; i < path_depth; i++)
   {
-    if (bip39_bip32_child (path_values[i], key_le, key_bytes, chain_bytes, preG) == 0) return 0;
+    const u32 index = path_values[i];
+
+    // Every combination shares the parent of the first level after the prefix, so a non-hardened
+    // index there reuses the public key the init kernel computed. The init kernel looks only at the
+    // segment's first value, so each index is tested again here rather than trusting the parser to
+    // keep a segment all hardened or all not.
+
+    if ((i == prefix_len) && (prefix_pub_tag != 0) && ((index & 0x80000000) == 0))
+    {
+      PRIVATE_AS u8 data_bytes[37];
+
+      data_bytes[0] = (u8) prefix_pub_tag;
+
+      bip39_words_le_to_bytes_be32 (prefix_pub_x, data_bytes + 1);
+
+      if (bip39_bip32_child_from_data (index, data_bytes, key_le, key_bytes, chain_bytes) == 0) return 0;
+
+      continue;
+    }
+
+    if (bip39_bip32_child (index, key_le, key_bytes, chain_bytes, preG) == 0) return 0;
   }
 
   u32 x[8];
@@ -576,8 +612,9 @@ KERNEL_FQ KERNEL_FA void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_s
 
   if (gid >= GID_CNT) return;
 
-  tmps[gid].hit_cnt = 0;
-  tmps[gid].valid   = 0;
+  tmps[gid].hit_cnt        = 0;
+  tmps[gid].valid          = 0;
+  tmps[gid].prefix_pub_tag = 0;
 
   for (u32 i = 0; i < 8; i++)
   {
@@ -674,11 +711,32 @@ KERNEL_FQ KERNEL_FA void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_s
 
   bip39_bytes_be32_to_words_le (chain_bytes, chain_le);
 
+  // A non-hardened first dynamic level hashes the public key of prefix_key for every combination.
+  // It is the same point each time, so it is computed once here rather than once per combination.
+
+  u32 pub_x[8];
+
+  for (u32 i = 0; i < 8; i++) pub_x[i] = 0;
+
+  u32 pub_tag = 0;
+
+  if ((prefix_len < path_depth) && ((esalt_bufs[DIGESTS_OFFSET_HOST].path_indices[prefix_len] & 0x80000000) == 0))
+  {
+    u32 pub_y[8];
+
+    point_mul_xy (pub_x, pub_y, key_le, &preG);
+
+    pub_tag = (pub_y[0] & 1u) ? 0x03 : 0x02;
+  }
+
   for (u32 i = 0; i < 8; i++)
   {
     tmps[gid].prefix_key[i]   = key_le[i];
     tmps[gid].prefix_chain[i] = chain_le[i];
+    tmps[gid].prefix_pub_x[i] = pub_x[i];
   }
+
+  tmps[gid].prefix_pub_tag = pub_tag;
 
   tmps[gid].valid = 1;
 }
@@ -695,12 +753,16 @@ KERNEL_FQ KERNEL_FA void m36000_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_s
 
   PRIVATE_AS u32 prefix_key[8];
   PRIVATE_AS u32 prefix_chain[8];
+  PRIVATE_AS u32 prefix_pub_x[8];
 
   for (u32 i = 0; i < 8; i++)
   {
     prefix_key[i]   = tmps[gid].prefix_key[i];
     prefix_chain[i] = tmps[gid].prefix_chain[i];
+    prefix_pub_x[i] = tmps[gid].prefix_pub_x[i];
   }
+
+  const u32 prefix_pub_tag = tmps[gid].prefix_pub_tag;
 
   secp256k1_t preG;
 
@@ -722,7 +784,7 @@ KERNEL_FQ KERNEL_FA void m36000_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_s
 
     PRIVATE_AS u32 candidate[5];
 
-    if (bip39_derive_combination (combo_idx, &esalt_bufs[DIGESTS_OFFSET_HOST], prefix_key, prefix_chain, &preG, candidate) == 0) continue;
+    if (bip39_derive_combination (combo_idx, &esalt_bufs[DIGESTS_OFFSET_HOST], prefix_key, prefix_chain, prefix_pub_x, prefix_pub_tag, &preG, candidate) == 0) continue;
 
     if (check (candidate,
                bitmaps_buf_s1_a,
@@ -846,12 +908,16 @@ KERNEL_FQ KERNEL_FA void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_s
 
   PRIVATE_AS u32 prefix_key[8];
   PRIVATE_AS u32 prefix_chain[8];
+  PRIVATE_AS u32 prefix_pub_x[8];
 
   for (u32 i = 0; i < 8; i++)
   {
     prefix_key[i]   = tmps[gid].prefix_key[i];
     prefix_chain[i] = tmps[gid].prefix_chain[i];
+    prefix_pub_x[i] = tmps[gid].prefix_pub_x[i];
   }
+
+  const u32 prefix_pub_tag = tmps[gid].prefix_pub_tag;
 
   secp256k1_t preG;
 
@@ -870,7 +936,7 @@ KERNEL_FQ KERNEL_FA void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_s
 
     PRIVATE_AS u32 candidate[5];
 
-    if (bip39_derive_combination (combo_idx, &esalt_bufs[DIGESTS_OFFSET_HOST], prefix_key, prefix_chain, &preG, candidate) == 0) continue;
+    if (bip39_derive_combination (combo_idx, &esalt_bufs[DIGESTS_OFFSET_HOST], prefix_key, prefix_chain, prefix_pub_x, prefix_pub_tag, &preG, candidate) == 0) continue;
 
     BIP39_COMPARE_M5 (candidate[0], candidate[1], candidate[2], candidate[3], candidate[4]);
   }

@@ -64,6 +64,11 @@ typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETPROGRAMLOGSIZE)  (nvrtcProgr
 typedef const char * (NVRTC_API_CALL *NVRTC_NVRTCGETERRORSTRING)     (nvrtcResult);
 typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCVERSION)            (int *, int *);
 
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETCUBIN)             (nvrtcProgram, char *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETCUBINSIZE)         (nvrtcProgram, size_t *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETNUMSUPPORTEDARCHS) (int *);
+typedef nvrtcResult  (NVRTC_API_CALL *NVRTC_NVRTCGETSUPPORTEDARCHS)    (int *);
+
 typedef struct hc_nvrtc_lib
 {
   hc_dynlib_t lib;
@@ -81,6 +86,11 @@ typedef struct hc_nvrtc_lib
   NVRTC_NVRTCGETERRORSTRING     nvrtcGetErrorString;
   NVRTC_NVRTCVERSION            nvrtcVersion;
 
+  NVRTC_NVRTCGETCUBIN             nvrtcGetCUBIN;
+  NVRTC_NVRTCGETCUBINSIZE         nvrtcGetCUBINSize;
+  NVRTC_NVRTCGETNUMSUPPORTEDARCHS nvrtcGetNumSupportedArchs;
+  NVRTC_NVRTCGETSUPPORTEDARCHS    nvrtcGetSupportedArchs;
+
 } hc_nvrtc_lib_t;
 
 typedef hc_nvrtc_lib_t NVRTC_PTR;
@@ -95,8 +105,11 @@ HC_PLUGIN_API int hc_nvrtcDestroyProgram     (void *hashcat_ctx, nvrtcProgram *p
 HC_PLUGIN_API int hc_nvrtcCompileProgram     (void *hashcat_ctx, nvrtcProgram prog, int numOptions, const char * const *options);
 HC_PLUGIN_API int hc_nvrtcGetProgramLogSize  (void *hashcat_ctx, nvrtcProgram prog, size_t *logSizeRet);
 HC_PLUGIN_API int hc_nvrtcGetProgramLog      (void *hashcat_ctx, nvrtcProgram prog, char *log);
+HC_PLUGIN_API int hc_nvrtcGetCUBINSize       (void *hashcat_ctx, nvrtcProgram prog, size_t *cubinSizeRet);
+HC_PLUGIN_API int hc_nvrtcGetCUBIN           (void *hashcat_ctx, nvrtcProgram prog, char *cubin);
 HC_PLUGIN_API int hc_nvrtcGetPTXSize         (void *hashcat_ctx, nvrtcProgram prog, size_t *ptxSizeRet);
 HC_PLUGIN_API int hc_nvrtcGetPTX             (void *hashcat_ctx, nvrtcProgram prog, char *ptx);
 int hc_nvrtcVersion            (void *hashcat_ctx, int *major, int *minor);
+bool hc_nvrtc_supports_cubin   (void *hashcat_ctx, const int arch);
 
 #endif // HC_EXT_NVRTC_H

@@ -161,6 +161,7 @@ void module_init (module_ctx_t *module_ctx)
 {
   module_init_common (module_ctx);
 
+  module_ctx->module_benchmark_cost           = scrypt_module_benchmark_cost;
   module_ctx->module_extra_buffer_size        = scrypt_module_extra_buffer_size;
   module_ctx->module_extra_tmp_size           = module_extra_tmp_size;
   module_ctx->module_extra_tuningdb_block     = scrypt_module_extra_tuningdb_block;

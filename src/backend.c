@@ -13131,6 +13131,28 @@ static bool is_apple_silicon_device_name (const char *device_name)
   return false;
 }
 
+// NVRTC builds a main kernel as a cubin for the device's sm, rather than as PTX for the driver to
+// compile, where the module asks for it with -D HC_NVRTC_NATIVE_CUBIN and NVRTC can build one, see
+// scrypt_module_jit_build_options (). The register limit is applied when the driver compiles PTX,
+// which a cubin skips, so a mode with one stays on PTX. The cache key and the build both ask here.
+
+static bool nvrtc_native_cubin (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const char *build_options_buf)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  if (device_param->is_cuda == false) return false;
+
+  if (strstr (build_options_buf, "-D HC_NVRTC_NATIVE_CUBIN") == NULL) return false;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_REGISTER_LIMIT) != 0) return false;
+
+  const int cuda_arch = (device_param->sm_major * 10) + device_param->sm_minor;
+
+  const bool supported = hc_nvrtc_supports_cubin (hashcat_ctx, cuda_arch);
+
+  return supported;
+}
+
 // Build one program, or load the build a previous run left in the cache. Which of the four runtimes
 // is compiling is the only thing that changes: the cache lookup, the source read and the binary
 // write are the same work whichever it is.
@@ -13169,6 +13191,8 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
     if (device_param->is_cuda == true)
     {
+      const bool native_cubin = nvrtc_native_cubin (hashcat_ctx, device_param, build_options_buf);
+
       nvrtcProgram nvrtc_program;
 
       // DEBUG builds hand nvrtc the real .cl source filename instead of the generic per-category
@@ -13226,7 +13250,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       //nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--restrict");
       nvrtc_options[nvrtc_options_idx++] = hcstrdup ("--gpu-architecture");
 
-      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "compute_%d", (device_param->sm_major * 10) + device_param->sm_minor);
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "%s_%d", (native_cubin == true) ? "sm" : "compute", (device_param->sm_major * 10) + device_param->sm_minor);
 
       if (backend_ctx->nvrtc_driver_version >= 12010)
       {
@@ -13306,11 +13330,15 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
       size_t binary_size = 0;
 
-      if (hc_nvrtcGetPTXSize (hashcat_ctx, nvrtc_program, &binary_size) == -1) return false;
+      const int rc_binary_size = (native_cubin == true) ? hc_nvrtcGetCUBINSize (hashcat_ctx, nvrtc_program, &binary_size) : hc_nvrtcGetPTXSize (hashcat_ctx, nvrtc_program, &binary_size);
+
+      if (rc_binary_size == -1) return false;
 
       char *binary = (char *) hcmalloc (binary_size);
 
-      if (hc_nvrtcGetPTX (hashcat_ctx, nvrtc_program, binary) == -1) return false;
+      const int rc_binary = (native_cubin == true) ? hc_nvrtcGetCUBIN (hashcat_ctx, nvrtc_program, binary) : hc_nvrtcGetPTX (hashcat_ctx, nvrtc_program, binary);
+
+      if (rc_binary == -1) return false;
 
       if (hc_nvrtcDestroyProgram (hashcat_ctx, &nvrtc_program) == -1) return false;
 
@@ -13386,44 +13414,47 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
         jit_cnt++;
       }
 
-      CUlinkState state;
+      CUlinkState state = NULL;
 
-      if (hc_cuLinkCreate (hashcat_ctx, jit_cnt, jit_opts, jit_vals, &state) == -1)
+      void *cubin = binary;
+
+      size_t cubin_size = binary_size;
+
+      if (native_cubin == false)
       {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", jit_error_log);
-        event_log_error (hashcat_ctx, NULL);
+        if (hc_cuLinkCreate (hashcat_ctx, jit_cnt, jit_opts, jit_vals, &state) == -1)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "%s", jit_error_log);
+          event_log_error (hashcat_ctx, NULL);
 
-        return false;
+          return false;
+        }
+
+        if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, kernel_name, 0, NULL, NULL) == -1)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "%s", jit_error_log);
+          event_log_error (hashcat_ctx, NULL);
+
+          return false;
+        }
+
+        if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "%s", jit_error_log);
+          event_log_error (hashcat_ctx, NULL);
+
+          return false;
+        }
+
+        #if defined (DEBUG)
+        event_log_info (hashcat_ctx, "* Device #%u: Kernel %s link successful. Info Log:", device_param->device_id + 1, source_file);
+        event_log_info (hashcat_ctx, "%s", jit_info_log);
+        event_log_info (hashcat_ctx, NULL);
+        #endif
       }
-
-      if (hc_cuLinkAddData (hashcat_ctx, state, CU_JIT_INPUT_PTX, binary, binary_size, kernel_name, 0, NULL, NULL) == -1)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", jit_error_log);
-        event_log_error (hashcat_ctx, NULL);
-
-        return false;
-      }
-
-      void *cubin = NULL;
-
-      size_t cubin_size = 0;
-
-      if (hc_cuLinkComplete (hashcat_ctx, state, &cubin, &cubin_size) == -1)
-      {
-        event_log_error (hashcat_ctx, "* Device #%u: Kernel %s link failed. Error Log:", device_param->device_id + 1, source_file);
-        event_log_error (hashcat_ctx, "%s", jit_error_log);
-        event_log_error (hashcat_ctx, NULL);
-
-        return false;
-      }
-
-      #if defined (DEBUG)
-      event_log_info (hashcat_ctx, "* Device #%u: Kernel %s link successful. Info Log:", device_param->device_id + 1, source_file);
-      event_log_info (hashcat_ctx, "%s", jit_info_log);
-      event_log_info (hashcat_ctx, NULL);
-      #endif
 
       if (hc_cuModuleLoadDataEx (hashcat_ctx, &device_param->cuda_module[program], cubin, mod_cnt, mod_opts, mod_vals) == -1)
       {
@@ -13445,7 +13476,7 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
         if (write_kernel_binary (hashcat_ctx, cached_file, cubin, cubin_size) == false) return false;
       }
 
-      if (hc_cuLinkDestroy (hashcat_ctx, state) == -1) return false;
+      if ((state != NULL) && (hc_cuLinkDestroy (hashcat_ctx, state) == -1)) return false;
 
       hcfree (jit_info_log);
       hcfree (jit_error_log);
@@ -16402,8 +16433,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // truncated the remaining text, so 2 recipes differing only in that text shared a
       // cached kernel. The paw64 () call also read past the buffer because it used the full
       // length reported by snprintf ().
+      //
+      // A module that asks for a cubin still gets PTX where NVRTC cannot build one for the device. The
+      // seed keeps the two builds apart, so a change of NVRTC never loads one in place of the other.
 
-      const u64 options_chksum = paw64 (build_options_module_buf, (size_t) build_options_module_len, 0);
+      const bool native_cubin = nvrtc_native_cubin (hashcat_ctx, device_param, build_options_module_buf);
+
+      const u64 options_chksum = paw64 (build_options_module_buf, (size_t) build_options_module_len, (native_cubin == true) ? 1 : 0);
 
       const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%s-%u-%u-%s-%d-%d-%d-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%016" PRIx64
         // the same DEBUG marker as the shared key above, so a DEBUG main kernel never loads a release one

@@ -642,8 +642,10 @@ DECLSPEC void yescrypt_prehash_smix (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL
   }
 }
 
-DECLSPEC void yescrypt_kdf_init (GLOBAL_AS const u32 *pw_buf, const u32 pw_len, GLOBAL_AS const u32 *salt_buf, const u32 salt_len, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 gid)
+DECLSPEC void yescrypt_kdf_init (GLOBAL_AS const u32 *pw_buf, const u32 pw_len, GLOBAL_AS const u32 *salt_buf, const u32 salt_len, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 gid, const u32 salt_n)
 {
+  const u32 n = YESCRYPT_KERNEL_N (salt_n);
+
   GLOBAL_AS u32 *sbox = tmp->S;
 
   u32 hmac_key[16];
@@ -702,31 +704,32 @@ DECLSPEC void yescrypt_kdf_init (GLOBAL_AS const u32 *pw_buf, const u32 pw_len, 
     case 3: V = (GLOBAL_AS u32 *) V3; break;
   }
 
-  V += gid_d4 * YESCRYPT_STATE_CNT4 * YESCRYPT_N;
+  V += gid_d4 * YESCRYPT_STATE_CNT4 * n;
 
-  #if YESCRYPT_PREHASH_NEEDED
+  const bool prehash = YESCRYPT_PREHASH_NEEDED (n);
 
-  hmac_key[2] = 0x6572702d; // "-pre" LE
-  hmac_key[3] = 0x68736168; // "hash" LE
+  if (prehash == true)
+  {
+    hmac_key[2] = 0x6572702d; // "-pre" LE
+    hmac_key[3] = 0x68736168; // "hash" LE
 
-  yescrypt_hmac_pgp (hmac_key, 16, pw_buf, pw_len, passwd);
+    yescrypt_hmac_pgp (hmac_key, 16, pw_buf, pw_len, passwd);
 
-  hmac_key[2] = 0;
-  hmac_key[3] = 0;
+    hmac_key[2] = 0;
+    hmac_key[3] = 0;
 
-  yescrypt_kdf_setup (salt_buf, salt_len, passwd, B, sbox, &s_state, &w);
+    yescrypt_kdf_setup (salt_buf, salt_len, passwd, B, sbox, &s_state, &w);
 
-  yescrypt_prehash_smix (B, V, sbox, &s_state, &w, YESCRYPT_PREHASH_N, YESCRYPT_FLAGS);
+    yescrypt_prehash_smix (B, V, sbox, &s_state, &w, YESCRYPT_PREHASH_N (n), YESCRYPT_FLAGS);
 
-  yescrypt_prehash_passwd (B, passwd);
+    yescrypt_prehash_passwd (B, passwd);
 
-  yescrypt_hmac_ppp (hmac_key, 8, passwd, 32, passwd);
-
-  #else
-
-  yescrypt_hmac_pgp (hmac_key, 8, pw_buf, pw_len, passwd);
-
-  #endif
+    yescrypt_hmac_ppp (hmac_key, 8, passwd, 32, passwd);
+  }
+  else
+  {
+    yescrypt_hmac_pgp (hmac_key, 8, pw_buf, pw_len, passwd);
+  }
 
   yescrypt_kdf_setup (salt_buf, salt_len, passwd, B, sbox, &s_state, &w);
 
@@ -940,9 +943,11 @@ DECLSPEC void yescrypt_coop_smix1_step_reg (PRIVATE_AS u64 *xu, LOCAL_AS u64 *sh
   yescrypt_coop_blockmix_pwxform_reg (xu, shfbuf, sbox, s_state, w_ptr, lid);
 }
 
-DECLSPEC void yescrypt_coop_smix2_step_reg (PRIVATE_AS u64 *xu, LOCAL_AS u64 *shfbuf, GLOBAL_AS u64 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 flags)
+DECLSPEC void yescrypt_coop_smix2_step_reg (PRIVATE_AS u64 *xu, LOCAL_AS u64 *shfbuf, GLOBAL_AS u64 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 salt_n, const u32 flags)
 {
-  const u32 j = (u32) (yescrypt_coop_integerify_reg (xu, shfbuf, lid) & (u64) (YESCRYPT_N - 1));
+  const u32 n = YESCRYPT_KERNEL_N (salt_n);
+
+  const u32 j = (u32) (yescrypt_coop_integerify_reg (xu, shfbuf, lid) & (u64) (n - 1));
 
   GLOBAL_AS u64 *Vj = &V[(u64) j * XU64_TOTAL];
 
@@ -956,8 +961,10 @@ DECLSPEC void yescrypt_coop_smix2_step_reg (PRIVATE_AS u64 *xu, LOCAL_AS u64 *sh
   yescrypt_coop_blockmix_pwxform_reg (xu, shfbuf, sbox, s_state, w_ptr, lid);
 }
 
-DECLSPEC void yescrypt_smix_loop_reg (LOCAL_AS u64 *shfbuf, SBOX_AS u32 *sbox, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 bid, const u32 lid, const u32 lsz, const u32 loop_cnt)
+DECLSPEC void yescrypt_smix_loop_reg (LOCAL_AS u64 *shfbuf, SBOX_AS u32 *sbox, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 bid, const u32 lid, const u32 lsz, const u32 loop_cnt, const u32 salt_n)
 {
+  const u32 n = YESCRYPT_KERNEL_N (salt_n);
+
   #ifdef COOP_SBOX_LDS
   for (u32 i = lid; i < Swords; i += lsz) sbox[i] = tmp->S[i];
   #endif
@@ -986,7 +993,10 @@ DECLSPEC void yescrypt_smix_loop_reg (LOCAL_AS u64 *shfbuf, SBOX_AS u32 *sbox, G
     case 3: V = (GLOBAL_AS u64 *) V3; break;
   }
 
-  V += (u64) bid_d4 * XU64_TOTAL * YESCRYPT_N;
+  V += (u64) bid_d4 * XU64_TOTAL * n;
+
+  // The second loop ends where the host stops launching it. Its length depends on t, which the
+  // host takes from each hash, so the self-test hash runs its own.
 
   SYNC_THREADS ();
 
@@ -994,13 +1004,13 @@ DECLSPEC void yescrypt_smix_loop_reg (LOCAL_AS u64 *shfbuf, SBOX_AS u32 *sbox, G
   {
     if (phase == 0)
     {
-      if (iter < YESCRYPT_N)
+      if (iter < n)
       {
         yescrypt_coop_smix1_step_reg (xu, shfbuf, V, sbox, &s_state, &w, iter, lid, YESCRYPT_FLAGS);
 
         iter++;
 
-        if (iter >= YESCRYPT_N)
+        if (iter >= n)
         {
           phase = 1;
           iter  = 0;
@@ -1009,9 +1019,7 @@ DECLSPEC void yescrypt_smix_loop_reg (LOCAL_AS u64 *shfbuf, SBOX_AS u32 *sbox, G
     }
     else if (phase == 1)
     {
-      if (iter >= YESCRYPT_NLOOP_RW) break;
-
-      yescrypt_coop_smix2_step_reg (xu, shfbuf, V, sbox, &s_state, &w, lid, YESCRYPT_FLAGS);
+      yescrypt_coop_smix2_step_reg (xu, shfbuf, V, sbox, &s_state, &w, lid, n, YESCRYPT_FLAGS);
 
       iter++;
     }
@@ -1213,11 +1221,13 @@ DECLSPEC void yescrypt_coop_smix1_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_A
   yescrypt_coop_blockmix_pwxform (X, sbox, s_state, w_ptr, lid);
 }
 
-DECLSPEC void yescrypt_coop_smix2_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 lsz, const u32 flags)
+DECLSPEC void yescrypt_coop_smix2_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 lsz, const u32 salt_n, const u32 flags)
 {
+  const u32 n = YESCRYPT_KERNEL_N (salt_n);
+
   const u32 s = 32 * YESCRYPT_R;
 
-  const u32 j = (u32) (yescrypt_coop_integerify (X) & (u64) (YESCRYPT_N - 1));
+  const u32 j = (u32) (yescrypt_coop_integerify (X) & (u64) (n - 1));
 
   GLOBAL_AS u32 *Vj = &V[j * s];
 
@@ -1240,8 +1250,10 @@ DECLSPEC void yescrypt_coop_smix2_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_A
   yescrypt_coop_blockmix_pwxform (X, sbox, s_state, w_ptr, lid);
 }
 
-DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 bid, const u32 lid, const u32 lsz, const u32 loop_cnt)
+DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 bid, const u32 lid, const u32 lsz, const u32 loop_cnt, const u32 salt_n)
 {
+  const u32 n = YESCRYPT_KERNEL_N (salt_n);
+
   #ifdef COOP_SBOX_LDS
   for (u32 i = lid; i < Swords; i += lsz) sbox[i] = tmp->S[i];
   #endif
@@ -1268,7 +1280,10 @@ DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS y
     case 3: V = (GLOBAL_AS u32 *) V3; break;
   }
 
-  V += bid_d4 * YESCRYPT_STATE_CNT4 * YESCRYPT_N;
+  V += bid_d4 * YESCRYPT_STATE_CNT4 * n;
+
+  // The second loop ends where the host stops launching it. Its length depends on t, which the
+  // host takes from each hash, so the self-test hash runs its own.
 
   SYNC_THREADS ();
 
@@ -1276,13 +1291,13 @@ DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS y
   {
     if (phase == 0)
     {
-      if (iter < YESCRYPT_N)
+      if (iter < n)
       {
         yescrypt_coop_smix1_step (X, V, sbox, &s_state, &w, iter, lid, lsz, YESCRYPT_FLAGS);
 
         iter++;
 
-        if (iter >= YESCRYPT_N)
+        if (iter >= n)
         {
           phase = 1;
           iter  = 0;
@@ -1291,9 +1306,7 @@ DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS y
     }
     else if (phase == 1)
     {
-      if (iter >= YESCRYPT_NLOOP_RW) break;
-
-      yescrypt_coop_smix2_step (X, V, sbox, &s_state, &w, lid, lsz, YESCRYPT_FLAGS);
+      yescrypt_coop_smix2_step (X, V, sbox, &s_state, &w, lid, lsz, n, YESCRYPT_FLAGS);
 
       iter++;
     }

@@ -146,6 +146,11 @@ int nvrtc_init (void *hashcat_ctx)
   HC_LOAD_FUNC (nvrtc, nvrtcGetErrorString,     NVRTC_NVRTCGETERRORSTRING,    NVRTC, 1);
   HC_LOAD_FUNC (nvrtc, nvrtcVersion,            NVRTC_NVRTCVERSION,           NVRTC, 1);
 
+  HC_LOAD_FUNC (nvrtc, nvrtcGetCUBIN,             NVRTC_NVRTCGETCUBIN,             NVRTC, -1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetCUBINSize,         NVRTC_NVRTCGETCUBINSIZE,         NVRTC, -1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetNumSupportedArchs, NVRTC_NVRTCGETNUMSUPPORTEDARCHS, NVRTC, -1);
+  HC_LOAD_FUNC (nvrtc, nvrtcGetSupportedArchs,    NVRTC_NVRTCGETSUPPORTEDARCHS,    NVRTC, -1);
+
   #if defined (_WIN)
   int major = 0;
   int minor = 0;
@@ -322,4 +327,78 @@ int hc_nvrtcVersion (void *hashcat_ctx, int *major, int *minor)
   }
 
   return 0;
+}
+
+int hc_nvrtcGetCUBINSize (void *hashcat_ctx, nvrtcProgram prog, size_t *cubinSizeRet)
+{
+  const backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  const NVRTC_PTR *nvrtc = (const NVRTC_PTR *) backend_ctx->nvrtc;
+
+  if (nvrtc->nvrtcGetCUBINSize == NULL) return -1;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetCUBINSize (prog, cubinSizeRet);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcGetCUBINSize(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_nvrtcGetCUBIN (void *hashcat_ctx, nvrtcProgram prog, char *cubin)
+{
+  const backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  const NVRTC_PTR *nvrtc = (const NVRTC_PTR *) backend_ctx->nvrtc;
+
+  if (nvrtc->nvrtcGetCUBIN == NULL) return -1;
+
+  const nvrtcResult NVRTC_err = nvrtc->nvrtcGetCUBIN (prog, cubin);
+
+  if (NVRTC_err != NVRTC_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "nvrtcGetCUBIN(): %s", nvrtc->nvrtcGetErrorString (NVRTC_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+bool hc_nvrtc_supports_cubin (void *hashcat_ctx, const int arch)
+{
+  const backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  const NVRTC_PTR *nvrtc = (const NVRTC_PTR *) backend_ctx->nvrtc;
+
+  if (nvrtc->nvrtcGetCUBIN             == NULL) return false;
+  if (nvrtc->nvrtcGetCUBINSize         == NULL) return false;
+  if (nvrtc->nvrtcGetNumSupportedArchs == NULL) return false;
+  if (nvrtc->nvrtcGetSupportedArchs    == NULL) return false;
+
+  int count = 0;
+
+  if (nvrtc->nvrtcGetNumSupportedArchs (&count) != NVRTC_SUCCESS) return false;
+
+  if ((count <= 0) || (count > 1024)) return false;
+
+  int *archs = (int *) hccalloc ((size_t) count, sizeof (int));
+
+  bool supported = false;
+
+  if (nvrtc->nvrtcGetSupportedArchs (archs) == NVRTC_SUCCESS)
+  {
+    for (u32 i = 0; i < (u32) count; i++)
+    {
+      if (archs[i] == arch) supported = true;
+    }
+  }
+
+  hcfree (archs);
+
+  return supported;
 }
