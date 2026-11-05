@@ -6585,8 +6585,11 @@ def main():
                   help="crack each mode's own test oracle through the Python bridge (-m 73000), no mode kernel")
   ap.add_argument("-f", dest="force", action="store_true", help="pass --force to hashcat")
   ap.add_argument("-V", dest="vector", default="default", help="1 | 4 | default (both)")
-  ap.add_argument("--artificially-low-iteration-count", action="store_true",
-                  help="generate supported test hashes with 2 iterations")
+  iterations = ap.add_mutually_exclusive_group()
+  iterations.add_argument("--artificially-low-iteration-count", action="store_true", default=None,
+                          help="generate supported test hashes with 2 iterations (default)")
+  iterations.add_argument("--full-iteration-count", dest="artificially_low_iteration_count", action="store_false",
+                          help="use original iteration counts instead of reduced counts")
   ap.add_argument("-S", dest="selftest_all", action="store_true",
                   help="crack selftest hash of each mode")
   ap.add_argument("-M", dest="minimal", action="store_true",
@@ -6682,8 +6685,10 @@ def main():
   if args.attack is None:
     args.attack = "all" if args.edge else "0"
 
-  if args.artificially_low_iteration_count:
-    os.environ[test_iterations.ITERATION_ENV] = "true"
+  if args.artificially_low_iteration_count is not None:
+    os.environ[test_iterations.ITERATION_ENV] = "true" if args.artificially_low_iteration_count else "false"
+  else:
+    os.environ.setdefault(test_iterations.ITERATION_ENV, "true")
 
   try:
     test_iterations.iteration_reduction_requested()

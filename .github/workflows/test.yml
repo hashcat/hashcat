@@ -83,7 +83,7 @@ on:
       artificially_low_iterations:
         description: 'Artificially low iteration counts'
         type: boolean
-        default: false
+        default: true
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -258,7 +258,7 @@ jobs:
 
       - name: test.py
         env:
-          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations) && 'true' || 'false' }}
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
           KIND: ${{ matrix.kind }}
