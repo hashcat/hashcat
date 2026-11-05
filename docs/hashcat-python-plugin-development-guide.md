@@ -86,8 +86,8 @@ unpacks it and the fields sit at the top level of the dictionary your `calc_hash
 
 ```python
 salt["salt_buf"]      salt["salt_buf_pc"]   salt["salt_iter"]    salt["salt_iter2"]
-salt["salt_sign"]     salt["salt_repeats"]  salt["orig_pos"]     salt["digests_cnt"]
-salt["scrypt_N"]      salt["scrypt_r"]      salt["scrypt_p"]
+salt["salt_iter3"]    salt["salt_sign"]     salt["salt_repeats"] salt["orig_pos"]
+salt["digests_cnt"]   salt["scrypt_N"]      salt["scrypt_r"]     salt["scrypt_p"]
 ```
 
 `hcshared` has a reader for each, for example `hcshared.get_salt_iter(salt)`.

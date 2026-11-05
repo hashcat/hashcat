@@ -28,7 +28,7 @@
 // the most iterations of the second loop one launch runs, which is the kernel_loops of every scrypt
 // module, or N where that is less
 
-#define SCRYPT_LOOP_MAX ((SCRYPT_N < 2048) ? SCRYPT_N : 2048)
+#define SCRYPT_LOOP_MAX(n) (((n) < 2048) ? (n) : 2048)
 
 // module_tune as the scrypt modules fill it, see scrypt_module_tune_variants (): the TMTO in the low
 // byte, and whether the four-lane kernel runs.
@@ -36,8 +36,16 @@
 #define SCRYPT_TUNE_TMTO(t)  ((t) & 0xff)
 #define SCRYPT_TUNE_LANES4   (1u << 8)
 
-// The single-lane entry points that take SCRYPT_TMTO as a build constant stay for plugins written
-// against them.
+// The per-candidate kernels read N from the salt rather than from the build, so one build for an r
+// and p runs every N, the self-test hash's among them. Every salt of a session has the same N, see
+// scrypt_module_extra_tmp_size (), and the self-test runs on a salt buffer of its own, so the first
+// salt holds the N of every launch. SALT_POS_HOST would not do: under -a 9 it counts work items, and
+// the four-lane kernel runs four of them for each candidate.
+
+#define SCRYPT_SALT_N (salt_bufs[0].scrypt_N)
+
+// The single-lane entry points that take SCRYPT_N and SCRYPT_TMTO as build constants stay for
+// plugins written against them.
 
 #ifndef SCRYPT_TMTO
 #define SCRYPT_TMTO 0

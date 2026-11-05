@@ -30,16 +30,35 @@
 #define YESCRYPT_STATE_SZ   (128 * YESCRYPT_R)
 #define YESCRYPT_SALSA_CNT4 16
 
+// The kernels read N from the salt where the target hash and the self-test hash differ in it, so that
+// the self-test runs at its own N. Every salt of a session has the same N, see
+// yescrypt_module_extra_tmp_size (), and the self-test runs on a salt buffer of its own, so the first
+// salt holds the N of every launch. SALT_POS_HOST would not do: under -a 9 it counts work items, and
+// the loop kernel runs a work group for each candidate.
+//
+// Where the two share N, yescrypt_module_jit_build_options () builds it in as YESCRYPT_N, since the
+// loop kernel ran 1 percent slower with N read at run time. The kernels then pass that constant as
+// the salt's N, and each helper that takes N passes its argument through YESCRYPT_KERNEL_N, which
+// keeps a built-in N constant whether or not the compiler inlines the helper.
+
+#ifdef YESCRYPT_N
+#define YESCRYPT_SALT_N           (YESCRYPT_N)
+#define YESCRYPT_KERNEL_N(salt_n) (YESCRYPT_N)
+#else
+#define YESCRYPT_SALT_N           (salt_bufs[0].scrypt_N)
+#define YESCRYPT_KERNEL_N(salt_n) (salt_n)
+#endif
+
 // yescrypt runs a cheaper pass over a smaller V first whenever the real pass is
 // large enough for it to pay off. These are the conditions from the reference
-// implementation, resolved at JIT time because N, r, p and the flags are known
+// implementation, for the N of the salt and the r, p and flags of the build
 
-#define YESCRYPT_PREHASH_NEEDED \
+#define YESCRYPT_PREHASH_NEEDED(n) \
   (((YESCRYPT_FLAGS & YESCRYPT_FLAG_RW) != 0) && \
-   ((YESCRYPT_N / YESCRYPT_P) >= 256) && \
-   (((YESCRYPT_N / YESCRYPT_P) * YESCRYPT_R) >= 0x20000))
+   (((n) / YESCRYPT_P) >= 256) && \
+   ((((u64) (n) / YESCRYPT_P) * YESCRYPT_R) >= 0x20000))
 
-#define YESCRYPT_PREHASH_N (YESCRYPT_N / 64)
+#define YESCRYPT_PREHASH_N(n) ((n) / 64)
 
 // The loop kernel is cooperative: one workgroup owns one hash, and the four
 // pwxform lanes are threads 0 to 3 of that workgroup. Every thread count below
@@ -121,10 +140,10 @@ DECLSPEC void yescrypt_prehash_smix (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL
 DECLSPEC u64  yescrypt_coop_integerify (XBUF_AS const u32 *X);
 DECLSPEC void yescrypt_coop_blockmix_pwxform (XBUF_AS u32 *X, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid);
 DECLSPEC void yescrypt_coop_smix1_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 i, const u32 lid, const u32 lsz, const u32 flags);
-DECLSPEC void yescrypt_coop_smix2_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 lsz, const u32 flags);
+DECLSPEC void yescrypt_coop_smix2_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 lsz, const u32 salt_n, const u32 flags);
 
-DECLSPEC void yescrypt_kdf_init (GLOBAL_AS const u32 *pw_buf, const u32 pw_len, GLOBAL_AS const u32 *salt_buf, const u32 salt_len, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 gid);
-DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 bid, const u32 lid, const u32 lsz, const u32 loop_cnt);
+DECLSPEC void yescrypt_kdf_init (GLOBAL_AS const u32 *pw_buf, const u32 pw_len, GLOBAL_AS const u32 *salt_buf, const u32 salt_len, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 gid, const u32 salt_n);
+DECLSPEC void yescrypt_smix_loop (XBUF_AS u32 *X, SBOX_AS u32 *sbox, GLOBAL_AS yescrypt_tmp_t *tmp, GLOBAL_AS void *V0, GLOBAL_AS void *V1, GLOBAL_AS void *V2, GLOBAL_AS void *V3, const u64 bid, const u32 lid, const u32 lsz, const u32 loop_cnt, const u32 salt_n);
 DECLSPEC void yescrypt_kdf_final (GLOBAL_AS yescrypt_tmp_t *tmp, PRIVATE_AS u32 *dk);
 
 #endif
