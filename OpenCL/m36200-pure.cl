@@ -34,7 +34,7 @@ KERNEL_FQ KERNEL_FA void m36200_init (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
 
   if (gid >= GID_CNT) return;
 
-  yescrypt_kdf_init (pws[gid].i, pws[gid].pw_len, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len, &tmps[gid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid);
+  yescrypt_kdf_init (pws[gid].i, pws[gid].pw_len, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len, &tmps[gid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, YESCRYPT_SALT_N);
 }
 
 KERNEL_FQ KERNEL_FA void m36200_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
@@ -62,7 +62,7 @@ KERNEL_FQ KERNEL_FA void m36200_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
 
   LOCAL_VK u64 s_shfl[FIXED_LOCAL_SIZE];
 
-  yescrypt_smix_loop_reg (s_shfl, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT);
+  yescrypt_smix_loop_reg (s_shfl, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT, YESCRYPT_SALT_N);
 
   #else
 
@@ -73,7 +73,7 @@ KERNEL_FQ KERNEL_FA void m36200_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   LOCAL_AS u32 *X = (LOCAL_AS u32 *) s_X;
   #endif
 
-  yescrypt_smix_loop (X, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT);
+  yescrypt_smix_loop (X, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT, YESCRYPT_SALT_N);
 
   #endif
 }

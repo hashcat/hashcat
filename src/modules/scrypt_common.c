@@ -176,6 +176,19 @@ static u64 scrypt_available_mem (const u32 scrypt_r, const hc_device_param_t *de
   return available_mem;
 }
 
+// The bytes of V one candidate takes in the per-candidate kernels: N >> tmto elements of 128 * r
+// bytes, and one element where the TMTO reaches past log2 (N), see scrypt_tune_tmto_n () in
+// inc_hash_scrypt.cl.
+
+static u64 scrypt_candidate_v_size (const u32 scrypt_N, const u32 scrypt_r, const u32 tmto)
+{
+  const u64 elems = MAX ((u64) scrypt_N >> MIN (tmto, 31), 1);
+
+  const u64 v_size = 128ULL * scrypt_r * elems;
+
+  return v_size;
+}
+
 // Appends a variant unless the list holds it already, or the count is zero.
 
 static u32 scrypt_tune_variant_add (tune_variant_t *variants, const u32 variants_cnt, const u32 variants_size, const u32 module_tune, const u32 kernel_accel, const double loop_launches)
@@ -246,8 +259,6 @@ static u32 scrypt_tune_variants (const hashconfig_t *hashconfig, const user_opti
   const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
 
   const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
-
-  const u64 size_per_candidate = 128ULL * scrypt_r * scrypt_N;
 
   // A candidate also takes its tmps, twice the SMix state, and its pws entry, and the fixed reserve
   // of scrypt_available_mem () does not cover those at tens of thousands of candidates.
@@ -322,7 +333,7 @@ static u32 scrypt_tune_variants (const hashconfig_t *hashconfig, const user_opti
     {
       if ((fits == true) && (search == false)) break;
 
-      const u64 fit = available_mem / ((size_per_candidate >> t) + size_host);
+      const u64 fit = available_mem / (scrypt_candidate_v_size (scrypt_N, scrypt_r, t) + size_host);
 
       u32 accel = (u32) MIN (fit, (u64) accel_cap);
 
@@ -689,23 +700,31 @@ u64 scrypt_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
 
     const u32 variants_cnt = scrypt_tune_variants (hashconfig, user_options, user_options_extra, hashes, device_param, true, variants, TUNE_VARIANTS_MAX);
 
-    const u64 size_per_candidate = 128ULL * scrypt_r * scrypt_N;
-
     // backend.c splits this four ways and gives each part kernel_accel_max / 4 shares of
     // size / kernel_accel_max bytes, the first parts a share more where that does not divide.
     // Candidate c lives in part c & 3, so every part has to hold the most any variant puts in one,
     // and the size is worked back from that. Without a variant the kernel runs one candidate at
     // TMTO 0, see the seed in backend.c.
 
-    u64 part_need = (variants_cnt == 0) ? size_per_candidate : 0;
+    u64 part_need = (variants_cnt == 0) ? scrypt_candidate_v_size (scrypt_N, scrypt_r, 0) : 0;
 
     for (u32 i = 0; i < variants_cnt; i++)
     {
       const u32 variant_tmto = variants[i].module_tune & 0xff;
 
-      const u64 part_variant = CEILDIV ((u64) variants[i].kernel_accel, 4) * (size_per_candidate >> variant_tmto);
+      const u64 part_variant = CEILDIV ((u64) variants[i].kernel_accel, 4) * scrypt_candidate_v_size (scrypt_N, scrypt_r, variant_tmto);
 
       part_need = MAX (part_need, part_variant);
+    }
+
+    // The self-test runs one candidate at the self-test hash's N, which can be larger than the
+    // target's. It fits in whichever way it runs when it fits at TMTO 0.
+
+    if ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0)
+    {
+      const u64 part_st = scrypt_candidate_v_size (hashes->st_salts_buf[0].scrypt_N, scrypt_r, 0);
+
+      part_need = MAX (part_need, part_st);
     }
 
     const u64 accel_max = MAX (device_param->kernel_accel_max, 1);
@@ -753,6 +772,7 @@ u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, M
 
   // in general, since we compile the kernel based on N, r, p, so the JIT can optimize it, we can't have other configuration settings
   // we need to check that all hashes have the same scrypt settings
+  // The per-candidate kernels read N at run time, but from the first salt, and V is sized for one N.
 
   for (u32 i = 1; i < hashes->salts_cnt; i++)
   {
@@ -768,7 +788,12 @@ u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, M
 
   if ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0)
   {
-    if ((scrypt_N != hashes->st_salts_buf[0].scrypt_N)
+    // The per-candidate kernels read N from the salt, see SCRYPT_SALT_N in inc_hash_scrypt.h, so only
+    // r and p have to match there.
+
+    const bool n_built_in = (scrypt_per_candidate (hashconfig) == false);
+
+    if (((n_built_in == true) && (scrypt_N != hashes->st_salts_buf[0].scrypt_N))
      || (scrypt_r != hashes->st_salts_buf[0].scrypt_r)
      || (scrypt_p != hashes->st_salts_buf[0].scrypt_p))
     {
@@ -826,13 +851,22 @@ char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   {
     const bool coop = scrypt_coop (hashconfig, user_options, user_options_extra, device_param);
 
-    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D SCRYPT_N=%u -D SCRYPT_R=%u -D SCRYPT_P=%u -D SCRYPT_TMP_ELEM=%" PRIu64 "%s",
+    // HASHCAT_SCRYPT_NATIVE_CUBIN=1 has NVRTC compile the CUDA kernel for the device's sm instead of
+    // handing PTX to the driver, see nvrtc_native_cubin () in backend.c. On an RTX 4090 that made
+    // modes 8900, 15700 and 24000 between 1 and 16 percent faster. It is opt-in, because no other
+    // card has been measured.
+
+    const char *native_env = getenv ("HASHCAT_SCRYPT_NATIVE_CUBIN");
+
+    const bool native_cubin = (device_param->is_cuda == true) && (native_env != NULL) && (strcmp (native_env, "1") == 0);
+
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D SCRYPT_R=%u -D SCRYPT_P=%u -D SCRYPT_TMP_ELEM=%" PRIu64 "%s%s",
       expected_threads,
-      scrypt_N,
       scrypt_r,
       scrypt_p,
       tmp_size / 4,
-      (coop == true) ? " -D SCRYPT_COOP" : "");
+      (coop == true) ? " -D SCRYPT_COOP" : "",
+      (native_cubin == true) ? " -D HC_NVRTC_NATIVE_CUBIN" : "");
 
     return jit_build_options;
   }

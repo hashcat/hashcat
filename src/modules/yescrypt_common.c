@@ -753,7 +753,22 @@ u64 yescrypt_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconf
 {
   const u64 size_per_accel = yescrypt_size_per_accel (hashes);
 
-  const u64 size_yescrypt = device_param->kernel_accel_max * size_per_accel;
+  u64 size_yescrypt = device_param->kernel_accel_max * size_per_accel;
+
+  // The self-test runs one candidate at the self-test hash's N, which can be larger than the
+  // target's. It sits in the first of the four parts backend.c splits this into, and that part gets
+  // kernel_accel_max / 4 shares of the size, at least one.
+
+  if ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0)
+  {
+    const u64 size_st = 128ULL * hashes->st_salts_buf[0].scrypt_r * hashes->st_salts_buf[0].scrypt_N;
+
+    const u64 accel_max = MAX (device_param->kernel_accel_max, 1);
+
+    const u64 shares = MAX (accel_max / 4, 1);
+
+    size_yescrypt = MAX (size_yescrypt, accel_max * CEILDIV (size_st, shares));
+  }
 
   return size_yescrypt;
 }
@@ -793,6 +808,7 @@ u64 yescrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig,
   // in general, since we compile the kernel based on N, r, p and the yescrypt flags, so the JIT can
   // optimize it, we can't have other configuration settings
   // we need to check that all hashes have the same settings
+  // The kernels read N at run time, but from the first salt, and V is sized for one N.
 
   for (u32 i = 1; i < hashes->salts_cnt; i++)
   {
@@ -808,6 +824,9 @@ u64 yescrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
     yescrypt_esalt_params (hashes, esalt_size, hashes->salts_buf[i].digests_offset, &ye_flags_i, &ye_t_i);
 
+    // t no longer reaches the kernel, but an association attack runs the iterations of the first
+    // salt for every item, so it still has to match.
+
     if ((ye_flags != ye_flags_i) || (ye_t != ye_t_i))
     {
       return (1ULL << 63) + i;
@@ -819,8 +838,10 @@ u64 yescrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   if ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0)
   {
-    if ((scrypt_N != hashes->st_salts_buf[0].scrypt_N)
-     || (scrypt_r != hashes->st_salts_buf[0].scrypt_r)
+    // The kernels read N from the salt, see YESCRYPT_SALT_N in inc_hash_yescrypt.h, so only r and p
+    // have to match.
+
+    if ((scrypt_r != hashes->st_salts_buf[0].scrypt_r)
      || (scrypt_p != hashes->st_salts_buf[0].scrypt_p))
     {
       return (1ULL << 62);
@@ -836,7 +857,6 @@ u64 yescrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
 char *yescrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param, const u64 esalt_size)
 {
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
   const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
   const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
@@ -845,14 +865,20 @@ char *yescrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
   yescrypt_esalt_params (hashes, esalt_size, 0, &ye_flags, &ye_t);
 
-  // The kernel only ever needs the rounded-up rw count. t is passed alongside it because it is what
-  // the kernel cache key uses to tell two otherwise identical configurations apart.
+  // t does not reach the kernel: the second loop runs for the iterations the host launches, and
+  // salt_iter carries its length for each hash, see yescrypt_calc_nloop_all (). N is built in where
+  // the self-test hash has the target's N or no self-test runs, and read from the salt otherwise,
+  // see YESCRYPT_KERNEL_N in inc_hash_yescrypt.h.
 
-  const u64 Nloop_all = yescrypt_calc_nloop_all (scrypt_N, scrypt_p, ye_t, ye_flags);
+  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
 
-  const u64 Nloop_rw = ((ye_flags & YESCRYPT_FLAG_RW) != 0) ? (Nloop_all / scrypt_p) : 0;
+  const bool n_built_in = ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) != 0) || (hashes->st_salts_buf[0].scrypt_N == scrypt_N);
 
-  const u64 Nloop_rw_even = (Nloop_rw + 1) & ~(u64) 1;
+  char n_option[32];
+
+  n_option[0] = 0;
+
+  if (n_built_in == true) snprintf (n_option, sizeof (n_option), " -D YESCRYPT_N=%u", scrypt_N);
 
   const u64 state_cnt4 = 32ULL * scrypt_r;
 
@@ -892,21 +918,17 @@ char *yescrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
   hc_asprintf (&jit_build_options,
     "-D FIXED_LOCAL_SIZE=%u"
-    " -D YESCRYPT_N=%u"
+    "%s"
     " -D YESCRYPT_R=%u"
     " -D YESCRYPT_P=%u"
-    " -D YESCRYPT_T=%u"
     " -D YESCRYPT_FLAGS=0x%03x"
-    " -D YESCRYPT_NLOOP_RW=%" PRIu64
     " -D YESCRYPT_STATE_CNT4=%" PRIu64
     "%s",
     expected_threads,
-    scrypt_N,
+    n_option,
     scrypt_r,
     scrypt_p,
-    ye_t,
     ye_flags,
-    Nloop_rw_even,
     state_cnt4,
     placement);
 

@@ -1702,25 +1702,34 @@ void hc_fflush (HCFILE *fp)
   }
 }
 
-void hc_fsync (HCFILE *fp)
+// Both return 0 on success and -1 on failure. A write the system has accepted into its cache can
+// still fail here, on a network share for example, so a caller that needs the file complete checks.
+
+int hc_fsync (HCFILE *fp)
 {
-  if (fp == NULL) return;
+  if (fp == NULL) return -1;
+
+  int r = 0;
 
   if (fp->pfp)
   {
 #if defined (_WIN)
     HANDLE h = (HANDLE) _get_osfhandle (fp->fd);
 
-    FlushFileBuffers (h);
+    if (FlushFileBuffers (h) == 0) r = -1;
 #else
-    fsync (fp->fd);
+    r = fsync (fp->fd);
 #endif
   }
+
+  return r;
 }
 
-void hc_fclose (HCFILE *fp)
+int hc_fclose (HCFILE *fp)
 {
-  if (fp == NULL) return;
+  if (fp == NULL) return -1;
+
+  int r = 0;
 
   if (fp->mfp)
   {
@@ -1730,11 +1739,11 @@ void hc_fclose (HCFILE *fp)
   }
   else if (fp->pfp)
   {
-    fclose (fp->pfp);
+    if (fclose (fp->pfp) == EOF) r = -1;
   }
   else if (fp->gfp)
   {
-    fp->gfp->z->gzclose (fp->gfp->fp);
+    if (fp->gfp->z->gzclose (fp->gfp->fp) != 0) r = -1;
 
     hcfree (fp->gfp);
 
@@ -1778,6 +1787,8 @@ void hc_fclose (HCFILE *fp)
 
   fp->path = NULL;
   fp->mode = NULL;
+
+  return r;
 }
 
 // Taking the stream's lock once for a line rather than once for every byte. A plain file is what almost

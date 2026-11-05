@@ -99,6 +99,9 @@ typedef struct bip39_tmp
   u32 prefix_key[8];
   u32 prefix_chain[8];
 
+  u32 prefix_pub_x[8];
+  u32 prefix_pub_tag;
+
   u32 hit[BIP39_MAX_HITS];
   u32 hit_cnt;
 
