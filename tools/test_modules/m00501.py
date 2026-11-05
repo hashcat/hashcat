@@ -66,3 +66,10 @@ def module_verify_hash(line):
     return None
 
   return (module_generate_hash(word, data[:12].hex()), word)
+
+
+def module_hash_identity(hash_str):
+  # Hashcat deduplicates the decrypted md5crypt digest, regardless of the wrapping IV.
+  data = base64.b64decode(hash_str)
+
+  return AES.new(KEY, AES.MODE_CBC, data[:12] + b"\x00" * 4).decrypt(data[12:])

@@ -21,6 +21,28 @@ B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {
+          'whole_word': True,
+        },
+        1: {
+          'exclude': 'whole_word_candidates',
+        },
+        3: {
+          'exclude': 'whole_word_candidates',
+        },
+        6: {
+          'exclude': 'whole_word_candidates',
+        },
+        7: {
+          'exclude': 'whole_word_candidates',
+        },
+        12: {
+          'exclude': 'whole_word_candidates',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [52, 52],

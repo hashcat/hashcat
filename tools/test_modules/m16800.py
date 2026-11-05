@@ -20,6 +20,18 @@ from lib.test_helpers import random_bytes, random_number
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {
+          'password_only': True,
+        },
+      },
+      'edge': {
+        'all': {
+          'exclude': 'deprecated_mode',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [8, 63],

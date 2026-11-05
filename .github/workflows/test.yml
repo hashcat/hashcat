@@ -14,6 +14,7 @@
 ##                  attack mode and a single hash. A change to code the modes
 ##                  share runs the minimal representative set instead, the 24
 ##                  modes test.py -M covers, each on the normal per-mode path.
+##                  Kernel tests prefer optimized and use pure where needed.
 ##
 ##   weekly         every mode, in shards, every attack mode, single and multi
 ##                  hash, and five kinds: the optimized kernels, the pure
@@ -32,7 +33,7 @@
 ## matrix entry carries a kind (opt, pure, bridge, container or edge). The test step
 ## below runs the one pass for its kind, so the kinds are parallel jobs rather
 ## than passes in one. The kernel kinds share the on-disk mode pool; container
-## has its own and runs once. A pull request is optimized only, for latency.
+## has its own and runs once. A pull request tests one supported family per mode.
 ##
 ## test.py exits non-zero when a mode fails, so a job here reads its exit code:
 ## the per-mode runs are OR'd into one status and a nonzero one fails the job.
@@ -84,6 +85,15 @@ on:
         description: 'Artificially low iteration counts'
         type: boolean
         default: false
+      attack:
+        description: 'Optional attack filter for focused kernel/edge checks'
+        default: ''
+      target:
+        description: 'Optional target filter: single or multi'
+        default: ''
+      vector_width:
+        description: 'Optional vector-width filter for focused kernel/edge checks'
+        default: ''
   pull_request:
     paths:
       - 'OpenCL/**'
@@ -126,6 +136,7 @@ jobs:
           BRIDGE: ${{ inputs.bridge }}
           CONTAINER: ${{ inputs.container }}
           EDGE: ${{ inputs.edge }}
+          TEST_VECTOR_WIDTH: ${{ inputs.vector_width }}
         run: |
           # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
           # An empty manual selection keeps the four ordinary kinds.
@@ -140,17 +151,19 @@ jobs:
           fi
           [ -z "$kinds" ] && kinds="opt pure bridge container"
           kinds_arg="--kinds $(echo $kinds | tr ' ' ',')"
+          width_args=()
+          if [ -n "$TEST_VECTOR_WIDTH" ]; then width_args=(--vector-width "$TEST_VECTOR_WIDTH"); fi
 
           if [ "$EVENT" = "pull_request" ]; then
             python3 .github/workflows/ci_matrix.py test pr "$BASE" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ "$MODES" != "all" ]; then
-            python3 .github/workflows/ci_matrix.py test list "$MODES" $kinds_arg | tee -a "$GITHUB_OUTPUT"
+            python3 .github/workflows/ci_matrix.py test list "$MODES" $kinds_arg "${width_args[@]}" | tee -a "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "schedule" ] &&
                [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 7 * 86400 )) ]; then
             echo "no commit on master in the last seven days, nothing new to test"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
-            python3 .github/workflows/ci_matrix.py test all $kinds_arg | tee -a "$GITHUB_OUTPUT"
+            python3 .github/workflows/ci_matrix.py test all $kinds_arg "${width_args[@]}" | tee -a "$GITHUB_OUTPUT"
           fi
 
   test:
@@ -200,13 +213,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2
 
       - name: Fetch the luks1 test containers
         if: (contains(matrix.modes, '14600') || contains(matrix.modes, '2951') || contains(matrix.modes, '2952') || contains(matrix.modes, '2953') || contains(matrix.modes, '2954')) && steps.luks1.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks_tests
-          cd tools/luks_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/hashcat_luks_testfiles.7z
           7z x -y hashcat_luks_testfiles.7z >/dev/null
           rm -f hashcat_luks_testfiles.7z
@@ -216,7 +228,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks_tests
-          key: luks1-tests-v1
+          key: luks1-tests-v2
 
       - name: Restore the luks2 test containers
         id: luks2
@@ -224,13 +236,12 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: tools/luks2_tests
-          key: luks2-tests-v1
+          key: luks2-tests-v2
 
       - name: Fetch the luks2 test containers
         if: (contains(matrix.modes, '34100')) && steps.luks2.outputs.cache-hit != 'true'
         run: |
-          mkdir -p tools/luks2_tests
-          cd tools/luks2_tests
+          cd tools
           wget -q https://hashcat.net/misc/example_hashes/luks2_tests.7z
           7z x -y luks2_tests.7z >/dev/null
           rm -f luks2_tests.7z
@@ -240,7 +251,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: tools/luks2_tests
-          key: luks2-tests-v1
+          key: luks2-tests-v2
 
       - name: Install the Rust toolchain
         # Mode 74000 is a Rust bridge: its plugin only builds when cargo is present, and the mode
@@ -262,7 +273,13 @@ jobs:
           EVENT: ${{ github.event_name }}
           MODES: ${{ matrix.modes }}
           KIND: ${{ matrix.kind }}
+          VECTOR_WIDTH: ${{ matrix.vector_width }}
+          TEST_ATTACK: ${{ inputs.attack }}
+          TEST_TARGET: ${{ inputs.target }}
+          TEST_VECTOR_WIDTH: ${{ inputs.vector_width }}
         run: |
+          set -o pipefail
+
           # A shared-code change with no mode of its own runs test.py -M's 24
           # representative modes, sharded by ci_matrix.py into per-mode lists that
           # take the normal path below (test.py now handles the container families).
@@ -271,11 +288,14 @@ jobs:
           # the pure kernels, bridge runs --bridge (cracks each mode's own test oracle through the
           # Python bridge with no mode kernel), and container cracks the container files for the
           # TrueCrypt/VeraCrypt/CryptoLoop/LUKS modes. run_container_mode ignores -a and -t and uses
-          # the family's own fixed attack, so the container kind passes neither. A pull request is
-          # optimized only and a single hash, to keep its latency. Edge tests cover both kernel
-          # families and every vector width in one pass.
+          # the family's own fixed attack, so the container kind passes neither. A pull request tests
+          # a single hash with optimized kernels where available and pure kernels otherwise.
+          # Edge tests cover both kernel families. Heavy modes run each vector width in its own job.
           if [ "$EVENT" = "pull_request" ]; then
             OPTS="-a all -t single"
+            if [ "$KIND" = "pure" ]; then
+              OPTS="$OPTS -P"
+            fi
           elif [ "$KIND" = "pure" ]; then
             OPTS="-a all -t all -P"
           elif [ "$KIND" = "bridge" ]; then
@@ -284,14 +304,44 @@ jobs:
             OPTS=""
           elif [ "$KIND" = "edge" ]; then
             OPTS="--edge"
+            if [ -n "$VECTOR_WIDTH" ]; then
+              OPTS="$OPTS -V $VECTOR_WIDTH"
+            fi
           else
             OPTS="-a all -t all"
           fi
 
           fail=0
           failed_modes=""
+          trace_edge=false
+
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$KIND" != "bridge" ] && [ "$KIND" != "container" ]; then
+            if [ -n "$TEST_ATTACK" ]; then OPTS="$OPTS -a $TEST_ATTACK"; fi
+            if [ -n "$TEST_TARGET" ]; then OPTS="$OPTS -t $TEST_TARGET"; fi
+            if [ -n "$TEST_VECTOR_WIDTH" ]; then OPTS="$OPTS -V $TEST_VECTOR_WIDTH"; fi
+            if [ "$KIND" = "edge" ] && [ -n "$TEST_ATTACK" ]; then
+              trace_edge=true
+              export TESTPY_TRACE_CELLS=1
+            fi
+          fi
+
+          if [ "$KIND" = "edge" ] && [ "$MODES" = "21800" ]; then
+            trace_edge=true
+            export TESTPY_TRACE_CELLS=1
+          fi
 
           for mode in $MODES; do
+            tuning=""
+            unset HASHCAT_MEMORY
+
+            # These memory-hard modes need only a few candidates, not a throughput-sized batch.
+            case "$mode" in
+              34100|36100|36200)
+                tuning="--kernel-accel 1 --verbose"
+                export HASHCAT_MEMORY=1
+                ;;
+            esac
+
             echo "::group::test.py -m ${mode} ${OPTS}"
             log="testpy_${mode}_${KIND}.log"
 
@@ -299,13 +349,20 @@ jobs:
             # summary below. bash -e does not abort on a command that is an if condition, so the
             # loop still runs every mode.
             # shellcheck disable=SC2086
-            if python3 tools/test.py -m "${mode}" ${OPTS} -D 1 -f > "${log}" 2>&1; then
+            if [ "$trace_edge" = true ]; then
+              if timeout --signal=TERM --kill-after=30s 30m \
+                python3 -u tools/test.py -m "${mode}" ${OPTS} ${tuning} -D 1 -f 2>&1 | tee "${log}"; then
+                rc=0
+              else
+                rc=$?
+              fi
+            elif python3 tools/test.py -m "${mode}" ${OPTS} ${tuning} -D 1 -f > "${log}" 2>&1; then
               rc=0
             else
               rc=$?
             fi
 
-            cat "${log}"
+            if [ "$trace_edge" = false ]; then cat "${log}"; fi
             echo "::endgroup::"
 
             if [ "${rc}" -ne 0 ]; then

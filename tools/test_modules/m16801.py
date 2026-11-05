@@ -26,6 +26,18 @@ def module_get_random_password(word):
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {
+          'password_only': True,
+        },
+      },
+      'edge': {
+        'all': {
+          'exclude': 'deprecated_mode',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [64, 64],

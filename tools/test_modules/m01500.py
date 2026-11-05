@@ -16,6 +16,13 @@ from lib.test_helpers import split_hash_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'verify_output': True,
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [0, 8],

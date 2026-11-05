@@ -29,6 +29,13 @@ if os.environ.get("IS_OPTIMIZED") == "0":
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'allow_same_salt': True,
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [0, 256],

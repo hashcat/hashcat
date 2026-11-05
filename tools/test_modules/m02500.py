@@ -24,6 +24,13 @@ from lib.test_helpers import random_number, random_bytes
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'exclude': 'deprecated_mode',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [8, 63],

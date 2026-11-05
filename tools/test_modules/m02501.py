@@ -30,6 +30,13 @@ def module_get_random_password(word):
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'exclude': 'deprecated_mode',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [64, 64],

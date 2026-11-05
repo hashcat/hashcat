@@ -21,6 +21,13 @@ from lib.test_helpers import split_hash_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'selftest': {
+        'all': {
+          'exclude': 'no_selftest_vector',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [1, 256],

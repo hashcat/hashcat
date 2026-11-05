@@ -15,6 +15,18 @@ from lib.test_helpers import split_hash_salt_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        12: {
+          'exclude': 'hybrid_mask_layout',
+        },
+      },
+      'edge': {
+        'all': {
+          'skip_output': True,
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [24, 24],

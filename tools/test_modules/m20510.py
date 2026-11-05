@@ -33,6 +33,31 @@ def _crc32(x, c):
 
 def module_test_properties():
   return {
+    'tests': {
+      'ordinary': {
+        'all': {'single_hash': 'master_key_fixture'},
+        12: {
+          'exclude': 'hybrid_mask_layout',
+        },
+      },
+      'edge': {
+        3: {
+          'exclude_empty': 'master_key_prefix',
+        },
+        6: {
+          'exclude_empty': 'master_key_prefix',
+        },
+        7: {
+          'exclude_empty': 'master_key_prefix',
+        },
+        12: {
+          'exclude_empty': 'master_key_prefix',
+        },
+        'all': {
+          'single_hash': 'master_key_fixture',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [6, 250],

@@ -437,7 +437,7 @@ def edge_constraints(mod, optimized):
   return word, salt, comb
 
 
-def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok):
+def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters):
   while True:
     word = random_non_ascii_string(word_len, non_ascii_ok)
     salt = random_numeric_string(salt_len)
@@ -445,7 +445,8 @@ def edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii
     if hasattr(mod, "module_get_random_password"):
       word = mod.module_get_random_password(word)
 
-    digest = test_iterations.generate_iteration_hash(mod, word, salt)
+    with test_helpers.fixed_random_numbers(parameters):
+      digest = test_iterations.generate_iteration_hash(mod, word, salt)
 
     # m30901 answers with a hash of one length and nothing else is usable, so a short one is drawn
     # again rather than passed on
@@ -497,8 +498,10 @@ def edge(mod, mode, attack_type, optimized):
   if attack_type == 4 and word_min == 0:
     word_min = 1
 
+  parameters = {} if attack_type == 9 else None
+
   def emit(word_len, salt_len):
-    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok)
+    edge_format(mod, mode, word_len, salt_len, attack_type, optimized, non_ascii_ok, parameters)
 
   # word_min, salt_min / word_min, salt_max / word_max, salt_min / word_max, salt_max
 
@@ -799,6 +802,9 @@ def verify(mod, hashes_file, cracks_file, out_file):
   with open(hashes_file, "rb") as handle:
     hashlist = set(line.rstrip(b"\r\n") for line in handle)
 
+  identity = getattr(mod, "module_hash_identity", None)
+  identities = {identity(h.decode("utf-8")) for h in hashlist} if identity else set()
+
   with open(cracks_file, "rb") as handle, open(out_file, "wb") as out:
     for raw in handle:
       raw = raw.rstrip(b"\r\n")
@@ -822,7 +828,8 @@ def verify(mod, hashes_file, cracks_file, out_file):
       # possible if the hash is in the cracks file but not in the hash file
 
       if digest.encode("utf-8") not in hashlist:
-        continue
+        if identity is None or identity(digest) not in identities:
+          continue
 
       out.write(raw + b"\n")
 

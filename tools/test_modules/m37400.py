@@ -36,6 +36,13 @@ A2E_UP = bytes.fromhex(
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'verify_output': True,
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [9, 100],

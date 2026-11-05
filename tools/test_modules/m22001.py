@@ -28,6 +28,13 @@ from lib.test_helpers import random_number, random_bytes, pack_hex
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'skip_output': True,
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [64, 64],

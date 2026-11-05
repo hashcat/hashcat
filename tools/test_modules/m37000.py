@@ -16,6 +16,68 @@ from lib.test_helpers import random_bytes, random_number, split_hash_word
 
 def module_test_properties():
   return {
+    'tests': {
+      'selftest': {
+        3: {
+          'mask_only': 'Only the mask kernel is implemented.',
+        },
+      },
+      'ordinary': {
+        'all': {
+          'hash_only': 'Key recovery is not unique. Check the recovered hash instead of the original key segment.',
+        },
+        0: {
+          'exclude': 'mask_only_kernel',
+        },
+        1: {
+          'exclude': 'mask_only_kernel',
+        },
+        4: {
+          'exclude': 'mask_only_kernel',
+        },
+        6: {
+          'exclude': 'mask_only_kernel',
+        },
+        7: {
+          'exclude': 'mask_only_kernel',
+        },
+        8: {
+          'exclude': 'mask_only_kernel',
+        },
+        9: {
+          'exclude': 'mask_only_kernel',
+        },
+        12: {
+          'exclude': 'mask_only_kernel',
+        },
+      },
+      'edge': {
+        0: {
+          'exclude': 'mask_only_kernel',
+        },
+        1: {
+          'exclude': 'mask_only_kernel',
+        },
+        4: {
+          'exclude': 'mask_only_kernel',
+        },
+        6: {
+          'exclude': 'mask_only_kernel',
+        },
+        7: {
+          'exclude': 'mask_only_kernel',
+        },
+        8: {
+          'exclude': 'mask_only_kernel',
+        },
+        9: {
+          'exclude': 'mask_only_kernel',
+        },
+        12: {
+          'exclude': 'mask_only_kernel',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [4, 4],

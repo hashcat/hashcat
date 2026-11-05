@@ -22,6 +22,13 @@ _SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "luks1.sh")
 
 def module_test_properties():
   return {
+    'tests': {
+      'selftest': {
+        'all': {
+          'exclude': 'no_selftest_vector',
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [0, 256],

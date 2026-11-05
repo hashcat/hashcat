@@ -13,6 +13,13 @@ from lib.test_helpers import random_bytes, test_iteration_parameters
 
 def module_test_properties():
   return {
+    'tests': {
+      'edge': {
+        'all': {
+          'allow_same_salt': True,
+        },
+      },
+    },
     'constraints': {
       'pure': {
         'password_length': [0, 256],
