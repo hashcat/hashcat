@@ -588,9 +588,8 @@ RUNTIME    = 400    # hashcat --runtime, as test.sh sets it
 
 MASK_ONLY_MODES = modes_with_rule('selftest', 3, 'mask_only')
 
-# The LUKS modes whose hashes are container paths, not the generator's own output. whole_word_vectors
-# leaves their -a 4 list alone (test.sh); 40023 takes its hash from another field and is excluded
-# there too.
+# The LUKS modes whose hashes are container paths, not the generator's own output.
+# Their grammar tests keep the original vectors.
 
 LUKS_MODES = {29511, 29512, 29513, 29521, 29522, 29523, 29531, 29532, 29533, 29541, 29542, 29543,
               34100}
@@ -606,10 +605,7 @@ SELFTEST_MODES = {23800}
 
 SELFTEST_RUNTIME = 60
 
-# Modes with no meaningful self-test crack: 2000 and 99999 are Plaintext passthrough modes (STDOUT),
-# and 14600 is LUKS, whose example hash is N/A and lives in external container files. The sweep still
-# runs them and prints their line, but does not count them as cracked or as a failure. test.sh keeps
-# the same set (selftest_vector_sweep), so the two stay comparable.
+# Modes without a cracking self-test vector are reported separately and make the sweep fail.
 NO_SELFTEST = modes_with_rule('selftest', 'all', 'exclude')
 
 # test.sh's attack order for -a all (test.sh). A slow mode only runs the attacks that
@@ -5965,6 +5961,10 @@ def edge_process_mode(args, mode, cfg, tmp):
     # A MASK_ONLY_MODES mode ships an -a 3 kernel only, so every other attack has nothing to run.
 
     if has_rule(mode, "edge", attack, "exclude"):
+      if args.attack != "all":
+        print("[ test.py edge ] !> error Type %d, Attack %d: %s"
+              % (mode, attack, rules_for(mode, "edge", attack)["exclude"]))
+        errors += 1
       continue
 
     kernel_types = hh["kernel_types"]
@@ -6000,7 +6000,7 @@ def edge_process_mode(args, mode, cfg, tmp):
       # fires when the -m selection is all or a range, not a single mode, and never for 400.
 
       if slow and (cfg["exec_filter"] is None or 1 in cfg["exec_filter"]):
-        if 0 in cfg["attacks_set"] and not cfg["all_attacks"]:
+        if args.attack == "all" and not cfg["all_attacks"]:
           if attack not in EDGE_WHOLE_WORD and cfg["all_scope"] and mode != 400:
             continue
 
@@ -6271,7 +6271,7 @@ def run_edge(args):
   if args.jobs > 1 and not args.edge_child:
     return run_parallel_edge(args, selected, all_scope)
 
-  cfg = {"attacks": attacks, "attacks_set": set(attacks), "widths": widths,
+  cfg = {"attacks": attacks, "widths": widths,
          "kernel_filter": kernel, "targets": targets, "exec_filter": exec_filter,
          "all_attacks": args.allow_all_attacks, "all_scope": all_scope}
 

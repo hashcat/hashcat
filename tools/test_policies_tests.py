@@ -5,18 +5,23 @@
 ## License.....: MIT
 ##
 
-# Check policy parsing, rule isolation and focused CI selection. The test.yml planning job runs
-# this standalone test entry point before generating its matrix.
+# Check policy parsing, incomplete coverage and CI selection without running hashcat.
+# The test.yml planning job runs this standalone entry point before generating its matrix.
 
+import contextlib
+import io
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import test_policies as policies
+import test as runner
+import test_bridge
 
 
 class PolicyTests(unittest.TestCase):
@@ -83,6 +88,41 @@ class PolicyTests(unittest.TestCase):
     self.assertTrue(policies.has_rule(14300, 'ordinary', 12, 'exclude'))
     self.assertTrue(policies.has_rule(14300, 'edge', 3, 'verify_output'))
     self.assertFalse(policies.has_rule(14300, 'edge', 3, 'skip_output'))
+
+  def test_explicit_edge_exclusion_is_not_hidden_by_successful_cells(self):
+    hh = dict(deprecated=False, slow=False, salt_present=True, salt_virtual=False,
+              pw_type='ASCII', keep_guessing=False, kernel_types=['pure'])
+    cfg = dict(attacks=[0, 3], attacks_set={0, 3}, kernel_filter=0, exec_filter=None,
+               widths=[1], targets={0})
+    with patch.object(runner, 'edge_hh', return_value=hh), \
+         patch.object(runner, 'edge_oracle', return_value=([{'hash': b'hash'}], 0)), \
+         patch.object(runner, 'edge_opts', return_value=[]), \
+         patch.object(runner, 'edge_single', return_value=(0, 1)), \
+         contextlib.redirect_stdout(io.StringIO()):
+      self.assertEqual(runner.edge_process_mode(SimpleNamespace(attack='0,3'), 37000, cfg, '/tmp'), (1, 1))
+      self.assertEqual(runner.edge_process_mode(SimpleNamespace(attack='all'), 37000, cfg, '/tmp'), (0, 1))
+
+  def test_explicit_slow_attacks_are_not_filtered_in_a_mode_range(self):
+    hh = dict(deprecated=False, slow=True, salt_present=True, salt_virtual=False,
+              pw_type='ASCII', keep_guessing=False, kernel_types=['pure'])
+    cfg = dict(attacks=[0, 3], attacks_set={0, 3}, kernel_filter=0, exec_filter=None, all_scope=True,
+               all_attacks=False, widths=[1], targets={0})
+    with patch.object(runner, 'edge_hh', return_value=hh), \
+         patch.object(runner, 'edge_oracle', return_value=([{'hash': b'hash'}], 0)), \
+         patch.object(runner, 'edge_opts', return_value=[]), \
+         patch.object(runner, 'edge_single', return_value=(0, 1)):
+      self.assertEqual(runner.edge_process_mode(SimpleNamespace(attack='0,3'), 40021, cfg, '/tmp'), (0, 2))
+      self.assertEqual(runner.edge_process_mode(SimpleNamespace(attack='all'), 40021, cfg, '/tmp'), (0, 1))
+
+  def test_bridge_rejects_partial_vector_coverage(self):
+    result = SimpleNamespace(returncode=0, stdout=(
+      b"echo word | ./hashcat ${OPTS} -a 0 -m 0 'short'\n"
+      b"echo word | ./hashcat ${OPTS} -a 0 -m 0 'oversized'\n"))
+    with tempfile.TemporaryDirectory() as directory, \
+         patch.object(test_bridge.subprocess, 'run', return_value=result), \
+         patch.object(test_bridge, 'bridge_line', side_effect=[b'hash*salt', None]), \
+         contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+      test_bridge.vectors(0, False, str(Path(directory, 'hashes')), str(Path(directory, 'words')))
 
   def test_focused_width_does_not_duplicate_split_jobs(self):
     root = Path(__file__).resolve().parent.parent
