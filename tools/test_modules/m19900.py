@@ -9,7 +9,9 @@ import hashlib
 import hmac
 
 from Crypto.Cipher import AES
-from lib.test_helpers import split_hash_word
+
+from lib.test_helpers import split_hash_word, runtime_iterations
+
 
 # Kerberos 5 AS-REQ Pre-Auth with AES256-CTS-HMAC-SHA1-96 (etype 18). Key derivation is
 # PBKDF2-HMAC-SHA1 then the RFC 3961 DK function, encryption is AES in CBC-CS3 ciphertext
@@ -34,6 +36,24 @@ CLEARTEXT_TICKET = (
     "68c8459f3f10c851b8827118bb459c6e301aa011180f323031"
     "32313131363134323835355aa10502030c28a2"
 )
+
+def module_test_properties():
+  return {
+    'constraints': {
+      'pure': {
+        'password_length': [0, 256],
+        'salt_length': [16, 16],
+      },
+      'optimized': None,
+      'combined_length': None,
+    },
+    'runtime': {'limit': 2},
+    'normal': {'parameters': {'iterations': 4096}},
+  }
+
+
+ITERATION_DEFAULTS = module_test_properties()['normal']['parameters']
+ITERATIONS = runtime_iterations(ITERATION_DEFAULTS['iterations'], initial=1)
 
 
 def _cbc_enc(data, key):
@@ -60,19 +80,6 @@ def _dk(nfolded, key):
     return out[:KEYSIZE]
 
 
-def module_test_properties():
-  return {
-    'constraints': {
-      'pure': {
-        'password_length': [0, 256],
-        'salt_length': [16, 16],
-      },
-      'optimized': None,
-      'combined_length': None,
-    },
-  }
-
-
 def module_generate_hash(
     word,
     salt=None,
@@ -92,7 +99,7 @@ def module_generate_hash(
 
     mysalt = salt if format == 3 else (realm.upper() + user)
 
-    b_seed = hashlib.pbkdf2_hmac("sha1", word, mysalt.encode(), 4096, KEYSIZE)
+    b_seed = hashlib.pbkdf2_hmac("sha1", word, mysalt.encode(), ITERATIONS, KEYSIZE)
 
     b_key_bytes = _dk(KERBEROS_NFOLDED, b_seed)
 
