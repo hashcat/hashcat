@@ -111,3 +111,6 @@ __pycache__/
 # The *.bin pattern above does not match this file. .gitignore patterns are case-sensitive, and the
 # filename is BOOT.BIN.
 /extra/fpga/zc706-sdboot/BOOT.BIN
+
+# CI timing measurements restored from cache or downloaded for local planning.
+/.github/workflows/ci_timings.json

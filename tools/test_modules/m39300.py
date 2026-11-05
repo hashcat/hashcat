@@ -76,7 +76,6 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
-    'normal': {'ci_seconds': {'edge': 51, 'pure': 71, 'opt': 1}},
   }
 
 

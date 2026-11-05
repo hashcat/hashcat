@@ -169,11 +169,25 @@ def timed_test_groups(modes, timings, limit):
     return [sorted(group) for group in groups if group]
 
 
+def ci_timings(modes, reduced=False):
+    # Missing reduced measurements retain the saved normal cost.
+    path = os.path.join(os.path.dirname(__file__), "ci_timings.json")
+    if not os.path.isfile(path):
+        return {}
+    with open(path) as source:
+        data = json.load(source)
+    timings = {}
+    for mode in modes:
+        seconds = dict(data["normal"].get(str(mode), {}))
+        if reduced:
+            seconds.update(data["reduced"].get(str(mode), {}))
+        for kind, value in seconds.items():
+            timings.setdefault(kind, {})[mode] = value
+    return timings
+
+
 def kernel_test_matrix(modes, kinds, reduced=False):
     # Balance each test kind independently using its normal or reduced mode timings.
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "tools"))
-    from test_iterations import ci_timings
-
     timings = ci_timings(modes, reduced)
     matrix = []
     for kind in kinds:

@@ -27,7 +27,6 @@ def module_test_properties():
       },
       'combined_length': [0, 55, 2, 1],
     },
-    'normal': {'ci_seconds': {'bridge': 8, 'pure': 282, 'opt': 180, 'edge': 222}},
   }
 
 

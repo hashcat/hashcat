@@ -21,8 +21,9 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
-    'reduced': {'parameters': {'iterations': 2}, 'ci_seconds': {'opt': 1, 'pure': 25, 'edge': 77}},
-    'normal': {'ci_seconds': {'bridge': 2, 'pure': 45, 'opt': 1, 'edge': 171}},
+    'reduced': {
+      'parameters': {'iterations': 2},
+    },
   }
 
 
