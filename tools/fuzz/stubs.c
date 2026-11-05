@@ -73,9 +73,11 @@ const char *hc_fopen_strerror (void)
   return "no file layer in a fuzz target";
 }
 
-void hc_fclose (HCFILE *fp)
+int hc_fclose (HCFILE *fp)
 {
   (void) fp;
+
+  return 0;
 }
 
 int hc_feof (HCFILE *fp)
