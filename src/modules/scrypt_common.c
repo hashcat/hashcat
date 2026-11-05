@@ -851,12 +851,22 @@ char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   {
     const bool coop = scrypt_coop (hashconfig, user_options, user_options_extra, device_param);
 
-    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D SCRYPT_R=%u -D SCRYPT_P=%u -D SCRYPT_TMP_ELEM=%" PRIu64 "%s",
+    // HASHCAT_SCRYPT_NATIVE_CUBIN=1 has NVRTC compile the CUDA kernel for the device's sm instead of
+    // handing PTX to the driver, see nvrtc_native_cubin () in backend.c. On an RTX 4090 that made
+    // modes 8900, 15700 and 24000 between 1 and 16 percent faster. It is opt-in, because no other
+    // card has been measured.
+
+    const char *native_env = getenv ("HASHCAT_SCRYPT_NATIVE_CUBIN");
+
+    const bool native_cubin = (device_param->is_cuda == true) && (native_env != NULL) && (strcmp (native_env, "1") == 0);
+
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D SCRYPT_R=%u -D SCRYPT_P=%u -D SCRYPT_TMP_ELEM=%" PRIu64 "%s%s",
       expected_threads,
       scrypt_r,
       scrypt_p,
       tmp_size / 4,
-      (coop == true) ? " -D SCRYPT_COOP" : "");
+      (coop == true) ? " -D SCRYPT_COOP" : "",
+      (native_cubin == true) ? " -D HC_NVRTC_NATIVE_CUBIN" : "");
 
     return jit_build_options;
   }

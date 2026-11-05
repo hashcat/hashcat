@@ -419,7 +419,32 @@ DECLSPEC void scrypt_smix_loop (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, PRIVATE_AS 
 
 #define COOP_CNT4 (STATE_CNT4 / 4)
 
-#if defined IS_CUDA
+#if defined IS_CUDA && (SCRYPT_R == 16)
+
+// Keep r16 warp exchanges inline when NVRTC outlines its sync builtins.
+
+DECLSPEC HC_INLINE_ALWAYS u32 scrypt_cuda_shfl (const u32 v, const u32 s)
+{
+  u32 r;
+
+  asm volatile ("shfl.sync.idx.b32 %0, %1, %2, 0x1c1f, %3;" : "=r"(r) : "r"(v), "r"(s), "n"(0xffffffff));
+
+  return r;
+}
+
+DECLSPEC HC_INLINE_ALWAYS u32 scrypt_cuda_any (const u32 p)
+{
+  u32 r;
+
+  asm volatile ("{ .reg .pred t; setp.ne.u32 t, %1, 0; vote.sync.any.pred t, t, %2; selp.u32 %0, 1, 0, t; }" : "=r"(r) : "r"(p), "n"(0xffffffff));
+
+  return r;
+}
+
+#define COOP_SHFL(v,s) scrypt_cuda_shfl ((v), (s))
+#define COOP_ANY(p)    scrypt_cuda_any (p)
+
+#elif defined IS_CUDA
 
 #define COOP_SHFL(v,s) __shfl_sync (0xffffffff, (v), (s), 4)
 #define COOP_ANY(p)    __any_sync (0xffffffff, (p))
@@ -491,6 +516,26 @@ DECLSPEC int scrypt_coop_any (const int p)
 
 #endif
 
+// DPP handles fixed quad permutations without using the DS crossbar. Its last argument, bound_ctrl,
+// only matters where the source lane is out of range or switched off. A quad permutation never
+// leaves the quad and every lane of a quad takes part here, so it changes no value. Setting it lets
+// the compiler fold the move into the arithmetic that reads it. A move whose result two
+// instructions read keeps it unset, and so does every move at r=8, where folding made mode 15700
+// slower on an RX 7900 XTX.
+
+#if defined IS_HIP && defined __HIP_DEVICE_COMPILE__
+#if defined __has_builtin
+#if __has_builtin (__builtin_amdgcn_mov_dpp)
+#define SCRYPT_COOP_DPP
+#if SCRYPT_R == 16
+#define SCRYPT_COOP_DPP_FUSE true
+#else
+#define SCRYPT_COOP_DPP_FUSE false
+#endif
+#endif
+#endif
+#endif
+
 DECLSPEC HC_INLINE_ALWAYS void scrypt_coop_salsa (PRIVATE_AS u32 *S, const u32 q)
 {
   u32 a = S[0];
@@ -498,9 +543,13 @@ DECLSPEC HC_INLINE_ALWAYS void scrypt_coop_salsa (PRIVATE_AS u32 *S, const u32 q
   u32 c = S[2];
   u32 d = S[3];
 
+  #if defined SCRYPT_COOP_DPP
+  (void) q;
+  #else
   const u32 q_p1 = (q + 1) & 3;
   const u32 q_m1 = (q + 3) & 3;
   const u32 q_x2 = (q ^ 2);
+  #endif
 
   // Unrolled, the rounds need no loop counter, no divergence check and no re-read of the lane index
   // between them. At r=8 an RTX 4090 ran 66 percent faster than with the rounds kept in a loop. At
@@ -514,18 +563,30 @@ DECLSPEC HC_INLINE_ALWAYS void scrypt_coop_salsa (PRIVATE_AS u32 *S, const u32 q
     d ^= hc_rotl32_S (c + b, 13);
     a ^= hc_rotl32_S (d + c, 18);
 
+    #if defined SCRYPT_COOP_DPP
+    b = __builtin_amdgcn_mov_dpp (b, 0x93, 0xf, 0xf, false);
+    c = __builtin_amdgcn_mov_dpp (c, 0x4e, 0xf, 0xf, SCRYPT_COOP_DPP_FUSE);
+    d = __builtin_amdgcn_mov_dpp (d, 0x39, 0xf, 0xf, SCRYPT_COOP_DPP_FUSE);
+    #else
     b = COOP_SHFL (b, q_m1);
     c = COOP_SHFL (c, q_x2);
     d = COOP_SHFL (d, q_p1);
+    #endif
 
     d ^= hc_rotl32_S (a + b,  7);
     c ^= hc_rotl32_S (d + a,  9);
     b ^= hc_rotl32_S (c + d, 13);
     a ^= hc_rotl32_S (b + c, 18);
 
+    #if defined SCRYPT_COOP_DPP
+    b = __builtin_amdgcn_mov_dpp (b, 0x39, 0xf, 0xf, SCRYPT_COOP_DPP_FUSE);
+    c = __builtin_amdgcn_mov_dpp (c, 0x4e, 0xf, 0xf, SCRYPT_COOP_DPP_FUSE);
+    d = __builtin_amdgcn_mov_dpp (d, 0x93, 0xf, 0xf, false);
+    #else
     b = COOP_SHFL (b, q_p1);
     c = COOP_SHFL (c, q_x2);
     d = COOP_SHFL (d, q_m1);
+    #endif
   }
 
   S[0] = a;
@@ -676,6 +737,14 @@ DECLSPEC void scrypt_coop_smix_init (GLOBAL_AS u32 *P, GLOBAL_AS hc_uint4_t *Vc,
   if (active == true) scrypt_coop_p_store (P, X, q);
 }
 
+// At r=16 under HIP, X and T do not both fit in registers, and the loop kernel spilled to scratch
+// memory on an RX 7900 XTX. X lives in LDS there instead. Each lane reads and writes only its own
+// slots of it, so no barrier is needed.
+
+#if defined IS_HIP && (SCRYPT_R == 16)
+#define SCRYPT_COOP_LDS_X
+#endif
+
 // The replay count comes from the candidate, so the candidates of a work group would wait for each
 // other in every iteration, and an exchange under that divergence takes a slow path. Each pass here
 // runs one BlockMix in every lane instead, a replay step on T or the main step on T ^ X, and the work
@@ -683,6 +752,80 @@ DECLSPEC void scrypt_coop_smix_init (GLOBAL_AS u32 *P, GLOBAL_AS hc_uint4_t *Vc,
 
 DECLSPEC void scrypt_coop_smix_loop (GLOBAL_AS u32 *P, GLOBAL_AS hc_uint4_t *Vc, const u32 q, const bool active, const u32 n, const u32 tmto, const u64 loop_cnt)
 {
+  #if defined SCRYPT_COOP_LDS_X
+
+  const u32 zSIZE = STATE_CNT44;
+
+  LOCAL_VK u32 LX[COOP_CNT4 * FIXED_LOCAL_SIZE];
+
+  const u32 lx_lane = (u32) get_local_id (0);
+
+  u32 T[COOP_CNT4];
+
+  for (u32 i = 0; i < COOP_CNT4; i++) T[i] = 0;
+
+  if (active == true) scrypt_coop_p_load (P, T, q);
+
+  scrypt_coop_shuffle_inv (T);
+
+  for (u32 i = 0; i < COOP_CNT4; i++) LX[((((i >> 2) * FIXED_LOCAL_SIZE) + lx_lane) * 4) + (i & 3)] = T[i];
+
+  const u32 N_max = (loop_cnt < SCRYPT_LOOP_MAX (n)) ? (u32) loop_cnt : SCRYPT_LOOP_MAX (n);
+
+  // a lane without a candidate counts as finished from the start
+
+  u32 N_pos = (active == true) ? 0 : N_max;
+
+  // integerify reads word 0 of the last block, which is lane 0's
+
+  const u32 k0 = COOP_SHFL (LX[((((COOP_CNT4 - 4) >> 2) * FIXED_LOCAL_SIZE) + lx_lane) * 4], 0) & (n - 1);
+
+  const u32 y0 = k0 >> tmto;
+
+  u32 km = k0 - (y0 << tmto);
+
+  if (N_pos < N_max) scrypt_coop_v_load (&Vc[(u64) y0 * zSIZE], T, q);
+
+  while (COOP_ANY (N_pos < N_max))
+  {
+    const u32 main_mask = ((N_pos < N_max) && (km == 0)) ? 0xffffffff : 0;
+
+    for (u32 i = 0; i < COOP_CNT4; i++) T[i] ^= LX[((((i >> 2) * FIXED_LOCAL_SIZE) + lx_lane) * 4) + (i & 3)] & main_mask;
+
+    scrypt_coop_shuffle (T);
+
+    scrypt_coop_blockmix (T, q);
+
+    if (main_mask != 0)
+    {
+      for (u32 i = 0; i < COOP_CNT4; i++) LX[((((i >> 2) * FIXED_LOCAL_SIZE) + lx_lane) * 4) + (i & 3)] = T[i];
+
+      N_pos++;
+    }
+    else if (km > 0)
+    {
+      km--;
+    }
+
+    const u32 k = COOP_SHFL (LX[((((COOP_CNT4 - 4) >> 2) * FIXED_LOCAL_SIZE) + lx_lane) * 4], 0) & (n - 1);
+
+    if ((main_mask != 0) && (N_pos < N_max))
+    {
+      const u32 y = k >> tmto;
+
+      km = k - (y << tmto);
+
+      scrypt_coop_v_load (&Vc[(u64) y * zSIZE], T, q);
+    }
+  }
+
+  for (u32 i = 0; i < COOP_CNT4; i++) T[i] = LX[((((i >> 2) * FIXED_LOCAL_SIZE) + lx_lane) * 4) + (i & 3)];
+
+  scrypt_coop_shuffle (T);
+
+  if (active == true) scrypt_coop_p_store (P, T, q);
+  #else
+
   const u32 zSIZE = STATE_CNT44;
 
   u32 X[COOP_CNT4];
@@ -747,6 +890,7 @@ DECLSPEC void scrypt_coop_smix_loop (GLOBAL_AS u32 *P, GLOBAL_AS hc_uint4_t *Vc,
   scrypt_coop_shuffle (X);
 
   if (active == true) scrypt_coop_p_store (P, X, q);
+  #endif
 }
 
 #endif
