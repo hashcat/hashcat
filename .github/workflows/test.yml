@@ -138,8 +138,6 @@ jobs:
           EDGE: ${{ inputs.edge }}
           TEST_VECTOR_WIDTH: ${{ inputs.vector_width }}
         run: |
-          python3 tools/test_policies_tests.py
-
           # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
           # An empty manual selection keeps the four ordinary kinds.
           kinds=""

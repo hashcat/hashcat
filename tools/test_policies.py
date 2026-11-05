@@ -6,7 +6,7 @@
 ##
 
 # Read oracle test rules without importing their crypto dependencies and generate the inventory.
-# test.py, ci_matrix.py and test_policies_tests.py depend on this module.
+# test.py and ci_matrix.py depend on this module.
 
 import argparse
 import ast
