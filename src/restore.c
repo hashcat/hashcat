@@ -880,6 +880,50 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
   event_log_warning (hashcat_ctx, NULL);
 }
 
+// Any run other than --restore or --restore-position replaces the restore file at its first checkpoint,
+// and with it the position of the session it belongs to. Moving it aside first keeps that position.
+
+static int backup_restore_file (hashcat_ctx_t *hashcat_ctx)
+{
+  const restore_ctx_t  *restore_ctx  = hashcat_ctx->restore_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->restore          == true) return 0;
+  if (user_options->restore_position == true) return 0;
+
+  const char *eff_restore_file = restore_ctx->eff_restore_file;
+
+  if (hc_path_exist (eff_restore_file) == false) return 0;
+
+  char *bak_restore_file = NULL;
+
+  hc_asprintf (&bak_restore_file, "%s.%" PRIu64 ".bak", eff_restore_file, (u64) time (NULL));
+
+  if (rename (eff_restore_file, bak_restore_file) == -1)
+  {
+    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", eff_restore_file, bak_restore_file, strerror (errno));
+
+    hcfree (bak_restore_file);
+
+    return -1;
+  }
+
+  const char *hc_bin = (user_options->hc_bin == NULL) ? PROGNAME : user_options->hc_bin;
+
+  char *bin_quoted = restore_shell_quote (hc_bin);
+  char *bak_quoted = restore_shell_quote (bak_restore_file);
+
+  event_log_warning (hashcat_ctx, "Moved the existing restore file '%s' to '%s'.", eff_restore_file, bak_restore_file);
+  event_log_warning (hashcat_ctx, "To resume that session, run: %s --restore --restore-file-path=%s", bin_quoted, bak_quoted);
+  event_log_warning (hashcat_ctx, NULL);
+
+  hcfree (bin_quoted);
+  hcfree (bak_quoted);
+  hcfree (bak_restore_file);
+
+  return 0;
+}
+
 int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -917,6 +961,8 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
     restore_ctx->eff_restore_file = hcstrdup (user_options->restore_file_path);
     hc_asprintf (&restore_ctx->new_restore_file, "%s.new", user_options->restore_file_path);
   }
+
+  if (backup_restore_file (hashcat_ctx) == -1) return -1;
 
   restore_ctx->argc = argc;
   restore_ctx->argv = argv;
