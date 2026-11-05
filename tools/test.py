@@ -3304,16 +3304,13 @@ LUKS1_HASH_CIPHER = {
 
 
 def luks_variants(cipher=None):
-  # Blowfish has 64-bit blocks, so it cannot use the XTS variants generated for AES.
-  if cipher == "blowfish":
-    for ksize in ("128", "256"):
-      yield "cbc-plain64", ksize
-
-    return
-
   # test.sh's luksMode x luksKeySize double loop with the keysize->mode validity filter (test.sh):
   # 128 is cbc only, 512 is xts only, 256 is any.
   for lmode in ("cbc-essiv", "cbc-plain64", "xts-plain64"):
+    # XTS requires 128-bit blocks, but Blowfish has 64-bit blocks.
+    if cipher == "blowfish" and lmode == "xts-plain64":
+      continue
+
     for ksize in ("128", "256", "512"):
       if ksize == "128" and lmode == "xts-plain64":
         continue
@@ -3350,8 +3347,8 @@ def container_luks1(args, mode, attack, width, tmp):
     extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
     container_crack(args, opts, mode, attack, hash_file, width, label, extra)
 
-  if luks_cipher == "blowfish" and not found:
-    die("! no Blowfish LUKS1 containers for mode %d. Run with -g to generate them." % mode)
+  if not found:
+    die("! no LUKS1 containers for mode %d. Run with -g to generate them." % mode)
 
 
 def container_luks_legacy(args, mode, attack, width, tmp):
@@ -3359,6 +3356,7 @@ def container_luks_legacy(args, mode, attack, width, tmp):
   # directly, with no luks2hashcat.py extraction. That direct-file handling is the 14600-vs-29511+
   # difference.
   opts = base_opts(args)
+  found = False
 
   for luks_hash in ("sha1", "sha256", "sha512", "ripemd160"):
     for luks_cipher in ("aes", "serpent", "twofish"):
@@ -3370,8 +3368,12 @@ def container_luks_legacy(args, mode, attack, width, tmp):
         if not os.path.isfile(container):
           continue
 
+        found = True
         extra = build_container_extra(mode, attack, CONTAINER_PASSWORD, tmp)
         container_crack(args, opts, mode, attack, container, width, label, extra)
+
+  if not found:
+    die("! no LUKS1 containers for mode %d. Download the LUKS1 test fixtures." % mode)
 
 
 # TrueCrypt (62xx and 293xx). Like VeraCrypt below, the family ports as data rather than a case
