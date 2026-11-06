@@ -5,6 +5,8 @@
 ## License.....: MIT
 ##
 
+import random
+
 from Crypto.Cipher import DES
 
 # AS/400 DES: the EBCDIC user name is DES encrypted under a key derived from the EBCDIC
@@ -56,18 +58,22 @@ def as400_des(username, password):
 
   block1 = _des_block(username_ebc, password[:8])
 
+  rng = random.Random (username + b"\x00" + password)
+
   if len(password) <= 8:
-    return block1.hex()
+    if rng.getrandbits (1):
+      return block1.hex()
+
+    return (block1 + b"\x40" * 8).hex()
 
   block2 = _des_block(username_ebc, password[8:])
 
+  if rng.getrandbits (1):
+    return (block1 + block2).hex()
 
-  if len(password) == 10:
-    folded = bytes (b1 ^ b2 for b1, b2 in zip (block1, block2))
+  folded = bytes (b1 ^ b2 for b1, b2 in zip (block1, block2))
 
-    return folded.hex()
-
-  return (block1 + block2).hex()
+  return folded.hex()
 
 
 def module_constraints():
