@@ -656,6 +656,11 @@ typedef enum rule_functions
   RULE_OP_MANGLE_EXTRACT           = 'x',
   RULE_OP_MANGLE_OMIT              = 'O',
   RULE_OP_MANGLE_INSERT            = 'i',
+
+  // JtR's AN"STR", string STR at position N or at the end for N = z. Only the host reads it: the
+  // device gets it as one append, prepend or insert per byte.
+
+  RULE_OP_MANGLE_INSERT_STRING     = 'A',
   RULE_OP_MANGLE_OVERSTRIKE        = 'o',
   RULE_OP_MANGLE_TRUNCATE_AT       = '\'',
   RULE_OP_MANGLE_REPLACE           = 's',
@@ -3891,6 +3896,11 @@ typedef struct hashcat_status
   double      guess_mod_percent;
   char       *guess_charset;
   int         guess_mask_length;
+
+  // How many rules the attack applies to each base word, after chaining several rule files and
+  // after dropping the ones that do not convert. 0 when it applies none.
+
+  u32         guess_rules_count;
   char       *session;
   #ifdef WITH_BRAIN
   int         brain_session;

@@ -3568,6 +3568,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   json_kv_string (&js, "guess_mod", hashcat_status->guess_mod);
   json_kv_uint   (&js, "guess_mod_count", hashcat_status->guess_mod_count);
   json_kv_uint   (&js, "guess_mod_offset", hashcat_status->guess_mod_offset);
+  json_kv_uint   (&js, "guess_rules_count", hashcat_status->guess_rules_count);
 
   snprintf (numbuf, sizeof (numbuf), "%.02f", hashcat_status->guess_mod_percent);
   json_key (&js, "guess_mod_percent");
@@ -3933,8 +3934,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Guess.Mod........: Rules (%s)",
-        hashcat_status->guess_mod);
+        "Guess.Mod........: Rules (%s), %u %s",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_rules_count,
+        (hashcat_status->guess_rules_count == 1) ? "rule" : "rules");
 
       break;
 
@@ -3945,7 +3948,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Guess.Mod........: Rules (Generated)");
+        "Guess.Mod........: Rules (Generated), %u %s",
+        hashcat_status->guess_rules_count,
+        (hashcat_status->guess_rules_count == 1) ? "rule" : "rules");
 
       break;
 
@@ -3962,8 +3967,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         "Guess.Base.......: Pipe");
 
       event_log_info (hashcat_ctx,
-        "Guess.Mod........: Rules (%s)",
-        hashcat_status->guess_mod);
+        "Guess.Mod........: Rules (%s), %u %s",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_rules_count,
+        (hashcat_status->guess_rules_count == 1) ? "rule" : "rules");
 
       break;
 
@@ -3973,7 +3980,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         "Guess.Base.......: Pipe");
 
       event_log_info (hashcat_ctx,
-        "Guess.Mod........: Rules (Generated)");
+        "Guess.Mod........: Rules (Generated), %u %s",
+        hashcat_status->guess_rules_count,
+        (hashcat_status->guess_rules_count == 1) ? "rule" : "rules");
 
       break;
 
@@ -4192,8 +4201,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Guess.Mod........: Rules (%s)",
-        hashcat_status->guess_mod);
+        "Guess.Mod........: Rules (%s), %u %s",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_rules_count,
+        (hashcat_status->guess_rules_count == 1) ? "rule" : "rules");
 
       break;
 
@@ -4204,7 +4215,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Guess.Mod........: Rules (Generated)");
+        "Guess.Mod........: Rules (Generated), %u %s",
+        hashcat_status->guess_rules_count,
+        (hashcat_status->guess_rules_count == 1) ? "rule" : "rules");
 
       break;
   }

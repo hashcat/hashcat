@@ -3386,6 +3386,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->guess_mod_percent           = status_get_guess_mod_percent          (hashcat_ctx);
   hashcat_status->guess_charset               = status_get_guess_charset              (hashcat_ctx);
   hashcat_status->guess_mask_length           = status_get_guess_mask_length          (hashcat_ctx);
+  hashcat_status->guess_rules_count           = status_get_guess_rules_count          (hashcat_ctx);
   hashcat_status->guess_mode                  = status_get_guess_mode                 (hashcat_ctx);
   hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
   hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);

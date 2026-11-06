@@ -1060,6 +1060,18 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   return NULL;
 }
 
+u32 status_get_guess_rules_count (const hashcat_ctx_t *hashcat_ctx)
+{
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (straight_ctx == NULL) return 0;
+
+  if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0)) return 0;
+
+  return straight_ctx->kernel_rules_cnt;
+}
+
 int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;

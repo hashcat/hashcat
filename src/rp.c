@@ -14,6 +14,7 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "status_rc.h"
+#include "paw64.h"
 
 static const char grp_op_nop[] =
 {
@@ -314,6 +315,27 @@ u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
   return need + 1;
 }
 
+// One byte of a rule, decoded the way _old_apply_rule () decodes the whole rule before reading it:
+// a \xHH is the byte it names. Answers where the next byte starts.
+
+static u32 rule_text_byte (const char *rule_buf, const u32 rule_len, const u32 rule_pos, u8 *out)
+{
+  if (is_hex_notation (rule_buf, rule_len, rule_pos) == true)
+  {
+    *out = hex_to_u8 ((const u8 *) &rule_buf[rule_pos + 2]);
+
+    const u32 next = rule_pos + 4;
+
+    return next;
+  }
+
+  *out = (u8) rule_buf[rule_pos];
+
+  const u32 next = rule_pos + 1;
+
+  return next;
+}
+
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 {
   u32 rule_pos;
@@ -460,6 +482,96 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1_CONV (rule, rule_buf[rule_pos]);
         break;
+
+      case RULE_OP_MANGLE_INSERT_STRING:
+      {
+        // AN"STR" becomes one command per byte of STR: appends for N = z, prepends in reverse for
+        // N = 0, and inserts at N, N + 1 and on for the rest. _old_apply_rule () runs the same
+        // sequence on the host.
+
+        u32 pos = rule_pos + 1;
+
+        if (pos >= rule_len) return -1;
+
+        u8 at = 0;
+
+        pos = rule_text_byte (rule_buf, rule_len, pos, &at);
+
+        const bool at_end = (at == 'z');
+
+        const int p0 = (at_end == true) ? 0 : conv_ctoi (at);
+
+        if (p0 == -1) return -1;
+
+        if (pos >= rule_len) return -1;
+
+        u8 quote = 0;
+
+        pos = rule_text_byte (rule_buf, rule_len, pos, &quote);
+
+        u8  str[RP_RULE_SIZE];
+        u32 str_len = 0;
+
+        bool closed = false;
+
+        while (pos < rule_len)
+        {
+          u8 b = 0;
+
+          pos = rule_text_byte (rule_buf, rule_len, pos, &b);
+
+          if (b == quote)
+          {
+            closed = true;
+
+            break;
+          }
+
+          if (str_len == sizeof (str)) return -1;
+
+          str[str_len] = b;
+
+          str_len++;
+        }
+
+        if (closed == false) return -1;
+
+        if ((at_end == false) && (str_len > 0) && ((p0 + (int) str_len - 1) > 35)) return -1;
+
+        if ((rule_cnt + str_len) > MAX_KERNEL_RULES) return -1;
+
+        for (u32 i = 0; i < str_len; i++)
+        {
+          if (at_end == true)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_APPEND & 0xff) | (str[i] << 8);
+          }
+          else if (p0 == 0)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_PREPEND & 0xff) | (str[str_len - 1 - i] << 8);
+          }
+          else
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_INSERT & 0xff) | (((p0 + (int) i) & 0xff) << 8) | (str[i] << 16);
+          }
+        }
+
+        // the loop moves one past rule_pos, which is the closing quote. An empty string takes no
+        // command, and one byte or more take that many.
+
+        rule_pos = pos - 1;
+
+        if (str_len == 0)
+        {
+          rule_cnt--;
+        }
+        else
+        {
+          rule_cnt += str_len - 1;
+        }
+
+        break;
+      }
 
       case RULE_OP_MANGLE_INSERT:
       {
@@ -1457,8 +1569,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
 
-      for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
+      for (in_pos = 0; in->cmds[in_pos]; in_pos++)
       {
+        // A passthrough does nothing, so in a chain it only takes one of the RULES_MAX - 1 slots
+        // and shows up in --debug-mode output. It is left out, and a chain made of nothing else
+        // gets a single one back below.
+
+        if ((in->cmds[in_pos] & 0xff) == RULE_OP_MANGLE_NOOP) continue;
+
         if (out_pos == RULES_MAX - 1)
         {
           overflow = true;
@@ -1467,10 +1585,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
         }
 
         out->cmds[out_pos] = in->cmds[in_pos];
+
+        out_pos++;
       }
 
       if (overflow == true) break;
     }
+
+    if ((overflow == false) && (out_pos == 0)) out->cmds[0] = RULE_OP_MANGLE_NOOP;
 
     if (overflow == true)
     {
@@ -1735,13 +1857,110 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
 
   char *rule_buf = (char *) hcmalloc (RP_RULE_SIZE);
 
-  for (kernel_rules_cnt = 0; kernel_rules_cnt < user_options->rp_gen; kernel_rules_cnt++)
+  // Every rule drawn is checked against the ones already kept, so -g N gives N different rules
+  // where the selected functions allow that many. A repeat is drawn again. A long run of repeats
+  // means the space is all but used up, and drawing stops with fewer rules than were asked for.
+  //
+  // Only a rule that converts takes a slot, so no slot is left holding what a failed conversion
+  // wrote.
+
+  const u32 rules_want = user_options->rp_gen;
+
+  u64 set_size = 1;
+
+  while (set_size < ((u64) rules_want * 2)) set_size <<= 1;
+
+  const u64 set_mask = set_size - 1;
+
+  // a slot holds the index of a kept rule plus one, so 0 is empty
+
+  u32 *set = (u32 *) hccalloc (set_size, sizeof (u32));
+
+  if (set == NULL)
   {
+    event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for %u generated rules.", rules_want);
+
+    hcfree (rule_buf);
+
+    rp_gen_ops_term (&rp_gen_ops);
+
+    hcfree (kernel_rules_buf);
+
+    return -1;
+  }
+
+  u32 repeats_in_a_row = 0;
+
+  kernel_rules_cnt = 0;
+
+  while (kernel_rules_cnt < rules_want)
+  {
+    if (repeats_in_a_row == RP_GEN_REPEATS_MAX) break;
+
     memset (rule_buf, 0, RP_RULE_SIZE);
 
     const int rule_len = generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max, &rp_gen_ops);
 
-    if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
+    kernel_rule_t *rule = &kernel_rules_buf[kernel_rules_cnt];
+
+    memset (rule, 0, sizeof (kernel_rule_t));
+
+    if (cpu_rule_to_kernel_rule (rule_buf, rule_len, rule) == -1)
+    {
+      repeats_in_a_row++;
+
+      continue;
+    }
+
+    u64 slot = paw64 (rule, sizeof (kernel_rule_t), 0) & set_mask;
+
+    bool repeat = false;
+
+    while (set[slot] != 0)
+    {
+      if (memcmp (&kernel_rules_buf[set[slot] - 1], rule, sizeof (kernel_rule_t)) == 0)
+      {
+        repeat = true;
+
+        break;
+      }
+
+      slot = (slot + 1) & set_mask;
+    }
+
+    if (repeat == true)
+    {
+      repeats_in_a_row++;
+
+      continue;
+    }
+
+    set[slot] = kernel_rules_cnt + 1;
+
+    kernel_rules_cnt++;
+
+    repeats_in_a_row = 0;
+  }
+
+  hcfree (set);
+
+  if (kernel_rules_cnt == 0)
+  {
+    event_log_error (hashcat_ctx, "No valid rules left.");
+
+    hcfree (rule_buf);
+
+    rp_gen_ops_term (&rp_gen_ops);
+
+    hcfree (kernel_rules_buf);
+
+    return -1;
+  }
+
+  if (kernel_rules_cnt < rules_want)
+  {
+    event_log_warning (hashcat_ctx, "Distinct rules generated: %u of the %u requested. The selected rule functions repeat too often to find more.", kernel_rules_cnt, rules_want);
+    event_log_warning (hashcat_ctx, NULL);
   }
 
   hcfree (rule_buf);

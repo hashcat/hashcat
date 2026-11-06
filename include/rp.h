@@ -16,6 +16,11 @@
 #define RULES_MAX 32
 #define MAX_KERNEL_RULES (RULES_MAX - 1)
 
+// How many draws in a row may repeat a rule -g already has before it stops with fewer rules than
+// were asked for.
+
+#define RP_GEN_REPEATS_MAX 100000
+
 typedef struct
 {
   char *grp_op_nop_selection;

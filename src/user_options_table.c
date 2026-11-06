@@ -627,9 +627,15 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .type         = OPTION_TYPE_FLAG,
     .actions      = ACT_SESSION,
   },
+  // A generated rule is written into a buffer of RP_RULE_SIZE bytes, up to three for each function,
+  // and a kernel rule holds MAX_KERNEL_RULES functions. Bounding the count by the second keeps the
+  // first, and every generated rule then converts.
+
   [OPT_RP_GEN_FUNC_MAX] =
   {
     .type         = OPTION_TYPE_U32,
+    .flags        = OPTION_FLAG_MAX,
+    .max          = MAX_KERNEL_RULES,
     .def          = RP_GEN_FUNC_MAX,
     .actions      = ACT_CRACK | ACT_STDOUT | ACT_KEYSPACE | ACT_SPEED_ONLY,
   },

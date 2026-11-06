@@ -40,6 +40,7 @@ int         status_get_guess_mod_count                (const hashcat_ctx_t *hash
 double      status_get_guess_mod_percent              (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_charset                  (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mask_length              (const hashcat_ctx_t *hashcat_ctx);
+u32         status_get_guess_rules_count              (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_candidates_dev           (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 char       *status_get_hash_name                      (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_hash_target                    (const hashcat_ctx_t *hashcat_ctx);
