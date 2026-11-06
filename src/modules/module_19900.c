@@ -34,14 +34,13 @@ static const char *ST_HASH        = "$krb5pa$18$hashcat$HASHCATDOMAIN.COM$96c289
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
-#define MAX_EDATA2_LEN 20480
 
 typedef struct krb5pa_18
 {
   u32 user[128];
   u32 realm[128];
-  u32 account_info[512];
-  u32 account_info_len;
+  u32 kdc_salt[512];
+  u32 kdc_salt_len;
 
   u32 checksum[3];
   u32 enc_timestamp[32];
@@ -50,6 +49,9 @@ typedef struct krb5pa_18
   u32 format;
 
 } krb5pa_18_t;
+
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
 
 typedef struct krb5pa_18_tmp
 {
@@ -104,7 +106,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
    * format 1: $krb5pa$18$user$realm$enc_timestamp+checksum           (single field)
    * format 2: $krb5pa$18$user$realm$$enc_timestamp+checksum          (empty salt)
    * format 3: $krb5pa$18$user$realm$salt$enc_timestamp+checksum      (explicit salt)
-   * format 4: $krb5pa$18$user$realm$checksum$edata2               (split fields)
+   * format 4: $krb5pa$18$user$realm$checksum$enc_timestamp               (split fields)
    */
 
   int sep_cnt = 0;
@@ -162,7 +164,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   {
     if (sep_cnt == 6)
     {
-      // format 4: $krb5pa$18$user$realm$checksum(24)$edata2(80-88)
+      // format 4: $krb5pa$18$user$realm$checksum(24)$enc_timestamp(80-88)
       krb5pa->format = 4;
 
       token.token_cnt  = 5;
@@ -192,7 +194,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   int user_len;
   int realm_len;
   int data_len;
-  int account_info_len;
+  int kdc_salt_len;
 
   user_pos = token.buf[1];
   user_len = token.len[1];
@@ -204,7 +206,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memcpy (krb5pa->realm, realm_pos, realm_len);
 
-  u8 *account_info_ptr = (u8 *) krb5pa->account_info;
+  u8 *kdc_salt_ptr = (u8 *) krb5pa->kdc_salt;
 
   if ((krb5pa->format == 2) && (token.len[3] > 0))
   {
@@ -212,9 +214,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     const u8 *salt_pos = token.buf[3];
 
-    account_info_len = token.len[3];
+    kdc_salt_len = token.len[3];
 
-    memcpy (account_info_ptr, salt_pos, account_info_len);
+    memcpy (kdc_salt_ptr, salt_pos, kdc_salt_len);
 
     data_pos = token.buf[4];
     data_len = token.len[4];
@@ -229,10 +231,10 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     memcpy (realm, realm_pos, realm_len);
     uppercase (realm, realm_len);
 
-    account_info_len = token.len[2] + token.len[1];
+    kdc_salt_len = token.len[2] + token.len[1];
 
-    memcpy (account_info_ptr, realm, realm_len);
-    memcpy (account_info_ptr + realm_len, user_pos, user_len);
+    memcpy (kdc_salt_ptr, realm, realm_len);
+    memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
 
     if (krb5pa->format == 4)
     {
@@ -258,7 +260,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     }
   }
 
-  krb5pa->account_info_len = account_info_len;
+  krb5pa->kdc_salt_len = kdc_salt_len;
 
   // hmac-sha1 is reduced to 12 bytes
   krb5pa->checksum[0] = byte_swap_32 (hex_to_u32 (checksum_pos +  0));
@@ -283,7 +285,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5pa->enc_timestamp_len = data_len / 2;
 
-  if (krb5pa->account_info_len > 256)
+  if (krb5pa->kdc_salt_len > 256)
   {
     salt->salt_buf[0] = krb5pa->checksum[0];
     salt->salt_buf[1] = krb5pa->checksum[1];
@@ -293,10 +295,13 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    const int account_info_words = (krb5pa->account_info_len + 3) / 4;
+    const int kdc_salt_words = (krb5pa->kdc_salt_len + 3) / 4;
 
-    for (int i = 0; i < account_info_words; i++)
-      salt->salt_buf[i] = krb5pa->account_info[i];
+    for (int i = 0; i < kdc_salt_words; i++)
+      salt->salt_buf[i] = krb5pa->kdc_salt[i];
+
+    salt->salt_len = krb5pa->kdc_salt_len;
+  }
 
     salt->salt_len = krb5pa->account_info_len;
   }
@@ -341,7 +346,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   {
     char salt_str[512 + 1] = { 0 };
 
-    memcpy (salt_str, (const char *) krb5pa->account_info, krb5pa->account_info_len);
+    memcpy (salt_str, (const char *) krb5pa->kdc_salt, krb5pa->kdc_salt_len);
 
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s%08x%08x%08x",
       SIGNATURE_KRB5PA,

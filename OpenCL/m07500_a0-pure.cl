@@ -22,7 +22,7 @@ typedef struct krb5pa
 {
   u32 user[128];
   u32 realm[128];
-  u32 salt[64];
+  u32 raw_token[64];
   u32 enc_timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;

@@ -52,8 +52,8 @@ typedef struct krb5asrep_1
   u32 realm[128];
   u32 format;
 
-  u32 salt_buf[32];
-  u32 salt_len;
+  u32 kdc_salt[32];
+  u32 kdc_salt_len;
 
   u32 checksum[4];
   u32 edata2[5120];
@@ -70,7 +70,7 @@ typedef struct pcfg_hash_ctx
   GLOBAL_AS const krb5asrep_1_t *esalt_bufs;
 
   u32 digest_pos;
-  u32 salt_len;
+  u32 kdc_salt_len;
 
   #ifdef REAL_SHM
   LOCAL_AS u32 (*s_SPtrans)[64];
@@ -174,7 +174,7 @@ DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED GLOBA
 
   hc->esalt_bufs = esalt_bufs;
   hc->digest_pos = digest_pos;
-  hc->salt_len   = esalt_bufs[digest_pos].salt_len;
+  hc->salt_len   = esalt_bufs[digest_pos].kdc_salt_len;
 }
 
 DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED PRIVATE_AS u32 *w, MAYBE_UNUSED const u32 pw_len)
@@ -193,7 +193,7 @@ DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w
 
   u32 t[64];
 
-  krb5_des_build_buf (w, len, hc->esalt_bufs[hc->digest_pos].salt_buf, hc->salt_len, t);
+  krb5_des_build_buf (w, len, hc->esalt_bufs[hc->digest_pos].kdc_salt, hc->salt_len, t);
 
   u32 key[2];
 

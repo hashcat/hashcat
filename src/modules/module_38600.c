@@ -55,8 +55,8 @@ typedef struct krb5asrep_3
   u32 realm[128];
   u32 format;
 
-  u32 salt_buf[MAX_DES_SALT_LEN / 4];
-  u32 salt_len;
+  u32 kdc_salt[MAX_DES_SALT_LEN / 4];
+  u32 kdc_salt_len;
 
   u32 checksum[4];
   u32 edata2[MAX_EDATA2_LEN / 4];
@@ -90,9 +90,9 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memset (krb5asrep, 0, sizeof (krb5asrep_3_t));
 
-    /**
-   * format 1: $krb5asrep$3$user@realm:checksum$encrypted  (joined)
-   * format 2: $krb5asrep$3$user$realm$checksum$encrypted
+  /**
+   * format 1: $krb5asrep$3$user@realm:checksum$edata2  (joined)
+   * format 2: $krb5asrep$3$user$realm$checksum$edata2
    */
 
   token.signatures_cnt    = 1;
@@ -129,7 +129,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (joined == true)
   {
-    // format 1: $krb5asrep$3$user@realm:checksum$encrypted  (joined)
+    // format 1: $krb5asrep$3$user@realm:checksum$edata2  (joined)
     token.token_cnt  = 4;
 
     checksum_token   = 2;
@@ -153,7 +153,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    // format 2: $krb5asrep$3$user$realm$checksum$encrypted
+    // format 2: $krb5asrep$3$user$realm$checksum$edata2
 
     token.token_cnt  = 5;
 
@@ -224,15 +224,15 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   // the Kerberos salt is the realm in upper case followed by the principal, with no separator
 
-  u8 *salt_ptr = (u8 *) krb5asrep->salt_buf;
+  u8 *kdc_salt_ptr = (u8 *) krb5asrep->kdc_salt;
 
-  memcpy (salt_ptr, realm_pos, realm_len);
+  memcpy (kdc_salt_ptr, realm_pos, realm_len);
 
-  uppercase (salt_ptr, realm_len);
+  uppercase (kdc_salt_ptr, realm_len);
 
-  memcpy (salt_ptr + realm_len, user_pos, user_len);
+  memcpy (kdc_salt_ptr + realm_len, user_pos, user_len);
 
-  krb5asrep->salt_len = realm_len + user_len;
+  krb5asrep->kdc_salt_len = realm_len + user_len;
 
   // the esalt was zeroed above, so only the joined shape has to say so
 
