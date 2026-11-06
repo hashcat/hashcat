@@ -49,9 +49,9 @@
 typedef struct krb5tgs_1
 {
   u32 raw_token[512];
+
   u32 user[128];
   u32 realm[128];
-  u32 format;
 
   u32 kdc_salt[32];
   u32 kdc_salt_len;
@@ -59,6 +59,8 @@ typedef struct krb5tgs_1
   u32 checksum[4];
   u32 edata2[5120];
   u32 edata2_len;
+
+  u32 format;
 
 } krb5tgs_1_t;
 

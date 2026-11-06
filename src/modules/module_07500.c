@@ -131,7 +131,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[3]     = '$';
   token.len_min[3] = 0;
-  token.len_max[3] = 128;
+  token.len_max[3] = MAX_RAW_TOKEN_LEN - 1;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[4] = 90;
