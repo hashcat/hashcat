@@ -25,7 +25,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_UPPER
-                                  | OPTS_TYPE_PT_UPPER;
+                                  | OPTS_TYPE_PT_UPPER
+                                  | OPTS_TYPE_HASH_COPY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "SYS1";
 static const char *ST_HASH        = "$as400$des$*OPEN3*EC76FC0DEF5B0A83";
@@ -225,38 +226,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u32 *digest = (const u32 *) digest_buf;
-
-  u32 tmp[2];
-
-  tmp[0] = rotl32 (digest[0], 29);
-  tmp[1] = rotl32 (digest[1], 29);
-
-  DES_FP (tmp[1], tmp[0]);
-
-  char tmp_salt[(SALT_MAX * 2) + 1];
-
-  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
-
-  tmp_salt[salt_len] = 0;
-
-  int line_len;
-
-  if ((digest[2] == 0) && (digest[3] == 0))
-  {
-    line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X", SIGNATURE_AS400_DES, tmp_salt, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]));
-  }
-  else
-  {
-    u32 tmp2[2];
-
-    tmp2[0] = rotl32 (digest[2], 29);
-    tmp2[1] = rotl32 (digest[3], 29);
-
-    DES_FP (tmp2[1], tmp2[0]);
-
-    line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X%08X%08X", SIGNATURE_AS400_DES, tmp_salt, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]), byte_swap_32 (tmp2[0]), byte_swap_32 (tmp2[1]));
-  }
+  const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
 
   return line_len;
 }
