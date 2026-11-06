@@ -24,6 +24,8 @@
 ##                  and edge tests of password/salt boundaries and vector widths.
 ##                  Only if master has had a commit in the last seven days.
 ##
+##   keepalive      Thursday restores the timing cache without building or testing.
+##
 ##   manual         the weekly run, or the modes given as input, with the kinds
 ##                  picked by five checkboxes (optimized, pure, bridge,
 ##                  container, edge). Edge is off by default. The others are on.
@@ -40,7 +42,7 @@
 name: test
 
 # Name a manual run after the kinds it was dispatched with, so the run list shows "test: opt pure
-# (all)" rather than a column of identical "test". A schedule or pull request keeps the event name.
+# (all)" rather than a column of identical "test". The cache keepalive has its own label.
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
       && format('test: {0}{1}{2}{3}{4}({5})',
@@ -50,11 +52,13 @@ run-name: >-
                 inputs.container && 'container ' || '',
                 inputs.edge && 'edge ' || '',
                 inputs.modes)
+      || github.event.schedule == '0 1 * * 4' && 'test (timing cache keepalive)'
       || format('test ({0})', github.event_name) }}
 
 on:
   schedule:
     - cron: '0 1 * * 6'
+    - cron: '0 1 * * 4'
   workflow_dispatch:
     inputs:
       modes:
@@ -103,7 +107,19 @@ permissions:
   contents: read
 
 jobs:
+  keepalive:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 1 * * 4'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep saved timings active
+        uses: actions/cache/restore@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ci-timings-v2-${{ runner.os }}-
+
   plan:
+    if: github.event.schedule != '0 1 * * 4'
     runs-on: ubuntu-latest
 
     outputs:
@@ -114,6 +130,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Restore saved timings
+        id: timing-cache
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ci-timings-v2-${{ runner.os }}-
 
       - name: Plan
         id: plan
@@ -126,6 +151,7 @@ jobs:
           BRIDGE: ${{ inputs.bridge }}
           CONTAINER: ${{ inputs.container }}
           EDGE: ${{ inputs.edge }}
+          ARTIFICIALLY_LOW_ITERATION_COUNT: ${{ github.event_name == 'workflow_dispatch' && inputs.artificially_low_iterations && 'true' || 'false' }}
         run: |
           # Weekly runs include edge tests. Manual runs select kinds with checkboxes.
           # An empty manual selection keeps the four ordinary kinds.
@@ -299,7 +325,33 @@ jobs:
             # summary below. bash -e does not abort on a command that is an if condition, so the
             # loop still runs every mode.
             # shellcheck disable=SC2086
-            if python3 tools/test.py -m "${mode}" ${OPTS} -D 1 -f > "${log}" 2>&1; then
+            if python3 - "${mode}" ${OPTS} > "${log}" 2>&1 <<'PYTHON'
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import time
+
+          sys.path.insert(0, "tools")
+          from test_iterations import iteration_reduction_enabled
+
+          # Measure this mode's test duration for the timing records used to balance CI shards.
+          started = time.monotonic()
+          result = subprocess.run([sys.executable, "tools/test.py", "-m", *sys.argv[1:], "-D", "1", "-f"])
+          seconds = max(1, math.ceil(time.monotonic() - started))
+          kind = os.environ["KIND"]
+          if result.returncode == 0 and os.environ["EVENT"] != "pull_request" and kind != "container":
+            mode = int(sys.argv[1])
+            section = "reduced" if iteration_reduction_enabled(mode) else "normal"
+            record = dict(mode=mode, kind=kind, section=section, seconds=seconds)
+            directory = Path("ci-timing-records")
+            directory.mkdir(exist_ok=True)
+            (directory / f"{mode}-{kind}.json").write_text(json.dumps(record) + "\n")
+          sys.exit(result.returncode if result.returncode >= 0 else 128 - result.returncode)
+          PYTHON
+            then
               rc=0
             else
               rc=$?
@@ -339,6 +391,15 @@ jobs:
 
           exit $fail
 
+      - name: Upload mode timings
+        if: always() && github.event_name != 'pull_request' && matrix.kind != 'container'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-timing-records-${{ matrix.name }}
+          path: ci-timing-records/*.json
+          if-no-files-found: ignore
+          overwrite: true
+
       - name: Upload the test logs
         if: failure()
         uses: actions/upload-artifact@v7
@@ -348,3 +409,59 @@ jobs:
             test_*/
             testpy_*.log
           if-no-files-found: ignore
+
+  timings:
+    needs: [plan, test]
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' && needs.plan.outputs.run == 'true'
+      && (contains(needs.plan.outputs.matrix, 'opt') || contains(needs.plan.outputs.matrix, 'pure')
+          || contains(needs.plan.outputs.matrix, 'bridge') || contains(needs.plan.outputs.matrix, 'edge'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Restore saved timings
+        id: timing-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ci-timings-v2-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ci-timings-v2-${{ runner.os }}-
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: ci-timing-records-*
+          path: ci-timing-records
+          merge-multiple: true
+
+      - name: Update saved timings
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+
+          path = Path(".github/workflows/ci_timings.json")
+          data = json.loads(path.read_text()) if path.exists() else {"normal": {}, "reduced": {}}
+          measurements = {}
+          for record in Path("ci-timing-records").glob("*.json"):
+            row = json.loads(record.read_text())
+            key = (row["section"], str(row["mode"]), row["kind"])
+            measurements[key] = max(measurements.get(key, 0), row["seconds"])
+          for (section, mode, kind), seconds in measurements.items():
+            data[section].setdefault(mode, {})[kind] = seconds
+          path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+          print("Updated %d mode/kind measurements" % len(measurements))
+          PYTHON
+
+      - name: Save updated timings
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/cache/save@v6
+        with:
+          path: .github/workflows/ci_timings.json
+          key: ${{ steps.timing-cache.outputs.cache-primary-key }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ci-timings
+          path: .github/workflows/ci_timings.json
+          overwrite: true

@@ -97,3 +97,7 @@ def module_test_properties():
     },
   }
 ```
+
+#### CI timing estimates ####
+
+Weekly and manual `test.yml` runs measure each hash mode and test kind, separately for normal and reduced iterations, to target roughly one hour per shard. Runs on `master` save successful [measurements in the Actions cache](https://github.com/hashcat/hashcat/actions/caches). Failed or unfinished tests retain their previous estimates. If the cache is missing, planning falls back to weight-based sharding.
