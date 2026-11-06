@@ -49,8 +49,8 @@
 typedef struct krb5tgs_1
 {
   u32 account_info[512];
-  u32 user[32];
-  u32 realm[32];
+  u32 user[128];
+  u32 realm[128];
   u32 format;
 
   u32 salt_buf[32];

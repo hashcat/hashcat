@@ -20,8 +20,8 @@
 
 typedef struct krb5pa_3
 {
-  u32 user[32];
-  u32 realm[32];
+  u32 user[128];
+  u32 realm[128];
 
   u32 salt_buf[32];
   u32 salt_len;
