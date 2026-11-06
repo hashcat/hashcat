@@ -32,8 +32,8 @@ static const char *ST_HASH        = "$krb5pa$23$user$realm$salt$5cbb0c882a2b2695
 
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
+  u32 user[128];
+  u32 realm[128];
   u32 salt[64];
   u32 timestamp[16];
   u32 checksum[4];
@@ -114,12 +114,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[1]     = '$';
   token.len_min[1] = 0;
-  token.len_max[1] = 253;
+  token.len_max[1] = 511;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
   token.len_min[2] = 0;
-  token.len_max[2] = 253;
+  token.len_max[2] = 511;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]     = '$';
@@ -176,12 +176,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 0;
-    token.len_max[1] = 253;
+    token.len_max[1] = 511;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 0;
-    token.len_max[2] = 253;
+    token.len_max[2] = 511;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -234,12 +234,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 0;
-    token.len_max[1] = 253;
+    token.len_max[1] = 511;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 0;
-    token.len_max[2] = 253;
+    token.len_max[2] = 511;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.len_min[3] = 90;
