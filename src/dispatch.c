@@ -891,6 +891,12 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     for (work_cur = 0; work_cur < work_cnt; work_cur++)
     {
+      // A feed can be slow to answer, a word read twice from a compressed wordlist for one, and q and
+      // --runtime are only seen between chunks otherwise. Leaving now is safe: the launch loop stops
+      // too and never launches this batch, so its words do not reach the restore point.
+
+      if (status_ctx->run_thread_level1 == false) break;
+
       pw_idx_t *pw_idx = batch->pws_idx + batch->pws_cnt;
 
       u8 *pw_buf = (u8 *) (batch->pws_comp + pw_idx->off);

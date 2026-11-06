@@ -72,6 +72,7 @@ static const char *const PA_051 = "PKZIP member index is outside the central dir
 static const char *const PA_052 = "Stored PKZIP member must contain at least 4 bytes";
 static const char *const PA_053 = "Required compression library libz was not found";
 static const char *const PA_054 = "7-Zip data uses a compression method or filter that is not supported";
+static const char *const PA_055 = "7-Zip data of type 128 is truncated, which is not supported";
 static const char *const PA_255 = "Unknown error";
 
 // input_tokenizer() records the offending part of the input line in here when it rejects that line.
@@ -286,6 +287,7 @@ const char *strparser (const u32 parser_status)
     case PARSER_ZLIB_UNAVAILABLE:         return PA_053;
 
     case PARSER_SEVEN_ZIP_METHOD_UNSUPPORTED: return PA_054;
+    case PARSER_SEVEN_ZIP_TRUNCATED:          return PA_055;
   }
 
   return PA_255;

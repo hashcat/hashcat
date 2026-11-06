@@ -265,6 +265,7 @@ static void source_close (feed_thread_t *feed_thread)
   feed_thread->fd_mem      = NULL;
   feed_thread->fd_len      = 0;
   feed_thread->fd_off      = 0;
+  feed_thread->last_valid  = false;
 }
 
 // Top the window up when it is running low, moving whatever is left of the current line to the
@@ -280,6 +281,8 @@ static bool source_fill (feed_thread_t *feed_thread)
   if (feed_thread->win_eof == true) return true;
 
   if (left > 0) memmove (feed_thread->win, feed_thread->win + feed_thread->fd_off, left);
+
+  feed_thread->last_valid = false;
 
   feed_thread->win_pos += feed_thread->fd_off;
   feed_thread->fd_off   = 0;
@@ -313,6 +316,8 @@ static bool source_fill (feed_thread_t *feed_thread)
 
 static bool source_restart (feed_thread_t *feed_thread)
 {
+  feed_thread->last_valid = false;
+
   if (feed_thread->compressed == false)
   {
     feed_thread->fd_off  = 0;
@@ -348,6 +353,8 @@ static bool source_seek_frame (feed_thread_t *feed_thread, const u64 *entry)
   const u64 uncomp_off = entry[1];
   const u64 line_off   = entry[2];
   const u64 first_line = entry[3];
+
+  feed_thread->last_valid = false;
 
   // The first frame begins where the file begins, and going back to that is a rewind. A compressed
   // format with no frames of its own is described by that one entry and nothing else, so it lands
@@ -517,6 +524,7 @@ static bool source_open (generic_thread_ctx_t *thread_ctx, feed_thread_t *feed_t
   }
 
   feed_thread->fd_line     = 0;
+  feed_thread->last_valid  = false;
   feed_thread->source_idx  = idx;
   feed_thread->source_open = true;
 
@@ -801,6 +809,8 @@ static feed_thread_t *wordlist_thread_init (generic_thread_ctx_t *thread_ctx)
   feed_thread->fd_len      = 0;
   feed_thread->fd_off      = 0;
   feed_thread->fd_line     = 0;
+  feed_thread->last_valid  = false;
+  feed_thread->last_off    = 0;
 
   feed_thread->memchr      = hc_memchr_get ();
 
@@ -904,9 +914,19 @@ static int wordlist_next (generic_global_ctx_t *global_ctx, feed_global_t *feed_
   if (step < avail)
   {
     feed_thread->fd_off += bom + step + 1;
+
+    // The line lies whole in what is in hand, from fd_off on. A byte order mark in front of it is
+    // left in, because a read back at line 0 looks for it again.
+
+    feed_thread->last_valid = true;
+    feed_thread->last_off   = fd_off;
   }
   else
   {
+    // source_finish_line () may top the window up and move it, which leaves no offset to come back to
+
+    feed_thread->last_valid = false;
+
     // No line ending in what is in hand. For a mapped source that is the last word in the file, and
     // it runs to the end. For a compressed source the window simply ran out, and the rest of the
     // line is read here so that the line is handed over once.
@@ -945,6 +965,25 @@ static bool wordlist_seek (feed_global_t *feed_global, generic_thread_ctx_t *thr
   // the offset within this source, now that the source is known
 
   const u64 local = offset - source->first_line;
+
+  // Back to the line handed out last. The fill loop does that for every line longer than its buffer,
+  // to read it again into a larger one. The line is still in hand, so the reader moves back over it.
+  // Every other route back is a restart, and a compressed source without frames, a single member
+  // .gz for one, decodes again from its first byte for each such line.
+
+  if ((feed_thread->last_valid == true) && ((local + 1) == feed_thread->fd_line))
+  {
+    feed_thread->fd_off     = feed_thread->last_off;
+    feed_thread->fd_line    = local;
+    feed_thread->last_valid = false;
+
+    return true;
+  }
+
+  // Any other seek moves the reader without handing out a line, so last_off no longer names the one
+  // before it.
+
+  feed_thread->last_valid = false;
 
   // A compressed source is seeked by its frames rather than by the checkpoints below, because a
   // checkpoint is an offset into the decompressed bytes and there is no such place in the file on

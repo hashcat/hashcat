@@ -979,6 +979,7 @@ typedef enum parser_rc
   PARSER_ZLIB_UNAVAILABLE         = -53,
 
   PARSER_SEVEN_ZIP_METHOD_UNSUPPORTED = -54,
+  PARSER_SEVEN_ZIP_TRUNCATED          = -55,
 
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
@@ -2874,6 +2875,12 @@ typedef struct restore_ctx
   // every update. cycle_restore () runs about once a second.
 
   bool write_failed;
+
+  // Set once this run has put a restore file of its own in place. Until then, a restore file at
+  // that path was left by an earlier session of the same name, and it is the only way back into
+  // that one.
+
+  bool written;
 
 } restore_ctx_t;
 

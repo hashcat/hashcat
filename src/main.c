@@ -21,6 +21,7 @@
 #include "status.h"
 #include "status_rc.h"
 #include "shared.h"
+#include "path.h"
 #include "mpsp.h"
 #include "system.h"
 #include "dynloader.h"
@@ -2342,6 +2343,21 @@ int main (int argc, char **argv)
 
   const bool quiet = user_options->quiet;
 
+  // A run that stopped short leaves a restore file that continues it, and the session teardown
+  // below frees the context that knows where. Only a file this run wrote counts, so an earlier
+  // session's file is never offered as this one's.
+
+  const restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  char *restore_left = NULL;
+
+  if ((restore_ctx->enabled == true) && (restore_ctx->written == true) && (hc_path_exist (restore_ctx->eff_restore_file) == true))
+  {
+    restore_left = hcstrdup (restore_ctx->eff_restore_file);
+  }
+
+  const bool restore_named = (user_options->restore_file_path != NULL);
+
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
   main_timing_start (MAIN_TIMING_SESSION_DESTROY);
@@ -2357,6 +2373,22 @@ int main (int argc, char **argv)
   const time_t proc_stop = time (NULL);
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
+
+  if ((restore_left != NULL) && (quiet == false))
+  {
+    event_log_advice (hashcat_ctx, NULL);
+
+    if (restore_named == true)
+    {
+      event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --restore-file-path %s --restore, which prints the command for it.", restore_left);
+    }
+    else
+    {
+      event_log_advice (hashcat_ctx, "To continue this session, run hashcat with --session %s --restore, which prints the command for it.", user_options->session);
+    }
+  }
+
+  hcfree (restore_left);
 
   main_timing_report (hashcat_ctx, timing_report_enabled, rc_final);
 

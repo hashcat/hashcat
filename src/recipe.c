@@ -6286,7 +6286,8 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
   // one: the kernel pastes the family's name through RECIPE_NAT3 (), and there is no RECIPE_NAT_aes
   // or RECIPE_NAT_des. A result that comes from a cipher is therefore compiled the way every recipe
   // under --hash-recipe is, comparing in the engine's own layout. A module whose stored recipe ends
-  // in a cipher reads its digest in that layout too, see module_40008.c.
+  // in a cipher reads its digest in that layout too, see module_40008.c. A SEED step is a hash call
+  // with a seed, as in the xxh64 (pass, salt) of module_39500.c, so it keeps its family's layout.
 
   bool native = root_native;
 
@@ -6294,7 +6295,7 @@ char *recipe_jit_build_options (const char *src, const bool root_native)
   {
     const recipe_step_kind_t kind = prog.steps[prog.root_step].kind;
 
-    if ((kind != RECIPE_KIND_HASH) && (kind != RECIPE_KIND_HMAC)) native = false;
+    if ((kind != RECIPE_KIND_HASH) && (kind != RECIPE_KIND_HMAC) && (kind != RECIPE_KIND_SEED)) native = false;
   }
 
   if (native != root_native)
