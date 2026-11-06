@@ -762,8 +762,8 @@ typedef enum opts_type
   OPTS_TYPE_PT_UPPER                 = (1ULL <<  2),
   OPTS_TYPE_PT_LOWER                 = (1ULL <<  3),
   OPTS_TYPE_PT_ADD01                 = (1ULL <<  4),
-  // Bit 5 held OPTS_TYPE_PT_ADD02, which no module ever set and nothing ever read, and then
-  // OPTS_TYPE_AUX5. Both are gone and the bit is free.
+  // Both salt iteration fields are plain loop counts that support a test-only cap.
+  OPTS_TYPE_ITERATION_OVERRIDE       = (1ULL <<  5),
   OPTS_TYPE_PT_ADD80                 = (1ULL <<  6),
   OPTS_TYPE_PT_ADDBITS14             = (1ULL <<  7),
   OPTS_TYPE_PT_ADDBITS15             = (1ULL <<  8),
@@ -797,6 +797,9 @@ typedef enum opts_type
   // says how many work groups an SM holds, the backend drops a mostly empty last wave from it.
   OPTS_TYPE_ACCEL_WHOLE_WAVES        = (1ULL << 32),
 
+  // The module supports the separate test-only scrypt N override.
+  OPTS_TYPE_SCRYPT_OVERRIDE          = (1ULL << 33),
+
                                                      // like a hook12 kernel but without extra buffers.
                                                      // but unlike a hook kernel this kernel is called for every _loop iteration offset
   OPTS_TYPE_BINARY_HASHFILE          = (1ULL << 45),
@@ -806,7 +809,7 @@ typedef enum opts_type
   OPTS_TYPE_DEEP_COMP_KERNEL         = (1ULL << 49), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
   OPTS_TYPE_SUGGEST_KG               = (1ULL << 51), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
 
-  // Bits 32 to 44 and bit 50 are free. They held flags that said which kernels a session
+  // Bits 34 to 44 and bit 50 are free. They held flags that said which kernels a session
   // runs, and those are a mask over hc_dev_kern_t now, read through hashconfig_t.kern_bits. A module
   // names the ones it provides in module_kern_bits (), and hashcat turns on _init, _loop and _comp
   // itself for a slow hash, which is what the removed INIT, LOOP and COMP flags did.

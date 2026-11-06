@@ -23,7 +23,8 @@ static const u64   KERN_TYPE      = 36410;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_DYNAMIC_SHARED;
+                                  | OPTS_TYPE_DYNAMIC_SHARED
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$kwallet$88$45975b748f882d01c2bf498e329f20000810fcf38c4803e0985006270fabde065b41363475a9753a54687fae112c326915658aad6901b32dff0f62b96346dd4e";

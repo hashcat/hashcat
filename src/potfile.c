@@ -115,6 +115,9 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_ctx->enabled = false;
 
+  // Test-only costs must neither consume nor create persistent cracking results.
+  if (getenv ("HASHCAT_ITER_OVERRIDE") != NULL) return 0;
+
   if (user_options->usage            > 0)     return 0;
   if (user_options->backend_info     > 0)     return 0;
   if (user_options->hash_info        > 0)     return 0;

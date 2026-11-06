@@ -29,7 +29,7 @@ def module_test_properties():
       'optimized': None,
       'combined_length': None,
     },
-    'runtime': {'limit': 2},
+    'runtime': {'limit': 2, 'copy_hash': True},
     'normal': {'parameters': {'iterations': 100000}},
   }
 

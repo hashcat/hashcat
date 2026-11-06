@@ -36,7 +36,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
-                                  | OPTS_TYPE_COPY_TMPS;
+                                  | OPTS_TYPE_COPY_TMPS
+                                  | OPTS_TYPE_ITERATION_OVERRIDE;
 static const u64   KERN_BITS      = KERN_BIT_AUX1
                                   | KERN_BIT_AUX2
                                   | KERN_BIT_AUX3;

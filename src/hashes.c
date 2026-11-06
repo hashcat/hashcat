@@ -3909,11 +3909,23 @@ static int hashes_override_iterations (hashcat_ctx_t *hashcat_ctx, hash_t *hashe
 
   event_log_warning (hashcat_ctx, "HASHCAT_ITER_OVERRIDE=%u: test-only iteration override requested.", (u32) iterations);
 
-  if (iterations == 0) return 0;
-
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  if (hashconfig->attack_exec != ATTACK_EXEC_OUTSIDE_KERNEL) return 0;
+  if (hashcat_ctx->user_options->remove == true)
+  {
+    event_log_error (hashcat_ctx, "HASHCAT_ITER_OVERRIDE cannot be used with --remove.");
+
+    return -1;
+  }
+
+  if ((hashconfig->opts_type & (OPTS_TYPE_ITERATION_OVERRIDE | OPTS_TYPE_SCRYPT_OVERRIDE)) == 0)
+  {
+    event_log_error (hashcat_ctx, "Hash mode %u does not support HASHCAT_ITER_OVERRIDE.", hashconfig->hash_mode);
+
+    return -1;
+  }
+
+  if (iterations == 0) return 0;
 
   // Only loaded salts are changed. The startup self-test has its own salt.
 
@@ -3921,7 +3933,7 @@ static int hashes_override_iterations (hashcat_ctx_t *hashcat_ctx, hash_t *hashe
   {
     salt_t *salt = hashes_buf[i].salt;
 
-    if (salt->scrypt_N != 0)
+    if ((hashconfig->opts_type & OPTS_TYPE_SCRYPT_OVERRIDE) != 0)
     {
       u32 n = 1024;
 

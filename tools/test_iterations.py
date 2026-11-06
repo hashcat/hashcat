@@ -53,14 +53,14 @@ def load_test_properties(mode):
   if "reduced" in settings and "runtime" in settings:
     raise ValueError("m%05d.py: choose encoded or runtime reduction, not both" % mode)
   for name, section in settings.items():
-    allowed = {"limit", "compiled_cost", "scrypt", "parameters"} if name == "runtime" else {"parameters"}
+    allowed = {"limit", "compiled_cost", "scrypt", "copy_hash", "parameters"} if name == "runtime" else {"parameters"}
     if not isinstance(section, dict) or set(section) - allowed:
       raise ValueError("m%05d.py: invalid %s test settings" % (mode, name))
     if name == "runtime":
       limit = section.get("limit")
       if type(limit) is not int or not 1 <= limit <= 4294967295:
         raise ValueError("m%05d.py: runtime limit must be a positive uint32" % mode)
-      if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt") if key in section):
+      if any(type(section[key]) is not bool for key in ("compiled_cost", "scrypt", "copy_hash") if key in section):
         raise ValueError("m%05d.py: runtime flags must be booleans" % mode)
     if name == "reduced" and section.get("parameters") != {"iterations": 2}:
       raise ValueError("m%05d.py: reduced testing requires 2 encoded iterations" % mode)
@@ -94,7 +94,7 @@ def iteration_reduction_enabled(mode):
 
 def iteration_copy_hash(mode):
   # Preserve the input hash when runtime overrides change the count used by its encoder.
-  return iteration_reduction_enabled(mode) and bool(runtime_iteration_policy(mode))
+  return iteration_reduction_enabled(mode) and runtime_iteration_policy(mode).get("copy_hash", False)
 
 
 def generate_iteration_hash(mod, word, salt, iterations=None, **extra):

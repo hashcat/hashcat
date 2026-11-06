@@ -40,7 +40,7 @@ def module_test_properties():
       'combined_length': None,
     },
     'normal': {'parameters': {'user_hash_iterations': 10000}},
-    'runtime': {'limit': 2, 'parameters': {'iterations': 2}},
+    'runtime': {'limit': 2, 'copy_hash': True, 'parameters': {'iterations': 2}},
   }
 
 
