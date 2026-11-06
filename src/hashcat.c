@@ -295,6 +295,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_progress_reset (hashcat_ctx);
 
     status_ctx->msec_paused = 0;
+
+    status_ctx->attack_digests_done_new = hashcat_ctx->hashes->digests_done_new;
   }
 
   status_ctx->words_off = 0;
@@ -655,6 +657,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     hc_timer_set (&status_ctx->timer_running);
 
     time (&status_ctx->runtime_start);
+
+    status_ctx->bypass_eta_checked    = false;
+    status_ctx->bypass_eta_words_from = status_ctx->words_cur;
   }
 
   const time_t runtime_start = status_ctx->runtime_start;
@@ -1224,6 +1229,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     if (hashes->hashes_cnt == 0)
     {
       event_log_error (hashcat_ctx, "No hashes loaded.");
+
+      event_log_advice (hashcat_ctx, "The format this hash-mode expects is shown by --hash-info -m %d, and docs/hashcat-example-hashes.md has an example hash for every hash-mode.", user_options->hash_mode);
+      event_log_advice (hashcat_ctx, NULL);
 
       status_set_rc_error (hashcat_ctx, (hashes->hashlist_mode == HL_MODE_ARG) ? RC_FINAL_ERROR_COMMAND : RC_FINAL_ERROR_TASK);
 
@@ -2166,6 +2174,69 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
 
+// A broken driver can leave a runtime call that never returns, and the startup then waits on
+// "Please be patient" with nothing to say which runtime it is. Once a runtime has taken longer than
+// a working one does, this names it and the option that leaves it out.
+
+static const u32 BACKEND_WATCHDOG_SEC = 60;
+
+static HC_THREAD_FUNC thread_backend_watchdog (void *p)
+{
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
+
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  backend_phase_t phase = BACKEND_PHASE_NONE;
+
+  u32 slices = 0;
+
+  bool warned = false;
+
+  while (backend_ctx->init_done == false)
+  {
+    usleep (100000);
+
+    if (backend_ctx->init_phase != phase)
+    {
+      phase  = backend_ctx->init_phase;
+      slices = 0;
+      warned = false;
+
+      continue;
+    }
+
+    slices++;
+
+    if (warned == true) continue;
+
+    if (phase == BACKEND_PHASE_NONE) continue;
+
+    const bool overdue = (slices >= (BACKEND_WATCHDOG_SEC * 10));
+
+    if (overdue == false) continue;
+
+    warned = true;
+
+    backend_slow_t slow;
+
+    slow.phase   = phase;
+    slow.seconds = BACKEND_WATCHDOG_SEC;
+
+    EVENT_DATA (EVENT_BACKEND_RUNTIME_SLOW, &slow, sizeof (slow));
+  }
+
+  return 0;
+}
+
+static void backend_watchdog_stop (hashcat_ctx_t *hashcat_ctx, const bool watchdog, hc_thread_t *watchdog_thr)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  backend_ctx->init_done = true;
+
+  if (watchdog == true) hc_thread_wait (1, watchdog_thr);
+}
+
 int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -2376,9 +2447,25 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * Init backend library loader
    */
 
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  backend_ctx->init_phase = BACKEND_PHASE_NONE;
+  backend_ctx->init_done  = false;
+
+  hc_thread_t watchdog_thr;
+
+  const bool watchdog = hc_thread_create_ok (watchdog_thr, thread_backend_watchdog, hashcat_ctx);
+
   EVENT (EVENT_BACKEND_RUNTIMES_INIT_PRE);
 
-  if (backend_ctx_init (hashcat_ctx) == -1) return -1;
+  const int rc_backend_init = backend_ctx_init (hashcat_ctx);
+
+  if (rc_backend_init == -1)
+  {
+    backend_watchdog_stop (hashcat_ctx, watchdog, &watchdog_thr);
+
+    return -1;
+  }
 
   EVENT (EVENT_BACKEND_RUNTIMES_INIT_POST);
 
@@ -2388,7 +2475,11 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   EVENT (EVENT_BACKEND_DEVICES_INIT_PRE);
 
-  if (backend_ctx_devices_init (hashcat_ctx, comptime) == -1) return -1;
+  const int rc_devices_init = backend_ctx_devices_init (hashcat_ctx, comptime);
+
+  backend_watchdog_stop (hashcat_ctx, watchdog, &watchdog_thr);
+
+  if (rc_devices_init == -1) return -1;
 
   EVENT (EVENT_BACKEND_DEVICES_INIT_POST);
 
@@ -3371,8 +3462,10 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->digests_done_pot            = status_get_digests_done_pot           (hashcat_ctx);
   hashcat_status->digests_done_zero           = status_get_digests_done_zero          (hashcat_ctx);
   hashcat_status->digests_done_new            = status_get_digests_done_new           (hashcat_ctx);
+  hashcat_status->digests_done_attack         = status_get_digests_done_attack        (hashcat_ctx);
   hashcat_status->digests_percent             = status_get_digests_percent            (hashcat_ctx);
   hashcat_status->digests_percent_new         = status_get_digests_percent_new        (hashcat_ctx);
+  hashcat_status->digests_percent_attack      = status_get_digests_percent_attack     (hashcat_ctx);
   hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);
   hashcat_status->hash_name                   = status_get_hash_name                  (hashcat_ctx);
   hashcat_status->guess_base                  = status_get_guess_base                 (hashcat_ctx);

@@ -424,6 +424,63 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device
   return 0;
 }
 
+// The kernel reports the link speed rather than the generation, as "16.0 GT/s PCIe" or on older
+// kernels "8 GT/s". Each generation from the second on doubles the transfer rate, except that the
+// third moved to 8 GT/s with a leaner encoding.
+
+int hm_SYSFS_AMDGPU_get_pcie_gen (void *hashcat_ctx, const int backend_device_idx, int *val)
+{
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
+
+  if (syspath == NULL) return -1;
+
+  char *path;
+
+  hc_asprintf (&path, "%s/current_link_speed", syspath);
+
+  hcfree (syspath);
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, path, "r") == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, hc_fopen_strerror ());
+
+    hcfree (path);
+
+    return -1;
+  }
+
+  char buf[HCBUFSIZ_TINY];
+
+  char *ptr = hc_fgets (buf, sizeof (buf), &fp);
+
+  hc_fclose (&fp);
+
+  hcfree (path);
+
+  if (ptr == NULL) return -1;
+
+  double speed = 0;
+
+  if (sscanf (ptr, "%lf", &speed) != 1) return -1;
+
+  int gen = 0;
+
+  if      (speed >= 64.0) gen = 6;
+  else if (speed >= 32.0) gen = 5;
+  else if (speed >= 16.0) gen = 4;
+  else if (speed >=  8.0) gen = 3;
+  else if (speed >=  5.0) gen = 2;
+  else if (speed >=  2.5) gen = 1;
+
+  if (gen == 0) return -1;
+
+  *val = gen;
+
+  return 0;
+}
+
 int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_device_idx, int *val)
 {
   char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);

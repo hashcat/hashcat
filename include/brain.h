@@ -278,6 +278,8 @@ typedef struct brain_server_dumper_options
 
   u32 brain_server_timer;
 
+  const char *dump_dir;
+
 } brain_server_dumper_options_t;
 
 typedef struct brain_server_client_options
@@ -322,6 +324,7 @@ void  brain_client_generate_hash        (u64 *hash, const char *line_buf, const 
 
 HC_API int   brain_feed                        (hashcat_ctx_t *hashcat_ctx);
 HC_API int   brain_server                      (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer);
+HC_API int   brain_server_dump_folder          (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer, const char *dump_folder);
 bool  brain_server_read_hash_dumps      (brain_server_dbs_t *brain_server_dbs, const char *path);
 bool  brain_server_write_hash_dumps     (brain_server_dbs_t *brain_server_dbs, const char *path);
 bool  brain_server_read_hash_dump       (brain_server_db_hash_t *brain_server_db_hash, const char *file);

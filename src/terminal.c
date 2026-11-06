@@ -3209,18 +3209,28 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;
     cl_uint  *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
     char    **opencl_platforms_vendor      = backend_ctx->opencl_platforms_vendor;
+    char    **opencl_platforms_name        = backend_ctx->opencl_platforms_name;
     char    **opencl_platforms_version     = backend_ctx->opencl_platforms_version;
 
     for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
       char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
+      char     *opencl_platform_name         = opencl_platforms_name[opencl_platforms_idx];
       char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
       cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
 
       // hide empty OpenCL platforms
       if (opencl_platform_devices_cnt == 0) continue;
 
-      const size_t len = event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u [%s]", opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_vendor);
+      // Two runtimes of one vendor, Mesa's Clover and rusticl for one, report the same vendor and
+      // differ only in their platform name, so the name goes in front of it where it says something
+      // more.
+
+      const bool name_adds = (opencl_platform_name != NULL) && (opencl_platform_name[0] != 0) && (strcmp (opencl_platform_name, "N/A") != 0) && (strcmp (opencl_platform_name, opencl_platform_vendor) != 0);
+
+      const size_t len = (name_adds == true)
+                       ? event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u: %s [%s]", opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_name, opencl_platform_vendor)
+                       : event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u [%s]",     opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_vendor);
 
       char line[HCBUFSIZ_TINY] = { 0 };
 
@@ -3650,6 +3660,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       const int corespeed   = hm_get_corespeed_with_devices_idx (hashcat_ctx, device_id);
       const int memoryspeed = hm_get_memoryspeed_with_devices_idx (hashcat_ctx, device_id);
       const int buslanes    = hm_get_buslanes_with_devices_idx (hashcat_ctx, device_id);
+      const int busgen      = hm_get_busgen_with_devices_idx (hashcat_ctx, device_id);
       const int64_t power   = hm_get_power_with_devices_idx (hashcat_ctx, device_id);
 
       json_kv_int (&js, "temp",        temp);
@@ -3658,6 +3669,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       json_kv_int (&js, "corespeed",   corespeed);
       json_kv_int (&js, "memoryspeed", memoryspeed);
       json_kv_int (&js, "buslanes",    buslanes);
+      json_kv_int (&js, "busgen",      busgen);
       json_kv_int (&js, "power",       power);
 
       json_object_end (&js);
@@ -3667,6 +3679,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   json_array_end (&js);
 
   json_kv_uint (&js, "time_start", (u64) status_ctx->runtime_start);
+  json_kv_uint (&js, "time_running", (u64) (hashcat_status->msec_real / 1000));
   json_kv_uint (&js, "estimated_stop", (u64) end);
 
   json_object_end (&js);
@@ -3892,10 +3905,33 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   */
 
-  event_log_info (hashcat_ctx,
-  "Time.Started.....: %s (%s)",
-  hashcat_status->time_started_absolute,
-  hashcat_status->time_started_relative);
+  // The time since the start includes every pause. After a pause, the time the attack ran is shown
+  // beside it, which is also the time that --runtime counts against its limit.
+
+  if (hashcat_status->msec_paused >= 1000)
+  {
+    const time_t sec_real = (time_t) (hashcat_status->msec_real / 1000);
+
+    struct tm  tm;
+    struct tm *tmp = gmtime_r (&sec_real, &tm);
+
+    char display_real[HCBUFSIZ_TINY];
+
+    format_timer_display (tmp, display_real, sizeof (display_real));
+
+    event_log_info (hashcat_ctx,
+    "Time.Started.....: %s (%s; Runtime: %s)",
+    hashcat_status->time_started_absolute,
+    hashcat_status->time_started_relative,
+    display_real);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx,
+    "Time.Started.....: %s (%s)",
+    hashcat_status->time_started_absolute,
+    hashcat_status->time_started_relative);
+  }
 
   event_log_info (hashcat_ctx,
   "Time.Estimated...: %s (%s)",
@@ -4383,33 +4419,41 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       hashcat_status->speed_sec_all);
   }
 
+  // A queue of several masks or wordlists also counts the cracks of the queue item running now. The
+  // rounds that -a 9 splits its own hash file into are one attack, so they are not counted apart.
+
+  const bool show_attack = ((hashcat_status->guess_base_count > 1) || (hashcat_status->guess_mod_count > 1)) && (user_options_extra->association_autosplit == false);
+
+  char recovered_buf[HCBUFSIZ_TINY];
+
+  int recovered_len = snprintf (recovered_buf, sizeof (recovered_buf),
+    "%u/%u (%.2f%%) Digests, %u (%.2f%%) new",
+    hashcat_status->digests_done,
+    hashcat_status->digests_cnt,
+    hc_percent_display (hashcat_status->digests_percent),
+    hashcat_status->digests_done_new,
+    hc_percent_display (hashcat_status->digests_percent_new));
+
+  if (show_attack == true)
+  {
+    recovered_len += snprintf (recovered_buf + recovered_len, sizeof (recovered_buf) - recovered_len,
+      ", %u (%.2f%%) attack",
+      hashcat_status->digests_done_attack,
+      hc_percent_display (hashcat_status->digests_percent_attack));
+  }
+
   if (hashcat_status->salts_cnt > 1)
   {
-    event_log_info (hashcat_ctx,
-      "Recovered........: %u/%u (%.2f%%) Digests (total), %u/%u (%.2f%%) Digests (new), %u/%u (%.2f%%) Salts",
-      hashcat_status->digests_done,
-      hashcat_status->digests_cnt,
-      hc_percent_display (hashcat_status->digests_percent),
-      hashcat_status->digests_done_new,
-      hashcat_status->digests_cnt,
-      hc_percent_display (hashcat_status->digests_percent_new),
+    recovered_len += snprintf (recovered_buf + recovered_len, sizeof (recovered_buf) - recovered_len,
+      ", %u/%u (%.2f%%) Salts",
       hashcat_status->salts_done,
       hashcat_status->salts_cnt,
       hc_percent_display (hashcat_status->salts_percent));
   }
-  else
-  {
-    event_log_info (hashcat_ctx,
-      "Recovered........: %u/%u (%.2f%%) Digests (total), %u/%u (%.2f%%) Digests (new)",
-      hashcat_status->digests_done,
-      hashcat_status->digests_cnt,
-      hc_percent_display (hashcat_status->digests_percent),
-      hashcat_status->digests_done_new,
-      hashcat_status->digests_cnt,
-      hc_percent_display (hashcat_status->digests_percent_new));
-  }
 
-  if (hashcat_status->digests_cnt > 1000)
+  event_log_info (hashcat_ctx, "Recovered........: %s", recovered_buf);
+
+  if (hashcat_status->digests_cnt > 1)
   {
     const u32    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
     const double digests_remain_percent = (double) digests_remain / (double) hashcat_status->digests_cnt * 100;
@@ -5279,6 +5323,16 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
   }
 
   json_array_end (&js);
+
+  // The whole attack at the speed measured above, in milliseconds like the runtime of each device,
+  // or -1 when no device measured a speed. A keyspace too large for the integer is capped.
+
+  const double estimated_msec = status_get_progress_only_msec (hashcat_ctx);
+
+  const i64 estimated_runtime = (estimated_msec >= (double) INT64_MAX) ? INT64_MAX : (i64) estimated_msec;
+
+  json_kv_int (&js, "estimated_runtime", estimated_runtime);
+
   json_object_end (&js);
 
   fwrite (EOL, strlen (EOL), 1, stdout);
@@ -5360,6 +5414,12 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
         device_info->runtime_msec_dev);
     }
   }
+
+  char *estimate = status_get_progress_only_estimate (hashcat_ctx);
+
+  event_log_info (hashcat_ctx, "Time.Estimated...: %s", estimate);
+
+  hcfree (estimate);
 
   status_status_destroy (hashcat_ctx, hashcat_status);
 

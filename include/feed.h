@@ -49,6 +49,13 @@
 
 #define GENERIC_RC_SKIP  -3
 
+// Nothing new arrived in time, and the input is not finished. A feed that waits on its input returns
+// this instead of waiting on, so that the candidates hashcat already holds are cracked now rather
+// than once enough of them have arrived. The next call carries on where this one left off, and no
+// position is spent. Only feed_stdin returns it, and only under --stdin-timeout-flush.
+
+#define GENERIC_RC_FLUSH -4
+
 // What global_keyspace () may say. A feed that cannot count itself returns GENERIC_KEYSPACE_UNKNOWN
 // and hashcat runs it without a denominator. GENERIC_KEYSPACE_ERROR is hashcat's own value and a
 // plugin never returns it, it is what the wrapper reports when the plugin failed. The two were the

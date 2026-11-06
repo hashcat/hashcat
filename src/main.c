@@ -647,6 +647,30 @@ static void main_outcheck_preflight_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   event_log_info_nn (hashcat_ctx, "Compared hashes with outfile check directory");
 }
 
+static void main_outcheck_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->quiet == true) return;
+
+  const outcheck_cracked_t *cracked = (const outcheck_cracked_t *) buf;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  event_log_info (hashcat_ctx, "Removed %u %s found in %u %s in the outfile check directory.",
+    cracked->digests, (cracked->digests == 1) ? "hash" : "hashes",
+    cracked->files,   (cracked->files   == 1) ? "file" : "files");
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  {
+    send_prompt (hashcat_ctx);
+  }
+}
+
 static void main_rulesfiles_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -987,6 +1011,23 @@ static void main_backend_session_hostmem (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   else
   {
     event_log_info (hashcat_ctx, "Host memory allocated for this attack: %" PRIu64 " MB (%" PRIu64 " MB free)", *hostmem / (1024 * 1024), free_memory / (1024 * 1024));
+  }
+
+  // Where a crack ends up is a frequent question from new users, and the path depends on the
+  // profile folder and --potfile-path. A benchmark and a speed or progress run crack nothing.
+
+  if ((user_options->benchmark == false) && (user_options->speed_only == false) && (user_options->progress_only == false))
+  {
+    const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+    if (potfile_ctx->enabled == true)
+    {
+      event_log_advice (hashcat_ctx, "Cracked hashes are saved to the potfile %s", potfile_ctx->filename);
+    }
+    else
+    {
+      event_log_advice (hashcat_ctx, "Cracked hashes are not saved to a potfile in this run.");
+    }
   }
 
   event_log_info (hashcat_ctx, NULL);
@@ -1579,6 +1620,38 @@ static void main_backend_runtimes_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat
   event_log_info_nn (hashcat_ctx, "Initialized backend runtimes");
 }
 
+static void main_backend_runtime_slow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // -I turns on --quiet by itself, and a hang during -I is the case this warning is for
+
+  if ((user_options->quiet == true) && (user_options->backend_info == 0)) return;
+
+  const backend_slow_t *slow = (const backend_slow_t *) buf;
+
+  const char *runtime = NULL;
+  const char *option  = NULL;
+
+  switch (slow->phase)
+  {
+    case BACKEND_PHASE_CUDA:   runtime = "CUDA";   option = "--backend-ignore-cuda";   break;
+    case BACKEND_PHASE_HIP:    runtime = "HIP";    option = "--backend-ignore-hip";    break;
+    case BACKEND_PHASE_METAL:  runtime = "Metal";  option = "--backend-ignore-metal";  break;
+    case BACKEND_PHASE_OPENCL: runtime = "OpenCL"; option = "--backend-ignore-opencl"; break;
+    case BACKEND_PHASE_NONE:                                                           return;
+  }
+
+  // without --quiet, the line above ends on "Please be patient..." with no newline
+
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, NULL);
+
+  event_log_warning (hashcat_ctx, "The %s runtime has not answered for %u seconds.", runtime, slow->seconds);
+  event_log_warning (hashcat_ctx, "If hashcat hangs here, %s leaves %s out.", option, runtime);
+  event_log_warning (hashcat_ctx, "To fix the runtime, update or reinstall the driver the right way: https://hashcat.net/faq/wrongdriver");
+  event_log_warning (hashcat_ctx, NULL);
+}
+
 static void main_backend_devices_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -2047,6 +2120,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_AUTODETECT_STARTING:       main_autodetect_starting       (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_RUNTIMES_INIT_POST:main_backend_runtimes_init_post(hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_RUNTIMES_INIT_PRE: main_backend_runtimes_init_pre (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_RUNTIME_SLOW:      main_backend_runtime_slow      (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICES_INIT_POST: main_backend_devices_init_post (hashcat_ctx, buf, len); break;
     case EVENT_BACKEND_DEVICES_INIT_PRE:  main_backend_devices_init_pre  (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_POST:          main_bitmap_init_post          (hashcat_ctx, buf, len); break;
@@ -2098,6 +2172,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_BACKEND_DEVICE_INIT_PRE:   main_backend_device_init_pre   (hashcat_ctx, buf, len); break;
     case EVENT_OUTCHECK_PREFLIGHT_POST:   main_outcheck_preflight_post   (hashcat_ctx, buf, len); break;
     case EVENT_OUTCHECK_PREFLIGHT_PRE:    main_outcheck_preflight_pre    (hashcat_ctx, buf, len); break;
+    case EVENT_OUTCHECK_CRACKED:          main_outcheck_cracked          (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
@@ -2226,7 +2301,7 @@ int main (int argc, char **argv)
 
   if (user_options->brain_server == true)
   {
-    const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);
+    const int rc = brain_server_dump_folder (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer, user_options->brain_server_dump_dir);
 
     hcfree (hashcat_ctx);
 

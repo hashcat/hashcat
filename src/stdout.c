@@ -534,6 +534,11 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_flush (&out);
 
+  // Under --stdin-timeout-flush one batch can be all there is for a while, so what it printed goes
+  // to the reader now rather than when the stdio buffer fills or the session ends
+
+  if ((filename == NULL) && (user_options->stdin_timeout_flush > 0)) fflush (stdout);
+
   if (out.write_failed == true)
   {
     event_log_error (hashcat_ctx, "Could not write all candidates to the output stream.");

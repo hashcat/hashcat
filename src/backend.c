@@ -7107,6 +7107,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_ignore_cuda == false)
   {
+    backend_ctx->init_phase = BACKEND_PHASE_CUDA;
+
     CUDA_PTR *cuda = (CUDA_PTR *) hcmalloc (sizeof (CUDA_PTR));
 
     backend_ctx->cuda = cuda;
@@ -7235,6 +7237,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_ignore_hip == false)
   {
+    backend_ctx->init_phase = BACKEND_PHASE_HIP;
+
     HIP_PTR *hip = (HIP_PTR *) hcmalloc (sizeof (HIP_PTR));
 
     backend_ctx->hip = hip;
@@ -7350,6 +7354,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
   #if defined (__APPLE__)
   if (user_options->backend_ignore_metal == false)
   {
+    backend_ctx->init_phase = BACKEND_PHASE_METAL;
+
     MTL_PTR *mtl = (MTL_PTR *) hcmalloc (sizeof (MTL_PTR));
 
     backend_ctx->mtl = mtl;
@@ -7440,6 +7446,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_ignore_opencl == false)
   {
+    backend_ctx->init_phase = BACKEND_PHASE_OPENCL;
+
     OCL_PTR *ocl = (OCL_PTR *) hcmalloc (sizeof (OCL_PTR));
 
     backend_ctx->ocl = ocl;
@@ -7526,6 +7534,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->cuda)
   {
+    backend_ctx->init_phase = BACKEND_PHASE_CUDA;
+
     if (hc_cuInit (hashcat_ctx, 0) == -1)
     {
       cuda_close (hashcat_ctx);
@@ -7538,6 +7548,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->hip)
   {
+    backend_ctx->init_phase = BACKEND_PHASE_HIP;
+
     if (hc_hipInit (hashcat_ctx, 0) == -1)
     {
       hip_close (hashcat_ctx);
@@ -7569,6 +7581,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     char          **opencl_platforms_vendor      = (char **)          hccalloc (CL_PLATFORMS_MAX, sizeof (char *));
     cl_uint        *opencl_platforms_vendor_id   = (cl_uint *)        hccalloc (CL_PLATFORMS_MAX, sizeof (cl_uint));
     char          **opencl_platforms_version     = (char **)          hccalloc (CL_PLATFORMS_MAX, sizeof (char *));
+
+    backend_ctx->init_phase = BACKEND_PHASE_OPENCL;
 
     if (hc_clGetPlatformIDs (hashcat_ctx, CL_PLATFORMS_MAX, opencl_platforms, &opencl_platforms_cnt) == -1)
     {
@@ -11265,17 +11279,25 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // CUDA
 
+  backend_ctx->init_phase = BACKEND_PHASE_CUDA;
+
   backend_ctx_devices_init_cuda (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // HIP
+
+  backend_ctx->init_phase = BACKEND_PHASE_HIP;
 
   backend_ctx_devices_init_hip (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // Metal
 
+  backend_ctx->init_phase = BACKEND_PHASE_METAL;
+
   backend_ctx_devices_init_metal (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // OCL
+
+  backend_ctx->init_phase = BACKEND_PHASE_OPENCL;
 
   backend_ctx_devices_init_opencl (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 

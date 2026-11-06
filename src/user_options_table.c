@@ -486,6 +486,13 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .actions      = ACT_CRACK,
     .requires     = { OPT_BYPASS_DELAY },
   },
+  [OPT_BYPASS_ETA] =
+  {
+    .type         = OPTION_TYPE_U32,
+    .flags        = OPTION_FLAG_MIN,
+    .min          = 1,
+    .actions      = ACT_CRACK,
+  },
   [OPT_BENCHMARK_ALL] =
   {
     .type         = OPTION_TYPE_FLAG,
@@ -1277,6 +1284,14 @@ static const option_rule_t option_rules[OPTION_COUNT] =
     .attack_modes = AM (0),
     .late         = LATE_INPUT_STDIN,
   },
+  [OPT_STDIN_TIMEOUT_FLUSH] =
+  {
+    .type         = OPTION_TYPE_U32,
+    .def          = STDIN_TIMEOUT_FLUSH,
+    .actions      = ACT_CRACK | ACT_STDOUT,
+    .attack_modes = AM (0),
+    .late         = LATE_INPUT_STDIN,
+  },
   [OPT_USERNAME] =
   {
     .type         = OPTION_TYPE_FLAG,
@@ -1378,6 +1393,12 @@ static const option_rule_t option_rules[OPTION_COUNT] =
   [OPT_BRAIN_SESSION_WHITELIST] =
   {
     .type         = OPTION_TYPE_STR,
+    .actions      = ACT_BRAIN_SERVER,
+  },
+  [OPT_BRAIN_SERVER_DUMP_DIR] =
+  {
+    .type         = OPTION_TYPE_STR,
+    .flags        = OPTION_FLAG_NONEMPTY,
     .actions      = ACT_BRAIN_SERVER,
   },
   #endif
@@ -2346,6 +2367,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_BACKEND_INFO:              count = uo->backend_info;                                                                             break;
     case OPT_BACKEND_VECTOR_WIDTH:      count = ((uo->backend_vector_width_chgd == true) || (uo->backend_vector_width != BACKEND_VECTOR_WIDTH));  *value = uo->backend_vector_width;                  break;
     case OPT_BYPASS_DELAY:              count = ((uo->bypass_delay_chgd == true) || (uo->bypass_delay != 0));  *value = uo->bypass_delay;                          break;
+    case OPT_BYPASS_ETA:                count = ((uo->bypass_eta_chgd == true) || (uo->bypass_eta != 0));  *value = uo->bypass_eta;                                break;
     case OPT_BYPASS_THRESHOLD:          count = ((uo->bypass_threshold_chgd == true) || (uo->bypass_threshold != 0));  *value = uo->bypass_threshold;                      break;
     case OPT_BENCHMARK_ALL:             count = (uo->benchmark_all             == true);                                                      break;
     case OPT_BENCHMARK_JSON:            count = (uo->benchmark_json            == true);                                                      break;
@@ -2458,6 +2480,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_STDOUT_FLAG:               count = (uo->stdout_flag               == true);                                                      break;
     case OPT_STDIN_COUNT:               count = ((uo->stdin_count_chgd == true) || (uo->stdin_count != STDIN_COUNT));  *value = uo->stdin_count;                           break;
     case OPT_STDIN_TIMEOUT_ABORT:       count = ((uo->stdin_timeout_abort_chgd == true) || (uo->stdin_timeout_abort != STDIN_TIMEOUT_ABORT));  *value = uo->stdin_timeout_abort;                   break;
+    case OPT_STDIN_TIMEOUT_FLUSH:       count = ((uo->stdin_timeout_flush_chgd == true) || (uo->stdin_timeout_flush != STDIN_TIMEOUT_FLUSH));  *value = uo->stdin_timeout_flush;                   break;
     case OPT_USERNAME:                  count = (uo->username                  == true);                                                      break;
     case OPT_VERSION:                   count = (uo->version                   == true);                                                      break;
     case OPT_MODULE_CACHE_REBUILD:      count = (uo->module_cache_rebuild      == true);                                                      break;
@@ -2473,6 +2496,7 @@ static u32 table_struct_given (const user_options_t *user_options, const option_
     case OPT_BRAIN_PASSWORD:            count = ((uo->brain_password_chgd == true) || (uo->brain_password != NULL));  *arg   = uo->brain_password;                        break;
     case OPT_BRAIN_SESSION:             count = (uo->brain_session             != BRAIN_SESSION); *value = uo->brain_session;                 break;
     case OPT_BRAIN_SESSION_WHITELIST:   count = (uo->brain_session_whitelist   != NULL);  *arg   = uo->brain_session_whitelist;               break;
+    case OPT_BRAIN_SERVER_DUMP_DIR:     count = (uo->brain_server_dump_dir     != NULL);  *arg   = uo->brain_server_dump_dir;                 break;
     #endif
     case OPT_COLOR_CRACKED:             count = (uo->color_cracked             == true);                                                      break;
     case OPT_ENCRYPT_WITH_PUBKEY:       count = (uo->encrypt_with_pubkey       != NULL);  *arg   = uo->encrypt_with_pubkey;                   break;

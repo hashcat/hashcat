@@ -219,6 +219,10 @@ int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, 
     if (out_len == GENERIC_RC_EOF)  return GENERIC_RC_EOF;
     if (out_len == GENERIC_RC_SKIP) return GENERIC_RC_SKIP;
 
+    // only the base word reader can act on a flush, see GENERIC_RC_FLUSH
+
+    if ((out_len == GENERIC_RC_FLUSH) && (role == GENERIC_ROLE_BASE)) return GENERIC_RC_FLUSH;
+
     event_log_error (hashcat_ctx, "%s: thread_next returned %d", generic_ctx->dynlib_filename, out_len);
 
     return GENERIC_RC_ERROR;
@@ -1045,7 +1049,11 @@ int generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, c
 
   for (u64 i = 0; i < count; i++)
   {
-    const int out_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_id, out_buf, PW_MAX);
+    // A flush means only that the input is slow. The word for this position has not arrived yet.
+
+    int out_len = GENERIC_RC_FLUSH;
+
+    while (out_len == GENERIC_RC_FLUSH) out_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_id, out_buf, PW_MAX);
 
     if (out_len == GENERIC_RC_ERROR)
     {
