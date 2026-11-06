@@ -17,10 +17,13 @@
 # (Use WSL or Linux - plyvel needs the system leveldb library installed
 #  e.g. apt install libleveldb-dev / brew install leveldb)
 
+
 import argparse
 import base64
 import binascii
+import shutil
 import sys
+import tempfile
 
 import plyvel
 
@@ -106,17 +109,24 @@ def main():
     if args.min_ascii is not None and not 1 <= args.min_ascii <= 100:
         parser.error("the ASCII share is a percentage from 1 to 100")
 
-    # Open LevelDB
+    # Open a copy, not the original: opening a LevelDB triggers log compaction,
+    # which modifies the wallet directory in place.
+    found = None
     try:
-        db = plyvel.DB(args.path, create_if_missing=False)
-    except plyvel.Error as e:
-        print(f"Failed to open LevelDB at {args.path!r}: {e}", file=sys.stderr)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            shutil.copytree(args.path, tmpdir, dirs_exist_ok=True)
+            try:
+                db = plyvel.DB(tmpdir, create_if_missing=False)
+            except plyvel.Error as e:
+                print(f"Failed to open LevelDB at {args.path!r}: {e}", file=sys.stderr)
+                sys.exit(1)
+            try:
+                found = find_value(db)
+            finally:
+                db.close()
+    except OSError as e:
+        print(f"Failed to copy LevelDB from {args.path!r}: {e}", file=sys.stderr)
         sys.exit(1)
-
-    try:
-        found = find_value(db)
-    finally:
-        db.close()
 
     if found is None:
         print("Key 'general_mnemonic' not found.", file=sys.stderr)
