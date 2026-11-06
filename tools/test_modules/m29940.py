@@ -81,13 +81,6 @@ def _ctr_stream(aes, ivs, num_keys, counter_start, nblocks):
 
 def module_test_properties():
   return {
-    'tests': {
-      'edge': {
-        'all': {
-          'allow_same_salt': True,
-        },
-      },
-    },
     'constraints': {
       'pure': {
         'password_length': [0, 256],

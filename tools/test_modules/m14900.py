@@ -59,13 +59,6 @@ def skip32_encrypt(key, block):
 
 def module_test_properties():
   return {
-    'tests': {
-      'ordinary': {
-        12: {
-          'exclude': 'hybrid_mask_layout',
-        },
-      },
-    },
     'constraints': {
       'pure': None,
       'optimized': {

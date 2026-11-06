@@ -14,7 +14,6 @@ from lib.test_helpers import random_string, split_hash_word
 
 def module_test_properties():
   return {
-    'parallel': {'memory_cap': False},
     'constraints': {
       'pure': {
         'password_length': [0, 256],

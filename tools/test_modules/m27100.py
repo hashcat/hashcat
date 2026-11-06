@@ -14,13 +14,6 @@ from lib.test_helpers import pack_hex
 
 def module_test_properties():
   return {
-    'tests': {
-      'edge': {
-        'all': {
-          'allow_same_salt': True,
-        },
-      },
-    },
     'constraints': {
       'pure': {
         'password_length': [32, 32],

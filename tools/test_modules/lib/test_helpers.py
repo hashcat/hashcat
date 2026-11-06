@@ -16,7 +16,6 @@
 # repeats: the same seed draws the same characters in the same order, so a mode's vectors can be
 # reproduced.
 
-from contextlib import contextmanager
 import os
 import random
 
@@ -28,21 +27,6 @@ MIXEDCASE_CHARS = UPPERCASE_CHARS + LOWERCASE_CHARS
 STRING_CHARS    = UPPERCASE_CHARS + LOWERCASE_CHARS + NUMERIC_CHARS
 
 _STATE = None
-_FIXED_NUMBERS = None
-
-
-@contextmanager
-def fixed_random_numbers(values):
-  # Association batches need equal work factors, while salts and passwords remain random.
-  global _FIXED_NUMBERS
-
-  previous = _FIXED_NUMBERS
-  _FIXED_NUMBERS = values
-
-  try:
-    yield
-  finally:
-    _FIXED_NUMBERS = previous
 
 
 def test_iteration_parameters(properties):
@@ -117,17 +101,7 @@ def random_number(minimum, maximum):
   if minimum > maximum:
     return None
 
-  key = (minimum, maximum)
-
-  if _FIXED_NUMBERS is not None and key in _FIXED_NUMBERS:
-    return _FIXED_NUMBERS[key]
-
-  value = int(_rand((maximum + 1) - minimum)) + minimum
-
-  if _FIXED_NUMBERS is not None:
-    _FIXED_NUMBERS[key] = value
-
-  return value
+  return int(_rand((maximum + 1) - minimum)) + minimum
 
 
 def random_string(count):

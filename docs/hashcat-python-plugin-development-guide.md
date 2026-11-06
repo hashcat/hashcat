@@ -98,7 +98,9 @@ Anything the fixed fields cannot hold goes in the mode's own esalt, whose layout
 defines. `extract_esalts()` turns it into Python objects, and the result lands under `salt["esalt"]`.
 Fixed fields stay at the top level, so the two namespaces do not collide.
 
-The generic modes keep a 16-byte surrogate in `salt_buf` for grouping hashes. Their original hash and salt strings are retained at their actual lengths and packed for the worker, where `extract_esalts()` puts the real data under `salt["esalt"]`. `hcshared.get_salt_buf()` returns that salt:
+The generic modes are the case worth knowing. Their C module stores the real salt in the esalt and
+keeps only a 16 byte surrogate in `salt_buf` for grouping hashes. For them the salt you want is the
+esalt's, which is what `hcshared.get_salt_buf()` returns:
 
 ```python
 def calc_hash(password: bytes, salt: dict) -> str:
@@ -117,27 +119,31 @@ which layout is in force, for a plugin that needs to know.
 
 ### A worked esalt
 
-The generic modes keep an eight-byte descriptor per hash in the core:
+The generic modes pass this structure from C:
 
 ```c
 typedef struct {
+  u32 hash_buf[256];
   u32 hash_len;
+  u32 salt_buf[256];
   u32 salt_len;
 } generic_io_t;
 ```
 
-`OPTS_TYPE_HASH_COPY` retains the original strings and owns their cleanup. The bridge packs each descriptor followed by exactly `hash_len` hash bytes and `salt_len` salt bytes, without padding or terminators. The lengths use native-endian 32-bit integers because the worker runs on the same host. The payload contains no process pointers.
-
-The salt validation limit remains 131072 bytes (128 KiB), but a short salt occupies only its actual length. The descriptors for 200000 hashes occupy about 1.5 MiB, plus the original strings and worker copies of the actual data.
-
-Python plugins can use the shared decoder, which checks record boundaries:
+Each `u32` array is 1024 bytes, so the format string is:
 
 ```python
 def extract_esalts(esalts_buf: bytes) -> list:
-  return hcshared.extract_generic_esalts(esalts_buf)
+  esalts = []
+
+  for hash_buf, hash_len, salt_buf, salt_len in struct.iter_unpack("1024s I 1024s I", esalts_buf):
+    esalts.append({ "hash_buf": hash_buf[0:hash_len], "salt_buf": salt_buf[0:salt_len] })
+
+  return esalts
 ```
 
-Rust plugins must be rebuilt against the matching `hashcat-sys`. The Rust bridge rejects incompatible layouts before initializing the plugin. `ThreadContext` owns variable-length hash and salt vectors, and releases them when the context is dropped.
+The format has to match the C structure exactly. `iter_unpack` refuses a buffer that is not a whole
+number of records, which catches most mistakes on the first run.
 
 ## 5. Choosing the plugin
 

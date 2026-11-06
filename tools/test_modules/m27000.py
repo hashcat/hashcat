@@ -46,13 +46,6 @@ def random_netntlmv1_salt(len_user, len_domain):
 
 def module_test_properties():
   return {
-    'tests': {
-      'edge': {
-        'all': {
-          'allow_same_salt': True,
-        },
-      },
-    },
     'constraints': {
       'pure': {
         'password_length': [32, 32],

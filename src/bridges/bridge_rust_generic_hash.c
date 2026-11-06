@@ -8,7 +8,6 @@
 #include "event.h"
 #include "bridges.h"
 #include "memory.h"
-#include "bridge_generic.h"
 #include "shared.h"
 #include "path.h"
 #include "cpu_features.h"
@@ -84,7 +83,7 @@ typedef void *(*RS_NEW_CONTEXT)(
   const salt_t *salts_buf,
 
   int esalts_cnt,
-  int esalts_len,
+  int esalts_size,
   const char *esalts_buf,
 
   int st_salts_cnt,
@@ -92,7 +91,7 @@ typedef void *(*RS_NEW_CONTEXT)(
   const salt_t *st_salts_buf,
 
   int st_esalts_cnt,
-  int st_esalts_len,
+  int st_esalts_size,
   const char *st_esalts_buf,
 
   const char *bridge_parameter1,
@@ -328,22 +327,6 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     return NULL;
   }
 
-  typedef u64 (*RS_GENERIC_IO_SIZE) (void);
-
-  const RS_GENERIC_IO_SIZE generic_io_size = (RS_GENERIC_IO_SIZE) hc_dlsym (bridge_context->lib, "generic_io_size");
-
-  if ((generic_io_size == NULL) || (generic_io_size () != hashcat_ctx->hashconfig->esalt_size))
-  {
-    event_log_error (hashcat_ctx, "Rust plugin salt layout is incompatible. Rebuild %s with the current hashcat-sys.", bridge_context->dynlib_filename);
-
-    hc_dlclose (bridge_context->lib);
-
-    hcfree (bridge_context->dynlib_filename);
-    hcfree (bridge_context);
-
-    return NULL;
-  }
-
   #define HC_LOAD_FUNC_RUST(ptr, name, type)                                                    \
   do                                                                                            \
   {                                                                                             \
@@ -418,21 +401,6 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
   const int st_cnt = (hashes->st_salts_buf == NULL) ? 0 : 1;
 
-  u8 *packed_esalts = NULL;
-  u8 *packed_st_esalts = NULL;
-  u32 packed_len = 0;
-  u32 packed_st_len = 0;
-
-  if ((generic_hash_pack (hashconfig, hashes, false, &packed_esalts, &packed_len) == false) || (generic_hash_pack (hashconfig, hashes, true, &packed_st_esalts, &packed_st_len) == false))
-  {
-    hcfree (packed_esalts);
-    hcfree (packed_st_esalts);
-
-    event_log_error (hashcat_ctx, "Cannot pack the generic bridge hash records.");
-
-    return false;
-  }
-
   unit_buf->unit_context = bridge_context->new_context(
     module_name,
 
@@ -441,16 +409,16 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
     hashes->salts_buf,
 
     hashes->digests_cnt,
-    packed_len,
-    (const char *) packed_esalts,
+    hashconfig->esalt_size,
+    (const char *) hashes->esalts_buf,
 
     st_cnt,
     sizeof (salt_t),
     hashes->st_salts_buf,
 
     st_cnt,
-    packed_st_len,
-    (const char *) packed_st_esalts,
+    hashconfig->esalt_size,
+    (const char *) hashes->st_esalts_buf,
 
     bridge_context->bridge_parameter1,
     bridge_context->bridge_parameter2,
@@ -459,9 +427,6 @@ bool thread_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_contex
 
     hashcat_ctx->user_options->attack_mode == ATTACK_MODE_ASSOCIATION
   );
-
-  hcfree (packed_esalts);
-  hcfree (packed_st_esalts);
 
   // We should free module_name, but if a user changes the Rust code to
   // use it without copying, we could get a dangling pointer. So we are

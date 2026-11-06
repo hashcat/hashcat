@@ -130,7 +130,12 @@ fn process_batch(
 
         if pw_pos == 0 || stride != 0 {
             let esalt = ctx.get_raw_esalt(salt_id + (pw_pos * stride), is_selftest);
-            let salt = esalt.salt_buf.as_slice();
+            let salt = unsafe {
+                slice::from_raw_parts(
+                    esalt.salt_buf.as_ptr() as *const u8,
+                    esalt.salt_len as usize,
+                )
+            };
 
             eval_ctx = EvalContext::new();
             eval_ctx.set_var("s", salt);

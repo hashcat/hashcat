@@ -18,18 +18,6 @@
 
 def module_test_properties():
   return {
-    'tests': {
-      'selftest': {
-        'all': {
-          'exclude': 'no_selftest_vector',
-        },
-      },
-      'edge': {
-        'all': {
-          'exclude': 'STDOUT emits candidates and has no cracking kernel.',
-        },
-      },
-    },
     'constraints': {
       'pure': {
         'password_length': [1, 256],

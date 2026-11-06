@@ -73,13 +73,6 @@ def _keystream(key, counter_bin, iv_bin, length):
 
 def module_test_properties():
   return {
-    'tests': {
-      'ordinary': {
-        12: {
-          'exclude': 'hybrid_mask_layout',
-        },
-      },
-    },
     'constraints': {
       'pure': None,
       'optimized': {
