@@ -76,17 +76,32 @@ KERNEL_FQ KERNEL_FA void m28000_mxx (KERN_ATTR_ESALT (crc64_t))
     // pieces: mask, base word, mask, second word, mask. The state precomputed outside this loop ends
     // with the base word and is only reusable while the base word still starts the candidate.
 
-    u64 a_pre = a_ref;
+    // -a 1 may choose the larger wordlist as the base word source (BASE_RIGHT), which puts the
+    // amplifier in front of the base word. CRC is order dependent, so recompute from the initial
+    // value with the amplifier first and the base word after.
 
-    if (COMBS_IS_MIDDLE)
+    u64 a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      a_pre = crc64j_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv,    s_crc64jonestab);
-      a_pre = crc64j_global (pws[gid].i,            pws[gid].pw_len,            a_pre, s_crc64jonestab);
-      a_pre = crc64j_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre, s_crc64jonestab);
-      a_pre = crc64j_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre, s_crc64jonestab);
-    }
+      u64 a_pre = crc64j_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, iv, s_crc64jonestab);
 
-    u64 a = crc64j_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre, s_crc64jonestab);
+      a = crc64j_global (pws[gid].i, pws[gid].pw_len, a_pre, s_crc64jonestab);
+    }
+    else
+    {
+      u64 a_pre = a_ref;
+
+      if (COMBS_IS_MIDDLE)
+      {
+        a_pre = crc64j_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv,    s_crc64jonestab);
+        a_pre = crc64j_global (pws[gid].i,            pws[gid].pw_len,            a_pre, s_crc64jonestab);
+        a_pre = crc64j_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre, s_crc64jonestab);
+        a_pre = crc64j_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre, s_crc64jonestab);
+      }
+
+      a = crc64j_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre, s_crc64jonestab);
+    }
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);
@@ -164,17 +179,32 @@ KERNEL_FQ KERNEL_FA void m28000_sxx (KERN_ATTR_ESALT (crc64_t))
     // pieces: mask, base word, mask, second word, mask. The state precomputed outside this loop ends
     // with the base word and is only reusable while the base word still starts the candidate.
 
-    u64 a_pre = a_ref;
+    // -a 1 may choose the larger wordlist as the base word source (BASE_RIGHT), which puts the
+    // amplifier in front of the base word. CRC is order dependent, so recompute from the initial
+    // value with the amplifier first and the base word after.
 
-    if (COMBS_IS_MIDDLE)
+    u64 a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      a_pre = crc64j_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv,    s_crc64jonestab);
-      a_pre = crc64j_global (pws[gid].i,            pws[gid].pw_len,            a_pre, s_crc64jonestab);
-      a_pre = crc64j_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre, s_crc64jonestab);
-      a_pre = crc64j_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre, s_crc64jonestab);
-    }
+      u64 a_pre = crc64j_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, iv, s_crc64jonestab);
 
-    u64 a = crc64j_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre, s_crc64jonestab);
+      a = crc64j_global (pws[gid].i, pws[gid].pw_len, a_pre, s_crc64jonestab);
+    }
+    else
+    {
+      u64 a_pre = a_ref;
+
+      if (COMBS_IS_MIDDLE)
+      {
+        a_pre = crc64j_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv,    s_crc64jonestab);
+        a_pre = crc64j_global (pws[gid].i,            pws[gid].pw_len,            a_pre, s_crc64jonestab);
+        a_pre = crc64j_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre, s_crc64jonestab);
+        a_pre = crc64j_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre, s_crc64jonestab);
+      }
+
+      a = crc64j_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre, s_crc64jonestab);
+    }
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);

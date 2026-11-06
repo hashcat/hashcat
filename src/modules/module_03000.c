@@ -27,7 +27,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_UPPER
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_PT_LM
-                                  | OPTS_TYPE_HASH_SPLIT;
+                                  | OPTS_TYPE_HASH_SPLIT
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u64   KERN_BITS      = KERN_BIT_TM;
 static const u32   PWDUMP_COLUMN  = PWDUMP_COLUMN_LM_HASH;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
