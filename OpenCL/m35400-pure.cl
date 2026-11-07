@@ -19,6 +19,10 @@
 #undef RC4_FOLD_ON_POCL
 #endif
 
+#ifndef FIXED_LOCAL_SIZE
+#define FIXED_LOCAL_SIZE 32
+#endif
+
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 

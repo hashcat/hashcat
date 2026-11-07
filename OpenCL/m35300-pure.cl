@@ -24,7 +24,7 @@
 
 #ifndef FIXED_LOCAL_SIZE
 #define FIXED_LOCAL_SIZE 32
-#endif/
+#endif
 
 typedef struct krb5tgs
 {
