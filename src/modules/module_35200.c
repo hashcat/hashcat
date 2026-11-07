@@ -28,7 +28,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_PT_ADDBITS15
-                                  | OPTS_TYPE_PT_UTF16BE;
+                                  | OPTS_TYPE_PT_UTF16BE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "IOIO13";
 static const char *ST_HASH        = "$as400$ssha1$*QTEST1*7ED7D3694D0A2E40A720D41031B456C09124966E";

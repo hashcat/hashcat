@@ -30,7 +30,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS15
                                   | OPTS_TYPE_PT_UTF16LE
-                                  | OPTS_TYPE_ST_HEX;
+                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "339b5eaa53f28516008e9ca710857d3a4785b6fc:8ca064ff42fcab5a8f0692544b8dd3d3054bd73fe9afaa08c6b6b310538cc9a7:757365726e616d65";

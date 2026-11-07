@@ -25,7 +25,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_NATIVE_THREADS
-                                  | OPTS_TYPE_ST_HEX;
+                                  | OPTS_TYPE_ST_HEX
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u64   KERN_BITS      = KERN_BIT_TM;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
