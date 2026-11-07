@@ -41,6 +41,7 @@
 #include "emu_inc_hash_ripemd.h"
 #include "emu_inc_hash_whirlpool01.h"
 #include "emu_inc_hash_xxhash.h"
+#include "emu_inc_hash_lookup8.h"
 #include "emu_inc_hash_ripemd256.h"
 #include "emu_inc_hash_mysql323.h"
 #include "emu_inc_hash_haval.h"
@@ -425,6 +426,7 @@ static const recipe_algo_entry_t RECIPE_ALGOS[] =
   { "wrl1",          RECIPE_ALGO_WRL1,          64,  64, true,  false },
   { "xxh64",         RECIPE_ALGO_XXH64,          8,  32, false, false },
   { "xxh32",         RECIPE_ALGO_XXH32,          4,  16, false, false },
+  { "lookup8",       RECIPE_ALGO_LOOKUP8,        8,  24, false, false },
 
   { "aes",         RECIPE_ALGO_AES,         0,  16, false, false },
   { "bop",         RECIPE_ALGO_BOP,         0,   0, false, false },
@@ -438,7 +440,7 @@ static const u32 RECIPE_ALGOS_CNT = sizeof (RECIPE_ALGOS) / sizeof (recipe_algo_
 
 static const char *RECIPE_XOP_NAMES[] = { "NONE", "UPPER", "LOWER", "HEX", "REV", "ROTATE", "CAP", "ROT13", "PAD", "BSWAP32", "WPERM", "CUT", "FROMHEX", "FROMB64", "ZEXT16", "UTF16BE", "B64", "XOR" };
 
-static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tiger192_4 (Tiger with 4 passes), tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, xxh64 and xxh32 (also with a seed), lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
+static const char *RECIPE_KNOWN = "mode 4000 supports md2, md4 (also ed2k), md5, sha0, sha1 (also aich), sha224, sha256, sha384, sha512, rmd128, rmd160, rmd256, rmd320, blake2b512, blake2b256, blake2s256, sm3, wrl (also whirlpool), sha3_224, sha3_256, sha3_384, sha3_512, keccak224, keccak256, keccak384, keccak512, streebog_32 and streebog_64 (also streebog256, streebog512, gost2012_32 and gost2012_64), gost, gost_crypto, hav128_3 to hav256_5 (HAVAL with 3, 4 or 5 passes, also hav128, hav160, hav192, hav224 and hav256 for 3), tiger (also tiger192), tiger128, tiger160, tiger2, tiger192_4 (Tiger with 4 passes), tth, sne128 and sne256 (also snefru128 and snefru256), skein224, skein256, skein384, skein512, panama, blake224 to blake512, bmw224 to bmw512, cube224 to cube512, echo224 to echo512, fugue224 to fugue512, groestl224 to groestl512, hamsi224 to hamsi512, jh224 to jh512, luffa224 to luffa512, shabal224 to shabal512, shavite224 to shavite512, simd224 to simd512, has160, edon256, edon512, md6 (also md6128), md6256, md6512, radiogatun32, radiogatun64, ripemd, wrl0, wrl1, their hmac_ forms except for tth and the fugue, hamsi, md6 and radiogatun names, mysql3, xxh64, xxh32 and lookup8 (also with a seed), lm, mdc2, pbkdf2_md5, pbkdf2_sha1, pbkdf2_sha256, pbkdf2_sha512, aes_ecb_encrypt, aes_cbc_encrypt, aes_cbc_decrypt, aes_unwrap, des, des3, des_block, xor, and, or, upper, lower, hex, cut, trunc, rev, rotate, cap, rot13, pad, bswap32, wperm, base64, fromhex, frombase64, utf16le, utf16be, zext16 and length";
 
 const char *recipe_algo_name (const u32 algo)
 {
@@ -539,6 +541,7 @@ static const recipe_family_t RECIPE_FAMILIES[] =
   { RECIPE_ALGO_RIPEMD,       RECIPE_ALGO_RIPEMD,       "RECIPE_RIPEMD"     },
   { RECIPE_ALGO_WRL0,         RECIPE_ALGO_WRL1,         "RECIPE_WRL01"      },
   { RECIPE_ALGO_XXH64,        RECIPE_ALGO_XXH32,        "RECIPE_XXHASH"     },
+  { RECIPE_ALGO_LOOKUP8,      RECIPE_ALGO_LOOKUP8,      "RECIPE_LOOKUP8"    },
 };
 
 static const u32 RECIPE_FAMILIES_CNT = sizeof (RECIPE_FAMILIES) / sizeof (recipe_family_t);
@@ -1265,6 +1268,8 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
 
     if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32)) { recipe_fail_at (p, name_pos, "xxh64 and xxh32 take a seed rather than a key, as in xxh64 (pass, salt), so they have no hmac_ form"); return 0; }
 
+    if (algo == RECIPE_ALGO_LOOKUP8) { recipe_fail_at (p, name_pos, "lookup8 takes a level rather than a key, as in lookup8 (pass, salt), so it has no hmac_ form"); return 0; }
+
     if (algo == RECIPE_ALGO_TTH) { recipe_fail_at (p, name_pos, "tth is a tree hash, so it has no hmac_ form"); return 0; }
 
     if (algo == RECIPE_ALGO_LM) { recipe_fail_at (p, name_pos, "lm keeps only the first 14 bytes of its input, so it has no hmac_ form"); return 0; }
@@ -1328,10 +1333,11 @@ static u32 recipe_parse_call (recipe_parser_t *p, const char *name, const u32 na
 
     if (arg == 0) return 0;
 
-    // xxh64 and xxh32 take an optional seed after the data, as hx's murmur3 does. A call with a seed
-    // is a SEED node, which keeps the seed as its first kid the way an HMAC node keeps its key.
+    // xxh64 and xxh32 take an optional seed after the data, as hx's murmur3 does, and lookup8 its
+    // level the same way. A call with a seed is a SEED node, which keeps the seed as its first kid
+    // the way an HMAC node keeps its key.
 
-    const bool seeds = (algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32);
+    const bool seeds = (algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32) || (algo == RECIPE_ALGO_LOOKUP8);
 
     u32 seed = 0;
 
@@ -5250,7 +5256,7 @@ static bool recipe_algo_swaps (const u32 algo)
 
   if ((algo == RECIPE_ALGO_SHA0) || (algo == RECIPE_ALGO_SM3) || (algo == RECIPE_ALGO_WRL) || (algo == RECIPE_ALGO_MYSQL323)) return true;
 
-  if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32)) return true;
+  if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32) || (algo == RECIPE_ALGO_LOOKUP8)) return true;
 
   if ((algo >= RECIPE_ALGO_BLAKE224)   && (algo <= RECIPE_ALGO_BLAKE512))   return true;
   if ((algo >= RECIPE_ALGO_ECHO224)    && (algo <= RECIPE_ALGO_ECHO512))    return true;
@@ -7444,12 +7450,28 @@ static u64 recipe_seed_value (const u32 *buf, const u32 len, const u32 max)
   return seed;
 }
 
-// xxh64 or xxh32 of the parts from the given seed. The digest is written big endian, as the
-// kernel include writes it.
+// xxh64, xxh32 or lookup8 of the parts from the given seed, the level for lookup8. The digest is
+// written big endian, as the kernel include writes it.
 
 static u32 recipe_xxh_parts (const u32 algo, const u64 seed, const u32 **bufs, const u32 *lens, const u32 cnt, u32 *raw)
 {
   memset (raw, 0, 64);
+
+  if (algo == RECIPE_ALGO_LOOKUP8)
+  {
+    lookup8_ctx_t ctx;
+
+    lookup8_init (&ctx, seed);
+
+    for (u32 i = 0; i < cnt; i++) lookup8_update (&ctx, bufs[i], (int) lens[i]);
+
+    lookup8_final (&ctx);
+
+    raw[0] = byte_swap_32 ((u32) (ctx.c >> 32));
+    raw[1] = byte_swap_32 ((u32) (ctx.c >>  0));
+
+    return 8;
+  }
 
   if (algo == RECIPE_ALGO_XXH64)
   {
@@ -8338,7 +8360,7 @@ static u32 recipe_hash_parts (const u32 algo, const u32 **bufs, const u32 *lens,
 
     raw_len = 8;
   }
-  else if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32))
+  else if ((algo == RECIPE_ALGO_XXH64) || (algo == RECIPE_ALGO_XXH32) || (algo == RECIPE_ALGO_LOOKUP8))
   {
     raw_len = recipe_xxh_parts (algo, 0, bufs, lens, cnt, raw);
   }
@@ -9265,7 +9287,7 @@ static void recipe_eval_sec (const recipe_prog_t *prog, recipe_env_t *env, const
 
       recipe_env_part (prog, env, &step->key, &seed_buf, &seed_len);
 
-      const u64 seed = recipe_seed_value (seed_buf, seed_len, (step->algo == RECIPE_ALGO_XXH64) ? 8 : 4);
+      const u64 seed = recipe_seed_value (seed_buf, seed_len, (step->algo == RECIPE_ALGO_XXH32) ? 4 : 8);
 
       env->raw_len = recipe_xxh_parts (step->algo, seed, bufs, lens, step->parts_cnt, env->raw);
     }

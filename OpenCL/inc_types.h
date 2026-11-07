@@ -1994,6 +1994,12 @@ typedef enum xxh32_constants
 
 } xxh32_constants_t;
 
+typedef enum lookup8_constants
+{
+  LOOKUP8_GOLDEN=0x9e3779b97f4a7c13UL
+
+} lookup8_constants_t;
+
 typedef enum combinator_mode
 {
   COMBINATOR_MODE_BASE_LEFT   = 10001,

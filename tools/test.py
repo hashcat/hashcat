@@ -5142,7 +5142,10 @@ EDGE_SKIP_OUT_MATCH = {14000, 14100, 14300, 22000, 22001, 31500, 31600}
 # characters derives the same key and opens the same container. A mask or a hybrid attack finds one
 # of those rather than the one the oracle generated, which is a correct password either way, so the
 # outfile goes through the module's verify instead of a literal compare.
-EDGE_VERIFY_OUT = {1500, 36901, 37902, 37903}
+
+# 35900 reads only as many characters of the Hashids salt as its shuffles take, one fewer than the
+# alphabet holds, so the noise words that differ only past those all produce the same hashid.
+EDGE_VERIFY_OUT = {1500, 35900, 36901, 37902, 37903}
 
 # The modes whose -HH says same-salt is "Not" allowed but that the suite runs with a shared salt
 # anyway (test_edge.sh SKIP_SAME_SALT_HASH_TYPES, the active list).
