@@ -24,8 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_DEEP_COMP_KERNEL
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$1c41586d6c060071e08186ee214e725e";
@@ -34,7 +34,6 @@ static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$1c41586d6c060071
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
-#define MAX_EDATA2_LEN 20480
 
 typedef struct krb5db_17
 {
@@ -93,8 +92,8 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   /**
-   * $krb5db$17$user$realm$hash
-   * $krb5db$17$user$realm$*spn*$hash
+   * format 1: $krb5db$17$user$realm$key
+   * format 2: $krb5db$17$user$realm$*spn*$key  (with optional SPN)
    */
 
   // assume no signature found
@@ -108,7 +107,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   int is_spn_provided = 0;
 
-  // assume $krb5db$17$user$realm$hash
+  // format 1: $krb5db$17$user$realm$key
   if (spn_info_start == NULL)
   {
     token.token_cnt  = 4;
@@ -128,7 +127,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  // assume $krb5db$17$user$realm$*spn*$hash
+  // format 1: $krb5db$17$user$realm$*spn*$key
   else
   {
     // bounded for the same reason as the search above: the field ends where the line ends
