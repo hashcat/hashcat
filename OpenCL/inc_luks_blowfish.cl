@@ -13,7 +13,6 @@
 #include "inc_hash_ripemd160.h"
 #include "inc_cipher_blowfish.h"
 #include "inc_luks_af.h"
-#include "inc_luks_essiv.h"
 #include "inc_luks_blowfish.h"
 
 // LUKS with Blowfish. Two things make this unlike the AES, Serpent and Twofish includes beside it.
@@ -746,21 +745,59 @@ DECLSPEC void luks_blowfish_essiv_key_and_ivs (PRIVATE_AS const u32 *ukey, const
   // encrypted under it. Both keys cannot sit in the S boxes at once, so the vectors are taken now
   // and the caller schedules the data key over the top afterwards.
   //
-  // ESSIV_sha256_init takes its key in host order and answers in host order, while Blowfish reads
-  // big endian, so the key turns around on the way in and the hash turns around on the way out.
+  // SHA-256 reads big endian words, as Blowfish does, so the key goes into the hash as it stands and
+  // the digest is the ESSIV key. Through a byte swapped copy of the key and ESSIV_sha256_init128 (),
+  // CUDA gave hash-mode 29534 its master key back overwritten by that copy.
 
-  u32 key_host[8];
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
-  for (int i = 0; i < key_words; i++) key_host[i] = hc_swap32_S (ukey[i]);
+  w0[0] = ukey[0];
+  w0[1] = ukey[1];
+  w0[2] = ukey[2];
+  w0[3] = ukey[3];
 
-  u32 essivhash[8];
+  if (key_words == 4)
+  {
+    w1[0] = 0x80000000;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
 
-  if (key_words == 4) ESSIV_sha256_init128 (key_host, essivhash);
-  else                ESSIV_sha256_init256 (key_host, essivhash);
+    w2[0] = 0;
+  }
+  else
+  {
+    w1[0] = ukey[4];
+    w1[1] = ukey[5];
+    w1[2] = ukey[6];
+    w1[3] = ukey[7];
+
+    w2[0] = 0x80000000;
+  }
+
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = key_words * 32;
 
   u32 ekey[8];
 
-  for (int i = 0; i < 8; i++) ekey[i] = hc_swap32_S (essivhash[i]);
+  ekey[0] = SHA256M_A;
+  ekey[1] = SHA256M_B;
+  ekey[2] = SHA256M_C;
+  ekey[3] = SHA256M_D;
+  ekey[4] = SHA256M_E;
+  ekey[5] = SHA256M_F;
+  ekey[6] = SHA256M_G;
+  ekey[7] = SHA256M_H;
+
+  sha256_transform (w0, w1, w2, w3, ekey);
 
   blowfish_set_key (ekey, 8, P, S0, S1, S2, S3);
 

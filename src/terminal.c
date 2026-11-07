@@ -3222,6 +3222,12 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
       // hide empty OpenCL platforms
       if (opencl_platform_devices_cnt == 0) continue;
 
+      // OpenCL is the one API with several platforms, so the platform gets a line of its own under
+      // this one, and the rule follows the platform line. Some runtimes fill the version with their
+      // build options, PoCL for one.
+
+      event_log_info (hashcat_ctx, "OpenCL API (%s)", opencl_platform_version);
+
       // Two runtimes of one vendor, Mesa's Clover and rusticl for one, report the same vendor and
       // differ only in their platform name, so the name goes in front of it where it says something
       // more.
@@ -3229,8 +3235,8 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
       const bool name_adds = (opencl_platform_name != NULL) && (opencl_platform_name[0] != 0) && (strcmp (opencl_platform_name, "N/A") != 0) && (strcmp (opencl_platform_name, opencl_platform_vendor) != 0);
 
       const size_t len = (name_adds == true)
-                       ? event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u: %s [%s]", opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_name, opencl_platform_vendor)
-                       : event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u [%s]",     opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_vendor);
+                       ? event_log_info (hashcat_ctx, "Platform #%u: %s [%s]", opencl_platforms_idx + 1, opencl_platform_name, opencl_platform_vendor)
+                       : event_log_info (hashcat_ctx, "Platform #%u [%s]",     opencl_platforms_idx + 1, opencl_platform_vendor);
 
       char line[HCBUFSIZ_TINY] = { 0 };
 
