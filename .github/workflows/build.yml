@@ -58,6 +58,7 @@ on:
       - '.github/workflows/build.yml'
       - '.github/workflows/generate_docs.sh'
       - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
+      - '.github/workflows/hashcat-help2man.py'
   pull_request:
     branches:
       - master
@@ -75,6 +76,7 @@ on:
       - '.github/workflows/build.yml'
       - '.github/workflows/generate_docs.sh'
       - '.github/workflows/hashcat-example-hashes_machine-readable2md.py'
+      - '.github/workflows/hashcat-help2man.py'
 
 jobs:
   build:
@@ -218,6 +220,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/hashcat-help.md
           git add docs/hashcat-example-hashes.md
+          git add docs/hashcat.1
           if ! git diff --staged --quiet; then
             # The repository variable DOCS_BOT=manual holds the commit back, for a release that
             # carries its generated docs itself. The diff is still printed below.

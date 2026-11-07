@@ -327,6 +327,7 @@ INSTALL_FOLDER          ?= $(PREFIX)/bin
 SHARED_ROOT_FOLDER      ?= $(PREFIX)/share
 SHARED_FOLDER           ?= $(SHARED_ROOT_FOLDER)/hashcat
 DOCUMENT_FOLDER         ?= $(SHARED_ROOT_FOLDER)/doc/hashcat
+MANUAL_FOLDER           ?= $(SHARED_ROOT_FOLDER)/man/man1
 LIBRARY_FOLDER          ?= $(PREFIX)/lib
 LIBRARY_DEV_ROOT_FOLDER ?= $(PREFIX)/include
 LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
@@ -1850,6 +1851,8 @@ install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/tables
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(MANUAL_FOLDER)
+	$(INSTALL) -m 644 docs/hashcat.1                                        $(DESTDIR)$(MANUAL_FOLDER)/
 	$(INSTALL) -m 644 example.dict                                          $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example0.hash                                         $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example400.hash                                       $(DESTDIR)$(DOCUMENT_FOLDER)/
@@ -1999,3 +2002,4 @@ uninstall:
 	$(RM) -rf $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
 	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
+	$(RM) -f  $(DESTDIR)$(MANUAL_FOLDER)/hashcat.1
