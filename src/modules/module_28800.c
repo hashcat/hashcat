@@ -35,7 +35,7 @@ static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$1c41586d6c060071
 typedef struct krb5db_17
 {
   u32 user[128];
-  u32 domain[128];
+  u32 realm[128];
   u32 account_info[512];
   u32 account_info_len;
 
@@ -168,11 +168,11 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *user_pos;
-  const u8 *domain_pos;
+  const u8 *realm_pos;
   const u8 *checksum_pos;
 
   int user_len;
-  int domain_len;
+  int realm_len;
   int account_info_len;
 
   user_pos = token.buf[1];
@@ -180,10 +180,10 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memcpy (krb5db->user, user_pos, user_len);
 
-  domain_pos = token.buf[2];
-  domain_len = token.len[2];
+  realm_pos = token.buf[2];
+  realm_len = token.len[2];
 
-  memcpy (krb5db->domain, domain_pos, domain_len);
+  memcpy (krb5db->realm, realm_pos, realm_len);
 
   checksum_pos = token.buf[3 + is_spn_provided];
 
@@ -193,13 +193,13 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   // domain must be uppercase
 
-  u8 domain[512];
+  u8 realm[512];
 
-  memcpy (domain, domain_pos, domain_len);
-  uppercase (domain, domain_len);
+  memcpy (realm, realm_pos, realm_len);
+  uppercase (realm, realm_len);
 
-  memcpy (account_info_ptr, domain, domain_len);
-  memcpy (account_info_ptr + domain_len, user_pos, user_len);
+  memcpy (account_info_ptr, realm, realm_len);
+  memcpy (account_info_ptr + realm_len, user_pos, user_len);
 
   krb5db->account_info_len = account_info_len;
 
@@ -235,7 +235,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x%08x",
     SIGNATURE_KRB5DB,
     (const char *) krb5db->user,
-    (const char *) krb5db->domain,
+    (const char *) krb5db->realm,
     digest[0],
     digest[1],
     digest[2],
