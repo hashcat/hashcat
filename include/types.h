@@ -3133,6 +3133,7 @@ typedef struct user_options
   const char  *rule_buf_l;
   const char  *rule_buf_r;
   const char  *session;
+  char        *session_alloc;
   char        *encrypt_with_pubkey;
   u32          attack_mode;
 
