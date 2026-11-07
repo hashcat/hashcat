@@ -328,7 +328,7 @@ DECLSPEC int asrep_early_check (LOCAL_AS u32 *S, const u32 edata2_2, const u32 e
 
   RC4_STEP_BYTE_CARRIED (tmp);
 
-  if ((((u32) tmp ^ edata2_2) & 0xff) != 0x79) return 0;
+  if ((((u32) tmp ^ edata2_2) & 0xff) != 0x79 && (((u32) tmp ^ edata2_2) & 0xff) != 0x7a) return 0;
 
   RC4_STEP_BYTE (tmp);
 
