@@ -31,6 +31,10 @@ static const char *ST_HASH        = "$krb5pa$17$hashcat$HASHCATDOMAIN.COM$a17776
 
 #include "hooks_common.c"
 
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_EDATA2_LEN 20480
+
 typedef struct krb5pa_17
 {
   u32 user[128];
@@ -94,7 +98,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
    * format 1: $krb5pa$17$user$realm$enc_timestamp+checksum           (single field)
    * format 2: $krb5pa$17$user$realm$$enc_timestamp+checksum          (empty salt)
    * format 3: $krb5pa$17$user$realm$salt$enc_timestamp+checksum      (explicit salt)
-   * format 4: $krb5pa$17$user$realm$checksum$encrypted               (split fields)
+   * format 4: $krb5pa$17$user$realm$checksum$edata2               (split fields)
    */
 
   int sep_cnt = 0;
@@ -108,12 +112,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[1]     = '$';
   token.len_min[1] = 1;
-  token.len_max[1] = 512;
+  token.len_max[1] = MAX_USER_LEN;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
   token.len_min[2] = 1;
-  token.len_max[2] = 512;
+  token.len_max[2] = MAX_REALM_LEN;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   if (sep_cnt >= 6)
@@ -152,7 +156,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   {
     if (sep_cnt == 6)
     {
-      // format 4: $krb5pa$17$user$realm$checksum(24)$encrypted(80-88)
+      // format 4: $krb5pa$17$user$realm$checksum(24)$edata2(80-88)
       krb5pa->format = 4;
 
       token.token_cnt  = 5;

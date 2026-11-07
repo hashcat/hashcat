@@ -31,11 +31,15 @@ static const char *ST_HASH        = "$krb5asrep$23$user@domain.com:3e156ada59126
 
 #include "hooks_common.c"
 
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_EDATA2_LEN 20480
+
 typedef struct krb5asrep
 {
   u32 account_info[512];
   u32 checksum[4];
-  u32 edata2[5120];
+  u32 edata2[MAX_EDATA2_LEN / 4];
   u32 edata2_len;
   u32 format;
   u32 user[128];
@@ -106,10 +110,10 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-    /**
-   * format 1: $krb5asrep$23$user@realm:checksum$encrypted  (Impacket GetNPUsers)
-   * format 2: $krb5asrep$user@realm:checksum$encrypted     (no etype prefix)
-   * format 3: $krb5asrep$23$user$realm$checksum$encrypted
+  /**
+   * format 1: $krb5asrep$23$user@realm:checksum$edata2  (Impacket GetNPUsers)
+   * format 2: $krb5asrep$user@realm:checksum$edata2     (no etype prefix)
+   * format 3: $krb5asrep$23$user$realm$checksum$edata2
    */
 
   if (line_len < (int) strlen (SIGNATURE_KRB5ASREP)) return (PARSER_SALT_LENGTH);
@@ -123,7 +127,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   if ((line_len > (token.len[0] + 2))
    && (line_buf[token.len[0]] == '2') && (line_buf[token.len[0] + 1] == '3') && (line_buf[token.len[0] + 2] == '$'))
   {
-    // format 1: $krb5asrep$23$user@realm:checksum$encrypted  (Impacket GetNPUsers)
+    // format 1: $krb5asrep$23$user@realm:checksum$edata2  (Impacket GetNPUsers)
 
     krb5asrep->format = 1;
 
@@ -131,7 +135,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    // format 2: $krb5asrep$user@realm:checksum$encrypted  (no etype prefix)
+    // format 2: $krb5asrep$user@realm:checksum$edata2  (no etype prefix)
 
     krb5asrep->format = 2;
   }
@@ -146,7 +150,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if (account_info_stop == NULL && krb5asrep->format == 1)
   {
-    // format 3: $krb5asrep$23$user$realm$checksum$encrypted
+    // format 3: $krb5asrep$23$user$realm$checksum$edata2
 
     krb5asrep->format = 3;
 
@@ -174,7 +178,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[5]     = '$';
     token.len_min[5] = 64;
-    token.len_max[5] = 40958;
+    token.len_max[5] = (MAX_EDATA2_LEN - 1) * 2;
     token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
@@ -262,7 +266,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[4]     = '$';
     token.len_min[4] = 64;
-    token.len_max[4] = 40958;
+    token.len_max[4] = (MAX_EDATA2_LEN - 1) * 2;
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
@@ -285,7 +289,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[3]     = '$';
     token.len_min[3] = 64;
-    token.len_max[3] = 40958;
+    token.len_max[3] = (MAX_EDATA2_LEN - 1) * 2;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }

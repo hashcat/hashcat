@@ -33,6 +33,10 @@ static const char *ST_HASH        = "$krb5asrep$18$user$EXAMPLE.COM$aa4c494f520b
 #include "hooks_common.c"
 
 // Struct to store the hash structure - same fields as TGS-REP type 18
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
+#define MAX_EDATA2_LEN 20480
+
 typedef struct krb5asrep_18
 {
   u32 user[128];
@@ -41,7 +45,7 @@ typedef struct krb5asrep_18
   u32 account_info_len;
 
   u32 checksum[3];
-  u32 edata2[5120];
+  u32 edata2[MAX_EDATA2_LEN / 4];
   u32 edata2_len;
   u32 format;
 
@@ -149,13 +153,13 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     // user
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 512;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     // realm
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = 512;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     // checksum
@@ -168,7 +172,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     // edata2
     token.sep[4]     = '$';
     token.len_min[4] = 64;
-    token.len_max[4] = 40960;
+    token.len_max[4] = MAX_EDATA2_LEN * 2;
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
@@ -177,13 +181,13 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     // salt
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 512;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     // edata2
     token.sep[2]     = '$';
     token.len_min[2] = 64;
-    token.len_max[2] = 40960;
+    token.len_max[2] = MAX_EDATA2_LEN * 2;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
@@ -236,7 +240,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     memcpy (krb5asrep->account_info, salt_pos, account_info_len);
 
-    /**
+  /**
      * JtR format only has the final salt/account_info value (combination of
      * user and domain), rather than separate "user" and "domain" values. Since
      * user and domain won't be used for the JtR format, their values won't
