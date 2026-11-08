@@ -37,7 +37,7 @@ static const char *SIGNATURE_KRB5TGS = "$krb5tgs$3$";
 // the kernel assembles the password and the salt in a 256 byte buffer, so the two limits have to
 // stay within it together
 
-#define MAX_SALT_LEN 128
+#define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
 
@@ -47,10 +47,10 @@ typedef struct krb5tgs_3
 {
   u32 account_info[512];
 
-  u32 user[MAX_SALT_LEN / 4];
-  u32 realm[MAX_SALT_LEN / 4];
+  u32 user[128];
+  u32 realm[128];
 
-  u32 salt_buf[MAX_SALT_LEN / 4];
+  u32 salt_buf[MAX_DES_SALT_LEN / 4];
   u32 salt_len;
 
   u32 checksum[4];
@@ -189,12 +189,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.len_max[1] = 511;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.len_max[2] = 511;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -223,7 +223,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if ((user_len < 1) || (realm_len < 1)) return (PARSER_SALT_LENGTH);
 
-  if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
+  if ((user_len + realm_len) > MAX_DES_SALT_LEN) return (PARSER_SALT_LENGTH);
 
   memcpy (krb5tgs->user,  user_pos,  user_len);
   memcpy (krb5tgs->realm, realm_pos, realm_len);

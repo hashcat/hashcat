@@ -34,7 +34,7 @@ static const char *ST_HASH        = "$krb5tgs$1$user$realm$0a47b86e58028355b853b
 
 static const char *SIGNATURE_KRB5TGS = "$krb5tgs$1$";
 
-#define MAX_SALT_LEN 128
+#define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
 
@@ -43,11 +43,11 @@ static const char *SIGNATURE_KRB5TGS = "$krb5tgs$1$";
 typedef struct krb5tgs_1
 {
   u32 account_info[512];
-  u32 user[MAX_SALT_LEN / 4];
-  u32 realm[MAX_SALT_LEN / 4];
+  u32 user[128];
+  u32 realm[128];
   u32 format;
 
-  u32 salt_buf[MAX_SALT_LEN / 4];
+  u32 salt_buf[MAX_DES_SALT_LEN / 4];
   u32 salt_len;
 
   u32 checksum[4];
@@ -184,12 +184,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = MAX_SALT_LEN - 1;
+    token.len_max[1] = 511;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = MAX_SALT_LEN - 1;
+    token.len_max[2] = 511;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -218,7 +218,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   if ((user_len < 1) || (realm_len < 1)) return (PARSER_SALT_LENGTH);
 
-  if ((user_len + realm_len) > MAX_SALT_LEN) return (PARSER_SALT_LENGTH);
+  if ((user_len + realm_len) > MAX_DES_SALT_LEN) return (PARSER_SALT_LENGTH);
 
   memcpy (krb5tgs->user,  user_pos,  user_len);
   memcpy (krb5tgs->realm, realm_pos, realm_len);
