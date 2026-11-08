@@ -110,12 +110,6 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     combinator_ctx->combs_cnt = words2_cnt;
 
-    // The larger wordlist should be the base: the base word is hashed into the context once and the
-    // amplifier is appended per candidate, so the side with more words is the one worth doing once.
-    // This was limited to optimized kernels; slow (OUTSIDE_KERNEL) hashes share amp_a1.cl, which
-    // already honors every combs_mode, so they can swap too. Fast pure kernels stay out until their
-    // per-mode _a1-pure.cl all handle the swapped (BASE_RIGHT) order.
-
     // The swap is safe only when the running kernel assembles the candidate in the swapped order.
     // An optimized kernel does, a slow (OUTSIDE_KERNEL) hash does through the shared amp_a1.cl, and
     // a fast pure kernel does once its _a1-pure.cl is converted and the module sets the opt-in flag.

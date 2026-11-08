@@ -4852,7 +4852,9 @@ DECLSPEC u32 combs_assemble_1x64_le_S (GLOBAL_AS const pw_t *combs_buf, const u3
 
     combs_append_1x64_le_S (out, amp_len, tmp);
 
-    return amp_len + base_len;
+    const u32 len = amp_len + base_len;
+
+    return len;
   }
 
   // the base word and one piece behind it, which is what every attack mode other than -a 12 has
@@ -4941,7 +4943,9 @@ DECLSPEC u32 combs_assemble_1x64_be_S (GLOBAL_AS const pw_t *combs_buf, const u3
 
     combs_append_1x64_be_S (out, amp_len, tmp);
 
-    return amp_len + base_len;
+    const u32 len = amp_len + base_len;
+
+    return len;
   }
 
   // the base word and one piece behind it, which is what every attack mode other than -a 12 has
