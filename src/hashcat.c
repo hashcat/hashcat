@@ -2427,6 +2427,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   if (user_options_check_files (hashcat_ctx) == -1) return -1;
 
   /**
+   * A mask on the command line is parsed before the backend is set up and the hashes are loaded
+   */
+
+  if (mask_ctx_check_arg (hashcat_ctx) == -1) return -1;
+
+  /**
    * Load bridge a bit too early actually, but we need to know the unit count so we can automatically configure virtualization for the user
    */
 

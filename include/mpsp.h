@@ -63,6 +63,7 @@ void  mask_ctx_lookup_report  (hashcat_ctx_t *hashcat_ctx);
 void  combi_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx);
 
 int   mask_ctx_update_loop    (hashcat_ctx_t *hashcat_ctx);
+int   mask_ctx_check_arg      (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
 void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx);

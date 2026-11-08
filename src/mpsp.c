@@ -883,29 +883,12 @@ static void mp_reset_usr (cs_t *mp_usr, const u32 userindex)
   memset (mp_usr[userindex].cs_buf, 0, sizeof (mp_usr[userindex].cs_buf));
 }
 
-// The characters a mask allows at each of its positions. A feed that filters what it produces by a
-// mask, or tests a candidate against one, wants the charsets rather than the candidate generator, and
-// this is the second and last part of the mask processor a plugin may reach.
-//
-// It is the same parser -a 3 uses, so ?a, a custom charset given with -1 through -8, a charset read
-// from a file and an uppercase only hash mode all mean here what they mean there. Writing a second
-// parser instead is how the two come to disagree about what a mask says.
+// One mask through the parser a round of the attack uses, on charsets of its own, leaving the mask
+// context as it found it. mask_css_parse () below is one caller and mask_ctx_check_arg () the other.
 
-HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, const u32 css_max, u32 *css_cnt)
+static int mp_css_parse_detached (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, u32 *css_cnt, const bool markers_allowed)
 {
-  if (hashcat_ctx == NULL) return -1;
-
-  // The parser clears and fills a fixed 256 entries whatever the mask holds, so a caller that sized its
-  // buffer for the mask it wrote rather than for the parser would be written past. Asked for rather than
-  // assumed, because this is an entry point a feed outside this tree also calls.
-
-  if (css_max < 256) return -1;
-
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-  if (mask_ctx == NULL) return -1;
-
-  if (hashcat_ctx->hashconfig == NULL) return -1;
 
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -961,10 +944,10 @@ HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, 
     rc = -1;
   }
 
-  // A ?w or a ?q says where a word goes, which is a question a hybrid attack asks. Nothing is being
-  // placed here, so a marker would quietly stand for no position at all.
+  // A ?w or a ?q says where a word goes, which is a question a hybrid attack asks. A caller that places
+  // no word asks for them to be refused, because a marker would quietly stand for no position at all.
 
-  if ((rc == 0) && ((mask_ctx->has_w == true) || (mask_ctx->has_q == true)))
+  if ((rc == 0) && (markers_allowed == false) && ((mask_ctx->has_w == true) || (mask_ctx->has_q == true)))
   {
     event_log_error (hashcat_ctx, "This mask cannot carry a ?w or a ?q, because it selects candidates rather than placing a word.");
 
@@ -978,6 +961,33 @@ HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, 
 
   hcfree (mp_sys);
   hcfree (mp_usr);
+
+  return rc;
+}
+
+// The characters a mask allows at each of its positions. A feed that filters what it produces by a
+// mask, or tests a candidate against one, wants the charsets rather than the candidate generator, and
+// this is the second and last part of the mask processor a plugin may reach.
+//
+// It is the same parser -a 3 uses, so ?a, a custom charset given with -1 through -8, a charset read
+// from a file and an uppercase only hash mode all mean here what they mean there. Writing a second
+// parser instead is how the two come to disagree about what a mask says.
+
+HC_PLUGIN_API int mask_css_parse (hashcat_ctx_t *hashcat_ctx, const char *mask, cs_t *css_buf, const u32 css_max, u32 *css_cnt)
+{
+  if (hashcat_ctx == NULL) return -1;
+
+  // The parser clears and fills a fixed 256 entries whatever the mask holds, so a caller that sized its
+  // buffer for the mask it wrote rather than for the parser would be written past. Asked for rather than
+  // assumed, because this is an entry point a feed outside this tree also calls.
+
+  if (css_max < 256) return -1;
+
+  if (hashcat_ctx->mask_ctx == NULL) return -1;
+
+  if (hashcat_ctx->hashconfig == NULL) return -1;
+
+  const int rc = mp_css_parse_detached (hashcat_ctx, mask, css_buf, css_cnt, false);
 
   return rc;
 }
@@ -3350,6 +3360,99 @@ void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
     }
   }
+}
+
+// A mask typed on the command line is otherwise parsed only when its first round starts, which is after
+// the hashes are loaded, the bitmaps are built, every device is set up and the self-test has run. On a
+// big hash list or a box with many devices that is a long wait before a typo in the mask is reported.
+// This parses it at session start instead, the same way a round will, and changes nothing a round sees.
+
+int mask_ctx_check_arg (hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+  if (user_options->hash_info     > 0)    return 0;
+
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->benchmark    == true) return 0;
+
+  // --hex-charset reads every literal of the mask as hex, and the flag that says so is set when the
+  // hash-mode is loaded, which has not happened yet. Such a mask is checked when its round starts.
+
+  if (user_options->hex_charset == true) return 0;
+
+  // The mask is found where mask_ctx_init () finds it.
+
+  const mask_feed_kind_t feed_kind = mask_feed_kind (user_options);
+
+  const bool is_mask   = (user_options->attack_mode == ATTACK_MODE_BF)     || (feed_kind == MASK_FEED_MASK);
+  const bool is_hybrid = (user_options->attack_mode == ATTACK_MODE_HYBRID) || (feed_kind == MASK_FEED_HYBRID);
+
+  if ((is_mask == false) && (is_hybrid == false)) return 0;
+
+  const int mask_at = (feed_kind == MASK_FEED_NONE) ? 0 : 1;
+
+  if (mask_at >= user_options_extra->hc_workc) return 0;
+
+  const char *arg = user_options_extra->hc_workv[mask_at];
+
+  // A mask file is read when the queue is built, and each of its lines can carry charsets of its own,
+  // so its masks are left to the check each one gets when its round starts.
+
+  if (hc_path_exist (arg) == true) return 0;
+
+  // -a 6 and -a 7 have their ?w put on when the mask joins the queue, in mask_append_final (), and it
+  // is put on here in the same way. Without it -a 12 would refuse each of them for having no ?w.
+
+  char *mask = NULL;
+
+  if (user_options->marker_policy == MARKER_POLICY_NONE)
+  {
+    mask = hcstrdup (arg);
+  }
+  else
+  {
+    const int mask_len = (user_options->marker_policy == MARKER_POLICY_PREFIX_W) ? hc_asprintf (&mask, "?w%s", arg) : hc_asprintf (&mask, "%s?w", arg);
+
+    if (mask_len == -1) return -1;
+
+    if (mask_len >= 256)
+    {
+      event_log_error (hashcat_ctx, "%s: mask is too long.", arg);
+
+      hcfree (mask);
+
+      status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+      return -1;
+    }
+  }
+
+  if (mask == NULL) return -1;
+
+  cs_t *css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+
+  u32 css_cnt = 0;
+
+  const int rc = (css_buf == NULL) ? -1 : mp_css_parse_detached (hashcat_ctx, mask, css_buf, &css_cnt, true);
+
+  hcfree (css_buf);
+  hcfree (mask);
+
+  if (rc == 0) return 0;
+
+  // A custom charset that failed to load has already said which kind of failure it was. What is left
+  // is the mask, and a mask on the command line is part of the command.
+
+  if (status_ctx->rc_error == RC_FINAL_OK) status_set_rc_error (hashcat_ctx, RC_FINAL_ERROR_COMMAND);
+
+  return -1;
 }
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
