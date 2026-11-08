@@ -207,25 +207,35 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5db->account_info_len = account_info_len;
 
-  // salt - copy enough of account_info for dedup (realm + user can exceed 16 bytes)
-
-  const int ai_words = (account_info_len + 3) / 4;
-
-  for (int i = 0; i < ai_words && i < 64; i++)
-  {
-    salt->salt_buf[i] = krb5db->account_info[i];
-  }
-
-  salt->salt_len = account_info_len;
-
-  salt->salt_iter = 4096 - 1;
-
   // digest
 
   digest[0] = byte_swap_32 (hex_to_u32 (checksum_pos +  0));
   digest[1] = byte_swap_32 (hex_to_u32 (checksum_pos +  8));
   digest[2] = byte_swap_32 (hex_to_u32 (checksum_pos + 16));
   digest[3] = byte_swap_32 (hex_to_u32 (checksum_pos + 24));
+
+  // salt
+
+  if (account_info_len > 256)
+  {
+    salt->salt_buf[0] = digest[0];
+    salt->salt_buf[1] = digest[1];
+    salt->salt_buf[2] = digest[2];
+    salt->salt_buf[3] = digest[3];
+
+    salt->salt_len = 16;
+  }
+  else
+  {
+    const int ai_words = (account_info_len + 3) / 4;
+
+    for (int i = 0; i < ai_words; i++)
+      salt->salt_buf[i] = krb5db->account_info[i];
+
+    salt->salt_len = account_info_len;
+  }
+
+  salt->salt_iter = 4096 - 1;
 
   return (PARSER_OK);
 }

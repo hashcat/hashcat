@@ -24,7 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5pa$18$hashcat$HASHCATDOMAIN.COM$96c289009b05181bfd32062962740b1b1ce5f74eb12e0266cde74e81094661addab08c0c1a178882c91a0ed89ae4e0e68d2820b9cce69770";
@@ -60,6 +61,11 @@ typedef struct krb5pa_18_tmp
 } krb5pa_18_tmp_t;
 
 static const char *SIGNATURE_KRB5PA = "$krb5pa$18$";
+
+static u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
+}
 
 static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -277,11 +283,23 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5pa->enc_timestamp_len = data_len / 2;
 
-  salt->salt_buf[0] = krb5pa->checksum[0];
-  salt->salt_buf[1] = krb5pa->checksum[1];
-  salt->salt_buf[2] = krb5pa->checksum[2];
+  if (krb5pa->account_info_len > 256)
+  {
+    salt->salt_buf[0] = krb5pa->checksum[0];
+    salt->salt_buf[1] = krb5pa->checksum[1];
+    salt->salt_buf[2] = krb5pa->checksum[2];
 
-  salt->salt_len = 12;
+    salt->salt_len = 12;
+  }
+  else
+  {
+    const int account_info_words = (krb5pa->account_info_len + 3) / 4;
+
+    for (int i = 0; i < account_info_words; i++)
+      salt->salt_buf[i] = krb5pa->account_info[i];
+
+    salt->salt_len = krb5pa->account_info_len;
+  }
 
   salt->salt_iter = 4096 - 1;
 
@@ -366,6 +384,7 @@ void module_init (module_ctx_t *module_ctx)
   module_init_common (module_ctx);
 
   module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_tmp_size                 = module_tmp_size;

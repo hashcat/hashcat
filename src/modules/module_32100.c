@@ -25,7 +25,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5asrep$17$user$EXAMPLE.COM$a419c4030e555734b06c2629$c09a1421f96eb126c757a4b87830381f142477d9a85b2beb3093dbfd44f38ddb6016a479537fb7b36e046315869fe79187217971ff6a12c1e0a2df3f68045e03814b21f756d8981f781803d65e8572823c88979581d93cf7d768f2efced16f3719b8d1004d9e73d798de255383476bced47d1982f16be77d0feb55a1f44f58bd013fa4caee58ac614caf0f1cf9101ec9623c5b8c2a1491b73f134f074790088fdb360b5ebce0d32a8145ed00a81ddf77188e150b92d8e8ddd0285d27f1514253e5546e6bba864b362bb1e6483b26d08fa4cc268bfbefe0f690039bcc524b774599df3680c1c3431d891bfa99514a877f964e";
@@ -77,6 +78,11 @@ static bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig
   }
 
   return false;
+}
+
+static u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
 }
 
 static u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -302,11 +308,23 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5asrep->edata2_len = data_len / 2;
 
-  salt->salt_buf[0] = krb5asrep->checksum[0];
-  salt->salt_buf[1] = krb5asrep->checksum[1];
-  salt->salt_buf[2] = krb5asrep->checksum[2];
+  if (krb5asrep->account_info_len > 256)
+  {
+    salt->salt_buf[0] = krb5asrep->checksum[0];
+    salt->salt_buf[1] = krb5asrep->checksum[1];
+    salt->salt_buf[2] = krb5asrep->checksum[2];
 
-  salt->salt_len = 12;
+    salt->salt_len = 12;
+  }
+  else
+  {
+    const int account_info_words = (krb5asrep->account_info_len + 3) / 4;
+
+    for (int i = 0; i < account_info_words; i++)
+      salt->salt_buf[i] = krb5asrep->account_info[i];
+
+    salt->salt_len = krb5asrep->account_info_len;
+  }
 
   salt->salt_iter = 4096 - 1;
 
@@ -365,6 +383,7 @@ void module_init (module_ctx_t *module_ctx)
   module_init_common (module_ctx);
 
   module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_deep_comp_kernel         = module_deep_comp_kernel;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_tmp_size                 = module_tmp_size;
