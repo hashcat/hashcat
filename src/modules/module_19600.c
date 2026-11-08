@@ -35,13 +35,15 @@ static const char *ST_HASH        = "$krb5tgs$17$srv_http$synacktiv.local$849e31
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 12
+#define MAX_KDC_SALT_LEN 1022
 #define MAX_EDATA2_LEN 20480
 
 typedef struct krb5tgs_17
 {
   u32 user[128];
   u32 realm[128];
-  u32 kdc_salt[512];
+  u32 kdc_salt[256];
   u32 kdc_salt_len;
 
   u32 checksum[3];

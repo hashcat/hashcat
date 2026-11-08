@@ -36,6 +36,8 @@ static const char *SIGNATURE_KRB5ASREP = "$krb5asrep$1$";
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_KDC_SALT_LEN 1022
 #define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64

@@ -34,6 +34,8 @@ static const char *ST_HASH        = "$krb5asrep$23$user@domain.com:3e156ada59126
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_RAW_TOKEN_LEN 2048
 #define MAX_EDATA2_LEN 20480
 
 typedef struct krb5asrep
@@ -395,7 +397,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   const krb5asrep_t *krb5asrep = (const krb5asrep_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
+  char *data = (char *) hcmalloc ((MAX_EDATA2_LEN * 2) + 1);
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {

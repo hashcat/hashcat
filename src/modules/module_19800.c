@@ -34,24 +34,25 @@ static const char *ST_HASH        = "$krb5pa$17$hashcat$HASHCATDOMAIN.COM$a17776
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 12
+#define MAX_ENC_TS_LEN 128
+#define MAX_KDC_SALT_LEN 1022
 
 typedef struct krb5pa_17
 {
   u32 user[128];
   u32 realm[128];
-  u32 kdc_salt[512];
+  u32 kdc_salt[256];
   u32 kdc_salt_len;
 
   u32 checksum[3];
-  u32 enc_timestamp[32];
+  u32 enc_timestamp[MAX_ENC_TS_LEN / 4];
   u32 enc_timestamp_len;
 
   u32 format;
 
 } krb5pa_17_t;
 
-#define MAX_USER_LEN  511
-#define MAX_REALM_LEN 511
 
 typedef struct krb5pa_17_tmp
 {

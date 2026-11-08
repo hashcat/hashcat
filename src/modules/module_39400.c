@@ -35,13 +35,16 @@ static const char *ST_HASH        = "$krb5pa$23$user$realm$b3515d146dc326af0fd88
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_RAW_TOKEN_LEN 256
+#define MAX_ENC_TS_LEN 64
 
 typedef struct krb5pa
 {
   u32 user[128];
   u32 realm[128];
   u32 raw_token[64];
-  u32 enc_timestamp[16];
+  u32 enc_timestamp[MAX_ENC_TS_LEN / 4];
   u32 checksum[4];
   u32 enc_timestamp_len;
   u32 format;

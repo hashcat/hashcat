@@ -34,6 +34,8 @@ static const char *ST_HASH        = "$krb5asrep$23$user@domain.com:3e156ada59126
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_RAW_TOKEN_LEN 2048
 #define MAX_EDATA2_LEN 20480
 
 typedef struct krb5asrep
@@ -124,7 +126,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-    /**
+  /**
    * format 1: $krb5asrep$23$user@realm:checksum$edata2  (Impacket GetNPUsers)
    * format 2: $krb5asrep$user@realm:checksum$edata2     (no etype prefix)
    * format 3: $krb5asrep$23$user$realm$checksum$edata2

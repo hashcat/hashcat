@@ -34,6 +34,8 @@ static const char *ST_HASH        = "$krb5tgs$23$*user$realm$test/spn*$b548e10f5
 
 #define MAX_USER_LEN  511
 #define MAX_REALM_LEN 511
+#define MAX_CHECKSUM_LEN 16
+#define MAX_RAW_TOKEN_LEN 2048
 #define MAX_EDATA2_LEN 20480
 
 typedef struct krb5tgs

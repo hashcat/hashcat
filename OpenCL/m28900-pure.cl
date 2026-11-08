@@ -22,7 +22,7 @@ typedef struct krb5db_18
 {
   u32 user[128];
   u32 realm[128];
-  u32 kdc_salt[512];
+  u32 kdc_salt[256];
   u32 kdc_salt_len;
 
 } krb5db_18_t;
