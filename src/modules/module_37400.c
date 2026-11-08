@@ -24,7 +24,8 @@ static const u64   KERN_TYPE      = 37400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PT_ALWAYS_ASCII;
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat12";
 static const char *ST_HASH        = "HASHCAT*0BB703A26E8B0BC7C4";

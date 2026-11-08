@@ -5539,7 +5539,12 @@ def edge_single_cmd(ctx, word, word_len, i, tmp):
     f2  = pfx + ".2.word"
 
     _w(f1, word[:off] + b"\n")
-    _w(f2, word[off:] + b"\n")
+
+    # dict2 gets the tail twice so it is longer than dict1 (one head): a swap-capable mode then takes
+    # dict2 as the base and assembles the candidate in BASE_RIGHT order, which the equal-length split
+    # never reaches. Both lines are the same tail, so the only candidate is still the whole word and
+    # the expected crack is unchanged; a mode that cannot swap is unaffected.
+    _w(f2, word[off:] + b"\n" + word[off:] + b"\n")
 
     return [f1, f2], None
 

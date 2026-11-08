@@ -53,17 +53,32 @@ KERNEL_FQ KERNEL_FA void m11500_mxx (KERN_ATTR_BASIC ())
     // pieces: mask, base word, mask, second word, mask. The state precomputed outside this loop ends
     // with the base word and is only reusable while the base word still starts the candidate.
 
-    u32x a_pre = a_ref;
+    // -a 1 may choose the larger wordlist as the base word source (BASE_RIGHT), which puts the
+    // amplifier in front of the base word. CRC is order dependent, so recompute from the initial
+    // value with the amplifier first and the base word after.
 
-    if (COMBS_IS_MIDDLE)
+    u32x a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      a_pre = crc32_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv);
-      a_pre = crc32_global (pws[gid].i,            pws[gid].pw_len,            a_pre);
-      a_pre = crc32_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre);
-      a_pre = crc32_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre);
-    }
+      u32x a_pre = crc32_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, iv);
 
-    u32x a = crc32_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre);
+      a = crc32_global (pws[gid].i, pws[gid].pw_len, a_pre);
+    }
+    else
+    {
+      u32x a_pre = a_ref;
+
+      if (COMBS_IS_MIDDLE)
+      {
+        a_pre = crc32_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv);
+        a_pre = crc32_global (pws[gid].i,            pws[gid].pw_len,            a_pre);
+        a_pre = crc32_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre);
+        a_pre = crc32_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre);
+      }
+
+      a = crc32_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre);
+    }
 
     u32x z = 0;
 
@@ -121,17 +136,32 @@ KERNEL_FQ KERNEL_FA void m11500_sxx (KERN_ATTR_BASIC ())
     // pieces: mask, base word, mask, second word, mask. The state precomputed outside this loop ends
     // with the base word and is only reusable while the base word still starts the candidate.
 
-    u32x a_pre = a_ref;
+    // -a 1 may choose the larger wordlist as the base word source (BASE_RIGHT), which puts the
+    // amplifier in front of the base word. CRC is order dependent, so recompute from the initial
+    // value with the amplifier first and the base word after.
 
-    if (COMBS_IS_MIDDLE)
+    u32x a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
     {
-      a_pre = crc32_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv);
-      a_pre = crc32_global (pws[gid].i,            pws[gid].pw_len,            a_pre);
-      a_pre = crc32_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre);
-      a_pre = crc32_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre);
-    }
+      u32x a_pre = crc32_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, iv);
 
-    u32x a = crc32_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre);
+      a = crc32_global (pws[gid].i, pws[gid].pw_len, a_pre);
+    }
+    else
+    {
+      u32x a_pre = a_ref;
+
+      if (COMBS_IS_MIDDLE)
+      {
+        a_pre = crc32_global (COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len, iv);
+        a_pre = crc32_global (pws[gid].i,            pws[gid].pw_len,            a_pre);
+        a_pre = crc32_global (COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len, a_pre);
+        a_pre = crc32_global (COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len, a_pre);
+      }
+
+      a = crc32_global (COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len, a_pre);
+    }
 
     u32x z = 0;
 

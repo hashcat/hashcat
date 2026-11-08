@@ -23,7 +23,8 @@ static const u64   KERN_TYPE      = 39000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_COMBI_PURE_SWAP;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$krb5pa$3$user$realm$df8e4459369e8f512f827f8a55b552c2$4668bc8fd02db4118264d02c1c952b1018636eb1d3e0888ac5c860d9ee897b6ed71483dc0bbfa4d7";
