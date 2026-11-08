@@ -279,13 +279,23 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   krb5pa->enc_timestamp_len = data_len / 2;
 
-  const int account_info_words = (krb5pa->account_info_len + 3) / 4;
+  if (krb5pa->account_info_len > 256)
+  {
+    salt->salt_buf[0] = krb5pa->checksum[0];
+    salt->salt_buf[1] = krb5pa->checksum[1];
+    salt->salt_buf[2] = krb5pa->checksum[2];
 
-  for (int i = 0; i < account_info_words && i < 64; i++)
-    salt->salt_buf[i] = krb5pa->account_info[i];
+    salt->salt_len = 12;
+  }
+  else
+  {
+    const int account_info_words = (krb5pa->account_info_len + 3) / 4;
 
-  salt->salt_len = krb5pa->account_info_len;
+    for (int i = 0; i < account_info_words; i++)
+      salt->salt_buf[i] = krb5pa->account_info[i];
 
+    salt->salt_len = krb5pa->account_info_len;
+  }
 
   salt->salt_iter = 4096 - 1;
 
