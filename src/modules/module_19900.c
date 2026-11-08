@@ -38,7 +38,7 @@ static const char *ST_HASH        = "$krb5pa$18$hashcat$HASHCATDOMAIN.COM$96c289
 typedef struct krb5pa_18
 {
   u32 user[128];
-  u32 domain[128];
+  u32 realm[128];
   u32 account_info[512];
   u32 account_info_len;
 
@@ -179,12 +179,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
 
   const u8 *user_pos;
-  const u8 *domain_pos;
+  const u8 *realm_pos;
   const u8 *data_pos;
   const u8 *checksum_pos;
 
   int user_len;
-  int domain_len;
+  int realm_len;
   int data_len;
   int account_info_len;
 
@@ -193,10 +193,10 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   memcpy (krb5pa->user, user_pos, user_len);
 
-  domain_pos = token.buf[2];
-  domain_len = token.len[2];
+  realm_pos = token.buf[2];
+  realm_len = token.len[2];
 
-  memcpy (krb5pa->domain, domain_pos, domain_len);
+  memcpy (krb5pa->realm, realm_pos, realm_len);
 
   u8 *account_info_ptr = (u8 *) krb5pa->account_info;
 
@@ -218,15 +218,15 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
   else
   {
-    u8 domain[512];
+    u8 realm[512];
 
-    memcpy (domain, domain_pos, domain_len);
-    uppercase (domain, domain_len);
+    memcpy (realm, realm_pos, realm_len);
+    uppercase (realm, realm_len);
 
     account_info_len = token.len[2] + token.len[1];
 
-    memcpy (account_info_ptr, domain, domain_len);
-    memcpy (account_info_ptr + domain_len, user_pos, user_len);
+    memcpy (account_info_ptr, realm, realm_len);
+    memcpy (account_info_ptr + realm_len, user_pos, user_len);
 
     if (krb5pa->format == 4)
     {
@@ -313,7 +313,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x$%s",
       SIGNATURE_KRB5PA,
       (const char *) krb5pa->user,
-      (const char *) krb5pa->domain,
+      (const char *) krb5pa->realm,
       krb5pa->checksum[0],
       krb5pa->checksum[1],
       krb5pa->checksum[2],
@@ -328,7 +328,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s%08x%08x%08x",
       SIGNATURE_KRB5PA,
       (const char *) krb5pa->user,
-      (const char *) krb5pa->domain,
+      (const char *) krb5pa->realm,
       salt_str,
       data,
       krb5pa->checksum[0],
@@ -340,7 +340,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     line_len = snprintf (line_buf, line_size, "%s%s$%s$$%s%08x%08x%08x",
       SIGNATURE_KRB5PA,
       (const char *) krb5pa->user,
-      (const char *) krb5pa->domain,
+      (const char *) krb5pa->realm,
       data,
       krb5pa->checksum[0],
       krb5pa->checksum[1],
@@ -351,7 +351,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%s%08x%08x%08x",
       SIGNATURE_KRB5PA,
       (const char *) krb5pa->user,
-      (const char *) krb5pa->domain,
+      (const char *) krb5pa->realm,
       data,
       krb5pa->checksum[0],
       krb5pa->checksum[1],

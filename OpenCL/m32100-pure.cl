@@ -18,7 +18,7 @@
 typedef struct krb5asrep_17
 {
   u32 user[128];
-  u32 domain[128];
+  u32 realm[128];
   u32 account_info[512];
   u32 account_info_len;
 
