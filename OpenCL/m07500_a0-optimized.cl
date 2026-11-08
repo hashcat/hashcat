@@ -21,10 +21,10 @@
 
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
+  u32 user[128];
+  u32 realm[128];
   u32 salt[64];
-  u32 timestamp[16];
+  u32 enc_timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;
   u32 format;
@@ -318,14 +318,14 @@ KERNEL_FQ KERNEL_FA void m07500_m04 (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[7];
 
   /**
    * shared
@@ -422,14 +422,14 @@ KERNEL_FQ KERNEL_FA void m07500_s04 (KERN_ATTR_RULES_ESALT (krb5pa_t))
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[0];
-  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[1];
-  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[2];
-  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[3];
-  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[4];
-  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[5];
-  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[6];
-  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].timestamp[7];
+  timestamp_ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[0];
+  timestamp_ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[1];
+  timestamp_ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[2];
+  timestamp_ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[3];
+  timestamp_ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[4];
+  timestamp_ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[5];
+  timestamp_ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[6];
+  timestamp_ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp[7];
 
   /**
    * shared

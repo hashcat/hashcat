@@ -35,10 +35,10 @@ static const char *ST_HASH        = "$krb5pa$23$user$realm$b3515d146dc326af0fd88
 
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
+  u32 user[128];
+  u32 realm[128];
   u32 salt[64];
-  u32 timestamp[16];
+  u32 enc_timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;
   u32 format;
@@ -120,12 +120,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[1]     = '$';
   token.len_min[1] = 0;
-  token.len_max[1] = 253;
+  token.len_max[1] = 511;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
   token.len_min[2] = 0;
-  token.len_max[2] = 253;
+  token.len_max[2] = 511;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]     = '$';
@@ -170,12 +170,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 0;
-    token.len_max[1] = 253;
+    token.len_max[1] = 511;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 0;
-    token.len_max[2] = 253;
+    token.len_max[2] = 511;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
@@ -205,7 +205,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     checksum_pos  = token.buf[5];
   }
 
-  u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
+  u8 *timestamp_ptr = (u8 *) krb5pa->enc_timestamp;
 
   for (int i = 0; i < 72; i += 2)
   {
@@ -227,15 +227,15 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
                     | hex_convert (p0) << 4;
   }
 
-  salt->salt_buf[0] = krb5pa->timestamp[0];
-  salt->salt_buf[1] = krb5pa->timestamp[1];
-  salt->salt_buf[2] = krb5pa->timestamp[2];
-  salt->salt_buf[3] = krb5pa->timestamp[3];
-  salt->salt_buf[4] = krb5pa->timestamp[4];
-  salt->salt_buf[5] = krb5pa->timestamp[5];
-  salt->salt_buf[6] = krb5pa->timestamp[6];
-  salt->salt_buf[7] = krb5pa->timestamp[7];
-  salt->salt_buf[8] = krb5pa->timestamp[8];
+  salt->salt_buf[0] = krb5pa->enc_timestamp[0];
+  salt->salt_buf[1] = krb5pa->enc_timestamp[1];
+  salt->salt_buf[2] = krb5pa->enc_timestamp[2];
+  salt->salt_buf[3] = krb5pa->enc_timestamp[3];
+  salt->salt_buf[4] = krb5pa->enc_timestamp[4];
+  salt->salt_buf[5] = krb5pa->enc_timestamp[5];
+  salt->salt_buf[6] = krb5pa->enc_timestamp[6];
+  salt->salt_buf[7] = krb5pa->enc_timestamp[7];
+  salt->salt_buf[8] = krb5pa->enc_timestamp[8];
 
   salt->salt_len = 36;
 
@@ -251,7 +251,7 @@ static int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
   const krb5pa_t *krb5pa = (const krb5pa_t *) esalt_buf;
 
-  const u8 *ptr_timestamp = (const u8 *) krb5pa->timestamp;
+  const u8 *ptr_timestamp = (const u8 *) krb5pa->enc_timestamp;
   const u8 *ptr_checksum  = (const u8 *) krb5pa->checksum;
 
   char checksum_hex[64] = { 0 };

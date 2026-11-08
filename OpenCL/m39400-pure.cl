@@ -28,10 +28,10 @@
 
 typedef struct krb5pa
 {
-  u32 user[64];
-  u32 realm[64];
+  u32 user[128];
+  u32 realm[128];
   u32 salt[64];
-  u32 timestamp[16];
+  u32 enc_timestamp[16];
   u32 checksum[4];
   u32 enc_timestamp_len;
 
@@ -164,12 +164,12 @@ KERNEL_FQ KERNEL_FA void m39400_comp (KERN_ATTR_TMPS_ESALT (pa_tmp_t, krb5pa_t))
     u32 out[4];
     u8 i = 0, j = 0;
 
-    j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].timestamp + 0, out, lid); i += 16;
+    j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp + 0, out, lid); i += 16;
 
 
     if ((out[3] & 0xffff0000) != 0x30320000) return;
 
-    j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].timestamp + 4, out, lid);
+    j = rc4_next_16_global (S, i, j, esalt_bufs[DIGESTS_OFFSET_HOST].enc_timestamp + 4, out, lid);
 
     if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return; out[0] >>= 8;
     if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return; out[0] >>= 8;
