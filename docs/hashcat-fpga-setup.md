@@ -304,7 +304,7 @@ unxz *.xz
 
 A board whose microcontroller holds no firmware at all appears as `04b4:8613`, the identity every blank Cypress FX2 shares, including logic analysers. hashcat does not upload into such a device on its own. It prints a warning naming the device instead, and `HCFPGA_ZTEX_WAKE=1` tells it to load `inouttraffic.ihx` into it.
 
-Before decompression, verify each file against the SHA-256 digest in `https://hashcat.net/bitstreams/manifest.json`.
+Before decompression, verify each file against the SHA-256 digest in `https://hashcat.net/bitstreams/v8/manifest.json`.
 
 These two files are not ours. They are prebuilt images from John the Ripper, redistributed unchanged, because the Spartan-6 they target is not supported by any toolchain we have. See `deps/ztex-bitstreams/README.md` for the provenance and `docs/license_libs/ZTEX_BITSTREAM_LICENSE.txt` for the terms, which differ between the two files.
 
@@ -566,17 +566,17 @@ Confirm access with `openFPGALoader --scan-usb`, which should identify the probe
 
 hashcat does **not** download bitstreams automatically. When a file is missing, the bridge reports the board, required file, installation directory, and relevant section of this guide. Use the commands below to download the files.
 
-Bitstreams are published at `https://hashcat.net/bitstreams/`. `manifest.json` records each SHA-256 digest. Files use XZ/LZMA compression and are named by algorithm and board:
+Bitstreams are published at `https://hashcat.net/bitstreams/`. Each set's `manifest.json` records the SHA-256 digest of every file. Files use XZ/LZMA compression and are named by algorithm and board:
 
 ```
-curl -O https://hashcat.net/bitstreams/manifest.json
+curl -O https://hashcat.net/bitstreams/v8/manifest.json
 
-curl -O https://hashcat.net/bitstreams/v7/bcrypt-zc706.bit.xz      # ZC706
-curl -O https://hashcat.net/bitstreams/v7/bcrypt-ypcb.bit.xz       # YPCB-00338-1P1
-curl -O https://hashcat.net/bitstreams/v7/bcrypt-enigmax1.bit.xz   # Enigma X1
-curl -O https://hashcat.net/bitstreams/v7/bcrypt-ztex213.bit.xz    # ZTEX 2.13
-curl -O https://hashcat.net/bitstreams/v7/bcrypt-artyz7.bin.xz     # Arty Z7-20
-curl -O https://hashcat.net/bitstreams/v7/bcrypt-u50.xclbin.xz     # Alveo U50
+curl -O https://hashcat.net/bitstreams/v8/bcrypt-zc706.bit.xz      # ZC706
+curl -O https://hashcat.net/bitstreams/v8/bcrypt-ypcb.bit.xz       # YPCB-00338-1P1
+curl -O https://hashcat.net/bitstreams/v8/bcrypt-enigmax1.bit.xz   # Enigma X1
+curl -O https://hashcat.net/bitstreams/v8/bcrypt-ztex213.bit.xz    # ZTEX 2.13
+curl -O https://hashcat.net/bitstreams/v8/bcrypt-artyz7.bin.xz     # Arty Z7-20
+curl -O https://hashcat.net/bitstreams/v8/bcrypt-u50.xclbin.xz     # Alveo U50
 ```
 
 The ZTEX 1.15y is an exception. Its two unmodified John the Ripper files target Spartan-6 devices and are published outside the versioned directory:
@@ -588,13 +588,13 @@ curl -O https://hashcat.net/bitstreams/ztex/ztex115y_bcrypt.bit.xz
 unxz inouttraffic.ihx.xz ztex115y_bcrypt.bit.xz
 ```
 
-Every bitstream and the firmware are published only as `.xz` URLs. The firmware's source sits beside them uncompressed, as `inouttraffic.c`, `inouttraffic.README` and `COPYING`, and the bitstream's design source as `ztex115y_bcrypt-source.tar.xz`. The licence terms of the versioned bitstreams are in `v7/LICENSES.txt`. Depending on server behavior, `curl -O` may save an error page when given an invalid URL, so verify the downloaded size and digest against `manifest.json` before use.
+Every bitstream and the firmware are published only as `.xz` URLs. The firmware's source sits beside them uncompressed, as `inouttraffic.c`, `inouttraffic.README` and `COPYING`, and the bitstream's design source as `ztex115y_bcrypt-source.tar.xz`. The licence terms of the versioned bitstreams are in `v8/LICENSES.txt`. Depending on server behavior, `curl -O` may save an error page when given an invalid URL, so verify the downloaded size and digest against `manifest.json` before use.
 
 **Installation paths.** Bitstreams for manually programmed boards may be stored anywhere because they are passed to openFPGALoader or copied to an SD card. Bitstreams that hashcat uploads must be installed in one of the search paths printed by the bridge.
 
-The top-level manifest covers all published files.
+Each set has its own `manifest.json` in its directory, covering the set's bitstreams and the ZTEX 1.15y files. The manifest at the top level belongs to set 7 and stays unchanged, so the files of an older hashcat release can still be checked.
 
-**The `v7` directory identifies a published set, not the wire protocol version.** A new set may change the design while retaining the protocol. Use the set named by your hashcat build.
+**The `v8` directory identifies a published set, not the wire protocol version.** A new set may change the design while retaining the protocol. Use the set named by your hashcat build.
 
 **An older file has to be replaced rather than kept.** The wire version is currently 4. Three things have changed and each one moved it.
 
@@ -608,7 +608,7 @@ ABI 4 changed the shape of what the host sends. A candidate record is eight byte
 
 The host now pads the batch up to a whole beat, and the board skips the padding. An ABI 3 design does not skip it. It reads the first padding word as a record header and stays out of step from then on. That is why this needed a new wire version rather than a quiet fix.
 
-Sets 6 and 7 retain ABI 4, so a set 5 design can still be compatible. Use set 7: it carries the gateware fixes of set 6, and its YPCB file runs two hashes per core. On boards that report their ABI, hashcat refuses a mismatch:
+Sets 6, 7 and 8 retain ABI 4, so a set 5 design can still be compatible. Use set 8: its LitePCIe boards are built with LiteX 2026.08, the LitePCIe release the kernel driver is built from, and its YPCB file runs two hashes per core. On boards that report their ABI, hashcat refuses a mismatch:
 
 ```
 FPGA bridge: Alveo U50 (PCIe xrt0) has a bitstream this build does not speak and will not be used.
@@ -1028,6 +1028,8 @@ The FPGA design does not control this allocation, and building a narrower link d
 # Building bitstreams from source
 
 Build bitstreams only when porting to another board or modifying gateware. The synthesis tree in `src/fpga/` is independent of the normal hashcat build. A standard build does not invoke or require Vivado.
+
+The published LitePCIe bitstreams are built with LiteX, LitePCIe and LiteX-Boards 2026.08, the release the kernel driver is taken from. `litex_setup.py --init --install --tag=2026.08` installs that release.
 
 ```
 make -C src/fpga bcrypt CORES=240
