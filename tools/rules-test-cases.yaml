@@ -429,6 +429,87 @@ saa:
     123b
     a123ba
 
+N0a@:
+  input: |
+    banana
+    aaa
+    xyz
+
+  expected_cpu: |
+    b@nana
+    @aa
+    xyz
+
+  expected_opencl: |
+    b@nana
+    @aa
+    xyz
+
+N1a@:
+  input: |
+    banana
+    aaa
+    abc
+
+  expected_cpu: |
+    ban@na
+    a@a
+    abc
+
+  expected_opencl: |
+    ban@na
+    a@a
+    abc
+
+N2a@:
+  input: |
+    banana
+    aaa
+
+  expected_cpu: |
+    banan@
+    aa@
+
+  expected_opencl: |
+    banan@
+    aa@
+
+N3a@:
+  input: |
+    banana
+    aaa
+
+  expected_cpu: |
+    banana
+    aaa
+
+  expected_opencl: |
+    banana
+    aaa
+
+NAa@:
+  input: |
+    aaaaaaaaaaaa
+    aaaaaaaaaa
+
+  expected_cpu: |
+    aaaaaaaaaa@a
+    aaaaaaaaaa
+
+  expected_opencl: |
+    aaaaaaaaaa@a
+    aaaaaaaaaa
+
+'N1\x61\x40':
+  input: |
+    banana
+
+  expected_cpu: |
+    ban@na
+
+  expected_opencl: |
+    ban@na
+
 
 '@a':
   input: |
@@ -920,37 +1001,37 @@ e-:
     p@ssW0rd
 
   expected_cpu: |
-    P@sSW0rD
+    P@ssW0rd
 
   expected_opencl: |
-    P@sSW0rD
+    P@ssW0rd
 
 '~e?u':
   input: |
     hAShcAt
 
   expected_cpu: |
-    HaSHcaT
+    HASHcAT
 
   expected_opencl: |
-    HaSHcaT
+    HASHcAT
 
 '~e?h':
   input: |
     aGbcD
 
   expected_cpu: |
-    AGbCD
+    AGbcD
 
   expected_opencl: |
-    AGbCD
+    AGbcD
 
 '~e?H':
   input: |
     abCDefGHij
 
   expected_cpu: |
-    AbcDEfghij
+    AbCDEfghij
 
   expected_opencl: |
-    AbcDEfghij
+    AbCDEfghij
