@@ -250,6 +250,19 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
           plain_len = pw.pw_len;
         }
+        else if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+        {
+          // A slow hash applies the rule in amp_a0.cl, which is apply_rules () whichever kernel hashes the
+          // candidate, and its module may admit a word longer than the 31 bytes apply_rules_optimized ()
+          // is written for (-m 400 -O takes 39). Rebuild it with the engine that built it on the device.
+
+          for (int i = 0; i < 64; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        }
         else
         {
           for (int i = 0; i < 8; i++)
