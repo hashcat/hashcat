@@ -155,7 +155,7 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
     token.len_min[4] = 64;
     token.len_max[4] = MAX_EDATA2_LEN * 2;
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
+                     | TOKEN_ATTR_VERIFY_HEX;
   }
   // assume $krb5tgs$18$user$realm$*spn*$checksum$edata2
   else

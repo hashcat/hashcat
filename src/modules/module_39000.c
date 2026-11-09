@@ -33,6 +33,8 @@ static const char *ST_HASH        = "$krb5pa$3$user$realm$df8e4459369e8f512f827f
 
 static const char *SIGNATURE_KRB5PA = "$krb5pa$3$";
 
+#define MAX_USER_LEN  511
+#define MAX_REALM_LEN 511
 #define MAX_DES_SALT_LEN 128
 
 #define MAX_PW_LEN    64
@@ -99,12 +101,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
   token.sep[1]     = '$';
   token.len_min[1] = 1;
-  token.len_max[1] = 511;
+  token.len_max[1] = MAX_USER_LEN;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]     = '$';
   token.len_min[2] = 1;
-  token.len_max[2] = 511;
+  token.len_max[2] = MAX_REALM_LEN;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]     = '$';
@@ -159,12 +161,12 @@ static int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
     token.sep[1]     = '$';
     token.len_min[1] = 1;
-    token.len_max[1] = 511;
+    token.len_max[1] = MAX_USER_LEN;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 1;
-    token.len_max[2] = 511;
+    token.len_max[2] = MAX_REALM_LEN;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.len_min[3] = 64;
